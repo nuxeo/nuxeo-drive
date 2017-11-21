@@ -5,12 +5,10 @@ user actions.
 """
 
 import os
-import sys
+
+import Cocoa
 
 from nxdrive.client.local_client import LocalClient
-
-if sys.platform == 'darwin':
-    import Cocoa
 
 
 class MockFile(object):

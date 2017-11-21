@@ -13,13 +13,13 @@ class MockUrlTestEngine(Engine):
 
     def get_binder(self):
         from nxdrive.manager import ServerBindingSettings
-        return ServerBindingSettings(server_url=self._url,
-                        web_authentication=None,
-                        server_version=None,
-                        username='Administrator',
-                        local_folder='/',
-                        initialized=True,
-                        pwd_update_required=False)
+        return ServerBindingSettings(
+            server_url=self._url,
+            web_authentication=None,
+            username='Administrator',
+            local_folder='/',
+            initialized=True,
+        )
 
 
 class TestDirectEdit(UnitTestCase):

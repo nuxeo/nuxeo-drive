@@ -1,6 +1,7 @@
 # coding: utf-8
 """ Common test utilities. """
 
+import itertools
 import os
 import random
 import struct
@@ -21,6 +22,7 @@ from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteFileSystemClient, RestAPIClient
 from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES, \
     DEFAULT_IGNORED_SUFFIXES
+from nxdrive.engine.engine import Engine
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.osi import AbstractOSIntegration
@@ -65,6 +67,11 @@ FILE_CONTENT = """
     Donec orci odio, luctus ut sagittis nec, congue sit amet ex. Donec arcu diam, fermentum ac porttitor consectetur,
     blandit et diam. Vivamus efficitur erat nec justo vestibulum fringilla. Mauris quis dictum elit, eget tempus ex.
     """
+
+# Remove features for tests
+Engine.register_folder_link = lambda *args: None
+LocalClient.has_folder_icon = lambda *args: True
+Manager._handle_os = lambda: None
 
 
 class RandomBugError(Exception):
@@ -299,23 +306,27 @@ class UnitTestCase(SimpleUnitTestCase):
         return LocalClient(path)
 
     def setUpApp(self, server_profile=None, register_roots=True):
+        if Manager._singleton:
+            Manager._singleton = None
+
         # Save the current path for test files
         self.location = dirname(__file__)
+
+        # Install callback early to be called the last
+        self.addCleanup(self._check_cleanup)
 
         # Check the Nuxeo server test environment
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL', 'http://localhost:8080/nuxeo')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD', 'Administrator')
-        self.build_workspace = os.environ.get('WORKSPACE')
         self.report_path = os.environ.get('REPORT_PATH')
         self.tearedDown = False
 
-        self.tmpdir = None
-        if self.build_workspace is not None:
-            self.tmpdir = os.path.join(self.build_workspace, 'tmp')
-            if not os.path.isdir(self.tmpdir):
-                os.makedirs(self.tmpdir)
-            self.addCleanup(clean_dir, self.tmpdir)
+        self.tmpdir = os.path.join(os.environ.get('WORKSPACE', ''), 'tmp')
+        self.addCleanup(clean_dir, self.tmpdir)
+        if not os.path.isdir(self.tmpdir):
+            os.makedirs(self.tmpdir)
+
         self.upload_tmp_dir = tempfile.mkdtemp(u'-nxdrive-uploads', dir=self.tmpdir)
 
         # Check the local filesystem test environment
@@ -361,6 +372,8 @@ class UnitTestCase(SimpleUnitTestCase):
         options.nxdrive_home = self.nxdrive_conf_folder_2
         Manager._singleton = None
         self.manager_2 = Manager(options)
+        self.addCleanup(self._stop_managers)
+
         self.version = __version__
         url = self.nuxeo_url
         log.debug("Will use %s as url", url)
@@ -424,7 +437,8 @@ class UnitTestCase(SimpleUnitTestCase):
         )
 
         # Register sync roots
-        if register_roots:
+        self.register_roots = register_roots
+        if self.register_roots:
             self.remote_document_client_1.register_as_root(self.workspace_1)
             self.remote_document_client_2.register_as_root(self.workspace_2)
 
@@ -651,15 +665,10 @@ class UnitTestCase(SimpleUnitTestCase):
         log.debug('TearDown unit test')
 
         # Unregister sync roots
-        self.root_remote_client.unregister_as_root(self.workspace_2)
-        self.root_remote_client.unregister_as_root(self.workspace_1)
+        if self.register_roots:
+            self.root_remote_client.unregister_as_root(self.workspace_2)
+            self.root_remote_client.unregister_as_root(self.workspace_1)
 
-        # Unbind all
-        self.manager_1.unbind_all()
-        self.manager_1.dispose_db()
-        self.manager_2.unbind_all()
-        self.manager_2.dispose_db()
-        Manager._singleton = None
         self.tearDownServer(server_profile)
 
         if hasattr(self, 'engine_1'):
@@ -680,8 +689,28 @@ class UnitTestCase(SimpleUnitTestCase):
         self.remote_file_system_client_1 = None
         del self.remote_file_system_client_2
         self.remote_file_system_client_2 = None
-        self.tearedDown = True
 
+    def _stop_managers(self):
+        """ Called by self.addCleanup() to stop all managers. """
+
+        try:
+            methods = itertools.product(
+                ((self.manager_1, 1), (self.manager_2, 2)),
+                ('unbind_all', 'dispose_all'))
+            for (manager, idx), method in methods:
+                func = getattr(manager, method, None)
+                if func:
+                    log.debug('Calling self.manager_%d.%s()', idx, method)
+                    try:
+                        func()
+                    except:
+                        pass
+        finally:
+            Manager._singleton = None
+            self.tearedDown = True
+
+    def _check_cleanup(self):
+        """ Called by self.addCleanup() to ensure folders are deleted. """
         try:
             for root, _, files in os.walk(self.tmpdir):
                 log.error('tempdir not cleaned-up: %r (%d)', root, len(files))

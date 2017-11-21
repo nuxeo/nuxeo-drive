@@ -47,12 +47,13 @@ def mock_file_to_info(self, fs_item):
 
 
 class TestBulkRemoteChanges(UnitTestCase):
-    '''
+    """
        Test Bulk Remote Changes when network error happen 
        mock_get_children_info will simulate network error when required.
        test_many_changes method will make server side changes, simulate error for GetChildren API 
            and still verify if all remote changes are successfully synced
-    '''
+    """
+
     def setUp(self):
         super(TestBulkRemoteChanges, self).setUp()
         self.last_sync_date = None

@@ -14,13 +14,14 @@ from tests.common import RemoteDocumentClientForTests, clean_dir
 class ManagerDAOTest(unittest.TestCase):
 
     def setUp(self):
-        self.build_workspace = os.environ.get('WORKSPACE')
-        self.tmpdir = None
-        if self.build_workspace is not None:
-            self.tmpdir = os.path.join(self.build_workspace, 'tmp')
-            if not os.path.isdir(self.tmpdir):
-                os.makedirs(self.tmpdir)
-            self.addCleanup(clean_dir, self.tmpdir)
+        if Manager._singleton:
+            Manager._singleton = None
+
+        self.tmpdir = os.path.join(os.environ.get('WORKSPACE', ''), 'tmp')
+        self.addCleanup(clean_dir, self.tmpdir)
+        if not os.path.isdir(self.tmpdir):
+            os.makedirs(self.tmpdir)
+
         self.test_folder = tempfile.mkdtemp(u'-nxdrive-tests', dir=self.tmpdir)
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL', 'http://localhost:8080/nuxeo')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
@@ -53,6 +54,8 @@ class ManagerDAOTest(unittest.TestCase):
     def test_autolock(self):
         # Create Manager
         manager = self._create_manager()
+        self.addCleanup(manager.stop)
+
         dao = manager.get_dao()
         dao.lock_path('/test_1', 1, 'doc_id_1')
         dao.lock_path('/test_2', 2, 'doc_id_2')
@@ -79,8 +82,11 @@ class ManagerDAOTest(unittest.TestCase):
         from nxdrive.notification import Notification
         notif = Notification('warning', flags=Notification.FLAG_DISCARDABLE)
         notif2 = Notification('plop')
+
         # Create Manager
         manager = self._create_manager()
+        self.addCleanup(manager.stop)
+
         dao = manager.get_dao()
         dao.insert_notification(notif)
         dao.insert_notification(notif2)
@@ -96,11 +102,10 @@ class ManagerDAOTest(unittest.TestCase):
 
     def test_migration_db_v1(self):
         # Initialize old DB
-        db = open(self._get_db('test_manager_migration.db'), 'rb')
         old_db = os.path.join(self.test_folder, 'nxdrive.db')
-        with open(old_db, 'wb') as f:
+        with open(self._get_db('test_manager_migration.db'), 'rb') as db,\
+                open(old_db, 'wb') as f:
             f.write(db.read())
-        db.close()
 
         # Update token with one acquired against the test server
         conn = sqlite3.connect(old_db)
@@ -126,6 +131,7 @@ class ManagerDAOTest(unittest.TestCase):
 
         # Create Manager with old DB migration
         manager = self._create_manager()
+        self.addCleanup(manager.stop)
         dao = manager.get_dao()
 
         # Check Manager config
