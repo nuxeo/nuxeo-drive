@@ -7,6 +7,8 @@ from logging.handlers import BufferingHandler, RotatingFileHandler, \
     TimedRotatingFileHandler
 from zipfile import ZIP_DEFLATED, ZipFile
 
+from nxdrive.options import Options
+
 TRACE = 5
 logging.addLevelName(TRACE, 'TRACE')
 logging.TRACE = TRACE
@@ -167,3 +169,18 @@ def get_logger(name):
 
     setattr(logger, 'trace', trace)
     return logger
+
+
+def update_logger_console(log_level):
+    logging.getLogger().setLevel(
+        min(log_level, logging.getLogger().getEffectiveLevel()))
+
+
+def update_logger_file(log_level):
+    if FILE_HANDLER:
+        FILE_HANDLER.setLevel(log_level)
+
+
+# Install logs callbacks
+Options.callbacks['log_level_console'] = update_logger_console
+Options.callbacks['log_level_file'] = update_logger_file

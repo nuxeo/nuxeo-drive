@@ -1,5 +1,4 @@
 # coding: utf-8
-import logging
 import os
 import platform
 import sip
@@ -8,7 +7,6 @@ import sys
 import urllib2
 import uuid
 from collections import namedtuple
-from urllib2 import URLError
 from urlparse import urlparse
 
 import pypac
@@ -325,10 +323,9 @@ class Manager(QtCore.QObject):
             proxy.from_url(Options.proxy_server)
             proxy.save(self._dao)
 
-        # Set the log_level_file option
-        handler = FILE_HANDLER
-        if handler:
-            handler.setLevel(Options.log_level_file)
+        # Set the logs levels option
+        if FILE_HANDLER:
+            FILE_HANDLER.setLevel(Options.log_level_file)
 
         # Add auto lock on edit
         res = self._dao.get_config("direct_edit_auto_lock")
@@ -409,13 +406,6 @@ class Manager(QtCore.QObject):
 
     def open_help(self):
         self.open_local_file('https://doc.nuxeo.com/nxdoc/nuxeo-drive/')
-
-    def _update_logger(self, log_level):
-        logging.getLogger().setLevel(
-                        min(log_level, logging.getLogger().getEffectiveLevel()))
-        handler = self._get_file_log_handler()
-        if handler:
-            handler.setLevel(log_level)
 
     def _handle_os(self):
         # Be sure to register os
