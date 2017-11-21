@@ -34,7 +34,7 @@ class RemoteWatcher(EngineWorker):
         self.server_interval = delay
         # Review to delete
         self._init()
-        self._current_interval = 0
+        self._next_check = 0
 
     def _init(self):
         self.unhandle_fs_event = False
@@ -60,7 +60,7 @@ class RemoteWatcher(EngineWorker):
         metrics['last_event_log_id'] = self._last_event_log_id
         metrics['last_root_definitions'] = self._last_root_definitions
         metrics['last_remote_full_scan'] = self._last_remote_full_scan
-        metrics['next_polling'] = self._current_interval
+        metrics['next_polling'] = self._next_check
         return dict(metrics.items() + self._metrics.items())
 
     @pyqtSlot()
@@ -73,12 +73,11 @@ class RemoteWatcher(EngineWorker):
             self._init()
             while True:
                 self._interact()
-                if self._current_interval == 0:
-                    self._current_interval = self.server_interval * 100
+                now = current_milli_time()
+                if self._next_check < now:
+                    self._next_check = now + self.server_interval * 1000
                     if self._handle_changes(first_pass):
                         first_pass = False
-                else:
-                    self._current_interval = self._current_interval - 1
                 sleep(0.01)
         except ThreadInterrupt:
             self.remoteWatcherStopped.emit()
@@ -115,7 +114,7 @@ class RemoteWatcher(EngineWorker):
     @pyqtSlot(str)
     def scan_pair(self, remote_path):
         self._dao.add_path_to_scan(str(remote_path))
-        self._current_interval = 0
+        self._next_check = 0
 
     def _scan_pair(self, remote_path):
         if remote_path is None:
