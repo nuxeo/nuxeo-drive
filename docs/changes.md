@@ -15,8 +15,11 @@ Release date: `2017-??-??`
 - [NXDRIVE-1039](https://jira.nuxeo.com/browse/NXDRIVE-1039): Align the test REST API client following [NXP-22542](https://jira.nuxeo.com/browse/NXP-22542)
 
 #### Minor changes
+- Packaging: Updated `Send2Trash` from 1.4.1 to 1.4.2
 - Packaging: Updated `psutil` from 5.4.0 to 5.4.1
+- Packaging: Updated `pyobjc` from 4.0 to 4.0.1
 - Packaging: Updated `pypac` from 0.3.1 to 0.4.0
+- Packaging: Updated `pytest` from 3.2.3 to 3.2.5
 - Packaging: Better SIP check
 
 
