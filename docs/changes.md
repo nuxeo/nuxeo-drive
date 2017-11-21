@@ -14,6 +14,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-1034](https://jira.nuxeo.com/browse/NXDRIVE-1034): Test folders containing dots
 - [NXDRIVE-1035](https://jira.nuxeo.com/browse/NXDRIVE-1035): Update Nuxeo version to 9.10-SNAPSHOT
 - [NXDRIVE-1039](https://jira.nuxeo.com/browse/NXDRIVE-1039): Align the test REST API client following [NXP-22542](https://jira.nuxeo.com/browse/NXP-22542)
+- [NXDRIVE-1042](https://jira.nuxeo.com/browse/NXDRIVE-1042): Remove non-used jobs parameters
 
 #### Minor changes
 - Packaging: Updated `Send2Trash` from 1.4.1 to 1.4.2

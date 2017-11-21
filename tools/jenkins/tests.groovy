@@ -4,8 +4,6 @@
 // Default values for required envars
 python_drive_version = '2.7.14'  // XXX: PYTHON_DRIVE_VERSION
 pyqt_version = '4.12.1'  // XXX: PYQT_VERSION
-sip_version = '4.19.3'  // XXX: SIP_VERSION
-cxfreeze_version = '4.3.3'  // XXX: CXFREEZE_VERSION
 
 // Pipeline properties
 properties([
@@ -18,22 +16,6 @@ properties([
             name: 'SPECIFIC_TEST',
             defaultValue: '',
             description: 'Specific test to launch. The syntax must be the same as <a href="http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id">pytest markers</a>'],
-        [$class: 'StringParameterDefinition',
-            name: 'PYTHON_DRIVE_VERSION',
-            defaultValue: python_drive_version,
-            description: '<b>Required</b> Python version to use'],
-        [$class: 'StringParameterDefinition',
-            name: 'PYQT_VERSION',
-            defaultValue: pyqt_version,
-            description: '<b>Required</b> PyQt version to use (GNU/Linux and macOS only)'],
-        [$class: 'StringParameterDefinition',
-            name: 'CXFREEZE_VERSION',
-            defaultValue: cxfreeze_version,
-            description: '<i>Optional</i> cx_Freeze version to use'],
-        [$class: 'StringParameterDefinition',
-            name: 'SIP_VERSION',
-            defaultValue: sip_version,
-            description: '<i>Optional</i> SIP version to use (GNU/Linux and macOS only)'],
         [$class: 'ChoiceParameterDefinition',
             name: 'RANDOM_BUG_MODE',
             choices: 'None\nRELAX\nSTRICT\nBYPASS',
