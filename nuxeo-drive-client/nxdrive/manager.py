@@ -294,8 +294,6 @@ class Manager(QtCore.QObject):
         self.osi = AbstractOSIntegration.get(self)
 
         if not Options.consider_ssl_errors:
-            log.warning('--consider-ssl-errors option is False, '
-                        'will not verify HTTPS certificates')
             self._bypass_https_verification()
 
         self._autolock_service = None
@@ -304,9 +302,6 @@ class Manager(QtCore.QObject):
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
 
-        self.remote_watcher_delay = Options.delay
-        self._nofscheck = Options.nofscheck
-        self.debug = Options.debug
         self._engine_definitions = None
 
         from nxdrive.engine.engine import Engine
@@ -344,7 +339,7 @@ class Manager(QtCore.QObject):
         self._started = False
 
         # Pause if in debug
-        self._pause = self.debug
+        self._pause = Options.debug
         self.updated = False  # self.update_version()
 
         self.load()
@@ -363,9 +358,7 @@ class Manager(QtCore.QObject):
         Options.set('beta_channel', self.get_beta_channel(), setter='manual')
 
         # Setup analytics tracker
-        self._tracker = None
-        if self.get_tracking():
-            self._create_tracker()
+        self._tracker = self._create_tracker()
 
     @staticmethod
     def _bypass_https_verification():
@@ -376,6 +369,9 @@ class Manager(QtCore.QObject):
         """
 
         import ssl
+
+        log.warning('--consider-ssl-errors option is False, '
+                    'will not verify HTTPS certificates')
         try:
             _context = ssl._create_unverified_context
         except AttributeError:
@@ -414,9 +410,6 @@ class Manager(QtCore.QObject):
         if self.get_auto_start():
             self.osi.register_startup()
 
-    def is_checkfs(self):
-        return not self._nofscheck
-
     @property
     def notification_service(self):
         # Don't use it for now
@@ -435,11 +428,14 @@ class Manager(QtCore.QObject):
         return self._autolock_service
 
     def _create_tracker(self):
+        if not self.get_tracking():
+            return None
+
         from nxdrive.engine.tracker import Tracker
-        self._tracker = Tracker(self)
+        tracker = Tracker(self)
         # Start the tracker when we launch
-        self.started.connect(self._tracker._thread.start)
-        return self._tracker
+        self.started.connect(tracker._thread.start)
+        return tracker
 
     def get_tracker_id(self):
         if self.get_tracking() and self._tracker is not None:
@@ -632,8 +628,7 @@ class Manager(QtCore.QObject):
                 if engine.engine not in in_error:
                     in_error[engine.engine] = True
                     self.engineNotFound.emit(engine)
-            self._engines[engine.uid] = self._engine_types[engine.engine](self, engine,
-                                                                        remote_watcher_delay=self.remote_watcher_delay)
+            self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
             self._engines[engine.uid].online.connect(self._force_autoupdate)
             self.initEngine.emit(self._engines[engine.uid])
 
@@ -1098,8 +1093,7 @@ class Manager(QtCore.QObject):
         engine_def = self._dao.add_engine(engine_type, local_folder, uid, name)
         try:
             self._engines[uid] = self._engine_types[engine_type](
-                self, engine_def, binder=binder,
-                remote_watcher_delay=self.remote_watcher_delay)
+                self, engine_def, binder=binder)
         except Exception as e:
             log.exception('Engine error')
             try:

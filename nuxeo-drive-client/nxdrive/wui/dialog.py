@@ -540,7 +540,7 @@ class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
     def __init__(self, application, token):
         super(TokenNetworkAccessManager, self).__init__()
         self.token = token
-        if not application.manager.debug:
+        if not Options.debug:
             cache = QtNetwork.QNetworkDiskCache(self)
             cache.setCacheDirectory(application.get_cache_folder())
             self.setCache(cache)
@@ -584,7 +584,7 @@ class WebDialog(QtGui.QDialog):
         self.request = None
         self.zoom_factor = application.osi.zoom_factor
 
-        if application.manager.debug:
+        if Options.debug:
             QtWebKit.QWebSettings.globalSettings().setAttribute(
                 QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
         else:

@@ -5,6 +5,7 @@ import sys
 from PyQt4.QtCore import Qt, pyqtSlot
 from PyQt4.QtGui import QApplication, QCursor, QMenu, QStyle, QSystemTrayIcon
 
+from nxdrive.options import Options
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
 
@@ -154,7 +155,7 @@ class WebSystrayApi(WebDriveApi):
           - when the envar USE_OLD_MENU is set
             (for Unity that does not see right click into the systray)
         """
-        return (self._manager.debug
+        return (Options.debug
                 or sys.platform == 'darwin'
                 or os.environ.get('USE_OLD_MENU') is not None)
 
@@ -173,7 +174,7 @@ class WebSystrayApi(WebDriveApi):
 
         self.menu = QMenu()
 
-        if self._manager.debug:
+        if Options.debug:
             self.application.create_debug_menu(self.menu)
 
         self.menu.addSeparator()

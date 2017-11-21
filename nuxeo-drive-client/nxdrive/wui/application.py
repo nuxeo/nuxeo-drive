@@ -426,7 +426,7 @@ class Application(SimpleApplication):
         self._show_window(debug)
 
     def init_checks(self):
-        if self.manager.debug:
+        if Options.debug:
             self.show_debug_window()
         for _, engine in self.manager.get_engines().iteritems():
             self._connect_engine(engine)

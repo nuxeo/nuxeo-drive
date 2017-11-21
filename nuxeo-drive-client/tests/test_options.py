@@ -8,6 +8,17 @@ import pytest
 from nxdrive.options import Options
 
 
+# Remove eventual logging callbacks
+try:
+    del Options.callbacks['log_level_console']
+except KeyError:
+    pass
+try:
+    del Options.callbacks['log_level_file']
+except KeyError:
+    pass
+
+
 @Options.mock()
 def test_batch_update_from_argparse():
     """ Simulate CLI args. """

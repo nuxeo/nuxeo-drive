@@ -154,7 +154,7 @@ class MetaOptions(type):
     # Callbacks for any option change.
     # Callable signature must be: (new_value: str) -> None
     # The return value is not checked.
-    callbacks = {}  # type: Dict[str, callable]
+    callbacks = {}  # type: Dict[unicode, callable]
 
     def __getattr__(self, item):
         # type (unicode) -> Any

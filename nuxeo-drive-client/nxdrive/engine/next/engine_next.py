@@ -15,11 +15,10 @@ log = get_logger(__name__)
 class EngineNext(Engine):
 
     def __init__(self, manager, definition, binder=None, processors=5,
-                 remote_watcher_delay=Options.delay,
                  remote_doc_client_factory=RemoteDocumentClient,
                  remote_fs_client_factory=RemoteFileSystemClient,
                  remote_filtered_fs_client_factory=RemoteFilteredFileSystemClient):
-        super(EngineNext, self).__init__(manager, definition, binder, processors, remote_watcher_delay,
+        super(EngineNext, self).__init__(manager, definition, binder, processors,
                  remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory)
         self._type = "NXDRIVENEXT"
 
@@ -29,7 +28,7 @@ class EngineNext(Engine):
 
     def _create_queue_manager(self, processors):
         from nxdrive.engine.next.queue_manager import QueueManager
-        if self._manager.debug:
+        if Options.debug:
             return QueueManager(self, self._dao, max_file_processors=2)
         return QueueManager(self, self._dao)
 

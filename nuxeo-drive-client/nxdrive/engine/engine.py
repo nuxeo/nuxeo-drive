@@ -124,7 +124,6 @@ class Engine(QObject):
     online = pyqtSignal()
 
     def __init__(self, manager, definition, binder=None, processors=5,
-                 remote_watcher_delay=Options.delay,
                  remote_doc_client_factory=RemoteDocumentClient,
                  remote_fs_client_factory=RemoteFileSystemClient,
                  remote_filtered_fs_client_factory=RemoteFilteredFileSystemClient):
@@ -170,7 +169,7 @@ class Engine(QObject):
         self._load_configuration()
         self._local_watcher = self._create_local_watcher()
         self.create_thread(worker=self._local_watcher)
-        self._remote_watcher = self._create_remote_watcher(remote_watcher_delay)
+        self._remote_watcher = self._create_remote_watcher(Options.delay)
         self.create_thread(worker=self._remote_watcher, start_connect=False)
         # Launch remote_watcher after first local scan
         self._local_watcher.rootDeleted.connect(self.rootDeleted)
@@ -459,7 +458,7 @@ class Engine(QObject):
         return self._dao.get_config("remote_token")
 
     def _create_queue_manager(self, processors):
-        if self._manager.debug:
+        if Options.debug:
             return QueueManager(self, self._dao, max_file_processors=2)
         return QueueManager(self, self._dao)
 
@@ -786,7 +785,7 @@ class Engine(QObject):
         check_credential = True
         if hasattr(binder, 'no_check') and binder.no_check:
             check_credential = False
-        check_fs = self._manager.is_checkfs()
+        check_fs = not Options.nofscheck
         if hasattr(binder, 'no_fscheck') and binder.no_fscheck:
             check_fs = False
         self._server_url = self._normalize_url(binder.url)
