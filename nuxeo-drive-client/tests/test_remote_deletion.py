@@ -13,11 +13,14 @@ from tests.common import DOC_NAME_MAX_LENGTH, OS_STAT_MTIME_RESOLUTION, \
 from tests.common_unit_test import UnitTestCase
 
 
-def fstatsvfs(fd):
-    return 4096
+suspend_client_ = Engine.suspend
 
 
 class TestRemoteDeletion(UnitTestCase):
+
+    def tearDown(self):
+        self.engine_1.suspend_client = suspend_client_
+        super(TestRemoteDeletion, self).tearDown()
 
     def test_synchronize_remote_deletion(self):
         """Test that deleting remote documents is impacted client side
@@ -108,7 +111,7 @@ class TestRemoteDeletion(UnitTestCase):
 
         # Delete remote folder then synchronize
         remote.delete('/Test folder')
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync(wait_for_async=True, timeout=120)
         self.assertFalse(local.exists('/Test folder'))
 
     def test_synchronize_remote_deletion_while_upload(self):

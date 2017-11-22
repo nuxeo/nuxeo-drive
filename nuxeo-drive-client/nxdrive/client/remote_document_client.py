@@ -354,8 +354,9 @@ class RemoteDocumentClient(BaseAutomationClient):
                                       parent_uid=parent_uid)
                      for d in entries]:
 
-            if (info.name.endswith(Options.ignored_suffixes)
-                    or info.name.startswith(Options.ignored_prefixes)):
+            name = info.name.lower()
+            if (name.endswith(Options.ignored_suffixes)
+                    or name.startswith(Options.ignored_prefixes)):
                 continue
 
             filtered.append(info)

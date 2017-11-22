@@ -344,7 +344,7 @@ class Manager(QtCore.QObject):
 
         self.load()
 
-        # Create the server's config.json update verification thread
+        # Create the server's configuration getter verification thread
         self._create_server_config_updater(Options.update_check_delay)
 
         # Create the application update verification thread

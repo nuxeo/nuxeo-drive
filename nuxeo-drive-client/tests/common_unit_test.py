@@ -649,14 +649,13 @@ class UnitTestCase(SimpleUnitTestCase):
     def tearDown(self):
         self.generate_report()
         try:
-            unittest.TestCase.tearDown(self)
+            super(UnitTestCase, self).tearDown()
         except StandardError:
             pass
-        if not self.tearedDown:
-            try:
-                self.tearDownApp()
-            except StandardError:
-                pass
+        try:
+            self.tearDownApp()
+        except StandardError:
+            pass
 
     def tearDownApp(self, server_profile=None):
         if self.tearedDown:
@@ -683,6 +682,8 @@ class UnitTestCase(SimpleUnitTestCase):
         self.remote_file_system_client_1 = None
         del self.remote_file_system_client_2
         self.remote_file_system_client_2 = None
+
+        self.tearedDown = True
 
     def _stop_managers(self):
         """ Called by self.addCleanup() to stop all managers. """

@@ -9,10 +9,10 @@ If that URL should fail, try contacting the author.
 
 Contributors:
     Olivier Grisel
-    Antoine Taillefer <ataillefer@nuxeo.com>
-    Rémi Cattiau <rcattiau@nuxeo.com>
+    Antoine Taillefer
+    Rémi Cattiau
     Mickaël Schoentgen <mschoentgen@nuxeo.com>
-    https://github.com/nuxeo/nuxeo-drive/graphs/contributors
+    and https://github.com/nuxeo/nuxeo-drive/graphs/contributors
 
 Versionning
 -----------
@@ -25,4 +25,4 @@ To declare a beta, use this schema:
 """
 
 __author__ = 'Nuxeo'
-__version__ = '3.0.0'
+__version__ = '3.0'

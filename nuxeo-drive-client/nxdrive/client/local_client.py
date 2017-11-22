@@ -477,6 +477,8 @@ FolderType=Generic
         # type: (unicode, unicode) -> bool
         """ Note: added parent_ref to be able to filter on size if needed. """
 
+        file_name = file_name.lower()
+
         if (file_name.endswith(Options.ignored_suffixes)
                 or file_name.startswith(Options.ignored_prefixes)):
             return True

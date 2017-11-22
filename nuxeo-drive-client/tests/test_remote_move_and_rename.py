@@ -14,6 +14,9 @@ from tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION, \
 from tests.common_unit_test import UnitTestCase
 
 
+suspend_client_ = Engine.suspend_client
+
+
 class TestRemoteMoveAndRename(UnitTestCase):
 
     def setUp(self):
@@ -31,45 +34,36 @@ class TestRemoteMoveAndRename(UnitTestCase):
            |       |-- Original File 3.odt
         """
 
-        super(TestRemoteMoveAndRename, self).setUp()
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
         self.remote_client_1 = self.remote_file_system_client_1
 
-        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
-                            + self.workspace)
-        self.workspace_pair_local_path = u'/' + self.workspace_title
+        self.workspace_id = 'defaultSyncRootFolderItemFactory#default#' + self.workspace
+        self.workspace_pair_local_path = '/' + self.workspace_title
 
         self.file_1_id = self.remote_client_1.make_file(
-            self.workspace_id,
-            u'Original File 1.odt',
-            content=u'Some Content 1'.encode('utf-8')).uid
+            self.workspace_id, 'Original File 1.odt', content=b'Some Content 1').uid
 
         self.file_2_id = self.remote_client_1.make_file(
-            self.workspace_id,
-            u'Original File 2.odt',
-            content=u'Some Content 2'.encode('utf-8')).uid
+            self.workspace_id, 'Original File 2.odt', content=b'Some Content 2').uid
 
         self.folder_1_id = self.remote_client_1.make_folder(
-            self.workspace_id,
-            u'Original Folder 1').uid
+            self.workspace_id, 'Original Folder 1').uid
         self.folder_1_1_id = self.remote_client_1.make_folder(
-            self.folder_1_id, u'Sub-Folder 1.1').uid
+            self.folder_1_id, 'Sub-Folder 1.1').uid
         self.folder_1_2_id = self.remote_client_1.make_folder(
-            self.folder_1_id, u'Sub-Folder 1.2').uid
+            self.folder_1_id, 'Sub-Folder 1.2').uid
         self.file_1_1_id = self.remote_client_1.make_file(
-            self.folder_1_id,
-            u'Original File 1.1.odt',
-            content=u'Some Content 1'.encode('utf-8')).uid  # Same content as OF1
+            self.folder_1_id, 'Original File 1.1.odt', content=b'Some Content 1').uid
 
         self.folder_2_id = self.remote_client_1.make_folder(
-            self.workspace_id,
-            'Original Folder 2').uid
+            self.workspace_id, 'Original Folder 2').uid
         self.file_3_id = self.remote_client_1.make_file(
-            self.folder_2_id,
-            u'Original File 3.odt',
-            content=u'Some Content 3'.encode('utf-8')).uid
+            self.folder_2_id, 'Original File 3.odt', content='Some Content 3').uid
+
+        self.engine_1.start()
         self.wait_sync(wait_for_async=True)
+
+    def tearDown(self):
+        self.engine_1.suspend_client = suspend_client_
 
     def _get_state(self, remote):
         return self.engine_1.get_dao().get_normal_state_from_remote(remote)
@@ -205,7 +199,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
             if not self.engine_1.has_rename:
                 # Rename remote file while downloading
                 self.remote_file_system_client_1.rename(
-                    folder_id, u'Test folder renamed')
+                    folder_id, 'Test folder renamed')
                 self.engine_1.has_rename = True
             if local.exists('/Test folder'):
                 time.sleep(3)
@@ -221,11 +215,11 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.workspace_pair_local_path = u'/' + self.workspace_title
 
         folder_id = self.remote_file_system_client_1.make_folder(
-            self.workspace_id, u'Test folder').uid
+            self.workspace_id, 'Test folder').uid
 
         with open(self.location + '/resources/testFile.pdf') as content_file:
-            content = content_file.read()
-        remote.make_file('/Test folder', 'testFile.pdf', content)
+            remote.make_file('/Test folder', 'testFile.pdf',
+                             content=content_file.read())
 
         # Rename remote folder then synchronize
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)

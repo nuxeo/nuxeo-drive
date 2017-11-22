@@ -269,7 +269,7 @@ class MetaOptions(type):
         # type: (Any, unicode) -> None
         """
         Batch update options.
-        If an option does not exist, if will be ignored.
+        If an option does not exist, it will be ignored.
         """
 
         if isinstance(items, dict):
@@ -292,6 +292,10 @@ class MetaOptions(type):
 
             @Options.mock()
             def test_method(self):
+                ...
+
+            @Options.mock()
+            def test_function():
                 ...
 
         """

@@ -343,7 +343,7 @@ class BaseAutomationClient(BaseClient):
         }
         if void_op:
             headers.update({"X-NXVoidOperation": "true"})
-        if self.repository != Options.remote_repo:
+        if self.repository != 'default':
             headers.update({"X-NXRepository": self.repository})
         if extra_headers is not None:
             headers.update(extra_headers)
