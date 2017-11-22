@@ -1,5 +1,4 @@
 # coding: utf-8
-import logging
 import os
 import platform
 import sip
@@ -8,7 +7,6 @@ import sys
 import urllib2
 import uuid
 from collections import namedtuple
-from urllib2 import URLError
 from urlparse import urlparse
 
 import pypac
@@ -19,12 +17,10 @@ from PyQt4.QtWebKit import qWebKitVersion
 from nxdrive import __version__
 from nxdrive.client import LocalClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
-from nxdrive.client.common import DEFAULT_IGNORED_PREFIXES, \
-    DEFAULT_IGNORED_SUFFIXES
-from nxdrive.commandline import DEFAULT_UPDATE_SITE_URL
 from nxdrive.logging_config import FILE_HANDLER, get_logger
+from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.updater import AppUpdater, FakeUpdater
+from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
 from nxdrive.utils import ENCODING, OSX_SUFFIX, decrypt, encrypt, \
     normalized_path
 
@@ -279,37 +275,33 @@ class Manager(QtCore.QObject):
     suspended = QtCore.pyqtSignal()
     resumed = QtCore.pyqtSignal()
     _singleton = None
-    ignored_prefixes = DEFAULT_IGNORED_PREFIXES
-    ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
     app_name = 'Nuxeo Drive'
 
     __notification_service = None
     __exe_path = None
+    __device_id = None
 
     @staticmethod
     def get():
         return Manager._singleton
 
-    def __init__(self, options):
+    def __init__(self):
         if Manager._singleton is not None:
-            raise Exception("Only one instance of Manager can be create")
+            raise RuntimeError('Only one instance of Manager can be create')
+
         Manager._singleton = self
         super(Manager, self).__init__()
         self.osi = AbstractOSIntegration.get(self)
 
-        if not options.consider_ssl_errors:
-            log.warning('--consider-ssl-errors option is False, '
-                        'will not verify HTTPS certificates')
+        if not Options.consider_ssl_errors:
             self._bypass_https_verification()
 
         self._autolock_service = None
-        self.nxdrive_home = os.path.expanduser(options.nxdrive_home)
-        self.nxdrive_home = os.path.realpath(self.nxdrive_home)
+        self.nxdrive_home = os.path.realpath(
+            os.path.expanduser(Options.nxdrive_home))
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
-        self.remote_watcher_delay = options.delay
-        self._nofscheck = options.nofscheck
-        self.debug = options.debug
+
         self._engine_definitions = None
 
         from nxdrive.engine.engine import Engine
@@ -321,59 +313,25 @@ class Manager(QtCore.QObject):
         self._app_updater = None
         self._dao = None
         self._create_dao()
-        if options.proxy_server is not None:
+        if Options.proxy_server is not None:
             proxy = ProxySettings()
-            proxy.from_url(options.proxy_server)
+            proxy.from_url(Options.proxy_server)
             proxy.save(self._dao)
 
-        # Set the log_level_file option
-        handler = self._get_file_log_handler()
-        if handler:
-            handler.setLevel(options.log_level_file)
-            # Store it in the database
-            self._dao.update_config("log_level_file", str(handler.level))
+        # Set the logs levels option
+        if FILE_HANDLER:
+            FILE_HANDLER.setLevel(Options.log_level_file)
 
         # Add auto lock on edit
         res = self._dao.get_config("direct_edit_auto_lock")
         if not res:
             self._dao.update_config("direct_edit_auto_lock", "1")
 
-        # Persist update URL infos
-        self._dao.update_config("update_url", options.update_site_url)
-        self._dao.update_config("beta_update_url", options.beta_update_site_url)
         self.refresh_proxies()
-
-        try:
-            self.ignored_prefixes = options.ignored_prefixes
-        except AttributeError:
-            self.ignored_prefixes = DEFAULT_IGNORED_PREFIXES
-        else:
-            if not isinstance(self.ignored_prefixes, tuple):
-                # In case the given option is not a list of pattern
-                # but one string
-                self.ignored_prefixes = tuple([self.ignored_prefixes])
-            self.ignored_prefixes = \
-                tuple({fix for fix in self.ignored_prefixes
-                       + DEFAULT_IGNORED_PREFIXES})
-        finally:
-            self.ignored_prefixes = tuple(sorted(self.ignored_prefixes))
-
-        try:
-            self.ignored_suffixes = options.ignored_suffixes
-        except AttributeError:
-            self.ignored_suffixes = DEFAULT_IGNORED_SUFFIXES
-        else:
-            if not isinstance(self.ignored_suffixes, tuple):
-                self.ignored_suffixes = tuple([self.ignored_suffixes])
-            self.ignored_suffixes = \
-                tuple({fix for fix in self.ignored_suffixes
-                       + DEFAULT_IGNORED_SUFFIXES})
-        finally:
-            self.ignored_suffixes = tuple(sorted(self.ignored_suffixes))
 
         # Create DirectEdit
         self._create_autolock_service()
-        self._create_direct_edit(options.protocol_url)
+        self._create_direct_edit(Options.protocol_url)
 
         # Create notification service
         self._script_engine = None
@@ -381,24 +339,26 @@ class Manager(QtCore.QObject):
         self._started = False
 
         # Pause if in debug
-        self._pause = self.debug
-        self.device_id = self._dao.get_config('device_id')
+        self._pause = Options.debug
         self.updated = False  # self.update_version()
-        if not self.device_id:
-            self.generate_device_id()
 
         self.load()
 
+        # Create the server's configuration getter verification thread
+        self._create_server_config_updater(Options.update_check_delay)
+
         # Create the application update verification thread
-        self._create_updater(options.update_check_delay)
+        self._create_updater(Options.update_check_delay)
 
         # Force language
-        if options.force_locale is not None:
-            self.set_config("locale", options.force_locale)
+        if Options.force_locale is not None:
+            self.set_config('locale', Options.force_locale)
+
+        # Persist beta channel check
+        Options.set('beta_channel', self.get_beta_channel(), setter='manual')
+
         # Setup analytics tracker
-        self._tracker = None
-        if self.get_tracking():
-            self._create_tracker()
+        self._tracker = self._create_tracker()
 
     @staticmethod
     def _bypass_https_verification():
@@ -409,6 +369,9 @@ class Manager(QtCore.QObject):
         """
 
         import ssl
+
+        log.warning('--consider-ssl-errors option is False, '
+                    'will not verify HTTPS certificates')
         try:
             _context = ssl._create_unverified_context
         except AttributeError:
@@ -419,17 +382,13 @@ class Manager(QtCore.QObject):
                      'monkeypatching the ssl module though highly discouraged')
             ssl._create_default_https_context = _context
 
-    def _get_file_log_handler(self):
-        # Might store it in global static
-        return FILE_HANDLER
-
     def get_metrics(self):
         return {
             'version': self.get_version(),
             'auto_start': self.get_auto_start(),
             'auto_update': self.get_auto_update(),
             'beta_channel': self.get_beta_channel(),
-            'device_id': self.get_device_id(),
+            'device_id': self.device_id,
             'tracker_id': self.get_tracker_id(),
             'tracking': self.get_tracking(),
             'sip_version': sip.SIP_VERSION_STR,
@@ -444,25 +403,12 @@ class Manager(QtCore.QObject):
     def open_help(self):
         self.open_local_file('https://doc.nuxeo.com/nxdoc/nuxeo-drive/')
 
-    def _update_logger(self, log_level):
-        logging.getLogger().setLevel(
-                        min(log_level, logging.getLogger().getEffectiveLevel()))
-        handler = self._get_file_log_handler()
-        if handler:
-            handler.setLevel(log_level)
-
     def _handle_os(self):
         # Be sure to register os
         self.osi.register_contextual_menu()
         self.osi.register_protocol_handlers()
         if self.get_auto_start():
             self.osi.register_startup()
-
-    def is_checkfs(self):
-        return not self._nofscheck
-
-    def get_device_id(self):
-        return self.device_id
 
     @property
     def notification_service(self):
@@ -482,11 +428,14 @@ class Manager(QtCore.QObject):
         return self._autolock_service
 
     def _create_tracker(self):
+        if not self.get_tracking():
+            return None
+
         from nxdrive.engine.tracker import Tracker
-        self._tracker = Tracker(self)
+        tracker = Tracker(self)
         # Start the tracker when we launch
-        self.started.connect(self._tracker._thread.start)
-        return self._tracker
+        self.started.connect(tracker._thread.start)
+        return tracker
 
     def get_tracker_id(self):
         if self.get_tracking() and self._tracker is not None:
@@ -514,7 +463,7 @@ class Manager(QtCore.QObject):
             c = conn.cursor()
             cfg = c.execute("SELECT * FROM device_config LIMIT 1").fetchone()
             if cfg is not None:
-                self.device_id = cfg.device_id
+                self.__device_id = cfg.device_id
                 self._dao.update_config("device_id", cfg.device_id)
                 self._dao.update_config("proxy_config", cfg.proxy_config)
                 self._dao.update_config("proxy_type", cfg.proxy_type)
@@ -560,6 +509,16 @@ class Manager(QtCore.QObject):
             return
         self._dao = ManagerDAO(self._get_db())
 
+    def _create_server_config_updater(self, update_check_delay):
+        # type: (int) -> Any
+        if update_check_delay == 0:
+            return
+
+        self.server_config_updater = ServerOptionsUpdater(
+            self, check_interval=update_check_delay)
+        self.started.connect(self.server_config_updater._thread.start)
+        return self.server_config_updater
+
     def _create_updater(self, update_check_delay):
         if update_check_delay == 0:
             log.info("Update check delay is 0, disabling autoupdate")
@@ -571,59 +530,17 @@ class Manager(QtCore.QObject):
         self.started.connect(self._app_updater._thread.start)
         return self._app_updater
 
-    def get_version_finder(self, refresh_engines=False):
+    def get_version_finder(self):
         # Used by extended application to inject version finder
         if self.get_beta_channel():
             log.debug('Update beta channel activated')
-            update_site_url = self._get_beta_update_url(refresh_engines)
+            update_site_url = Options.beta_update_site_url
         else:
-            update_site_url = self._get_update_url(refresh_engines)
-        if update_site_url is None:
-            update_site_url = DEFAULT_UPDATE_SITE_URL
+            update_site_url = Options.update_site_url
+
         if not update_site_url.endswith('/'):
             update_site_url += '/'
         return update_site_url
-
-    def _get_update_url(self, refresh_engines):
-        update_url = self._dao.get_config("update_url", DEFAULT_UPDATE_SITE_URL)
-        # If update site URL is not overridden in config.ini nor through the command line, refresh engine update infos
-        # and use first engine configuration
-        if update_url == DEFAULT_UPDATE_SITE_URL:
-            try:
-                if refresh_engines:
-                    self._refresh_engine_update_infos()
-                engines = self.get_engines()
-                if engines:
-                    first_engine = engines.itervalues().next()
-                    update_url = first_engine.get_update_url()
-                    log.debug('Update site URL has not been overridden in config.ini nor through the command line,'
-                              ' using configuration from first engine [%s]: %s', first_engine.name, update_url)
-            except URLError:
-                log.exception('Cannot refresh engine update infos,'
-                              ' using default update site URL')
-        return update_url
-
-    def _get_beta_update_url(self, refresh_engines):
-        beta_update_url = self._dao.get_config("beta_update_url")
-        if beta_update_url is None:
-            try:
-                if refresh_engines:
-                    self._refresh_engine_update_infos()
-                engines = self.get_engines()
-                if engines:
-                    for engine in engines.itervalues():
-                        beta_update_url = engine.get_beta_update_url()
-                        if beta_update_url is not None:
-                            log.debug('Beta update site URL has not been defined in config.ini nor through the command'
-                                      ' line, using configuration from engine [%s]: %s', engine.name, beta_update_url)
-                            return beta_update_url
-            except URLError:
-                log.exception('Cannot refresh engine update infos,'
-                              ' not using beta update site URL')
-        return beta_update_url
-
-    def is_beta_channel_available(self):
-        return self._get_beta_update_url(False) is not None
 
     def get_updater(self):
         return self._app_updater
@@ -711,8 +628,7 @@ class Manager(QtCore.QObject):
                 if engine.engine not in in_error:
                     in_error[engine.engine] = True
                     self.engineNotFound.emit(engine)
-            self._engines[engine.uid] = self._engine_types[engine.engine](self, engine,
-                                                                        remote_watcher_delay=self.remote_watcher_delay)
+            self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
             self._engines[engine.uid].online.connect(self._force_autoupdate)
             self.initEngine.emit(self._engines[engine.uid])
 
@@ -783,9 +699,6 @@ class Manager(QtCore.QObject):
                 return ""
         return nuxeo_drive_folder
 
-    def get_configuration_folder(self):
-        return self.nxdrive_home
-
     def open_local_file(self, file_path, select=False):
         """
         Launch the local OS program on the given file / folder.
@@ -822,9 +735,13 @@ class Manager(QtCore.QObject):
         if last_version != self.get_version():
             self.clientUpdated.emit(last_version, self.get_version())
 
-    def generate_device_id(self):
-        self.device_id = uuid.uuid1().hex
-        self._dao.update_config("device_id", self.device_id)
+    @property
+    def device_id(self):
+        # type: () -> unicode
+        if not self.__device_id:
+            self.__device_id = uuid.uuid1().hex
+            self._dao.update_config('device_id', self.__device_id)
+        return self.__device_id
 
     def get_proxy_settings(self):
         """ Fetch proxy settings from database. """
@@ -847,6 +764,7 @@ class Manager(QtCore.QObject):
         return self._dao.get_config(value, default)
 
     def set_config(self, key, value):
+        Options.set(key, value, setter='manual', fail_on_error=False)
         return self._dao.update_config(key, value)
 
     def get_direct_edit_auto_lock(self):
@@ -920,10 +838,10 @@ class Manager(QtCore.QObject):
             self.osi.unregister_startup()
 
     def get_beta_channel(self):
-        return self._dao.get_config("beta_channel", "0") == "1"
+        return self._dao.get_config('beta_channel', '0') == '1'
 
     def set_beta_channel(self, value):
-        self._dao.update_config("beta_channel", value)
+        self.set_config('beta_channel', value)
         # Trigger update status refresh
         self.refresh_update_status()
 
@@ -1166,7 +1084,7 @@ class Manager(QtCore.QObject):
             self.load()
 
         local_folder = normalized_path(local_folder)
-        if local_folder == self.get_configuration_folder():
+        if local_folder == self.nxdrive_home:
             # Prevent from binding in the configuration folder
             raise FolderAlreadyUsed()
         uid = uuid.uuid1().hex
@@ -1175,8 +1093,7 @@ class Manager(QtCore.QObject):
         engine_def = self._dao.add_engine(engine_type, local_folder, uid, name)
         try:
             self._engines[uid] = self._engine_types[engine_type](
-                self, engine_def, binder=binder,
-                remote_watcher_delay=self.remote_watcher_delay)
+                self, engine_def, binder=binder)
         except Exception as e:
             log.exception('Engine error')
             try:

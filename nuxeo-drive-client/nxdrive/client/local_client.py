@@ -16,10 +16,11 @@ from send2trash import send2trash
 
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
     DOWNLOAD_TMP_FILE_SUFFIX
-from nxdrive.client.common import BaseClient, DEFAULT_IGNORED_PREFIXES, \
-    DEFAULT_IGNORED_SUFFIXES, DuplicationDisabledError, DuplicationError, \
-    FILE_BUFFER_SIZE, NotFound, UNACCESSIBLE_HASH, safe_filename
+from nxdrive.client.common import BaseClient, DuplicationDisabledError, \
+    DuplicationError, FILE_BUFFER_SIZE, NotFound, UNACCESSIBLE_HASH, \
+    safe_filename
 from nxdrive.logging_config import get_logger
+from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import guess_digest_algorithm, normalized_path, \
     safe_long_path
@@ -122,10 +123,6 @@ class LocalClient(BaseClient):
     def __init__(self, base_folder, **kwargs):
         self._case_sensitive = kwargs.pop('case_sensitive', None)
         self._disable_duplication = kwargs.pop('disable_duplication', True)
-        self.ignored_prefixes = (kwargs.pop('ignored_prefixes', None)
-                                 or DEFAULT_IGNORED_PREFIXES)
-        self.ignored_suffixes = (kwargs.pop('ignored_suffixes', None)
-                                 or DEFAULT_IGNORED_SUFFIXES)
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
@@ -140,9 +137,7 @@ class LocalClient(BaseClient):
         return ('<{name}'
                 ' base_folder={cls.base_folder!r},'
                 ' duplication_enabled={cls._disable_duplication!r},'
-                ' is_case_sensitive={cls._case_sensitive!r},'
-                ' ignored_prefixes={cls.ignored_prefixes!r},'
-                ' ignored_suffixes={cls.ignored_suffixes!r}'
+                ' is_case_sensitive={cls._case_sensitive!r}'
                 '>'
                 ).format(name=type(self).__name__, cls=self)
 
@@ -479,17 +474,13 @@ FolderType=Generic
             return f.read()
 
     def is_ignored(self, parent_ref, file_name):
-        # Add parent_ref to be able to filter on size if needed
+        # type: (unicode, unicode) -> bool
+        """ Note: added parent_ref to be able to filter on size if needed. """
 
-        # Emacs auto save file
-        # http://www.emacswiki.org/emacs/AutoSave
-        if (file_name.startswith('#')
-                and file_name.endswith('#')
-                and len(file_name) > 2):
-            return True
+        file_name = file_name.lower()
 
-        if (file_name.endswith(self.ignored_suffixes)
-                or file_name.startswith(self.ignored_prefixes)):
+        if (file_name.endswith(Options.ignored_suffixes)
+                or file_name.startswith(Options.ignored_prefixes)):
             return True
 
         if AbstractOSIntegration.is_windows():

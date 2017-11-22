@@ -10,9 +10,9 @@ from datetime import datetime
 from dateutil import parser
 
 from nxdrive.client.base_automation_client import BaseAutomationClient
-from nxdrive.client.common import DEFAULT_REPOSITORY_NAME, NotFound, \
-    safe_filename
+from nxdrive.client.common import NotFound, safe_filename
 from nxdrive.logging_config import get_logger
+from nxdrive.options import Options
 
 log = get_logger(__name__)
 
@@ -71,16 +71,13 @@ class RemoteDocumentClient(BaseAutomationClient):
     # which is specific to RemoteDocumentClient
     def __init__(self, server_url, user_id, device_id, client_version,
                  proxies=None, proxy_exceptions=None,
-                 password=None, token=None, repository=DEFAULT_REPOSITORY_NAME,
-                 ignored_prefixes=None, ignored_suffixes=None,
+                 password=None, token=None, repository=Options.remote_repo,
                  base_folder=None, timeout=20, blob_timeout=None,
                  cookie_jar=None, upload_tmp_dir=None, check_suspended=None):
         super(RemoteDocumentClient, self).__init__(
             server_url, user_id, device_id, client_version,
             proxies=proxies, proxy_exceptions=proxy_exceptions,
             password=password, token=token, repository=repository,
-            ignored_prefixes=ignored_prefixes,
-            ignored_suffixes=ignored_suffixes,
             timeout=timeout, blob_timeout=blob_timeout,
             cookie_jar=cookie_jar, upload_tmp_dir=upload_tmp_dir,
             check_suspended=check_suspended)
@@ -357,8 +354,9 @@ class RemoteDocumentClient(BaseAutomationClient):
                                       parent_uid=parent_uid)
                      for d in entries]:
 
-            if (info.name.endswith(self.ignored_suffixes)
-                    or info.name.startswith(self.ignored_prefixes)):
+            name = info.name.lower()
+            if (name.endswith(Options.ignored_suffixes)
+                    or name.startswith(Options.ignored_prefixes)):
                 continue
 
             filtered.append(info)

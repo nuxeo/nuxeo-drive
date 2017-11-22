@@ -8,11 +8,11 @@ import sys
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QApplication
 
-from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 from nxdrive.notification import Notification
+from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration, parse_protocol_url
 from nxdrive.utils import find_resource_dir
 from nxdrive.wui.modal import WebModal
@@ -29,7 +29,7 @@ class BindingInfo(object):
     n_pending = -1
     has_more_pending = False
 
-    def __init__(self, server_binding, repository=DEFAULT_REPOSITORY_NAME):
+    def __init__(self, server_binding, repository=Options.remote_repo):
         self.folder_path = server_binding.local_folder
         self.short_name = os.path.basename(server_binding.local_folder)
         self.server_link = self._get_server_link(server_binding.server_url,
@@ -62,14 +62,11 @@ class BindingInfo(object):
 class SimpleApplication(QApplication):
     """ Simple application with html and translator. """
 
-    skin = 'ui5'
-
-    def __init__(self, manager, options, argv=()):
+    def __init__(self, manager, argv=()):
         super(SimpleApplication, self).__init__(list(argv))
         # Make dialog unique
         self.uniqueDialogs = dict()
 
-        self.options = options
         self.manager = manager
         self.osi = self.manager.osi
         self.setApplicationName(manager.app_name)
@@ -99,28 +96,25 @@ class SimpleApplication(QApplication):
         dialog.destroyed.connect(self._destroy_dialog)
 
     def _init_translator(self):
-        if self.options is not None:
-            default_locale = self.options.locale
-        else:
-            default_locale = 'en'
+        locale = Options.force_locale or Options.locale
         Translator(
             self.manager,
             self.get_htmlpage('i18n.js'),
-            self.manager.get_config('locale', default_locale),
+            self.manager.get_config('locale', locale),
         )
 
     def get_htmlpage(self, page):
         import nxdrive
         nxdrive_path = os.path.dirname(nxdrive.__file__)
-        ui_path = os.path.join(nxdrive_path, 'data', self.skin)
-        return (os.path.join(find_resource_dir(self.skin, ui_path), page)
+        ui_path = os.path.join(nxdrive_path, 'data', Options.theme)
+        return (os.path.join(find_resource_dir(Options.theme, ui_path), page)
                        .replace('\\', '/'))
 
     def get_window_icon(self):
         return find_icon('nuxeo_drive_icon_64.png')
 
     def get_cache_folder(self):
-        return os.path.join(self.manager.get_configuration_folder(), 'cache', 'wui')
+        return os.path.join(self.manager.nxdrive_home, 'cache', 'wui')
 
 
 class Application(SimpleApplication):
@@ -129,8 +123,8 @@ class Application(SimpleApplication):
     tray_icon = None
     icon_state = None
 
-    def __init__(self, manager, options, *args):
-        super(Application, self).__init__(manager, options, *args)
+    def __init__(self, manager, *args):
+        super(Application, self).__init__(manager, *args)
         self.setQuitOnLastWindowClosed(False)
         self._delegator = None
         from nxdrive.scripting import DriveUiScript
@@ -144,7 +138,7 @@ class Application(SimpleApplication):
         for _, engine in self.manager.get_engines().iteritems():
             self.mainEngine = engine
             break
-        if self.mainEngine is not None and options.debug:
+        if self.mainEngine is not None and Options.debug:
             from nxdrive.engine.engine import EngineLogger
             self.engineLogger = EngineLogger(self.mainEngine)
         self.engineWidget = None
@@ -259,15 +253,13 @@ class Application(SimpleApplication):
             engine.start()
 
     def get_cache_folder(self):
-        return os.path.join(self.manager.get_configuration_folder(),
-                            'cache',
-                            'wui')
+        return os.path.join(self.manager.nxdrive_home, 'cache', 'wui')
 
     def _init_translator(self):
         Translator(
             self.manager,
             self.get_htmlpage('i18n.js'),
-            self.manager.get_config('locale', self.options.locale),
+            self.manager.get_config('locale', Options.locale),
         )
 
     @QtCore.pyqtSlot(object)
@@ -434,7 +426,7 @@ class Application(SimpleApplication):
         self._show_window(debug)
 
     def init_checks(self):
-        if self.manager.debug:
+        if Options.debug:
             self.show_debug_window()
         for _, engine in self.manager.get_engines().iteritems():
             self._connect_engine(engine)

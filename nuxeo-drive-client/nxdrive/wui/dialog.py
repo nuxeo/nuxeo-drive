@@ -13,14 +13,14 @@ from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QSslCertificate
 from dateutil.tz import tzlocal
 
 from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.client.common import DEFAULT_BETA_SITE_URL
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.engine.dao.sqlite import StateRow
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.workers import Worker
 from nxdrive.logging_config import get_logger
-from nxdrive.manager import DEFAULT_UPDATE_SITE_URL, FolderAlreadyUsed
+from nxdrive.manager import FolderAlreadyUsed
 from nxdrive.notification import Notification
+from nxdrive.options import Options
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.wui.translator import Translator
 
@@ -423,10 +423,6 @@ class WebDriveApi(QtCore.QObject):
     def get_auto_update(self):
         return self._manager.get_auto_update()
 
-    @QtCore.pyqtSlot(result=bool)
-    def is_beta_channel_available(self):
-        return self._manager.is_beta_channel_available()
-
     @QtCore.pyqtSlot(bool)
     def set_beta_channel(self, value):
         self._manager.set_beta_channel(value)
@@ -531,8 +527,8 @@ class WebDriveApi(QtCore.QObject):
     @QtCore.pyqtSlot(result=str)
     def get_update_url(self):
         if self._manager.get_beta_channel():
-            return self._manager._dao.get_config('beta_update_url', DEFAULT_BETA_SITE_URL)
-        return self._manager._dao.get_config('update_url', DEFAULT_UPDATE_SITE_URL)
+            return Options.beta_update_site_url
+        return Options.update_site_url
 
     @QtCore.pyqtSlot(int, int)
     def resize(self, width, height):
@@ -544,7 +540,7 @@ class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
     def __init__(self, application, token):
         super(TokenNetworkAccessManager, self).__init__()
         self.token = token
-        if not application.manager.debug:
+        if not Options.debug:
             cache = QtNetwork.QNetworkDiskCache(self)
             cache.setCacheDirectory(application.get_cache_folder())
             self.setCache(cache)
@@ -588,7 +584,7 @@ class WebDialog(QtGui.QDialog):
         self.request = None
         self.zoom_factor = application.osi.zoom_factor
 
-        if application.manager.debug:
+        if Options.debug:
             QtWebKit.QWebSettings.globalSettings().setAttribute(
                 QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
         else:
@@ -606,9 +602,7 @@ class WebDialog(QtGui.QDialog):
         self.view.setPage(self.page)
         self.networkManager = TokenNetworkAccessManager(application, token)
 
-        if (not hasattr(application, 'options')
-                or (application.options is not None
-                    and not application.options.consider_ssl_errors)):
+        if not Options.consider_ssl_errors:
             self.networkManager.sslErrors.connect(self._ssl_error_handler)
 
         self.networkManager.finished.connect(self.requestFinished)

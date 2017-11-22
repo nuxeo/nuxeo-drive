@@ -3,11 +3,11 @@ import os
 import sqlite3
 import tempfile
 import unittest
-from mock import Mock
 
 import nxdrive
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.manager import Manager
+from nxdrive.options import Options
 from tests.common import RemoteDocumentClientForTests, clean_dir
 
 
@@ -39,16 +39,10 @@ class ManagerDAOTest(unittest.TestCase):
     def _get_db(self, name):
         return os.path.join(os.path.dirname(__file__), 'resources', name)
 
+    @Options.mock()
     def _create_manager(self):
-        options = Mock()
-        options.debug = False
-        options.force_locale = None
-        options.log_level_file = None
-        options.proxy_server = None
-        options.update_site_url = None
-        options.beta_update_site_url = None
-        options.nxdrive_home = self.test_folder
-        manager = Manager(options)
+        Options.nxdrive_home = self.test_folder
+        manager = Manager()
         return manager
 
     def test_autolock(self):

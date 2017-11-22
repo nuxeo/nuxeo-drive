@@ -11,8 +11,8 @@ from datetime import datetime
 from getpass import getpass
 
 from nxdrive import __version__
-from nxdrive.client.common import DEFAULT_REPOSITORY_NAME
 from nxdrive.logging_config import configure, get_logger
+from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
 
@@ -23,14 +23,6 @@ except ImportError:
 
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
-DEFAULT_MAX_SYNC_STEP = 10
-DEFAULT_REMOTE_WATCHER_DELAY = 30
-DEFAULT_QUIT_TIMEOUT = -1
-DEFAULT_HANDSHAKE_TIMEOUT = 60
-DEFAULT_TIMEOUT = 20
-DEFAULT_UPDATE_CHECK_DELAY = 3600
-DEFAULT_MAX_ERRORS = 3
-DEFAULT_UPDATE_SITE_URL = 'http://community.nuxeo.com/static/drive/'
 USAGE = """ndrive [command]
 
 If no command is provided, the graphical application is started along with a
@@ -60,132 +52,125 @@ GET_CTL_SLEEP_DURATION = 1
 
 
 class CliHandler(object):
-    """ Set the default argument """
-    def __init__(self):
-        self.default_home = os.path.join('~', '.nuxeo-drive')
-        self.default_remote_watcher_delay = DEFAULT_REMOTE_WATCHER_DELAY
-        self.default_max_sync_step = DEFAULT_MAX_SYNC_STEP
-        self.default_handshake_timeout = DEFAULT_HANDSHAKE_TIMEOUT
-        self.default_timeout = DEFAULT_TIMEOUT
-        self.default_stop_on_error = True
-        self.default_max_errors = DEFAULT_MAX_ERRORS
+    """ Set default arguments. """
 
     def get_version(self):
+        # type: () -> unicode
         return __version__
 
     def make_cli_parser(self, add_subparsers=True):
-        """Parse commandline arguments using a git-like subcommands scheme"""
+        # type (bool) -> argparse.ArgumentParser
+        """
+        Parse commandline arguments using a git-like subcommands scheme.
+        """
+
         common_parser = argparse.ArgumentParser(
             add_help=False,
         )
         common_parser.add_argument(
-            "--nxdrive-home",
-            default=self.default_home,
-            help="Folder to store the Nuxeo Drive configuration."
+            '--nxdrive-home',
+            default=Options.nxdrive_home,
+            help='Folder to store the Nuxeo Drive configuration'
         )
         common_parser.add_argument(
-            '--log-level-file',
-            default='DEBUG',
+            '--log-level-file', default=Options.log_level_file,
             choices=('TRACE', 'DEBUG', 'INFO', 'WARNING', 'ERROR'),
             help='Minimum log level for the file log'
-                 ' (under NXDRIVE_HOME/logs).'
         )
         common_parser.add_argument(
-            "--log-level-console",
-            default='INFO',
+            '--log-level-console',
+            default=Options.log_level_console,
             choices=('TRACE', 'DEBUG', 'INFO', 'WARNING', 'ERROR'),
-            help="Minimum log level for the console log."
+            help='Minimum log level for the console log'
         )
         common_parser.add_argument(
-            "--log-filename",
-            help=("File used to store the logs, default "
-                  "NXDRIVE_HOME/logs/nxaudit.logs")
+            '--log-filename',
+            help='File used to store the logs'
         )
         common_parser.add_argument(
             '--locale',
-            default='en',
+            default=Options.locale,
             choices=('de', 'en', 'es', 'fr', 'jp'),
-            help="Select the default language"
+            help='Select the default language'
         )
         common_parser.add_argument(
             '--force-locale',
             choices=('de', 'en', 'es', 'fr', 'jp'),
-            help="Force the language"
+            help='Force the language'
         )
         common_parser.add_argument(
-            "--update-site-url",
-            default=DEFAULT_UPDATE_SITE_URL,
-            help="Website for client auto-update"
+            '--update-site-url',
+            default=Options.update_site_url,
+            help='Website for client auto-update'
         )
         common_parser.add_argument(
-            "--beta-update-site-url",
-            help="Website for client beta auto-update"
+            '--beta-update-site-url',
+            default=Options.beta_update_site_url,
+            help='Website for client beta auto-update'
         )
         common_parser.add_argument(
-            "--debug", default=False, action="store_true",
-            help="Fire a debugger (ipdb or pdb) one uncaught error."
+            '--debug', default=Options.debug, action='store_true',
+            help='Fire a debugger (ipdb or pdb) one uncaught error'
         )
         common_parser.add_argument(
-            "--nofscheck", default=False, action="store_true",
-            help="Fire a debugger (ipdb or pdb) one uncaught error."
+            '--nofscheck', default=Options.nofscheck, action='store_true',
+            help='Fire a debugger (ipdb or pdb) one uncaught error'
         )
         common_parser.add_argument(
-            "--proxy-type",
-            help="Choose a type of proxy"
+            '--proxy-type',
+            help='Choose a type of proxy'
         )
         common_parser.add_argument(
-            "--proxy-server",
-            help="Define proxy server"
+            '--proxy-server',
+            help='Define proxy server'
         )
         common_parser.add_argument(
-            "--proxy-exceptions",
-            help="Add proxy exceptions ( separated by a comma )"
+            '--proxy-exceptions',
+            help='Add proxy exceptions ( separated by a comma )'
         )
         common_parser.add_argument(
-            "--consider-ssl-errors", default=False, action="store_true",
-            help="Don't ignore SSL errors in Qt network manager requests."
+            '--consider-ssl-errors',
+            default=Options.consider_ssl_errors, action='store_true',
+            help='Do not ignore SSL errors in Qt network manager requests'
         )
         common_parser.add_argument(
-            "--debug-pydev", default=False, action="store_true",
-            help="Allow debugging with a PyDev server."
+            '--debug-pydev', default=Options.debug_pydev, action='store_true',
+            help='Allow debugging with a PyDev server'
         )
         common_parser.add_argument(
-            "--delay", default=self.default_remote_watcher_delay, type=int,
-            help="Delay in seconds for remote polling.")
+            '--delay', default=Options.delay, type=int,
+            help='Delay in seconds for remote polling')
         common_parser.add_argument(
-            "--max-sync-step", default=self.default_max_sync_step, type=int,
-            help="Number of consecutive sync operations to perform"
-            " without refreshing the internal state DB.")
+            '--max-sync-step', default=Options.max_sync_step, type=int,
+            help='Number of consecutive sync operations to perform'
+                 ' without refreshing the internal state DB')
         common_parser.add_argument(
-            "--handshake-timeout", default=self.default_handshake_timeout,
+            '--handshake-timeout', default=Options.handshake_timeout,  type=int,
+            help='HTTP request timeout in seconds for the handshake')
+        common_parser.add_argument(
+            '--timeout', default=Options.timeout, type=int,
+            help='HTTP request timeout in seconds for sync Automation call')
+        common_parser.add_argument(
+            '--update-check-delay', default=Options.update_check_delay,
             type=int,
-            help="HTTP request timeout in seconds for the handshake.")
-        common_parser.add_argument(
-            "--timeout", default=self.default_timeout, type=int,
-            help="HTTP request timeout in seconds for"
-                " the sync Automation calls.")
-        common_parser.add_argument(
-            "--update-check-delay", default=DEFAULT_UPDATE_CHECK_DELAY,
-            type=int,
-            help="Delay in seconds between checks for application update.")
+            help='Delay in seconds between checks for application update')
         common_parser.add_argument(
             # XXX: Make it true by default as the fault tolerant
             #  mode is not yet implemented
-            "--stop-on-error", default=self.default_stop_on_error,
-            action="store_true",
-            help="Stop the process on first unexpected error."
-            "Useful for developers and Continuous Integration.")
+            '--stop-on-error', default=Options.stop_on_error,
+            action='store_true',
+            help='Stop the process on first unexpected error')
         common_parser.add_argument(
-            "--max-errors", default=self.default_max_errors, type=int,
-            help="Maximum number of tries before giving up synchronization of"
-            " a file in error.")
+            '--max-errors', default=Options.max_errors, type=int,
+            help='Maximum number of tries before giving up synchronization of'
+                 ' a file in error')
         common_parser.add_argument(
-            "-v", "--version", action="version", version=self.get_version(),
-            help="Print the current version of the Nuxeo Drive client."
+            '-v', '--version', action='version', version=self.get_version(),
+            help='Print the current version of the Nuxeo Drive client'
         )
         parser = argparse.ArgumentParser(
             parents=[common_parser],
-            description="Command line interface for Nuxeo Drive operations.",
+            description='Command line interface for Nuxeo Drive operations.',
             usage=USAGE,
         )
 
@@ -215,7 +200,7 @@ class CliHandler(object):
         bind_server_parser.add_argument("nuxeo_url",
                                         help="URL of the Nuxeo server.")
         bind_server_parser.add_argument(
-            "--remote-repo", default=DEFAULT_REPOSITORY_NAME,
+            "--remote-repo", default=Options.remote_repo,
             help="Name of the remote repository.")
 
         # Unlink from a remote Nuxeo server
@@ -249,7 +234,7 @@ class CliHandler(object):
             default=DEFAULT_NX_DRIVE_FOLDER,
         )
         bind_root_parser.add_argument(
-            "--remote-repo", default=DEFAULT_REPOSITORY_NAME,
+            "--remote-repo", default=Options.remote_repo,
             help="Name of the remote repository.")
 
         # Unlink from a remote Nuxeo root
@@ -269,7 +254,7 @@ class CliHandler(object):
             default=DEFAULT_NX_DRIVE_FOLDER,
         )
         unbind_root_parser.add_argument(
-            "--remote-repo", default=DEFAULT_REPOSITORY_NAME,
+            "--remote-repo", default=Options.remote_repo,
             help="Name of the remote repository.")
 
         uninstall_parser = subparsers.add_parser(
@@ -289,8 +274,8 @@ class CliHandler(object):
             help="Quit if synchronization is completed."
         )
         console_parser.add_argument(
-            "--quit-timeout", default=DEFAULT_QUIT_TIMEOUT, type=int,
-            help="Maximum uptime in seconds before quitting."
+            '--quit-timeout', default=Options.quit_timeout, type=int,
+            help='Maximum uptime in seconds before quitting'
         )
 
         clean_parser = subparsers.add_parser(
@@ -330,12 +315,11 @@ class CliHandler(object):
         # Preprocess the args to detect protocol handler calls and be more
         # tolerant to missing subcommand
         has_command = False
-        protocol_url = None
 
         filtered_args = []
         for arg in argv[1:]:
             if arg.startswith('nxdrive://'):
-                protocol_url = arg
+                Options.set('protocol_url', arg, setter='cli')
                 continue
             if not arg.startswith('-'):
                 has_command = True
@@ -354,9 +338,6 @@ class CliHandler(object):
 
             sys.excepthook = info
 
-        # Merge any protocol info into the other parsed commandline
-        # parameters
-        setattr(options, 'protocol_url', protocol_url)
         return options
 
     def load_config(self, parser):
@@ -369,14 +350,15 @@ class CliHandler(object):
             configs.append(path)
         if os.path.exists(config_name):
             configs.append(config_name)
-        user_ini = os.path.expanduser(os.path.join(self.default_home, config_name))
+        user_ini = os.path.expanduser(os.path.join(Options.nxdrive_home, config_name))
         if os.path.exists(user_ini):
             configs.append(user_ini)
         if configs:
             config.read(configs)
+
+        args = AbstractOSIntegration.get(None).get_system_configuration()
         if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
             env = config.get(ConfigParser.DEFAULTSECT, 'env')
-            args = AbstractOSIntegration.get(None).get_system_configuration()
             for item in config.items(env):
                 if item[0] == 'env':
                     continue
@@ -385,19 +367,22 @@ class CliHandler(object):
                     continue
                 if '\n' in item[1]:
                     # Treat multiline option as a set
-                    value = tuple(item[1].split())
+                    value = tuple(sorted(item[1].split()))
                 args[item[0].replace('-', '_')] = value
-            if args:
-                parser.set_defaults(**args)
-        else:
-            parser.set_defaults(**AbstractOSIntegration.get(None).get_system_configuration())
+        if args:
+            Options.update(args, setter='local')
+            parser.set_defaults(**args)
 
-    def _configure_logger(self, options):
-        """Configure the logging framework from the provided options"""
+    def _configure_logger(self, command, options):
+        # type: (unicode, argparse.ArgumentParser) -> None
+        """ Configure the logging framework from the provided options. """
+
         # Ensure the log folder exists
-        folder_log = os.path.expanduser(os.path.join(options.nxdrive_home, 'logs'))
+        folder_log = os.path.expanduser(
+            os.path.join(options.nxdrive_home, 'logs'))
         if not os.path.exists(folder_log):
             os.makedirs(folder_log)
+
         filename = options.log_filename
         if filename is None:
             filename = os.path.join(
@@ -408,10 +393,10 @@ class CliHandler(object):
             log_filename=filename,
             file_level=options.log_level_file,
             console_level=options.log_level_console,
-            command_name=options.command,
+            command_name=command,
         )
 
-    def uninstall(self, options):
+    def uninstall(self):
         try:
             self.manager.osi.uninstall()
             # Remove all token first
@@ -425,67 +410,71 @@ class CliHandler(object):
             sys.exit(0)
 
     def handle(self, argv):
-        """Parse options, setup logs and manager and dispatch execution."""
+        """ Parse options, setup logs and manager and dispatch execution. """
         options = self.parse_cli(argv)
         if hasattr(options, 'local_folder'):
             options.local_folder = normalized_path(options.local_folder)
+
         # 'launch' is the default command if None is provided
-        command = options.command = getattr(options, 'command', 'launch')
+        command = getattr(options, 'command', 'launch')
 
         if command != 'uninstall':
             # Configure the logging framework, except for the tests as they
             # configure their own.
             # Don't need uninstall logs either for now.
-            self._configure_logger(options)
+            self._configure_logger(command, options)
 
         self.log = get_logger(__name__)
         self.log.debug("Command line: argv=%r, options=%r",
                        ' '.join(argv), options)
 
+        # Update default options
+        Options.update(options, setter='cli')
+
         if command != 'uninstall':
             # Install utility to help debugging segmentation faults
-            self._install_faulthandler(options)
+            self._install_faulthandler()
 
         # Initialize a manager for this process
-        self.manager = self.get_manager(options)
+        self.manager = self.get_manager()
 
         # Find the command to execute based on the
         handler = getattr(self, command, None)
         if not handler:
             raise NotImplementedError(
-                'No handler implemented for command ' + options.command)
+                'No handler implemented for command ' + command)
 
         try:
             return handler(options)
         except Exception as e:
-            if options.debug:
+            if Options.debug:
                 # Make it possible to use the postmortem debugger
                 raise
             msg = e.msg if hasattr(e, 'msg') else e
             self.log.error("Error executing '%s': %s", command, msg,
                            exc_info=True)
 
-    def get_manager(self, options):
+    def get_manager(self):
         from nxdrive.manager import Manager
-        return Manager(options)
+        return Manager()
 
-    def _get_application(self, options, console=False):
+    def _get_application(self, console=False):
         if console:
             from nxdrive.console import ConsoleApplication
-            return ConsoleApplication(self.manager, options)
+            return ConsoleApplication(self.manager)
         from nxdrive.wui.application import Application
-        return Application(self.manager, options)
+        return Application(self.manager)
 
     def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
         from nxdrive.utils import PidLockFile
-        lock = PidLockFile(self.manager.get_configuration_folder(), 'qt')
+        lock = PidLockFile(self.manager.nxdrive_home, 'qt')
         if lock.lock() is not None:
             self.log.warning('Qt application already running: exiting')
             # Handle URL if needed
             self.manager.direct_edit.handle_url()
             return
-        app = self._get_application(options, console=console)
+        app = self._get_application(console=console)
         exit_code = app.exec_()
         lock.unlock()
         self.log.debug('Qt application exited with code %r', exit_code)
@@ -559,7 +548,7 @@ class CliHandler(object):
         self.log.error('No engine registered for local folder %s', options.local_folder)
         return 1
 
-    def _install_faulthandler(self, options):
+    def _install_faulthandler(self):
         """ Utility to help debug segfaults. """
 
         try:
@@ -570,7 +559,7 @@ class CliHandler(object):
             return
 
         segfault_filename = os.path.expanduser(os.path.join(
-            options.nxdrive_home, 'logs', 'segfault.log'))
+            Options.nxdrive_home, 'logs', 'segfault.log'))
         self.log.debug('Enabling faulthandler in %s', segfault_filename)
 
         segfault_file = open(segfault_filename, 'a')
@@ -624,7 +613,7 @@ def win32_unicode_argv():
                 xrange(start, argc.value)]
 
 
-def main(argv=None):
+def main():
     if sys.version_info[0] != 2 or sys.version_info[1] != 7:
         raise RuntimeError('Nuxeo Drive requires Python 2.7+')
 
@@ -634,9 +623,9 @@ def main(argv=None):
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     if sys.platform != 'win32':
         signal.signal(signal.SIGUSR1, dumpstacks)
-    if argv is None:
-        argv = win32_unicode_argv() if sys.platform == 'win32' else sys.argv
+    argv = win32_unicode_argv() if sys.platform == 'win32' else sys.argv
     return CliHandler().handle(argv)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     sys.exit(main())

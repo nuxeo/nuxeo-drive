@@ -30,8 +30,7 @@ class Report(object):
         if not report_path:
             self._report_name = ('report_'
                                  + datetime.now().strftime('%y%m%d_%H%M%S'))
-            folder = os.path.join(self._manager.get_configuration_folder(),
-                                  'reports')
+            folder = os.path.join(self._manager.nxdrive_home, 'reports')
         else:
             self._report_name = os.path.basename(report_path)
             folder = os.path.dirname(report_path)
@@ -47,7 +46,7 @@ class Report(object):
         If one log file fails, we just try the next one.
         """
 
-        folder = os.path.join(self._manager.get_configuration_folder(), 'logs')
+        folder = os.path.join(self._manager.nxdrive_home, 'logs')
         if not os.path.isdir(folder):
             return
 

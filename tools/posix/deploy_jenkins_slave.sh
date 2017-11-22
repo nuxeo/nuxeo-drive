@@ -263,7 +263,7 @@ install_sip() {
     local path="${STORAGE_DIR}/sip-${version}"
     local output="${path}.tar.gz"
 
-    check_import "import sipconfig" && return
+    check_import "import os, sip; os._exit(not sip.SIP_VERSION_STR == '${SIP_VERSION}')" && return
     echo ">>> Installing SIP ${version}"
 
     download "${url}" "${output}"
@@ -350,7 +350,6 @@ launch_tests() {
     ${PIP} -r requirements-tests.txt
     ${PYTHON} -m pytest "${SPECIFIC_TEST}" \
         --showlocals \
-        --exitfirst \
         --strict \
         --failed-first \
         -r Efx \

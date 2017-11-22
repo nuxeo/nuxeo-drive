@@ -4,6 +4,7 @@ import tempfile
 import unittest
 
 from nxdrive.commandline import CliHandler
+from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from tests.common import clean_dir
 
@@ -31,12 +32,13 @@ class CommandLineTestCase(unittest.TestCase):
 
     def create_ini(self, filename='config.ini', env='PROD'):
         with open(filename, 'w+') as inifile:
-            inifile.writelines(['[DEFAULT]\n',
-                            'env=' + env + '\n',
-                            '[PROD]\n',
-                            'log-level-console=TRACE\n',
-                            '[DEV]\n',
-                            'log-level-console=ERROR\n'])
+            inifile.writelines([
+                '[DEFAULT]\n',
+                'env=' + env + '\n',
+                '[PROD]\n',
+                'log-level-console=TRACE\n',
+                '[DEV]\n',
+                'log-level-console=ERROR\n'])
 
     def clean_ini(self, filename='config.ini'):
         try:
@@ -44,17 +46,17 @@ class CommandLineTestCase(unittest.TestCase):
         except OSError:
             pass
 
+    @Options.mock()
     def test_update_site_url(self):
         argv = ["ndrive", "console", "--update-site-url", "DEBUG_TEST"]
         options = self.cmd.parse_cli([])
-        self.assertEqual(options.update_site_url,
-                         "http://community.nuxeo.com/static/drive/",
-                         "The official default")
+        assert options.update_site_url == 'http://community.nuxeo.com/static/drive/'
+
         # Normal arg
         options = self.cmd.parse_cli(argv)
-        self.assertEqual(options.update_site_url, "DEBUG_TEST",
-                            "Should be debug test")
+        assert options.update_site_url == 'DEBUG_TEST'
 
+    @Options.mock()
     def test_system_default(self):
         original = AbstractOSIntegration.get
         AbstractOSIntegration.get = staticmethod(getOSIntegration)
@@ -64,49 +66,40 @@ class CommandLineTestCase(unittest.TestCase):
             argv = ["ndrive", "console", "--log-level-console", "WARNING"]
             # Default value
             options = self.cmd.parse_cli([])
-            self.assertEqual(options.log_level_console, "SYSTEM_TEST",
-                                "The system default is SYSTEM_TEST")
+            assert options.log_level_console == 'SYSTEM_TEST'
+
             # Normal arg
             options = self.cmd.parse_cli(argv)
-            self.assertEqual(options.log_level_console, 'WARNING',
-                             'Should be WARNING')
+            assert options.log_level_console == 'WARNING'
         finally:
             AbstractOSIntegration.get = staticmethod(original)
 
+    @Options.mock()
     def test_default_override(self):
         self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
         self.clean_ini()
-        argv = ["ndrive", "console", "--log-level-console", "WARNING"]
+        argv = ['ndrive', 'console', '--log-level-console=WARNING']
+
         # Default value
         options = self.cmd.parse_cli([])
-        self.assertEqual(options.log_level_console, "INFO",
-                            "The official default is INFO")
+        assert options.log_level_console == 'INFO'
+
         # Normal arg
         options = self.cmd.parse_cli(argv)
-        self.assertEqual(options.log_level_console, 'WARNING',
-                         'Should be WARNING')
+        assert options.log_level_console == 'WARNING'
+
         # config.ini override
         self.create_ini()
         options = self.cmd.parse_cli([])
-        self.assertEqual(options.log_level_console, 'TRACE',
-                            "The config.ini shoud link to PROD")
+        assert options.log_level_console == 'TRACE'
+        self.clean_ini()
+
         # config.ini override, but arg specified
         options = self.cmd.parse_cli(argv)
-        self.assertEqual(options.log_level_console, 'WARNING',
-                         'Should be WARNING')
+        assert options.log_level_console == 'WARNING'
+
         # other usage section
         self.create_ini(env='DEV')
         options = self.cmd.parse_cli([])
-        self.assertEqual(options.log_level_console, 'ERROR',
-                            "The config.ini shoud link to DEV")
-        # user config.ini override
-        conf = os.path.join(self.cmd.default_home, 'config.ini')
-        self.create_ini(conf, "PROD")
-        options = self.cmd.parse_cli([])
-        self.assertEqual(options.log_level_console, 'TRACE',
-                            "The config.ini shoud link to PROD")
-        self.clean_ini(conf)
-        options = self.cmd.parse_cli([])
-        self.assertEqual(options.log_level_console, 'ERROR',
-                            "The config.ini shoud link to DEV")
+        assert options.log_level_console == 'ERROR'
         self.clean_ini()

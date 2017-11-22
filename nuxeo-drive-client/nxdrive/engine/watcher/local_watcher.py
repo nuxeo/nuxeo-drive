@@ -15,6 +15,7 @@ from nxdrive.client.local_client import LocalClient
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.logging_config import get_logger
+from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import current_milli_time, is_generated_tmp_file, \
     normalize_event_filename
@@ -532,7 +533,7 @@ class LocalWatcher(EngineWorker):
 
         # Filter out all ignored suffixes. It will handle custom ones too.
         ignore_patterns = list(['*' + suffixe
-                                for suffixe in self.client.ignored_suffixes])
+                                for suffixe in Options.ignored_suffixes])
 
         self._event_handler = DriveFSEventHandler(
             self, ignore_patterns=ignore_patterns)

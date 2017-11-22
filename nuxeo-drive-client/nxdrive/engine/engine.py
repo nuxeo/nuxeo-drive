@@ -11,11 +11,8 @@ from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 from nxdrive.client import LocalClient, RemoteDocumentClient, \
     RemoteFileSystemClient, RemoteFilteredFileSystemClient
 from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.client.common import BaseClient, DEFAULT_REPOSITORY_NAME, \
-    NotFound, safe_filename
+from nxdrive.client.common import BaseClient, NotFound, safe_filename
 from nxdrive.client.rest_api_client import RestAPIClient
-from nxdrive.commandline import DEFAULT_REMOTE_WATCHER_DELAY, \
-    DEFAULT_UPDATE_SITE_URL
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.processor import Processor
@@ -26,6 +23,7 @@ from nxdrive.engine.workers import PairInterrupt, ThreadInterrupt, Worker
 from nxdrive.gui.resources import find_icon
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import ServerBindingSettings
+from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import normalized_path
 
@@ -126,7 +124,6 @@ class Engine(QObject):
     online = pyqtSignal()
 
     def __init__(self, manager, definition, binder=None, processors=5,
-                 remote_watcher_delay=DEFAULT_REMOTE_WATCHER_DELAY,
                  remote_doc_client_factory=RemoteDocumentClient,
                  remote_fs_client_factory=RemoteFileSystemClient,
                  remote_filtered_fs_client_factory=RemoteFilteredFileSystemClient):
@@ -172,7 +169,7 @@ class Engine(QObject):
         self._load_configuration()
         self._local_watcher = self._create_local_watcher()
         self.create_thread(worker=self._local_watcher)
-        self._remote_watcher = self._create_remote_watcher(remote_watcher_delay)
+        self._remote_watcher = self._create_remote_watcher(Options.delay)
         self.create_thread(worker=self._remote_watcher, start_connect=False)
         # Launch remote_watcher after first local scan
         self._local_watcher.rootDeleted.connect(self.rootDeleted)
@@ -290,7 +287,6 @@ class Engine(QObject):
     def get_metadata_url(self, remote_ref):
         """
         Build the document's metadata URL based on the server's UI.
-        Fallback on JSF if no defined UI.
 
         :param str remote_ref: The document remote reference (UID) of the
             document we want to show metadata.
@@ -309,13 +305,11 @@ class Engine(QObject):
             'uid': remote_ref_segments[2],
             'token': self.get_remote_token(),
         }
-        ui = self._manager.get_config('ui', default='jsf')
-        return urls[ui].format(**infos)
+        return urls[Options.ui].format(**infos)
 
     def get_remote_url(self):
         """
         Build the server's URL based on the server's UI.
-        Fallback on JSF if no defined UI.
 
         :return str: The complete URL.
         """
@@ -327,11 +321,10 @@ class Engine(QObject):
 
         infos = {
             'server': self.server_url,
-            'repo': DEFAULT_REPOSITORY_NAME,
+            'repo': Options.remote_repo,
             'token': self.get_remote_token(),
         }
-        ui = self._manager.get_config('ui', default='jsf')
-        return urls[ui].format(**infos)
+        return urls[Options.ui].format(**infos)
 
     def is_syncing(self):
         return self._sync_started
@@ -437,7 +430,7 @@ class Engine(QObject):
     @staticmethod
     def _normalize_url(url):
         """Ensure that user provided url always has a trailing '/'"""
-        if url is None or not url:
+        if not url:
             raise ValueError("Invalid url: %r" % url)
         if not url.endswith(u'/'):
             return url + u'/'
@@ -465,7 +458,7 @@ class Engine(QObject):
         return self._dao.get_config("remote_token")
 
     def _create_queue_manager(self, processors):
-        if self._manager.debug:
+        if Options.debug:
             return QueueManager(self, self._dao, max_file_processors=2)
         return QueueManager(self, self._dao)
 
@@ -476,8 +469,8 @@ class Engine(QObject):
         return LocalWatcher(self, self._dao)
 
     def _get_db_file(self):
-        return os.path.join(normalized_path(self._manager.get_configuration_folder()),
-                                "ndrive_" + self.uid + ".db")
+        return os.path.join(normalized_path(self._manager.nxdrive_home),
+                            'ndrive_' + self.uid + '.db')
 
     def _create_dao(self):
         return EngineDAO(self._get_db_file())
@@ -641,11 +634,16 @@ class Engine(QObject):
     def start(self):
         if not self.check_fs_marker():
             raise FsMarkerException()
+
         # Checking root in case of failed migration
         self._check_root()
+
+        # Launch the server confg file updater
+        self._manager.server_config_updater.force_poll()
+
         self._stopped = False
         Processor.soft_locks = dict()
-        log.debug("Engine %s starting", self.uid)
+        log.debug('Engine %s is starting', self.uid)
         for thread in self._threads:
             thread.start()
         self.syncStarted.emit(0)
@@ -749,19 +747,15 @@ class Engine(QObject):
         return True
 
     def get_update_infos(self, client=None):
-        if client is None:
-            client = self.get_remote_doc_client()
-        if client is None:
+        client = client or self.get_remote_doc_client()
+        if not client:
             return
+
         update_info = client.get_update_info()
-        log.debug("Fetched update info for engine [%s] from server %s: %r", self.name, self._server_url, update_info)
-        self._dao.update_config("server_version", update_info.get("serverVersion"))
-        self._dao.update_config("update_url", update_info.get("updateSiteURL"))
-        beta_update_site_url = update_info.get("betaUpdateSiteURL")
-        # Consider empty string as None
-        if not beta_update_site_url:
-            beta_update_site_url = None
-        self._dao.update_config("beta_update_url", beta_update_site_url)
+        log.debug('Fetched update info for engine [%s] from server %s: %r',
+                  self.name, self._server_url, update_info)
+        self._dao.update_config(
+            'server_version', update_info.get('serverVersion'))
 
     def update_password(self, password):
         self._load_configuration()
@@ -791,7 +785,7 @@ class Engine(QObject):
         check_credential = True
         if hasattr(binder, 'no_check') and binder.no_check:
             check_credential = False
-        check_fs = self._manager.is_checkfs()
+        check_fs = not Options.nofscheck
         if hasattr(binder, 'no_fscheck') and binder.no_fscheck:
             check_fs = False
         self._server_url = self._normalize_url(binder.url)
@@ -891,8 +885,6 @@ class Engine(QObject):
         client = LocalClient(
             self.local_folder,
             case_sensitive=self._case_sensitive,
-            ignored_prefixes=self._manager.ignored_prefixes,
-            ignored_suffixes=self._manager.ignored_suffixes,
         )
         if self._case_sensitive is None and os.path.exists(self.local_folder):
             self._case_sensitive = client.is_case_sensitive()
@@ -900,12 +892,6 @@ class Engine(QObject):
 
     def get_server_version(self):
         return self._dao.get_config("server_version")
-
-    def get_update_url(self):
-        return self._dao.get_config("update_url", DEFAULT_UPDATE_SITE_URL)
-
-    def get_beta_update_url(self):
-        return self._dao.get_config("beta_update_url")
 
     @pyqtSlot()
     def invalidate_client_cache(self):
@@ -1012,7 +998,7 @@ class Engine(QObject):
             cache[cache_key] = remote_client
         return remote_client
 
-    def get_remote_doc_client(self, repository=DEFAULT_REPOSITORY_NAME, base_folder=None):
+    def get_remote_doc_client(self, repository=Options.remote_repo, base_folder=None):
         if self._invalid_credentials:
             return None
         cache = self._get_client_cache()
@@ -1042,9 +1028,8 @@ class Engine(QObject):
         return RestAPIClient(
             self.server_url,
             self.remote_user,
-            self._manager.get_device_id(),
+            self._manager.device_id,
             self._manager.get_version(),
-            password=None,
             token=self.get_remote_token(),
             timeout=self.timeout,
             cookie_jar=self.cookie_jar,

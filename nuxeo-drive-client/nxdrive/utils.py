@@ -16,7 +16,7 @@ import rfc3987
 from Crypto import Random
 from Crypto.Cipher import AES
 
-from nxdrive.client.common import DEFAULT_IGNORED_SUFFIXES, DRIVE_STARTUP_PAGE
+from nxdrive.options import Options
 from nxdrive.logging_config import get_logger
 
 if sys.platform == 'win32':
@@ -81,23 +81,28 @@ def is_generated_tmp_file(name):
     ignore, do_not_ignore = True, False
     delay, do_not_delay, no_delay_effect = True, False, None
 
+    if isinstance(name, bytes):
+        name = name.decode(locale.getpreferredencoding() or 'utf-8')
+
     # Default ignored suffixes already handle .bak, .tmp, etc..
-    if name.endswith(DEFAULT_IGNORED_SUFFIXES):
+    if name.endswith(Options.ignored_suffixes):
         return ignore, do_not_delay
 
-    # Files without extension
-    if '.' not in name:
-        # MS Office
-        if len(name) == 8 and is_hexastring(name):
-            # Permit to recheck later, else we have to ban all file names
-            # that are only hexadecimal characters.
-            return ignore, delay
+    # MS Office temporary file
+    if len(name) == 8 and is_hexastring(name):
+        # Permit to recheck later, else we have to ban all file names
+        # that are only hexadecimal characters.
+        return ignore, delay
 
-        # AutoCAD
-        if re.match(r'^atmp\d+$', name.lower()) is not None:
-            # Ban definitively that pattern as we have no other
-            # solution for now.
-            return ignore, do_not_delay
+    # Emacs auto save file
+    # http://www.emacswiki.org/emacs/AutoSave
+    if name.startswith('#') and name.endswith('#'):
+        return ignore, do_not_delay
+
+    # See https://stackoverflow.com/a/10591106/1117028 for benchmark
+    reg = re.compile('|'.join('(?:%s)' % p for p in Options.ignored_files))
+    if reg.match(name.lower()):
+        return ignore, do_not_delay
 
     return do_not_ignore, no_delay_effect
 
@@ -467,7 +472,7 @@ def guess_digest_algorithm(digest):
     raise Exception('Unknown digest algorithm for %s' % digest)
 
 
-def guess_server_url(url, login_page=DRIVE_STARTUP_PAGE, timeout=5):
+def guess_server_url(url, login_page=Options.startup_page, timeout=5):
     """
     Guess the complete server URL given an URL (either an IP address,
     a simple domain name or an already complete URL).

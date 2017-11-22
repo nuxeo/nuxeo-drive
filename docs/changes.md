@@ -4,9 +4,11 @@ Release date: `2017-??-??`
 ### Core
 - [NXDRIVE-748](https://jira.nuxeo.com/browse/NXDRIVE-748): RemoteWatcher polling now uses timestamp instead of counter
 - [NXDRIVE-968](https://jira.nuxeo.com/browse/NXDRIVE-968): Improve logs disk space usage (set level to DEBUG)
-- [NXDRIVE-1036](https://jira.nuxeo.com/browse/NXDRIVE-1036): Cannot unsync an accentued root on Windows
+- [NXDRIVE-1019](https://jira.nuxeo.com/browse/NXDRIVE-1019): Retrieve the configuration from the server (**breaking change**)
+- [NXDRIVE-1036](https://jira.nuxeo.com/browse/NXDRIVE-1036): Cannot unsync an accentued root
 - [NXDRIVE-1038](https://jira.nuxeo.com/browse/NXDRIVE-1038): Don't quote parameters when acquiring a token
 - [NXDRIVE-1040](https://jira.nuxeo.com/browse/NXDRIVE-1040): Handle documents that are indexed but inexistant
+- [NXP-23113](https://jira.nuxeo.com/browse/NXP-23113): Add new DE and JA translations
 
 ### Tests
 - [NXDRIVE-317](https://jira.nuxeo.com/browse/NXDRIVE-317): Test tmp directories are not cleaned up after tear down
@@ -14,6 +16,14 @@ Release date: `2017-??-??`
 - [NXDRIVE-1035](https://jira.nuxeo.com/browse/NXDRIVE-1035): Update Nuxeo version to 9.10-SNAPSHOT
 - [NXDRIVE-1039](https://jira.nuxeo.com/browse/NXDRIVE-1039): Align the test REST API client following [NXP-22542](https://jira.nuxeo.com/browse/NXP-22542)
 - [NXDRIVE-1042](https://jira.nuxeo.com/browse/NXDRIVE-1042): Remove non-used jobs parameters
+
+#### Minor changes
+- Packaging: Updated `Send2Trash` from 1.4.1 to 1.4.2
+- Packaging: Updated `psutil` from 5.4.0 to 5.4.1
+- Packaging: Updated `pyobjc` from 4.0 to 4.0.1
+- Packaging: Updated `pypac` from 0.3.1 to 0.4.0
+- Packaging: Updated `pytest` from 3.2.3 to 3.2.5
+- Packaging: Better SIP check
 
 
 # 2.5.9

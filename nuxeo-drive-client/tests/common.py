@@ -39,10 +39,6 @@ OS_STAT_MTIME_RESOLUTION = 1.0
 # Nuxeo max length for document name
 DOC_NAME_MAX_LENGTH = 24
 
-# Default quit timeout used for tests
-# 6s for watcher / 9s for sync
-TEST_DEFAULT_QUIT_TIMEOUT = 30
-
 
 def configure_logger():
     configure(console_level='TRACE',

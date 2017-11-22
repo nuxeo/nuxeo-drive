@@ -3,7 +3,43 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+- Removed `options` keyword from `Application.__init__()`. Use `Options` instead.
+- Removed `ignored_prefixes` keyword from `BaseAutomationClient.__init__()`. Use `Options.ignored_prefixes` instead.
+- Removed `ignored_suffixes` keyword from `BaseAutomationClient.__init__()`. Use `Options.ignored_suffixes` instead.
+- Removed `options` keyword from `CliHandler.get_manager()`. Use `Options` instead.
+- Removed `options` keyword from `CliHandler.uninstall()`. Use `Options` instead.
 - Added `Engine.add_to_favorites()`
+- Removed `remote_watcher_delay` keyword from `Engine.__init__()`. Use `Options.delay` instead.
+- Removed `Engine.get_update_url()`. Use `Options.update_site_url` instead.
+- Removed `Engine.get_beta_update_url()`. Use `Options.beta_update_site_url` instead.
+- Removed `ignored_prefixes` keyword from `LocalClient.__init__()`. Use `Options.ignored_prefixes` instead.
+- Removed `ignored_suffixes` keyword from `LocalClient.__init__()`. Use `Options.ignored_suffixes` instead.
+- Removed `options` keyword from `Manager.__init__()`. Use `Options` instead.
+- Removed `Manager.generate_device_id()`. Use `devide_id` property instead.
+- Removed `Manager.get_configuration_folder()`. Use `nxdrive_home` property instead.
+- Removed `Manager.get_device_id()`. Use `devide_id` property instead.
+- Removed `Manager.is_checkfs()`. Use `not Options.nofscheck` property instead.
+- Removed `refresh_engines` keyword from `Manager.get_version_finder()`
+- Removed `Manager.is_beta_channel_available()`. Always True.
+- Removed `options` keyword from `SimpleApplication.__init__()`. Use `Options` instead.
+- Removed `WebDriveApi.is_beta_channel_available()`. Always True.
+- Removed client/common.py::`DEFAULT_BETA_SITE_URL`. Use `Options.beta_update_site_url` instead.
+- Removed client/common.py::`DEFAULT_IGNORED_PREFIXES`. Use `Options.ignored_prefixes` instead.
+- Removed client/common.py::`DEFAULT_IGNORED_SUFFIXES`. Use `Options.ignored_suffixes` instead.
+- Removed client/common.py::`DEFAULT_REPOSITORY_NAME`. Use `Options.repository` instead.
+- Removed client/common.py::`DEFAULT_UPDATE_SITE_URL`. Use `Options.update_site_url` instead.
+- Removed client/common.py::`DRIVE_STARTUP_PAGE`. Use `Options.startup_page` instead.
+- Removed commandline.py::`DEFAULT_HANDSHAKE_TIMEOUT`. Use `Options.handshake_timeout` instead.
+- Removed commandline.py::`DEFAULT_MAX_ERRORS`. Use `Options.max_errors` instead.
+- Removed commandline.py::`DEFAULT_MAX_SYNC_STEP`. Use `Options.max_sync_step` instead.
+- Removed commandline.py::`DEFAULT_QUIT_TIMEOUT`. Use `Options.quit_timeout` instead.
+- Removed commandline.py::`DEFAULT_REMOTE_WATCHER_DELAY`. Use `Options.delay` instead.
+- Removed commandline.py::`DEFAULT_TIMEOUT`. Use `Options.timeout` instead.
+- Removed commandline.py::`DEFAULT_UPDATE_CHECK_DELAY`. Use `Options.update_check_delay` instead.
+- Removed commandline.py::`DEFAULT_UPDATE_SITE_URL`. Use `Options.update_site_url` instead.
+- Added logging_config.py::`configure_logger_console`
+- Added logging_config.py::`configure_logger_file`
+- Added options.py
 
 # 2.5.7
 - Removed `BaseAutomationClient.get_download_buffer()`. Use `FILE_BUFFER_SIZE` attribute instead.
