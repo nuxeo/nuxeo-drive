@@ -960,6 +960,6 @@ LABELS={
     "URL": "URL",
     "USERNAME": "ユーザ名",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Web認証",
-    "WELCOME_MESSAGE": "アカウントを設定し、ファイルをNuxeo Platformと同期化します。
+    "WELCOME_MESSAGE": "アカウントを設定し、ファイルをNuxeo Platformと同期化します"
   }
 }
