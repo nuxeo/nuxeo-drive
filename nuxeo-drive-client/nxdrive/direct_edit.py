@@ -340,52 +340,63 @@ class DirectEdit(Worker):
 
     def _handle_queues(self):
         uploaded = False
+
         # Lock any documents
         while not self._lock_queue.empty():
             try:
                 item = self._lock_queue.get_nowait()
-                ref = item[0]
-                log.trace('Handling DirectEdit lock queue ref: %r', ref)
             except Empty:
                 break
-            uid = ""
+            else:
+                ref = item[0]
+                log.trace('Handling DirectEdit lock queue ref: %r', ref)
+
+            uid = ''
+            dir_path = os.path.dirname(ref)
             try:
-                dir_path = os.path.dirname(ref)
                 uid, _, remote_client, _, _ = self._extract_edit_info(ref)
                 if item[1] == 'lock':
                     remote_client.lock(uid)
-                    self._local_client.set_remote_id(dir_path, "1", "nxdirecteditlock")
+                    self._local_client.set_remote_id(dir_path, '1', 'nxdirecteditlock')
                     # Emit the lock signal only when the lock is really set
                     self._manager.get_autolock_service().documentLocked.emit(os.path.basename(ref))
                 else:
-                    remote_client.unlock(uid)
-                    if item[1] == 'unlock_orphan':
+                    purge = False
+                    try:
+                        remote_client.unlock(uid)
+                    except NotFound:
+                        purge = True
+                    if purge or item[1] == 'unlock_orphan':
                         path = self._local_client.abspath(ref)
-                        log.trace("Remove orphan: %s", path)
+                        log.trace('Remove orphan: %r', path)
                         self._manager.get_autolock_service().orphan_unlocked(path)
-                        # Clean the folder
                         shutil.rmtree(path, ignore_errors=True)
-                    self._local_client.remove_remote_id(dir_path, "nxdirecteditlock")
-                    # Emit the signal only when the unlock is done - might want to avoid the call on orphan
-                    self._manager.get_autolock_service().documentUnlocked.emit(os.path.basename(ref))
+                    else:
+                        self._local_client.remove_remote_id(dir_path, 'nxdirecteditlock')
+                        # Emit the signal only when the unlock is done
+                        self._manager.get_autolock_service().documentUnlocked.emit(os.path.basename(ref))
             except ThreadInterrupt:
                 raise
-            except Exception as e:
+            except:
                 # Try again in 30s
-                log.debug("Can't %s document '%s': %r", item[1], ref, e, exc_info=True)
+                log.exception('Cannot %s document %r', item[1], ref)
                 self.directEditLockError.emit(item[1], os.path.basename(ref), uid)
+
         # Unqueue any errors
         item = self._error_queue.get()
         while item:
             self._upload_queue.put(item.get())
             item = self._error_queue.get()
+
         # Handle the upload queue
         while not self._upload_queue.empty():
             try:
                 ref = self._upload_queue.get_nowait()
-                log.trace('Handling DirectEdit queue ref: %r', ref)
             except Empty:
                 break
+            else:
+                log.trace('Handling DirectEdit queue ref: %r', ref)
+
             uid,  engine, remote_client, digest_algorithm, digest = self._extract_edit_info(ref)
             # Don't update if digest are the same
             info = self._local_client.get_info(ref)
@@ -393,36 +404,46 @@ class DirectEdit(Worker):
                 current_digest = info.get_digest(digest_func=digest_algorithm)
                 if current_digest == digest:
                     continue
+
                 start_time = current_milli_time()
-                log.trace("Local digest: %s is different from the recorded one: %s - modification detected for %r",
+                log.trace('Local digest: %s is different from the recorded one:'
+                          ' %s - modification detected for %r',
                           current_digest, digest, ref)
                 # TO_REVIEW Should check if server-side blob has changed ?
-                # Update the document - should verify the remote hash - NXDRIVE-187
+                # Update the document, should verify the remote hash NXDRIVE-187
                 remote_info = remote_client.get_info(uid)
                 if remote_info.digest != digest:
                     # Conflict detect
-                    log.trace("Remote digest: %s is different from the recorded one: %s - conflict detected for %r",
+                    log.trace('Remote digest: %s is different from the recorded'
+                              ' one: %s - conflict detected for %r',
                               remote_info.digest, digest, ref)
-                    self.directEditConflict.emit(os.path.basename(ref), ref, remote_info.digest)
+                    self.directEditConflict.emit(
+                        os.path.basename(ref), ref, remote_info.digest)
                     continue
-                log.debug('Uploading file %s', self._local_client.abspath(ref))
-                remote_client.stream_update(uid, self._local_client.abspath(ref), apply_versioning_policy=True)
+
+                os_path = self._local_client.abspath(ref)
+                log.debug('Uploading file %r', os_path)
+                remote_client.stream_update(
+                    uid, os_path, apply_versioning_policy=True)
                 # Update hash value
                 dir_path = os.path.dirname(ref)
-                self._local_client.set_remote_id(dir_path, current_digest, 'nxdirecteditdigest')
+                self._local_client.set_remote_id(
+                    dir_path, current_digest, 'nxdirecteditdigest')
                 self._last_action_timing = current_milli_time() - start_time
                 self.editDocument.emit(remote_info)
             except ThreadInterrupt:
                 raise
-            except Exception as e:
+            except:
                 # Try again in 30s
-                log.trace("Exception on direct edit: %r", e, exc_info=True)
+                log.exception('DirectEdit unhandled error for ref %r', ref)
                 self._error_queue.push(ref, ref)
                 continue
             uploaded = True
+
         if uploaded:
             log.debug('Emitting directEditUploadCompleted')
             self.directEditUploadCompleted.emit()
+
         while not self._watchdog_queue.empty():
             evt = self._watchdog_queue.get()
             self.handle_watchdog_event(evt)
