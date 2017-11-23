@@ -363,7 +363,6 @@ class UnitTestCase(SimpleUnitTestCase):
         Options.nxdrive_home = self.nxdrive_conf_folder_2
         Manager._singleton = None
         self.manager_2 = Manager()
-        self.addCleanup(self._stop_managers)
 
         self.version = __version__
         url = self.nuxeo_url
@@ -372,6 +371,8 @@ class UnitTestCase(SimpleUnitTestCase):
             # Remove the engine type for the rest of the test
             self.nuxeo_url = url.split('#')[0]
         self.setUpServer(server_profile)
+        self.addCleanup(self.tearDownServer, server_profile)
+        self.addCleanup(self._stop_managers)
 
         self._wait_sync = {}
         self._wait_remote_scan = {}
@@ -657,12 +658,11 @@ class UnitTestCase(SimpleUnitTestCase):
         except StandardError:
             pass
 
-    def tearDownApp(self, server_profile=None):
+    def tearDownApp(self):
         if self.tearedDown:
             return
 
         log.debug('TearDown unit test')
-        self.tearDownServer(server_profile)
 
         if hasattr(self, 'engine_1'):
             del self.engine_1
