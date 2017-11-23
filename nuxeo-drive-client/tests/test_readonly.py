@@ -170,12 +170,12 @@ class TestReadOnly(UnitTestCase):
         self.assertTrue(self.touch(user1_file_path))
 
     def test_local_readonly_modify(self):
-        self.local_root_client_1.make_folder('/', 'Test')
-        self.local_root_client_1.make_file('/Test', 'Test.txt', 'Some content')
+        local = self.local_client_1
+        local.make_folder('/', 'Test')
+        local.make_file('/Test', 'Test.txt', 'Some content')
         self.wait_sync()
         self.engine_1.stop()
-        self.local_root_client_1.update_content('/Test/Test.txt', 'Another content')
+        local.update_content('/Test/Test.txt', 'Another content')
         self.engine_1.start()
         self.wait_sync()
         self.assertEqual(len(self.engine_1.get_dao().get_errors()), 0)
-

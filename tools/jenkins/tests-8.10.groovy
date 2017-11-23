@@ -111,24 +111,6 @@ for (def x in slaves) {
                         }
                     }
 
-                    stage(osi + ' Setup') {
-                        // Set up a complete isolated environment
-                        try {
-                            dir('sources') {
-                                if (osi == 'macOS') {
-                                    sh 'tools/osx/deploy_jenkins_slave.sh'
-                                } else if (osi == 'GNU/Linux') {
-                                    sh 'tools/linux/deploy_jenkins_slave.sh'
-                                } else {
-                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1"'
-                                }
-                            }
-                        } catch(e) {
-                            currentBuild.result = 'UNSTABLE'
-                            throw e
-                        }
-                    }
-
                     stage(osi + ' Tests') {
                         // Launch the tests suite
                         def jdk = tool name: 'java-8-oracle'

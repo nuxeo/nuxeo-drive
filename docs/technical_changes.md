@@ -14,6 +14,8 @@
 - Removed `Engine.get_beta_update_url()`. Use `Options.beta_update_site_url` instead.
 - Removed `ignored_prefixes` keyword from `LocalClient.__init__()`. Use `Options.ignored_prefixes` instead.
 - Removed `ignored_suffixes` keyword from `LocalClient.__init__()`. Use `Options.ignored_suffixes` instead.
+- Added `is_abs` keyword to `LocalClient.lock_ref()`
+- Added `is_abs` keyword to `LocalClient.unlock_ref()`
 - Removed `options` keyword from `Manager.__init__()`. Use `Options` instead.
 - Removed `Manager.generate_device_id()`. Use `devide_id` property instead.
 - Removed `Manager.get_configuration_folder()`. Use `nxdrive_home` property instead.

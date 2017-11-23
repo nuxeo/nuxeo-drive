@@ -96,7 +96,8 @@ class StateRow(sqlite3.Row):
         try:
             return self[name]
         except IndexError:
-            raise IndexError('No key with that name.', locals())
+            raise AttributeError(
+                '%s object has not attribute %r' % (type(self).__name__, name))
 
     def is_readonly(self):
         if self.folderish:

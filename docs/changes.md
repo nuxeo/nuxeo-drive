@@ -8,6 +8,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-1036](https://jira.nuxeo.com/browse/NXDRIVE-1036): Cannot unsync an accentued root
 - [NXDRIVE-1038](https://jira.nuxeo.com/browse/NXDRIVE-1038): Don't quote parameters when acquiring a token
 - [NXDRIVE-1040](https://jira.nuxeo.com/browse/NXDRIVE-1040): Handle documents that are indexed but inexistant
+- [NXDRIVE-1046](https://jira.nuxeo.com/browse/NXDRIVE-1046): Review the LocalClient class
 - [NXP-23113](https://jira.nuxeo.com/browse/NXP-23113): Add new DE and JA translations
 
 ### Tests
@@ -17,6 +18,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-1039](https://jira.nuxeo.com/browse/NXDRIVE-1039): Align the test REST API client following [NXP-22542](https://jira.nuxeo.com/browse/NXP-22542)
 - [NXDRIVE-1042](https://jira.nuxeo.com/browse/NXDRIVE-1042): Remove non-used jobs parameters
 - [NXDRIVE-1045](https://jira.nuxeo.com/browse/NXDRIVE-1045): Fix tests tearDown generating a LoginException server-side
+- [NXDRIVE-1047](https://jira.nuxeo.com/browse/NXDRIVE-1047): The setup stage from Jenkins job Drive-tests is useless
 
 #### Minor changes
 - Packaging: Updated `Send2Trash` from 1.4.1 to 1.4.2
