@@ -311,6 +311,7 @@ class Manager(QtCore.QObject):
         self.proxies = dict()
         self.proxy_exceptions = None
         self._app_updater = None
+        self.server_config_updater = None
         self._dao = None
         self._create_dao()
         if Options.proxy_server is not None:
