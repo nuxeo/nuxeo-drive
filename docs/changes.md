@@ -17,6 +17,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-1039](https://jira.nuxeo.com/browse/NXDRIVE-1039): Align the test REST API client following [NXP-22542](https://jira.nuxeo.com/browse/NXP-22542)
 - [NXDRIVE-1042](https://jira.nuxeo.com/browse/NXDRIVE-1042): Remove non-used jobs parameters
 - [NXDRIVE-1045](https://jira.nuxeo.com/browse/NXDRIVE-1045): Fix tests tearDown generating a LoginException server-side
+- [NXDRIVE-1047](https://jira.nuxeo.com/browse/NXDRIVE-1047): The setup stage from Jenkins job Drive-tests is useless
 
 #### Minor changes
 - Packaging: Updated `Send2Trash` from 1.4.1 to 1.4.2
