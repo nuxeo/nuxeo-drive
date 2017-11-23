@@ -31,7 +31,6 @@ UPDATE_STATUS_MISSING_INFO = 'missing_info'
 UPDATE_STATUS_MISSING_VERSION = 'missing_version'
 
 DEFAULT_SERVER_MIN_VERSION = '5.6'
-SERVER_CONF_URL = 'drive/config.json'
 
 
 class UnavailableUpdateSite(Exception):
@@ -488,13 +487,8 @@ class ServerOptionsUpdater(PollWorker):
                 continue
 
             try:
-                raw, _ = client.do_get(client.server_url + SERVER_CONF_URL)
+                raw, _ = client.do_get(client.rest_api_url + 'drive/configuration')
                 conf = json.loads(raw, encoding='utf-8')
-            except HTTPError as exc:
-                if exc.code == 404:
-                    self._enable = False
-                    log.info('Disabling server configuration updater thread')
-                    break
             except (URLError, ValueError):
                 continue
             else:

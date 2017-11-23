@@ -71,6 +71,8 @@ FILE_CONTENT = """
 Engine.register_folder_link = lambda *args: None
 LocalClient.has_folder_icon = lambda *args: True
 Manager._handle_os = lambda: None
+Manager._create_updater = lambda *args: None
+Manager._create_server_config_updater = lambda *args: None
 
 
 class RandomBugError(Exception):

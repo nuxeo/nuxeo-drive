@@ -639,7 +639,8 @@ class Engine(QObject):
         self._check_root()
 
         # Launch the server confg file updater
-        self._manager.server_config_updater.force_poll()
+        if self._manager.server_config_updater:
+            self._manager.server_config_updater.force_poll()
 
         self._stopped = False
         Processor.soft_locks = dict()
