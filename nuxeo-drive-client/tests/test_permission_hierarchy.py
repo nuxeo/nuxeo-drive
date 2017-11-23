@@ -12,10 +12,6 @@ class TestPermissionHierarchy(UnitTestCase):
         super(TestPermissionHierarchy, self).setUpApp(
             server_profile='permission')
 
-    def tearDownApp(self, **kwargs):
-        super(TestPermissionHierarchy, self).tearDownApp(
-            server_profile='permission')
-
     def setUp(self):
         self.admin = self.root_remote_client
         self.user1 = RemoteDocumentClientForTests(
