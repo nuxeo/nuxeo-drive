@@ -3,18 +3,15 @@ import os
 import sys
 import time
 from shutil import copyfile
-from unittest import skipIf
 
 from mock import Mock, patch
+import pytest
 
 from nxdrive.client import LocalClient
 from nxdrive.engine.engine import Engine
 from tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION, \
     RemoteDocumentClientForTests
 from tests.common_unit_test import UnitTestCase
-
-
-suspend_client_ = Engine.suspend_client
 
 
 class TestRemoteMoveAndRename(UnitTestCase):
@@ -62,210 +59,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-    def tearDown(self):
-        self.engine_1.suspend_client = suspend_client_
-
     def _get_state(self, remote):
         return self.engine_1.get_dao().get_normal_state_from_remote(remote)
-
-    def _remote_rename_while_upload(self):
-        local = self.local_client_1
-        remote = self.remote_file_system_client_1
-
-        # Add delay when upload and download
-        def suspend_check(reason):
-            if not local.exists('/Test folder renamed'):
-                time.sleep(1)
-            Engine.suspend_client(self.engine_1, reason)
-
-        self.engine_1.suspend_client = suspend_check
-
-        # Create documents in the remote root workspace
-        # then synchronize
-        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
-                             + self.workspace)
-        self.workspace_pair_local_path = u'/' + self.workspace_title
-
-        folder_id = remote.make_folder(self.workspace_id, u'Test folder').uid
-        self.wait_sync(wait_for_async=True)
-
-        # Create a document by streaming a binary file
-        file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
-        copyfile(self.location + '/resources/testFile.pdf', file_path)
-        file_path = os.path.join(local.abspath('/Test folder'), 'testFile2.pdf')
-        copyfile(self.location + '/resources/testFile.pdf', file_path)
-
-        # Rename remote folder then synchronize
-        self.remote_file_system_client_1.rename(
-            folder_id, u'Test folder renamed')
-        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-        self.assertFalse(local.exists('/Test folder'))
-        self.assertTrue(local.exists('/Test folder renamed'))
-        self.assertTrue(local.exists('/Test folder renamed/testFile.pdf'))
-        self.assertTrue(local.exists('/Test folder renamed/testFile2.pdf'))
-
-    @skipIf(sys.platform != 'win32', 'Only make sense on Windows')
-    def test_synchronize_remote_rename_file_while_accessing(self):
-        local = self.local_client_1
-        remote = self.remote_file_system_client_1
-
-        # Create documents in the remote root workspace
-        # then synchronize
-        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
-                             + self.workspace)
-        self.workspace_pair_local_path = u'/' + self.workspace_title
-
-        local.make_folder(u'/', u'Test folder')
-        file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
-        copyfile(self.location + '/resources/testFile.pdf', file_path)
-        self.wait_sync(wait_for_async=True)
-        file_id = local.get_remote_id('/Test folder/testFile.pdf')
-        self.assertIsNotNone(file_id)
-
-        # Create a document by streaming a binary file
-        with open(file_path, 'a') as f:
-            # Rename remote folder then synchronize
-            remote.rename(file_id, u'testFile2.pdf')
-            self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-            self.assertTrue(local.exists('/Test folder/testFile.pdf'))
-            self.assertFalse(local.exists('/Test folder/testFile2.pdf'))
-
-        # The source file is accessed by another processor, so we cannot do anything
-        states_in_error = self.engine_1.get_dao().get_errors()
-        self.assertEqual(len(states_in_error), 1)
-        # Reset the error and wait'n see!
-        for state in states_in_error:
-            self.engine_1.get_dao().reset_error(state)
-
-        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-        self.assertTrue(local.exists('/Test folder/testFile2.pdf'))
-        self.assertFalse(local.exists('/Test folder/testFile.pdf'))
-
-    @skipIf(sys.platform != 'win32', 'Only make sense on Windows')
-    def test_synchronize_remote_move_file_while_accessing(self):
-        # Get local and remote clients
-        local = self.local_client_1
-        remote = self.remote_file_system_client_1
-
-        # Create documents in the remote root workspace
-        # then synchronize
-        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
-                             + self.workspace)
-        self.workspace_pair_local_path = u'/' + self.workspace_title
-
-        local.make_folder(u'/', u'Test folder')
-        file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
-        copyfile(self.location + '/resources/testFile.pdf', file_path)
-        self.wait_sync(wait_for_async=True)
-        file_id = local.get_remote_id('/Test folder/testFile.pdf')
-        self.assertIsNotNone(file_id)
-
-        # Create a document by streaming a binary file ( open it as append )
-        with open(file_path, 'a') as f:
-            # Rename remote folder then synchronize
-            remote.move(file_id, self.workspace_id)
-            self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-            self.assertTrue(local.exists('/Test folder/testFile.pdf'))
-            self.assertFalse(local.exists('/testFile.pdf'))
-
-        # The source file is accessed by another processor, so we cannot do anything
-        states_in_error = self.engine_1.get_dao().get_errors()
-        self.assertEqual(len(states_in_error), 1)
-        # Reset the error and wait'n see!
-        for state in states_in_error:
-            self.engine_1.get_dao().reset_error(state)
-
-        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-        self.assertTrue(local.exists('/testFile.pdf'))
-        self.assertFalse(local.exists('/Test folder/testFile.pdf'))
-
-    def test_synchronize_remote_rename_while_upload(self):
-        if sys.platform != 'win32':
-            func = 'nxdrive.client.base_automation_client.os.fstatvfs'
-            with patch(func) as mock_os:
-                mock_os.return_value = Mock()
-                mock_os.return_value.f_bsize = 4096
-                self._remote_rename_while_upload()
-        else:
-            self._remote_rename_while_upload()
-
-    def test_synchronize_remote_rename_while_download_file(self):
-        local = self.local_client_1
-        remote = self.remote_document_client_1
-        self.engine_1.has_rename = False
-
-        # Add delay when upload and download
-        def suspend_check(reason):
-            if not self.engine_1.has_rename:
-                # Rename remote file while downloading
-                self.remote_file_system_client_1.rename(
-                    folder_id, 'Test folder renamed')
-                self.engine_1.has_rename = True
-            if local.exists('/Test folder'):
-                time.sleep(3)
-            Engine.suspend_client(self.engine_1, reason)
-
-        self.engine_1.suspend_client = suspend_check
-        self.engine_1.invalidate_client_cache()
-
-        # Create documents in the remote root workspace
-        # then synchronize
-        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
-                             + self.workspace)
-        self.workspace_pair_local_path = u'/' + self.workspace_title
-
-        folder_id = self.remote_file_system_client_1.make_folder(
-            self.workspace_id, 'Test folder').uid
-
-        with open(self.location + '/resources/testFile.pdf') as content_file:
-            remote.make_file('/Test folder', 'testFile.pdf',
-                             content=content_file.read())
-
-        # Rename remote folder then synchronize
-        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-        self.assertFalse(local.exists('/Test folder'))
-        self.assertTrue(local.exists('/Test folder renamed'))
-        self.assertTrue(local.exists('/Test folder renamed/testFile.pdf'))
-
-    def test_synchronize_remote_move_while_download_file(self):
-        local = self.local_client_1
-        self.engine_1.has_rename = False
-
-        # Create documents in the remote root workspace
-        # then synchronize
-        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
-                             + self.workspace)
-        self.workspace_pair_local_path = u'/' + self.workspace_title
-
-        folder_id = self.remote_file_system_client_1.make_folder(
-            self.workspace_id, u'Test folder').uid
-        new_folder_id = self.remote_file_system_client_1.make_folder(
-            folder_id, u'New folder').uid
-        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-
-        # Add delay when upload and download
-        def suspend_check(reason):
-            if not self.engine_1.has_rename:
-                # Rename remote file while downloading
-                self.remote_file_system_client_1.move(file_id, new_folder_id)
-                self.engine_1.has_rename = True
-            if local.exists('/Test folder'):
-                time.sleep(3)
-            Engine.suspend_client(self.engine_1, reason)
-
-        self.engine_1.suspend_client = suspend_check
-        self.engine_1.invalidate_client_cache()
-
-        with open(self.location + '/resources/testFile.pdf') as content_file:
-            content = content_file.read()
-        file_id = self.remote_file_system_client_1.make_file(folder_id,
-                                                             'testFile.pdf',
-                                                             content).uid
-
-        # Rename remote folder then synchronize
-        self.wait_sync(wait_for_async=True)
-        self.assertFalse(local.exists('/Test folder/testFile.pdf'))
-        self.assertTrue(local.exists('/Test folder/New folder/testFile.pdf'))
 
     def test_remote_rename_file(self):
         remote_client = self.remote_client_1
@@ -809,6 +604,183 @@ class TestRemoteMoveAndRename(UnitTestCase):
         finally:
             # Clean the non synchronized folder
             remote_client.delete(unsync_folder, use_trash=False)
+
+
+class TestSyncRemoteMoveAndRename(UnitTestCase):
+
+    def setUp(self):
+        local = self.local_client_1
+        remote = self.remote_file_system_client_1
+
+        # Create documents in the remote root workspace
+        self.workspace_id = 'defaultSyncRootFolderItemFactory#default#' + self.workspace
+        self.workspace_pair_local_path = '/' + self.workspace_title
+        self.folder_id = remote.make_folder(self.workspace_id, 'Test folder').uid
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        assert local.exists('/Test folder')
+
+    @pytest.mark.skipif(sys.platform != 'win32', reason='Windows only.')
+    def test_synchronize_remote_move_file_while_accessing(self):
+        local = self.local_client_1
+        remote = self.remote_file_system_client_1
+
+        file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
+        self.wait_sync()
+        file_id = local.get_remote_id('/Test folder/testFile.pdf')
+        assert file_id
+
+        # Create a document by streaming a binary file ( open it as append )
+        with open(file_path, 'a') as f:
+            # Rename remote folder then synchronize
+            remote.move(file_id, self.workspace_id)
+            self.wait_sync(wait_for_async=True)
+            assert local.exists('/Test folder/testFile.pdf')
+            assert not local.exists('/testFile.pdf')
+
+        # The source file is accessed by another processor, so we cannot do anything
+        states_in_error = self.engine_1.get_dao().get_errors()
+        assert len(states_in_error) == 1
+
+        # Reset the error and wait'n see!
+        for state in states_in_error:
+            self.engine_1.get_dao().reset_error(state)
+
+        self.wait_sync(wait_for_async=True)
+        assert local.exists('/testFile.pdf')
+        assert not local.exists('/Test folder/testFile.pdf')
+
+    def test_synchronize_remote_move_while_download_file(self):
+        local = self.local_client_1
+        remote = self.remote_file_system_client_1
+
+        # Create documents in the remote root workspace
+        new_folder_id = remote.make_folder(self.folder_id, 'New folder').uid
+        self.wait_sync(wait_for_async=True)
+
+        def _suspend_check(*_):
+            """ Add delay when upload and download. """
+            if self.engine_1.file_id and not self.engine_1.has_rename:
+                # Rename remote file while downloading
+                remote.move(self.engine_1.file_id, new_folder_id)
+                self.engine_1.has_rename = True
+            time.sleep(3)
+            Engine.suspend_client(self.engine_1)
+
+        self.engine_1.has_rename = False
+        self.engine_1.file_id = None
+
+        try:
+            self.engine_1.suspend_client = _suspend_check
+            self.engine_1.invalidate_client_cache()
+            with open(self.location + '/resources/testFile.pdf') as content_file:
+                content = content_file.read()
+            self.engine_1.file_id = remote.make_file(
+                self.folder_id, 'testFile.pdf', content=content).uid
+
+            # Rename remote folder then synchronize
+            self.wait_sync(wait_for_async=True)
+            assert not local.exists('/Test folder/testFile.pdf')
+            assert local.exists('/Test folder/New folder/testFile.pdf')
+        finally:
+            self.engine_1.suspend_client = Engine.suspend_client
+
+    @pytest.mark.skipif(sys.platform != 'win32', reason='Windows only.')
+    def test_synchronize_remote_rename_file_while_accessing(self):
+        local = self.local_client_1
+        remote = self.remote_file_system_client_1
+
+        file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
+        self.wait_sync()
+        file_id = local.get_remote_id('/Test folder/testFile.pdf')
+        assert file_id
+
+        # Create a document by streaming a binary file
+        with open(file_path, 'a') as f:
+            # Rename remote folder then synchronize
+            remote.rename(file_id, 'testFile2.pdf')
+            self.wait_sync(wait_for_async=True)
+            assert local.exists('/Test folder/testFile.pdf')
+            assert not local.exists('/Test folder/testFile2.pdf')
+
+        # The source file is accessed by another processor, so we cannot do anything
+        states_in_error = self.engine_1.get_dao().get_errors()
+        assert len(states_in_error) == 1
+
+        # Reset the error and wait'n see!
+        for state in states_in_error:
+            self.engine_1.get_dao().reset_error(state)
+
+        self.wait_sync(wait_for_async=True)
+        assert local.exists('/Test folder/testFile2.pdf')
+        assert not local.exists('/Test folder/testFile.pdf')
+
+    def test_synchronize_remote_rename_while_download_file(self):
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+
+        def _suspend_check(*_):
+            """ Add delay when upload and download. """
+            if not self.engine_1.has_rename:
+                # Rename remote file while downloading
+                self.remote_file_system_client_1.rename(
+                    self.folder_id, 'Test folder renamed')
+                self.engine_1.has_rename = True
+            time.sleep(3)
+            Engine.suspend_client(self.engine_1)
+
+        self.engine_1.has_rename = False
+        self.engine_1.invalidate_client_cache()
+
+        with patch.object(self.engine_1, 'suspend_client', new_callable=_suspend_check):
+            with open(self.location + '/resources/testFile.pdf') as content_file:
+                remote.make_file(
+                    '/Test folder', 'testFile.pdf', content=content_file.read())
+
+            # Rename remote folder then synchronize
+            self.wait_sync(wait_for_async=True)
+            assert not local.exists('/Test folder')
+            assert local.exists('/Test folder renamed')
+            assert local.exists('/Test folder renamed/testFile.pdf')
+
+    def test_synchronize_remote_rename_while_upload(self):
+        if sys.platform == 'win32':
+            self._remote_rename_while_upload()
+        else:
+            func = 'nxdrive.client.base_automation_client.os.fstatvfs'
+            with patch(func) as mock_os:
+                mock_os.return_value = Mock()
+                mock_os.return_value.f_bsize = 4096
+                self._remote_rename_while_upload()
+
+    def _remote_rename_while_upload(self):
+        local = self.local_client_1
+        remote = self.remote_file_system_client_1
+
+        def _suspend_check(*_):
+            """ Add delay when upload and download. """
+            if not local.exists('/Test folder renamed'):
+                time.sleep(1)
+            Engine.suspend_client(self.engine_1)
+
+        with patch.object(self.engine_1, 'suspend_client', new_callable=_suspend_check):
+            # Create a document by streaming a binary file
+            file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
+            copyfile(self.location + '/resources/testFile.pdf', file_path)
+            file_path = os.path.join(local.abspath('/Test folder'), 'testFile2.pdf')
+            copyfile(self.location + '/resources/testFile.pdf', file_path)
+
+            # Rename remote folder then synchronize
+            remote.rename(self.folder_id, 'Test folder renamed')
+
+            self.wait_sync(wait_for_async=True)
+            assert not local.exists('/Test folder')
+            assert local.exists('/Test folder renamed')
+            assert local.exists('/Test folder renamed/testFile.pdf')
+            assert local.exists('/Test folder renamed/testFile2.pdf')
 
 
 class TestRemoteMove(UnitTestCase):
