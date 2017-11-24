@@ -938,7 +938,7 @@ class Engine(QObject):
         self._dao.synchronize_state(row)
         # The root should also be sync
 
-    def suspend_client(self, _):
+    def suspend_client(self, *_):
         if self.is_paused() or self._stopped:
             raise ThreadInterrupt
         # Verify thread status
