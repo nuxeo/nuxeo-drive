@@ -50,7 +50,7 @@ import locale
 import logging
 import os.path
 
-from typing import Any, Dict, Tuple
+# from typing import Any, Dict, Tuple
 
 __all__ = ('Options',)
 

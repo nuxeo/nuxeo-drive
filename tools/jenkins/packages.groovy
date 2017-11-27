@@ -105,7 +105,7 @@ for (x in slaves) {
                             currentBuild.result = 'FAILURE'
                             throw e
                         } finally {
-                            currentBuild.description = "Python ${params.PYTHON_DRIVE_VERSION}, Qt ${params.PYQT_VERSION}<br/>${params.BRANCH_NAME}"
+                            currentBuild.description = "Python ${python_drive_version}, Qt ${pyqt_version}<br/>${params.BRANCH_NAME}"
                         }
                     }
                 }
