@@ -148,7 +148,7 @@ class AppUpdater(PollWorker):
         if self.last_status != UPDATE_STATUS_UPDATING:
             # Refresh update site URL
             self.set_version_finder(
-                self._manager.get_version_finder(refresh_engines=True))
+                self._manager.get_version_finder())
             log.debug(
                 'Polling %s for application update, current version is %s',
                 self.update_site, self._manager.get_version())
