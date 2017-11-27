@@ -86,6 +86,10 @@ for (x in slaves) {
                             deleteDir()
                         }
 
+                        // Required envars
+                        env.PYTHON_DRIVE_VERSION = python_drive_version
+                        env.PYQT_VERSION = pyqt_version
+
                         try {
                             if (osi == 'macOS') {
                                 sh 'tools/osx/deploy_jenkins_slave.sh --build'
