@@ -13,7 +13,7 @@ import unicodedata
 import warnings
 
 from send2trash import send2trash
-from typing import List, Optional, Text, Tuple, Union
+# from typing import List, Optional, Text, Tuple, Union
 
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
     DOWNLOAD_TMP_FILE_SUFFIX
