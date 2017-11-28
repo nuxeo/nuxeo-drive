@@ -396,7 +396,6 @@ class Manager(QtCore.QObject):
             'qt_version': QtCore.QT_VERSION_STR,
             'webkit_version': str(qWebKitVersion()),
             'pyqt_version': QtCore.PYQT_VERSION_STR,
-            'webkit_version': str(QtWebKit.qWebKitVersion()),
             'python_version': platform.python_version(),
             'platform': platform.system(),
             'appname': self.app_name,

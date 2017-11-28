@@ -11,6 +11,9 @@ Release date: `2017-??-??`
 - [NXDRIVE-1046](https://jira.nuxeo.com/browse/NXDRIVE-1046): Review the LocalClient class
 - [NXP-23113](https://jira.nuxeo.com/browse/NXP-23113): Add new DE and JA translations
 
+### Doc
+- [NXDRIVE-755](https://jira.nuxeo.com/browse/NXDRIVE-755): Update deployment documentation
+
 ### Tests
 - [NXDRIVE-317](https://jira.nuxeo.com/browse/NXDRIVE-317): Test tmp directories are not cleaned up after tear down
 - [NXDRIVE-1034](https://jira.nuxeo.com/browse/NXDRIVE-1034): Test folders containing dots
@@ -28,8 +31,8 @@ Release date: `2017-??-??`
 - Packaging: Updated `pypac` from 0.3.1 to 0.4.0
 - Packaging: Updated `pytest` from 3.2.3 to 3.2.5
 - Packaging: Better SIP check
-- Tests: Use `QT_PATH` and `MINGW_PATH` envars on Windows
-- Tests: Use `COMPILE_WITH_DEBUG` envar, only revelant on GNU/Linux
+- \[Windows\] Tests: Use `QT_PATH` and `MINGW_PATH` envars
+- \[GNU/Linux\] Tests: Use `COMPILE_WITH_DEBUG` envar
 
 
 # 2.5.9
@@ -163,9 +166,6 @@ Release date: `2017-09-06`
 ### GUI
 - [NXDRIVE-958](https://jira.nuxeo.com/browse/NXDRIVE-958): Disallow root uncheck in the filter list
 - [NXDRIVE-959](https://jira.nuxeo.com/browse/NXDRIVE-959): Disable the filter list when syncing
-
-### Doc
-- [NXDRIVE-755](https://jira.nuxeo.com/browse/NXDRIVE-755): Update deployment documentation
 
 
 # 2.5.2
