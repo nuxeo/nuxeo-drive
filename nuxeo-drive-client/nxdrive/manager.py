@@ -10,7 +10,7 @@ from collections import namedtuple
 from urlparse import urlparse
 
 import pypac
-from PyQt4 import QtCore, QtWebKit
+from PyQt4 import QtCore
 from PyQt4.QtScript import QScriptEngine
 from PyQt4.QtWebKit import qWebKitVersion
 
