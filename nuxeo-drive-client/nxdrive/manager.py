@@ -729,7 +729,7 @@ class Manager(QtCore.QObject):
                 subprocess.Popen(['xdg-open', file_path])
             except OSError:
                 # xdg-open should be supported by recent Gnome, KDE, Xfce
-                log.error("Failed to find and editor for: '%s'", file_path)
+                log.error('Failed to find and editor for: %r', file_path)
 
     def check_version_updated(self):
         last_version = self._dao.get_config("client_version")

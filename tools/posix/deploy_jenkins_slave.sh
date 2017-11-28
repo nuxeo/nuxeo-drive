@@ -97,6 +97,13 @@ check_vars() {
     export CXFREEZE_VERSION=${CXFREEZE_VERSION:=4.3.3}  # XXX: CXFREEZE_VERSION
     export STORAGE_DIR="${WORKSPACE}/deploy-dir"
 
+    if [ "${COMPILE_WITH_DEBUG:=unset}" != "unset" ]; then
+        echo "    COMPILE_WITH_DEBUG is set, be patient :)"
+        export COMPILE_WITH_DEBUG="--debug"
+        export OPT="-O0 -g -fno-inline -fno-strict-aliasing -Wnull-dereference"
+        export PYTHON_CONFIGURE_OPTS="--with-pydebug"
+    fi
+
     echo "    PYTHON_DRIVE_VERSION = ${PYTHON_DRIVE_VERSION}"
     echo "    PYQT_VERSION         = ${PYQT_VERSION}"
     echo "    SIP_VERSION          = ${SIP_VERSION}"
@@ -234,7 +241,8 @@ install_pyqt() {
         --no-docstrings \
         --no-python-dbus \
         --no-qsci-api \
-        --no-tools
+        --no-tools \
+        ${COMPILE_WITH_DEBUG:=--verbose}
 
     echo ">>> [PyQt ${version}] Compiling"
     make -j 4

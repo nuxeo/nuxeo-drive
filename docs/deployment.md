@@ -1,6 +1,6 @@
 # Deployment Script
 
-We are using scripts to automate the isolated environment creation. With only one script, you will be able to setup the environment, launch the tests suite and build Drive package. 
+We are using scripts to automate the isolated environment creation. With only one script, you will be able to setup the environment, launch the tests suite and build Drive package.
 
 You could modify these scripts, but we will not be able to do support, these are the official way to manage the Drive ecosystem.
 
@@ -33,15 +33,15 @@ For both OSes, see [pyenv](https://github.com/yyuu/pyenv/wiki/Common-build-probl
 
 You will also need to install the Qt4 library, using HomeBrew:
 
-	brew install qt4
-	# if the previous command fails, try this one:
-	brew install cartr/qt4/qt
+	brew install cartr/qt4/qt-webkit@2.3
 
 #### GNU/Linux
 
-You will also need to install the Qt4 qmake tool:
+You will also need to install the Qt4 qmake tool and the Qt4 library:
 
-	apt install qt4-make
+	apt install qt4-make libqt4-dev libqtwebkit-dev
+	# For debug version only
+	apt install libqt4-dbg libqtwebkit4-dbg
 
 ## Windows
 
@@ -61,8 +61,8 @@ Notes:
 
 ### Dependencies:
 
-- [MinGW-w64](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/4.8.2/threads-posix/dwarf/i686-4.8.2-release-posix-dwarf-rt_v3-rev3.7z/download) installed into *C:\mingw32*;
-- [Qt 4.8.7 open-source](https://download.qt.io/official_releases/qt/4.8/4.8.7/qt-opensource-windows-x86-mingw482-4.8.7.exe) installed into *C:\Qt\4.8.7*;
+- [MinGW-w64](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/4.8.2/threads-posix/dwarf/i686-4.8.2-release-posix-dwarf-rt_v3-rev3.7z/download);
+- [Qt 4.8.7 open-source](https://download.qt.io/official_releases/qt/4.8/4.8.7/qt-opensource-windows-x86-mingw482-4.8.7.exe);
 - [Microsoft Visual C++ Compiler for Python 2.7](https://www.microsoft.com/en-us/download/details.aspx?id=44266) to build few required modules.
 
 ### Troubleshooting
@@ -85,14 +85,13 @@ If an envar is specifying a version, this means that the specified version of th
 - `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `2.7.13`.
 - `PYQT_VERSION` is the required **PyQt version** to use, i.e. `4.12`.
 - `WORKSPACE` is the **absolute path to the WORKSPACE**, i.e. `/opt/jenkins/workspace/xxx`.
+- `WORKSPACE_DRIVE` is the **absolute path to Drive sources**, i.e. `$WORKSPACE/sources`. If not defined, it will be set to `$WORKSPACE/sources` or `$WORKSPACE/nuxeo-drive` if folder exists else `$WORKSPACE`.
 
 ### Optional Envars
 
-- `QT_PATH` is the **Qt path**, i.e. `C:\Qt\4.8.7`.
-- `MINGW_PATH` is the **MinGW path** to use, i.e. `C:\mingw32`.
-- `WORKSPACE_DRIVE` is the **absolute path to Drive sources**, i.e. `$WORKSPACE/sources`. If not defined, it will be set to `$WORKSPACE/sources` or `$WORKSPACE/nuxeo-drive` if folder exists else `$WORKSPACE`.
 - `CXFREEZE_VERSION` is the **cx_Freeze version** to use, i.e. `4.3.3`.
 - `SIP_VERSION` is the **SIP version** to use, i.e. `4.19`.
+- `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
 - `SPECIFIC_TEST` is a **specific test** to launch. The syntax must be the same as [pytest markers](http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id), i.e.:
 ```
     test_local_client.py (an entire test file)
@@ -100,3 +99,12 @@ If an envar is specifying a version, this means that the specified version of th
     test_local_client.py::TestLocalClient::test_make_documents (only one method)
 ```
 - `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
+
+#### GNU/Linux specific
+
+- `COMPILE_WITH_DEBUG` to compile Python and Qt with debugging symbols. Set it to something not null.
+
+#### Windows specific
+
+- `QT_PATH` is the **Qt path**, i.e. `C:\Qt\4.8.7`.
+- `MINGW_PATH` is the **MinGW path** to use, i.e. `C:\mingw32`.

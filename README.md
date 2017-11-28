@@ -8,8 +8,8 @@ See [USERDOC/Nuxeo Drive](http://doc.nuxeo.com/x/04HQ) for complete up-to-date d
 
 Note: this documentation follows the Drive version of the master branch, which could evolve rapidly. To see the documentation of a given Drive release, use this kind of link:
 
-	# For Drive 2.1.113 go to:
-	https://github.com/nuxeo/nuxeo-drive/release-2.1.113/README.md
+    # For Drive 2.1.113 go to:
+    https://github.com/nuxeo/nuxeo-drive/release-2.1.113/README.md
 
 
 ## License
@@ -45,9 +45,9 @@ The Marketplace package can be installed using the **Admin Center** / **Update C
 
 Alternatively, from the command line:
 
-	$NUXEO_HOME/bin/nuxeoctl stop
-	$NUXEO_HOME/bin/nuxeoctl mp-install --nodeps marketplace-<version>.zip
-	$NUXEO_HOME/bin/nuxeoctl start
+    $NUXEO_HOME/bin/nuxeoctl stop
+    $NUXEO_HOME/bin/nuxeoctl mp-install --nodeps marketplace-<version>.zip
+    $NUXEO_HOME/bin/nuxeoctl start
 
 ## Clients
 
@@ -55,7 +55,9 @@ Alternatively, from the command line:
 
 The .deb (or .rpm) package of the client is not yet available. In the meantime you can install it from source code.
 
-*Has been reported to work on:* Ubuntu >= 12.04.
+*Has been reported to work on* Ubuntu >= 12.04.
+
+The easiest and safest way to build Drive is to follow the same steps as we do on [Jenkins](#jenkins).
 
 #### xattr
 
@@ -65,72 +67,37 @@ On FreeBSD and macOS, xattrs are enabled in the default kernel.
 
 On GNU/Linux, depending on the distribution, you may need a special mount option (`user_xattr`) to enable them for a given file system, e.g.:
 
-	sudo mount -o remount,user_xattr /dev/sda3
+    sudo mount -o remount,user_xattr /dev/sda3
 
-#### Python 2.7
+#### Python
 
-Nuxeo Drive uses some packages, which are only compatible from **Python 2.7 only**.
-If this excludes using the standard python installation of certain OS distributions, you may still install Python 2.7 [manually from the download pages](https://www.python.org/downloads/) on your system.
-However, this may break other tools in your environment, who need to be consistent with the default python packages.
-Using [Anaconda](http://continuum.io/downloads) to switch between different python installs/environments may help in this case.
-
-Make sure that the latest version of [pip](http://www.pip-installer.org/) is installed:
-
+Nuxeo Drive is officially supported on **Python 2.7 only**.
 
 #### Install Nuxeo Drive
 
-Then install the required system and Python packages and the Nuxeo Drive code itself:
-
-Debian package manager:
-
-```
-sudo apt-get install python-pip python-dev python-qt4 libffi-dev git
-```
-
-Redhat package manager (RPM):
-
-	sudo yum install python-pip python-devel PyQt4 libffi-devel git
-
-
-On Ubuntu 16.04 you might also need to install the `python-cffi` package if you get an error like
-
-	AssertionError: version mismatch, 1.5.2 != 1.9.1
-
-when trying to connect.
-
-Then finally install the Nuxeo Drive requirements and Nuxeo Drive itself.
+Let's say you have installed Qt4 (from official repository or compiled manually), then install Nuxeo Drive requirements and Nuxeo Drive itself.
 These are common installation actions, not depending on the package manager:
 
-	# For Drive < 2.2.227:
-	DRIVE_VERSION=release-2.1.113
-	pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
-	pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/unix-requirements.txt
-	pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
+    # For Drive < 2.2.227:
+    DRIVE_VERSION=release-2.1.113
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/unix-requirements.txt
+    pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
 
-	# For Drive >= 2.2.227:
-	DRIVE_VERSION=release-2.2.323
-	pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
-	pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements-unix.txt
-	pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
+    # For Drive >= 2.2.227:
+    DRIVE_VERSION=release-2.2.323
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements-unix.txt
+    pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
 
 
-### macOS Desktop Client
+### macOS and Windows Desktop Clients
 
-Once the Marketplace package is installed, the macOS desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab.
+Once the Marketplace package is installed, the macOS/Windows desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab. Administrator rights are required.
 
-You can also fetch the latest development version for macOS from the [our Continous Integration server](https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/).
+You can also fetch the latest development version from the [our Continous Integration server](https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/).
 
-### Windows desktop client
-
-Once the Marketplace package is installed, the Windows desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab.
-
-You can also fetch the latest development version for Windows from [our Continuous Integration server](https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/).
-
-Once you installed the package (Administrator rights required) the new folder holding the ndrive.exe and ndrivew.exe programs will be added to your `Path` environment variable automatically.
-
-You can start the Nuxeo Drive program from the "Start..." menu.
-
-All the necessary dependencies (such as the Python interpreter and the QT / PyQt for the client side user interface) are included in this folder and should not impact any alternative version you may have already installed on your computer.
+All the necessary dependencies (such as the Python interpreter and the Qt / PyQt for the client side user interface) are included and will not impact any alternative version you may have already installed on your computer.
 
 ### Jenkins
 
@@ -144,7 +111,7 @@ To easily manage all dependencies and packaging steps, we created several Jenkin
 
 1. Launch the Nuxeo Drive program (e.g. from the Start menu under Windows).
 
-	A new icon should open in the system tray and a popup menu should open asking the user for the URL of the Nuxeo server and credentials.
+    A new icon should open in the system tray and a popup menu should open asking the user for the URL of the Nuxeo server and credentials.
 
 2. In the Nuxeo web interface, mark workspaces and folders for synchronization.
 
@@ -160,29 +127,29 @@ The desktop synchronization client can also be operated from the command-line:
 
     * If you installed the .dmg package for OSX, the binary is:
 
-	```
+    ```
     /Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive
-	```
+    ```
 
     * You can alias it in your `bashrc` with:
 
-	```
+    ```
     alias ndrive="/Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive"
-	```
+    ```
 2. Launch Nuxeo Drive (no automatic background mode yet, this will come in future versions):
 
-	```
+    ```
     ndrive
-	```  
+    ```
     Under Windows you can launch `ndrivew.exe` instead to avoid keeping the cmd console open while Nuxeo Drive is running instead.
 
 3. The first time you run this command a dialog window will open asking for the URL of the Nuxeo server and your user credentials.
 
     Alternatively you can bind to a Nuxeo server with your user credentials using the following commandline arguments:
 
-	```
+    ```
     ndrive bind-server nuxeo-username http://server:port/nuxeo --password secret
-	```
+    ```
     This will create a new folder called Nuxeo Drive in your home folder on GNU/Linux & macOS and under the Documents folder on  Windows.
 
 4. Go to your Nuxeo with your browser, navigate to workspaces or folder where you have permission to create new documents.
@@ -190,60 +157,60 @@ The desktop synchronization client can also be operated from the command-line:
 
     Alternatively you can do this operation from the commandline with:
 
-	```
+    ```
     ndrive bind-root "/default-domain/workspaces/My Workspace"
-	```
-	You can now create office documents and folders locally or inside Nuxeo and watch them getting synchronized both ways automatically.
+    ```
+    You can now create office documents and folders locally or inside Nuxeo and watch them getting synchronized both ways automatically.
 
 For more options, type:
 
-	ndrive --help
-	ndrive subcommand --help
+    ndrive --help
+    ndrive subcommand --help
 
 ### Building pip Package
 
 This is as simple as:
 
-	python setup.py sdist
+    python setup.py sdist
 
 On macOS you can face an issue with your locale with a message like:
 
-	ValueError: unknown locale: UTF-8
+    ValueError: unknown locale: UTF-8
 
 In that case you need to specify your locale as :
 
-	export LC_ALL=en_US.UTF-8
-	export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
 
 ## Reporting Issues
 
 1. Generate a bug report in the **Advanced** tab of the **Settings** panel of the Nuxeo Drive client.
 
-	You can also log DEBUG information directly in the console by using the following command-line:
+    You can also log DEBUG information directly in the console by using the following command-line:
 
-	```
-	ndrive --log-level-console=DEBUG
-	```
+    ```
+    ndrive --log-level-console=DEBUG
+    ```
 
 2. Create a GitHub issue mentionning the version of the Nuxeo Platform, your operating system name and version (e.g. Windows 7), the steps to reproduce the error and a copy of the logs.
 
 3. For long running sessions, it is better to dump the debug information in a log file. This can be done with the following command:
 
-	```
-	ndrive --log-level-file=DEBUG
-	```
+    ```
+    ndrive --log-level-file=DEBUG
+    ```
 
-	or even:
+    or even:
 
-	```
-	ndrive --log-level-file=TRACE
-	```
+    ```
+    ndrive --log-level-file=TRACE
+    ```
 
-	By default the location of the log file is: `~/.nuxeo-drive/logs/` where `~` stands for the location of the user folder. For instance:
+    By default the location of the log file is: `~/.nuxeo-drive/logs/` where `~` stands for the location of the user folder. For instance:
 
-	* Under Windows 7 and 8: `C:\Users\username\.nuxeo-drive\logs`
-	* Under macOS: `/Users/username/.nuxeo-drive/logs`
-	* Under Ubuntu (and other GNU/Linux variants): `/home/username/.nuxeo-drive/logs`
+    * Under Windows 7 and 8: `C:\Users\username\.nuxeo-drive\logs`
+    * Under macOS: `/Users/username/.nuxeo-drive/logs`
+    * Under Ubuntu (and other GNU/Linux variants): `/home/username/.nuxeo-drive/logs`
 
 ## Roadmap
 
