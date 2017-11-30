@@ -971,32 +971,39 @@ class Engine(QObject):
         """Return a client for the FileSystem abstraction."""
         if self._invalid_credentials:
             return None
-        cache = self._get_client_cache()
 
-        cache_key = (self._manager.device_id, filtered)
+        cache = self._get_client_cache()
+        cache_key = self._manager.device_id, filtered
         remote_client = cache.get(cache_key)
+
         if remote_client is None:
+            kwargs = {
+                'proxies': self._manager.get_proxies(self._server_url),
+                'proxy_exceptions': self._manager.proxy_exceptions,
+                'password': self._remote_password,
+                'timeout': self.timeout,
+                'cookie_jar': self.cookie_jar,
+                'token': self._remote_token,
+                'check_suspended': self.suspend_client,
+            }
             if filtered:
                 remote_client = self.remote_filtered_fs_client_factory(
-                        self._server_url, self._remote_user,
-                        self._manager.device_id, self.version, self._dao,
-                        proxies=self._manager.get_proxies(self._server_url),
-                        proxy_exceptions=self._manager.proxy_exceptions,
-                        password=self._remote_password,
-                        timeout=self.timeout, cookie_jar=self.cookie_jar,
-                        token=self._remote_token,
-                        check_suspended=self.suspend_client)
+                    self._server_url,
+                    self._remote_user,
+                    self._manager.device_id,
+                    self.version,
+                    self._dao,
+                    **kwargs)
             else:
                 remote_client = self.remote_fs_client_factory(
-                        self._server_url, self._remote_user,
-                        self._manager.device_id, self.version,
-                        proxies=self._manager.get_proxies(self._server_url),
-                        proxy_exceptions=self._manager.proxy_exceptions,
-                        password=self._remote_password,
-                        timeout=self.timeout, cookie_jar=self.cookie_jar,
-                        token=self._remote_token,
-                        check_suspended=self.suspend_client)
+                    self._server_url,
+                    self._remote_user,
+                    self._manager.device_id,
+                    self.version,
+                    **kwargs)
+
             cache[cache_key] = remote_client
+
         return remote_client
 
     def get_remote_doc_client(self, repository=Options.remote_repo, base_folder=None):

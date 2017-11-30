@@ -102,6 +102,8 @@ check_vars() {
         export COMPILE_WITH_DEBUG="--debug"
         export OPT="-O0 -g -fno-inline -fno-strict-aliasing -Wnull-dereference"
         export PYTHON_CONFIGURE_OPTS="--with-pydebug"
+    else
+        export COMPILE_WITH_DEBUG=""
     fi
 
     echo "    PYTHON_DRIVE_VERSION = ${PYTHON_DRIVE_VERSION}"
@@ -235,14 +237,13 @@ install_pyqt() {
     cd "$path"
 
     echo ">>> [PyQt ${version}] Configuring"
-    ${PYTHON} configure-ng.py \
+    ${PYTHON} configure-ng.py "${COMPILE_WITH_DEBUG}" \
         --confirm-license \
         --no-designer-plugin \
         --no-docstrings \
         --no-python-dbus \
         --no-qsci-api \
-        --no-tools \
-        ${COMPILE_WITH_DEBUG:=--verbose}
+        --no-tools
 
     echo ">>> [PyQt ${version}] Compiling"
     make -j 4

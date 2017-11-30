@@ -21,6 +21,8 @@ from PyQt4 import QtCore
 from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteFileSystemClient, RestAPIClient
 from nxdrive.engine.engine import Engine
+from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
+from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.options import Options
@@ -73,6 +75,8 @@ LocalClient.has_folder_icon = lambda *args: True
 Manager._handle_os = lambda: None
 Manager._create_updater = lambda *args: None
 Manager._create_server_config_updater = lambda *args: None
+
+RemoteWatcher.testing = True
 
 
 class RandomBugError(Exception):
@@ -506,71 +510,103 @@ class UnitTestCase(SimpleUnitTestCase):
         wait_win=False,
         enforce_errors=True,
     ):
-        log.debug("Wait for sync")
+        log.debug('Wait for sync')
+        
         # First wait for server if needed
         if wait_for_async:
             self.wait()
-        if sys.platform == "win32" and wait_win:
-            from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
-            log.trace("Need to wait for Windows delete resolution")
-            sleep(WIN_MOVE_RESOLUTION_PERIOD/1000)
+
+        if wait_win:
+            log.trace('Need to wait for Windows delete resolution')
+            sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000)
+
         self._wait_sync = {
             self.engine_1.uid: wait_for_engine_1,
             self.engine_2.uid: wait_for_engine_2
         }
-        self._no_remote_changes = {self.engine_1.uid: not wait_for_engine_1,
-                                   self.engine_2.uid: not wait_for_engine_2}
+        self._no_remote_changes = {
+            self.engine_1.uid: not wait_for_engine_1,
+            self.engine_2.uid: not wait_for_engine_2}
+
         if enforce_errors:
             if not self.connected:
-                self.engine_1.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
-                self.engine_2.syncPartialCompleted.connect(self.engine_1.get_queue_manager().requeue_errors)
+                self.engine_1.syncPartialCompleted.connect(
+                    self.engine_1.get_queue_manager().requeue_errors)
+                self.engine_2.syncPartialCompleted.connect(
+                    self.engine_1.get_queue_manager().requeue_errors)
                 self.connected = True
         elif self.connected:
-            self.engine_1.syncPartialCompleted.disconnect(self.engine_1.get_queue_manager().requeue_errors)
-            self.engine_2.syncPartialCompleted.disconnect(self.engine_1.get_queue_manager().requeue_errors)
+            self.engine_1.syncPartialCompleted.disconnect(
+                self.engine_1.get_queue_manager().requeue_errors)
+            self.engine_2.syncPartialCompleted.disconnect(
+                self.engine_1.get_queue_manager().requeue_errors)
             self.connected = False
+
         while timeout > 0:
             sleep(1)
-            timeout = timeout - 1
+            timeout -= 1
             if sum(self._wait_sync.values()) == 0:
                 if wait_for_async:
-                    log.debug('Sync completed, _wait_remote_scan = %r, remote changes count = %r,'
-                              ' no remote changes = %r',
-                              self._wait_remote_scan, self._remote_changes_count, self._no_remote_changes)
+                    log.debug('Sync completed, '
+                              '_wait_remote_scan = %r, '
+                              'remote changes count = %r, '
+                              'no remote changes = %r',
+                              self._wait_remote_scan,
+                              self._remote_changes_count,
+                              self._no_remote_changes)
+
                     wait_remote_scan = False
                     if wait_for_engine_1:
                         wait_remote_scan = self._wait_remote_scan[self.engine_1.uid]
                     if wait_for_engine_2:
                         wait_remote_scan = wait_remote_scan or self._wait_remote_scan[self.engine_2.uid]
+
                     is_remote_changes = True
                     is_change_summary_over = True
+
                     if wait_for_engine_1:
                         is_remote_changes = self._remote_changes_count[self.engine_1.uid] > 0
                         is_change_summary_over = self._no_remote_changes[self.engine_1.uid]
+
                     if wait_for_engine_2:
-                        is_remote_changes = (is_remote_changes
-                                             and self._remote_changes_count[self.engine_2.uid] > 0)
-                        is_change_summary_over = (is_change_summary_over
-                                                  and self._no_remote_changes[self.engine_2.uid])
-                    if (not wait_remote_scan or is_remote_changes and is_change_summary_over):
-                        self._wait_remote_scan = {self.engine_1.uid: wait_for_engine_1,
-                                                  self.engine_2.uid: wait_for_engine_2}
-                        self._remote_changes_count = {self.engine_1.uid: 0, self.engine_2.uid: 0}
-                        self._no_remote_changes = {self.engine_1.uid: False, self.engine_2.uid: False}
-                        log.debug('Ended wait for sync, setting _wait_remote_scan values to True,'
-                                  ' _remote_changes_count values to 0 and _no_remote_changes values to False')
+                        is_remote_changes = (
+                            is_remote_changes
+                            and self._remote_changes_count[self.engine_2.uid] > 0)
+                        is_change_summary_over = (
+                            is_change_summary_over
+                            and self._no_remote_changes[self.engine_2.uid])
+
+                    if (not wait_remote_scan
+                            or is_remote_changes
+                            and is_change_summary_over):
+                        self._wait_remote_scan = {
+                            self.engine_1.uid: wait_for_engine_1,
+                            self.engine_2.uid: wait_for_engine_2}
+                        self._remote_changes_count = {
+                            self.engine_1.uid: 0,
+                            self.engine_2.uid: 0}
+                        self._no_remote_changes = {
+                            self.engine_1.uid: False,
+                            self.engine_2.uid: False}
+                        log.debug('Ended wait for sync, setting '
+                                  '_wait_remote_scan values to True, '
+                                  '_remote_changes_count values to 0 and '
+                                  '_no_remote_changes values to False')
                         return
                 else:
-                    log.debug("Sync completed, ended wait for sync")
+                    log.debug('Sync completed, ended wait for sync')
                     return
+
         if fail_if_timeout:
-            log.warn("Wait for sync timeout has expired")
-            if wait_for_engine_1 and self.engine_1.get_dao().get_syncing_count() != 0:
-                self.fail("Wait for sync timeout expired")
-            if wait_for_engine_2 and self.engine_2.get_dao().get_syncing_count() != 0:
-                self.fail("Wait for sync timeout expired")
+            log.warn('Wait for sync timeout has expired')
+            if wait_for_engine_1 and self.engine_1.get_dao().get_syncing_count():
+                self.fail('Wait for sync timeout expired for engine 1 (%d)' %
+                          self.engine_1.get_dao().get_syncing_count())
+            if wait_for_engine_2 and self.engine_2.get_dao().get_syncing_count():
+                self.fail('Wait for sync timeout expired for engine 2 (%d)' %
+                          self.engine_2.get_dao().get_syncing_count())
         else:
-            log.debug("Wait for sync timeout")
+            log.debug('Wait for sync timeout')
 
     def wait_remote_scan(self, timeout=DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT, wait_for_engine_1=True,
                          wait_for_engine_2=False):
@@ -802,6 +838,8 @@ class UnitTestCase(SimpleUnitTestCase):
             return
 
         path = os.path.join(self.report_path, self.id() + '-' + sys.platform)
+        if sys.platform == 'win32':
+            path = '\\\\?\\' + path.replace('/', os.path.sep)
         self.manager_1.generate_report(path)
 
     def _set_read_permission(self, user, doc_path, grant):

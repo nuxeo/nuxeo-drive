@@ -1,12 +1,13 @@
-'''
-@author: Remi Cattiau
-'''
-from PyQt4.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QCoreApplication
+# coding: utf-8
 from threading import current_thread
 from time import sleep, time
+from urllib2 import HTTPError
+
+from PyQt4.QtCore import QCoreApplication, QObject, QThread, pyqtSignal, \
+    pyqtSlot
+
 from nxdrive.engine.activity import Action, IdleAction
 from nxdrive.logging_config import get_logger
-from urllib2 import HTTPError
 
 log = get_logger(__name__)
 

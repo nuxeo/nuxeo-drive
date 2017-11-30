@@ -229,11 +229,11 @@ class Application(SimpleApplication):
     @QtCore.pyqtSlot(str)
     def _root_moved(self, new_path):
         engine = self.sender()
-        info = dict()
-        log.debug('Root has been moved for engine: %s to %r',
-                  engine.uid, new_path)
-        info['folder'] = engine.local_folder
-        info['new_folder'] = new_path
+        log.debug('Root has been moved for engine: %s to %r', engine.uid, new_path)
+        info = {
+            'folder': engine.local_folder,
+            'new_folder': new_path,
+        }
         dlg = WebModal(self, Translator.get('DRIVE_ROOT_MOVED', info))
         dlg.add_button('MOVE',
                        Translator.get('DRIVE_ROOT_UPDATE'),
