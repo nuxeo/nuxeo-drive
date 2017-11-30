@@ -9,6 +9,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-1038](https://jira.nuxeo.com/browse/NXDRIVE-1038): Don't quote parameters when acquiring a token
 - [NXDRIVE-1040](https://jira.nuxeo.com/browse/NXDRIVE-1040): Handle documents that are indexed but inexistant
 - [NXDRIVE-1046](https://jira.nuxeo.com/browse/NXDRIVE-1046): Review the LocalClient class
+- [NXDRIVE-1054](https://jira.nuxeo.com/browse/NXDRIVE-1054): Smart remote changes handling
 - [NXP-23113](https://jira.nuxeo.com/browse/NXP-23113): Add new DE and JA translations
 
 ### Doc

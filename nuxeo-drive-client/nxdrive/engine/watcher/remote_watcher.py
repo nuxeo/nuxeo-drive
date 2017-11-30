@@ -29,6 +29,9 @@ class RemoteWatcher(EngineWorker):
     noChangesFound = pyqtSignal()
     remoteWatcherStopped = pyqtSignal()
 
+    # Used in tests
+    testing = False
+
     def __init__(self, engine, dao, delay):
         super(RemoteWatcher, self).__init__(engine, dao)
         self.server_interval = delay
@@ -46,10 +49,11 @@ class RemoteWatcher(EngineWorker):
         self._last_remote_full_scan = self._dao.get_config('remote_last_full_scan')
         self._client = None
         self._local_client = self._engine.get_local_client()
-        self._metrics = dict()
-        self._metrics['last_remote_scan_time'] = -1
-        self._metrics['last_remote_update_time'] = -1
-        self._metrics['empty_polls'] = 0
+        self._metrics = {
+            'last_remote_scan_time': -1,
+            'last_remote_update_time': -1,
+            'empty_polls': 0,
+        }
 
     def get_engine(self):
         return self._engine
@@ -457,14 +461,19 @@ class RemoteWatcher(EngineWorker):
         return self._client
 
     def _handle_changes(self, first_pass=False):
-        log.debug("Handle remote changes, first_pass=%r", first_pass)
+        if not self.testing and self._engine._dao.get_syncing_count():
+            log.trace('Skipping remotes changes handling, I am still syncing.')
+            return True
+
+        log.trace('Handle remote changes, first_pass=%r', first_pass)
         self._client = self._check_offline()
         if self._client is None:
             return False
+
         try:
             if self._last_remote_full_scan is None:
-                log.debug("Remote full scan")
-                self._action = Action("Remote scanning")
+                log.trace('Remote full scan')
+                self._action = Action('Remote scanning')
                 self._scan_remote()
                 self._end_action()
                 # Might need to handle the changes now
@@ -482,14 +491,13 @@ class RemoteWatcher(EngineWorker):
                 self._dao.update_config('remote_need_full_scan', remote_ref)
                 self._partial_full_scan(remote_ref)
                 paths = self._dao.get_paths_to_scan()
-            self._action = Action("Handle remote changes")
+            self._action = Action('Handle remote changes')
             self._update_remote_states()
             self._save_changes_state()
             if first_pass:
                 self.initiate.emit()
             else:
                 self.updated.emit()
-            return True
         except HTTPError as e:
             err = 'HTTP error %d while trying to handle remote changes' % e.code
             if e.code in (401, 403):
@@ -505,6 +513,8 @@ class RemoteWatcher(EngineWorker):
             raise
         except:
             log.exception('Unexpected error')
+        else:
+            return True
         finally:
             self._end_action()
         return False

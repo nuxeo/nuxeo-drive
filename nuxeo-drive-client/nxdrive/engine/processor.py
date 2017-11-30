@@ -956,8 +956,17 @@ class Processor(EngineWorker):
             remote_parent_ref = local_client.get_remote_id(parent_pair.local_path)
             if remote_parent_ref != parent_pair.remote_ref:
                 return
-            path = self._create_remotely(local_client, remote_client, doc_pair,
-                                         parent_pair, name)
+            try:
+                path = self._create_remotely(
+                    local_client, remote_client, doc_pair, parent_pair, name)
+            except NotFound:
+                # Drive was shut while syncing a root.  While stopped, the root
+                # was unsynced via the Web-UI.  At the restart, remotely
+                # created files queue may have obsolete informations.
+                # To prevent inconsistency, we remotely remove the pair.
+                self._synchronize_remotely_deleted(
+                    doc_pair, local_client, remote_client)
+                return
         else:
             path = doc_pair.local_path
             remote_ref = local_client.get_remote_id(doc_pair.local_path)
