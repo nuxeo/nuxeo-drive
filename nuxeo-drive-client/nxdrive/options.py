@@ -227,22 +227,35 @@ class MetaOptions(type):
             if fail_on_error:
                 raise
         else:
-            # Need a tuple when JSON sends a simple list
             if isinstance(new_value, list):
+                # Need a tuple when JSON sends a simple list
                 new_value = tuple(sorted(new_value))
+            elif isinstance(new_value, bytes):
+                # No option needs bytes
+                # TODO NXDRIVE-691: Remove that part?
+                new_value = new_value.decode(
+                    locale.getpreferredencoding() or 'utf-8')
+
+            # Try implicit conversions.  We do not use isinstance to prevent
+            # checking against subtypes.
+            type_orig = type(old_value)
+            if type_orig is bool:
+                try:
+                    new_value = bool(new_value)
+                except (ValueError, TypeError):
+                    pass
+            elif type_orig is int:
+                try:
+                    new_value = int(new_value)
+                except (ValueError, TypeError):
+                    pass
 
             if new_value == old_value:
                 return
 
-            # No option needs bytes
-            # TODO NXDRIVE-691: Remove that part?
-            if isinstance(new_value, bytes):
-                new_value = new_value.decode(
-                    locale.getpreferredencoding() or 'utf-8')
-
             # We allow to set something when the default is None
-            if (type(new_value) != type(old_value)
-                    and type(old_value) != type(None)):
+            if (not isinstance(new_value, type_orig)
+                    and not isinstance(old_value, type(None))):
                 err = ('The value of the option %r is of type %s,'
                        ' while %s is required.')
                 raise TypeError(err % (
