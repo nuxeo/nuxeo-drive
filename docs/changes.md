@@ -1,6 +1,10 @@
 # dev
 Release date: `2017-??-??`
 
+
+# 3.0.0
+Release date: `2017-12-04`
+
 ### Core
 - [NXDRIVE-748](https://jira.nuxeo.com/browse/NXDRIVE-748): RemoteWatcher polling now uses timestamp instead of counter
 - [NXDRIVE-968](https://jira.nuxeo.com/browse/NXDRIVE-968): Improve logs disk space usage (set level to DEBUG)

@@ -235,7 +235,7 @@ class NuxeoDriveAttributes(object):
         return os.path.join(self.get_author(), 'Drive')
 
     def get_author_email(self):
-        return 'contact@nuxeo.com'
+        return 'maintainers-python+drive@nuxeo.com'
 
     def get_url(self):
         return 'https://github.com/nuxeo/nuxeo-drive'

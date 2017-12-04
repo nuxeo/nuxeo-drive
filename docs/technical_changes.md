@@ -3,6 +3,9 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+
+
+# 3.0.0
 - Removed `options` keyword from `Application.__init__()`. Use `Options` instead.
 - Removed `ignored_prefixes` keyword from `BaseAutomationClient.__init__()`. Use `Options.ignored_prefixes` instead.
 - Removed `ignored_suffixes` keyword from `BaseAutomationClient.__init__()`. Use `Options.ignored_suffixes` instead.
