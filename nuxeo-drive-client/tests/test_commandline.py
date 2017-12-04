@@ -32,13 +32,18 @@ class CommandLineTestCase(unittest.TestCase):
 
     def create_ini(self, filename='config.ini', env='PROD'):
         with open(filename, 'w+') as inifile:
-            inifile.writelines([
-                '[DEFAULT]\n',
-                'env=' + env + '\n',
-                '[PROD]\n',
-                'log-level-console=TRACE\n',
-                '[DEV]\n',
-                'log-level-console=ERROR\n'])
+            inifile.writelines("""
+[DEFAULT]
+env = %s
+
+[PROD]
+log-level-console = TRACE
+debug = False
+
+[DEV]
+log-level-console = ERROR
+delay = 3
+""" % env)
 
     def clean_ini(self, filename='config.ini'):
         try:
@@ -58,9 +63,9 @@ class CommandLineTestCase(unittest.TestCase):
 
     @Options.mock()
     def test_system_default(self):
+        self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
         original = AbstractOSIntegration.get
         AbstractOSIntegration.get = staticmethod(getOSIntegration)
-        self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
         try:
             self.clean_ini()
             argv = ["ndrive", "console", "--log-level-console", "WARNING"]

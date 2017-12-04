@@ -120,7 +120,7 @@ def test_error():
     Options.set('no key', 42, fail_on_error=False)
 
     with pytest.raises(TypeError):
-        Options.set('delay', '30')
+        Options.set('delay', 'foo')
 
 
 @Options.mock()
