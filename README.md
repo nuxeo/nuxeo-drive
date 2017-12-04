@@ -90,6 +90,7 @@ These are common installation actions, not depending on the package manager:
     pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements-unix.txt
     pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
 
+Check that `~/.local/bin` is in the `PATH` and then you can start Drive by typing `ndrive` in a terminal.
 
 ### macOS and Windows Desktop Clients
 
@@ -121,7 +122,7 @@ To easily manage all dependencies and packaging steps, we created several Jenkin
 
 The desktop synchronization client can also be operated from the command-line:
 
-1. Make sure that the `ndrive` program is installed in a folder that has been added to the `PATH` enviroment variable of your OS.
+1. Make sure that the `ndrive` program is installed in a folder that has been added to the `PATH` enviroment variable of your OS (on Unix like, it may be `~/.local/bin`).
 
     * You can check by typing the `ndrive --help` command in a console.
 
