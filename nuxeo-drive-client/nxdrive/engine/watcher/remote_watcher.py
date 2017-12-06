@@ -248,7 +248,7 @@ class RemoteWatcher(EngineWorker):
                                   descendant_info)
                         to_process.append(descendant_info)
                         continue
-                    descendant_pair, _ = self._find_remote_child_match_or_create(parent_pair, descendant_info)
+                    self._find_remote_child_match_or_create(parent_pair, descendant_info)
 
             # Check if synchronization thread was suspended
             self._interact()
@@ -263,7 +263,7 @@ class RemoteWatcher(EngineWorker):
                 if parent_pair is None:
                     log.error("Cannot find parent pair of postponed remote descendant, ignoring %s", descendant_info)
                     continue
-                descendant_pair, _ = self._find_remote_child_match_or_create(parent_pair, descendant_info)
+                self._find_remote_child_match_or_create(parent_pair, descendant_info)
             t1 = datetime.now()
             log.trace('Postponed descendants processing took %s ms', self._get_elapsed_time_milliseconds(t0, t1))
 
@@ -344,6 +344,14 @@ class RemoteWatcher(EngineWorker):
         return remote_parent_path
 
     def _find_remote_child_match_or_create(self, parent_pair, child_info):
+        if not parent_pair.local_path:
+            # The parent folder has an empty local_path,
+            # it probably means that it has been put in error as a duplicate
+            # by a processor => ignoring this child.
+            log.debug('Ignoring child %r of a duplicate folder in error %r',
+                      child_info, parent_pair)
+            return None, None
+
         local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
         remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
         # Try to get the local definition if not linked
@@ -732,7 +740,7 @@ class RemoteWatcher(EngineWorker):
                         log.debug('Marked doc_pair %r as remote creation',
                                   child_pair.remote_name)
 
-                    if child_pair.folderish and new_pair:
+                    if child_pair and child_pair.folderish and new_pair:
                         log.debug('Remote recursive scan of the content of %r',
                                   child_pair.remote_name)
                         remote_path = child_pair.remote_parent_path + "/" + new_info.uid

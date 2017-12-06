@@ -509,6 +509,7 @@ class UnitTestCase(SimpleUnitTestCase):
         wait_for_engine_2=False,
         wait_win=False,
         enforce_errors=True,
+        fatal=False,
     ):
         log.debug('Wait for sync')
         
@@ -598,13 +599,19 @@ class UnitTestCase(SimpleUnitTestCase):
                     return
 
         if fail_if_timeout:
-            log.warn('Wait for sync timeout has expired')
             if wait_for_engine_1 and self.engine_1.get_dao().get_syncing_count():
-                self.fail('Wait for sync timeout expired for engine 1 (%d)' %
-                          self.engine_1.get_dao().get_syncing_count())
-            if wait_for_engine_2 and self.engine_2.get_dao().get_syncing_count():
-                self.fail('Wait for sync timeout expired for engine 2 (%d)' %
-                          self.engine_2.get_dao().get_syncing_count())
+                err = ('Wait for sync timeout expired for engine 1 (%d)' %
+                       self.engine_1.get_dao().get_syncing_count())
+            elif wait_for_engine_2 and self.engine_2.get_dao().get_syncing_count():
+                err = ('Wait for sync timeout expired for engine 2 (%d)' %
+                       self.engine_2.get_dao().get_syncing_count())
+            else:
+                err = 'Wait for sync timeout has expired'
+
+            if fatal:
+                self.fail(err)
+            else:
+                log.warn(err)
         else:
             log.debug('Wait for sync timeout')
 

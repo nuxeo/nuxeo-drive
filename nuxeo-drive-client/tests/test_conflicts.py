@@ -97,19 +97,6 @@ class TestConflicts(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertEqual(self.local_client_1.get_content('/test.txt'), 'Remote update 2')
 
-    def test_resolve_duplicate(self):
-        if not self.local_client_1.duplication_enabled():
-            raise SkipTest('De-duplication disabled.')
-
-        self.test_real_conflict()
-        # Resolve to local file
-        pair = self.engine_1.get_dao().get_normal_state_from_remote(self.file_id)
-        self.assertIsNotNone(pair)
-        self.engine_1.resolve_with_duplicate(pair.id)
-        self.wait_sync(wait_for_async=True)
-        self.assertEqual(self.local_client_1.get_content('/test.txt'), 'Remote update 2')
-        self.assertEqual(self.local_client_1.get_content('/test__1.txt'), 'Local update 2')
-
     def test_conflict_on_lock(self):
         doc_uid = self.file_id.split("#")[-1]
         local = self.local_client_1
