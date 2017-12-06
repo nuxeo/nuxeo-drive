@@ -70,9 +70,9 @@ Notes:
 ### Troubleshooting
 
 If you get an error message complaining about the lack of signature for this script.
-You can disable that security check with the following command inside PowerShell:
+You can disable that security check with the following command inside PowerShell (as Administrator):
 
-	Set-ExecutionPolicy Unrestricted
+	set-executionpolicy -executionpolicy unrestricted
 
 ## Environment Variables
 

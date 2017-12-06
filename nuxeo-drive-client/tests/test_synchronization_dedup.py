@@ -1,253 +1,278 @@
 # coding: utf-8
-import os
-from unittest import skip
+"""
+Test behaviors when the server allows duplicates and not the client.
+"""
+from tests.common_unit_test import UnitTestCase
 
-from tests.common_unit_test import RandomBug, UnitTestCase
+
+class TestSynchronizationDedup(UnitTestCase):
+
+    def test_children_of_folder_in_dedup_error(self):
+        """
+        NXDRIVE-1037: Children of a folder that is in DEDUP error should be
+        ignored.
+        """
+
+        local = self.local_client_1
+        engine = self.engine_1
+        remote = self.remote_document_client_1
+        engine.start()
+
+        # Step 1: create Unisys folder (1st)
+        remote.make_folder('/', 'Unisys')
+        self.wait_sync(wait_for_async=True)
+        assert local.exists('/Unisys')
+
+        # Step 2: create Unisys folder (2nd)
+        unisys2 = remote.make_folder('/', 'Unisys')
+        self.wait_sync(wait_for_async=True)
+
+        # Check DEDUP error
+        doc_pair = engine.get_dao().get_normal_state_from_remote(
+            'defaultFileSystemItemFactory#default#' + unisys2)
+        assert doc_pair.last_error == 'DEDUP'
+
+        # Step 3: create a child in the 2nd Unisys folder
+        foo = remote.make_file(unisys2, 'foo.txt', content=b'42')
+        self.wait_sync(wait_for_async=True, fatal=True)
+
+        # Check the file is not created and not present in the database
+        assert not local.exists('/Unisys/foo.txt')
+        assert not engine.get_dao().get_normal_state_from_remote(
+            'defaultFileSystemItemFactory#default#' + unisys2 + '/' + foo)
 
 
-@skip('As of NXDRIVE-822, de-duplication disabled by default.')
-class TestDedupInsensitiveCaseSync(UnitTestCase):
+class TestSynchronizationDedupCaseSensitive(UnitTestCase):
 
-    def setUp(self):
-        super(TestDedupInsensitiveCaseSync, self).setUp()
+    def _setup(self):
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True, enforce_errors=False)
+
+    def test_file_sync_under_dedup_shared_folders_rename_dupe_remotely(self):
+        """ NXDRIVE-842: do not sync duplicate conflicted folder content. """
+
+        local = self.local_root_client_1
+        remote = self.remote_document_client_1
+
+        # Make documents in the 1st future root folder
+        remote.make_folder('/', 'citrus')
+        folder1 = remote.make_folder('/citrus', 'fruits')
+        remote.make_file(folder1, 'lemon.txt', content='lemon')
+        remote.make_file(folder1, 'orange.txt', content='orange')
+
+        # Make documents in the 2nd future root folder
+        folder2 = remote.make_folder('/', 'fruits')
+        remote.make_file(folder2, 'cherries.txt', content='cherries')
+        remote.make_file(folder2, 'mango.txt', content='mango')
+        remote.make_file(folder2, 'papaya.txt', content='papaya')
+
+        # Register new roots
+        remote.unregister_as_root(self.workspace)
+        remote.register_as_root(folder1)
+        remote.register_as_root(folder2)
+
+        # Start and wait
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True, enforce_errors=False)
+
+        # Checks
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertEqual(len(local.get_children_info('/fruits')), 3)
+
+        # Fix the duplicate error
+        new_folder = 'fruits-renamed-remotely'
+        remote.update(folder1, properties={'dc:title': new_folder})
+        self.wait_sync(wait_for_async=True, enforce_errors=False)
+        self.assertEqual(len(local.get_children_info('/')), 2)
+        self.assertEqual(len(local.get_children_info('/' + new_folder)), 2)
+        self.assertEqual(len(local.get_children_info('/fruits')), 3)
+
+    def test_file_sync_under_dedup_shared_folders_rename_remotely(self):
+        """ NXDRIVE-842: do not sync duplicate conflicted folder content. """
+
+        local = self.local_root_client_1
+        remote = self.remote_document_client_1
+
+        # Make documents in the 1st future root folder
+        remote.make_folder('/', 'citrus')
+        folder1 = remote.make_folder('/citrus', 'fruits')
+        remote.make_file(folder1, 'lemon.txt', content='lemon')
+        remote.make_file(folder1, 'orange.txt', content='orange')
+
+        # Make documents in the 2nd future root folder
+        folder2 = remote.make_folder('/', 'fruits')
+        remote.make_file(folder2, 'cherries.txt', content='cherries')
+        remote.make_file(folder2, 'mango.txt', content='mango')
+        remote.make_file(folder2, 'papaya.txt', content='papaya')
+
+        # Register new roots
+        remote.unregister_as_root(self.workspace)
+        remote.register_as_root(folder1)
+        remote.register_as_root(folder2)
+
+        # Start and wait
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-    def _dedup_name(self, name, idx=1):
-        name, suffix = os.path.splitext(name)
-        return "%s__%d%s" % (name, idx, suffix)
+        # Checks
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertEqual(len(local.get_children_info('/fruits')), 3)
 
-    def test_dedup_files(self):
-        local = self.local_client_1
-        remote = self.remote_document_client_1
-        # Create documents in the remote root workspace
-        # then synchronize
-        joe_uid = remote.make_file('/', 'joe.odt', 'Some content')
-        Joe_uid = remote.make_file('/', 'Joe.odt', 'Some content')
+        # Fix the duplicate error
+        new_folder = 'fruits-renamed-remotely'
+        remote.update(folder2, properties={'dc:title': new_folder})
         self.wait_sync(wait_for_async=True)
-        childs = local.get_children_info('/')
-        if childs[0].name == 'joe.odt' or childs[1].name == 'joe.odt':
-            joe_path = '/joe.odt'
-            Joe_path = '/%s' % (self._dedup_name('Joe.odt'))
-        else:
-            joe_path = '/%s' % (self._dedup_name('joe.odt'))
-            Joe_path = '/Joe.odt'
-        self.assertTrue(local.exists(joe_path))
-        self.assertTrue(local.exists(Joe_path))
         self.assertEqual(len(local.get_children_info('/')), 2)
-        self.assertEqual(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEqual(remote.get_info(Joe_uid).name, 'Joe.odt')
-        local.update_content(joe_path, 'Update content joe')
-        local.update_content(Joe_path, 'Update content Joe')
-        self.wait_sync(wait_for_async=True)
-        # Verify the content has changed
-        self.assertEqual(remote.get_content(joe_uid), 'Update content joe')
-        self.assertEqual(remote.get_content(Joe_uid), 'Update content Joe')
-        # Verify the name are the same
-        self.assertEqual(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEqual(remote.get_info(Joe_uid).name, 'Joe.odt')
-        local.delete(joe_path)
-        self.wait_sync(wait_for_async=True)
-        self.assertTrue(remote.exists(Joe_uid))
-        self.assertFalse(remote.exists(joe_uid))
-        self.assertTrue(local.exists(Joe_path))
+        self.assertEqual(len(local.get_children_info('/' + new_folder)), 3)
+        self.assertEqual(len(local.get_children_info('/fruits')), 2)
 
-    def test_dedup_files_reinit(self):
-        local = self.local_client_1
+    def test_file_sync_under_dedup_shared_folders_delete_remotely(self):
+        """ NXDRIVE-842: do not sync duplicate conflicted folder content. """
+
+        local = self.local_root_client_1
         remote = self.remote_document_client_1
-        # Create documents in the remote root workspace
-        # then synchronize
-        joe_uid = remote.make_file('/', 'joe.odt', 'Some content')
-        Joe_uid = remote.make_file('/', 'Joe.odt', 'Some content')
-        self.wait_sync(wait_for_async=True)
-        childs = local.get_children_info('/')
-        if childs[0].name == 'joe.odt' or childs[1].name == 'joe.odt':
-            joe_path = '/joe.odt'
-            Joe_path = '/%s' % (self._dedup_name('Joe.odt'))
-        else:
-            joe_path = '/%s' % (self._dedup_name('joe.odt'))
-            Joe_path = '/Joe.odt'
-        self.assertTrue(local.exists(joe_path))
-        self.assertTrue(local.exists(Joe_path))
-        self.assertEqual(len(local.get_children_info('/')), 2)
-        self.assertEqual(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEqual(remote.get_info(Joe_uid).name, 'Joe.odt')
-        local.update_content(joe_path, 'Update content joe')
-        local.update_content(Joe_path, 'Update content Joe')
-        self.wait_sync(wait_for_async=True)
-        # Verify the content has changed
-        self.assertEqual(remote.get_content(joe_uid), 'Update content joe')
-        self.assertEqual(remote.get_content(Joe_uid), 'Update content Joe')
-        # Verify the name are the same
-        self.engine_1.stop()
-        self.assertEqual(len(local.get_children_info('/')), 2)
-        self.assertEqual(len(remote.get_children_info(self.workspace_1)), 2)
-        # Simulate the uninstall
-        self.engine_1.reinit()
+
+        # Make documents in the 1st future root folder
+        remote.make_folder('/', 'citrus')
+        folder1 = remote.make_folder('/citrus', 'fruits')
+        remote.make_file(folder1, 'lemon.txt', content='lemon')
+        remote.make_file(folder1, 'orange.txt', content='orange')
+
+        # Make documents in the 2nd future root folder
+        folder2 = remote.make_folder('/', 'fruits')
+        remote.make_file(folder2, 'cherries.txt', content='cherries')
+        remote.make_file(folder2, 'mango.txt', content='mango')
+        remote.make_file(folder2, 'papaya.txt', content='papaya')
+
+        # Register new roots
+        remote.unregister_as_root(self.workspace)
+        remote.register_as_root(folder1)
+        remote.register_as_root(folder2)
+
+        # Start and wait
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        self.assertEqual(len(local.get_children_info('/')), 2)
-        self.assertEqual(len(remote.get_children_info(self.workspace_1)), 2)
-        self.assertEqual(remote.get_content(joe_uid), 'Update content joe')
-        self.assertEqual(remote.get_content(Joe_uid), 'Update content Joe')
 
-    def test_dedup_folders_reinit(self):
-        local = self.local_client_1
-        remote = self.remote_document_client_1
-        # Create documents in the remote root workspace
-        # then synchronize
-        test_uid = remote.make_folder('/', 'test')
-        Test_uid = remote.make_folder('/', 'Test')
-        remote.make_file('/test', 'test.txt', 'plop')
-        remote.make_file('/Test', 'test_2.txt', 'plop')
+        # Checks
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertEqual(len(local.get_children_info('/fruits')), 3)
+
+        # Fix the duplicate error
+        remote.delete(folder2)
         self.wait_sync(wait_for_async=True)
-        childs = local.get_children_info('/')
-        if childs[0].name == 'test' or childs[1].name == 'test':
-            test_path = '/test'
-            Test_path = '/%s' % (self._dedup_name('Test'))
-        else:
-            test_path = '/%s' % (self._dedup_name('test'))
-            Test_path = '/Test'
-        self.assertTrue(local.exists(test_path))
-        self.assertTrue(local.exists(Test_path))
-        self.assertEqual(len(local.get_children_info('/')), 2)
-        self.assertEqual(len(local.get_children_info(test_path)), 1)
-        self.assertEqual(len(local.get_children_info(Test_path)), 1)
-        self.engine_1.stop()
-        # Simulate the uninstall
-        self.engine_1.reinit()
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertEqual(len(local.get_children_info('/fruits')), 2)
+
+    def test_file_sync_under_dedup_shared_folders_delete_dupe_remotely(self):
+        """ NXDRIVE-842: do not sync duplicate conflicted folder content. """
+
+        local = self.local_root_client_1
+        remote = self.remote_document_client_1
+
+        # Make documents in the 1st future root folder
+        remote.make_folder('/', 'citrus')
+        folder1 = remote.make_folder('/citrus', 'fruits')
+        remote.make_file(folder1, 'lemon.txt', content='lemon')
+        remote.make_file(folder1, 'orange.txt', content='orange')
+
+        # Make documents in the 2nd future root folder
+        folder2 = remote.make_folder('/', 'fruits')
+        remote.make_file(folder2, 'cherries.txt', content='cherries')
+        remote.make_file(folder2, 'mango.txt', content='mango')
+        remote.make_file(folder2, 'papaya.txt', content='papaya')
+
+        # Register new roots
+        remote.unregister_as_root(self.workspace)
+        remote.register_as_root(folder1)
+        remote.register_as_root(folder2)
+
+        # Start and wait
         self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Checks
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertEqual(len(local.get_children_info('/fruits')), 3)
+
+        # Fix the duplicate error
+        remote.delete(folder1)
+        self.wait_sync(wait_for_async=True)
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertEqual(len(local.get_children_info('/fruits')), 3)
+        # TODO Check error count
+
+    def test_file_sync_under_dedup_shared_folders_delete_locally(self):
+        """ NXDRIVE-842: do not sync duplicate conflicted folder content. """
+
+        local = self.local_root_client_1
+        remote = self.remote_document_client_1
+
+        # Make documents in the 1st future root folder
+        remote.make_folder('/', 'citrus')
+        folder1 = remote.make_folder('/citrus', 'fruits')
+        remote.make_file(folder1, 'lemon.txt', content='lemon')
+        remote.make_file(folder1, 'orange.txt', content='orange')
+
+        # Make documents in the 2nd future root folder
+        folder2 = remote.make_folder('/', 'fruits')
+        remote.make_file(folder2, 'cherries.txt', content='cherries')
+        remote.make_file(folder2, 'mango.txt', content='mango')
+        remote.make_file(folder2, 'papaya.txt', content='papaya')
+
+        # Register new roots
+        remote.unregister_as_root(self.workspace)
+        remote.register_as_root(folder1)
+        remote.register_as_root(folder2)
+
+        # Start and wait
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Checks
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertEqual(len(local.get_children_info('/fruits')), 3)
+
+        # Fix the duplicate error
+        local.delete('/fruits')
+        self.wait_sync(wait_for_async=True)
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertTrue(folder1 in local.get_remote_id('/fruits'))
+        self.assertEqual(len(local.get_children_info('/fruits')), 2)
+
+    def test_file_sync_under_dedup_shared_folders_rename_locally(self):
+        """ NXDRIVE-842: do not sync duplicate conflicted folder content. """
+
+        local = self.local_root_client_1
+        remote = self.remote_document_client_1
+
+        # Make documents in the 1st future root folder
+        remote.make_folder('/', 'citrus')
+        folder1 = remote.make_folder('/citrus', 'fruits')
+        remote.make_file(folder1, 'lemon.txt', content='lemon')
+        remote.make_file(folder1, 'orange.txt', content='orange')
+
+        # Make documents in the 2nd future root folder
+        folder2 = remote.make_folder('/', 'fruits')
+        remote.make_file(folder2, 'cherries.txt', content='cherries')
+        remote.make_file(folder2, 'mango.txt', content='mango')
+        remote.make_file(folder2, 'papaya.txt', content='papaya')
+
+        # Register new roots
+        remote.unregister_as_root(self.workspace)
+        remote.register_as_root(folder1)
+        remote.register_as_root(folder2)
+
+        # Start and wait
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Checks
+        self.assertEqual(len(local.get_children_info('/')), 1)
+        self.assertEqual(len(local.get_children_info('/fruits')), 3)
+
+        # Fix the duplicate error
+        local.rename('/fruits', 'fruits-renamed')
+        self.wait_sync(wait_for_async=True)
         self.assertEqual(len(local.get_children_info('/')), 2)
-        self.assertEqual(len(local.get_children_info(test_path)), 1)
-        self.assertEqual(len(local.get_children_info(Test_path)), 1)
-
-    @RandomBug('NXDRIVE-831', target='windows', repeat=5)
-    def test_dedup_folders(self):
-        local = self.local_client_1
-        remote = self.remote_document_client_1
-        # Create documents in the remote root workspace
-        # then synchronize
-        test_uid = remote.make_folder('/', 'test')
-        Test_uid = remote.make_folder('/', 'Test')
-        remote.make_file('/test', 'test.txt', 'plop')
-        remote.make_file('/Test', 'test_2.txt', 'plop')
-        self.wait_sync(wait_for_async=True)
-        childs = local.get_children_info('/')
-        if childs[0].name == 'test' or childs[1].name == 'test':
-            test_path = '/test'
-            Test_path = '/%s' % (self._dedup_name('Test'))
-        else:
-            test_path = '/%s' % (self._dedup_name('test'))
-            Test_path = '/Test'
-        self.assertTrue(local.exists(test_path))
-        self.assertTrue(local.exists(Test_path))
-        self.assertEqual(len(local.get_children_info('/')), 2)
-        self.assertEqual(remote.get_info(test_uid).name, 'test')
-        self.assertEqual(remote.get_info(Test_uid).name, 'Test')
-        self.assertEqual(len(local.get_children_info(test_path)), 1)
-        self.assertEqual(len(local.get_children_info(Test_path)), 1)
-
-    def test_dedup_move_files(self):
-        local = self.local_client_1
-        remote = self.remote_document_client_1
-        remote.make_folder('/', 'test')
-        Joe_uid = remote.make_file('/', 'Joe.odt', 'Some content')
-        joe_uid = remote.make_file('/test', 'joe.odt', 'Some content')
-        Joe_dedup = self._dedup_name('Joe.odt')
-        self.wait_sync(wait_for_async=True)
-        # Check initial sync
-        self.assertTrue(local.exists('/test'))
-        self.assertTrue(local.exists('/Joe.odt'))
-        self.assertTrue(local.exists('/test/joe.odt'))
-        # Move to a folder containing same file to verify the dedup
-        remote.move(Joe_uid, '/test')
-        self.wait_sync(wait_for_async=True)
-        self.assertEqual(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEqual(remote.get_info(Joe_uid).name, 'Joe.odt')
-        self.assertFalse(local.exists('/Joe.odt'))
-        self.assertTrue(local.exists('/test/' + Joe_dedup))
-        self.assertTrue(local.exists('/test/joe.odt'))
-        # Move it back to a non dedup folder
-        remote.move(Joe_uid, '/')
-        self.wait_sync(wait_for_async=True)
-        self.assertEqual(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEqual(remote.get_info(Joe_uid).name, 'Joe.odt')
-        self.assertFalse(local.exists('/test/' + Joe_dedup))
-        self.assertTrue(local.exists('/Joe.odt'))
-        self.assertTrue(local.exists('/test/joe.odt'))
-        # Move again to a dedup folder
-        remote.move(Joe_uid, '/test')
-        self.wait_sync(wait_for_async=True)
-        self.assertEqual(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEqual(remote.get_info(Joe_uid).name, 'Joe.odt')
-        self.assertFalse(local.exists('/Joe.odt'))
-        self.assertTrue(local.exists('/test/' + Joe_dedup))
-        self.assertTrue(local.exists('/test/joe.odt'))
-        # Move locally without renaming
-        local.move('/test/' + Joe_dedup, '/')
-        self.wait_sync(wait_for_async=True)
-        self.assertEqual(remote.get_info(joe_uid).name, 'joe.odt')
-        self.assertEqual(remote.get_info(Joe_uid).name, Joe_dedup)
-        # Might want go back to the original name
-        self.assertTrue(local.exists('/' + Joe_dedup))
-        self.assertFalse(local.exists('/test/' + Joe_dedup))
-        self.assertTrue(local.exists('/test/joe.odt'))
-
-    def test_dedup_move_folders(self):
-        local = self.local_client_1
-        remote = self.remote_document_client_1
-        test_uid = remote.make_folder('/', 'test')
-        Test_uid = remote.make_folder('/test', 'Test')
-        Test_dedup = self._dedup_name('Test')
-        self.wait_sync(wait_for_async=True)
-        # Check initial sync
-        self.assertTrue(local.exists('/test'))
-        self.assertTrue(local.exists('/test/Test'))
-        # Move to a folder containing same file to verify the dedup
-        remote.move(Test_uid, '/')
-        self.wait_sync(wait_for_async=True)
-        self.assertEqual(remote.get_info(test_uid).name, 'test')
-        self.assertEqual(remote.get_info(Test_uid).name, 'Test')
-        self.assertTrue(local.exists('/test'))
-        self.assertTrue(local.exists('/' + Test_dedup))
-        # Move it back to a non dedup folder
-        remote.move(Test_uid, '/test')
-        self.wait_sync(wait_for_async=True)
-        self.assertEqual(remote.get_info(test_uid).name, 'test')
-        self.assertEqual(remote.get_info(Test_uid).name, 'Test')
-        self.assertTrue(local.exists('/test'))
-        self.assertTrue(local.exists('/test/Test'))
-        # Move again to a dedup folder
-        remote.move(Test_uid, '/')
-        self.wait_sync(wait_for_async=True)
-        self.assertEqual(remote.get_info(test_uid).name, 'test')
-        self.assertEqual(remote.get_info(Test_uid).name, 'Test')
-        self.assertTrue(local.exists('/' + Test_dedup))
-        self.assertTrue(local.exists('/test'))
-        # Move locally without renaming
-        local.move('/' + Test_dedup, '/test')
-        self.wait_sync(wait_for_async=True)
-        self.assertEqual(remote.get_info(test_uid).name, 'test')
-        self.assertEqual(remote.get_info(Test_uid).name, Test_dedup)
-        # Might want go back to the original name
-        self.assertTrue(local.exists('/test/' + Test_dedup))
-        self.assertFalse(local.exists('/' + Test_dedup))
-
-    @skip
-    def test_uppercase_lowercase_duplicate(self):
-        # Duplication should be disable later
-        remote = self.remote_document_client_1
-        # Test without delay might cause issue on Windows
-        self.doc1 = remote.make_folder('/', 'A')
-        self.wait_sync()
-        self.doc2 = remote.make_folder('/', 'a')
-        self.wait_sync()
-        self.assertTrue(self.local_client_1.exists('/A'))
-        self.assertTrue(self.local_client_1.exists('/a__1'))
-        self.local_client_1.delete('/A')
-        self.local_client_1.rename('/a__1', 'A')
-        self.wait_sync()
-        self.assertTrue(self.local_client_1.exists('/A'))
-        self.assertFalse(self.local_client_1.exists('/a__1'))
-        self.assertTrue(self.remote_document_client_1.exists(self.doc2))
-        self.assertFalse(self.remote_document_client_1.exists(self.doc1))
+        self.assertEqual(len(local.get_children_info('/fruits')), 2)
+        self.assertEqual(len(local.get_children_info('/fruits-renamed')), 3)
