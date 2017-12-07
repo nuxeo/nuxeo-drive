@@ -117,7 +117,7 @@ class MetaOptions(type):
     options = {
         'beta_channel': (False, 'default'),
         'beta_update_site_url': (
-            'http://community.nuxeo.com/static/drive-test/', 'default'),
+            'http://community.nuxeo.com/static/drive-tests/', 'default'),
         'consider_ssl_errors': (False, 'default'),
         'debug': (False, 'default'),
         'debug_pydev': (False, 'default'),

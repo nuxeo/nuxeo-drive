@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import argparse
+import urllib2
 
 import pytest
 
@@ -158,6 +159,12 @@ def test_setters():
 
     Options.delay = 222
     assert Options.delay == 222
+
+
+def test_site_update_url():
+    for url in (Options.update_site_url,
+                Options.beta_update_site_url):
+        urllib2.urlopen(url)
 
 
 @Options.mock()
