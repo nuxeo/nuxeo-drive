@@ -10,7 +10,7 @@ import shutil
 import sys
 import tempfile
 import unicodedata
-import warnings
+import uuid
 
 from send2trash import send2trash
 # from typing import List, Optional, Text, Tuple, Union
@@ -775,13 +775,8 @@ FolderType=Generic
                     and old_name.lower() == new_name.lower()
                     and not self.is_case_sensitive()):
                 # Must use a temp rename as FS is not case sensitive
-                with warnings.catch_warnings(UserWarning):
-                    temp_path = os.tempnam(
-                        self.abspath(parent),
-                        self.CASE_RENAME_PREFIX + old_name + '_')
-                if sys.platform == 'win32':
-                    ctypes.windll.kernel32.SetFileAttributesW(
-                        unicode(temp_path), 2)
+                temp_path = os.path.join(tempfile.gettempdir(),
+                                         unicode(uuid.uuid4()))
                 os.rename(source_os_path, temp_path)
                 source_os_path = temp_path
                 # Try the os rename part

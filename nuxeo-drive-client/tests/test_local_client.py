@@ -8,7 +8,7 @@ See NXDRIVE-742.
 
 import hashlib
 import os
-import unittest
+import sys
 from time import sleep
 
 import pytest
@@ -16,11 +16,10 @@ import pytest
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.common import DuplicationDisabledError
 from nxdrive.logging_config import get_logger
-from nxdrive.osi import AbstractOSIntegration
 from tests.common import EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from tests.common_unit_test import UnitTestCase
 
-if AbstractOSIntegration.is_windows():
+if sys.platform == 'win32':
     import win32api
 
 
@@ -87,26 +86,14 @@ class StubLocalClient(object):
     def test_complex_filenames(self):
         # create another folder with the same title
         title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
+
         folder_1 = self.local_client_1.make_folder('/', title_with_accents)
         folder_1_info = self.local_client_1.get_info(folder_1)
         self.assertEqual(folder_1_info.name, title_with_accents)
 
         # create another folder with the same title
-        title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
-        if self.local_client_1.duplication_enabled():
-            folder_2 = self.local_client_1.make_folder('/', title_with_accents)
-            folder_2_info = self.local_client_1.get_info(folder_2)
-            self.assertEqual(folder_2_info.name, title_with_accents + u"__1")
-            self.assertNotEqual(folder_1, folder_2)
-
-            title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
-            folder_3 = self.local_client_1.make_folder('/', title_with_accents)
-            folder_3_info = self.local_client_1.get_info(folder_3)
-            self.assertEqual(folder_3_info.name, title_with_accents + u"__2")
-            self.assertNotEqual(folder_1, folder_3)
-        else:
-            with self.assertRaises(DuplicationDisabledError):
-                self.local_client_1.make_folder('/', title_with_accents)
+        with pytest.raises(DuplicationDisabledError):
+            self.local_client_1.make_folder('/', title_with_accents)
 
         # Create a long file name with weird chars
         long_filename = u"\xe9" * 50 + u"%$#!()[]{}+_-=';&^" + u".doc"
@@ -125,7 +112,7 @@ class StubLocalClient(object):
                 file_2.path, folder_1_info.path + u'/' + escaped_filename)
 
     def test_missing_file(self):
-        with self.assertRaises(NotFound):
+        with pytest.raises(NotFound):
             self.local_client_1.get_info('/Something Missing')
 
     @pytest.mark.timeout(30)
@@ -138,11 +125,13 @@ class StubLocalClient(object):
         if sensitive:
             local.make_file('/', 'ABC.txt')
         else:
-            with self.assertRaises(DuplicationDisabledError):
+            with pytest.raises(DuplicationDisabledError):
                 local.make_file('/', 'ABC.txt')
         self.assertEqual(len(local.get_children_info('/')), sensitive + 1)
 
-    @unittest.skipUnless(AbstractOSIntegration.is_windows(), 'Windows only.')
+    @pytest.mark.skipif(
+        sys.platform != 'win32',
+        reason='Windows only.')
     def test_windows_short_names(self):
         """
         Test 8.3 file name convention:
@@ -156,7 +145,7 @@ class StubLocalClient(object):
 
         # Create the folder
         folder = local.make_file('/', long_name)
-        with self.assertRaises(DuplicationDisabledError):
+        with pytest.raises(DuplicationDisabledError):
             local.make_file('/', short_name)
         path = local.abspath(folder)
         self.assertEqual(os.path.basename(path), long_name)
@@ -192,7 +181,7 @@ class StubLocalClient(object):
         if self.local_client_1.is_case_sensitive():
             self.local_client_1.make_file('/', 'File 2.txt.LOCK', content=data)
         else:
-            with self.assertRaises(DuplicationDisabledError):
+            with pytest.raises(DuplicationDisabledError):
                 self.local_client_1.make_file(
                     '/', 'File 2.txt.LOCK', content=data)
 
@@ -308,16 +297,42 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
     """
 
     def setUp(self):
-        super(TestLocalClientNative, self).setUp()
         self.engine_1.start()
         self.wait_sync()
 
     def get_local_client(self, path):
         return LocalClient(path)
 
+    def test_remote_changing_case_accentued_folder(self):
+        """
+        NXDRIVE-1061: Remote rename of an accentued folder on Windows fails.
+        I put this test only here because we need to test native
+        LocalClient.rename().
+        """
 
-@unittest.skipIf(AbstractOSIntegration.is_linux(),
-                 'GNU/Linux uses native LocalClient.')
+        local = self.local_client_1
+        remote = self.remote_document_client_1
+
+        # Step 1: remotely create an accentued folder
+        root = remote.make_folder('/', u'Projet Hémodialyse')
+        folder = remote.make_folder(root, u'Pièces graphiques')
+
+        self.wait_sync(wait_for_async=True)
+        assert local.exists(u'/Projet Hémodialyse')
+        assert local.exists(u'/Projet Hémodialyse/Pièces graphiques')
+
+        # Step 2: remotely change the case of the subfolder
+        remote.update(folder, properties={'dc:title': u'Pièces Graphiques'})
+
+        self.wait_sync(wait_for_async=True)
+        children = local.get_children_info(u'/Projet Hémodialyse')
+        assert len(children) == 1
+        assert children[0].name == u'Pièces Graphiques'
+
+
+@pytest.mark.skipif(
+    sys.platform == 'linux2',
+    reason='GNU/Linux uses native LocalClient.')
 class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
     """
     Test LocalClient using OS specific commands to make FS operations.
@@ -327,7 +342,6 @@ class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
     """
 
     def setUp(self):
-        super(TestLocalClientSimulation, self).setUp()
         self.engine_1.start()
         self.wait_sync()
 
@@ -337,10 +351,10 @@ class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
         Explorer cannot find the directory as the path is way to long.
         """
 
-        if AbstractOSIntegration.is_windows():
+        if sys.platform == 'win32':
             try:
                 # IOError: [Errno 2] No such file or directory
-                with self.assertRaises(IOError):
+                with pytest.raises(IOError):
                     super(TestLocalClientSimulation,
                           self).test_complex_filenames()
             except AssertionError:
@@ -356,9 +370,9 @@ class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
         Explorer cannot deal with very long paths.
         """
 
-        if AbstractOSIntegration.is_windows():
+        if sys.platform == 'win32':
             # WindowsError: [Error 206] The filename or extension is too long
-            with self.assertRaises(OSError) as ex:
+            with pytest.raises(OSError) as ex:
                 super(TestLocalClientSimulation, self).test_deep_folders()
                 self.assertEqual(ex.errno, 206)
         else:

@@ -1098,8 +1098,8 @@ class Processor(EngineWorker):
     def _is_remote_move(self, doc_pair):
         local_parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
         remote_parent_pair = self._get_normal_state_from_remote_ref(doc_pair.remote_parent_ref)
-        log.debug('is_remote_move: local:%r remote:%r', local_parent_pair,
-                  remote_parent_pair)
+        log.debug('is_remote_move: name=%r, local=%r, remote=%r',
+                  doc_pair.remote_name, local_parent_pair, remote_parent_pair)
         return (local_parent_pair is not None
                 and remote_parent_pair is not None
                 and local_parent_pair.id != remote_parent_pair.id,
