@@ -1,6 +1,9 @@
 # dev
 Release date: `2017-??-??`
 
+### Core
+- [NXDRIVE-1059](https://jira.nuxeo.com/browse/NXDRIVE-1059): Wrong URL for the beta channel
+
 
 # 3.0.1
 Release date: `2017-12-07`
