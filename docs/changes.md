@@ -1,6 +1,10 @@
 # dev
 Release date: `2017-??-??`
 
+
+# 3.0.1
+Release date: `2017-12-07`
+
 ### Core
 - [NXDRIVE-1037](https://jira.nuxeo.com/browse/NXDRIVE-1037): Ignore children of folder in duplicate error
 
