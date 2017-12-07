@@ -73,7 +73,7 @@ class EngineLogger(QObject):
 
     @pyqtSlot(object)
     def logSyncStart(self):
-        log.log(self._level, "Synchronization starts ( items)")
+        log.log(self._level, "Synchronization starts (items)")
 
     @pyqtSlot(object)
     def logConflict(self, row_id):
@@ -220,7 +220,7 @@ class Engine(QObject):
 
     def stop_processor_on(self, path):
         for worker in self.get_queue_manager().get_processors_on(path, exact_match=True):
-            log.trace("Quitting processor: %r as requested to stop on %s", worker, path)
+            log.trace('Quitting processor: %r as requested to stop on %r', worker, path)
             worker.quit()
 
     def set_local_folder(self, path):
@@ -233,11 +233,11 @@ class Engine(QObject):
     def set_local_folder_lock(self, path):
         self._folder_lock = path
         # Check for each processor
-        log.debug("Local Folder locking on '%s'", path)
+        log.debug('Local Folder locking on %r', path)
         while self.get_queue_manager().has_file_processors_on(path):
             log.trace("Local folder locking wait for file processor to finish")
             sleep(1)
-        log.debug("Local Folder lock setup completed on '%s'", path)
+        log.debug('Local Folder lock setup completed on %r', path)
 
     def release_folder_lock(self):
         log.debug("Local Folder unlocking")
@@ -270,7 +270,7 @@ class Engine(QObject):
         self._dao.add_filter(path)
         pair = self._dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
         if pair is None:
-            log.debug("Can't find the pair: %s (%s)", remote_ref, remote_parent_path)
+            log.debug('Cannot find the pair: %s (%r)', remote_ref, remote_parent_path)
             return
         self._dao.delete_remote_state(pair)
 
@@ -405,7 +405,7 @@ class Engine(QObject):
             log.exception('Unbind error')
 
         self.dispose_db()
-        log.debug('Remove DB file %s', self._get_db_file())
+        log.debug('Remove DB file %r', self._get_db_file())
         try:
             os.remove(self._get_db_file())
         except (IOError, OSError) as exc:
@@ -431,7 +431,7 @@ class Engine(QObject):
     def _normalize_url(url):
         """Ensure that user provided url always has a trailing '/'"""
         if not url:
-            raise ValueError("Invalid url: %r" % url)
+            raise ValueError('Invalid url: %r' % url)
         if not url.endswith(u'/'):
             return url + u'/'
         return url
@@ -573,7 +573,7 @@ class Engine(QObject):
             try:
                 local_client.duplicate_file(row.local_path)
             except IOError as e:
-                log.exception('Cannot duplicate file %s', row.local_path)
+                log.exception('Cannot duplicate file %r', row.local_path)
                 if hasattr(e, 'duplicated_file') and e.duplicated_file is not None:
                     local_client.delete_final(e.duplicated_file)
                 self._dao.reset_error(row)
@@ -957,7 +957,7 @@ class Engine(QObject):
             current_file = client.get_path(action.filepath)
         if (current_file is not None and self._folder_lock is not None
                 and current_file.startswith(self._folder_lock)):
-            log.debug("PairInterrupt '%s' because lock on '%s'",
+            log.debug('PairInterrupt %r because lock on %r',
                       current_file, self._folder_lock)
             raise PairInterrupt
 
