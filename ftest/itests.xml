@@ -34,11 +34,6 @@
     <copy tofile="${out.dir}/nuxeo-marketplace-jsf-ui.zip">
       <artifact:file key="org.nuxeo.ecm.distribution:nuxeo-marketplace-jsf-ui::zip" />
     </copy>
-    <echo level="info">Temporarily disable stream audit, setting nuxeo.stream.audit.enabled=false</echo>
-    <antcall target="set-conf">
-      <param name="name" value="nuxeo.stream.audit.enabled" />
-      <param name="value" value="false" />
-    </antcall>
   </target>
 
   <target name="run-drive-tests">
