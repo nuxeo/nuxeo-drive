@@ -1,6 +1,9 @@
 # dev
 Release date: `2017-??-??`
 
+### GUI
+- [NXDRIVE-1063](https://jira.nuxeo.com/browse/NXDRIVE-1063): Add quotes to filenames and paths in translations
+
 
 # 3.0.2
 Release date: `2017-12-07`
