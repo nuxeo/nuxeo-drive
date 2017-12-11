@@ -8,6 +8,12 @@ Release date: `2017-??-??`
 - [NXDRIVE-1063](https://jira.nuxeo.com/browse/NXDRIVE-1063): Add quotes to filenames and paths in translations
 - [NXDRIVE-1064](https://jira.nuxeo.com/browse/NXDRIVE-1064): Better error message on corrupted file
 
+#### Minor changes
+- Packaging: Updated `psutil` from 5.4.1 to 5.4.2
+- Packaging: Updated `pyobjc` from 4.0.1 to 4.1
+- Packaging: Updated `pytest` from 3.2.5 to 3.3.1
+- Packaging: Updated `pytest-timeout` from 1.2.0 to 1.2.1
+
 
 # 3.0.2
 Release date: `2017-12-07`
