@@ -9,8 +9,8 @@ from urllib2 import HTTPError, URLError
 
 from PyQt4.QtCore import pyqtSignal
 
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
-    DOWNLOAD_TMP_FILE_SUFFIX
+from nxdrive.client.base_automation_client import CorruptedFile,\
+    DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import DuplicationDisabledError, NotFound, \
     UNACCESSIBLE_HASH, safe_filename
 from nxdrive.engine.activity import Action
@@ -300,6 +300,9 @@ class Processor(EngineWorker):
                         self.giveup_error(doc_pair, 'DEDUP')
                         log.trace('Removing local_path on %r', doc_pair)
                         self._dao.remove_local_path(doc_pair.id)
+                        continue
+                    except CorruptedFile as exc:
+                        self.increase_error(doc_pair, 'CORRUPT', exception=exc)
                         continue
                     except Exception as exc:
                         self._handle_pair_handler_exception(

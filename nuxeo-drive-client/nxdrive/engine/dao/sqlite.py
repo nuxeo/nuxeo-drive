@@ -1450,7 +1450,7 @@ class EngineDAO(ConfigurationDAO):
 
     def get_paths_to_scan(self):
         c = self._get_read_connection().cursor()
-        return c.execute(u"SELECT * FROM ToRemoteScan").fetchall()
+        return c.execute('SELECT * FROM ToRemoteScan').fetchall()
 
     def add_path_scanned(self, path):
         path = self._clean_filter_path(path)

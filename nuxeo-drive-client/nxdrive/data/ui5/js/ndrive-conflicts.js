@@ -46,6 +46,7 @@ ConflictsController.prototype.updateErrors = function($scope) {
 	        'LOCKED',
 	        'MANUAL',
 	        'DEDUP',
+	        'CORRUPT',
 	    ];
 
 	for (error in errors) {

@@ -3,6 +3,7 @@ Release date: `2017-??-??`
 
 ### GUI
 - [NXDRIVE-1063](https://jira.nuxeo.com/browse/NXDRIVE-1063): Add quotes to filenames and paths in translations
+- [NXDRIVE-1064](https://jira.nuxeo.com/browse/NXDRIVE-1064): Better error message on corrupted file
 
 
 # 3.0.2
