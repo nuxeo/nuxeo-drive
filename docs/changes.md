@@ -1,6 +1,9 @@
 # dev
 Release date: `2017-??-??`
 
+### Core
+- Partially revert "[NXDRIVE-1054](https://jira.nuxeo.com/browse/NXDRIVE-1054): Smart remote changes handling". See commit message for information.
+
 ### GUI
 - [NXDRIVE-1063](https://jira.nuxeo.com/browse/NXDRIVE-1063): Add quotes to filenames and paths in translations
 - [NXDRIVE-1064](https://jira.nuxeo.com/browse/NXDRIVE-1064): Better error message on corrupted file
