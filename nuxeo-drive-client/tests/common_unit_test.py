@@ -22,7 +22,6 @@ from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteFileSystemClient, RestAPIClient
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
-from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.options import Options
@@ -75,8 +74,6 @@ LocalClient.has_folder_icon = lambda *args: True
 Manager._handle_os = lambda: None
 Manager._create_updater = lambda *args: None
 Manager._create_server_config_updater = lambda *args: None
-
-RemoteWatcher.testing = True
 
 
 class RandomBugError(Exception):

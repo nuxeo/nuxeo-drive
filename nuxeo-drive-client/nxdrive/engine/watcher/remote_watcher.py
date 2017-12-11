@@ -103,8 +103,8 @@ class RemoteWatcher(EngineWorker):
             self._dao.commit()
             self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
             return
+
         self._get_changes()
-        self._save_changes_state()
         # recursive update
         self._do_scan_remote(from_state, remote_info)
         self._last_remote_full_scan = datetime.utcnow()
@@ -469,10 +469,6 @@ class RemoteWatcher(EngineWorker):
         return self._client
 
     def _handle_changes(self, first_pass=False):
-        if not self.testing and self._engine._dao.get_syncing_count():
-            log.trace('Skipping remotes changes handling, I am still syncing.')
-            return True
-
         log.trace('Handle remote changes, first_pass=%r', first_pass)
         self._client = self._check_offline()
         if self._client is None:
@@ -501,7 +497,6 @@ class RemoteWatcher(EngineWorker):
                 paths = self._dao.get_paths_to_scan()
             self._action = Action('Handle remote changes')
             self._update_remote_states()
-            self._save_changes_state()
             if first_pass:
                 self.initiate.emit()
             else:
@@ -527,12 +522,6 @@ class RemoteWatcher(EngineWorker):
             self._end_action()
         return False
 
-    def _save_changes_state(self):
-        self._last_event_log_id = self._next_last_event_log_id
-        self._dao.update_config('remote_last_sync_date', self._last_sync_date)
-        self._dao.update_config('remote_last_event_log_id', self._last_event_log_id)
-        self._dao.update_config('remote_last_root_definitions', self._last_root_definitions)
-
     def _get_changes(self):
         """Fetch incremental change summary from the server"""
         summary = self._client.get_changes(self._last_root_definitions, self._last_event_log_id, self._last_sync_date)
@@ -543,9 +532,14 @@ class RemoteWatcher(EngineWorker):
             # If available, read 'upperBound' key as last event log id
             # according to the new implementation of the audit change finder,
             # see https://jira.nuxeo.com/browse/NXP-14826.
-            self._next_last_event_log_id = summary['upperBound']
+            self._last_event_log_id = summary['upperBound']
         else:
-            self._next_last_event_log_id = None
+            self._last_event_log_id = None
+
+        self._dao.update_config('remote_last_sync_date', self._last_sync_date)
+        self._dao.update_config('remote_last_event_log_id', self._last_event_log_id)
+        self._dao.update_config('remote_last_root_definitions', self._last_root_definitions)
+
         return summary
 
     def _force_remote_scan(self, doc_pair, remote_info, remote_path=None, force_recursion=True, moved=False):
@@ -573,9 +567,11 @@ class RemoteWatcher(EngineWorker):
             del summary['fileSystemChanges']  # Fix reference leak
             return
 
-        # Fetch all events and consider the most recent folder first
+        # Fetch all events and consider the most recent first
         sorted_changes = sorted(summary['fileSystemChanges'],
-                                key=lambda x: x['eventDate'], reverse=True)
+                                key=lambda x: x['eventDate'],
+                                reverse=True)
+
         n_changes = len(sorted_changes)
         del summary['fileSystemChanges']  # Fix reference leak
         self._metrics['last_changes'] = n_changes
