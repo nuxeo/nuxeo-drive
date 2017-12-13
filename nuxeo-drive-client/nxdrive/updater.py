@@ -5,6 +5,7 @@ import errno
 import json
 import socket
 import sys
+from logging import getLogger
 from urllib2 import HTTPError, URLError
 from urlparse import urljoin
 
@@ -14,11 +15,10 @@ from esky.errors import Error
 
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import PollWorker
-from nxdrive.logging_config import get_logger
 from nxdrive.options import Options
 from nxdrive.utils import version_compare, version_compare_client
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 # Update statuses
 UPDATE_STATUS_UPGRADE_NEEDED = 'upgrade_needed'
@@ -30,7 +30,7 @@ UPDATE_STATUS_UNAVAILABLE_SITE = 'unavailable_site'
 UPDATE_STATUS_MISSING_INFO = 'missing_info'
 UPDATE_STATUS_MISSING_VERSION = 'missing_version'
 
-DEFAULT_SERVER_MIN_VERSION = '5.6'
+DEFAULT_SERVER_MIN_VERSION = '7.10'
 
 
 class UnavailableUpdateSite(Exception):

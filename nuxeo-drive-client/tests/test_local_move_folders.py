@@ -1,11 +1,11 @@
 # coding: utf-8
 import os
 import shutil
+from logging import getLogger
 
-from nxdrive.logging_config import get_logger
 from tests.common_unit_test import UnitTestCase
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class TestLocalMoveFolders(UnitTestCase):

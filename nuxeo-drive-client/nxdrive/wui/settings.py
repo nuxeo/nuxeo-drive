@@ -2,6 +2,7 @@
 import urllib2
 import urlparse
 from collections import namedtuple
+from logging import getLogger
 from urllib import urlencode
 
 from PyQt4 import QtCore, QtGui
@@ -11,7 +12,6 @@ from nxdrive.client.base_automation_client import AddonNotInstalled, \
 from nxdrive.client.common import NotFound
 from nxdrive.engine.engine import InvalidDriveException, \
     RootAlreadyBindWithDifferentAccount
-from nxdrive.logging_config import get_logger
 from nxdrive.manager import FolderAlreadyUsed, ProxySettings
 from nxdrive.options import Options
 from nxdrive.utils import TOKEN_PERMISSION, get_device, guess_server_url
@@ -20,7 +20,7 @@ from nxdrive.wui.authentication import WebAuthenticationApi, \
 from nxdrive.wui.dialog import Promise, WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30
 

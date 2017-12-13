@@ -328,7 +328,7 @@ function launch_tests {
 		--showlocals `
 		--strict `
 		--failed-first `
-		-r Efx `
+		--no-print-logs `
 		-v
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode

@@ -2,6 +2,8 @@
 import hashlib
 from urllib2 import HTTPError
 
+import pytest
+
 from nxdrive.client import LocalClient
 from tests.common_unit_test import RemoteDocumentClientForTests, UnitTestCase
 
@@ -32,27 +34,6 @@ class TestPermissionHierarchy(UnitTestCase):
         # Cleanup user workspace
         if self.workspace_uid and self.admin.exists(self.workspace_uid):
             self.admin.delete(self.workspace_uid, use_trash=False)
-
-    def set_readonly(self, user, doc_path, grant=True):
-        """
-        Mark one folder as RO or RW.
-        :param bool grant: Set RO if True else RW.
-        """
-
-        op_input = 'doc:' + doc_path
-        if grant:
-            self.root_remote_client.execute('Document.SetACE',
-                                            op_input=op_input,
-                                            user=user,
-                                            permission='Read')
-            self.root_remote_client.block_inheritance(
-                doc_path, overwrite=False)
-        else:
-            self.root_remote_client.execute('Document.SetACE',
-                                            op_input=op_input,
-                                            user=user,
-                                            permission='ReadWrite',
-                                            grant='true')
 
     def test_sync_delete_root(self):
         # Create test folder in user workspace as test user
@@ -176,6 +157,8 @@ class TestPermissionHierarchy(UnitTestCase):
             folder_b_fs))
 
     def test_sync_move_permission_removal(self):
+        local = self.local_client_2
+
         root = self.user1.make_folder(self.workspace_uid, 'testing')
         readonly = self.user1.make_folder(root, 'ReadFolder')
         readwrite = self.user1.make_folder(root, 'WriteFolder')
@@ -188,14 +171,14 @@ class TestPermissionHierarchy(UnitTestCase):
         self.user2.register_as_root(root)
 
         # Make one read-only document
-        self.user1.make_file(readonly, 'file_ro.txt', content='Read-only doc.')
+        self.user1.make_file(readonly, 'file_ro.txt', content=b'Read-only doc.')
 
         # Read only folder for user 2
         self.set_readonly(self.user_2, readonly)
 
         # Basic test to be sure we are in RO mode
-        with self.assertRaises(HTTPError):
-            self.user2.make_file(readonly, 'test.txt', content='test')
+        with pytest.raises(HTTPError):
+            self.user2.make_file(readonly, 'test.txt', content=b'test')
 
         # ReadWrite folder for user 2
         self.set_readonly(self.user_2, readwrite, grant=False)
@@ -208,48 +191,45 @@ class TestPermissionHierarchy(UnitTestCase):
 
         # Checks
         root = '/Other Docs/testing/'
-        self.assertTrue(self.local_client_2.exists(root + 'ReadFolder'))
-        self.assertTrue(self.local_client_2.exists(
-            root + 'ReadFolder/file_ro.txt'))
-        self.assertTrue(self.local_client_2.exists(root + 'WriteFolder'))
-        self.assertEqual(
-            self.local_client_2.get_content(root + 'ReadFolder/file_ro.txt'),
-            'Read-only doc.')
+        assert local.exists(root + 'ReadFolder')
+        assert local.exists(root + 'ReadFolder/file_ro.txt')
+        assert local.exists(root + 'WriteFolder')
+        content = local.get_content(root + 'ReadFolder/file_ro.txt')
+        assert content == 'Read-only doc.'
 
         # Move the read-only file
-        self.local_client_2.move(root + 'ReadFolder/file_ro.txt',
-                                 root + 'WriteFolder',
-                                 name='file_rw.txt')
+        local.move(root + 'ReadFolder/file_ro.txt',
+                   root + 'WriteFolder',
+                   name='file_rw.txt')
 
         # Remove RO on ReadFolder folder
         self.set_readonly(self.user_2, readonly, grant=False)
 
         # Edit the new writable file
-        self.local_client_2.update_content(root + 'WriteFolder/file_rw.txt',
-                                           'Now a fresh read-write doc.')
+        local.update_content(root + 'WriteFolder/file_rw.txt',
+                             b'Now a fresh read-write doc.')
 
         # Sync
         self.wait_sync(wait_for_async=True,
                        wait_for_engine_1=False,
                        wait_for_engine_2=True)
 
+        # Status check
+        assert not self.engine_2.get_dao().get_errors(limit=0)
+        assert not self.engine_2.get_dao().get_filters()
+        assert not self.engine_2.get_dao().get_unsynchronizeds()
+
         # Local checks
-        self.assertFalse(self.local_client_2.exists(
-            root + 'ReadFolder/file_ro.txt'))
-        self.assertFalse(self.local_client_2.exists(
-            root + 'WriteFolder/file_ro.txt'))
-        self.assertTrue(self.local_client_2.exists(
-            root + 'WriteFolder/file_rw.txt'))
-        self.assertEqual(
-            self.local_client_2.get_content(root + 'WriteFolder/file_rw.txt'),
-            'Now a fresh read-write doc.')
+        assert not local.exists(root + 'ReadFolder/file_ro.txt')
+        assert not local.exists(root + 'WriteFolder/file_ro.txt')
+        assert local.exists(root + 'WriteFolder/file_rw.txt')
+        content = local.get_content(root + 'WriteFolder/file_rw.txt')
+        assert content == 'Now a fresh read-write doc.'
 
         # Remote checks
-        self.assertEqual(len(self.user1.get_children_info(readonly)), 0)
+        assert not self.user1.get_children_info(readonly)
         children = self.user1.get_children_info(readwrite)
-        self.assertEqual(len(children), 1)
-        self.assertEqual(children[0].filename, 'file_rw.txt')
+        assert len(children) == 1
+        assert children[0].filename == 'file_rw.txt'
         good_digest = hashlib.md5('Now a fresh read-write doc.').hexdigest()
-        self.assertEqual(children[0].digest, good_digest)
-        # No errors check
-        self.assertEqual(len(self.engine_2.get_dao().get_errors()), 0)
+        assert children[0].digest == good_digest

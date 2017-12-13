@@ -4,13 +4,13 @@
 import os
 import subprocess
 import sys
+from logging import getLogger
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QApplication
 
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
-from nxdrive.logging_config import get_logger
 from nxdrive.notification import Notification
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration, parse_protocol_url
@@ -19,7 +19,7 @@ from nxdrive.wui.modal import WebModal
 from nxdrive.wui.systray import DriveSystrayIcon
 from nxdrive.wui.translator import Translator
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class BindingInfo(object):

@@ -2,14 +2,14 @@
 import time
 from Queue import Empty, Queue
 from copy import deepcopy
+from logging import getLogger
 from threading import Lock, local
 
 from PyQt4.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 
 from nxdrive.engine.processor import Processor
-from nxdrive.logging_config import get_logger
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
 
 

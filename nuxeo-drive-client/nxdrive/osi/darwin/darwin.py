@@ -1,17 +1,17 @@
 # coding: utf-8
 import os
 import urllib2
+from logging import getLogger
 
 import AppKit
 import objc
 from AppKit import NSRegisterServicesProvider, NSURLPboardType
 from Foundation import NSObject, NSURL
 
-from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import normalized_path
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 def serviceSelector(fn):

@@ -11,6 +11,7 @@ import sys
 import tempfile
 import time
 import urllib2
+from logging import getLogger
 from urllib import urlencode
 from urllib2 import ProxyHandler
 from urlparse import urlparse
@@ -19,12 +20,11 @@ from poster.streaminghttp import get_handlers
 
 from nxdrive.client.common import BaseClient, FILE_BUFFER_SIZE, safe_filename
 from nxdrive.engine.activity import Action, FileAction
-from nxdrive.logging_config import get_logger
 from nxdrive.options import Options
 from nxdrive.utils import TOKEN_PERMISSION, force_decode, get_device, \
     guess_digest_algorithm, guess_mime_type
 
-log = None
+log = getLogger(__name__)
 
 CHANGE_SUMMARY_OPERATION = 'NuxeoDrive.GetChangeSummary'
 DEFAULT_NUXEO_TX_TIMEOUT = 300
@@ -163,8 +163,6 @@ class BaseAutomationClient(BaseClient):
                  password=None, token=None, repository=Options.remote_repo,
                  timeout=20, blob_timeout=60, cookie_jar=None,
                  upload_tmp_dir=None, check_suspended=None):
-        global log
-        log = get_logger(__name__)
         # Function to check during long-running processing like upload /
         # download if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended

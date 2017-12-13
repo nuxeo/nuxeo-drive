@@ -9,6 +9,7 @@ import struct
 import threading
 from ctypes import *
 from ctypes.wintypes import *
+from logging import getLogger
 from time import sleep
 
 import ntsecuritycon
@@ -17,8 +18,6 @@ import win32con
 import win32file
 import win32security
 import winerror
-
-from nxdrive.logging_config import get_logger
 
 UCHAR = c_ubyte
 PVOID = c_void_p
@@ -34,7 +33,7 @@ STATUS_SUCCESS = 0
 CURRENT_PROCESS = win32api.GetCurrentProcess ()
 
 threads = 0
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class x_file_handles(Exception):

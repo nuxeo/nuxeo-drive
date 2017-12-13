@@ -1,13 +1,13 @@
 # coding: utf-8
 import time
+from logging import getLogger
 from threading import Thread
 
 from PyQt4 import QtCore, QtGui
 
 from nxdrive.gui.resources import find_icon
-from nxdrive.logging_config import get_logger
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class FileInfo(object):

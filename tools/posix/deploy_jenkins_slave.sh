@@ -361,7 +361,7 @@ launch_tests() {
         --showlocals \
         --strict \
         --failed-first \
-        -r Efx \
+        --no-print-logs \
         -v
 }
 

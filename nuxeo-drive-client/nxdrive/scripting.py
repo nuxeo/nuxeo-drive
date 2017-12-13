@@ -1,9 +1,9 @@
 # coding: utf-8
+from logging import getLogger
+
 from PyQt4.QtCore import QObject, pyqtSlot
 
-from nxdrive.logging_config import get_logger
-
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class DriveScript(QObject):

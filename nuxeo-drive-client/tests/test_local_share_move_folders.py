@@ -1,14 +1,14 @@
 # coding: utf-8
 import os
 import shutil
+from logging import getLogger
 
 from mock import patch
 
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-from nxdrive.logging_config import get_logger
 from tests.common_unit_test import UnitTestCase
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 wait_for_security_update = False
 src = None
 dst = None

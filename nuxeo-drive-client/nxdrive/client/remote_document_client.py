@@ -6,15 +6,15 @@ import unicodedata
 import urllib2
 from collections import namedtuple
 from datetime import datetime
+from logging import getLogger
 
 from dateutil import parser
 
 from nxdrive.client.base_automation_client import BaseAutomationClient
 from nxdrive.client.common import NotFound, safe_filename
-from nxdrive.logging_config import get_logger
 from nxdrive.options import Options
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 # Make the following an optional binding configuration
