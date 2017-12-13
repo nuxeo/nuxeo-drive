@@ -1,6 +1,10 @@
 # dev
 Release date: `2017-??-??`
 
+
+# 3.0.3
+Release date: `2017-12-13`
+
 ### Core
 - Partially revert "[NXDRIVE-1054](https://jira.nuxeo.com/browse/NXDRIVE-1054): Smart remote changes handling". See commit message for information.
 
