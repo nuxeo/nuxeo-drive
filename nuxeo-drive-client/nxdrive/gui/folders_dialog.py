@@ -78,5 +78,5 @@ class FiltersDialog(QtGui.QDialog):
                     if child.get_checkstate() == QtCore.Qt.Unchecked:
                         self._engine.add_filter(child.get_path())
 
-        # Need to refresh the client for now
-        # TO_REVIEW Check if we still need to invalidate_cache
+        if not self._engine.is_started():
+            self._engine.start()

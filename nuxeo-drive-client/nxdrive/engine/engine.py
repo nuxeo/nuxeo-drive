@@ -482,7 +482,6 @@ class Engine(QObject):
         return ServerBindingSettings(
             server_url=self._server_url,
             web_authentication=self._web_authentication,
-            server_version=None,
             username=self._remote_user,
             local_folder=self.local_folder,
             initialized=True,

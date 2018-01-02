@@ -3,7 +3,7 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
-
+- Removed `FsClient`
 
 # 3.0.0
 - Removed `options` keyword from `Application.__init__()`. Use `Options` instead.
