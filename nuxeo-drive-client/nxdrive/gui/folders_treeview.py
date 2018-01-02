@@ -89,9 +89,6 @@ class FsRootFileInfo(FileInfo):
         super(FsRootFileInfo, self).__init__(parent=None, checkstate=checkstate)
         self.fs_info = fs_info
 
-    def checkable(self):
-        return False
-
     def get_label(self):
         return self.fs_info.get('name')
 
@@ -161,35 +158,23 @@ class Client(object):
         return None
 
 
-class FsClient(Client):
-    def __init__(self, fs_client):
-        super(FsClient, self).__init__()
-        self.fs_client = fs_client
-
-    def get_children(self, parent=None):
-        if not parent:
-            return [FsRootFileInfo(root) for root
-                    in self.fs_client.get_top_level_children()]
-        return [FsFileInfo(file_info, parent) for file_info
-                in self.fs_client.get_children_info(parent.get_id())]
-
-
-class FilteredFsClient(FsClient):
+class FilteredFsClient(Client):
     def __init__(self, fs_client, filters=None):
-        super(FilteredFsClient, self).__init__(fs_client)
-        if filters:
-            self.filters = [filter_obj.path for filter_obj in filters]
-        else:
-            self.filters = []
+        self.fs_client = fs_client
+        filters = filters or []
+        self.filters = [filter_obj.path for filter_obj in filters]
 
     def get_item_state(self, path):
         if not path.endswith('/'):
             path += '/'
+
         if any([path.startswith(filter_path) for filter_path in self.filters]):
             return QtCore.Qt.Unchecked
+
         # Find partial checked
         if any([filter_path.startswith(path) for filter_path in self.filters]):
             return QtCore.Qt.PartiallyChecked
+
         return QtCore.Qt.Checked
 
     def get_children(self, parent=None):
@@ -205,7 +190,6 @@ class FilteredFsClient(FsClient):
 class DocClient(Client):
 
     def __init__(self, doc_client):
-        super(DocClient, self).__init__()
         self.doc_client = doc_client
 
     def get_children(self, parent=None):

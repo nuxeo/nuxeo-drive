@@ -100,9 +100,13 @@ class WebSettingsApi(WebDriveApi):
         binder.no_fscheck = not kwargs.get('check_fs', True)
         binder.url = url
         log.debug("Binder is : %s/%s", binder.url, binder.username)
-        self._manager.bind_engine(
+        engine = self._manager.bind_engine(
             self._manager._get_default_server_type(), local_folder, name,
-            binder, starts=kwargs.get('start_engine', True))
+            binder, starts=False)
+
+        # Display the filters window to let the user choose what to sync
+        self.filters_dialog(engine.uid)
+
         return ''
 
     @QtCore.pyqtSlot(str, str, str, str, str, result=QtCore.QObject)

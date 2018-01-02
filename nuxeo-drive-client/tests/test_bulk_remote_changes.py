@@ -121,10 +121,10 @@ class TestBulkRemoteChanges(UnitTestCase):
         self.remote_document_client_2.register_as_root(shared)
         # Delete folder 'shared'
         remote_client.delete(shared)
-        self.wait()
+        self.wait_sync(wait_for_async=True)
         # Restore folder 'shared' from trash
         remote_client.undelete(shared)
-        self.wait()
+        self.wait_sync(wait_for_async=True)
         # restore file 'shared/readme1.txt' from trash
         remote_client.undelete(readme1)
         remote_client.make_file(shared, "readme3.txt", "This is a another shared file")
