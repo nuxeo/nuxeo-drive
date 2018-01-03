@@ -2,12 +2,12 @@
 """ Helper to lookup UI resources from package. """
 
 import os
+from logging import getLogger
 
 import nxdrive
-from nxdrive.logging_config import get_logger
 from nxdrive.utils import find_resource_dir
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 def find_icon(icon_filename):

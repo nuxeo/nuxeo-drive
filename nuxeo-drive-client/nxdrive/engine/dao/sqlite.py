@@ -4,13 +4,12 @@ import os
 import sqlite3
 import sys
 from datetime import datetime
+from logging import getLogger
 from threading import RLock, current_thread, local
 
 from PyQt4.QtCore import QObject, pyqtSignal
 
-from nxdrive.logging_config import get_logger
-
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 SCHEMA_VERSION = "schema_version"
 
@@ -88,7 +87,8 @@ class StateRow(sqlite3.Row):
                 ' remote_ref={cls.remote_ref!r},'
                 ' local_state={cls.local_state!r},'
                 ' remote_state={cls.remote_state!r},'
-                ' pair_state={cls.pair_state!r}'
+                ' pair_state={cls.pair_state!r},'
+                ' filter_path={cls.path!r}'
                 '>'
                 ).format(name=type(self).__name__, cls=self)
 
@@ -96,8 +96,7 @@ class StateRow(sqlite3.Row):
         try:
             return self[name]
         except IndexError:
-            raise AttributeError(
-                '%s object has not attribute %r' % (type(self).__name__, name))
+            return None
 
     def is_readonly(self):
         if self.folderish:
@@ -1520,9 +1519,8 @@ class EngineDAO(ConfigurationDAO):
 
     def is_filter(self, path):
         path = self._clean_filter_path(path)
-        if any([path.startswith(filter_obj.path) for filter_obj in self._filters]):
-            return True
-        return False
+        return any([path.startswith(filter_obj.path)
+                    for filter_obj in self._filters])
 
     def get_filters(self):
         c = self._get_read_connection().cursor()

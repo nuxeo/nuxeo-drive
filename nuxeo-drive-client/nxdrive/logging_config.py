@@ -9,10 +9,15 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from nxdrive.options import Options
 
-TRACE = 5
-logging.addLevelName(TRACE, 'TRACE')
-logging.TRACE = TRACE
+
 FILE_HANDLER = None
+TRACE = 5
+TRACE_ADDED = False
+
+# Default formatter
+FORMAT = logging.Formatter('%(asctime)s %(process)d %(thread)d '
+                           '%(levelname)-8s %(name)-18s %(message)s',
+                           datefmt='%Y-%m-%d %H:%M:%S')
 
 # Singleton logging context for each process.
 # Alternatively we could use the setproctitle to handle the command name
@@ -23,6 +28,27 @@ _logging_context = dict()
 
 is_logging_configured = False
 MAX_LOG_DISPLAYED = 50000
+
+
+def add_trace_level():
+    """ Add 'trace' level to all loggers. """
+
+    global TRACE_ADDED
+    if TRACE_ADDED:
+        return
+
+    logging.addLevelName(TRACE, 'TRACE')
+    logging.TRACE = TRACE
+
+    def trace(self, message, *args, **kws):
+        if self.isEnabledFor(TRACE):
+            self._log(TRACE, message, args, **kws)
+
+    logging.Logger.trace = trace
+    TRACE_ADDED = True
+
+
+add_trace_level()
 
 
 class CustomMemoryHandler(BufferingHandler):
@@ -78,7 +104,7 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
 def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
               console_level='INFO', filter_inotify=True, command_name=None,
               log_rotate_keep=30, log_rotate_max_bytes=None,
-              log_rotate_when=None, force_configure=False):
+              log_rotate_when=None, force_configure=False, formatter=None):
 
     global is_logging_configured
     global FILE_HANDLER
@@ -103,9 +129,7 @@ def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
         root_logger.setLevel(min_level)
 
         # Define the formatter
-        formatter = logging.Formatter('%(asctime)s %(process)d %(thread)d '
-                                      '%(levelname)-8s %(name)-18s %(message)s',
-                                      datefmt='%Y-%m-%d %H:%M:%S')
+        formatter = formatter or FORMAT
 
         # Define a Handler which writes INFO messages or higher to the
         # sys.stderr
@@ -133,7 +157,7 @@ def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
                 file_handler = TimedCompressedRotatingFileHandler(
                     log_filename, when=log_rotate_when,
                     backupCount=log_rotate_keep)
-            elif log_rotate_max_bytes:
+            else:
                 file_handler = RotatingFileHandler(
                     log_filename, maxBytes=log_rotate_max_bytes,
                     backupCount=log_rotate_keep)
@@ -159,16 +183,6 @@ def get_handler(logger, name):
         if name == handler.get_name():
             return handler
     return None
-
-
-def get_logger(name):
-    logger = logging.getLogger(name)
-
-    def trace(*args, **kwargs):
-        logger.log(TRACE, *args, **kwargs)
-
-    setattr(logger, 'trace', trace)
-    return logger
 
 
 def update_logger_console(log_level):

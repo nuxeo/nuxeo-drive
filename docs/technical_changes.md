@@ -4,6 +4,10 @@
 
 # dev
 - Removed `FsClient`
+- Removed `LocalWatcher.get_watchdog_queue_size()`
+- Removed engine/next
+- Added `formatter` keyword to logging_config.py::`configure()`
+- Removed logging_config.py::`get_logger()`. Use `logging.getLogger(__name__)` instead.
 
 # 3.0.0
 - Removed `options` keyword from `Application.__init__()`. Use `Options` instead.

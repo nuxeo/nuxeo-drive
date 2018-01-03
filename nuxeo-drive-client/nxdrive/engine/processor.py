@@ -3,6 +3,7 @@ import os
 import shutil
 import sqlite3
 import socket
+from logging import getLogger
 from threading import Lock
 from time import sleep
 from urllib2 import HTTPError, URLError
@@ -15,11 +16,10 @@ from nxdrive.client.common import DuplicationDisabledError, NotFound, \
     UNACCESSIBLE_HASH, safe_filename
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, PairInterrupt, ThreadInterrupt
-from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import current_milli_time, is_generated_tmp_file
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class Processor(EngineWorker):
@@ -252,8 +252,8 @@ class Processor(EngineWorker):
                 handler_name = '_synchronize_' + doc_pair.pair_state
                 self._action = Action(handler_name)
                 sync_handler = getattr(self, handler_name, None)
-                if sync_handler is None:
-                    log.debug('Unhandled pair_state: %r for %r',
+                if not sync_handler:
+                    log.debug('Unhandled pair_state %r for %r',
                               doc_pair.pair_state, doc_pair)
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
                     continue
@@ -262,8 +262,8 @@ class Processor(EngineWorker):
                         'handler': doc_pair.pair_state,
                         'start_time': current_milli_time(),
                     }
-                    log.trace('Calling %s on doc pair %r', sync_handler,
-                              doc_pair)
+                    log.trace('Calling %s() on doc pair %r',
+                              sync_handler.__name__, doc_pair)
                     try:
                         soft_lock = self._lock_soft_path(doc_pair.local_path)
                         sync_handler(doc_pair, local_client, remote_client)
@@ -695,23 +695,32 @@ class Processor(EngineWorker):
         self._synchronize_locally_created(doc_pair, local_client, remote_client)
 
     def _synchronize_locally_moved(self, doc_pair, local_client, remote_client, update=True):
-        # A file has been moved locally, and an error occurs when tried to
-        # move on the server
+        """
+        A file has been moved locally, and an error occurs when tried to
+        move on the server.
+
+        :param doc_pair:
+        :param local_client:
+        :param remote_client:
+        :param update:
+        :return: None
+        """
+
         remote_info = None
         self._search_for_dedup(doc_pair, doc_pair.remote_name)
 
         if doc_pair.local_name != doc_pair.remote_name:
             try:
-                if doc_pair.remote_can_rename:
-                    log.debug('Renaming remote document according to local : %r',
-                              doc_pair)
-                    remote_info = remote_client.rename(doc_pair.remote_ref,
-                                                       doc_pair.local_name)
-                    self._refresh_remote(doc_pair, remote_client,
-                                         remote_info=remote_info)
-                else:
+                if not doc_pair.remote_can_rename:
                     self._handle_failed_remote_rename(doc_pair, doc_pair)
                     return
+
+                log.debug(
+                    'Renaming remote document according to local %r', doc_pair)
+                remote_info = remote_client.rename(
+                    doc_pair.remote_ref, doc_pair.local_name)
+                self._refresh_remote(
+                    doc_pair, remote_client, remote_info=remote_info)
             except Exception as e:
                 log.debug(repr(e))
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
@@ -723,11 +732,13 @@ class Processor(EngineWorker):
             parent_ref = parent_pair.remote_ref
         else:
             parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
-        if parent_pair is None:
-            raise Exception("Should have a parent pair")
+
+        if not parent_pair:
+            raise ValueError('Should have a parent pair')
+
         if parent_ref != doc_pair.remote_parent_ref:
             if (doc_pair.remote_can_delete
-                    and not parent_pair.pair_state == "unsynchronized"
+                    and not parent_pair.pair_state == 'unsynchronized'
                     and parent_pair.remote_can_create_child):
                 log.debug('Moving remote file according to local : %r', doc_pair)
                 # Bug if move in a parent with no rights / partial move

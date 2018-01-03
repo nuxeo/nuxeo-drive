@@ -179,7 +179,8 @@ def set_environment(server_url, engine):
     os.environ['NXDRIVE_TEST_USER'] = "Administrator"
     os.environ['NXDRIVE_TEST_PASSWORD'] = "Administrator"
 
-    # Convenient way to try a specific test without having to abort and start a new job
+    # Convenient way to try a specific test
+    # without having to abort and start a new job.
     os.environ['SPECIFIC_TEST'] = ''
 
 

@@ -9,6 +9,7 @@ import time
 import unicodedata
 import urlparse
 from distutils.version import StrictVersion
+from logging import getLogger
 from urllib2 import HTTPError, URLError, urlopen
 
 import psutil
@@ -17,7 +18,6 @@ from Crypto import Random
 from Crypto.Cipher import AES
 
 from nxdrive.options import Options
-from nxdrive.logging_config import get_logger
 
 if sys.platform == 'win32':
     import win32api
@@ -45,7 +45,7 @@ NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
 OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
 ENCODING = locale.getpreferredencoding()
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 def current_milli_time():

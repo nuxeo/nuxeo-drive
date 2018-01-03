@@ -4,18 +4,17 @@ import locale
 import os
 import platform
 import sys
+from logging import getLogger
 
 from PyQt4 import QtCore
 from UniversalAnalytics import Tracker as UATracker
 
 from nxdrive.engine.workers import Worker
-from nxdrive.logging_config import get_logger
-from nxdrive.osi import AbstractOSIntegration
 
-if AbstractOSIntegration.is_mac():
+if sys.platform == 'darwin':
     from Foundation import NSLocale
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class Tracker(Worker):
@@ -56,10 +55,10 @@ class Tracker(Worker):
         """ Detect the OS default language. """
 
         encoding = locale.getdefaultlocale()[1]
-        if AbstractOSIntegration.is_windows():
+        if sys.platform == 'win32':
             l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
             l10n = locale.windows_locale[l10n_code]
-        elif AbstractOSIntegration.is_mac():
+        elif sys.platform == 'darwin':
             l10n_code = NSLocale.currentLocale()
             l10n = NSLocale.localeIdentifier(l10n_code)
             encoding = 'UTF-8'

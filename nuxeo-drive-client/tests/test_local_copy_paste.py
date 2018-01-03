@@ -2,11 +2,11 @@
 import os
 import shutil
 import sys
+from logging import getLogger
 
-from nxdrive.logging_config import get_logger
 from tests.common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class TestLocalCopyPaste(UnitTestCase):

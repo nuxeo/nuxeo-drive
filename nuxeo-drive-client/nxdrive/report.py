@@ -1,11 +1,12 @@
 # conding: utfr-8
 import os
 from datetime import datetime
+from logging import getLogger
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
-from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler, get_logger
+from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class Report(object):
@@ -73,15 +74,13 @@ class Report(object):
         """
 
         # Lock to avoid inconsistence
-        dao._lock.acquire()
-        try:
-            myzip.write(dao._db, os.path.basename(dao._db),
-                        compress_type=ZIP_DEFLATED)
-        except:
-            log.exception('Impossible to copy the database %s',
-                          os.path.basename(dao._db))
-        finally:
-            dao._lock.release()
+        with dao._lock:
+            try:
+                myzip.write(dao._db, os.path.basename(dao._db),
+                            compress_type=ZIP_DEFLATED)
+            except:
+                log.exception('Impossible to copy the database %r',
+                              os.path.basename(dao._db))
 
     def get_path(self):
         return self._zipfile
@@ -94,8 +93,7 @@ class Report(object):
         :return bytes: bytes needed by zipfile.writestr()
         """
 
-        logger = get_logger(None)
-        handler = get_handler(logger, 'memory')
+        handler = get_handler(getLogger(), 'memory')
         log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
 
         for record in log_buffer:

@@ -7,6 +7,7 @@ import sys
 import time
 import urllib2
 import uuid
+from logging import getLogger
 
 from PyQt4 import QtCore, QtGui, QtNetwork, QtWebKit
 from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QSslCertificate
@@ -17,14 +18,13 @@ from nxdrive.engine.activity import Action, FileAction
 from nxdrive.engine.dao.sqlite import StateRow
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.workers import Worker
-from nxdrive.logging_config import get_logger
 from nxdrive.manager import FolderAlreadyUsed
 from nxdrive.notification import Notification
 from nxdrive.options import Options
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.wui.translator import Translator
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class PromiseWrapper(QtCore.QObject):

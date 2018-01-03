@@ -1,10 +1,11 @@
 # coding: utf-8
+from logging import getLogger
+
 from PyQt4 import QtCore, QtGui
 
 from folders_treeview import Overlay
-from nxdrive.logging_config import get_logger
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class StatusDialog(QtGui.QDialog):

@@ -1,4 +1,5 @@
 # coding: utf-8
+from logging import getLogger
 from threading import current_thread
 from time import sleep, time
 from urllib2 import HTTPError
@@ -7,9 +8,8 @@ from PyQt4.QtCore import QCoreApplication, QObject, QThread, pyqtSignal, \
     pyqtSlot
 
 from nxdrive.engine.activity import Action, IdleAction
-from nxdrive.logging_config import get_logger
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class ThreadInterrupt(Exception):

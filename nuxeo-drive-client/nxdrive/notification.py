@@ -1,13 +1,13 @@
 # coding: utf-8
 import time
+from logging import getLogger
 from threading import Lock
 
 from PyQt4 import QtCore
 
-from nxdrive.logging_config import get_logger
 from nxdrive.wui.translator import Translator
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class Notification(object):

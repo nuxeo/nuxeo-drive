@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 from Queue import Empty, Queue
+from logging import getLogger
 from time import sleep
 
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
@@ -15,14 +16,13 @@ from nxdrive.engine.activity import Action
 from nxdrive.engine.blacklist_queue import BlacklistQueue
 from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler
 from nxdrive.engine.workers import ThreadInterrupt, Worker
-from nxdrive.logging_config import get_logger
 from nxdrive.osi import parse_protocol_url
 from nxdrive.utils import current_milli_time, guess_digest_algorithm, \
     normalize_event_filename
 from nxdrive.wui.application import SimpleApplication
 from nxdrive.wui.modal import WebModal
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class DirectEdit(Worker):
@@ -444,13 +444,13 @@ class DirectEdit(Worker):
             log.debug('Emitting directEditUploadCompleted')
             self.directEditUploadCompleted.emit()
 
-        while not self._watchdog_queue.empty():
-            evt = self._watchdog_queue.get()
+        while not self.watchdog_queue.empty():
+            evt = self.watchdog_queue.get()
             self.handle_watchdog_event(evt)
 
     def _execute(self):
         try:
-            self._watchdog_queue = Queue()
+            self.watchdog_queue = Queue()
             self._action = Action("Clean up folder")
             try:
                 self._cleanup()
@@ -537,7 +537,7 @@ class DirectEdit(Worker):
                     self._lock_queue.put((ref, 'unlock'))
                 return
             queue = False
-            if evt.event_type == 'modified' or evt.event_type == 'created':
+            if evt.event_type in ('created', 'modified'):
                 queue = True
             if evt.event_type == 'moved':
                 ref = self._local_client.get_path(evt.dest_path)

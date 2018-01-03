@@ -1,9 +1,10 @@
 # coding: utf-8
-from nxdrive.logging_config import get_logger
+from logging import getLogger
+
 from tests.common import RemoteDocumentClientForTests
 from tests.common_unit_test import UnitTestCase
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class TestGroupChanges(UnitTestCase):

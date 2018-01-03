@@ -1,12 +1,21 @@
 # dev
 Release date: `2017-??-??`
 
+### Core
+- [NXDRIVE-836](https://jira.nuxeo.com/browse/NXDRIVE-836): Bad behaviors with read-only documents
+
 ### GUI
 - [NXDRIVE-1069](https://jira.nuxeo.com/browse/NXDRIVE-1069): Show filters window on account creation
 - [NXDRIVE-1070](https://jira.nuxeo.com/browse/NXDRIVE-1070): Show release notes before auto-upgrading to a new version
 
 #### Minor changes
+- Framework: Review LocalWatcher class, better use of lock and atomic methods
+- Framework: Skip folder 'modified' events as they are just access time changes
+- Framework: Deleted the Next Engine source tree
 - GUI: Re-enable the possibility to uncheck a root in the filters window
+- Log: Review how TRACE level is added to loggers
+- Tests: Log messages are now less verbose ("thread module level message")
+- Updater: Updated minimum server version from 5.6 to 7.10
 
 
 # 3.0.3
