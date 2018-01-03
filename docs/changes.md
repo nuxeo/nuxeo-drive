@@ -3,6 +3,7 @@ Release date: `2017-??-??`
 
 ### GUI
 - [NXDRIVE-1069](https://jira.nuxeo.com/browse/NXDRIVE-1069): Show filters window on account creation
+- [NXDRIVE-1070](https://jira.nuxeo.com/browse/NXDRIVE-1070): Show release notes before auto-upgrading to a new version
 
 #### Minor changes
 - GUI: Re-enable the possibility to uncheck a root in the filters window

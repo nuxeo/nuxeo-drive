@@ -1,12 +1,15 @@
 # coding: utf-8
 """ Main Qt application handling OS events and system tray UI. """
 
+import json
 import os
 import subprocess
 import sys
+import urllib2
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QApplication
+from markdown import markdown
 
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.gui.resources import find_icon
@@ -563,6 +566,7 @@ class Application(SimpleApplication):
     @QtCore.pyqtSlot(str)
     def app_updated(self, updated_version):
         self.updated_version = str(updated_version)
+        self.show_release_notes(self.updated_version)
         log.info('Quitting Nuxeo Drive and restarting updated version %s',
                  self.updated_version)
         self.manager.stopped.connect(self.restart)
@@ -593,6 +597,79 @@ class Application(SimpleApplication):
         args.extend(sys.argv[1:])
         log.info('Opening subprocess with args: %r', args)
         subprocess.Popen(args, close_fds=True)
+
+    def show_release_notes(self, version):
+        """ Display release notes of a given version. """
+
+        beta = self.manager.get_beta_channel()
+        log.debug('Showing release notes, version=%r beta=%r', version, beta)
+
+        # For now, we do care about beta only
+        if not beta:
+            return
+
+        url = ('https://api.github.com/repos/'
+               'nuxeo/nuxeo-drive'
+               '/releases/tags/'
+               'release-' + version)
+
+        if beta:
+            version += ' beta'
+
+        try:
+            content = urllib2.urlopen(url).read()
+        except urllib2.HTTPError as exc:
+            if exc.code == 404:
+                log.error('[%s] Release does not exist', version)
+            else:
+                log.exception(
+                    '[%s] Network error while fetching release notes', version)
+            return
+        except:
+            log.exception(
+                '[%s] Unknown error while fetching release notes', version)
+            return
+
+        try:
+            data = json.loads(content)
+        except (TypeError, ValueError):
+            log.exception('[%s] Invalid release notes', version)
+            return
+
+        if 'body' not in data:
+            log.error('[%s] Release notes is missing its body', version)
+            return
+
+        body = data['body'].split('If you have a Nuxeo Drive')[0]
+        try:
+            html = markdown(body)
+        except (UnicodeDecodeError, ValueError):
+            log.exception('[%s] Release notes conversion error', version)
+            return
+
+        dialog = QtGui.QDialog()
+        dialog.setWindowTitle('Drive %s - Release notes' % version)
+        dialog.setWindowIcon(QtGui.QIcon(self.get_window_icon()))
+
+        dialog.resize(600, 400)
+
+        notes = QtGui.QTextEdit()
+        notes.setStyleSheet(
+            'background-color: #eee;'
+            'border: none;'
+        )
+        notes.setReadOnly(True)
+        notes.setHtml(html)
+
+        buttons = QtGui.QDialogButtonBox()
+        buttons.setStandardButtons(QtGui.QDialogButtonBox.Ok)
+        buttons.clicked.connect(dialog.accept)
+
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(notes)
+        layout.addWidget(buttons)
+        dialog.setLayout(layout)
+        dialog.exec_()
 
     @staticmethod
     def get_mac_app():
