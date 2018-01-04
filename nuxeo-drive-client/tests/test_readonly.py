@@ -147,7 +147,7 @@ class TestReadOnly(UnitTestCase):
         # Check the file is still present on the server
         assert remote.exists('/test-ro/test.txt')
 
-    def test_file_move_to_ro(self):
+    def test_file_move_from_ro_to_ro(self):
         """
         Local moves from a read-only folder to a read-only folder.
           - source is ignored
@@ -195,7 +195,7 @@ class TestReadOnly(UnitTestCase):
             # We should not have any error
             assert not self.engine_1.get_dao().get_errors(limit=0)
 
-    def test_file_move_to_rw(self):
+    def test_file_move_from_ro_to_rw(self):
         """
         Local moves from a read-only folder to a read-write folder.
           - source is ignored
@@ -246,9 +246,12 @@ class TestReadOnly(UnitTestCase):
             # We should not have any error
             assert not self.engine_1.get_dao().get_errors(limit=0)
 
+    @pytest.mark.skip(True, reason='TODO NXDRIVE-740')
+    def test_file_move_from_rw_to_ro(self): pass
+
     def test_file_rename(self):
         """
-        No upload server side but possible to move the file locally
+        No upload server side but possible to rename the file locally
         without error.
         """
 
@@ -335,7 +338,7 @@ class TestReadOnly(UnitTestCase):
         # Check the file is still present on the server
         assert remote.exists('/test-ro/foo')
 
-    def test_folder_move_to_ro(self):
+    def test_folder_move_from_ro_to_ro(self):
         """
         Local moves from a read-only folder to a read-only folder.
           - source is ignored
@@ -384,7 +387,7 @@ class TestReadOnly(UnitTestCase):
             # We should not have any error
             assert not self.engine_1.get_dao().get_errors(limit=0)
 
-    def test_folder_move_to_rw(self):
+    def test_folder_move_from_ro_to_rw(self):
         """
         Local moves from a read-only folder to a read-write folder.
           - source is ignored
@@ -442,10 +445,13 @@ class TestReadOnly(UnitTestCase):
             ref = root_path.format(doc_pair.root, doc_pair.uid)
             assert self.engine_1.get_dao().is_filter(ref)
 
+    @pytest.mark.skip(True, reason='TODO NXDRIVE-740')
+    def test_folder_move_from_rw_to_ro(self): pass
+
     def test_folder_rename(self):
         """
-        No upload server side but possible to move the file locally
-        without error.
+        No upload server side but possible to rename the folder locally
+        without error, and it will be re-renamed.
         """
 
         local = self.local_client_1
@@ -460,6 +466,10 @@ class TestReadOnly(UnitTestCase):
         self.set_readonly(self.user_1, TEST_WORKSPACE_PATH)
         self.wait_sync(wait_for_async=True)
 
+        # Check can_delete flag in pair state
+        state = self.get_dao_state_from_engine_1('/foo')
+        assert not state.remote_can_delete
+
         # Locally rename the folder
         src = local.abspath(folder)
         dst = os.path.join(os.path.dirname(src), 'bar')
@@ -468,9 +478,13 @@ class TestReadOnly(UnitTestCase):
             with pytest.raises(OSError):
                 os.rename(src, dst)
         else:
-            # The rename happens locally but nothing remotely
+            # The rename happens locally but:
+            #     - nothing remotely
+            #     - the folder is re-renamed to its original name
             os.rename(src, dst)
             self.wait_sync()
+            assert local.exists('/foo')
+            assert not local.exists('/bar')
             assert remote.exists('/foo')
             assert not remote.exists('/bar')
 

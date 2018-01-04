@@ -362,6 +362,7 @@ launch_tests() {
         --strict \
         --failed-first \
         --no-print-logs \
+        --log-level=CRITICAL \
         -v
 }
 

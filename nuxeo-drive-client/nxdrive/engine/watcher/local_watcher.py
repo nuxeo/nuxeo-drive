@@ -41,7 +41,6 @@ class LocalWatcher(EngineWorker):
 
     def __init__(self, engine, dao):
         super(LocalWatcher, self).__init__(engine, dao)
-        self.unhandle_fs_event = False
         self._event_handler = None
         # Delay for the scheduled recursive scans of
         # a created / modified / moved folder under Windows
@@ -55,8 +54,6 @@ class LocalWatcher(EngineWorker):
         self._init()
 
     def _init(self):
-        self.local_full_scan = dict()
-        self._local_scan_finished = False
         self.client = self._engine.get_local_client()
         self._metrics = {
             'last_local_scan_time': -1,
@@ -217,7 +214,6 @@ class LocalWatcher(EngineWorker):
         self._scan_handle_deleted_files()
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
         log.debug('Full scan finished in %dms', self._metrics['last_local_scan_time'])
-        self._local_scan_finished = True
         if to_pause:
             self._engine.get_queue_manager().resume()
         self.localScanFinished.emit()
@@ -323,7 +319,7 @@ class LocalWatcher(EngineWorker):
                         log.debug('Found potential moved file %r[%s]',
                                   child_info.path, remote_id)
                         doc_pair = self._dao.get_normal_state_from_remote(remote_id)
-                        if doc_pair is not None and self.client.exists(doc_pair.local_path):
+                        if doc_pair and self.client.exists(doc_pair.local_path):
                             if (not self.client.is_case_sensitive()
                                     and doc_pair.local_path.lower() == child_info.path.lower()):
                                 log.debug('Case renaming on a case insensitive '
@@ -341,7 +337,7 @@ class LocalWatcher(EngineWorker):
                             doc_creation_time = self.get_creation_time(doc_full_path)
                             log.trace('child_cre_time=%f, doc_cre_time=%f',
                                       child_creation_time, doc_creation_time)
-                        if doc_pair is None:
+                        if not doc_pair:
                             log.debug('Cannot find reference for %r in database,'
                                       ' put it in locally_created state',
                                       child_info.path)
@@ -733,17 +729,17 @@ class LocalWatcher(EngineWorker):
                 log.debug('Created event on a known pair with no remote_ref,'
                           ' this should only happen in case of a quick move '
                           'and copy-paste: %r', doc_pair)
-                if local_info is None or local_info.get_digest() == doc_pair.local_digest:
+                if not local_info or local_info.get_digest() == doc_pair.local_digest:
                     return
                 else:
                     log.debug('Created event on a known pair with no remote_ref'
-                              ' but with different digest: %r' , doc_pair)
+                              ' but with different digest: %r', doc_pair)
             else:
                 # NXDRIVE-509
                 log.debug('Created event on a known pair with a remote_ref: %r',
                           doc_pair)
 
-        if local_info is not None:
+        if local_info:
             # Unchanged folder
             if doc_pair.folderish:
                 # Unchanged folder, only update last_local_updated
@@ -768,20 +764,25 @@ class LocalWatcher(EngineWorker):
             if (evt.event_type == 'modified'
                     and doc_pair.remote_ref is not None
                     and doc_pair.remote_ref != local_info.remote_ref):
-                original_pair = self._dao.get_normal_state_from_remote(local_info.remote_ref)
+                original_pair = self._dao.get_normal_state_from_remote(
+                    local_info.remote_ref)
                 original_info = None
                 if original_pair:
-                    original_info = self.client.get_info(original_pair.local_path, raise_if_missing=False)
+                    original_info = self.client.get_info(
+                        original_pair.local_path, raise_if_missing=False)
                 if (AbstractOSIntegration.is_mac()
                         and original_info
                         and original_info.remote_ref == local_info.remote_ref):
                     log.debug('MacOSX has postponed overwriting of xattr, '
                               'need to reset remote_ref for %r', doc_pair)
-                    # We are in a copy/paste situation with OS overriding the xattribute
-                    self.client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
+                    # We are in a copy/paste situation with OS overriding
+                    # the xattribute
+                    self.client.set_remote_id(
+                        doc_pair.local_path, doc_pair.remote_ref)
                 # This happens on overwrite through Windows Explorer
-                if original_info is None:
-                    self.client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
+                if not original_info:
+                    self.client.set_remote_id(
+                        doc_pair.local_path, doc_pair.remote_ref)
             self._dao.update_local_state(doc_pair, local_info)
 
     def handle_watchdog_root_event(self, evt):
@@ -1002,6 +1003,7 @@ class LocalWatcher(EngineWorker):
             # watchdog will put listener after it
             if dst_info.folderish:
                 self.scan_pair(src_rel)
+                # XXX: Try sync with below lines commented
                 if self.windows:
                     doc_pair = self._dao.get_state_from_local(src_rel)
                     self._schedule_win_folder_scan(doc_pair)
@@ -1047,10 +1049,6 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
                 ).format(name=type(self).__name__, cls=self)
 
     def on_any_event(self, event):
-        # Skip folder 'modified' events as they are just access time changes
-        if event.is_directory and event.event_type == 'modified':
-            return
-
         self.counter += 1
         log.trace('Queueing watchdog: %r', event)
         self.watcher.watchdog_queue.put(event)

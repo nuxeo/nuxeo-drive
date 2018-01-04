@@ -593,12 +593,7 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
-        res = c.rowcount > 0
-        if res:
-            log.trace('Released processor %d', processor_id)
-        else:
-            log.trace('No processor to release with id %d', processor_id)
-        return res
+        return c.rowcount > 0
 
     def acquire_processor(self, thread_id, row_id):
         self._lock.acquire()
@@ -610,13 +605,7 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
-        res = c.rowcount == 1
-        if res:
-            log.trace('Acquired processor %d for row %d', thread_id, row_id)
-        else:
-            log.trace("Couldn't acquire processor %d for row %d: either row does't exist or it is being processed",
-                      thread_id, row_id)
-        return res
+        return c.rowcount == 1
 
     def _reinit_states(self, cursor):
         cursor.execute("DROP TABLE States")
@@ -634,9 +623,7 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             self._reinit_states(c)
             con.commit()
-            log.trace('Vacuum SQLite')
             con.execute('VACUUM')
-            log.trace('Vacuum SQLite finished')
         finally:
             self._lock.release()
 
@@ -649,9 +636,7 @@ class EngineDAO(ConfigurationDAO):
             c.execute("UPDATE States SET error_count=0, last_sync_error_date=NULL, last_error = NULL WHERE pair_state='synchronized'")
             if self.auto_commit:
                 con.commit()
-            log.trace('Vacuum SQLite')
             con.execute('VACUUM')
-            log.trace('Vacuum SQLite finished')
         finally:
             self._lock.release()
 

@@ -54,10 +54,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.wait_sync(timeout=30)
 
     def get_local_client(self, path):
-        if AbstractOSIntegration.is_mac() and (
-                    self._testMethodName == 'test_local_delete_readonly_folder' or
-                    self._testMethodName == 'test_local_rename_readonly_folder'):
-            return LocalClient(path)
         # Old mac dont handle case rename
         if AbstractOSIntegration.is_mac() and AbstractOSIntegration.os_version_below("10.10") and (
                     self._testMethodName == 'test_local_rename_file_uppercase_stopped' or
@@ -330,32 +326,28 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(len(remote_client.get_children_info(file_1_1_remote_info.parent_uid)), 3)
 
     def test_local_move_file(self):
-        local_client = self.local_client_1
-        remote_client = self.remote_document_client_1
+        local = self.local_client_1
+        remote = self.remote_document_client_1
 
-        # Move /Original File 1.txt to /Original Folder 1/Original File 1.txt
-        original_file_1_uid = remote_client.get_info(
-            u'/Original File 1.txt').uid
-        local_client.move(u'/Original File 1.txt', u'/Original Folder 1')
-        self.assertFalse(local_client.exists(u'/Original File 1.txt'))
-        self.assertTrue(local_client.exists(
-            u'/Original Folder 1/Original File 1.txt'))
+        # "/Original File 1.txt" -> "/Original Folder 1/Original File 1.txt"
+        original_file_1_uid = remote.get_info('/Original File 1.txt').uid
+        local.move('/Original File 1.txt', '/Original Folder 1')
+        assert not local.exists('/Original File 1.txt')
+        assert local.exists('/Original Folder 1/Original File 1.txt')
 
         self.wait_sync()
-        self.assertFalse(local_client.exists(u'/Original File 1.txt'))
-        self.assertTrue(local_client.exists(
-            u'/Original Folder 1/Original File 1.txt'))
+        assert not local.exists('/Original File 1.txt')
+        assert local.exists('/Original Folder 1/Original File 1.txt')
 
-        file_1_remote_info = remote_client.get_info(original_file_1_uid)
-        self.assertEqual(file_1_remote_info.name, u'Original File 1.txt')
-        parent_of_file_1_remote_info = remote_client.get_info(
+        file_1_remote_info = remote.get_info(original_file_1_uid)
+        assert file_1_remote_info.name == 'Original File 1.txt'
+        parent_of_file_1_remote_info = remote.get_info(
             file_1_remote_info.parent_uid)
-        self.assertEqual(parent_of_file_1_remote_info.name,
-                          u'Original Folder 1')
-        self.assertEqual(len(local_client.get_children_info(u'/Original Folder 1')), 4)
-        self.assertEqual(len(remote_client.get_children_info(file_1_remote_info.parent_uid)), 4)
-        self.assertEqual(len(local_client.get_children_info(u'/')), 3)
-        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 3)
+        assert parent_of_file_1_remote_info.name == 'Original Folder 1'
+        assert len(local.get_children_info('/Original Folder 1')) == 4
+        assert len(remote.get_children_info(file_1_remote_info.parent_uid)) == 4
+        assert len(local.get_children_info('/')) == 3
+        assert len(remote.get_children_info(self.workspace_1)) == 3
 
     def test_local_move_and_rename_file(self):
         local_client = self.local_client_1
@@ -635,55 +627,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(folder_1_info.parent_uid, self.workspace)
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
 
-    def test_local_rename_readonly_folder(self):
-        local_client = self.local_client_1
-        remote_client = self.remote_document_client_1
-
-        # Check local folder
-        self.assertTrue(local_client.exists(u'/Original Folder 1'))
-        uid = local_client.get_remote_id(u'/Original Folder 1')
-        folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(uid)
-        self.assertTrue(folder_1_state.remote_can_rename)
-
-        # Set remote folder as readonly for test user
-        folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
-        op_input = "doc:" + folder_1_path
-        self.root_remote_client.execute("Document.SetACE",
-                                        op_input=op_input,
-                                        user=self.user_1,
-                                        permission="Read")
-        self.root_remote_client.block_inheritance(folder_1_path,
-                                                  overwrite=False)
-        self.wait_sync(wait_for_async=True)
-        # Check can_rename flag in pair state
-        folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(uid)
-        self.assertFalse(folder_1_state.remote_can_rename)
-
-        # Rename local folder
-        local_client.rename(u'/Original Folder 1', u'Renamed Folder 1 \xe9')
-        self.assertFalse(local_client.exists(u'/Original Folder 1'))
-        self.assertTrue(local_client.exists(u'/Renamed Folder 1 \xe9'))
-
-        self.wait_sync()
-
-        # Check remote folder has not been renamed
-        folder_1_remote_info = remote_client.get_info(u'/Original Folder 1')
-        self.assertEqual(folder_1_remote_info.name, u'Original Folder 1')
-
-        # Check state of local folder and its children
-        folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(uid)
-        self.assertEqual(folder_1_state.remote_name, u'Original Folder 1')
-
-        # The folder is re-renamed to its original name
-        folder_name = u'Original Folder 1'
-        self.assertTrue(local_client.exists('/' + folder_name + '/Original File 1.1.txt'))
-        self.assertTrue(local_client.exists('/' + folder_name + '/Sub-Folder 1.1'))
-        self.assertTrue(local_client.exists('/' + folder_name + '/Sub-Folder 1.2'))
-        self.assertEqual(len(local_client.get_children_info('/' + folder_name)), 3)
-        self.assertEqual(len(remote_client.get_children_info(folder_1_remote_info.uid)), 3)
-        self.assertEqual(len(local_client.get_children_info('/')), 4)
-        self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
-
     def test_local_move_with_remote_error(self):
         local_client = self.local_client_1
         remote_client = self.remote_document_client_1
@@ -717,92 +660,6 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(len(remote_client.get_children_info(folder_1.uid)), 3)
         self.assertEqual(len(local_client.get_children_info(u'/')), 4)
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 4)
-
-    def test_local_delete_readonly_folder(self):
-        local_client = self.local_client_1
-        remote_client = self.remote_document_client_1
-
-        # Check local folder
-        self.assertTrue(local_client.exists(u'/Original Folder 1'))
-        folder_1_state = self.get_dao_state_from_engine_1(u'/Original Folder 1')
-        self.assertTrue(folder_1_state.remote_can_delete)
-
-        # Set remote folder as readonly for test user
-        folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
-        op_input = "doc:" + folder_1_path
-        self.root_remote_client.execute("Document.SetACE",
-                                        op_input=op_input,
-                                        user=self.user_1,
-                                        permission="Read")
-        self.root_remote_client.block_inheritance(folder_1_path, overwrite=False)
-
-        self.wait_sync(wait_for_async=True)
-
-        # Check can_delete flag in pair state
-        folder_1_state = self.get_dao_state_from_engine_1(u'/Original Folder 1')
-        self.assertFalse(folder_1_state.remote_can_delete)
-
-        # Delete local folder
-        local_client.delete(u'/Original Folder 1')
-        self.assertFalse(local_client.exists(u'/Original Folder 1'))
-
-        self.wait_sync(wait_for_async=True)
-        self.assertEqual(self.engine_1.get_dao().get_sync_count(), 6)
-
-        # Check remote folder and its children have not been deleted
-        folder_1_remote_info = remote_client.get_info(u'/Original Folder 1')
-        self.assertEqual(folder_1_remote_info.name, u'Original Folder 1')
-
-        file_1_1_remote_info = remote_client.get_info(u'/Original Folder 1/Original File 1.1.txt')
-        self.assertEqual(file_1_1_remote_info.name, u'Original File 1.1.txt')
-
-        folder_1_1_remote_info = remote_client.get_info(u'/Original Folder 1/Sub-Folder 1.1')
-        self.assertEqual(folder_1_1_remote_info.name, u'Sub-Folder 1.1')
-
-        folder_1_2_remote_info = remote_client.get_info(u'/Original Folder 1/Sub-Folder 1.2')
-        self.assertEqual(folder_1_2_remote_info.name, u'Sub-Folder 1.2')
-
-        if not AbstractOSIntegration.is_windows():
-            # Check filter has been created
-            self.assertTrue(
-                self.engine_1.get_dao().is_filter(
-                    folder_1_state.remote_parent_path + '/' + folder_1_state.remote_ref))
-
-            # Check local folder haven't been re-created
-            self.assertFalse(local_client.exists(u'/Original Folder 1'))
-
-    @skip('Need expectation on this test')
-    def test_local_move_folder_to_readonly(self):
-        local_client = self.local_client_1
-        remote_client = self.remote_document_client_1
-
-        # Check local folder
-        self.assertTrue(local_client.exists(u'/Original Folder 1'))
-        folder_1_state = self.get_dao_state_from_engine_1(u'/Original Folder 1')
-        self.assertTrue(folder_1_state.remote_can_delete)
-
-        # Set remote folder as readonly for test user
-        folder_1_path = TEST_WORKSPACE_PATH + u'/Original Folder 1'
-        op_input = "doc:" + folder_1_path
-        self.root_remote_client.execute("Document.SetACE",
-                                        op_input=op_input,
-                                        user=self.user_1,
-                                        permission="Read")
-        self.root_remote_client.block_inheritance(folder_1_path, overwrite=False)
-
-        self.wait_sync(wait_for_async=True)
-
-        # Check can_delete flag in pair state
-        folder_1_state = self.get_dao_state_from_engine_1(u'/Original Folder 1')
-        self.assertFalse(folder_1_state.remote_can_delete)
-
-        # Delete local folder
-        local_client.unlock_ref(u'/Original Folder 1')
-        local_client.move(u'/Original Folder 2', u'/Original Folder 1')
-        self.assertFalse(local_client.exists(u'/Original Folder 2'))
-
-        self.wait_sync(wait_for_async=True)
-        # It should have move back Original Folder 2 to its origin as the target is in read only
 
     # TODO: implement me once canDelete is checked in the synchronizer
     # def test_local_move_sync_root_folder(self):

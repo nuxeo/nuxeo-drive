@@ -157,13 +157,15 @@ class Worker(QObject, object):
                 activity
         """
 
-        metrics = dict()
-        metrics['name'] = self._name
-        metrics['thread_id'] = self._thread_id
-        # Get action from activity as methods can have its own Action
-        metrics['action'] = self.action
-        if hasattr(self, '_metrics'):
-            metrics = dict(metrics.items() + self._metrics.items())
+        metrics = {
+            'name': self._name,
+            'thread_id': self._thread_id,
+            'action': self.action,
+        }
+        try:
+            metrics.update(self._metrics)
+        except AttributeError:
+            pass
         return metrics
 
     @pyqtSlot()
@@ -178,27 +180,19 @@ class Worker(QObject, object):
         self._running = True
         self._continue = True
         self._pause = False
-        reason = ''
         self._thread_id = current_thread().ident
-        e = None
         try:
             try:
-                log.debug("Thread %s(%d) start", self._name, self._thread_id)
                 self._execute()
-                log.debug("Thread %s(%d) end", self._name, self._thread_id)
             except ThreadInterrupt:
-                log.debug("Thread %s(%d) interrupted", self._name, self._thread_id)
-                reason = 'interrupt'
-            except Exception as e:
-                log.exception('Thread %s(%d) exception', self._name, self._thread_id)
-                reason = 'exception'
-            self._clean(reason, e)
+                log.debug('Thread %s(%d) interrupted',
+                          self._name, self._thread_id)
+            except:
+                log.exception('Thread %s(%d) exception',
+                              self._name, self._thread_id)
         finally:
             self._thread.exit(0)
             self._running = False
-
-    def _clean(self, reason, e=None):
-        pass
 
 
 class EngineWorker(Worker):

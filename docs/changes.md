@@ -10,12 +10,12 @@ Release date: `2017-??-??`
 
 #### Minor changes
 - Framework: Review LocalWatcher class, better use of lock and atomic methods
-- Framework: Skip folder 'modified' events as they are just access time changes
 - Framework: Deleted the Next Engine source tree
 - GUI: Re-enable the possibility to uncheck a root in the filters window
-- Log: Review how TRACE level is added to loggers
+- Log: Review how TRACE level is added to loggers, removed some useless logs
 - Tests: Log messages are now less verbose ("thread module level message")
 - Updater: Updated minimum server version from 5.6 to 7.10
+- \[Windows\] Jenkins: Added `-direct` argument to the deploy script to prevent downloading any dependency
 
 
 # 3.0.3
