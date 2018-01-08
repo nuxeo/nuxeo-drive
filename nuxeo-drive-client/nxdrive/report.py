@@ -74,15 +74,13 @@ class Report(object):
         """
 
         # Lock to avoid inconsistence
-        dao._lock.acquire()
-        try:
-            myzip.write(dao._db, os.path.basename(dao._db),
-                        compress_type=ZIP_DEFLATED)
-        except:
-            log.exception('Impossible to copy the database %s',
-                          os.path.basename(dao._db))
-        finally:
-            dao._lock.release()
+        with dao._lock:
+            try:
+                myzip.write(dao._db, os.path.basename(dao._db),
+                            compress_type=ZIP_DEFLATED)
+            except:
+                log.exception('Impossible to copy the database %r',
+                              os.path.basename(dao._db))
 
     def get_path(self):
         return self._zipfile

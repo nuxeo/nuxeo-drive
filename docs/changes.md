@@ -2,6 +2,7 @@
 Release date: `2017-??-??`
 
 ### Core
+- [NXDRIVE-836](https://jira.nuxeo.com/browse/NXDRIVE-836): Bad behaviors with read-only documents
 - [NXDRIVE-1074](https://jira.nuxeo.com/browse/NXDRIVE-1074): Remove the Next engine source tree
 - [NXDRIVE-1075](https://jira.nuxeo.com/browse/NXDRIVE-1075): Review how TRACE level is added to loggers
 
@@ -10,6 +11,7 @@ Release date: `2017-??-??`
 - [NXDRIVE-1070](https://jira.nuxeo.com/browse/NXDRIVE-1070): Show release notes before auto-upgrading to a new version
 
 #### Minor changes
+- Framework: Review LocalWatcher class, better use of lock and atomic methods
 - GUI: Re-enable the possibility to uncheck a root in the filters window
 - Tests: Log messages are now less verbose ("thread module level message")
 - Updater: Updated minimum server version from 5.6 to 7.10

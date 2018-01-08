@@ -18,11 +18,11 @@ from nxdrive.utils import safe_long_path
 TEST_DEFAULT_DELAY = 3
 
 TEST_WORKSPACE_PATH = (
-    u'/default-domain/workspaces/nuxeo-drive-test-workspace')
-FS_ITEM_ID_PREFIX = u'defaultFileSystemItemFactory#default#'
+    '/default-domain/workspaces/nuxeo-drive-test-workspace')
+FS_ITEM_ID_PREFIX = 'defaultFileSystemItemFactory#default#'
 
 EMPTY_DIGEST = hashlib.md5().hexdigest()
-SOME_TEXT_CONTENT = b"Some text content."
+SOME_TEXT_CONTENT = b'Some text content.'
 SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 
 # 1s time resolution as we truncate remote last modification time to the

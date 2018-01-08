@@ -216,7 +216,7 @@ class LocalWatcher(EngineWorker):
             self._win_lock.release()
 
     def _scan(self):
-        log.debug("Full scan started")
+        log.debug('Full scan started')
         start_ms = current_milli_time()
         to_pause = not self._engine.get_queue_manager().is_paused()
         if to_pause:
@@ -248,8 +248,9 @@ class LocalWatcher(EngineWorker):
         return dict(metrics.items() + self._metrics.items())
 
     def _suspend_queue(self):
-        self._engine.get_queue_manager().suspend()
-        for processor in self._engine.get_queue_manager().get_processors_on('/', exact_match=False):
+        queue = self._engine.get_queue_manager()
+        queue.suspend()
+        for processor in queue.get_processors_on('/', exact_match=False):
             processor.stop()
 
     @pyqtSlot(str)
@@ -264,11 +265,8 @@ class LocalWatcher(EngineWorker):
             self._engine.get_queue_manager().resume()
 
     def empty_events(self):
-        return self._watchdog_queue.empty() and (not AbstractOSIntegration.is_windows() or
-                    self.win_queue_empty() and self.win_folder_scan_empty())
-
-    def get_watchdog_queue_size(self):
-        return self._watchdog_queue.qsize()
+        return self.watchdog_queue.empty() and (not AbstractOSIntegration.is_windows() or
+                                                self.win_queue_empty() and self.win_folder_scan_empty())
 
     def get_creation_time(self, child_full_path):
         if self._windows:
@@ -305,15 +303,15 @@ class LocalWatcher(EngineWorker):
             # The folder has been deleted in the mean time
             return
 
-        # Get remote children to be able to check if a local child found during the scan is really a new item
-        # or if it is just the result of a remote creation performed on the file system but not yet updated in the DB
-        # as for its local information
+        # Get remote children to be able to check if a local child found
+        # during the scan is really a new item or if it is just the result
+        # of a remote creation performed on the file system but not yet
+        # updated in the DB as for its local information.
+        remote_children = set()
         parent_remote_id = self.client.get_remote_id(info.path)
         if parent_remote_id is not None:
             pairs_ = self._dao.get_new_remote_children(parent_remote_id)
             remote_children = {pair.remote_name for pair in pairs_}
-        else:
-            remote_children = set()
 
         # recursively update children
         for child_info in fs_children_info:
@@ -492,7 +490,8 @@ class LocalWatcher(EngineWorker):
                     continue
 
         for deleted in children.values():
-            if deleted.pair_state == "remotely_created" or deleted.remote_state == "created":
+            if (deleted.pair_state == 'remotely_created'
+                    or deleted.remote_state == 'created'):
                 continue
             log.debug('Found deleted file %r', deleted.local_path)
             # May need to count the children to be ok
@@ -613,24 +612,26 @@ class LocalWatcher(EngineWorker):
             remote_ref = self.client.get_remote_id(rel_path)
             if pair is not None and pair.remote_ref == remote_ref:
                 local_info = self.client.get_info(rel_path, raise_if_missing=False)
-                if local_info is not None:
+                if local_info:
                     digest = local_info.get_digest()
                     # Drop event if digest hasn't changed, can be the case
                     # if only file permissions have been updated
                     if not doc_pair.folderish and pair.local_digest == digest:
                         log.trace(
-                            'Dropping watchdog event [%s] as digest has not changed for %r',
-                            evt.event_type, rel_path)
+                            'Dropping watchdog event [%s] as digest has'
+                            ' not changed for %r', evt.event_type, rel_path)
                         # If pair are the same don't drop it.  It can happen
                         # in case of server rename on a document.
                         if doc_pair.id != pair.id:
                             self._dao.remove_state(doc_pair)
                         return
+
                     pair.local_digest = digest
                     pair.local_state = 'modified'
                     self._dao.update_local_state(pair, local_info)
                     self._dao.remove_state(doc_pair)
-                    log.debug('Substitution file: remove pair(%r) mark(%r) as modified', doc_pair, pair)
+                    log.debug('Substitution file: remove pair(%r) mark(%r)'
+                              ' as modified', doc_pair, pair)
                     return
 
             local_info = self.client.get_info(rel_path, raise_if_missing=False)
@@ -643,9 +644,7 @@ class LocalWatcher(EngineWorker):
                 return
 
             old_local_path = None
-            rel_parent_path = self.client.get_path(os.path.dirname(src_path))
-            if not rel_parent_path:
-                rel_parent_path = '/'
+            rel_parent_path = self.client.get_path(os.path.dirname(src_path)) or '/'
 
             # Ignore inner movement
             remote_parent_ref = self.client.get_remote_id(rel_parent_path)

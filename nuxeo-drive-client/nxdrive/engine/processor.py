@@ -165,13 +165,12 @@ class Processor(EngineWorker):
                     self._postpone_pair(item, 'Pair in use', interval=3)
                 continue
 
-            if doc_pair is None:
+            if not doc_pair:
                 log.trace('Did not acquire state, dropping %r', item)
                 continue
 
+            soft_lock = None
             try:
-                soft_lock = None
-
                 # In case of duplicate we remove the local_path as it
                 # has conflict
                 if doc_pair.local_path == '':
@@ -199,6 +198,7 @@ class Processor(EngineWorker):
                             continue
                     except IOError:
                         pass
+
                 # TODO Update as the server dont take hash to avoid conflict yet
                 if (doc_pair.pair_state.startswith('locally')
                         and doc_pair.remote_ref is not None):
@@ -213,9 +213,11 @@ class Processor(EngineWorker):
                             doc_pair.remote_state = 'moved'
                         self._refresh_remote(doc_pair, remote_client,
                                              remote_info)
+
                         # Can run into conflict
                         if doc_pair.pair_state == 'conflicted':
                             continue
+
                         doc_pair = self._dao.get_state_from_id(doc_pair.id)
                         if not self.check_pair_state(doc_pair):
                             continue
@@ -715,11 +717,13 @@ class Processor(EngineWorker):
             parent_ref = parent_pair.remote_ref
         else:
             parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
-        if parent_pair is None:
-            raise Exception("Should have a parent pair")
+
+        if not parent_pair:
+            raise ValueError('Should have a parent pair')
+
         if parent_ref != doc_pair.remote_parent_ref:
             if (doc_pair.remote_can_delete
-                    and not parent_pair.pair_state == "unsynchronized"
+                    and not parent_pair.pair_state == 'unsynchronized'
                     and parent_pair.remote_can_create_child):
                 log.debug('Moving remote file according to local : %r', doc_pair)
                 # Bug if move in a parent with no rights / partial move

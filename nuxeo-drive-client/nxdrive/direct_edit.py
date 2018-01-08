@@ -444,13 +444,13 @@ class DirectEdit(Worker):
             log.debug('Emitting directEditUploadCompleted')
             self.directEditUploadCompleted.emit()
 
-        while not self._watchdog_queue.empty():
-            evt = self._watchdog_queue.get()
+        while not self.watchdog_queue.empty():
+            evt = self.watchdog_queue.get()
             self.handle_watchdog_event(evt)
 
     def _execute(self):
         try:
-            self._watchdog_queue = Queue()
+            self.watchdog_queue = Queue()
             self._action = Action("Clean up folder")
             try:
                 self._cleanup()
