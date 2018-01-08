@@ -1,13 +1,14 @@
 # coding: utf-8
 """ Console mode application. """
 
+from logging import getLogger
+
 from PyQt4 import QtCore
 from PyQt4.QtCore import QCoreApplication
 
-from nxdrive.logging_config import get_logger
 from nxdrive.options import Options
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class ConsoleApplication(QCoreApplication):

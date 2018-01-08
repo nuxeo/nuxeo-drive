@@ -1,10 +1,10 @@
 # coding: utf-8
 import os
 import tempfile
+from logging import getLogger
 
 import pytest
 
-from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.report import Report
@@ -12,7 +12,7 @@ from nxdrive.report import Report
 
 @Options.mock()
 def test_logs():
-    log = get_logger(__name__)
+    log = getLogger(__name__)
     folder = tempfile.mkdtemp(u'-nxdrive-tests')
     Options.nxdrive_home = folder
     manager = Manager()

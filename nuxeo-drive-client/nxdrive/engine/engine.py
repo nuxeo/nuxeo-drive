@@ -3,6 +3,7 @@ import datetime
 import os
 import urllib2
 from cookielib import CookieJar
+from logging import getLogger
 from threading import Thread, current_thread
 from time import sleep
 
@@ -21,13 +22,12 @@ from nxdrive.engine.watcher.local_watcher import LocalWatcher
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 from nxdrive.engine.workers import PairInterrupt, ThreadInterrupt, Worker
 from nxdrive.gui.resources import find_icon
-from nxdrive.logging_config import get_logger
 from nxdrive.manager import ServerBindingSettings
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import normalized_path
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class InvalidDriveException(Exception):

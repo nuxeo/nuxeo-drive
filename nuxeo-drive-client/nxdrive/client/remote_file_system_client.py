@@ -5,15 +5,15 @@ import os
 import unicodedata
 from collections import namedtuple
 from datetime import datetime
+from logging import getLogger
 from threading import current_thread
 
 from nxdrive.client.base_automation_client import BaseAutomationClient, \
     DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.common import NotFound
 from nxdrive.engine.activity import FileAction
-from nxdrive.logging_config import get_logger
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 # Data transfer objects
 

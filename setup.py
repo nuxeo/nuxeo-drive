@@ -17,7 +17,7 @@ except ImportError:
     pass
 
 OUTPUT_DIR = 'dist'
-SERVER_MIN_VERSION = '5.6'
+DEFAULT_SERVER_MIN_VERSION = '7.10'
 
 
 def create_json_metadata(client_version, server_version):
@@ -347,7 +347,7 @@ class NuxeoDriveSetup(object):
         drive_version = get_version(attribs.get_init_file())
 
         # Create JSON metadata file for the frozen application
-        json_file = create_json_metadata(drive_version, SERVER_MIN_VERSION)
+        json_file = create_json_metadata(drive_version, DEFAULT_SERVER_MIN_VERSION)
         print('Created JSON metadata file for frozen app: ' + json_file)
 
         includes = [

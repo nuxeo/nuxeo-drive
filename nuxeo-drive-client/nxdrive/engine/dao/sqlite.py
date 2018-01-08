@@ -4,13 +4,12 @@ import os
 import sqlite3
 import sys
 from datetime import datetime
+from logging import getLogger
 from threading import RLock, current_thread, local
 
 from PyQt4.QtCore import QObject, pyqtSignal
 
-from nxdrive.logging_config import get_logger
-
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 SCHEMA_VERSION = "schema_version"
 
@@ -88,7 +87,8 @@ class StateRow(sqlite3.Row):
                 ' remote_ref={cls.remote_ref!r},'
                 ' local_state={cls.local_state!r},'
                 ' remote_state={cls.remote_state!r},'
-                ' pair_state={cls.pair_state!r}'
+                ' pair_state={cls.pair_state!r},'
+                ' filter_path={cls.path!r}'
                 '>'
                 ).format(name=type(self).__name__, cls=self)
 
@@ -96,8 +96,7 @@ class StateRow(sqlite3.Row):
         try:
             return self[name]
         except IndexError:
-            raise AttributeError(
-                '%s object has not attribute %r' % (type(self).__name__, name))
+            return None
 
     def is_readonly(self):
         if self.folderish:
@@ -594,12 +593,7 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
-        res = c.rowcount > 0
-        if res:
-            log.trace('Released processor %d', processor_id)
-        else:
-            log.trace('No processor to release with id %d', processor_id)
-        return res
+        return c.rowcount > 0
 
     def acquire_processor(self, thread_id, row_id):
         self._lock.acquire()
@@ -611,13 +605,7 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         finally:
             self._lock.release()
-        res = c.rowcount == 1
-        if res:
-            log.trace('Acquired processor %d for row %d', thread_id, row_id)
-        else:
-            log.trace("Couldn't acquire processor %d for row %d: either row does't exist or it is being processed",
-                      thread_id, row_id)
-        return res
+        return c.rowcount == 1
 
     def _reinit_states(self, cursor):
         cursor.execute("DROP TABLE States")
@@ -635,9 +623,7 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             self._reinit_states(c)
             con.commit()
-            log.trace('Vacuum SQLite')
             con.execute('VACUUM')
-            log.trace('Vacuum SQLite finished')
         finally:
             self._lock.release()
 
@@ -650,9 +636,7 @@ class EngineDAO(ConfigurationDAO):
             c.execute("UPDATE States SET error_count=0, last_sync_error_date=NULL, last_error = NULL WHERE pair_state='synchronized'")
             if self.auto_commit:
                 con.commit()
-            log.trace('Vacuum SQLite')
             con.execute('VACUUM')
-            log.trace('Vacuum SQLite finished')
         finally:
             self._lock.release()
 
@@ -1520,9 +1504,8 @@ class EngineDAO(ConfigurationDAO):
 
     def is_filter(self, path):
         path = self._clean_filter_path(path)
-        if any([path.startswith(filter_obj.path) for filter_obj in self._filters]):
-            return True
-        return False
+        return any((path.startswith(filter_obj.path)
+                    for filter_obj in self._filters))
 
     def get_filters(self):
         c = self._get_read_connection().cursor()

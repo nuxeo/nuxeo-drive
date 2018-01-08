@@ -1,14 +1,14 @@
 # coding: utf-8
 import sys
+from logging import getLogger
 from shutil import copyfile
 from unittest import skipIf
 
 from nxdrive.client import LocalClient
-from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from tests.common_unit_test import RandomBug, UnitTestCase
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class TestWatchers(UnitTestCase):

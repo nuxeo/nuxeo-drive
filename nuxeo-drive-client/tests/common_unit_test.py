@@ -11,6 +11,7 @@ import traceback
 import unittest
 import zlib
 from functools import wraps
+from logging import getLogger
 from os.path import dirname
 from threading import Thread
 from time import sleep
@@ -22,7 +23,6 @@ from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteFileSystemClient, RestAPIClient
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
-from nxdrive.logging_config import get_logger
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
@@ -34,7 +34,8 @@ YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '') != ''
 if YAPPI_PATH:
     import yappi
 
-log = get_logger(__name__)
+
+log = getLogger(__name__)
 DEFAULT_WAIT_SYNC_TIMEOUT = 30
 DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 

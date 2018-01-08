@@ -2,6 +2,7 @@
 import os
 import re
 import sqlite3
+from logging import getLogger
 from Queue import Queue
 from threading import Lock
 from time import mktime, sleep, time
@@ -14,13 +15,12 @@ from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.local_client import LocalClient
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
-from nxdrive.logging_config import get_logger
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import current_milli_time, is_generated_tmp_file, \
     normalize_event_filename
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 # Windows 2s between resolution of delete event
 WIN_MOVE_RESOLUTION_PERIOD = 2000

@@ -1,11 +1,12 @@
 # conding: utfr-8
 import os
 from datetime import datetime
+from logging import getLogger
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
-from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler, get_logger
+from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class Report(object):
@@ -94,8 +95,7 @@ class Report(object):
         :return bytes: bytes needed by zipfile.writestr()
         """
 
-        logger = get_logger(None)
-        handler = get_handler(logger, 'memory')
+        handler = get_handler(getLogger(), 'memory')
         log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
 
         for record in log_buffer:

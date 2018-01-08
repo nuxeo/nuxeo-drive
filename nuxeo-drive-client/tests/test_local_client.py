@@ -9,13 +9,13 @@ See NXDRIVE-742.
 import hashlib
 import os
 import sys
+from logging import getLogger
 from time import sleep
 
 import pytest
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.common import DuplicationDisabledError
-from nxdrive.logging_config import get_logger
 from tests.common import EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from tests.common_unit_test import UnitTestCase
 
@@ -23,7 +23,7 @@ if sys.platform == 'win32':
     import win32api
 
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class StubLocalClient(object):

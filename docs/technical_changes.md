@@ -4,6 +4,9 @@
 
 # dev
 - Removed `FsClient`
+- Added `formatter` keyword to logging_config.py::`configure()`
+- Removed engine/next
+- Removed logging_config.py::`get_logger()`. Use `logging.getLogger(__name__)` instead.
 
 # 3.0.0
 - Removed `options` keyword from `Application.__init__()`. Use `Options` instead.
