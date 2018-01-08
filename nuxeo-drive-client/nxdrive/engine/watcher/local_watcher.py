@@ -933,50 +933,64 @@ class LocalWatcher(EngineWorker):
                     # If it is not at the origin anymore, magic teleportation?
                     # Maybe an event crafted from a delete/create => move on Windows
                     if not self.client.exists(from_pair.local_path):
-                        if self._windows:
-                            # Check if the destination is writable
-                            parent = self._dao.get_state_from_local(
-                                os.path.dirname(rel_path))
-                            if parent and not parent.remote_can_create_child:
-                                log.debug(
-                                    'Moving to a read-only folder: %r -> %r',
-                                    from_pair, parent)
-                                log.debug(
-                                    'The %s will be downloaded again in '
-                                    'the next scan',
-                                    ('file' if from_pair.folderish
-                                     else 'folder and its content'))
-                                self._dao.remove_state(from_pair)
-                                self._dao.add_path_to_scan(
-                                    from_pair.remote_parent_path)
-                                self._engine.newReadonly.emit(
-                                        from_pair.local_name,
-                                        parent.remote_name)
-                                return
+                        # Check if the destination is writable
+                        dst_parent = self._dao.get_state_from_local(
+                            os.path.dirname(rel_path))
+                        if dst_parent and not dst_parent.remote_can_create_child:
+                            log.debug('Moving to a read-only folder: %r -> %r',
+                                      from_pair, dst_parent)
+                            self._dao.unsynchronize_state(from_pair, 'READONLY')
+                            self._engine.newReadonly.emit(
+                                from_pair.local_name, dst_parent.remote_name)
+                            return
 
-                        log.debug('Move from %r to %r', from_pair.local_path, rel_path)
-                        from_pair.local_state = 'moved'
+                        # Check if the source is read-only, in that case we
+                        # convert the move to a creation
+                        src_parent = self._dao.get_state_from_local(
+                            os.path.dirname(from_pair.local_path))
+                        if src_parent and not src_parent.remote_can_create_child:
+                            self._engine.newReadonly.emit(
+                                from_pair.local_name, dst_parent.remote_name)
+                            log.debug(
+                                'Converting the move to a create for %r -> %r',
+                                from_pair, src_path)
+                            from_pair.local_path = rel_path
+                            from_pair.local_state = 'created'
+                            from_pair.remote_state = 'unknown'
+                            self.client.remove_remote_id(rel_path)
+                        else:
+                            log.debug('Move from %r to %r', from_pair.local_path, rel_path)
+                            from_pair.local_state = 'moved'
                         self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
                         moved = True
                     else:
-                        # possible move-then-copy case, NXDRIVE-471
+                        # NXDRIVE-471: Possible move-then-copy case
                         doc_pair_full_path = self.client.abspath(rel_path)
-                        doc_pair_creation_time = self.get_creation_time(doc_pair_full_path)
+                        doc_pair_ctime = self.get_creation_time(doc_pair_full_path)
                         from_pair_full_path = self.client.abspath(from_pair.local_path)
-                        from_pair_creation_time = self.get_creation_time(from_pair_full_path)
-                        log.trace('doc_pair_full_path=%r, doc_pair_creation_time=%s, from_pair_full_path=%r, version=%d', doc_pair_full_path, doc_pair_creation_time, from_pair_full_path, from_pair.version)
-                        # If file at the original location is newer,
-                        #   it is moved to the new location earlier then copied back (what else can it be?)
-                        if (not from_pair_creation_time <= doc_pair_creation_time) and evt.event_type == 'created':
+                        from_pair_ctime = self.get_creation_time(from_pair_full_path)
+                        log.trace(
+                            'doc_pair_full_path=%r, doc_pair_ctime=%s,'
+                            ' from_pair_full_path=%r, version=%d',
+                            doc_pair_full_path, doc_pair_ctime,
+                            from_pair_full_path, from_pair.version)
+
+                        # If file at the original location is newer, it is
+                        # moved to the new location earlier then copied back
+                        # (what else can it be?)
+                        if (evt.event_type == 'created'
+                                and from_pair_ctime > doc_pair_ctime):
                             log.trace(
                                 'Found moved file %r (times: from=%f, to=%f)',
-                                doc_pair_full_path,
-                                from_pair_creation_time,
-                                doc_pair_creation_time,
+                                doc_pair_full_path, from_pair_ctime,
+                                doc_pair_ctime,
                             )
                             from_pair.local_state = 'moved'
-                            self._dao.update_local_state(from_pair, self.client.get_info(rel_path))
-                            self._dao.insert_local_state(self.client.get_info(from_pair.local_path), os.path.dirname(from_pair.local_path))
+                            self._dao.update_local_state(
+                                from_pair, self.client.get_info(rel_path))
+                            self._dao.insert_local_state(
+                                self.client.get_info(from_pair.local_path),
+                                os.path.dirname(from_pair.local_path))
                             self.client.remove_remote_id(from_pair.local_path)
                             moved = True
 
