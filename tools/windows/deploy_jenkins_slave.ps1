@@ -2,12 +2,14 @@
 #
 # Possible ARG:
 #     -build: build the MSI package
+#     -direct: no downloads, just run the tests suite
 #     -start: start Nuxeo Drive
 #     -tests: launch the tests suite
 #
 # See /docs/deployment.md for more informations.
 param (
 	[switch]$build = $false,
+	[switch]$direct = $false,
 	[switch]$start = $false,
 	[switch]$tests = $false
 )
@@ -320,15 +322,18 @@ function install_sip {
 
 function launch_tests {
 	# Launch the tests suite
-	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	if (!$direct) {
+        & $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
+        if ($lastExitCode -ne 0) {
+            ExitWithCode $lastExitCode
+        }
+    }
 	& $Env:PYTHON_DIR\python $global:PYTHON_OPT -m pytest $Env:SPECIFIC_TEST `
 		--showlocals `
 		--strict `
 		--failed-first `
-		-r Efx `
+		--no-print-logs `
+		--log-level=CRITICAL `
 		-v
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
@@ -375,12 +380,14 @@ function unzip($filename, $dest_dir) {
 function main {
 	# Launch operations
 	check_vars
-	install_python
-	install_openssl
-	install_deps
-	install_sip
-	install_pyqt
-	install_cxfreeze
+	if (!$direct) {
+        install_python
+        install_openssl
+        install_deps
+        install_sip
+        install_pyqt
+        install_cxfreeze
+    }
 
 	if ((check_import "import PyQt4.QtWebKit") -ne 1) {
 		echo ">>> No WebKit. Installation failed."

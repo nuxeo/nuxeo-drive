@@ -1,13 +1,13 @@
 # coding: utf-8
 from copy import deepcopy
+from logging import getLogger
 
 from PyQt4 import QtCore
 
 from engine.workers import PollWorker
 from nxdrive.engine.workers import ThreadInterrupt
-from nxdrive.logging_config import get_logger
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class ProcessAutoLockerWorker(PollWorker):

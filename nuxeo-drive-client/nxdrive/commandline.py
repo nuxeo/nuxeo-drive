@@ -9,9 +9,10 @@ import threading
 import traceback
 from datetime import datetime
 from getpass import getpass
+from logging import getLogger
 
 from nxdrive import __version__
-from nxdrive.logging_config import configure, get_logger
+from nxdrive.logging_config import configure
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
@@ -424,7 +425,7 @@ class CliHandler(object):
             # Don't need uninstall logs either for now.
             self._configure_logger(command, options)
 
-        self.log = get_logger(__name__)
+        self.log = getLogger(__name__)
         self.log.debug("Command line: argv=%r, options=%r",
                        ' '.join(argv), options)
 

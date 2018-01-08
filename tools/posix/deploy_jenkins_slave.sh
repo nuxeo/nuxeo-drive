@@ -361,7 +361,8 @@ launch_tests() {
         --showlocals \
         --strict \
         --failed-first \
-        -r Efx \
+        --no-print-logs \
+        --log-level=CRITICAL \
         -v
 }
 

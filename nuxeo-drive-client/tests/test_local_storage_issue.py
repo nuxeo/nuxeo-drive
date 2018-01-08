@@ -49,7 +49,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.wait_sync(wait_for_async=True, timeout=10, fail_if_timeout=False, enforce_errors=False)
         # Temporary download file (.nxpart) should be created locally but not renamed then removed
         # Synchronization should not fail: doc pair should be blacklisted and there should be 1 error
-        self.assertNxPart('/', name='test_KO.odt', present=False)
+        self.assertNxPart('/', 'test_KO.odt')
         self.assertFalse(local.exists('/test_KO.odt'))
         states_in_error = self.engine_1.get_dao().get_errors(limit=0)
         self.assertEqual(len(states_in_error), 1)
@@ -80,7 +80,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.queue_manager_1.requeue_errors()
         self.wait_sync(timeout=10, fail_if_timeout=False, enforce_errors=False)
         # Doc pair should be blacklisted again and there should still be 1 error
-        self.assertNxPart('/', name='test_KO.odt', present=False)
+        self.assertNxPart('/', 'test_KO.odt')
         self.assertFalse(local.exists('/test_KO.odt'))
         states_in_error = self.engine_1.get_dao().get_errors(limit=0)
         self.assertEqual(len(states_in_error), 1)
@@ -95,7 +95,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.queue_manager_1.requeue_errors()
         self.wait_sync(enforce_errors=False)
         # Previously blacklisted file should be created locally and there should be no more errors left
-        self.assertNxPart('/', name='test_KO.odt', present=False)
+        self.assertNxPart('/', 'test_KO.odt')
         self.assertTrue(local.exists('/test_KO.odt'))
         states_in_error = self.engine_1.get_dao().get_errors(limit=0)
         self.assertEqual(len(states_in_error), 0)

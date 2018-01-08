@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 from ctypes import windll
+from logging import getLogger
 
 import _winreg
 import win32api
@@ -8,11 +9,10 @@ import win32file
 from win32com.client import Dispatch
 from win32con import LOGPIXELSX
 
-from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.osi.windows.win32_handlers import WindowsProcessFileHandlerSniffer
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class WindowsIntegration(AbstractOSIntegration):

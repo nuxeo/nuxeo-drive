@@ -1,9 +1,10 @@
 # coding: utf-8
+from logging import getLogger
+
 from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
-from nxdrive.logging_config import get_logger
 from nxdrive.options import Options
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class RemoteFilteredFileSystemClient(RemoteFileSystemClient):

@@ -970,6 +970,24 @@ class TestSynchronization(UnitTestCase):
         self.assertEqual(children[0].name, file1)
         self.assertEqual(children[1].name, file2)
 
+    def test_local_modify_offline(self):
+        local = self.local_client_1
+        engine = self.engine_1
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        local.make_folder('/', 'Test')
+        local.make_file('/Test', 'Test.txt', 'Some content')
+        self.wait_sync()
+
+        engine.stop()
+        local.update_content('/Test/Test.txt', 'Another content')
+
+        engine.start()
+        self.wait_sync()
+        assert not engine.get_dao().get_errors()
+
     def test_unsynchronize_accentued_document(self):
         remote = self.remote_document_client_1
         local = self.local_client_1

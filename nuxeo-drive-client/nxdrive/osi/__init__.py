@@ -3,13 +3,13 @@ import os
 import platform
 import sys
 import urllib
+from logging import getLogger
 
 import psutil
 
-from nxdrive.logging_config import get_logger
 from nxdrive.utils import version_compare
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 NXDRIVE_EDIT_URL_PREFIX = ('nxdrive://edit/scheme/server[:port]'
                            '/webappname/')
