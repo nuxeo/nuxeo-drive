@@ -1,8 +1,8 @@
 # coding: utf-8
 import os
 import sys
+from logging import getLogger
 
-from nxdrive.logging_config import get_logger
 from nxdrive.utils import safe_long_path
 from tests.common_unit_test import UnitTestCase
 
@@ -10,7 +10,7 @@ if sys.platform == 'win32':
     import win32api
 
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 # Number of chars in path c://.../Nuxeo.. is approx 96 chars
 FOLDER_A = 'A' * 90

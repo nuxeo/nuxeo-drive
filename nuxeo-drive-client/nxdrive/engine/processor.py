@@ -3,6 +3,7 @@ import os
 import shutil
 import sqlite3
 import socket
+from logging import getLogger
 from threading import Lock
 from time import sleep
 from urllib2 import HTTPError, URLError
@@ -15,11 +16,10 @@ from nxdrive.client.common import DuplicationDisabledError, NotFound, \
     UNACCESSIBLE_HASH, safe_filename
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, PairInterrupt, ThreadInterrupt
-from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import current_milli_time, is_generated_tmp_file
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class Processor(EngineWorker):
@@ -125,14 +125,6 @@ class Processor(EngineWorker):
 
     def get_current_pair(self):
         return self._current_doc_pair
-
-    """
-    def _clean(self, reason, e=None):
-        super(Processor, self)._clean(reason, e)
-        if reason == 'exception' and self._current_doc_pair is not None:
-            # Add it back to the queue ? Add the error delay
-            self.increase_error(self._current_doc_pair, 'EXCEPTION', exception=e)
-    """
 
     @staticmethod
     def check_pair_state(doc_pair):

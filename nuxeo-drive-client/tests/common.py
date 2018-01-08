@@ -2,15 +2,16 @@
 """ Common test utilities."""
 
 import hashlib
+import logging
 import os
 import shutil
-import sys
 import time
 import urllib2
+from logging import getLogger
 
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client.common import BaseClient
-from nxdrive.logging_config import configure, get_logger
+from nxdrive.logging_config import configure
 from nxdrive.utils import safe_long_path
 
 # Default remote watcher delay used for tests
@@ -41,25 +42,17 @@ DOC_NAME_MAX_LENGTH = 24
 
 
 def configure_logger():
+    formatter = logging.Formatter(
+        '%(thread)-4d %(module)-22s %(levelname).1s %(message)s')
     configure(console_level='TRACE',
               command_name='test',
-              force_configure=True)
+              force_configure=True,
+              formatter=formatter)
+
 
 # Configure test logger
 configure_logger()
-log = get_logger(__name__)
-
-
-def execute(cmd, exit_on_failure=True):
-    log.debug("Launched command: %s", cmd)
-    code = os.system(cmd)
-    if hasattr(os, 'WEXITSTATUS'):
-        # Find the exit code in from the POSIX status that also include
-        # the kill signal if any (only under POSIX)
-        code = os.WEXITSTATUS(code)
-    if code != 0 and exit_on_failure:
-        log.error("Command %s returned with code %d", cmd, code)
-        exit(code)
+log = getLogger(__name__)
 
 
 def clean_dir(_dir, retry=1, max_retries=5):

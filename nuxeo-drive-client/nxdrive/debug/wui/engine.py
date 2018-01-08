@@ -1,12 +1,13 @@
 # coding: utf-8
 import time
+from logging import getLogger
 
 from PyQt4 import QtCore
 
-from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler, get_logger
+from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler
 from nxdrive.wui.dialog import WebDialog, WebDriveApi
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class DebugDriveApi(WebDriveApi):
@@ -55,7 +56,7 @@ class DebugDriveApi(WebDriveApi):
 
     def _get_logs(self, limit=MAX_LOG_DISPLAYED):
         logs = []
-        handler = get_handler(get_logger(None), "memory")
+        handler = get_handler(getLogger(), 'memory')
         log_buffer = handler.get_buffer(limit)
         for record in log_buffer:
             logs.append(self._export_log_record(record))

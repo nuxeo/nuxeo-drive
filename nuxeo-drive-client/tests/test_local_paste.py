@@ -2,12 +2,12 @@
 import os
 import shutil
 import tempfile
+from logging import getLogger
 
 from common_unit_test import UnitTestCase
-from nxdrive.logging_config import get_logger
 from tests.common_unit_test import FILE_CONTENT
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 TEST_TIMEOUT = 60
 
 

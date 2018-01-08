@@ -3,6 +3,7 @@ import os
 import socket
 from datetime import datetime
 from httplib import BadStatusLine
+from logging import getLogger
 from time import sleep
 from urllib2 import HTTPError, URLError
 
@@ -15,10 +16,9 @@ from nxdrive.client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME, \
 from nxdrive.client.remote_file_system_client import RemoteFileInfo
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
-from nxdrive.logging_config import get_logger
 from nxdrive.utils import current_milli_time, path_join
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class RemoteWatcher(EngineWorker):
@@ -643,7 +643,7 @@ class RemoteWatcher(EngineWorker):
                                   doc_pair_repr)
                         self._dao.delete_remote_state(doc_pair)
                     else:
-                        log.debug('Unknown event: %r', event_id)
+                        log.warning('Unknown event: %r', event_id)
                 else:
                     remote_parent_factory = doc_pair.remote_parent_ref.split('#', 1)[0]
                     new_info_parent_factory = new_info.parent_uid.split('#', 1)[0]

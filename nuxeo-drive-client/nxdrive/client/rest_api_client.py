@@ -4,11 +4,11 @@
 import base64
 import json
 import urllib2
+from logging import getLogger
 
 from nxdrive.client.base_automation_client import get_proxy_handler
-from nxdrive.logging_config import get_logger
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class RestAPIClient(object):

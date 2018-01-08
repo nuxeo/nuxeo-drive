@@ -7,6 +7,7 @@ import sys
 import urllib2
 import uuid
 from collections import namedtuple
+from logging import getLogger
 from urlparse import urlparse
 
 import pypac
@@ -17,7 +18,7 @@ from PyQt4.QtWebKit import qWebKitVersion
 from nxdrive import __version__
 from nxdrive.client import LocalClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
-from nxdrive.logging_config import FILE_HANDLER, get_logger
+from nxdrive.logging_config import FILE_HANDLER
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
@@ -30,7 +31,7 @@ if AbstractOSIntegration.is_windows():
 elif AbstractOSIntegration.is_mac():
     import SystemConfiguration
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 try:

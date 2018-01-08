@@ -3,6 +3,7 @@ Release date: `2017-??-??`
 
 ### Core
 - [NXDRIVE-1074](https://jira.nuxeo.com/browse/NXDRIVE-1074): Remove the Next engine source tree
+- [NXDRIVE-1075](https://jira.nuxeo.com/browse/NXDRIVE-1075): Review how TRACE level is added to loggers
 
 ### GUI
 - [NXDRIVE-1069](https://jira.nuxeo.com/browse/NXDRIVE-1069): Show filters window on account creation
@@ -10,6 +11,9 @@ Release date: `2017-??-??`
 
 #### Minor changes
 - GUI: Re-enable the possibility to uncheck a root in the filters window
+- Tests: Log messages are now less verbose ("thread module level message")
+- Updater: Updated minimum server version from 5.6 to 7.10
+- \[Windows\] Jenkins: Added `-direct` argument to the deploy script to prevent downloading any dependency
 
 
 # 3.0.3

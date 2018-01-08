@@ -1,13 +1,13 @@
 # coding: utf-8
 import os
 import shutil
+from logging import getLogger
 from unittest import skipIf
 
-from nxdrive.logging_config import get_logger
 from nxdrive.osi import AbstractOSIntegration
 from tests.common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class MultipleFilesTestCase(UnitTestCase):

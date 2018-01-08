@@ -2,14 +2,14 @@
 import os
 import shutil
 from copy import copy
+from logging import getLogger
 from math import floor, log10
 from unittest import SkipTest, skipIf
 
 from common_unit_test import UnitTestCase
-from nxdrive.logging_config import get_logger
 from tests.common import TEST_WORKSPACE_PATH
 
-log = get_logger(__name__)
+log = getLogger(__name__)
 
 
 class VolumeTestCase(UnitTestCase):
