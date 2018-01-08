@@ -305,8 +305,7 @@ class Manager(QtCore.QObject):
         self._engine_definitions = None
 
         from nxdrive.engine.engine import Engine
-        from nxdrive.engine.next.engine_next import EngineNext
-        self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
+        self._engine_types = {'NXDRIVE': Engine}
         self._engines = None
         self.proxies = dict()
         self.proxy_exceptions = None
