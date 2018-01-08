@@ -1,6 +1,9 @@
 # dev
 Release date: `2017-??-??`
 
+### Core
+- [NXDRIVE-1074](https://jira.nuxeo.com/browse/NXDRIVE-1074): Remove the Next engine source tree
+
 ### GUI
 - [NXDRIVE-1069](https://jira.nuxeo.com/browse/NXDRIVE-1069): Show filters window on account creation
 - [NXDRIVE-1070](https://jira.nuxeo.com/browse/NXDRIVE-1070): Show release notes before auto-upgrading to a new version
