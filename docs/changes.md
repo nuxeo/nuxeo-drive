@@ -13,6 +13,11 @@ Release date: `2017-??-??`
 #### Minor changes
 - Framework: Review LocalWatcher class, better use of lock
 - GUI: Re-enable the possibility to uncheck a root in the filters window
+- Packaging: Upgraded `SIP` from 4.19.3 to 4.19.6
+- Packaging: Updated `Js2Py` from 0.50 to 0.58
+- Packaging: Updated `markdown` from 2.6.10 to 2.6.11
+- Packaging: Updated `psutil` from 5.4.2 to 5.4.3
+- Packaging: Updated `pytest` from 3.3.2 to 3.3.2
 - Tests: Log messages are now less verbose ("thread module level message")
 - Updater: Updated minimum server version from 5.6 to 7.10
 - \[Windows\] Jenkins: Added `-direct` argument to the deploy script to prevent downloading any dependency
