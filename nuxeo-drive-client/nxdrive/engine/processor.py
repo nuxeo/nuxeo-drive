@@ -165,13 +165,12 @@ class Processor(EngineWorker):
                     self._postpone_pair(item, 'Pair in use', interval=3)
                 continue
 
-            if doc_pair is None:
+            if not doc_pair:
                 log.trace('Did not acquire state, dropping %r', item)
                 continue
 
+            soft_lock = None
             try:
-                soft_lock = None
-
                 # In case of duplicate we remove the local_path as it
                 # has conflict
                 if doc_pair.local_path == '':
@@ -199,6 +198,7 @@ class Processor(EngineWorker):
                             continue
                     except IOError:
                         pass
+
                 # TODO Update as the server dont take hash to avoid conflict yet
                 if (doc_pair.pair_state.startswith('locally')
                         and doc_pair.remote_ref is not None):
@@ -213,9 +213,11 @@ class Processor(EngineWorker):
                             doc_pair.remote_state = 'moved'
                         self._refresh_remote(doc_pair, remote_client,
                                              remote_info)
+
                         # Can run into conflict
                         if doc_pair.pair_state == 'conflicted':
                             continue
+
                         doc_pair = self._dao.get_state_from_id(doc_pair.id)
                         if not self.check_pair_state(doc_pair):
                             continue
@@ -230,87 +232,84 @@ class Processor(EngineWorker):
 
                 parent_path = doc_pair.local_parent_path
                 if parent_path == '':
-                    parent_path = "/"
+                    parent_path = '/'
+
                 if not local_client.exists(parent_path):
-                    if parent_pair and doc_pair.local_parent_path != parent_pair.local_path:
-                        # The parent folder has been renamed sooner
-                        # in the current synchronization
-                        doc_pair.local_parent_path = parent_pair.local_path
-                    else:
+                    if (not parent_pair
+                            or doc_pair.local_parent_path == parent_pair.local_path):
                         self._dao.remove_state(doc_pair)
                         continue
 
-                self._current_metrics = dict()
+                    # The parent folder has been renamed sooner
+                    # in the current synchronization
+                    doc_pair.local_parent_path = parent_pair.local_path
+
                 handler_name = '_synchronize_' + doc_pair.pair_state
-                self._action = Action(handler_name)
                 sync_handler = getattr(self, handler_name, None)
-                if sync_handler is None:
-                    log.debug('Unhandled pair_state: %r for %r',
+                if not sync_handler:
+                    log.debug('Unhandled pair_state %r for %r',
                               doc_pair.pair_state, doc_pair)
-                    self.increase_error(doc_pair, "ILLEGAL_STATE")
+                    self.increase_error(doc_pair, 'ILLEGAL_STATE')
                     continue
-                else:
-                    self._current_metrics = {
-                        'handler': doc_pair.pair_state,
-                        'start_time': current_milli_time(),
-                    }
-                    log.trace('Calling %s on doc pair %r', sync_handler,
-                              doc_pair)
-                    try:
-                        soft_lock = self._lock_soft_path(doc_pair.local_path)
-                        sync_handler(doc_pair, local_client, remote_client)
-                        self._current_metrics['end_time'] = current_milli_time()
-                        self.pairSync.emit(doc_pair, self._current_metrics)
-                    except ThreadInterrupt:
-                        raise
-                    except HTTPError as exc:
-                        if exc.code == 404:
-                            # We saw it happened once a migration is done.
-                            # Nuxeo kept the document reference but it does
-                            # not exist physically anywhere.
-                            log.debug('The document does not exist anymore: %r', doc_pair)
-                            self._dao.remove_state(doc_pair)
-                        elif exc.code == 409:  # Conflict
-                            # It could happen on multiple files drag'n drop
-                            # starting with identical characters.
-                            log.debug('Delaying conflicted document: %r', doc_pair)
-                            self._postpone_pair(doc_pair, 'Conflict')
-                        else:
-                            self._handle_pair_handler_exception(
-                                doc_pair, handler_name, exc)
-                        del exc  # Fix reference leak
-                        continue
-                    except (URLError, socket.error, PairInterrupt) as exc:
-                        # socket.error for SSLError
-                        log.debug('%s on %r, wait 1s and requeue',
-                                  type(exc).__name__, doc_pair)
-                        sleep(1)
-                        self._engine.get_queue_manager().push(doc_pair)
-                        del exc  # Fix reference leak
-                        continue
-                    except DuplicationDisabledError:
-                        self.giveup_error(doc_pair, 'DEDUP')
-                        log.trace('Removing local_path on %r', doc_pair)
-                        self._dao.remove_local_path(doc_pair.id)
-                        continue
-                    except CorruptedFile as exc:
-                        self.increase_error(doc_pair, 'CORRUPT', exception=exc)
-                        continue
-                    except Exception as exc:
+
+                self._action = Action(handler_name)
+                self._current_metrics = {
+                    'handler': doc_pair.pair_state,
+                    'start_time': current_milli_time(),
+                }
+                log.trace('Calling %s() on doc pair %r', handler_name, doc_pair)
+
+                try:
+                    soft_lock = self._lock_soft_path(doc_pair.local_path)
+                    sync_handler(doc_pair, local_client, remote_client)
+                    self._current_metrics['end_time'] = current_milli_time()
+                    self.pairSync.emit(doc_pair, self._current_metrics)
+                except ThreadInterrupt:
+                    raise
+                except HTTPError as exc:
+                    if exc.code == 404:
+                        # We saw it happened once a migration is done.
+                        # Nuxeo kept the document reference but it does
+                        # not exist physically anywhere.
+                        log.debug('The document does not exist anymore: %r', doc_pair)
+                        self._dao.remove_state(doc_pair)
+                    elif exc.code == 409:  # Conflict
+                        # It could happen on multiple files drag'n drop
+                        # starting with identical characters.
+                        log.debug('Delaying conflicted document: %r', doc_pair)
+                        self._postpone_pair(doc_pair, 'Conflict')
+                    else:
                         self._handle_pair_handler_exception(
                             doc_pair, handler_name, exc)
-                        del exc  # Fix reference leak
-                        continue
+                    continue
+                except (URLError, socket.error, PairInterrupt) as exc:
+                    # socket.error for SSLError
+                    log.debug('%s on %r, wait 1s and requeue',
+                              type(exc).__name__, doc_pair)
+                    sleep(1)
+                    self._engine.get_queue_manager().push(doc_pair)
+                    continue
+                except DuplicationDisabledError:
+                    self.giveup_error(doc_pair, 'DEDUP')
+                    log.trace('Removing local_path on %r', doc_pair)
+                    self._dao.remove_local_path(doc_pair.id)
+                    continue
+                except CorruptedFile as exc:
+                    self.increase_error(doc_pair, 'CORRUPT', exception=exc)
+                    continue
+                except Exception as exc:
+                    self._handle_pair_handler_exception(
+                        doc_pair, handler_name, exc)
+                    continue
             except ThreadInterrupt:
                 self._engine.get_queue_manager().push(doc_pair)
                 raise
-            except Exception as e:
+            except Exception as exc:
                 log.exception('Pair error')
-                self.increase_error(doc_pair, 'EXCEPTION', exception=e)
-                raise e
+                self.increase_error(doc_pair, 'EXCEPTION', exception=exc)
+                raise exc
             finally:
-                self._current_doc_pair = None  # Fix reference leak
-                if soft_lock is not None:
+                if soft_lock:
                     self._unlock_soft_path(soft_lock)
                 self._dao.release_state(self._thread_id)
             self._interact()
@@ -687,23 +686,32 @@ class Processor(EngineWorker):
         self._synchronize_locally_created(doc_pair, local_client, remote_client)
 
     def _synchronize_locally_moved(self, doc_pair, local_client, remote_client, update=True):
-        # A file has been moved locally, and an error occurs when tried to
-        # move on the server
+        """
+        A file has been moved locally, and an error occurs when tried to
+        move on the server.
+
+        :param doc_pair:
+        :param local_client:
+        :param remote_client:
+        :param update:
+        :return: None
+        """
+
         remote_info = None
         self._search_for_dedup(doc_pair, doc_pair.remote_name)
 
         if doc_pair.local_name != doc_pair.remote_name:
             try:
-                if doc_pair.remote_can_rename:
-                    log.debug('Renaming remote document according to local : %r',
-                              doc_pair)
-                    remote_info = remote_client.rename(doc_pair.remote_ref,
-                                                       doc_pair.local_name)
-                    self._refresh_remote(doc_pair, remote_client,
-                                         remote_info=remote_info)
-                else:
+                if not doc_pair.remote_can_rename:
                     self._handle_failed_remote_rename(doc_pair, doc_pair)
                     return
+
+                log.debug(
+                    'Renaming remote document according to local %r', doc_pair)
+                remote_info = remote_client.rename(
+                    doc_pair.remote_ref, doc_pair.local_name)
+                self._refresh_remote(
+                    doc_pair, remote_client, remote_info=remote_info)
             except Exception as e:
                 log.debug(repr(e))
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
@@ -715,11 +723,13 @@ class Processor(EngineWorker):
             parent_ref = parent_pair.remote_ref
         else:
             parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
-        if parent_pair is None:
-            raise Exception("Should have a parent pair")
+
+        if not parent_pair:
+            raise ValueError('Should have a parent pair')
+
         if parent_ref != doc_pair.remote_parent_ref:
             if (doc_pair.remote_can_delete
-                    and not parent_pair.pair_state == "unsynchronized"
+                    and not parent_pair.pair_state == 'unsynchronized'
                     and parent_pair.remote_can_create_child):
                 log.debug('Moving remote file according to local : %r', doc_pair)
                 # Bug if move in a parent with no rights / partial move

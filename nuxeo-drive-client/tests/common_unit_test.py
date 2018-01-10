@@ -893,22 +893,16 @@ class UnitTestCase(SimpleUnitTestCase):
         with open(filename, 'wb') as fileo:
             fileo.write(png)
 
-    def assertNxPart(self, path, name=None, present=True):
-        os_path = self.local_client_1.abspath(path)
-        children = os.listdir(os_path)
-        for child in children:
+    def assertNxPart(self, path, name):
+        for child in os.listdir(self.local_client_1.abspath(path)):
             if len(child) < 8:
                 continue
             if name is not None and len(child) < len(name) + 8:
                 continue
-            if child[0] == "." and child[-7:] == ".nxpart":
-                if name is None or child[1:len(name)+1] == name:
-                    if present:
-                        return
-                    else:
-                        self.fail("nxpart found in : '%s'" % (path))
-        if present:
-            self.fail("nxpart not found in : '%s'" % (path))
+            if (child[0] == '.'
+                    and child.endswith('.nxpart')
+                    and (name is None or child[1:len(name)+1] == name)):
+                self.fail('nxpart found in %r' % path)
 
     def get_dao_state_from_engine_1(self, path):
         """
@@ -919,3 +913,22 @@ class UnitTestCase(SimpleUnitTestCase):
         """
         abs_path = '/' + self.workspace_title_1 + path
         return self.engine_1.get_dao().get_state_from_local(abs_path)
+
+    def set_readonly(self, user, doc_path, grant=True):
+        """
+        Mark a document as RO or RW.
+
+        :param unicode user: Affected username.
+        :param unicode doc_path: The document, either a folder or a file.
+        :param bool grant: Set RO if True else RW.
+        """
+
+        remote = self.root_remote_client
+        op_input = 'doc:' + doc_path
+        if grant:
+            remote.execute('Document.SetACE', op_input=op_input,
+                           user=user, permission='Read')
+            remote.block_inheritance(doc_path, overwrite=False)
+        else:
+            remote.execute('Document.SetACE', op_input=op_input, user=user,
+                           permission='ReadWrite', grant='true')
