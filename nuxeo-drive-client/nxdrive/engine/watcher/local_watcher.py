@@ -2,6 +2,7 @@
 import os
 import re
 import sqlite3
+import sys
 from logging import getLogger
 from Queue import Queue
 from threading import Lock
@@ -16,7 +17,6 @@ from nxdrive.client.local_client import LocalClient
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.options import Options
-from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import current_milli_time, is_generated_tmp_file, \
     normalize_event_filename
 
@@ -37,16 +37,17 @@ class LocalWatcher(EngineWorker):
     rootMoved = pyqtSignal(str)
     rootDeleted = pyqtSignal()
 
+    # Windows lock
+    lock = Lock()
+
     def __init__(self, engine, dao):
         super(LocalWatcher, self).__init__(engine, dao)
-        self.unhandle_fs_event = False
         self._event_handler = None
         # Delay for the scheduled recursive scans of
         # a created / modified / moved folder under Windows
-        self._win_lock = Lock()
         self._windows_folder_scan_delay = 10000  # 10 seconds
         self._windows_watchdog_event_buffer = 8192
-        self._windows = AbstractOSIntegration.is_windows()
+        self._windows = sys.platform == 'win32'
         if self._windows:
             log.debug('Windows detected so delete event will be delayed by %dms', WIN_MOVE_RESOLUTION_PERIOD)
         # TODO Review to delete
@@ -84,25 +85,31 @@ class LocalWatcher(EngineWorker):
             if not self.client.exists('/'):
                 self.rootDeleted.emit()
                 return
-            self._action = Action("Setup watchdog")
+
+            self._action = Action('Setup watchdog')
             self.watchdog_queue = Queue()
             self._setup_watchdog()
+
             self._action = Action('Full local scan')
             self._scan()
             self._end_action()
-            # Check Windows dequeue and folder scan only every 100 loops (1s)
-            current_time_millis = int(round(time() * 1000))
-            self._win_delete_interval = current_time_millis
-            self._win_folder_scan_interval = current_time_millis
+
+            if self._windows:
+                # Check dequeue and folder scan only every 100 loops (1s)
+                self._win_delete_interval = self._win_folder_scan_interval = \
+                    int(round(time() * 1000))
+
             while 'working':
                 self._interact()
                 sleep(0.01)
+
                 while not self.watchdog_queue.empty():
-                    evt = self.watchdog_queue.get()
-                    self.handle_watchdog_event(evt)
+                    self.handle_watchdog_event(self.watchdog_queue.get())
+
                     if self._windows:
                         self._win_delete_check()
                         self._win_folder_scan_check()
+
                 if self._windows:
                     self._win_delete_check()
                     self._win_folder_scan_check()
@@ -120,19 +127,20 @@ class LocalWatcher(EngineWorker):
 
     def _win_delete_check(self):
         elapsed = int(round(time() * 1000)) - WIN_MOVE_RESOLUTION_PERIOD
-        if self._win_delete_interval < elapsed:
-            self._action = Action('Dequeue delete')
+        if self._win_delete_interval >= elapsed:
+            return
+
+        self._action = Action('Dequeue delete')
+        with self.lock:
             self._win_dequeue_delete()
-            self._end_action()
-            self._win_delete_interval = int(round(time() * 1000))
+        self._end_action()
+        self._win_delete_interval = int(round(time() * 1000))
 
     def _win_dequeue_delete(self):
-        self._win_lock.acquire()
         try:
             delete_events = self._delete_events
             for evt in delete_events.values():
-                evt_time = evt[0]
-                evt_pair = evt[1]
+                evt_time, evt_pair = evt
                 if current_milli_time() - evt_time < WIN_MOVE_RESOLUTION_PERIOD:
                     log.debug("Win: ignoring delete event as waiting for move resolution period expiration: %r", evt)
                     continue
@@ -152,8 +160,6 @@ class LocalWatcher(EngineWorker):
             raise
         except:
             log.exception('Win: dequeuing deletion error')
-        finally:
-            self._win_lock.release()
 
     def win_folder_scan_empty(self):
         return not self._folder_scan_events
@@ -163,14 +169,16 @@ class LocalWatcher(EngineWorker):
 
     def _win_folder_scan_check(self):
         elapsed = int(round(time() * 1000)) - self._windows_folder_scan_delay
-        if self._win_folder_scan_interval < elapsed:
-            self._action = Action('Dequeue folder scan')
+        if self._win_folder_scan_interval >= elapsed:
+            return
+
+        self._action = Action('Dequeue folder scan')
+        with self.lock:
             self._win_dequeue_folder_scan()
-            self._end_action()
-            self._win_folder_scan_interval = int(round(time() * 1000))
+        self._end_action()
+        self._win_folder_scan_interval = int(round(time() * 1000))
 
     def _win_dequeue_folder_scan(self):
-        self._win_lock.acquire()
         try:
             folder_scan_events = self._folder_scan_events.values()
             for evt in folder_scan_events:
@@ -204,8 +212,6 @@ class LocalWatcher(EngineWorker):
             raise
         except:
             log.exception('Win: dequeuing folder scan error')
-        finally:
-            self._win_lock.release()
 
     def _scan(self):
         log.debug('Full scan started')
@@ -220,7 +226,7 @@ class LocalWatcher(EngineWorker):
         self._scan_recursive(info)
         self._scan_handle_deleted_files()
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
-        log.debug("Full scan finished in %dms", self._metrics['last_local_scan_time'])
+        log.debug('Full scan finished in %dms', self._metrics['last_local_scan_time'])
         if to_pause:
             self._engine.get_queue_manager().resume()
         self.localScanFinished.emit()
@@ -234,9 +240,10 @@ class LocalWatcher(EngineWorker):
 
     def get_metrics(self):
         metrics = super(LocalWatcher, self).get_metrics()
-        if self._event_handler is not None:
+        if self._event_handler:
             metrics['fs_events'] = self._event_handler.counter
-        return dict(metrics.items() + self._metrics.items())
+        metrics.update(self._metrics)
+        return metrics
 
     def _suspend_queue(self):
         queue = self._engine.get_queue_manager()
@@ -256,8 +263,9 @@ class LocalWatcher(EngineWorker):
             self._engine.get_queue_manager().resume()
 
     def empty_events(self):
-        return self.watchdog_queue.empty() and (not AbstractOSIntegration.is_windows() or
-                                                self.win_queue_empty() and self.win_folder_scan_empty())
+        return self.watchdog_queue.empty() and (
+            not sys.platform == 'win32' or self.win_queue_empty()
+            and self.win_folder_scan_empty())
 
     def get_creation_time(self, child_full_path):
         if self._windows:
@@ -265,7 +273,7 @@ class LocalWatcher(EngineWorker):
 
         stat = os.stat(child_full_path)
         # Try inode number as on HFS seems to be increasing
-        if AbstractOSIntegration.is_mac() and hasattr(stat, 'st_ino'):
+        if sys.platform == 'darwin' and hasattr(stat, 'st_ino'):
             return stat.st_ino
         if hasattr(stat, 'st_birthtime'):
             return stat.st_birthtime
@@ -513,16 +521,13 @@ class LocalWatcher(EngineWorker):
                 self._delete_files[deleted.remote_ref] = deleted
 
         for child_info in to_scan_new:
-            self._push_to_scan(child_info)
+            self._scan_recursive(child_info)
 
         if not recursive:
             return
 
         for child_info in to_scan:
-            self._push_to_scan(child_info)
-
-    def _push_to_scan(self, info):
-        self._scan_recursive(info)
+            self._scan_recursive(child_info)
 
     def _setup_watchdog(self):
         """
@@ -681,8 +686,7 @@ class LocalWatcher(EngineWorker):
             if (self._windows
                     and old_local_path is not None
                     and self._windows_folder_scan_delay > 0):
-                self._win_lock.acquire()
-                try:
+                with self.lock:
                     if old_local_path in self._folder_scan_events:
                         log.debug(
                             'Update folders to scan queue: move from %r to %r',
@@ -690,8 +694,6 @@ class LocalWatcher(EngineWorker):
                         del self._folder_scan_events[old_local_path]
                         t = local_info.last_modification_time.timetuple()
                         self._folder_scan_events[rel_path] = mktime(t), doc_pair
-                finally:
-                    self._win_lock.release()
             return
         acquired_pair = None
         try:
@@ -718,11 +720,8 @@ class LocalWatcher(EngineWorker):
             if self._windows:
                 # Delay on Windows the delete event
                 log.debug('Add pair to delete events: %r', doc_pair)
-                self._win_lock.acquire()
-                try:
+                with self.lock:
                     self._delete_events[doc_pair.remote_ref] = current_milli_time(), doc_pair
-                finally:
-                    self._win_lock.release()
                 return
 
             # In case of case sensitive can be an issue
@@ -783,7 +782,7 @@ class LocalWatcher(EngineWorker):
                 if original_pair:
                     original_info = self.client.get_info(
                         original_pair.local_path, raise_if_missing=False)
-                if (AbstractOSIntegration.is_mac()
+                if (sys.platform == 'darwin'
                         and original_info
                         and original_info.remote_ref == local_info.remote_ref):
                     log.debug('MacOSX has postponed overwriting of xattr, '
@@ -995,8 +994,7 @@ class LocalWatcher(EngineWorker):
                             moved = True
 
                 if self._windows:
-                    self._win_lock.acquire()
-                    try:
+                    with self.lock:
                         if local_info.remote_ref in self._delete_events:
                             log.debug('Found creation in delete event, handle move instead')
                             # Should be cleaned
@@ -1006,8 +1004,6 @@ class LocalWatcher(EngineWorker):
                                 self._dao.update_local_state(doc_pair, self.client.get_info(rel_path))
                             del self._delete_events[local_info.remote_ref]
                             return
-                    finally:
-                        self._win_lock.release()
 
                 if from_pair is not None:
                     if moved:
@@ -1036,14 +1032,11 @@ class LocalWatcher(EngineWorker):
         if (self._win_folder_scan_interval > 0
                 and self._windows_folder_scan_delay > 0):
             log.debug('Add pair to folder scan events: %r', doc_pair)
-            self._win_lock.acquire()
-            try:
+            with self.lock:
                 local_info = self.client.get_info(doc_pair.local_path, raise_if_missing=False)
                 if local_info is not None:
                     self._folder_scan_events[doc_pair.local_path] = (
                         mktime(local_info.last_modification_time.timetuple()), doc_pair)
-            finally:
-                self._win_lock.release()
 
 
 class DriveFSEventHandler(PatternMatchingEventHandler):
