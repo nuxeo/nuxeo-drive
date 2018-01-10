@@ -101,7 +101,7 @@ class TestWindows(UnitTestCase):
             #   modified
             # - Synchronization should not fail: doc pairs should be
             #   blacklisted and other remote modifications should be locally synchronized
-            self.assertNxPart('/', name='test_update.docx', present=False)
+            self.assertNxPart('/', 'test_update.docx')
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEqual(local.get_content('/test_update.docx'),
                              'Some content to update.')
@@ -116,7 +116,7 @@ class TestWindows(UnitTestCase):
             self.wait_sync(enforce_errors=False, fail_if_timeout=False)
             # Blacklisted files should be ignored as delay (60 seconds by
             # default) is not expired, nothing should have changed
-            self.assertNxPart('/', name='test_update.docx', present=False)
+            self.assertNxPart('/', 'test_update.docx')
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEqual(local.get_content('/test_update.docx'),
                              'Some content to update.')
@@ -137,13 +137,13 @@ class TestWindows(UnitTestCase):
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEqual(local.get_content('/test_update.docx'),
                              'Updated content.')
-            self.assertNxPart('/', name='test_update.docx', present=False)
+            self.assertNxPart('/', 'test_update.docx')
             self.assertFalse(local.exists('/test_delete.docx'))
         else:
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEqual(local.get_content('/test_update.docx'),
                              'Updated content.')
-            self.assertNxPart('/', name='test_update.docx', present=False)
+            self.assertNxPart('/', 'test_update.docx')
             self.assertFalse(local.exists('/test_delete.docx'))
 
     @unittest.skipUnless(sys.platform == 'win32', 'Windows only.')

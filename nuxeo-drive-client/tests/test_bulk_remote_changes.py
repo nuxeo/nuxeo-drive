@@ -48,14 +48,13 @@ def mock_file_to_info(self, fs_item):
 
 class TestBulkRemoteChanges(UnitTestCase):
     """
-       Test Bulk Remote Changes when network error happen 
-       mock_get_children_info will simulate network error when required.
-       test_many_changes method will make server side changes, simulate error for GetChildren API 
-           and still verify if all remote changes are successfully synced
+    Test Bulk Remote Changes when network error happenmock_get_children_info
+    will simulate network error when required.  test_many_changes method will
+    make server side changes, simulate error for GetChildren API and still
+    verify if all remote changes are successfully synced.
     """
 
     def setUp(self):
-        super(TestBulkRemoteChanges, self).setUp()
         self.last_sync_date = None
         self.last_event_log_id = None
         self.last_root_definitions = None
@@ -66,77 +65,88 @@ class TestBulkRemoteChanges(UnitTestCase):
     @patch.object(RemoteFileSystemClient, 'file_to_info', mock_file_to_info)
     def test_many_changes(self):
         """
-            Objective: The objective is to make a lot of remote changes (including a folder modified) and 
-            wait for nuxeo-drive to successfully sync even if network error happens
-            
-            1. Configure drive and wait for sync
-            2. Create 3 folders folder1, folder2 and shared
-            3. Create files inside the 3 folders: folder1/file1.txt, folder2/file2.txt, 
-                shared/readme1.txt, shared/readme2.txt
-            4. Wait for 3 folders, 4 folder to sync to local PC
-            5. Check the 3 folders and 4 files are synced to local PC
-            6. Trigger simulation of network error for GetChildren API using the mock (2 successive failures)
-            7. Do the following changes in DM side in same order:
-                I.   Create 'folder1/sample1.txt'
-                II.  Delete 'shared' folder, and immediately restore 'shared' folder
-                IV.  Restore 'shared/readme1.txt'
-                V.   Create 'shared/readme3.txt'
-                VI.  Create 'folder2/sample2.txt'
-            8. Wait for remote changes to sync for unaffected folders folder1 and folder2 
-            9. Check that folder1/sample1.txt and folder2/sample2.txt are synced to local PC
-            10. Sleep for two remote scan attempts (to compenstate for two network failures)
-            11. Check if two files 'shared/readme1.txt' and 'shared/readme3.txt' are synced to local PC
+Objective: The objective is to make a lot of remote changes (including a folder
+modified) and wait for nuxeo-drive to successfully sync even if network error
+happens.
+
+1. Configure drive and wait for sync
+2. Create 3 folders folder1, folder2 and shared
+3. Create files inside the 3 folders: folder1/file1.txt, folder2/file2.txt, 
+    shared/readme1.txt, shared/readme2.txt
+4. Wait for 3 folders, 4 folder to sync to local PC
+5. Check the 3 folders and 4 files are synced to local PC
+6. Trigger simulation of network error for GetChildren API using the mock
+   (2 successive failures)
+7. Do the following changes in DM side in same order:
+    I.   Create 'folder1/sample1.txt'
+    II.  Delete 'shared' folder, and immediately restore 'shared' folder
+    IV.  Restore 'shared/readme1.txt'
+    V.   Create 'shared/readme3.txt'
+    VI.  Create 'folder2/sample2.txt'
+8. Wait for remote changes to sync for unaffected folders folder1 and folder2
+9. Check that folder1/sample1.txt and folder2/sample2.txt are synced to local PC
+10. Sleep for two remote scan attempts (to compenstate for two network failures)
+11. Check if two files 'shared/readme1.txt' and 'shared/readme3.txt' are synced
+to local PC.
         """
         global network_error
-        remote_client = self.remote_document_client_1
-        local_client = self.local_client_1
+        remote = self.remote_document_client_1
+        local = self.local_client_1
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
         # create some folders on the server
-        folder1 = remote_client.make_folder(self.workspace, u"folder1")
-        shared = remote_client.make_folder(self.workspace, u"shared")
-        folder2 = remote_client.make_folder(self.workspace, u"folder2")
+        folder1 = remote.make_folder(self.workspace, 'folder1')
+        folder2 = remote.make_folder(self.workspace, 'folder2')
+        shared = remote.make_folder(self.workspace, 'shared')
 
-        readme1 = remote_client.make_file(shared, "readme1.txt", "This is a readme file")
-        readme2 = remote_client.make_file(shared, "readme2.txt", "This is a readme file")
-        remote_client.make_file(folder1, "file1.txt", "This is a sample file1")
-        remote_client.make_file(folder2, "file2.txt", "This is a sample file2")
+        remote.make_file(folder1, 'file1.txt', content='This is a sample file1')
+        remote.make_file(folder2, 'file2.txt', content='This is a sample file2')
+        readme1 = remote.make_file(
+            shared, 'readme1.txt', content='This is a readme file')
+        remote.make_file(shared, 'readme2.txt', content='This is a readme file')
 
         self.wait_sync(wait_for_async=True)
 
-        self.assertTrue(local_client.exists('/folder1'), "'/folder1' should sync")
-        self.assertTrue(local_client.exists('/folder2'), "'/folder1' should sync")
-        self.assertTrue(local_client.exists('/shared'), "'/shared' folder should sync")
-        self.assertTrue(local_client.exists('/folder1/file1.txt'), "'/folder1/file1.txt' should sync")
-        self.assertTrue(local_client.exists('/folder2/file2.txt'), "'/folder2/file2.txt' should sync")
-        self.assertTrue(local_client.exists('/shared/readme1.txt'), "'/shared/readme1.txt' should sync")
-        self.assertTrue(local_client.exists('/shared/readme2.txt'), "'/shared/readme2.txt' should sync")
+        assert local.exists('/folder1')
+        assert local.exists('/folder2')
+        assert local.exists('/shared')
+        assert local.exists('/folder1/file1.txt')
+        assert local.exists('/folder2/file2.txt')
+        assert local.exists('/shared/readme1.txt')
+        assert local.exists('/shared/readme2.txt')
 
         # Simulate network error for GetChildren API twice
-        # This is to ensure drive will eventually recover even after multiple failures of GetChildren API
+        # This is to ensure Drive will eventually recover even after multiple
+        # failures of GetChildren API.
         network_error = 2
-        remote_client.make_file(folder1, "sample1.txt", "This is a another sample file1")
+        remote.make_file(
+            folder1, 'sample1.txt', content='This is a another sample file1')
         self.remote_document_client_2.register_as_root(shared)
+
         # Delete folder 'shared'
-        remote_client.delete(shared)
+        remote.delete(shared)
         self.wait_sync(wait_for_async=True)
+
         # Restore folder 'shared' from trash
-        remote_client.undelete(shared)
-        self.wait_sync(wait_for_async=True)
-        # restore file 'shared/readme1.txt' from trash
-        remote_client.undelete(readme1)
-        remote_client.make_file(shared, "readme3.txt", "This is a another shared file")
-        remote_client.make_file(folder2, "sample2.txt", "This is a another sample file2")
-
+        remote.undelete(shared)
         self.wait_sync(wait_for_async=True)
 
-        self.assertTrue(local_client.exists('/folder2/sample2.txt'), "'/folder2/sample2.txt' should sync")
-        self.assertTrue(local_client.exists('/folder1/sample1.txt'), "'/folder1/sample1.txt' should sync")
+        # Restore file 'shared/readme1.txt' from trash
+        remote.undelete(readme1)
+        remote.make_file(
+            shared, 'readme3.txt', content='This is a another shared file')
+        remote.make_file(
+            folder2, 'sample2.txt', content='This is a another sample file2')
 
-        # Although sync failed for one folder, GetChangeSummary will return zero event in successive calls
-        # We need to wait two remote scans, so sleep for TEST_DEFAULT_DELAY * 2
+        self.wait_sync(wait_for_async=True)
+        assert local.exists('/folder2/sample2.txt')
+        assert local.exists('/folder1/sample1.txt')
+
+        # Although sync failed for one folder, GetChangeSummary will return
+        # zero event in successive calls.  We need to wait two remote scans,
+        # so sleep for TEST_DEFAULT_DELAY * 2
         sleep(TEST_DEFAULT_DELAY * 2)
-        self.assertTrue(local_client.exists('/shared/readme1.txt'), "'/shared/readme1.txt' should sync")
-        self.assertTrue(local_client.exists('/shared/readme3.txt'), "'/shared/readme3.txt' should sync")
+        assert local.exists('/shared/readme1.txt')
+        assert local.exists('/shared/readme3.txt')
