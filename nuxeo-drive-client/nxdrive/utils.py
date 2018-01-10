@@ -82,7 +82,10 @@ def is_generated_tmp_file(name):
     delay, do_not_delay, no_delay_effect = True, False, None
 
     if isinstance(name, bytes):
-        name = name.decode(locale.getpreferredencoding() or 'utf-8')
+        try:
+            name = unicode(name, encoding='utf-8')
+        except TypeError:
+            name = name.decode(locale.getpreferredencoding() or 'utf-8')
 
     # Default ignored suffixes already handle .bak, .tmp, etc..
     if name.endswith(Options.ignored_suffixes):
