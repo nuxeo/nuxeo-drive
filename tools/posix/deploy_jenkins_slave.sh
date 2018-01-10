@@ -93,7 +93,7 @@ check_vars() {
             export WORKSPACE_DRIVE="${WORKSPACE}"
         fi
     fi
-    export SIP_VERSION=${SIP_VERSION:=4.19.3}  # XXX: SIP_VERSION
+    export SIP_VERSION=${SIP_VERSION:=4.19.6}  # XXX: SIP_VERSION
     export CXFREEZE_VERSION=${CXFREEZE_VERSION:=4.3.3}  # XXX: CXFREEZE_VERSION
     export STORAGE_DIR="${WORKSPACE}/deploy-dir"
 
