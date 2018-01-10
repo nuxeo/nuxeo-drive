@@ -20,6 +20,7 @@ $ErrorActionPreference = "Stop"
 # Global variables
 $global:PYTHON_OPT = "-E", "-s"
 $global:PIP_OPT = "-m", "pip", "install", "--upgrade", "--upgrade-strategy=only-if-needed"
+$global:SERVER = "https://nuxeo-jenkins-public-resources.s3.eu-west-3.amazonaws.com/drive"
 
 function build_msi {
 	# Build the famous MSI
@@ -157,7 +158,7 @@ function ExitWithCode($retCode) {
 function install_cxfreeze {
 	# Install cx_Freeze manually as pip does not work for this package
 	$fname = "cx_Freeze-$Env:CXFREEZE_VERSION"
-	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/$fname.zip"
+	$url = "$global:SERVER/$fname.zip"
 	$output = "$Env:STORAGE_DIR\$fname.zip"
 
 
@@ -225,7 +226,7 @@ function install_openssl {
 
 function install_pyqt {
 	$fname = "PyQt4_gpl_win-$Env:PYQT_VERSION"
-	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/$fname.zip"
+	$url = "$global:SERVER/$fname.zip"
 	$output = "$Env:STORAGE_DIR\$fname.zip"
 
 	if (check_import "import PyQt4.QtWebKit") {
@@ -283,7 +284,7 @@ function install_python {
 
 function install_sip {
 	$fname = "sip-$Env:SIP_VERSION"
-	$url = "https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/$fname.zip"
+	$url = "$global:SERVER/$fname.zip"
 	$output = "$Env:STORAGE_DIR\$fname.zip"
 
 	if (check_import "import os, sip; os._exit(not sip.SIP_VERSION_STR == '$Env:SIP_VERSION')") {

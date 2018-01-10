@@ -15,6 +15,7 @@
 # Global variables
 PYTHON="python -E -s"
 PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
+SERVER="https://nuxeo-jenkins-public-resources.s3.eu-west-3.amazonaws.com/drive"
 
 build_esky() {
     echo ">>> Building the release package"
@@ -164,7 +165,7 @@ extract() {
 install_cxfreeze() {
     # Install cx_Freeze manually as pip does not work for this package
     local version="$1"
-    local url="https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/cx_Freeze-${version}.tar.gz"
+    local url="${SERVER}/cx_Freeze-${version}.tar.gz"
     local path="${STORAGE_DIR}/cx_Freeze-${version}"
     local output="${path}.tar.gz"
 
@@ -214,15 +215,14 @@ install_pyenv() {
 
 install_pyqt() {
     local version="$1"
-    local url="https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive"
     local path="${STORAGE_DIR}"
     case "${OSI}" in
         "linux")
-            url="${url}/PyQt4_gpl_x11-${version}.tar.gz"
+            url="${SERVER}/PyQt4_gpl_x11-${version}.tar.gz"
             path="${path}/PyQt4_gpl_x11-${version}"
             ;;
         "osx")
-            url="${url}/PyQt4_gpl_mac-${version}.tar.gz"
+            url="${SERVER}/PyQt4_gpl_mac-${version}.tar.gz"
             path="${path}/PyQt4_gpl_mac-${version}"
             ;;
     esac
@@ -268,7 +268,7 @@ install_python() {
 
 install_sip() {
     local version="$1"
-    local url="https://s3-eu-west-1.amazonaws.com/nuxeo-jenkins-resources/drive/sip-${version}.tar.gz"
+    local url="${SERVER}/sip-${version}.tar.gz"
     local path="${STORAGE_DIR}/sip-${version}"
     local output="${path}.tar.gz"
 
