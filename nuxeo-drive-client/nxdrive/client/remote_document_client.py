@@ -1,11 +1,11 @@
 # coding: utf-8
 """ API to access remote Nuxeo documents for synchronization. """
 
+import datetime
 import os
 import unicodedata
 import urllib2
 from collections import namedtuple
-from datetime import datetime
 from logging import getLogger
 
 from dateutil import parser
@@ -272,12 +272,12 @@ class RemoteDocumentClient(BaseAutomationClient):
         filename = None
         folderish = 'Folderish' in doc['facets']
         try:
-            last_update = datetime.strptime(doc['lastModified'],
-                                            "%Y-%m-%dT%H:%M:%S.%fZ")
+            last_update = datetime.datetime.strptime(
+                doc['lastModified'], '%Y-%m-%dT%H:%M:%S.%fZ')
         except ValueError:
             # no millisecond?
-            last_update = datetime.strptime(doc['lastModified'],
-                                            "%Y-%m-%dT%H:%M:%SZ")
+            last_update = datetime.datetime.strptime(
+                doc['lastModified'], '%Y-%m-%dT%H:%M:%SZ')
         last_contributor = props['dc:lastContributor']
 
         # TODO: support other main files

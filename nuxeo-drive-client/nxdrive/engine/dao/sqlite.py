@@ -1257,6 +1257,7 @@ class EngineDAO(ConfigurationDAO):
                       '       last_sync_date = ?,'
                       '       processor = 0,'
                       '       last_error = NULL,'
+                      '       last_error_details = NULL,'
                       '       error_count = 0,'
                       '       last_sync_error_date = NULL'
                       ' WHERE id = ?'

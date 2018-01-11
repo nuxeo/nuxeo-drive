@@ -1,7 +1,6 @@
 # coding: utf-8
 import urllib2
 from time import sleep
-from unittest import skip
 
 from nxdrive.client import LocalClient
 from nxdrive.client.remote_filtered_file_system_client import \
@@ -10,7 +9,7 @@ from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
 from nxdrive.osi import AbstractOSIntegration
 from tests import RemoteTestClient
-from tests.common import RemoteDocumentClientForTests, TEST_WORKSPACE_PATH
+from tests.common import RemoteDocumentClientForTests
 from tests.common_unit_test import RandomBug, UnitTestCase
 
 # TODO NXDRIVE-170: refactor
@@ -664,3 +663,77 @@ class TestLocalMoveAndRename(UnitTestCase):
     # TODO: implement me once canDelete is checked in the synchronizer
     # def test_local_move_sync_root_folder(self):
     #    pass
+
+
+class TestLocalMove(UnitTestCase):
+
+    def test_nxdrive_1033(self):
+        """
+1. Connect Drive in 2 PC's with same account (Drive-01, Drive-02)
+2. Drive-01: Create a Folder "Folder01" and upload 20 files into it
+3. Drive-02: Wait for folder and files to sync in 2nd PC (Drive-02)
+4. Drive-01: Create a folder "878" in folder "Folder01" and move all the files
+    into folder "878"
+5. Drive-02: Wait for files to sync in Drive-02
+
+Expected result: In Drive-02, all files should move into folder "878"
+
+Traceback:
+
+sqlite Updating remote state for row=<StateRow> with info=...
+sqlite Increasing version to 1 for pair <StateRow>
+remote_watcher Unexpected error
+Traceback (most recent call last):
+  File "remote_watcher.py", line 487, in _handle_changes
+    self._update_remote_states()
+  File "remote_watcher.py", line 699, in _update_remote_states
+    force_update=lock_update)
+  File "sqlite.py", line 1401, in update_remote_state
+    row.remote_state, row.pair_state, row.id))
+  File "sqlite.py", line 65, in execute
+    obj = super(AutoRetryCursor, self).execute(*args, **kwargs)
+IntegrityError: UNIQUE constraint failed: States.remote_ref, States.remote_parent_ref
+        """
+
+        from itertools import product
+
+        local1, local2 = self.local_client_1, self.local_client_2
+        self.engine_1.start()
+        self.engine_2.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Create documents
+        files = ['test_file_%d.odt' % i for i in range(1, 21)]
+        srcname = 'Folder 01'
+        folder = local1.make_folder('/', srcname)
+        srcname = '/' + srcname
+        for filename in files:
+            local1.make_file(srcname, filename, content=bytes(filename))
+
+        # Checks
+        self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
+        for local, filename in product((local1, local2), files):
+            assert local.exists(srcname + '/' + filename)
+
+        # Step 4
+        dstname = '8 78'
+        dst = local1.make_folder(srcname, dstname)
+        dstname = '/' + dstname
+        for child in local1.get_children_info(folder):
+            if not child.folderish:
+                local1.move(child.path, dst)
+
+        # Checks
+        self.wait_sync(wait_for_async=True,
+                       wait_for_engine_2=True,
+                       timeout=120)
+
+        for local in (local1, local2):
+            assert len(local.get_children_info('/')) == 1
+            assert len(local.get_children_info(srcname)) == 1
+            assert len(local.get_children_info(srcname + dstname)) == len(files)
+
+        for dao in (self.engine_1.get_dao(), self.engine_2.get_dao()):
+            assert not dao.get_errors(limit=0)
+            assert not dao.get_filters()
+            assert not dao.get_unsynchronizeds()
