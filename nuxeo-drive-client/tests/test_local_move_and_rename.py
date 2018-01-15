@@ -1,5 +1,6 @@
 # coding: utf-8
 import urllib2
+from itertools import product
 from time import sleep
 
 from nxdrive.client import LocalClient
@@ -678,7 +679,7 @@ class TestLocalMove(UnitTestCase):
 
 Expected result: In Drive-02, all files should move into folder "878"
 
-Traceback:
+Stack:
 
 sqlite Updating remote state for row=<StateRow> with info=...
 sqlite Increasing version to 1 for pair <StateRow>
@@ -693,9 +694,25 @@ Traceback (most recent call last):
   File "sqlite.py", line 65, in execute
     obj = super(AutoRetryCursor, self).execute(*args, **kwargs)
 IntegrityError: UNIQUE constraint failed: States.remote_ref, States.remote_parent_ref
-        """
 
-        from itertools import product
+---
+
+Understanding:
+
+When the client 1 created the 878 folder and then moved all files into it, the
+client 2 received unordered events.  Still on the client 2, 878 was created if
+needed by one of its children: 1st error of duplicate type when the folder
+creation event was handled later.
+
+Another error was the remote creation twice of a given document because of the
+previous error. We found then in the database 2 rows with the same remote_ref
+but different remote_parent_ref (as one was under "/Folder01" and the other
+into "/Folder01/878". Later when doing the move, it failed with the previous
+traceback.
+
+With the fix, we now have a clean database without any errors and all events
+are well taken into account.
+        """
 
         local1, local2 = self.local_client_1, self.local_client_2
         self.engine_1.start()
@@ -737,3 +754,18 @@ IntegrityError: UNIQUE constraint failed: States.remote_ref, States.remote_paren
             assert not dao.get_errors(limit=0)
             assert not dao.get_filters()
             assert not dao.get_unsynchronizeds()
+
+        for remote, ws in zip(
+                (self.remote_document_client_1, self.remote_document_client_2),
+                (self.workspace_1, self.workspace_2)):
+            # '/'
+            children = remote.get_children_info(ws)
+            assert len(children) == 1
+
+            # srcname
+            children = remote.get_children_info(children[0].uid)
+            assert len(children) == 1
+
+            # srcname + dstname
+            children = remote.get_children_info(children[0].uid)
+            assert len(children) == len(files)
