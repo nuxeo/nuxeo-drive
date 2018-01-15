@@ -625,13 +625,14 @@ FolderType=Generic
         locker = self.unlock_ref(parent, unlock_parent=False)
         try:
             os.mkdir(os_path)
-            # Name should be the actual name of the folder created locally
-            name = os.path.basename(os_path)
-            if parent == u"/":
-                return u"/" + name
-            return parent + u"/" + name
         finally:
             self.lock_ref(parent, locker)
+
+        # Name should be the actual name of the folder created locally
+        name = os.path.basename(os_path)
+        if parent == u'/':
+            return u'/' + name
+        return parent + u'/' + name
 
     @staticmethod
     def make_tree(path):

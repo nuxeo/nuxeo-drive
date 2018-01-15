@@ -159,14 +159,15 @@ class RemoteWatcher(EngineWorker):
             self._scan_remote()
 
     @staticmethod
-    def _check_modified(child_pair, child_info):
+    def _check_modified(pair, info):
         return any((
-            child_pair.remote_can_delete != child_info.can_delete,
-            child_pair.remote_can_rename != child_info.can_rename,
-            child_pair.remote_can_update != child_info.can_update,
-            child_pair.remote_can_create_child != child_info.can_create_child,
-            child_pair.remote_name != child_info.name,
-            child_pair.remote_digest != child_info.digest,
+            pair.remote_can_delete != info.can_delete,
+            pair.remote_can_rename != info.can_rename,
+            pair.remote_can_update != info.can_update,
+            pair.remote_can_create_child != info.can_create_child,
+            pair.remote_name != info.name,
+            pair.remote_digest != info.digest,
+            pair.remote_parent_ref != info.parent_uid,
         ))
 
     def _do_scan_remote(self, doc_pair, remote_info, force_recursion=True, moved=False):
@@ -347,6 +348,11 @@ class RemoteWatcher(EngineWorker):
             # by a processor => ignoring this child.
             log.debug('Ignoring child %r of a duplicate folder in error %r',
                       child_info, parent_pair)
+            return None, None
+
+        if self._dao.get_normal_state_from_remote(child_info.uid):
+            log.warning('Illegal state: a remote creation cannot happen if '
+                        'there already is the same remote ref in the database')
             return None, None
 
         local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))

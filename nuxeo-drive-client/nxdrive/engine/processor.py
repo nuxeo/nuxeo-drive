@@ -883,7 +883,7 @@ class Processor(EngineWorker):
 
                         # Create the parent(s) folder(s), if necessary.
                         # This happens when a move is handled before a creation
-                        local_client.make_tree(os.path.dirname(new_path_abs))
+                        # local_client.make_tree(os.path.dirname(new_path_abs))
 
                         # May need to add a lock for move
                         updated_info = local_client.move(
@@ -938,11 +938,13 @@ class Processor(EngineWorker):
             raise ValueError(
                 "Could not find parent folder of doc %r (%r)"
                 " folder" % (name, doc_pair.remote_ref))
+
         if parent_pair.local_path is None:
             if parent_pair.pair_state == 'unsynchronized':
                 self._dao.unsynchronize_state(doc_pair, 'PARENT_UNSYNC')
                 self._handle_unsynchronized(local_client, doc_pair)
                 return
+
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             raise ValueError(
@@ -1005,34 +1007,38 @@ class Processor(EngineWorker):
                 else:
                     self._synchronize_remotely_modified(new_pair, local_client, remote_client)
 
-    def _create_remotely(self, local_client, remote_client, doc_pair, parent_pair, name):
-        local_parent_path = parent_pair.local_path
+    def _create_remotely(self, local, remote, doc_pair, parent_pair, name):
         # TODO Shared this locking system / Can have concurrent lock
-        self._unlock_readonly(local_client, local_parent_path)
-        tmp_file = None
+        local_parent_path = parent_pair.local_path
+        self._unlock_readonly(local, local_parent_path)
         try:
             if doc_pair.folderish:
                 log.debug('Creating local folder %r in %r', name,
-                          local_client.abspath(parent_pair.local_path))
-                path = local_client.make_folder(local_parent_path, name)
-            else:
-                path, os_path, name = local_client.get_new_file(local_parent_path,
-                                                                name)
-                log.debug('Creating local file %r in %r', name,
-                          local_client.abspath(parent_pair.local_path))
-                tmp_file = self._download_content(local_client, remote_client, doc_pair, os_path)
-                tmp_file_path = local_client.get_path(tmp_file)
-                # Set remote id on tmp file already
-                local_client.set_remote_id(tmp_file_path, doc_pair.remote_ref)
-                # Rename tmp file
-                local_client.rename(tmp_file_path, name)
-                self._dao.update_last_transfer(doc_pair.id, "download")
-        finally:
-            self._lock_readonly(local_client, local_parent_path)
-            # Clean .nxpart if needed
-            if tmp_file is not None and os.path.exists(tmp_file):
+                          local.abspath(local_parent_path))
+                return local.make_folder(local_parent_path, name)
+
+            path, os_path, name = local.get_new_file(local_parent_path, name)
+            log.debug('Creating local file %r in %r',
+                      name, local.abspath(local_parent_path))
+            tmp_file = self._download_content(local, remote, doc_pair, os_path)
+            tmp_file_path = local.get_path(tmp_file)
+
+            # Set remote id on TMP file already
+            local.set_remote_id(tmp_file_path, doc_pair.remote_ref)
+
+            # Rename TMP file
+            local.rename(tmp_file_path, name)
+            self._dao.update_last_transfer(doc_pair.id, 'download')
+
+            # Clean-up the TMP file
+            try:
                 os.remove(tmp_file)
-        return path
+            except OSError:
+                pass
+
+            return path
+        finally:
+            self._lock_readonly(local, local_parent_path)
 
     def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
         try:
