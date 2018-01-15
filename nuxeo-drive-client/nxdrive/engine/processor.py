@@ -883,7 +883,7 @@ class Processor(EngineWorker):
 
                         # Create the parent(s) folder(s), if necessary.
                         # This happens when a move is handled before a creation
-                        local_client.make_tree(os.path.dirname(new_path_abs))
+                        # local_client.make_tree(os.path.dirname(new_path_abs))
 
                         # May need to add a lock for move
                         updated_info = local_client.move(
@@ -938,11 +938,13 @@ class Processor(EngineWorker):
             raise ValueError(
                 "Could not find parent folder of doc %r (%r)"
                 " folder" % (name, doc_pair.remote_ref))
+
         if parent_pair.local_path is None:
             if parent_pair.pair_state == 'unsynchronized':
                 self._dao.unsynchronize_state(doc_pair, 'PARENT_UNSYNC')
                 self._handle_unsynchronized(local_client, doc_pair)
                 return
+
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             raise ValueError(

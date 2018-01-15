@@ -3,6 +3,7 @@ Release date: `2017-??-??`
 
 ### Core
 - [NXDRIVE-836](https://jira.nuxeo.com/browse/NXDRIVE-836): Bad behaviors with read-only documents
+- [NXDRIVE-1033](https://jira.nuxeo.com/browse/NXDRIVE-1033): File move operation fails, instead it creates duplicates
 - [NXDRIVE-1075](https://jira.nuxeo.com/browse/NXDRIVE-1075): Review how TRACE level is added to loggers
 
 ### GUI
