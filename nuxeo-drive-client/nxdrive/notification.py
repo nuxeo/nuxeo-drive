@@ -390,6 +390,23 @@ class DirectEditLockedNotification(Notification):
         )
 
 
+class DirectEditUpdatedNotification(Notification):
+    def __init__(self, filename):
+        values = {
+            'name': filename,
+        }
+        super(DirectEditUpdatedNotification, self).__init__(
+            'DIRECT_EDIT_UPDATED',
+            title=Translator.get('UPDATED', values),
+            description=Translator.get('DIRECT_EDIT_UPDATED_FILE', values),
+            level=Notification.LEVEL_INFO,
+            flags=(Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+        )
+
+
 class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid):
         super(InvalidCredentialNotification, self).__init__(
@@ -415,6 +432,7 @@ class DefaultNotificationService(NotificationService):
         self._manager.direct_edit.directEditLockError.connect(self._directEditLockError)
         self._manager.direct_edit.directEditReadonly.connect(self._directEditReadonly)
         self._manager.direct_edit.directEditLocked.connect(self._directEditLocked)
+        self._manager.direct_edit.directEditUploadCompleted.connect(self._directEditUpdated)
         self._manager.get_autolock_service().documentLocked.connect(self._lockDocument)
 
     def _connect_engine(self, engine):
@@ -466,6 +484,9 @@ class DefaultNotificationService(NotificationService):
 
     def _directEditLocked(self, filename, lock_owner, lock_created):
         self.send_notification(DirectEditLockedNotification(filename, lock_owner, lock_created))
+
+    def _directEditUpdated(self, filename):
+        self.send_notification(DirectEditUpdatedNotification(filename))
 
     def _validAuthentication(self):
         engine_uid = self.sender().uid

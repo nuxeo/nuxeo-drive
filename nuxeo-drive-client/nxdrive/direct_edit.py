@@ -27,7 +27,7 @@ log = getLogger(__name__)
 
 class DirectEdit(Worker):
     localScanFinished = pyqtSignal()
-    directEditUploadCompleted = pyqtSignal()
+    directEditUploadCompleted = pyqtSignal(str)
     openDocument = pyqtSignal(object)
     editDocument = pyqtSignal(object)
     directEditLockError = pyqtSignal(str, str, str)
@@ -339,8 +339,6 @@ class DirectEdit(Worker):
         self._upload_queue.put(ref)
 
     def _handle_queues(self):
-        uploaded = False
-
         # Lock any documents
         while not self._lock_queue.empty():
             try:
@@ -348,14 +346,14 @@ class DirectEdit(Worker):
             except Empty:
                 break
             else:
-                ref = item[0]
+                ref, action = item
                 log.trace('Handling DirectEdit lock queue ref: %r', ref)
 
             uid = ''
             dir_path = os.path.dirname(ref)
             try:
                 uid, _, remote_client, _, _ = self._extract_edit_info(ref)
-                if item[1] == 'lock':
+                if action == 'lock':
                     remote_client.lock(uid)
                     self._local_client.set_remote_id(dir_path, '1', 'nxdirecteditlock')
                     # Emit the lock signal only when the lock is really set
@@ -366,7 +364,7 @@ class DirectEdit(Worker):
                         remote_client.unlock(uid)
                     except NotFound:
                         purge = True
-                    if purge or item[1] == 'unlock_orphan':
+                    if purge or action == 'unlock_orphan':
                         path = self._local_client.abspath(ref)
                         log.trace('Remove orphan: %r', path)
                         self._manager.get_autolock_service().orphan_unlocked(path)
@@ -379,8 +377,8 @@ class DirectEdit(Worker):
                 raise
             except:
                 # Try again in 30s
-                log.exception('Cannot %s document %r', item[1], ref)
-                self.directEditLockError.emit(item[1], os.path.basename(ref), uid)
+                log.exception('Cannot %s document %r', action, ref)
+                self.directEditLockError.emit(action, os.path.basename(ref), uid)
 
         # Unqueue any errors
         item = self._error_queue.get()
@@ -430,6 +428,7 @@ class DirectEdit(Worker):
                 self._local_client.set_remote_id(
                     dir_path, current_digest, 'nxdirecteditdigest')
                 self._last_action_timing = current_milli_time() - start_time
+                self.directEditUploadCompleted.emit(os.path.basename(os_path))
                 self.editDocument.emit(remote_info)
             except ThreadInterrupt:
                 raise
@@ -438,11 +437,6 @@ class DirectEdit(Worker):
                 log.exception('DirectEdit unhandled error for ref %r', ref)
                 self._error_queue.push(ref, ref)
                 continue
-            uploaded = True
-
-        if uploaded:
-            log.debug('Emitting directEditUploadCompleted')
-            self.directEditUploadCompleted.emit()
 
         while not self.watchdog_queue.empty():
             evt = self.watchdog_queue.get()
