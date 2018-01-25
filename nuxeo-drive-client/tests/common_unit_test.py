@@ -187,8 +187,8 @@ class StubQApplication(QtCore.QCoreApplication):
         self.bindEngine.connect(self.bind_engine)
         self.unbindEngine.connect(self.unbind_engine)
 
-    @QtCore.pyqtSlot(str)
-    def sync_completed(self, _):
+    @QtCore.pyqtSlot()
+    def sync_completed(self):
         uid = getattr(self.sender(), 'uid', None)
         if uid:
             self._test._wait_sync[uid] = False
