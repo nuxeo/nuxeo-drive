@@ -282,8 +282,9 @@ class AppUpdater(PollWorker):
             log.debug("Fetched client minimum version for server version %s"
                       " from %s: %s", server_version, url, version)
             return version
-        except HTTPError:
-            log.exception('Network error')
+        except HTTPError as exc:
+            if exc.code != 404:
+                log.exception('Network error')
             raise MissingUpdateSiteInfo(missing_msg)
         except URLError as e:
             self._handle_URL_error(e)
