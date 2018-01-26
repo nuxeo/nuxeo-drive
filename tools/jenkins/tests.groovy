@@ -31,7 +31,11 @@ properties([
         [$class: 'BooleanParameterDefinition',
             name: 'ENABLE_PROFILER',
             defaultValue: false,
-            description: 'Use yappi profiler.']
+            description: 'Use yappi profiler.'],
+        [$class: 'BooleanParameterDefinition',
+            name: 'ENABLE_SONAR',
+            defaultValue: false,
+            description: 'Run SonarCloud.io analysis.']
     ]]
 ])
 
@@ -58,6 +62,7 @@ status_msg = [
     'PENDING': 'Building on on Nuxeo CI',
     'SUCCESS': 'Successfully built on Nuxeo CI'
 ]
+def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
 
 def github_status(status) {
     step([$class: 'GitHubCommitStatusSetter',
@@ -119,7 +124,6 @@ for (def x in slaves) {
 
                         def jdk = tool name: 'java-8-oracle'
                         env.JAVA_HOME = "${jdk}"
-                        def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"
 
                         dir('sources') {
@@ -137,7 +141,11 @@ for (def x in slaves) {
                                         sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
                                     }
                                 } else if (osi == 'GNU/Linux') {
-                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                    if (env.SONAR) {
+                                        sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify sonar:sonar -Pqa,pgsql ${platform_opt}"
+                                    } else {
+                                        sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                    }
                                 } else {
                                     bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
                                 }
@@ -176,5 +184,28 @@ for (def x in slaves) {
 timeout(240) {
     timestamps {
         parallel builders
+
+        node('SLAVE') {
+            stage('SonarQube Analysis') {
+                try {
+                    if (env.ENABLE_SONAR && currentBuild.result == 'SUCCESS') {
+                        checkout_custom()
+
+                        withSonarQubeEnv('My SonarQube Server') {
+                            sh """${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar 
+                            -Dsonar.branch.name=${env.BRANCH_NAME} 
+                            -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client 
+                            -Dsonar.projectBaseDir=${env.WORKSPACE} 
+                            -Dsonar.sources=../nuxeo-drive-client/nxdrive 
+                            -Dsonar.python.coverage.reportPath=ftest/coverage.xml 
+                            -Dsonar.exclusions=ftest/pom.xml"""
+                        }
+                    }
+                } catch(e) {
+                    currentBuild.result = 'UNSTABLE'
+                    throw e
+                }
+            }
+        }
     }
 }
