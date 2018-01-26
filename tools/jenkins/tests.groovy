@@ -185,10 +185,10 @@ timeout(240) {
     timestamps {
         parallel builders
 
-        node('SLAVE') {
-            stage('SonarQube Analysis') {
-                try {
-                    if (env.ENABLE_SONAR && currentBuild.result == 'SUCCESS') {
+        if (env.ENABLE_SONAR && currentBuild.result == 'SUCCESS') {
+            node('SLAVE') {
+                stage('SonarQube Analysis') {
+                    try {
                         checkout_custom()
 
                         withSonarQubeEnv('My SonarQube Server') {
@@ -202,10 +202,10 @@ timeout(240) {
                             -Dsonar.python.coverage.reportPath=ftest/coverage.xml 
                             -Dsonar.exclusions=ftest/pom.xml"""
                         }
+                    } catch(e) {
+                        currentBuild.result = 'UNSTABLE'
+                        throw e
                     }
-                } catch(e) {
-                    currentBuild.result = 'UNSTABLE'
-                    throw e
                 }
             }
         }

@@ -181,7 +181,7 @@ def set_environment(server_url, engine):
 
     # Convenient way to try a specific test
     # without having to abort and start a new job.
-    os.environ['SPECIFIC_TEST'] = ''
+    os.environ['SPECIFIC_TEST'] = 'test_report.py'
 
 
 def clean_pyc(dir_):
