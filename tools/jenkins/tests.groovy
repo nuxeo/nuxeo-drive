@@ -62,7 +62,6 @@ status_msg = [
     'PENDING': 'Building on on Nuxeo CI',
     'SUCCESS': 'Successfully built on Nuxeo CI'
 ]
-def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
 
 def github_status(status) {
     step([$class: 'GitHubCommitStatusSetter',
@@ -124,6 +123,7 @@ for (def x in slaves) {
 
                         def jdk = tool name: 'java-8-oracle'
                         env.JAVA_HOME = "${jdk}"
+                        def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"
 
                         dir('sources') {
@@ -192,6 +192,8 @@ timeout(240) {
                         checkout_custom()
 
                         withSonarQubeEnv('My SonarQube Server') {
+                            def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                            
                             sh """${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar 
                             -Dsonar.branch.name=${env.BRANCH_NAME} 
                             -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client 
