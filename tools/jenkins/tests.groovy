@@ -151,8 +151,9 @@ for (def x in slaves) {
                             }
                         }
 
-                        // echo 'Retrieve coverage statistics'
-                        // archive 'coverage/*'
+                        echo 'Retrieve coverage statistics'
+                        sh "mv ftest/coverage.xml ftest/coverage_${slave}.xml"
+                        archive "ftest/coverage_${slave}.xml"
 
                         currentBuild.result = 'SUCCESS'
                     }
@@ -179,15 +180,14 @@ for (def x in slaves) {
 
 timeout(240) {
     timestamps {
-        //parallel builders
-        currentBuild.result = 'SUCCESS'
+        parallel builders
 
         if (env.ENABLE_SONAR && currentBuild.result == 'SUCCESS') {
             node('SLAVE') {
                 stage('SonarQube Analysis') {
                     try {
                         checkout_custom()
-
+                        sh "python -m pip install coverage; coverage combine ftest/coverage*; coverage xml"
                         withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                             def jdk = tool name: 'java-8-oracle'
                             env.JAVA_HOME = "${jdk}"
@@ -203,7 +203,7 @@ timeout(240) {
                                     -Dsonar.projectBaseDir="${env.WORKSPACE}" \
                                     -Dsonar.sources=../nuxeo-drive-client/nxdrive \
                                     -Dsonar.tests=../nuxeo-drive-client/tests \
-                                    -Dsonar.python.coverage.reportPath=ftest/coverage.xml \
+                                    -Dsonar.python.coverage.reportPath=coverage.xml \
                                     -Dsonar.exclusions=ftest/pom.xml
                                     """
                                 }
