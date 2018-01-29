@@ -891,7 +891,9 @@ class Engine(QObject):
         return client
 
     def get_server_version(self):
-        return self._dao.get_config("server_version")
+        server_version = self._dao.get_config('server_version')
+        Options.set('server_version', server_version, setter='server')
+        return server_version
 
     @pyqtSlot()
     def invalidate_client_cache(self):

@@ -3,8 +3,12 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+
+
+# 3.0.4
 - Removed `FsClient`
 - Removed `LocalWatcher.get_watchdog_queue_size()`
+- Added `Options.server_version`
 - Added `formatter` keyword to logging_config.py::`configure()`
 - Removed logging_config.py::`get_logger()`. Use `logging.getLogger(__name__)` instead.
 

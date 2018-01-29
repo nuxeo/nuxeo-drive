@@ -141,6 +141,7 @@ class MetaOptions(type):
         'proxy_type': (None, 'default'),
         'quit_timeout': (-1, 'default'),
         'remote_repo': ('default', 'default'),
+        'server_version': (None, 'default'),
         'theme': ('ui5', 'default'),
         'startup_page': ('drive_login.jsp', 'default'),
         'stop_on_error': (True, 'default'),

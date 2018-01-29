@@ -17,5 +17,5 @@ f1962bfd4b668d42e12d5ed87b500788  cx_Freeze-4.3.3.zip
 fff688dc4968ec80bbb0eedf45de82db  python-2.7.14.msi
 
 # SIP
-6be5cb2c43915ed450a9f74ec110dada  sip-4.19.6.tar.gz
-6a4080268c2aa9225965415fe8706967  sip-4.19.6.zip
+ae4f2db79713046d61b2a44e5ee1e3ab  sip-4.19.7.tar.gz
+f8856b709eb92dfb9820d4234854922c  sip-4.19.7.zip
