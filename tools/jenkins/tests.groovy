@@ -195,6 +195,7 @@ timeout(240) {
                             def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                             
                             sh """${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar 
+                            -Dsonar.login=${SONARCLOUD_PWD} 
                             -Dsonar.branch.name=${env.BRANCH_NAME} 
                             -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client 
                             -Dsonar.projectBaseDir=${env.WORKSPACE} 
