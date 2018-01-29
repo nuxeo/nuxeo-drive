@@ -150,9 +150,12 @@ for (def x in slaves) {
                                 throw e
                             }
 
-                            echo 'Retrieve coverage statistics'
-                            sh "mv coverage.xml coverage_${slave}.xml"
-                            stash "coverage_${slave}.xml"
+                            if (osi == 'Windows') {
+                                bat "rename coverage.xml coverage_${slave}.xml"
+                            } else {
+                                sh "mv coverage.xml coverage_${slave}.xml"
+                            }
+                            stash includes: "coverage_${slave}.xml", name: "coverage_${slave}"
                         }
 
 
@@ -191,10 +194,10 @@ timeout(240) {
 
                         for (def x in slaves) {
                             def slave = x
-                            unstash "coverage_${slave}.xml"
+                            unstash "coverage_${slave}"
                         }
                         sh "python -m pip install coverage; coverage combine coverage_*; coverage xml"
-                        
+
                         withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                             def jdk = tool name: 'java-8-oracle'
                             env.JAVA_HOME = "${jdk}"
