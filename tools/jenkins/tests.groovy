@@ -196,7 +196,6 @@ timeout(240) {
                             def slave = x
                             unstash "coverage_${slave}"
                         }
-                        sh "python -m pip install coverage; coverage combine coverage_*; coverage xml"
 
                         withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                             def jdk = tool name: 'java-8-oracle'
@@ -204,6 +203,7 @@ timeout(240) {
                             def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                             
                             dir('sources') {
+                                sh "python -m pip install coverage; python -m coverage combine coverage_*; python -m coverage xml"
                                 withEnv(["WORKSPACE=${pwd()}"]) {
                                     sh """
                                     ${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar \
