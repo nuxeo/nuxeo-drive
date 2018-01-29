@@ -152,8 +152,8 @@ for (def x in slaves) {
                         }
 
                         echo 'Retrieve coverage statistics'
-                        sh "mv ftest/coverage.xml ftest/coverage_${slave}.xml"
-                        archive "ftest/coverage_${slave}.xml"
+                        sh "mv coverage.xml coverage_${slave}.xml"
+                        archive "coverage_${slave}.xml"
 
                         currentBuild.result = 'SUCCESS'
                     }
@@ -187,7 +187,7 @@ timeout(240) {
                 stage('SonarQube Analysis') {
                     try {
                         checkout_custom()
-                        sh "python -m pip install coverage; coverage combine ftest/coverage*; coverage xml"
+                        sh "python -m pip install coverage; coverage combine coverage_*; coverage xml"
                         withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                             def jdk = tool name: 'java-8-oracle'
                             env.JAVA_HOME = "${jdk}"
