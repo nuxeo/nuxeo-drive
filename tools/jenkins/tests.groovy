@@ -201,8 +201,8 @@ timeout(240) {
                                     -Dsonar.branch.name=${env.BRANCH_NAME} \
                                     -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client \
                                     -Dsonar.projectBaseDir="${env.WORKSPACE}" \
-                                    -Dsonar.sources=nuxeo-drive-client/nxdrive \
-                                    -Dsonar.tests=nuxeo-drive-client/tests \
+                                    -Dsonar.sources=../nuxeo-drive-client/nxdrive \
+                                    -Dsonar.tests=../nuxeo-drive-client/tests \
                                     -Dsonar.python.coverage.reportPath=ftest/coverage.xml \
                                     -Dsonar.exclusions=ftest/pom.xml
                                     """
