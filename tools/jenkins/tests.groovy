@@ -149,11 +149,12 @@ for (def x in slaves) {
                                 currentBuild.result = 'FAILURE'
                                 throw e
                             }
+
+                            echo 'Retrieve coverage statistics'
+                            sh "mv coverage.xml coverage_${slave}.xml"
+                            stash "coverage_${slave}.xml"
                         }
 
-                        echo 'Retrieve coverage statistics'
-                        sh "mv coverage.xml coverage_${slave}.xml"
-                        archive "coverage_${slave}.xml"
 
                         currentBuild.result = 'SUCCESS'
                     }
@@ -187,7 +188,13 @@ timeout(240) {
                 stage('SonarQube Analysis') {
                     try {
                         checkout_custom()
+
+                        for (def x in slaves) {
+                            def slave = x
+                            unstash "coverage_${slave}.xml"
+                        }
                         sh "python -m pip install coverage; coverage combine coverage_*; coverage xml"
+                        
                         withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                             def jdk = tool name: 'java-8-oracle'
                             env.JAVA_HOME = "${jdk}"
