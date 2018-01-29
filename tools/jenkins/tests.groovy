@@ -141,11 +141,7 @@ for (def x in slaves) {
                                         sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
                                     }
                                 } else if (osi == 'GNU/Linux') {
-                                    if (env.SONAR) {
-                                        sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify sonar:sonar -Pqa,pgsql ${platform_opt}"
-                                    } else {
-                                        sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
-                                    }
+                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
                                 } else {
                                     bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
                                 }
@@ -188,25 +184,29 @@ timeout(240) {
 
         if (env.ENABLE_SONAR && currentBuild.result == 'SUCCESS') {
             node('SLAVE') {
-                stage('SonarQube Analysis') {
-                    try {
-                        checkout_custom()
+                withEnv(["WORKSPACE=${pwd()}"]) {
+                    stage('SonarQube Analysis') {
+                        try {
+                            checkout_custom()
 
-                        withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
-                            def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                            
-                            sh """${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar 
-                            -Dsonar.login=${SONARCLOUD_PWD} 
-                            -Dsonar.branch.name=${env.BRANCH_NAME} 
-                            -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client 
-                            -Dsonar.projectBaseDir=${env.WORKSPACE} 
-                            -Dsonar.sources=../nuxeo-drive-client/nxdrive 
-                            -Dsonar.python.coverage.reportPath=ftest/coverage.xml 
-                            -Dsonar.exclusions=ftest/pom.xml"""
+                            withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
+                                def jdk = tool name: 'java-8-oracle'
+                                env.JAVA_HOME = "${jdk}"
+                                def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                                
+                                sh """${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar 
+                                -Dsonar.login=${SONARCLOUD_PWD} 
+                                -Dsonar.branch.name=${env.BRANCH_NAME} 
+                                -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client 
+                                -Dsonar.projectBaseDir=${env.WORKSPACE} 
+                                -Dsonar.sources=../nuxeo-drive-client/nxdrive 
+                                -Dsonar.python.coverage.reportPath=ftest/coverage.xml 
+                                -Dsonar.exclusions=ftest/pom.xml"""
+                            }
+                        } catch(e) {
+                            currentBuild.result = 'UNSTABLE'
+                            throw e
                         }
-                    } catch(e) {
-                        currentBuild.result = 'UNSTABLE'
-                        throw e
                     }
                 }
             }
