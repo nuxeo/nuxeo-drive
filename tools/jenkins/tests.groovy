@@ -194,14 +194,16 @@ timeout(240) {
                                 env.JAVA_HOME = "${jdk}"
                                 def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                                 
-                                sh """${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar 
-                                -Dsonar.login=${SONARCLOUD_PWD} 
-                                -Dsonar.branch.name=${env.BRANCH_NAME} 
-                                -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client 
-                                -Dsonar.projectBaseDir=${env.WORKSPACE} 
-                                -Dsonar.sources=../nuxeo-drive-client/nxdrive 
-                                -Dsonar.python.coverage.reportPath=ftest/coverage.xml 
-                                -Dsonar.exclusions=ftest/pom.xml"""
+                                dir('sources') {
+                                    sh """${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar 
+                                    -Dsonar.login=${SONARCLOUD_PWD} 
+                                    -Dsonar.branch.name=${env.BRANCH_NAME} 
+                                    -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client 
+                                    -Dsonar.projectBaseDir=${env.WORKSPACE} 
+                                    -Dsonar.sources=../nuxeo-drive-client/nxdrive 
+                                    -Dsonar.python.coverage.reportPath=ftest/coverage.xml 
+                                    -Dsonar.exclusions=ftest/pom.xml"""
+                                }
                             }
                         } catch(e) {
                             currentBuild.result = 'UNSTABLE'
