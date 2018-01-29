@@ -191,7 +191,7 @@ timeout(240) {
                     try {
                         checkout_custom()
 
-                        withSonarQubeEnv('My SonarQube Server') {
+                        withCredentials([usernamePassword(passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                             def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                             
                             sh """${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar 
