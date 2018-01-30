@@ -330,7 +330,7 @@ function launch_tests {
         }
     }
 	& $Env:PYTHON_DIR\python $global:PYTHON_OPT -m pytest $Env:SPECIFIC_TEST `
-        --cov-report=xml `
+        --cov-report= `
         --cov=nuxeo-drive-client/nxdrive `
 		--showlocals `
 		--strict `

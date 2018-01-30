@@ -52,6 +52,11 @@ labels = [
     'SLAVE': 'GNU/Linux',
     'WINSLAVE': 'Windows'
 ]
+coverages = [
+    'OSXSLAVE-DRIVE': 'coverage_osx',
+    'SLAVE': 'coverage_linux',
+    'WINSLAVE': 'coverage_windows'
+]
 builders = [:]
 
 // GitHub stuff
@@ -124,12 +129,14 @@ for (def x in slaves) {
                         def jdk = tool name: 'java-8-oracle'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                        def coverage = coverages.get(slave)
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"
 
                         dir('sources') {
                             // Set up the report name folder
                             env.REPORT_PATH = env.WORKSPACE + '/sources'
                             env.TEST_REMOTE_SCAN_VOLUME = 100
+                            env.COVERAGE_FILE = '.' + coverage
 
                             try {
                                 if (osi == 'macOS') {
@@ -150,12 +157,7 @@ for (def x in slaves) {
                                 throw e
                             }
 
-                            if (osi == 'Windows') {
-                                bat "rename coverage.xml coverage_${slave}.xml"
-                            } else {
-                                sh "mv coverage.xml coverage_${slave}.xml"
-                            }
-                            stash includes: "coverage_${slave}.xml", name: "coverage_${slave}"
+                            stash includes: '.coverage*', name: coverage
                         }
 
 
@@ -192,9 +194,10 @@ timeout(240) {
                     try {
                         checkout_custom()
 
-                        for (def x in slaves) {
-                            def slave = x
-                            unstash "coverage_${slave}"
+                        for (def coverage in coverages.values()) {
+                            try {
+                                unstash coverage
+                            } catch(e) {}
                         }
 
                         withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
@@ -203,7 +206,7 @@ timeout(240) {
                             def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                             
                             dir('sources') {
-                                sh "python -m pip install coverage; python -m coverage combine coverage_*; python -m coverage xml"
+                                sh "python -m pip install coverage; python -m coverage combine .coverage*; python -m coverage xml"
                                 withEnv(["WORKSPACE=${pwd()}"]) {
                                     sh """
                                     ${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar \
