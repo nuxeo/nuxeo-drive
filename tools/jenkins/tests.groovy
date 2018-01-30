@@ -157,8 +157,10 @@ for (def x in slaves) {
                                 throw e
                             }
 
-                            echo "Retrieve coverage statistics (${env.COVERAGE_FILE})"
-                            stash includes: env.COVERAGE_FILE, name: coverage
+                            dir('ftest') {
+                                echo "Retrieve coverage statistics (${env.COVERAGE_FILE})"
+                                stash includes: env.COVERAGE_FILE, name: coverage
+                            }
                         }
 
 
