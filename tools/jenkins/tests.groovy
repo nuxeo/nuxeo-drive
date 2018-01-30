@@ -203,9 +203,17 @@ timeout(240) {
                                 for (def coverage in coverages.values()) {
                                     try {
                                         unstash coverage
-                                    } catch(e) {}
+                                        echo "Unstashed ${coverage}"
+                                    } catch(e) {
+                                        currentBuild.result = 'UNSTABLE'
+                                        throw e
+                                    }
                                 }
-                                sh "python -m pip install coverage; python -m coverage combine; python -m coverage xml"
+
+                                sh "python -m pip install coverage"
+                                sh "python -m coverage combine"
+                                sh "python -m coverage xml"
+
                                 withEnv(["WORKSPACE=${pwd()}"]) {
                                     sh """
                                     ${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar \
