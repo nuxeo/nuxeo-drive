@@ -52,11 +52,6 @@ labels = [
     'SLAVE': 'GNU/Linux',
     'WINSLAVE': 'Windows'
 ]
-coverages = [
-    'OSXSLAVE-DRIVE': 'coverage.osx',
-    'SLAVE': 'coverage.linux',
-    'WINSLAVE': 'coverage.windows'
-]
 builders = [:]
 
 // GitHub stuff
@@ -136,7 +131,6 @@ for (def x in slaves) {
                             // Set up the report name folder
                             env.REPORT_PATH = env.WORKSPACE + '/sources'
                             env.TEST_REMOTE_SCAN_VOLUME = 100
-                            env.COVERAGE_FILE = '.' + coverage
 
                             try {
                                 if (osi == 'macOS') {
@@ -159,7 +153,7 @@ for (def x in slaves) {
 
                             dir('ftest') {
                                 echo "Retrieve coverage statistics (${env.COVERAGE_FILE})"
-                                stash includes: env.COVERAGE_FILE, name: coverage
+                                stash includes: '.coverage', name: "coverage_${slave}"
                             }
                         }
 
@@ -202,11 +196,11 @@ timeout(240) {
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         
                         dir('sources') {
-                            for (def coverage in coverages.values()) {
+                            for (def slave in slaves.values()) {
                                 try {
-
-                                    unstash coverage
-                                    echo "Unstashed ${coverage}"
+                                    unstash "coverage_${slave}"
+                                    sh "mv .coverage .coverage.${slave}"
+                                    echo "Unstashed .coverage.${slave}"
                                 } catch(e) {
                                     currentBuild.result = 'UNSTABLE'
                                     echo e
@@ -214,7 +208,6 @@ timeout(240) {
                             }
 
                             sh "./tools/qa.sh"
-
                             archive 'coverage.xml'
 
                             withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
