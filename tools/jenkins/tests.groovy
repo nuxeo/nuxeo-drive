@@ -157,6 +157,7 @@ for (def x in slaves) {
                                 throw e
                             }
 
+                            echo "Retrieve coverage statistics (${env.COVERAGE_FILE})"
                             stash includes: env.COVERAGE_FILE, name: coverage
                         }
 
@@ -194,26 +195,27 @@ timeout(240) {
                     try {
                         checkout_custom()
 
-                        withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
-                            def jdk = tool name: 'java-8-oracle'
-                            env.JAVA_HOME = "${jdk}"
-                            def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                            
-                            dir('sources') {
-                                for (def coverage in coverages.values()) {
-                                    try {
-                                        unstash coverage
-                                        echo "Unstashed ${coverage}"
-                                    } catch(e) {
-                                        currentBuild.result = 'UNSTABLE'
-                                        echo e
-                                    }
+                        def jdk = tool name: 'java-8-oracle'
+                        env.JAVA_HOME = "${jdk}"
+                        def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                        
+                        dir('sources') {
+                            for (def coverage in coverages.values()) {
+                                try {
+
+                                    unstash coverage
+                                    echo "Unstashed ${coverage}"
+                                } catch(e) {
+                                    currentBuild.result = 'UNSTABLE'
+                                    echo e
                                 }
+                            }
 
-                                sh "python -m pip install --upgrade --user coverage"
-                                sh "python -m coverage combine"
-                                sh "python -m coverage xml"
+                            sh "./tools/qa.sh"
 
+                            archive 'coverage.xml'
+
+                            withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                                 withEnv(["WORKSPACE=${pwd()}"]) {
                                     sh """
                                     ${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar \
@@ -227,7 +229,6 @@ timeout(240) {
                                     -Dsonar.exclusions=ftest/pom.xml
                                     """
                                 }
-                                archive 'coverage.xml'
                             }
                         }
                     } catch(e) {
