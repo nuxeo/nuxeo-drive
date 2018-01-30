@@ -124,7 +124,6 @@ for (def x in slaves) {
                         def jdk = tool name: 'java-8-oracle'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                        def coverage = coverages.get(slave)
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"
 
                         dir('sources') {
@@ -152,12 +151,10 @@ for (def x in slaves) {
                             }
 
                             dir('ftest') {
-                                echo "Retrieve coverage statistics (${env.COVERAGE_FILE})"
+                                echo "Retrieve coverage statistics"
                                 stash includes: '.coverage', name: "coverage_${slave}"
                             }
                         }
-
-
                         currentBuild.result = 'SUCCESS'
                     }
                 } finally {
