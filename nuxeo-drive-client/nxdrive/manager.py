@@ -287,8 +287,8 @@ class Manager(QtCore.QObject):
         return Manager._singleton
 
     def __init__(self):
-        if Manager._singleton is not None:
-            raise RuntimeError('Only one instance of Manager can be create')
+        if Manager._singleton:
+            raise RuntimeError('Only one instance of Manager can be created.')
 
         Manager._singleton = self
         super(Manager, self).__init__()
@@ -297,11 +297,14 @@ class Manager(QtCore.QObject):
         if not Options.consider_ssl_errors:
             self._bypass_https_verification()
 
-        self._autolock_service = None
         self.nxdrive_home = os.path.realpath(
             os.path.expanduser(Options.nxdrive_home))
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
+
+        self.direct_edit_folder = os.path.join(
+            normalized_path(self.nxdrive_home),
+            'edit')
 
         self._engine_definitions = None
 
@@ -324,10 +327,10 @@ class Manager(QtCore.QObject):
         if FILE_HANDLER:
             FILE_HANDLER.setLevel(Options.log_level_file)
 
-        # Add auto lock on edit
-        res = self._dao.get_config("direct_edit_auto_lock")
-        if not res:
-            self._dao.update_config("direct_edit_auto_lock", "1")
+        # Add auto-lock on edit
+        res = self._dao.get_config('direct_edit_auto_lock')
+        if res is None:
+            self._dao.update_config('direct_edit_auto_lock', '1')
 
         self.refresh_proxies()
 
@@ -420,14 +423,12 @@ class Manager(QtCore.QObject):
             self.__notification_service = DefaultNotificationService(self)
         return self.__notification_service
 
-    def get_autolock_service(self):
-        return self._autolock_service
-
     def _create_autolock_service(self):
         from nxdrive.autolocker import ProcessAutoLockerWorker
-        self._autolock_service = ProcessAutoLockerWorker(30, self)
-        self.started.connect(self._autolock_service._thread.start)
-        return self._autolock_service
+        self.autolock_service = ProcessAutoLockerWorker(
+            30, self._dao, folder=self.direct_edit_folder)
+        self.started.connect(self.autolock_service._thread.start)
+        return self.autolock_service
 
     def _create_tracker(self):
         if not self.get_tracking():
@@ -444,13 +445,10 @@ class Manager(QtCore.QObject):
             return self._tracker.uid
         return ""
 
-    def get_tracker(self):
-        return self._tracker
-
     def _get_db(self):
         return os.path.join(normalized_path(self.nxdrive_home), "manager.db")
 
-    def get_dao(self):
+    def get_dao(self):  # TODO: Remove
         return self._dao
 
     def _migrate(self):
@@ -544,7 +542,7 @@ class Manager(QtCore.QObject):
             update_site_url += '/'
         return update_site_url
 
-    def get_updater(self):
+    def get_updater(self):  # TODO: Remove
         return self._app_updater
 
     def refresh_update_status(self):
@@ -560,15 +558,11 @@ class Manager(QtCore.QObject):
 
     def _create_direct_edit(self, url):
         from nxdrive.direct_edit import DirectEdit
-        self.direct_edit = DirectEdit(
-            self,
-            os.path.join(normalized_path(self.nxdrive_home), 'edit'),
-            url,
-        )
+        self.direct_edit = DirectEdit(self, self.direct_edit_folder, url)
         self.started.connect(self.direct_edit._thread.start)
         return self.direct_edit
 
-    def is_paused(self):
+    def is_paused(self):  # TODO: Remove
         return self._pause
 
     def resume(self, euid=None):
@@ -634,7 +628,7 @@ class Manager(QtCore.QObject):
             self._engines[engine.uid].online.connect(self._force_autoupdate)
             self.initEngine.emit(self._engines[engine.uid])
 
-    def _get_default_nuxeo_drive_name(self):
+    def _get_default_nuxeo_drive_name(self):  # TODO: Move to constants.py
         return 'Nuxeo Drive'
 
     def _force_autoupdate(self):
@@ -701,7 +695,7 @@ class Manager(QtCore.QObject):
                 return ""
         return nuxeo_drive_folder
 
-    def open_local_file(self, file_path, select=False):
+    def open_local_file(self, file_path, select=False):  # TODO: Move to utils.py
         """
         Launch the local OS program on the given file / folder.
 
@@ -785,7 +779,7 @@ class Manager(QtCore.QObject):
     def get_auto_start(self):
         return self._dao.get_config("auto_start", "1") == "1"
 
-    def _get_binary_name(self):
+    def _get_binary_name(self):  # TODO: Move to constants.py
         return 'ndrive'
 
     def generate_report(self, path=None):
@@ -1021,7 +1015,7 @@ class Manager(QtCore.QObject):
         local_client = engine.get_local_client()
         self.open_local_file(local_client.abspath(doc_pair.local_path))
 
-    def _get_default_server_type(self):
+    def _get_default_server_type(self):  # TODO: Move to constants.py
         return "NXDRIVE"
 
     def bind_server(self, local_folder, url, username, password, token=None,
@@ -1145,13 +1139,13 @@ class Manager(QtCore.QObject):
             engine.dispose_db()
         self.dispose_db()
 
-    def get_engines(self):
+    def get_engines(self):  # TODO: Remove
         return self._engines
 
-    def get_engines_type(self):
+    def get_engines_type(self):  # TODO: Remove
         return self._engine_types
 
-    def get_version(self):
+    def get_version(self):  # TODO: Convert to property
         return __version__
 
     def update_version(self, device_config):
@@ -1166,7 +1160,7 @@ class Manager(QtCore.QObject):
             return True
         return False
 
-    def is_started(self):
+    def is_started(self):  # TODO: Remove
         return self._started
 
     def is_syncing(self):
@@ -1225,7 +1219,7 @@ class Manager(QtCore.QObject):
 
         return engine.get_metadata_url(remote_ref)
 
-    def set_script_object(self, obj):
+    def set_script_object(self, obj):  # TODO: Remove
         # Used to enhance scripting with UI
         self._script_object = obj
 

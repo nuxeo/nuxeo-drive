@@ -433,7 +433,7 @@ class DefaultNotificationService(NotificationService):
         self._manager.direct_edit.directEditReadonly.connect(self._directEditReadonly)
         self._manager.direct_edit.directEditLocked.connect(self._directEditLocked)
         self._manager.direct_edit.directEditUploadCompleted.connect(self._directEditUpdated)
-        self._manager.get_autolock_service().documentLocked.connect(self._lockDocument)
+        self._manager.autolock_service.documentLocked.connect(self._lockDocument)
 
     def _connect_engine(self, engine):
         engine.newConflict.connect(self._newConflict)
