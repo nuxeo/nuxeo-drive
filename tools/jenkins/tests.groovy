@@ -150,9 +150,13 @@ for (def x in slaves) {
                                 throw e
                             }
 
-                            dir('ftest') {
+                            try {
                                 echo "Retrieve coverage statistics"
                                 stash includes: '.coverage', name: "coverage_${slave}"
+                            } catch(e) {
+                                echo e
+                                currentBuild.result = 'UNSTABLE'
+                                throw e
                             }
                         }
                         currentBuild.result = 'SUCCESS'
