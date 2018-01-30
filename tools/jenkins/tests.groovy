@@ -157,7 +157,7 @@ for (def x in slaves) {
                                 throw e
                             }
 
-                            stash includes: '.coverage*', name: coverage
+                            stash includes: env.COVERAGE_FILE, name: coverage
                         }
 
 
@@ -206,11 +206,11 @@ timeout(240) {
                                         echo "Unstashed ${coverage}"
                                     } catch(e) {
                                         currentBuild.result = 'UNSTABLE'
-                                        throw e
+                                        echo e
                                     }
                                 }
 
-                                sh "python -m pip install coverage"
+                                sh "python -m pip install --upgrade --user coverage"
                                 sh "python -m coverage combine"
                                 sh "python -m coverage xml"
 
