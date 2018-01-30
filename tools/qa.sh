@@ -13,7 +13,7 @@ code_coverage() {
 
 code_quality() {
     echo ">>> [QA] Code quality"
-    python -m pylint nuxeo-drive-client/nxdrive > pylint_report.txt || exit 0
+    python -m pylint nuxeo-drive-client/nxdrive > pylint-report.txt || exit 0
 }
 
 setup() {

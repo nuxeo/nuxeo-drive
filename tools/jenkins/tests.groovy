@@ -210,6 +210,7 @@ timeout(240) {
 
                             sh "./tools/qa.sh"
                             archive 'coverage.xml'
+                            archive 'pylint-report.txt'
 
                             withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                                 withEnv(["WORKSPACE=${pwd()}"]) {
@@ -222,6 +223,7 @@ timeout(240) {
                                     -Dsonar.sources=../nuxeo-drive-client/nxdrive \
                                     -Dsonar.tests=../nuxeo-drive-client/tests \
                                     -Dsonar.python.coverage.reportPath=coverage.xml \
+                                    -Dsonar.python.pylint.reportPath=pylint-report.txt \
                                     -Dsonar.exclusions=ftest/pom.xml
                                     """
                                 }
