@@ -197,7 +197,7 @@ timeout(240) {
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         
                         dir('sources') {
-                            for (def slave in slaves.values()) {
+                            for (def slave in slaves) {
                                 try {
                                     unstash "coverage_${slave}"
                                     sh "mv .coverage .coverage.${slave}"
