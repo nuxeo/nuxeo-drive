@@ -7,13 +7,13 @@
 
 code_coverage() {
     echo ">>> [QA] Code coverage"
-    coverage combine
-    coverage xml
+    python -m coverage combine
+    python -m coverage xml
 }
 
 code_quality() {
     echo ">>> [QA] Code quality"
-    pylint nuxeo-drive-client/nxdrive > pylint_report.txt
+    python -m pylint nuxeo-drive-client/nxdrive > pylint_report.txt
 }
 
 setup() {
