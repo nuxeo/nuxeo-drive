@@ -220,6 +220,7 @@ timeout(240) {
                                     -Dsonar.exclusions=ftest/pom.xml
                                     """
                                 }
+                                archive 'coverage.xml'
                             }
                         }
                     } catch(e) {
