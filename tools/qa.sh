@@ -20,7 +20,7 @@ setup() {
     echo ">>> [QA] Setting up the virtualenv"
     virtualenv -p python2 venv
     . venv/bin/activate
-    pip install coverage pylint
+    python -m pip install coverage pylint
 }
 
 main() {
