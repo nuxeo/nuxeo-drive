@@ -53,9 +53,9 @@ labels = [
     'WINSLAVE': 'Windows'
 ]
 coverages = [
-    'OSXSLAVE-DRIVE': 'coverage_osx',
-    'SLAVE': 'coverage_linux',
-    'WINSLAVE': 'coverage_windows'
+    'OSXSLAVE-DRIVE': 'coverage.osx',
+    'SLAVE': 'coverage.linux',
+    'WINSLAVE': 'coverage.windows'
 ]
 builders = [:]
 
@@ -194,19 +194,18 @@ timeout(240) {
                     try {
                         checkout_custom()
 
-                        for (def coverage in coverages.values()) {
-                            try {
-                                unstash coverage
-                            } catch(e) {}
-                        }
-
                         withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                             def jdk = tool name: 'java-8-oracle'
                             env.JAVA_HOME = "${jdk}"
                             def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                             
                             dir('sources') {
-                                sh "python -m pip install coverage; python -m coverage combine .coverage*; python -m coverage xml"
+                                for (def coverage in coverages.values()) {
+                                    try {
+                                        unstash coverage
+                                    } catch(e) {}
+                                }
+                                sh "python -m pip install coverage; python -m coverage combine; python -m coverage xml"
                                 withEnv(["WORKSPACE=${pwd()}"]) {
                                     sh """
                                     ${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar \

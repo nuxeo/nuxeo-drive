@@ -1,5 +1,12 @@
 # dev
-Release date: `2017-??-??`
+Release date: `2018-??-??`
+
+### Tests
+- [NXDRIVE-887](https://jira.nuxeo.com/browse/NXDRIVE-887): Integrate SonarCloud code quality check
+
+
+# 3.0.4
+Release date: `2018-01-29`
 
 ### Core
 - [NXDRIVE-836](https://jira.nuxeo.com/browse/NXDRIVE-836): Bad behaviors with read-only documents
@@ -14,7 +21,7 @@ Release date: `2017-??-??`
 #### Minor changes
 - Framework: Review LocalWatcher class, better use of lock
 - GUI: Re-enable the possibility to uncheck a root in the filters window
-- Packaging: Upgraded `SIP` from 4.19.3 to 4.19.6
+- Packaging: Upgraded `SIP` from 4.19.3 to 4.19.7
 - Packaging: Updated `Js2Py` from 0.50 to 0.58
 - Packaging: Updated `markdown` from 2.6.10 to 2.6.11
 - Packaging: Updated `psutil` from 5.4.2 to 5.4.3

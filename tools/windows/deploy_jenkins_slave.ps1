@@ -76,7 +76,7 @@ function check_vars {
 		}
 	}
 	if (-Not ($Env:SIP_VERSION)) {
-		$Env:SIP_VERSION = "4.19.6"  # XXX: SIP_VERSION
+		$Env:SIP_VERSION = "4.19.7"  # XXX: SIP_VERSION
 	}
 	if (-Not ($Env:CXFREEZE_VERSION)) {
 		$Env:CXFREEZE_VERSION = "4.3.3"  # XXX: CXFREEZE_VERSION
