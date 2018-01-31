@@ -44,10 +44,6 @@ To get options for a specific command:
 
 """
 
-PROTOCOL_COMMANDS = {
-    'nxdriveedit': 'edit',
-    'nxdrivebind': 'bind_server',
-}
 GET_CTL_MAX_NB_TRIES = 5
 GET_CTL_SLEEP_DURATION = 1
 
@@ -499,11 +495,6 @@ class CliHandler(object):
     def metadata(self, options):
         file_path = normalized_path(options.file)
         self.manager.open_metadata_window(file_path)
-
-    def edit(self, options):
-        # Kept for backward compatibility
-        self.launch(options)
-        return 0
 
     def download_edit(self, options):
         self.launch(options)
