@@ -200,6 +200,13 @@ timeout(240) {
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         
                         dir('sources') {
+                            dir('nuxeo-drive-client') {
+                                def drive_version = sh(
+                                    script: "python -c 'import nxdrive; print(nxdrive.__version__)'",
+                                    returnStdout: true).trim()
+                            }
+                            echo "Testing Drive ${drive_version}"
+
                             for (def slave in slaves) {
                                 unstash "coverage_${slave}"
                                 sh "mv .coverage .coverage.${slave}"
@@ -209,13 +216,6 @@ timeout(240) {
                             sh "./tools/qa.sh"
                             archive 'coverage.xml'
                             archive 'pylint-report.txt'
-                            
-                            dir('nuxeo-drive-client') {
-                                def drive_version = sh(
-                                    script: "python -c 'import nxdrive; print(nxdrive.__version__)'",
-                                    returnStdout: true).trim()
-                            }
-                            echo "Testing Drive ${drive_version}"
                             
                             withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                                 withEnv(["WORKSPACE=${pwd()}"]) {
