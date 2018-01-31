@@ -3,9 +3,13 @@ Release date: `2018-??-??`
 
 ### Core
 - [NXDRIVE-1085](https://jira.nuxeo.com/browse/NXDRIVE-1085): Review the Auto-Lock feature
+- [NXDRIVE-1087](https://jira.nuxeo.com/browse/NXDRIVE-1087): Remove backward compatibility code for Nuxeo <= 5.8
 
 ### Tests
 - [NXDRIVE-887](https://jira.nuxeo.com/browse/NXDRIVE-887): Integrate SonarCloud code quality check
+
+#### Minor changes
+- Jenkins: Discard old builds
 
 
 # 3.0.4

@@ -999,22 +999,6 @@ class Manager(QtCore.QObject):
 
         return proxies
 
-    def edit(self, engine, remote_ref):
-        """Find the local file if any and start OS editor on it."""
-
-        doc_pair = engine.get_dao().get_normal_state_from_remote(remote_ref)
-        if doc_pair is None:
-            log.warning(
-                'Could not find local file for engine %s and remote_ref %s',
-                engine.uid, remote_ref)
-            return
-
-        # TODO: check synchronization of this state first
-
-        # Find the best editor for the file according to the OS configuration
-        local_client = engine.get_local_client()
-        self.open_local_file(local_client.abspath(doc_pair.local_path))
-
     def _get_default_server_type(self):  # TODO: Move to constants.py
         return "NXDRIVE"
 

@@ -9,6 +9,8 @@ pyqt_version = '4.12.1'  // XXX: PYQT_VERSION
 properties([
     disableConcurrentBuilds(),
     pipelineTriggers([[$class: 'GitHubPushTrigger']]),
+    [$class: 'BuildDiscarderProperty', strategy:
+        [$class: 'LogRotator', daysToKeepStr: '60', numToKeepStr: '60', artifactNumToKeepStr: '10']],
     [$class: 'SchedulerPreference', preferEvenload: true],
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
     [$class: 'ParametersDefinitionProperty', parameterDefinitions: [

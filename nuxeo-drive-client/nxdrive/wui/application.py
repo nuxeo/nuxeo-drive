@@ -697,18 +697,13 @@ class Application(SimpleApplication):
                 log.debug('Event url=%s, info=%r', url, info)
                 if info is not None:
                     log.debug('Received nxdrive URL scheme event: %s', url)
-                    if info.get('command') == 'download_edit':
-                        # This is a quick operation, no need to fork a QThread
-                        self.manager.direct_edit.edit(
-                            info['server_url'],
-                            info['doc_id'],
-                            user=info['user'],
-                            download_url=info['download_url'],
-                        )
-                    elif info.get('command') == 'edit':
-                        # Kept for backward compatibility
-                        self.manager.direct_edit.edit(
-                            info['server_url'], info['item_id'])
+                    # This is a quick operation, no need to fork a QThread
+                    self.manager.direct_edit.edit(
+                        info['server_url'],
+                        info['doc_id'],
+                        user=info['user'],
+                        download_url=info['download_url'],
+                    )
             except:
                 log.exception('Error handling URL event: %s', url)
         return super(Application, self).event(event)
