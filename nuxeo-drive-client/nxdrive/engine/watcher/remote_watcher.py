@@ -441,30 +441,26 @@ class RemoteWatcher(EngineWorker):
         try:
             self._client = self._engine.get_remote_client()
         except HTTPError as e:
-            if (e.code in (401, 403)
-                    and not self._engine.has_invalid_credentials()):
+            if e.code in (401, 403):
                 self._engine.set_invalid_credentials(
-                    reason='got HTTPError %d while checking if offline' % e.code,
-                    exception=e)
+                    reason='got HTTPError %d while checking if offline' % e.code)
         except Unauthorized as e:
-            if not self._engine.has_invalid_credentials():
-                self._engine.set_invalid_credentials(
-                    reason='got Unauthorized with code %r while checking if offline' % getattr(e, 'code'),
-                    exception=e)
+            self._engine.set_invalid_credentials(
+                reason='got Unauthorized with code %r while checking if offline' % e.code)
         except:
             pass
 
         if self._client is None:
-            if not self._engine.is_offline():
-                self._engine.set_offline()
+            # Being there means invalid credentials
+            self._engine.set_offline()
             return None
         if self._engine.is_offline():
             try:
                 # Try to get the server status
                 self._client.server_reachable()
-                # if retrieved
-                self._engine.set_offline(False)
-                return self._client
+
+                # If retrieved
+                self._engine.set_offline(value=False)
             except ThreadInterrupt as e:
                 raise e
             except:
@@ -507,14 +503,12 @@ class RemoteWatcher(EngineWorker):
         except HTTPError as e:
             err = 'HTTP error %d while trying to handle remote changes' % e.code
             if e.code in (401, 403):
-                self._engine.set_invalid_credentials(reason=err, exception=e)
+                self._engine.set_invalid_credentials(reason=err)
+                self._engine.set_offline()
             else:
                 log.exception(err)
-            self._engine.set_offline()
         except (BadStatusLine, URLError, socket.error):
-            # Pause the rest of the engine
             log.exception('Network error')
-            self._engine.set_offline()
         except ThreadInterrupt:
             raise
         except:

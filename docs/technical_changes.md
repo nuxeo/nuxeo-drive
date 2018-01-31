@@ -4,6 +4,7 @@
 
 # dev
 - Removed `CLIHandler.edit()`
+- Removed `exception` keyword argument from `Engine.set_invalid_credentials()`
 - Removed `Manager.edit()`
 - Removed `Manager.get_autolock_service()`. Use `autolock_service` attribute instead.
 - Removed `Manager.get_tracker()`

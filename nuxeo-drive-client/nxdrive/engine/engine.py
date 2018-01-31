@@ -487,14 +487,14 @@ class Engine(QObject):
             initialized=True,
             pwd_update_required=self.has_invalid_credentials())
 
-    def set_invalid_credentials(self, value=True, reason=None, exception=None):
+    def set_invalid_credentials(self, value=True, reason=None):
         changed = self._invalid_credentials != value
         self._invalid_credentials = value
         if value and changed:
             msg = 'Setting invalid credentials'
-            if reason is not None:
+            if reason:
                 msg += ', reason is: %s' % reason
-            log.error(msg, exc_info=exception is not None)
+            log.error(msg)
             self.invalidAuthentication.emit()
 
     def has_invalid_credentials(self):
