@@ -208,7 +208,14 @@ timeout(240) {
                             sh "./tools/qa.sh"
                             archive 'coverage.xml'
                             archive 'pylint-report.txt'
-
+                            
+                            dir('nuxeo-drive-client') {
+                                def drive_version = sh(
+                                    script: "python -c 'import nxdrive; print(nxdrive.__version__)'",
+                                    returnStdout: true).trim()
+                            }
+                            echo "Testing Drive ${drive_version}"
+                            
                             withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                                 withEnv(["WORKSPACE=${pwd()}"]) {
                                     sh """
@@ -217,6 +224,7 @@ timeout(240) {
                                     -Dsonar.branch.name=${env.BRANCH_NAME} \
                                     -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client \
                                     -Dsonar.projectBaseDir="${env.WORKSPACE}" \
+                                    -Dsonar.projectVersion="${drive_version}" \
                                     -Dsonar.sources=../nuxeo-drive-client/nxdrive \
                                     -Dsonar.tests=../nuxeo-drive-client/tests \
                                     -Dsonar.python.coverage.reportPath=coverage.xml \
