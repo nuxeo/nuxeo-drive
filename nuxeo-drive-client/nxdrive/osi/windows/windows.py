@@ -10,7 +10,6 @@ from win32com.client import Dispatch
 from win32con import LOGPIXELSX
 
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.osi.windows.win32_handlers import WindowsProcessFileHandlerSniffer
 
 log = getLogger(__name__)
 
@@ -22,7 +21,6 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def __init__(self, manager):
         super(WindowsIntegration, self).__init__(manager)
-        self._file_sniffer = WindowsProcessFileHandlerSniffer()
 
     def get_menu_parent_key(self):
         return 'Software\\Classes\\*\\shell\\' + self._manager.app_name
@@ -38,9 +36,6 @@ class WindowsIntegration(AbstractOSIntegration):
                 return True
         except WindowsError:
             return False
-
-    def get_open_files(self, pids=None):
-        return self._file_sniffer.get_open_files(pids)
 
     @staticmethod
     def _update_reg_key(reg, path, attributes=()):

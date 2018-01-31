@@ -3,7 +3,12 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
-
+- Removed `Manager.get_autolock_service()`. Use `autolock_service` attribute instead.
+- Removed `Manager.get_tracker()`
+- Changed `ProcessAutoLockerWorker.__init__(..., manager, watched_folders=None)` to `ProcessAutoLockerWorker.__init__(..., dao, folder)`
+- Removed `ProcessAutoLockerWorker.get_open_files()`
+- Removed `WindowsIntegration.get_open_files()`
+- Removed osi/windows/win32_handlers.py
 
 # 3.0.4
 - Removed `FsClient`
