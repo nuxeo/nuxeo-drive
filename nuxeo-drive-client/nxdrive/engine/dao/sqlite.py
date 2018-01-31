@@ -111,25 +111,6 @@ class StateRow(sqlite3.Row):
             self.remote_state = remote_state
 
 
-class LogLock(object):
-    def __init__(self):
-        self._lock = RLock()
-
-    def acquire(self):
-        log.trace("lock acquire: %s", inspect.stack()[1][3])
-        self._lock.acquire()
-        log.trace("lock acquired")
-
-    __enter__ = acquire
-
-    def release(self):
-        log.trace("lock release: %s", inspect.stack()[1][3])
-        self._lock.release()
-
-    def __exit__(self, t, v, tb):
-        self.release()
-
-
 class FakeLock(object):
     def acquire(self):
         pass
@@ -185,9 +166,6 @@ class ConfigurationDAO(QObject):
 
     def get_schema_version(self):
         return 1
-
-    def lock(self):
-        return self._lock
 
     def get_db(self):
         return self._db
