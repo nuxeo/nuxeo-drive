@@ -454,6 +454,7 @@ class RemoteWatcher(EngineWorker):
             # Being there means invalid credentials
             self._engine.set_offline()
             return None
+
         if self._engine.is_offline():
             try:
                 # Try to get the server status
@@ -461,10 +462,12 @@ class RemoteWatcher(EngineWorker):
 
                 # If retrieved
                 self._engine.set_offline(value=False)
+                return self._client
             except ThreadInterrupt as e:
                 raise e
             except:
                 return None
+
         return self._client
 
     def _handle_changes(self, first_pass=False):

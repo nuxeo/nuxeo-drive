@@ -206,14 +206,6 @@ class EngineWorker(Worker):
     def _reset_clients(self):
         pass
 
-    def _clean(self, reason, e=None):
-        if isinstance(e, HTTPError) and e.code == 401:
-            reason = 'got HTTPError %d while cleaning EngineWorker "%s"' % \
-                     (e.code, self._name)
-            self._engine.set_invalid_credentials(reason=reason, exception=e)
-            self._reset_clients()
-        self._engine.get_dao().dispose_thread()
-
     def giveup_error(self, doc_pair, error, exception=None):
         details = repr(exception) if exception else None
         log.debug('Give up for error [%s] (%r) for %r', error, details, doc_pair)

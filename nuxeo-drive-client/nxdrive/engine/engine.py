@@ -974,7 +974,7 @@ class Engine(QObject):
             return None
 
         cache = self._get_client_cache()
-        cache_key = self._manager.device_id, filtered
+        cache_key = (self._manager.device_id, filtered)
         remote_client = cache.get(cache_key)
 
         if remote_client is None:
