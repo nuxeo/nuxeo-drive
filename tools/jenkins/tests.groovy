@@ -200,11 +200,13 @@ timeout(240) {
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         
                         dir('sources') {
-                            dir('nuxeo-drive-client') {
-                                def drive_version = sh(
-                                    script: "python -c 'import nxdrive; print(nxdrive.__version__)'",
-                                    returnStdout: true).trim()
-                            }
+                            def drive_version = sh(
+                                script: """
+                                        cd nuxeo-drive-client; \
+                                        python -c 'import nxdrive; print(nxdrive.__version__)'; \
+                                        cd .. \
+                                        """,
+                                returnStdout: true).trim()
                             echo "Testing Drive ${drive_version}"
 
                             for (def slave in slaves) {
