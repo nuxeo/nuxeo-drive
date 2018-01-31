@@ -1,0 +1,11 @@
+[MASTER]
+jobs=4
+persistent=no
+
+[MESSAGES CONTROL]
+disable=locally-disabled,locally-enabled,missing-docstring,line-too-long
+
+[REPORTS]
+msg-template={path}:{line}: [{msg_id}({symbol}), {obj}] {msg}
+reports=no
+score=no

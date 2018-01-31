@@ -198,14 +198,9 @@ timeout(240) {
                         
                         dir('sources') {
                             for (def slave in slaves) {
-                                try {
-                                    unstash "coverage_${slave}"
-                                    sh "mv .coverage .coverage.${slave}"
-                                    echo "Unstashed .coverage.${slave}"
-                                } catch(e) {
-                                    currentBuild.result = 'UNSTABLE'
-                                    echo e
-                                }
+                                unstash "coverage_${slave}"
+                                sh "mv .coverage .coverage.${slave}"
+                                echo "Unstashed .coverage.${slave}"
                             }
 
                             sh "./tools/qa.sh"
