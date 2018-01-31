@@ -1,6 +1,9 @@
 # dev
 Release date: `2018-??-??`
 
+### Tests
+- [NXDRIVE-887](https://jira.nuxeo.com/browse/NXDRIVE-887): Integrate SonarCloud code quality check
+
 
 # 3.0.4
 Release date: `2018-01-29`

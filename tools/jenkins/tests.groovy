@@ -31,7 +31,11 @@ properties([
         [$class: 'BooleanParameterDefinition',
             name: 'ENABLE_PROFILER',
             defaultValue: false,
-            description: 'Use yappi profiler.']
+            description: 'Use yappi profiler.'],
+        [$class: 'BooleanParameterDefinition',
+            name: 'ENABLE_SONAR',
+            defaultValue: true,
+            description: 'Run SonarCloud.io analysis.']
     ]]
 ])
 
@@ -145,11 +149,16 @@ for (def x in slaves) {
                                 currentBuild.result = 'FAILURE'
                                 throw e
                             }
+
+                            try {
+                                echo "Retrieve coverage statistics"
+                                stash includes: '.coverage', name: "coverage_${slave}"
+                            } catch(e) {
+                                echo e
+                                currentBuild.result = 'UNSTABLE'
+                                throw e
+                            }
                         }
-
-                        // echo 'Retrieve coverage statistics'
-                        // archive 'coverage/*'
-
                         currentBuild.result = 'SUCCESS'
                     }
                 } finally {
@@ -176,5 +185,51 @@ for (def x in slaves) {
 timeout(240) {
     timestamps {
         parallel builders
+
+        if (env.ENABLE_SONAR && currentBuild.result == 'SUCCESS') {
+            node('SLAVE') {
+                stage('SonarQube Analysis') {
+                    try {
+                        checkout_custom()
+
+                        def jdk = tool name: 'java-8-oracle'
+                        env.JAVA_HOME = "${jdk}"
+                        def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                        
+                        dir('sources') {
+                            for (def slave in slaves) {
+                                unstash "coverage_${slave}"
+                                sh "mv .coverage .coverage.${slave}"
+                                echo "Unstashed .coverage.${slave}"
+                            }
+
+                            sh "./tools/qa.sh"
+                            archive 'coverage.xml'
+                            archive 'pylint-report.txt'
+
+                            withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
+                                withEnv(["WORKSPACE=${pwd()}"]) {
+                                    sh """
+                                    ${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar \
+                                    -Dsonar.login=${SONARCLOUD_PWD} \
+                                    -Dsonar.branch.name=${env.BRANCH_NAME} \
+                                    -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client \
+                                    -Dsonar.projectBaseDir="${env.WORKSPACE}" \
+                                    -Dsonar.sources=../nuxeo-drive-client/nxdrive \
+                                    -Dsonar.tests=../nuxeo-drive-client/tests \
+                                    -Dsonar.python.coverage.reportPath=coverage.xml \
+                                    -Dsonar.python.pylint.reportPath=pylint-report.txt \
+                                    -Dsonar.exclusions=ftest/pom.xml
+                                    """
+                                }
+                            }
+                        }
+                    } catch(e) {
+                        currentBuild.result = 'UNSTABLE'
+                        throw e
+                    }
+                }
+            }
+        }
     }
 }

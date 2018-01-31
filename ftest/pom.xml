@@ -11,7 +11,7 @@
   <groupId>org.nuxeo.ecm</groupId>
   <artifactId>nuxeo-drive-ftest</artifactId>
   <packaging>pom</packaging>
-  <name>Nuxeo Drive Functional Tests</name>
+  <name>Nuxeo Drive Client</name>
   <description>
     This POM uses tools-nuxeo-ftest to run Nuxeo Drive
     functional tests in multiple environments (OS, DB)
@@ -76,6 +76,18 @@
             <configuration>
               <target>stop</target>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.sonarsource.scanner.maven</groupId>
+        <artifactId>sonar-maven-plugin</artifactId>
+        <version>3.3.0.603</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>sonar</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>

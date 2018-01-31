@@ -358,6 +358,8 @@ launch_tests() {
 
     ${PIP} -r requirements-tests.txt
     ${PYTHON} -m pytest "${SPECIFIC_TEST}" \
+        --cov-report= \
+        --cov=nuxeo-drive-client/nxdrive \
         --showlocals \
         --strict \
         --failed-first \
