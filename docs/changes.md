@@ -11,7 +11,10 @@ Release date: `2018-??-??`
 - [NXDRIVE-887](https://jira.nuxeo.com/browse/NXDRIVE-887): Integrate SonarCloud code quality check
 
 #### Minor changes
+- Doc: Add a link to get for up-to-date envvars value
+- Framework: Review EngineNext class
 - Jenkins: Discard old builds
+- Tests: Add a simple test for .rvt files
 
 
 # 3.0.4
