@@ -82,6 +82,8 @@ Each build can be driven by several envars.
 
 If an envar is specifying a version, this means that the specified version of the library/software sources will be downloaded from the official website and compiled to fit Drive needs. It allows to create full isolated and reproductible build environnements.
 
+__Important__: those values are given as example, if you want up-to-date ones, pick them from [tools/checksums.txt](https://github.com/nuxeo/nuxeo-drive/blob/master/tools/checksums.txt).
+
 ### Required Envars
 
 - `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `2.7.13`.
