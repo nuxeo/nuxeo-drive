@@ -482,10 +482,12 @@ class RemoteWatcher(EngineWorker):
                 self._action = Action('Remote scanning')
                 self._scan_remote()
                 self._end_action()
+
                 # Might need to handle the changes now
                 if first_pass:
                     self.initiate.emit()
                 return True
+
             full_scan = self._dao.get_config('remote_need_full_scan', None)
             if full_scan is not None:
                 self._partial_full_scan(full_scan)
@@ -499,10 +501,7 @@ class RemoteWatcher(EngineWorker):
                 paths = self._dao.get_paths_to_scan()
             self._action = Action('Handle remote changes')
             self._update_remote_states()
-            if first_pass:
-                self.initiate.emit()
-            else:
-                self.updated.emit()
+            (self.updated, self.initiate)[first_pass].emit()
         except HTTPError as e:
             err = 'HTTP error %d while trying to handle remote changes' % e.code
             if e.code in (401, 403):

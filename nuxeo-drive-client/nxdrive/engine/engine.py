@@ -123,6 +123,8 @@ class Engine(QObject):
     offline = pyqtSignal()
     online = pyqtSignal()
 
+    type = 'NXDRIVE'
+
     def __init__(self, manager, definition, binder=None, processors=5,
                  remote_doc_client_factory=RemoteDocumentClient,
                  remote_fs_client_factory=RemoteFileSystemClient,
@@ -153,7 +155,6 @@ class Engine(QObject):
         # Remove remote client cache on proxy update
         self._manager.proxyUpdated.connect(self.invalidate_client_cache)
         self.local_folder = definition.local_folder
-        self.type = 'NXDRIVE'
         self.uid = definition.uid
         self.name = definition.name
         self._stopped = True
@@ -163,7 +164,7 @@ class Engine(QObject):
         self._offline_state = False
         self._threads = list()
         self._client_cache_timestamps = dict()
-        self._dao = self._create_dao()
+        self._dao = EngineDAO(self._get_db_file())
         if binder is not None:
             self.bind(binder)
         self._load_configuration()
@@ -458,9 +459,11 @@ class Engine(QObject):
         return self._dao.get_config("remote_token")
 
     def _create_queue_manager(self, processors):
+        kwargs = {}
         if Options.debug:
-            return QueueManager(self, self._dao, max_file_processors=2)
-        return QueueManager(self, self._dao)
+            kwargs['max_file_processors'] = 2
+
+        return QueueManager(self, self._dao, **kwargs)
 
     def _create_remote_watcher(self, delay):
         return RemoteWatcher(self, self._dao, delay)
@@ -471,9 +474,6 @@ class Engine(QObject):
     def _get_db_file(self):
         return os.path.join(normalized_path(self._manager.nxdrive_home),
                             'ndrive_' + self.uid + '.db')
-
-    def _create_dao(self):
-        return EngineDAO(self._get_db_file())
 
     def get_abspath(self, path):
         return self.get_local_client().abspath(path)
@@ -739,9 +739,6 @@ class Engine(QObject):
         Processor.soft_locks = dict()
         log.trace('Engine %s stopped', self.uid)
 
-    def _get_client_cache(self):
-        return self._remote_clients
-
     @staticmethod
     def use_trash():
         return True
@@ -973,9 +970,8 @@ class Engine(QObject):
         if self._invalid_credentials:
             return None
 
-        cache = self._get_client_cache()
         cache_key = (self._manager.device_id, filtered)
-        remote_client = cache.get(cache_key)
+        remote_client = self._remote_clients.get(cache_key)
 
         if remote_client is None:
             kwargs = {
@@ -1003,27 +999,34 @@ class Engine(QObject):
                     self.version,
                     **kwargs)
 
-            cache[cache_key] = remote_client
+            self._remote_clients[cache_key] = remote_client
 
         return remote_client
 
     def get_remote_doc_client(self, repository=Options.remote_repo, base_folder=None):
         if self._invalid_credentials:
             return None
-        cache = self._get_client_cache()
+
         cache_key = (self._manager.device_id, 'remote_doc')
-        remote_client = cache.get(cache_key)
-        if remote_client is None:
+        remote_client = self._remote_clients.get(cache_key)
+
+        if not remote_client:
             remote_client = self.remote_doc_client_factory(
-                self._server_url, self._remote_user,
-                self._manager.device_id, self.version,
+                self._server_url,
+                self._remote_user,
+                self._manager.device_id,
+                self.version,
                 proxies=self._manager.get_proxies(self._server_url),
                 proxy_exceptions=self._manager.proxy_exceptions,
-                password=self._remote_password, token=self._remote_token,
-                repository=repository, base_folder=base_folder,
-                timeout=self._handshake_timeout, cookie_jar=self.cookie_jar,
+                password=self._remote_password,
+                token=self._remote_token,
+                repository=repository,
+                base_folder=base_folder,
+                timeout=self._handshake_timeout,
+                cookie_jar=self.cookie_jar,
                 check_suspended=self.suspend_client)
-            cache[cache_key] = remote_client
+            self._remote_clients[cache_key] = remote_client
+
         return remote_client
 
     def create_processor(self, item_getter, **kwargs):

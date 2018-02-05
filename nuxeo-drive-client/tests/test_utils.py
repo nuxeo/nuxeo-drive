@@ -125,6 +125,8 @@ class TestUtils(unittest.TestCase):
         # Unknown
         self.assertEqual(guess_mime_type('file.unknown'),
                          'application/octet-stream')
+        self.assertEqual(guess_mime_type('file.rvt'),
+                         'application/octet-stream')
 
         # Cases badly handled by Windows
         # See https://jira.nuxeo.com/browse/NXP-11660
