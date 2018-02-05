@@ -765,7 +765,7 @@ class Engine(QObject):
         if self._remote_token is None:
             raise Exception
         self._dao.update_config("remote_token", self._remote_token)
-        self.set_invalid_credentials(False)
+        self.set_invalid_credentials(value=False)
         self.invalidate_client_cache()
         # In case of a binding
         self._check_root()
@@ -775,7 +775,8 @@ class Engine(QObject):
         self._load_configuration()
         self._remote_token = token
         self._dao.update_config("remote_token", self._remote_token)
-        self.set_invalid_credentials(False)
+        self.set_invalid_credentials(value=False)
+        self.invalidate_client_cache()
         self.start()
 
     def bind(self, binder):
