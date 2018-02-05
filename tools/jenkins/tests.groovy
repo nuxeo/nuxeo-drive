@@ -197,8 +197,17 @@ timeout(240) {
                         def jdk = tool name: 'java-8-oracle'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                        
+
                         dir('sources') {
+                            def drive_version = sh(
+                                script: """
+                                        cd nuxeo-drive-client; \
+                                        python -c 'import nxdrive; print(nxdrive.__version__)'; \
+                                        cd .. \
+                                        """,
+                                returnStdout: true).trim()
+                            echo "Testing Drive ${drive_version}"
+
                             for (def slave in slaves) {
                                 unstash "coverage_${slave}"
                                 sh "mv .coverage .coverage.${slave}"
@@ -217,6 +226,7 @@ timeout(240) {
                                     -Dsonar.branch.name=${env.BRANCH_NAME} \
                                     -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client \
                                     -Dsonar.projectBaseDir="${env.WORKSPACE}" \
+                                    -Dsonar.projectVersion="${drive_version}" \
                                     -Dsonar.sources=../nuxeo-drive-client/nxdrive \
                                     -Dsonar.tests=../nuxeo-drive-client/tests \
                                     -Dsonar.python.coverage.reportPath=coverage.xml \
