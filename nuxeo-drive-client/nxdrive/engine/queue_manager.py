@@ -211,8 +211,7 @@ class QueueManager(QObject):
     @pyqtSlot()
     def _on_error_timer(self):
         cur_time = int(time.time())
-        self._error_lock.acquire()
-        try:
+        with self._error_lock:
             for doc_pair in self._on_error_queue.values():
                 if doc_pair.error_next_try < cur_time:
                     queue_item = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
@@ -221,8 +220,6 @@ class QueueManager(QObject):
                     self.push(queue_item)
             if len(self._on_error_queue) == 0:
                 self._error_timer.stop()
-        finally:
-            self._error_lock.release()
 
     def _is_on_error(self, row_id):
         return row_id in self._on_error_queue
@@ -254,24 +251,18 @@ class QueueManager(QObject):
             interval = self._error_interval * error_count
         doc_pair.error_next_try = interval + int(time.time())
         log.debug("Blacklisting pair for %ds: %r", interval, doc_pair)
-        self._error_lock.acquire()
-        try:
+        with self._error_lock:
             emit_sig = False
             if doc_pair.id not in self._on_error_queue:
                 emit_sig = True
             self._on_error_queue[doc_pair.id] = doc_pair
             if emit_sig:
                 self.newError.emit(doc_pair.id)
-        finally:
-            self._error_lock.release()
 
     def requeue_errors(self):
-        self._error_lock.acquire()
-        try:
+        with self._error_lock:
             for doc_pair in self._on_error_queue.values():
                 doc_pair.error_next_try = 0
-        finally:
-            self._error_lock.release()
 
     def _get_local_folder(self):
         if self._local_folder_queue.empty():
@@ -318,23 +309,20 @@ class QueueManager(QObject):
         return state
 
     def _get_file(self):
-        self._get_file_lock.acquire()
-        if self._remote_file_queue.empty() and self._local_file_queue.empty():
-            self._get_file_lock.release()
-            return None
-        if self._remote_file_queue.qsize() > self._local_file_queue.qsize():
-            state = self._get_remote_file()
-        else:
-            state = self._get_local_file()
-        self._get_file_lock.release()
+        with self._get_file_lock:
+            if self._remote_file_queue.empty() and self._local_file_queue.empty():
+                return None
+            if self._remote_file_queue.qsize() > self._local_file_queue.qsize():
+                state = self._get_remote_file()
+            else:
+                state = self._get_local_file()
         if state is not None and self._is_on_error(state.id):
             return self._get_file()
         return state
 
     @pyqtSlot()
     def _thread_finished(self):
-        self._thread_inspection.acquire()
-        try:
+        with self._thread_inspection:
             for thread in self._processors_pool:
                 if thread.isFinished():
                     self._processors_pool.remove(thread)
@@ -352,8 +340,6 @@ class QueueManager(QObject):
                 self._remote_file_thread = None
             if not self._engine.is_paused() and not self._engine.is_stopped():
                 self.newItem.emit(None)
-        finally:
-            self._thread_inspection.release()
 
     def active(self):
         # Recheck threads
@@ -427,9 +413,8 @@ class QueueManager(QObject):
             proc.stop()
 
     def get_processors_on(self, path, exact_match=True):
-        self._thread_inspection.acquire()
-        res = []
-        try:
+        with self._thread_inspection:
+            res = []
             if self.is_processing_file(
                     self._local_folder_thread, path, exact_match=exact_match):
                 res.append(self._local_folder_thread.worker)
@@ -447,13 +432,10 @@ class QueueManager(QObject):
                     if self.is_processing_file(
                             thread, path, exact_match=exact_match):
                         res.append(thread.worker)
-        finally:
-            self._thread_inspection.release()
         return res
 
     def has_file_processors_on(self, path):
-        self._thread_inspection.acquire()
-        try:
+        with self._thread_inspection:
             # First check local and remote file
             if self.is_processing_file(
                     self._local_file_thread or self._remote_file_thread, path):
@@ -462,8 +444,6 @@ class QueueManager(QObject):
                 if self.is_processing_file(thread, path):
                     return True
             return False
-        finally:
-            self._thread_inspection.release()
 
     @pyqtSlot()
     def launch_processors(self):

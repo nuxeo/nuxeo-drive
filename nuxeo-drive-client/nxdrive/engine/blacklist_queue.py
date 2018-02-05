@@ -42,11 +42,8 @@ class BlacklistQueue(object):
 
     def push(self, id_obj, obj):
         item = BlacklistItem(item_id=id_obj, item=obj, next_try=self._delay)
-        self._lock.acquire()
-        try:
+        with self._lock:
             self._queue[item.get_id()] = item
-        finally:
-            self._lock.release()
 
     def repush(self, item, increase_wait=True):
         if not isinstance(item, BlacklistItem):
@@ -55,19 +52,13 @@ class BlacklistQueue(object):
             item.increase()
         else:
             item.increase(next_try=self._delay)
-        self._lock.acquire()
-        try:
+        with self._lock:
             self._queue[item.get_id()] = item
-        finally:
-            self._lock.release()
 
     def get(self):
         cur_time = int(time.time())
-        self._lock.acquire()
-        try:
+        with self._lock:
             for item in self._queue.values():
                 if item.check(cur_time=cur_time):
                     del self._queue[item.get_id()]
                     return item
-        finally:
-            self._lock.release()

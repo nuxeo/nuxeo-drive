@@ -163,8 +163,7 @@ class NotificationService(QtCore.QObject):
 
     def get_notifications(self, engine=None, include_generic=True):
         # Might need to use lock and duplicate
-        self._lock.acquire()
-        try:
+        with self._lock:
             if engine is None:
                 return self._notifications
             result = dict()
@@ -174,21 +173,17 @@ class NotificationService(QtCore.QObject):
                 if notif.engine_uid is None and include_generic:
                     result[notif.uid] = notif
             return result
-        finally:
-            self._lock.release()
 
     def send_notification(self, notification):
         notification._time = int(time.time())
-        self._lock.acquire()
-        try:
+        with self._lock:
             if notification.is_persistent():
                 if notification.uid not in self._notifications:
                     self._dao.insert_notification(notification)
                 else:
                     self._dao.update_notification(notification)
             self._notifications[notification.uid] = notification
-        finally:
-            self._lock.release()
+
         self.newNotification.emit(notification)
 
     def trigger_notification(self, uid):
@@ -202,8 +197,7 @@ class NotificationService(QtCore.QObject):
             self.discard_notification(uid)
 
     def discard_notification(self, uid):
-        self._lock.acquire()
-        try:
+        with self._lock:
             remove = False
             if uid in self._notifications:
                 remove = self._notifications[uid].is_remove_on_discard()
@@ -212,8 +206,6 @@ class NotificationService(QtCore.QObject):
                 self._dao.remove_notification(uid)
             else:
                 self._dao.discard_notification(uid)
-        finally:
-            self._lock.release()
         self.discardNotification.emit(uid)
 
 
