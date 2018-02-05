@@ -5,12 +5,16 @@ Release date: `2018-??-??`
 - [NXDRIVE-941](https://jira.nuxeo.com/browse/NXDRIVE-941): Use a context manager for Lock
 - [NXDRIVE-1085](https://jira.nuxeo.com/browse/NXDRIVE-1085): Review the Auto-Lock feature
 - [NXDRIVE-1087](https://jira.nuxeo.com/browse/NXDRIVE-1087): Remove backward compatibility code for Nuxeo <= 5.8
+- [NXDRIVE-1104](https://jira.nuxeo.com/browse/NXDRIVE-1104): Set invalid credentials on 401,403 errors only
 
 ### Tests
 - [NXDRIVE-887](https://jira.nuxeo.com/browse/NXDRIVE-887): Integrate SonarCloud code quality check
 
 #### Minor changes
+- Doc: Add a link to get for up-to-date envvars value
+- Framework: Review EngineNext class
 - Jenkins: Discard old builds
+- Tests: Add a simple test for .rvt files
 
 
 # 3.0.4

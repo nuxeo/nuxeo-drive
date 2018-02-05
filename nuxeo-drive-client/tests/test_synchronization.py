@@ -7,10 +7,17 @@ from nxdrive.client import LocalClient
 from nxdrive.client.remote_filtered_file_system_client import \
     RemoteFilteredFileSystemClient
 from nxdrive.osi import AbstractOSIntegration
-from tests import RemoteTestClient
-from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from tests.common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT, RandomBug, \
+from . import RemoteTestClient
+from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
+from .common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT, RandomBug, \
     UnitTestCase
+
+
+class HTTPErrorMock(urllib2.HTTPError):
+    """ Just to have a working repr() for debug facilities ... """
+
+    def __repr__(self):
+        return str(self)
 
 
 class TestSynchronization(UnitTestCase):
@@ -139,6 +146,32 @@ class TestSynchronization(UnitTestCase):
         remote.unregister_as_root("/APPEL D'OFFRES")
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists("/APPEL D'OFFRES"))
+
+    def test_invalid_credentials(self):
+        # Perform first scan and sync
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Simulate bad responses
+        self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
+        self.engine_1.invalidate_client_cache()
+        errors = [
+            HTTPErrorMock(None, 401, 'Mock', None, None),
+            HTTPErrorMock(None, 403, 'Mock', None, None),
+        ]
+        for error in errors:
+            self.engine_1.get_remote_client().make_server_call_raise(error)
+            self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+            assert self.engine_1.is_offline()
+
+            self.engine_1.set_offline(value=False)
+            self.engine_1.set_invalid_credentials(value=False)
+            self.engine_1.resume()
+
+        # Re-enable network
+        self.engine_1.get_remote_client().make_server_call_raise(None)
+        self.engine_1.remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
+        self.engine_1.invalidate_client_cache()
 
     def test_synchronization_modification_on_created_file(self):
         # Regression test: a file is created locally, then modification is
@@ -290,7 +323,7 @@ class TestSynchronization(UnitTestCase):
         # Simulate a server failure on file download
         self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
         self.engine_1.invalidate_client_cache()
-        error = urllib2.HTTPError(None, 500, 'Mock download error', None, None)
+        error = HTTPErrorMock(None, 500, 'Mock download error', None, None)
         self.engine_1.get_remote_client().make_download_raise(error)
 
         # File is not synchronized but synchronization does not fail either,
@@ -344,7 +377,7 @@ class TestSynchronization(UnitTestCase):
         errors = [
             urllib2.URLError('Mock URLError'),
             socket.error('Mock socket error'),
-            urllib2.HTTPError(None, 503, 'Mock HTTPError', None, None)
+            HTTPErrorMock(None, 503, 'Mock', None, None)
         ]
         engine_started = False
         for error in errors:
@@ -352,19 +385,15 @@ class TestSynchronization(UnitTestCase):
             if not engine_started:
                 self.engine_1.start()
                 engine_started = True
+
             # Synchronization doesn't occur but does not fail either.
-            # - one '_synchronize_locally_created' error is registered for Folder 3
-            # - engine goes offline because of RemoteWatcher._handle_changes
+            # - one 'locally_created' error is registered for Folder 3
             # - no states are inserted for the remote documents
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-            # states_in_error = self.engine_1.get_dao().get_errors(limit=0)
-            # assert len(states_in_error) == 1
-            # assert states_in_error[0].local_name == 'Folder 3'
-            assert self.engine_1.is_offline()
             workspace_children = self.engine_1.get_dao().get_states_from_partial_local('/' + self.workspace_title + '/')
             assert len(workspace_children) == 1
             assert workspace_children[0].pair_state != 'synchronized'
-            self.engine_1.set_offline(value=False)
+            assert not self.engine_1.is_offline()
 
         # Re-enable network
         self.engine_1.get_remote_client().make_server_call_raise(None)
@@ -647,7 +676,7 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
         self.engine_1.invalidate_client_cache()
         self.engine_1.get_remote_client().make_download_raise(
-            urllib2.HTTPError('', 400, '', {}, None))
+            HTTPErrorMock('', 400, 'Mock', {}, None))
         remote.make_file('/', 'test.odt', 'Some content.')
         self.engine_1.start()
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
@@ -938,7 +967,7 @@ class TestSynchronization(UnitTestCase):
         # Simulate a server conflict on file upload
         engine.remote_filtered_fs_client_factory = RemoteTestClient
         engine.invalidate_client_cache()
-        error = urllib2.HTTPError(None, 409, 'Conflict [test]', None, None)
+        error = HTTPErrorMock(None, 409, 'Mock Conflict', None, None)
         engine.get_remote_client().make_upload_raise(error)
         engine.get_remote_client().raise_on = _raise_for_second_file_only
 

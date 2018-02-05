@@ -140,19 +140,6 @@ class AbstractOSIntegration(object):
     def get_system_configuration(self):
         return dict()
 
-    def get_open_files(self, pids=None):
-        # Default implementation using psutil
-        res = []
-        for p in psutil.process_iter():
-            try:
-                if pids is not None and p._pid not in pids:
-                    continue
-                for f in p.open_files():
-                    res.append((p._pid, f[0]))
-            except (psutil.AccessDenied, psutil.ZombieProcess):
-                pass
-        return res
-
     @staticmethod
     def os_version_below(version):
         return version_compare(AbstractOSIntegration.get_os_version(), version) < 0

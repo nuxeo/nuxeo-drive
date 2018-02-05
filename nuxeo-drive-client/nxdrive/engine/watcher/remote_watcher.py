@@ -441,34 +441,33 @@ class RemoteWatcher(EngineWorker):
         try:
             self._client = self._engine.get_remote_client()
         except HTTPError as e:
-            if (e.code in (401, 403)
-                    and not self._engine.has_invalid_credentials()):
+            if e.code in (401, 403):
                 self._engine.set_invalid_credentials(
-                    reason='got HTTPError %d while checking if offline' % e.code,
-                    exception=e)
+                    reason='got HTTPError %d while checking if offline' % e.code)
         except Unauthorized as e:
-            if not self._engine.has_invalid_credentials():
-                self._engine.set_invalid_credentials(
-                    reason='got Unauthorized with code %r while checking if offline' % getattr(e, 'code'),
-                    exception=e)
+            self._engine.set_invalid_credentials(
+                reason='got Unauthorized with code %r while checking if offline' % e.code)
         except:
             pass
 
         if self._client is None:
-            if not self._engine.is_offline():
-                self._engine.set_offline()
+            # Being there means invalid credentials
+            self._engine.set_offline()
             return None
+
         if self._engine.is_offline():
             try:
                 # Try to get the server status
                 self._client.server_reachable()
-                # if retrieved
-                self._engine.set_offline(False)
+
+                # If retrieved
+                self._engine.set_offline(value=False)
                 return self._client
             except ThreadInterrupt as e:
                 raise e
             except:
                 return None
+
         return self._client
 
     def _handle_changes(self, first_pass=False):
@@ -483,10 +482,12 @@ class RemoteWatcher(EngineWorker):
                 self._action = Action('Remote scanning')
                 self._scan_remote()
                 self._end_action()
+
                 # Might need to handle the changes now
                 if first_pass:
                     self.initiate.emit()
                 return True
+
             full_scan = self._dao.get_config('remote_need_full_scan', None)
             if full_scan is not None:
                 self._partial_full_scan(full_scan)
@@ -500,21 +501,16 @@ class RemoteWatcher(EngineWorker):
                 paths = self._dao.get_paths_to_scan()
             self._action = Action('Handle remote changes')
             self._update_remote_states()
-            if first_pass:
-                self.initiate.emit()
-            else:
-                self.updated.emit()
+            (self.updated, self.initiate)[first_pass].emit()
         except HTTPError as e:
             err = 'HTTP error %d while trying to handle remote changes' % e.code
             if e.code in (401, 403):
-                self._engine.set_invalid_credentials(reason=err, exception=e)
+                self._engine.set_invalid_credentials(reason=err)
+                self._engine.set_offline()
             else:
                 log.exception(err)
-            self._engine.set_offline()
         except (BadStatusLine, URLError, socket.error):
-            # Pause the rest of the engine
             log.exception('Network error')
-            self._engine.set_offline()
         except ThreadInterrupt:
             raise
         except:

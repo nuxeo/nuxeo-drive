@@ -4,12 +4,14 @@
 
 # dev
 - Removed `CLIHandler.edit()`
+- Removed `exception` keyword argument from `Engine.set_invalid_credentials()`
 - Removed `Manager.edit()`
 - Removed `Manager.get_autolock_service()`. Use `autolock_service` attribute instead.
 - Removed `Manager.get_tracker()`
 - Changed `ProcessAutoLockerWorker.__init__(..., manager, watched_folders=None)` to `ProcessAutoLockerWorker.__init__(..., dao, folder)`
 - Removed `ProcessAutoLockerWorker.get_open_files()`
 - Removed `WindowsIntegration.get_open_files()`
+- Removed osi/\_\_init__.py::`get_open_files()`
 - Removed osi/windows/win32_handlers.py
 
 # 3.0.4
