@@ -11,6 +11,7 @@
 - Changed `ProcessAutoLockerWorker.__init__(..., manager, watched_folders=None)` to `ProcessAutoLockerWorker.__init__(..., dao, folder)`
 - Removed `ProcessAutoLockerWorker.get_open_files()`
 - Removed `WindowsIntegration.get_open_files()`
+- Removed osi/\_\_init__.py::`get_open_files()`
 - Removed osi/windows/win32_handlers.py
 
 # 3.0.4
