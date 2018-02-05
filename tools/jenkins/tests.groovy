@@ -197,7 +197,7 @@ timeout(240) {
                         def jdk = tool name: 'java-8-oracle'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                        
+
                         dir('sources') {
                             def drive_version = sh(
                                 script: """
@@ -217,7 +217,7 @@ timeout(240) {
                             sh "./tools/qa.sh"
                             archive 'coverage.xml'
                             archive 'pylint-report.txt'
-                            
+
                             withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                                 withEnv(["WORKSPACE=${pwd()}"]) {
                                     sh """
