@@ -408,7 +408,7 @@ class InvalidCredentialNotification(Notification):
             engine_uid=engine_uid,
             level=Notification.LEVEL_ERROR,
             flags=(Notification.FLAG_UNIQUE
-                   | Notification.FLAG_PERSISTENT
+                   | Notification.FLAG_VOLATILE
                    | Notification.FLAG_BUBBLE
                    | Notification.FLAG_ACTIONABLE
                    | Notification.FLAG_SYSTRAY),
