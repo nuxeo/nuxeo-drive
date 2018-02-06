@@ -39,8 +39,7 @@ socket.setdefaulttimeout(DEFAULT_NUXEO_TX_TIMEOUT)
 
 
 class InvalidBatchException(Exception):
-    if log:
-        log.warning("Invalid batch exception")
+    pass
 
 
 def get_proxies_for_handler(proxy_settings):

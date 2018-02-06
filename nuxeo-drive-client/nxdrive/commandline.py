@@ -465,12 +465,15 @@ class CliHandler(object):
     def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
         from nxdrive.utils import PidLockFile
+
         lock = PidLockFile(self.manager.nxdrive_home, 'qt')
-        if lock.lock() is not None:
-            self.log.warning('Qt application already running: exiting')
-            # Handle URL if needed
-            self.manager.direct_edit.handle_url()
+        if lock.lock():
+            if self.manager.direct_edit.url:
+                self.manager.direct_edit.handle_url()
+            else:
+                self.log.warning('Qt application already running: exiting')
             return
+
         app = self._get_application(console=console)
         exit_code = app.exec_()
         lock.unlock()
@@ -497,7 +500,7 @@ class CliHandler(object):
         self.manager.open_metadata_window(file_path)
 
     def download_edit(self, options):
-        self.launch(options)
+        self.launch(options=options)
         return 0
 
     def bind_server(self, options):

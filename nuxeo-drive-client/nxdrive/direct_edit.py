@@ -39,7 +39,7 @@ class DirectEdit(Worker):
         super(DirectEdit, self).__init__()
         self._test = False
         self._manager = manager
-        self._url = url
+        self.url = url
         self._thread.started.connect(self.run)
         self._event_handler = None
         self._metrics = dict()
@@ -90,7 +90,7 @@ class DirectEdit(Worker):
 
     def handle_url(self, url=None):
         if url is None:
-            url = self._url
+            url = self.url
         if url is None:
             return
         log.debug("DirectEdit load: '%r'", url)
@@ -113,7 +113,7 @@ class DirectEdit(Worker):
                     continue
                 children = self._local_client.get_children_info(child.path)
                 if len(children) > 1:
-                    log.warning('Cannot clean this document: %s', child.path)
+                    log.warning('Cannot clean this document: %r', child.path)
                     continue
                 if not children:
                     # Cleaning the folder it is empty
