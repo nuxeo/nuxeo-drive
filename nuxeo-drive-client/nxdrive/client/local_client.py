@@ -631,18 +631,6 @@ FolderType=Generic
             return u'/' + name
         return parent + u'/' + name
 
-    @staticmethod
-    def make_tree(path):
-        # type: (Text) -> None
-        """ Recursive directory creation. """
-
-        try:
-            os.makedirs(path)
-        except os.error as exc:
-            # EEXIST: path already exists
-            if exc.errno != errno.EEXIST:
-                raise exc
-
     def duplicate_file(self, ref):
         # type: (Text) -> Text
 

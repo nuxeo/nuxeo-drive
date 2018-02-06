@@ -18,7 +18,7 @@ from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler
 from nxdrive.engine.workers import ThreadInterrupt, Worker
 from nxdrive.osi import parse_protocol_url
 from nxdrive.utils import current_milli_time, guess_digest_algorithm, \
-    normalize_event_filename
+    normalize_event_filename, simplify_url
 from nxdrive.wui.application import SimpleApplication
 from nxdrive.wui.modal import WebModal
 
@@ -156,36 +156,25 @@ class DirectEdit(Worker):
     def _get_engine(self, url, user=None):
         if url is None:
             return None
-        if url.endswith('/'):
-            url = url[:-1]
-        # Simplify port if possible
-        if url.startswith('http:') and ':80/' in url:
-            url = url.replace(':80/', '/')
-        if url.startswith('https:') and ':443/' in url:
-            url = url.replace(':443/', '/')
+
+        url = simplify_url(url)
         for engine in self._manager.get_engines().values():
             bind = engine.get_binder()
-            server_url = bind.server_url
-            if server_url.endswith('/'):
-                server_url = server_url[:-1]
+            server_url = bind.server_url.rstrip('/')
             if server_url == url and (user is None or user == bind.username):
                 return engine
+
         # Some backend are case insensitive
         if user is None:
             return None
+
         user = user.lower()
         for engine in self._manager.get_engines().values():
             bind = engine.get_binder()
-            server_url = bind.server_url
-            # Simplify port if possible
-            if server_url.startswith('http:') and ':80/' in server_url:
-                server_url = server_url.replace(':80/', '/')
-            if server_url.startswith('https:') and ':443/' in server_url:
-                server_url = server_url.replace(':443/', '/')
-            if server_url.endswith('/'):
-                server_url = server_url[:-1]
+            server_url = simplify_url(bind.server_url)
             if server_url == url and user == bind.username.lower():
                 return engine
+
         return None
 
     @staticmethod

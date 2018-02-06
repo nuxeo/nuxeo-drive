@@ -861,10 +861,6 @@ class Processor(EngineWorker):
                         log.debug('Moving local %s %r to %r',
                                   file_or_folder, old_path_abs, new_path_abs)
 
-                        # Create the parent(s) folder(s), if necessary.
-                        # This happens when a move is handled before a creation
-                        # local_client.make_tree(os.path.dirname(new_path_abs))
-
                         # May need to add a lock for move
                         updated_info = local_client.move(
                             doc_pair.local_path, new_parent_pair.local_path,

@@ -547,6 +547,25 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
     return url
 
 
+def simplify_url(url):
+    # type: (Text) -> Text
+    """ Simplify port if possible and trim trailing slashes. """
+
+    parts = urlparse.urlsplit(url)
+    new_parts = [parts.scheme,
+                 parts.netloc,
+                 parts.path,
+                 parts.query,
+                 parts.fragment]
+
+    if parts.scheme == 'http' and parts.netloc.endswith(':80'):
+        new_parts[1] = parts.netloc[:-3]
+    elif parts.scheme == 'https' and parts.netloc.endswith(':443'):
+        new_parts[1] = parts.netloc[:-4]
+
+    return urlparse.urlunsplit(new_parts).rstrip('/')
+
+
 class ServerLoader(object):
     def __init__(self, remote_client, local_client):
         self._remote_client = remote_client
