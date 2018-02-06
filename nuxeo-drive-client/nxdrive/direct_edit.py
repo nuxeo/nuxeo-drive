@@ -37,17 +37,18 @@ class DirectEdit(Worker):
 
     def __init__(self, manager, folder, url):
         super(DirectEdit, self).__init__()
-        self._test = False
+
         self._manager = manager
-        self.url = url
-        self._thread.started.connect(self.run)
-        self._event_handler = None
-        self._metrics = dict()
-        self._metrics['edit_files'] = 0
-        self._observer = None
         if isinstance(folder, bytes):
             folder = unicode(folder)
         self._folder = folder
+        self.url = url
+
+        self._test = False
+        self._thread.started.connect(self.run)
+        self._event_handler = None
+        self._metrics = {'edit_files': 0}
+        self._observer = None
         self._local_client = LocalClient(self._folder)
         self._upload_queue = Queue()
         self._lock_queue = Queue()
@@ -105,46 +106,52 @@ class DirectEdit(Worker):
                   download_url=info['download_url'])
 
     def _cleanup(self):
-        log.debug("Cleanup DirectEdit folder")
-        # Should unlock any remaining doc that has not been unlocked or ask
-        if self._local_client.exists('/'):
-            for child in self._local_client.get_children_info('/'):
-                if self._local_client.get_remote_id(child.path, name='nxdirecteditlock') is not None:
-                    continue
-                children = self._local_client.get_children_info(child.path)
-                if len(children) > 1:
-                    log.warning('Cannot clean this document: %r', child.path)
-                    continue
-                if not children:
-                    # Cleaning the folder it is empty
-                    shutil.rmtree(self._local_client.abspath(child.path),
-                                  ignore_errors=True)
-                    continue
-                ref = children[0].path
-                try:
-                    _,  _, _, digest_algorithm, digest = self._extract_edit_info(ref)
-                except NotFound:
-                    # Engine is not known anymore
-                    shutil.rmtree(self._local_client.abspath(child.path),
-                                  ignore_errors=True)
-                    continue
-                try:
-                    # Don't update if digest are the same
-                    info = self._local_client.get_info(ref)
-                    current_digest = info.get_digest(digest_func=digest_algorithm)
-                    if current_digest != digest:
-                        log.warning('Document has been modified and '
-                                    'not synchronized, readd to upload queue')
-                        self._upload_queue.put(ref)
-                        continue
-                except Exception as e:
-                    log.debug(e)
-                    continue
-                # Place for handle reopened of interrupted Edit
-                shutil.rmtree(self._local_client.abspath(child.path),
-                              ignore_errors=True)
-        if not os.path.exists(self._folder):
+        """ Should unlock any remaining doc that has not been unlocked. """
+
+        local = self._local_client
+
+        if not local.exists('/'):
             os.mkdir(self._folder)
+            return
+
+        log.debug('Cleanup DirectEdit folder')
+
+        for child in local.get_children_info('/'):
+            if local.get_remote_id(child.path, name='nxdirecteditlock'):
+                continue
+
+            children = local.get_children_info(child.path)
+            if not children:
+                # Cleaning the folder as it is empty
+                shutil.rmtree(local.abspath(child.path), ignore_errors=True)
+                continue
+            elif len(children) > 1:
+                log.warning('Cannot clean this document: %r', child.path)
+                continue
+
+            ref = children[0].path
+            try:
+                _,  _, _, func, digest = self._extract_edit_info(ref)
+            except NotFound:
+                # Engine is not known anymore
+                shutil.rmtree(local.abspath(child.path), ignore_errors=True)
+                continue
+
+            try:
+                # Don't update if digest are the same
+                info = local.get_info(ref)
+                current_digest = info.get_digest(digest_func=func)
+                if current_digest != digest:
+                    log.warning('Document has been modified and '
+                                'not synchronized, readd to upload queue')
+                    self._upload_queue.put(ref)
+                    continue
+            except:
+                log.exception('Unhandled clean-up error')
+                continue
+
+            # Place for handle reopened of interrupted Edit
+            shutil.rmtree(local.abspath(child.path), ignore_errors=True)
 
     def _get_engine(self, url, user=None):
         if url is None:
