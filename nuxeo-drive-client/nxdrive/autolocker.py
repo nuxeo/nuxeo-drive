@@ -28,6 +28,10 @@ class ProcessAutoLockerWorker(PollWorker):
         self._first = True
 
     def set_autolock(self, filepath, locker):
+        if self._autolocked.get(filepath):
+            # Already locked
+            return
+
         self._autolocked[filepath] = 0
         self._lockers[filepath] = locker
         QtCore.QTimer.singleShot(2000, self.force_poll)

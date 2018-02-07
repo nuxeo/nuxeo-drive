@@ -593,6 +593,9 @@ class DirectEdit(Worker):
             dir_path = local.get_path(os.path.dirname(src_path))
             name = local.get_remote_id(dir_path, name='nxdirecteditname')
             if not name or name != file_name:
+                if evt.event_type == 'deleted' and self._is_lock_file(file_name):
+                    # Free the xattr to let _cleanup() does its work
+                    local.remove_remote_id(dir_path, name='nxdirecteditlock')
                 return
 
             if (local.get_remote_id(dir_path, name='nxdirecteditlock') != '1'
