@@ -114,7 +114,11 @@ class DirectEdit(Worker):
                   download_url=info['download_url'])
 
     def _cleanup(self):
-        """ Should unlock any remaining doc that has not been unlocked. """
+        """
+        - Unlock any remaining doc that has not been unlocked
+        - Upload forgoten changes
+        - Remove obsolete folders
+        """
 
         local = self._local_client
 
@@ -122,19 +126,15 @@ class DirectEdit(Worker):
             os.mkdir(self._folder)
             return
 
+        def purge(path):
+            shutil.rmtree(local.abspath(path), ignore_errors=True)
+
         log.debug('Cleanup DirectEdit folder')
 
         for child in local.get_children_info('/'):
-            if local.get_remote_id(child.path, name='nxdirecteditlock'):
-                continue
-
             children = local.get_children_info(child.path)
             if not children:
-                # Cleaning the folder as it is empty
-                shutil.rmtree(local.abspath(child.path), ignore_errors=True)
-                continue
-            elif len(children) > 1:
-                log.warning('Cannot clean this document: %r', child.path)
+                purge(child.path)
                 continue
 
             ref = children[0].path
@@ -142,7 +142,7 @@ class DirectEdit(Worker):
                 _,  _, _, func, digest = self._extract_edit_info(ref)
             except NotFound:
                 # Engine is not known anymore
-                shutil.rmtree(local.abspath(child.path), ignore_errors=True)
+                purge(child.path)
                 continue
 
             try:
@@ -159,7 +159,7 @@ class DirectEdit(Worker):
                 continue
 
             # Place for handle reopened of interrupted Edit
-            shutil.rmtree(local.abspath(child.path), ignore_errors=True)
+            purge(child.path)
 
     def _get_engine(self, url, user=None):
         if not url:
@@ -393,7 +393,7 @@ class DirectEdit(Worker):
                 log.exception('Cannot %s document %r', action, ref)
                 self.directEditLockError.emit(action, os.path.basename(ref), uid)
 
-    def _hangle_upload_queue(self):
+    def _handle_upload_queue(self):
         local = self._local_client
 
         while not self._upload_queue.empty():
@@ -458,7 +458,7 @@ class DirectEdit(Worker):
             item = self._error_queue.get()
 
         # Handle the upload queue
-        self._hangle_upload_queue()
+        self._handle_upload_queue()
 
         while not self.watchdog_queue.empty():
             evt = self.watchdog_queue.get()
@@ -548,16 +548,6 @@ class DirectEdit(Worker):
             '.~lock.',  # (Libre|Open)Office
         ))
 
-    def _is_regular_file(self, name):
-        # type: (str) -> bool
-        """
-        Check if a given file name is not a temporary one created by
-        a tierce software.  We use it to disable the feature as we
-        use the global open files instead of editor lock file.
-        """
-
-        return False and self._is_lock_file(name)
-
     def handle_watchdog_event(self, evt):
         self._action = Action('Handle watchdog event')
         try:
@@ -567,33 +557,25 @@ class DirectEdit(Worker):
             if os.path.isdir(src_path):
                 return
 
-            log.debug('Handling watchdog event [%s] on %r',
-                      evt.event_type, evt.src_path)
-
             local = self._local_client
-            ref = local.get_path(src_path)
             file_name = os.path.basename(src_path)
-
-            if (self._manager.get_direct_edit_auto_lock()
-                    and self._is_regular_file(file_name)):
-                if evt.event_type == 'created':
-                    self._lock_queue.put((ref, 'lock'))
-                elif evt.event_type == 'deleted':
-                    self._lock_queue.put((ref, 'unlock'))
-                return
-
             if local.is_temp_file(file_name):
                 return
 
-            if evt.event_type == 'moved':
-                ref = local.get_path(evt.dest_path)
-                file_name = os.path.basename(evt.dest_path)
-                src_path = evt.dest_path
+            log.debug('Handling watchdog event [%s] on %r',
+                      evt.event_type, evt.src_path)
 
+            if evt.event_type == 'moved':
+                src_path = evt.dest_path
+                file_name = os.path.basename(src_path)
+
+            ref = local.get_path(src_path)
             dir_path = local.get_path(os.path.dirname(src_path))
             name = local.get_remote_id(dir_path, name='nxdirecteditname')
+
             if not name or name != file_name:
-                if evt.event_type == 'deleted' and self._is_lock_file(file_name):
+                if (evt.event_type == 'deleted'
+                        and self._is_lock_file(file_name)):
                     # Free the xattr to let _cleanup() does its work
                     local.remove_remote_id(dir_path, name='nxdirecteditlock')
                 return

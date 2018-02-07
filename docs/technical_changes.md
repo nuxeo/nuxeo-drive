@@ -4,6 +4,7 @@
 
 # dev
 - Removed `CLIHandler.edit()`
+- Removed `DirectEdit.is_lock_file()` (now private)
 - Removed `exception` keyword argument from `Engine.set_invalid_credentials()`
 - Removed `LocalClient.make_tree()`
 - Removed `Manager.edit()`
