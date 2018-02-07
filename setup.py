@@ -223,7 +223,10 @@ class NuxeoDriveAttributes(object):
         return 'org.nuxeo.drive'
 
     def get_CFBundleURLName(self):
-        return 'Nuxeo Drive URL'
+        return 'org.nuxeo.nxdrive.direct-edit'
+
+    def get_CFBundleTypeRole(self):
+        return 'Editor'
 
     def get_description(self):
         return 'Desktop synchronization client for Nuxeo.'
@@ -474,6 +477,7 @@ class NuxeoDriveSetup(object):
                     'LSUIElement': True,  # Do not launch as a Dock application
                     'CFBundleURLTypes': [{
                         'CFBundleURLName': attribs.get_CFBundleURLName(),
+                        'CFBundleTypeRole': attribs.get_CFBundleTypeRole(),
                         'CFBundleURLSchemes': attribs.get_CFBundleURLSchemes(),
                     }],
                     'NSServices': [{

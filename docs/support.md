@@ -1,10 +1,10 @@
 # Support
 
-Here is a page where you can see what OS vendor and version we are currently supporting; but also the Python version we are currently using.
+Here is a page where you can see the OS vendors and versions as well as the browsers we are currently supporting; but also the Python version we are currently using.
 
 ## OS
 
-List of officialy supported platforms vendors and versions:
+List of officially supported platform vendors and versions:
 
 - macOS >= 10.4, 64 bits
 - Windows 7, both 32 and 64 bits
@@ -26,6 +26,13 @@ As those packages was removed on may 2015, you will have to compile yourself nee
 You can find how we are doing to do so by reading [deployment.md](https://github.com/nuxeo/nuxeo-drive/blob/master/docs/deployment.md) and the related Shell and PowerShell scripts.
 
 _Note_: this is a temporary issue because when we will move to Python 3 and PyQt5, we will be able to create official packages for the most used distributions.
+
+## Browsers
+
+### Known limitations
+
+With the Safari browser, the DirectEdit feature can be unstable (see [NXDRIVE-972](https://jira.nuxeo.com/browse/NXDRIVE-972)).
+We recommend using recent versions of Firefox or Chrome for the best experience.
 
 ## Python
 
