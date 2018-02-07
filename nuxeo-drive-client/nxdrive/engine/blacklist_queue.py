@@ -26,7 +26,7 @@ class BlacklistItem(object):
 
     def increase(self, next_try=None):
         cur_time = int(time.time())
-        self._count = self._count + 1
+        self._count += 1
         if next_try is not None:
             self._next_try = next_try + cur_time
         else:
@@ -47,7 +47,8 @@ class BlacklistQueue(object):
 
     def repush(self, item, increase_wait=True):
         if not isinstance(item, BlacklistItem):
-            raise Exception("Illegal argument")
+            raise ValueError('Illegal argument')
+
         if increase_wait:
             item.increase()
         else:
@@ -61,4 +62,4 @@ class BlacklistQueue(object):
             for item in self._queue.values():
                 if item.check(cur_time=cur_time):
                     del self._queue[item.get_id()]
-                    return item
+                    yield item

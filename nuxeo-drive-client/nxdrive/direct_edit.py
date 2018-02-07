@@ -452,10 +452,8 @@ class DirectEdit(Worker):
         self._handle_lock_queue()
 
         # Unqueue any errors
-        item = self._error_queue.get()
-        while item:
+        for item in self._error_queue.get():
             self._upload_queue.put(item.get())
-            item = self._error_queue.get()
 
         # Handle the upload queue
         self._handle_upload_queue()
