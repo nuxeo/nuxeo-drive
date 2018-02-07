@@ -45,7 +45,6 @@ class DirectEdit(Worker):
         self._folder = folder
         self.url = url
 
-        self._test = False
         self._thread.started.connect(self.run)
         self._event_handler = None
         self._metrics = {'edit_files': 0}
@@ -474,17 +473,8 @@ class DirectEdit(Worker):
             # Load the target URL if Drive was not launched before
             self.handle_url()
 
-            if self._test:
-                log.trace('DirectEdit Entering main loop: continue=%r,'
-                          ' pause=%r, running=%r',
-                          self._continue, self._pause, self._running)
-
             while True:
                 self._interact()
-                if self._test:
-                    log.trace('DirectEdit post interact: continue=%r,'
-                              ' pause=%r, running=%r',
-                              self._continue, self._pause, self._running)
                 try:
                     self._handle_queues()
                 except NotFound:

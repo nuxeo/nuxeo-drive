@@ -4,6 +4,7 @@ import os
 from nxdrive.client import LocalClient
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.engine.engine import Engine
+from nxdrive.manager import ServerBindingSettings
 from tests.common_unit_test import UnitTestCase
 
 
@@ -12,7 +13,6 @@ class MockUrlTestEngine(Engine):
         self._url = url
 
     def get_binder(self):
-        from nxdrive.manager import ServerBindingSettings
         return ServerBindingSettings(
             server_url=self._url,
             web_authentication=None,
@@ -31,7 +31,6 @@ class TestDirectEdit(UnitTestCase):
     def setUpApp(self):
         super(TestDirectEdit, self).setUpApp()
         self.direct_edit = self.manager_1.direct_edit
-        self.direct_edit._test = True
         self.direct_edit.directEditUploadCompleted.connect(self.app.sync_completed)
         self.direct_edit.start()
 
@@ -100,56 +99,11 @@ class TestDirectEdit(UnitTestCase):
         self.remote.lock(doc_id)
         self._direct_edit_update(doc_id, filename, 'Test')
 
-    def _office_locker(self, path):
-        return os.path.join(os.path.dirname(path), "~$" + os.path.basename(path)[2:])
-
-    def _openoffice_locker(self, path):
-        return os.path.join(os.path.dirname(path), ".~lock." + os.path.basename(path)[2:])
-
-#     def test_autolock_office(self):
-#         self._autolock(self._office_locker)
-
-#     def test_autolock_openoffice(self):
-#      LibreOffice as well
-#         self._autolock(self._openoffice_locker)
-
-    def _autolock(self, locker):
-        global called_open, lock_file
-        called_open = False
-        filename = u'Document.docx'
-        doc_id = self.remote.make_file('/', filename, 'Some content.')
-
-        def open_local_file(path):
-            global called_open, lock_file
-            called_open = True
-            # Lock file
-            lock_file = locker(path)
-            with open(lock_file, 'w') as f:
-                f.write("plop")
-
-        self.manager_1.open_local_file = open_local_file
-        self.manager_1.set_direct_edit_auto_lock(1)
-        self.direct_edit._manager.open_local_file = open_local_file
-        self.direct_edit.edit(self.nuxeo_url, doc_id, filename=filename, user=self.user_1)
-        self.wait_sync(timeout=2, fail_if_timeout=False)
-        self.assertTrue(called_open, "Should have called open_local_file")
-        # Should be able to test lock
-        self.assertTrue(self.remote_document_client_1.is_locked(doc_id))
-        os.remove(lock_file)
-        self.wait_sync(timeout=2, fail_if_timeout=False)
-        # Should be unlock
-        self.assertFalse(self.remote_document_client_1.is_locked(doc_id))
-        self.manager_1.set_direct_edit_auto_lock(0)
-        with open(lock_file, 'w') as f:
-            f.write("plop")
-        self.wait_sync(timeout=2, fail_if_timeout=False)
-        self.assertFalse(self.remote_document_client_1.is_locked(doc_id))
-
     def _direct_edit_update(self, doc_id, filename, content, url=None):
         # Download file
         local_path = u'/%s/%s' % (doc_id, filename)
 
-        def open_local_file(path):
+        def open_local_file(_):
             pass
 
         self.manager_1.open_local_file = open_local_file
