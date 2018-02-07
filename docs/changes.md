@@ -14,6 +14,7 @@ Release date: `2018-??-??`
 #### Minor changes
 - Doc: Add a link to know up-to-date envvars value
 - Framework: Do not create test folder for case sensitivity in the Drive folder but in a temporary one
+- Framework: Review BlackListQueue class
 - Framework: Review DirectEdit class
 - Framework: Review EngineNext class
 - Jenkins: Discard old builds
