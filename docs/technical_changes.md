@@ -3,8 +3,11 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+- Changed `BlacklistQueue.get()`, it is now a generator.
 - Removed `CLIHandler.edit()`
+- Removed `DirectEdit.is_lock_file()` (now private)
 - Removed `exception` keyword argument from `Engine.set_invalid_credentials()`
+- Removed `LocalClient.make_tree()`
 - Removed `Manager.edit()`
 - Removed `Manager.get_autolock_service()`. Use `autolock_service` attribute instead.
 - Removed `Manager.get_tracker()`
@@ -13,6 +16,7 @@
 - Removed `WindowsIntegration.get_open_files()`
 - Removed osi/\_\_init__.py::`get_open_files()`
 - Removed osi/windows/win32_handlers.py
+- Added utils.py::`simplify_url()`
 
 # 3.0.4
 - Removed `FsClient`

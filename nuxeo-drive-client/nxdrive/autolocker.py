@@ -28,6 +28,10 @@ class ProcessAutoLockerWorker(PollWorker):
         self._first = True
 
     def set_autolock(self, filepath, locker):
+        if self._autolocked.get(filepath):
+            # Already locked
+            return
+
         self._autolocked[filepath] = 0
         self._lockers[filepath] = locker
         QtCore.QTimer.singleShot(2000, self.force_poll)
@@ -49,16 +53,8 @@ class ProcessAutoLockerWorker(PollWorker):
         self._dao.unlock_path(path)
 
     def _process(self):
-        # Restrict to PID
-        pids = []
-        for path in self._autolocked:
-            if not self._autolocked[path]:
-                pids = []
-                break
-            pids.append(self._autolocked[path])
-
         to_unlock = deepcopy(self._autolocked)
-        for pid, path in get_open_files(pids=pids):
+        for pid, path in get_open_files():
             if path.startswith(self._folder):
                 log.trace('Found in watched folder: %r (PID=%r)', path, pid)
             elif path in self._autolocked:
@@ -82,10 +78,6 @@ class ProcessAutoLockerWorker(PollWorker):
 
     def _unlock_files(self, files):
         for path in files:
-            pid = self._autolocked[path]
-            if not pid:
-                continue
-            # No process recorded so never been locked
             self._unlock_file(path)
 
     def _lock_file(self, item):
@@ -107,21 +99,15 @@ class ProcessAutoLockerWorker(PollWorker):
         self._dao.unlock_path(path)
 
 
-def get_open_files(pids=None):
-    # type (Optional[List[int]]) -> generator(int, str)
+def get_open_files():
+    # type () -> generator(int, str)
     """
     Get all opened files on the OS.
 
-    :param list pids: PIDs of processes we want to track.
     :return: Generator of (PID, file path).
     """
 
-    log.trace('Get opened files restricted to PIDs=%r', pids)
     for proc in psutil.process_iter():
-        if pids and proc.pid not in pids:
-            # We only want files opened by the `pids` processes
-            continue
-
         try:
             for handler in proc.open_files():
                 yield proc.pid, handler.path

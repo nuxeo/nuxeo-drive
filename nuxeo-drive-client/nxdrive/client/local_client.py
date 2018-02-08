@@ -153,12 +153,9 @@ class LocalClient(BaseClient):
         # type: () -> bool
 
         if self._case_sensitive is None:
-            lock = self.unlock_path(self.base_folder, unlock_parent=False)
-            path = tempfile.mkdtemp(prefix='.caseTest_',
-                                    dir=safe_long_path(self.base_folder))
+            path = tempfile.mkdtemp(prefix='.caseTest_')
             self._case_sensitive = not os.path.exists(path.upper())
             os.rmdir(path)
-            self.lock_path(self.base_folder, lock)
         return self._case_sensitive
 
     @staticmethod
@@ -633,18 +630,6 @@ FolderType=Generic
         if parent == u'/':
             return u'/' + name
         return parent + u'/' + name
-
-    @staticmethod
-    def make_tree(path):
-        # type: (Text) -> None
-        """ Recursive directory creation. """
-
-        try:
-            os.makedirs(path)
-        except os.error as exc:
-            # EEXIST: path already exists
-            if exc.errno != errno.EEXIST:
-                raise exc
 
     def duplicate_file(self, ref):
         # type: (Text) -> Text
