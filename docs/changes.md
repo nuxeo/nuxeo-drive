@@ -22,6 +22,7 @@ Release date: `2018-??-??`
 - Framework: Review BlackListQueue class
 - Framework: Review DirectEdit class
 - Framework: Review EngineNext class
+- GUI: Use Web-UI as default value or in case of unknown selected UI for URLs generators
 - Jenkins: Discard old builds
 - Tests: Add a simple test for .rvt files
 - Tests: Add -W error option to pytest

@@ -288,6 +288,7 @@ class Engine(QObject):
     def get_metadata_url(self, remote_ref):
         """
         Build the document's metadata URL based on the server's UI.
+        Default is Web-UI.  In case of unknown UI, use the default value.
 
         :param str remote_ref: The document remote reference (UID) of the
             document we want to show metadata.
@@ -306,11 +307,12 @@ class Engine(QObject):
             'uid': remote_ref_segments[2],
             'token': self.get_remote_token(),
         }
-        return urls[Options.ui].format(**infos)
+        return urls.get(Options.ui, 'web').format(**infos)
 
     def get_remote_url(self):
         """
         Build the server's URL based on the server's UI.
+        Default is Web-UI.  In case of unknown UI, use the default value.
 
         :return str: The complete URL.
         """
@@ -325,7 +327,7 @@ class Engine(QObject):
             'repo': Options.remote_repo,
             'token': self.get_remote_token(),
         }
-        return urls[Options.ui].format(**infos)
+        return urls.get(Options.ui, 'web').format(**infos)
 
     def is_syncing(self):
         return self._sync_started
