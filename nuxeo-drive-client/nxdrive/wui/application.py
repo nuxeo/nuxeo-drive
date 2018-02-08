@@ -163,8 +163,9 @@ class Application(SimpleApplication):
 
         self.setup_systray()
 
-        # Direct Edit conflict
+        # Direct Edit
         self.manager.direct_edit.directEditConflict.connect(self._direct_edit_conflict)
+        self.manager.direct_edit.directEditError.connect(self._direct_edit_error)
 
         # Check if actions is required, separate method so it can be override
         self.init_checks()
@@ -202,6 +203,19 @@ class Application(SimpleApplication):
         except:
             log.exception('Error while displaying Direct Edit'
                           ' conflict modal dialog for %r', filename)
+
+    @QtCore.pyqtSlot(str, dict)
+    def _direct_edit_error(self, message, values):
+        """ Display a simple Direct Edit error message. """
+
+        msg = QtGui.QMessageBox()
+        msg.setWindowTitle('Direct Edit')
+        msg.setWindowIcon(QtGui.QIcon(self.get_window_icon()))
+        msg.setIcon(QtGui.QMessageBox.Warning)
+        msg.setTextFormat(QtCore.Qt.RichText)
+        msg.setText(self.translate(unicode(message), values))
+        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.exec_()
 
     @QtCore.pyqtSlot()
     def _root_deleted(self):

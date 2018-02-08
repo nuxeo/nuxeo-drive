@@ -21,8 +21,6 @@ from nxdrive.osi import parse_protocol_url
 from nxdrive.utils import (current_milli_time, force_decode,
                            guess_digest_algorithm, normalize_event_filename,
                            simplify_url)
-from nxdrive.wui.application import SimpleApplication
-from nxdrive.wui.modal import WebModal
 
 log = getLogger(__name__)
 
@@ -34,6 +32,7 @@ class DirectEdit(Worker):
     editDocument = pyqtSignal(object)
     directEditLockError = pyqtSignal(str, str, str)
     directEditConflict = pyqtSignal(str, str, str)
+    directEditError = pyqtSignal(str, dict)
     directEditReadonly = pyqtSignal(object)
     directEditLocked = pyqtSignal(object, object, object)
 
@@ -188,12 +187,21 @@ class DirectEdit(Worker):
 
     def _get_engine(self, server_url, doc_id=None, user=None):
         engine = self.__get_engine(server_url, user=user)
-        values = {'user': str(user), 'server': server_url}
 
         if not engine:
-            log.warning('No engine found for server_url=%r, user=%r, doc_id=%r',
-                        server_url, user, doc_id)
-            self._display_modal('DIRECT_EDIT_CANT_FIND_ENGINE', values)
+            values = {
+                'user': force_decode(user) if user else 'Unknown',
+                'server': server_url,
+            }
+            log.warning('No engine found for user %r on server %r, doc_id=%r',
+                        user, server_url, doc_id)
+            self.directEditError.emit('DIRECT_EDIT_CANT_FIND_ENGINE', values)
+        elif not engine.has_invalid_credentials():
+            values = {'user': engine.remote_user, 'server': engine.server_url}
+            log.warning('Invalid credentials for user %r on server %r',
+                        engine.remote_user, engine.server_url)
+            self.directEditError.emit('DIRECT_EDIT_INVALID_CREDS', values)
+            engine = None
 
         return engine
 
@@ -225,13 +233,6 @@ class DirectEdit(Worker):
             else:
                 remote_client.get_blob(info, file_out=file_out)
         return file_out
-
-    def _display_modal(self, message, values=None):
-        app = SimpleApplication(self._manager)
-        dialog = WebModal(app, app.translate(message, values))
-        dialog.add_button("OK", app.translate("OK"))
-        dialog.show()
-        app.exec_()
 
     def _get_info(self, engine, remote, doc_id, user):
         doc = remote.fetch(
@@ -344,7 +345,6 @@ class DirectEdit(Worker):
     def _extract_edit_info(self, ref):
         local = self._local_client
         dir_path = os.path.dirname(ref)
-        uid = local.get_remote_id(dir_path)
         server_url = local.get_remote_id(dir_path, name='nxdirectedit')
         user = local.get_remote_id(dir_path, name='nxdirectedituser')
         engine = self._get_engine(server_url, user=user)
@@ -355,6 +355,7 @@ class DirectEdit(Worker):
         remote_client.check_suspended = self.stop_client
         digest_algorithm = local.get_remote_id(dir_path, name='nxdirecteditdigestalgorithm')
         digest = local.get_remote_id(dir_path, name='nxdirecteditdigest')
+        uid = local.get_remote_id(dir_path)
         return uid, engine, remote_client, digest_algorithm, digest
 
     def force_update(self, ref, digest):
@@ -422,7 +423,7 @@ class DirectEdit(Worker):
 
             log.trace('Handling DirectEdit queue ref: %r', ref)
 
-            uid,  engine, remote, digest_algorithm, digest = self._extract_edit_info(ref)
+            uid, engine, remote, digest_algorithm, digest = self._extract_edit_info(ref)
             # Don't update if digest are the same
             info = local.get_info(ref)
             try:

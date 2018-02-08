@@ -12,6 +12,7 @@ Release date: `2018-??-??`
 
 ### GUI
 - [NXDRIVE-1106](https://jira.nuxeo.com/browse/NXDRIVE-1106): Use new branding icons
+- [NXDRIVE-1107](https://jira.nuxeo.com/browse/NXDRIVE-1107): Notify user of lost authenticated state during Direct Edit
 
 ### Tests
 - [NXDRIVE-887](https://jira.nuxeo.com/browse/NXDRIVE-887): Integrate SonarCloud code quality check
