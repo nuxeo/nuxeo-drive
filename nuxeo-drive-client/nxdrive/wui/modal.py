@@ -12,15 +12,15 @@ class WebModalApi(WebDriveApi):
     def _json_default(self, obj):
         if isinstance(obj, WebModalButton):
             return self._export_button(obj)
-        else:
-            return super(WebModalApi, self)._json_default(obj)
+        return super(WebModalApi, self)._json_default(obj)
 
-    def _export_button(self, obj):
-        result = dict()
-        result["uid"] = obj.uid
-        result["label"] = obj._label
-        result["style"] = obj._style
-        return result
+    @staticmethod
+    def _export_button(obj):
+        return {
+            'uid': obj.uid,
+            'label': obj._label,
+            'style': obj._style,
+        }
 
     @pyqtSlot(result=str)
     def get_message(self):

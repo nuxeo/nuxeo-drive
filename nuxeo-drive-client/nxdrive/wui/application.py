@@ -206,9 +206,8 @@ class Application(SimpleApplication):
     @QtCore.pyqtSlot()
     def _root_deleted(self):
         engine = self.sender()
-        info = dict()
+        info = {'folder': engine.local_folder}
         log.debug('Root has been deleted for engine: %s', engine.uid)
-        info['folder'] = engine.local_folder
         dlg = WebModal(self, Translator.get('DRIVE_ROOT_DELETED', info))
         dlg.add_button('RECREATE',
                        Translator.get('DRIVE_ROOT_RECREATE'),

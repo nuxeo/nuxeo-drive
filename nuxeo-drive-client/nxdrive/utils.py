@@ -601,8 +601,7 @@ class PidLockFile(object):
     def _get_sync_pid_filepath(self, process_name=None):
         if process_name is None:
             process_name = self.key
-        return os.path.join(self.folder,
-                            'nxdrive_%s.pid' % process_name)
+        return os.path.join(self.folder, 'nxdrive_%s.pid' % process_name)
 
     def unlock(self):
         if not self.locked:
@@ -612,9 +611,9 @@ class PidLockFile(object):
         try:
             os.unlink(pid_filepath)
         except Exception, e:
-            log.warning("Failed to remove stalled pid file: %s"
-                        " for stopped process %d: %r", pid_filepath,
-                        os.getpid(), e)
+            log.warning('Failed to remove stalled PID file: %r'
+                        ' for stopped process %d: %r',
+                        pid_filepath, os.getpid(), e)
 
     def check_running(self, process_name=None):
         """Check whether another sync process is already runnning
@@ -633,7 +632,8 @@ class PidLockFile(object):
                     pid = int(f.read().strip())
                     p = psutil.Process(pid)
                     # If process has been created after the lock file
-                    # Changed from getctime() to getmtime() because of Windows' 'file system tunneling'
+                    # Changed from getctime() to getmtime() because of Windows
+                    # file system tunneling
                     if p.create_time() > os.path.getmtime(pid_filepath):
                         raise ValueError
                     return pid
@@ -645,19 +645,19 @@ class PidLockFile(object):
             try:
                 os.unlink(pid_filepath)
                 if pid is None:
-                    msg = "Removed old empty pid file: %s" % pid_filepath
+                    msg = 'Removed old empty PID file %r' % pid_filepath
                 else:
-                    msg = ("Removed old pid file: %s for stopped process"
-                           " %d" % (pid_filepath, pid))
+                    msg = 'Removed old PID file %r for stopped process %d' % (
+                        pid_filepath, pid)
                 log.info(msg)
             except Exception, e:
                 if pid is not None:
-                    msg = ("Failed to remove stalled pid file: %s for"
-                           " stopped process %d: %r"
+                    msg = ('Failed to remove stalled PID file: %r for'
+                           ' stopped process %d: %r'
                            % (pid_filepath, pid, e))
                     log.warning(msg)
                     return pid
-                msg = "Failed to remove empty stalled pid file: %s: %r" % (
+                msg = 'Failed to remove empty stalled PID file %r: %r' % (
                     pid_filepath, e)
                 log.warning(msg)
         self.locked = True
@@ -665,7 +665,7 @@ class PidLockFile(object):
     def lock(self):
         pid = self.check_running(process_name=self.key)
         if pid is not None:
-            log.warning("%s process with pid %d already running.", self.key, pid)
+            log.warning('%s process with PID %d already running', self.key, pid)
             return pid
 
         # Write the pid of this process

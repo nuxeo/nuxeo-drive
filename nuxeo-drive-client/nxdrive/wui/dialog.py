@@ -611,14 +611,6 @@ class WebDialog(QtGui.QDialog):
         if page is not None:
             self.load(page, api, application)
 
-    def __del__(self):
-        """
-        For an unknown reason, we need to have a destructor to avoid segfault
-        when the metadata window is closed.
-        """
-        self.disconnect()
-        super(WebDialog, self).__del__()
-
     def load(self, page, api=None, application=None):
         if application is None and api is not None:
             application = api.application
