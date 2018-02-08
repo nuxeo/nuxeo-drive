@@ -8,6 +8,9 @@ Release date: `2018-??-??`
 - [NXDRIVE-1098](https://jira.nuxeo.com/browse/NXDRIVE-1098): Auto-Lock does not work when there are orphans
 - [NXDRIVE-1104](https://jira.nuxeo.com/browse/NXDRIVE-1104): Set invalid credentials on 401,403 errors only
 
+### GUI
+- [NXDRIVE-1106](https://jira.nuxeo.com/browse/NXDRIVE-1106): Use new branding icons
+
 ### Tests
 - [NXDRIVE-887](https://jira.nuxeo.com/browse/NXDRIVE-887): Integrate SonarCloud code quality check
 
