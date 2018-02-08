@@ -23,7 +23,6 @@ from nxdrive.engine.watcher.local_watcher import LocalWatcher
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 from nxdrive.engine.workers import PairInterrupt, ThreadInterrupt, Worker
 from nxdrive.gui.resources import find_icon
-from nxdrive.manager import ServerBindingSettings
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import normalized_path
@@ -661,16 +660,16 @@ class Engine(QObject):
         log.debug("%r", self._queue_manager.get_metrics())
 
     def get_metrics(self):
-        metrics = dict()
-        metrics["sync_folders"] = self._dao.get_sync_count(filetype="folder")
-        metrics["sync_files"] = self._dao.get_sync_count(filetype="file")
-        metrics["syncing"] = self._dao.get_syncing_count()
-        metrics["error_files"] = self._dao.get_error_count()
-        metrics["conflicted_files"] = self._dao.get_conflict_count()
-        metrics["unsynchronized_files"] = self._dao.get_unsynchronized_count()
-        metrics["files_size"] = self._dao.get_global_size()
-        metrics["invalid_credentials"] = self._invalid_credentials
-        return metrics
+        return {
+            'conflicted_files': self._dao.get_conflict_count(),
+            'error_files': self._dao.get_error_count(),
+            'files_size': self._dao.get_global_size(),
+            'invalid_credentials': self._invalid_credentials,
+            'sync_files': self._dao.get_sync_count(filetype='file'),
+            'sync_folders': self._dao.get_sync_count(filetype='folder'),
+            'syncing': self._dao.get_syncing_count(),
+            'unsynchronized_files': self._dao.get_unsynchronized_count(),
+        }
 
     def get_conflicts(self):
         return self._dao.get_conflicts()
@@ -1077,3 +1076,25 @@ class Engine(QObject):
                 self._user_cache[userid] = full_name
 
         return full_name
+
+
+class ServerBindingSettings(object):
+    """ Summarize server binding settings. """
+
+    def __init__(
+        self,
+        server_version=None,
+        password=None,
+        pwd_update_required=False,
+        **kwargs
+    ):
+        self.server_version = server_version
+        self.password = password
+        self.pwd_update_required = pwd_update_required
+        for arg, value in kwargs.items():
+            setattr(self, arg, value)
+
+    def __repr__(self):
+        attrs = ', '.join('{}={!r}'.format(attr, getattr(self, attr, None))
+                          for attr in sorted(vars(self)))
+        return '<{} {}>'.format(self.__class__.__name__, attrs)

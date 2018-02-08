@@ -3,8 +3,7 @@ import os
 
 from nxdrive.client import LocalClient
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
-from nxdrive.engine.engine import Engine
-from nxdrive.manager import ServerBindingSettings
+from nxdrive.engine.engine import Engine, ServerBindingSettings
 from tests.common_unit_test import UnitTestCase
 
 
@@ -40,6 +39,18 @@ class TestDirectEdit(UnitTestCase):
     def tearDownApp(self):
         self.direct_edit.stop()
         super(TestDirectEdit, self).tearDownApp()
+
+    def test_binder(self):
+        engine = self.manager_1._engines.items()[0][1]
+        binder = engine.get_binder()
+        assert repr(binder)
+        assert not binder.server_version
+        assert not binder.password
+        assert not binder.pwd_update_required
+        assert binder.server_url
+        assert binder.username
+        assert binder.initialized
+        assert binder.local_folder
 
     def test_url_resolver(self):
         self.assertIsNotNone(self.direct_edit._get_engine(self.nuxeo_url, self.user_1))
