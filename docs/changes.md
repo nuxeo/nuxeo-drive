@@ -19,6 +19,7 @@ Release date: `2018-??-??`
 - Framework: Review EngineNext class
 - Jenkins: Discard old builds
 - Tests: Add a simple test for .rvt files
+- Tests: Show failures summary
 
 
 # 3.0.4

@@ -365,6 +365,7 @@ launch_tests() {
         --failed-first \
         --no-print-logs \
         --log-level=CRITICAL \
+        -r fE \
         -v
 }
 
