@@ -79,7 +79,7 @@ class AutoRetryConnection(sqlite3.Connection):
 class StateRow(sqlite3.Row):
 
     def __init__(self, arg1, arg2):
-        super(StateRow, self).__init__(arg1, arg2)
+        super(StateRow, self).__init__()
 
     def __repr__(self):
         return ('<{name}[{cls.id!r}]'

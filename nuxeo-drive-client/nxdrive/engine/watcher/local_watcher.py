@@ -18,7 +18,7 @@ from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.options import Options
 from nxdrive.utils import current_milli_time, is_generated_tmp_file, \
-    normalize_event_filename
+    normalize_event_filename, force_decode
 
 log = getLogger(__name__)
 
@@ -819,8 +819,10 @@ class LocalWatcher(EngineWorker):
                       evt.event_type, evt.src_path, dst_path)
             # Ignore normalization of the filename on the file system
             # See https://jira.nuxeo.com/browse/NXDRIVE-188
-            if (dst_path == normalize_event_filename(evt.src_path, action=False)
-                    or dst_path == evt.src_path.strip()):
+            filename = normalize_event_filename(evt.src_path, action=False)
+
+            if force_decode(dst_path) in (
+                    filename, force_decode(evt.src_path.strip())):
                 log.debug('Ignoring move from %r to normalized name: %r',
                           evt.src_path, dst_path)
                 return

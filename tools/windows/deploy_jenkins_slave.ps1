@@ -338,6 +338,7 @@ function launch_tests {
 		--no-print-logs `
 		--log-level=CRITICAL `
 		-r fE `
+		-W error `
 		-v
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode

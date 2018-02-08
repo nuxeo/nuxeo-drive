@@ -19,7 +19,7 @@ from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler
 from nxdrive.engine.workers import ThreadInterrupt, Worker
 from nxdrive.osi import parse_protocol_url
 from nxdrive.utils import current_milli_time, guess_digest_algorithm, \
-    normalize_event_filename, simplify_url
+    normalize_event_filename, simplify_url, force_decode
 from nxdrive.wui.application import SimpleApplication
 from nxdrive.wui.modal import WebModal
 
@@ -561,7 +561,7 @@ class DirectEdit(Worker):
             dir_path = local.get_path(os.path.dirname(src_path))
             name = local.get_remote_id(dir_path, name='nxdirecteditname')
 
-            if not name or name != file_name:
+            if not name or force_decode(name) != force_decode(file_name):
                 if (evt.event_type == 'deleted'
                         and self._is_lock_file(file_name)):
                     # Free the xattr to let _cleanup() does its work
