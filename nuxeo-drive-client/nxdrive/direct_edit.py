@@ -13,7 +13,7 @@ from nxdrive.client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
                                                    DOWNLOAD_TMP_FILE_SUFFIX)
 from nxdrive.client.common import BaseClient, NotFound
 from nxdrive.client.local_client import LocalClient
-from nxdrive.engine.activity import Action
+from nxdrive.engine.activity import tooltip
 from nxdrive.engine.blacklist_queue import BlacklistQueue
 from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler
 from nxdrive.engine.workers import ThreadInterrupt, Worker
@@ -113,10 +113,11 @@ class DirectEdit(Worker):
                   user=info['user'],
                   download_url=info['download_url'])
 
+    @tooltip('Clean up folder')
     def _cleanup(self):
         """
         - Unlock any remaining doc that has not been unlocked
-        - Upload forgoten changes
+        - Upload forgotten changes
         - Remove obsolete folders
         """
 
@@ -464,12 +465,8 @@ class DirectEdit(Worker):
 
     def _execute(self):
         try:
-            self._action = Action('Clean up folder')
             self._cleanup()
-
-            self._action = Action('Setup watchdog')
             self._setup_watchdog()
-            self._end_action()
 
             # Load the target URL if Drive was not launched before
             self.handle_url()
@@ -498,6 +495,7 @@ class DirectEdit(Worker):
         metrics.update(self._metrics)
         return metrics
 
+    @tooltip('Setup watchdog')
     def _setup_watchdog(self):
         log.debug('Watching FS modification on %r', self._folder)
         self._event_handler = DriveFSEventHandler(self)
@@ -537,8 +535,8 @@ class DirectEdit(Worker):
             '.~lock.',  # (Libre|Open)Office
         ))
 
+    @tooltip('Handle watchdog event')
     def handle_watchdog_event(self, evt):
-        self._action = Action('Handle watchdog event')
         try:
             src_path = normalize_event_filename(evt.src_path)
 
@@ -579,5 +577,3 @@ class DirectEdit(Worker):
             raise
         except:
             log.exception('Watchdog error')
-        finally:
-            self._end_action()

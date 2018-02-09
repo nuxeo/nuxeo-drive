@@ -14,7 +14,7 @@ from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.common import (COLLECTION_SYNC_ROOT_FACTORY_NAME,
                                    safe_filename)
 from nxdrive.client.remote_file_system_client import RemoteFileInfo
-from nxdrive.engine.activity import Action
+from nxdrive.engine.activity import Action, tooltip
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.utils import current_milli_time, path_join
 
@@ -84,8 +84,10 @@ class RemoteWatcher(EngineWorker):
             self.remoteWatcherStopped.emit()
             raise
 
+    @tooltip('Remote scanning')
     def _scan_remote(self, from_state=None):
         """Recursively scan the bound remote folder looking for updates"""
+        log.trace('Remote full scan')
         start_ms = current_milli_time()
         try:
             if from_state is None:
@@ -337,7 +339,7 @@ class RemoteWatcher(EngineWorker):
             log.trace('Skip already remote scanned: %r', doc_pair.local_path)
             return None
         if doc_pair.local_path is not None:
-            self._action = Action('Remote scanning %r' % doc_pair.local_path)
+            Action('Remote scanning %r' % doc_pair.local_path)
             log.debug('Remote scanning: %r', doc_pair.local_path)
         return remote_parent_path
 
@@ -477,11 +479,8 @@ class RemoteWatcher(EngineWorker):
             return False
 
         try:
-            if self._last_remote_full_scan is None:
-                log.trace('Remote full scan')
-                self._action = Action('Remote scanning')
+            if not self._last_remote_full_scan:
                 self._scan_remote()
-                self._end_action()
 
                 # Might need to handle the changes now
                 if first_pass:
@@ -499,7 +498,7 @@ class RemoteWatcher(EngineWorker):
                 self._dao.update_config('remote_need_full_scan', remote_ref)
                 self._partial_full_scan(remote_ref)
                 paths = self._dao.get_paths_to_scan()
-            self._action = Action('Handle remote changes')
+
             self._update_remote_states()
             (self.updated, self.initiate)[first_pass].emit()
         except HTTPError as e:
@@ -518,7 +517,7 @@ class RemoteWatcher(EngineWorker):
         else:
             return True
         finally:
-            self._end_action()
+            Action.finish_action()
         return False
 
     def _get_changes(self):
@@ -549,6 +548,7 @@ class RemoteWatcher(EngineWorker):
         else:
             self._do_scan_remote(doc_pair, remote_info, force_recursion=force_recursion, moved=moved)
 
+    @tooltip('Handle remote changes')
     def _update_remote_states(self):
         """Incrementally update the state of documents from a change summary"""
         summary = self._get_changes()

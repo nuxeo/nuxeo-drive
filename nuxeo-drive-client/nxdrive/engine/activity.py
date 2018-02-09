@@ -96,3 +96,15 @@ class FileAction(Action):
 
 Action.actions = dict()
 Action.lastFileActions = dict()
+
+
+def tooltip(doing):
+    def action_decorator(func):
+        def func_wrapper(*args, **kwargs):
+            Action(doing)
+            try:
+                func(*args, **kwargs)
+            finally:
+                Action.finish_action()
+        return func_wrapper
+    return action_decorator

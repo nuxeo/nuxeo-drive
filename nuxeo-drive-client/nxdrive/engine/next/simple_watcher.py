@@ -8,7 +8,6 @@ from time import sleep, time
 from watchdog.events import DirModifiedEvent
 
 from nxdrive.client.local_client import FileInfo
-from nxdrive.engine.activity import Action
 from nxdrive.engine.watcher.local_watcher import LocalWatcher
 from nxdrive.engine.workers import ThreadInterrupt
 from nxdrive.utils import current_milli_time, normalize_event_filename
@@ -18,7 +17,7 @@ log = getLogger(__name__)
 
 class SimpleWatcher(LocalWatcher):
     """
-    Only handle modified event in this class.  As we cannot
+    Only handle modified event in this class. As we cannot
     rely on DELETE/CREATE etc just using the modification
     with a folder check should do the trick.
     """
@@ -128,22 +127,21 @@ class SimpleWatcher(LocalWatcher):
             if not self.client.exists('/'):
                 self.rootDeleted.emit()
                 return
-            self._action = Action("Setup watchdog")
             self.watchdog_queue = Queue()
             self._setup_watchdog()
             log.debug("Watchdog setup finished")
-            self._action = Action("Full local scan")
             self._scan()
-            self._end_action()
-            # Check windows dequeue and folder scan only every 100 loops ( every 1s )
+
+            # Check windows de-queue and folder scan
+            # only every 100 loops (every 1s)
             current_time_millis = int(round(time() * 1000))
             self._win_delete_interval = current_time_millis
             self._win_folder_scan_interval = current_time_millis
             i = 0
-            while (1):
+            while True:
                 self._interact()
                 sleep(0.01)
-                while (not self.watchdog_queue.empty()):
+                while not self.watchdog_queue.empty():
                     # Dont retest if already local scan
                     evt = self.watchdog_queue.get()
                     self.handle_watchdog_event(evt)
@@ -153,7 +151,8 @@ class SimpleWatcher(LocalWatcher):
                     continue
                 i = 0
                 threshold_time = current_milli_time() - 1000 * self._scan_delay
-                # Need to create a list of to scan as the dictionary cannot grow while iterating
+                # Need to create a list of to scan as
+                # the dictionary cannot grow while iterating
                 local_scan = []
                 for path, last_event_time in self._to_scan.iteritems():
                     if last_event_time < threshold_time:
@@ -163,8 +162,9 @@ class SimpleWatcher(LocalWatcher):
                     # Dont delete if the time has changed since last scan
                     if self._to_scan[path] < threshold_time:
                         del self._to_scan[path]
-                if (len(self._delete_files)):
-                    # Enforce scan of all others folders to not loose track of moved file
+                if len(self._delete_files):
+                    # Enforce scan of all others folders
+                    # to not loose track of moved file
                     self._scan_handle_deleted_files()
         except ThreadInterrupt:
             raise
@@ -175,7 +175,8 @@ class SimpleWatcher(LocalWatcher):
         log.warning("delete files are: %r", self._delete_files)
         # Need to check for the current file
         to_deletes = copy.copy(self._delete_files)
-        # Enforce the scan of all folders to check if the file hasnt moved there
+        # Enforce the scan of all folders
+        # to check if the file hasn't moved there
         for path, _ in self._to_scan.iteritems():
             self._scan_path(path)
         for deleted in to_deletes:
@@ -190,7 +191,8 @@ class SimpleWatcher(LocalWatcher):
 
     def _scan_path(self, path):
         if self.client.exists(path):
-            log.warning("Scan delayed folder: %s:%d", path, len(self.client.get_children_info(path)))
+            log.warning("Scan delayed folder: %s:%d",
+                        path, len(self.client.get_children_info(path)))
             local_info = self.client.get_info(path, raise_if_missing=False)
             if local_info is not None:
                 self._scan_recursive(local_info, False)
