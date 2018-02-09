@@ -132,7 +132,7 @@ class Worker(QObject, object):
             sleep(0.01)
 
     def _terminated(self):
-        log.debug("Thread %s(%r) terminated", self._name, self._thread_id)
+        log.trace('Thread %s(%r) terminated', self._name, self._thread_id)
 
     def _update_action(self, action):
         self.actionUpdate.emit(action)
@@ -228,8 +228,7 @@ class PollWorker(Worker):
         # Check at start
         self._next_check = 0
         self._enable = True
-        self._metrics = dict()
-        self._metrics['last_poll'] = 0
+        self._metrics = {'last_poll': 0}
 
     def get_metrics(self):
         metrics = super(PollWorker, self).get_metrics()
@@ -260,36 +259,3 @@ class PollWorker(Worker):
 
     def _poll(self):
         return True
-
-
-class DummyWorker(Worker):
-    """ Just a DummyWorker with infinite loop. """
-
-    def _execute(self):
-        while True:
-            self._interact()
-            sleep(0.01)
-
-
-class CrazyWorker(Worker):
-    """ Just a CrazyWorker with infinite loop - no control. """
-
-    def _execute(self):
-        while True:
-            sleep(0.01)
-
-
-class ProgressWorker(Worker):
-    """ Just a DummyWorker with progression from 0 to 100. """
-
-    def _execute(self):
-        self._progress = 0
-        while self._progress < 100:
-            self._interact()
-            self._progress += 1
-            sleep(1)
-
-    def get_metrics(self):
-        metrics = super(ProgressWorker, self).get_metrics()
-        metrics['progress'] = self._progress
-        return metrics
