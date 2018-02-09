@@ -11,8 +11,8 @@ from PyQt4.QtCore import pyqtSignal, pyqtSlot
 
 from nxdrive.client import NotFound
 from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME, \
-    safe_filename
+from nxdrive.client.common import (COLLECTION_SYNC_ROOT_FACTORY_NAME,
+                                   safe_filename)
 from nxdrive.client.remote_file_system_client import RemoteFileInfo
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt

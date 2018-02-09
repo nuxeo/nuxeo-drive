@@ -2,10 +2,9 @@
 from logging import getLogger
 from threading import current_thread
 from time import sleep, time
-from urllib2 import HTTPError
 
-from PyQt4.QtCore import QCoreApplication, QObject, QThread, pyqtSignal, \
-    pyqtSlot
+from PyQt4.QtCore import (QCoreApplication, QObject, QThread, pyqtSignal,
+                          pyqtSlot)
 
 from nxdrive.engine.activity import Action, IdleAction
 

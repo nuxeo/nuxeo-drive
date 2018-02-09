@@ -14,16 +14,18 @@ import uuid
 from logging import getLogger
 
 from send2trash import send2trash
-# from typing import List, Optional, Text, Tuple, Union
 
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_PREFIX, \
-    DOWNLOAD_TMP_FILE_SUFFIX
-from nxdrive.client.common import BaseClient, DuplicationDisabledError, \
-    DuplicationError, FILE_BUFFER_SIZE, NotFound, UNACCESSIBLE_HASH, \
-    safe_filename
+from nxdrive.client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
+                                                   DOWNLOAD_TMP_FILE_SUFFIX)
+from nxdrive.client.common import (BaseClient, DuplicationDisabledError,
+                                   DuplicationError, FILE_BUFFER_SIZE,
+                                   NotFound, UNACCESSIBLE_HASH,
+                                   safe_filename)
 from nxdrive.options import Options
-from nxdrive.utils import guess_digest_algorithm, normalized_path, \
-    safe_long_path
+from nxdrive.utils import (guess_digest_algorithm, normalized_path,
+                           safe_long_path)
+
+# from typing import List, Optional, Text, Tuple, Union
 
 if sys.platform == 'win32':
     import ctypes

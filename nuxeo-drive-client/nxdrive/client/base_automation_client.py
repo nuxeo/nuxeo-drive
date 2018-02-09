@@ -21,8 +21,8 @@ from poster.streaminghttp import get_handlers
 from nxdrive.client.common import BaseClient, FILE_BUFFER_SIZE, safe_filename
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.options import Options
-from nxdrive.utils import TOKEN_PERMISSION, force_decode, get_device, \
-    guess_digest_algorithm, guess_mime_type
+from nxdrive.utils import (TOKEN_PERMISSION, force_decode, get_device,
+                           guess_digest_algorithm, guess_mime_type)
 
 log = getLogger(__name__)
 

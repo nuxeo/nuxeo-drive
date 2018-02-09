@@ -1,5 +1,4 @@
 # coding: utf-8
-import inspect
 import os
 import sqlite3
 import sys
@@ -77,9 +76,6 @@ class AutoRetryConnection(sqlite3.Connection):
 
 
 class StateRow(sqlite3.Row):
-
-    def __init__(self, arg1, arg2):
-        super(StateRow, self).__init__(arg1, arg2)
 
     def __repr__(self):
         return ('<{name}[{cls.id!r}]'

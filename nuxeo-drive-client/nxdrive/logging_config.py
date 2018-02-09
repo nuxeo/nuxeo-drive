@@ -3,12 +3,11 @@
 
 import logging
 import os
-from logging.handlers import BufferingHandler, RotatingFileHandler, \
-    TimedRotatingFileHandler
+from logging.handlers import (BufferingHandler, RotatingFileHandler,
+                              TimedRotatingFileHandler)
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from nxdrive.options import Options
-
 
 FILE_HANDLER = None
 TRACE = 5
