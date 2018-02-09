@@ -440,14 +440,15 @@ class Engine(QObject):
         return url
 
     def _load_configuration(self):
-        self._web_authentication = self._dao.get_config("web_authentication", "0") == "1"
-        self._server_url = self._dao.get_config("server_url")
-        self._remote_user = self._dao.get_config("remote_user")
-        self._remote_password = self._dao.get_config("remote_password")
-        self._remote_token = self._dao.get_config("remote_token")
+        self._web_authentication = self._dao.get_config('web_authentication', '0') == '1'
+        self._server_url = self._dao.get_config('server_url')
+        self._remote_user = self._dao.get_config('remote_user')
+        self._remote_password = self._dao.get_config('remote_password')
+        self._remote_token = self._dao.get_config('remote_token')
         self._device_id = self._manager.device_id
         if self._remote_password is None and self._remote_token is None:
-            self.set_invalid_credentials(reason="found no password nor token in engine configuration")
+            self.set_invalid_credentials(
+                reason='found no password nor token in engine configuration')
 
     @property
     def server_url(self):

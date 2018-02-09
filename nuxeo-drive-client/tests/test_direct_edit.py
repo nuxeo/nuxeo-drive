@@ -10,6 +10,7 @@ from tests.common_unit_test import UnitTestCase
 class MockUrlTestEngine(Engine):
     def __init__(self, url):
         self._url = url
+        self._invalid_credentials = False
 
     def get_binder(self):
         return ServerBindingSettings(
