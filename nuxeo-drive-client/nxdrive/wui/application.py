@@ -2,11 +2,11 @@
 """ Main Qt application handling OS events and system tray UI. """
 
 import json
-from logging import getLogger
 import os
 import subprocess
 import sys
 import urllib2
+from logging import getLogger
 
 from PyQt4.QtCore import QTimer, Qt, pyqtSlot
 from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
