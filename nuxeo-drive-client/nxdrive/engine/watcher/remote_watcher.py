@@ -339,7 +339,7 @@ class RemoteWatcher(EngineWorker):
             log.trace('Skip already remote scanned: %r', doc_pair.local_path)
             return None
         if doc_pair.local_path is not None:
-            self._action = Action('Remote scanning %r' % doc_pair.local_path)
+            Action('Remote scanning %r' % doc_pair.local_path)
             log.debug('Remote scanning: %r', doc_pair.local_path)
         return remote_parent_path
 
@@ -517,7 +517,7 @@ class RemoteWatcher(EngineWorker):
         else:
             return True
         finally:
-            self._end_action()
+            Action.finish_action()
         return False
 
     def _get_changes(self):
