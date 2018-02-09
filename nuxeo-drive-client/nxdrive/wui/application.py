@@ -2,14 +2,16 @@
 """ Main Qt application handling OS events and system tray UI. """
 
 import json
+from logging import getLogger
 import os
 import subprocess
 import sys
 import urllib2
-from logging import getLogger
 
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtGui import QApplication
+from PyQt4.QtCore import QTimer, Qt, pyqtSlot
+from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
+                         QIcon, QMenu, QMessageBox, QSystemTrayIcon, QTextEdit,
+                         QVBoxLayout)
 from markdown import markdown
 
 from nxdrive.engine.activity import Action, FileAction
@@ -23,43 +25,6 @@ from nxdrive.wui.systray import DriveSystrayIcon
 from nxdrive.wui.translator import Translator
 
 log = getLogger(__name__)
-
-
-class BindingInfo(object):
-    """Summarize the state of each server connection"""
-
-    online = False
-    n_pending = -1
-    has_more_pending = False
-
-    def __init__(self, server_binding, repository=Options.remote_repo):
-        self.folder_path = server_binding.local_folder
-        self.short_name = os.path.basename(server_binding.local_folder)
-        self.server_link = self._get_server_link(server_binding.server_url,
-                                                 repository)
-
-    def _get_server_link(self, server_url, repository):
-        server_link = server_url
-        if not server_link.endswith('/'):
-            server_link += '/'
-        url_suffix = ('@view_home?tabIds=MAIN_TABS:home,'
-                      'USER_CENTER:userCenterNuxeoDrive')
-        server_link += 'nxhome/' + repository + url_suffix
-        return server_link
-
-    def get_status_message(self):
-        # TODO: i18n
-        if self.online:
-            if self.n_pending > 0:
-                return '%d%s pending operations...' % (
-                    self.n_pending, '+' if self.has_more_pending else '')
-            elif self.n_pending == 0:
-                return 'Folder up to date'
-            return 'Looking for changes ...'
-        return 'Offline'
-
-    def __str__(self):
-        return '%s: %s' % (self.short_name, self.get_status_message())
 
 
 class SimpleApplication(QApplication):
@@ -95,7 +60,7 @@ class SimpleApplication(QApplication):
     def _create_unique_dialog(self, name, dialog):
         self.uniqueDialogs[name] = dialog
         dialog.setObjectName(name)
-        dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        dialog.setAttribute(Qt.WA_DeleteOnClose)
         dialog.destroyed.connect(self._destroy_dialog)
 
     def _init_translator(self):
@@ -150,7 +115,7 @@ class Application(SimpleApplication):
         self.manager.dropEngine.connect(self.dropped_engine)
 
         # Timer to spin the transferring icon
-        self.icon_spin_timer = QtCore.QTimer()
+        self.icon_spin_timer = QTimer()
         self.icon_spin_timer.timeout.connect(self.spin_transferring_icon)
         self.icon_spin_count = 0
 
@@ -176,7 +141,7 @@ class Application(SimpleApplication):
                 and AbstractOSIntegration.os_version_above('10.8')):
             self._setup_notification_center()
 
-    @QtCore.pyqtSlot(str, str, str)
+    @pyqtSlot(str, str, str)
     def _direct_edit_conflict(self, filename, ref, digest):
         log.trace('Entering _direct_edit_conflict for %r / %r', filename, ref)
         try:
@@ -204,20 +169,20 @@ class Application(SimpleApplication):
             log.exception('Error while displaying Direct Edit'
                           ' conflict modal dialog for %r', filename)
 
-    @QtCore.pyqtSlot(str, dict)
+    @pyqtSlot(str, dict)
     def _direct_edit_error(self, message, values):
         """ Display a simple Direct Edit error message. """
 
-        msg = QtGui.QMessageBox()
+        msg = QMessageBox()
         msg.setWindowTitle('Direct Edit')
-        msg.setWindowIcon(QtGui.QIcon(self.get_window_icon()))
-        msg.setIcon(QtGui.QMessageBox.Warning)
-        msg.setTextFormat(QtCore.Qt.RichText)
+        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setIcon(QMessageBox.Warning)
+        msg.setTextFormat(Qt.RichText)
         msg.setText(self.translate(unicode(message), values))
-        msg.setStandardButtons(QtGui.QMessageBox.Ok)
+        msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def _root_deleted(self):
         engine = self.sender()
         info = {'folder': engine.local_folder}
@@ -236,13 +201,13 @@ class Application(SimpleApplication):
             engine.reinit()
             engine.start()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def _no_space_left(self):
         dialog = WebModal(self, Translator.get('NO_SPACE_LEFT_ON_DEVICE'))
         dialog.add_button('OK', Translator.get('OK'))
         dialog.exec_()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def _root_moved(self, new_path):
         engine = self.sender()
         log.debug('Root has been moved for engine: %s to %r', engine.uid, new_path)
@@ -278,12 +243,12 @@ class Application(SimpleApplication):
             self.manager.get_config('locale', Options.locale),
         )
 
-    @QtCore.pyqtSlot(object)
+    @pyqtSlot(object)
     def dropped_engine(self, engine):
         # Update icon in case the engine dropped was syncing
         self.change_systray_icon()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def change_systray_icon(self):
         syncing = False
         engines = self.manager.get_engines()
@@ -327,7 +292,7 @@ class Application(SimpleApplication):
             api=WebConflictsApi(self, engine),
         )
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def show_conflicts_resolution(self, engine):
         conflicts = self._get_unique_dialog('conflicts')
         if conflicts is None:
@@ -337,7 +302,7 @@ class Application(SimpleApplication):
             conflicts.api.set_engine(engine)
         self._show_window(conflicts)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def show_settings(self, section='Accounts'):
         if section is None:
             section = 'Accounts'
@@ -349,11 +314,11 @@ class Application(SimpleApplication):
             settings.set_section(section)
         self._show_window(settings)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def open_help(self):
         self.manager.open_help()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def destroyed_filters_dialog(self):
         self.filters_dlg = None
 
@@ -361,7 +326,7 @@ class Application(SimpleApplication):
         from nxdrive.gui.folders_dialog import FiltersDialog
         return FiltersDialog(self, engine)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def show_filters(self, engine):
         if self.filters_dlg is not None:
             self.filters_dlg.close()
@@ -382,7 +347,7 @@ class Application(SimpleApplication):
         self.activities = WebActivityDialog(self)
         self.activities.show()
 
-    @QtCore.pyqtSlot(object)
+    @pyqtSlot(object)
     def _connect_engine(self, engine):
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
@@ -396,13 +361,13 @@ class Application(SimpleApplication):
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
         self.change_systray_icon()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def _debug_toggle_invalid_credentials(self):
         sender = self.sender()
         engine = sender.data().toPyObject()
         engine.set_invalid_credentials(not engine.has_invalid_credentials(), reason='debug')
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def _debug_show_file_status(self):
         from nxdrive.gui.status_dialog import StatusDialog
         sender = self.sender()
@@ -411,14 +376,14 @@ class Application(SimpleApplication):
         self.status_dialog.show()
 
     def _create_debug_engine_menu(self, engine, parent):
-        menu = QtGui.QMenu(parent)
-        action = QtGui.QAction(Translator.get('DEBUG_INVALID_CREDENTIALS'), menu)
+        menu = QMenu(parent)
+        action = QAction(Translator.get('DEBUG_INVALID_CREDENTIALS'), menu)
         action.setCheckable(True)
         action.setChecked(engine.has_invalid_credentials())
         action.setData(engine)
         action.triggered.connect(self._debug_toggle_invalid_credentials)
         menu.addAction(action)
-        action = QtGui.QAction(Translator.get('DEBUG_FILE_STATUS'), menu)
+        action = QAction(Translator.get('DEBUG_FILE_STATUS'), menu)
         action.setData(engine)
         action.triggered.connect(self._debug_show_file_status)
         menu.addAction(action)
@@ -427,12 +392,12 @@ class Application(SimpleApplication):
     def create_debug_menu(self, menu):
         menu.addAction(Translator.get('DEBUG_WINDOW'), self.show_debug_window)
         for engine in self.manager.get_engines().values():
-            action = QtGui.QAction(engine.name, menu)
+            action = QAction(engine.name, menu)
             action.setMenu(self._create_debug_engine_menu(engine, menu))
             action.setData(engine)
             menu.addAction(action)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def show_debug_window(self):
         debug = self._get_unique_dialog('debug')
         if debug is None:
@@ -459,7 +424,7 @@ class Application(SimpleApplication):
                     break
         self.manager.start()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def _update_notification(self):
         replacements = dict(version=self.manager.get_updater().get_status()[1])
         notification = Notification(
@@ -473,7 +438,7 @@ class Application(SimpleApplication):
         )
         self.manager.notification_service.send_notification(notification)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def message_clicked(self):
         if self.current_notification:
             self.manager.notification_service.trigger_notification(self.current_notification.uid)
@@ -485,7 +450,7 @@ class Application(SimpleApplication):
             self._delegator._manager = self.manager
         setup_delegator(self._delegator)
 
-    @QtCore.pyqtSlot(object)
+    @pyqtSlot(object)
     def _new_notification(self, notif):
         if not notif.is_bubble():
             return
@@ -500,11 +465,11 @@ class Application(SimpleApplication):
                 user_info={'uuid': notif.uid},
             )
 
-        icon = QtGui.QSystemTrayIcon.Information
+        icon = QSystemTrayIcon.Information
         if notif.level == Notification.LEVEL_WARNING:
-            icon = QtGui.QSystemTrayIcon.Warning
+            icon = QSystemTrayIcon.Warning
         elif notif.level == Notification.LEVEL_ERROR:
-            icon = QtGui.QSystemTrayIcon.Critical
+            icon = QSystemTrayIcon.Critical
 
         self.current_notification = notif
         self.tray_icon.showMessage(notif.title, notif.description, icon, 10000)
@@ -531,14 +496,14 @@ class Application(SimpleApplication):
         else:
             self.icon_spin_timer.stop()
             icon = find_icon('nuxeo_drive_systray_icon_%s_18.png' % state)
-            self.tray_icon.setIcon(QtGui.QIcon(icon))
+            self.tray_icon.setIcon(QIcon(icon))
         self.icon_state = state
         return True
 
     def spin_transferring_icon(self):
         icon = find_icon('nuxeo_drive_systray_icon_transferring_%s.png'
                          % (self.icon_spin_count + 1))
-        self.tray_icon.setIcon(QtGui.QIcon(icon))
+        self.tray_icon.setIcon(QIcon(icon))
         self.icon_spin_count = (self.icon_spin_count + 1) % 10
 
     def get_tooltip(self):
@@ -576,7 +541,7 @@ class Application(SimpleApplication):
             action.type,
         )
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def app_updated(self, updated_version):
         self.updated_version = str(updated_version)
         self.show_release_notes(self.updated_version)
@@ -586,7 +551,7 @@ class Application(SimpleApplication):
         log.debug('Exiting Qt application')
         self.quit()
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def restart(self):
         """
         Restart application by loading updated executable
@@ -660,13 +625,13 @@ class Application(SimpleApplication):
             log.exception('[%s] Release notes conversion error', version)
             return
 
-        dialog = QtGui.QDialog()
+        dialog = QDialog()
         dialog.setWindowTitle('Drive %s - Release notes' % version)
-        dialog.setWindowIcon(QtGui.QIcon(self.get_window_icon()))
+        dialog.setWindowIcon(QIcon(self.get_window_icon()))
 
         dialog.resize(600, 400)
 
-        notes = QtGui.QTextEdit()
+        notes = QTextEdit()
         notes.setStyleSheet(
             'background-color: #eee;'
             'border: none;'
@@ -674,11 +639,11 @@ class Application(SimpleApplication):
         notes.setReadOnly(True)
         notes.setHtml(html)
 
-        buttons = QtGui.QDialogButtonBox()
-        buttons.setStandardButtons(QtGui.QDialogButtonBox.Ok)
+        buttons = QDialogButtonBox()
+        buttons.setStandardButtons(QDialogButtonBox.Ok)
         buttons.clicked.connect(dialog.accept)
 
-        layout = QtGui.QVBoxLayout()
+        layout = QVBoxLayout()
         layout.addWidget(notes)
         layout.addWidget(buttons)
         dialog.setLayout(layout)
