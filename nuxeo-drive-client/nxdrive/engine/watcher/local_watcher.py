@@ -14,7 +14,7 @@ from watchdog.observers import Observer
 
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.local_client import LocalClient
-from nxdrive.engine.activity import Action
+from nxdrive.engine.activity import Action, tooltip
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.options import Options
 from nxdrive.utils import current_milli_time, is_generated_tmp_file, \
@@ -86,13 +86,9 @@ class LocalWatcher(EngineWorker):
                 self.rootDeleted.emit()
                 return
 
-            self._action = Action('Setup watchdog')
             self.watchdog_queue = Queue()
             self._setup_watchdog()
-
-            self._action = Action('Full local scan')
             self._scan()
-            self._end_action()
 
             if self._windows:
                 # Check dequeue and folder scan only every 100 loops (1s)
@@ -130,12 +126,11 @@ class LocalWatcher(EngineWorker):
         if self._win_delete_interval >= elapsed:
             return
 
-        self._action = Action('Dequeue delete')
         with self.lock:
             self._win_dequeue_delete()
-        self._end_action()
         self._win_delete_interval = int(round(time() * 1000))
 
+    @tooltip('Dequeue delete')
     def _win_dequeue_delete(self):
         try:
             delete_events = self._delete_events
@@ -213,6 +208,7 @@ class LocalWatcher(EngineWorker):
         except:
             log.exception('Win: dequeuing folder scan error')
 
+    @tooltip('Full local scan')
     def _scan(self):
         log.debug('Full scan started')
         start_ms = current_milli_time()
@@ -529,6 +525,7 @@ class LocalWatcher(EngineWorker):
         for child_info in to_scan:
             self._scan_recursive(child_info)
 
+    @tooltip('Setup watchdog')
     def _setup_watchdog(self):
         """
         Monkey-patch Watchdog to:
@@ -805,6 +802,7 @@ class LocalWatcher(EngineWorker):
             log.warning('Root has been deleted')
             self.rootDeleted.emit()
 
+    @tooltip('Handle watchdog event')
     def handle_watchdog_event(self, evt):
         # Ignore *.nxpart
         dst_path = getattr(evt, 'dest_path', '')
@@ -813,7 +811,6 @@ class LocalWatcher(EngineWorker):
             return
 
         self._metrics['last_event'] = current_milli_time()
-        self._action = Action("Handle watchdog event")
         if evt.event_type == 'moved':
             log.debug('Handling watchdog event [%s] on %r to %r',
                       evt.event_type, evt.src_path, dst_path)
@@ -1023,8 +1020,6 @@ class LocalWatcher(EngineWorker):
             return
         except:
             log.exception('Watchdog exception')
-        finally:
-            self._end_action()
 
     def _schedule_win_folder_scan(self, doc_pair):
         # On Windows schedule another recursive scan to make sure I/Ois completed
