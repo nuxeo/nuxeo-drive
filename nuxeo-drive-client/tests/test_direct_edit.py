@@ -57,7 +57,6 @@ class TestDirectEdit(UnitTestCase):
         get_engine = self.direct_edit._get_engine
         
         assert get_engine(self.nuxeo_url, self.user_1)
-        assert not get_engine(self.nuxeo_url, user)
 
         self.manager_1._engine_types['NXDRIVETESTURL'] = MockUrlTestEngine
 
