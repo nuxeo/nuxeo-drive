@@ -179,7 +179,6 @@ class Application(SimpleApplication):
         msg.setIcon(QMessageBox.Warning)
         msg.setTextFormat(Qt.RichText)
         msg.setText(self.translate(unicode(message), values))
-        msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
 
     @pyqtSlot()

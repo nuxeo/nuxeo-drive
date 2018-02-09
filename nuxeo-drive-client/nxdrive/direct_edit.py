@@ -196,7 +196,7 @@ class DirectEdit(Worker):
             log.warning('No engine found for user %r on server %r, doc_id=%r',
                         user, server_url, doc_id)
             self.directEditError.emit('DIRECT_EDIT_CANT_FIND_ENGINE', values)
-        elif not engine.has_invalid_credentials():
+        elif engine.has_invalid_credentials():
             values = {'user': engine.remote_user, 'server': engine.server_url}
             log.warning('Invalid credentials for user %r on server %r',
                         engine.remote_user, engine.server_url)
