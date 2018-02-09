@@ -167,12 +167,11 @@ class LocalWatcher(EngineWorker):
         if self._win_folder_scan_interval >= elapsed:
             return
 
-        self._action = Action('Dequeue folder scan')
         with self.lock:
             self._win_dequeue_folder_scan()
-        self._end_action()
         self._win_folder_scan_interval = int(round(time() * 1000))
 
+    @tooltip('Dequeue folder scan')
     def _win_dequeue_folder_scan(self):
         try:
             folder_scan_events = self._folder_scan_events.values()
