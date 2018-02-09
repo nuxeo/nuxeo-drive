@@ -22,8 +22,8 @@ from nxdrive.logging_config import FILE_HANDLER
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
-from nxdrive.utils import ENCODING, OSX_SUFFIX, decrypt, encrypt, \
-    normalized_path
+from nxdrive.utils import (ENCODING, OSX_SUFFIX, decrypt, encrypt,
+                           normalized_path)
 
 if AbstractOSIntegration.is_windows():
     import _winreg

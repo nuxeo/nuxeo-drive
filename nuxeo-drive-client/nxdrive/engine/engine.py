@@ -9,8 +9,9 @@ from time import sleep
 
 from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
-from nxdrive.client import LocalClient, RemoteDocumentClient, \
-    RemoteFileSystemClient, RemoteFilteredFileSystemClient
+from nxdrive.client import (LocalClient, RemoteDocumentClient,
+                            RemoteFileSystemClient,
+                            RemoteFilteredFileSystemClient)
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.common import BaseClient, NotFound, safe_filename
 from nxdrive.client.rest_api_client import RestAPIClient

@@ -5,8 +5,6 @@ import sys
 import urllib
 from logging import getLogger
 
-import psutil
-
 from nxdrive.utils import version_compare
 
 log = getLogger(__name__)

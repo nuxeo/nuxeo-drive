@@ -3,8 +3,8 @@ import os
 import re
 import sqlite3
 import sys
-from logging import getLogger
 from Queue import Queue
+from logging import getLogger
 from threading import Lock
 from time import mktime, sleep, time
 
@@ -17,8 +17,8 @@ from nxdrive.client.local_client import LocalClient
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.options import Options
-from nxdrive.utils import current_milli_time, is_generated_tmp_file, \
-    normalize_event_filename, force_decode
+from nxdrive.utils import (current_milli_time, force_decode,
+                           is_generated_tmp_file, normalize_event_filename)
 
 log = getLogger(__name__)
 

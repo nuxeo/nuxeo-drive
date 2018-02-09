@@ -7,16 +7,18 @@ from urllib import urlencode
 
 from PyQt4 import QtCore, QtGui
 
-from nxdrive.client.base_automation_client import AddonNotInstalled, \
-    Unauthorized, get_opener_proxies, get_proxy_handler
+from nxdrive.client.base_automation_client import (AddonNotInstalled,
+                                                   Unauthorized,
+                                                   get_opener_proxies,
+                                                   get_proxy_handler)
 from nxdrive.client.common import NotFound
-from nxdrive.engine.engine import InvalidDriveException, \
-    RootAlreadyBindWithDifferentAccount
+from nxdrive.engine.engine import (InvalidDriveException,
+                                   RootAlreadyBindWithDifferentAccount)
 from nxdrive.manager import FolderAlreadyUsed, ProxySettings
 from nxdrive.options import Options
 from nxdrive.utils import TOKEN_PERMISSION, get_device, guess_server_url
-from nxdrive.wui.authentication import WebAuthenticationApi, \
-    WebAuthenticationDialog
+from nxdrive.wui.authentication import (WebAuthenticationApi,
+                                        WebAuthenticationDialog)
 from nxdrive.wui.dialog import Promise, WebDialog, WebDriveApi
 from nxdrive.wui.translator import Translator
 

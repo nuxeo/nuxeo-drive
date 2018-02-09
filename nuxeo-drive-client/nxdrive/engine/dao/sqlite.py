@@ -1,5 +1,4 @@
 # coding: utf-8
-import inspect
 import os
 import sqlite3
 import sys

@@ -1,8 +1,8 @@
 # coding: utf-8
 import os
 import shutil
-import sqlite3
 import socket
+import sqlite3
 from logging import getLogger
 from threading import Lock
 from time import sleep
@@ -10,10 +10,11 @@ from urllib2 import HTTPError, URLError
 
 from PyQt4.QtCore import pyqtSignal
 
-from nxdrive.client.base_automation_client import CorruptedFile,\
-    DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
-from nxdrive.client.common import DuplicationDisabledError, NotFound, \
-    UNACCESSIBLE_HASH, safe_filename
+from nxdrive.client.base_automation_client import (CorruptedFile,
+                                                   DOWNLOAD_TMP_FILE_PREFIX,
+                                                   DOWNLOAD_TMP_FILE_SUFFIX)
+from nxdrive.client.common import (DuplicationDisabledError, NotFound,
+                                   UNACCESSIBLE_HASH, safe_filename)
 from nxdrive.engine.activity import Action
 from nxdrive.engine.workers import EngineWorker, PairInterrupt, ThreadInterrupt
 from nxdrive.osi import AbstractOSIntegration

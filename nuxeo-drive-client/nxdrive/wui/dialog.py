@@ -10,7 +10,8 @@ import uuid
 from logging import getLogger
 
 from PyQt4 import QtCore, QtGui, QtNetwork, QtWebKit
-from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QSslCertificate
+from PyQt4.QtNetwork import (QNetworkProxy, QNetworkProxyFactory,
+                             QSslCertificate)
 from dateutil.tz import tzlocal
 
 from nxdrive.client.base_automation_client import Unauthorized
