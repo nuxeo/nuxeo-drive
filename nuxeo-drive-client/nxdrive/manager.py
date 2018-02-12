@@ -1,7 +1,6 @@
 # coding: utf-8
 import os
 import platform
-import sip
 import subprocess
 import sys
 import urllib2
@@ -11,6 +10,7 @@ from logging import getLogger
 from urlparse import urlparse
 
 import pypac
+import sip
 from PyQt4 import QtCore
 from PyQt4.QtScript import QScriptEngine
 from PyQt4.QtWebKit import qWebKitVersion
@@ -19,6 +19,7 @@ from nxdrive import __version__
 from nxdrive.client import LocalClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.logging_config import FILE_HANDLER
+from nxdrive.notification import DefaultNotificationService
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
@@ -252,7 +253,6 @@ class Manager(QtCore.QObject):
     _singleton = None
     app_name = 'Nuxeo Drive'
 
-    __notification_service = None
     __exe_path = None
     __device_id = None
 
@@ -264,17 +264,21 @@ class Manager(QtCore.QObject):
         if Manager._singleton:
             raise RuntimeError('Only one instance of Manager can be created.')
 
-        Manager._singleton = self
         super(Manager, self).__init__()
-        self.osi = AbstractOSIntegration.get(self)
+        Manager._singleton = self
 
-        if not Options.consider_ssl_errors:
-            self._bypass_https_verification()
-
+        # Primary attributes to allow initializing the notification center early
         self.nxdrive_home = os.path.realpath(
             os.path.expanduser(Options.nxdrive_home))
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
+        self._create_dao()
+
+        self.notification_service = DefaultNotificationService(self)
+        self.osi = AbstractOSIntegration.get(self)
+
+        if not Options.consider_ssl_errors:
+            self._bypass_https_verification()
 
         self.direct_edit_folder = os.path.join(
             normalized_path(self.nxdrive_home),
@@ -290,8 +294,6 @@ class Manager(QtCore.QObject):
         self.proxy_exceptions = None
         self._app_updater = None
         self.server_config_updater = None
-        self._dao = None
-        self._create_dao()
         if Options.proxy_server is not None:
             proxy = ProxySettings()
             proxy.from_url(Options.proxy_server)
@@ -321,6 +323,8 @@ class Manager(QtCore.QObject):
         self._pause = Options.debug
         self.updated = False  # self.update_version()
 
+        # Connect all Qt signals
+        self.notification_service.init_signals()
         self.load()
 
         # Create the server's configuration getter verification thread
@@ -388,14 +392,6 @@ class Manager(QtCore.QObject):
         self.osi.register_protocol_handlers()
         if self.get_auto_start():
             self.osi.register_startup()
-
-    @property
-    def notification_service(self):
-        # Don't use it for now
-        if not self.__notification_service:
-            from nxdrive.notification import DefaultNotificationService
-            self.__notification_service = DefaultNotificationService(self)
-        return self.__notification_service
 
     def _create_autolock_service(self):
         from nxdrive.autolocker import ProcessAutoLockerWorker

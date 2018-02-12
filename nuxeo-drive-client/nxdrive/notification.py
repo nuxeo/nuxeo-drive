@@ -399,6 +399,20 @@ class DirectEditUpdatedNotification(Notification):
         )
 
 
+class ErrorOpenedFile(Notification):
+    def __init__(self, path):
+        values = {'name': path}
+        super(ErrorOpenedFile, self).__init__(
+            'WINDOWS_ERROR',
+            title=Translator.get('WINDOWS_ERROR'),
+            description=Translator.get('WINDOWS_ERROR_OPENED_FILE', values),
+            level=Notification.LEVEL_ERROR,
+            flags=(Notification.FLAG_UNIQUE
+                   | Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE),
+        )
+
+
 class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid):
         super(InvalidCredentialNotification, self).__init__(
@@ -419,6 +433,8 @@ class DefaultNotificationService(NotificationService):
     def __init__(self, manager):
         super(DefaultNotificationService, self).__init__(manager)
         self._manager = manager
+
+    def init_signals(self):
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
         self._manager.direct_edit.directEditLockError.connect(self._directEditLockError)
@@ -435,6 +451,10 @@ class DefaultNotificationService(NotificationService):
         engine.newLocked.connect(self._newLocked)
         engine.invalidAuthentication.connect(self._invalidAuthentication)
         engine.online.connect(self._validAuthentication)
+        engine.errorOpenedFile.connect(self._errorOpenedFile)
+
+    def _errorOpenedFile(self, local_path):
+        self.send_notification(ErrorOpenedFile(unicode(local_path)))
 
     def _lockDocument(self, filename):
         self.send_notification(LockNotification(filename))
