@@ -120,6 +120,7 @@ class Tracker(Worker):
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
             extension = 'unknown'
+        extension = extension.lower()
         timing = self._manager.direct_edit.get_metrics()['last_action_timing']
         log.trace('Send DirectEdit(Open) OverallTime: %d extension: %s',
                   timing, extension)
@@ -131,6 +132,7 @@ class Tracker(Worker):
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
             extension = 'unknown'
+        extension = extension.lower()
         timing = self._manager.direct_edit.get_metrics()['last_action_timing']
         log.trace('Send DirectEdit(Edit) OverallTime: %d extension: %s',
                   timing, extension)
