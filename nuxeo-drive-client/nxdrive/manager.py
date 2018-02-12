@@ -542,7 +542,7 @@ class Manager(QtCore.QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug("Resume engine %s", uid)
+            log.debug('Resume engine %s', uid)
             engine.resume()
         self.resumed.emit()
 
@@ -553,7 +553,7 @@ class Manager(QtCore.QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug("Suspend engine %s", uid)
+            log.debug('Suspend engine %s', uid)
             engine.suspend()
         self.suspended.emit()
 
@@ -562,7 +562,7 @@ class Manager(QtCore.QObject):
             if euid is not None and euid != uid:
                 continue
             if engine.is_started():
-                log.debug("Stop engine %s", uid)
+                log.debug('Stop engine %s', uid)
                 engine.stop()
         self.stopped.emit()
 
@@ -573,12 +573,12 @@ class Manager(QtCore.QObject):
                 continue
             if not self._pause:
                 self.aboutToStart.emit(engine)
-                log.debug("Launch engine %s", uid)
+                log.debug('Launch engine %s', uid)
                 try:
                     engine.start()
-                except Exception as e:
-                    log.debug("Could not start the engine: %s [%r]", uid, e)
-        log.debug("Emitting started")
+                except:
+                    log.exception('Could not start the engine %s', uid)
+
         # Check only if manager is started
         self._handle_os()
         self.started.emit()
