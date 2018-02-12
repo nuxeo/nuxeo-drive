@@ -12,6 +12,7 @@ Contributors:
     Antoine Taillefer
     Rémi Cattiau
     Mickaël Schoentgen <mschoentgen@nuxeo.com>
+    Léa Klein <lklein@nuxeo.com>
     and https://github.com/nuxeo/nuxeo-drive/graphs/contributors
 
 Versionning
