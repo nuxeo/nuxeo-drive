@@ -4,6 +4,7 @@ import locale
 import os
 import platform
 import sys
+import urlparse
 from logging import getLogger
 
 from PyQt4 import QtCore
@@ -24,8 +25,8 @@ class Tracker(Worker):
         self._manager = manager
         self._thread.started.connect(self.run)
         self.uid = uid
-        self._tracker = UATracker.create(uid, client_id=self._manager.device_id,
-                                         user_agent=self.user_agent)
+        self._tracker = UATracker.create(
+            uid, client_id=self._manager.device_id, user_agent=self.user_agent)
         self._tracker.set('appName', 'NuxeoDrive')
         self._tracker.set('appVersion', self._manager.get_version())
         self._tracker.set('encoding', sys.getfilesystemencoding())
@@ -41,10 +42,13 @@ class Tracker(Worker):
             self.connect_engine(engine)
         self._manager.newEngine.connect(self.connect_engine)
         if self._manager.get_updater() is not None:
-            self._manager.get_updater().appUpdated.connect(self._send_app_update_event)
+            self._manager.get_updater().appUpdated.connect(
+                self._send_app_update_event)
         if self._manager.direct_edit is not None:
-            self._manager.direct_edit.openDocument.connect(self._send_directedit_open)
-            self._manager.direct_edit.editDocument.connect(self._send_directedit_edit)
+            self._manager.direct_edit.openDocument.connect(
+                self._send_directedit_open)
+            self._manager.direct_edit.editDocument.connect(
+                self._send_directedit_edit)
 
     @QtCore.pyqtSlot(object)
     def connect_engine(self, engine):
@@ -91,45 +95,70 @@ class Tracker(Worker):
         return 'NuxeoDrive/{} ({})'.format(self._manager.get_version(),
                                            self.current_os)
 
+    def send_event(self, **kwargs):
+        engine = self._manager.get_engines().values()[0]
+
+        if engine:
+            self._tracker.set({
+                'dimension6': urlparse.urlsplit(engine.server_url).hostname,
+                'dimension7': engine.server_url,
+                'dimension8': engine.get_server_version(),
+                'dimension9': engine.remote_user,
+            })
+        try:
+            self._tracker.send('event', **kwargs)
+        except:
+            log.exception('Error sending analytics')
+
     @QtCore.pyqtSlot(object)
     def _send_app_update_event(self, version):
-        self._tracker.send('event', category='AppUpdate', action='Update',
-                           label='Version', value=version)
+        self.send_event(category='AppUpdate', action='Update',
+                        label='Version', value=version)
 
     @QtCore.pyqtSlot(object, object)
     def _send_directedit_open(self, remote_info):
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
             extension = 'unknown'
+        extension = extension.lower()
         timing = self._manager.direct_edit.get_metrics()['last_action_timing']
-        log.trace("Send DirectEdit(Open) OverallTime: %d extension: %s", timing, extension)
-        self._tracker.send('event', category='DirectEdit', action="Open", label=extension, value=timing)
+        log.trace('Send DirectEdit(Open) OverallTime: %d extension: %s',
+                  timing, extension)
+        self.send_event(category='DirectEdit', action="Open",
+                        label=extension, value=timing)
 
     @QtCore.pyqtSlot(object, object)
     def _send_directedit_edit(self, remote_info):
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
             extension = 'unknown'
+        extension = extension.lower()
         timing = self._manager.direct_edit.get_metrics()['last_action_timing']
-        log.trace("Send DirectEdit(Edit) OverallTime: %d extension: %s", timing, extension)
-        self._tracker.send('event', category='DirectEdit', action="Edit", label=extension, value=timing)
+        log.trace('Send DirectEdit(Edit) OverallTime: %d extension: %s',
+                  timing, extension)
+        self.send_event(category='DirectEdit', action='Edit',
+                        label=extension, value=timing)
 
     @QtCore.pyqtSlot(object, object)
     def _send_sync_event(self, _, metrics):
         speed = None
         timing = None
-        if "start_time" in metrics and "end_time" in metrics:
-            timing = metrics["end_time"] - metrics["start_time"]
+        if 'start_time' in metrics and 'end_time' in metrics:
+            timing = metrics['end_time'] - metrics['start_time']
         if "speed" in metrics:
-            speed = metrics["speed"]
+            speed = metrics['speed']
         if timing is not None:
-            log.trace("Send TransferOperation(%s) OverallTime: %d", metrics["handler"], timing)
-            self._tracker.send('event', category='TransferOperation', action=metrics["handler"], label="OverallTime",
-                               value=timing)
+            log.trace('Send TransferOperation(%s) OverallTime: %d',
+                      metrics['handler'], timing)
+            self.send_event(
+                category='TransferOperation', action=metrics['handler'],
+                label='OverallTime', value=timing)
         if speed is not None:
-            log.trace("Send TransferOperation(%s) Speed: %d", metrics["handler"], speed)
-            self._tracker.send('event', category='TransferOperation', action=metrics["handler"], label="Speed",
-                               value=speed)
+            log.trace('Send TransferOperation(%s) Speed: %d',
+                      metrics['handler'], speed)
+            self.send_event(
+                category='TransferOperation', action=metrics['handler'],
+                label='Speed', value=speed)
 
     @QtCore.pyqtSlot()
     def _send_stats(self):
@@ -137,6 +166,7 @@ class Tracker(Worker):
         for _, engine in engines.iteritems():
             stats = engine.get_metrics()
             for key, value in stats.iteritems():
-                log.trace("Send Statistics(Engine) %s:%d", key, value)
-                self._tracker.send('event', category='Statistics', action='Engine', label=key, value=value)
+                log.trace('Send Statistics(Engine) %s:%d', key, value)
+                self.send_event(category='Statistics', action='Engine',
+                                label=key, value=value)
         self._stat_timer.start(60 * 60 * 1000)
