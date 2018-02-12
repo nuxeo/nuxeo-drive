@@ -133,7 +133,8 @@ class MetaOptions(type):
         'log_level_file': ('DEBUG', 'default'),
         'max_errors': (3, 'default'),
         'max_sync_step': (10, 'default'),
-        'nxdrive_home': (os.path.join('~', '.nuxeo-drive'), 'default'),
+        'nxdrive_home': (
+            os.path.join(os.path.expanduser('~'), '.nuxeo-drive'), 'default'),
         'nofscheck': (False, 'default'),
         'protocol_url': (None, 'default'),
         'proxy_exceptions': (None, 'default'),

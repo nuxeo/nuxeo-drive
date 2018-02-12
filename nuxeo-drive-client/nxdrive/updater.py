@@ -460,14 +460,12 @@ class AppUpdater(PollWorker):
         return self.update_site
 
     def _handle_URL_error(self, e):
-        log.exception(repr(e))
         raise UnavailableUpdateSite(
-            "Cannot connect to update site '%s'" % self.update_site)
+            'Cannot connect to update site %r' % self.update_site)
 
     def _handle_timeout_error(self, e):
-        log.exception(repr(e))
         raise UnavailableUpdateSite(
-            "Connection to update site '%s' timed out" % self.update_site)
+            'Connection to update site %r timed out' % self.update_site)
 
 
 class ServerOptionsUpdater(PollWorker):

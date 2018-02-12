@@ -21,8 +21,6 @@ from nxdrive.osi import parse_protocol_url
 from nxdrive.utils import (current_milli_time, force_decode,
                            guess_digest_algorithm, normalize_event_filename,
                            simplify_url)
-from nxdrive.wui.application import SimpleApplication
-from nxdrive.wui.modal import WebModal
 
 log = getLogger(__name__)
 
@@ -34,6 +32,7 @@ class DirectEdit(Worker):
     editDocument = pyqtSignal(object)
     directEditLockError = pyqtSignal(str, str, str)
     directEditConflict = pyqtSignal(str, str, str)
+    directEditError = pyqtSignal(str, dict)
     directEditReadonly = pyqtSignal(object)
     directEditLocked = pyqtSignal(object, object, object)
 
@@ -162,7 +161,7 @@ class DirectEdit(Worker):
             # Place for handle reopened of interrupted Edit
             purge(child.path)
 
-    def _get_engine(self, url, user=None):
+    def __get_engine(self, url, user=None):
         if not url:
             return None
 
@@ -185,6 +184,26 @@ class DirectEdit(Worker):
                 return engine
 
         return None
+
+    def _get_engine(self, server_url, doc_id=None, user=None):
+        engine = self.__get_engine(server_url, user=user)
+
+        if not engine:
+            values = {
+                'user': force_decode(user) if user else 'Unknown',
+                'server': server_url,
+            }
+            log.warning('No engine found for user %r on server %r, doc_id=%r',
+                        user, server_url, doc_id)
+            self.directEditError.emit('DIRECT_EDIT_CANT_FIND_ENGINE', values)
+        elif engine.has_invalid_credentials():
+            values = {'user': engine.remote_user, 'server': engine.server_url}
+            log.warning('Invalid credentials for user %r on server %r',
+                        engine.remote_user, engine.server_url)
+            self.directEditError.emit('DIRECT_EDIT_INVALID_CREDS', values)
+            engine = None
+
+        return engine
 
     @staticmethod
     def _download(engine, remote_client, info, file_path, url=None):
@@ -215,21 +234,32 @@ class DirectEdit(Worker):
                 remote_client.get_blob(info, file_out=file_out)
         return file_out
 
-    def _display_modal(self, message, values=None):
-        app = SimpleApplication(self._manager)
-        dialog = WebModal(app, app.translate(message, values))
-        dialog.add_button("OK", app.translate("OK"))
-        dialog.show()
-        app.exec_()
+    def _get_info(self, engine, remote, doc_id, user):
+        doc = remote.fetch(
+            doc_id,
+            extra_headers={'fetch-document': 'lock'},
+            enrichers=['permissions'],
+        )
+        info = remote.doc_to_info(doc, fetch_parent_uid=False)
+
+        if info.lock_owner and info.lock_owner != engine.remote_user:
+            log.debug('Doc %r was locked by %s on %s, edit not allowed',
+                      info.name, info.lock_owner, info.lock_created)
+            self.directEditLocked.emit(
+                info.name, info.lock_owner, info.lock_created)
+            info = None
+        elif info.permissions and 'Write' not in info.permissions:
+            log.debug('Doc %r is readonly for %s, edit not allowed',
+                      info.name, user)
+            self.directEditReadonly.emit(info.name)
+            info = None
+
+        return info
 
     def _prepare_edit(self, server_url, doc_id, user=None, download_url=None):
         start_time = current_milli_time()
-        engine = self._get_engine(server_url, user=user)
+        engine = self._get_engine(server_url, doc_id=doc_id, user=user)
         if not engine:
-            values = {'user': str(user), 'server': server_url}
-            log.warning('No engine found for server_url=%s, user=%s, doc_id=%s',
-                        server_url, user, doc_id)
-            self._display_modal('DIRECT_EDIT_CANT_FIND_ENGINE', values)
             return None
 
         # Get document info
@@ -238,21 +268,8 @@ class DirectEdit(Worker):
         # Avoid any link with the engine, remote_doc are not cached so we
         # can do that
         remote.check_suspended = self.stop_client
-        doc = remote.fetch(
-            doc_id,
-            extra_headers={'fetch-document': 'lock'},
-            enrichers=['permissions'],
-        )
-        info = remote.doc_to_info(doc, fetch_parent_uid=False)
-        if info.lock_owner and info.lock_owner != engine.remote_user:
-            log.debug('Doc %r was locked by %s on %s, edit not allowed',
-                      info.name, info.lock_owner, info.lock_created)
-            self.directEditLocked.emit(info.name, info.lock_owner, info.lock_created)
-            return None
-
-        if info.permissions and 'Write' not in info.permissions:
-            log.debug('Doc %r is readonly for %s, edit not allowed', info.name, user)
-            self.directEditReadonly.emit(info.name)
+        info = self._get_info(engine, remote, doc_id, user)
+        if not info:
             return None
 
         filename = info.filename
@@ -272,6 +289,7 @@ class DirectEdit(Worker):
             if not url.endswith('/'):
                 url += '/'
             url += download_url
+
         tmp_file = self._download(engine, remote, info, file_path, url=url)
         if tmp_file is None:
             log.error('Download failed')
@@ -314,7 +332,7 @@ class DirectEdit(Worker):
                 server_url, doc_id, user=user, download_url=download_url)
 
             # Launch it
-            if file_path is not None:
+            if file_path:
                 self._manager.open_local_file(file_path)
         except OSError as e:
             if e.errno == 13:
@@ -327,17 +345,17 @@ class DirectEdit(Worker):
     def _extract_edit_info(self, ref):
         local = self._local_client
         dir_path = os.path.dirname(ref)
-        uid = local.get_remote_id(dir_path)
         server_url = local.get_remote_id(dir_path, name='nxdirectedit')
         user = local.get_remote_id(dir_path, name='nxdirectedituser')
         engine = self._get_engine(server_url, user=user)
-        if engine is None:
+        if not engine:
             raise NotFound()
 
         remote_client = engine.get_remote_doc_client()
         remote_client.check_suspended = self.stop_client
         digest_algorithm = local.get_remote_id(dir_path, name='nxdirecteditdigestalgorithm')
         digest = local.get_remote_id(dir_path, name='nxdirecteditdigest')
+        uid = local.get_remote_id(dir_path)
         return uid, engine, remote_client, digest_algorithm, digest
 
     def force_update(self, ref, digest):
@@ -405,7 +423,7 @@ class DirectEdit(Worker):
 
             log.trace('Handling DirectEdit queue ref: %r', ref)
 
-            uid,  engine, remote, digest_algorithm, digest = self._extract_edit_info(ref)
+            uid, engine, remote, digest_algorithm, digest = self._extract_edit_info(ref)
             # Don't update if digest are the same
             info = local.get_info(ref)
             try:

@@ -64,32 +64,6 @@ class MissingToken(Exception):
     pass
 
 
-class ServerBindingSettings(object):
-    """ Summarize server binding settings. """
-
-    def __init__(self, web_authentication=False, server_url=None,
-                 server_version=None, username=None, password=None,
-                 local_folder=None, initialized=False,
-                 pwd_update_required=False):
-        self.web_authentication = web_authentication
-        self.server_url = server_url
-        self.server_version = server_version
-        self.username = username
-        self.password = password
-        self.local_folder = local_folder
-        self.initialized = initialized
-        self.pwd_update_required = pwd_update_required
-
-    def __repr__(self):
-        return ('ServerBindingSettings<web_authentication=%r, server_url=%s, '
-                'server_version=%s, username=%s, local_folder=%s, '
-                'initialized=%r, pwd_update_required=%r>') % (
-                    self.web_authentication, self.server_url,
-                    self.server_version, self.username,
-                    self.local_folder, self.initialized,
-                    self.pwd_update_required)
-
-
 class ProxySettings(object):
     """ Summarize HTTP proxy settings. """
 

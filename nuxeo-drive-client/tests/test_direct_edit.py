@@ -3,14 +3,14 @@ import os
 
 from nxdrive.client import LocalClient
 from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
-from nxdrive.engine.engine import Engine
-from nxdrive.manager import ServerBindingSettings
+from nxdrive.engine.engine import Engine, ServerBindingSettings
 from tests.common_unit_test import UnitTestCase
 
 
 class MockUrlTestEngine(Engine):
     def __init__(self, url):
         self._url = url
+        self._invalid_credentials = False
 
     def get_binder(self):
         return ServerBindingSettings(
@@ -41,30 +41,49 @@ class TestDirectEdit(UnitTestCase):
         self.direct_edit.stop()
         super(TestDirectEdit, self).tearDownApp()
 
+    def test_binder(self):
+        engine = self.manager_1._engines.items()[0][1]
+        binder = engine.get_binder()
+        assert repr(binder)
+        assert not binder.server_version
+        assert not binder.password
+        assert not binder.pwd_update_required
+        assert binder.server_url
+        assert binder.username
+        assert binder.initialized
+        assert binder.local_folder
+
     def test_url_resolver(self):
-        self.assertIsNotNone(self.direct_edit._get_engine(self.nuxeo_url, self.user_1))
-        self.assertIsNone(self.direct_edit._get_engine(self.nuxeo_url, u'Administrator'))
+        user = 'Administrator'
+        get_engine = self.direct_edit._get_engine
+        
+        assert get_engine(self.nuxeo_url, self.user_1)
+
         self.manager_1._engine_types['NXDRIVETESTURL'] = MockUrlTestEngine
-        # HTTP EXPLICIT
+
+        # HTTP explicit
         self.manager_1._engines['0'] = MockUrlTestEngine('http://localhost:80/nuxeo')
-        self.assertIsNone(self.direct_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
-        self.assertIsNotNone(self.direct_edit._get_engine("http://localhost:80/nuxeo", u'Administrator'))
-        self.assertIsNotNone(self.direct_edit._get_engine("http://localhost/nuxeo/", u'Administrator'))
-        # HTTP IMPLICIT
+        assert not get_engine('http://localhost:8080/nuxeo', user=user)
+        assert get_engine('http://localhost:80/nuxeo', user=user)
+        assert get_engine('http://localhost/nuxeo/', user=user)
+
+        # HTTP implicit
         self.manager_1._engines['0'] = MockUrlTestEngine('http://localhost/nuxeo')
-        self.assertIsNone(self.direct_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
-        self.assertIsNotNone(self.direct_edit._get_engine("http://localhost:80/nuxeo/", u'Administrator'))
-        self.assertIsNotNone(self.direct_edit._get_engine("http://localhost/nuxeo", u'Administrator'))
-        # HTTPS EXPLICIT
+        assert not get_engine('http://localhost:8080/nuxeo', user=user)
+        assert get_engine('http://localhost:80/nuxeo/', user=user)
+        assert get_engine('http://localhost/nuxeo', user=user)
+
+        # HTTPS explicit
         self.manager_1._engines['0'] = MockUrlTestEngine('https://localhost:443/nuxeo')
-        self.assertIsNone(self.direct_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
-        self.assertIsNotNone(self.direct_edit._get_engine("https://localhost:443/nuxeo", u'Administrator'))
-        self.assertIsNotNone(self.direct_edit._get_engine("https://localhost/nuxeo/", u'Administrator'))
-        # HTTPS IMPLICIT
+        assert not get_engine('http://localhost:8080/nuxeo', user=user)
+        assert get_engine('https://localhost:443/nuxeo', user=user)
+        assert get_engine('https://localhost/nuxeo/', user=user)
+
+        # HTTPS implicit
         self.manager_1._engines['0'] = MockUrlTestEngine('https://localhost/nuxeo')
-        self.assertIsNone(self.direct_edit._get_engine("http://localhost:8080/nuxeo", u'Administrator'))
-        self.assertIsNotNone(self.direct_edit._get_engine("https://localhost:443/nuxeo/", u'Administrator'))
-        self.assertIsNotNone(self.direct_edit._get_engine("https://localhost/nuxeo", u'Administrator'))
+        assert not get_engine('http://localhost:8080/nuxeo', user=user)
+        assert get_engine('https://localhost:443/nuxeo/', user=user)
+        assert get_engine('https://localhost/nuxeo', user=user)
 
     def test_note_edit(self):
         remote_fs_client = self.remote_file_system_client_1
