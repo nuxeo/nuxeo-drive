@@ -31,6 +31,7 @@ PAIR_STATES = {
     ('unknown', 'created'): 'remotely_created',
     ('unknown', 'modified'): 'remotely_modified',
     ('unknown', 'unknown'): 'unknown',
+    ('unsynchronized', 'unknown'): 'unsynchronized',
 
     # conflicts with automatic resolution
     ('created', 'deleted'): 'locally_created',
@@ -1068,14 +1069,14 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute(
                 'UPDATE States'
-                '   SET local_state=?,'
-                '       remote_state=?,'
-                '       pair_state=?,'
-                '       last_error=NULL,'
-                '       last_sync_error_date=NULL,'
+                '   SET local_state = ?,'
+                '       remote_state = ?,'
+                '       pair_state = ?,'
+                '       last_error = NULL,'
+                '       last_sync_error_date = NULL,'
                 '        error_count = 0'
-                ' WHERE id=?'
-                '       AND version=?', (
+                ' WHERE id = ?'
+                '       AND version = ?', (
                     row.local_state,
                     row.remote_state,
                     row.pair_state,
@@ -1108,11 +1109,26 @@ class EngineDAO(ConfigurationDAO):
 
     def unsynchronize_state(self, row, last_error=None):
         with self._lock:
+            row.local_state, row.remote_state = 'unsynchronized', 'unknown'
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET pair_state='unsynchronized', last_sync_date=?, processor = 0," +
-                      "last_error=?, error_count=0, last_sync_error_date=NULL WHERE id=?",
-                      (datetime.utcnow(), last_error, row.id))
+            c.execute(
+                'UPDATE States'
+                '   SET local_state = ?,'
+                '       remote_state = ?,'
+                '       pair_state = ?,'
+                '       last_sync_date = ?,'
+                '       last_error = ?,'
+                '       processor = 0,'
+                '       error_count = 0,'
+                '       last_sync_error_date = NULL'
+                '  WHERE id = ?', (
+                    row.local_state,
+                    row.remote_state,
+                    row.pair_state,
+                    datetime.utcnow(),
+                    last_error,
+                    row.id))
             if self.auto_commit:
                 con.commit()
 

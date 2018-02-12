@@ -663,8 +663,8 @@ class Processor(EngineWorker):
             return
 
         if doc_pair.remote_can_delete:
-            log.debug('Deleting or unregistering remote document %r (%s)', doc_pair.remote_name,
-                      doc_pair.remote_ref)
+            log.debug('Deleting or unregistering remote document %r (%s)[%s]',
+                      doc_pair.remote_name, doc_pair.remote_ref, doc_pair.pair_state)
             if doc_pair.pair_state == 'locally_deleted':
                 remote_client.delete(doc_pair.remote_ref, parent_fs_item_id=doc_pair.remote_parent_ref)
             self._dao.remove_state(doc_pair)

@@ -721,6 +721,15 @@ FolderType=Generic
     def delete_final(self, ref):
         # type: (Text) -> None
 
+        error = None
+        global error
+
+        def onerror(func, path, exc_info):
+            """ Assign the error only once. """
+            global error
+            if not error:
+                error = exc_info[1]
+
         locker = 0
         parent_ref = None
         try:
@@ -732,7 +741,11 @@ FolderType=Generic
             if os.path.isfile(os_path):
                 os.unlink(os_path)
             elif os.path.isdir(os_path):
-                shutil.rmtree(os_path)
+                # Override `onerror` to catch the 1st exception and let other
+                # documents to be deleted.
+                shutil.rmtree(os_path, onerror=onerror)
+                if error:
+                    raise error
         finally:
             if parent_ref is not None:
                 self.lock_ref(parent_ref, locker)

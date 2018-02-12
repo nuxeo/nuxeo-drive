@@ -3,6 +3,7 @@ Release date: `2018-??-??`
 
 ### Core
 - [NXDRIVE-941](https://jira.nuxeo.com/browse/NXDRIVE-941): Use a context manager for Lock
+- [NXDRIVE-1009](https://jira.nuxeo.com/browse/NXDRIVE-1009): Some folders not deleted on client when file is open
 - [NXDRIVE-1062](https://jira.nuxeo.com/browse/NXDRIVE-1062): Fix encoding for string comparisons on macOS
 - [NXDRIVE-1085](https://jira.nuxeo.com/browse/NXDRIVE-1085): Review the Auto-Lock feature
 - [NXDRIVE-1087](https://jira.nuxeo.com/browse/NXDRIVE-1087): Remove backward compatibility code for Nuxeo <= 5.8
