@@ -9,6 +9,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1091](https://jira.nuxeo.com/browse/NXDRIVE-1091): Create the tooltip decorator
 - [NXDRIVE-1098](https://jira.nuxeo.com/browse/NXDRIVE-1098): Auto-Lock does not work when there are orphans
 - [NXDRIVE-1104](https://jira.nuxeo.com/browse/NXDRIVE-1104): Set invalid credentials on 401,403 errors only
+- [NXDRIVE-1114](https://jira.nuxeo.com/browse/NXDRIVE-1114): Add server information to analytics
 
 ### GUI
 - [NXDRIVE-1106](https://jira.nuxeo.com/browse/NXDRIVE-1106): Use new branding icons
