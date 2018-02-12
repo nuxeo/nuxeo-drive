@@ -95,6 +95,7 @@ class MetaOptions(type):
         '.crdownload',
         '.dwl',
         '.dwl2',
+        '.lnk',
         '.lock',
         '.nxpart',
         '.part',

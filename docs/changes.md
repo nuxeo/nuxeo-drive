@@ -6,6 +6,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1062](https://jira.nuxeo.com/browse/NXDRIVE-1062): Fix encoding for string comparisons on macOS
 - [NXDRIVE-1085](https://jira.nuxeo.com/browse/NXDRIVE-1085): Review the Auto-Lock feature
 - [NXDRIVE-1087](https://jira.nuxeo.com/browse/NXDRIVE-1087): Remove backward compatibility code for Nuxeo <= 5.8
+- [NXDRIVE-1088](https://jira.nuxeo.com/browse/NXDRIVE-1088): Ignore Windows symlink suffix by default (.lnk)
 - [NXDRIVE-1091](https://jira.nuxeo.com/browse/NXDRIVE-1091): Create the tooltip decorator
 - [NXDRIVE-1098](https://jira.nuxeo.com/browse/NXDRIVE-1098): Auto-Lock does not work when there are orphans
 - [NXDRIVE-1104](https://jira.nuxeo.com/browse/NXDRIVE-1104): Set invalid credentials on 401,403 errors only
