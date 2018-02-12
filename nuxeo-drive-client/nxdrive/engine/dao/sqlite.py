@@ -16,41 +16,42 @@ SCHEMA_VERSION = "schema_version"
 # (local_state, remote_state)
 PAIR_STATES = {
     # regular cases
-    ('unknown', 'unknown'): 'unknown',
-    ('synchronized', 'synchronized'): 'synchronized',
     ('created', 'unknown'): 'locally_created',
-    ('unknown', 'created'): 'remotely_created',
+    ('deleted', 'deleted'): 'deleted',
+    ('deleted', 'synchronized'): 'locally_deleted',
     ('modified', 'synchronized'): 'locally_modified',
-    ('moved', 'synchronized'): 'locally_moved',
+    ('modified', 'unknown'): 'locally_modified',
     ('moved', 'deleted'): 'locally_moved_created',
     ('moved', 'modified'): 'locally_moved_remotely_modified',
-    ('synchronized', 'modified'): 'remotely_modified',
-    ('modified', 'unknown'): 'locally_modified',
-    ('unknown', 'modified'): 'remotely_modified',
-    ('deleted', 'synchronized'): 'locally_deleted',
+    ('moved', 'synchronized'): 'locally_moved',
     ('synchronized', 'deleted'): 'remotely_deleted',
-    ('deleted', 'deleted'): 'deleted',
+    ('synchronized', 'modified'): 'remotely_modified',
+    ('synchronized', 'synchronized'): 'synchronized',
     ('synchronized', 'unknown'): 'synchronized',
+    ('unknown', 'created'): 'remotely_created',
+    ('unknown', 'modified'): 'remotely_modified',
+    ('unknown', 'unknown'): 'unknown',
+    ('unsynchronized', 'unknown'): 'unsynchronized',
 
     # conflicts with automatic resolution
     ('created', 'deleted'): 'locally_created',
     ('deleted', 'created'): 'remotely_created',
-    ('modified', 'deleted'): 'remotely_deleted',
     ('deleted', 'modified'): 'remotely_created',
+    ('modified', 'deleted'): 'remotely_deleted',
 
     # conflict cases that need manual resolution
-    ('modified', 'modified'): 'conflicted',
     ('created', 'created'): 'conflicted',
     ('created', 'modified'): 'conflicted',
-    ('moved', 'unknown'): 'conflicted',
+    ('modified', 'modified'): 'conflicted',
     ('moved', 'moved'): 'conflicted',
+    ('moved', 'unknown'): 'conflicted',
 
     # conflict cases that have been manually resolved
     ('resolved', 'unknown'): 'locally_resolved',
 
     # inconsistent cases
-    ('unknown', 'deleted'): 'unknown_deleted',
     ('deleted', 'unknown'): 'deleted_unknown',
+    ('unknown', 'deleted'): 'unknown_deleted',
 }
 
 
@@ -93,6 +94,10 @@ class StateRow(sqlite3.Row):
             return self[name]
         except IndexError:
             return None
+
+    @property
+    def pair_state(self):
+        return PAIR_STATES.get((self.local_state, self.remote_state))
 
     def is_readonly(self):
         if self.folderish:
@@ -679,9 +684,6 @@ class EngineDAO(ConfigurationDAO):
         else:
             log.trace("Will not push pair: %s, pair=%r", pair_state, pair)
 
-    def _get_pair_state(self, row):
-        return PAIR_STATES.get((row.local_state, row.remote_state))
-
     def update_last_transfer(self, row_id, transfer):
         with self._lock:
             con = self._get_write_connection()
@@ -704,7 +706,6 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
 
     def update_local_state(self, row, info, versionned=True, queue=True):
-        row.pair_state = self._get_pair_state(row)
         log.trace('Updating local state for row=%r with info=%r', row, info)
 
         version = ''
@@ -981,7 +982,7 @@ class EngineDAO(ConfigurationDAO):
         return c.execute("SELECT * FROM States WHERE local_path=?", (path,)).fetchone()
 
     def insert_remote_state(self, info, remote_parent_path, local_path, local_parent_path):
-        pair_state = PAIR_STATES.get(('unknown','created'))
+        pair_state = PAIR_STATES.get(('unknown', 'created'))
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -1063,17 +1064,33 @@ class EngineDAO(ConfigurationDAO):
 
     def force_local(self, row):
         with self._lock:
-            pair_state = 'locally_resolved'
+            row.local_state, row.remote_state = 'resolved', 'unknown'
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET local_state='resolved', remote_state='unknown', pair_state=?, last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
-                      " WHERE id=? AND version=?", (pair_state, row.id, row.version))
-            self._queue_pair_state(row.id, row.folderish, pair_state)
+            c.execute(
+                'UPDATE States'
+                '   SET local_state = ?,'
+                '       remote_state = ?,'
+                '       pair_state = ?,'
+                '       last_error = NULL,'
+                '       last_sync_error_date = NULL,'
+                '        error_count = 0'
+                ' WHERE id = ?'
+                '       AND version = ?', (
+                    row.local_state,
+                    row.remote_state,
+                    row.pair_state,
+                    row.id,
+                    row.version))
+
+            self._queue_pair_state(row.id, row.folderish, row.pair_state)
             if self.auto_commit:
                 con.commit()
+
         if c.rowcount == 1:
-            self._items_count = self._items_count + 1
+            self._items_count += 1
             return True
+
         return False
 
     def set_conflict_state(self, row):
@@ -1092,11 +1109,26 @@ class EngineDAO(ConfigurationDAO):
 
     def unsynchronize_state(self, row, last_error=None):
         with self._lock:
+            row.local_state, row.remote_state = 'unsynchronized', 'unknown'
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET pair_state='unsynchronized', last_sync_date=?, processor = 0," +
-                      "last_error=?, error_count=0, last_sync_error_date=NULL WHERE id=?",
-                      (datetime.utcnow(), last_error, row.id))
+            c.execute(
+                'UPDATE States'
+                '   SET local_state = ?,'
+                '       remote_state = ?,'
+                '       pair_state = ?,'
+                '       last_sync_date = ?,'
+                '       last_error = ?,'
+                '       processor = 0,'
+                '       error_count = 0,'
+                '       last_sync_error_date = NULL'
+                '  WHERE id = ?', (
+                    row.local_state,
+                    row.remote_state,
+                    row.pair_state,
+                    datetime.utcnow(),
+                    last_error,
+                    row.id))
             if self.auto_commit:
                 con.commit()
 
@@ -1112,7 +1144,6 @@ class EngineDAO(ConfigurationDAO):
         # Set default states to synchronized, if wanted
         if not dynamic_states:
             row.local_state = row.remote_state = 'synchronized'
-        row.pair_state = self._get_pair_state(row)
 
         with self._lock:
             con = self._get_write_connection()
@@ -1187,7 +1218,6 @@ class EngineDAO(ConfigurationDAO):
         return result
 
     def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False, no_digest=False):
-        row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
 
@@ -1207,7 +1237,6 @@ class EngineDAO(ConfigurationDAO):
                 # It looks similar
                 if info.digest in (row.local_digest, row.remote_digest):
                     row.remote_state = 'synchronized'
-                    row.pair_state = self._get_pair_state(row)
                 if info.digest == row.remote_digest and not force_update:
                     log.trace('Not updating remote state (not dirty)'
                               ' for row=%r with info=%r', row, info)
@@ -1224,7 +1253,6 @@ class EngineDAO(ConfigurationDAO):
             # documents (a move on both sides) nor with newly remotely
             # created ones.
             row.remote_state = 'modified'
-            row.pair_state = self._get_pair_state(row)
 
         version = ''
         if versionned:

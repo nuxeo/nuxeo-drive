@@ -102,6 +102,7 @@ class Engine(QObject):
     _start = pyqtSignal()
     _stop = pyqtSignal()
     _scanPair = pyqtSignal(str)
+    errorOpenedFile = pyqtSignal(object)
     syncStarted = pyqtSignal(object)
     syncCompleted = pyqtSignal()
     # Sent when files are in blacklist but the rest is ok
