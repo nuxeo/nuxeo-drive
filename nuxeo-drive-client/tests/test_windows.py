@@ -95,13 +95,10 @@ class TestWindows(UnitTestCase):
         if sys.platform == 'win32':
             # As local file are locked, a WindowsError should occur during the
             # local update process, therefore:
-            # - Temporary download file (.part) should be created locally but
-            #   not renamed then removed
             # - Opened local files should still exist and not have been
             #   modified
             # - Synchronization should not fail: doc pairs should be
             #   blacklisted and other remote modifications should be locally synchronized
-            self.assertNxPart('/', 'test_update.docx')
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEqual(local.get_content('/test_update.docx'),
                              'Some content to update.')
@@ -116,7 +113,6 @@ class TestWindows(UnitTestCase):
             self.wait_sync(enforce_errors=False, fail_if_timeout=False)
             # Blacklisted files should be ignored as delay (60 seconds by
             # default) is not expired, nothing should have changed
-            self.assertNxPart('/', 'test_update.docx')
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEqual(local.get_content('/test_update.docx'),
                              'Some content to update.')
@@ -137,7 +133,6 @@ class TestWindows(UnitTestCase):
             self.assertTrue(local.exists('/test_update.docx'))
             self.assertEqual(local.get_content('/test_update.docx'),
                              'Updated content.')
-            self.assertNxPart('/', 'test_update.docx')
             self.assertFalse(local.exists('/test_delete.docx'))
         else:
             self.assertTrue(local.exists('/test_update.docx'))

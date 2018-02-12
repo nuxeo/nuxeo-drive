@@ -1063,17 +1063,33 @@ class EngineDAO(ConfigurationDAO):
 
     def force_local(self, row):
         with self._lock:
-            pair_state = 'locally_resolved'
+            row.local_state, row.remote_state = 'resolved', 'unknown'
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET local_state='resolved', remote_state='unknown', pair_state=?, last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
-                      " WHERE id=? AND version=?", (pair_state, row.id, row.version))
-            self._queue_pair_state(row.id, row.folderish, pair_state)
+            c.execute(
+                'UPDATE States'
+                '   SET local_state=?,'
+                '       remote_state=?,'
+                '       pair_state=?,'
+                '       last_error=NULL,'
+                '       last_sync_error_date=NULL,'
+                '        error_count = 0'
+                ' WHERE id=?'
+                '       AND version=?', (
+                    row.local_state,
+                    row.remote_state,
+                    row.pair_state,
+                    row.id,
+                    row.version))
+
+            self._queue_pair_state(row.id, row.folderish, row.pair_state)
             if self.auto_commit:
                 con.commit()
+
         if c.rowcount == 1:
-            self._items_count = self._items_count + 1
+            self._items_count += 1
             return True
+
         return False
 
     def set_conflict_state(self, row):
