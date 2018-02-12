@@ -107,8 +107,8 @@ class Tracker(Worker):
             })
         try:
             self._tracker.send('event', **kwargs)
-        except Exception as e:
-            log.exception('Error sending analytics: {}'.format(e))
+        except:
+            log.exception('Error sending analytics')
 
     @QtCore.pyqtSlot(object)
     def _send_app_update_event(self, version):
