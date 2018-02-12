@@ -421,62 +421,8 @@ class Manager(QtCore.QObject):
     def get_dao(self):  # TODO: Remove
         return self._dao
 
-    def _migrate(self):
-        from nxdrive.engine.dao.sqlite import ManagerDAO
-        self._dao = ManagerDAO(self._get_db())
-        old_db = os.path.join(normalized_path(self.nxdrive_home), "nxdrive.db")
-        if os.path.exists(old_db):
-            import sqlite3
-            from nxdrive.engine.dao.sqlite import StateRow
-            conn = sqlite3.connect(old_db)
-            conn.row_factory = StateRow
-            c = conn.cursor()
-            cfg = c.execute("SELECT * FROM device_config LIMIT 1").fetchone()
-            if cfg is not None:
-                self.__device_id = cfg.device_id
-                self._dao.update_config("device_id", cfg.device_id)
-                self._dao.update_config("proxy_config", cfg.proxy_config)
-                self._dao.update_config("proxy_type", cfg.proxy_type)
-                self._dao.update_config("proxy_server", cfg.proxy_server)
-                self._dao.update_config("proxy_port", cfg.proxy_port)
-                self._dao.update_config("proxy_authenticated", cfg.proxy_authenticated)
-                self._dao.update_config("proxy_username", cfg.proxy_username)
-                self._dao.update_config("auto_update", cfg.auto_update)
-            # Copy first server binding
-            rows = c.execute("SELECT * FROM server_bindings").fetchall()
-            if not rows:
-                return
-            first_row = True
-            for row in rows:
-                row.url = row.server_url
-                log.debug("Binding server from Nuxeo Drive V1: [%s, %s]", row.url, row.remote_user)
-                row.username = row.remote_user
-                row.password = None
-                row.token = row.remote_token
-                row.no_fscheck = True
-                engine = self.bind_engine(self._get_default_server_type(), row["local_folder"],
-                                          self._get_engine_name(row.url), row, starts=False)
-                log.trace("Resulting server binding remote_token %r", row.remote_token)
-                if first_row:
-                    first_engine_def = row
-                    first_engine = engine
-                    first_row = False
-                else:
-                    engine.dispose_db()
-            # Copy filters for first engine as V1 only supports filtering for the first server binding
-            filters = c.execute("SELECT * FROM filters")
-            for filter_obj in filters:
-                if first_engine_def.local_folder != filter_obj.local_folder:
-                    continue
-                log.trace("Filter Row from DS1 %r", filter_obj)
-                first_engine.add_filter(filter_obj["path"])
-            first_engine.dispose_db()
-
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import ManagerDAO
-        if not os.path.exists(self._get_db()):
-            self._migrate()
-            return
         self._dao = ManagerDAO(self._get_db())
 
     def _create_server_config_updater(self, update_check_delay):
