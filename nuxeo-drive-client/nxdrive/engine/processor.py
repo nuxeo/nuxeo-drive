@@ -288,7 +288,8 @@ class Processor(EngineWorker):
                         """
                         WindowsError: [Error 2] The specified file is not found
                         """
-                        log.debug('The document does not exist anymore: %r', doc_pair)
+                        log.debug('The document does not exist anymore: %r',
+                                  doc_pair)
                         self._dao.remove_state(doc_pair)
                     elif errno == 32:
                         """
@@ -297,7 +298,8 @@ class Processor(EngineWorker):
                         """
                         log.info('Document used by another software, delaying'
                                  ' action on %r', doc_pair)
-                        self._engine.errorOpenedFile.emit(doc_pair.local_path, doc_pair.folderish)
+                        self._engine.errorOpenedFile.emit(
+                            doc_pair.local_path, doc_pair.folderish)
                         self._postpone_pair(doc_pair, 'Used by another process')
                     else:
                         self._handle_pair_handler_exception(

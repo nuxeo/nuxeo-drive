@@ -75,9 +75,9 @@ class Notification(object):
         self.uid = uid
         if uid is not None:
             if engine_uid is not None:
-                self.uid = self.uid + '_' + engine_uid
+                self.uid += '_' + engine_uid
             if not self.is_unique():
-                self.uid = self.uid + '_' + str(int(time.time()))
+                self.uid += '_' + str(int(time.time()))
         else:
             self.uid = uuid
 
@@ -126,9 +126,6 @@ class Notification(object):
         if engine_uid:
             result += '_' + engine_uid
         return result
-
-    def get_type(self):
-        return self._type
 
     def get_replacements(self):
         return self._replacements
@@ -261,7 +258,6 @@ class LockNotification(Notification):
             'LOCK',
             title=Translator.get('LOCK_NOTIFICATION_TITLE', values),
             description=Translator.get('LOCK_NOTIFICATION_DESCRIPTION', values),
-            level=Notification.LEVEL_INFO,
             flags=(Notification.FLAG_VOLATILE
                    | Notification.FLAG_BUBBLE
                    | Notification.FLAG_DISCARD_ON_TRIGGER
@@ -400,7 +396,6 @@ class DirectEditUpdatedNotification(Notification):
             'DIRECT_EDIT_UPDATED',
             title=Translator.get('UPDATED', values),
             description=Translator.get('DIRECT_EDIT_UPDATED_FILE', values),
-            level=Notification.LEVEL_INFO,
             flags=(Notification.FLAG_VOLATILE
                    | Notification.FLAG_BUBBLE
                    | Notification.FLAG_DISCARD_ON_TRIGGER
