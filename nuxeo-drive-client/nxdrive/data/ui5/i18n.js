@@ -391,9 +391,11 @@ LABELS={
     "USERNAME": "Username",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Web Authentication",
     "WELCOME_MESSAGE": "Set your account and synchronize your files with the Nuxeo Platform.",
-    "WINDOWS_ERROR": "Windows Error",
-    "WINDOWS_ERROR_OPENED_FILE": "Another software is blocking any action on the file „{{ name }}“. Please, close it.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "Another software is blocking any action on the folder „{{ name }}“ or its children. Please, close it."
+    "WINDOWS_ERROR_TITLE": "Document error",
+    "WINDOWS_ERROR_OPENED_FILE": "The file „{{ name }}“ is open by another software. Please close it before Nuxeo Drive can process the deletion from your local storage.",
+    "WINDOWS_ERROR_OPENED_FOLDER": "The folder „{{ name }}“ or its children is locked by another software. Please close it before Nuxeo Drive can process the deletion from your local storage.",
+    "DELETION_ERROR_TITLE": "Document deletion error",
+    "DELETION_ERROR_MSG": "The document „{{ name }}“ cannot be unsynchronised because its full path is too long."
   },
   "es": {
     "ABOUT": "Acerca de",

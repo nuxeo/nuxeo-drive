@@ -409,11 +409,25 @@ class ErrorOpenedFile(Notification):
         msg = ('FILE', 'FOLDER')[is_folder]
         super(ErrorOpenedFile, self).__init__(
             'WINDOWS_ERROR',
-            title=Translator.get('WINDOWS_ERROR'),
+            title=Translator.get('WINDOWS_ERROR_TITLE'),
             description=Translator.get('WINDOWS_ERROR_OPENED_%s' % msg, values),
             level=Notification.LEVEL_ERROR,
             flags=(Notification.FLAG_UNIQUE
                    | Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE),
+        )
+
+
+class FileDeletionError(Notification):
+    def __init__(self, path):
+        values = {'name': path}
+        super(FileDeletionError, self).__init__(
+            'DELETION_ERROR',
+            title=Translator.get('DELETION_ERROR_TITLE'),
+            description=Translator.get('DELETION_ERROR_MSG', values),
+            level=Notification.LEVEL_ERROR,
+            flags=(Notification.FLAG_UNIQUE
+                   | Notification.FLAG_PERSISTENT
                    | Notification.FLAG_BUBBLE),
         )
 
@@ -456,9 +470,14 @@ class DefaultNotificationService(NotificationService):
         engine.invalidAuthentication.connect(self._invalidAuthentication)
         engine.online.connect(self._validAuthentication)
         engine.errorOpenedFile.connect(self._errorOpenedFile)
+        engine.fileDeletionErrorTooLong.connect(self._fileDeletionErrorTooLong)
 
-    def _errorOpenedFile(self, local_path, is_folder):
-        self.send_notification(ErrorOpenedFile(unicode(local_path), is_folder))
+    def _errorOpenedFile(self, doc):
+        self.send_notification(ErrorOpenedFile(
+            doc.local_path, doc.folderish))
+
+    def _fileDeletionErrorTooLong(self, doc):
+        self.send_notification(FileDeletionError(doc.local_path))
 
     def _lockDocument(self, filename):
         self.send_notification(LockNotification(filename))

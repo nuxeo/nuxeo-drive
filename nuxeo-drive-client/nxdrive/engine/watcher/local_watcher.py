@@ -1019,6 +1019,8 @@ class LocalWatcher(EngineWorker):
                     if doc_pair:
                         self._schedule_win_folder_scan(doc_pair)
             return
+        except ThreadInterrupt:
+            raise
         except:
             log.exception('Watchdog exception')
 
