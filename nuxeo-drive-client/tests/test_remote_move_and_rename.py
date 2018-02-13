@@ -640,13 +640,8 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
             assert local.exists('/Test folder/testFile.pdf')
             assert not local.exists('/testFile.pdf')
 
-        # The source file is accessed by another processor, so we cannot do anything
-        states_in_error = self.engine_1.get_dao().get_errors()
-        assert len(states_in_error) == 1
-
-        # Reset the error and wait'n see!
-        for state in states_in_error:
-            self.engine_1.get_dao().reset_error(state)
+        # The source file is accessed by another processor, but no error
+        assert not self.engine_1.get_dao().get_errors()
 
         self.wait_sync(wait_for_async=True)
         assert local.exists('/testFile.pdf')
@@ -706,13 +701,8 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
             assert local.exists('/Test folder/testFile.pdf')
             assert not local.exists('/Test folder/testFile2.pdf')
 
-        # The source file is accessed by another processor, so we cannot do anything
-        states_in_error = self.engine_1.get_dao().get_errors()
-        assert len(states_in_error) == 1
-
-        # Reset the error and wait'n see!
-        for state in states_in_error:
-            self.engine_1.get_dao().reset_error(state)
+        # The source file is accessed by another processor, but no errors
+        assert not self.engine_1.get_dao().get_errors()
 
         self.wait_sync(wait_for_async=True)
         assert local.exists('/Test folder/testFile2.pdf')

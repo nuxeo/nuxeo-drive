@@ -390,7 +390,10 @@ LABELS={
     "URL": "URL",
     "USERNAME": "Username",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Web Authentication",
-    "WELCOME_MESSAGE": "Set your account and synchronize your files with the Nuxeo Platform."
+    "WELCOME_MESSAGE": "Set your account and synchronize your files with the Nuxeo Platform.",
+    "WINDOWS_ERROR": "Windows Error",
+    "WINDOWS_ERROR_OPENED_FILE": "Another software is blocking any action on the file „{{ name }}“. Please, close it.",
+    "WINDOWS_ERROR_OPENED_FOLDER": "Another software is blocking any action on the folder „{{ name }}“ or its children. Please, close it."
   },
   "es": {
     "ABOUT": "Acerca de",

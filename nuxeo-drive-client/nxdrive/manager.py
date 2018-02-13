@@ -1,7 +1,6 @@
 # coding: utf-8
 import os
 import platform
-import sip
 import subprocess
 import sys
 import urllib2
@@ -11,6 +10,7 @@ from logging import getLogger
 from urlparse import urlparse
 
 import pypac
+import sip
 from PyQt4 import QtCore
 from PyQt4.QtScript import QScriptEngine
 from PyQt4.QtWebKit import qWebKitVersion
@@ -19,6 +19,7 @@ from nxdrive import __version__
 from nxdrive.client import LocalClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.logging_config import FILE_HANDLER
+from nxdrive.notification import DefaultNotificationService
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
@@ -252,7 +253,6 @@ class Manager(QtCore.QObject):
     _singleton = None
     app_name = 'Nuxeo Drive'
 
-    __notification_service = None
     __exe_path = None
     __device_id = None
 
@@ -264,17 +264,21 @@ class Manager(QtCore.QObject):
         if Manager._singleton:
             raise RuntimeError('Only one instance of Manager can be created.')
 
-        Manager._singleton = self
         super(Manager, self).__init__()
-        self.osi = AbstractOSIntegration.get(self)
+        Manager._singleton = self
 
-        if not Options.consider_ssl_errors:
-            self._bypass_https_verification()
-
+        # Primary attributes to allow initializing the notification center early
         self.nxdrive_home = os.path.realpath(
             os.path.expanduser(Options.nxdrive_home))
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
+        self._create_dao()
+
+        self.notification_service = DefaultNotificationService(self)
+        self.osi = AbstractOSIntegration.get(self)
+
+        if not Options.consider_ssl_errors:
+            self._bypass_https_verification()
 
         self.direct_edit_folder = os.path.join(
             normalized_path(self.nxdrive_home),
@@ -290,8 +294,6 @@ class Manager(QtCore.QObject):
         self.proxy_exceptions = None
         self._app_updater = None
         self.server_config_updater = None
-        self._dao = None
-        self._create_dao()
         if Options.proxy_server is not None:
             proxy = ProxySettings()
             proxy.from_url(Options.proxy_server)
@@ -321,6 +323,8 @@ class Manager(QtCore.QObject):
         self._pause = Options.debug
         self.updated = False  # self.update_version()
 
+        # Connect all Qt signals
+        self.notification_service.init_signals()
         self.load()
 
         # Create the server's configuration getter verification thread
@@ -389,14 +393,6 @@ class Manager(QtCore.QObject):
         if self.get_auto_start():
             self.osi.register_startup()
 
-    @property
-    def notification_service(self):
-        # Don't use it for now
-        if not self.__notification_service:
-            from nxdrive.notification import DefaultNotificationService
-            self.__notification_service = DefaultNotificationService(self)
-        return self.__notification_service
-
     def _create_autolock_service(self):
         from nxdrive.autolocker import ProcessAutoLockerWorker
         self.autolock_service = ProcessAutoLockerWorker(
@@ -425,62 +421,8 @@ class Manager(QtCore.QObject):
     def get_dao(self):  # TODO: Remove
         return self._dao
 
-    def _migrate(self):
-        from nxdrive.engine.dao.sqlite import ManagerDAO
-        self._dao = ManagerDAO(self._get_db())
-        old_db = os.path.join(normalized_path(self.nxdrive_home), "nxdrive.db")
-        if os.path.exists(old_db):
-            import sqlite3
-            from nxdrive.engine.dao.sqlite import StateRow
-            conn = sqlite3.connect(old_db)
-            conn.row_factory = StateRow
-            c = conn.cursor()
-            cfg = c.execute("SELECT * FROM device_config LIMIT 1").fetchone()
-            if cfg is not None:
-                self.__device_id = cfg.device_id
-                self._dao.update_config("device_id", cfg.device_id)
-                self._dao.update_config("proxy_config", cfg.proxy_config)
-                self._dao.update_config("proxy_type", cfg.proxy_type)
-                self._dao.update_config("proxy_server", cfg.proxy_server)
-                self._dao.update_config("proxy_port", cfg.proxy_port)
-                self._dao.update_config("proxy_authenticated", cfg.proxy_authenticated)
-                self._dao.update_config("proxy_username", cfg.proxy_username)
-                self._dao.update_config("auto_update", cfg.auto_update)
-            # Copy first server binding
-            rows = c.execute("SELECT * FROM server_bindings").fetchall()
-            if not rows:
-                return
-            first_row = True
-            for row in rows:
-                row.url = row.server_url
-                log.debug("Binding server from Nuxeo Drive V1: [%s, %s]", row.url, row.remote_user)
-                row.username = row.remote_user
-                row.password = None
-                row.token = row.remote_token
-                row.no_fscheck = True
-                engine = self.bind_engine(self._get_default_server_type(), row["local_folder"],
-                                          self._get_engine_name(row.url), row, starts=False)
-                log.trace("Resulting server binding remote_token %r", row.remote_token)
-                if first_row:
-                    first_engine_def = row
-                    first_engine = engine
-                    first_row = False
-                else:
-                    engine.dispose_db()
-            # Copy filters for first engine as V1 only supports filtering for the first server binding
-            filters = c.execute("SELECT * FROM filters")
-            for filter_obj in filters:
-                if first_engine_def.local_folder != filter_obj.local_folder:
-                    continue
-                log.trace("Filter Row from DS1 %r", filter_obj)
-                first_engine.add_filter(filter_obj["path"])
-            first_engine.dispose_db()
-
     def _create_dao(self):
         from nxdrive.engine.dao.sqlite import ManagerDAO
-        if not os.path.exists(self._get_db()):
-            self._migrate()
-            return
         self._dao = ManagerDAO(self._get_db())
 
     def _create_server_config_updater(self, update_check_delay):
@@ -546,7 +488,7 @@ class Manager(QtCore.QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug("Resume engine %s", uid)
+            log.debug('Resume engine %s', uid)
             engine.resume()
         self.resumed.emit()
 
@@ -557,7 +499,7 @@ class Manager(QtCore.QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug("Suspend engine %s", uid)
+            log.debug('Suspend engine %s', uid)
             engine.suspend()
         self.suspended.emit()
 
@@ -566,7 +508,7 @@ class Manager(QtCore.QObject):
             if euid is not None and euid != uid:
                 continue
             if engine.is_started():
-                log.debug("Stop engine %s", uid)
+                log.debug('Stop engine %s', uid)
                 engine.stop()
         self.stopped.emit()
 
@@ -577,12 +519,12 @@ class Manager(QtCore.QObject):
                 continue
             if not self._pause:
                 self.aboutToStart.emit(engine)
-                log.debug("Launch engine %s", uid)
+                log.debug('Launch engine %s', uid)
                 try:
                     engine.start()
-                except Exception as e:
-                    log.debug("Could not start the engine: %s [%r]", uid, e)
-        log.debug("Emitting started")
+                except:
+                    log.exception('Could not start the engine %s', uid)
+
         # Check only if manager is started
         self._handle_os()
         self.started.emit()

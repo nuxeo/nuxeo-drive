@@ -281,6 +281,30 @@ class Processor(EngineWorker):
                 except CorruptedFile as exc:
                     self.increase_error(doc_pair, 'CORRUPT', exception=exc)
                     continue
+                except OSError as exc:
+                    # Try to handle different kind of Windows error
+                    errno = getattr(exc, 'winerror', exc.errno)
+                    if errno == 2:
+                        """
+                        WindowsError: [Error 2] The specified file is not found
+                        """
+                        log.debug('The document does not exist anymore: %r',
+                                  doc_pair)
+                        self._dao.remove_state(doc_pair)
+                    elif errno == 32:
+                        """
+                        WindowsError: [Error 32] The process cannot access the
+                        file because it is being used by another process
+                        """
+                        log.info('Document used by another software, delaying'
+                                 ' action on %r', doc_pair)
+                        self._engine.errorOpenedFile.emit(
+                            doc_pair.local_path, doc_pair.folderish)
+                        self._postpone_pair(doc_pair, 'Used by another process')
+                    else:
+                        self._handle_pair_handler_exception(
+                            doc_pair, handler_name, exc)
+                    continue
                 except Exception as exc:
                     self._handle_pair_handler_exception(
                         doc_pair, handler_name, exc)
@@ -425,9 +449,10 @@ class Processor(EngineWorker):
     def _postpone_pair(self, doc_pair, reason='', interval=None):
         """ Wait 60 sec for it. """
 
-        log.trace("Postpone creation of local file(%s): %r", reason, doc_pair)
+        log.trace('Postpone action on document(%s): %r', reason, doc_pair)
         doc_pair.error_count = 1
-        self._engine.get_queue_manager().push_error(doc_pair, exception=None, interval=interval)
+        self._engine.get_queue_manager().push_error(
+            doc_pair, exception=None, interval=interval)
 
     def _synchronize_locally_resolved(self, doc_pair, local_client, remote_client):
         """ NXDRIVE-766: processes a locally resolved conflict. """
@@ -832,7 +857,6 @@ class Processor(EngineWorker):
                     log.debug('No local impact of metadata update on'
                               ' document %r.', doc_pair.remote_name)
                 else:
-                    updated_info = None
                     file_or_folder = 'folder' if doc_pair.folderish else 'file'
                     if doc_pair.folderish:
                         self._engine.set_local_folder_lock(doc_pair.local_path)
@@ -844,7 +868,7 @@ class Processor(EngineWorker):
                         old_path = doc_pair.local_path
                         new_path = new_parent_pair.local_path + '/' + moved_name
                         if old_path == new_path:
-                            log.debug('WRONG GUESS FOR MOVE: %r', doc_pair)
+                            log.debug('Wrong guess for move: %r', doc_pair)
                             self._is_remote_move(doc_pair)
                             self._dao.synchronize_state(doc_pair)
 
@@ -889,20 +913,17 @@ class Processor(EngineWorker):
                         self._refresh_local_state(doc_pair, updated_info)
             self._handle_readonly(local_client, doc_pair)
             self._dao.synchronize_state(doc_pair)
-        except (IOError, OSError) as e:
-            log.warning(
-                'Delaying local update of remotely modified content %r due to'
-                'concurrent file access (probably opened by another process).',
-                doc_pair)
-            raise OSError(repr(e), locals())
         finally:
-            try:
-                os.remove(self.tmp_file)
-            except (TypeError, OSError):
-                pass
             if doc_pair.folderish:
                 # Release folder lock in any case
                 self._engine.release_folder_lock()
+
+        if not self.tmp_file:
+            return
+        try:
+            os.remove(self.tmp_file)
+        except OSError:
+            pass
 
     def _synchronize_remotely_created(self, doc_pair, local_client, remote_client):
         name = doc_pair.remote_name
@@ -1034,16 +1055,6 @@ class Processor(EngineWorker):
                     local_client.delete_final(doc_pair.local_path)
             self._dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
-        except (IOError, OSError) as e:
-            # Under Windows deletion can be impossible while another
-            # process is accessing the same file (e.g. word processor)
-            # TODO: be more specific as detecting this case:
-            # shall we restrict to the case e.errno == 13 ?
-            log.warning(
-                'Delaying local deletion of remotely deleted item %r due to'
-                ' concurrent file access (probably opened by another process).',
-                doc_pair)
-            raise e
         finally:
             if doc_pair.folderish:
                 self._engine.release_folder_lock()

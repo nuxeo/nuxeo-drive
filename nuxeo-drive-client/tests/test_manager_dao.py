@@ -36,9 +36,6 @@ class ManagerDAOTest(unittest.TestCase):
     def tearDown(self):
         Manager._singleton = None
 
-    def _get_db(self, name):
-        return os.path.join(os.path.dirname(__file__), 'resources', name)
-
     @Options.mock()
     def _create_manager(self):
         Options.nxdrive_home = self.test_folder
@@ -93,67 +90,3 @@ class ManagerDAOTest(unittest.TestCase):
         dao.discard_notification(notif2.uid)
         self.assertEqual(len(dao.get_notifications()), 1)
         self.assertEqual(len(dao.get_notifications(discarded=True)), 1)
-
-    def test_migration_db_v1(self):
-        # Initialize old DB
-        old_db = os.path.join(self.test_folder, 'nxdrive.db')
-        with open(self._get_db('test_manager_migration.db'), 'rb') as db,\
-                open(old_db, 'wb') as f:
-            f.write(db.read())
-
-        # Update token with one acquired against the test server
-        conn = sqlite3.connect(old_db)
-        c = conn.cursor()
-        device_id = c.execute("SELECT device_id FROM device_config LIMIT 1").fetchone()[0]
-        remote_client = RemoteDocumentClientForTests(
-            self.nuxeo_url, self.admin_user, device_id, nxdrive.__version__,
-            password=self.admin_password)
-        token = remote_client.request_token()
-        c.execute("UPDATE server_bindings SET remote_token='%s' WHERE local_folder='%s'" % (
-            token, '/home/ataillefer/Nuxeo Drive'))
-
-        # Update server URL with test server URL
-        c.execute("UPDATE server_bindings SET server_url='%s' WHERE local_folder='%s'" % (
-            self.nuxeo_url, '/home/ataillefer/Nuxeo Drive'))
-
-        # Update local folder with test temp dir
-        local_folder = os.path.join(self.test_folder, 'Nuxeo Drive')
-        c.execute("UPDATE server_bindings SET local_folder='%s' WHERE local_folder='%s'" % (
-            local_folder, '/home/ataillefer/Nuxeo Drive'))
-        conn.commit()
-        conn.close()
-
-        # Create Manager with old DB migration
-        manager = self._create_manager()
-        self.addCleanup(manager.stop)
-        dao = manager.get_dao()
-
-        # Check Manager config
-        self.assertEqual(dao.get_config('device_id'), device_id)
-        self.assertEqual(dao.get_config('proxy_config'), 'Manual')
-        self.assertEqual(dao.get_config('proxy_type'), 'http')
-        self.assertEqual(dao.get_config('proxy_server'), 'proxy.server.com')
-        self.assertEqual(dao.get_config('proxy_port'), '80')
-        self.assertEqual(dao.get_config('proxy_authenticated'), '1')
-        self.assertEqual(dao.get_config('proxy_username'), 'Administrator')
-        self.assertEqual(dao.get_config('auto_update'), '1')
-        self.assertEqual(dao.get_config('proxy_config'), 'Manual')
-
-        # Check engine definition
-        engines = dao.get_engines()
-        self.assertEqual(len(engines), 1)
-        engine = engines[0]
-        self.assertEqual(engine.engine, 'NXDRIVE')
-        self.assertEqual(engine.name, manager._get_engine_name(self.nuxeo_url))
-        self.assertTrue(local_folder in engine.local_folder)
-
-        # Check engine config
-        engine_uid = engine.uid
-        engine_db = os.path.join(self.test_folder, 'ndrive_%s.db' % engine_uid)
-        engine_dao = EngineDAO(engine_db)
-        self.assertEqual(engine_dao.get_config('server_url'), self.nuxeo_url)
-        self.assertEqual(engine_dao.get_config('remote_user'), 'Administrator')
-        self.assertEqual(engine_dao.get_config('remote_token'), token)
-
-        engine_dao.dispose()
-        manager.dispose_all()

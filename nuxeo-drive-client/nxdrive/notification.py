@@ -3,7 +3,7 @@ import time
 from logging import getLogger
 from threading import Lock
 
-from PyQt4 import QtCore
+from PyQt4.QtCore import QObject, pyqtSignal
 
 from nxdrive.wui.translator import Translator
 
@@ -15,25 +15,33 @@ class Notification(object):
     LEVEL_WARNING = 'warning'
     LEVEL_ERROR = 'danger'
 
-    # FLAG VALUE
     # Discard notification
     FLAG_DISCARD = 1
-    # Unique ( not depending on time ), only one by type/engine is displayed
+
+    # Unique (not depending on time), only one by type/engine is displayed
     FLAG_UNIQUE = 2
+
     # Can be closed by the user
     FLAG_DISCARDABLE = 4
+
     # Will not be stored when sent
     FLAG_VOLATILE = 8
+
     # Will be stored in the db
     FLAG_PERSISTENT = 16
+
     # Will be display as systray bubble or notification center
     FLAG_BUBBLE = 32
+
     # Will be displayed inside the systray menu
     FLAG_SYSTRAY = 64
+
     # An event will be triggered on click
     FLAG_ACTIONABLE = 128
-    # Delete the notifciation on discard
+
+    # Delete the notification on discard
     FLAG_REMOVE_ON_DISCARD = 256
+
     # Discard on trigger
     FLAG_DISCARD_ON_TRIGGER = 512
 
@@ -67,9 +75,9 @@ class Notification(object):
         self.uid = uid
         if uid is not None:
             if engine_uid is not None:
-                self.uid = self.uid + '_' + engine_uid
+                self.uid += '_' + engine_uid
             if not self.is_unique():
-                self.uid = self.uid + '_' + str(int(time.time()))
+                self.uid += '_' + str(int(time.time()))
         else:
             self.uid = uuid
 
@@ -119,9 +127,6 @@ class Notification(object):
             result += '_' + engine_uid
         return result
 
-    def get_type(self):
-        return self._type
-
     def get_replacements(self):
         return self._replacements
 
@@ -136,10 +141,10 @@ class Notification(object):
             self.level, self.title, self.uid, self.is_unique())
 
 
-class NotificationService(QtCore.QObject):
+class NotificationService(QObject):
 
-    newNotification = QtCore.pyqtSignal(object)
-    discardNotification = QtCore.pyqtSignal(object)
+    newNotification = pyqtSignal(object)
+    discardNotification = pyqtSignal(object)
 
     def __init__(self, manager):
         super(NotificationService, self).__init__()
@@ -175,6 +180,7 @@ class NotificationService(QtCore.QObject):
             return result
 
     def send_notification(self, notification):
+        log.trace('Sending %r', notification)
         notification._time = int(time.time())
         with self._lock:
             if notification.is_persistent():
@@ -252,7 +258,6 @@ class LockNotification(Notification):
             'LOCK',
             title=Translator.get('LOCK_NOTIFICATION_TITLE', values),
             description=Translator.get('LOCK_NOTIFICATION_DESCRIPTION', values),
-            level=Notification.LEVEL_INFO,
             flags=(Notification.FLAG_VOLATILE
                    | Notification.FLAG_BUBBLE
                    | Notification.FLAG_DISCARD_ON_TRIGGER
@@ -391,11 +396,25 @@ class DirectEditUpdatedNotification(Notification):
             'DIRECT_EDIT_UPDATED',
             title=Translator.get('UPDATED', values),
             description=Translator.get('DIRECT_EDIT_UPDATED_FILE', values),
-            level=Notification.LEVEL_INFO,
             flags=(Notification.FLAG_VOLATILE
                    | Notification.FLAG_BUBBLE
                    | Notification.FLAG_DISCARD_ON_TRIGGER
                    | Notification.FLAG_REMOVE_ON_DISCARD),
+        )
+
+
+class ErrorOpenedFile(Notification):
+    def __init__(self, path, is_folder):
+        values = {'name': path}
+        msg = ('FILE', 'FOLDER')[is_folder]
+        super(ErrorOpenedFile, self).__init__(
+            'WINDOWS_ERROR',
+            title=Translator.get('WINDOWS_ERROR'),
+            description=Translator.get('WINDOWS_ERROR_OPENED_%s' % msg, values),
+            level=Notification.LEVEL_ERROR,
+            flags=(Notification.FLAG_UNIQUE
+                   | Notification.FLAG_VOLATILE
+                   | Notification.FLAG_BUBBLE),
         )
 
 
@@ -404,7 +423,6 @@ class InvalidCredentialNotification(Notification):
         super(InvalidCredentialNotification, self).__init__(
             'INVALID_CREDENTIALS',
             title=Translator.get('INVALID_CREDENTIALS'),
-            description='',
             engine_uid=engine_uid,
             level=Notification.LEVEL_ERROR,
             flags=(Notification.FLAG_UNIQUE
@@ -419,6 +437,8 @@ class DefaultNotificationService(NotificationService):
     def __init__(self, manager):
         super(DefaultNotificationService, self).__init__(manager)
         self._manager = manager
+
+    def init_signals(self):
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
         self._manager.direct_edit.directEditLockError.connect(self._directEditLockError)
@@ -435,6 +455,10 @@ class DefaultNotificationService(NotificationService):
         engine.newLocked.connect(self._newLocked)
         engine.invalidAuthentication.connect(self._invalidAuthentication)
         engine.online.connect(self._validAuthentication)
+        engine.errorOpenedFile.connect(self._errorOpenedFile)
+
+    def _errorOpenedFile(self, local_path, is_folder):
+        self.send_notification(ErrorOpenedFile(unicode(local_path), is_folder))
 
     def _lockDocument(self, filename):
         self.send_notification(LockNotification(filename))
@@ -482,11 +506,9 @@ class DefaultNotificationService(NotificationService):
 
     def _validAuthentication(self):
         engine_uid = self.sender().uid
-        log.debug('discard_notification: ' + 'INVALID_CREDENTIALS_' + engine_uid)
         self.discard_notification('INVALID_CREDENTIALS_' + engine_uid)
 
     def _invalidAuthentication(self):
         engine_uid = self.sender().uid
         notif = InvalidCredentialNotification(engine_uid)
-        log.debug('send_notification: ' + notif.uid)
         self.send_notification(notif)
