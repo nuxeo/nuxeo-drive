@@ -722,7 +722,6 @@ FolderType=Generic
         # type: (Text) -> None
 
         error = None
-        global error
 
         def onerror(func, path, exc_info):
             """ Assign the error only once. """
