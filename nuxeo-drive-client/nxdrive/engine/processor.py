@@ -295,8 +295,9 @@ class Processor(EngineWorker):
                         WindowsError: [Error 32] The process cannot access the
                         file because it is being used by another process
                         """
-                        log.debug('Delaying WindowsError on %r', doc_pair)
-                        self._engine.errorOpenedFile.emit(doc_pair.local_path)
+                        log.info('Document used by another software, delaying'
+                                 ' action on %r', doc_pair)
+                        self._engine.errorOpenedFile.emit(doc_pair.local_path, doc_pair.folderish)
                         self._postpone_pair(doc_pair, 'Used by another process')
                     else:
                         self._handle_pair_handler_exception(

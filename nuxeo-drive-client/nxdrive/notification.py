@@ -409,12 +409,13 @@ class DirectEditUpdatedNotification(Notification):
 
 
 class ErrorOpenedFile(Notification):
-    def __init__(self, path):
+    def __init__(self, path, is_folder):
         values = {'name': path}
+        msg = ('FILE', 'FOLDER')[is_folder]
         super(ErrorOpenedFile, self).__init__(
             'WINDOWS_ERROR',
             title=Translator.get('WINDOWS_ERROR'),
-            description=Translator.get('WINDOWS_ERROR_OPENED_FILE', values),
+            description=Translator.get('WINDOWS_ERROR_OPENED_%s' % msg, values),
             level=Notification.LEVEL_ERROR,
             flags=(Notification.FLAG_UNIQUE
                    | Notification.FLAG_VOLATILE
@@ -461,8 +462,8 @@ class DefaultNotificationService(NotificationService):
         engine.online.connect(self._validAuthentication)
         engine.errorOpenedFile.connect(self._errorOpenedFile)
 
-    def _errorOpenedFile(self, local_path):
-        self.send_notification(ErrorOpenedFile(unicode(local_path)))
+    def _errorOpenedFile(self, local_path, is_folder):
+        self.send_notification(ErrorOpenedFile(unicode(local_path), is_folder))
 
     def _lockDocument(self, filename):
         self.send_notification(LockNotification(filename))

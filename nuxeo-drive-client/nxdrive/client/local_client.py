@@ -721,6 +721,7 @@ FolderType=Generic
     def delete_final(self, ref):
         # type: (Text) -> None
 
+        global error
         error = None
 
         def onerror(func, path, exc_info):
