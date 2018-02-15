@@ -188,7 +188,7 @@ timeout(240) {
     timestamps {
         parallel builders
 
-        if (env.ENABLE_SONAR && currentBuild.result == 'SUCCESS') {
+        if (env.ENABLE_SONAR && currentBuild.result != 'UNSTABLE') {
             node('SLAVE') {
                 stage('SonarQube Analysis') {
                     try {
@@ -222,16 +222,16 @@ timeout(240) {
                                 withEnv(["WORKSPACE=${pwd()}"]) {
                                     sh """
                                     ${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar \
-                                    -Dsonar.login=${SONARCLOUD_PWD} \
-                                    -Dsonar.branch.name=${env.BRANCH_NAME} \
-                                    -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client \
-                                    -Dsonar.projectBaseDir="${env.WORKSPACE}" \
-                                    -Dsonar.projectVersion="${drive_version}" \
-                                    -Dsonar.sources=../nuxeo-drive-client/nxdrive \
-                                    -Dsonar.tests=../nuxeo-drive-client/tests \
-                                    -Dsonar.python.coverage.reportPath=coverage.xml \
-                                    -Dsonar.python.pylint.reportPath=pylint-report.txt \
-                                    -Dsonar.exclusions=ftest/pom.xml
+                                        -Dsonar.login=${SONARCLOUD_PWD} \
+                                        -Dsonar.branch.name=${env.BRANCH_NAME} \
+                                        -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client \
+                                        -Dsonar.projectBaseDir="${env.WORKSPACE}" \
+                                        -Dsonar.projectVersion="${drive_version}" \
+                                        -Dsonar.sources=../nuxeo-drive-client/nxdrive \
+                                        -Dsonar.tests=../nuxeo-drive-client/tests \
+                                        -Dsonar.python.coverage.reportPath=coverage.xml \
+                                        -Dsonar.python.pylint.reportPath=pylint-report.txt \
+                                        -Dsonar.exclusions=ftest/pom.xml
                                     """
                                 }
                             }
