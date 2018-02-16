@@ -14,6 +14,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1104](https://jira.nuxeo.com/browse/NXDRIVE-1104): Set invalid credentials on 401,403 errors only
 - [NXDRIVE-1105](https://jira.nuxeo.com/browse/NXDRIVE-1105): Avoid unwanted file deletions on Windows 7
 - [NXDRIVE-1114](https://jira.nuxeo.com/browse/NXDRIVE-1114): Add server information to analytics
+- [NXDRIVE-1118](https://jira.nuxeo.com/browse/NXDRIVE-1118): Windows API used to trash files cannot deal with long paths
 
 ### GUI
 - [NXDRIVE-1106](https://jira.nuxeo.com/browse/NXDRIVE-1106): Use new branding icons
@@ -31,6 +32,8 @@ Release date: `2018-??-??`
 - Framework: Review EngineNext class
 - GUI: Use Web-UI as default value or in case of unknown selected UI for URLs generators
 - Jenkins: Discard old builds
+- Jenkins: Add a timeout to the packages job
+- Packaging: Updated `Send2Trash` from 1.4.2 to 1.5.0
 - Tests: Add a simple test for .rvt files
 - Tests: Add -W error option to pytest
 - Tests: Show failures summary

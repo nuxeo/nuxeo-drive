@@ -716,7 +716,6 @@ FolderType=Generic
         except OSError as exc:
             log.exception('Cannot trash %r', os_path)
             try:
-                # TODO: Remove me when NXDRIVE-1118 is done.
                 # WindowsError(None, None, path, retcode)
                 _, _, _, retcode = exc.args
             except:

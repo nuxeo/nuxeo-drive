@@ -475,7 +475,6 @@ class TestSynchronization(UnitTestCase):
         self.assertEqual(remote_children[0].filename, 'Some File.doc')
         self.assertEqual(remote_1.get_content('/Some File.doc'), 'Remote new content.')
 
-    @pytest.mark.skipif(sys.platform == 'win32', reason='NXDRIVE-1118')
     def test_synchronize_deep_folders(self):
         # Increase Automation execution timeout for NuxeoDrive.GetChangeSummary
         # because of the recursive parent FileSystemItem adaptation
