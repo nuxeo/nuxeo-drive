@@ -307,13 +307,20 @@ class Processor(EngineWorker):
                         """
                         WindowsError: [Error 111] ??? (seems related to deep
                         tree)
+                        Cause: short paths are disabled on Windows
+
                         WindowsError: [Error 121] The source or destination
                         path exceeded or would exceed MAX_PATH.
+                        Cause: short paths are disabled on Windows
+
                         WindowsError: [Error 124] The path in the source or
                         destination or both was invalid.
+                        Cause: dealing with different drives, ie when the sync
+                        folder is not on the same drive as Nuxeo Drive one
+
                         WindowsError: [Error 206] The filename or extension is
                         too long.
-                        TODO: Remove me when NXDRIVE-1118 is done.
+                        Cause: even the full short path is too long
                         """
                         self._dao.remove_filter(doc_pair.remote_parent_path
                                                 + '/'
