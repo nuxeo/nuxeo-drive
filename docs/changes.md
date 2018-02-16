@@ -3,6 +3,7 @@ Release date: `2018-??-??`
 
 ### Core
 - [NXDRIVE-941](https://jira.nuxeo.com/browse/NXDRIVE-941): Use a context manager for Lock
+- [NXDRIVE-1008](https://jira.nuxeo.com/browse/NXDRIVE-1008): Document deleted server side when unfiltering and opened elsewhere
 - [NXDRIVE-1009](https://jira.nuxeo.com/browse/NXDRIVE-1009): Some folders not deleted on client when file is open
 - [NXDRIVE-1062](https://jira.nuxeo.com/browse/NXDRIVE-1062): Fix encoding for string comparisons on macOS
 - [NXDRIVE-1085](https://jira.nuxeo.com/browse/NXDRIVE-1085): Review the Auto-Lock feature

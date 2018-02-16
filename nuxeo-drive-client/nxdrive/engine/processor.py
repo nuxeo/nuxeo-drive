@@ -283,24 +283,51 @@ class Processor(EngineWorker):
                     continue
                 except OSError as exc:
                     # Try to handle different kind of Windows error
-                    errno = getattr(exc, 'winerror', exc.errno)
-                    if errno == 2:
+                    error = getattr(exc, 'winerror', exc.errno)
+
+                    if error == 2:
                         """
                         WindowsError: [Error 2] The specified file is not found
                         """
                         log.debug('The document does not exist anymore: %r',
                                   doc_pair)
                         self._dao.remove_state(doc_pair)
-                    elif errno == 32:
+                    elif error == 32:
                         """
                         WindowsError: [Error 32] The process cannot access the
                         file because it is being used by another process
                         """
                         log.info('Document used by another software, delaying'
-                                 ' action on %r', doc_pair)
-                        self._engine.errorOpenedFile.emit(
-                            doc_pair.local_path, doc_pair.folderish)
+                                 ' action(%s) on %r, ref=%r',
+                                 doc_pair.pair_state, doc_pair.local_path,
+                                 doc_pair.remote_ref)
+                        self._engine.errorOpenedFile.emit(doc_pair)
                         self._postpone_pair(doc_pair, 'Used by another process')
+                    elif error in (111, 121, 124, 206):
+                        """
+                        WindowsError: [Error 111] ??? (seems related to deep
+                        tree)
+                        WindowsError: [Error 121] The source or destination
+                        path exceeded or would exceed MAX_PATH.
+                        WindowsError: [Error 124] The path in the source or
+                        destination or both was invalid.
+                        WindowsError: [Error 206] The filename or extension is
+                        too long.
+                        TODO: Remove me when NXDRIVE-1118 is done.
+                        """
+                        self._dao.remove_filter(doc_pair.remote_parent_path
+                                                + '/'
+                                                + doc_pair.remote_ref)
+                        self._engine.fileDeletionErrorTooLong.emit(doc_pair)
+                    elif getattr(exc, 'trash_issue'):
+                        """
+                        Special value to handle trash issues from filters on
+                        Windows when there is one or more files opened by
+                        another software blocking any action.
+                        """
+                        doc_pair.trash_issue = True
+                        self._engine.errorOpenedFile.emit(doc_pair)
+                        self._postpone_pair(doc_pair, 'Trashing not possible')
                     else:
                         self._handle_pair_handler_exception(
                             doc_pair, handler_name, exc)

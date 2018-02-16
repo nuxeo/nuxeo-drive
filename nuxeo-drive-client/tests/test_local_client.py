@@ -298,6 +298,18 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
     def get_local_client(self, path):
         return LocalClient(path)
 
+    @pytest.mark.xfail(
+        sys.platform == 'win32', raises=OSError,
+        reason='Explorer cannot deal with very long paths')
+    def test_deep_folders(self):
+        """
+        It should fail on Windows:
+            WindowsError: [Error 206] The filename or extension is too long
+        Explorer cannot deal with very long paths.
+        """
+
+        super(TestLocalClientNative, self).test_deep_folders()
+
     def test_remote_changing_case_accentued_folder(self):
         """
         NXDRIVE-1061: Remote rename of an accentued folder on Windows fails.

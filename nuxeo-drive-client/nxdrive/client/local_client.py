@@ -699,7 +699,9 @@ FolderType=Generic
             return
 
         if sys.platform == 'win32':
-            # Remove the '\\?\' prefix
+            # Send2Trash uses a SHFileOperation on Windows, which fails on
+            # any path prefixed with "\\?\" (from official documentation).
+            # So removing that prefix.
             os_path = os_path.lstrip('\\\\?\\')
 
         log.trace('Trashing %r', os_path)
@@ -711,9 +713,18 @@ FolderType=Generic
         locker = self.unlock_ref(os_path, is_abs=True)
         try:
             send2trash(os_path)
-        except OSError:
-            log.debug('Cannot use trash, deleting %r', os_path)
-            self.delete_final(ref)
+        except OSError as exc:
+            log.exception('Cannot trash %r', os_path)
+            try:
+                # TODO: Remove me when NXDRIVE-1118 is done.
+                # WindowsError(None, None, path, retcode)
+                _, _, _, retcode = exc.args
+            except:
+                pass
+            else:
+                exc.winerror = retcode
+            exc.trash_issue = True
+            raise exc
         finally:
             # Don't want to unlock the current deleted
             self.lock_ref(os_path, locker & 2, is_abs=True)
