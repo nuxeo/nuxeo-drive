@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import platform
+import sip
 import subprocess
 import sys
 import urllib2
@@ -10,7 +11,6 @@ from logging import getLogger
 from urlparse import urlparse
 
 import pypac
-import sip
 from PyQt4 import QtCore
 from PyQt4.QtScript import QScriptEngine
 from PyQt4.QtWebKit import qWebKitVersion

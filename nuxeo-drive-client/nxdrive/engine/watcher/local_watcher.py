@@ -14,7 +14,7 @@ from watchdog.observers import Observer
 
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.local_client import LocalClient
-from nxdrive.engine.activity import Action, tooltip
+from nxdrive.engine.activity import tooltip
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.options import Options
 from nxdrive.utils import (current_milli_time, force_decode,
