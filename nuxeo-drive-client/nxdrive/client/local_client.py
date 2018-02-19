@@ -831,6 +831,16 @@ FolderType=Generic
 
     def change_file_date(self, filename, mtime=None, ctime=None):
         # type: (Text, Optional[Text], Optional[Text]) -> None
+        """
+        Change the FS modification and creation dates of a file.
+
+        Since there is no creation time on GNU/Linux, the ctime
+        will not be taken into account if running on this platform.
+
+        :param filename: The file to modify
+        :param mtime: The modification time
+        :param ctime: The creation time
+        """
 
         if mtime:
             try:
