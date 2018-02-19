@@ -559,7 +559,7 @@ class Processor(EngineWorker):
                 if 'default#' in remote_ref:
                     # Document appears to be deleted server side.
                     self._synchronize_remotely_deleted(
-                        doc_pair, local_client, remote_client)
+                        doc_pair, local_client, remote_client, force=True)
                 return
 
             try:
@@ -1072,7 +1072,13 @@ class Processor(EngineWorker):
         finally:
             self._lock_readonly(local, local_parent_path)
 
-    def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
+    def _synchronize_remotely_deleted(
+        self,
+        doc_pair,
+        local_client,
+        remote_client,
+        force=False
+    ):
         try:
             if doc_pair.local_state != 'deleted':
                 log.debug('Deleting locally %r', local_client.abspath(doc_pair.local_path))
@@ -1083,10 +1089,10 @@ class Processor(EngineWorker):
                     file_out = self._get_temporary_file(local_client.abspath(doc_pair.local_path))
                     if os.path.exists(file_out):
                         os.remove(file_out)
-                if self._engine.use_trash():
-                    local_client.delete(doc_pair.local_path)
-                else:
+                if force or not self._engine.use_trash():
                     local_client.delete_final(doc_pair.local_path)
+                else:
+                    local_client.delete(doc_pair.local_path)
             self._dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
         finally:
