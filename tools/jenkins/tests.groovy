@@ -188,7 +188,7 @@ timeout(240) {
     timestamps {
         parallel builders
 
-        if (env.ENABLE_SONAR && currentBuild.result != 'UNSTABLE') {
+        if (env.ENABLE_SONAR && currentBuild.result != 'UNSTABLE' && env.SPECIFIC_TEST == '') {
             node('SLAVE') {
                 stage('SonarQube Analysis') {
                     try {
