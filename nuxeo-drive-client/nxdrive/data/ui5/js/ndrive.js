@@ -48,9 +48,9 @@ function drive_module(name) {
 	    };
 	});
 	app.config(function ($translateProvider) {
-		var languages = angular.fromJson(drive.get_languages());
+		var languages = angular.fromJson(drive.get_translations());
 		for (var i=0; i<languages.length; i++) {
-			$translateProvider.translations(languages[i][0], LABELS[languages[i][0]]);
+			$translateProvider.translations(languages[i][0], languages[i][1]);
 		}
 		$translateProvider.preferredLanguage(drive.locale());
 	});
