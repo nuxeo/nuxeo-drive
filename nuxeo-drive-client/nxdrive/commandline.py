@@ -11,6 +11,8 @@ from datetime import datetime
 from getpass import getpass
 from logging import getLogger
 
+from PyQt4.QtNetwork import QSslSocket
+
 from nxdrive import __version__
 from nxdrive.logging_config import configure
 from nxdrive.options import Options
@@ -410,6 +412,7 @@ class CliHandler(object):
 
         self.log = getLogger(__name__)
         self.log.debug('Command line: argv=%r, options=%r', argv, options)
+        self.log.info('SSL support = %r', QSslSocket.supportsSsl())
 
         # Update default options
         Options.update(options, setter='cli')

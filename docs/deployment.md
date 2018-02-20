@@ -49,7 +49,7 @@ PowerShell **4.0** or above is required to run this script. You can find install
 
 ### Usage
 
-    powershell .\tools\windows\deploy_jenkins_slave.ps1 [ARG]
+    powershell .\tools\windows\deploy_jenkins_slave.ps1 [ARG] -direct
 
 Possible `ARG`:
 
@@ -65,7 +65,8 @@ Notes:
 
 - [MinGW-w64](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/4.8.2/threads-posix/dwarf/i686-4.8.2-release-posix-dwarf-rt_v3-rev3.7z/download);
 - [Qt 4.8.7 open-source](https://download.qt.io/official_releases/qt/4.8/4.8.7/qt-opensource-windows-x86-mingw482-4.8.7.exe);
-- [Microsoft Visual C++ Compiler for Python 2.7](https://www.microsoft.com/en-us/download/details.aspx?id=44266) to build few required modules.
+- [Microsoft Visual C++ Compiler for Python 2.7](https://www.microsoft.com/en-us/download/details.aspx?id=44266) to build few required modules;
+- [Inno Setup 5.5.9 (u)](http://www.jrsoftware.org/download.php/is-unicode.exe) to create the installer.
 
 ### Troubleshooting
 
@@ -93,7 +94,6 @@ __Important__: those values are given as example, if you want up-to-date ones, p
 
 ### Optional Envars
 
-- `CXFREEZE_VERSION` is the **cx_Freeze version** to use, i.e. `4.3.3`.
 - `SIP_VERSION` is the **SIP version** to use, i.e. `4.19`.
 - `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
 - `SPECIFIC_TEST` is a **specific test** to launch. The syntax must be the same as [pytest markers](http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id), i.e.:
@@ -111,3 +111,4 @@ __Important__: those values are given as example, if you want up-to-date ones, p
 
 - `QT_PATH` is the **Qt path**, i.e. `C:\Qt\4.8.7`.
 - `MINGW_PATH` is the **MinGW path** to use, i.e. `C:\mingw32`.
+- `ISCC_PATH` is the **Inno Setup path** to use, i.e. `C:\Program Files (x86)\Inno Setup 5`.

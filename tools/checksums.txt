@@ -4,10 +4,6 @@
 # Note 4: Always use ZIP files on Windows to avoid any external dependency (7-Zip'n co).
 # Note 5: Do not upload any Python executable on the server.
 
-# cx_Freeze
-c729d5663320f6afc23682634c7f4cc2  cx_Freeze-4.3.3.tar.gz
-f1962bfd4b668d42e12d5ed87b500788  cx_Freeze-4.3.3.zip
-
 # PyQt
 56177e8d5c38a5922d66f4e104825792  PyQt4_gpl_mac-4.12.1.tar.gz
 88cde389b151572aa22dd0147cd325b6  PyQt4_gpl_win-4.12.1.zip

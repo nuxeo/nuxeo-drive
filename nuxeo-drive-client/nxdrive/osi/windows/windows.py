@@ -16,38 +16,7 @@ log = getLogger(__name__)
 
 class WindowsIntegration(AbstractOSIntegration):
 
-    RUN_KEY = 'Software\\Microsoft\\Windows\\CurrentVersion\\Run'
-    class_key_base = 'Software\\Classes\\{}\\shell\\Nuxeo Drive'
     __zoom_factor = None
-
-    def __init__(self, manager):
-        super(WindowsIntegration, self).__init__(manager)
-
-    def get_key_bases(self):
-        return [self.class_key_base.format('*'),
-                self.class_key_base.format('directory')]
-
-    def get_menu_entries(self):
-        return [('Access online', 'metadata'),
-                ('Copy share-link', 'share-link')]
-
-    @staticmethod
-    def _delete_reg_value(reg, path, value):
-        try:
-            with _winreg.OpenKey(reg, path, 0, _winreg.KEY_ALL_ACCESS) as key:
-                _winreg.DeleteValue(key, value)
-                return True
-        except WindowsError:
-            return False
-
-    @staticmethod
-    def _update_reg_key(reg, path, attributes=()):
-        """ Helper function to create / set a key with attribute values. """
-        key = _winreg.CreateKey(reg, path)
-        _winreg.CloseKey(key)
-        with _winreg.OpenKey(reg, path, 0, _winreg.KEY_WRITE) as key:
-            for name, type_, data in attributes:
-                _winreg.SetValueEx(key, name, 0, type_, data)
 
     @property
     def zoom_factor(self):
@@ -65,128 +34,6 @@ class WindowsIntegration(AbstractOSIntegration):
                           exc_info=True)
                 self.__zoom_factor = 1.0
         return self.__zoom_factor
-
-    def register_startup(self):
-        """ Register ndrive as a startup application in the registry. """
-
-        reg_key = self.RUN_KEY
-        app_name = self._manager.app_name
-        exe_path = self._manager.find_exe_path()
-        if exe_path is None:
-            log.warning('Not a frozen windows exe:'
-                        'skipping startup application registration')
-            return
-
-        log.debug(
-            'Registering the executable %r to the registry key %r',
-            exe_path, reg_key)
-        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-        self._update_reg_key(
-            reg, reg_key, [(app_name, _winreg.REG_SZ, exe_path)])
-
-    def unregister_startup(self):
-        self._delete_reg_value(
-            _winreg.HKEY_CURRENT_USER, self.RUN_KEY, self._manager.app_name)
-
-    def register_protocol_handlers(self):
-        """ Register ndrive as a protocol handler in the Registry """
-        exe_path = self._manager.find_exe_path()
-        if exe_path is None:
-            return
-
-        app_name = self._manager.app_name
-        protocol_path = 'Software\\{}\\Protocols\\nxdrive'.format(app_name)
-        class_path = 'Software\\Classes\\nxdrive'
-        command = '"{}" "%1"'.format(exe_path)
-
-        log.debug('Registering "nxdrive" protocol handler to: %r', exe_path)
-        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-
-        # Register Nuxeo Drive as a software as a protocol command provider
-        self._update_reg_key(
-            reg, 'Software\\' + app_name, [('', _winreg.REG_SZ, app_name)])
-
-        # TODO: add an icon for Nuxeo Drive too
-        self._update_reg_key(
-            reg, protocol_path, [('URL Protocol', _winreg.REG_SZ, '')])
-
-        # TODO: add an icon for the nxdrive protocol too
-        self._update_reg_key(
-            reg, '{}\\shell\\open\\command'.format(protocol_path),
-            [('', _winreg.REG_SZ, command)])
-
-        # Create the nxdrive protocol key
-        self._update_reg_key(
-            reg, class_path, [
-                ('EditFlags', _winreg.REG_DWORD, 2),
-                ('', _winreg.REG_SZ, 'URL:nxdrive Protocol'),
-                ('URL Protocol', _winreg.REG_SZ, '')])
-
-        # Create the nxdrive command key
-        self._update_reg_key(
-            reg, '{}\\shell\\open\\command'.format(class_path),
-            [('', _winreg.REG_SZ, command)])
-
-    def _recursive_delete(self, key0, key1, key2=''):
-        """ Delete a key and its subkeys. """
-
-        current = key1 if not key2 else key1 + '\\' + key2
-        with _winreg.OpenKey(key0, current, 0, _winreg.KEY_ALL_ACCESS) as key:
-            info = _winreg.QueryInfoKey(key)
-            for x in range(info[0]):
-                """
-                Deleting the subkey will change the SubKey count
-                used by EnumKey. We must always pass 0 to EnumKey
-                so we always get back the new first SubKey.
-                """
-                subkey = _winreg.EnumKey(key, 0)
-                try:
-                    _winreg.DeleteKey(key, subkey)
-                except WindowsError:
-                    self._recursive_delete(key0, current, key2=subkey)
-
-        try:
-            _winreg.DeleteKey(key0, key1)
-        except WindowsError:
-            pass
-
-    def unregister_protocol_handlers(self):
-        app_name = self._manager.app_name
-        reg = _winreg.HKEY_CURRENT_USER
-        self._recursive_delete(
-            reg, 'Software\\{}\\Protocols\\nxdrive'.format(app_name))
-        self._recursive_delete(reg, 'Software\\Classes\\nxdrive')
-
-    def register_contextual_menu(self):
-        """
-        Modify the registry to add an entry in the contextual menu.
-
-        When adding an entry in a registry key, passing `None` as
-        the name will set the `default` value of the key.
-        That way, the Windows Explorer sees the right label and
-        command to add as an entry in the contextual menu.
-        """
-        exe_path = self._manager.find_exe_path()
-        menu_cmd = '{} {} --file "%1"'
-        icon_path = '{},0'.format(exe_path)
-
-        reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-
-        # Add a key for both file and folder context menus
-        for key in self.get_key_bases():
-            for label, arg in self.get_menu_entries():
-                cmdkey = '{} {}'.format(key, label)
-                self._update_reg_key(reg, cmdkey,
-                                     [('Icon', _winreg.REG_SZ, icon_path),
-                                      (None, _winreg.REG_SZ, label)])
-
-                cmd = menu_cmd.format(exe_path, arg)
-                log.debug(
-                    'Registering the command `%r` to the registry key %r',
-                    cmd, cmdkey)
-                self._update_reg_key(reg, '{}\\command'.format(cmdkey),
-                                     [(None, _winreg.REG_SZ, cmd)])
-
 
     @staticmethod
     def is_same_partition(folder1, folder2):
@@ -215,16 +62,6 @@ class WindowsIntegration(AbstractOSIntegration):
         except WindowsError:
             pass
         return result
-
-    def unregister_contextual_menu(self):
-        reg = _winreg.HKEY_CURRENT_USER
-        for key in self.get_key_bases():
-            for label, arg in self.get_menu_entries():
-                menu_key = '{} {}'.format(key, label)
-                cmd_key = '{}\\command'.format(menu_key)
-                if self._delete_reg_value(reg, cmd_key, ''):
-                    _winreg.DeleteKey(reg, cmd_key)
-                    _winreg.DeleteKey(reg, menu_key)
 
     def register_folder_link(self, folder_path, name=None):
         favorite = self._get_folder_link(name)

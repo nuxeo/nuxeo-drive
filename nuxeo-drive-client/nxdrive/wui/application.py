@@ -15,11 +15,10 @@ from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
 from markdown import markdown
 
 from nxdrive.engine.activity import Action, FileAction
-from nxdrive.gui.resources import find_icon
 from nxdrive.notification import Notification
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration, parse_protocol_url
-from nxdrive.utils import find_resource_dir
+from nxdrive.utils import find_icon, find_resource
 from nxdrive.wui.modal import WebModal
 from nxdrive.wui.systray import DriveSystrayIcon
 from nxdrive.wui.translator import Translator
@@ -67,27 +66,17 @@ class SimpleApplication(QApplication):
         locale = Options.force_locale or Options.locale
         Translator(
             self.manager,
-            self.get_resource_dir('i18n'),
+            find_resource('i18n', ''),
             self.manager.get_config('locale', locale),
         )
 
     @staticmethod
-    def get_resource_dir(subdir=''):
-        import nxdrive
-        nxdrive_path = os.path.dirname(nxdrive.__file__)
-        path = os.path.join(nxdrive_path, 'data', subdir)
-        return find_resource_dir(subdir, path)
+    def get_htmlpage(page):
+        return find_resource(Options.theme, page).replace('\\', '/')
 
     @staticmethod
-    def get_htmlpage(page):
-        import nxdrive
-        nxdrive_path = os.path.dirname(nxdrive.__file__)
-        ui_path = os.path.join(nxdrive_path, 'data', Options.theme)
-        return (os.path.join(find_resource_dir(Options.theme, ui_path), page)
-                       .replace('\\', '/'))
-
-    def get_window_icon(self):
-        return find_icon('nuxeo_drive_icon_64.png')
+    def get_window_icon():
+        return find_icon('icon_64.png')
 
     def get_cache_folder(self):
         return os.path.join(self.manager.nxdrive_home, 'cache', 'wui')
@@ -128,7 +117,7 @@ class Application(SimpleApplication):
         self.icon_spin_count = 0
 
         # Application update
-        self.manager.get_updater().appUpdated.connect(self.app_updated)
+        # self.manager.get_updater().appUpdated.connect(self.app_updated)
         self.updated_version = None
 
         # This is a windowless application mostly using the system tray
@@ -145,8 +134,7 @@ class Application(SimpleApplication):
         self.engineWidget = None
 
         # Setup notification center for macOS
-        if (AbstractOSIntegration.is_mac()
-                and AbstractOSIntegration.os_version_above('10.8')):
+        if AbstractOSIntegration.is_mac():
             self._setup_notification_center()
 
     @pyqtSlot(str, str, str)
@@ -413,7 +401,7 @@ class Application(SimpleApplication):
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)
         self.manager.notification_service.newNotification.connect(self._new_notification)
-        self.manager.get_updater().updateAvailable.connect(self._update_notification)
+        # self.manager.get_updater().updateAvailable.connect(self._update_notification)
         if not self.manager.get_engines():
             self.show_settings()
         else:
@@ -495,13 +483,13 @@ class Application(SimpleApplication):
             self.icon_spin_timer.start(150)
         else:
             self.icon_spin_timer.stop()
-            icon = find_icon('nuxeo_drive_systray_icon_%s_18.png' % state)
+            icon = find_icon('systray_icon_%s_18.png' % state)
             self.tray_icon.setIcon(QIcon(icon))
         self.icon_state = state
         return True
 
     def spin_transferring_icon(self):
-        icon = find_icon('nuxeo_drive_systray_icon_transferring_%s.png'
+        icon = find_icon('systray_icon_transferring_%s.png'
                          % (self.icon_spin_count + 1))
         self.tray_icon.setIcon(QIcon(icon))
         self.icon_spin_count = (self.icon_spin_count + 1) % 10

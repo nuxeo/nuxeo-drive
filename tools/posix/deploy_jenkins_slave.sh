@@ -17,26 +17,10 @@ PYTHON="python -E -s"
 PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 SERVER="https://nuxeo-jenkins-public-resources.s3.eu-west-3.amazonaws.com/drive"
 
-build_esky() {
+build_installer() {
     echo ">>> Building the release package"
-    [ -d build ] && rm -rf build
-    [ -d dist ] && rm -rf dist
-
-    case "${OSI}" in
-        "linux")
-            python setup.py --freeze bdist_esky
-            echo ">>> [package] Creating the DEB file"
-            echo ">>> [package] TODO The DEB creation for GNU/Linux is not yet implemented."
-            # create_package
-            ;;
-        "osx")
-            fix_version
-            python setup.py bdist_esky
-            echo ">>> [package] Creating the DMG file"
-            create_package
-            unfix_version
-            ;;
-    esac
+    pyinstaller ndrive.spec --noconfirm
+    create_package
 }
 
 check_import() {
@@ -95,7 +79,6 @@ check_vars() {
         fi
     fi
     export SIP_VERSION=${SIP_VERSION:=4.19.7}  # XXX: SIP_VERSION
-    export CXFREEZE_VERSION=${CXFREEZE_VERSION:=4.3.3}  # XXX: CXFREEZE_VERSION
     export STORAGE_DIR="${WORKSPACE}/deploy-dir"
 
     if [ "${COMPILE_WITH_DEBUG:=unset}" != "unset" ]; then
@@ -110,7 +93,6 @@ check_vars() {
     echo "    PYTHON_DRIVE_VERSION = ${PYTHON_DRIVE_VERSION}"
     echo "    PYQT_VERSION         = ${PYQT_VERSION}"
     echo "    SIP_VERSION          = ${SIP_VERSION}"
-    echo "    CXFREEZE_VERSION     = ${CXFREEZE_VERSION}"
     echo "    WORKSPACE            = ${WORKSPACE}"
     echo "    WORKSPACE_DRIVE      = ${WORKSPACE_DRIVE}"
     echo "    STORAGE_DIR          = ${STORAGE_DIR}"
@@ -160,27 +142,6 @@ extract() {
     echo ">>> Extracting ${file}"
     echo "            to ${folder}"
     [ -d "${folder}" ] || tar zxf "${file}" -C "${STORAGE_DIR}"
-}
-
-install_cxfreeze() {
-    # Install cx_Freeze manually as pip does not work for this package
-    local version="$1"
-    local url="${SERVER}/cx_Freeze-${version}.tar.gz"
-    local path="${STORAGE_DIR}/cx_Freeze-${version}"
-    local output="${path}.tar.gz"
-
-    # Not used on macOS
-    [ "${OSI}" = "osx" ] && return
-
-    check_import "import cx_Freeze" && return
-    echo ">>> Installing cx_Freeze ${version}"
-
-    download "${url}" "${output}"
-    extract "${output}" "${path}"
-
-    cd "$path"
-    python setup.py install
-    cd "${WORKSPACE_DRIVE}"
 }
 
 install_deps() {
@@ -422,7 +383,6 @@ main() {
 
     install_sip "${SIP_VERSION}"
     install_pyqt "${PYQT_VERSION}"
-    install_cxfreeze "${CXFREEZE_VERSION}"
     install_deps
 
     if ! check_import "import PyQt4.QtWebKit" >/dev/null; then
@@ -435,7 +395,7 @@ main() {
 
     if [ $# -eq 1 ]; then
         case "$1" in
-            "--build") build_esky ;;
+            "--build") build_installer ;;
             "--start") start_nxdrive ;;
             "--tests") launch_tests ;;
         esac

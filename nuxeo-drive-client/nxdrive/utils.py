@@ -347,11 +347,12 @@ def default_nuxeo_drive_folder():
     path contains non ASCII characters since Unicode coercion attempts to
     decode the byte string as an ASCII string.
     """
+    nuxeo_drive_folder = None
     if sys.platform == "win32":
         from win32com.shell import shell, shellcon
         try:
-            my_documents = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL,
-                                                 None, 0)
+            my_documents = shell.SHGetFolderPath(
+                0, shellcon.CSIDL_PERSONAL, None, 0)
         except:
             # In some cases (not really sure how this happens) the current user
             # is not allowed to access its 'My Documents' folder path through
@@ -365,48 +366,45 @@ def default_nuxeo_drive_folder():
             # Windows 7 there also exists a 'My Documents' folder invisible in
             # the Explorer and cmd / powershell but visible from Python.
             # First try regular location for documents under Windows 7 and up
-            log.debug("Access denied to win32com shell API: SHGetFolderPath,"
-                      " falling back on manual detection of My Documents")
-            my_documents = os.path.expanduser(r'~\Documents')
+            log.error('Access denied to win32com shell API: SHGetFolderPath,'
+                      ' falling back on manual detection of My Documents')
+            my_documents = os.path.expanduser('~\\Documents')
             my_documents = unicode(my_documents.decode(ENCODING))
 
-        if os.path.exists(my_documents):
-            nuxeo_drive_folder = os.path.join(my_documents,
-                                              NUXEO_DRIVE_FOLDER_NAME)
-            log.debug("Will use '%s' as default Nuxeo Drive folder location under Windows", nuxeo_drive_folder)
-            return nuxeo_drive_folder
+        if os.path.isdir(my_documents):
+            nuxeo_drive_folder = os.path.join(
+                my_documents, NUXEO_DRIVE_FOLDER_NAME)
 
-    # Fall back on home folder otherwise
-    user_home = os.path.expanduser('~')
-    user_home = unicode(user_home.decode(ENCODING))
-    nuxeo_drive_folder = os.path.join(user_home, NUXEO_DRIVE_FOLDER_NAME)
-    log.debug("Will use '%s' as default Nuxeo Drive folder location", nuxeo_drive_folder)
+    if not nuxeo_drive_folder:
+        # Fall back on home folder otherwise
+        user_home = os.path.expanduser('~')
+        user_home = unicode(user_home.decode(ENCODING))
+        nuxeo_drive_folder = os.path.join(user_home, NUXEO_DRIVE_FOLDER_NAME)
+
+    log.debug('Will use %r as default Nuxeo Drive folder location', nuxeo_drive_folder)
     return nuxeo_drive_folder
 
 
-def find_resource_dir(directory, default_path):
-    """Find the FS path of a directory in various OS binary packages"""
-    import nxdrive
-    nxdrive_path = os.path.dirname(nxdrive.__file__)
+def find_icon(icon):
+    return find_resource('icons', icon)
 
-    app_resources = '/Contents/Resources/'
-    cxfreeze_suffix = os.path.join('library.zip', 'nxdrive')
 
-    dir_path = default_path
-    if app_resources in nxdrive_path:
-        # OSX frozen distribution, bundled as an app
-        dir_path = re.sub(app_resources + ".*", app_resources + directory, nxdrive_path)
+def find_resource(folder, filename=''):
+    """ Find the FS path of a directory in various OS binary packages. """
 
-    elif nxdrive_path.endswith(cxfreeze_suffix):
-        # cx_Freeze frozen distribution of nxdrive, data is out of the zip
-        dir_path = nxdrive_path.replace(cxfreeze_suffix, directory)
+    is_frozen = getattr(sys, 'frozen', False)
+    if is_frozen:
+        res_dir = getattr(sys, '_MEIPASS', '')
+    else:
+        import nxdrive
+        res_dir = os.path.dirname(nxdrive.__file__)
 
-    if not os.path.exists(dir_path):
-        log.warning("Could not find the resource directory at: %s",
-                    dir_path)
+    path = os.path.join(res_dir, 'data', folder, filename)
+    if not os.path.exists(path):
+        log.error('Could not find the resource %r', path)
         return None
 
-    return dir_path
+    return path
 
 
 def force_decode(string, codecs=('utf-8', 'cp1252')):

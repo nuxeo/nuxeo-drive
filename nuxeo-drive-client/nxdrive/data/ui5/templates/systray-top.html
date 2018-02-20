@@ -4,7 +4,7 @@
   	<ul class="engine-navbar" ng-show="engines.length > 1">
   		<li ng-repeat="engine in engines" ng-class="getEngineClass(engine)">
   		  <a href="#" ng-click="setEngine(engine)">
-			<img title="{{ engine.name }}" ng-src="imgs/{{engine.type}}.png"/>
+			<img title="{{ engine.name }}" ng-src="imgs/engines/{{ engine.type }}.png"/>
   		  </a>
   		</li>
   	</ul>
