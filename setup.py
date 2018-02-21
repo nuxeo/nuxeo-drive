@@ -228,6 +228,9 @@ class NuxeoDriveAttributes(object):
     def get_CFBundleTypeRole(self):
         return 'Editor'
 
+    def get_NSMenuItemText(self):
+        return 'Access online'
+
     def get_description(self):
         return 'Desktop synchronization client for Nuxeo.'
 
@@ -482,7 +485,7 @@ class NuxeoDriveSetup(object):
                     }],
                     'NSServices': [{
                         'NSMenuItem': {
-                            'default': attribs.get_CFBundleDisplayName(),
+                            'default': attribs.get_NSMenuItemText(),
                         },
                         'NSMessage': 'macRightClick',
                         'NSPortName': attribs.get_CFBundleDisplayName(),

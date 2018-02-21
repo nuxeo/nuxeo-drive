@@ -298,7 +298,7 @@ class Engine(QObject):
         """
 
         urls = {
-            'jsf': '{server}nxdoc/{repo}/{uid}/view_drive_metadata?token={token}',
+            'jsf': '{server}nxdoc/{repo}/{uid}/view_documents?token={token}',
             'web': '{server}ui?token={token}#!/doc/{uid}',
         }
 
