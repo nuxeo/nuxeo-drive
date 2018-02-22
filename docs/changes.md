@@ -7,6 +7,7 @@ Release date: `2018-??-??`
 ### GUI
 - [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
 - [NXDRIVE-1123](https://jira.nuxeo.com/browse/NXDRIVE-1123): Access right-click action on folders on Windows
+- [NXDRIVE-1124](https://jira.nuxeo.com/browse/NXDRIVE-1124): Right click menu entry on files: "Copy share-link"
 
 #### Minor changes
 - Jenkins: Possibility to launch the beta job on a given branch

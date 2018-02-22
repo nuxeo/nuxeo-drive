@@ -16,76 +16,91 @@ log = getLogger(__name__)
 
 def serviceSelector(fn):
     # this is the signature of service selectors
-    return objc.selector(fn, signature="v@:@@o^@")
+    return objc.selector(fn, signature='v@:@@o^@')
 
 
 class RightClickService(NSObject):
 
     @serviceSelector
-    def macRightClick_userData_error_(self, pboard, data, error):
-        log.trace("macRightClick has been called")
+    def openInBrowser_userData_error_(self, pboard, data, error):
+        log.trace('openInBrowser has been called')
         try:
-            types = pboard.types()
-            if NSURLPboardType in types:
-                pboardArray = pboard.propertyListForType_(NSURLPboardType)
-                log.error("Retrieve property list stuff %r", pboardArray)
-                for value in pboardArray:
-                    if value is None or value == "":
-                        continue
-                    # TODO Replug prompt_metadata on this one
-                    url = NSURL.URLWithString_(value)
-                    if url is None:
-                        if value.startswith("file://"):
-                            value = value[7:]
-                        value = urllib2.unquote(value)
-                    else:
-                        value = url.path()
-                    log.debug("Should open : %s", value)
-                    from PyQt4.QtCore import QCoreApplication
-                    QCoreApplication.instance().show_metadata(value)
+            path = self.get_file_path(pboard)
+            log.debug('Accessing online: %s', path)
+            from PyQt4.QtCore import QCoreApplication
+            QCoreApplication.instance().show_metadata(path)
         except:
             log.exception('Right click service error')
+
+    @serviceSelector
+    def copyShareLink_userData_error_(self, pboard, data, error):
+        log.trace('copyShareLink has been called')
+        try:
+            path = self.get_file_path(pboard)
+            log.debug('Copying share-link for: %s', path)
+            from PyQt4.QtCore import QCoreApplication
+            QCoreApplication.instance().manager.copy_share_link(path)
+        except:
+            log.exception('Right click service error')
+
+    @objc.python_method
+    def get_file_path(self, pboard):
+        types = pboard.types()
+        if NSURLPboardType in types:
+            pboardArray = pboard.propertyListForType_(NSURLPboardType)
+            log.error('Retrieve property list %r', pboardArray)
+            for value in pboardArray:
+                if not value:
+                    continue
+                # TODO Replug prompt_metadata on this one
+                url = NSURL.URLWithString_(value)
+                if url:
+                    return url.path()
+                if value.startswith('file://'):
+                    value = value[7:]
+                return urllib2.unquote(value)
 
 
 class DarwinIntegration(AbstractOSIntegration):
     NXDRIVE_SCHEME = 'nxdrive'
-    NDRIVE_AGENT_TEMPLATE = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>org.nuxeo.drive.agentlauncher</string>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>Program</key>
-  <string>%s</string>
-</dict>
-</plist>
-    """
+    NDRIVE_AGENT_TEMPLATE = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN"'
+        '"http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+        '<plist version="1.0">'
+        '<dict>'
+        '<key>Label</key>'
+        '<string>org.nuxeo.drive.agentlauncher</string>'
+        '<key>RunAtLoad</key>'
+        '<true/>'
+        '<key>Program</key>'
+        '<string>%s</string>'
+        '</dict>'
+        '</plist>'
+    )
 
     def _get_agent_file(self):
         agents_folder = os.path.expanduser('~/Library/LaunchAgents')
-        agent_filepath = os.path.join(agents_folder, self._manager.get_cf_bundle_identifier() + '.plist')
+        agent_filepath = os.path.join(
+            agents_folder, self._manager.get_cf_bundle_identifier() + '.plist')
         return agent_filepath
 
     def register_startup(self):
         """Register the Nuxeo Drive.app as a user Launch Agent
 
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
-
         """
         agent_filepath = self._get_agent_file()
         agents_folder = os.path.dirname(agent_filepath)
         exe_path = self._manager.find_exe_path()
-        log.debug("Registering '%s' for startup in: '%s'",
+        log.debug('Registering "%s" for startup in: %s',
                   exe_path, agent_filepath)
 
         if not os.path.exists(agents_folder):
-            log.debug("Making launch agent folder %s", agents_folder)
+            log.debug('Making launch agent folder %s', agents_folder)
             os.makedirs(agents_folder)
 
-        log.debug("Writing launch agent file %s", agent_filepath)
+        log.debug('Writing launch agent file %s', agent_filepath)
         with open(agent_filepath, 'wb') as f:
             f.write(self.NDRIVE_AGENT_TEMPLATE % exe_path)
 
@@ -95,8 +110,8 @@ class DarwinIntegration(AbstractOSIntegration):
             os.remove(agent_filepath)
 
     def _register_services(self):
-        serviceProvider = RightClickService.alloc().init()
-        NSRegisterServicesProvider(serviceProvider, self._manager.app_name)
+        NSRegisterServicesProvider(RightClickService.alloc().init(),
+                                   self._manager.app_name)
         # Refresh services
         AppKit.NSUpdateDynamicServices()
 
@@ -115,15 +130,15 @@ class DarwinIntegration(AbstractOSIntegration):
 
         bundle_id = NSBundle.mainBundle().bundleIdentifier()
         if bundle_id == 'org.python.python':
-            log.debug("Skipping URL scheme registration as this program "
-                      " was launched from the Python OSX app bundle")
+            log.debug('Skipping URL scheme registration as this program '
+                      ' was launched from the Python OSX app bundle')
             return
         LSSetDefaultHandlerForURLScheme(self.NXDRIVE_SCHEME, bundle_id)
         log.debug('Registered bundle %r for URL scheme %r', bundle_id,
                   self.NXDRIVE_SCHEME)
 
     def unregister_protocol_handlers(self):
-        # Dont unregister, should be removed when Bundle removed
+        # Don't unregister, should be removed when Bundle removed
         pass
 
     @staticmethod
@@ -164,42 +179,37 @@ class DarwinIntegration(AbstractOSIntegration):
             return
 
         folder_path = normalized_path(folder_path)
-        if name is None:
-            name = self._manager.app_name
-        else:
-            name = os.path.basename(name)
+        name = os.path.basename(name) if name else self._manager.app_name
 
         if self._find_item_in_list(favorites, name):
             return
 
         url = CFURLCreateWithString(
-            None, 'file://' + urllib2.quote(folder_path), None)
-        if url is None:
+            None, 'file://{}'.format(urllib2.quote(folder_path)), None)
+        if not url:
             log.warning(
                 'Could not generate valid favorite URL for: %r', folder_path)
             return
 
         # Register the folder as favorite if not already there
         item = LSSharedFileListInsertItemURL(
-            favorites, kLSSharedFileListItemBeforeFirst, name, None, url, {}, [])
-        if item is not None:
+            favorites, kLSSharedFileListItemBeforeFirst,
+            name, None, url, {}, [])
+        if item:
             log.debug('Registered new favorite in Finder for: %r', folder_path)
 
     def unregister_folder_link(self, name=None):
         from LaunchServices import LSSharedFileListItemRemove
 
         favorites = self._get_favorite_list()
-        if favorites is None:
+        if not favorites:
             log.warning('Could not fetch the Finder favorite list.')
             return
 
-        if name is None:
-            name = self._manager.app_name
-        else:
-            name = os.path.basename(name)
+        name = os.path.basename(name) if name else self._manager.app_name
 
         item = self._find_item_in_list(favorites, name)
-        if item is None:
+        if not item:
             return
 
         LSSharedFileListItemRemove(favorites, item)
