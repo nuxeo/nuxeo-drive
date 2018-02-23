@@ -8,7 +8,13 @@ properties([
     [$class: 'BuildDiscarderProperty', strategy:
         [$class: 'LogRotator', daysToKeepStr: '60', numToKeepStr: '60', artifactNumToKeepStr: '1']],
     [$class: 'SchedulerPreference', preferEvenload: true],
-    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false]
+    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
+    [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
+        [$class: 'StringParameterDefinition',
+            name: 'BRANCH',
+            defaultValue: 'master',
+            description: 'The branch/tag/commit to checkout.']
+    ]]
 ])
 
 timestamps {
