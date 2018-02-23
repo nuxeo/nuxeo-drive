@@ -2,6 +2,16 @@
 Release date: `2018-??-??`
 
 ### Core
+- [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations
+
+#### Minor changes
+- Jenkins: Possibility to launch the beta job on a given branch
+
+
+# 3.0.5
+Release date: `2018-02-23`
+
+### Core
 - [NXDRIVE-941](https://jira.nuxeo.com/browse/NXDRIVE-941): Use a context manager for Lock
 - [NXDRIVE-1008](https://jira.nuxeo.com/browse/NXDRIVE-1008): Document deleted server side when unfiltering and opened elsewhere
 - [NXDRIVE-1009](https://jira.nuxeo.com/browse/NXDRIVE-1009): Some folders not deleted on client when file is open
