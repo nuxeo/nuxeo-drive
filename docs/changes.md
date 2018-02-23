@@ -4,6 +4,10 @@ Release date: `2018-??-??`
 ### Core
 - [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations
 
+### GUI
+- [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
+- [NXDRIVE-1123](https://jira.nuxeo.com/browse/NXDRIVE-1123): Access right-click action on folders on Windows
+
 #### Minor changes
 - Jenkins: Possibility to launch the beta job on a given branch
 

@@ -12,7 +12,7 @@ class NuxeoDriveMenuProvider(GObject.GObject, Nautilus.MenuProvider):
     def get_file_items(self, window, files):
         _ = window
         main_item = Nautilus.MenuItem(name='Nautilus::nuxeodrive',
-                                      label='Nuxeo Drive',
+                                      label='Access online',
                                       tip='Nuxeo Drive')
         main_item.connect("activate", self.open_metadata_view, files)
         return main_item,
