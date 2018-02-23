@@ -4,6 +4,10 @@ Release date: `2018-??-??`
 ### Core
 - [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations
 
+### GUI
+- [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
+- [NXDRIVE-1123](https://jira.nuxeo.com/browse/NXDRIVE-1123): Access right-click action on folders on Windows
+
 #### Minor changes
 - Jenkins: Possibility to launch the beta job on a given branch
 
@@ -29,9 +33,7 @@ Release date: `2018-02-23`
 ### GUI
 - [NXDRIVE-1106](https://jira.nuxeo.com/browse/NXDRIVE-1106): Use new branding icons
 - [NXDRIVE-1107](https://jira.nuxeo.com/browse/NXDRIVE-1107): Notify user of lost authenticated state during Direct Edit
-- [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
 - [NXDRIVE-1119](https://jira.nuxeo.com/browse/NXDRIVE-1119): Show "remaining items to sync" phrase before items number
-- [NXDRIVE-1123](https://jira.nuxeo.com/browse/NXDRIVE-1123): Access right-click action on folders on Windows
 
 ### Tests
 - [NXDRIVE-887](https://jira.nuxeo.com/browse/NXDRIVE-887): Integrate SonarCloud code quality check
