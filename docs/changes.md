@@ -1,6 +1,8 @@
 # dev
 Release date: `2018-??-??`
 
+### Core
+- [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations
 
 
 # 3.0.5
