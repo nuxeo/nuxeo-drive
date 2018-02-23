@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import platform
+import sip
 import subprocess
 import sys
 import urllib2
@@ -10,8 +11,8 @@ from logging import getLogger
 from urlparse import urlparse
 
 import pypac
-import sip
 from PyQt4 import QtCore
+from PyQt4.QtGui import QApplication
 from PyQt4.QtScript import QScriptEngine
 from PyQt4.QtWebKit import qWebKitVersion
 
@@ -29,6 +30,7 @@ from nxdrive.utils import (ENCODING, OSX_SUFFIX, decrypt, encrypt,
 if AbstractOSIntegration.is_windows():
     import _winreg
     import win32api
+    import win32clipboard
 elif AbstractOSIntegration.is_mac():
     import SystemConfiguration
 
@@ -1118,6 +1120,18 @@ class Manager(QtCore.QObject):
                 'Unknown engine %s for %r' % (root_values[3], file_path))
 
         return engine.get_metadata_url(remote_ref)
+
+    def copy_share_link(self, file_path):
+        url = self.get_metadata_infos(file_path)
+        if sys.platform == 'win32':
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardText(url, win32clipboard.CF_UNICODETEXT)
+            win32clipboard.CloseClipboard()
+        else:
+            cb = QApplication.clipboard()
+            cb.clear(mode=cb.Clipboard)
+            cb.setText(url, mode=cb.Clipboard)
 
     def set_script_object(self, obj):  # TODO: Remove
         # Used to enhance scripting with UI

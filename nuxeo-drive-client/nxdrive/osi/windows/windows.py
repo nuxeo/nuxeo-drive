@@ -17,19 +17,19 @@ log = getLogger(__name__)
 class WindowsIntegration(AbstractOSIntegration):
 
     RUN_KEY = 'Software\\Microsoft\\Windows\\CurrentVersion\\Run'
-    class_key_base = 'Software\\Classes\\{}\\shell\\{}'
+    class_key_base = 'Software\\Classes\\{}\\shell\\Nuxeo Drive'
     __zoom_factor = None
 
     def __init__(self, manager):
         super(WindowsIntegration, self).__init__(manager)
 
-    @property
-    def file_key(self):
-        return self.class_key_base.format('*', self._manager.app_name)
+    def get_key_bases(self):
+        return [self.class_key_base.format('*'),
+                self.class_key_base.format('directory')]
 
-    @property
-    def folder_key(self):
-        return self.class_key_base.format('directory', self._manager.app_name)
+    def get_menu_entries(self):
+        return [('Access online', 'metadata'),
+                ('Copy share-link', 'share-link')]
 
     @staticmethod
     def _delete_reg_value(reg, path, value):
@@ -167,22 +167,26 @@ class WindowsIntegration(AbstractOSIntegration):
         command to add as an entry in the contextual menu.
         """
         exe_path = self._manager.find_exe_path()
-        menu_cmd = '{} metadata --file "%1"'.format(exe_path)
+        menu_cmd = '{} {} --file "%1"'
         icon_path = '{},0'.format(exe_path)
-        label = 'Access online'
 
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
 
         # Add a key for both file and folder context menus
-        for key in (self.file_key, self.folder_key):
-            subkey = '{}\\command'.format(key)
-            log.debug('Registering the command `%r` to the registry key %r',
-                      menu_cmd, subkey)
-            self._update_reg_key(reg, subkey,
-                                 [(None, _winreg.REG_SZ, menu_cmd)])
-            self._update_reg_key(reg, key,
-                                 [(None, _winreg.REG_SZ, label),
-                                  ('Icon', _winreg.REG_SZ, icon_path)])
+        for key in self.get_key_bases():
+            for label, arg in self.get_menu_entries():
+                cmdkey = '{} {}'.format(key, label)
+                self._update_reg_key(reg, cmdkey,
+                                     [('Icon', _winreg.REG_SZ, icon_path),
+                                      (None, _winreg.REG_SZ, label)])
+
+                cmd = menu_cmd.format(exe_path, arg)
+                log.debug(
+                    'Registering the command `%r` to the registry key %r',
+                    cmd, cmdkey)
+                self._update_reg_key(reg, '{}\\command'.format(cmdkey),
+                                     [(None, _winreg.REG_SZ, cmd)])
+
 
     @staticmethod
     def is_same_partition(folder1, folder2):
@@ -214,11 +218,13 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def unregister_contextual_menu(self):
         reg = _winreg.HKEY_CURRENT_USER
-        for key in (self.file_key, self.folder_key):
-            subkey = '{}\\command'.format(key)
-            if self._delete_reg_value(reg, subkey, ''):
-                _winreg.DeleteKey(reg, subkey)
-                _winreg.DeleteKey(reg, key)
+        for key in self.get_key_bases():
+            for label, arg in self.get_menu_entries():
+                menu_key = '{} {}'.format(key, label)
+                cmd_key = '{}\\command'.format(menu_key)
+                if self._delete_reg_value(reg, cmd_key, ''):
+                    _winreg.DeleteKey(reg, cmd_key)
+                    _winreg.DeleteKey(reg, menu_key)
 
     def register_folder_link(self, folder_path, name=None):
         favorite = self._get_folder_link(name)
