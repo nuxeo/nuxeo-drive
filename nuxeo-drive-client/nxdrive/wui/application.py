@@ -67,11 +67,19 @@ class SimpleApplication(QApplication):
         locale = Options.force_locale or Options.locale
         Translator(
             self.manager,
-            self.get_htmlpage('i18n.js'),
+            self.get_resource_dir('i18n'),
             self.manager.get_config('locale', locale),
         )
 
-    def get_htmlpage(self, page):
+    @staticmethod
+    def get_resource_dir(subdir=''):
+        import nxdrive
+        nxdrive_path = os.path.dirname(nxdrive.__file__)
+        path = os.path.join(nxdrive_path, 'data', subdir)
+        return find_resource_dir(subdir, path)
+
+    @staticmethod
+    def get_htmlpage(page):
         import nxdrive
         nxdrive_path = os.path.dirname(nxdrive.__file__)
         ui_path = os.path.join(nxdrive_path, 'data', Options.theme)
@@ -234,13 +242,6 @@ class Application(SimpleApplication):
 
     def get_cache_folder(self):
         return os.path.join(self.manager.nxdrive_home, 'cache', 'wui')
-
-    def _init_translator(self):
-        Translator(
-            self.manager,
-            self.get_htmlpage('i18n.js'),
-            self.manager.get_config('locale', Options.locale),
-        )
 
     @pyqtSlot(object)
     def dropped_engine(self, engine):

@@ -183,6 +183,20 @@ In that case you need to specify your locale as :
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
 
+## Localization
+
+[![Crowdin](https://d322cqt584bo4o.cloudfront.net/nuxeo-drive/localized.svg)](https://crowdin.com/project/nuxeo-drive)
+
+Translations are managed with [Crowdin](https://crowdin.com/).
+
+The reference file [i18n.json](https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/nxdrive/data/i18n/i18n.json) contains the labels and the English values.
+
+Translations for other languages are managed in the [nuxeo-drive](https://crowdin.com/project/nuxeo-drive) Crowdin project, e.g. [French](https://crowdin.com/translate/nuxeo-drive/40/en-fr).
+
+The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crowdin/job/sync-nuxeo-drive-crowdin/) Jenkins job triggers a daily synchronization of:
+- The i18n.json reference file to Crowdin. This file can be edited and changes must be pushed to the current repository.
+- The Crowdin translation files to the i18n folder, e.g. i18n-fr.json. These files must never be edited from the source tree.
+
 ## Reporting Issues
 
 1. Generate a bug report in the **Advanced** tab of the **Settings** panel of the Nuxeo Drive client.

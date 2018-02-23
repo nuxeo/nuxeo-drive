@@ -3,7 +3,8 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
--
+- Added `Translator.translations()`
+- Added `WebDriveAPI.get_translations()`
 
 # 3.0.5
 - Changed `BlacklistQueue.get()`, it is now a generator.

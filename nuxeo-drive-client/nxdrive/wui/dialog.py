@@ -313,6 +313,14 @@ class WebDriveApi(QtCore.QObject):
             return ''
 
     @QtCore.pyqtSlot(result=str)
+    def get_translations(self):
+        try:
+            return self._json(Translator.translations())
+        except RuntimeError as e:
+            log.exception(repr(e))
+            return ''
+
+    @QtCore.pyqtSlot(result=str)
     def locale(self):
         try:
             return Translator.locale()

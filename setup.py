@@ -177,6 +177,10 @@ class NuxeoDriveAttributes(object):
         return os.path.join(
             self.rubric_2nd_dir(), self.rubric_3rd_dir(), 'data', 'ui5')
 
+    def get_i18n_home(self):
+        return os.path.join(
+            self.rubric_2nd_dir(), self.rubric_3rd_dir(), 'data', 'i18n')
+
     def get_icons_home(self):
         return os.path.join(
             self.rubric_2nd_dir(), self.rubric_3rd_dir(), 'data', 'icons')
@@ -324,6 +328,7 @@ class NuxeoDriveSetup(object):
         packages = Packages(attribs.get_package_dirs()).load()
 
         package_data = attribs.get_package_data()
+        i18n_home = attribs.get_i18n_home()
         icons_home = attribs.get_icons_home()
         ui5_home = attribs.get_ui5_home()
 
@@ -342,9 +347,10 @@ class NuxeoDriveSetup(object):
         # In fact this is a global setup option
         # TODO NXP-13810: check removed data_files from py2app and added to
         # global setup
+        i18n_files = DataFileDir(i18n_home, 'i18n', include_files).load()
         icon_files = DataFileDir(icons_home, 'icons', include_files).load()
         ui5_files = DataFileDir(ui5_home, 'ui5', include_files).load_recursive()
-        data_files = [('icons', icon_files)]
+        data_files = [('icons', icon_files), ('i18n', i18n_files)]
         data_files.extend(ui5_files)
         data_files.extend(attribs.get_data_files())
         drive_version = get_version(attribs.get_init_file())
