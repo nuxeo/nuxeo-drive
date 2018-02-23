@@ -1,6 +1,11 @@
 # dev
 Release date: `2018-??-??`
 
+
+
+# 3.0.5
+Release date: `2018-02-23`
+
 ### Core
 - [NXDRIVE-941](https://jira.nuxeo.com/browse/NXDRIVE-941): Use a context manager for Lock
 - [NXDRIVE-1008](https://jira.nuxeo.com/browse/NXDRIVE-1008): Document deleted server side when unfiltering and opened elsewhere

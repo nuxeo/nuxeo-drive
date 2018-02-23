@@ -3,6 +3,9 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+-
+
+# 3.0.5
 - Changed `BlacklistQueue.get()`, it is now a generator.
 - Removed `CLIHandler.edit()`
 - Removed `DirectEdit.is_lock_file()` (now private)

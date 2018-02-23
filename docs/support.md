@@ -14,8 +14,8 @@ List of officially supported platform vendors and versions:
 
 History:
 
-- `2014-04-08`: dropped support for Windows XP
 - `2017-04-11`: dropped support for Windows Vista
+- `2014-04-08`: dropped support for Windows XP
 
 ### GNU/Linux
 
