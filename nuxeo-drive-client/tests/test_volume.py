@@ -266,7 +266,7 @@ class VolumeTestCase(UnitTestCase):
         # Check local tree
         doc_count = self.root_remote_client.result_set_query(
             "SELECT ecm:uuid FROM Document WHERE ecm:ancestorId = '%s'"
-            " AND ecm:isCheckedInVersion = 0"
+            " AND ecm:isVersion = 0"
             " AND ecm:currentLifeCycleState != 'deleted'"
             " AND ecm:mixinType != 'HiddenInNavigation'" % self.workspace)['resultsCount']
         local_folders, local_file = self.get_local_child_count(self.local_nxdrive_folder_1 + '/' + self.workspace_title)

@@ -127,7 +127,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             "       WHERE ecm:parentId = '%s'"
             "       AND ecm:primaryType IN ('%s')"
             "       AND ecm:currentLifeCycleState != 'deleted'"
-            "       AND ecm:isCheckedInVersion = 0"
+            "       AND ecm:isVersion = 0"
             "       ORDER BY dc:title, dc:created LIMIT %d"
         ) % (ref, "', '".join(types), limit)
 
@@ -244,7 +244,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         if include_versions:
             version_pred = ""
         else:
-            version_pred = "AND ecm:isCheckedInVersion = 0"
+            version_pred = "AND ecm:isVersion = 0"
 
         query = ("SELECT * FROM Document WHERE %s = '%s' %s %s"
                  " LIMIT 1") % (
