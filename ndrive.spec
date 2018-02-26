@@ -9,8 +9,8 @@ tools = os.path.join(cwd, 'tools')
 nxdrive = os.path.join(cwd, 'nuxeo-drive-client', 'nxdrive')
 data = os.path.join(nxdrive, 'data')
 icon = {
-    'darwin': os.path.join(tools, 'linux', 'app_icon.icns'),
-    'linux2': os.path.join(tools, 'osx', 'app_icon.png'),
+    'darwin': os.path.join(tools, 'osx', 'app_icon.icns'),
+    'linux2': os.path.join(tools, 'linux', 'app_icon.png'),
     'win32': os.path.join(tools, 'windows', 'app_icon.ico'),
     }[sys.platform]
 
@@ -54,7 +54,7 @@ coll = COLLECT(exe,
                name='ndrive')
 
 app = BUNDLE(coll,
-             name='ndrive.app',
+             name='Nuxeo Drive.app',
              icon=icon,
              bundle_identifier='org.nuxeo.drive',
              # Override some values in generated 'Info.plist'.
