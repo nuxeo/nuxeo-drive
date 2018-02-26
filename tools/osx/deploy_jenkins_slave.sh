@@ -12,6 +12,11 @@ code_sign() {
     local app="$1"
     local signing_id="NUXEO CORP"
 
+    if [[ -z ${NUXEO_KEYCHAIN_PWD:-} ]]; then
+        echo ">>> [sign] WARNING: Keychain is unavailable, application won't be signed."
+        return
+    fi
+
     echo ">>> [sign] Unlocking the Nuxeo keychain"
     security unlock-keychain -p "${NUXEO_KEYCHAIN_PWD}" "${NUXEO_KEYCHAIN_PATH}"
 
@@ -25,18 +30,22 @@ code_sign() {
 create_package() {
     # Create the final DMG
     local app_name="Nuxeo Drive"
-    local bundle_name="ndrive.app"
+    local bundle_name="Nuxeo Drive.app"
     local output_dir="${WORKSPACE_DRIVE}/dist"
     local pkg_path="${output_dir}/${bundle_name}"
     local src_folder_tmp="${WORKSPACE}/dmg_src_folder.tmp"
     local dmg_tmp="${WORKSPACE}/nuxeo-drive.tmp.dmg"
     local background_file="${WORKSPACE_DRIVE}/tools/osx/dmgbackground.png"
+    local plist="${WORKSPACE_DRIVE}/tools/osx/Info.plist"
     local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store"
+    local app_version="$("${pkg_path}/Contents/MacOS/ndrive" -v 2>&1)"
+
+    echo ">>> [package] Updating Info.plist"
+    sed "s/\$version/${app_version}/" "${plist}" > "${pkg_path}/Contents/Info.plist"
 
     echo ">>> [package] Creating the DMG file"
-    code_sign "dist/ndrive.app"
+    code_sign "${pkg_path}"
 
-    local app_version="$("${pkg_path}/Contents/MacOS/ndrive" -v 2>&1)"
     echo ">>> [DMG] ${bundle_name} version ${app_version}"
 
     # Compute DMG name and size
