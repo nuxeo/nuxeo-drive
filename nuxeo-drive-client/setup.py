@@ -1,5 +1,4 @@
 # coding: utf-8
-import glob
 import io
 import os
 import re
@@ -7,33 +6,31 @@ import re
 import setuptools
 
 
-def package_files(folder=os.path.join('nxdrive', 'data')):
-    """ Recursively find all data files. """
+def data_files(folder='nxdrive/data'):
+    """
+    Find all data files.  Return appropriate sturture for `data_files=`:
+        [
+        ('i18n', [files]),
+        ('theme', [files]),
+        ('theme.default', [files]),
+        ...
+        ]
 
-    return [path for directory in os.walk(folder)
-            for path in glob.glob(os.path.join(directory[0], '*'))]
+    """
+
+    paths = []
+    for directory, _, files in os.walk(folder):
+        if not files:
+            continue
+        files = [directory + '/' + filename for filename in files]
+        paths.append((os.path.basename(directory), files))
+    return paths
 
 
-def packages():
-    """ Complete packages list. """
-
-    return [
-        'nxdrive',
-        'nxdrive.client',
-        'nxdrive.debug.wui',
-        'nxdrive.gui',
-        'nxdrive.osi',
-        'nxdrive.osi.darwin',
-        'nxdrive.osi.windows',
-        'nxdrive.wui',
-    ]
-
-
-def version(folder='nxdrive', init_file='__init__.py'):
+def version(init_file='nxdrive/__init__.py'):
     """ Find the current version. """
 
-    path = os.path.join(folder, init_file)
-    with io.open(path, encoding='utf-8') as handler:
+    with io.open(init_file, encoding='utf-8') as handler:
         for line in handler.readlines():
             if line.startswith('__version__'):
                 return re.findall(r"'(.+)'", line)[0]
@@ -46,7 +43,7 @@ def main():
         author='Nuxeo',
         author_email='maintainers-python@nuxeo.com',
         url='https://github.com/nuxeo/nuxeo-drive',
-        description='Desktop synchronization client for Nuxeo (',
+        description='Desktop synchronization client for Nuxeo',
         long_description='',
         license='LGPLv2+',
         classifiers=[
@@ -70,9 +67,10 @@ def main():
             'gui_scripts': ['ndrive=nxdrive.commandline:main'],
         },
         platforms=['Darwin', 'Linux', 'Windows'],
-        packages=packages(),
-        package_files={'': package_files()},
-        zip_safe=False
+        packages=setuptools.find_packages(exclude=['tests']),
+        data_files=data_files(),
+        #include_package_data=True,
+        zip_safe=False,
     )
 
 
