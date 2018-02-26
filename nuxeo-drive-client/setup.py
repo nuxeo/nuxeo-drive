@@ -8,7 +8,7 @@ import setuptools
 
 def data_files(folder='nxdrive/data'):
     """
-    Find all data files.  Return appropriate sturture for `data_files=`:
+    Find all data files.  Return appropriate structure for `data_files=`:
         [
         ('i18n', [files]),
         ('theme', [files]),

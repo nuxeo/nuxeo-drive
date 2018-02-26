@@ -1,12 +1,12 @@
 # Installer Customization
 
-On Windows you can customize Nuxeo Drive installation by passing custom arguments.
+On Windows, you can customize the Nuxeo Drive installation by passing custom arguments.
 
 ## Retro-compatibility
 
-As of Nuxeo Drive 3.1.0, we changed the way Drive is packaged. And so we are not creating MSI anymore but EXE files.
+As of Nuxeo Drive 3.1.0, we changed the way Drive is packaged. We are now creating EXE files instead of MSI.
 
-If you used to customize the installation process, you must know that same arguments are taken into account. It is just the way you declare them that changes:
+If you used to customize the installation process, know that the same arguments are taken into account, but the way you declare them changes:
 
     - old: `msiexec /i nuxeo-drive.msi /qn /quiet ARG=value ...`
     - new: `nuxeo-drive.exe /silent /ARG=value ...`
@@ -33,11 +33,11 @@ Install quietly Nuxeo Drive in `C:\NDrive`:
 
     nuxeo-drive.exe /silent /TARGETDIR="C:\NDrive"
 
-Install Nuxeo Drive et configure the Nuxeo server to `http://localhost:8080/nuxeo` with the username `username`:
+Install Nuxeo Drive and configure the Nuxeo server to `http://localhost:8080/nuxeo` with the username `username`:
 
     nuxeo-drive.exe /silent /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="username"
 
-The same as above, but add the username password's:
+Same as above, but add the associated password:
 
     nuxeo-drive.exe /silent /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="username" /TARGETPASSWORD="password"
 
@@ -45,4 +45,4 @@ A full installation, useful for large automatic deployments:
 
     nuxeo-drive.exe /silent /TARGETDIR="C:\NDrive" /TARGETDRIVEFOLDER="%USERPROFILE%\Documents\Nuxeo Drive" /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="foo"
 
-Even if `username` is wrong, it will permit de customize the Nuxeo server on all clients. The users will be asked to enter their username and password on the first connection.
+Even if `username` is wrong, it will allow the customization of the Nuxeo server on all clients. The users will be asked to enter their username and password upon the first connection.

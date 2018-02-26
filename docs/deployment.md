@@ -1,10 +1,10 @@
 # Deployment Script
 
-We are using scripts to automate the isolated environment creation. With only one script, you will be able to setup the environment, launch the tests suite and build Drive package.
+We are using scripts to automate the isolated environment creation. With only one script, you will be able to setup the environment, launch the tests suite and build the Drive package.
 
 You could modify these scripts, but we will not be able to do support, these are the official way to manage the Drive ecosystem.
 
-Finally, scripts names are refering to Jenkins, but you can always execute them on your personnal computer or outside a Jenkins job.
+Finally, scripts names are referring to Jenkins, but you can always execute them on your personal computer or outside a Jenkins job.
 
 ## GNU/Linux, macOS
 
@@ -65,7 +65,7 @@ Notes:
 
 - [MinGW-w64](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/4.8.2/threads-posix/dwarf/i686-4.8.2-release-posix-dwarf-rt_v3-rev3.7z/download);
 - [Qt 4.8.7 open-source](https://download.qt.io/official_releases/qt/4.8/4.8.7/qt-opensource-windows-x86-mingw482-4.8.7.exe);
-- [Microsoft Visual C++ Compiler for Python 2.7](https://www.microsoft.com/en-us/download/details.aspx?id=44266) to build few required modules;
+- [Microsoft Visual C++ Compiler for Python 2.7](https://www.microsoft.com/en-us/download/details.aspx?id=44266) to build a few required modules;
 - [Inno Setup 5.5.9 (u)](http://www.jrsoftware.org/download.php/is-unicode.exe) to create the installer.
 
 ### Troubleshooting
@@ -81,7 +81,7 @@ Note: this section applies for Jenkins jobs, but you can always use it to create
 
 Each build can be driven by several envars.
 
-If an envar is specifying a version, this means that the specified version of the library/software sources will be downloaded from the official website and compiled to fit Drive needs. It allows to create full isolated and reproductible build environnements.
+If an envar is specifying a version, this means that the specified version of the library/software sources will be downloaded from the official website and compiled to fit Drive needs. It allows the creation of fully isolated and reproductible build environments.
 
 __Important__: those values are given as example, if you want up-to-date ones, pick them from [tools/checksums.txt](https://github.com/nuxeo/nuxeo-drive/blob/master/tools/checksums.txt).
 
@@ -105,7 +105,7 @@ __Important__: those values are given as example, if you want up-to-date ones, p
 
 #### GNU/Linux specific
 
-- `COMPILE_WITH_DEBUG` to compile Python and Qt with debugging symbols. Set it to something not null.
+- `COMPILE_WITH_DEBUG` to compile Python and Qt with debugging symbols. This variable cannot be null.
 
 #### Windows specific
 
