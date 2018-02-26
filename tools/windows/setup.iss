@@ -135,22 +135,22 @@ Root: HKCU; Subkey: "Software\Classes\nxdrive\DefaultIcon"; ValueType: expandsz;
 Root: HKCU; Subkey: "Software\Classes\nxdrive\shell"; ValueType: expandsz; ValueData: ""
 Root: HKCU; Subkey: "Software\Classes\nxdrive\shell\open\command"; ValueType: expandsz; ValueData: "{app}\{#MyAppExeName} ""%1"""
 
-; Context menu entry: Access online (files)
+; Context menu entry: Access online
+; On files
 Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 1"; ValueType: expandsz; ValueData: "{cm:ctx_menu_access_online}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 1"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
 Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 1\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" metadata --file ""%1"""
-
-; Context menu entry: Access online (folders)
+; On folders
 Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 1"; ValueType: expandsz; ValueData: "{cm:ctx_menu_access_online}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 1"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
 Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 1\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" metadata --file ""%1"""
 
-; Context menu entry: Copy share-link (files)
+; Context menu entry: Copy share-link
+; On files
 Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 2"; ValueType: expandsz; ValueData: "{cm:ctx_menu_copy_share_link}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 2"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
 Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 2\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" share-link --file ""%1"""
-
-; Context menu entry: Copy share-link (folders)
+; On folders
 Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 2"; ValueType: expandsz; ValueData: "{cm:ctx_menu_copy_share_link}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 2"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
 Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 2\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" share-link --file ""%1"""

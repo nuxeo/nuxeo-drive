@@ -255,7 +255,7 @@ install_sip() {
 
 launch_pip_tests() {
     local pid
-    local cwd=$(pwd)
+    local cwd="$(pwd)/nuxeo-drive-client"
     local folder="$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')"
     local port="1234"
     local url="http://localhost:${port}"
@@ -294,7 +294,6 @@ launch_pip_tests() {
 
     echo ">>> [PyPi] Uploading to the local server"
     cd "${cwd}"
-    pip install $(grep esky requirements.txt)
     python setup.py sdist upload -r "${url}" || purge ${pid} 1
     cd "${folder}"
 
@@ -387,9 +386,6 @@ main() {
 
     if ! check_import "import PyQt4.QtWebKit" >/dev/null; then
         echo ">>> No WebKit. Installation failed."
-        exit 1
-    elif ! check_import "import os; from PyQt4.QtNetwork import QSslSocket as s; os._exit(not s.supportsSsl())" >/dev/null; then
-        echo ">>> No SSL support. Installation failed."
         exit 1
     fi
 

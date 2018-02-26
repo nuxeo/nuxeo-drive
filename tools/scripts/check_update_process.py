@@ -98,7 +98,7 @@ def launch_drive(archive):
         subprocess.check_output(['chmod', '-R', '+x', 'Nuxeo Drive.app'])
         cmd = './Nuxeo Drive.app/Contents/MacOS/ndrive'
     else:
-        cmd = 'ndrivew.exe'
+        cmd = 'ndrive.exe'
 
     args = [
         cmd,
