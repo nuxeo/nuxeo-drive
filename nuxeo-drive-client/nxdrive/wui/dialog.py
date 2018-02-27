@@ -263,10 +263,6 @@ class WebDriveApi(QtCore.QObject):
     def get_tracker_id(self):
         return self._manager.get_tracker_id()
 
-    @QtCore.pyqtSlot(result=str)
-    def get_appname(self):
-        return self._manager.app_name
-
     @QtCore.pyqtSlot(str)
     def set_language(self, locale):
         try:

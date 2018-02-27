@@ -94,11 +94,7 @@ var DriveController = function($scope, $translate) {
 	$scope.update_url = drive.get_update_url();
 	$scope.quit = this.quit;
 	$scope.show_settings = this.showSettings;
-	$scope.appname = this.getAppName();
 	$scope.getTemplate = this.getTemplate;
-}
-DriveController.prototype.getAppName = function() {
-	return drive.get_appname();
 }
 DriveController.prototype.getTemplate = function(name) {
 	return 'templates/' + name + '.html';
