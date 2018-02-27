@@ -125,7 +125,6 @@ class LocalClient(BaseClient):
 
     def __init__(self, base_folder, **kwargs):
         self._case_sensitive = kwargs.pop('case_sensitive', None)
-        self._disable_duplication = kwargs.pop('disable_duplication', True)
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
@@ -139,16 +138,9 @@ class LocalClient(BaseClient):
     def __repr__(self):
         return ('<{name}'
                 ' base_folder={cls.base_folder!r},'
-                ' duplication_disabled={cls._disable_duplication!r},'
                 ' is_case_sensitive={cls._case_sensitive!r}'
                 '>'
                 ).format(name=type(self).__name__, cls=self)
-
-    def duplication_enabled(self):
-        # type: () -> bool
-        """ Check if de-duplication is enable or not. """
-
-        return not self._disable_duplication
 
     def is_case_sensitive(self):
         # type: () -> bool
@@ -604,26 +596,6 @@ FolderType=Generic
             return u'/' + name
         return parent + u'/' + name
 
-    def duplicate_file(self, ref):
-        # type: (Text) -> Text
-
-        parent = os.path.dirname(ref)
-        name = os.path.basename(ref)
-        os_path, name = self._abspath_deduped(parent, name)
-        locker = self.unlock_ref(os_path, unlock_parent=False, is_abs=True)
-        if parent == u"/":
-            duplicated_file = u"/" + name
-        else:
-            duplicated_file = parent + u"/" + name
-        try:
-            shutil.copy(self.abspath(ref), os_path)
-            return duplicated_file
-        except IOError as e:
-            e.duplicated_file = duplicated_file
-            raise e
-        finally:
-            self.lock_ref(os_path, locker, is_abs=True)
-
     def make_file(self, parent, name, content=None):
         # type: (Text, Text, Optional[bytes]) -> Text
 
@@ -832,22 +804,9 @@ FolderType=Generic
         # Decompose the name into actionable components
         name, suffix = os.path.splitext(name)
 
-        for _ in range(1000):
-            os_path = self.abspath(os.path.join(parent, name + suffix))
-            if old_name == (name + suffix):
-                return os_path, name + suffix
-            if not os.path.exists(os_path):
-                return os_path, name + suffix
-            if self._disable_duplication:
-                raise DuplicationDisabledError('De-duplication is disabled')
-
-            # the is a duplicated file, try to come with a new name
-            m = re.match(DEDUPED_BASENAME_PATTERN, name)
-            if m:
-                short_name, increment = m.groups()
-                name = u"%s__%d" % (short_name, int(increment) + 1)
-            else:
-                name = name + u'__1'
-            log.trace('De-duplicate %r to %r', os_path, name)
-        raise DuplicationError(
-            'Failed to de-duplicate %r under %r' % (orig_name, parent))
+        os_path = self.abspath(os.path.join(parent, name + suffix))
+        if old_name == (name + suffix):
+            return os_path, name + suffix
+        if not os.path.exists(os_path):
+            return os_path, name + suffix
+        raise DuplicationDisabledError('De-duplication is disabled')

@@ -30,6 +30,7 @@
 - Removed `Engine.get_last_sync()`
 - Removed `Engine.get_next_file()`
 - Removed `Engine.get_previous_file()`
+- Removed `Engine.resolve_with_duplicate()`
 - Removed `EngineDAO.mark_descendants_remotely_deleted()`
 - Removed `EngineDAO.mark_descendants_locally_created()`
 - Removed `EngineDAO.update_local_paths()`
@@ -37,6 +38,8 @@
 - Removed `FileInfo.get_parent()`
 - Removed `FolderTreeview.set_client()`
 - Removed `LocalClient.root`
+- Removed `LocalClient.duplicate_file()`
+- Removed `LocalClient.duplication_enabled()`
 - Removed `LocalClient.get_parent_ref()`
 - Removed `LocalClient.check_writable()`
 - Removed `LocalClient.unset_folder_icon()`
@@ -64,6 +67,7 @@
 - Removed `RestAPIClient.get_acls()`
 - Removed `StatusTreeview.filter_sync`
 - Removed `WebAuthenticationApi.create_account()`
+- Removed `WebConflictsApi.resolve_with_duplicate()`
 - Removed `WebDriveApi.file_dialog_dir`
 - Removed `WebDriveApi.get_last_url()`
 - Removed `WebDriveApi.get_timestamp_from_sqlite()`

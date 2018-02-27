@@ -490,33 +490,6 @@ class Engine(QObject):
         row = self._dao.get_state_from_id(row_id)
         self._dao.force_remote(row)
 
-    def resolve_with_duplicate(self, row_id):
-        if not self.get_local_client().duplication_enabled():
-            log.error('De-duplication is disabled')
-            return
-
-        row = self._dao.get_state_from_id(row_id)
-        self._dao.increase_error(row, "DUPLICATING")
-
-        def run():
-            local_client = self.get_local_client()
-            # Duplicate the file
-            try:
-                local_client.duplicate_file(row.local_path)
-            except IOError as e:
-                log.exception('Cannot duplicate file %r', row.local_path)
-                if hasattr(e, 'duplicated_file') and e.duplicated_file is not None:
-                    local_client.delete_final(e.duplicated_file)
-                self._dao.reset_error(row)
-                # IOError: [Errno 28] No space left on device
-                if e.errno == 28:
-                    self.noSpaceLeftOnDevice.emit()
-                raise
-            # Force the remote
-            self._dao.force_remote(row)
-        self._duplicate_thread = Thread(target=run)
-        self._duplicate_thread.start()
-
     @pyqtSlot()
     def _check_last_sync(self):
         empty_events = self._local_watcher.empty_events()

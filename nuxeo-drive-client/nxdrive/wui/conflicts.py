@@ -50,13 +50,6 @@ class WebConflictsApi(WebDriveApi):
         self._engine.resolve_with_remote(state_id)
 
     @QtCore.pyqtSlot(int)
-    def resolve_with_duplicate(self, state_id):
-        try:
-            self._engine.resolve_with_duplicate(state_id)
-        except IOError:
-            log.exception('Duplicate resolution error')
-
-    @QtCore.pyqtSlot(int)
     def retry_pair(self, state_id):
         self._engine.retry_pair(state_id)
 

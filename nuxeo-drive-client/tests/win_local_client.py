@@ -45,24 +45,6 @@ class WindowsLocalClient(LocalClient):
         if res[0] != 0:
             raise IOError(res, locals())
 
-    def duplicate_file(self, ref):
-        parent = os.path.dirname(ref)
-        name = os.path.basename(ref)
-        locker = self.unlock_ref(parent, False)
-        os_path, name = self._abspath_deduped(parent, name)
-        try:
-            res = shell.SHFileOperation((0, shellcon.FO_COPY, os_path,
-                                         self.abspath(ref),
-                                         shellcon.FOF_NOCONFIRMATION, None,
-                                         None))
-            if res[0] != 0:
-                raise IOError(res, locals())
-            if parent == u"/":
-                return u"/" + name
-            return parent + u"/" + name
-        finally:
-            self.lock_ref(parent, locker)
-
     def abspath(self, ref):
         # Remove \\?\
         abs_path = super(WindowsLocalClient, self).abspath(ref)

@@ -356,14 +356,10 @@ class RemoteWatcher(EngineWorker):
         remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
         # Try to get the local definition if not linked
         child_pair = self._dao.get_state_from_local(local_path)
-        # Case of duplication (the file can exists in with a __x) or local rename
         if child_pair is None and parent_pair is not None and self._local_client.exists(parent_pair.local_path):
             for child in self._local_client.get_children_info(parent_pair.local_path):
                 if self._local_client.get_remote_id(child.path) == child_info.uid:
-                    if '__' in child.name:
-                        log.debug('Found a deduplication case: %r on %r', child_info, child.path)
-                    else:
-                        log.debug('Found a local rename case: %r on %r', child_info, child.path)
+                    log.debug('Found a local rename case: %r on %r', child_info, child.path)
                     child_pair = self._dao.get_state_from_local(child.path)
                     break
         if child_pair is not None:
