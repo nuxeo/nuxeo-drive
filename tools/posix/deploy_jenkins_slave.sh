@@ -260,7 +260,7 @@ launch_pip_tests() {
     local folder="$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')"
     local port="1234"
     local url="http://localhost:${port}"
-    local pip_args="install --isolated --extra-index-url ${url}"
+    local pip_args="install --isolated --upgrade --ignore-installed --extra-index-url ${url}"
 
     purge() {
         local pid=$1
