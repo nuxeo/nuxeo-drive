@@ -841,6 +841,8 @@ FolderType=Generic
         :param ctime: The creation time
         """
 
+        log.trace('Setting file dates for %r (ctime=%r, mtime=%r)',
+                  filename, ctime, mtime)
         if mtime:
             try:
                 mtime = int(mtime)
