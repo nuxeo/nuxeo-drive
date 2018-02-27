@@ -36,11 +36,6 @@ class WindowsIntegration(AbstractOSIntegration):
         return self.__zoom_factor
 
     @staticmethod
-    def is_same_partition(folder1, folder2):
-        volume = win32file.GetVolumePathName(folder1)
-        return volume == win32file.GetVolumePathName(folder2)
-
-    @staticmethod
     def is_partition_supported(folder):
         if folder[-1] != os.path.sep:
             folder = folder + os.path.sep

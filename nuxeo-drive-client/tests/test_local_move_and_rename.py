@@ -13,7 +13,6 @@ from tests.common import RemoteDocumentClientForTests
 from tests.common_unit_test import RandomBug, UnitTestCase
 
 # TODO NXDRIVE-170: refactor
-LastKnownState = None
 
 
 class TestLocalMoveAndRename(UnitTestCase):

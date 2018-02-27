@@ -25,7 +25,6 @@ class ManagerDAOTest(unittest.TestCase):
         self.test_folder = tempfile.mkdtemp(u'-nxdrive-tests', dir=self.tmpdir)
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL', 'http://localhost:8080/nuxeo')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
-        self.admin_password = os.environ.get('NXDRIVE_TEST_PASSWORD', 'Administrator')
         # Handle the # in url
         if '#' in self.nuxeo_url:
             # Remove the engine type for the rest of the test

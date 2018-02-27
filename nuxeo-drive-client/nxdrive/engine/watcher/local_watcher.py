@@ -67,18 +67,6 @@ class LocalWatcher(EngineWorker):
         self._delete_events = dict()
         self._folder_scan_events = dict()
 
-    def set_windows_folder_scan_delay(self, size):
-        self._windows_folder_scan_delay = size
-
-    def get_windows_folder_scan_delay(self):
-        return self._windows_folder_scan_delay
-
-    def set_windows_watchdog_event_buffer(self, size):
-        self._windows_watchdog_event_buffer = size
-
-    def get_windows_watchdog_event_buffer(self):
-        return self._windows_watchdog_event_buffer
-
     def _execute(self):
         try:
             self._init()

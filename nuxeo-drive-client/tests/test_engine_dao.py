@@ -175,16 +175,16 @@ class EngineDAOTest(unittest.TestCase):
         state = self._dao.get_state_from_id(ids[index])
         while index < len(ids)-1:
             index = index + 1
-            state = self._dao.get_next_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD)
+            state = self._dao.get_next_sync_file(state.remote_ref, 'upload')
             self.assertEqual(state.id, ids[index])
         while index > 0:
             index = index - 1
-            state = self._dao.get_previous_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD)
+            state = self._dao.get_previous_sync_file(state.remote_ref, 'upload')
             self.assertEqual(state.id, ids[index])
-        self.assertIsNone(self._dao.get_previous_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD))
+        self.assertIsNone(self._dao.get_previous_sync_file(state.remote_ref, 'upload'))
         # Last file is 9
         state = self._dao.get_state_from_id(9)
-        self.assertIsNone(self._dao.get_next_sync_file(state.remote_ref, Engine.BATCH_MODE_UPLOAD))
+        self.assertIsNone(self._dao.get_next_sync_file(state.remote_ref, 'upload'))
 
     def test_reinit_processors(self):
         state = self._dao.get_state_from_id(1)

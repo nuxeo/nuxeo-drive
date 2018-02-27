@@ -44,7 +44,6 @@ class QueueManager(QObject):
         self._local_file_queue = Queue()
         self._remote_file_queue = Queue()
         self._remote_folder_queue = Queue()
-        self._connected = local()
         self._local_folder_enable = True
         self._local_file_enable = True
         self._remote_folder_enable = True
@@ -56,7 +55,6 @@ class QueueManager(QObject):
         self._error_threshold = 3
         self._error_interval = 60
         self.set_max_processors(max_file_processors)
-        self._threads_pool = list()
         self._processors_pool = list()
         self._get_file_lock = Lock()
         # Should not operate on thread while we are inspecting them
@@ -97,11 +95,6 @@ class QueueManager(QObject):
         except TypeError:
             # TypeError: disconnect() failed between 'newItem' and 'launch_processors'
             pass
-
-    def init_queue(self, queue):
-        # Dont need to change modify as State is compatible with QueueItem
-        for item in queue:
-            self.push(item)
 
     @staticmethod
     def _copy_queue(queue):

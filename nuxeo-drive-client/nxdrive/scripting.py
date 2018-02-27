@@ -16,10 +16,6 @@ class DriveScript(QObject):
     def log(self, line):
         log.debug("DriveScript: %s", line)
 
-    @pyqtSlot(result=bool)
-    def hasUi(self):
-        return False
-
     def get_engine(self):
         if self.engine_uid is None:
             if len(self._manager.get_engines()) == 0:
@@ -34,10 +30,6 @@ class DriveUiScript(DriveScript):
     def __init__(self, manager, application):
         self.application = application
         super(DriveUiScript, self).__init__(manager)
-
-    @pyqtSlot(result=bool)
-    def hasUi(self):
-        return True
 
     @pyqtSlot(str)
     def showSettings(self, section='Accounts'):

@@ -147,13 +147,35 @@ class TestWindows(UnitTestCase):
 
         import _winreg
 
+        def _recursive_delete(key0, key1, key2=''):
+            """ Delete a key and its subkeys. """
+
+            current = key1 if not key2 else key1 + '\\' + key2
+            with _winreg.OpenKey(key0, current, 0,
+                                 _winreg.KEY_ALL_ACCESS) as key:
+                info = _winreg.QueryInfoKey(key)
+                for x in range(info[0]):
+                    """
+                    Deleting the subkey will change the SubKey count
+                    used by EnumKey. We must always pass 0 to EnumKey
+                    so we always get back the new first SubKey.
+                    """
+                    subkey = _winreg.EnumKey(key, 0)
+                    try:
+                        _winreg.DeleteKey(key, subkey)
+                    except WindowsError:
+                        _recursive_delete(key0, current, key2=subkey)
+
+            try:
+                _winreg.DeleteKey(key0, key1)
+            except WindowsError:
+                pass
+
         osi = self.manager_1.osi
         key = 'Software\\Nuxeo\\Drive'
 
         self.assertEqual(osi.get_system_configuration(), {})
-        self.addCleanup(osi._recursive_delete,
-                        _winreg.HKEY_CURRENT_USER,
-                        'Software\\Nuxeo\\Drive')
+        self.addCleanup(_recursive_delete, _winreg.HKEY_CURRENT_USER, key)
 
         # Add new parameters
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)

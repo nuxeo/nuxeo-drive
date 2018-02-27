@@ -352,10 +352,6 @@ class TestRemoteFileSystemClient(UnitTestCase):
         fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
         self.assertFalse(remote_client.exists(fs_item_id))
 
-    def test_check_writable(self):
-        # TODO Write test_check_writable content
-        pass
-
     #
     # Test the API specific to the remote file system client
     #

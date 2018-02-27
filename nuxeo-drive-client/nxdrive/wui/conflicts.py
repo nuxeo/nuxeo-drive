@@ -93,8 +93,3 @@ class WebConflictsApi(WebDriveApi):
         result['duplication_enabled'] = (self._engine.get_local_client()
                                              .duplication_enabled())
         return result
-
-
-class WebConflictsDialog(WebDialog):
-    def set_engine(self, engine):
-        self.api.set_engine(engine)

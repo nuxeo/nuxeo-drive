@@ -29,9 +29,6 @@ class RemoteWatcher(EngineWorker):
     noChangesFound = pyqtSignal()
     remoteWatcherStopped = pyqtSignal()
 
-    # Used in tests
-    testing = False
-
     def __init__(self, engine, dao, delay):
         super(RemoteWatcher, self).__init__(engine, dao)
         self.server_interval = delay
@@ -317,8 +314,6 @@ class RemoteWatcher(EngineWorker):
 
         # Delete remaining
         for deleted in children.values():
-            # TODO Should be DAO
-            # self._dao.mark_descendants_remotely_deleted(deleted)
             self._dao.delete_remote_state(deleted)
 
         for folder in to_scan:

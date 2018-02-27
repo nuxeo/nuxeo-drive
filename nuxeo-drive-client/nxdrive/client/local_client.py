@@ -67,7 +67,6 @@ class FileInfo(object):
                       filepath, normalized_filepath)
             os.rename(filepath, normalized_filepath)
 
-        self.root = root  # the sync root folder local path
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
         self.remote_ref = kwargs.pop('remote_ref', None)
@@ -263,22 +262,6 @@ class LocalClient(BaseClient):
                 raise exc
         finally:
             self.lock_path(path, locker)
-
-    def unset_folder_icon(self, ref):
-        # type: (Text) -> None
-        """ Unset the folder icon. """
-
-        if sys.platform == 'darwin':
-            meta_file = os.path.join(self.abspath(ref), 'Icon\r')
-        elif sys.platform == 'win32':
-            meta_file = os.path.join(self.abspath(ref), 'desktop.ini')
-        else:
-            return
-
-        try:
-            os.remove(meta_file)
-        except OSError:
-            pass
 
     def has_folder_icon(self, ref):
         # type: (Text) -> bool
@@ -593,18 +576,6 @@ FolderType=Generic
 
         return result
 
-    @staticmethod
-    def get_parent_ref(ref):
-        # type: (Text) -> Union[Text, None]
-
-        if ref == '/':
-            return None
-
-        parent = ref.rsplit(u'/', 1)[0]
-        if parent is None:
-            parent = '/'
-        return parent
-
     def unlock_ref(self, ref, unlock_parent=True, is_abs=False):
         # type: (Text, bool, bool) -> int
 
@@ -765,11 +736,6 @@ FolderType=Generic
 
         return os.path.exists(self.abspath(ref))
 
-    def check_writable(self, ref):
-        # type: (Text) -> bool
-
-        return os.access(self.abspath(ref), os.W_OK)
-
     def rename(self, ref, to_name):
         # type: (Text, Text) -> FileInfo
         """ Rename a local file or folder. """
@@ -855,17 +821,6 @@ FolderType=Generic
         path_suffix = ref[1:].replace('/', os.path.sep)
         path = normalized_path(os.path.join(self.base_folder, path_suffix))
         return safe_long_path(path)
-
-    def _abspath_safe(self, parent, orig_name):
-        # type: (Text, Text) -> Text
-        """ Absolute path on the operating system with deduplicated names. """
-
-        # Make name safe by removing invalid chars
-        name = safe_filename(orig_name)
-
-        # Decompose the name into actionable components
-        name, suffix = os.path.splitext(name)
-        return self.abspath(os.path.join(parent, name + suffix))
 
     def _abspath_deduped(self, parent, orig_name, old_name=None):
         # type: (Text, Text, Optional[Text]) -> Tuple[Text, Text]

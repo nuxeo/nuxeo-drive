@@ -64,7 +64,6 @@ class StatusTreeview(QtGui.QTreeView):
         self.root_item = QtGui.QStandardItemModel()
         self.root_item.setHorizontalHeaderLabels(['Name', 'Status', 'Action'])
 
-        self.filter_sync = True
         self.setModel(self.root_item)
         self.setHeaderHidden(False)
 

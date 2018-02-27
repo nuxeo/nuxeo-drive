@@ -128,10 +128,6 @@ class AbstractOSIntegration(object):
     def unregister_folder_link(self, name):
         pass
 
-    @staticmethod
-    def is_same_partition(folder1, folder2):
-        return os.stat(folder1).st_dev == os.stat(folder2).st_dev
-
     def get_system_configuration(self):
         return dict()
 

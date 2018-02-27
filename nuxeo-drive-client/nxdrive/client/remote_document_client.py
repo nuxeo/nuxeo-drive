@@ -252,10 +252,6 @@ class RemoteDocumentClient(BaseAutomationClient):
         results = self.query(query)
         return len(results[u'entries']) == 1
 
-    def check_writable(self, ref):
-        # TODO: which operation can be used to perform a permission check?
-        return True
-
     def _check_ref(self, ref):
         if ref.startswith('/') and self._base_folder_path is not None:
             # This is a path ref (else an id ref)
@@ -378,15 +374,8 @@ class RemoteDocumentClient(BaseAutomationClient):
         return self.execute("Document.Update", op_input="doc:" + ref,
             properties=properties)
 
-    def set_property(self, ref, xpath, value):
-        return self.execute("Document.SetProperty", op_input="doc:" + ref,
-            xpath=xpath, value=value)
-
     def get_children(self, ref):
         return self.execute("Document.GetChildren", op_input="doc:" + ref)
-
-    def get_parent(self, ref):
-        return self.execute("Document.GetParent", op_input="doc:" + ref)
 
     def is_locked(self, ref):
         data = self.fetch(ref, extra_headers={'fetch-document': 'lock'})

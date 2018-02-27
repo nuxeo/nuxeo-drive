@@ -2,7 +2,6 @@
 import os
 
 from nxdrive.client import LocalClient
-from nxdrive.client.common import LOCALLY_EDITED_FOLDER_NAME
 from nxdrive.engine.engine import Engine, ServerBindingSettings
 from tests.common_unit_test import UnitTestCase
 
@@ -23,10 +22,6 @@ class MockUrlTestEngine(Engine):
 
 
 class TestDirectEdit(UnitTestCase):
-
-    locally_edited_path = ('/default-domain/UserWorkspaces/'
-                           + 'nuxeoDriveTestUser-user-1/Collections/'
-                           + LOCALLY_EDITED_FOLDER_NAME)
 
     def setUpApp(self):
         super(TestDirectEdit, self).setUpApp()

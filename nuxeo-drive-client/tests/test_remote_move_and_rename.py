@@ -39,15 +39,10 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.file_1_id = self.remote_client_1.make_file(
             self.workspace_id, 'Original File 1.odt', content=b'Some Content 1').uid
 
-        self.file_2_id = self.remote_client_1.make_file(
-            self.workspace_id, 'Original File 2.odt', content=b'Some Content 2').uid
-
         self.folder_1_id = self.remote_client_1.make_folder(
             self.workspace_id, 'Original Folder 1').uid
         self.folder_1_1_id = self.remote_client_1.make_folder(
             self.folder_1_id, 'Sub-Folder 1.1').uid
-        self.folder_1_2_id = self.remote_client_1.make_folder(
-            self.folder_1_id, 'Sub-Folder 1.2').uid
         self.file_1_1_id = self.remote_client_1.make_file(
             self.folder_1_id, 'Original File 1.1.odt', content=b'Some Content 1').uid
 
