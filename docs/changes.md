@@ -2,6 +2,29 @@
 Release date: `2018-??-??`
 
 ### Core
+- [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations
+- [NXDRIVE-1121](https://jira.nuxeo.com/browse/NXDRIVE-1121): Set modified date to Nuxeo platform modified date
+
+### GUI
+- [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
+- [NXDRIVE-1123](https://jira.nuxeo.com/browse/NXDRIVE-1123): Access right-click action on folders on Windows
+- [NXDRIVE-1124](https://jira.nuxeo.com/browse/NXDRIVE-1124): Right click menu entry on files: "Copy share-link"
+
+### Packaging / Build
+- [NXDRIVE-448](https://jira.nuxeo.com/browse/NXDRIVE-448): Fix version displayed in Windows uninstall
+- [NXDRIVE-512](https://jira.nuxeo.com/browse/NXDRIVE-512): Windows application properties not set
+- [NXDRIVE-601](https://jira.nuxeo.com/browse/NXDRIVE-601): Provide a user installation mode on Windows
+- [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730): Move to PyInstaller
+
+#### Minor changes
+- Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
+- Jenkins: Possibility to launch the beta job on a given branch
+
+
+# 3.0.5
+Release date: `2018-02-23`
+
+### Core
 - [NXDRIVE-941](https://jira.nuxeo.com/browse/NXDRIVE-941): Use a context manager for Lock
 - [NXDRIVE-1008](https://jira.nuxeo.com/browse/NXDRIVE-1008): Document deleted server side when unfiltering and opened elsewhere
 - [NXDRIVE-1009](https://jira.nuxeo.com/browse/NXDRIVE-1009): Some folders not deleted on client when file is open
@@ -14,7 +37,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1104](https://jira.nuxeo.com/browse/NXDRIVE-1104): Set invalid credentials on 401,403 errors only
 - [NXDRIVE-1105](https://jira.nuxeo.com/browse/NXDRIVE-1105): Avoid unwanted file deletions on Windows 7
 - [NXDRIVE-1114](https://jira.nuxeo.com/browse/NXDRIVE-1114): Add server information to analytics
-- [NXDRIVE-1121](https://jira.nuxeo.com/browse/NXDRIVE-1121): Set modified date to Nuxeo platform modified date
+- [NXDRIVE-1118](https://jira.nuxeo.com/browse/NXDRIVE-1118): Windows API used to trash files cannot deal with long paths
 
 ### GUI
 - [NXDRIVE-1106](https://jira.nuxeo.com/browse/NXDRIVE-1106): Use new branding icons
@@ -32,6 +55,8 @@ Release date: `2018-??-??`
 - Framework: Review EngineNext class
 - GUI: Use Web-UI as default value or in case of unknown selected UI for URLs generators
 - Jenkins: Discard old builds
+- Jenkins: Add a timeout to the packages job
+- Packaging: Updated `Send2Trash` from 1.4.2 to 1.5.0
 - Tests: Add a simple test for .rvt files
 - Tests: Add -W error option to pytest
 - Tests: Show failures summary

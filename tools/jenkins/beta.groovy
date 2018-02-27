@@ -8,7 +8,13 @@ properties([
     [$class: 'BuildDiscarderProperty', strategy:
         [$class: 'LogRotator', daysToKeepStr: '60', numToKeepStr: '60', artifactNumToKeepStr: '1']],
     [$class: 'SchedulerPreference', preferEvenload: true],
-    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false]
+    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
+    [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
+        [$class: 'StringParameterDefinition',
+            name: 'BRANCH',
+            defaultValue: 'master',
+            description: 'The branch/tag/commit to checkout.']
+    ]]
 ])
 
 timestamps {
@@ -20,7 +26,7 @@ timestamps {
             try {
                 stage('Checkout') {
                     deleteDir()
-                    git credentialsId: credential_id, url: 'ssh://git@github.com/nuxeo/nuxeo-drive.git'
+                    git credentialsId: credential_id, url: 'ssh://git@github.com/nuxeo/nuxeo-drive.git', branch: env.BRANCH
                 }
 
                 stage('Create') {

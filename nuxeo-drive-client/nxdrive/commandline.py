@@ -14,7 +14,6 @@ from logging import getLogger
 from nxdrive import __version__
 from nxdrive.logging_config import configure
 from nxdrive.options import Options
-from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
 
 try:
@@ -22,12 +21,17 @@ try:
 except ImportError:
     import pdb
 
+try:
+    from PyQt4.QtNetwork import QSslSocket
+except ImportError:
+    QSslSocket = None
+
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 USAGE = """ndrive [command]
 
-If no command is provided, the graphical application is started along with a
-synchronization process.
+If no command is provided, the graphical application is
+started along with a synchronization process.
 
 Possible commands:
 - console
@@ -37,6 +41,7 @@ Possible commands:
 - unbind-root
 - clean_folder
 - metadata
+- share-link
 
 To get options for a specific command:
 
@@ -61,241 +66,226 @@ class CliHandler(object):
         Parse commandline arguments using a git-like subcommands scheme.
         """
 
-        common_parser = argparse.ArgumentParser(
-            add_help=False,
-        )
+        common_parser = argparse.ArgumentParser(add_help=False)
         common_parser.add_argument(
-            '--nxdrive-home',
-            default=Options.nxdrive_home,
-            help='Folder to store the Nuxeo Drive configuration'
-        )
+            '--nxdrive-home', default=Options.nxdrive_home,
+            help='Folder to store the Nuxeo Drive configuration')
+
         common_parser.add_argument(
             '--log-level-file', default=Options.log_level_file,
             choices=('TRACE', 'DEBUG', 'INFO', 'WARNING', 'ERROR'),
-            help='Minimum log level for the file log'
-        )
+            help='Minimum log level for the file log')
+
         common_parser.add_argument(
-            '--log-level-console',
-            default=Options.log_level_console,
+            '--log-level-console', default=Options.log_level_console,
             choices=('TRACE', 'DEBUG', 'INFO', 'WARNING', 'ERROR'),
-            help='Minimum log level for the console log'
-        )
+            help='Minimum log level for the console log')
+
         common_parser.add_argument(
-            '--log-filename',
-            help='File used to store the logs'
-        )
+            '--log-filename', help='File used to store the logs')
+
         common_parser.add_argument(
-            '--locale',
-            default=Options.locale,
+            '--locale', default=Options.locale,
             choices=('de', 'en', 'es', 'fr', 'jp'),
-            help='Select the default language'
-        )
+            help='Select the default language')
+
         common_parser.add_argument(
-            '--force-locale',
-            choices=('de', 'en', 'es', 'fr', 'jp'),
-            help='Force the language'
-        )
+            '--force-locale', choices=('de', 'en', 'es', 'fr', 'jp'),
+            help='Force the language')
+
         common_parser.add_argument(
-            '--update-site-url',
-            default=Options.update_site_url,
-            help='Website for client auto-update'
-        )
+            '--update-site-url', default=Options.update_site_url,
+            help='Website for client auto-update')
+
         common_parser.add_argument(
-            '--beta-update-site-url',
-            default=Options.beta_update_site_url,
-            help='Website for client beta auto-update'
-        )
+            '--beta-update-site-url', default=Options.beta_update_site_url,
+            help='Website for client beta auto-update')
+
         common_parser.add_argument(
             '--debug', default=Options.debug, action='store_true',
-            help='Fire a debugger (ipdb or pdb) one uncaught error'
-        )
+            help='Fire a debugger (ipdb or pdb) one uncaught error')
+
         common_parser.add_argument(
             '--nofscheck', default=Options.nofscheck, action='store_true',
-            help='Fire a debugger (ipdb or pdb) one uncaught error'
-        )
+            help='Fire a debugger (ipdb or pdb) one uncaught error')
+
         common_parser.add_argument(
-            '--proxy-type',
-            help='Choose a type of proxy'
-        )
+            '--proxy-type', help='Choose a type of proxy')
+
         common_parser.add_argument(
-            '--proxy-server',
-            help='Define proxy server'
-        )
+            '--proxy-server', help='Define proxy server')
+
         common_parser.add_argument(
             '--proxy-exceptions',
-            help='Add proxy exceptions ( separated by a comma )'
-        )
+            help='Add proxy exceptions ( separated by a comma )')
+
         common_parser.add_argument(
             '--consider-ssl-errors',
             default=Options.consider_ssl_errors, action='store_true',
-            help='Do not ignore SSL errors in Qt network manager requests'
-        )
+            help='Do not ignore SSL errors in Qt network manager requests')
+
         common_parser.add_argument(
             '--debug-pydev', default=Options.debug_pydev, action='store_true',
-            help='Allow debugging with a PyDev server'
-        )
+            help='Allow debugging with a PyDev server')
+
         common_parser.add_argument(
             '--delay', default=Options.delay, type=int,
             help='Delay in seconds for remote polling')
+
         common_parser.add_argument(
             '--max-sync-step', default=Options.max_sync_step, type=int,
-            help='Number of consecutive sync operations to perform'
-                 ' without refreshing the internal state DB')
+            help='Number of consecutive sync operations to perform '
+                 'without refreshing the internal state DB')
+
         common_parser.add_argument(
-            '--handshake-timeout', default=Options.handshake_timeout,  type=int,
+            '--handshake-timeout', default=Options.handshake_timeout, type=int,
             help='HTTP request timeout in seconds for the handshake')
+
         common_parser.add_argument(
             '--timeout', default=Options.timeout, type=int,
             help='HTTP request timeout in seconds for sync Automation call')
+
         common_parser.add_argument(
-            '--update-check-delay', default=Options.update_check_delay,
-            type=int,
+            '--update-check-delay',
+            default=Options.update_check_delay, type=int,
             help='Delay in seconds between checks for application update')
+
         common_parser.add_argument(
             # XXX: Make it true by default as the fault tolerant
             #  mode is not yet implemented
             '--stop-on-error', default=Options.stop_on_error,
             action='store_true',
             help='Stop the process on first unexpected error')
+
         common_parser.add_argument(
             '--max-errors', default=Options.max_errors, type=int,
-            help='Maximum number of tries before giving up synchronization of'
-                 ' a file in error')
+            help='Maximum number of tries before giving up synchronization of '
+                 'a file in error')
+
         common_parser.add_argument(
             '-v', '--version', action='version', version=self.get_version(),
-            help='Print the current version of the Nuxeo Drive client'
-        )
+            help='Print the current version of the Nuxeo Drive client')
+
         parser = argparse.ArgumentParser(
             parents=[common_parser],
             description='Command line interface for Nuxeo Drive operations.',
-            usage=USAGE,
-        )
+            usage=USAGE)
 
         if not add_subparsers:
             return parser
 
-        subparsers = parser.add_subparsers(
-            title='Commands',
-        )
+        subparsers = parser.add_subparsers(title='Commands')
 
         # Link to a remote Nuxeo server
         bind_server_parser = subparsers.add_parser(
             'bind-server', help='Attach a local folder to a Nuxeo server.',
-            parents=[common_parser],
-        )
+            parents=[common_parser])
         bind_server_parser.set_defaults(command='bind_server')
         bind_server_parser.add_argument(
-            "--password", help="Password for the Nuxeo account")
+            '--password', help='Password for the Nuxeo account')
         bind_server_parser.add_argument(
-            "--local-folder",
-            help="Local folder that will host the list of synchronized"
-            " workspaces with a remote Nuxeo server.",
-            default=DEFAULT_NX_DRIVE_FOLDER,
-        )
+            '--local-folder',
+            help='Local folder that will host the list of synchronized '
+            'workspaces with a remote Nuxeo server.',
+            default=DEFAULT_NX_DRIVE_FOLDER)
         bind_server_parser.add_argument(
-            "username", help="User account to connect to Nuxeo")
-        bind_server_parser.add_argument("nuxeo_url",
-                                        help="URL of the Nuxeo server.")
+            'username', help='User account to connect to Nuxeo')
         bind_server_parser.add_argument(
-            "--remote-repo", default=Options.remote_repo,
-            help="Name of the remote repository.")
+            'nuxeo_url', help='URL of the Nuxeo server.')
+        bind_server_parser.add_argument(
+            '--remote-repo', default=Options.remote_repo,
+            help='Name of the remote repository.')
 
         # Unlink from a remote Nuxeo server
         unbind_server_parser = subparsers.add_parser(
             'unbind-server', help='Detach from a remote Nuxeo server.',
-            parents=[common_parser],
-        )
+            parents=[common_parser])
         unbind_server_parser.set_defaults(command='unbind_server')
         unbind_server_parser.add_argument(
-            "--local-folder",
-            help="Local folder that hosts the list of synchronized"
-            " workspaces with a remote Nuxeo server.",
-            default=DEFAULT_NX_DRIVE_FOLDER,
-        )
+            '--local-folder',
+            help='Local folder that hosts the list of synchronized '
+            'workspaces with a remote Nuxeo server.',
+            default=DEFAULT_NX_DRIVE_FOLDER)
 
         # Bind root folders
         bind_root_parser = subparsers.add_parser(
             'bind-root',
             help='Register a folder as a synchronization root.',
-            parents=[common_parser],
-        )
+            parents=[common_parser])
         bind_root_parser.set_defaults(command='bind_root')
         bind_root_parser.add_argument(
-            "remote_root",
-            help="Remote path or id reference of a folder to synchronize.")
+            'remote_root',
+            help='Remote path or id reference of a folder to synchronize.')
         bind_root_parser.add_argument(
-            "--local-folder",
-            help="Local folder that will host the list of synchronized"
-            " workspaces with a remote Nuxeo server. Must be bound with the"
-            " 'bind-server' command.",
-            default=DEFAULT_NX_DRIVE_FOLDER,
-        )
+            '--local-folder',
+            help='Local folder that will host the list of synchronized '
+            'workspaces with a remote Nuxeo server. Must be bound with the '
+            '"bind-server" command.',
+            default=DEFAULT_NX_DRIVE_FOLDER)
         bind_root_parser.add_argument(
-            "--remote-repo", default=Options.remote_repo,
-            help="Name of the remote repository.")
+            '--remote-repo', default=Options.remote_repo,
+            help='Name of the remote repository.')
 
         # Unlink from a remote Nuxeo root
         unbind_root_parser = subparsers.add_parser(
-            'unbind-root', help='Unregister a folder as a synchronization root.',
-            parents=[common_parser],
-        )
+            'unbind-root',
+            help='Unregister a folder as a synchronization root.',
+            parents=[common_parser])
         unbind_root_parser.set_defaults(command='unbind_root')
+
         unbind_root_parser.add_argument(
-            "remote_root",
-            help="Remote path or id reference of a folder to synchronize.")
+            'remote_root',
+            help='Remote path or id reference of a folder to synchronize.')
         unbind_root_parser.add_argument(
-            "--local-folder",
-            help="Local folder that will host the list of synchronized"
-            " workspaces with a remote Nuxeo server. Must be bound with the"
-            " 'bind-server' command.",
-            default=DEFAULT_NX_DRIVE_FOLDER,
-        )
+            '--local-folder',
+            help='Local folder that will host the list of synchronized '
+            'workspaces with a remote Nuxeo server. Must be bound with the '
+            '"bind-server" command.',
+            default=DEFAULT_NX_DRIVE_FOLDER)
         unbind_root_parser.add_argument(
-            "--remote-repo", default=Options.remote_repo,
+            '--remote-repo', default=Options.remote_repo,
             help="Name of the remote repository.")
 
+        # Uninstall
         uninstall_parser = subparsers.add_parser(
             'uninstall', help='Remove app data',
-            parents=[common_parser],
-        )
+            parents=[common_parser])
         uninstall_parser.set_defaults(command='uninstall')
 
+        # Run in console mode
         console_parser = subparsers.add_parser(
-            'console',
-            help='Start in GUI-less mode.',
-            parents=[common_parser],
-        )
+            'console', help='Start in GUI-less mode.',
+            parents=[common_parser])
         console_parser.set_defaults(command='console')
         console_parser.add_argument(
-            "--quit-if-done", default=False, action="store_true",
-            help="Quit if synchronization is completed."
-        )
+            '--quit-if-done', default=False, action='store_true',
+            help='Quit if synchronization is completed.')
         console_parser.add_argument(
             '--quit-timeout', default=Options.quit_timeout, type=int,
-            help='Maximum uptime in seconds before quitting'
-        )
+            help='Maximum uptime in seconds before quitting')
 
+        # Clean the folder
         clean_parser = subparsers.add_parser(
             'clean_folder',
-            help='Remove all ndrive attribute from this folder and childs.',
-            parents=[common_parser],
-        )
+            help='Remove all ndrive attributes from this folder and children.',
+            parents=[common_parser])
         clean_parser.add_argument(
-            "--local-folder",
-            help="Local folder to clean.",
-        )
+            '--local-folder', help='Local folder to clean.')
         clean_parser.set_defaults(command='clean_folder')
 
         # Display the metadata window
         metadata_parser = subparsers.add_parser(
-            'metadata',
-            help='Display the metadata window for a given file.',
-            parents=[common_parser],
-        )
+            'metadata', help='Display the metadata window for a given file.',
+            parents=[common_parser])
         metadata_parser.set_defaults(command='metadata')
-        metadata_parser.add_argument(
-            "--file", default="",
-            help="File path.")
+        metadata_parser.add_argument('--file', default='', help='File path.')
+
+        # Copy the share-link
+        share_link_parser = subparsers.add_parser(
+            'share-link', help='Copy the file\'s share-link to the clipboard.',
+            parents=[common_parser])
+        share_link_parser.set_defaults(command='share_link')
+        share_link_parser.add_argument('--file', default='', help='File path.')
 
         return parser
     """Command Line Interface handler: parse options and execute operation"""
@@ -347,12 +337,14 @@ class CliHandler(object):
             configs.append(path)
         if os.path.exists(config_name):
             configs.append(config_name)
-        user_ini = os.path.expanduser(os.path.join(Options.nxdrive_home, config_name))
+        user_ini = os.path.expanduser(os.path.join(
+            Options.nxdrive_home, config_name))
         if os.path.exists(user_ini):
             configs.append(user_ini)
         if configs:
             config.read(configs)
 
+        from nxdrive.osi import AbstractOSIntegration
         args = AbstractOSIntegration.get(None).get_system_configuration()
         if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
             env = config.get(ConfigParser.DEFAULTSECT, 'env')
@@ -362,7 +354,7 @@ class CliHandler(object):
                 value = item[1]
                 if value == '':
                     continue
-                if '\n' in item[1]:
+                if '\n' in value:
                     # Treat multiline option as a set
                     value = tuple(sorted(item[1].split()))
                 args[item[0].replace('-', '_')] = value
@@ -422,8 +414,9 @@ class CliHandler(object):
             self._configure_logger(command, options)
 
         self.log = getLogger(__name__)
-        self.log.debug("Command line: argv=%r, options=%r",
-                       ' '.join(argv), options)
+        self.log.debug('Command line: argv=%r, options=%r', argv, options)
+        if QSslSocket:
+            self.log.info('SSL support = %r', QSslSocket.supportsSsl())
 
         # Update default options
         Options.update(options, setter='cli')
@@ -439,7 +432,7 @@ class CliHandler(object):
         handler = getattr(self, command, None)
         if not handler:
             raise NotImplementedError(
-                'No handler implemented for command ' + command)
+                'No handler implemented for command {}'.format(command))
 
         try:
             return handler(options)
@@ -448,7 +441,7 @@ class CliHandler(object):
                 # Make it possible to use the postmortem debugger
                 raise
             msg = e.msg if hasattr(e, 'msg') else e
-            self.log.error("Error executing '%s': %s", command, msg,
+            self.log.error('Error executing "%s": %s', command, msg,
                            exc_info=True)
 
     def get_manager(self):
@@ -499,6 +492,10 @@ class CliHandler(object):
         file_path = normalized_path(options.file)
         self.manager.open_metadata_window(file_path)
 
+    def share_link(self, options):
+        file_path = normalized_path(options.file)
+        self.manager.copy_share_link(file_path)
+
     def download_edit(self, options):
         self.launch(options=options)
         return 0
@@ -514,9 +511,9 @@ class CliHandler(object):
                 check_credentials = False
         if options.local_folder is None or options.local_folder == "":
             options.local_folder = DEFAULT_NX_DRIVE_FOLDER
-        self.manager.bind_server(options.local_folder, options.nuxeo_url,
-                                 options.username, password, start_engine=False,
-                                 check_credentials=check_credentials)
+        self.manager.bind_server(
+            options.local_folder, options.nuxeo_url, options.username,
+            password, start_engine=False, check_credentials=check_credentials)
         return 0
 
     def unbind_server(self, options):
@@ -528,24 +525,30 @@ class CliHandler(object):
 
     def bind_root(self, options):
         for engine in self.manager.get_engines().values():
-            self.log.trace("Comparing: %s to %s", engine.local_folder, options.local_folder)
+            self.log.trace('Comparing: %s to %s',
+                           engine.local_folder, options.local_folder)
             if engine.local_folder == options.local_folder:
-                engine.get_remote_doc_client(repository=options.remote_repo).register_as_root(options.remote_root)
+                engine.get_remote_doc_client(
+                    repository=options.remote_repo).register_as_root(
+                    options.remote_root)
                 return 0
-        self.log.error('No engine registered for local folder %s', options.local_folder)
+        self.log.error('No engine registered for local folder %s',
+                       options.local_folder)
         return 1
 
     def unbind_root(self, options):
         for engine in self.manager.get_engines().values():
             if engine.local_folder == options.local_folder:
-                engine.get_remote_doc_client(repository=options.remote_repo).unregister_as_root(options.remote_root)
+                engine.get_remote_doc_client(
+                    repository=options.remote_repo).unregister_as_root(
+                    options.remote_root)
                 return 0
-        self.log.error('No engine registered for local folder %s', options.local_folder)
+        self.log.error('No engine registered for local folder %s',
+                       options.local_folder)
         return 1
 
     def _install_faulthandler(self):
         """ Utility to help debug segfaults. """
-
         try:
             # Use faulthandler to print python tracebacks in case of segfaults
             import faulthandler
@@ -566,18 +569,18 @@ def dumpstacks(signal, frame):
     id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
     code = []
     for thread_id, stack in sys._current_frames().items():
-        code.append("\n# Thread: %s(%d)" % (id2name.get(thread_id, ""),
-                                            thread_id))
+        code.append(
+            '\n# Thread: %s(%d)' % (id2name.get(thread_id, ''), thread_id))
         for filename, lineno, name, line in traceback.extract_stack(stack):
-            code.append('File: "%s", line %d, in %s'
-                        % (filename, lineno, name))
+            code.append(
+                'File: "%s", line %d, in %s' % (filename, lineno, name))
             if line:
-                code.append("  %s" % (line.strip()))
+                code.append('  %s' % (line.strip()))
     print('\n'.join(code))
 
 
 def win32_unicode_argv():
-    """Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
+    """ Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
     strings.
 
     Versions 2.x of Python don't support Unicode in sys.argv on

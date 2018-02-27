@@ -11,21 +11,31 @@ class NuxeoDriveMenuProvider(GObject.GObject, Nautilus.MenuProvider):
 
     def get_file_items(self, window, files):
         _ = window
-        main_item = Nautilus.MenuItem(name='Nautilus::nuxeodrive',
-                                      label='Nuxeo Drive',
-                                      tip='Nuxeo Drive')
-        main_item.connect("activate", self.open_metadata_view, files)
-        return main_item,
+        access_item = Nautilus.MenuItem(name='Nautilus::nuxeodrive',
+                                        label='Access online',
+                                        tip='Nuxeo Drive')
+        access_item.connect('activate', self.open_metadata_view, files)
+        share_item = Nautilus.MenuItem(name='Nautilus::nuxeodrive',
+                                       label='Copy share-link',
+                                       tip='Nuxeo Drive')
+        share_item.connect('activate', self.copy_share_link, files)
+        return [access_item, share_item]
 
     def open_metadata_view(self, menu, files):
-        """Called when the user selects the menu."""
+        """Called when the user selects the menu item `Access online`."""
         _ = menu
         file_uri = self._get_uri_path(files[0].get_uri())
         self.drive_exec(['metadata', '--file', file_uri])
 
+    def copy_share_link(self, menu, files):
+        """Called when the user selects the menu item `Copy share-link`."""
+        _ = menu
+        file_uri = self._get_uri_path(files[0].get_uri())
+        self.drive_exec(['share-link', '--file', file_uri])
+
     def drive_exec(self, cmds):
         """ Add the ndrive command. """
-        cmds.insert(0, "ndrive")
+        cmds.insert(0, 'ndrive')
         p = subprocess.Popen(cmds, stdout=subprocess.PIPE)
         p.communicate()
 

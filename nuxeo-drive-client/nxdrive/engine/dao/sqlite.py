@@ -981,7 +981,7 @@ class EngineDAO(ConfigurationDAO):
         return c.execute("SELECT * FROM States WHERE local_path=?", (path,)).fetchone()
 
     def insert_remote_state(self, info, remote_parent_path, local_path, local_parent_path):
-        pair_state = PAIR_STATES.get(('unknown','created'))
+        pair_state = PAIR_STATES.get(('unknown', 'created'))
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -1011,7 +1011,7 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             children = c.execute("SELECT * FROM States WHERE remote_parent_ref=? or local_parent_path=? AND " +
                                     self._get_to_sync_condition(), (row.remote_ref, row.local_path)).fetchall()
-            log.debug("Queuing %d children of '%r'", len(children), row)
+            log.debug('Queuing %d children of %r', len(children), row)
             for child in children:
                 self._queue_pair_state(child.id, child.folderish, child.pair_state)
 

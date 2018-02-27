@@ -16,17 +16,6 @@ Note: this documentation follows the Drive version of the master branch, which c
 
 The source code of Nuxeo Drive is available under the GNU Lesser General Public License v2.1 described in LICENSE.txt.
 
-Though, Nuxeo Drive depends on the [PyQt](http://www.riverbankcomputing.co.uk/software/pyqt/intro) component that is available under the following licenses:
-
-* GNU General Public License v2
-* GNU General Public License v3
-* PyQt Commercial License
-* PyQt Embedded License
-
-Therefore the binary packages resulting of the assembly of the Nuxeo Drive source code and all the third-party libraries that it depends on, among which PyQt, are available under one of the licenses listed above. Indeed, the binary packages are subject to the licenses of the sources from which they have been built. As the GNU General Public Licenses and the PyQt Commercial License are stronger than the GNU Lesser General Public License, these are the ones that apply.
-
-Thus any code written on the top of Nuxeo Drive must be distributed under the terms of one of the licenses available for PyQt.
-
 ## Install
 
 Installing Nuxeo Drive requires two components: a server addon for the Nuxeo Platform and a desktop program on the user's computer.
@@ -182,6 +171,20 @@ In that case you need to specify your locale as :
 
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
+
+## Localization
+
+[![Crowdin](https://d322cqt584bo4o.cloudfront.net/nuxeo-drive/localized.svg)](https://crowdin.com/project/nuxeo-drive)
+
+Translations are managed with [Crowdin](https://crowdin.com/).
+
+The reference file [i18n.json](https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/nxdrive/data/i18n/i18n.json) contains the labels and the English values.
+
+Translations for other languages are managed in the [nuxeo-drive](https://crowdin.com/project/nuxeo-drive) Crowdin project, e.g. [French](https://crowdin.com/translate/nuxeo-drive/40/en-fr).
+
+The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crowdin/job/sync-nuxeo-drive-crowdin/) Jenkins job triggers a daily synchronization of:
+- The i18n.json reference file to Crowdin. This file can be edited and changes must be pushed to the current repository.
+- The Crowdin translation files to the i18n folder, e.g. i18n-fr.json. These files must never be edited from the source tree.
 
 ## Reporting Issues
 

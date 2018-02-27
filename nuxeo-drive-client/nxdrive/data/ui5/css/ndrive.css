@@ -218,7 +218,7 @@ body {
 
 /* =Settings window */
 #drive-settings {
-  background: url("../imgs/nxbg.png") no-repeat right bottom #eff5fd;
+  background: url("../imgs/background.png") no-repeat right bottom #eff5fd;
   background-size: 350px 250px; }
 
 #drive-settings .navbar {

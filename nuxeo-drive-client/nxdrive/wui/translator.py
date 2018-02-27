@@ -1,6 +1,7 @@
 # coding: utf-8
 import codecs
 import json
+import os
 import re
 
 
@@ -8,16 +9,20 @@ class Translator(object):
 
     _singleton = None
 
-    def __init__(self, manager, filepath, lang=None):
+    def __init__(self, manager, path, lang=None):
         self._labels = None
         self._manager = manager
 
         # Load from JSON
-        with codecs.open(filepath, encoding='utf-8') as fp:
-            self._labels = json.loads(fp.read().lstrip('LABELS='))
+        self._labels = {}
+        for filename in os.listdir(path):
+            filepath = os.path.join(path, filename)
+            with codecs.open(filepath, encoding='utf-8') as fp:
+                label = self.guess_label(filename)
+                self._labels[label] = json.loads(fp.read())
 
         # List language
-        self._langs = dict()
+        self._langs = {}
         for key in self._labels:
             try:
                 self._langs[key] = (key, self._labels[key]['LANGUAGE'])
@@ -30,7 +35,21 @@ class Translator(object):
         except ValueError:
             self._set('en')
         self._fallback = self._labels['en']
+
         Translator._singleton = self
+
+    @staticmethod
+    def guess_label(filename):
+        """
+        Guess the language ID from a given filename.
+            'i18n.json' -> 'en'
+            'i18n-fr.json' -> 'fr'
+            'i18n-es-ES.json' -> 'es-ES'
+        """
+        label = os.path.splitext(filename)[0].replace('i18n-', '')
+        if label == 'i18n':
+            label = 'en'
+        return label
 
     @staticmethod
     def _tokenize(label, values=None):
@@ -69,6 +88,9 @@ class Translator(object):
     def _languages(self):
         return sorted(self._langs.values())
 
+    def _translations(self):
+        return sorted(self._labels.items())
+
     @staticmethod
     def set(lang):
         if Translator._singleton is None:
@@ -100,3 +122,9 @@ class Translator(object):
         if Translator._singleton is None:
             raise RuntimeError('Translator not initialized')
         return Translator._singleton._languages()
+
+    @staticmethod
+    def translations():
+        if Translator._singleton is None:
+            raise RuntimeError('Translator not initialized')
+        return Translator._singleton._translations()

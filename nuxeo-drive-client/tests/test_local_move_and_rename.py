@@ -8,7 +8,6 @@ from nxdrive.client.remote_filtered_file_system_client import \
     RemoteFilteredFileSystemClient
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
-from nxdrive.osi import AbstractOSIntegration
 from tests import RemoteTestClient
 from tests.common import RemoteDocumentClientForTests
 from tests.common_unit_test import RandomBug, UnitTestCase
@@ -52,14 +51,6 @@ class TestLocalMoveAndRename(UnitTestCase):
                                       content=u'Some Content 3'.encode('utf-8'))
         # Increase timeout as noticed it was sometimes insufficient in Jenkins build
         self.wait_sync(timeout=30)
-
-    def get_local_client(self, path):
-        # Old mac dont handle case rename
-        if AbstractOSIntegration.is_mac() and AbstractOSIntegration.os_version_below("10.10") and (
-                    self._testMethodName == 'test_local_rename_file_uppercase_stopped' or
-                    self._testMethodName == 'test_local_rename_file_uppercase'):
-            return LocalClient(path)
-        return super(TestLocalMoveAndRename, self).get_local_client(path)
 
     def test_local_rename_folder_while_creating(self):
         global marker

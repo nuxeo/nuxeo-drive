@@ -475,46 +475,6 @@ class TestSynchronization(UnitTestCase):
         self.assertEqual(remote_children[0].filename, 'Some File.doc')
         self.assertEqual(remote_1.get_content('/Some File.doc'), 'Remote new content.')
 
-    @pytest.mark.skipif(sys.platform == 'win32', reason='NXDRIVE-1118')
-    def test_synchronize_deep_folders(self):
-        # Increase Automation execution timeout for NuxeoDrive.GetChangeSummary
-        # because of the recursive parent FileSystemItem adaptation
-        self.engine_1.timeout = 90
-
-        # Create a file deep down in the hierarchy
-        remote = self.remote_document_client_1
-
-        folder_name = '0123456789'
-        folder_depth = 40
-        folder = '/'
-        for _ in range(folder_depth):
-            folder = remote.make_folder(folder, folder_name)
-
-        remote.make_file(folder, "File.odt", content="Fake non-zero content.")
-
-        # Wait for ES indexing
-        self.wait()
-        self.engine_1.start()
-        self.wait_sync(timeout=90)
-
-        local = self.local_client_1
-        expected_folder_path = ('/' + folder_name) * folder_depth
-
-        expected_file_path = expected_folder_path + '/File.odt'
-        self.assertTrue(local.exists(expected_folder_path))
-        self.assertTrue(local.exists(expected_file_path))
-        self.assertEqual(local.get_content(expected_file_path),
-                         "Fake non-zero content.")
-
-        # Delete the nested folder structure on the remote server
-        # and synchronize again
-        remote.delete('/' + folder_name)
-
-        self.wait_sync(wait_for_async=True, timeout=90)
-
-        self.assertFalse(local.exists(expected_folder_path))
-        self.assertFalse(local.exists(expected_file_path))
-
     def test_create_content_in_readonly_area(self):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)

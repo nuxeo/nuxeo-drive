@@ -308,13 +308,20 @@ class Processor(EngineWorker):
                         """
                         WindowsError: [Error 111] ??? (seems related to deep
                         tree)
+                        Cause: short paths are disabled on Windows
+
                         WindowsError: [Error 121] The source or destination
                         path exceeded or would exceed MAX_PATH.
+                        Cause: short paths are disabled on Windows
+
                         WindowsError: [Error 124] The path in the source or
                         destination or both was invalid.
+                        Cause: dealing with different drives, ie when the sync
+                        folder is not on the same drive as Nuxeo Drive one
+
                         WindowsError: [Error 206] The filename or extension is
                         too long.
-                        TODO: Remove me when NXDRIVE-1118 is done.
+                        Cause: even the full short path is too long
                         """
                         self._dao.remove_filter(doc_pair.remote_parent_path
                                                 + '/'
@@ -553,7 +560,7 @@ class Processor(EngineWorker):
                 if 'default#' in remote_ref:
                     # Document appears to be deleted server side.
                     self._synchronize_remotely_deleted(
-                        doc_pair, local_client, remote_client)
+                        doc_pair, local_client, remote_client, force=True)
                 return
 
             try:
@@ -1084,7 +1091,13 @@ class Processor(EngineWorker):
         finally:
             self._lock_readonly(local, local_parent_path)
 
-    def _synchronize_remotely_deleted(self, doc_pair, local_client, remote_client):
+    def _synchronize_remotely_deleted(
+        self,
+        doc_pair,
+        local_client,
+        remote_client,
+        force=False
+    ):
         try:
             if doc_pair.local_state != 'deleted':
                 log.debug('Deleting locally %r', local_client.abspath(doc_pair.local_path))
@@ -1095,10 +1108,10 @@ class Processor(EngineWorker):
                     file_out = self._get_temporary_file(local_client.abspath(doc_pair.local_path))
                     if os.path.exists(file_out):
                         os.remove(file_out)
-                if self._engine.use_trash():
-                    local_client.delete(doc_pair.local_path)
-                else:
+                if force or not self._engine.use_trash():
                     local_client.delete_final(doc_pair.local_path)
+                else:
+                    local_client.delete(doc_pair.local_path)
             self._dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
         finally:

@@ -1,5 +1,5 @@
 <div id="general-view">
-	<div class="checkbox">
+	<div class="checkbox" ng-show="os_version != 'win32'">
 	<label>
 		<input type="checkbox" value="" ng-model="auto_start" ng-click="setAutoStart()">
 		<span translate>AUTOSTART</span>

@@ -12,7 +12,7 @@ release() {
     local release_url
     local path
     local dmg
-    local msi
+    local exe
 
     latest_release="$(git tag -l "release-*" --sort=-taggerdate | head -n1)"
     drive_version="$(echo "${latest_release}" | cut -d'-' -f2)"
@@ -23,8 +23,8 @@ release() {
     fi
 
     path="/var/www/community.nuxeo.com/static"
-    dmg="${path}/drive/nuxeo-drive-${drive_version}-osx.dmg"
-    msi="${path}/drive/nuxeo-drive-${drive_version}-win32.msi"
+    dmg="${path}/drive/nuxeo-drive-${drive_version}.dmg"
+    exe="${path}/drive/nuxeo-drive-${drive_version}.exe"
 
     echo ">>> [release ${drive_version}] Deploying to the production website"
     ssh -T nuxeo@lethe.nuxeo.com <<EOF
@@ -33,17 +33,18 @@ cp -vf ${path}/drive-tests/*${drive_version}* ${path}/drive
 
 # Create symbolic links of the latest packages
 ln -sfrv ${dmg} ${path}/drive/latest/nuxeo-drive.dmg
-ln -sfrv ${msi} ${path}/drive/latest/nuxeo-drive.msi
+ln -sfrv ${exe} ${path}/drive/latest/nuxeo-drive.exe
 
 # Create symbolic links of the latest packages for all supported versions of Nuxeo
 for folder in \$(find ${path}/drive/latest -maxdepth 1 -type d); do
     ln -sfrv ${dmg} \$folder/nuxeo-drive.dmg
-    ln -sfrv ${msi} \$folder/nuxeo-drive.msi
+    ln -sfrv ${exe} \$folder/nuxeo-drive.exe
 done
 EOF
 
     echo ">>> [release ${drive_version}] Uploading to PyPi"
-    python setup.py sdist upload
+    echo ">>> TODO"
+    # python setup.py sdist upload
 
     echo ">>> [release ${drive_version}] Saving release on GitHub"
     # Fetch the pre-release informations to find the complete URL

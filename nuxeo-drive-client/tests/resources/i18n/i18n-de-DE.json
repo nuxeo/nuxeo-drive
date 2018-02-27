@@ -1,0 +1,6 @@
+{
+		"CONNECTION_SUCCESS": "Server successfully connected",
+		"UNAUTHORIZED": "Incorrect credentials",
+		"CONNECTION_REFUSED": "Connection refused",
+		"CONNECTION_ERROR": "Connection error: please check server URL"
+}

@@ -22,10 +22,11 @@ from nxdrive.engine.workers import Worker
 from nxdrive.manager import FolderAlreadyUsed
 from nxdrive.notification import Notification
 from nxdrive.options import Options
-from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
+# from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.wui.translator import Translator
 
 log = getLogger(__name__)
+UPDATE_STATUS_UNAVAILABLE_SITE = 'unavailable_site'
 
 
 class PromiseWrapper(QtCore.QObject):
@@ -262,10 +263,6 @@ class WebDriveApi(QtCore.QObject):
     def get_tracker_id(self):
         return self._manager.get_tracker_id()
 
-    @QtCore.pyqtSlot(result=str)
-    def get_appname(self):
-        return self._manager.app_name
-
     @QtCore.pyqtSlot(str)
     def set_language(self, locale):
         try:
@@ -313,6 +310,14 @@ class WebDriveApi(QtCore.QObject):
             return ''
 
     @QtCore.pyqtSlot(result=str)
+    def get_translations(self):
+        try:
+            return self._json(Translator.translations())
+        except RuntimeError as e:
+            log.exception(repr(e))
+            return ''
+
+    @QtCore.pyqtSlot(result=str)
     def locale(self):
         try:
             return Translator.locale()
@@ -327,6 +332,10 @@ class WebDriveApi(QtCore.QObject):
         if updater:
             status = updater.get_status()
         return self._json(status)
+
+    @QtCore.pyqtSlot(result=str)
+    def get_os_version(self):
+        return sys.platform
 
     @QtCore.pyqtSlot(str)
     def app_update(self, version):
@@ -511,8 +520,7 @@ class WebDriveApi(QtCore.QObject):
             directory=base_folder)
         if dir_path:
             dir_path = unicode(dir_path)
-            log.debug('Selected %s as the Nuxeo Drive folder location',
-                      dir_path)
+            log.debug('Selected %r as the Nuxeo Drive folder location', dir_path)
             self.file_dialog_dir = dir_path
             local_folder_path = dir_path
         return local_folder_path
@@ -625,7 +633,7 @@ class WebDialog(QtGui.QDialog):
             filename = page
         # If connect to a remote page add the X-Authentication-Token
         if filename.startswith('http'):
-            log.trace('Load web page: %s', filename)
+            log.trace('Load web page %r', filename)
             self.request = url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
             if self.token is not None:
                 url.setRawHeader('X-Authentication-Token',
@@ -634,7 +642,7 @@ class WebDialog(QtGui.QDialog):
             self.api.last_url = filename
         else:
             self.request = None
-            log.trace('Load web file: %s', filename)
+            log.trace('Load web file %r', filename)
             url = QtCore.QUrl.fromLocalFile(os.path.realpath(filename))
             url.setScheme('file')
 

@@ -12,6 +12,7 @@ from urlparse import urlparse
 
 import pypac
 from PyQt4 import QtCore
+from PyQt4.QtGui import QApplication
 from PyQt4.QtScript import QScriptEngine
 from PyQt4.QtWebKit import qWebKitVersion
 
@@ -22,13 +23,14 @@ from nxdrive.logging_config import FILE_HANDLER
 from nxdrive.notification import DefaultNotificationService
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
+# from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
 from nxdrive.utils import (ENCODING, OSX_SUFFIX, decrypt, encrypt,
                            normalized_path)
 
 if AbstractOSIntegration.is_windows():
     import _winreg
     import win32api
+    import win32clipboard
 elif AbstractOSIntegration.is_mac():
     import SystemConfiguration
 
@@ -328,10 +330,10 @@ class Manager(QtCore.QObject):
         self.load()
 
         # Create the server's configuration getter verification thread
-        self._create_server_config_updater(Options.update_check_delay)
+        # self._create_server_config_updater(Options.update_check_delay)
 
         # Create the application update verification thread
-        self._create_updater(Options.update_check_delay)
+        # self._create_updater(Options.update_check_delay)
 
         # Force language
         if Options.force_locale is not None:
@@ -1118,6 +1120,19 @@ class Manager(QtCore.QObject):
                 'Unknown engine %s for %r' % (root_values[3], file_path))
 
         return engine.get_metadata_url(remote_ref)
+
+    def copy_share_link(self, file_path):
+        url = self.get_metadata_infos(file_path)
+        log.info('Copied %r', url)
+        if sys.platform == 'win32':
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardText(url, win32clipboard.CF_UNICODETEXT)
+            win32clipboard.CloseClipboard()
+        else:
+            cb = QApplication.clipboard()
+            cb.clear(mode=cb.Clipboard)
+            cb.setText(url, mode=cb.Clipboard)
 
     def set_script_object(self, obj):  # TODO: Remove
         # Used to enhance scripting with UI

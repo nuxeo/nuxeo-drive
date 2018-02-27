@@ -1,7 +1,7 @@
 <div id="content" ng-controller="DriveActivityCtl">
 	<div class="panel panel-default" ng-repeat="engine in engines">
   		<div class="panel-heading">
-  			<img style="float: left;margin-right: 10px;" src="imgs/nuxeo_drive_icon_32.png" ng-if="engine.type == 'NXDRIVE'"/><div><b>{{engine.name}}</b><br /><span style="font-size:10px;">{{engine.local_folder}}</span></div>
+			<img style="float: left;margin-right: 10px;width:32px;height:32px" src="../icons/icon_64.png" ng-if="engine.type == 'NXDRIVE'"/><div><b>{{engine.name}}</b><br /><span style="font-size:10px;">{{engine.local_folder}}</span></div>
   		</div>
   		<div>
     		<table class="table table-hover">

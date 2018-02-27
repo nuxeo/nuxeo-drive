@@ -48,9 +48,9 @@ function drive_module(name) {
 	    };
 	});
 	app.config(function ($translateProvider) {
-		var languages = angular.fromJson(drive.get_languages());
+		var languages = angular.fromJson(drive.get_translations());
 		for (var i=0; i<languages.length; i++) {
-			$translateProvider.translations(languages[i][0], LABELS[languages[i][0]]);
+			$translateProvider.translations(languages[i][0], languages[i][1]);
 		}
 		$translateProvider.preferredLanguage(drive.locale());
 	});
@@ -94,11 +94,7 @@ var DriveController = function($scope, $translate) {
 	$scope.update_url = drive.get_update_url();
 	$scope.quit = this.quit;
 	$scope.show_settings = this.showSettings;
-	$scope.appname = this.getAppName();
 	$scope.getTemplate = this.getTemplate;
-}
-DriveController.prototype.getAppName = function() {
-	return drive.get_appname();
 }
 DriveController.prototype.getTemplate = function(name) {
 	return 'templates/' + name + '.html';
