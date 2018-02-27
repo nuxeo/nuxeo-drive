@@ -663,13 +663,17 @@ class Application(SimpleApplication):
                 log.debug('Event url=%s, info=%r', url, info)
                 if info is not None:
                     log.debug('Received nxdrive URL scheme event: %s', url)
-                    # This is a quick operation, no need to fork a QThread
-                    self.manager.direct_edit.edit(
-                        info['server_url'],
-                        info['doc_id'],
-                        user=info['user'],
-                        download_url=info['download_url'],
-                    )
+                    cmd = info['command']
+                    if cmd == 'access':
+                        self.manager.open_metadata_window(info['filepath'])
+                    elif cmd == 'share_link':
+                        self.manager.copy_share_link(info['filepath'])
+                    elif 'edit' in cmd:
+                        # This is a quick operation, no need to fork a QThread
+                        self.manager.direct_edit.edit(
+                            info['server_url'], info['doc_id'],
+                            user=info['user'],
+                            download_url=info['download_url'])
             except:
                 log.exception('Error handling URL event: %s', url)
         return super(Application, self).event(event)

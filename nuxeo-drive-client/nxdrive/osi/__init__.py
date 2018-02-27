@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import re
 import sys
 import urllib
 from logging import getLogger
@@ -8,78 +9,75 @@ from logging import getLogger
 log = getLogger(__name__)
 
 # TODO: move to direct_edit.py, no need for these constants
-NXDRIVE_EDIT_URL_PREFIX = ('nxdrive://edit/scheme/server[:port]'
-                           '/webappname/')
-NXDRIVE_EDIT_URL_PATTERN_1 = (NXDRIVE_EDIT_URL_PREFIX
-                        + '[user/userName/]repo/repoName/nxdocid/docId/filename/fileName[/downloadUrl/downloadUrl]')
-NXDRIVE_EDIT_URL_PATTERN_2 = NXDRIVE_EDIT_URL_PREFIX + 'fsitem/fsItemId'
+NXDRIVE_EDIT_URL_BASE = 'nxdrive://edit/scheme/server[:port]/webappname/'
+NXDRIVE_EDIT_URL_PATTERN_1 = ('{}user/userName/repo/repoName/nxdocid/'
+                              'docId/filename/fileName[/downloadUrl/'
+                              'downloadUrl]').format(NXDRIVE_EDIT_URL_BASE)
+NXDRIVE_EDIT_URL_PATTERN_2 = '{}fsitem/fsItemId'.format(NXDRIVE_EDIT_URL_BASE)
+NXDRIVE_ACCESS_URL_PATTERN = 'nxdrive://access/filepath'
 
 
-# Protocol handler parsing
+NXDRIVE_PROTOCOL_REGEX = [('nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/'
+                           '(?P<server>.*)/user/(?P<username>\w*)/repo/'
+                           '(?P<repo>\w*)/nxdocid/(?P<docid>(\d|[a-f]|-)*)/'
+                           'filename/(?P<filename>[^/]*)(/downloadUrl/'
+                           '(?P<download>.*)|)'),
 
+                          ('nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/'
+                           '(?P<server>.*)/fsitem/(?P<fsitem>.*)'),
+
+                          'nxdrive://(?P<cmd>share_link)/(?P<path>.*)',
+
+                          'nxdrive://(?P<cmd>access)/(?P<path>.*)']
 
 def parse_protocol_url(url_string):  # TODO: move to direct_edit.py
     """Parse URL for which nxdrive is registered as a protocol handler
+
     Return None if url_string is not a supported URL pattern or raise a
     ValueError is the URL structure is invalid.
     """
-    if "://" not in url_string:
+    if not url_string.startswith('nxdrive://'):
         return None
 
-    protocol_name, data_string = url_string.split('://', 1)
-    if protocol_name != 'nxdrive':
-        return None
+    parsed_url = None
+    for regex in NXDRIVE_PROTOCOL_REGEX:
+        parsed_url = re.match(regex, url_string)
+        if parsed_url:
+            break
 
-    if '/' not in data_string:
-        raise ValueError("Invalid nxdrive URL: " + url_string)
+    if not parsed_url:
+        raise ValueError(
+            'Unsupported command {!r} in protocol handler'.format(url_string))
 
-    command, data_string = data_string.split('/', 1)
-    if command == 'edit':
-        return parse_edit_protocol(data_string)
-    raise ValueError("Unsupported command '%s' in " + url_string)
+    parsed_url = parsed_url.groupdict()
+    cmd = parsed_url.get('cmd')
+    if cmd == 'edit':
+        return parse_edit_protocol(parsed_url, url_string)
+    if cmd in ('access', 'share_link'):
+        return dict(command=cmd, filepath=parsed_url.get('path'))
 
 
-def parse_edit_protocol(data_string):  # TODO: move to direct_edit.py
-    """Parse a nxdrive://edit URL for quick editing of nuxeo documents"""
-    invalid_msg = ('Invalid URL: got nxdrive://edit/%s while expecting %s'
-                   ' or %s' % (data_string, NXDRIVE_EDIT_URL_PATTERN_1,
-                               NXDRIVE_EDIT_URL_PATTERN_2))
-    try:
-        scheme, data_string = data_string.split('/', 1)
-        if scheme not in ('http', 'https'):
-            raise ValueError(
-                invalid_msg + ' : scheme should be http or https')
+def parse_edit_protocol(parsed_url, url_string):
+    """ Parse a nxdrive://edit URL for quick editing of nuxeo documents. """
+    scheme = parsed_url.get('scheme')
+    if scheme not in ('http', 'https'):
+        raise ValueError(
+            'Invalid command {} : scheme should be http or https'.format(
+                url_string))
 
-        if '/nxdocid/' in data_string:
-            if '/user/' in data_string:
-                server_part, doc_part = data_string.split('/user/', 1)
-                server_url = "%s://%s" % (scheme, server_part)
-                user, doc_part = doc_part.split('/repo/', 1)
-                repo, doc_part = doc_part.split('/nxdocid/', 1)
-                doc_id, doc_part = doc_part.split('/filename/', 1)
-                if '/downloadUrl/' in doc_part:
-                    filename, download_url = doc_part.split('/downloadUrl/', 1)
-                else:
-                    # TODO: https://jira.nuxeo.com/browse/NXDRIVE-237
-                    filename = doc_part
-                    download_url = None
-                return dict(command='download_edit', server_url=server_url, user=user, repo=repo,
-                            doc_id=doc_id, filename=filename, download_url=download_url)
-            # Compatibility with old URL that doesn't contain user name nor download URL
-            # TODO: https://jira.nuxeo.com/browse/NXDRIVE-237
-            server_part, doc_part = data_string.split('/repo/', 1)
-            server_url = "%s://%s" % (scheme, server_part)
-            repo, doc_part = doc_part.split('/nxdocid/', 1)
-            doc_id, filename = doc_part.split('/filename/', 1)
-            return dict(command='download_edit', server_url=server_url, user=None, repo=repo,
-                        doc_id=doc_id, filename=filename, download_url=None)
+    server_url = '{}://{}'.format(scheme, parsed_url.get('server'))
 
-        server_part, item_id = data_string.split('/fsitem/', 1)
-        server_url = "%s://%s" % (scheme, server_part)
-        item_id = urllib.unquote(item_id)  # unquote # sign
-        return dict(command='edit', server_url=server_url, item_id=item_id)
-    except:
-        raise ValueError(invalid_msg)
+    fsitem = parsed_url.get('fsitem')
+    if fsitem:
+        fsitem = urllib.unquote(fsitem)
+        return dict(command='edit', server_url=server_url, item_id=fsitem)
+
+    return dict(command='download_edit', server_url=server_url,
+                user=parsed_url.get('username'),
+                repo=parsed_url.get('repo'),
+                doc_id=parsed_url.get('docid'),
+                filename=parsed_url.get('filename'),
+                download_url=parsed_url.get('download'))
 
 
 class AbstractOSIntegration(object):

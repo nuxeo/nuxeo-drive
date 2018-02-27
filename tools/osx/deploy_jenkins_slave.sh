@@ -23,7 +23,12 @@ code_sign() {
     security unlock-keychain -p "${KEYCHAIN_PWD}" "${KEYCHAIN_PATH}"
 
     echo ">>> [sign] Signing the file ${app}"
-    codesign --deep --verbose --sign "${SIGNING_ID}" "${app}"
+    if [[ $# > 1 ]]; then
+        codesign --deep --verbose --sign "${SIGNING_ID}" --entitlements $2 "${app}"
+    else
+        codesign --deep --verbose --sign "${SIGNING_ID}" "${app}"
+    fi
+
 
     echo ">>> [sign] Verifying code signature"
     codesign --verify --verbose "${app}"
@@ -39,13 +44,23 @@ create_package() {
     local dmg_tmp="${WORKSPACE}/nuxeo-drive.tmp.dmg"
     local background_file="${WORKSPACE_DRIVE}/tools/osx/dmgbackground.png"
     local plist="${WORKSPACE_DRIVE}/tools/osx/Info.plist"
+    local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
     local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store"
     local app_version="$("${pkg_path}/Contents/MacOS/ndrive" -v 2>&1)"
 
     echo ">>> [package] Updating Info.plist"
     sed "s/\$version/${app_version}/" "${plist}" > "${pkg_path}/Contents/Info.plist"
 
+    echo ">>> [package] Building the FinderSync extension"
+    xcodebuild -project "${extension_path}/drive.xcodeproj" -target "NuxeoFinderSync" -configuration Release
+
+    echo ">>> [package] Adding the extension to the package"
+    mkdir "${pkg_path}/Contents/Plugins"
+    mv "${extension_path}/build/Release/NuxeoFinderSync.appex" "${pkg_path}/Contents/Plugins/."
+    rm -rf "${extension_path}/build"
+
     echo ">>> [package] Creating the DMG file"
+    code_sign "${pkg_path}/Contents/Plugins/NuxeoFinderSync.appex" "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements"
     code_sign "${pkg_path}"
 
     echo ">>> [DMG] ${bundle_name} version ${app_version}"

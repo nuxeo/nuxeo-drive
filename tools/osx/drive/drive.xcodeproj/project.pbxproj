@@ -1,0 +1,482 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 48;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		8BE4C70B2045A4B2002B911A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C70A2045A4B2002B911A /* AppDelegate.swift */; };
+		8BE4C70D2045A4B2002B911A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C70C2045A4B2002B911A /* ViewController.swift */; };
+		8BE4C70F2045A4B2002B911A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BE4C70E2045A4B2002B911A /* Assets.xcassets */; };
+		8BE4C7122045A4B2002B911A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8BE4C7102045A4B2002B911A /* Main.storyboard */; };
+		8BE4C7212045A4C2002B911A /* FinderSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C7202045A4C2002B911A /* FinderSync.swift */; };
+		8BE4C7262045A4C2002B911A /* NuxeoFinderSync.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8BE4C71E2045A4C2002B911A /* NuxeoFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8BE4C7242045A4C2002B911A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8BE4C6FF2045A4B2002B911A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8BE4C71D2045A4C2002B911A;
+			remoteInfo = NuxeoFinderSync;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8BE4C72A2045A4C2002B911A /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				8BE4C7262045A4C2002B911A /* NuxeoFinderSync.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		8BE4C7072045A4B2002B911A /* drive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = drive.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8BE4C70A2045A4B2002B911A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		8BE4C70C2045A4B2002B911A /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		8BE4C70E2045A4B2002B911A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8BE4C7112045A4B2002B911A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		8BE4C7132045A4B2002B911A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8BE4C7142045A4B2002B911A /* drive.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = drive.entitlements; sourceTree = "<group>"; };
+		8BE4C71E2045A4C2002B911A /* NuxeoFinderSync.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NuxeoFinderSync.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		8BE4C7202045A4C2002B911A /* FinderSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSync.swift; sourceTree = "<group>"; };
+		8BE4C7222045A4C2002B911A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8BE4C7232045A4C2002B911A /* NuxeoFinderSync.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NuxeoFinderSync.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8BE4C7042045A4B2002B911A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8BE4C71B2045A4C2002B911A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		8BE4C6FE2045A4B2002B911A = {
+			isa = PBXGroup;
+			children = (
+				8BE4C7092045A4B2002B911A /* drive */,
+				8BE4C71F2045A4C2002B911A /* NuxeoFinderSync */,
+				8BE4C7082045A4B2002B911A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8BE4C7082045A4B2002B911A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8BE4C7072045A4B2002B911A /* drive.app */,
+				8BE4C71E2045A4C2002B911A /* NuxeoFinderSync.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8BE4C7092045A4B2002B911A /* drive */ = {
+			isa = PBXGroup;
+			children = (
+				8BE4C70A2045A4B2002B911A /* AppDelegate.swift */,
+				8BE4C70C2045A4B2002B911A /* ViewController.swift */,
+				8BE4C70E2045A4B2002B911A /* Assets.xcassets */,
+				8BE4C7102045A4B2002B911A /* Main.storyboard */,
+				8BE4C7132045A4B2002B911A /* Info.plist */,
+				8BE4C7142045A4B2002B911A /* drive.entitlements */,
+			);
+			path = drive;
+			sourceTree = "<group>";
+		};
+		8BE4C71F2045A4C2002B911A /* NuxeoFinderSync */ = {
+			isa = PBXGroup;
+			children = (
+				8BE4C7202045A4C2002B911A /* FinderSync.swift */,
+				8BE4C7222045A4C2002B911A /* Info.plist */,
+				8BE4C7232045A4C2002B911A /* NuxeoFinderSync.entitlements */,
+			);
+			path = NuxeoFinderSync;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8BE4C7062045A4B2002B911A /* drive */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8BE4C7172045A4B2002B911A /* Build configuration list for PBXNativeTarget "drive" */;
+			buildPhases = (
+				8BE4C7032045A4B2002B911A /* Sources */,
+				8BE4C7042045A4B2002B911A /* Frameworks */,
+				8BE4C7052045A4B2002B911A /* Resources */,
+				8BE4C72A2045A4C2002B911A /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8BE4C7252045A4C2002B911A /* PBXTargetDependency */,
+			);
+			name = drive;
+			productName = drive;
+			productReference = 8BE4C7072045A4B2002B911A /* drive.app */;
+			productType = "com.apple.product-type.application";
+		};
+		8BE4C71D2045A4C2002B911A /* NuxeoFinderSync */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8BE4C7272045A4C2002B911A /* Build configuration list for PBXNativeTarget "NuxeoFinderSync" */;
+			buildPhases = (
+				8BE4C71A2045A4C2002B911A /* Sources */,
+				8BE4C71B2045A4C2002B911A /* Frameworks */,
+				8BE4C71C2045A4C2002B911A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NuxeoFinderSync;
+			productName = NuxeoFinderSync;
+			productReference = 8BE4C71E2045A4C2002B911A /* NuxeoFinderSync.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8BE4C6FF2045A4B2002B911A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 0920;
+				LastUpgradeCheck = 0920;
+				ORGANIZATIONNAME = Nuxeo;
+				TargetAttributes = {
+					8BE4C7062045A4B2002B911A = {
+						CreatedOnToolsVersion = 9.2;
+						ProvisioningStyle = Manual;
+						SystemCapabilities = {
+							com.apple.ApplicationGroups.Mac = {
+								enabled = 1;
+							};
+							com.apple.Sandbox = {
+								enabled = 0;
+							};
+						};
+					};
+					8BE4C71D2045A4C2002B911A = {
+						CreatedOnToolsVersion = 9.2;
+						ProvisioningStyle = Manual;
+						SystemCapabilities = {
+							com.apple.ApplicationGroups.Mac = {
+								enabled = 1;
+							};
+						};
+					};
+				};
+			};
+			buildConfigurationList = 8BE4C7022045A4B2002B911A /* Build configuration list for PBXProject "drive" */;
+			compatibilityVersion = "Xcode 8.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 8BE4C6FE2045A4B2002B911A;
+			productRefGroup = 8BE4C7082045A4B2002B911A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8BE4C7062045A4B2002B911A /* drive */,
+				8BE4C71D2045A4C2002B911A /* NuxeoFinderSync */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8BE4C7052045A4B2002B911A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8BE4C70F2045A4B2002B911A /* Assets.xcassets in Resources */,
+				8BE4C7122045A4B2002B911A /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8BE4C71C2045A4C2002B911A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8BE4C7032045A4B2002B911A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8BE4C70D2045A4B2002B911A /* ViewController.swift in Sources */,
+				8BE4C70B2045A4B2002B911A /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8BE4C71A2045A4C2002B911A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8BE4C7212045A4C2002B911A /* FinderSync.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8BE4C7252045A4C2002B911A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8BE4C71D2045A4C2002B911A /* NuxeoFinderSync */;
+			targetProxy = 8BE4C7242045A4C2002B911A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		8BE4C7102045A4B2002B911A /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				8BE4C7112045A4B2002B911A /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		8BE4C7152045A4B2002B911A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		8BE4C7162045A4B2002B911A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+			};
+			name = Release;
+		};
+		8BE4C7182045A4B2002B911A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = drive/drive.entitlements;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = drive/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				PRODUCT_BUNDLE_IDENTIFIER = org.nuxeo.drive;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_VERSION = 4.0;
+			};
+			name = Debug;
+		};
+		8BE4C7192045A4B2002B911A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = drive/drive.entitlements;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = drive/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				PRODUCT_BUNDLE_IDENTIFIER = org.nuxeo.drive;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_VERSION = 4.0;
+			};
+			name = Release;
+		};
+		8BE4C7282045A4C2002B911A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NuxeoFinderSync/NuxeoFinderSync.entitlements;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = NuxeoFinderSync/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				PRODUCT_BUNDLE_IDENTIFIER = org.nuxeo.drive.NuxeoFinderSync;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 4.0;
+			};
+			name = Debug;
+		};
+		8BE4C7292045A4C2002B911A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NuxeoFinderSync/NuxeoFinderSync.entitlements;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = NuxeoFinderSync/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				PRODUCT_BUNDLE_IDENTIFIER = org.nuxeo.drive.NuxeoFinderSync;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 4.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		8BE4C7022045A4B2002B911A /* Build configuration list for PBXProject "drive" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8BE4C7152045A4B2002B911A /* Debug */,
+				8BE4C7162045A4B2002B911A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8BE4C7172045A4B2002B911A /* Build configuration list for PBXNativeTarget "drive" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8BE4C7182045A4B2002B911A /* Debug */,
+				8BE4C7192045A4B2002B911A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8BE4C7272045A4C2002B911A /* Build configuration list for PBXNativeTarget "NuxeoFinderSync" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8BE4C7282045A4C2002B911A /* Debug */,
+				8BE4C7292045A4C2002B911A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8BE4C6FF2045A4B2002B911A /* Project object */;
+}

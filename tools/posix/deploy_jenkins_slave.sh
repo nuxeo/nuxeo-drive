@@ -9,7 +9,7 @@
 #     --start: start Nuxeo Drive
 #     --tests: launch the tests suite
 #
-# See /docs/deployment.md for more informations.
+# See /docs/deployment.md for more information.
 #
 
 # Global variables

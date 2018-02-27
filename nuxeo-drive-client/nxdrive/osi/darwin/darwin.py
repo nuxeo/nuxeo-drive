@@ -3,62 +3,10 @@ import os
 import urllib2
 from logging import getLogger
 
-import AppKit
-import objc
-from AppKit import NSRegisterServicesProvider, NSURLPboardType
-from Foundation import NSObject, NSURL
-
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import normalized_path
 
 log = getLogger(__name__)
-
-
-def serviceSelector(fn):
-    # this is the signature of service selectors
-    return objc.selector(fn, signature='v@:@@o^@')
-
-
-class RightClickService(NSObject):
-
-    @serviceSelector
-    def openInBrowser_userData_error_(self, pboard, data, error):
-        log.trace('openInBrowser has been called')
-        try:
-            path = self.get_file_path(pboard)
-            log.debug('Accessing online: %s', path)
-            from PyQt4.QtCore import QCoreApplication
-            QCoreApplication.instance().show_metadata(path)
-        except:
-            log.exception('Right click service error')
-
-    @serviceSelector
-    def copyShareLink_userData_error_(self, pboard, data, error):
-        log.trace('copyShareLink has been called')
-        try:
-            path = self.get_file_path(pboard)
-            log.debug('Copying share-link for: %s', path)
-            from PyQt4.QtCore import QCoreApplication
-            QCoreApplication.instance().manager.copy_share_link(path)
-        except:
-            log.exception('Right click service error')
-
-    @objc.python_method
-    def get_file_path(self, pboard):
-        types = pboard.types()
-        if NSURLPboardType in types:
-            pboardArray = pboard.propertyListForType_(NSURLPboardType)
-            log.error('Retrieve property list %r', pboardArray)
-            for value in pboardArray:
-                if not value:
-                    continue
-                # TODO Replug prompt_metadata on this one
-                url = NSURL.URLWithString_(value)
-                if url:
-                    return url.path()
-                if value.startswith('file://'):
-                    value = value[7:]
-                return urllib2.unquote(value)
 
 
 class DarwinIntegration(AbstractOSIntegration):
@@ -109,18 +57,12 @@ class DarwinIntegration(AbstractOSIntegration):
         if os.path.exists(agent_filepath):
             os.remove(agent_filepath)
 
-    def _register_services(self):
-        NSRegisterServicesProvider(RightClickService.alloc().init(),
-                                   self._manager.app_name)
-        # Refresh services
-        AppKit.NSUpdateDynamicServices()
-
     def register_contextual_menu(self):
-        # Register the service that handle the right click
-        self._register_services()
+        # Handled through the FinderSync extension
+        pass
 
     def unregister_contextual_menu(self):
-        # Specified in the Bundle plist
+        # Handled through the FinderSync extension
         pass
 
     def register_protocol_handlers(self):
