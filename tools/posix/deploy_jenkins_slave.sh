@@ -149,6 +149,7 @@ install_deps() {
     # Do not delete, it fixes "Could not import setuptools which is required to install from a source distribution."
     ${PIP} setuptools
     ${PIP} -r requirements.txt
+    ${PIP} -r requirements-dev.txt
     ${PIP} -r requirements-unix.txt
     case "${OSI}" in
         "osx") ${PIP} -r requirements-mac.txt ;;
