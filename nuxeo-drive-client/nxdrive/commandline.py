@@ -26,6 +26,7 @@ try:
 except ImportError:
     QSslSocket = None
 
+log = getLogger(__name__)
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 USAGE = """ndrive [command]
@@ -413,10 +414,9 @@ class CliHandler(object):
             # Don't need uninstall logs either for now.
             self._configure_logger(command, options)
 
-        self.log = getLogger(__name__)
-        self.log.debug('Command line: argv=%r, options=%r', argv, options)
+        log.debug('Command line: argv=%r, options=%r', argv, options)
         if QSslSocket:
-            self.log.info('SSL support = %r', QSslSocket.supportsSsl())
+            log.info('SSL support = %r', QSslSocket.supportsSsl())
 
         # Update default options
         Options.update(options, setter='cli')
@@ -436,13 +436,11 @@ class CliHandler(object):
 
         try:
             return handler(options)
-        except Exception as e:
+        except:
+            log.exception('Error executing %r', command)
             if Options.debug:
                 # Make it possible to use the postmortem debugger
                 raise
-            msg = e.msg if hasattr(e, 'msg') else e
-            self.log.error('Error executing "%s": %s', command, msg,
-                           exc_info=True)
 
     def get_manager(self):
         from nxdrive.manager import Manager
@@ -464,13 +462,13 @@ class CliHandler(object):
             if self.manager.direct_edit.url:
                 self.manager.direct_edit.handle_url()
             else:
-                self.log.warning('Qt application already running: exiting')
+                log.warning('Qt application already running: exiting')
             return
 
         app = self._get_application(console=console)
         exit_code = app.exec_()
         lock.unlock()
-        self.log.debug('Qt application exited with code %r', exit_code)
+        log.debug('Qt application exited with code %r', exit_code)
         return exit_code
 
     def clean_folder(self, options):
@@ -506,14 +504,20 @@ class CliHandler(object):
             password = getpass()
         else:
             password = options.password
-            if password == "":
+            if not password:
                 password = None
                 check_credentials = False
-        if options.local_folder is None or options.local_folder == "":
+
+        if not options.local_folder:
             options.local_folder = DEFAULT_NX_DRIVE_FOLDER
+
         self.manager.bind_server(
-            options.local_folder, options.nuxeo_url, options.username,
-            password, start_engine=False, check_credentials=check_credentials)
+            options.local_folder,
+            options.nuxeo_url,
+            options.username,
+            password,
+            start_engine=False,
+            check_credentials=check_credentials)
         return 0
 
     def unbind_server(self, options):
@@ -525,15 +529,15 @@ class CliHandler(object):
 
     def bind_root(self, options):
         for engine in self.manager.get_engines().values():
-            self.log.trace('Comparing: %s to %s',
-                           engine.local_folder, options.local_folder)
+            log.trace('Comparing: %r to %r',
+                      engine.local_folder, options.local_folder)
             if engine.local_folder == options.local_folder:
                 engine.get_remote_doc_client(
                     repository=options.remote_repo).register_as_root(
                     options.remote_root)
                 return 0
-        self.log.error('No engine registered for local folder %s',
-                       options.local_folder)
+        log.error('No engine registered for local folder %r',
+                  options.local_folder)
         return 1
 
     def unbind_root(self, options):
@@ -543,8 +547,8 @@ class CliHandler(object):
                     repository=options.remote_repo).unregister_as_root(
                     options.remote_root)
                 return 0
-        self.log.error('No engine registered for local folder %s',
-                       options.local_folder)
+        log.error('No engine registered for local folder %r',
+                  options.local_folder)
         return 1
 
     def _install_faulthandler(self):
@@ -553,12 +557,12 @@ class CliHandler(object):
             # Use faulthandler to print python tracebacks in case of segfaults
             import faulthandler
         except ImportError:
-            self.log.debug('faulthandler not available.')
+            log.debug('faulthandler not available.')
             return
 
         segfault_filename = os.path.expanduser(os.path.join(
             Options.nxdrive_home, 'logs', 'segfault.log'))
-        self.log.debug('Enabling faulthandler in %s', segfault_filename)
+        log.debug('Enabling faulthandler in %r', segfault_filename)
 
         segfault_file = open(segfault_filename, 'a')
         segfault_file.write('\n\n\n>>> {}\n'.format(datetime.now()))
@@ -613,7 +617,7 @@ def win32_unicode_argv():
 
 def main():
     if sys.version_info[0] != 2 or sys.version_info[1] != 7:
-        raise RuntimeError('Nuxeo Drive requires Python 2.7+')
+        raise RuntimeError('Nuxeo Drive requires Python 2.7')
 
     # Print thread dump when receiving SIGUSR1,
     # except under Windows (no SIGUSR1)

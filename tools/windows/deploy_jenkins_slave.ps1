@@ -306,11 +306,11 @@ function install_sip {
 function launch_tests {
 	# Launch the tests suite
 	if (!$direct) {
-        & $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
-        if ($lastExitCode -ne 0) {
-            ExitWithCode $lastExitCode
-        }
-    }
+		& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
+	}
 	& $Env:PYTHON_DIR\python $global:PYTHON_OPT -m pytest $Env:SPECIFIC_TEST `
 		--cov-report= `
 		--cov=nuxeo-drive-client/nxdrive `
