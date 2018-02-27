@@ -5,7 +5,7 @@ from threading import Thread
 
 from PyQt4 import QtCore, QtGui
 
-from nxdrive.gui.resources import find_icon
+from nxdrive.utils import find_icon
 
 log = getLogger(__name__)
 

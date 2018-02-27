@@ -1,14 +1,13 @@
 # coding: utf-8
 import os
-import platform
 import sys
 import urllib
 from logging import getLogger
 
-from nxdrive.utils import version_compare
 
 log = getLogger(__name__)
 
+# TODO: move to direct_edit.py, no need for these constants
 NXDRIVE_EDIT_URL_PREFIX = ('nxdrive://edit/scheme/server[:port]'
                            '/webappname/')
 NXDRIVE_EDIT_URL_PATTERN_1 = (NXDRIVE_EDIT_URL_PREFIX
@@ -19,7 +18,7 @@ NXDRIVE_EDIT_URL_PATTERN_2 = NXDRIVE_EDIT_URL_PREFIX + 'fsitem/fsItemId'
 # Protocol handler parsing
 
 
-def parse_protocol_url(url_string):
+def parse_protocol_url(url_string):  # TODO: move to direct_edit.py
     """Parse URL for which nxdrive is registered as a protocol handler
     Return None if url_string is not a supported URL pattern or raise a
     ValueError is the URL structure is invalid.
@@ -40,7 +39,7 @@ def parse_protocol_url(url_string):
     raise ValueError("Unsupported command '%s' in " + url_string)
 
 
-def parse_edit_protocol(data_string):
+def parse_edit_protocol(data_string):  # TODO: move to direct_edit.py
     """Parse a nxdrive://edit URL for quick editing of nuxeo documents"""
     invalid_msg = ('Invalid URL: got nxdrive://edit/%s while expecting %s'
                    ' or %s' % (data_string, NXDRIVE_EDIT_URL_PATTERN_1,
@@ -93,19 +92,23 @@ class AbstractOSIntegration(object):
     def register_startup(self):
         pass
 
+    def unregister_startup(self):
+        pass
+
     @staticmethod
     def is_partition_supported(folder):
         return True
 
     def uninstall(self):
+        """ Several action to do before uninstalling Drive. """
+
+        # macOS only
         self.unregister_contextual_menu()
-        self.unregister_desktop_link()
-        self.unregister_folder_link(None)
         self.unregister_protocol_handlers()
         self.unregister_startup()
 
-    def unregister_startup(self):
-        pass
+        # Windows and macOS
+        self.unregister_folder_link(None)
 
     def register_protocol_handlers(self):
         pass
@@ -125,56 +128,12 @@ class AbstractOSIntegration(object):
     def unregister_folder_link(self, name):
         pass
 
-    def register_desktop_link(self):
-        pass
-
-    def unregister_desktop_link(self):
-        pass
-
     @staticmethod
     def is_same_partition(folder1, folder2):
         return os.stat(folder1).st_dev == os.stat(folder2).st_dev
 
     def get_system_configuration(self):
         return dict()
-
-    @staticmethod
-    def os_version_below(version):
-        return version_compare(AbstractOSIntegration.get_os_version(), version) < 0
-
-    @staticmethod
-    def os_version_above(version):
-        return version_compare(AbstractOSIntegration.get_os_version(), version) > 0
-
-    @staticmethod
-    def get_os_version():
-        if AbstractOSIntegration.is_mac():
-            return platform.mac_ver()[0]
-        if AbstractOSIntegration.is_windows():
-            """
-            5.0.2195    Windows 2000
-            5.1.2600    Windows XP
-                        Windows XP 64-Bit Edition Version 2002 (Itanium)
-            5.2.3790    Windows Server 2003
-                        Windows XP x64 Edition (AMD64/EM64T)
-                        Windows XP 64-Bit Edition Version 2003 (Itanium)
-            6.0.6000    Windows Vista
-            6.0.6001    Windows Vista SP1
-                        Windows Server 2008
-            6.1.7600    Windows 7
-                        Windows Server 2008 R2
-            6.1.7601    Windows 7 SP1
-                        Windows Server 2008 R2 SP1
-            6.2.9200    Windows 8
-                        Windows Server 2012
-            6.3.9200    Windows 8.1
-                        Windows Server 2012 R2
-            6.3.9600    Windows 8.1 with Update 1
-            6.4.        Windows 10
-            """
-            return platform.win32_ver()[1]
-
-        raise RuntimeError('Cannot determine GNU/Linux version')
 
     @staticmethod
     def is_mac():
@@ -193,12 +152,12 @@ class AbstractOSIntegration(object):
     def get(manager):
         if AbstractOSIntegration.is_mac():
             from nxdrive.osi.darwin.darwin import DarwinIntegration
-            log.debug('Using macOS integration')
-            return DarwinIntegration(manager)
+            integration, nature = DarwinIntegration, 'macOS'
         elif AbstractOSIntegration.is_windows():
             from nxdrive.osi.windows.windows import WindowsIntegration
-            log.debug('Using Windows OS integration')
-            return WindowsIntegration(manager)
+            integration, nature = WindowsIntegration, 'Windows'
+        else:
+            integration, nature = AbstractOSIntegration, 'None'
 
-        log.debug('Not using any OS integration')
-        return AbstractOSIntegration(manager)
+        log.debug('OS integration type: %s', nature)
+        return integration(manager)

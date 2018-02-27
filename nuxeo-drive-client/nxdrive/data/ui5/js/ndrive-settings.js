@@ -16,6 +16,7 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.lastReport = null;
 	$scope.locale = drive.locale();
 	$scope.languages = angular.fromJson(drive.get_languages());
+	$scope.os_version = drive.get_os_version();
 	$scope.generateReport = function() {
 		$scope.lastReport = drive.generate_report();
 	}

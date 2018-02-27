@@ -95,13 +95,13 @@ for (x in slaves) {
                         try {
                             if (osi == 'macOS') {
                                 sh 'tools/osx/deploy_jenkins_slave.sh --build'
-                                archive 'dist/*.dmg, dist/*.zip'
+                                archive 'dist/*.dmg'
                             } else if (osi == 'GNU/Linux') {
                                 sh 'tools/linux/deploy_jenkins_slave.sh --build'
-                                archive 'dist/*.json, dist/*.deb, dist/*.zip'
+                                archive 'dist/*.json, dist/*.deb'
                             } else {
                                 bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
-                                archive 'dist/*.msi, dist/*.zip'
+                                archive 'dist/*.exe'
                             }
                         } catch(e) {
                             currentBuild.result = 'FAILURE'

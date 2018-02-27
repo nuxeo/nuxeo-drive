@@ -23,7 +23,7 @@ from nxdrive.logging_config import FILE_HANDLER
 from nxdrive.notification import DefaultNotificationService
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
+# from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
 from nxdrive.utils import (ENCODING, OSX_SUFFIX, decrypt, encrypt,
                            normalized_path)
 
@@ -330,10 +330,10 @@ class Manager(QtCore.QObject):
         self.load()
 
         # Create the server's configuration getter verification thread
-        self._create_server_config_updater(Options.update_check_delay)
+        # self._create_server_config_updater(Options.update_check_delay)
 
         # Create the application update verification thread
-        self._create_updater(Options.update_check_delay)
+        # self._create_updater(Options.update_check_delay)
 
         # Force language
         if Options.force_locale is not None:
@@ -1123,6 +1123,7 @@ class Manager(QtCore.QObject):
 
     def copy_share_link(self, file_path):
         url = self.get_metadata_infos(file_path)
+        log.info('Copied %r', url)
         if sys.platform == 'win32':
             win32clipboard.OpenClipboard()
             win32clipboard.EmptyClipboard()

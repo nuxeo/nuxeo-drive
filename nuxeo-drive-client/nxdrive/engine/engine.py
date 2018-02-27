@@ -22,10 +22,9 @@ from nxdrive.engine.queue_manager import QueueManager
 from nxdrive.engine.watcher.local_watcher import LocalWatcher
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 from nxdrive.engine.workers import PairInterrupt, ThreadInterrupt, Worker
-from nxdrive.gui.resources import find_icon
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.utils import normalized_path
+from nxdrive.utils import find_icon, normalized_path
 
 log = getLogger(__name__)
 
@@ -908,18 +907,18 @@ class Engine(QObject):
         local_client = self.get_local_client()
         if not local_client.exists('/') or local_client.has_folder_icon('/'):
             return
+
         if AbstractOSIntegration.is_mac():
-            if AbstractOSIntegration.os_version_below("10.10"):
-                icon = find_icon("NuxeoDrive_Mac_Folder.dat")
-            else:
-                icon = find_icon("NuxeoDrive_Mac_Yosemite_Folder.dat")
+            icon = find_icon('folder_mac.dat')
         elif AbstractOSIntegration.is_windows():
-            icon = find_icon("NuxeoDrive_Windows_Folder.ico")
+            icon = find_icon('folder_windows.ico')
         else:
             # No implementation on Linux
             return
-        if icon is None:
+
+        if not icon:
             return
+
         locker = local_client.unlock_ref('/', unlock_parent=False)
         try:
             local_client.set_folder_icon('/', icon)
@@ -931,6 +930,9 @@ class Engine(QObject):
         local_info = local_client.get_info(u'/')
 
         remote_client = self.get_remote_client()
+        if not remote_client:
+            return
+
         remote_info = remote_client.get_filesystem_root_info()
 
         self._dao.insert_local_state(local_info, '')

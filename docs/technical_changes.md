@@ -3,8 +3,25 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+- Removed `AbstractOSIntegration.get_os_version()`
+- Removed `AbstractOSIntegration.os_version_above()`
+- Removed `AbstractOSIntegration.os_version_below()`
+- Removed `AbstractOSIntegration.register_desktop_link()`
+- Removed `AbstractOSIntegration.unregister_desktop_link()`
+- Removed `WindowsIntegration.__init__()`
+- Removed `WindowsIntegration.get_key_bases()`
+- Removed `WindowsIntegration.get_menu_entries()`
+- Removed `WindowsIntegration.register_contextual_menu()`
+- Removed `WindowsIntegration.register_protocol_handlers()`
+- Removed `WindowsIntegration.register_startup()`
+- Removed `WindowsIntegration.unregister_contextual_menu()`
+- Removed `WindowsIntegration.unregister_protocol_handlers()`
+- Removed `WindowsIntegration.unregister_startup()`
+- Removed `SimpleApplication.get_resource_dir()`. Use utils.py::`find_resource()` instead.
 - Added `Translator.translations()`
 - Added `WebDriveAPI.get_translations()`
+- Moved gui/resources.py::`find_icon()` to utils.py
+- Changed utils.py::`find_resource_dir(directory, default_path)` to `find_resource(folder, filename)`
 
 # 3.0.5
 - Changed `BlacklistQueue.get()`, it is now a generator.

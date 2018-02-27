@@ -14,13 +14,17 @@ from logging import getLogger
 from nxdrive import __version__
 from nxdrive.logging_config import configure
 from nxdrive.options import Options
-from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
 
 try:
     import ipdb as pdb
 except ImportError:
     import pdb
+
+try:
+    from PyQt4.QtNetwork import QSslSocket
+except ImportError:
+    QSslSocket = None
 
 
 DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
@@ -340,6 +344,7 @@ class CliHandler(object):
         if configs:
             config.read(configs)
 
+        from nxdrive.osi import AbstractOSIntegration
         args = AbstractOSIntegration.get(None).get_system_configuration()
         if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
             env = config.get(ConfigParser.DEFAULTSECT, 'env')
@@ -410,6 +415,8 @@ class CliHandler(object):
 
         self.log = getLogger(__name__)
         self.log.debug('Command line: argv=%r, options=%r', argv, options)
+        if QSslSocket:
+            self.log.info('SSL support = %r', QSslSocket.supportsSsl())
 
         # Update default options
         Options.update(options, setter='cli')
