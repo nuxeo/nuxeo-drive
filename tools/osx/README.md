@@ -1,6 +1,6 @@
-# Generating a .dmg
+# Generating a DMG
 
-## Generating the .DS_Store metadata file for the .dmg layout
+## Generating the .DS_Store metadata file for the DMG layout
 
 The `generate-dmg-ds-store.sh` must be run using an active OSX graphical
 sessions. It uses AppleScript to dimension the window to 600 x 250 pixels, put
@@ -16,7 +16,7 @@ Drive.dmg` package:
 
   http://qa.nuxeo.org/jenkins/job/other/job/nuxeo-drive-dmg/
 
-## Background png resolution
+## Background PNG Resolution
 
 The `dmgbackground.svg` file is the source for the png file. Note that Inkscape
 has a hardcoded export convention of using 90dpi in png exports while OSX
