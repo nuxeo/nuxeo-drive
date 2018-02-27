@@ -149,6 +149,7 @@ install_deps() {
     # Do not delete, it fixes "Could not import setuptools which is required to install from a source distribution."
     ${PIP} setuptools
     ${PIP} -r requirements.txt
+    ${PIP} -r requirements-dev.txt
     ${PIP} -r requirements-unix.txt
     case "${OSI}" in
         "osx") ${PIP} -r requirements-mac.txt ;;
@@ -259,7 +260,7 @@ launch_pip_tests() {
     local folder="$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')"
     local port="1234"
     local url="http://localhost:${port}"
-    local pip_args="install --isolated --extra-index-url ${url}"
+    local pip_args="install --isolated --upgrade --ignore-installed --extra-index-url ${url}"
 
     purge() {
         local pid=$1

@@ -20,6 +20,7 @@
 - Removed `SimpleApplication.get_resource_dir()`. Use utils.py::`find_resource()` instead.
 - Added `Translator.translations()`
 - Added `WebDriveAPI.get_translations()`
+- Removed `WebDriveAPI.get_appname()`
 - Moved gui/resources.py::`find_icon()` to utils.py
 - Changed utils.py::`find_resource_dir(directory, default_path)` to `find_resource(folder, filename)`
 

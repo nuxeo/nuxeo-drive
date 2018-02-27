@@ -10,18 +10,20 @@ code_sign() {
     # TODO: add parameters to Jenkinsfile
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-OSX-Code-Signing
     local app="$1"
-    local signing_id="NUXEO CORP"
 
-    if [[ -z ${NUXEO_KEYCHAIN_PWD:-} ]]; then
+    if [[ -z ${SIGNING_ID:-} ]]; then
+        echo ">>> [sign] WARNING: Signing ID is unavailable, application won't be signed."
+        return
+    elif [[ -z ${KEYCHAIN_PWD:-} ]]; then
         echo ">>> [sign] WARNING: Keychain is unavailable, application won't be signed."
         return
     fi
 
     echo ">>> [sign] Unlocking the Nuxeo keychain"
-    security unlock-keychain -p "${NUXEO_KEYCHAIN_PWD}" "${NUXEO_KEYCHAIN_PATH}"
+    security unlock-keychain -p "${KEYCHAIN_PWD}" "${KEYCHAIN_PATH}"
 
     echo ">>> [sign] Signing the file ${app}"
-    codesign --deep --verbose --sign "${signing_id}" "${app}"
+    codesign --deep --verbose --sign "${SIGNING_ID}" "${app}"
 
     echo ">>> [sign] Verifying code signature"
     codesign --verify --verbose "${app}"

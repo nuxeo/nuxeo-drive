@@ -16,6 +16,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730): Move to PyInstaller
 
 #### Minor changes
+- Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
 - Jenkins: Possibility to launch the beta job on a given branch
 
 
