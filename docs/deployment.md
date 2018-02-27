@@ -107,6 +107,13 @@ __Important__: those values are given as example, if you want up-to-date ones, p
 
 - `COMPILE_WITH_DEBUG` to compile Python and Qt with debugging symbols. This variable cannot be null.
 
+#### macOS Specific
+
+Those are related to code-signing:
+- `KEYCHAIN_PATH` is the **full path** to the certificate.
+- `KEYCHAIN_PWD` is the **password** to unlock the certificate.
+- `SIGNING_ID` is the certificate **authority name**.
+
 #### Windows specific
 
 - `QT_PATH` is the **Qt path**, i.e. `C:\Qt\4.8.7`.
