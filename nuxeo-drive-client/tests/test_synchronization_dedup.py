@@ -2,7 +2,7 @@
 """
 Test behaviors when the server allows duplicates and not the client.
 """
-from tests.common_unit_test import UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class TestSynchronizationDedup(UnitTestCase):

@@ -8,8 +8,8 @@ from unittest import SkipTest
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.base_automation_client import CorruptedFile
-from tests.common import FS_ITEM_ID_PREFIX
-from tests.common_unit_test import UnitTestCase
+from .common import FS_ITEM_ID_PREFIX
+from .common_unit_test import UnitTestCase
 
 
 class TestRemoteFileSystemClient(UnitTestCase):

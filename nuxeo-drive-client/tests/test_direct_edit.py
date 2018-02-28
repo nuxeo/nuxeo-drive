@@ -3,7 +3,7 @@ import os
 
 from nxdrive.client import LocalClient
 from nxdrive.engine.engine import Engine, ServerBindingSettings
-from tests.common_unit_test import UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class MockUrlTestEngine(Engine):

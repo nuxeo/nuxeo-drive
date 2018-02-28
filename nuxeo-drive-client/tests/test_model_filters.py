@@ -1,5 +1,5 @@
 # coding: utf-8
-from tests.common_unit_test import UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class TestModelFilter(UnitTestCase):

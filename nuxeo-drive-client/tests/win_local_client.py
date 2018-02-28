@@ -16,7 +16,7 @@ import os
 from win32com.shell import shell, shellcon
 
 from nxdrive.client.local_client import LocalClient
-from tests.common import log
+from .common import log
 
 
 class MockFile(object):

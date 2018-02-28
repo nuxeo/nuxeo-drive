@@ -1,8 +1,8 @@
 # coding: utf-8
 from logging import getLogger
 
-from tests.common import RemoteDocumentClientForTests
-from tests.common_unit_test import UnitTestCase
+from .common import RemoteDocumentClientForTests
+from .common_unit_test import UnitTestCase
 
 log = getLogger(__name__)
 

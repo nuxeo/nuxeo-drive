@@ -7,8 +7,8 @@ from shutil import copyfile
 from mock import Mock, patch
 
 from nxdrive.engine.engine import Engine
-from tests.common import OS_STAT_MTIME_RESOLUTION
-from tests.common_unit_test import UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION
+from .common_unit_test import UnitTestCase
 
 
 class TestRemoteDeletion(UnitTestCase):

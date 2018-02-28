@@ -6,7 +6,7 @@ from urllib2 import HTTPError
 import pytest
 
 from nxdrive.client import LocalClient
-from tests.common_unit_test import RemoteDocumentClientForTests, UnitTestCase
+from .common_unit_test import RemoteDocumentClientForTests, UnitTestCase
 
 
 class TestPermissionHierarchy(UnitTestCase):

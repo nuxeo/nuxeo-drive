@@ -8,9 +8,9 @@ from nxdrive.client.remote_filtered_file_system_client import \
     RemoteFilteredFileSystemClient
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
-from tests import RemoteTestClient
-from tests.common import RemoteDocumentClientForTests
-from tests.common_unit_test import RandomBug, UnitTestCase
+from . import RemoteTestClient
+from .common import RemoteDocumentClientForTests
+from .common_unit_test import RandomBug, UnitTestCase
 
 # TODO NXDRIVE-170: refactor
 

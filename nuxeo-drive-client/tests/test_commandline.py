@@ -6,7 +6,7 @@ import unittest
 from nxdrive.commandline import CliHandler
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
-from tests.common import clean_dir
+from .common import clean_dir
 
 
 class FakeOSIntegration(AbstractOSIntegration):

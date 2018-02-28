@@ -1,10 +1,7 @@
 # coding: utf-8
 import socket
 import time
-import sys
 import urllib2
-
-import pytest
 
 from nxdrive.client import LocalClient
 from nxdrive.client.remote_filtered_file_system_client import \

@@ -2,8 +2,8 @@
 import time
 from unittest import skip
 
-from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from tests.common_unit_test import RandomBug, UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
+from .common_unit_test import RandomBug, UnitTestCase
 
 
 class TestSecurityUpdates(UnitTestCase):

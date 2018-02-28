@@ -5,8 +5,7 @@ import tempfile
 import unittest
 
 from nxdrive.engine.dao.sqlite import EngineDAO
-from nxdrive.engine.engine import Engine
-from tests.common import clean_dir
+from .common import clean_dir
 
 
 class EngineDAOTest(unittest.TestCase):

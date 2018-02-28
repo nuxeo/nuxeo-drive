@@ -1,14 +1,11 @@
 # coding: utf-8
 import os
-import sqlite3
 import tempfile
 import unittest
 
-import nxdrive
-from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.manager import Manager
 from nxdrive.options import Options
-from tests.common import RemoteDocumentClientForTests, clean_dir
+from .common import clean_dir
 
 
 class ManagerDAOTest(unittest.TestCase):

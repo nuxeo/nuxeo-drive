@@ -4,14 +4,14 @@ import sys
 import time
 from shutil import copyfile
 
-from mock import Mock, patch
 import pytest
+from mock import Mock, patch
 
 from nxdrive.client import LocalClient
 from nxdrive.engine.engine import Engine
-from tests.common import REMOTE_MODIFICATION_TIME_RESOLUTION, \
-    RemoteDocumentClientForTests
-from tests.common_unit_test import UnitTestCase
+from .common import (REMOTE_MODIFICATION_TIME_RESOLUTION,
+                     RemoteDocumentClientForTests)
+from .common_unit_test import UnitTestCase
 
 
 class TestRemoteMoveAndRename(UnitTestCase):

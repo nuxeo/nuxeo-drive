@@ -3,7 +3,7 @@ import os
 import shutil
 from logging import getLogger
 
-from tests.common_unit_test import UnitTestCase
+from .common_unit_test import UnitTestCase
 
 log = getLogger(__name__)
 

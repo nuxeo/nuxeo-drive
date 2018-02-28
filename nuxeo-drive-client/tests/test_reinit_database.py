@@ -1,8 +1,8 @@
 # coding: utf-8
 import time
 
-from tests.common import OS_STAT_MTIME_RESOLUTION
-from tests.common_unit_test import UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION
+from .common_unit_test import UnitTestCase
 
 
 class TestReinitDatabase(UnitTestCase):

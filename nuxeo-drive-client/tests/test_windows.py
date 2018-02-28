@@ -3,7 +3,6 @@ import os
 import shutil
 import sys
 import time
-import unittest
 
 import pytest
 from nxdrive.client import LocalClient

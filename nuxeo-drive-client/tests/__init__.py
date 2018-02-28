@@ -1,7 +1,6 @@
 # coding: utf-8
 from nxdrive.client.remote_filtered_file_system_client import \
     RemoteFileSystemClient
-from nxdrive.options import Options
 
 
 class RemoteTestClient(RemoteFileSystemClient):
