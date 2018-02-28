@@ -392,18 +392,10 @@ def find_icon(icon):
 def find_resource(folder, filename=''):
     """ Find the FS path of a directory in various OS binary packages. """
 
-    is_frozen = getattr(sys, 'frozen', False)
-    if is_frozen:
-        res_dir = getattr(sys, '_MEIPASS', '')
-    else:
-        import nxdrive
-        res_dir = os.path.dirname(nxdrive.__file__)
-
-    path = os.path.join(res_dir, 'data', folder, filename)
+    path = os.path.join(Options.res_dir, folder, filename)
     if not os.path.exists(path):
         log.error('Could not find the resource %r', path)
-        return None
-
+        path = None
     return path
 
 
