@@ -208,8 +208,6 @@
             </fileset>
         </copy>-->
         <symlink resource="${maven.basedir}/nuxeo-drive-client" link="${out.dir}/${package.name}-${package.fullversion}/nuxeo-drive-client" />
-        <symlink resource="${maven.basedir}/nx_cx_Freeze" link="${out.dir}/${package.name}-${package.fullversion}/nx_cx_Freeze" />
-        <symlink resource="${maven.basedir}/nx_esky" link="${out.dir}/${package.name}-${package.fullversion}/nx_esky" />
         <symlink resource="${maven.basedir}/launcher.pyw" link="${out.dir}/${package.name}-${package.fullversion}/launcher.pyw" />
 
     </target>

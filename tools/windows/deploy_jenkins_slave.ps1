@@ -192,6 +192,20 @@ function install_deps {
 	}
 }
 
+function install_openssl {
+	$src = "$Env:MINGW_PATH\opt\bin"
+
+	if (-Not (Test-Path "$Env:WORKSPACE_DRIVE\tools\windows\libeay32.dll")) {
+		echo ">>> Retrieving OpenSSL DLL: libeay32.dll"
+		Copy-Item "$src\libeay32.dll" "$Env:WORKSPACE_DRIVE\tools\windows"
+	}
+
+	if (-Not (Test-Path "$Env:WORKSPACE_DRIVE\tools\windows\ssleay32.dll")) {
+		echo ">>> Retrieving OpenSSL DLL: ssleay32.dll"
+		Copy-Item "$src\ssleay32.dll" "$Env:WORKSPACE_DRIVE\tools\windows"
+	}
+}
+
 function install_pyqt {
 	$fname = "PyQt4_gpl_win-$Env:PYQT_VERSION"
 	$url = "$global:SERVER/$fname.zip"
@@ -292,11 +306,11 @@ function install_sip {
 function launch_tests {
 	# Launch the tests suite
 	if (!$direct) {
-        & $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
-        if ($lastExitCode -ne 0) {
-            ExitWithCode $lastExitCode
-        }
-    }
+		& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
+	}
 	& $Env:PYTHON_DIR\python $global:PYTHON_OPT -m pytest $Env:SPECIFIC_TEST `
 		--cov-report= `
 		--cov=nuxeo-drive-client/nxdrive `
@@ -333,11 +347,12 @@ function main {
 	# Launch operations
 	check_vars
 	if (!$direct) {
-        install_python
-        install_deps
-        install_sip
-        install_pyqt
-    }
+		install_python
+		install_deps
+		install_sip
+		install_pyqt
+		install_openssl
+	}
 
 	if ((check_import "import PyQt4.QtWebKit") -ne 1) {
 		Write-Output ">>> No WebKit. Installation failed."

@@ -99,7 +99,6 @@ publish_on_pip() {
     [ -d pypi ] && rm -rf pypi
     python -m virtualenv pypi
     . pypi/bin/activate
-    pip install $(grep esky requirements.txt)
 
     echo ">>> [beta ${drive_version}] Uploading to the PyPi server"
     python setup.py sdist upload
