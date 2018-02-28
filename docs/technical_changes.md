@@ -37,6 +37,7 @@
 - Removed `EngineLogger.logger`
 - Removed `FileInfo.get_parent()`
 - Removed `FolderTreeview.set_client()`
+- Removed `LocalClient.DEDUPED_BASENAME_PATTERN`
 - Removed `LocalClient.root`
 - Removed `LocalClient.duplicate_file()`
 - Removed `LocalClient.duplication_enabled()`

@@ -17,9 +17,8 @@ from send2trash import send2trash
 from nxdrive.client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
                                                    DOWNLOAD_TMP_FILE_SUFFIX)
 from nxdrive.client.common import (BaseClient, DuplicationDisabledError,
-                                   FILE_BUFFER_SIZE,
-                                   NotFound, UNACCESSIBLE_HASH,
-                                   safe_filename)
+                                   FILE_BUFFER_SIZE, NotFound,
+                                   UNACCESSIBLE_HASH, safe_filename)
 from nxdrive.options import Options
 from nxdrive.utils import (guess_digest_algorithm, normalized_path,
                            safe_long_path)
@@ -36,9 +35,6 @@ else:
     import xattr
 
 log = getLogger(__name__)
-
-
-DEDUPED_BASENAME_PATTERN = ur'^(.*)__(\d{1,3})$'
 
 
 # Data transfer objects
