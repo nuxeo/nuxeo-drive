@@ -1,10 +1,10 @@
 # coding: utf-8
-from tests.common_unit_test import UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class TestModelFilter(UnitTestCase):
 
-    def testSimpleFilter(self):
+    def test_simple_filter(self):
         dao = self.engine_1.get_dao()
         self.engine_1.add_filter("/Test/Plop")
         self.assertEqual(len(dao.get_filters()), 1, "Save of one filter has failed")

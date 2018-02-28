@@ -1,6 +1,6 @@
 # coding: utf-8
-from tests.common import RemoteDocumentClientForTests
-from tests.common_unit_test import UnitTestCase
+from .common import RemoteDocumentClientForTests
+from .common_unit_test import UnitTestCase
 
 
 class TestSyncRoots(UnitTestCase):

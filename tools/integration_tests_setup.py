@@ -16,14 +16,12 @@ import argparse
 import fnmatch
 import os
 import re
-import shutil
 import sys
 
 try:
     import urllib2
 except ImportError:
     import urllib.request as urllib2
-import zipfile
 
 DEFAULT_BASE_FOLDER = 'nuxeo-drive-client'
 DEFAULT_WORK_FOLDER = 'target'
@@ -34,11 +32,6 @@ LINKS_PATTERN = br'\bhref="([^"]+)"'
 
 DEFAULT_SERVER_URL = "http://localhost:8080/nuxeo"
 DEFAULT_ENGINE = "NXDRIVE"
-
-DEFAULT_MSI_FOLDER = 'dist'
-NUXEO_DRIVE_HOME_FOLDER = os.path.expanduser('~\.nuxeo-drive')
-
-NOSETESTS_LOGGING_FORMAT = '"%(asctime)s %(thread)d %(levelname)-8s %(name)-18s %(message)s"'
 
 
 def pflush(message):
@@ -113,37 +106,6 @@ def download(url, filename):
                 f.write(b)
 
 
-def unzip(filename, target=None):
-    pflush("Unzipping " + filename)
-    zf = zipfile.ZipFile(filename, 'r')
-    for info in zf.infolist():
-        filename = info.filename
-        # Skip first directory entry
-        if filename.endswith('/'):
-            continue
-        if target is not None:
-            filename = os.path.join(target, filename)
-        dirname = os.path.dirname(filename)
-        if dirname != '' and not os.path.exists(dirname):
-            os.makedirs(dirname)
-        with open(filename, 'wb') as f:
-            f.write(zf.read(info.filename))
-
-
-def find_latest(folder, prefix=None, suffix=None):
-    files = os.listdir(folder)
-    if prefix is not None:
-        files = [f for f in files if f.startswith(prefix)]
-    if suffix is not None:
-        files = [f for f in files if f.endswith(suffix)]
-    if not files:
-        raise RuntimeError(('Could not find file with prefix "%s"'
-                            'and suffix "%s" in "%s"')
-                           % (prefix, suffix, folder))
-    files.sort()
-    return os.path.join(folder, files[-1])
-
-
 def find_package_url(archive_page_url, pattern):
     pflush("Finding latest package at: " + archive_page_url)
     index_html = urllib2.urlopen(archive_page_url).read()
@@ -192,13 +154,6 @@ def clean_pyc(dir_):
             file_path = os.path.join(root, filename)
             print('Removing .pyc file: %s' % file_path)
             os.unlink(file_path)
-
-
-def clean_home_folder(dir_=None):
-    dir_ = dir_ if dir_ is not None else NUXEO_DRIVE_HOME_FOLDER
-    if os.path.exists(dir_):
-        print('Removing home folder before running tests: %s' % dir_)
-        shutil.rmtree(dir_)
 
 
 def run_tests_from_source():

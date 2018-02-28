@@ -564,31 +564,6 @@ def simplify_url(url):
     return urlparse.urlunsplit(new_parts).rstrip('/')
 
 
-class ServerLoader(object):
-    def __init__(self, remote_client, local_client):
-        self._remote_client = remote_client
-        self._local_client = local_client
-
-    def sync(self, remote_uid, local):
-        childs = self._local_client.get_children_info(local)
-        rchilds = self._remote_client.get_children_info(remote_uid)
-        existing_childs = dict()
-        for child in rchilds:
-            path = os.path.join(local, child.name)
-            existing_childs[path] = child
-        for child in childs:
-            child_uid = None
-            if child.path not in existing_childs:
-                if child.folderish:
-                    child_uid = self._remote_client.make_folder(remote_uid, child.name)
-                else:
-                    self._remote_client.stream_file(remote_uid, self._local_client.abspath(child.path))
-            else:
-                child_uid = existing_childs[child.path].uid
-            if child.folderish:
-                self.sync(child_uid, child.path)
-
-
 class PidLockFile(object):
     """ This class handle the pid lock file"""
     def __init__(self, folder, key):

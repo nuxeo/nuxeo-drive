@@ -70,10 +70,6 @@ class WebModal(WebDialog):
     def get_result(self):
         return self._result
 
-    def remove_button(self, uid):
-        if uid in self._buttons:
-            del self._buttons[uid]
-
     def add_button(self, uid, label, style="default"):
         self._buttons[uid] = WebModalButton(uid, label, style)
 

@@ -1,14 +1,11 @@
 # coding: utf-8
 import os
-import sqlite3
 import tempfile
 import unittest
 
-import nxdrive
-from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.manager import Manager
 from nxdrive.options import Options
-from tests.common import RemoteDocumentClientForTests, clean_dir
+from .common import clean_dir
 
 
 class ManagerDAOTest(unittest.TestCase):
@@ -25,7 +22,6 @@ class ManagerDAOTest(unittest.TestCase):
         self.test_folder = tempfile.mkdtemp(u'-nxdrive-tests', dir=self.tmpdir)
         self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL', 'http://localhost:8080/nuxeo')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
-        self.admin_password = os.environ.get('NXDRIVE_TEST_PASSWORD', 'Administrator')
         # Handle the # in url
         if '#' in self.nuxeo_url:
             # Remove the engine type for the rest of the test

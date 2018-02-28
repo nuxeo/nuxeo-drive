@@ -49,10 +49,6 @@ class UpdateError(Error):
     pass
 
 
-class RootPrivilegeRequired(Exception):
-    pass
-
-
 class FakeUpdater(QtCore.QObject):
 
     refreshStatus = QtCore.pyqtSignal()
@@ -401,7 +397,7 @@ class AppUpdater(PollWorker):
                     # Under Windows, this means that the sudo popup was
                     # rejected
                     self.esky_app.sudo_proxy = None
-                    log.exception('RootPrivilegeRequired')
+                    log.exception('Root privilege required')
                     return
                 # Other EnvironmentError, probably not related to permissions
                 log.exception('UpdateError')
@@ -455,9 +451,6 @@ class AppUpdater(PollWorker):
         self.esky_app.uninstall_version(version)
         log.info("Cleaning up Esky application")
         self.esky_app.cleanup()
-
-    def get_update_site(self):
-        return self.update_site
 
     def _handle_URL_error(self, e):
         raise UnavailableUpdateSite(

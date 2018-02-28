@@ -3,8 +3,8 @@ import os
 
 from nxdrive.client.remote_filtered_file_system_client import \
     RemoteFilteredFileSystemClient
-from tests import RemoteTestClient
-from tests.common_unit_test import RandomBug, UnitTestCase
+from . import RemoteTestClient
+from .common_unit_test import RandomBug, UnitTestCase
 
 
 class TestLocalStorageSpaceIssue(UnitTestCase):

@@ -45,9 +45,6 @@ class RestAPIClient(object):
                           for attr in sorted(self.__init__.__code__.co_varnames[1:]))
         return '<{} {}>'.format(self.__class__.__name__, attrs)
 
-    def get_acls(self, ref):
-        return self.execute('id/' + ref, adapter='acl')
-
     def execute(self, relative_url, method='GET', body=None, adapter=None, timeout=-1):
         """Execute a REST API call"""
 

@@ -4,7 +4,7 @@ from unittest import skipIf
 
 from nxdrive.client.local_client import FileInfo
 from nxdrive.osi import AbstractOSIntegration
-from tests.common_unit_test import UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class TestEncoding(UnitTestCase):

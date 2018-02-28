@@ -6,7 +6,7 @@ from logging import getLogger
 import pytest
 
 from common_unit_test import UnitTestCase
-from tests.common_unit_test import FILE_CONTENT
+from .common_unit_test import FILE_CONTENT
 
 log = getLogger(__name__)
 

@@ -6,7 +6,7 @@ from unittest import skipIf
 
 from nxdrive.client import LocalClient
 from nxdrive.osi import AbstractOSIntegration
-from tests.common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import RandomBug, UnitTestCase
 
 log = getLogger(__name__)
 
