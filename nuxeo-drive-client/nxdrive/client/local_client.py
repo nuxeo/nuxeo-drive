@@ -1,15 +1,16 @@
 # coding: utf-8
 """ API to access local resources for synchronization. """
 
-import datetime
 import errno
 import hashlib
 import os
 import shutil
 import sys
 import tempfile
+import time
 import unicodedata
 import uuid
+from datetime import datetime
 from logging import getLogger
 
 from send2trash import send2trash
@@ -444,10 +445,10 @@ FolderType=Generic
         stat_info = os.stat(os_path)
         size = 0 if folderish else stat_info.st_size
         try:
-            mtime = datetime.datetime.utcfromtimestamp(stat_info.st_mtime)
+            mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
         except ValueError, e:
             log.error(str(e) + "file path: %s. st_mtime value: %s" % (str(os_path), str(stat_info.st_mtime)))
-            mtime = datetime.datetime.utcfromtimestamp(0)
+            mtime = datetime.utcfromtimestamp(0)
 
         # TODO Do we need to load it everytime ?
         remote_ref = self.get_remote_id(ref)
@@ -759,6 +760,50 @@ FolderType=Generic
         finally:
             self.lock_ref(filename, locker & 2, is_abs=True)
             self.lock_ref(parent, locker & 1 | new_locker, is_abs=True)
+
+    def change_file_date(self, filename, mtime=None, ctime=None):
+        # type: (Text, Optional[Text], Optional[Text]) -> None
+        """
+        Change the FS modification and creation dates of a file.
+
+        Since there is no creation time on GNU/Linux, the ctime
+        will not be taken into account if running on this platform.
+
+        :param filename: The file to modify
+        :param mtime: The modification time
+        :param ctime: The creation time
+        """
+
+        log.trace('Setting file dates for %r (ctime=%r, mtime=%r)',
+                  filename, ctime, mtime)
+        if mtime:
+            try:
+                mtime = int(mtime)
+            except ValueError:
+                mtime = time.mktime(time.strptime(mtime, '%Y-%m-%d %H:%M:%S'))
+            os.utime(filename, (mtime, mtime))
+
+        if ctime:
+            try:
+                ctime = datetime.fromtimestamp(ctime)
+            except TypeError:
+                ctime = datetime.strptime(ctime, '%Y-%m-%d %H:%M:%S')
+
+            if sys.platform == 'darwin':
+                os.system('SetFile -d "{}" "{}"'.format(
+                    ctime.strftime('%m/%d/%Y %H:%M:%S'), filename))
+            elif sys.platform == 'win32':
+                winfile = win32file.CreateFile(
+                    filename,
+                    win32con.GENERIC_WRITE,
+                    (win32con.FILE_SHARE_READ
+                     | win32con.FILE_SHARE_WRITE
+                     | win32con.FILE_SHARE_DELETE),
+                    None,
+                    win32con.OPEN_EXISTING,
+                    win32con.FILE_ATTRIBUTE_NORMAL,
+                    None)
+                win32file.SetFileTime(winfile, ctime)
 
     def is_inside(self, abspath):
         # type: (Text) -> bool
