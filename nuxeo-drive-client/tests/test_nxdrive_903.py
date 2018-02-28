@@ -31,7 +31,7 @@ from __future__ import unicode_literals
 
 import os.path
 
-from tests.common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import RandomBug, UnitTestCase
 
 
 class Test(UnitTestCase):

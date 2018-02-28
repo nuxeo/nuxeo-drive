@@ -4,7 +4,7 @@ import shutil
 from unittest import skip
 
 from nxdrive.osi import AbstractOSIntegration
-from tests.common_unit_test import UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class TestLocalDeletion(UnitTestCase):

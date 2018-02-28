@@ -4,7 +4,7 @@ import shutil
 import sys
 from logging import getLogger
 
-from tests.common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
+from .common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
 
 log = getLogger(__name__)
 

@@ -644,7 +644,7 @@ class Manager(QtCore.QObject):
                 # xdg-open should be supported by recent Gnome, KDE, Xfce
                 log.error('Failed to find and editor for: %r', file_path)
 
-    def check_version_updated(self):
+    def check_version_updated(self):  # TODO: Use it!
         last_version = self._dao.get_config("client_version")
         if last_version != self.get_version():
             self.clientUpdated.emit(last_version, self.get_version())
@@ -661,18 +661,6 @@ class Manager(QtCore.QObject):
         """ Fetch proxy settings from database. """
 
         return ProxySettings(dao=self._dao)
-
-    def list_server_bindings(self):
-        if self._engines is None:
-            self.load()
-        result = []
-        for definition in self._engine_definitions:
-            row = definition
-            row.server_version = None
-            row.update_url = ""
-            self._engines[row.uid].complete_binder(row)
-            result.append(row)
-        return result
 
     def get_config(self, value, default=None):
         return self._dao.get_config(value, default)
@@ -1043,9 +1031,6 @@ class Manager(QtCore.QObject):
 
     def get_engines(self):  # TODO: Remove
         return self._engines
-
-    def get_engines_type(self):  # TODO: Remove
-        return self._engine_types
 
     def get_version(self):  # TODO: Convert to property
         return __version__

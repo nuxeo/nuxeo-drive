@@ -209,10 +209,6 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def exists(self, fs_item_id):
         return self.execute('NuxeoDrive.FileSystemItemExists', id=fs_item_id)
 
-    # TODO
-    def check_writable(self, fs_item_id):
-        pass
-
     def rename(self, fs_item_id, new_name):
         return self.file_to_info(self.execute('NuxeoDrive.Rename',
                                               id=fs_item_id, name=new_name))
@@ -221,10 +217,6 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self.file_to_info(self.execute('NuxeoDrive.Move',
                                               srcId=fs_item_id,
                                               destId=new_parent_id))
-
-    def can_move(self, fs_item_id, new_parent_id):
-        return self.execute('NuxeoDrive.CanMove', srcId=fs_item_id,
-                            destId=new_parent_id)
 
     def conflicted_name(self, original_name):
         """Generate a new name suitable for conflict deduplication."""

@@ -37,9 +37,6 @@ REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
 # 0.001s for EXT4FS
 OS_STAT_MTIME_RESOLUTION = 1.0
 
-# Nuxeo max length for document name
-DOC_NAME_MAX_LENGTH = 24
-
 
 def configure_logger():
     formatter = logging.Formatter(
@@ -104,16 +101,6 @@ class RemoteDocumentClientForTests(RemoteDocumentClient):
     def deactivate_profile(self, profile):
         self.execute('NuxeoDrive.SetActiveFactories', profile=profile,
                      enable=False)
-
-    def add_to_locally_edited_collection(self, ref):
-        doc = self.execute('NuxeoDrive.AddToLocallyEditedCollection',
-                           op_input='doc:' + self._check_ref(ref))
-        return doc['uid']
-
-    def get_collection_members(self, ref):
-        docs = self.execute('Collection.GetDocumentsFromCollection',
-                           op_input='doc:' + self._check_ref(ref))
-        return [doc['uid'] for doc in docs['entries']]
 
     def mass_import(self, target_path, nb_nodes, nb_threads=12):
         tx_timeout = 3600

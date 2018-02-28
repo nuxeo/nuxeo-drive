@@ -26,7 +26,6 @@ log = getLogger(__name__)
 
 class Processor(EngineWorker):
     pairSync = pyqtSignal(object, object)
-    path_locks = dict()
     path_locker = Lock()
     soft_locks = dict()
     readonly_locks = dict()
@@ -87,27 +86,6 @@ class Processor(EngineWorker):
                 Processor.soft_locks[self._engine.uid][path] = True
                 return path
 
-    def _lock_path(self, path):
-        with Processor.path_locker:
-            if self._engine.uid not in Processor.path_locks:
-                Processor.path_locks[self._engine.uid] = dict()
-            if path in Processor.path_locks[self._engine.uid]:
-                lock = Processor.path_locks[self._engine.uid][path]
-            else:
-                lock = Lock()
-        log.trace('Locking %r', path)
-        lock.acquire()
-        Processor.path_locks[self._engine.uid][path] = lock
-
-    def _unlock_path(self, path):
-        log.trace('Unlocking %r', path)
-        with Processor.path_locker:
-            if self._engine.uid not in Processor.path_locks:
-                Processor.path_locks[self._engine.uid] = dict()
-            if path in Processor.path_locks[self._engine.uid]:
-                Processor.path_locks[self._engine.uid][path].release()
-                del Processor.path_locks[self._engine.uid][path]
-
     def get_current_pair(self):
         return self._current_doc_pair
 
@@ -165,7 +143,6 @@ class Processor(EngineWorker):
                 log.debug('Executing processor on %r(%d)', doc_pair,
                           doc_pair.version)
                 self._current_doc_pair = doc_pair
-                self._current_temp_file = None
                 if not self.check_pair_state(doc_pair):
                     continue
 

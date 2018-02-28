@@ -3,12 +3,12 @@ import os
 import shutil
 import sys
 import time
-import unittest
 
+import pytest
 from nxdrive.client import LocalClient
-from tests.common import OS_STAT_MTIME_RESOLUTION, \
-    REMOTE_MODIFICATION_TIME_RESOLUTION
-from tests.common_unit_test import RandomBug, UnitTestCase
+from .common import (OS_STAT_MTIME_RESOLUTION,
+                     REMOTE_MODIFICATION_TIME_RESOLUTION)
+from .common_unit_test import RandomBug, UnitTestCase
 
 
 class TestWindows(UnitTestCase):
@@ -141,29 +141,59 @@ class TestWindows(UnitTestCase):
             self.assertNxPart('/', 'test_update.docx')
             self.assertFalse(local.exists('/test_delete.docx'))
 
-    @unittest.skipUnless(sys.platform == 'win32', 'Windows only.')
+    @pytest.mark.skipif(sys.platform != 'win32', reason='Windows only.')
     def test_registry_configuration(self):
         """ Test the configuration stored in the registry. """
 
         import _winreg
 
+        def _update_reg_key(reg_, path, attributes=()):
+            """ Helper function to create / set a key with attribute values. """
+            key_ = _winreg.CreateKey(reg_, path)
+            _winreg.CloseKey(key_)
+            with _winreg.OpenKey(reg_, path, 0, _winreg.KEY_WRITE) as key_:
+                for name, type_, data in attributes:
+                    _winreg.SetValueEx(key_, name, 0, type_, data)
+
+        def _recursive_delete(key0, key1, key2=''):
+            """ Delete a key and its subkeys. """
+
+            current = key1 if not key2 else key1 + '\\' + key2
+            with _winreg.OpenKey(key0, current, 0,
+                                 _winreg.KEY_ALL_ACCESS) as key:
+                info = _winreg.QueryInfoKey(key)
+                for x in range(info[0]):
+                    """
+                    Deleting the subkey will change the SubKey count
+                    used by EnumKey. We must always pass 0 to EnumKey
+                    so we always get back the new first SubKey.
+                    """
+                    subkey = _winreg.EnumKey(key, 0)
+                    try:
+                        _winreg.DeleteKey(key, subkey)
+                    except WindowsError:
+                        _recursive_delete(key0, current, key2=subkey)
+
+            try:
+                _winreg.DeleteKey(key0, key1)
+            except WindowsError:
+                pass
+
         osi = self.manager_1.osi
         key = 'Software\\Nuxeo\\Drive'
 
-        self.assertEqual(osi.get_system_configuration(), {})
-        self.addCleanup(osi._recursive_delete,
-                        _winreg.HKEY_CURRENT_USER,
-                        'Software\\Nuxeo\\Drive')
+        assert not osi.get_system_configuration()
+        self.addCleanup(_recursive_delete, _winreg.HKEY_CURRENT_USER, key)
 
         # Add new parameters
         reg = _winreg.ConnectRegistry(None, _winreg.HKEY_CURRENT_USER)
-        osi._update_reg_key(
+        _update_reg_key(
             reg, key,
             [('update-site-url', _winreg.REG_SZ, 'http://no.where')])
-        osi._update_reg_key(
+        _update_reg_key(
             reg, key,
             [('update-BETA_site-url', _winreg.REG_SZ, 'http://no.where.beta')])
 
         conf = osi.get_system_configuration()
-        self.assertEqual(conf['update_site_url'], 'http://no.where')
-        self.assertEqual(conf['update_beta_site_url'], 'http://no.where.beta')
+        assert conf['update_site_url'] == 'http://no.where'
+        assert conf['update_beta_site_url'] == 'http://no.where.beta'

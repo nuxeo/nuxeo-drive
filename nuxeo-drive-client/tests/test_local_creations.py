@@ -7,7 +7,7 @@ import pytest
 import time
 
 from common_unit_test import UnitTestCase
-from tests.common_unit_test import FILE_CONTENT
+from .common_unit_test import FILE_CONTENT
 
 log = getLogger(__name__)
 

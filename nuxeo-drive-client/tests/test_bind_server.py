@@ -5,7 +5,7 @@ import unittest
 
 from nxdrive.manager import FolderAlreadyUsed, Manager
 from nxdrive.options import Options
-from tests.common import TEST_DEFAULT_DELAY, clean_dir
+from .common import TEST_DEFAULT_DELAY, clean_dir
 
 
 class BindServerTest(unittest.TestCase):

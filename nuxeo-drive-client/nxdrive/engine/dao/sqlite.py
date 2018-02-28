@@ -217,13 +217,6 @@ class ConfigurationDAO(QObject):
         self._connections = []
         self._conn = None
 
-    def dispose_thread(self):
-        if not hasattr(self._conns, '_conn'):
-            return
-        if self._conns._conn in self._connections:
-            self._connections.remove(self._conns._conn)
-        self._conns._conn = None
-
     def _get_write_connection(self, factory=StateRow):
         if self.share_connection or self.in_tx:
             if self._conn is None:
@@ -252,18 +245,6 @@ class ConfigurationDAO(QObject):
         # if log.getEffectiveLevel() < 6:
         #     self._conns._conn.set_trace_callback(self._log_trace)
         return self._conns._conn
-
-    def begin_transaction(self):
-        self.auto_commit = False
-        self._tx_lock.acquire()
-        self.in_tx = current_thread().ident
-
-    def end_transaction(self):
-        self.auto_commit = True
-        with self._lock:
-            self._get_write_connection().commit()
-        self._tx_lock.release()
-        self.in_tx = None
 
     def commit(self):
         if self.auto_commit:
@@ -900,14 +881,6 @@ class EngineDAO(ConfigurationDAO):
             if self.auto_commit:
                 con.commit()
 
-    def update_local_paths(self, doc_pair):
-        with self._lock:
-            con = self._get_write_connection()
-            c = con.cursor()
-            c.execute("UPDATE States SET local_parent_path=?, local_path=? WHERE id=?", (doc_pair.local_parent_path, doc_pair.local_path, doc_pair.id))
-            if self.auto_commit:
-                con.commit()
-
     def update_local_parent_path(self, doc_pair, new_name, new_path):
         with self._lock:
             con = self._get_write_connection()
@@ -927,35 +900,11 @@ class EngineDAO(ConfigurationDAO):
             if self.auto_commit:
                 con.commit()
 
-    def mark_descendants_remotely_deleted(self, doc_pair):
-        with self._lock:
-            con = self._get_write_connection()
-            c = con.cursor()
-            update = "UPDATE States SET local_digest=NULL, last_local_updated=NULL, local_name=NULL, remote_state='deleted', pair_state='remotely_deleted'"
-            c.execute(update + " WHERE id=?", (doc_pair.id,))
-            if doc_pair.folderish:
-                c.execute(update + self._get_recursive_condition(doc_pair))
-            if self.auto_commit:
-                con.commit()
-            self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
-
     def mark_descendants_remotely_created(self, doc_pair):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             update = "UPDATE States SET local_digest=NULL, last_local_updated=NULL, local_name=NULL, remote_state='created', pair_state='remotely_created'"
-            c.execute(update + " WHERE id=" + str(doc_pair.id))
-            if doc_pair.folderish:
-                c.execute(update + self._get_recursive_condition(doc_pair))
-            if self.auto_commit:
-                con.commit()
-            self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
-
-    def mark_descendants_locally_created(self, doc_pair):
-        with self._lock:
-            con = self._get_write_connection()
-            c = con.cursor()
-            update = "UPDATE States SET remote_digest=NULL, remote_ref=NULL, remote_parent_ref=NULL, remote_parent_path=NULL, last_remote_updated=NULL, remote_name=NULL, remote_state='unknown', local_state='created', pair_state='locally_created'"
             c.execute(update + " WHERE id=" + str(doc_pair.id))
             if doc_pair.folderish:
                 c.execute(update + self._get_recursive_condition(doc_pair))
@@ -1026,7 +975,6 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
         row.last_error = error
         row.error_count = row.error_count + incr
-        row.last_sync_error_date = error_date
 
     def reset_error(self, row, last_error=None):
         with self._lock:
@@ -1045,7 +993,6 @@ class EngineDAO(ConfigurationDAO):
             self._items_count = self._items_count + 1
         row.last_error = None
         row.error_count = 0
-        row.last_sync_error_date = None
 
     def force_remote(self, row):
         with self._lock:

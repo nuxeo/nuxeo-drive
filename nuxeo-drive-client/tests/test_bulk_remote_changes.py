@@ -23,8 +23,8 @@ from urllib2 import URLError
 from mock import patch
 
 from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
-from tests.common import TEST_DEFAULT_DELAY
-from tests.common_unit_test import UnitTestCase
+from .common import TEST_DEFAULT_DELAY
+from .common_unit_test import UnitTestCase
 
 log = getLogger(__name__)
 network_error = 0

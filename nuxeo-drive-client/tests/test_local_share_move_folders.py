@@ -6,7 +6,7 @@ from logging import getLogger
 from mock import patch
 
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-from tests.common_unit_test import UnitTestCase
+from .common_unit_test import UnitTestCase
 
 log = getLogger(__name__)
 wait_for_security_update = False

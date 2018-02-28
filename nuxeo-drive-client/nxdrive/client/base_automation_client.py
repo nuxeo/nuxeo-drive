@@ -158,13 +158,16 @@ class BaseAutomationClient(BaseClient):
     __operations = None
 
     def __init__(self, server_url, user_id, device_id, client_version,
-                 proxies=None, proxy_exceptions=None,
+                 dao=None, proxies=None, proxy_exceptions=None,
                  password=None, token=None, repository=Options.remote_repo,
                  timeout=20, blob_timeout=60, cookie_jar=None,
                  upload_tmp_dir=None, check_suspended=None):
         # Function to check during long-running processing like upload /
         # download if the synchronization thread needs to be suspended
         self.check_suspended = check_suspended
+
+        if dao:
+            self._dao = dao
 
         if timeout is None or timeout < 0:
             timeout = 20
@@ -576,9 +579,6 @@ class BaseAutomationClient(BaseClient):
             return self.execute(self.batch_execute_url, timeout=tx_timeout,
                                 operationId=op_id, batchId=batch_id, fileIdx=file_idx,
                                 check_params=False, extra_headers=extra_headers, **params)
-
-    def is_addon_installed(self):
-        return 'NuxeoDrive.GetRoots' in self.operations
 
     def is_event_log_id_available(self):
         return self.is_event_log_id

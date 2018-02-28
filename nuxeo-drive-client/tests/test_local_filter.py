@@ -1,7 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 
-from tests.common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import RandomBug, UnitTestCase
 
 log = getLogger(__name__)
 
