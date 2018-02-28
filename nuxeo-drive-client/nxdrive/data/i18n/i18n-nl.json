@@ -26,6 +26,8 @@
     "CONNECTION_REFUSED": "Connection refused",
     "CONNECTION_SUCCESS": "Server successfully connected",
     "CONNECTION_UNKNOWN": "Unknown error occured while trying to connect",
+    "CONTEXT_MENU_1": "Access online",
+    "CONTEXT_MENU_2": "Copy share-link",
     "CREATE_REPORT": "Click to generate a bug report",
     "DATETIME_FORMAT": "%x %X",
     "DATE_FORMAT": "%x",
