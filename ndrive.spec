@@ -21,7 +21,6 @@ excludes = [
 
 a = Analysis([os.path.join(nxdrive, 'commandline.py')],
              pathex=[cwd],
-             binaries=[],
              datas=[(data, 'data')],
              excludes=excludes)
 
