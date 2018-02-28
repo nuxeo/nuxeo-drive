@@ -1,4 +1,9 @@
 # coding: utf-8
+"""
+We are using lazy imports (understand imports in functions) specifically here
+to speed command line calls without loading everything at startup.
+"""
+
 import base64
 import locale
 import mimetypes
@@ -12,15 +17,7 @@ from distutils.version import StrictVersion
 from logging import getLogger
 from urllib2 import HTTPError, URLError, urlopen
 
-import psutil
-import rfc3987
-from Crypto import Random
-from Crypto.Cipher import AES
-
 from nxdrive.options import Options
-
-if sys.platform == 'win32':
-    import win32api
 
 DEVICE_DESCRIPTIONS = {
     'cygwin': 'Windows',
@@ -295,6 +292,7 @@ def normalize_event_filename(filename, action=True):
         So, to counter that behavior, we save the actual file name
         and restore it in the full path.
         """
+        import win32api
         long_path = win32api.GetLongPathNameW(filename)
         filename = os.path.join(os.path.dirname(long_path),
                                 os.path.basename(filename))
@@ -412,25 +410,33 @@ def force_decode(string, codecs=('utf-8', 'cp1252')):
 
 
 def encrypt(plaintext, secret, lazy=True):
-    """Symetric encryption using AES"""
+    """ Symetric encryption using AES. """
+
+    from Cryptodome.Random import get_random_bytes
+    from Cryptodome.Cipher import AES
+
     secret = _lazysecret(secret) if lazy else secret
-    iv = Random.new().read(AES.block_size)
+    iv = get_random_bytes(AES.block_size)
     encobj = AES.new(secret, AES.MODE_CFB, iv)
     return base64.b64encode(iv + encobj.encrypt(plaintext))
 
 
 def decrypt(ciphertext, secret, lazy=True):
-    """Symetric decryption using AES"""
+    """ Symetric decryption using AES. """
+
+    from Cryptodome.Cipher import AES
+
     secret = _lazysecret(secret) if lazy else secret
     ciphertext = base64.b64decode(ciphertext)
     iv = ciphertext[:AES.block_size]
     ciphertext = ciphertext[AES.block_size:]
-    # Dont fail on decrypt
+
+    # Don't fail on decrypt
     try:
         encobj = AES.new(secret, AES.MODE_CFB, iv)
         return encobj.decrypt(ciphertext)
     except:
-        return
+        return None
 
 
 def _lazysecret(secret, blocksize=32, padding='}'):
@@ -475,6 +481,8 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
     :param int timeout: Timeout for each and every request.
     :return: The complete URL.
     """
+
+    import rfc3987
 
     parts = urlparse.urlsplit(str(url))
 
@@ -587,6 +595,9 @@ class PidLockFile(object):
         nxdrive program then return the pid. Return None otherwise.
 
         """
+
+        import psutil
+
         if process_name is None:
             process_name = self.key
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
