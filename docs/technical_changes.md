@@ -88,6 +88,7 @@
 - Removed `WebDriveAPI.get_appname()`
 - Removed commandline.py:`GET_CTL_MAX_NB_TRIES`
 - Removed commandline.py:`GET_CTL_SLEEP_DURATION`
+- Removed client/common.py::`DuplicationError()`
 - Removed engine/engine.py::`EngineLogger()`
 - Moved gui/resources.py::`find_icon()` to utils.py
 - Removed gui/folder_treeview.py::`DocClient()`

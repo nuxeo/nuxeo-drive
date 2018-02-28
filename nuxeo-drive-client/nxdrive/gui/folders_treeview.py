@@ -1,5 +1,4 @@
 # coding: utf-8
-import time
 from logging import getLogger
 from threading import Thread
 

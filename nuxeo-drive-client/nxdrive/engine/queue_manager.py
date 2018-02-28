@@ -3,7 +3,7 @@ import time
 from Queue import Empty, Queue
 from copy import deepcopy
 from logging import getLogger
-from threading import Lock, local
+from threading import Lock
 
 from PyQt4.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 

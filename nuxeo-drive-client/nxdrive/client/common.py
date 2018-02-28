@@ -74,11 +74,6 @@ class DuplicationDisabledError(ValueError):
     pass
 
 
-class DuplicationError(IOError):
-    """ Exception raised when a de-duplication fails. """
-    pass
-
-
 # Default buffer size for file upload / download and digest computation
 FILE_BUFFER_SIZE = 1024 ** 2
 

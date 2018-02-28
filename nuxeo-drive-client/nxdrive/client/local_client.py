@@ -5,7 +5,6 @@ import datetime
 import errno
 import hashlib
 import os
-import re
 import shutil
 import sys
 import tempfile
@@ -18,7 +17,7 @@ from send2trash import send2trash
 from nxdrive.client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
                                                    DOWNLOAD_TMP_FILE_SUFFIX)
 from nxdrive.client.common import (BaseClient, DuplicationDisabledError,
-                                   DuplicationError, FILE_BUFFER_SIZE,
+                                   FILE_BUFFER_SIZE,
                                    NotFound, UNACCESSIBLE_HASH,
                                    safe_filename)
 from nxdrive.options import Options

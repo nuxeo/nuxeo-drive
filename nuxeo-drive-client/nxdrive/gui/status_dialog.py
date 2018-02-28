@@ -3,7 +3,7 @@ from logging import getLogger
 
 from PyQt4 import QtCore, QtGui
 
-from folders_treeview import Overlay
+from nxdrive.gui.folders_treeview import Overlay
 
 log = getLogger(__name__)
 
