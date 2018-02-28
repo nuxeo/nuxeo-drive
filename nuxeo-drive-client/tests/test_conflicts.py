@@ -1,10 +1,10 @@
 # coding: utf-8
 import shutil
 import time
-from unittest import SkipTest, skip
+from unittest import skip
 
-from tests.common import OS_STAT_MTIME_RESOLUTION
-from tests.common_unit_test import RandomBug, UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION
+from .common_unit_test import RandomBug, UnitTestCase
 
 
 class TestConflicts(UnitTestCase):

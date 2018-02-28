@@ -4,9 +4,10 @@ import shutil
 from logging import getLogger
 
 import pytest
+import time
 
 from common_unit_test import UnitTestCase
-from tests.common_unit_test import FILE_CONTENT
+from .common_unit_test import FILE_CONTENT
 
 log = getLogger(__name__)
 
@@ -156,3 +157,22 @@ class TestLocalCreations(UnitTestCase):
         assert remote.exists('/' + folder2)
         assert local.exists('/' + folder1)
         assert local.exists('/' + folder2)
+
+    def test_local_modification_date(self):
+        """ Check that the files have the Platform modification date. """
+        remote = self.remote_document_client_1
+        local = self.local_client_1
+        engine = self.engine_1
+
+        filename = 'abc.txt'
+        remote.make_file('/', filename, content=b'1234')
+        remote_mtime = time.time()
+
+        time.sleep(3)
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        filename = '/{}'.format(filename)
+        assert local.exists(filename)
+        assert os.stat(local.abspath(filename)).st_mtime < remote_mtime

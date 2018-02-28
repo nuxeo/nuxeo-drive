@@ -26,7 +26,6 @@ class SimpleWatcher(LocalWatcher):
         super(SimpleWatcher, self).__init__(engine, dao)
         self._scan_delay = 1
         self._to_scan = dict()
-        self._last_scan = dict()
 
     def _push_to_scan(self, info):
         if isinstance(info, FileInfo):

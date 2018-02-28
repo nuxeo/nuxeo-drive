@@ -87,9 +87,6 @@ class Notification(object):
     def is_persistent(self):
         return self.flags & Notification.FLAG_PERSISTENT
 
-    def is_volatile(self):
-        return self.flags & Notification.FLAG_VOLATILE
-
     def is_unique(self):
         return self.flags & Notification.FLAG_UNIQUE
 
@@ -111,30 +108,11 @@ class Notification(object):
     def is_discard_on_trigger(self):
         return self.flags & Notification.FLAG_DISCARD_ON_TRIGGER
 
-    def add_replacement(self, key, value):
-        self._replacements[key] = value
-
-    def remove_replacement(self, key):
-        try:
-            del self._replacements[key]
-        except KeyError:
-            pass
-
-    @staticmethod
-    def generate_uid(_type, engine_uid=None):
-        result = _type
-        if engine_uid:
-            result += '_' + engine_uid
-        return result
-
     def get_replacements(self):
         return self._replacements
 
     def get_content(self):
         return ''
-
-    def trigger(self):
-        pass
 
     def __repr__(self):
         return 'Notification(level=%r title=%r uid=%r unique=%r)' % (

@@ -9,8 +9,8 @@ from urllib2 import HTTPError
 import pytest
 
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
-from tests.common import TEST_WORKSPACE_PATH
-from tests.common_unit_test import UnitTestCase
+from .common import TEST_WORKSPACE_PATH
+from .common_unit_test import UnitTestCase
 
 log = getLogger(__name__)
 

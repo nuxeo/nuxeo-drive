@@ -3,6 +3,7 @@ import os
 import shutil
 import socket
 import sqlite3
+import sys
 from logging import getLogger
 from threading import Lock
 from time import sleep
@@ -25,7 +26,6 @@ log = getLogger(__name__)
 
 class Processor(EngineWorker):
     pairSync = pyqtSignal(object, object)
-    path_locks = dict()
     path_locker = Lock()
     soft_locks = dict()
     readonly_locks = dict()
@@ -86,27 +86,6 @@ class Processor(EngineWorker):
                 Processor.soft_locks[self._engine.uid][path] = True
                 return path
 
-    def _lock_path(self, path):
-        with Processor.path_locker:
-            if self._engine.uid not in Processor.path_locks:
-                Processor.path_locks[self._engine.uid] = dict()
-            if path in Processor.path_locks[self._engine.uid]:
-                lock = Processor.path_locks[self._engine.uid][path]
-            else:
-                lock = Lock()
-        log.trace('Locking %r', path)
-        lock.acquire()
-        Processor.path_locks[self._engine.uid][path] = lock
-
-    def _unlock_path(self, path):
-        log.trace('Unlocking %r', path)
-        with Processor.path_locker:
-            if self._engine.uid not in Processor.path_locks:
-                Processor.path_locks[self._engine.uid] = dict()
-            if path in Processor.path_locks[self._engine.uid]:
-                Processor.path_locks[self._engine.uid][path].release()
-                del Processor.path_locks[self._engine.uid][path]
-
     def get_current_pair(self):
         return self._current_doc_pair
 
@@ -164,7 +143,6 @@ class Processor(EngineWorker):
                 log.debug('Executing processor on %r(%d)', doc_pair,
                           doc_pair.version)
                 self._current_doc_pair = doc_pair
-                self._current_temp_file = None
                 if not self.check_pair_state(doc_pair):
                     continue
 
@@ -835,21 +813,31 @@ class Processor(EngineWorker):
         self._update_speed_metrics()
         return tmp_file
 
-    def _update_remotely(self, doc_pair, local_client, remote_client, is_renaming):
+    def _update_remotely(self, doc_pair, local_client, remote_client,
+                         is_renaming):
         os_path = local_client.abspath(doc_pair.local_path)
         if is_renaming:
-            new_os_path = os.path.join(os.path.dirname(os_path), safe_filename(doc_pair.remote_name))
+            new_os_path = os.path.join(
+                os.path.dirname(os_path), safe_filename(doc_pair.remote_name))
             log.debug('Replacing local file %r by %r', os_path, new_os_path)
         else:
             new_os_path = os_path
         log.debug('Updating content of local file %r', os_path)
-        self.tmp_file = self._download_content(local_client, remote_client, doc_pair, new_os_path)
+        self.tmp_file = self._download_content(
+            local_client, remote_client, doc_pair, new_os_path)
+
         # Delete original file and rename tmp file
         remote_id = local_client.get_remote_id(doc_pair.local_path)
         local_client.delete_final(doc_pair.local_path)
-        if remote_id is not None:
-            local_client.set_remote_id(local_client.get_path(self.tmp_file), doc_pair.remote_ref)
-        updated_info = local_client.rename(local_client.get_path(self.tmp_file), doc_pair.remote_name)
+        tmp_path = local_client.get_path(self.tmp_file)
+        if remote_id:
+            local_client.set_remote_id(tmp_path, doc_pair.remote_ref)
+        updated_info = local_client.rename(tmp_path, doc_pair.remote_name)
+
+        # Set the modification time of the file to the server one
+        local_client.change_file_date(
+            updated_info.filepath, mtime=doc_pair.last_remote_updated)
+
         doc_pair.local_digest = updated_info.get_digest()
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
@@ -1053,13 +1041,21 @@ class Processor(EngineWorker):
             log.debug('Creating local file %r in %r',
                       name, local.abspath(local_parent_path))
             tmp_file = self._download_content(local, remote, doc_pair, os_path)
-            tmp_file_path = local.get_path(tmp_file)
+            tmp_path = local.get_path(tmp_file)
 
             # Set remote id on TMP file already
-            local.set_remote_id(tmp_file_path, doc_pair.remote_ref)
+            local.set_remote_id(tmp_path, doc_pair.remote_ref)
 
             # Rename TMP file
-            local.rename(tmp_file_path, name)
+            info = local.rename(tmp_path, name)
+
+            # Set the modification time of the file to the server one
+            # (until NXDRIVE-1130 is done, the creation time is also
+            # the last modified time)
+            mtime = doc_pair.last_remote_updated
+            ctime = mtime if sys.platform == 'win32' else None
+            local.change_file_date(info.filepath, mtime=mtime, ctime=ctime)
+
             self._dao.update_last_transfer(doc_pair.id, 'download')
 
             # Clean-up the TMP file

@@ -44,60 +44,9 @@ class FsMarkerException(Exception):
     pass
 
 
-class EngineLogger(QObject):
-    def __init__(self, engine):
-        super(EngineLogger, self).__init__()
-        self._dao = engine.get_dao()
-        self._engine = engine
-        self._engine.logger = self
-        self._level = 10
-        self._engine.syncStarted.connect(self.logSyncStart)
-        self._engine.syncCompleted.connect(self.logSyncComplete)
-        self._engine.newConflict.connect(self.logConflict)
-        self._engine.newSync.connect(self.logSync)
-        self._engine.newError.connect(self.logError)
-        self._engine.newQueueItem.connect(self.logQueueItem)
-
-    def _log_pair(self, row_id, msg, handler=None):
-        pair = self._dao.get_state_from_id(row_id)
-        if handler is not None:
-            log.log(self._level, msg, pair, handler)
-        else:
-            log.log(self._level, msg, pair)
-
-    @pyqtSlot()
-    def logSyncComplete(self):
-        log.log(self._level, "Synchronization is complete for engine %s",
-                self.sender().uid)
-
-    @pyqtSlot(object)
-    def logSyncStart(self):
-        log.log(self._level, "Synchronization starts (items)")
-
-    @pyqtSlot(object)
-    def logConflict(self, row_id):
-        self._log_pair(row_id, "Conflict on %r")
-
-    @pyqtSlot(object, object)
-    def logSync(self, row, metrics):
-        log.log(self._level, "Sync on %r with %r", row, metrics)
-
-    @pyqtSlot(object)
-    def logError(self, row_id):
-        self._log_pair(row_id, "Error on %r")
-
-    @pyqtSlot(object)
-    def logQueueItem(self, row_id):
-        self._log_pair(row_id, "QueueItem on %r")
-
-
 class Engine(QObject):
     """ Used for threads interaction. """
 
-    BATCH_MODE_UPLOAD = "upload"
-    BATCH_MODE_FOLDER = "folder"
-    BATCH_MODE_DOWNLOAD = "download"
-    BATCH_MODE_SYNC = "sync"
     _start = pyqtSignal()
     _stop = pyqtSignal()
     _scanPair = pyqtSignal(str)
@@ -164,7 +113,6 @@ class Engine(QObject):
         self._invalid_credentials = False
         self._offline_state = False
         self._threads = list()
-        self._client_cache_timestamps = dict()
         self._dao = EngineDAO(self._get_db_file())
         if binder is not None:
             self.bind(binder)
@@ -281,11 +229,6 @@ class Engine(QObject):
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
 
-    @staticmethod
-    def get_document_id(remote_ref):
-        remote_ref_segments = remote_ref.split("#", 2)
-        return remote_ref_segments[2]
-
     def get_metadata_url(self, remote_ref):
         """
         Build the document's metadata URL based on the server's UI.
@@ -356,20 +299,6 @@ class Engine(QObject):
         if url is None:
             url = self.get_remote_url()
         self._manager.open_local_file(url)
-
-    def get_previous_file(self, ref, mode):
-        if mode == Engine.BATCH_MODE_FOLDER:
-            return self._dao.get_previous_folder_file(ref)
-        if mode == Engine.BATCH_MODE_SYNC:
-            mode = None
-        return self._dao.get_previous_sync_file(ref, sync_mode=mode)
-
-    def get_next_file(self, ref, mode):
-        if mode == Engine.BATCH_MODE_FOLDER:
-            return self._dao.get_next_folder_file(ref)
-        if mode == Engine.BATCH_MODE_SYNC:
-            mode = None
-        return self._dao.get_next_sync_file(ref, sync_mode=mode)
 
     def resume(self):
         self._pause = False
@@ -446,7 +375,6 @@ class Engine(QObject):
         self._remote_user = self._dao.get_config('remote_user')
         self._remote_password = self._dao.get_config('remote_password')
         self._remote_token = self._dao.get_config('remote_token')
-        self._device_id = self._manager.device_id
         if self._remote_password is None and self._remote_token is None:
             self.set_invalid_credentials(
                 reason='found no password nor token in engine configuration')
@@ -561,36 +489,6 @@ class Engine(QObject):
     def resolve_with_remote(self, row_id):
         row = self._dao.get_state_from_id(row_id)
         self._dao.force_remote(row)
-
-    def resolve_with_duplicate(self, row_id):
-        if not self.get_local_client().duplication_enabled():
-            log.error('De-duplication is disabled')
-            return
-
-        row = self._dao.get_state_from_id(row_id)
-        self._dao.increase_error(row, "DUPLICATING")
-
-        def run():
-            local_client = self.get_local_client()
-            # Duplicate the file
-            try:
-                local_client.duplicate_file(row.local_path)
-            except IOError as e:
-                log.exception('Cannot duplicate file %r', row.local_path)
-                if hasattr(e, 'duplicated_file') and e.duplicated_file is not None:
-                    local_client.delete_final(e.duplicated_file)
-                self._dao.reset_error(row)
-                # IOError: [Errno 28] No space left on device
-                if e.errno == 28:
-                    self.noSpaceLeftOnDevice.emit()
-                raise
-            # Force the remote
-            self._dao.force_remote(row)
-        self._duplicate_thread = Thread(target=run)
-        self._duplicate_thread.start()
-
-    def get_last_sync(self):
-        return self._dao.get_config("last_sync_date", None)
 
     @pyqtSlot()
     def _check_last_sync(self):
@@ -816,10 +714,14 @@ class Engine(QObject):
         nxclient = None
         if check_credential:
             nxclient = self.remote_doc_client_factory(
-                self._server_url, self._remote_user, self._manager.device_id,
-                self._manager.get_version(), proxies=self._manager.get_proxies(self._server_url),
+                self._server_url,
+                self._remote_user,
+                self._manager.device_id,
+                self._manager.get_version(),
+                proxies=self._manager.get_proxies(self._server_url),
                 proxy_exceptions=self._manager.proxy_exceptions,
-                password=self._remote_password, token=self._remote_token,
+                password=self._remote_password,
+                token=self._remote_token,
                 timeout=self._handshake_timeout)
             if self._remote_token is None:
                 self._remote_token = nxclient.request_token()
@@ -967,14 +869,9 @@ class Engine(QObject):
                       current_file, self._folder_lock)
             raise PairInterrupt
 
-    def complete_binder(self, row):
-        # Add more information
-        row.server_url = self._server_url
-        row.username = self._remote_user
-        row.has_invalid_credentials = self.has_invalid_credentials
-
     def get_remote_client(self, filtered=True):
-        """Return a client for the FileSystem abstraction."""
+        """ Return a client for the FileSystem abstraction. """
+
         if self._invalid_credentials:
             return None
 
@@ -992,20 +889,16 @@ class Engine(QObject):
                 'check_suspended': self.suspend_client,
             }
             if filtered:
-                remote_client = self.remote_filtered_fs_client_factory(
-                    self._server_url,
-                    self._remote_user,
-                    self._manager.device_id,
-                    self.version,
-                    self._dao,
-                    **kwargs)
-            else:
-                remote_client = self.remote_fs_client_factory(
-                    self._server_url,
-                    self._remote_user,
-                    self._manager.device_id,
-                    self.version,
-                    **kwargs)
+                kwargs['dao'] = self._dao
+
+            cls = (self.remote_fs_client_factory,
+                   self.remote_filtered_fs_client_factory)[filtered]
+            remote_client = cls(
+                self._server_url,
+                self._remote_user,
+                self._manager.device_id,
+                self.version,
+                **kwargs)
 
             self._remote_clients[cache_key] = remote_client
 

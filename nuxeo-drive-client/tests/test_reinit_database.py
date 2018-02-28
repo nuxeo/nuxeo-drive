@@ -1,8 +1,8 @@
 # coding: utf-8
 import time
 
-from tests.common import OS_STAT_MTIME_RESOLUTION
-from tests.common_unit_test import UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION
+from .common_unit_test import UnitTestCase
 
 
 class TestReinitDatabase(UnitTestCase):
@@ -14,7 +14,7 @@ class TestReinitDatabase(UnitTestCase):
         self.remote = self.remote_document_client_1
 
         # Make a folder and a file
-        self.test_remote_folder_id = self.remote.make_folder('/', 'Test folder')
+        self.remote.make_folder('/', 'Test folder')
         self.remote.make_file('/Test folder', 'Test.txt', 'This is some content')
 
         # Start engine and wait for synchronization
@@ -43,9 +43,6 @@ class TestReinitDatabase(UnitTestCase):
         self.engine_1.get_remote_watcher().remoteScanFinished.connect(self.app.remote_scan_completed)
         self.engine_1.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
         self.engine_1.get_remote_watcher().noChangesFound.connect(self.app.no_remote_changes_found)
-
-    def _check_conflict_automatic_resolution(self):
-        self.assertEqual(len(self.engine_1.get_dao().get_conflicts()), 0)
 
     def _check_conflict_detection(self):
         self.assertEqual(len(self.engine_1.get_dao().get_conflicts()), 1)

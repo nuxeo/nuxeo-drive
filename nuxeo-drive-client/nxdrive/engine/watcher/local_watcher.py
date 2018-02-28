@@ -14,7 +14,7 @@ from watchdog.observers import Observer
 
 from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from nxdrive.client.local_client import LocalClient
-from nxdrive.engine.activity import Action, tooltip
+from nxdrive.engine.activity import tooltip
 from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
 from nxdrive.options import Options
 from nxdrive.utils import (current_milli_time, force_decode,
@@ -66,18 +66,6 @@ class LocalWatcher(EngineWorker):
         self._root_observer = None
         self._delete_events = dict()
         self._folder_scan_events = dict()
-
-    def set_windows_folder_scan_delay(self, size):
-        self._windows_folder_scan_delay = size
-
-    def get_windows_folder_scan_delay(self):
-        return self._windows_folder_scan_delay
-
-    def set_windows_watchdog_event_buffer(self, size):
-        self._windows_watchdog_event_buffer = size
-
-    def get_windows_watchdog_event_buffer(self):
-        return self._windows_watchdog_event_buffer
 
     def _execute(self):
         try:

@@ -1,5 +1,4 @@
 # coding: utf-8
-
 import os
 from shutil import copyfile
 from time import sleep
@@ -7,8 +6,8 @@ from unittest import SkipTest
 
 from nxdrive.client import LocalClient, NotFound, RemoteDocumentClient, \
     Unauthorized
-from tests.common import SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
-from tests.common_unit_test import UnitTestCase
+from .common import SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
+from .common_unit_test import UnitTestCase
 
 
 def wait_for_deletion(client, doc, retries_left=10, delay=0.300,

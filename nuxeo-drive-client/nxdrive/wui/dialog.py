@@ -137,9 +137,6 @@ class WebDriveApi(QtCore.QObject):
             return 0
         return int(calendar.timegm(d.timetuple()))
 
-    def get_timestamp_from_sqlite(self, d):
-        return int(calendar.timegm(self.get_date_from_sqlite(d).timetuple()))
-
     def _export_state(self, state):
         if state is None:
             return None
@@ -211,10 +208,6 @@ class WebDriveApi(QtCore.QObject):
             return engines[uid]
         except KeyError:
             return None
-
-    @QtCore.pyqtSlot(result=str)
-    def get_last_url(self):
-        return self.last_url
 
     @QtCore.pyqtSlot()
     def retry(self):
@@ -521,7 +514,6 @@ class WebDriveApi(QtCore.QObject):
         if dir_path:
             dir_path = unicode(dir_path)
             log.debug('Selected %r as the Nuxeo Drive folder location', dir_path)
-            self.file_dialog_dir = dir_path
             local_folder_path = dir_path
         return local_folder_path
 

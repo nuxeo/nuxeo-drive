@@ -143,7 +143,6 @@ class MetaOptions(type):
         'proxy_exceptions': (None, 'default'),
         'proxy_server': (None, 'default'),
         'proxy_type': (None, 'default'),
-        'quit_timeout': (-1, 'default'),
         'remote_repo': ('default', 'default'),
         'res_dir': (
             os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(__file__)),

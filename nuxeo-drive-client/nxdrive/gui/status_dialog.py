@@ -3,7 +3,7 @@ from logging import getLogger
 
 from PyQt4 import QtCore, QtGui
 
-from folders_treeview import Overlay
+from nxdrive.gui.folders_treeview import Overlay
 
 log = getLogger(__name__)
 
@@ -64,7 +64,6 @@ class StatusTreeview(QtGui.QTreeView):
         self.root_item = QtGui.QStandardItemModel()
         self.root_item.setHorizontalHeaderLabels(['Name', 'Status', 'Action'])
 
-        self.filter_sync = True
         self.setModel(self.root_item)
         self.setHeaderHidden(False)
 

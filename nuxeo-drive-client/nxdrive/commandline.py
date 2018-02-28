@@ -50,9 +50,6 @@ To get options for a specific command:
 
 """
 
-GET_CTL_MAX_NB_TRIES = 5
-GET_CTL_SLEEP_DURATION = 1
-
 
 class CliHandler(object):
     """ Set default arguments. """
@@ -258,12 +255,6 @@ class CliHandler(object):
             'console', help='Start in GUI-less mode.',
             parents=[common_parser])
         console_parser.set_defaults(command='console')
-        console_parser.add_argument(
-            '--quit-if-done', default=False, action='store_true',
-            help='Quit if synchronization is completed.')
-        console_parser.add_argument(
-            '--quit-timeout', default=Options.quit_timeout, type=int,
-            help='Maximum uptime in seconds before quitting')
 
         # Clean the folder
         clean_parser = subparsers.add_parser(

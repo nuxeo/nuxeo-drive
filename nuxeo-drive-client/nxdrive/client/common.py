@@ -74,16 +74,8 @@ class DuplicationDisabledError(ValueError):
     pass
 
 
-class DuplicationError(IOError):
-    """ Exception raised when a de-duplication fails. """
-    pass
-
-
 # Default buffer size for file upload / download and digest computation
 FILE_BUFFER_SIZE = 1024 ** 2
-
-# Name of the folder holding the files locally edited from Nuxeo
-LOCALLY_EDITED_FOLDER_NAME = 'Locally Edited'
 
 COLLECTION_SYNC_ROOT_FACTORY_NAME = 'collectionSyncRootFolderItemFactory'
 

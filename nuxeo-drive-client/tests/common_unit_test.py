@@ -27,7 +27,7 @@ from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.wui.translator import Translator
-from tests.common import RemoteDocumentClientForTests, TEST_DEFAULT_DELAY, \
+from .common import RemoteDocumentClientForTests, TEST_DEFAULT_DELAY, \
     TEST_WORKSPACE_PATH, clean_dir
 
 YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '') != ''
@@ -115,7 +115,6 @@ class RandomBug(object):
         self._repeat = max(1, repeat)
         # Enforce a ticket reference
         self._ticket = ticket
-        self._iteration = 0
 
         if os.environ.get('RANDOM_BUG_MODE', '') in self.MODES:
             self._mode = os.environ['RANDOM_BUG_MODE']
@@ -387,7 +386,6 @@ class UnitTestCase(SimpleUnitTestCase):
         self.bind_engine(1, start_engine=False)
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.bind_engine(2, start_engine=False)
-        self.queue_manager_2 = self.engine_2.get_queue_manager()
 
         self.sync_root_folder_1 = os.path.join(
             self.local_nxdrive_folder_1, self.workspace_title_1)
@@ -395,7 +393,6 @@ class UnitTestCase(SimpleUnitTestCase):
             self.local_nxdrive_folder_2, self.workspace_title_2)
 
         self.local_root_client_1 = self.engine_1.get_local_client()
-        self.local_root_client_2 = self.engine_2.get_local_client()
 
         self.local_client_1 = self.get_local_client(self.sync_root_folder_1)
         self.local_client_2 = self.get_local_client(self.sync_root_folder_2)

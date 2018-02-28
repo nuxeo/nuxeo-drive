@@ -1,5 +1,4 @@
 # coding: utf-8
-import time
 from logging import getLogger
 from threading import Thread
 
@@ -63,9 +62,6 @@ class FileInfo(object):
 
     def has_children(self):
         return False
-
-    def get_parent(self):
-        return self.parent
 
     def is_hidden(self):
         return False
@@ -187,26 +183,6 @@ class FilteredFsClient(Client):
                 in self.fs_client.get_children_info(parent.get_id())]
 
 
-class DocClient(Client):
-
-    def __init__(self, doc_client):
-        self.doc_client = doc_client
-
-    def get_children(self, parent=None):
-        time.sleep(4)
-        result = []
-        if not parent:
-            for root in self.doc_client.get_roots():
-                result.append(DocRootFileInfo(root))
-        else:
-            doc_list = self.doc_client.get_children(parent.get_id())
-            for doc in doc_list.get('entries', []):
-                doc_info = DocFileInfo(doc)
-                if not doc_info.is_hidden():
-                    result.append(doc_info)
-        return result
-
-
 class Overlay(QtGui.QWidget):
 
     def __init__(self, parent=None):
@@ -304,10 +280,6 @@ class FolderTreeview(QtGui.QTreeView):
         # Reconnect to get any user update
         self.root_item.itemChanged.connect(self.itemChanged)
         self.setEnabled(True)
-
-    def set_client(self, client):
-        self.client = client
-        self.load_children()
 
     def itemExpanded(self, index):
         index = self.model().index(index.row(), 0, index.parent())
