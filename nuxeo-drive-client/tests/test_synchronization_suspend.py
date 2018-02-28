@@ -1,6 +1,6 @@
 # coding: utf-8
 from nxdrive.osi import AbstractOSIntegration
-from tests.common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import RandomBug, UnitTestCase
 
 
 class TestSynchronizationSuspend(UnitTestCase):

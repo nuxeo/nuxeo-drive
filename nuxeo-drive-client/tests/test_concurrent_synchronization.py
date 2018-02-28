@@ -1,9 +1,9 @@
 # coding: utf-8
 import time
 
-from tests.common import OS_STAT_MTIME_RESOLUTION, \
-    REMOTE_MODIFICATION_TIME_RESOLUTION
-from tests.common_unit_test import RandomBug, TEST_DEFAULT_DELAY, UnitTestCase
+from .common import (OS_STAT_MTIME_RESOLUTION,
+                     REMOTE_MODIFICATION_TIME_RESOLUTION)
+from .common_unit_test import RandomBug, TEST_DEFAULT_DELAY, UnitTestCase
 
 
 class TestConcurrentSynchronization(UnitTestCase):

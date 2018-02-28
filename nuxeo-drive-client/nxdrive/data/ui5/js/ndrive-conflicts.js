@@ -11,10 +11,6 @@ var ConflictsController = function($scope, $interval, $translate) {
 	$scope.show_metadata = function(path) {
 		self.showMetadata($scope.engine.uid, path);
 	}
-	$scope.resolve_with_duplicate = function(uid) {
-		self.resolveDuplicate(uid);
-		self.updateConflicts($scope);
-	}
 	$scope.resolve_with_local = function(uid) {
 		self.resolveLocal(uid);
 		self.updateConflicts($scope);
@@ -70,14 +66,6 @@ ConflictsController.prototype.updateErrors = function($scope) {
 ConflictsController.prototype.updateConflicts = function($scope, $interval) {
 	self = this;
 	$scope.conflicts = angular.fromJson(drive.get_conflicts());
-	for (var i=0; i<$scope.conflicts.length; i++) {
-		if ($scope.conflicts[i].last_error == "DUPLICATING") {
-			setTimeout(function() {
-				self.updateConflicts($scope, $interval);
-				$scope.$apply();
-			}, 1000);
-		}
-	}
 
 	when(drive.get_conflicts_with_fullname_async()).then( function(res) {
 		var conflicts = angular.fromJson(res);
@@ -109,7 +97,4 @@ ConflictsController.prototype.resolveLocal = function(uid) {
 }
 ConflictsController.prototype.resolveRemote = function(uid) {
 	drive.resolve_with_remote(uid);
-}
-ConflictsController.prototype.resolveDuplicate = function(uid) {
-	drive.resolve_with_duplicate(uid);
 }

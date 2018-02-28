@@ -7,8 +7,8 @@ from shutil import copyfile
 from mock import Mock, patch
 
 from nxdrive.engine.engine import Engine
-from tests.common import DOC_NAME_MAX_LENGTH, OS_STAT_MTIME_RESOLUTION
-from tests.common_unit_test import UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION
+from .common_unit_test import UnitTestCase
 
 
 class TestRemoteDeletion(UnitTestCase):
@@ -191,7 +191,6 @@ class TestRemoteDeletion(UnitTestCase):
         self.assertTrue(local.exists('/Test folder/joe.odt'))
         op_input = "doc:" + self.workspace
         self.root_remote_client.execute("Document.RemoveACL", op_input=op_input, acl="local")
-        # Disable for now as get_acls seems to cause an issue
         self.wait_sync(wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True)
         self.assertFalse(local.exists('/Test folder'))
 
@@ -234,12 +233,3 @@ class TestRemoteDeletion(UnitTestCase):
         local_path = '/' + self.workspace_title + local_path
         doc_pair = self.engine_1.get_dao().get_state_from_local(local_path)
         self.assertEqual(doc_pair.pair_state, pair_state)
-
-    @staticmethod
-    def _truncate_remote_path(path):
-        doc_name = path.rsplit('/', 1)[1]
-        if len(doc_name) > DOC_NAME_MAX_LENGTH:
-            path_length = len(path) - len(doc_name) + DOC_NAME_MAX_LENGTH
-            return path[:path_length]
-        else:
-            return path

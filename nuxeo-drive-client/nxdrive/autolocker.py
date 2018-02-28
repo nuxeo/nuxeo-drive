@@ -5,8 +5,8 @@ from logging import getLogger
 import psutil
 from PyQt4 import QtCore
 
-from engine.workers import PollWorker
-from nxdrive.engine.workers import ThreadInterrupt
+from nxdrive.engine.workers import PollWorker, ThreadInterrupt
+from nxdrive.utils import force_decode
 
 log = getLogger(__name__)
 
@@ -20,7 +20,7 @@ class ProcessAutoLockerWorker(PollWorker):
     def __init__(self, check_interval, dao, folder):
         super(ProcessAutoLockerWorker, self).__init__(check_interval)
         self._dao = dao
-        self._folder = folder
+        self._folder = force_decode(folder)
 
         self._autolocked = {}
         self._lockers = {}
@@ -110,6 +110,6 @@ def get_open_files():
     for proc in psutil.process_iter():
         try:
             for handler in proc.open_files():
-                yield proc.pid, handler.path
+                yield proc.pid, force_decode(handler.path)
         except psutil.Error:
             pass

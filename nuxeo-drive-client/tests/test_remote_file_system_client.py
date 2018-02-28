@@ -8,8 +8,8 @@ from unittest import SkipTest
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.base_automation_client import CorruptedFile
-from tests.common import FS_ITEM_ID_PREFIX
-from tests.common_unit_test import UnitTestCase
+from .common import FS_ITEM_ID_PREFIX
+from .common_unit_test import UnitTestCase
 
 
 class TestRemoteFileSystemClient(UnitTestCase):
@@ -351,10 +351,6 @@ class TestRemoteFileSystemClient(UnitTestCase):
             'Document 2.txt')
         fs_item_id = FS_ITEM_ID_PREFIX + doc_uid
         self.assertFalse(remote_client.exists(fs_item_id))
-
-    def test_check_writable(self):
-        # TODO Write test_check_writable content
-        pass
 
     #
     # Test the API specific to the remote file system client

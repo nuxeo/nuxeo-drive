@@ -141,7 +141,6 @@ class MetaOptions(type):
         'proxy_exceptions': (None, 'default'),
         'proxy_server': (None, 'default'),
         'proxy_type': (None, 'default'),
-        'quit_timeout': (-1, 'default'),
         'remote_repo': ('default', 'default'),
         'server_version': (None, 'default'),
         'theme': ('ui5', 'default'),

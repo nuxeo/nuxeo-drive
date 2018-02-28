@@ -3,17 +3,16 @@ import base64
 import locale
 import mimetypes
 import os
+import psutil
 import re
 import sys
 import time
 import unicodedata
-import urllib
 import urlparse
 from distutils.version import StrictVersion
 from logging import getLogger
 from urllib2 import HTTPError, URLError, urlopen
 
-import psutil
 import rfc3987
 from Crypto import Random
 from Crypto.Cipher import AES
@@ -618,31 +617,6 @@ def parse_edit_protocol(parsed_url, url_string):
                 doc_id=parsed_url.get('docid'),
                 filename=parsed_url.get('filename'),
                 download_url=parsed_url.get('download'))
-
-
-class ServerLoader(object):
-    def __init__(self, remote_client, local_client):
-        self._remote_client = remote_client
-        self._local_client = local_client
-
-    def sync(self, remote_uid, local):
-        childs = self._local_client.get_children_info(local)
-        rchilds = self._remote_client.get_children_info(remote_uid)
-        existing_childs = dict()
-        for child in rchilds:
-            path = os.path.join(local, child.name)
-            existing_childs[path] = child
-        for child in childs:
-            child_uid = None
-            if child.path not in existing_childs:
-                if child.folderish:
-                    child_uid = self._remote_client.make_folder(remote_uid, child.name)
-                else:
-                    self._remote_client.stream_file(remote_uid, self._local_client.abspath(child.path))
-            else:
-                child_uid = existing_childs[child.path].uid
-            if child.folderish:
-                self.sync(child_uid, child.path)
 
 
 class PidLockFile(object):

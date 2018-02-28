@@ -4,13 +4,79 @@
 
 # dev
 - Removed `AbstractOSIntegration.get_os_version()`
+- Removed `AbstractOSIntegration.is_same_partition()`
 - Removed `AbstractOSIntegration.os_version_above()`
 - Removed `AbstractOSIntegration.os_version_below()`
 - Removed `AbstractOSIntegration.register_desktop_link()`
 - Removed `AbstractOSIntegration.unregister_desktop_link()`
+- Removed `Application.engineLogger`
+- Removed `Application.engineWidget`
+- Removed `Application.mainEngine`
+- Removed `BaseAutomationClient.is_addon_installed()`
+- Removed `ConfigurationDAO.begin_transaction()`
+- Removed `ConfigurationDAO.dispose_thread()`
+- Removed `ConfigurationDAO.end_transaction()`
+- Removed `ConsoleApplication.engineLogger`
+- Removed `ConsoleApplication.mainEngine`
+- Removed `ConsoleApplication.connect_engine_quit()`
+- Removed `ConsoleApplication.quit_after_timeout()`
+- Removed `ConsoleApplication.quit_if_sync_completed()`
+- Removed `Engine.BATCH_MODE_DOWNLOAD`
+- Removed `Engine.BATCH_MODE_FOLDER`
+- Removed `Engine.BATCH_MODE_SYNC`
+- Removed `Engine.BATCH_MODE_UPLOAD`
+- Removed `Engine.complete_binder()`
+- Removed `Engine.get_document_id()`
+- Removed `Engine.get_last_sync()`
+- Removed `Engine.get_next_file()`
+- Removed `Engine.get_previous_file()`
+- Removed `Engine.resolve_with_duplicate()`
+- Removed `EngineDAO.mark_descendants_remotely_deleted()`
+- Removed `EngineDAO.mark_descendants_locally_created()`
+- Removed `EngineDAO.update_local_paths()`
+- Removed `EngineLogger.logger`
+- Removed `FileInfo.get_parent()`
+- Removed `FolderTreeview.set_client()`
+- Removed `LocalClient.DEDUPED_BASENAME_PATTERN`
+- Removed `LocalClient.root`
+- Removed `LocalClient.duplicate_file()`
+- Removed `LocalClient.duplication_enabled()`
+- Removed `LocalClient.get_parent_ref()`
+- Removed `LocalClient.check_writable()`
+- Removed `LocalClient.unset_folder_icon()`
+- Removed `LocalWatcher.get_windows_folder_scan_delay()`
+- Removed `LocalWatcher.set_windows_folder_scan_delay()`
+- Removed `LocalWatcher.get_windows_watchdog_event_buffer()`
+- Removed `LocalWatcher.set_windows_watchdog_event_buffer()`
+- Removed `Manager.get_engines_type()`
+- Removed `Manager.list_server_bindings()`
+- Removed `Notification.add_replacement()`
+- Removed `Notification.generate_uid()`
+- Removed `Notification.is_volatile()`
+- Removed `Notification.remove_replacement()`
+- Removed `Notification.trigger()`
+- Removed `Options.quit_timeout`
+- Removed `Processor.path_locks()`
+- Removed `QueueManager.init_queue()`
+- Removed `RemoteDocumentClient.check_writable()`
+- Removed `RemoteDocumentClient.set_property()`
+- Removed `RemoteDocumentClient.get_parent()`
+- Removed `RemoteFileSystemClient.can_move()`
+- Removed `RemoteFileSystemClient.check_writable()`
+- Removed `RemoteFileSystemClient.get_method()`
+- Removed `RemoteWatcher.testing`
+- Removed `RestAPIClient.get_acls()`
+- Removed `StatusTreeview.filter_sync`
+- Removed `WebAuthenticationApi.create_account()`
+- Removed `WebConflictsApi.resolve_with_duplicate()`
+- Removed `WebDriveApi.file_dialog_dir`
+- Removed `WebDriveApi.get_last_url()`
+- Removed `WebDriveApi.get_timestamp_from_sqlite()`
+- Removed `WebModal.remove_button()`
 - Removed `WindowsIntegration.__init__()`
 - Removed `WindowsIntegration.get_key_bases()`
 - Removed `WindowsIntegration.get_menu_entries()`
+- Removed `WindowsIntegration.is_same_partition()`
 - Removed `WindowsIntegration.register_contextual_menu()`
 - Removed `WindowsIntegration.register_protocol_handlers()`
 - Removed `WindowsIntegration.register_startup()`
@@ -21,8 +87,15 @@
 - Added `Translator.translations()`
 - Added `WebDriveAPI.get_translations()`
 - Removed `WebDriveAPI.get_appname()`
+- Removed commandline.py:`GET_CTL_MAX_NB_TRIES`
+- Removed commandline.py:`GET_CTL_SLEEP_DURATION`
+- Removed client/common.py::`DuplicationError()`
+- Removed engine/engine.py::`EngineLogger()`
 - Moved gui/resources.py::`find_icon()` to utils.py
+- Removed gui/folder_treeview.py::`DocClient()`
+- Removed utils.py::`ServerLoader()`
 - Changed utils.py::`find_resource_dir(directory, default_path)` to `find_resource(folder, filename)`
+- Removed wui/conflicts.py::`WebConflictsDialog()`
 
 # 3.0.5
 - Changed `BlacklistQueue.get()`, it is now a generator.

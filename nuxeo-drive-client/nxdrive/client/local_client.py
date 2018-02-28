@@ -5,7 +5,6 @@ import datetime
 import errno
 import hashlib
 import os
-import re
 import shutil
 import sys
 import tempfile
@@ -18,9 +17,8 @@ from send2trash import send2trash
 from nxdrive.client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
                                                    DOWNLOAD_TMP_FILE_SUFFIX)
 from nxdrive.client.common import (BaseClient, DuplicationDisabledError,
-                                   DuplicationError, FILE_BUFFER_SIZE,
-                                   NotFound, UNACCESSIBLE_HASH,
-                                   safe_filename)
+                                   FILE_BUFFER_SIZE, NotFound,
+                                   UNACCESSIBLE_HASH, safe_filename)
 from nxdrive.options import Options
 from nxdrive.utils import (guess_digest_algorithm, normalized_path,
                            safe_long_path)
@@ -37,9 +35,6 @@ else:
     import xattr
 
 log = getLogger(__name__)
-
-
-DEDUPED_BASENAME_PATTERN = ur'^(.*)__(\d{1,3})$'
 
 
 # Data transfer objects
@@ -67,7 +62,6 @@ class FileInfo(object):
                       filepath, normalized_filepath)
             os.rename(filepath, normalized_filepath)
 
-        self.root = root  # the sync root folder local path
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
         self.remote_ref = kwargs.pop('remote_ref', None)
@@ -126,7 +120,6 @@ class LocalClient(BaseClient):
 
     def __init__(self, base_folder, **kwargs):
         self._case_sensitive = kwargs.pop('case_sensitive', None)
-        self._disable_duplication = kwargs.pop('disable_duplication', True)
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
@@ -140,16 +133,9 @@ class LocalClient(BaseClient):
     def __repr__(self):
         return ('<{name}'
                 ' base_folder={cls.base_folder!r},'
-                ' duplication_disabled={cls._disable_duplication!r},'
                 ' is_case_sensitive={cls._case_sensitive!r}'
                 '>'
                 ).format(name=type(self).__name__, cls=self)
-
-    def duplication_enabled(self):
-        # type: () -> bool
-        """ Check if de-duplication is enable or not. """
-
-        return not self._disable_duplication
 
     def is_case_sensitive(self):
         # type: () -> bool
@@ -263,22 +249,6 @@ class LocalClient(BaseClient):
                 raise exc
         finally:
             self.lock_path(path, locker)
-
-    def unset_folder_icon(self, ref):
-        # type: (Text) -> None
-        """ Unset the folder icon. """
-
-        if sys.platform == 'darwin':
-            meta_file = os.path.join(self.abspath(ref), 'Icon\r')
-        elif sys.platform == 'win32':
-            meta_file = os.path.join(self.abspath(ref), 'desktop.ini')
-        else:
-            return
-
-        try:
-            os.remove(meta_file)
-        except OSError:
-            pass
 
     def has_folder_icon(self, ref):
         # type: (Text) -> bool
@@ -593,18 +563,6 @@ FolderType=Generic
 
         return result
 
-    @staticmethod
-    def get_parent_ref(ref):
-        # type: (Text) -> Union[Text, None]
-
-        if ref == '/':
-            return None
-
-        parent = ref.rsplit(u'/', 1)[0]
-        if parent is None:
-            parent = '/'
-        return parent
-
     def unlock_ref(self, ref, unlock_parent=True, is_abs=False):
         # type: (Text, bool, bool) -> int
 
@@ -632,26 +590,6 @@ FolderType=Generic
         if parent == u'/':
             return u'/' + name
         return parent + u'/' + name
-
-    def duplicate_file(self, ref):
-        # type: (Text) -> Text
-
-        parent = os.path.dirname(ref)
-        name = os.path.basename(ref)
-        os_path, name = self._abspath_deduped(parent, name)
-        locker = self.unlock_ref(os_path, unlock_parent=False, is_abs=True)
-        if parent == u"/":
-            duplicated_file = u"/" + name
-        else:
-            duplicated_file = parent + u"/" + name
-        try:
-            shutil.copy(self.abspath(ref), os_path)
-            return duplicated_file
-        except IOError as e:
-            e.duplicated_file = duplicated_file
-            raise e
-        finally:
-            self.lock_ref(os_path, locker, is_abs=True)
 
     def make_file(self, parent, name, content=None):
         # type: (Text, Text, Optional[bytes]) -> Text
@@ -765,11 +703,6 @@ FolderType=Generic
 
         return os.path.exists(self.abspath(ref))
 
-    def check_writable(self, ref):
-        # type: (Text) -> bool
-
-        return os.access(self.abspath(ref), os.W_OK)
-
     def rename(self, ref, to_name):
         # type: (Text, Text) -> FileInfo
         """ Rename a local file or folder. """
@@ -856,17 +789,6 @@ FolderType=Generic
         path = normalized_path(os.path.join(self.base_folder, path_suffix))
         return safe_long_path(path)
 
-    def _abspath_safe(self, parent, orig_name):
-        # type: (Text, Text) -> Text
-        """ Absolute path on the operating system with deduplicated names. """
-
-        # Make name safe by removing invalid chars
-        name = safe_filename(orig_name)
-
-        # Decompose the name into actionable components
-        name, suffix = os.path.splitext(name)
-        return self.abspath(os.path.join(parent, name + suffix))
-
     def _abspath_deduped(self, parent, orig_name, old_name=None):
         # type: (Text, Text, Optional[Text]) -> Tuple[Text, Text]
         """ Absolute path on the operating system with deduplicated names. """
@@ -877,22 +799,9 @@ FolderType=Generic
         # Decompose the name into actionable components
         name, suffix = os.path.splitext(name)
 
-        for _ in range(1000):
-            os_path = self.abspath(os.path.join(parent, name + suffix))
-            if old_name == (name + suffix):
-                return os_path, name + suffix
-            if not os.path.exists(os_path):
-                return os_path, name + suffix
-            if self._disable_duplication:
-                raise DuplicationDisabledError('De-duplication is disabled')
-
-            # the is a duplicated file, try to come with a new name
-            m = re.match(DEDUPED_BASENAME_PATTERN, name)
-            if m:
-                short_name, increment = m.groups()
-                name = u"%s__%d" % (short_name, int(increment) + 1)
-            else:
-                name = name + u'__1'
-            log.trace('De-duplicate %r to %r', os_path, name)
-        raise DuplicationError(
-            'Failed to de-duplicate %r under %r' % (orig_name, parent))
+        os_path = self.abspath(os.path.join(parent, name + suffix))
+        if old_name == (name + suffix):
+            return os_path, name + suffix
+        if not os.path.exists(os_path):
+            return os_path, name + suffix
+        raise DuplicationDisabledError('De-duplication is disabled')

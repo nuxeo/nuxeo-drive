@@ -50,14 +50,6 @@ class MacLocalClient(LocalClient):
         result = self.fm.moveItemAtPath_toPath_error_(src, dst, error)
         self._process_result(result)
 
-    def duplicate_file(self, srcref):
-        parent = os.path.dirname(srcref)
-        name = os.path.basename(srcref)
-        os_path, name = self._abspath_deduped(parent, name)
-        dstref = os.path.join(parent, name)
-        self.copy(srcref, dstref)
-        return dstref
-
     def rename(self, srcref, to_name):
         parent = os.path.dirname(srcref)
         dstref = os.path.join(parent)

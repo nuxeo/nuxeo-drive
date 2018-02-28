@@ -94,19 +94,10 @@ class Application(SimpleApplication):
         self._delegator = None
         from nxdrive.scripting import DriveUiScript
         self.manager.set_script_object(DriveUiScript(manager, self))
-        self.mainEngine = None
         self.filters_dlg = None
         self._conflicts_modals = dict()
         self.current_notification = None
         self.default_tooltip = self.manager.app_name
-
-        for _, engine in self.manager.get_engines().iteritems():
-            self.mainEngine = engine
-            break
-        if self.mainEngine is not None and Options.debug:
-            from nxdrive.engine.engine import EngineLogger
-            self.engineLogger = EngineLogger(self.mainEngine)
-        self.engineWidget = None
 
         self.aboutToQuit.connect(self.manager.stop)
         self.manager.dropEngine.connect(self.dropped_engine)
@@ -131,7 +122,6 @@ class Application(SimpleApplication):
 
         # Check if actions is required, separate method so it can be override
         self.init_checks()
-        self.engineWidget = None
 
         # Setup notification center for macOS
         if AbstractOSIntegration.is_mac():

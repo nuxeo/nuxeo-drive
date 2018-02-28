@@ -6,8 +6,8 @@ from logging import getLogger
 from math import floor, log10
 from unittest import SkipTest, skipIf
 
-from common_unit_test import UnitTestCase
-from tests.common import TEST_WORKSPACE_PATH
+from .common import TEST_WORKSPACE_PATH
+from .common_unit_test import UnitTestCase
 
 log = getLogger(__name__)
 

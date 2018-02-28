@@ -16,33 +16,6 @@ class WebAuthenticationApi(WebDriveApi):
         self._settings_api = settings_api
         self._callback_params = callback_params
 
-    @QtCore.pyqtSlot(str, str)
-    def create_account(self, username, token):
-        error = None
-        try:
-            username = str(username)
-            token = str(token)
-            local_folder = self._callback_params['local_folder']
-            server_url = self._callback_params['server_url']
-            engine_name = self._callback_params['engine_name']
-            engine_type = self._callback_params['engine_type']
-            server_url = server_url + '#' + engine_type
-            log.debug('Creating new account [%s, %s, %s]', local_folder, server_url, username)
-            error = self._settings_api.bind_server(local_folder, server_url, username, password=None, token=token, name=engine_name)
-            log.debug("RETURN FROM BIND_SERVER IS: '%s'", error)
-            if error == "":
-                error = None
-                self._settings_api.set_new_local_folder(local_folder)
-        except:
-            log.exception('Unexpected error while trying to create a new account [%s, %s, %s]',
-                          local_folder, server_url, username)
-            error = 'CONNECTION_UNKNOWN'
-        finally:
-            self.dialog.accept()
-            if error is not None:
-                self._settings_api.set_account_creation_error(error)
-            self._settings_api.dialog.view.reload()
-
     @QtCore.pyqtSlot(str)
     def update_token(self, token):
         error = None

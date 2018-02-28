@@ -2,8 +2,8 @@
 import time
 from unittest import skip
 
-from tests.common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from tests.common_unit_test import RandomBug, UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
+from .common_unit_test import RandomBug, UnitTestCase
 
 
 class TestSecurityUpdates(UnitTestCase):
@@ -306,7 +306,7 @@ class TestSecurityUpdates(UnitTestCase):
         else:
             self.root_remote_client.block_inheritance(doc_path)
 
-    def _check_pair_state(self, session, local_path, pair_state):
+    def _check_pair_state(self, local_path, pair_state):
         local_path = '/' + self.workspace_title + local_path
         doc_pair = self.engine_1.get_dao().get_state_from_local(local_path)
         self.assertEqual(doc_pair.pair_state, pair_state)

@@ -3,7 +3,7 @@ from logging import getLogger
 
 from PyQt4 import QtCore
 
-from nxdrive.wui.dialog import Promise, WebDialog, WebDriveApi
+from nxdrive.wui.dialog import Promise, WebDriveApi
 from nxdrive.wui.translator import Translator
 
 log = getLogger(__name__)
@@ -50,13 +50,6 @@ class WebConflictsApi(WebDriveApi):
         self._engine.resolve_with_remote(state_id)
 
     @QtCore.pyqtSlot(int)
-    def resolve_with_duplicate(self, state_id):
-        try:
-            self._engine.resolve_with_duplicate(state_id)
-        except IOError:
-            log.exception('Duplicate resolution error')
-
-    @QtCore.pyqtSlot(int)
     def retry_pair(self, state_id):
         self._engine.retry_pair(state_id)
 
@@ -90,11 +83,4 @@ class WebConflictsApi(WebDriveApi):
         result["last_local_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
         result["remote_can_update"] = state.remote_can_update
         result['remote_can_rename'] = state.remote_can_rename
-        result['duplication_enabled'] = (self._engine.get_local_client()
-                                             .duplication_enabled())
         return result
-
-
-class WebConflictsDialog(WebDialog):
-    def set_engine(self, engine):
-        self.api.set_engine(engine)
