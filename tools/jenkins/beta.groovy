@@ -13,7 +13,7 @@ properties([
         [$class: 'StringParameterDefinition',
             name: 'BRANCH',
             defaultValue: 'master',
-            description: 'The branch/tag/commit to checkout.']
+            description: 'The branch to checkout.']
     ]]
 ])
 

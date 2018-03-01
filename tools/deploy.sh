@@ -7,33 +7,48 @@
 #
 
 release() {
+    # Take the beta version to release as 1st argument.
     local latest_release
     local drive_version
     local release_url
     local path
     local dmg
     local exe
+    local ext_mac
+    local ext_win
+    local ext_win_only
 
-    latest_release="$(git tag -l "release-*" --sort=-taggerdate | head -n1)"
-    drive_version="$(echo "${latest_release}" | cut -d'-' -f2)"
+    drive_version="$1"
+    latest_release="release-${drive_version}"
 
-    if [ "${drive_version}" = '' ]; then
+    if [ "${drive_version}" = 'x.y.z' ]; then
         echo ">>> No Drive version found."
         exit 1
     fi
 
-    path="/var/www/community.nuxeo.com/static"
-    dmg="${path}/drive/nuxeo-drive-${drive_version}.dmg"
-    exe="${path}/drive/nuxeo-drive-${drive_version}.exe"
+    if version_gt "${drive_version}" "3.0.99"; then
+        # Starting with 3.1.0, installers changed in various ways (new extension, new name).
+        ext_win_only="exe"
+        ext_win=".${ext_win_only}"
+        ext_mac=".dmg"
+    else
+        ext_win_only="msi"
+        ext_win="-win32.${ext_win_only}"
+        ext_mac="-osx.dmg"
+    fi
 
-    echo ">>> [release ${drive_version}] Deploying to the production website"
+    path="/var/www/community.nuxeo.com/static"
+    dmg="${path}/drive/nuxeo-drive-${drive_version}${ext_mac}"
+    exe="${path}/drive/nuxeo-drive-${drive_version}${ext_win}"
+
+    echo ">>> [${latest_release}] Deploying to the production website"
     ssh -T nuxeo@lethe.nuxeo.com <<EOF
 # Copy artifacts from staging website to the production one
 cp -vf ${path}/drive-tests/*${drive_version}* ${path}/drive
 
 # Create symbolic links of the latest packages
 ln -sfrv ${dmg} ${path}/drive/latest/nuxeo-drive.dmg
-ln -sfrv ${exe} ${path}/drive/latest/nuxeo-drive.exe
+ln -sfrv ${exe} ${path}/drive/latest/nuxeo-drive.${ext_win_only}
 
 # Create symbolic links of the latest packages for all supported versions of Nuxeo
 for folder in \$(find ${path}/drive/latest -maxdepth 1 -type d); do
@@ -42,11 +57,11 @@ for folder in \$(find ${path}/drive/latest -maxdepth 1 -type d); do
 done
 EOF
 
-    echo ">>> [release ${drive_version}] Uploading to PyPi"
-    echo ">>> TODO"
+    # TODO: To remove?
+    # echo ">>> [${latest_release}] Uploading to PyPi"
     # python setup.py sdist upload
 
-    echo ">>> [release ${drive_version}] Saving release on GitHub"
+    echo ">>> [${latest_release}] Saving release on GitHub"
     # Fetch the pre-release informations to find the complete URL
     # Note: if the pre-release is still a draft, the command below will fail
     curl --silent -X GET -n -o prerelease.json \
@@ -57,4 +72,9 @@ EOF
     curl -X PATCH -i -n -d '{ "prerelease": false }' "${release_url}"
 }
 
-release
+function version_gt() {
+    # Compare 2 versions and return a boolean stating if the 1st one is greater than the 2nd.
+    test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
+}
+
+release "$@"

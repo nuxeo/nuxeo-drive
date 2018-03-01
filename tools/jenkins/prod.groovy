@@ -8,7 +8,13 @@ properties([
     [$class: 'BuildDiscarderProperty', strategy:
         [$class: 'LogRotator', daysToKeepStr: '60', numToKeepStr: '60', artifactNumToKeepStr: '1']],
     [$class: 'SchedulerPreference', preferEvenload: true],
-    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false]
+    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
+    [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
+        [$class: 'StringParameterDefinition',
+            name: 'VERSION',
+            defaultValue: 'x.y.z',
+            description: 'The beta version to release.']
+    ]]
 ])
 
 
@@ -18,13 +24,11 @@ timestamps {
             stage('Checkout') {
                 checkout scm
             }
-            stage('Deploy') {
-                sh 'tools/deploy.sh'
-                archive 'prerelease.json'
 
-                def release = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
-                release = release.replace('release-', '').trim()
-                currentBuild.description = "Release ${release}"
+            stage('Deploy') {
+                sh "tools/deploy.sh ${env.VERSION}""
+                archive 'prerelease.json'
+                currentBuild.description = "Release ${env.VERSION}"
             }
         }
     }

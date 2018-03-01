@@ -6,6 +6,17 @@ import nxdrive.utils
 from nxdrive.manager import ProxySettings
 
 
+def test_encrypt_decrypt():
+    enc = nxdrive.utils.encrypt
+    dec = nxdrive.utils.decrypt
+
+    pwd = 'Administrator'
+    token = '12345678-acbd-1234-cdef-1234567890ab'
+    cipher = enc(pwd, token)
+
+    assert dec(cipher, token) == pwd
+
+
 def test_proxy_settings():
     proxy = ProxySettings()
     proxy.from_url('localhost:3128')

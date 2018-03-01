@@ -4,6 +4,7 @@ Release date: `2018-??-??`
 ### Core
 - [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations
 - [NXDRIVE-1121](https://jira.nuxeo.com/browse/NXDRIVE-1121): Set modified date to Nuxeo platform modified date
+- [NXDRIVE-1132](https://jira.nuxeo.com/browse/NXDRIVE-1132): Security fix in the Crypto module (move to PyCryptodome)
 - [NXDRIVE-1133](https://jira.nuxeo.com/browse/NXDRIVE-1133): Purge dead code reported by the 'vulture' tool
 
 ### GUI
@@ -20,6 +21,7 @@ Release date: `2018-??-??`
 #### Minor changes
 - Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
 - Jenkins: Possibility to launch the beta job on a given branch
+- Jenkins: Possibility to launch the release job on a given beta version
 - Packaging: Updated `pypiwin32` from 219 to 223
 
 

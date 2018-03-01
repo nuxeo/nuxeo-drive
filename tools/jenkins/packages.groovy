@@ -101,7 +101,7 @@ for (x in slaves) {
                                 archive 'dist/*.json, dist/*.deb'
                             } else {
                                 bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
-                                archive 'dist/*.exe'
+                                archive 'dist/*.exe, dist/*.msi'
                             }
                         } catch(e) {
                             currentBuild.result = 'FAILURE'
