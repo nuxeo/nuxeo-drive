@@ -21,6 +21,7 @@ Release date: `2018-??-??`
 #### Minor changes
 - Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
 - Jenkins: Possibility to launch the beta job on a given branch
+- Jenkins: Possibility to launch the release job on a given branch
 - Packaging: Updated `pypiwin32` from 219 to 223
 
 

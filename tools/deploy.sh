@@ -7,6 +7,7 @@
 #
 
 release() {
+    # Takes the beta version to release as 1st argument.
     local latest_release
     local drive_version
     local release_url
@@ -14,19 +15,19 @@ release() {
     local dmg
     local exe
 
-    latest_release="$(git tag -l "release-*" --sort=-taggerdate | head -n1)"
-    drive_version="$(echo "${latest_release}" | cut -d'-' -f2)"
+    drive_version="$1"
+    latest_release="release-${drive_version}"
 
-    if [ "${drive_version}" = '' ]; then
+    if [ "${drive_version}" = 'x.y.z' ]; then
         echo ">>> No Drive version found."
         exit 1
     fi
 
     path="/var/www/community.nuxeo.com/static"
-    dmg="${path}/drive/nuxeo-drive-${drive_version}.dmg"
-    exe="${path}/drive/nuxeo-drive-${drive_version}.exe"
+    dmg="${path}/drive/nuxeo-drive-${drive_version}-osx.dmg"
+    exe="${path}/drive/nuxeo-drive-${drive_version}-win32.exe"
 
-    echo ">>> [release ${drive_version}] Deploying to the production website"
+    echo ">>> [${latest_release}] Deploying to the production website"
     ssh -T nuxeo@lethe.nuxeo.com <<EOF
 # Copy artifacts from staging website to the production one
 cp -vf ${path}/drive-tests/*${drive_version}* ${path}/drive
@@ -42,11 +43,11 @@ for folder in \$(find ${path}/drive/latest -maxdepth 1 -type d); do
 done
 EOF
 
-    echo ">>> [release ${drive_version}] Uploading to PyPi"
-    echo ">>> TODO"
+    # TODO: To remove?
+    # echo ">>> [${latest_release}] Uploading to PyPi"
     # python setup.py sdist upload
 
-    echo ">>> [release ${drive_version}] Saving release on GitHub"
+    echo ">>> [${latest_release}] Saving release on GitHub"
     # Fetch the pre-release informations to find the complete URL
     # Note: if the pre-release is still a draft, the command below will fail
     curl --silent -X GET -n -o prerelease.json \
@@ -57,4 +58,4 @@ EOF
     curl -X PATCH -i -n -d '{ "prerelease": false }' "${release_url}"
 }
 
-release
+release "$@"

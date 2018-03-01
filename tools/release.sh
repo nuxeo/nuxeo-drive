@@ -33,8 +33,8 @@ ${changelog}
 If you have a Nuxeo Drive instance running against a LTS or a Fast Track version of Nuxeo, a notification about this new version should be displayed in the systray menu within an hour allowing you to upgrade (can bypass this delay by restarting Drive).
 
 It is also directly available for download from:
-- http://community.nuxeo.com/static/drive-tests/nuxeo-drive-${drive_version}.exe
-- http://community.nuxeo.com/static/drive-tests/nuxeo-drive-${drive_version}.dmg
+- http://community.nuxeo.com/static/drive-tests/nuxeo-drive-${drive_version}-win32.exe
+- http://community.nuxeo.com/static/drive-tests/nuxeo-drive-${drive_version}-osx.dmg
 
 Or from the Nuxeo Drive tab in the User Center of a LTS or a Fast Track version of Nuxeo.
 EOF
