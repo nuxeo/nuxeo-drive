@@ -25,6 +25,13 @@ Release date: `2018-??-??`
 - Packaging: Updated `pypiwin32` from 219 to 223
 
 
+# 3.0.6
+Release date: `2018-03-02`
+
+### Core
+- [NXDRIVE-1138](https://jira.nuxeo.com/browse/NXDRIVE-1138): Fix Direct Edit auto-lock on Windows 10
+
+
 # 3.0.5
 Release date: `2018-02-23`
 
