@@ -182,11 +182,11 @@ function install_deps {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-dev.txt
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-windows.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-windows.txt
+	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-dev.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
