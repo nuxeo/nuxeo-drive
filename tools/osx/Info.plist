@@ -8,7 +8,7 @@
 
     <!-- App name and display name -->
 	<key>CFBundleName</key>
-	<string>Nuxeo Drive</string>
+	<string>NuxeoDrive</string>
 	<key>CFBundleDisplayName</key>
 	<string>Nuxeo Drive</string>
 
@@ -34,16 +34,16 @@
 	</dict>
 	<!-- Bundle executable -->
 	<key>CFBundleExecutable</key>
-	<string>MacOS/ndrive</string>
+	<string>ndrive</string>
 
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>NSHighResolutionCapable</key>
 	<string>True</string>
 	<key>LSBackgroundOnly</key>
-	<string>YES</string>
+	<true/>
 	<key>LSUIElement</key>
-	<string>1</string>
+	<true/>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 </dict>

@@ -17,10 +17,9 @@ from nxdrive.engine.activity import tooltip
 from nxdrive.engine.blacklist_queue import BlacklistQueue
 from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler
 from nxdrive.engine.workers import ThreadInterrupt, Worker
-from nxdrive.osi import parse_protocol_url
 from nxdrive.utils import (current_milli_time, force_decode,
                            guess_digest_algorithm, normalize_event_filename,
-                           simplify_url)
+                           parse_protocol_url, simplify_url)
 
 log = getLogger(__name__)
 

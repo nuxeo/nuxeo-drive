@@ -24,9 +24,9 @@ code_sign() {
 
     echo ">>> [sign] Signing the file ${app}"
     if [[ $# > 1 ]]; then
-        codesign --deep --verbose --sign "${SIGNING_ID}" --entitlements $2 "${app}"
+        codesign --deep --force --preserve-metadata=entitlements --verbose --sign "${SIGNING_ID}" --entitlements $2 "${app}"
     else
-        codesign --deep --verbose --sign "${SIGNING_ID}" "${app}"
+        codesign --deep --force --verbose --sign "${SIGNING_ID}" "${app}"
     fi
 
 
@@ -52,19 +52,18 @@ create_package() {
     sed "s/\$version/${app_version}/" "${plist}" > "${pkg_path}/Contents/Info.plist"
 
     echo ">>> [package] Building the FinderSync extension"
-    xcodebuild -project "${extension_path}/drive.xcodeproj" -target "NuxeoFinderSync" -configuration Release
+    xcodebuild -project "${extension_path}/drive.xcodeproj" -target "NuxeoFinderSync" -configuration Release build
 
     echo ">>> [package] Adding the extension to the package"
-    mkdir "${pkg_path}/Contents/Plugins"
-    mv "${extension_path}/build/Release/NuxeoFinderSync.appex" "${pkg_path}/Contents/Plugins/."
+    mkdir "${pkg_path}/Contents/PlugIns"
+    cp -a  "${extension_path}/build/Release/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/."
     rm -rf "${extension_path}/build"
 
     echo ">>> [package] Creating the DMG file"
-    code_sign "${pkg_path}/Contents/Plugins/NuxeoFinderSync.appex" "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements"
-    code_sign "${pkg_path}"
+    code_sign "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex" "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements"
+    code_sign "${pkg_path}" "${extension_path}/drive/drive.entitlements"
 
     echo ">>> [DMG] ${bundle_name} version ${app_version}"
-
     # Compute DMG name and size
     local dmg_path="${output_dir}/nuxeo-drive-${app_version}.dmg"
     local dmg_size=$(( $(du -sm "${pkg_path}" | cut -d$'\t' -f1,1) + 20 ))
@@ -91,6 +90,7 @@ create_package() {
     rm -rf "${src_folder_tmp}" "${dmg_tmp}"
 
     code_sign "dist/nuxeo-drive-${app_version}.dmg"
+    rm -rf "${pkg_path}"
 }
 
 main "$@"

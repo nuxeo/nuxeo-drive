@@ -17,8 +17,8 @@ from markdown import markdown
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.notification import Notification
 from nxdrive.options import Options
-from nxdrive.osi import AbstractOSIntegration, parse_protocol_url
-from nxdrive.utils import find_icon, find_resource
+from nxdrive.osi import AbstractOSIntegration
+from nxdrive.utils import find_icon, find_resource, parse_protocol_url
 from nxdrive.wui.modal import WebModal
 from nxdrive.wui.systray import DriveSystrayIcon
 from nxdrive.wui.translator import Translator

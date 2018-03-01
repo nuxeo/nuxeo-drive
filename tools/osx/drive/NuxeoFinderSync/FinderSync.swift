@@ -2,7 +2,7 @@
 //  FinderSync.swift
 //  NuxeoFinderSync
 //
-//  Created by Léa Klein on 20/02/2018.
+//  Created by Léa Klein on 28/02/2018.
 //  Copyright © 2018 Nuxeo. All rights reserved.
 //
 
@@ -10,6 +10,7 @@ import Cocoa
 import FinderSync
 
 class FinderSync: FIFinderSync {
+    
     var myFolderURL = URL(fileURLWithPath: "/Users/lea/Nuxeo Drive")
     
     override init() {
@@ -59,7 +60,7 @@ class FinderSync: FIFinderSync {
     }
     
     override var toolbarItemImage: NSImage {
-        return NSImage.init(byReferencingFile: "nuxeo.iconset/icon_32x32.png")!
+        return NSImage(named: .caution)!
     }
     
     override func menu(for menuKind: FIMenuKind) -> NSMenu {
@@ -71,17 +72,19 @@ class FinderSync: FIFinderSync {
     }
     
     @IBAction func openInBrowser(_ sender: AnyObject?) {
-        let target = FIFinderSyncController.default().targetedURL()
-        let item = sender as! NSMenuItem
-        NSLog("openInBrowser: menu item: %@, target = %@", item.title as NSString, target!.path as NSString)
-        openNXUrl(command: "access", target: target)
+        let items = FIFinderSyncController.default().selectedItemURLs()
+        for item in items! {
+            NSLog("openInBrowser: target: %@", item.path as NSString)
+            openNXUrl(command: "access", target: item)
+        }
     }
     
     @IBAction func copyShareLink(_ sender: AnyObject?) {
-        let target = FIFinderSyncController.default().targetedURL()
-        let item = sender as! NSMenuItem
-        NSLog("copyShareLink: menu item: %@, target = %@", item.title as NSString, target!.path as NSString)
-        openNXUrl(command: "share_link", target: target)
+        let items = FIFinderSyncController.default().selectedItemURLs()
+        for item in items! {
+            NSLog("copyShareLink: target: %@", item.path as NSString)
+            openNXUrl(command: "share_link", target: item)
+        }
     }
     
     func openNXUrl(command: String, target: URL?) {
@@ -95,4 +98,3 @@ class FinderSync: FIFinderSync {
         NSWorkspace.shared.open(url!)
     }
 }
-

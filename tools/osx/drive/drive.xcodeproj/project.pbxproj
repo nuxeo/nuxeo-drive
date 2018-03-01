@@ -7,32 +7,33 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		8BE4C70B2045A4B2002B911A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C70A2045A4B2002B911A /* AppDelegate.swift */; };
-		8BE4C70D2045A4B2002B911A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C70C2045A4B2002B911A /* ViewController.swift */; };
-		8BE4C70F2045A4B2002B911A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BE4C70E2045A4B2002B911A /* Assets.xcassets */; };
-		8BE4C7122045A4B2002B911A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8BE4C7102045A4B2002B911A /* Main.storyboard */; };
-		8BE4C7212045A4C2002B911A /* FinderSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C7202045A4C2002B911A /* FinderSync.swift */; };
-		8BE4C7262045A4C2002B911A /* NuxeoFinderSync.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8BE4C71E2045A4C2002B911A /* NuxeoFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8B6E724A2046EE3E00AB5771 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E72492046EE3E00AB5771 /* AppDelegate.swift */; };
+		8B6E724C2046EE3E00AB5771 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E724B2046EE3E00AB5771 /* ViewController.swift */; };
+		8B6E724E2046EE3E00AB5771 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B6E724D2046EE3E00AB5771 /* Assets.xcassets */; };
+		8B6E72512046EE3E00AB5771 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8B6E724F2046EE3E00AB5771 /* Main.storyboard */; };
+		8B6E72602046EE5400AB5771 /* FinderSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E725F2046EE5400AB5771 /* FinderSync.swift */; };
+		8B6E72652046EE5400AB5771 /* NuxeoFinderSync.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8B6E725D2046EE5400AB5771 /* NuxeoFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8BFDE4EE20486A5C00618B67 /* icon_64.png in Resources */ = {isa = PBXBuildFile; fileRef = 8BFDE4ED20486A5C00618B67 /* icon_64.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		8BE4C7242045A4C2002B911A /* PBXContainerItemProxy */ = {
+		8B6E72632046EE5400AB5771 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 8BE4C6FF2045A4B2002B911A /* Project object */;
+			containerPortal = 8B6E723E2046EE3D00AB5771 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 8BE4C71D2045A4C2002B911A;
+			remoteGlobalIDString = 8B6E725C2046EE5400AB5771;
 			remoteInfo = NuxeoFinderSync;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		8BE4C72A2045A4C2002B911A /* Embed App Extensions */ = {
+		8B6E72692046EE5400AB5771 /* Embed App Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				8BE4C7262045A4C2002B911A /* NuxeoFinderSync.appex in Embed App Extensions */,
+				8B6E72652046EE5400AB5771 /* NuxeoFinderSync.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -40,28 +41,29 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		8BE4C7072045A4B2002B911A /* drive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = drive.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		8BE4C70A2045A4B2002B911A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		8BE4C70C2045A4B2002B911A /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-		8BE4C70E2045A4B2002B911A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		8BE4C7112045A4B2002B911A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		8BE4C7132045A4B2002B911A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		8BE4C7142045A4B2002B911A /* drive.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = drive.entitlements; sourceTree = "<group>"; };
-		8BE4C71E2045A4C2002B911A /* NuxeoFinderSync.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NuxeoFinderSync.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		8BE4C7202045A4C2002B911A /* FinderSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSync.swift; sourceTree = "<group>"; };
-		8BE4C7222045A4C2002B911A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		8BE4C7232045A4C2002B911A /* NuxeoFinderSync.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NuxeoFinderSync.entitlements; sourceTree = "<group>"; };
+		8B6E72462046EE3D00AB5771 /* drive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = drive.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8B6E72492046EE3E00AB5771 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		8B6E724B2046EE3E00AB5771 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		8B6E724D2046EE3E00AB5771 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8B6E72502046EE3E00AB5771 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		8B6E72522046EE3E00AB5771 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8B6E72532046EE3E00AB5771 /* drive.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = drive.entitlements; sourceTree = "<group>"; };
+		8B6E725D2046EE5400AB5771 /* NuxeoFinderSync.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NuxeoFinderSync.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		8B6E725F2046EE5400AB5771 /* FinderSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSync.swift; sourceTree = "<group>"; };
+		8B6E72612046EE5400AB5771 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8B6E72622046EE5400AB5771 /* NuxeoFinderSync.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NuxeoFinderSync.entitlements; sourceTree = "<group>"; };
+		8BFDE4ED20486A5C00618B67 /* icon_64.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon_64.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		8BE4C7042045A4B2002B911A /* Frameworks */ = {
+		8B6E72432046EE3D00AB5771 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		8BE4C71B2045A4C2002B911A /* Frameworks */ = {
+		8B6E725A2046EE5400AB5771 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -71,76 +73,85 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		8BE4C6FE2045A4B2002B911A = {
+		8B6E723D2046EE3D00AB5771 = {
 			isa = PBXGroup;
 			children = (
-				8BE4C7092045A4B2002B911A /* drive */,
-				8BE4C71F2045A4C2002B911A /* NuxeoFinderSync */,
-				8BE4C7082045A4B2002B911A /* Products */,
+				8BFDE4EF20486CAB00618B67 /* drive.iconset */,
+				8B6E72482046EE3D00AB5771 /* drive */,
+				8B6E725E2046EE5400AB5771 /* NuxeoFinderSync */,
+				8B6E72472046EE3D00AB5771 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		8BE4C7082045A4B2002B911A /* Products */ = {
+		8B6E72472046EE3D00AB5771 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8BE4C7072045A4B2002B911A /* drive.app */,
-				8BE4C71E2045A4C2002B911A /* NuxeoFinderSync.appex */,
+				8B6E72462046EE3D00AB5771 /* drive.app */,
+				8B6E725D2046EE5400AB5771 /* NuxeoFinderSync.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		8BE4C7092045A4B2002B911A /* drive */ = {
+		8B6E72482046EE3D00AB5771 /* drive */ = {
 			isa = PBXGroup;
 			children = (
-				8BE4C70A2045A4B2002B911A /* AppDelegate.swift */,
-				8BE4C70C2045A4B2002B911A /* ViewController.swift */,
-				8BE4C70E2045A4B2002B911A /* Assets.xcassets */,
-				8BE4C7102045A4B2002B911A /* Main.storyboard */,
-				8BE4C7132045A4B2002B911A /* Info.plist */,
-				8BE4C7142045A4B2002B911A /* drive.entitlements */,
+				8B6E72492046EE3E00AB5771 /* AppDelegate.swift */,
+				8B6E724B2046EE3E00AB5771 /* ViewController.swift */,
+				8B6E724D2046EE3E00AB5771 /* Assets.xcassets */,
+				8B6E724F2046EE3E00AB5771 /* Main.storyboard */,
+				8B6E72522046EE3E00AB5771 /* Info.plist */,
+				8B6E72532046EE3E00AB5771 /* drive.entitlements */,
 			);
 			path = drive;
 			sourceTree = "<group>";
 		};
-		8BE4C71F2045A4C2002B911A /* NuxeoFinderSync */ = {
+		8B6E725E2046EE5400AB5771 /* NuxeoFinderSync */ = {
 			isa = PBXGroup;
 			children = (
-				8BE4C7202045A4C2002B911A /* FinderSync.swift */,
-				8BE4C7222045A4C2002B911A /* Info.plist */,
-				8BE4C7232045A4C2002B911A /* NuxeoFinderSync.entitlements */,
+				8B6E725F2046EE5400AB5771 /* FinderSync.swift */,
+				8BFDE4ED20486A5C00618B67 /* icon_64.png */,
+				8B6E72612046EE5400AB5771 /* Info.plist */,
+				8B6E72622046EE5400AB5771 /* NuxeoFinderSync.entitlements */,
 			);
 			path = NuxeoFinderSync;
+			sourceTree = "<group>";
+		};
+		8BFDE4EF20486CAB00618B67 /* drive.iconset */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = drive.iconset;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		8BE4C7062045A4B2002B911A /* drive */ = {
+		8B6E72452046EE3D00AB5771 /* drive */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8BE4C7172045A4B2002B911A /* Build configuration list for PBXNativeTarget "drive" */;
+			buildConfigurationList = 8B6E72562046EE3E00AB5771 /* Build configuration list for PBXNativeTarget "drive" */;
 			buildPhases = (
-				8BE4C7032045A4B2002B911A /* Sources */,
-				8BE4C7042045A4B2002B911A /* Frameworks */,
-				8BE4C7052045A4B2002B911A /* Resources */,
-				8BE4C72A2045A4C2002B911A /* Embed App Extensions */,
+				8B6E72422046EE3D00AB5771 /* Sources */,
+				8B6E72432046EE3D00AB5771 /* Frameworks */,
+				8B6E72442046EE3D00AB5771 /* Resources */,
+				8B6E72692046EE5400AB5771 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				8BE4C7252045A4C2002B911A /* PBXTargetDependency */,
+				8B6E72642046EE5400AB5771 /* PBXTargetDependency */,
 			);
 			name = drive;
 			productName = drive;
-			productReference = 8BE4C7072045A4B2002B911A /* drive.app */;
+			productReference = 8B6E72462046EE3D00AB5771 /* drive.app */;
 			productType = "com.apple.product-type.application";
 		};
-		8BE4C71D2045A4C2002B911A /* NuxeoFinderSync */ = {
+		8B6E725C2046EE5400AB5771 /* NuxeoFinderSync */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8BE4C7272045A4C2002B911A /* Build configuration list for PBXNativeTarget "NuxeoFinderSync" */;
+			buildConfigurationList = 8B6E72662046EE5400AB5771 /* Build configuration list for PBXNativeTarget "NuxeoFinderSync" */;
 			buildPhases = (
-				8BE4C71A2045A4C2002B911A /* Sources */,
-				8BE4C71B2045A4C2002B911A /* Frameworks */,
-				8BE4C71C2045A4C2002B911A /* Resources */,
+				8B6E72592046EE5400AB5771 /* Sources */,
+				8B6E725A2046EE5400AB5771 /* Frameworks */,
+				8B6E725B2046EE5400AB5771 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -148,22 +159,22 @@
 			);
 			name = NuxeoFinderSync;
 			productName = NuxeoFinderSync;
-			productReference = 8BE4C71E2045A4C2002B911A /* NuxeoFinderSync.appex */;
+			productReference = 8B6E725D2046EE5400AB5771 /* NuxeoFinderSync.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		8BE4C6FF2045A4B2002B911A /* Project object */ = {
+		8B6E723E2046EE3D00AB5771 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0920;
 				LastUpgradeCheck = 0920;
 				ORGANIZATIONNAME = Nuxeo;
 				TargetAttributes = {
-					8BE4C7062045A4B2002B911A = {
+					8B6E72452046EE3D00AB5771 = {
 						CreatedOnToolsVersion = 9.2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.ApplicationGroups.Mac = {
 								enabled = 1;
@@ -173,9 +184,9 @@
 							};
 						};
 					};
-					8BE4C71D2045A4C2002B911A = {
+					8B6E725C2046EE5400AB5771 = {
 						CreatedOnToolsVersion = 9.2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.ApplicationGroups.Mac = {
 								enabled = 1;
@@ -184,7 +195,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 8BE4C7022045A4B2002B911A /* Build configuration list for PBXProject "drive" */;
+			buildConfigurationList = 8B6E72412046EE3D00AB5771 /* Build configuration list for PBXProject "drive" */;
 			compatibilityVersion = "Xcode 8.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -192,69 +203,70 @@
 				en,
 				Base,
 			);
-			mainGroup = 8BE4C6FE2045A4B2002B911A;
-			productRefGroup = 8BE4C7082045A4B2002B911A /* Products */;
+			mainGroup = 8B6E723D2046EE3D00AB5771;
+			productRefGroup = 8B6E72472046EE3D00AB5771 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				8BE4C7062045A4B2002B911A /* drive */,
-				8BE4C71D2045A4C2002B911A /* NuxeoFinderSync */,
+				8B6E72452046EE3D00AB5771 /* drive */,
+				8B6E725C2046EE5400AB5771 /* NuxeoFinderSync */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		8BE4C7052045A4B2002B911A /* Resources */ = {
+		8B6E72442046EE3D00AB5771 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8BE4C70F2045A4B2002B911A /* Assets.xcassets in Resources */,
-				8BE4C7122045A4B2002B911A /* Main.storyboard in Resources */,
+				8B6E724E2046EE3E00AB5771 /* Assets.xcassets in Resources */,
+				8B6E72512046EE3E00AB5771 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		8BE4C71C2045A4C2002B911A /* Resources */ = {
+		8B6E725B2046EE5400AB5771 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8BFDE4EE20486A5C00618B67 /* icon_64.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		8BE4C7032045A4B2002B911A /* Sources */ = {
+		8B6E72422046EE3D00AB5771 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8BE4C70D2045A4B2002B911A /* ViewController.swift in Sources */,
-				8BE4C70B2045A4B2002B911A /* AppDelegate.swift in Sources */,
+				8B6E724C2046EE3E00AB5771 /* ViewController.swift in Sources */,
+				8B6E724A2046EE3E00AB5771 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		8BE4C71A2045A4C2002B911A /* Sources */ = {
+		8B6E72592046EE5400AB5771 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8BE4C7212045A4C2002B911A /* FinderSync.swift in Sources */,
+				8B6E72602046EE5400AB5771 /* FinderSync.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		8BE4C7252045A4C2002B911A /* PBXTargetDependency */ = {
+		8B6E72642046EE5400AB5771 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 8BE4C71D2045A4C2002B911A /* NuxeoFinderSync */;
-			targetProxy = 8BE4C7242045A4C2002B911A /* PBXContainerItemProxy */;
+			target = 8B6E725C2046EE5400AB5771 /* NuxeoFinderSync */;
+			targetProxy = 8B6E72632046EE5400AB5771 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		8BE4C7102045A4B2002B911A /* Main.storyboard */ = {
+		8B6E724F2046EE3E00AB5771 /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				8BE4C7112045A4B2002B911A /* Base */,
+				8B6E72502046EE3E00AB5771 /* Base */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
@@ -262,7 +274,7 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		8BE4C7152045A4B2002B911A /* Debug */ = {
+		8B6E72542046EE3E00AB5771 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -319,7 +331,7 @@
 			};
 			name = Debug;
 		};
-		8BE4C7162045A4B2002B911A /* Release */ = {
+		8B6E72552046EE3E00AB5771 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -368,16 +380,15 @@
 			};
 			name = Release;
 		};
-		8BE4C7182045A4B2002B911A /* Debug */ = {
+		8B6E72572046EE3E00AB5771 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = drive/drive.entitlements;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 62752MUWTL;
 				INFOPLIST_FILE = drive/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
@@ -388,16 +399,15 @@
 			};
 			name = Debug;
 		};
-		8BE4C7192045A4B2002B911A /* Release */ = {
+		8B6E72582046EE3E00AB5771 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = drive/drive.entitlements;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 62752MUWTL;
 				INFOPLIST_FILE = drive/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
@@ -408,14 +418,14 @@
 			};
 			name = Release;
 		};
-		8BE4C7282045A4C2002B911A /* Debug */ = {
+		8B6E72672046EE5400AB5771 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = NuxeoFinderSync/NuxeoFinderSync.entitlements;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 62752MUWTL;
 				INFOPLIST_FILE = NuxeoFinderSync/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
@@ -427,14 +437,14 @@
 			};
 			name = Debug;
 		};
-		8BE4C7292045A4C2002B911A /* Release */ = {
+		8B6E72682046EE5400AB5771 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = NuxeoFinderSync/NuxeoFinderSync.entitlements;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 62752MUWTL;
 				INFOPLIST_FILE = NuxeoFinderSync/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
@@ -449,34 +459,34 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		8BE4C7022045A4B2002B911A /* Build configuration list for PBXProject "drive" */ = {
+		8B6E72412046EE3D00AB5771 /* Build configuration list for PBXProject "drive" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				8BE4C7152045A4B2002B911A /* Debug */,
-				8BE4C7162045A4B2002B911A /* Release */,
+				8B6E72542046EE3E00AB5771 /* Debug */,
+				8B6E72552046EE3E00AB5771 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8BE4C7172045A4B2002B911A /* Build configuration list for PBXNativeTarget "drive" */ = {
+		8B6E72562046EE3E00AB5771 /* Build configuration list for PBXNativeTarget "drive" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				8BE4C7182045A4B2002B911A /* Debug */,
-				8BE4C7192045A4B2002B911A /* Release */,
+				8B6E72572046EE3E00AB5771 /* Debug */,
+				8B6E72582046EE3E00AB5771 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8BE4C7272045A4C2002B911A /* Build configuration list for PBXNativeTarget "NuxeoFinderSync" */ = {
+		8B6E72662046EE5400AB5771 /* Build configuration list for PBXNativeTarget "NuxeoFinderSync" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				8BE4C7282045A4C2002B911A /* Debug */,
-				8BE4C7292045A4C2002B911A /* Release */,
+				8B6E72672046EE5400AB5771 /* Debug */,
+				8B6E72682046EE5400AB5771 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 8BE4C6FF2045A4B2002B911A /* Project object */;
+	rootObject = 8B6E723E2046EE3D00AB5771 /* Project object */;
 }
