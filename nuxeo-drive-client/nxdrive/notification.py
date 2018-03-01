@@ -180,7 +180,7 @@ class NotificationService(QObject):
             return result
 
     def send_notification(self, notification):
-        log.trace('Sending %r', notification)
+        log.debug('Sending %r', notification)
         notification._time = int(time.time())
         with self._lock:
             if notification.is_persistent():

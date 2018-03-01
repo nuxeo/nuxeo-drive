@@ -1,26 +1,26 @@
 # coding: utf-8
+import psutil
 from copy import deepcopy
 from logging import getLogger
 
-import psutil
-from PyQt4 import QtCore
+from PyQt4.QtCore import QTimer, pyqtSignal
 
-from engine.workers import PollWorker
-from nxdrive.engine.workers import ThreadInterrupt
+from nxdrive.engine.workers import PollWorker, ThreadInterrupt
+from nxdrive.utils import force_decode
 
 log = getLogger(__name__)
 
 
 class ProcessAutoLockerWorker(PollWorker):
 
-    orphanLocks = QtCore.pyqtSignal(object)
-    documentLocked = QtCore.pyqtSignal(str)
-    documentUnlocked = QtCore.pyqtSignal(str)
+    orphanLocks = pyqtSignal(object)
+    documentLocked = pyqtSignal(str)
+    documentUnlocked = pyqtSignal(str)
 
     def __init__(self, check_interval, dao, folder):
         super(ProcessAutoLockerWorker, self).__init__(check_interval)
         self._dao = dao
-        self._folder = folder
+        self._folder = force_decode(folder)
 
         self._autolocked = {}
         self._lockers = {}
@@ -34,7 +34,7 @@ class ProcessAutoLockerWorker(PollWorker):
 
         self._autolocked[filepath] = 0
         self._lockers[filepath] = locker
-        QtCore.QTimer.singleShot(2000, self.force_poll)
+        QTimer.singleShot(2000, self.force_poll)
 
     def _poll(self):
         try:
@@ -47,7 +47,7 @@ class ProcessAutoLockerWorker(PollWorker):
         except ThreadInterrupt:
             raise
         except:
-            log.trace('Unhandled error', exc_info=True)
+            log.exception('Unhandled error')
 
     def orphan_unlocked(self, path):
         self._dao.unlock_path(path)
@@ -56,9 +56,9 @@ class ProcessAutoLockerWorker(PollWorker):
         to_unlock = deepcopy(self._autolocked)
         for pid, path in get_open_files():
             if path.startswith(self._folder):
-                log.trace('Found in watched folder: %r (PID=%r)', path, pid)
+                log.debug('Found in watched folder: %r (PID=%r)', path, pid)
             elif path in self._autolocked:
-                log.trace('Found in auto-locked: %r (PID=%r)', path, pid)
+                log.debug('Found in auto-locked: %r (PID=%r)', path, pid)
             else:
                 continue
 
@@ -82,7 +82,7 @@ class ProcessAutoLockerWorker(PollWorker):
 
     def _lock_file(self, item):
         pid, path = item
-        log.trace('Locking file %r (PID=%r)', path, pid)
+        log.debug('Locking file %r (PID=%r)', path, pid)
         if path in self._lockers:
             locker = self._lockers[path]
             locker.autolock_lock(path)
@@ -90,7 +90,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self._to_lock.remove(item)
 
     def _unlock_file(self, path):
-        log.trace('Unlocking file %r', path)
+        log.debug('Unlocking file %r', path)
         if path in self._lockers:
             locker = self._lockers[path]
             locker.autolock_unlock(path)
@@ -110,6 +110,6 @@ def get_open_files():
     for proc in psutil.process_iter():
         try:
             for handler in proc.open_files():
-                yield proc.pid, handler.path
+                yield proc.pid, force_decode(handler.path)
         except psutil.Error:
             pass
