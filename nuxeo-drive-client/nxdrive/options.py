@@ -129,7 +129,7 @@ class MetaOptions(type):
         'ignored_files': (__files, 'default'),
         'ignored_prefixes': (__prefixes, 'default'),
         'ignored_suffixes': (__suffixes, 'default'),
-        'is_frozen': (getattr(sys, 'frozen', False), 'manual'),
+        'is_frozen': (getattr(sys, 'frozen', False), 'default'),
         'locale': ('en', 'default'),
         'log_filename': (None, 'default'),
         'log_level_console': ('INFO', 'default'),
@@ -147,7 +147,7 @@ class MetaOptions(type):
         'res_dir': (
             os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(__file__)),
                          'data'),
-            'manual'),
+            'default'),
         'server_version': (None, 'default'),
         'theme': ('ui5', 'default'),
         'startup_page': ('drive_login.jsp', 'default'),

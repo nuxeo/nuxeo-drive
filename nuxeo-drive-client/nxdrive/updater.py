@@ -481,8 +481,8 @@ class ServerOptionsUpdater(PollWorker):
             try:
                 raw, _ = client.do_get(client.rest_api_url + 'drive/configuration')
                 conf = json.loads(raw, encoding='utf-8')
-            except (URLError, ValueError):
-                continue
+            except Exception as exc:
+                log.error('Polling error: {}'.format(exc))
             else:
                 Options.update(conf, setter='server', fail_on_error=True)
                 break

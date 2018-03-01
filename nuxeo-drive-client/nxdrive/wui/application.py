@@ -592,13 +592,11 @@ class Application(SimpleApplication):
             log.exception('[%s] Invalid release notes', version)
             return
 
-        if 'body' not in data:
+        try:
+            html = markdown(data['body'])
+        except KeyError:
             log.error('[%s] Release notes is missing its body', version)
             return
-
-        body = data['body'].split('If you have a Nuxeo Drive')[0]
-        try:
-            html = markdown(body)
         except (UnicodeDecodeError, ValueError):
             log.exception('[%s] Release notes conversion error', version)
             return

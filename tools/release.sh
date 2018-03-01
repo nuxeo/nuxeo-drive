@@ -23,34 +23,20 @@ changelog() {
     # Create the draft.json file with the pre-release content
     local drive_version
     local changelog
-    local complete_changelog
 
     drive_version="$1"
     changelog="$(python tools/changelog.py --format=md)"
-    complete_changelog="$(cat <<EOF
-${changelog}
-
-If you have a Nuxeo Drive instance running against a LTS or a Fast Track version of Nuxeo, a notification about this new version should be displayed in the systray menu within an hour allowing you to upgrade (can bypass this delay by restarting Drive).
-
-It is also directly available for download from:
-- http://community.nuxeo.com/static/drive-tests/nuxeo-drive-${drive_version}.exe
-- http://community.nuxeo.com/static/drive-tests/nuxeo-drive-${drive_version}.dmg
-
-Or from the Nuxeo Drive tab in the User Center of a LTS or a Fast Track version of Nuxeo.
-EOF
-)"
 
     # Escape lines feed and double quotes for JSON
-    complete_changelog="$(echo "${complete_changelog}" | sed 's|$|\\n|g ; s|\"|\\\"|g')"
+    changelog="$(echo "${changelog}" | sed 's|$|\\n|g ; s|\"|\\\"|g')"
 
     # Create the pre-release draft
     [ -f draft.json ] && rm -f draft.json
     cat > draft.json <<EOF
 {
     "tag_name": "release-${drive_version}",
-    "target_commitish": "master",
     "name": "${drive_version}",
-    "body": "${complete_changelog}",
+    "body": "${changelog}",
     "draft": true,
     "prerelease": true
 }
