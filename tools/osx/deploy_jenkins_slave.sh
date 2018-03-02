@@ -46,7 +46,7 @@ create_package() {
     local plist="${WORKSPACE_DRIVE}/tools/osx/Info.plist"
     local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
     local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store"
-    local app_version="$("${pkg_path}/Contents/MacOS/ndrive" -v 2>&1)"
+    local app_version="$(python "${WORKSPACE_DRIVE}/tools/changelog.py" --drive-version)"
 
     echo ">>> [package] Updating Info.plist"
     sed "s/\$version/${app_version}/" "${plist}" > "${pkg_path}/Contents/Info.plist"
