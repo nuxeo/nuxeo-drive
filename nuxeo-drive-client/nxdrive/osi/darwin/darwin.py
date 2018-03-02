@@ -41,14 +41,14 @@ class DarwinIntegration(AbstractOSIntegration):
         agent_filepath = self._get_agent_file()
         agents_folder = os.path.dirname(agent_filepath)
         exe_path = self._manager.find_exe_path()
-        log.debug('Registering "%s" for startup in: %s',
+        log.debug('Registering %r for startup in %r',
                   exe_path, agent_filepath)
 
         if not os.path.exists(agents_folder):
-            log.debug('Making launch agent folder %s', agents_folder)
+            log.debug('Making launch agent folder %r', agents_folder)
             os.makedirs(agents_folder)
 
-        log.debug('Writing launch agent file %s', agent_filepath)
+        log.debug('Writing launch agent file %r', agent_filepath)
         with open(agent_filepath, 'wb') as f:
             f.write(self.NDRIVE_AGENT_TEMPLATE % exe_path)
 
@@ -56,14 +56,6 @@ class DarwinIntegration(AbstractOSIntegration):
         agent_filepath = self._get_agent_file()
         if os.path.exists(agent_filepath):
             os.remove(agent_filepath)
-
-    def register_contextual_menu(self):
-        # Handled through the FinderSync extension
-        pass
-
-    def unregister_contextual_menu(self):
-        # Handled through the FinderSync extension
-        pass
 
     def register_protocol_handlers(self):
         """Register the URL scheme listener using PyObjC"""

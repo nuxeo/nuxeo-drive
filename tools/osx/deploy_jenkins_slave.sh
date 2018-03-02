@@ -37,7 +37,7 @@ code_sign() {
 create_package() {
     # Create the final DMG
     local app_name="Nuxeo Drive"
-    local bundle_name="Nuxeo Drive.app"
+    local bundle_name="${app_name}.app"
     local output_dir="${WORKSPACE_DRIVE}/dist"
     local pkg_path="${output_dir}/${bundle_name}"
     local src_folder_tmp="${WORKSPACE}/dmg_src_folder.tmp"

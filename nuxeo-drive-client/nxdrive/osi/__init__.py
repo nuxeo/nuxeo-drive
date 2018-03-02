@@ -27,7 +27,6 @@ class AbstractOSIntegration(object):
         """ Several action to do before uninstalling Drive. """
 
         # macOS only
-        self.unregister_contextual_menu()
         self.unregister_protocol_handlers()
         self.unregister_startup()
 
@@ -38,12 +37,6 @@ class AbstractOSIntegration(object):
         pass
 
     def unregister_protocol_handlers(self):
-        pass
-
-    def register_contextual_menu(self):
-        pass
-
-    def unregister_contextual_menu(self):
         pass
 
     def register_folder_link(self, folder_path, name=None):

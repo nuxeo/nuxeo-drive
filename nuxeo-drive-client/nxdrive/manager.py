@@ -372,7 +372,6 @@ class Manager(QtCore.QObject):
 
     def _handle_os(self):
         # Be sure to register os
-        self.osi.register_contextual_menu()
         self.osi.register_protocol_handlers()
         if self.get_auto_start():
             self.osi.register_startup()
