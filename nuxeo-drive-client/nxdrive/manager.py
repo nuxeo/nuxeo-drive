@@ -37,24 +37,6 @@ elif AbstractOSIntegration.is_mac():
 log = getLogger(__name__)
 
 
-try:
-    # Set the cffi tmp path to lib for xattr
-    if sys.platform == 'darwin' or sys.platform.startswith('linux') and hasattr(sys, 'frozen'):
-        from cffi.verifier import set_tmpdir
-        import nxdrive
-        nxdrive_path = os.path.dirname(nxdrive.__file__)
-        nxdrive_path = os.path.dirname(nxdrive_path)
-        nxdrive_path = os.path.dirname(nxdrive_path)
-        if sys.platform == 'darwin':
-            lib_path = os.path.join(nxdrive_path, 'lib-dynload')
-        else:
-            lib_path = nxdrive_path
-        log.debug('Using %s as tmpdir for cffi module', lib_path)
-        set_tmpdir(lib_path)
-except:
-    pass
-
-
 class FolderAlreadyUsed(Exception):
     pass
 

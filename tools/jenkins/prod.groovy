@@ -26,7 +26,7 @@ timestamps {
             }
 
             stage('Deploy') {
-                sh "tools/deploy.sh ${env.VERSION}""
+                sh "tools/deploy.sh ${env.VERSION}"
                 archive 'prerelease.json'
                 currentBuild.description = "Release ${env.VERSION}"
             }

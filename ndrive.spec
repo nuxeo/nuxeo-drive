@@ -17,6 +17,9 @@ icon = {
 excludes = [
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-remove-tkinter-tcl
     'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter',
+
+    # macOS fix
+    'IPython',
 ]
 
 a = Analysis([os.path.join(nxdrive, 'commandline.py')],
