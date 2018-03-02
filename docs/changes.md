@@ -22,6 +22,7 @@ Release date: `2018-??-??`
 - Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
 - Jenkins: Possibility to launch the beta job on a given branch
 - Jenkins: Possibility to launch the release job on a given beta version
+- Packaging: Merged OS specific requirements-*.txt into one file
 - Packaging: Removed `cffi`, will be installed with `xattr`
 - Packaging: Updated `Js2Py` from 0.58 to 0.59
 - Packaging: Updated `pypac` from 0.4.0 to 0.8.1

@@ -67,17 +67,23 @@ Nuxeo Drive is officially supported on **Python 2.7 only**.
 Let's say you have installed Qt4 (from official repository or compiled manually), then install Nuxeo Drive requirements and Nuxeo Drive itself.
 These are common installation actions, not depending on the package manager:
 
+    # For Drive >= 3.1.0:
+    DRIVE_VERSION=release-3.1.0
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
+    pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
+
+    # For 2.2.227 <= Drive < 3.1.0:
+    DRIVE_VERSION=release-2.2.323
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
+    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements-unix.txt
+    pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
+
     # For Drive < 2.2.227:
     DRIVE_VERSION=release-2.1.113
     pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
     pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/unix-requirements.txt
     pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
 
-    # For Drive >= 2.2.227:
-    DRIVE_VERSION=release-2.2.323
-    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
-    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements-unix.txt
-    pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
 
 Check that `~/.local/bin` is in the `PATH` and then you can start Drive by typing `ndrive` in a terminal.
 
