@@ -53,7 +53,7 @@ ln -sfrv ${exe} ${path}/drive/latest/nuxeo-drive.${ext_win_only}
 # Create symbolic links of the latest packages for all supported versions of Nuxeo
 for folder in \$(find ${path}/drive/latest -maxdepth 1 -type d); do
     ln -sfrv ${dmg} \$folder/nuxeo-drive.dmg
-    ln -sfrv ${exe} \$folder/nuxeo-drive.exe
+    ln -sfrv ${exe} \$folder/nuxeo-drive.${ext_win_only}
 done
 EOF
 
@@ -72,7 +72,7 @@ EOF
     curl -X PATCH -i -n -d '{ "prerelease": false }' "${release_url}"
 }
 
-function version_gt() {
+version_gt() {
     # Compare 2 versions and return a boolean stating if the 1st one is greater than the 2nd.
     test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
 }
