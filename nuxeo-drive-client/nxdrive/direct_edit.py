@@ -44,7 +44,8 @@ class DirectEdit(Worker):
         self._folder = folder
         self.url = url
 
-        self._thread.started.connect(self.run)
+        self.autolock = self._manager.autolock_service
+        self.use_autolock = self._manager.get_direct_edit_auto_lock()
         self._event_handler = None
         self._metrics = {'edit_files': 0}
         self._observer = None
@@ -53,9 +54,11 @@ class DirectEdit(Worker):
         self._lock_queue = Queue()
         self._error_queue = BlacklistQueue()
         self._stop = False
-        self._manager.autolock_service.orphanLocks.connect(self._autolock_orphans)
         self._last_action_timing = -1
         self.watchdog_queue = Queue()
+
+        self._thread.started.connect(self.run)
+        self.autolock.orphanLocks.connect(self._autolock_orphans)
 
     @pyqtSlot(object)
     def _autolock_orphans(self, locks):
@@ -64,7 +67,7 @@ class DirectEdit(Worker):
             if lock.path.startswith(self._folder):
                 log.debug('Should unlock %r', lock.path)
                 if not os.path.exists(lock.path):
-                    self._manager.autolock_service.orphan_unlocked(lock.path)
+                    self.autolock.orphan_unlocked(lock.path)
                     continue
 
                 ref = self._local_client.get_path(lock.path)
@@ -384,7 +387,7 @@ class DirectEdit(Worker):
                     remote.lock(uid)
                     local.set_remote_id(dir_path, '1', name='nxdirecteditlock')
                     # Emit the lock signal only when the lock is really set
-                    self._manager.autolock_service.documentLocked.emit(os.path.basename(ref))
+                    self.autolock.documentLocked.emit(os.path.basename(ref))
                     continue
 
                 try:
@@ -397,13 +400,13 @@ class DirectEdit(Worker):
                 if purge or action.startswith('unlock'):
                     path = local.abspath(ref)
                     log.trace('Remove orphan: %r', path)
-                    self._manager.autolock_service.orphan_unlocked(path)
+                    self.autolock.orphan_unlocked(path)
                     shutil.rmtree(path, ignore_errors=True)
                     continue
 
                 local.remove_remote_id(dir_path, name='nxdirecteditlock')
                 # Emit the signal only when the unlock is done
-                self._manager.autolock_service.documentUnlocked.emit(os.path.basename(ref))
+                self.autolock.documentUnlocked.emit(os.path.basename(ref))
             except ThreadInterrupt:
                 raise
             except:
@@ -562,7 +565,7 @@ class DirectEdit(Worker):
                 return
 
             local = self._local_client
-            file_name = os.path.basename(src_path)
+            file_name = force_decode(os.path.basename(src_path))
             if local.is_temp_file(file_name):
                 return
 
@@ -570,23 +573,41 @@ class DirectEdit(Worker):
                       evt.event_type, evt.src_path)
 
             if evt.event_type == 'moved':
-                src_path = evt.dest_path
-                file_name = os.path.basename(src_path)
+                src_path = normalize_event_filename(evt.dest_path)
+                file_name = force_decode(os.path.basename(src_path))
 
             ref = local.get_path(src_path)
             dir_path = local.get_path(os.path.dirname(src_path))
             name = local.get_remote_id(dir_path, name='nxdirecteditname')
 
-            if not name or force_decode(name) != force_decode(file_name):
-                if (evt.event_type == 'deleted'
-                        and self._is_lock_file(file_name)):
-                    # Free the xattr to let _cleanup() does its work
-                    local.remove_remote_id(dir_path, name='nxdirecteditlock')
+            if not name:
                 return
 
-            if (local.get_remote_id(dir_path, name='nxdirecteditlock') != '1'
-                    and self._manager.get_direct_edit_auto_lock()):
-                self._manager.autolock_service.set_autolock(src_path, self)
+            editing = local.get_remote_id(dir_path, name='nxdirecteditlock')
+
+            if force_decode(name) != file_name:
+                if self._is_lock_file(file_name):
+                    if (evt.event_type == 'created'
+                            and self.use_autolock and editing != '1'):
+                        """
+                        [Windows 10] The original file is not modified until
+                        we specifically click on the save button. Instead, it
+                        applies changes to the temporary file.
+                        So the auto-lock does not happen because there is no
+                        'modified' event on the original file.
+                        Here we try to address that by checking the lock state
+                        and use the lock if not already done.
+                        """
+                        # Recompute the path from 'dir/temp_file' -> 'dir/file'
+                        path = os.path.join(os.path.dirname(src_path), name)
+                        self.autolock.set_autolock(path, self)
+                    elif evt.event_type == 'deleted':
+                        # Free the xattr to let _cleanup() does its work
+                        local.remove_remote_id(dir_path, name='nxdirecteditlock')
+                return
+
+            if self.use_autolock and editing != '1':
+                self.autolock.set_autolock(src_path, self)
 
             if evt.event_type != 'deleted':
                 self._upload_queue.put(ref)

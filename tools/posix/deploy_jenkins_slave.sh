@@ -150,10 +150,6 @@ install_deps() {
     ${PIP} setuptools
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-dev.txt
-    ${PIP} -r requirements-unix.txt
-    case "${OSI}" in
-        "osx") ${PIP} -r requirements-mac.txt ;;
-    esac
 }
 
 install_pyenv() {
