@@ -1,0 +1,121 @@
+# Installer
+
+## Old Implementation
+
+Until Drive 3.1.0, we were using [cx_Freeze](https://pypi.org/project/cx_Freeze/) in conjonction with either [Esky](https://pypi.org/project/esky/) (Windows) or [py2app](https://pypi.org/project/py2app/) (macOS) to freeze the code and create installer.
+It has worked for years but when we needed to move forward to Python 3 and Qt 5, we were stuck:
+- the cx_Freeze update from 4.3.3 to latest 5.1.1 was impossible due to Esky incompatibilty;
+- the Windows installer was not ideal with lot of issues (executable information, panel configuration information, ... );
+- not possible to sign installers and packages;
+- cx_Freeze and Esky were not Python 3 compliant.
+
+So, with the issue [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730), we decided to seek for an alternative.
+
+## Current Implementation
+
+### Freezer
+
+We decided to use [PyInstaller](http://www.pyinstaller.org/) to freeze the code:
+- installation made easy;
+- a uniq way to build releases on GNU/Linux, macOS and Windows;
+- code-signing executables.
+
+### Installers
+
+Currently, only macOS and Windows are supported.
+There is no built-in support for installer on GNU/Linux.
+
+#### GNU/Linux
+
+TODO: complete when [NXDRIVE-351](https://jira.nuxeo.com/browse/NXDRIVE-351) is done.
+
+#### macOS
+
+TODO
+
+#### Windows
+
+[Inno Setup](http://www.jrsoftware.org/) is used to build the installer:
+- no more modifications into the registry with Python;
+- easily expandable (customers could customize their installers);
+- installation more than easy (click on Next, Next and OK);
+- no more admin rights required ([NXDRIVE-601](https://jira.nuxeo.com/browse/NXDRIVE-601));
+- installer with our logo and colors;
+- complete uninstaller (Drive files and regedit purgation, but not personnal files);
+- good informations and logo in the panel configuration ([NXDRIVE-512](https://jira.nuxeo.com/browse/NXDRIVE-512) and [NXDRIVE-448](https://jira.nuxeo.com/browse/NXDRIVE-448));
+- possibility to sign the package;
+- installation via CLI possible;
+- we can build the installer via a batch script;
+- update is easy, just download the new version and click on Next, Next and OK;
+- we can remove Esky and purge the monstruous `setup.py` file.
+
+##### Installer Customization
+
+The installer generator is drived by the file `tools\windows\setup.iss`. It is quite easy to read and understand, even more easier to customize.
+So if you plan to create your own Nuxeo Drive installer, this is where to look at. We put a lot of comments in the file and modifying it will not require extended technical skills.
+
+When you are done with it, you call the *Inno Setup Compiler* like:
+
+    "C:\Program Files (x86)\Inno Setup 5\iscc.exe" /DMyAppVersion="x.y.z" "tools\windows\setup.iss"
+
+That is all, ~40 seconds later, you will find a file `dist\nuxeo-drive-x.y.z.exe`: ready to deploy and install!
+
+##### Installer Arguments
+
+You can customize the Nuxeo Drive installation by passing custom arguments.
+
+###### Retro-compatibility
+
+As of Nuxeo Drive 3.1.0, we changed the way Drive is packaged. We are now creating EXE files instead of MSI.
+
+If you used to customize the installation process, know that the same arguments are taken into account, but the way you declare them changes:
+
+- old: `msiexec /i nuxeo-drive.msi /qn /quiet ARG=value ...`
+- new: `nuxeo-drive.exe /silent /ARG=value ...`
+
+**Warning**: it is now highly deprecated to use the `TARGETDIR` argument. For convenient reasons, we decided to not allow the user to choose the installation folder.
+So it may work, but we **do not support** this as it can break the auto-update and introduce other issues.
+
+###### Mandatory arguments
+
+Note: You cannot use one of these arguments without the other, they are complementary.
+
+- `TARGETURL`:  The URL of the Nuxeo server.
+- `TARGETUSERNAME`: The username of the user who will be using Nuxeo Drive.
+
+###### Optionnal arguments
+
+- `TARGETPASSWORD`: The password of the user who will be using Nuxeo Drive.
+If you don't specify it then it will be asked to the user when Nuxeo Drive is started.
+- `TARGETDRIVEFOLDER`: The path to the user synchronisation folder that will be created.
+Path must include the Nuxeo Drive folder.
+- `START=auto`: Start Nuxeo Drive after the installation.
+
+###### Examples
+
+Install Nuxeo Drive and configure the Nuxeo server to `http://localhost:8080/nuxeo` with the username `username`:
+
+    nuxeo-drive.exe /SILENT /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="username"
+
+Same as above, but add the associated password:
+
+    nuxeo-drive.exe /SILENT /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="username" /TARGETPASSWORD="password"
+
+A full installation, useful for large automatic deployments:
+
+    nuxeo-drive.exe /VERYSILENT /TARGETDRIVEFOLDER="%USERPROFILE%\Documents\Nuxeo Drive" /TARGETURL="http://localhost:8080/nuxeo" /TARGETUSERNAME="foo"
+
+Even if `username` is wrong, it will allow the customization of the Nuxeo server on all clients. The users will be asked to enter their username and password upon the first connection.
+
+###### Windows CLI for Nuxeo Drive
+
+Usefull commands for sysadmin, but it can be helpful for every one in time.
+
+- Stop/Kill Nuxeo Drive:
+```
+taskkill /im ndrive.exe /f 2>null
+```
+- Silently uninstall Nuxeo Drive:
+```
+"%USERPROFILE%\AppData\Roaming\Nuxeo Drive\unins000.exe /VERYSILENT"
+```

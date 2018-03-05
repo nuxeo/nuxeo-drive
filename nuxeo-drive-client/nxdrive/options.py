@@ -119,7 +119,7 @@ class MetaOptions(type):
     options = {
         'beta_channel': (False, 'default'),
         'beta_update_site_url': (
-            'http://community.nuxeo.com/static/drive-tests/', 'default'),
+            'https://community.nuxeo.com/static/drive-updates/', 'default'),
         'consider_ssl_errors': (False, 'default'),
         'debug': (False, 'default'),
         'debug_pydev': (False, 'default'),
@@ -156,7 +156,7 @@ class MetaOptions(type):
         'ui': ('jsf', 'default'),
         'update_check_delay': (3600, 'default'),
         'update_site_url': (
-            'http://community.nuxeo.com/static/drive/', 'default'),
+            'http://community.nuxeo.com/static/drive-updates/', 'default'),
     }  # type: Dict[unicode, Tuple[Any, unicode]]
 
     # Callbacks for any option change.
