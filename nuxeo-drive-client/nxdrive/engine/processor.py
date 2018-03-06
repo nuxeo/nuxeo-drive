@@ -414,7 +414,7 @@ class Processor(EngineWorker):
             if doc_pair.local_digest == UNACCESSIBLE_HASH:
                 self._postpone_pair(doc_pair, 'Unaccessible hash')
                 return
-            self._dao.update_local_state(doc_pair, info, versionned=False, queue=False)
+            self._dao.update_local_state(doc_pair, info, versioned=False, queue=False)
         if not local_client.is_equal_digests(doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path):
             if doc_pair.remote_can_update:
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
@@ -430,7 +430,7 @@ class Processor(EngineWorker):
                 )
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
-                self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False)
+                self._dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
                 # TODO refresh_client
             else:
                 log.debug('Skip update of remote document %r as it is read-only.',
@@ -451,7 +451,7 @@ class Processor(EngineWorker):
                 return
         if fs_item_info is None:
             fs_item_info = remote_client.get_info(doc_pair.remote_ref)
-            self._dao.update_remote_state(doc_pair, fs_item_info, versionned=False)
+            self._dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
         self._synchronize_if_not_remotely_dirty(doc_pair, local_client, remote_client, remote_info=fs_item_info)
 
     def _get_normal_state_from_remote_ref(self, ref):
@@ -557,7 +557,7 @@ class Processor(EngineWorker):
                             fs_item_info.uid, doc_pair.local_name)
                     self._dao.update_remote_state(
                         doc_pair, fs_item_info,
-                        remote_parent_path=remote_parent_path, versionned=False)
+                        remote_parent_path=remote_parent_path, versioned=False)
                     # Handle document modification - update the doc_pair
                     doc_pair = self._dao.get_state_from_id(doc_pair.id)
                     self._synchronize_locally_modified(
@@ -611,14 +611,14 @@ class Processor(EngineWorker):
                     # Size has changed ( copy must still be running )
                     doc_pair.local_digest = UNACCESSIBLE_HASH
                     self._dao.update_local_state(doc_pair, info,
-                                                 versionned=False, queue=False)
+                                                 versioned=False, queue=False)
                     self._postpone_pair(doc_pair, 'Unaccessible hash')
                     return
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
                     doc_pair.local_digest = info.get_digest()
                     log.trace("Creation of postponed local file: %r", doc_pair)
                     self._dao.update_local_state(doc_pair, info,
-                                                 versionned=False, queue=False)
+                                                 versioned=False, queue=False)
                     if doc_pair.local_digest == UNACCESSIBLE_HASH:
                         self._postpone_pair(doc_pair, 'Unaccessible hash')
                         return
@@ -639,7 +639,7 @@ class Processor(EngineWorker):
                     pass
                 self._dao.update_remote_state(doc_pair, fs_item_info,
                                               remote_parent_path=remote_parent_path,
-                                              versionned=False, queue=False)
+                                              versioned=False, queue=False)
             log.trace("Put remote_ref in %s", remote_ref)
             try:
                 if not remote_id_done:
@@ -759,7 +759,7 @@ class Processor(EngineWorker):
                                                  parent_pair.remote_ref)
                 self._dao.update_remote_state(doc_pair, remote_info,
                                               remote_parent_path=parent_path,
-                                              versionned=False)
+                                              versioned=False)
             else:
                 # Move it back
                 self._handle_failed_remote_move(doc_pair, doc_pair)
@@ -1121,12 +1121,12 @@ class Processor(EngineWorker):
     def _refresh_remote(self, doc_pair, remote_client, remote_info=None):
         if remote_info is None:
             remote_info = remote_client.get_info(doc_pair.remote_ref)
-        self._dao.update_remote_state(doc_pair, remote_info, versionned=False, queue=False)
+        self._dao.update_remote_state(doc_pair, remote_info, versioned=False, queue=False)
 
     def _refresh_local_state(self, doc_pair, local_info):
         if doc_pair.local_digest is None and not doc_pair.folderish:
             doc_pair.local_digest = local_info.get_digest()
-        self._dao.update_local_state(doc_pair, local_info, versionned=False, queue=False)
+        self._dao.update_local_state(doc_pair, local_info, versioned=False, queue=False)
         doc_pair.local_path = local_info.path
         doc_pair.local_name = os.path.basename(local_info.path)
         doc_pair.last_local_updated = local_info.last_modification_time

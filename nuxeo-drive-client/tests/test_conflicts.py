@@ -88,6 +88,32 @@ class TestConflicts(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertEqual(self.remote_file_system_client_2.get_content(self.file_id), 'Local update 2')
 
+    def test_resolve_local_folder(self):
+        local = self.local_client_1
+        remote = self.remote_file_system_client_1
+
+        self.engine_1.suspend()
+        workspace = 'defaultSyncRootFolderItemFactory#default#{}'.format(
+            self.workspace)
+        folder = remote.make_folder(workspace, 'ABC').uid
+        self.engine_1.resume()
+        self.wait_sync(wait_for_async=True)
+
+        self.engine_1.suspend()
+        local.rename('/ABC', 'ABC_123')
+        remote.rename(folder, 'ABC_234')
+        self.engine_1.resume()
+        self.wait_sync(wait_for_async=True)
+
+        pair = self.engine_1.get_dao().get_normal_state_from_remote(folder)
+        assert pair.pair_state == 'conflicted'
+
+        self.engine_1.resolve_with_local(pair.id)
+        self.wait_sync(wait_for_async=True)
+        pair = self.engine_1.get_dao().get_normal_state_from_remote(folder)
+        assert pair.remote_name == 'ABC_123'
+        assert pair.pair_state == 'synchronized'
+
     def test_resolve_remote(self):
         self.test_real_conflict()
         # Resolve to local file

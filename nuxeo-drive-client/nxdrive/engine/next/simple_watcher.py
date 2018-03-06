@@ -68,7 +68,7 @@ class SimpleWatcher(LocalWatcher):
         if local_info is None:
             log.warning("Should not disapear")
             return
-        self._dao.update_local_state(doc_pair, local_info, versionned=True)
+        self._dao.update_local_state(doc_pair, local_info, versioned=True)
         log.warning("has update with moved status")
 
     def handle_watchdog_event(self, evt):
@@ -118,7 +118,7 @@ class SimpleWatcher(LocalWatcher):
                     doc_pair.local_state = 'modified'
             doc_pair.local_digest = digest
             log.warning("file is updated: %r", doc_pair)
-            self._dao.update_local_state(doc_pair, local_info, versionned=True)
+            self._dao.update_local_state(doc_pair, local_info, versioned=True)
 
     def _execute(self):
         try:
