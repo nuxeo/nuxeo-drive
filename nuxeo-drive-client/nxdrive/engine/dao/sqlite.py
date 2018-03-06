@@ -1166,7 +1166,8 @@ class EngineDAO(ConfigurationDAO):
         if (row.pair_state not in ('conflicted', 'remotely_created')
                 and row.folderish
                 and row.local_name
-                and row.local_name != info.name):
+                and row.local_name != info.name
+                and row.local_state != 'resolved'):
             # We check the current pair_state to not interfer with conflicted
             # documents (a move on both sides) nor with newly remotely
             # created ones.

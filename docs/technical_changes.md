@@ -67,7 +67,6 @@
 - Removed `RemoteWatcher.testing`
 - Removed `RestAPIClient.get_acls()`
 - Removed `StatusTreeview.filter_sync`
-- Removed `WebAuthenticationApi.create_account()`
 - Removed `WebConflictsApi.resolve_with_duplicate()`
 - Removed `WebDriveApi.file_dialog_dir`
 - Removed `WebDriveApi.get_last_url()`

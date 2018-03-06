@@ -573,7 +573,8 @@ class Processor(EngineWorker):
                         and local_client.is_equal_digests(doc_pair.local_digest,
                                                           fs_item_info.digest,
                                                           doc_pair.local_path)
-                        and doc_pair.local_name == info.name):
+                        and (doc_pair.local_name == info.name
+                             or doc_pair.local_state == 'resolved')):
                     if overwrite and info.folderish:
                         self._synchronize_locally_moved(
                             doc_pair, local_client, remote_client)
