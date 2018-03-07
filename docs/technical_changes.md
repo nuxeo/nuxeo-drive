@@ -33,6 +33,7 @@
 - Removed `Engine.resolve_with_duplicate()`
 - Removed `EngineDAO.mark_descendants_remotely_deleted()`
 - Removed `EngineDAO.mark_descendants_locally_created()`
+- Changed `EngineDAO.update_remote_state()` `versionned` keyword argument to `versioned`
 - Removed `EngineDAO.update_local_paths()`
 - Removed `EngineLogger.logger`
 - Removed `FileInfo.get_parent()`
