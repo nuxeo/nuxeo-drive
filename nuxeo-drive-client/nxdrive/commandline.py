@@ -149,13 +149,6 @@ class CliHandler(object):
             help='Delay in seconds between checks for application update')
 
         common_parser.add_argument(
-            # XXX: Make it true by default as the fault tolerant
-            #  mode is not yet implemented
-            '--stop-on-error', default=Options.stop_on_error,
-            action='store_true',
-            help='Stop the process on first unexpected error')
-
-        common_parser.add_argument(
             '--max-errors', default=Options.max_errors, type=int,
             help='Maximum number of tries before giving up synchronization of '
                  'a file in error')

@@ -151,7 +151,6 @@ class MetaOptions(type):
         'server_version': (None, 'default'),
         'theme': ('ui5', 'default'),
         'startup_page': ('drive_login.jsp', 'default'),
-        'stop_on_error': (True, 'default'),
         'timeout': (30, 'default'),
         'ui': ('jsf', 'default'),
         'update_check_delay': (3600, 'default'),
