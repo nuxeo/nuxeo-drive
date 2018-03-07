@@ -51,7 +51,7 @@ class Updater(BaseUpdater):
             return
 
         # Trigger the application exit + restart
-        self.manager.stopped.connect(self._restart)
+        self._restart()
         self.appUpdated.emit()
 
     def _backup(self, restore=False):
@@ -78,14 +78,14 @@ class Updater(BaseUpdater):
         path = '/Applications/{}.app.old'.format(self.manager.app_name)
         try:
             shutil.rmtree(path)
-            log.debub('Deleted %r', path)
+            log.debug('Deleted %r', path)
         except OSError:
             pass
 
         # The temporary DMG
         try:
             os.remove(filename)
-            log.debub('Deleted %r', filename)
+            log.debug('Deleted %r', filename)
         except OSError:
             pass
 
@@ -104,5 +104,6 @@ class Updater(BaseUpdater):
         Restart the current application to take into account the new version.
         """
 
-        app = '/Applications/{}.app'.format(self.manager.app_name)
-        subprocess.Popen(['open', app], close_fds=True)
+        cmd = 'sleep 5 ; open "/Applications/{}.app"'.format(self.manager.app_name)
+        log.debug('Launching the new %s version in 5 secondes ...', self.manager.app_name)
+        subprocess.Popen(cmd, shell=True, close_fds=True)

@@ -199,6 +199,6 @@ begin
     silent := ExpandConstant('{param:SILENT}');
     verysilent := ExpandConstant('{param:VERYPSILENT}');
     auto := ExpandConstant('{param:START}');
-    if (Length(auto) > 0) or (Length(silent) = 0) or (Length(verysilent) = 0) then
+    if (Length(auto) > 0) or ((Length(silent) = 0) and (Length(verysilent) = 0)) then
         Result := True;
 end;

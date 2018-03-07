@@ -20,7 +20,7 @@ import SimpleHTTPServer
 import SocketServer
 import distutils.dir_util
 import distutils.version
-import glob
+import hashlib
 import io
 import os
 import re
@@ -30,46 +30,38 @@ import sys
 import tempfile
 import threading
 import time
-import zipfile
 
-__version__ = '0.1.2'
+__version__ = '0.2.0'
 
 
-class Server(SimpleHTTPServer.SimpleHTTPRequestHandler):
-    """ Simple server handler to emulate custom responses. """
+Server = SimpleHTTPServer.SimpleHTTPRequestHandler
 
-    def do_GET(self):
-        if self.path.endswith('.json'):
-            if re.match(r'^/\d\.\d\.\d\.json$', self.path):
-                # Serve files like "2.5.5.json"
-                content = b'{"nuxeoPlatformMinVersion": "5.6"}'
-            else:
-                # Serve files like "9.2.json" or 9.3-SNAPSHOT.json"
-                content = b'{"nuxeoDriveMinVersion": "2.0.1028"}'
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Content-length', 4 * len(content))
-            self.end_headers()
-            path = self.path.lstrip('/')
-            open(path, 'wb').write(content)
-            f = open(path, 'rb')
-        else:
-            f = self.send_head()
-        if f:
-            try:
-                self.copyfile(f, self.wfile)
-            finally:
-                f.close()
+
+def create_versions(dst, version, checksum):
+    """ Create the versions.yml file. """
+
+    print('>>> Crafting versions.yml')
+    yml = b"""
+{version}:
+    min: '7.10'
+    type: release
+    checksum:
+        algo: sha256
+        dmg: {checksum}
+        exe: {checksum}
+    """.format(version=version, checksum=checksum)
+    with open(os.path.join(dst, 'versions.yml'), 'w') as versions:
+        versions.write(yml)
 
 
 def gen_exe():
-    """ Generate an executable. """
+    """ Generate an executable to install. """
 
-    if sys.platform == 'linux2':
-        cmd = 'sh tools/linux/deploy_jenkins_slave.sh --build'
-    elif sys.platform == 'darwin':
+    cmd = []
+
+    if sys.platform == 'darwin':
         cmd = 'sh tools/osx/deploy_jenkins_slave.sh --build'
-    else:
+    elif sys.platform == 'win32':
         cmd = ('powershell -ExecutionPolicy Unrestricted'
                ' . ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build')
 
@@ -78,50 +70,88 @@ def gen_exe():
     return output.decode('utf-8').strip()
 
 
-def launch_drive(archive):
+def install_drive(installer):
+    """ Install Drive onto the system to simulate a real case. """
+
+    if sys.platform == 'darwin':
+        # Simulate what nxdrive.updater.darwin.intall() does
+        cmd = ['hdiutil', 'mount', installer]
+        print('>>> Command:', cmd)
+        mount_info = subprocess.check_output(cmd)
+        mount_dir = mount_info.splitlines()[-1].split('\t')[-1]
+
+        src = '{}/Nuxeo Drive.app'.format(mount_dir)
+        dst = '/Applications/Nuxeo Drive.app'
+        if os.path.isdir(dst):
+            print('>>> Deleting', dst)
+            shutil.rmtree(dst)
+        print('>>> Copying', src, '->', dst)
+        shutil.copytree(src, dst)
+
+        cmd = ['hdiutil', 'unmount', mount_dir]
+        print('>>> Command:', cmd)
+        subprocess.check_call(cmd)
+    elif sys.platform == 'win32':
+        cmd = [installer, '/verysilent']
+        print('>>> Command:', cmd)
+        subprocess.check_call(cmd)
+
+
+def launch_drive():
     """ Launch Drive and wait for auto-update. """
 
     # Be patient, especially on Windows ...
     time.sleep(5)
 
-    # Extract the fresh Drive archive
-    with zipfile.ZipFile(archive) as handler:
-        handler.extractall()
+    cmd = []
 
-    # Again, be patient, especially on macOS ...
-    time.sleep(5)
+    if sys.platform == 'darwin':
+        cmd = ['open', '/Applications/Nuxeo Drive.app', '--args']
+    elif sys.platform == 'win32':
+        cmd = [r'%USERPROFILE%\\AppData\\Roaming\\Nuxeo Drive\\ndrive.exe']
 
-    if sys.platform == 'linux2':
-        cmd = './ndrive'
-    elif sys.platform == 'darwin':
-        # Adjust rights
-        subprocess.check_output(['chmod', '-R', '+x', 'Nuxeo Drive.app'])
-        cmd = './Nuxeo Drive.app/Contents/MacOS/ndrive'
-    else:
-        cmd = 'ndrive.exe'
-
-    args = [
-        cmd,
+    cmd += [
         '--log-level-console=TRACE',
-        # '--update-check-delay=3',
         '--update-site-url=http://localhost:8000',
         '--beta-update-site-url=http://localhost:8000',
     ]
-    output = subprocess.check_output(args)
-    return output.decode('utf-8').strip()
+    print('>>> Command:', cmd)
+    return subprocess.check_output(cmd).decode('utf-8').strip()
 
 
-def webserver(folder, port=8000):
-    """ Start a local web server. """
+def tests():
+    """ Simple tests before doing anything. """
 
-    os.chdir(folder)
-    httpd = SocketServer.TCPServer(('', port), Server)
-    print('>>> Serving', folder, 'at http://localhost:8000')
-    print('>>> CTRL+C to terminate')
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        httpd.shutdown()
+    version_checker = distutils.version.StrictVersion
+    assert version_decrement('1.0.0') == '0.9.9'
+    assert version_decrement('2.5.0') == '2.4.9'
+    assert version_decrement('1.2.3') == '1.2.2'
+    assert version_decrement('1.2.333') == '1.2.332'
+    assert version_checker(version_decrement('1.0.0'))
+    assert version_checker(version_decrement('2.5.0'))
+    assert version_checker(version_decrement('1.2.3'))
+    assert version_checker(version_decrement('1.2.333'))
+    return 1
+
+
+def uninstall_drive():
+    """ Remove Drive from the computer. """
+
+    if sys.platform == 'darwin':
+        path = '/Applications/Nuxeo Drive.app'
+        print('>>> Deleting', path)
+        try:
+            shutil.rmtree(path)
+        except OSError:
+            pass
+    elif sys.platform == 'win32':
+        cmd = [r'%USERPROFILE%\\AppData\\Roaming\\Nuxeo Drive\\unins000.exe',
+               '/verysilent']
+        print('>>> Command:', cmd)
+        try:
+            subprocess.check_call(cmd)
+        except (WindowsError, subprocess.CalledProcessError):
+            pass
 
 
 def version_decrement(version):
@@ -162,29 +192,33 @@ def version_update(version, lineno):
     with io.open(path, encoding='utf-8') as handler:
         content = handler.readlines()
 
-    content[lineno] = "__version__ = '{}'".format(version)
+    content[lineno] = "__version__ = '{}'\n".format(version)
 
     with io.open(path, 'w', encoding='utf-8', newline='\n') as handler:
-        handler.write(''.join(content) + '\n')
+        handler.write(''.join(content))
 
 
-def tests():
-    """ Simple tests before doing anything. """
+def webserver(folder, port=8000):
+    """ Start a local web server. """
 
-    version_checker = distutils.version.StrictVersion
-    assert version_decrement('1.0.0') == '0.9.9'
-    assert version_decrement('2.5.0') == '2.4.9'
-    assert version_decrement('1.2.3') == '1.2.2'
-    assert version_decrement('1.2.333') == '1.2.332'
-    assert version_checker(version_decrement('1.0.0'))
-    assert version_checker(version_decrement('2.5.0'))
-    assert version_checker(version_decrement('1.2.3'))
-    assert version_checker(version_decrement('1.2.333'))
-    return 1
+    os.chdir(folder)
+    httpd = SocketServer.TCPServer(('', port), Server)
+    print('>>> Serving', folder, 'at http://localhost:8000')
+    print('>>> CTRL+C to terminate')
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        httpd.shutdown()
 
 
 def main():
     """ Main logic. """
+
+    if sys.platform == 'linux2':
+        print('>>> macOS and Windows only.')
+        return 1
+
+    ext = {'darwin': 'dmg', 'win32': 'exe'}[sys.platform]
 
     # Cleanup
     try:
@@ -192,9 +226,16 @@ def main():
     except OSError:
         pass
 
+    # Remove previous installation
+    uninstall_drive()
+
     version_checker = distutils.version.StrictVersion
     src = os.getcwd()
-    dst = tempfile.mkdtemp()
+
+    # Server tree
+    root = tempfile.mkdtemp()
+    path = os.path.join(root, 'release')
+    os.makedirs(path)
 
     # Generate the current version executable
     version, lineno = version_find()
@@ -202,13 +243,14 @@ def main():
     assert version_checker(version)
     gen_exe()
 
-    # Move files to the webserver
-    for file_ in glob.glob('dist/*{}*'.format(version)):
-        if os.path.isdir(file_):
-            continue
-        dst_file = os.path.join(dst, os.path.basename(file_))
-        print('>>> Moving', file_, '->', dst)
-        os.rename(file_, dst_file)
+    # Move the file to the webserver
+    file_ = 'dist/nuxeo-drive-{}.{}'.format(version, ext)
+    dst_file = os.path.join(path, os.path.basename(file_))
+    print('>>> Moving', file_, '->', path)
+    os.rename(file_, dst_file)
+
+    checksum = hashlib.sha256(open(dst_file).read()).hexdigest()
+    create_versions(root, version, checksum)
 
     # Guess the anterior version
     previous = version_decrement(version)
@@ -224,18 +266,20 @@ def main():
         gen_exe()
 
         # Move the file to test to the webserver
-        src_file = glob.glob('dist/*{}*.zip'.format(previous))[0]
-        archive = os.path.basename(src_file)
-        dst_file = os.path.join(dst, archive)
-        print('>>> Moving', src_file, '->', dst)
+        src_file = 'dist/nuxeo-drive-{}.{}'.format(previous, ext)
+        installer = os.path.basename(src_file)
+        dst_file = os.path.join(path, installer)
+        print('>>> Moving', src_file, '->', path)
         os.rename(src_file, dst_file)
 
+        # Install Drive on the computer
+        install_drive(dst_file)
+
         # Launch Drive in its own thread
-        os.chdir(dst)
-        threading.Thread(target=launch_drive, args=(archive,)).start()
+        threading.Thread(target=launch_drive).start()
 
         # Start the web server
-        webserver(dst)
+        webserver(root)
     finally:
         os.chdir(src)
 
@@ -244,9 +288,11 @@ def main():
 
         # Cleanup
         try:
-            shutil.rmtree(dst)
+            shutil.rmtree(root)
         except OSError:
             pass
+
+        uninstall_drive()
 
 
 if __name__ == '__main__':

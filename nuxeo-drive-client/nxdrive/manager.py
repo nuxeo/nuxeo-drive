@@ -302,6 +302,7 @@ class Manager(QtCore.QObject):
         self.old_version = self.get_config('client_version')
         if self.old_version != self.version:
             self.set_config('client_version', self.version)
+            self.clientUpdated.emit(self.old_version, self.version)
 
         # Add auto-lock on edit
         res = self._dao.get_config('direct_edit_auto_lock')
@@ -613,11 +614,6 @@ class Manager(QtCore.QObject):
             except OSError:
                 # xdg-open should be supported by recent Gnome, KDE, Xfce
                 log.error('Failed to find and editor for: %r', file_path)
-
-    def check_version_updated(self):  # TODO: Use it!
-        last_version = self._dao.get_config("client_version")
-        if last_version != self.version:
-            self.clientUpdated.emit(last_version, self.version)
 
     @property
     def device_id(self):
