@@ -1053,7 +1053,7 @@ class Processor(EngineWorker):
             # (until NXDRIVE-1130 is done, the creation time is also
             # the last modified time)
             mtime = doc_pair.last_remote_updated
-            ctime = mtime if sys.platform == 'win32' else None
+            ctime = doc_pair.creation_date
             local.change_file_date(info.filepath, mtime=mtime, ctime=ctime)
 
             self._dao.update_last_transfer(doc_pair.id, 'download')

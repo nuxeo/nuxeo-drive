@@ -435,7 +435,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self):
-        return 3
+        return 4
 
     def _migrate_state(self, cursor):
         try:
@@ -457,6 +457,12 @@ class EngineDAO(ConfigurationDAO):
         if version < 3:
             self._migrate_state(cursor)
             self.update_config(SCHEMA_VERSION, 3)
+        if version < 4:
+            self._migrate_state(cursor)
+            cursor.execute('UPDATE States'
+                           '   SET creation_date = last_remote_updated')
+            self.update_config(SCHEMA_VERSION, 4)
+
 
     def _reinit_database(self):
         self.reinit_states()
@@ -468,20 +474,46 @@ class EngineDAO(ConfigurationDAO):
 
     @staticmethod
     def _create_state_table(cursor, force=False):
-        if force:
-            statement = ''
-        else:
-            statement = 'if not exists '
-        # Cannot force UNIQUE for local_path as duplicate can have virtual the same path until they are resolved by Processor
+        statement = '' if force else 'if not exists'
+        # Cannot force UNIQUE for a local_path as a duplicate can have
+        # virtually the same path until they are resolved by Processor
         # Should improve that
-        cursor.execute("CREATE TABLE "+statement+"States(id INTEGER NOT NULL, last_local_updated TIMESTAMP,"
-          + "last_remote_updated TIMESTAMP, local_digest VARCHAR, remote_digest VARCHAR, local_path VARCHAR,"
-          + "remote_ref VARCHAR, local_parent_path VARCHAR, remote_parent_ref VARCHAR, remote_parent_path VARCHAR,"
-          + "local_name VARCHAR, remote_name VARCHAR, size INTEGER DEFAULT (0), folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
-          + "pair_state VARCHAR DEFAULT('unknown'), remote_can_rename INTEGER, remote_can_delete INTEGER, remote_can_update INTEGER,"
-          + "remote_can_create_child INTEGER, last_remote_modifier VARCHAR,"
-          + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, last_error_details TEXT, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), last_transfer VARCHAR, PRIMARY KEY (id),"
-          +  "UNIQUE(remote_ref, remote_parent_ref), UNIQUE(remote_ref, local_path));")
+        cursor.execute(
+            "CREATE TABLE {} States ("
+            "    id                      INTEGER    NOT NULL,"
+            "    last_local_updated      TIMESTAMP,"
+            "    last_remote_updated     TIMESTAMP,"
+            "    local_digest            VARCHAR,"
+            "    remote_digest           VARCHAR,"
+            "    local_path              VARCHAR,"
+            "    remote_ref              VARCHAR,"
+            "    local_parent_path       VARCHAR,"
+            "    remote_parent_ref       VARCHAR,"
+            "    remote_parent_path      VARCHAR,"
+            "    local_name              VARCHAR,"
+            "    remote_name             VARCHAR,"
+            "    size                    INTEGER    DEFAULT (0),"
+            "    folderish               INTEGER,"
+            "    local_state             VARCHAR    DEFAULT('unknown'),"
+            "    remote_state            VARCHAR    DEFAULT('unknown'),"
+            "    pair_state              VARCHAR    DEFAULT('unknown'),"
+            "    remote_can_rename       INTEGER,"
+            "    remote_can_delete       INTEGER,"
+            "    remote_can_update       INTEGER,"
+            "    remote_can_create_child INTEGER,"
+            "    last_remote_modifier    VARCHAR,"
+            "    last_sync_date          TIMESTAMP,"
+            "    error_count             INTEGER    DEFAULT (0),"
+            "    last_sync_error_date    TIMESTAMP,"
+            "    last_error              VARCHAR,"
+            "    last_error_details      TEXT,"
+            "    version                 INTEGER    DEFAULT (0),"
+            "    processor               INTEGER    DEFAULT (0),"
+            "    last_transfer           VARCHAR,"
+            "    creation_date           TIMESTAMP,"
+            "    PRIMARY KEY (id),"
+            "    UNIQUE(remote_ref, remote_parent_ref),"
+            "    UNIQUE(remote_ref, local_path))".format(statement))
 
     def _init_db(self, cursor):
         super(EngineDAO, self)._init_db(cursor)
@@ -929,29 +961,41 @@ class EngineDAO(ConfigurationDAO):
         c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute("SELECT * FROM States WHERE local_path=?", (path,)).fetchone()
 
-    def insert_remote_state(self, info, remote_parent_path, local_path, local_parent_path):
+    def insert_remote_state(self, info, remote_parent_path, local_path,
+                            local_parent_path):
         pair_state = PAIR_STATES.get(('unknown', 'created'))
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("INSERT INTO States (remote_ref, remote_parent_ref, " +
-                      "remote_parent_path, remote_name, last_remote_updated, remote_can_rename," +
-                      "remote_can_delete, remote_can_update, " +
-                      "remote_can_create_child, last_remote_modifier, remote_digest," +
-                      "folderish, last_remote_modifier, local_path, local_parent_path, remote_state, local_state, pair_state, local_name)" +
-                      " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'created','unknown',?, ?)",
-                      (info.uid, info.parent_uid, remote_parent_path, info.name,
-                       info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
-                       info.can_create_child, info.last_contributor, info.digest, info.folderish, info.last_contributor,
-                       local_path, local_parent_path, pair_state, info.name))
+            c.execute("INSERT INTO States "
+                      "(remote_ref, remote_parent_ref, remote_parent_path, "
+                      "remote_name, last_remote_updated, remote_can_rename, "
+                      "remote_can_delete, remote_can_update, "
+                      "remote_can_create_child, last_remote_modifier, "
+                      "remote_digest, folderish, last_remote_modifier, "
+                      "local_path, local_parent_path, remote_state, "
+                      "local_state, pair_state, local_name, creation_date) "
+                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+                      "'created', 'unknown', ?, ?, ?)",
+                      (info.uid, info.parent_uid, remote_parent_path,
+                       info.name, info.last_modification_time, info.can_rename,
+                       info.can_delete, info.can_update,
+                       info.can_create_child, info.last_contributor,
+                       info.digest, info.folderish, info.last_contributor,
+                       local_path, local_parent_path, pair_state, info.name,
+                       info.creation_time))
             row_id = c.lastrowid
             if self.auto_commit:
                 con.commit()
             # Check if parent is not in creation
-            parent = c.execute("SELECT * FROM States WHERE remote_ref=?", (info.parent_uid,)).fetchone()
-            if (parent is None and local_parent_path == '') or (parent is not None and parent.pair_state != "remotely_created"):
+            parent = c.execute('SELECT *'
+                               '  FROM States'
+                               ' WHERE remote_ref = ?',
+                (info.parent_uid,)).fetchone()
+            if ((parent is None and local_parent_path == '')
+                    or (parent and parent.pair_state != 'remotely_created')):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
-            self._items_count = self._items_count + 1
+            self._items_count += 1
         return row_id
 
     def queue_children(self, row):
