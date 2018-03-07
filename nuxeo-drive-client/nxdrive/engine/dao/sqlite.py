@@ -233,7 +233,7 @@ class ConfigurationDAO(QObject):
 
     def _get_read_connection(self, factory=StateRow):
         # If in transaction
-        if self.in_tx:
+        if self.in_tx is not None:
             if current_thread().ident != self.in_tx:
                 log.trace('In transaction wait for read connection')
                 # Wait for the thread in transaction to finished
@@ -267,6 +267,7 @@ class ConfigurationDAO(QObject):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
+            self._delete_config(c, name)
             if self.auto_commit:
                 con.commit()
 
