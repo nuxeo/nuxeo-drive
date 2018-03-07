@@ -6,7 +6,7 @@ from time import sleep, time
 from PyQt4.QtCore import (QCoreApplication, QObject, QThread, pyqtSignal,
                           pyqtSlot)
 
-from nxdrive.engine.activity import Action, IdleAction
+from .activity import Action, IdleAction
 
 log = getLogger(__name__)
 

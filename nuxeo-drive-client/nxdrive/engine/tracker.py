@@ -10,7 +10,7 @@ from logging import getLogger
 from PyQt4 import QtCore
 from UniversalAnalytics import Tracker as UATracker
 
-from nxdrive.engine.workers import Worker
+from .workers import Worker
 
 if sys.platform == 'darwin':
     from Foundation import NSLocale

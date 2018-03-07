@@ -3,8 +3,6 @@
 
 import json
 import os
-import subprocess
-import sys
 import urllib2
 from logging import getLogger
 
@@ -19,9 +17,9 @@ from nxdrive.notification import Notification
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration, parse_protocol_url
 from nxdrive.utils import find_icon, find_resource
-from nxdrive.wui.modal import WebModal
-from nxdrive.wui.systray import DriveSystrayIcon
-from nxdrive.wui.translator import Translator
+from .modal import WebModal
+from .systray import DriveSystrayIcon
+from .translator import Translator
 
 log = getLogger(__name__)
 
@@ -261,12 +259,12 @@ class Application(SimpleApplication):
         self.set_icon_state(new_state)
 
     def _get_settings_dialog(self, section):
-        from nxdrive.wui.settings import WebSettingsDialog
+        from .settings import WebSettingsDialog
         return WebSettingsDialog(self, section)
 
     def _get_conflicts_dialog(self, engine):
-        from nxdrive.wui.dialog import WebDialog
-        from nxdrive.wui.conflicts import WebConflictsApi
+        from .dialog import WebDialog
+        from .conflicts import WebConflictsApi
         return WebDialog(
             self,
             'conflicts.html',
@@ -324,7 +322,7 @@ class Application(SimpleApplication):
             break
 
     def show_activities(self):
-        from nxdrive.wui.activity import WebActivityDialog
+        from .activity import WebActivityDialog
         self.activities = WebActivityDialog(self)
         self.activities.show()
 
@@ -598,7 +596,7 @@ class Application(SimpleApplication):
         return 'ndrive'
 
     def show_dialog(self, url):
-        from nxdrive.wui.dialog import WebDialog
+        from .dialog import WebDialog
         WebDialog(self, url).show()
 
     def show_metadata(self, file_path):

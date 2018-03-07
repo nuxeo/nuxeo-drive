@@ -23,7 +23,7 @@ from nxdrive.manager import FolderAlreadyUsed
 from nxdrive.notification import Notification
 from nxdrive.options import Options
 # from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
-from nxdrive.wui.translator import Translator
+from .translator import Translator
 
 log = getLogger(__name__)
 UPDATE_STATUS_UNAVAILABLE_SITE = 'unavailable_site'

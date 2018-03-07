@@ -15,16 +15,16 @@ from nxdrive.client import (LocalClient, RemoteDocumentClient,
 from nxdrive.client.base_automation_client import Unauthorized
 from nxdrive.client.common import BaseClient, NotFound, safe_filename
 from nxdrive.client.rest_api_client import RestAPIClient
-from nxdrive.engine.activity import Action, FileAction
-from nxdrive.engine.dao.sqlite import EngineDAO
-from nxdrive.engine.processor import Processor
-from nxdrive.engine.queue_manager import QueueManager
-from nxdrive.engine.watcher.local_watcher import LocalWatcher
-from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-from nxdrive.engine.workers import PairInterrupt, ThreadInterrupt, Worker
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import find_icon, normalized_path
+from .activity import Action, FileAction
+from .dao.sqlite import EngineDAO
+from .processor import Processor
+from .queue_manager import QueueManager
+from .watcher.local_watcher import LocalWatcher
+from .watcher.remote_watcher import RemoteWatcher
+from .workers import PairInterrupt, ThreadInterrupt, Worker
 
 log = getLogger(__name__)
 

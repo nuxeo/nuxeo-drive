@@ -8,8 +8,8 @@ import objc
 from AppKit import NSRegisterServicesProvider, NSURLPboardType
 from Foundation import NSObject, NSURL
 
-from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import normalized_path
+from .. import AbstractOSIntegration
 
 log = getLogger(__name__)
 

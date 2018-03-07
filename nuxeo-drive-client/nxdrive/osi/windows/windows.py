@@ -9,7 +9,7 @@ import win32file
 from win32com.client import Dispatch
 from win32con import LOGPIXELSX
 
-from nxdrive.osi import AbstractOSIntegration
+from .. import AbstractOSIntegration
 
 log = getLogger(__name__)
 

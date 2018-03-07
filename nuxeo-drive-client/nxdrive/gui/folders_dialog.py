@@ -1,8 +1,8 @@
 # coding: utf-8
 from PyQt4 import QtCore, QtGui
 
-from nxdrive.gui.folders_treeview import FilteredFsClient, FolderTreeview
 from nxdrive.wui.translator import Translator
+from .folders_treeview import FilteredFsClient, FolderTreeview
 
 
 class FiltersDialog(QtGui.QDialog):

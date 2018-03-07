@@ -17,10 +17,10 @@ from nxdrive.engine.engine import (InvalidDriveException,
 from nxdrive.manager import FolderAlreadyUsed, ProxySettings
 from nxdrive.options import Options
 from nxdrive.utils import TOKEN_PERMISSION, get_device, guess_server_url
-from nxdrive.wui.authentication import (WebAuthenticationApi,
-                                        WebAuthenticationDialog)
-from nxdrive.wui.dialog import Promise, WebDialog, WebDriveApi
-from nxdrive.wui.translator import Translator
+from .authentication import (WebAuthenticationApi,
+                             WebAuthenticationDialog)
+from .dialog import Promise, WebDialog, WebDriveApi
+from .translator import Translator
 
 log = getLogger(__name__)
 
