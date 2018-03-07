@@ -1,7 +1,6 @@
 # coding: utf-8
 import os
 import platform
-import sip
 import subprocess
 import sys
 import urllib2
@@ -11,6 +10,7 @@ from logging import getLogger
 from urlparse import urlparse
 
 import pypac
+import sip
 from PyQt4 import QtCore
 from PyQt4.QtGui import QApplication
 from PyQt4.QtScript import QScriptEngine
@@ -21,9 +21,9 @@ from nxdrive.client import LocalClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.logging_config import FILE_HANDLER
 from nxdrive.notification import DefaultNotificationService
-from nxdrive.options import Options
+from nxdrive.options import Options, server_updater
 from nxdrive.osi import AbstractOSIntegration
-# from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
+from nxdrive.updater import updater
 from nxdrive.utils import (ENCODING, OSX_SUFFIX, decrypt, encrypt,
                            normalized_path)
 
@@ -287,6 +287,22 @@ class Manager(QtCore.QObject):
         if FILE_HANDLER:
             FILE_HANDLER.setLevel(Options.log_level_file)
 
+        # Force language
+        if Options.force_locale is not None:
+            self.set_config('locale', Options.force_locale)
+
+        # Persist beta channel check
+        Options.set('beta_channel', self.get_beta_channel(), setter='manual')
+
+        # Keep a trace of installed versions
+        if not self.get_config('original_version'):
+            self.set_config('original_version', self.version)
+
+        # Store the old version to be able to show release notes
+        self.old_version = self.get_config('client_version')
+        if self.old_version != self.version:
+            self.set_config('client_version', self.version)
+
         # Add auto-lock on edit
         res = self._dao.get_config('direct_edit_auto_lock')
         if res is None:
@@ -305,24 +321,16 @@ class Manager(QtCore.QObject):
 
         # Pause if in debug
         self._pause = Options.debug
-        self.updated = False  # self.update_version()
 
         # Connect all Qt signals
         self.notification_service.init_signals()
         self.load()
 
         # Create the server's configuration getter verification thread
-        # self._create_server_config_updater(Options.update_check_delay)
+        self._create_server_config_updater()
 
         # Create the application update verification thread
-        # self._create_updater(Options.update_check_delay)
-
-        # Force language
-        if Options.force_locale is not None:
-            self.set_config('locale', Options.force_locale)
-
-        # Persist beta channel check
-        Options.set('beta_channel', self.get_beta_channel(), setter='manual')
+        self._create_updater()
 
         # Setup analytics tracker
         self._tracker = self._create_tracker()
@@ -409,38 +417,18 @@ class Manager(QtCore.QObject):
         from nxdrive.engine.dao.sqlite import ManagerDAO
         self._dao = ManagerDAO(self._get_db())
 
-    def _create_server_config_updater(self, update_check_delay):
-        # type: (int) -> Any
-        if update_check_delay == 0:
+    def _create_server_config_updater(self):
+        # type: () -> None
+        if not Options.update_check_delay:
             return
 
-        self.server_config_updater = ServerOptionsUpdater(
-            self, check_interval=update_check_delay)
+        self.server_config_updater = server_updater(self)
         self.started.connect(self.server_config_updater._thread.start)
-        return self.server_config_updater
 
-    def _create_updater(self, update_check_delay):
-        if update_check_delay == 0:
-            log.info("Update check delay is 0, disabling autoupdate")
-            self._app_updater = FakeUpdater()
-            return self._app_updater
-        # Enable the capacity to extend the AppUpdater
-        self._app_updater = AppUpdater(self, version_finder=self.get_version_finder(),
-                                       check_interval=update_check_delay)
+    def _create_updater(self):
+        self._app_updater = updater(self)
         self.started.connect(self._app_updater._thread.start)
         return self._app_updater
-
-    def get_version_finder(self):
-        # Used by extended application to inject version finder
-        if self.get_beta_channel():
-            log.debug('Update beta channel activated')
-            update_site_url = Options.beta_update_site_url
-        else:
-            update_site_url = Options.update_site_url
-
-        if not update_site_url.endswith('/'):
-            update_site_url += '/'
-        return update_site_url
 
     def get_updater(self):  # TODO: Remove
         return self._app_updater
@@ -1017,18 +1005,6 @@ class Manager(QtCore.QObject):
     @property
     def version(self):
         return __version__
-
-    def update_version(self, device_config):
-        if self.version != device_config.client_version:
-            log.info("Detected version upgrade: current version = %s,"
-                     " new version = %s => upgrading current version,"
-                     " yet DB upgrade might be needed.",
-                     device_config.client_version,
-                     self.version)
-            device_config.client_version = self.version
-            self.get_session().commit()
-            return True
-        return False
 
     def is_started(self):  # TODO: Remove
         return self._started

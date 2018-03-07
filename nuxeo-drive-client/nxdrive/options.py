@@ -42,6 +42,11 @@ This is the equivalent of:
     >>> Options.set('delay', 42, setter='manual')
 
 _For tests purpose_, a `Options.mock` decorator is available.
+
+---
+
+We also provide the `server_updater()` helper.
+It creates the worker that will check for options update on the server.
 """
 
 from __future__ import unicode_literals
@@ -51,9 +56,13 @@ import logging
 import os.path
 import sys
 
-# from typing import Any, Dict, Tuple
+try:
+    from typing import Any, Dict, Tuple
+except ImportError:
+    pass
 
-__all__ = ('Options',)
+
+__all__ = ('Options', 'server_updater')
 
 log = logging.getLogger(__name__)
 
@@ -341,3 +350,52 @@ class Options(object):
     def __init__(self):
         """ Prevent class instances. """
         raise RuntimeError('Cannot be instanciated.')
+
+
+def server_updater(*args):
+    # type: (*Any) -> ServerOptionsUpdater
+    """
+    Helper to create the worker that will check for options updates
+    on the server.
+    We use this to prevent loading any Drive related stuff and keep
+    the possibility to import other classes without nothing else needed.
+    """
+
+    import json
+
+    from PyQt4.QtCore import pyqtSlot
+    from nxdrive.engine.workers import PollWorker
+
+    class ServerOptionsUpdater(PollWorker):
+        """ Class for checking server's config.json updates. """
+
+        def __init__(self, manager):
+            # type: (Manager) -> None
+
+            super(ServerOptionsUpdater, self).__init__(
+                Options.update_check_delay)
+            self.manager = manager
+
+        @pyqtSlot()
+        def _poll(self):
+            # type: () -> bool
+            """ Check for the configuration file and apply updates. """
+
+            for _, engine in self.manager._engines.items():
+                client = engine.get_remote_doc_client()
+                if not client:
+                    continue
+
+                try:
+                    raw, _ = client.do_get(
+                        client.rest_api_url + 'drive/configuration')
+                    conf = json.loads(raw, encoding='utf-8')
+                except Exception as exc:
+                    log.error('Polling error: {}'.format(exc))
+                else:
+                    Options.update(conf, setter='server', fail_on_error=True)
+                    break
+
+            return True
+
+    return ServerOptionsUpdater(*args)

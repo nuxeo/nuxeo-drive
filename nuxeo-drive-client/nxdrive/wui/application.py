@@ -107,10 +107,6 @@ class Application(SimpleApplication):
         self.icon_spin_timer.timeout.connect(self.spin_transferring_icon)
         self.icon_spin_count = 0
 
-        # Application update
-        # self.manager.get_updater().appUpdated.connect(self.app_updated)
-        self.updated_version = None
-
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
 
@@ -126,6 +122,13 @@ class Application(SimpleApplication):
         # Setup notification center for macOS
         if AbstractOSIntegration.is_mac():
             self._setup_notification_center()
+
+        # Application update
+        self.manager.get_updater().appUpdated.connect(self.quit)
+
+        # Display release notes on new version
+        if self.manager.old_version != self.manager.version:
+            self.show_release_notes(self.manager.version)
 
     @pyqtSlot(str, str, str)
     def _direct_edit_conflict(self, filename, ref, digest):
@@ -391,7 +394,7 @@ class Application(SimpleApplication):
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)
         self.manager.notification_service.newNotification.connect(self._new_notification)
-        # self.manager.get_updater().updateAvailable.connect(self._update_notification)
+        self.manager.get_updater().updateAvailable.connect(self._update_notification)
         if not self.manager.get_engines():
             self.show_settings()
         else:
@@ -404,7 +407,7 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def _update_notification(self):
-        replacements = dict(version=self.manager.get_updater().get_status()[1])
+        replacements = dict(version=self.manager.get_updater().last_status[1])
         notification = Notification(
             uuid='AutoUpdate',
             flags=(Notification.FLAG_BUBBLE
@@ -518,41 +521,6 @@ class Application(SimpleApplication):
             self.default_tooltip,
             action.type,
         )
-
-    @pyqtSlot(str)
-    def app_updated(self, updated_version):
-        self.updated_version = str(updated_version)
-        self.show_release_notes(self.updated_version)
-        log.info('Quitting Nuxeo Drive and restarting updated version %s',
-                 self.updated_version)
-        self.manager.stopped.connect(self.restart)
-        log.debug('Exiting Qt application')
-        self.quit()
-
-    @pyqtSlot()
-    def restart(self):
-        """
-        Restart application by loading updated executable
-        into current process.
-        """
-
-        current_version = self.manager.get_updater().get_active_version()
-        log.info('Current application version: %s', current_version)
-        log.info('Updated application version: %s', self.updated_version)
-
-        executable = sys.executable
-        # TODO NXP-13818: better handle this!
-        if sys.platform == 'darwin':
-            executable = executable.replace('python', self.get_mac_app())
-        log.info('Current executable is: %s', executable)
-        updated_executable = executable.replace(current_version,
-                                                self.updated_version)
-        log.info('Updated executable is: %s', updated_executable)
-
-        args = [updated_executable]
-        args.extend(sys.argv[1:])
-        log.info('Opening subprocess with args: %r', args)
-        subprocess.Popen(args, close_fds=True)
 
     def show_release_notes(self, version):
         """ Display release notes of a given version. """

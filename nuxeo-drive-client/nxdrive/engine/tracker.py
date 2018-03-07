@@ -41,9 +41,6 @@ class Tracker(Worker):
         for _, engine in self._manager.get_engines().iteritems():
             self.connect_engine(engine)
         self._manager.newEngine.connect(self.connect_engine)
-        if self._manager.get_updater() is not None:
-            self._manager.get_updater().appUpdated.connect(
-                self._send_app_update_event)
         if self._manager.direct_edit is not None:
             self._manager.direct_edit.openDocument.connect(
                 self._send_directedit_open)
@@ -109,11 +106,6 @@ class Tracker(Worker):
             self._tracker.send('event', **kwargs)
         except:
             log.exception('Error sending analytics')
-
-    @QtCore.pyqtSlot(object)
-    def _send_app_update_event(self, version):
-        self.send_event(category='AppUpdate', action='Update',
-                        label='Version', value=version)
 
     @QtCore.pyqtSlot(object, object)
     def _send_directedit_open(self, remote_info):

@@ -323,7 +323,7 @@ class WebDriveApi(QtCore.QObject):
         status = UPDATE_STATUS_UNAVAILABLE_SITE, None
         updater = self._manager.get_updater()
         if updater:
-            status = updater.get_status()
+            status = updater.last_status
         return self._json(status)
 
     @QtCore.pyqtSlot(result=str)

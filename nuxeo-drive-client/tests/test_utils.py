@@ -2,6 +2,8 @@
 import hashlib
 import sys
 
+import pytest
+
 import nxdrive.utils
 from nxdrive.manager import ProxySettings
 
@@ -252,3 +254,134 @@ def test_simplify_url():
     assert func('https://example.org:443/') == 'https://example.org'
     assert func('https://example.org:4433') == 'https://example.org:4433'
     assert func('https://example.org:4433/') == 'https://example.org:4433'
+
+
+@pytest.mark.parametrize('x, y, z', [
+    ('7.10', '10.1-SNAPSHOT', '10.1-HF10'),
+    ('10.1-SNAPSHOT', '10.1', '999.999.999'),
+    ('10.1-SNAPSHOT', '10.1-SNAPSHOT', '999.999.999'),
+    ('10.1-SNAPSHOT', '10.1-SNAPSHOT', '10.1-SNAPSHOT'),
+    ('10.1-HF1', '10.1-HF1', '10.1-HF1'),
+])
+def test_version_between(x, y, z):
+    assert nxdrive.utils.version_between(x, y, z)
+
+
+@pytest.mark.parametrize('x, y, result', [
+    # Releases
+    ('5.9.2', '5.9.3', -1),
+    ('5.9.3', '5.9.3', 0),
+    ('5.9.3', '5.9.2', 1),
+    ('5.9.3', '5.8', 1),
+    ('5.8', '5.6.0', 1),
+    ('5.9.1', '5.9.0.1', 1),
+    ('6.0', '5.9.3', 1),
+    ('5.10', '5.1.2', 1),
+
+    # Snapshots
+    ('5.9.3-SNAPSHOT', '5.9.4-SNAPSHOT', -1),
+    ('5.8-SNAPSHOT', '5.9.4-SNAPSHOT', -1),
+    ('5.9.4-SNAPSHOT', '5.9.4-SNAPSHOT', 0),
+    ('5.9.4-SNAPSHOT', '5.9.3-SNAPSHOT', 1),
+    ('5.9.4-SNAPSHOT', '5.8-SNAPSHOT', 1),
+
+    # Releases and snapshots
+    ('5.9.4-SNAPSHOT', '5.9.4', -1),
+    ('5.9.4-SNAPSHOT', '5.9.5', -1),
+    ('5.9.3', '5.9.4-SNAPSHOT', -1),
+    ('5.9.4-SNAPSHOT', '5.9.3', 1),
+    ('5.9.4', '5.9.4-SNAPSHOT', 1),
+    ('5.9.5', '5.9.4-SNAPSHOT', 1),
+
+    # Hotfixes
+    ('5.6.0-H35', '5.8.0-HF14', -1),
+    ('5.8.0-HF14', '5.8.0-HF15', -1),
+    ('5.8.0-HF14', '5.8.0-HF14', 0),
+    ('5.8.0-HF14', '5.8.0-HF13', 1),
+    ('5.8.0-HF14', '5.6.0-HF35', 1),
+
+    # Releases and hotfixes
+    ('5.8.0-HF14', '5.9.1', -1),
+    ('5.6', '5.8.0-HF14', -1),
+    ('5.8', '5.8.0-HF14', -1),
+    ('5.8.0-HF14', '5.6', 1),
+    ('5.8.0-HF14', '5.8', 1),
+    ('5.9.1', '5.8.0-HF14', 1),
+
+    # Snaphsots and hotfixes
+    ('5.8.0-HF14', '5.9.1-SNAPSHOT', -1),
+    ('5.7.1-SNAPSHOT', '5.8.0-HF14', -1),
+    ('5.8.0-SNAPSHOT', '5.8.0-HF14', -1),
+    ('5.8-SNAPSHOT', '5.8.0-HF14', -1),
+    ('5.8.0-HF14', '5.7.1-SNAPSHOT', 1),
+    ('5.8.0-HF14', '5.8.0-SNAPSHOT', 1),
+    ('5.8.0-HF14', '5.8-SNAPSHOT', 1),
+    ('5.9.1-SNAPSHOT', '5.8.0-HF14', 1),
+
+    # Snapshot hotfixes
+    ('5.8.0-HF14-SNAPSHOT', '5.8.0-HF15-SNAPSHOT', -1),
+    ('5.6.0-H35-SNAPSHOT', '5.8.0-HF14-SNAPSHOT', -1),
+    ('5.8.0-HF14-SNAPSHOT', '5.8.0-HF14-SNAPSHOT', 0),
+    ('5.8.0-HF14-SNAPSHOT', '5.8.0-HF13-SNAPSHOT', 1),
+    ('5.8.0-HF14-SNAPSHOT', '5.6.0-HF35-SNAPSHOT', 1),
+
+    # Releases and snapshot hotfixes
+    ('5.8.0-HF14-SNAPSHOT', '5.9.1', -1),
+    ('5.6', '5.8.0-HF14-SNAPSHOT', -1),
+    ('5.8', '5.8.0-HF14-SNAPSHOT', -1),
+    ('5.8.0-HF14-SNAPSHOT', '5.6', 1),
+    ('5.8.0-HF14-SNAPSHOT', '5.8', 1),
+    ('5.9.1', '5.8.0-HF14-SNAPSHOT', 1),
+
+    # Snaphsots and snapshot hotfixes
+    ('5.8.0-HF14-SNAPSHOT', '5.9.1-SNAPSHOT', -1),
+    ('5.7.1-SNAPSHOT', '5.8.0-HF14-SNAPSHOT', -1),
+    ('5.8-SNAPSHOT', '5.8.0-HF14-SNAPSHOT', -1),
+    ('5.8.0-SNAPSHOT', '5.8.0-HF14-SNAPSHOT', -1),
+    ('5.8.0-HF14-SNAPSHOT', '5.7.1-SNAPSHOT', 1),
+    ('5.8.0-HF14-SNAPSHOT', '5.8-SNAPSHOT', 1),
+    ('5.8.0-HF14-SNAPSHOT', '5.8.0-SNAPSHOT', 1),
+    ('5.9.1-SNAPSHOT', '5.8.0-HF14-SNAPSHOT', 1),
+
+    # Hotfixes and snapshot hotfixes
+    ('5.8.0-HF14-SNAPSHOT', '5.8.0-HF14', -1),
+    ('5.8.0-HF14-SNAPSHOT', '5.8.0-HF15', -1),
+    ('5.8.0-HF14-SNAPSHOT', '5.10.0-HF01', -1),
+    ('5.8.0-HF14-SNAPSHOT', '5.6.0-HF35', 1),
+    ('5.8.0-HF14-SNAPSHOT', '5.8.0-HF13', 1),
+])
+def test_version_compare(x, y, result):
+    assert nxdrive.utils.version_compare(x, y) == result
+
+
+@pytest.mark.parametrize('x, y, result', [
+    ('0.1', '1.0', -1),
+    ('2.0.0626', '2.0.806', -1),
+    ('2.0.0805', '2.0.806', -1),
+    ('2.0.805', '2.0.1206', -1),
+    ('1.0', '1.0', 0),
+    ('1.3.0424', '1.3.0424', 0),
+    ('1.3.0524', '1.3.0424', 1),
+    ('1.4', '1.3.0524', 1),
+    ('1.4.0622', '1.3.0524', 1),
+    ('1.10', '1.1.2', 1),
+    ('2.1.0528', '1.10', 1),
+    ('2.0.0905', '2.0.806', 1),
+
+    # Semantic versioning
+    ('2.0.805', '2.4.0', -1),
+    ('2.1.1130', '2.4.0b1', -1),
+    ('2.4.0b1', '2.4.0b2', -1),
+    ('2.4.2b1', '2.4.2', -1),
+    ('2.4.0b1', '2.4.0b1', 0),
+    ('2.4.0b10', '2.4.0b1', 1),
+
+    # Compare to None
+    (None, '8.10-HF37', -1),
+    (None, '2.0.805', -1),
+    (None, None, 0),
+    ('8.10-HF37', None, 1),
+    ('2.0.805', None, 1),
+])
+def test_version_compare_client(x, y, result):
+    assert nxdrive.utils.version_compare_client(x, y) == result

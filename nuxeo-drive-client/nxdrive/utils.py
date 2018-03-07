@@ -1,21 +1,16 @@
 # coding: utf-8
 """
 We are using lazy imports (understand imports in functions) specifically here
-to speed command line calls without loading everything at startup.
+to speed-up command line calls without loading everything at startup.
 """
 
 import base64
 import locale
-import mimetypes
 import os
-import re
 import sys
 import time
-import unicodedata
 import urlparse
-from distutils.version import StrictVersion
 from logging import getLogger
-from urllib2 import HTTPError, URLError, urlopen
 
 from nxdrive.options import Options
 
@@ -75,6 +70,8 @@ def is_generated_tmp_file(name):
     :return tuple: (bool: is tmp file, bool: need to recheck later)
     """
 
+    import re
+
     ignore, do_not_ignore = True, False
     delay, do_not_delay, no_delay_effect = True, False, None
 
@@ -107,17 +104,9 @@ def is_generated_tmp_file(name):
     return do_not_ignore, no_delay_effect
 
 
-def version_compare_client(x, y):
-    """ Try to compare SemVer and fallback to version_compare on error. """
-
-    try:
-        return cmp(StrictVersion(x), StrictVersion(y))
-    except (AttributeError, ValueError):
-        return version_compare(x, y)
-
-
 def version_compare(x, y):
-    """Compare version numbers using the usual x.y.z pattern.
+    """
+    Compare version numbers using the usual x.y.z pattern.
 
     For instance, will result in:
         - 5.9.3 > 5.9.2
@@ -128,19 +117,11 @@ def version_compare(x, y):
         - 1.4 > 1.3.0524
         - ...
 
-    Also handles date-based releases, snapshots and hotfixes:
-        - 5.9.4-I20140515_0120 > 5.9.4-I20140415_0120
-        - 5.9.4-I20140415_0120 > 5.9.3
-        - 5.9.4-I20140415_0120 < 5.9.4
-        - 5.9.4-I20140415_0120 < 5.9.5
+    Also handles snapshots and hotfixes:
         - 5.9.4-SNAPSHOT > 5.9.3-SNAPSHOT
         - 5.9.4-SNAPSHOT > 5.9.3
         - 5.9.4-SNAPSHOT < 5.9.4
         - 5.9.4-SNAPSHOT < 5.9.5
-        - 5.9.4-I20140415_0120 > 5.9.3-SNAPSHOT
-        - 5.9.4-I20140415_0120 < 5.9.5-SNAPSHOT
-        - 5.9.4-I20140415_0120 = 5.9.4-SNAPSHOT (can't decide,
-                                                 consider as equal)
         - 5.8.0-HF15 > 5.8
         - 5.8.0-HF15 > 5.7.1-SNAPSHOT
         - 5.8.0-HF15 < 5.9.1
@@ -154,81 +135,74 @@ def version_compare(x, y):
         - 5.8.0-HF15-SNAPSHOT < 5.8.0-HF16-SNAPSHOT
     """
 
+    # Handle None values
     if not all((x, y)):
         return cmp(x, y)
+
+    ret = (-1, 1)
 
     x_numbers = x.split('.')
     y_numbers = y.split('.')
     while x_numbers and y_numbers:
         x_number = x_numbers.pop(0)
         y_number = y_numbers.pop(0)
+
         # Handle hotfixes
         if 'HF' in x_number:
-            hf = re.sub(ur'-HF', '.', x_number).split('.', 1)
+            hf = x_number.replace('-HF', '.').split('.', 1)
             x_number = hf[0]
             x_numbers.append(hf[1])
         if 'HF' in y_number:
-            hf = re.sub(ur'-HF', '.', y_number).split('.', 1)
+            hf = y_number.replace('-HF', '.').split('.', 1)
             y_number = hf[0]
             y_numbers.append(hf[1])
-        # Handle date-based and snapshots
-        x_date_based = 'I' in x_number
-        y_date_based = 'I' in y_number
+
+        # Handle snapshots
         x_snapshot = 'SNAPSHOT' in x_number
         y_snapshot = 'SNAPSHOT' in y_number
-        if not x_date_based and not x_snapshot and (y_date_based or y_snapshot):
-            # y is date-based or snapshot, x is not
+        if not x_snapshot and y_snapshot:
+            # y is snapshot, x is not
             x_number = int(x_number)
-            y_number = int(re.sub(ur'-(I.*|SNAPSHOT)', '', y_number))
-            if y_number <= x_number:
-                return 1
-            else:
-                return -1
-        elif (not y_date_based and not y_snapshot
-              and (x_date_based or x_snapshot)):
-            # x is date-based or snapshot, y is not
-            x_number = int(re.sub(ur'-(I.*|SNAPSHOT)', '', x_number))
+            y_number = int(y_number.replace('-SNAPSHOT', ''))
+            return ret[y_number <= x_number]
+        elif not y_snapshot and x_snapshot:
+            # x is snapshot, y is not
+            x_number = int(x_number.replace('-SNAPSHOT', ''))
             y_number = int(y_number)
-            if x_number <= y_number:
-                return -1
-            else:
-                return 1
-        else:
-            if x_date_based and y_date_based:
-                # x and y are date-based
-                x_number = int(re.sub(ur'[I\-_]', '', x_number))
-                y_number = int(re.sub(ur'[I\-_]', '', y_number))
-            elif x_snapshot and y_snapshot:
-                # x and y are snapshots
-                x_number = int(re.sub(ur'-SNAPSHOT', '', x_number))
-                y_number = int(re.sub(ur'-SNAPSHOT', '', y_number))
-            elif x_date_based and y_snapshot:
-                # x is date-based, y is snapshot
-                x_number = int(re.sub(ur'-I.*', '', x_number))
-                y_number = int(re.sub(ur'-SNAPSHOT', '', y_number))
-                if x_number == y_number:
-                    return 0
-            elif x_snapshot and y_date_based:
-                # x is snapshot, y is date-based
-                x_number = int(re.sub(ur'-SNAPSHOT', '', x_number))
-                y_number = int(re.sub(ur'-I.*', '', y_number))
-                if x_number == y_number:
-                    return 0
-            else:
-                # x and y are not date-based
-                x_number = int(x_number)
-                y_number = int(y_number)
+            return ret[x_number > y_number]
+
+        x_number = int(x_number.replace('-SNAPSHOT', ''))
+        y_number = int(y_number.replace('-SNAPSHOT', ''))
         if x_number != y_number:
-            diff = x_number - y_number
-            if diff > 0:
-                return 1
-            else:
-                return -1
+            return ret[x_number - y_number > 0]
+
     if x_numbers:
         return 1
     if y_numbers:
         return -1
+
     return 0
+
+
+def version_compare_client(x, y):
+    """ Try to compare SemVer and fallback to version_compare on error. """
+
+    from distutils.version import StrictVersion
+
+    try:
+        return cmp(StrictVersion(x), StrictVersion(y))
+    except (AttributeError, ValueError):
+        return version_compare(x, y)
+
+
+def version_lt(x, y):
+    """ x <= y """
+    return version_compare_client(x, y) <= 0
+
+
+def version_between(x, y, z):
+    """ x <= y <= y """
+    return version_lt(x, y) and version_lt(y, z)
 
 
 def normalized_path(path):
@@ -251,6 +225,8 @@ def normalize_event_filename(filename, action=True):
     :param bool action: Apply changes on the file system.
     :return unicode: The normalized file name.
     """
+
+    import unicodedata
 
     # NXDRIVE-688: Ensure the name is stripped for a file
     stripped = filename.strip()
@@ -449,6 +425,8 @@ def _lazysecret(secret, blocksize=32, padding='}'):
 
 
 def guess_mime_type(filename):
+    import mimetypes
+
     mime_type, _ = mimetypes.guess_type(filename)
     if mime_type:
         if sys.platform == 'win32':
@@ -482,6 +460,7 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
     :return: The complete URL.
     """
 
+    from urllib2 import HTTPError, URLError, urlopen
     import rfc3987
 
     parts = urlparse.urlsplit(str(url))
