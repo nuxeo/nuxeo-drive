@@ -81,7 +81,7 @@ class Engine(QObject):
                  remote_filtered_fs_client_factory=RemoteFilteredFileSystemClient):
         super(Engine, self).__init__()
 
-        self.version = manager.get_version()
+        self.version = manager.version
         self._remote_clients = dict()
         # Used for binding server / roots and managing tokens
         self.remote_doc_client_factory = remote_doc_client_factory
@@ -659,10 +659,14 @@ class Engine(QObject):
     def update_password(self, password):
         self._load_configuration()
         nxclient = self.remote_doc_client_factory(
-            self._server_url, self._remote_user, self._manager.device_id,
-            self._manager.get_version(), proxies=self._manager.get_proxies(self._server_url),
+            self._server_url,
+            self._remote_user,
+            self._manager.device_id,
+            self._manager.version,
+            proxies=self._manager.get_proxies(self._server_url),
             proxy_exceptions=self._manager.proxy_exceptions,
-            password=str(password), timeout=self._handshake_timeout)
+            password=str(password),
+            timeout=self._handshake_timeout)
         self._remote_token = nxclient.request_token()
         if self._remote_token is None:
             raise Exception
@@ -717,7 +721,7 @@ class Engine(QObject):
                 self._server_url,
                 self._remote_user,
                 self._manager.device_id,
-                self._manager.get_version(),
+                self._manager.version,
                 proxies=self._manager.get_proxies(self._server_url),
                 proxy_exceptions=self._manager.proxy_exceptions,
                 password=self._remote_password,
@@ -942,7 +946,7 @@ class Engine(QObject):
             self.server_url,
             self.remote_user,
             self._manager.device_id,
-            self._manager.get_version(),
+            self._manager.version,
             token=self.get_remote_token(),
             timeout=self.timeout,
             cookie_jar=self.cookie_jar,

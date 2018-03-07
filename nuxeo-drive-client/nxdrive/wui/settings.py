@@ -249,9 +249,9 @@ class WebSettingsApi(WebDriveApi):
             headers = {
                 'X-Application-Name': self._manager.app_name,
                 'X-Device-Id': self._manager.device_id,
-                'X-Client-Version': self._manager.get_version(),
+                'X-Client-Version': self._manager.version,
                 'User-Agent': (self._manager.app_name
-                               + '/' + self._manager.get_version()),
+                               + '/' + self._manager.version),
             }
             req = urllib2.Request(url, headers=headers)
             response = opener.open(req, timeout=STARTUP_PAGE_CONNECTION_TIMEOUT)

@@ -351,7 +351,7 @@ class Manager(QtCore.QObject):
 
     def get_metrics(self):
         return {
-            'version': self.get_version(),
+            'version': self.version,
             'auto_start': self.get_auto_start(),
             'auto_update': self.get_auto_update(),
             'beta_channel': self.get_beta_channel(),
@@ -628,8 +628,8 @@ class Manager(QtCore.QObject):
 
     def check_version_updated(self):  # TODO: Use it!
         last_version = self._dao.get_config("client_version")
-        if last_version != self.get_version():
-            self.clientUpdated.emit(last_version, self.get_version())
+        if last_version != self.version:
+            self.clientUpdated.emit(last_version, self.version)
 
     @property
     def device_id(self):
@@ -1014,7 +1014,8 @@ class Manager(QtCore.QObject):
     def get_engines(self):  # TODO: Remove
         return self._engines
 
-    def get_version(self):  # TODO: Convert to property
+    @property
+    def version(self):
         return __version__
 
     def update_version(self, device_config):

@@ -28,7 +28,7 @@ class Tracker(Worker):
         self._tracker = UATracker.create(
             uid, client_id=self._manager.device_id, user_agent=self.user_agent)
         self._tracker.set('appName', 'NuxeoDrive')
-        self._tracker.set('appVersion', self._manager.get_version())
+        self._tracker.set('appVersion', self._manager.version)
         self._tracker.set('encoding', sys.getfilesystemencoding())
         self._tracker.set('language', self.current_locale)
         self._manager.started.connect(self._send_stats)
@@ -92,7 +92,7 @@ class Tracker(Worker):
     def user_agent(self):
         """ Format a custom user agent. """
 
-        return 'NuxeoDrive/{} ({})'.format(self._manager.get_version(),
+        return 'NuxeoDrive/{} ({})'.format(self._manager.version,
                                            self.current_os)
 
     def send_event(self, **kwargs):

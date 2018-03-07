@@ -523,7 +523,7 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(result=str)
     def get_version(self):
-        return self._manager.get_version()
+        return self._manager.version
 
     @QtCore.pyqtSlot(result=str)
     def get_update_url(self):
