@@ -662,10 +662,10 @@ class LocalWatcher(EngineWorker):
                     doc_pair.local_state = 'moved'
                     old_local_path = doc_pair.local_path
                     self._dao.update_local_state(
-                        doc_pair, local_info, versionned=True)
+                        doc_pair, local_info, versioned=True)
 
             self._dao.update_local_state(
-                doc_pair, local_info, versionned=False)
+                doc_pair, local_info, versioned=False)
 
             if (self._windows
                     and old_local_path is not None
