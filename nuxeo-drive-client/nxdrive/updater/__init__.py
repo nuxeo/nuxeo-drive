@@ -22,7 +22,8 @@ def updater(*args, **kwargs):
 
     if not Options.update_check_delay:
         # The user manually disabled the auto-update
-        from .fake import Updater
+        from .base import BaseUpdater as Updater
+        setattr(Updater, '_enable', False)
         log.info('Update check delay is set to 0, disabling auto-update')
     else:
         import platform
@@ -33,7 +34,8 @@ def updater(*args, **kwargs):
         elif operating_system == 'windows':
             from .windows import Updater
         else:
-            from .fake import Updater
+            from .base import BaseUpdater as Updater
+            setattr(Updater, '_enable', False)
 
     return Updater(*args, **kwargs)
 

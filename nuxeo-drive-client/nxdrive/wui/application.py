@@ -16,6 +16,7 @@ from nxdrive.engine.activity import Action, FileAction
 from nxdrive.notification import Notification
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration, parse_protocol_url
+from nxdrive.updater.constants import UPDATE_STATUS_DOWNGRADE_NEEDED
 from nxdrive.utils import find_icon, find_resource
 from .modal import WebModal
 from .systray import DriveSystrayIcon
@@ -405,15 +406,20 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def _update_notification(self):
-        replacements = dict(version=self.manager.get_updater().last_status[1])
+        status, version = self.manager.get_updater().last_status[:2]
+        replacements = {'version': version}
+
+        msg = 'AUTOUPDATE_NOTIFICATION_MESSAGE'
+        if status == UPDATE_STATUS_DOWNGRADE_NEEDED:
+            msg = 'DOWNGRADE_NEEDED'
+
         notification = Notification(
             uuid='AutoUpdate',
             flags=(Notification.FLAG_BUBBLE
                    | Notification.FLAG_VOLATILE
                    | Notification.FLAG_UNIQUE),
             title=Translator.get('AUTOUPDATE_NOTIFICATION_TITLE', replacements),
-            description=Translator.get('AUTOUPDATE_NOTIFICATION_MESSAGE',
-                                       replacements),
+            description=Translator.get(msg, replacements),
         )
         self.manager.notification_service.send_notification(notification)
 

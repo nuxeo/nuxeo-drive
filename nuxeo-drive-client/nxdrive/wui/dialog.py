@@ -334,7 +334,7 @@ class WebDriveApi(QtCore.QObject):
     def app_update(self, version):
         updater = self._manager.get_updater()
         if updater:
-            updater.update(str(version))
+            updater.update(version)
 
     @QtCore.pyqtSlot(str, result=str)
     def get_actions(self, uid):

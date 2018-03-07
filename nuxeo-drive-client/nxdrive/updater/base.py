@@ -15,7 +15,6 @@ from nxdrive.options import Options
 from nxdrive.utils import version_between, version_lt
 from . import UpdateError
 from .constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
-                        UPDATE_STATUS_MISSING_VERSION,
                         UPDATE_STATUS_UNAVAILABLE_SITE,
                         UPDATE_STATUS_UPDATE_AVAILABLE,
                         UPDATE_STATUS_UPDATING,
@@ -124,6 +123,16 @@ class BaseUpdater(PollWorker):
 
         self._poll()
 
+    @pyqtSlot(str)
+    def update(self, version):
+        if not self.enable:
+            return
+
+        log.info('Starting application update process')
+        version = str(version)
+        filename = self._download(version)
+        self._install(version, filename)
+
     #
     # Private methods, should not try to override
     #
@@ -161,7 +170,7 @@ class BaseUpdater(PollWorker):
             raise UpdateError('Impossible to get %r: %s' % (url, exc))
 
         try:
-            versions = yaml.load(content)
+            versions = yaml.safe_load(content)
         except Exception as exc:
             raise UpdateError('Parsing error: %s' % exc)
         else:
@@ -173,38 +182,37 @@ class BaseUpdater(PollWorker):
         Find the latest version sorted by type and the current Nuxeo version.
         """
 
-        for version, info in sorted(self.versions.items(), reverse=True):
-            if info.get('type', '').lower() != self.nature:
-                # Skip not revelant release type
-                log.trace(
-                    'Skipping unwanted version %r, info=%r', version, info)
-                continue
+        default = ('', {})
 
-            if version_lt(version, self.manager.version):
-                log.trace('Skipping older (or same) version %r', version)
-                continue
+        # Skip not revelant release type
+        versions = {version: info for version, info in self.versions.items()
+                    if info.get('type', '').lower() == self.nature}
 
-            server_ver = self.server_ver
-            if not server_ver:
-                # No engine found, just returns the latest version
-                # (this allows to update Drive without any account)
-                log.debug(
-                    'No bound engine: using version %r, info=%r', version, info)
-                return version, info
+        if not versions:
+            return default
 
+        server_ver = self.server_ver
+        if not server_ver:
+            # No engine found, just returns the latest version
+            # (this allows to update Drive without any account)
+            latest = max(versions.keys())
+            info = versions.get(latest, {})
+            log.debug('No bound engine: using version %r, info=%r', latest, info)
+            return latest, info
+
+        # Skip outbound versions
+        for version, info in versions.items():
             server_ver_min = info.get('min', '0.0.0').upper()
             server_ver_max = info.get('max', '999.999.999').upper()
             if not version_between(server_ver_min, server_ver, server_ver_max):
-                log.trace(
-                    'Skipping outbound version %r, info=%r', version, info)
-                continue
+                versions.pop(version)
 
+        try:
             # Found a version candidate
-            log.debug('Found version candidate %r, info=%r', version, info)
-            return version, info
-
-        log.trace('No version found :(')
-        return '', {}
+            latest = max(versions.keys())
+            return latest, versions.get(latest, {})
+        except ValueError:
+            return default
 
     def _get_update_status(self):
         # type: () -> Tuple[unicode, Union[None, bool]]
@@ -220,9 +228,7 @@ class BaseUpdater(PollWorker):
             latest_version, info = self._get_latest_compatible_version()
 
             this_version = self.manager.version
-            if not latest_version:
-                status = (UPDATE_STATUS_MISSING_VERSION, None)
-            elif this_version == latest_version:
+            if not latest_version or this_version == latest_version:
                 status = (UPDATE_STATUS_UP_TO_DATE, None)
             elif not version_lt(latest_version, this_version):
                 status = (UPDATE_STATUS_UPDATE_AVAILABLE, latest_version)
@@ -240,37 +246,33 @@ class BaseUpdater(PollWorker):
         if status == UPDATE_STATUS_UNAVAILABLE_SITE:
             log.warning('Update site is unavailable, as a consequence'
                         ' update features won\'t be available')
-        elif status == UPDATE_STATUS_MISSING_VERSION:
-            log.debug('No client version compatible with server version %r'
-                      ' available in update site %r',
-                      self.server_ver, self.update_site)
         elif status == UPDATE_STATUS_DOWNGRADE_NEEDED:
             log.info('Downgrade to version %r is needed', version)
             log.info('As current client version is not compatible with'
                      ' server version, a downgrade is needed.'
                      ' Synchronization won\'t start until then.')
             self.manager.stop()
+            self.updateAvailable.emit()
         elif status == UPDATE_STATUS_UPDATE_AVAILABLE:
             if self.manager.get_auto_update():
                 log.info('An application update is available and'
                          ' auto-update is checked')
                 self.last_status = (UPDATE_STATUS_UPDATING, version, 0)
                 try:
-                    self._update(version)
+                    self.update(version)
                 except UpdateError:
                     log.exception('An error occurred while trying to '
                                   'automatically update Nuxeo Drive to '
                                   'version %r, disaling auto-update.',
                                   version)
-                    # TODO: Uncomment when tests are finished
-                    # self.manager.set_auto_update(False)
+                    self.manager.set_auto_update(False)
             else:
                 log.info('An update is available and auto-update is not'
                          ' checked, let\'s just update the systray notification'
                          ' and let the user explicitly choose to update')
                 self.updateAvailable.emit()
         else:
-            log.debug('Application is up-to-date')
+            log.debug('You are up-to-date!')
 
     def _install(self, version, filename):
         # type: (unicode, unicode) -> None
@@ -322,11 +324,3 @@ class BaseUpdater(PollWorker):
                 self.__update_site = None
 
         return ret
-
-    @pyqtSlot(str)
-    def _update(self, version):
-        version = str(version)
-
-        log.info('Starting application update process')
-        filename = self._download(version)
-        self._install(version, filename)
