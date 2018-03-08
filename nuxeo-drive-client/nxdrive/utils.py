@@ -116,6 +116,11 @@ def version_compare_client(x, y):
         return version_compare(x, y)
 
 
+def version_lt(x, y):
+    """ x <= y """
+    return version_compare_client(x, y) <= 0
+
+
 def version_compare(x, y):
     """Compare version numbers using the usual x.y.z pattern.
 

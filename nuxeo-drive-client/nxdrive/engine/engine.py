@@ -117,6 +117,8 @@ class Engine(QObject):
         if binder is not None:
             self.bind(binder)
         self._load_configuration()
+        # Set server version in the Options
+        self.get_server_version()
         self._local_watcher = self._create_local_watcher()
         self.create_thread(worker=self._local_watcher)
         self._remote_watcher = self._create_remote_watcher(Options.delay)
