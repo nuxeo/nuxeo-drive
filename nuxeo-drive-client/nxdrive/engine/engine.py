@@ -839,7 +839,7 @@ class Engine(QObject):
 
         self._dao.insert_local_state(local_info, '')
         row = self._dao.get_state_from_local('/')
-        self._dao.update_remote_state(row, remote_info, remote_parent_path='', versionned=False)
+        self._dao.update_remote_state(row, remote_info, remote_parent_path='', versioned=False)
         local_client.set_root_id(self._server_url + "|" + self._remote_user +
                             "|" + self._manager.device_id + "|" + self.uid)
         local_client.set_remote_id('/', remote_info.uid)
