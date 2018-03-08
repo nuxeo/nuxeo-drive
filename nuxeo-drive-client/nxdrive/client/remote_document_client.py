@@ -209,7 +209,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         op_input = 'doc:' + self._check_ref(ref)
         if use_trash:
             try:
-                if not version_lt('9.10', Options.server_version):
+                if version_lt(Options.server_version, '10.1'):
                     return self.execute('Document.SetLifeCycle',
                                         op_input=op_input, value='delete')
                 else:
@@ -221,7 +221,7 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def undelete(self, uid):
         op_input = 'doc:' + uid
-        if not version_lt('9.10', Options.server_version):
+        if version_lt(Options.server_version, '10.1'):
             return self.execute('Document.SetLifeCycle',
                                 op_input=op_input, value='undelete')
         else:
