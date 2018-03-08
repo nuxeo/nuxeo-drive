@@ -1046,8 +1046,8 @@ class EngineDAO(ConfigurationDAO):
         return res
 
     def _get_recursive_remote_condition(self, doc_pair):
-        path = self._escape('{}/{}'.format(doc_pair.remote_parent_path,
-                                           doc_pair.remote_name))
+        path = self._escape('{}/{}'.format(
+            doc_pair.remote_parent_path, doc_pair.remote_name.encode('utf-8')))
         return (" WHERE remote_parent_path LIKE '{}/%'"
                 "    OR remote_parent_path = '{}'").format(path, path)
 
