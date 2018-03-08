@@ -6,6 +6,8 @@ from logging import getLogger
 import pytest
 import time
 
+import sys
+
 from common_unit_test import UnitTestCase
 from .common_unit_test import FILE_CONTENT
 
@@ -176,3 +178,38 @@ class TestLocalCreations(UnitTestCase):
         filename = '/{}'.format(filename)
         assert local.exists(filename)
         assert os.stat(local.abspath(filename)).st_mtime < remote_mtime
+
+    def test_local_creation_date(self):
+        """ Check that the files have the Platform modification date. """
+        remote = self.remote_file_system_client_1
+        local = self.local_client_1
+        engine = self.engine_1
+
+        workspace_id = 'defaultSyncRootFolderItemFactory#default#{}'.format(
+            self.workspace)
+
+        filename = 'abc.txt'
+        file_id = remote.make_file(workspace_id, filename, content=b'1234').uid
+        after_ctime = time.time()
+
+        time.sleep(3)
+        filename = 'a' + filename
+        remote.rename(file_id, filename)
+        after_mtime = time.time()
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        filename = '/{}'.format(filename)
+        assert local.exists(filename)
+        local_mtime = os.stat(local.abspath(filename)).st_mtime
+
+        if sys.platform in ('darwin', 'win32'):
+            if sys.platform == 'darwin':
+                local_ctime = os.stat(local.abspath(filename)).st_birthtime
+            else:
+                local_ctime = os.stat(local.abspath(filename)).st_ctime
+            assert local_ctime < after_ctime
+            assert local_ctime + 3 <= local_mtime
+
+        assert local_mtime < after_mtime
