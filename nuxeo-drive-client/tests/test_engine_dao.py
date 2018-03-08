@@ -44,9 +44,9 @@ class EngineDAOTest(unittest.TestCase):
             os.remove(init_db.name)
         dao = EngineDAO(init_db.name)
         # Test filters table
-        assert not len(dao.get_filters())
+        assert not dao.get_filters()
         # Test state table
-        assert not len(dao.get_conflicts())
+        assert not dao.get_conflicts()
         # Test configuration
         assert dao.get_config('remote_user') is None
         # Test RemoteScan table
@@ -63,7 +63,7 @@ class EngineDAOTest(unittest.TestCase):
         self._dao = EngineDAO(migrate_db.name)
         c = self._dao._get_read_connection().cursor()
         rows = c.execute('SELECT * FROM States').fetchall()
-        assert not len(rows)
+        assert not rows
         cols = c.execute("PRAGMA table_info('States')").fetchall()
         assert len(cols) == 31
         assert self._dao.get_config('remote_last_event_log_id') is None
