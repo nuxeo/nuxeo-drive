@@ -44,9 +44,9 @@ class EngineDAOTest(unittest.TestCase):
             os.remove(init_db.name)
         dao = EngineDAO(init_db.name)
         # Test filters table
-        assert 0 == len(dao.get_filters())
+        assert not len(dao.get_filters())
         # Test state table
-        assert 0 == len(dao.get_conflicts())
+        assert not len(dao.get_conflicts())
         # Test configuration
         assert dao.get_config('remote_user') is None
         # Test RemoteScan table
@@ -63,7 +63,7 @@ class EngineDAOTest(unittest.TestCase):
         self._dao = EngineDAO(migrate_db.name)
         c = self._dao._get_read_connection().cursor()
         rows = c.execute('SELECT * FROM States').fetchall()
-        assert len(rows) == 0
+        assert not len(rows)
         cols = c.execute("PRAGMA table_info('States')").fetchall()
         assert len(cols) == 31
         assert self._dao.get_config('remote_last_event_log_id') is None
@@ -98,31 +98,31 @@ class EngineDAOTest(unittest.TestCase):
 
     def test_errors(self):
         assert self._dao.get_error_count() == 1
-        assert self._dao.get_error_count(5) == 0
+        assert not self._dao.get_error_count(5)
         assert len(self._dao.get_errors()) == 1
         row = self._dao.get_errors()[0]
         # Test reset error
         self._dao.reset_error(row)
-        assert self._dao.get_error_count() == 0
+        assert not self._dao.get_error_count()
         row = self._dao.get_state_from_id(row.id)
         assert row.last_error is None
         assert row.last_error_details is None
-        assert row.error_count == 0
+        assert not row.error_count
         # Test increase
         self._dao.increase_error(row, 'Test')
-        assert self._dao.get_error_count() == 0
+        assert not self._dao.get_error_count()
         self._dao.increase_error(row, 'Test 2')
-        assert self._dao.get_error_count() == 0
+        assert not self._dao.get_error_count()
         assert self._dao.get_error_count(1) == 1
         self._dao.increase_error(row, 'Test 3')
-        assert self._dao.get_error_count() == 0
+        assert not self._dao.get_error_count()
         assert self._dao.get_error_count(2) == 1
         # Synchronize with wrong version should fail
         assert not self._dao.synchronize_state(row, version=row.version-1)
         assert self._dao.get_error_count(2) == 1
         # Synchronize should reset error
         assert self._dao.synchronize_state(row)
-        assert self._dao.get_error_count(2) == 0
+        assert not self._dao.get_error_count(2)
 
     def test_remote_scans(self):
         assert not self._dao.is_path_scanned('/')
@@ -156,11 +156,11 @@ class EngineDAOTest(unittest.TestCase):
         index = 0
         state = self._dao.get_state_from_id(25)  # ids[index])
         while index < len(ids)-1:
-            index = index + 1
+            index += 1
             state = self._dao.get_next_folder_file(state.remote_ref)
             assert state.id == ids[index]
         while index > 0:
-            index = index - 1
+            index -= 1
             state = self._dao.get_previous_folder_file(state.remote_ref)
             assert state.id == ids[index]
         assert self._dao.get_previous_folder_file(state.remote_ref) is None
@@ -174,11 +174,11 @@ class EngineDAOTest(unittest.TestCase):
         index = 0
         state = self._dao.get_state_from_id(ids[index])
         while index < len(ids)-1:
-            index = index + 1
+            index += 1
             state = self._dao.get_next_sync_file(state.remote_ref, 'upload')
             assert state.id == ids[index]
         while index > 0:
-            index = index - 1
+            index -= 1
             state = self._dao.get_previous_sync_file(state.remote_ref,
                                                      'upload')
             assert state.id == ids[index]
@@ -191,7 +191,7 @@ class EngineDAOTest(unittest.TestCase):
 
     def test_reinit_processors(self):
         state = self._dao.get_state_from_id(1)
-        assert state.processor == 0
+        assert not state.processor
 
     def test_acquire_processors(self):
         assert self._dao.acquire_processor(666, 2)
@@ -222,7 +222,7 @@ class EngineDAOTest(unittest.TestCase):
         result = self._dao.get_config('empty', 'DefaultValue')
         assert result == 'DefaultValue'
         result = self._dao.get_config('empty')
-        assert result == None
+        assert result is None
 
     def test_filters(self):
         # Contains by default /fakeFilter/Test_Parent and /fakeFilter/Retest
