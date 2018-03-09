@@ -29,4 +29,5 @@ pypi*
 *.swp
 target
 venv
+xcuserdata
 yacctab.py
