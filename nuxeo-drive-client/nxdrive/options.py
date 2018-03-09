@@ -1,14 +1,14 @@
 # coding: utf-8
 """
-Options managements.
+Options management.
 
-The goal is to have a uniq object `Options` where the whole configuration
-is centralized.  Any other part of Drive should use it directly by just
-importing the class.  No instanciation is needed and therefore forbidden.
+The goal is to have a unique object `Options` where the whole configuration
+is centralized. Any other part of Drive should use it directly by just
+importing the class. No instantiation is needed and therefore it is forbidden.
 
     >>> from nxdrive.options import Options
 
-Using `repr` or `str` on `Options` has different meaning.
+Using `repr` or `str` on `Options` has different meanings.
 
     >>> repr(Options)
     Options(delay[default]=30, ...)
@@ -24,7 +24,7 @@ configuration):
     >>> str(Options)
     Options(delay[local]=42, locale[cli]='fr', timeout[server]=-1)
 
-You can access to a given option as simply as:
+You can access a given option as simply as:
 
     >>> Options.delay
     30
@@ -41,7 +41,7 @@ This is the equivalent of:
 
     >>> Options.set('delay', 42, setter='manual')
 
-_For tests purpose_, a `Options.mock` decorator is available.
+_For testing purposes_, a `Options.mock` decorator is available.
 """
 
 from __future__ import unicode_literals
@@ -50,6 +50,7 @@ import locale
 import logging
 import os.path
 import sys
+from copy import deepcopy
 
 # from typing import Any, Dict, Tuple
 
@@ -68,12 +69,12 @@ class MetaOptions(type):
             name: (value, setter),
         }
 
-        - name: option's name
-        - value: option's value
-        - setter: which part setted it up (the server, the default conf, ...)
+        - name: option name
+        - value: option value
+        - setter: which part set it up (the server, the default conf, ...)
 
-    Depending the setter, the options can or cannot be updated.  A simple log
-    line will be sent using the logging module.
+    Depending on the setter, the options can or cannot be updated.
+    A simple log line will be sent using the logging module.
     """
 
     # Ignored files, checked lowercase
@@ -159,6 +160,8 @@ class MetaOptions(type):
             'http://community.nuxeo.com/static/drive/', 'default'),
     }  # type: Dict[unicode, Tuple[Any, unicode]]
 
+    default_options = deepcopy(options)
+
     # Callbacks for any option change.
     # Callable signature must be: (new_value: str) -> None
     # The return value is not checked.
@@ -167,7 +170,7 @@ class MetaOptions(type):
     def __getattr__(self, item):
         # type (unicode) -> Any
         """
-        Override to permit retreiving an option as simply as `Options.delay`.
+        Override to allow retrieving an option as simply as `Options.delay`.
 
         If the option does not exist, returns `None`.
         """
@@ -181,8 +184,8 @@ class MetaOptions(type):
     def __setattr__(self, item, value):
         # type: (unicode, Any) -> None
         """
-        Override to permit setting an option as simply as `Options.delay = 42`.
-        If the option does not exist, does nothing.
+        Override to allow setting an option as simply as `Options.delay = 42`.
+        If the option does not exist, it does nothing.
 
         Use in tests only.
         """
@@ -212,9 +215,9 @@ class MetaOptions(type):
         Set an option.
 
         If the option does not exist, if will be ignored if `fail_on_error`
-        equals `False`, overwise `KeyError` will be raised.
+        equals `False`, otherwise `KeyError` will be raised.
 
-        If the `setter` has the right to override the option's value, set
+        If the `setter` has the right to override the option value, set
         `new_value`, else do nothing.
 
         Any `list` will be converted to a sorted `tuple`.
@@ -222,11 +225,11 @@ class MetaOptions(type):
 
         If the type of the new value differs from the original one,
         raises `ValueError`.  It helps preventing assigning a `str` when
-        a `tuple` is required to keep the rest of code consistent.
+        a `tuple` is required to keep the rest of the code consistent.
 
         Finally, if a callback is set for that option and if the `new_value`
         is assigned to the option, the callback will be called with the
-        `new_value` as lone argument.
+        `new_value` as sole argument.
         """
 
         try:
@@ -244,7 +247,7 @@ class MetaOptions(type):
                 new_value = new_value.decode(
                     locale.getpreferredencoding() or 'utf-8')
 
-            # Try implicit conversions.  We do not use isinstance to prevent
+            # Try implicit conversions. We do not use isinstance to prevent
             # checking against subtypes.
             type_orig = type(old_value)
             if type_orig is bool:
@@ -320,18 +323,18 @@ class MetaOptions(type):
                 ...
 
         """
-
-        from copy import deepcopy
+        def reinit():
+            setattr(MetaOptions, 'callbacks', {})
+            setattr(MetaOptions, 'options',
+                    deepcopy(MetaOptions.default_options))
 
         def decorator(func):
             def wrapper(*args, **kwargs):
-                callbacks_orig = deepcopy(MetaOptions.__dict__['callbacks'])
-                options_orig = deepcopy(MetaOptions.__dict__['options'])
+                reinit()
                 try:
                     return func(*args, **kwargs)
                 finally:
-                    setattr(MetaOptions, 'callbacks', callbacks_orig)
-                    setattr(MetaOptions, 'options', options_orig)
+                    reinit()
             return wrapper
         return decorator
 
@@ -341,4 +344,4 @@ class Options(object):
 
     def __init__(self):
         """ Prevent class instances. """
-        raise RuntimeError('Cannot be instanciated.')
+        raise RuntimeError('Cannot be instantiated.')

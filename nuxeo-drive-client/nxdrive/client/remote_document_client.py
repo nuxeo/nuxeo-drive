@@ -13,6 +13,7 @@ from dateutil import parser
 from nxdrive.client.base_automation_client import BaseAutomationClient
 from nxdrive.client.common import NotFound, safe_filename
 from nxdrive.options import Options
+from nxdrive.utils import version_lt
 
 log = getLogger(__name__)
 
@@ -205,22 +206,26 @@ class RemoteDocumentClient(BaseAutomationClient):
             op_name, file_path, filename=filename, mime_type=mime_type, **params)
 
     def delete(self, ref, use_trash=True):
-        op_input = "doc:" + self._check_ref(ref)
+        op_input = 'doc:' + self._check_ref(ref)
         if use_trash:
             try:
-                return self.execute("Document.SetLifeCycle", op_input=op_input,
-                                     value='delete')
+                if version_lt(Options.server_version, '10.1'):
+                    return self.execute('Document.SetLifeCycle',
+                                        op_input=op_input, value='delete')
+                else:
+                    return self.execute('Document.Trash', op_input=op_input)
             except urllib2.HTTPError as e:
-                if e.code == 500:
-                    return self.execute("Document.Delete", op_input=op_input)
-                raise
-        else:
-            return self.execute("Document.Delete", op_input=op_input)
+                if e.code != 500:
+                    raise
+        return self.execute('Document.Delete', op_input=op_input)
 
-    def undelete(self, ref):
-        op_input = "doc:" + self._check_ref(ref)
-        return self.execute("Document.SetLifeCycle", op_input=op_input,
-                            value='undelete')
+    def undelete(self, uid):
+        op_input = 'doc:' + uid
+        if version_lt(Options.server_version, '10.1'):
+            return self.execute('Document.SetLifeCycle',
+                                op_input=op_input, value='undelete')
+        else:
+            return self.execute('Document.Untrash', op_input=op_input)
 
     def delete_content(self, ref, xpath=None):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)

@@ -7,6 +7,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1121](https://jira.nuxeo.com/browse/NXDRIVE-1121): Set modified date to Nuxeo platform modified date
 - [NXDRIVE-1132](https://jira.nuxeo.com/browse/NXDRIVE-1132): Security fix in the Crypto module (move to PyCryptodome)
 - [NXDRIVE-1133](https://jira.nuxeo.com/browse/NXDRIVE-1133): Purge dead code reported by the 'vulture' tool
+- [NXDRIVE-1152](https://jira.nuxeo.com/browse/NXDRIVE-1152): Handle document delete operation by server version
 
 ### GUI
 - [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
@@ -23,6 +24,7 @@ Release date: `2018-??-??`
 - Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
 - Jenkins: Possibility to launch the beta job on a given branch
 - Jenkins: Possibility to launch the release job on a given beta version
+- Packaging: Fix symlink creation in `deploy.sh`
 - Packaging: Merged OS specific requirements-*.txt into one file
 - Packaging: Removed `cffi`, will be installed with `xattr`
 - Packaging: Updated `Js2Py` from 0.58 to 0.59
