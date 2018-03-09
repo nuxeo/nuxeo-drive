@@ -50,6 +50,7 @@ import locale
 import logging
 import os.path
 import sys
+from copy import deepcopy
 
 # from typing import Any, Dict, Tuple
 
@@ -158,6 +159,8 @@ class MetaOptions(type):
         'update_site_url': (
             'http://community.nuxeo.com/static/drive/', 'default'),
     }  # type: Dict[unicode, Tuple[Any, unicode]]
+
+    default_options = deepcopy(options)
 
     # Callbacks for any option change.
     # Callable signature must be: (new_value: str) -> None
@@ -320,18 +323,18 @@ class MetaOptions(type):
                 ...
 
         """
-
-        from copy import deepcopy
+        def reinit():
+            setattr(MetaOptions, 'callbacks', {})
+            setattr(MetaOptions, 'options',
+                    deepcopy(MetaOptions.default_options))
 
         def decorator(func):
             def wrapper(*args, **kwargs):
-                callbacks_orig = deepcopy(MetaOptions.__dict__['callbacks'])
-                options_orig = deepcopy(MetaOptions.__dict__['options'])
+                reinit()
                 try:
                     return func(*args, **kwargs)
                 finally:
-                    setattr(MetaOptions, 'callbacks', callbacks_orig)
-                    setattr(MetaOptions, 'options', options_orig)
+                    reinit()
             return wrapper
         return decorator
 
@@ -341,4 +344,4 @@ class Options(object):
 
     def __init__(self):
         """ Prevent class instances. """
-        raise RuntimeError('Cannot be instanciated.')
+        raise RuntimeError('Cannot be instantiated.')
