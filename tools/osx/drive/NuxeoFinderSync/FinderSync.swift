@@ -19,20 +19,22 @@ class FinderSync: FIFinderSync {
     var icon = NSImage(named: NSImage.Name(rawValue: "icon_64.png"))
 
     override init() {
-        super.init()
-
         NSLog("FinderSync() launched from %@", Bundle.main.bundlePath as NSString)
+        super.init()
 
         // Set up the directory we are syncing.
         FIFinderSyncController.default().directoryURLs = [self.myFolderURL]
 
-        // Set up images for our badge identifiers. For demonstration purposes, this uses off-the-shelf images.
-        //FIFinderSyncController.default().setBadgeImage(NSImage(named: .colorPanel)!,
-        //                                               label: "Status One",
-        //                                               forBadgeIdentifier: "One")
-        //FIFinderSyncController.default().setBadgeImage(NSImage(named: .caution)!,
-        //                                               label: "Status Two",
-        //                                               forBadgeIdentifier: "Two")
+        // Set up images for our badge identifiers.
+        // For demonstration purposes, this uses off-the-shelf images.
+        /*
+        FIFinderSyncController.default().setBadgeImage(NSImage(named: .colorPanel)!,
+                                                       label: "Status One",
+                                                       forBadgeIdentifier: "One")
+        FIFinderSyncController.default().setBadgeImage(NSImage(named: .caution)!,
+                                                       label: "Status Two",
+                                                       forBadgeIdentifier: "Two")
+        */
     }
 
     // Primary Finder Sync protocol methods
@@ -53,13 +55,16 @@ class FinderSync: FIFinderSync {
         NSLog("requestBadgeIdentifierForURL: %@", url.path as NSString)
         // For demonstration purposes, this picks one of our two badges, or no badge at all, based on the filename.
         // Inspiration: https://github.com/haiwen/seafile-client/blob/master/fsplugin/FinderSync.mm
-        //let whichBadge = abs(url.path.hash) % 3
-        //let badgeIdentifier = ["", "One", "Two"][whichBadge]
-        //FIFinderSyncController.default().setBadgeIdentifier(badgeIdentifier, for: url)
+        /*
+        let whichBadge = abs(url.path.hash) % 3
+        let badgeIdentifier = ["", "One", "Two"][whichBadge]
+        FIFinderSyncController.default().setBadgeIdentifier(badgeIdentifier, for: url)
+        */
     }
 
-    // Toolbar and menu
+    // Toolbar
 
+    /*
     override var toolbarItemName: String {
         return "Nuxeo Drive"
     }
@@ -72,6 +77,9 @@ class FinderSync: FIFinderSync {
         // Set the toolbar icon
         return self.icon!
     }
+    */
+
+    // Context menu, also toolbar menu, if previous code is uncommented
 
     override func menu(for menuKind: FIMenuKind) -> NSMenu {
         // Produce a menu for the extension
