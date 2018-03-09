@@ -37,7 +37,6 @@ class TestRemoteDeletion(UnitTestCase):
         local = self.local_client_1
         remote = self.remote_document_client_1
         remote_admin = self.root_remote_client
-        Options.server_version = self.engine_1.get_server_version()
 
         # Create documents in the remote root workspace
         # then synchronize
