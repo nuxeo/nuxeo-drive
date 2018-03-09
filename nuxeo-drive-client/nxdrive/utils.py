@@ -565,9 +565,10 @@ def simplify_url(url):
 
 
 def parse_protocol_url(url_string):
-    """Parse URL for which nxdrive is registered as a protocol handler
+    """
+    Parse URL for which Drive is registered as a protocol handler.
 
-    Return None if url_string is not a supported URL pattern or raise a
+    Return None if `url_string` is not a supported URL pattern or raise a
     ValueError is the URL structure is invalid.
     """
     if not url_string.startswith('nxdrive://'):
@@ -602,7 +603,7 @@ def parse_protocol_url(url_string):
 
 
 def parse_edit_protocol(parsed_url, url_string):
-    """ Parse a nxdrive://edit URL for quick editing of nuxeo documents. """
+    """ Parse a `nxdrive://edit` URL for quick editing of Nuxeo documents. """
     scheme = parsed_url.get('scheme')
     if scheme not in ('http', 'https'):
         raise ValueError(

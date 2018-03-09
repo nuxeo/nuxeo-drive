@@ -29,9 +29,9 @@ code_sign() {
         codesign --deep --force --verbose --sign "${SIGNING_ID}" "${app}"
     fi
 
-
     echo ">>> [sign] Verifying code signature"
     codesign --verify --verbose "${app}"
+    # spctl --assess -vv "${app}"
 }
 
 create_package() {
@@ -61,7 +61,6 @@ create_package() {
 
     echo ">>> [package] Creating the DMG file"
     code_sign "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex" "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements"
-    code_sign "${pkg_path}" "${extension_path}/drive/drive.entitlements"
 
     echo ">>> [DMG] ${bundle_name} version ${app_version}"
     # Compute DMG name and size

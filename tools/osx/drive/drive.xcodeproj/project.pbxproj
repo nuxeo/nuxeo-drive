@@ -47,7 +47,6 @@
 		8B6E724D2046EE3E00AB5771 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8B6E72502046EE3E00AB5771 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		8B6E72522046EE3E00AB5771 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		8B6E72532046EE3E00AB5771 /* drive.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = drive.entitlements; sourceTree = "<group>"; };
 		8B6E725D2046EE5400AB5771 /* NuxeoFinderSync.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NuxeoFinderSync.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B6E725F2046EE5400AB5771 /* FinderSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSync.swift; sourceTree = "<group>"; };
 		8B6E72612046EE5400AB5771 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -76,7 +75,6 @@
 		8B6E723D2046EE3D00AB5771 = {
 			isa = PBXGroup;
 			children = (
-				8BFDE4EF20486CAB00618B67 /* drive.iconset */,
 				8B6E72482046EE3D00AB5771 /* drive */,
 				8B6E725E2046EE5400AB5771 /* NuxeoFinderSync */,
 				8B6E72472046EE3D00AB5771 /* Products */,
@@ -100,7 +98,6 @@
 				8B6E724D2046EE3E00AB5771 /* Assets.xcassets */,
 				8B6E724F2046EE3E00AB5771 /* Main.storyboard */,
 				8B6E72522046EE3E00AB5771 /* Info.plist */,
-				8B6E72532046EE3E00AB5771 /* drive.entitlements */,
 			);
 			path = drive;
 			sourceTree = "<group>";
@@ -114,13 +111,6 @@
 				8B6E72622046EE5400AB5771 /* NuxeoFinderSync.entitlements */,
 			);
 			path = NuxeoFinderSync;
-			sourceTree = "<group>";
-		};
-		8BFDE4EF20486CAB00618B67 /* drive.iconset */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = drive.iconset;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -388,7 +378,7 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 62752MUWTL;
+				DEVELOPMENT_TEAM = 5GXG8VD87U;
 				INFOPLIST_FILE = drive/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
@@ -407,7 +397,7 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 62752MUWTL;
+				DEVELOPMENT_TEAM = 5GXG8VD87U;
 				INFOPLIST_FILE = drive/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
@@ -421,11 +411,12 @@
 		8B6E72672046EE5400AB5771 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_ENTITLEMENTS = NuxeoFinderSync/NuxeoFinderSync.entitlements;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 62752MUWTL;
+				DEVELOPMENT_TEAM = 5GXG8VD87U;
 				INFOPLIST_FILE = NuxeoFinderSync/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
@@ -440,11 +431,12 @@
 		8B6E72682046EE5400AB5771 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_ENTITLEMENTS = NuxeoFinderSync/NuxeoFinderSync.entitlements;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 62752MUWTL;
+				DEVELOPMENT_TEAM = 5GXG8VD87U;
 				INFOPLIST_FILE = NuxeoFinderSync/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
