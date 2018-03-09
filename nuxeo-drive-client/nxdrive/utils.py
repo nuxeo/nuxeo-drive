@@ -195,14 +195,14 @@ def version_compare_client(x, y):
         return version_compare(x, y)
 
 
-def version_lt(x, y):
+def version_le(x, y):
     """ x <= y """
     return version_compare_client(x, y) <= 0
 
 
 def version_between(x, y, z):
     """ x <= y <= y """
-    return version_lt(x, y) and version_lt(y, z)
+    return version_le(x, y) and version_le(y, z)
 
 
 def normalized_path(path):

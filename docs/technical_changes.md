@@ -9,9 +9,12 @@
 - Removed `AbstractOSIntegration.os_version_below()`
 - Removed `AbstractOSIntegration.register_desktop_link()`
 - Removed `AbstractOSIntegration.unregister_desktop_link()`
+- Removed `Application.app_updated()`
 - Removed `Application.engineLogger`
 - Removed `Application.engineWidget`
 - Removed `Application.mainEngine`
+- Removed `Application.restart()`
+- Removed `Application.updated_version`
 - Removed `BaseAutomationClient.is_addon_installed()`
 - Removed `ConfigurationDAO.begin_transaction()`
 - Removed `ConfigurationDAO.dispose_thread()`
@@ -48,14 +51,19 @@
 - Removed `LocalWatcher.set_windows_folder_scan_delay()`
 - Removed `LocalWatcher.get_windows_watchdog_event_buffer()`
 - Removed `LocalWatcher.set_windows_watchdog_event_buffer()`
+- Removed `Manager.check_version_updated()`
 - Removed `Manager.get_engines_type()`
+- Removed `Manager.get_version()`. Use `version` property instead.
+- Removed `Manager.get_version_finder()`
 - Removed `Manager.list_server_bindings()`
+- Removed `Manager.update_version()`
 - Removed `Notification.add_replacement()`
 - Removed `Notification.generate_uid()`
 - Removed `Notification.is_volatile()`
 - Removed `Notification.remove_replacement()`
 - Removed `Notification.trigger()`
 - Removed `Options.quit_timeout`
+- Removed `Options.stop_on_error`
 - Removed `Processor.path_locks()`
 - Removed `QueueManager.init_queue()`
 - Removed `RemoteDocumentClient.check_writable()`
@@ -93,6 +101,11 @@
 - Removed engine/engine.py::`EngineLogger()`
 - Moved gui/resources.py::`find_icon()` to utils.py
 - Removed gui/folder_treeview.py::`DocClient()`
+- Added options.py::`server_updater()`
+- Added updater package
+- Removed updater.py
+- Added utils.py::`version_between()`
+- Added utils.py::`version_le()`
 - Removed utils.py::`ServerLoader()`
 - Changed utils.py::`find_resource_dir(directory, default_path)` to `find_resource(folder, filename)`
 - Removed wui/conflicts.py::`WebConflictsDialog()`

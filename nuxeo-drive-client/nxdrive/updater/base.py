@@ -12,7 +12,7 @@ from PyQt4.QtCore import pyqtSignal, pyqtSlot
 
 from nxdrive.engine.workers import PollWorker
 from nxdrive.options import Options
-from nxdrive.utils import version_between, version_lt
+from nxdrive.utils import version_between, version_le
 from . import UpdateError
 from .constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
                         UPDATE_STATUS_UNAVAILABLE_SITE,
@@ -230,7 +230,7 @@ class BaseUpdater(PollWorker):
             this_version = self.manager.version
             if not latest_version or this_version == latest_version:
                 status = (UPDATE_STATUS_UP_TO_DATE, None)
-            elif not version_lt(latest_version, this_version):
+            elif not version_le(latest_version, this_version):
                 status = (UPDATE_STATUS_UPDATE_AVAILABLE, latest_version)
             else:
                 status = (UPDATE_STATUS_DOWNGRADE_NEEDED, latest_version)
