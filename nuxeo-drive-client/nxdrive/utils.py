@@ -12,7 +12,7 @@ import time
 import urlparse
 from logging import getLogger
 
-from nxdrive.options import Options
+from .options import Options
 
 DEVICE_DESCRIPTIONS = {
     'cygwin': 'Windows',
@@ -34,7 +34,6 @@ WIN32_PATCHED_MIME_TYPES = {
 }
 TOKEN_PERMISSION = 'ReadWrite'
 NUXEO_DRIVE_FOLDER_NAME = 'Nuxeo Drive'
-OSX_SUFFIX = "Contents/Resources/lib/python2.7/site-packages.zip/nxdrive"
 ENCODING = locale.getpreferredencoding()
 
 log = getLogger(__name__)

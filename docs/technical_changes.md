@@ -53,6 +53,7 @@
 - Removed `LocalWatcher.get_windows_watchdog_event_buffer()`
 - Removed `LocalWatcher.set_windows_watchdog_event_buffer()`
 - Removed `Manager.check_version_updated()`
+- Removed `Manager.find_exe_path()`
 - Removed `Manager.get_engines_type()`
 - Removed `Manager.get_version()`. Use `version` property instead.
 - Removed `Manager.get_version_finder()`

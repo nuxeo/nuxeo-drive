@@ -367,7 +367,7 @@ def server_updater(*args):
     import json
 
     from PyQt4.QtCore import pyqtSlot
-    from nxdrive.engine.workers import PollWorker
+    from .engine.workers import PollWorker
 
     class ServerOptionsUpdater(PollWorker):
         """ Class for checking server's config.json updates. """

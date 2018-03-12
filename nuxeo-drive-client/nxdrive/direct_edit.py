@@ -9,18 +9,17 @@ from time import sleep
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from watchdog.observers import Observer
 
-from nxdrive.client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
-                                                   DOWNLOAD_TMP_FILE_SUFFIX)
-from nxdrive.client.common import BaseClient, NotFound
-from nxdrive.client.local_client import LocalClient
-from nxdrive.engine.activity import tooltip
-from nxdrive.engine.blacklist_queue import BlacklistQueue
-from nxdrive.engine.watcher.local_watcher import DriveFSEventHandler
-from nxdrive.engine.workers import ThreadInterrupt, Worker
-from nxdrive.osi import parse_protocol_url
-from nxdrive.utils import (current_milli_time, force_decode,
-                           guess_digest_algorithm, normalize_event_filename,
-                           simplify_url)
+from .client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
+                                            DOWNLOAD_TMP_FILE_SUFFIX)
+from .client.common import BaseClient, NotFound
+from .client.local_client import LocalClient
+from .engine.activity import tooltip
+from .engine.blacklist_queue import BlacklistQueue
+from .engine.watcher.local_watcher import DriveFSEventHandler
+from .engine.workers import ThreadInterrupt, Worker
+from .osi import parse_protocol_url
+from .utils import (current_milli_time, force_decode, guess_digest_algorithm,
+                    normalize_event_filename, simplify_url)
 
 log = getLogger(__name__)
 

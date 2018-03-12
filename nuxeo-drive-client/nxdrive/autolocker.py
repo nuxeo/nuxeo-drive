@@ -5,8 +5,8 @@ from logging import getLogger
 
 from PyQt4.QtCore import QTimer, pyqtSignal
 
-from nxdrive.engine.workers import PollWorker, ThreadInterrupt
-from nxdrive.utils import force_decode
+from .engine.workers import PollWorker, ThreadInterrupt
+from .utils import force_decode
 
 log = getLogger(__name__)
 
