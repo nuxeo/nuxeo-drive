@@ -99,14 +99,12 @@ class AbstractOSIntegration(object):
         return True
 
     def uninstall(self):
-        """ Several action to do before uninstalling Drive. """
+        """
+        Actions to perform before uninstalling Drive.
+        One action might do nothing depending its OS specific implementation.
+        """
 
-        # macOS only
-        self.unregister_contextual_menu()
-        self.unregister_protocol_handlers()
         self.unregister_startup()
-
-        # Windows and macOS
         self.unregister_folder_link(None)
 
     def register_protocol_handlers(self):

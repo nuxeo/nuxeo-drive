@@ -371,17 +371,7 @@ class CliHandler(object):
         )
 
     def uninstall(self):
-        try:
-            self.manager.osi.uninstall()
-            # Remove all token first
-            self.manager.unbind_all()
-            self.manager.dispose_db()
-            import shutil
-            shutil.rmtree(self.manager.nxdrive_home)
-        except Exception as e:
-            # Exit with 0 signal to not block the uninstall
-            print(e)
-            sys.exit(0)
+        self.manager.osi.uninstall()
 
     def handle(self, argv):
         """ Parse options, setup logs and manager and dispatch execution. """
