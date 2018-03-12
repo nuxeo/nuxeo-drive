@@ -25,16 +25,9 @@ properties([
 ])
 
 // Jenkins slaves we will build on
-// Note 2017-07-21
-//      TWANG is the older macOS version we have.
-//      Until we change the minimum macOS version from 10.5 to 10.9,
-//      we have to keep that slave.
-//      Then, OSXSLAVE-DRIVE will be the good value.
-// Note 2017-07-21:
-//      Later, when we will be in Python3/Qt5, the good value will be OSXSLAVE.
-slaves = ['TWANG', 'SLAVE', 'WINSLAVE']
+slaves = ['OSXSLAVE', 'SLAVE', 'WINSLAVE']
 labels = [
-    'TWANG': 'macOS',
+    'OSXSLAVE': 'macOS',
     'SLAVE': 'GNU/Linux',
     'WINSLAVE': 'Windows'
 ]
@@ -94,7 +87,12 @@ for (x in slaves) {
 
                         try {
                             if (osi == 'macOS') {
-                                sh 'tools/osx/deploy_jenkins_slave.sh --build'
+                                env.SIGNING_ID = "NUXEO CORP"
+                                env.LOGIN_KEYCHAIN_PATH = "/Users/jenkins/Library/Keychains/login.keychain-db"
+
+                                withCredentials([string(credentialsId: 'MOBILE_LOGIN_KEYCHAIN_PASSWORD', variable: 'LOGIN_KEYCHAIN_PASSWORD')]) {
+                                    sh 'tools/osx/deploy_jenkins_slave.sh --build'
+                                }
                                 archive 'dist/*.dmg'
                             } else if (osi == 'GNU/Linux') {
                                 sh 'tools/linux/deploy_jenkins_slave.sh --build'

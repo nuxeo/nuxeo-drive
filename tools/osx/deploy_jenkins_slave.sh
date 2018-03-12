@@ -1,5 +1,5 @@
 #!/bin/sh -eu
-# See tools/posix/deploy_jenkins_slave.sh for more informations and arguments.
+# See tools/posix/deploy_jenkins_slave.sh for more information and arguments.
 
 export OSI="osx"
 
@@ -7,20 +7,19 @@ export OSI="osx"
 
 code_sign() {
     # Code sign the app
-    # TODO: add parameters to Jenkinsfile
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-OSX-Code-Signing
     local app="$1"
 
     if [[ -z ${SIGNING_ID:-} ]]; then
         echo ">>> [sign] WARNING: Signing ID is unavailable, application won't be signed."
         return
-    elif [[ -z ${KEYCHAIN_PWD:-} ]]; then
+    elif [[ -z ${LOGIN_KEYCHAIN_PASSWORD:-} ]]; then
         echo ">>> [sign] WARNING: Keychain is unavailable, application won't be signed."
         return
     fi
 
     echo ">>> [sign] Unlocking the Nuxeo keychain"
-    security unlock-keychain -p "${KEYCHAIN_PWD}" "${KEYCHAIN_PATH}"
+    security unlock-keychain -p "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}"
 
     echo ">>> [sign] Signing the file ${app}"
     if [[ $# > 1 ]]; then
