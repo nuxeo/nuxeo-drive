@@ -1,7 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 
-from nxdrive.utils import version_between
+from ..utils import version_between
 
 log = getLogger(__name__)
 

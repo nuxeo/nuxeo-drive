@@ -9,15 +9,6 @@ from time import sleep
 
 from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
-from nxdrive.client import (LocalClient, RemoteDocumentClient,
-                            RemoteFileSystemClient,
-                            RemoteFilteredFileSystemClient)
-from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.client.common import BaseClient, NotFound, safe_filename
-from nxdrive.client.rest_api_client import RestAPIClient
-from nxdrive.options import Options
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.utils import find_icon, normalized_path
 from .activity import Action, FileAction
 from .dao.sqlite import EngineDAO
 from .processor import Processor
@@ -25,6 +16,15 @@ from .queue_manager import QueueManager
 from .watcher.local_watcher import LocalWatcher
 from .watcher.remote_watcher import RemoteWatcher
 from .workers import PairInterrupt, ThreadInterrupt, Worker
+from ..client import (LocalClient, RemoteDocumentClient,
+                      RemoteFileSystemClient,
+                      RemoteFilteredFileSystemClient)
+from ..client.base_automation_client import Unauthorized
+from ..client.common import BaseClient, NotFound, safe_filename
+from ..client.rest_api_client import RestAPIClient
+from ..options import Options
+from ..osi import AbstractOSIntegration
+from ..utils import find_icon, normalized_path
 
 log = getLogger(__name__)
 

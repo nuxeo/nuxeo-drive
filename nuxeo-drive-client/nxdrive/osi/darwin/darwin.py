@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import sys
 import urllib2
 from logging import getLogger
 
@@ -8,8 +9,7 @@ import objc
 from AppKit import NSRegisterServicesProvider, NSURLPboardType
 from Foundation import NSObject, NSURL
 
-import nxdrive
-from nxdrive.utils import normalized_path
+from ...utils import normalized_path
 from .. import AbstractOSIntegration
 
 log = getLogger(__name__)
@@ -102,7 +102,7 @@ class DarwinIntegration(AbstractOSIntegration):
             log.debug('Making launch agent folder %r', agents_folder)
             os.makedirs(agents_folder)
 
-        exe_path = os.path.realpath(os.path.dirname(nxdrive.__file__))
+        exe_path = os.path.realpath(os.path.dirname(sys.executable))
         log.debug('Registering %r for startup in %r', exe_path, agent)
         with open(agent, 'wb') as f:
             f.write(self.NDRIVE_AGENT_TEMPLATE % exe_path)

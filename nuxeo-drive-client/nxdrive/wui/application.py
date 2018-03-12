@@ -12,12 +12,12 @@ from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
                          QVBoxLayout)
 from markdown import markdown
 
-from nxdrive.engine.activity import Action, FileAction
-from nxdrive.notification import Notification
-from nxdrive.options import Options
-from nxdrive.osi import AbstractOSIntegration, parse_protocol_url
-from nxdrive.updater.constants import UPDATE_STATUS_DOWNGRADE_NEEDED
-from nxdrive.utils import find_icon, find_resource
+from ..engine.activity import Action, FileAction
+from ..notification import Notification
+from ..options import Options
+from ..osi import AbstractOSIntegration, parse_protocol_url
+from ..updater.constants import UPDATE_STATUS_DOWNGRADE_NEEDED
+from ..utils import find_icon, find_resource
 from .modal import WebModal
 from .systray import DriveSystrayIcon
 from .translator import Translator
@@ -91,7 +91,7 @@ class Application(SimpleApplication):
         super(Application, self).__init__(manager, *args)
         self.setQuitOnLastWindowClosed(False)
         self._delegator = None
-        from nxdrive.scripting import DriveUiScript
+        from ..scripting import DriveUiScript
         self.manager.set_script_object(DriveUiScript(manager, self))
         self.filters_dlg = None
         self._conflicts_modals = dict()
@@ -303,7 +303,7 @@ class Application(SimpleApplication):
         self.filters_dlg = None
 
     def _get_filters_dialog(self, engine):
-        from nxdrive.gui.folders_dialog import FiltersDialog
+        from ..gui.folders_dialog import FiltersDialog
         return FiltersDialog(self, engine)
 
     @pyqtSlot()
@@ -316,7 +316,7 @@ class Application(SimpleApplication):
         self.filters_dlg.show()
 
     def show_file_status(self):
-        from nxdrive.gui.status_dialog import StatusDialog
+        from ..gui.status_dialog import StatusDialog
         for _, engine in self.manager.get_engines().iteritems():
             self.status = StatusDialog(engine.get_dao())
             self.status.show()
@@ -349,7 +349,7 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def _debug_show_file_status(self):
-        from nxdrive.gui.status_dialog import StatusDialog
+        from ..gui.status_dialog import StatusDialog
         sender = self.sender()
         engine = sender.data().toPyObject()
         self.status_dialog = StatusDialog(engine.get_dao())
@@ -381,7 +381,7 @@ class Application(SimpleApplication):
     def show_debug_window(self):
         debug = self._get_unique_dialog('debug')
         if debug is None:
-            from nxdrive.debug.wui.engine import EngineDialog
+            from ..debug.wui.engine import EngineDialog
             debug = EngineDialog(self)
             self._create_unique_dialog('debug', debug)
         self._show_window(debug)
@@ -428,7 +428,7 @@ class Application(SimpleApplication):
             self.manager.notification_service.trigger_notification(self.current_notification.uid)
 
     def _setup_notification_center(self):
-        from nxdrive.osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
+        from ..osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
         if self._delegator is None:
             self._delegator = NotificationDelegator.alloc().init()
             self._delegator._manager = self.manager
@@ -441,7 +441,7 @@ class Application(SimpleApplication):
 
         if self._delegator is not None:
             # Use notification center
-            from nxdrive.osi.darwin.pyNotificationCenter import notify
+            from ..osi.darwin.pyNotificationCenter import notify
             return notify(
                 notif.title,
                 None,

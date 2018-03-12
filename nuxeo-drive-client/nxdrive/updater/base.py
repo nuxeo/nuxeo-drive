@@ -10,15 +10,15 @@ import requests
 import yaml
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 
-from nxdrive.engine.workers import PollWorker
-from nxdrive.options import Options
-from nxdrive.utils import version_le
 from . import UpdateError, get_latest_compatible_version
 from .constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
                         UPDATE_STATUS_UNAVAILABLE_SITE,
                         UPDATE_STATUS_UPDATE_AVAILABLE,
                         UPDATE_STATUS_UPDATING,
                         UPDATE_STATUS_UP_TO_DATE)
+from ..engine.workers import PollWorker
+from ..options import Options
+from ..utils import version_le
 
 log = getLogger(__name__)
 

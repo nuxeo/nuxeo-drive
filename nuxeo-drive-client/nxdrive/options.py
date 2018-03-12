@@ -6,8 +6,6 @@ The goal is to have a unique object `Options` where the whole configuration
 is centralized. Any other part of Drive should use it directly by just
 importing the class. No instantiation is needed and therefore it is forbidden.
 
-    >>> from nxdrive.options import Options
-
 Using `repr` or `str` on `Options` has different meanings.
 
     >>> repr(Options)

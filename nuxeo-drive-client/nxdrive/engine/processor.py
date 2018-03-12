@@ -11,15 +11,15 @@ from urllib2 import HTTPError, URLError
 
 from PyQt4.QtCore import pyqtSignal
 
-from nxdrive.client.base_automation_client import (CorruptedFile,
-                                                   DOWNLOAD_TMP_FILE_PREFIX,
-                                                   DOWNLOAD_TMP_FILE_SUFFIX)
-from nxdrive.client.common import (DuplicationDisabledError, NotFound,
-                                   UNACCESSIBLE_HASH, safe_filename)
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.utils import current_milli_time, is_generated_tmp_file
 from .activity import Action
 from .workers import EngineWorker, PairInterrupt, ThreadInterrupt
+from ..client.base_automation_client import (CorruptedFile,
+                                             DOWNLOAD_TMP_FILE_PREFIX,
+                                             DOWNLOAD_TMP_FILE_SUFFIX)
+from ..client.common import (DuplicationDisabledError, NotFound,
+                             UNACCESSIBLE_HASH, safe_filename)
+from ..osi import AbstractOSIntegration
+from ..utils import current_milli_time, is_generated_tmp_file
 
 log = getLogger(__name__)
 

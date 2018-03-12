@@ -14,19 +14,18 @@ from PyQt4.QtNetwork import (QNetworkProxy, QNetworkProxyFactory,
                              QSslCertificate)
 from dateutil.tz import tzlocal
 
-from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.engine.activity import Action, FileAction
-from nxdrive.engine.dao.sqlite import StateRow
-from nxdrive.engine.engine import Engine
-from nxdrive.engine.workers import Worker
-from nxdrive.manager import FolderAlreadyUsed
-from nxdrive.notification import Notification
-from nxdrive.options import Options
-# from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from .translator import Translator
+from ..client.base_automation_client import Unauthorized
+from ..engine.activity import Action, FileAction
+from ..engine.dao.sqlite import StateRow
+from ..engine.engine import Engine
+from ..engine.workers import Worker
+from ..manager import FolderAlreadyUsed
+from ..notification import Notification
+from ..options import Options
+from ..updater.constants import UPDATE_STATUS_UNAVAILABLE_SITE
 
 log = getLogger(__name__)
-UPDATE_STATUS_UNAVAILABLE_SITE = 'unavailable_site'
 
 
 class PromiseWrapper(QtCore.QObject):
