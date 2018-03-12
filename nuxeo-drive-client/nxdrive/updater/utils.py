@@ -37,8 +37,9 @@ def get_latest_compatible_version(versions, nature, server_ver):
             versions.pop(version)
 
     try:
-        # Found a version candidate
+        # Found a version candidate?
         latest = max(versions.keys())
-        return latest, versions.get(latest, {})
     except ValueError:
         return default
+    else:
+        return latest, versions.get(latest, {})

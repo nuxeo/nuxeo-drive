@@ -30,15 +30,23 @@ import sys
 import tempfile
 import threading
 import time
+from os.path import expanduser
 
 __version__ = '0.2.0'
 
 
+EXT = {'darwin': 'dmg', 'win32': 'exe'}.get(sys.platform)
 Server = SimpleHTTPServer.SimpleHTTPRequestHandler
 
 
-def create_versions(dst, version, checksum):
+def create_versions(dst, version):
     """ Create the versions.yml file. """
+
+    name = 'nuxeo-drive-{version}.{ext}'.format(version=version, ext=EXT)
+    path = os.path.join(dst, 'release', name)
+    with open(path, 'rb') as installer:
+        checksum = hashlib.sha256(installer.read()).hexdigest()
+    print('>>> Computed the checksum:', checksum)
 
     print('>>> Crafting versions.yml')
     yml = b"""
@@ -108,7 +116,7 @@ def launch_drive():
     if sys.platform == 'darwin':
         cmd = ['open', '/Applications/Nuxeo Drive.app', '--args']
     elif sys.platform == 'win32':
-        cmd = [r'%USERPROFILE%\\AppData\\Roaming\\Nuxeo Drive\\ndrive.exe']
+        cmd = [expanduser('~\\AppData\\Roaming\\Nuxeo Drive\\ndrive.exe')]
 
     cmd += [
         '--log-level-console=TRACE',
@@ -145,7 +153,7 @@ def uninstall_drive():
         except OSError:
             pass
     elif sys.platform == 'win32':
-        cmd = [r'%USERPROFILE%\\AppData\\Roaming\\Nuxeo Drive\\unins000.exe',
+        cmd = [expanduser('~\\AppData\\Roaming\\Nuxeo Drive\\unins000.exe'),
                '/verysilent']
         print('>>> Command:', cmd)
         try:
@@ -218,8 +226,6 @@ def main():
         print('>>> macOS and Windows only.')
         return 1
 
-    ext = {'darwin': 'dmg', 'win32': 'exe'}[sys.platform]
-
     # Cleanup
     try:
         shutil.rmtree('dist')
@@ -244,13 +250,13 @@ def main():
     gen_exe()
 
     # Move the file to the webserver
-    file_ = 'dist/nuxeo-drive-{}.{}'.format(version, ext)
+    file_ = 'dist/nuxeo-drive-{}.{}'.format(version, EXT)
     dst_file = os.path.join(path, os.path.basename(file_))
     print('>>> Moving', file_, '->', path)
     os.rename(file_, dst_file)
 
-    checksum = hashlib.sha256(open(dst_file).read()).hexdigest()
-    create_versions(root, version, checksum)
+    # Create the versions.yml file
+    create_versions(root, version)
 
     # Guess the anterior version
     previous = version_decrement(version)
@@ -266,7 +272,7 @@ def main():
         gen_exe()
 
         # Move the file to test to the webserver
-        src_file = 'dist/nuxeo-drive-{}.{}'.format(previous, ext)
+        src_file = 'dist/nuxeo-drive-{}.{}'.format(previous, EXT)
         installer = os.path.basename(src_file)
         dst_file = os.path.join(path, installer)
         print('>>> Moving', src_file, '->', path)

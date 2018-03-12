@@ -165,13 +165,16 @@ class BaseUpdater(PollWorker):
 
         url = self.update_site + '/versions.yml'
         try:
-            content = requests.get(url).text
+            req = requests.get(url)
+            req.raise_for_status()
         except Exception as exc:
             raise UpdateError('Impossible to get %r: %s' % (url, exc))
+        else:
+            content = req.text
 
         try:
             versions = yaml.safe_load(content)
-        except Exception as exc:
+        except yaml.YAMLError as exc:
             raise UpdateError('Parsing error: %s' % exc)
         else:
             self.versions = versions
@@ -226,9 +229,7 @@ class BaseUpdater(PollWorker):
                 except UpdateError:
                     log.exception('An error occurred while trying to '
                                   'automatically update Nuxeo Drive to '
-                                  'version %r, disaling auto-update.',
-                                  version)
-                    self.manager.set_auto_update(False)
+                                  'version %r', version)
             else:
                 log.info('An update is available and auto-update is not'
                          ' checked, let\'s just update the systray notification'
