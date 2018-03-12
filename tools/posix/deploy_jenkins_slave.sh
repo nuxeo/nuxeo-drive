@@ -150,6 +150,7 @@ install_deps() {
     ${PIP} setuptools
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-dev.txt
+    pyenv rehash
 }
 
 install_pyenv() {
