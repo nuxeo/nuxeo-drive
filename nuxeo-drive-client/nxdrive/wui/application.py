@@ -409,16 +409,15 @@ class Application(SimpleApplication):
         status, version = self.manager.get_updater().last_status[:2]
         replacements = {'version': version}
 
-        msg = 'AUTOUPDATE_NOTIFICATION_MESSAGE'
+        msg = 'AUTOUPDATE_UPGRADE'
         if status == UPDATE_STATUS_DOWNGRADE_NEEDED:
-            msg = 'DOWNGRADE_NEEDED'
+            msg = 'AUTOUPDATE_DOWNGRADE'
 
         notification = Notification(
             uuid='AutoUpdate',
             flags=(Notification.FLAG_BUBBLE
                    | Notification.FLAG_VOLATILE
                    | Notification.FLAG_UNIQUE),
-            title=Translator.get('AUTOUPDATE_NOTIFICATION_TITLE', replacements),
             description=Translator.get(msg, replacements),
         )
         self.manager.notification_service.send_notification(notification)
