@@ -2,7 +2,9 @@
 """ Auto-update framework. """
 
 from logging import getLogger
+
 from nxdrive.options import Options
+from .utils import get_latest_compatible_version
 
 log = getLogger(__name__)
 
@@ -40,4 +42,4 @@ def updater(*args, **kwargs):
     return Updater(*args, **kwargs)
 
 
-__all__ = ('UpdateError', 'updater')
+__all__ = ('UpdateError', 'get_latest_compatible_version', 'updater')

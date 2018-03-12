@@ -12,8 +12,8 @@ from PyQt4.QtCore import pyqtSignal, pyqtSlot
 
 from nxdrive.engine.workers import PollWorker
 from nxdrive.options import Options
-from nxdrive.utils import version_between, version_le
-from . import UpdateError
+from nxdrive.utils import version_le
+from . import UpdateError, get_latest_compatible_version
 from .constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
                         UPDATE_STATUS_UNAVAILABLE_SITE,
                         UPDATE_STATUS_UPDATE_AVAILABLE,
@@ -176,44 +176,6 @@ class BaseUpdater(PollWorker):
         else:
             self.versions = versions
 
-    def _get_latest_compatible_version(self):
-        # type: () -> Tuple[unicode, Dict[unicode, unicode]]
-        """
-        Find the latest version sorted by type and the current Nuxeo version.
-        """
-
-        default = ('', {})
-
-        # Skip not revelant release type
-        versions = {version: info for version, info in self.versions.items()
-                    if info.get('type', '').lower() == self.nature}
-
-        if not versions:
-            return default
-
-        server_ver = self.server_ver
-        if not server_ver:
-            # No engine found, just returns the latest version
-            # (this allows to update Drive without any account)
-            latest = max(versions.keys())
-            info = versions.get(latest, {})
-            log.debug('No bound engine: using version %r, info=%r', latest, info)
-            return latest, info
-
-        # Skip outbound versions
-        for version, info in versions.items():
-            server_ver_min = info.get('min', '0.0.0').upper()
-            server_ver_max = info.get('max', '999.999.999').upper()
-            if not version_between(server_ver_min, server_ver, server_ver_max):
-                versions.pop(version)
-
-        try:
-            # Found a version candidate
-            latest = max(versions.keys())
-            return latest, versions.get(latest, {})
-        except ValueError:
-            return default
-
     def _get_update_status(self):
         # type: () -> Tuple[unicode, Union[None, bool]]
         """ Retreive available versions and find a possible candidate. """
@@ -225,15 +187,16 @@ class BaseUpdater(PollWorker):
             status = (UPDATE_STATUS_UNAVAILABLE_SITE, None)
         else:
             # Find the latest available version
-            latest_version, info = self._get_latest_compatible_version()
+            latest, info = get_latest_compatible_version(
+                self.versions, self.nature, self.server_ver)
 
-            this_version = self.manager.version
-            if not latest_version or this_version == latest_version:
+            current = self.manager.version
+            if not latest or current == latest:
                 status = (UPDATE_STATUS_UP_TO_DATE, None)
-            elif not version_le(latest_version, this_version):
-                status = (UPDATE_STATUS_UPDATE_AVAILABLE, latest_version)
+            elif not version_le(latest, current):
+                status = (UPDATE_STATUS_UPDATE_AVAILABLE, latest)
             else:
-                status = (UPDATE_STATUS_DOWNGRADE_NEEDED, latest_version)
+                status = (UPDATE_STATUS_DOWNGRADE_NEEDED, latest)
 
         return status
 
