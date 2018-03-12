@@ -117,6 +117,8 @@ class Engine(QObject):
         if binder is not None:
             self.bind(binder)
         self._load_configuration()
+        # Set server version in the Options
+        self.get_server_version()
         self._local_watcher = self._create_local_watcher()
         self.create_thread(worker=self._local_watcher)
         self._remote_watcher = self._create_remote_watcher(Options.delay)
@@ -843,7 +845,7 @@ class Engine(QObject):
 
         self._dao.insert_local_state(local_info, '')
         row = self._dao.get_state_from_local('/')
-        self._dao.update_remote_state(row, remote_info, remote_parent_path='', versionned=False)
+        self._dao.update_remote_state(row, remote_info, remote_parent_path='', versioned=False)
         local_client.set_root_id(self._server_url + "|" + self._remote_user +
                             "|" + self._manager.device_id + "|" + self.uid)
         local_client.set_remote_id('/', remote_info.uid)
