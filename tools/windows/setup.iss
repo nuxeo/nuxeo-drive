@@ -190,15 +190,11 @@ end;
 function WantToStart(): Boolean;
 // Start Drive after the installation, usefull for scripted calls (silent auto-update for instance).
 // It will check the "/START=auto" argument to enable the auto start.
-// Also, if none of /[VERY]SILENT are passed, consider it too (1st installation for instance).
+// Also, if none of /[VERY]SILENT are passed, consider it too (1st GUI installation for instance).
 var
-    silent: String;
-    verysilent: String;
-    auto: String;
+    start: String;
 begin
-    silent := ExpandConstant('{param:SILENT}');
-    verysilent := ExpandConstant('{param:VERYPSILENT}');
-    auto := ExpandConstant('{param:START}');
-    if (Length(auto) > 0) or ((Length(silent) = 0) and (Length(verysilent) = 0)) then
+    start := ExpandConstant('{param:START}');
+    if (Length(start) > 0) or not WizardSilent() then
         Result := True;
 end;

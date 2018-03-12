@@ -165,13 +165,16 @@ class BaseUpdater(PollWorker):
 
         url = self.update_site + '/versions.yml'
         try:
-            content = requests.get(url).text
+            req = requests.get(url)
+            req.raise_for_status()
         except Exception as exc:
             raise UpdateError('Impossible to get %r: %s' % (url, exc))
+        else:
+            content = req.text
 
         try:
             versions = yaml.safe_load(content)
-        except Exception as exc:
+        except yaml.YAMLError as exc:
             raise UpdateError('Parsing error: %s' % exc)
         else:
             self.versions = versions
@@ -204,7 +207,7 @@ class BaseUpdater(PollWorker):
         # type: () -> None
         """ Handle update check status. """
 
-        status, version = self.last_status[0:2]
+        status, version = self.last_status[:2]
 
         if status == UPDATE_STATUS_UNAVAILABLE_SITE:
             log.warning('Update site is unavailable, as a consequence'
@@ -226,9 +229,7 @@ class BaseUpdater(PollWorker):
                 except UpdateError:
                     log.exception('An error occurred while trying to '
                                   'automatically update Nuxeo Drive to '
-                                  'version %r, disaling auto-update.',
-                                  version)
-                    self.manager.set_auto_update(False)
+                                  'version %r', version)
             else:
                 log.info('An update is available and auto-update is not'
                          ' checked, let\'s just update the systray notification'
@@ -244,7 +245,7 @@ class BaseUpdater(PollWorker):
         It must take care of uninstalling the current one.
         """
 
-        log.info('Installing %s v%s', self.manager.app_name, version)
+        log.info('Installing %s %s', self.manager.app_name, version)
         self.install(filename)
 
     def _is_valid(self, version, filename):
