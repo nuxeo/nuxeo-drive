@@ -496,7 +496,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self):
-        return 3
+        return 4
 
     def _migrate_state(self, cursor):
         try:
@@ -527,6 +527,12 @@ class EngineDAO(ConfigurationDAO):
         if version < 3:
             self._migrate_state(cursor)
             self.update_config(SCHEMA_VERSION, 3)
+        if version < 4:
+            self._migrate_state(cursor)
+            cursor.execute('UPDATE States'
+                           '   SET creation_date = last_remote_updated')
+            self.update_config(SCHEMA_VERSION, 4)
+
 
     def _create_table(self, cursor, name, force=False):
         if name == 'States':
@@ -571,6 +577,7 @@ class EngineDAO(ConfigurationDAO):
             "    version                 INTEGER    DEFAULT (0),"
             "    processor               INTEGER    DEFAULT (0),"
             "    last_transfer           VARCHAR,"
+            "    creation_date           TIMESTAMP,"
             "    PRIMARY KEY (id),"
             "    UNIQUE(remote_ref, remote_parent_ref),"
             "    UNIQUE(remote_ref, local_path))".format(statement))
@@ -1155,15 +1162,16 @@ class EngineDAO(ConfigurationDAO):
                       "remote_can_create_child, last_remote_modifier, "
                       "remote_digest, folderish, last_remote_modifier, "
                       "local_path, local_parent_path, remote_state, "
-                      "local_state, pair_state, local_name) "
+                      "local_state, pair_state, local_name, creation_date) "
                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-                      "'created', 'unknown', ?, ?)",
+                      "'created', 'unknown', ?, ?, ?)",
                       (info.uid, info.parent_uid, remote_parent_path,
-                       info.name, info.last_modification_time,
-                       info.can_rename, info.can_delete, info.can_update,
+                       info.name, info.last_modification_time, info.can_rename,
+                       info.can_delete, info.can_update,
                        info.can_create_child, info.last_contributor,
                        info.digest, info.folderish, info.last_contributor,
-                       local_path, local_parent_path, pair_state, info.name))
+                       local_path, local_parent_path, pair_state, info.name,
+                       info.creation_time))
             row_id = c.lastrowid
             if self.auto_commit:
                 con.commit()
