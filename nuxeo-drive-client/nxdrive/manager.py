@@ -633,21 +633,24 @@ class Manager(QtCore.QObject):
 
     def get_direct_edit_auto_lock(self):
         # Enabled by default, if app is frozen
-        return self._dao.get_config('direct_edit_auto_lock', str(Options.is_frozen)) == '1'
+        return self._dao.get_config(
+            'direct_edit_auto_lock', str(int(Options.is_frozen))) == '1'
 
     def set_direct_edit_auto_lock(self, value):
         self._dao.update_config('direct_edit_auto_lock', value)
 
     def get_auto_update(self):
         # Enabled by default, if app is frozen
-        return self._dao.get_config('auto_update', str(Options.is_frozen)) == '1'
+        return self._dao.get_config(
+            'auto_update', str(int(Options.is_frozen))) == '1'
 
     def set_auto_update(self, value):
         self._dao.update_config('auto_update', value)
 
     def get_auto_start(self):
         # Enabled by default, if app is frozen
-        return self._dao.get_config('auto_start', str(Options.is_frozen)) == '1'
+        return self._dao.get_config(
+            'auto_start', str(int(Options.is_frozen))) == '1'
 
     def _get_binary_name(self):  # TODO: Move to constants.py
         return 'ndrive'
