@@ -401,13 +401,8 @@ class Manager(QtCore.QObject):
         self.started.connect(tracker._thread.start)
         return tracker
 
-    def get_tracker_id(self):
-        if self.get_tracking() and self._tracker is not None:
-            return self._tracker.uid
-        return ""
-
     def _get_db(self):
-        return os.path.join(normalized_path(self.nxdrive_home), "manager.db")
+        return os.path.join(normalized_path(self.nxdrive_home), 'manager.db')
 
     def get_dao(self):  # TODO: Remove
         return self._dao
@@ -680,17 +675,19 @@ class Manager(QtCore.QObject):
         """
         Avoid sending statistics when testing or if the user does not allow it.
         """
-
         return (self._dao.get_config('tracking', '1') == '1'
                 and not os.environ.get('WORKSPACE'))
 
     def set_tracking(self, value):
-        self._dao.update_config("tracking", value)
+        self._dao.update_config('tracking', value)
         if value:
             self._create_tracker()
-        elif self._tracker is not None:
+        elif self._tracker:
             self._tracker._thread.quit()
             self._tracker = None
+
+    def get_tracker_id(self):
+        return self._tracker.uid if self._tracker else ''
 
     def validate_proxy_settings(self, proxy_settings):
         conn = None

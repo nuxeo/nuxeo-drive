@@ -275,14 +275,11 @@ class ConfigurationDAO(QObject):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            if value:
-                c.execute('UPDATE OR IGNORE Configuration'
-                          '             SET value = ?'
-                          '           WHERE name = ?', (value, name))
-                c.execute('INSERT OR IGNORE INTO Configuration (value, name) '
-                          'VALUES (?, ?)', (value, name))
-            else:
-                self._delete_config(c, name)
+            c.execute('UPDATE OR IGNORE Configuration'
+                      '             SET value = ?'
+                      '           WHERE name = ?', (value, name))
+            c.execute('INSERT OR IGNORE INTO Configuration (value, name) '
+                      'VALUES (?, ?)', (value, name))
             if self.auto_commit:
                 con.commit()
 
