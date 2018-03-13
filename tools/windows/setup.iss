@@ -159,7 +159,7 @@ Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 2\command"; Va
 
 [Run]
 ; Launch Nuxeo Drive after installation
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: postinstall; Check: WantToStart
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall; Check: WantToStart
 
 ; Bind an eventual engine (arguments are not case sensitive):
 ;    {#MyAppExeName} /SILENT ARGS
@@ -169,7 +169,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 ;    /TARGETUSERNAME="username"               (mandatory)
 ;    /TARGETPASSWORD="password"
 ;    /TARGETDRIVEFOLDER="%USERPROFILE%\Documents\Nuxeo Drive"
-Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --password ""{param:TARGETPASSWORD}"" --local-folder ""{param:TARGETDRIVEFOLDER}"" ""{param:TARGETUSERNAME}"" ""{param:TARGETURL}"""; Flags: postinstall skipifnotsilent; Check: NeedEngineBinding
+Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --password ""{param:TARGETPASSWORD}"" --local-folder ""{param:TARGETDRIVEFOLDER}"" ""{param:TARGETUSERNAME}"" ""{param:TARGETURL}"""; Flags: nowait postinstall skipifnotsilent; Check: NeedEngineBinding
 
 
 [Code]
