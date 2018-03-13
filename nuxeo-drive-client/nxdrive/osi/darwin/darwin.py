@@ -102,15 +102,16 @@ class DarwinIntegration(AbstractOSIntegration):
             log.debug('Making launch agent folder %r', agents_folder)
             os.makedirs(agents_folder)
 
-        exe_path = os.path.realpath(os.path.dirname(sys.executable))
+        exe_path = os.path.realpath(sys.executable)
         log.debug('Registering %r for startup in %r', exe_path, agent)
         with open(agent, 'wb') as f:
             f.write(self.NDRIVE_AGENT_TEMPLATE % exe_path)
 
     def unregister_startup(self):
-        agent_filepath = self._get_agent_file()
-        if os.path.exists(agent_filepath):
-            os.remove(agent_filepath)
+        agent = self._get_agent_file()
+        if os.path.isfile(agent):
+            log.debug('Unregistering startup agent %r', agent)
+            os.remove(agent)
 
     def _register_services(self):
         NSRegisterServicesProvider(RightClickService.alloc().init(),

@@ -363,6 +363,10 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_state(conflict))
         return self._json(result)
 
+    @QtCore.pyqtSlot(result=bool)
+    def is_frozen(self):
+        return Options.is_frozen
+
     @QtCore.pyqtSlot(str, str)
     def show_metadata(self, uid, ref):
         engine = self._get_engine(str(uid))

@@ -634,20 +634,22 @@ class Manager(QtCore.QObject):
         return self._dao.update_config(key, value)
 
     def get_direct_edit_auto_lock(self):
-        return self._dao.get_config("direct_edit_auto_lock", "1") == "1"
+        # Enabled by default, if app is frozen
+        return self._dao.get_config('direct_edit_auto_lock', str(Options.is_frozen)) == '1'
 
     def set_direct_edit_auto_lock(self, value):
-        self._dao.update_config("direct_edit_auto_lock", value)
+        self._dao.update_config('direct_edit_auto_lock', value)
 
     def get_auto_update(self):
-        # By default auto update
-        return self._dao.get_config("auto_update", "1") == "1"
+        # Enabled by default, if app is frozen
+        return self._dao.get_config('auto_update', str(Options.is_frozen)) == '1'
 
     def set_auto_update(self, value):
-        self._dao.update_config("auto_update", value)
+        self._dao.update_config('auto_update', value)
 
     def get_auto_start(self):
-        return self._dao.get_config("auto_start", "1") == "1"
+        # Enabled by default, if app is frozen
+        return self._dao.get_config('auto_start', str(Options.is_frozen)) == '1'
 
     def _get_binary_name(self):  # TODO: Move to constants.py
         return 'ndrive'
@@ -774,9 +776,14 @@ class Manager(QtCore.QObject):
                 _winreg.CloseKey(settings)
         elif AbstractOSIntegration.is_mac():
             # Use SystemConfiguration library
-            config = SystemConfiguration.SCDynamicStoreCopyProxies(None)
-            if 'ProxyAutoConfigEnable' in config and \
-                    'ProxyAutoConfigURLString' in config:
+            try:
+                config = SystemConfiguration.SCDynamicStoreCopyProxies(None)
+            except AttributeError:
+                # It may happen on rare cases. The next call will work.
+                return
+
+            if ('ProxyAutoConfigEnable' in config
+                    and 'ProxyAutoConfigURLString' in config):
                 # 'Auto Proxy Discovery' or WPAD is not supported yet
                 # Only 'Automatic Proxy configuration' URL setting is supported
                 if not ('ProxyAutoDiscoveryEnable' in config
