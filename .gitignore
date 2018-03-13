@@ -24,6 +24,7 @@ pypi*
 .project
 *.pyc
 .pydevproject
+.pytest_cache
 .ropeproject
 .settings
 *.swp

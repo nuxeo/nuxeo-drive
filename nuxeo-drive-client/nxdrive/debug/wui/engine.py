@@ -4,8 +4,8 @@ from logging import getLogger
 
 from PyQt4 import QtCore
 
-from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler
-from nxdrive.wui.dialog import WebDialog, WebDriveApi
+from ...logging_config import MAX_LOG_DISPLAYED, get_handler
+from ...wui.dialog import WebDialog, WebDriveApi
 
 log = getLogger(__name__)
 
@@ -83,7 +83,7 @@ class DebugDriveApi(WebDriveApi):
         flags,
         action
     ):
-        from nxdrive.notification import Notification
+        from ...notification import Notification
         try:
             notification = Notification(
                 uid=str(notification_type),

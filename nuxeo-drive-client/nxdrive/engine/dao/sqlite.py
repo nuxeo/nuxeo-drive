@@ -388,28 +388,28 @@ class ManagerDAO(ConfigurationDAO):
                 con.commit()
 
     def get_notifications(self, discarded=True):
-        from nxdrive.notification import Notification
+        # Flags used:
+        #    1 = Notification.FLAG_DISCARD
         c = self._get_read_connection().cursor()
+        req = ('SELECT *'
+               '  FROM Notifications'
+               ' WHERE (flags & 1) = 0')
         if discarded:
-            return c.execute('SELECT *'
-                             '  FROM Notifications').fetchall()
-        else:
-            return c.execute('SELECT *'
-                             '  FROM Notifications'
-                             ' WHERE (flags & {}) = 0'.format(
-                                 str(Notification.FLAG_DISCARD))).fetchall()
+            req = 'SELECT * FROM Notifications'
+
+        return c.execute(req).fetchall()
 
     def discard_notification(self, uid):
-        from nxdrive.notification import Notification
+        # Flags used:
+        #    1 = Notification.FLAG_DISCARD
+        #    4 = Notification.FLAG_DISCARDABLE
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute('UPDATE Notifications'
-                      '   SET flags = (flags | {0})'
+                      '   SET flags = (flags | 1)'
                       ' WHERE uid = ?'
-                      '   AND (flags & {1}) = {1}'.format(
-                          str(Notification.FLAG_DISCARD),
-                          str(Notification.FLAG_DISCARDABLE)), (uid,))
+                      '   AND (flags & 4) = 4', (uid,))
             if self.auto_commit:
                 con.commit()
 
@@ -1053,8 +1053,8 @@ class EngineDAO(ConfigurationDAO):
         return res
 
     def _get_recursive_remote_condition(self, doc_pair):
-        path = self._escape('{}/{}'.format(doc_pair.remote_parent_path,
-                                           doc_pair.remote_name))
+        path = self._escape('{}/{}'.format(
+            doc_pair.remote_parent_path, doc_pair.remote_name.encode('utf-8')))
         return (" WHERE remote_parent_path LIKE '{}/%'"
                 "    OR remote_parent_path = '{}'").format(path, path)
 

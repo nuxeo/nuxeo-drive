@@ -3,18 +3,16 @@
 
 import argparse
 import os
-import signal
 import sys
-import threading
 import traceback
 from datetime import datetime
 from getpass import getpass
 from logging import getLogger
 
-from nxdrive import __version__
-from nxdrive.logging_config import configure
-from nxdrive.options import Options
-from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
+from . import __version__
+from .logging_config import configure
+from .options import Options
+from .utils import normalized_path
 
 try:
     import ipdb as pdb
@@ -28,7 +26,6 @@ except ImportError:
 
 log = getLogger(__name__)
 
-DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 USAGE = """ndrive [command]
 
 If no command is provided, the graphical application is
@@ -149,13 +146,6 @@ class CliHandler(object):
             help='Delay in seconds between checks for application update')
 
         common_parser.add_argument(
-            # XXX: Make it true by default as the fault tolerant
-            #  mode is not yet implemented
-            '--stop-on-error', default=Options.stop_on_error,
-            action='store_true',
-            help='Stop the process on first unexpected error')
-
-        common_parser.add_argument(
             '--max-errors', default=Options.max_errors, type=int,
             help='Maximum number of tries before giving up synchronization of '
                  'a file in error')
@@ -184,8 +174,7 @@ class CliHandler(object):
         bind_server_parser.add_argument(
             '--local-folder',
             help='Local folder that will host the list of synchronized '
-            'workspaces with a remote Nuxeo server.',
-            default=DEFAULT_NX_DRIVE_FOLDER)
+            'workspaces with a remote Nuxeo server.', type=str)
         bind_server_parser.add_argument(
             'username', help='User account to connect to Nuxeo')
         bind_server_parser.add_argument(
@@ -202,8 +191,7 @@ class CliHandler(object):
         unbind_server_parser.add_argument(
             '--local-folder',
             help='Local folder that hosts the list of synchronized '
-            'workspaces with a remote Nuxeo server.',
-            default=DEFAULT_NX_DRIVE_FOLDER)
+            'workspaces with a remote Nuxeo server.', type=str)
 
         # Bind root folders
         bind_root_parser = subparsers.add_parser(
@@ -218,8 +206,7 @@ class CliHandler(object):
             '--local-folder',
             help='Local folder that will host the list of synchronized '
             'workspaces with a remote Nuxeo server. Must be bound with the '
-            '"bind-server" command.',
-            default=DEFAULT_NX_DRIVE_FOLDER)
+            '"bind-server" command.', type=str)
         bind_root_parser.add_argument(
             '--remote-repo', default=Options.remote_repo,
             help='Name of the remote repository.')
@@ -238,8 +225,7 @@ class CliHandler(object):
             '--local-folder',
             help='Local folder that will host the list of synchronized '
             'workspaces with a remote Nuxeo server. Must be bound with the '
-            '"bind-server" command.',
-            default=DEFAULT_NX_DRIVE_FOLDER)
+            '"bind-server" command.', type=str)
         unbind_root_parser.add_argument(
             '--remote-repo', default=Options.remote_repo,
             help="Name of the remote repository.")
@@ -336,7 +322,7 @@ class CliHandler(object):
         if configs:
             config.read(configs)
 
-        from nxdrive.osi import AbstractOSIntegration
+        from .osi import AbstractOSIntegration
         args = AbstractOSIntegration.get(None).get_system_configuration()
         if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
             env = config.get(ConfigParser.DEFAULTSECT, 'env')
@@ -378,22 +364,13 @@ class CliHandler(object):
         )
 
     def uninstall(self):
-        try:
-            self.manager.osi.uninstall()
-            # Remove all token first
-            self.manager.unbind_all()
-            self.manager.dispose_db()
-            import shutil
-            shutil.rmtree(self.manager.nxdrive_home)
-        except Exception as e:
-            # Exit with 0 signal to not block the uninstall
-            print(e)
-            sys.exit(0)
+        self.manager.osi.uninstall()
 
     def handle(self, argv):
         """ Parse options, setup logs and manager and dispatch execution. """
         options = self.parse_cli(argv)
-        if hasattr(options, 'local_folder'):
+
+        if getattr(options, 'local_folder', ''):
             options.local_folder = normalized_path(options.local_folder)
 
         # 'launch' is the default command if None is provided
@@ -434,19 +411,19 @@ class CliHandler(object):
                 raise
 
     def get_manager(self):
-        from nxdrive.manager import Manager
+        from .manager import Manager
         return Manager()
 
     def _get_application(self, console=False):
         if console:
-            from nxdrive.console import ConsoleApplication
+            from .console import ConsoleApplication
             return ConsoleApplication(self.manager)
-        from nxdrive.wui.application import Application
+        from .wui.application import Application
         return Application(self.manager)
 
     def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
-        from nxdrive.utils import PidLockFile
+        from .utils import PidLockFile
 
         lock = PidLockFile(self.manager.nxdrive_home, 'qt')
         if lock.lock():
@@ -463,10 +440,11 @@ class CliHandler(object):
         return exit_code
 
     def clean_folder(self, options):
-        from nxdrive.client.local_client import LocalClient
-        if options.local_folder is None:
+        from .client.local_client import LocalClient
+        if not options.local_folder:
             print('A folder must be specified')
-            return 0
+            return 1
+
         client = LocalClient(unicode(options.local_folder))
         client.clean_xattr_root()
         return 0
@@ -499,9 +477,6 @@ class CliHandler(object):
                 password = None
                 check_credentials = False
 
-        if not options.local_folder:
-            options.local_folder = DEFAULT_NX_DRIVE_FOLDER
-
         self.manager.bind_server(
             options.local_folder,
             options.nuxeo_url,
@@ -516,16 +491,18 @@ class CliHandler(object):
             if engine.local_folder == options.local_folder:
                 self.manager.unbind_engine(uid)
                 return 0
-        return 0
+        log.error('No engine registered for local folder %r',
+                  options.local_folder)
+        return 1
 
     def bind_root(self, options):
         for engine in self.manager.get_engines().values():
             log.trace('Comparing: %r to %r',
                       engine.local_folder, options.local_folder)
             if engine.local_folder == options.local_folder:
-                engine.get_remote_doc_client(
-                    repository=options.remote_repo).register_as_root(
-                    options.remote_root)
+                client = engine.get_remote_doc_client(
+                    repository=options.remote_repo)
+                client.register_as_root(options.remote_root)
                 return 0
         log.error('No engine registered for local folder %r',
                   options.local_folder)
@@ -558,67 +535,3 @@ class CliHandler(object):
         segfault_file = open(segfault_filename, 'a')
         segfault_file.write('\n\n\n>>> {}\n'.format(datetime.now()))
         faulthandler.enable(file=segfault_file)
-
-
-def dumpstacks(signal, frame):
-    id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
-    code = []
-    for thread_id, stack in sys._current_frames().items():
-        code.append(
-            '\n# Thread: %s(%d)' % (id2name.get(thread_id, ''), thread_id))
-        for filename, lineno, name, line in traceback.extract_stack(stack):
-            code.append(
-                'File: "%s", line %d, in %s' % (filename, lineno, name))
-            if line:
-                code.append('  %s' % (line.strip()))
-    print('\n'.join(code))
-
-
-def win32_unicode_argv():
-    """ Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-    strings.
-
-    Versions 2.x of Python don't support Unicode in sys.argv on
-    Windows, with the underlying Windows API instead replacing multi-byte
-    characters with '?'.
-
-    See http://stackoverflow.com/questions/846850/read-unicode-characters-from-command-line-arguments-in-python-2-x-on-windows
-    """
-
-    from ctypes import POINTER, byref, cdll, c_int, windll
-    from ctypes.wintypes import LPCWSTR, LPWSTR
-
-    GetCommandLineW = cdll.kernel32.GetCommandLineW
-    GetCommandLineW.argtypes = []
-    GetCommandLineW.restype = LPCWSTR
-
-    CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-    CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-    CommandLineToArgvW.restype = POINTER(LPWSTR)
-
-    cmd = GetCommandLineW()
-    argc = c_int(0)
-    argv = CommandLineToArgvW(cmd, byref(argc))
-    if argc.value > 0:
-        # Remove Python executable and commands if present
-        start = argc.value - len(sys.argv)
-        return [argv[i] for i in
-                xrange(start, argc.value)]
-
-
-def main():
-    if sys.version_info[0] != 2 or sys.version_info[1] != 7:
-        raise RuntimeError('Nuxeo Drive requires Python 2.7')
-
-    # Print thread dump when receiving SIGUSR1,
-    # except under Windows (no SIGUSR1)
-    # Get the Ctrl+C to interrupt application
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-    if sys.platform != 'win32':
-        signal.signal(signal.SIGUSR1, dumpstacks)
-    argv = win32_unicode_argv() if sys.platform == 'win32' else sys.argv
-    return CliHandler().handle(argv)
-
-
-if __name__ == '__main__':
-    sys.exit(main())

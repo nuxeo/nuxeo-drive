@@ -331,7 +331,7 @@ start_nxdrive() {
     echo ">>> Starting Nuxeo Drive"
 
     export PYTHONPATH="${WORKSPACE_DRIVE}/nuxeo-drive-client"
-    python nuxeo-drive-client/nxdrive/commandline.py
+    python -m nxdrive
 }
 
 verify_python() {

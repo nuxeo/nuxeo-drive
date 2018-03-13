@@ -3,8 +3,6 @@
 
 import json
 import os
-import subprocess
-import sys
 import urllib2
 from logging import getLogger
 
@@ -14,14 +12,15 @@ from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
                          QVBoxLayout)
 from markdown import markdown
 
-from nxdrive.engine.activity import Action, FileAction
-from nxdrive.notification import Notification
-from nxdrive.options import Options
-from nxdrive.osi import AbstractOSIntegration, parse_protocol_url
-from nxdrive.utils import find_icon, find_resource
-from nxdrive.wui.modal import WebModal
-from nxdrive.wui.systray import DriveSystrayIcon
-from nxdrive.wui.translator import Translator
+from ..engine.activity import Action, FileAction
+from ..notification import Notification
+from ..options import Options
+from ..osi import AbstractOSIntegration, parse_protocol_url
+from ..updater.constants import UPDATE_STATUS_DOWNGRADE_NEEDED
+from ..utils import find_icon, find_resource
+from .modal import WebModal
+from .systray import DriveSystrayIcon
+from .translator import Translator
 
 log = getLogger(__name__)
 
@@ -92,7 +91,7 @@ class Application(SimpleApplication):
         super(Application, self).__init__(manager, *args)
         self.setQuitOnLastWindowClosed(False)
         self._delegator = None
-        from nxdrive.scripting import DriveUiScript
+        from ..scripting import DriveUiScript
         self.manager.set_script_object(DriveUiScript(manager, self))
         self.filters_dlg = None
         self._conflicts_modals = dict()
@@ -106,10 +105,6 @@ class Application(SimpleApplication):
         self.icon_spin_timer = QTimer()
         self.icon_spin_timer.timeout.connect(self.spin_transferring_icon)
         self.icon_spin_count = 0
-
-        # Application update
-        # self.manager.get_updater().appUpdated.connect(self.app_updated)
-        self.updated_version = None
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
@@ -126,6 +121,13 @@ class Application(SimpleApplication):
         # Setup notification center for macOS
         if AbstractOSIntegration.is_mac():
             self._setup_notification_center()
+
+        # Application update
+        self.manager.get_updater().appUpdated.connect(self.quit)
+
+        # Display release notes on new version
+        if self.manager.old_version != self.manager.version:
+            self.show_release_notes(self.manager.version)
 
     @pyqtSlot(str, str, str)
     def _direct_edit_conflict(self, filename, ref, digest):
@@ -258,12 +260,12 @@ class Application(SimpleApplication):
         self.set_icon_state(new_state)
 
     def _get_settings_dialog(self, section):
-        from nxdrive.wui.settings import WebSettingsDialog
+        from .settings import WebSettingsDialog
         return WebSettingsDialog(self, section)
 
     def _get_conflicts_dialog(self, engine):
-        from nxdrive.wui.dialog import WebDialog
-        from nxdrive.wui.conflicts import WebConflictsApi
+        from .dialog import WebDialog
+        from .conflicts import WebConflictsApi
         return WebDialog(
             self,
             'conflicts.html',
@@ -301,7 +303,7 @@ class Application(SimpleApplication):
         self.filters_dlg = None
 
     def _get_filters_dialog(self, engine):
-        from nxdrive.gui.folders_dialog import FiltersDialog
+        from ..gui.folders_dialog import FiltersDialog
         return FiltersDialog(self, engine)
 
     @pyqtSlot()
@@ -314,14 +316,14 @@ class Application(SimpleApplication):
         self.filters_dlg.show()
 
     def show_file_status(self):
-        from nxdrive.gui.status_dialog import StatusDialog
+        from ..gui.status_dialog import StatusDialog
         for _, engine in self.manager.get_engines().iteritems():
             self.status = StatusDialog(engine.get_dao())
             self.status.show()
             break
 
     def show_activities(self):
-        from nxdrive.wui.activity import WebActivityDialog
+        from .activity import WebActivityDialog
         self.activities = WebActivityDialog(self)
         self.activities.show()
 
@@ -347,7 +349,7 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def _debug_show_file_status(self):
-        from nxdrive.gui.status_dialog import StatusDialog
+        from ..gui.status_dialog import StatusDialog
         sender = self.sender()
         engine = sender.data().toPyObject()
         self.status_dialog = StatusDialog(engine.get_dao())
@@ -379,7 +381,7 @@ class Application(SimpleApplication):
     def show_debug_window(self):
         debug = self._get_unique_dialog('debug')
         if debug is None:
-            from nxdrive.debug.wui.engine import EngineDialog
+            from ..debug.wui.engine import EngineDialog
             debug = EngineDialog(self)
             self._create_unique_dialog('debug', debug)
         self._show_window(debug)
@@ -391,7 +393,7 @@ class Application(SimpleApplication):
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)
         self.manager.notification_service.newNotification.connect(self._new_notification)
-        # self.manager.get_updater().updateAvailable.connect(self._update_notification)
+        self.manager.get_updater().updateAvailable.connect(self._update_notification)
         if not self.manager.get_engines():
             self.show_settings()
         else:
@@ -404,15 +406,19 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def _update_notification(self):
-        replacements = dict(version=self.manager.get_updater().get_status()[1])
+        status, version = self.manager.get_updater().last_status[:2]
+        replacements = {'version': version}
+
+        msg = 'AUTOUPDATE_UPGRADE'
+        if status == UPDATE_STATUS_DOWNGRADE_NEEDED:
+            msg = 'AUTOUPDATE_DOWNGRADE'
+
         notification = Notification(
             uuid='AutoUpdate',
             flags=(Notification.FLAG_BUBBLE
                    | Notification.FLAG_VOLATILE
                    | Notification.FLAG_UNIQUE),
-            title=Translator.get('AUTOUPDATE_NOTIFICATION_TITLE', replacements),
-            description=Translator.get('AUTOUPDATE_NOTIFICATION_MESSAGE',
-                                       replacements),
+            description=Translator.get(msg, replacements),
         )
         self.manager.notification_service.send_notification(notification)
 
@@ -422,7 +428,7 @@ class Application(SimpleApplication):
             self.manager.notification_service.trigger_notification(self.current_notification.uid)
 
     def _setup_notification_center(self):
-        from nxdrive.osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
+        from ..osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
         if self._delegator is None:
             self._delegator = NotificationDelegator.alloc().init()
             self._delegator._manager = self.manager
@@ -435,7 +441,7 @@ class Application(SimpleApplication):
 
         if self._delegator is not None:
             # Use notification center
-            from nxdrive.osi.darwin.pyNotificationCenter import notify
+            from ..osi.darwin.pyNotificationCenter import notify
             return notify(
                 notif.title,
                 None,
@@ -519,41 +525,6 @@ class Application(SimpleApplication):
             action.type,
         )
 
-    @pyqtSlot(str)
-    def app_updated(self, updated_version):
-        self.updated_version = str(updated_version)
-        self.show_release_notes(self.updated_version)
-        log.info('Quitting Nuxeo Drive and restarting updated version %s',
-                 self.updated_version)
-        self.manager.stopped.connect(self.restart)
-        log.debug('Exiting Qt application')
-        self.quit()
-
-    @pyqtSlot()
-    def restart(self):
-        """
-        Restart application by loading updated executable
-        into current process.
-        """
-
-        current_version = self.manager.get_updater().get_active_version()
-        log.info('Current application version: %s', current_version)
-        log.info('Updated application version: %s', self.updated_version)
-
-        executable = sys.executable
-        # TODO NXP-13818: better handle this!
-        if sys.platform == 'darwin':
-            executable = executable.replace('python', self.get_mac_app())
-        log.info('Current executable is: %s', executable)
-        updated_executable = executable.replace(current_version,
-                                                self.updated_version)
-        log.info('Updated executable is: %s', updated_executable)
-
-        args = [updated_executable]
-        args.extend(sys.argv[1:])
-        log.info('Opening subprocess with args: %r', args)
-        subprocess.Popen(args, close_fds=True)
-
     def show_release_notes(self, version):
         """ Display release notes of a given version. """
 
@@ -630,7 +601,7 @@ class Application(SimpleApplication):
         return 'ndrive'
 
     def show_dialog(self, url):
-        from nxdrive.wui.dialog import WebDialog
+        from .dialog import WebDialog
         WebDialog(self, url).show()
 
     def show_metadata(self, file_path):

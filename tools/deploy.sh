@@ -47,13 +47,13 @@ release() {
 cp -vf ${path}/drive-tests/*${drive_version}* ${path}/drive
 
 # Create symbolic links of the latest packages
-ln -sfrv ${dmg} ${path}/drive/latest/nuxeo-drive.dmg
-ln -sfrv ${exe} ${path}/drive/latest/nuxeo-drive.${ext_win_only}
+ln -sfv ${dmg} ${path}/drive/latest/nuxeo-drive.dmg
+ln -sfv ${exe} ${path}/drive/latest/nuxeo-drive.${ext_win_only}
 
 # Create symbolic links of the latest packages for all supported versions of Nuxeo
 for folder in \$(find ${path}/drive/latest -maxdepth 1 -type d); do
-    ln -sfrv ${dmg} \$folder/nuxeo-drive.dmg
-    ln -sfrv ${exe} \$folder/nuxeo-drive.${ext_win_only}
+    ln -sfv ${dmg} \$folder/nuxeo-drive.dmg
+    ln -sfv ${exe} \$folder/nuxeo-drive.${ext_win_only}
 done
 EOF
 
