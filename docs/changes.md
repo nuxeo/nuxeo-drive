@@ -24,6 +24,7 @@ Release date: `2018-??-??`
 - Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
 - Jenkins: Possibility to launch the beta job on a given branch
 - Jenkins: Possibility to launch the release job on a given beta version
+- Jenkins: Update the Nuxeo snapshot to 10.2
 - Packaging: Fix symlink creation in `deploy.sh`
 - Packaging: Merged OS specific requirements-*.txt into one file
 - Packaging: Removed `cffi`, will be installed with `xattr`
