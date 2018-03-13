@@ -9,22 +9,22 @@ from time import sleep
 
 from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
-from nxdrive.client import (LocalClient, RemoteDocumentClient,
-                            RemoteFileSystemClient,
-                            RemoteFilteredFileSystemClient)
-from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.client.common import BaseClient, NotFound, safe_filename
-from nxdrive.client.rest_api_client import RestAPIClient
-from nxdrive.engine.activity import Action, FileAction
-from nxdrive.engine.dao.sqlite import EngineDAO
-from nxdrive.engine.processor import Processor
-from nxdrive.engine.queue_manager import QueueManager
-from nxdrive.engine.watcher.local_watcher import LocalWatcher
-from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-from nxdrive.engine.workers import PairInterrupt, ThreadInterrupt, Worker
-from nxdrive.options import Options
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.utils import find_icon, normalized_path
+from .activity import Action, FileAction
+from .dao.sqlite import EngineDAO
+from .processor import Processor
+from .queue_manager import QueueManager
+from .watcher.local_watcher import LocalWatcher
+from .watcher.remote_watcher import RemoteWatcher
+from .workers import PairInterrupt, ThreadInterrupt, Worker
+from ..client import (LocalClient, RemoteDocumentClient,
+                      RemoteFileSystemClient,
+                      RemoteFilteredFileSystemClient)
+from ..client.base_automation_client import Unauthorized
+from ..client.common import BaseClient, NotFound, safe_filename
+from ..client.rest_api_client import RestAPIClient
+from ..options import Options
+from ..osi import AbstractOSIntegration
+from ..utils import find_icon, normalized_path
 
 log = getLogger(__name__)
 
@@ -81,7 +81,7 @@ class Engine(QObject):
                  remote_filtered_fs_client_factory=RemoteFilteredFileSystemClient):
         super(Engine, self).__init__()
 
-        self.version = manager.get_version()
+        self.version = manager.version
         self._remote_clients = dict()
         # Used for binding server / roots and managing tokens
         self.remote_doc_client_factory = remote_doc_client_factory
@@ -661,10 +661,14 @@ class Engine(QObject):
     def update_password(self, password):
         self._load_configuration()
         nxclient = self.remote_doc_client_factory(
-            self._server_url, self._remote_user, self._manager.device_id,
-            self._manager.get_version(), proxies=self._manager.get_proxies(self._server_url),
+            self._server_url,
+            self._remote_user,
+            self._manager.device_id,
+            self._manager.version,
+            proxies=self._manager.get_proxies(self._server_url),
             proxy_exceptions=self._manager.proxy_exceptions,
-            password=str(password), timeout=self._handshake_timeout)
+            password=str(password),
+            timeout=self._handshake_timeout)
         self._remote_token = nxclient.request_token()
         if self._remote_token is None:
             raise Exception
@@ -719,7 +723,7 @@ class Engine(QObject):
                 self._server_url,
                 self._remote_user,
                 self._manager.device_id,
-                self._manager.get_version(),
+                self._manager.version,
                 proxies=self._manager.get_proxies(self._server_url),
                 proxy_exceptions=self._manager.proxy_exceptions,
                 password=self._remote_password,
@@ -798,7 +802,8 @@ class Engine(QObject):
 
     def get_server_version(self):
         server_version = self._dao.get_config('server_version')
-        Options.set('server_version', server_version, setter='server')
+        Options.set('server_version', server_version,
+                    setter='server', fail_on_error=False)
         return server_version
 
     @pyqtSlot()
@@ -944,7 +949,7 @@ class Engine(QObject):
             self.server_url,
             self.remote_user,
             self._manager.device_id,
-            self._manager.get_version(),
+            self._manager.version,
             token=self.get_remote_token(),
             timeout=self.timeout,
             cookie_jar=self.cookie_jar,

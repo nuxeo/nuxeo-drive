@@ -91,6 +91,7 @@ var DriveController = function($scope, $translate) {
 		self.updatePassword($scope, uid, password);
 	}
 	$scope.version = drive.get_version();
+	$scope.is_frozen = drive.is_frozen();
 	$scope.update_url = drive.get_update_url();
 	$scope.quit = this.quit;
 	$scope.show_settings = this.showSettings;

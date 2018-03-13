@@ -5,9 +5,9 @@ import sys
 from PyQt4.QtCore import Qt, pyqtSlot
 from PyQt4.QtGui import QApplication, QCursor, QMenu, QStyle, QSystemTrayIcon
 
-from nxdrive.options import Options
-from nxdrive.wui.dialog import WebDialog, WebDriveApi
-from nxdrive.wui.translator import Translator
+from .dialog import WebDialog, WebDriveApi
+from .translator import Translator
+from ..options import Options
 
 
 class DriveSystrayIcon(QSystemTrayIcon):

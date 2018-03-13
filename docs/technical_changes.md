@@ -9,9 +9,12 @@
 - Removed `AbstractOSIntegration.os_version_below()`
 - Removed `AbstractOSIntegration.register_desktop_link()`
 - Removed `AbstractOSIntegration.unregister_desktop_link()`
+- Removed `Application.app_updated()`
 - Removed `Application.engineLogger`
 - Removed `Application.engineWidget`
 - Removed `Application.mainEngine`
+- Removed `Application.restart()`
+- Removed `Application.updated_version`
 - Removed `BaseAutomationClient.is_addon_installed()`
 - Removed `ConfigurationDAO.begin_transaction()`
 - Removed `ConfigurationDAO.dispose_thread()`
@@ -49,14 +52,20 @@
 - Removed `LocalWatcher.set_windows_folder_scan_delay()`
 - Removed `LocalWatcher.get_windows_watchdog_event_buffer()`
 - Removed `LocalWatcher.set_windows_watchdog_event_buffer()`
+- Removed `Manager.check_version_updated()`
+- Removed `Manager.find_exe_path()`
 - Removed `Manager.get_engines_type()`
+- Removed `Manager.get_version()`. Use `version` property instead.
+- Removed `Manager.get_version_finder()`
 - Removed `Manager.list_server_bindings()`
+- Removed `Manager.update_version()`
 - Removed `Notification.add_replacement()`
 - Removed `Notification.generate_uid()`
 - Removed `Notification.is_volatile()`
 - Removed `Notification.remove_replacement()`
 - Removed `Notification.trigger()`
 - Removed `Options.quit_timeout`
+- Removed `Options.stop_on_error`
 - Removed `Processor.path_locks()`
 - Removed `QueueManager.init_queue()`
 - Removed `RemoteDocumentClient.check_writable()`
@@ -87,14 +96,24 @@
 - Added `Translator.translations()`
 - Added `WebDriveAPI.get_translations()`
 - Removed `WebDriveAPI.get_appname()`
+- Moved commandline.py:`dumpstacks()` to \_\_main__.py
+- Moved commandline.py:`win32_unicode_argv()` to \_\_main__.py
+- Removed commandline.py:`DEFAULT_NX_DRIVE_FOLDER`
 - Removed commandline.py:`GET_CTL_MAX_NB_TRIES`
 - Removed commandline.py:`GET_CTL_SLEEP_DURATION`
 - Removed client/common.py::`DuplicationError()`
 - Removed engine/engine.py::`EngineLogger()`
 - Moved gui/resources.py::`find_icon()` to utils.py
 - Removed gui/folder_treeview.py::`DocClient()`
+- Added options.py::`server_updater()`
+- Added updater package
+- Removed updater.py
+- Added utils.py::`version_between()`
+- Added utils.py::`version_le()`
+- Removed utils.py::`NUXEO_DRIVE_FOLDER_NAME`
 - Removed utils.py::`ServerLoader()`
 - Changed utils.py::`find_resource_dir(directory, default_path)` to `find_resource(folder, filename)`
+- Moved utils.py::`default_nuxeo_drive_folder()` to `Manager.get_default_nuxeo_drive_folder()`
 - Removed wui/conflicts.py::`WebConflictsDialog()`
 
 # 3.0.5

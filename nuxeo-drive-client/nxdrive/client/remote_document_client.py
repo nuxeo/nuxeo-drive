@@ -10,10 +10,10 @@ from logging import getLogger
 
 from dateutil import parser
 
-from nxdrive.client.base_automation_client import BaseAutomationClient
-from nxdrive.client.common import NotFound, safe_filename
-from nxdrive.options import Options
-from nxdrive.utils import version_lt
+from .base_automation_client import BaseAutomationClient
+from .common import NotFound, safe_filename
+from ..options import Options
+from ..utils import version_lt
 
 log = getLogger(__name__)
 

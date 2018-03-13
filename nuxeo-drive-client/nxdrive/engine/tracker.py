@@ -10,7 +10,7 @@ from logging import getLogger
 from PyQt4 import QtCore
 from UniversalAnalytics import Tracker as UATracker
 
-from nxdrive.engine.workers import Worker
+from .workers import Worker
 
 if sys.platform == 'darwin':
     from Foundation import NSLocale
@@ -28,7 +28,7 @@ class Tracker(Worker):
         self._tracker = UATracker.create(
             uid, client_id=self._manager.device_id, user_agent=self.user_agent)
         self._tracker.set('appName', 'NuxeoDrive')
-        self._tracker.set('appVersion', self._manager.get_version())
+        self._tracker.set('appVersion', self._manager.version)
         self._tracker.set('encoding', sys.getfilesystemencoding())
         self._tracker.set('language', self.current_locale)
         self._manager.started.connect(self._send_stats)
@@ -41,9 +41,6 @@ class Tracker(Worker):
         for _, engine in self._manager.get_engines().iteritems():
             self.connect_engine(engine)
         self._manager.newEngine.connect(self.connect_engine)
-        if self._manager.get_updater() is not None:
-            self._manager.get_updater().appUpdated.connect(
-                self._send_app_update_event)
         if self._manager.direct_edit is not None:
             self._manager.direct_edit.openDocument.connect(
                 self._send_directedit_open)
@@ -92,7 +89,7 @@ class Tracker(Worker):
     def user_agent(self):
         """ Format a custom user agent. """
 
-        return 'NuxeoDrive/{} ({})'.format(self._manager.get_version(),
+        return 'NuxeoDrive/{} ({})'.format(self._manager.version,
                                            self.current_os)
 
     def send_event(self, **kwargs):
@@ -109,11 +106,6 @@ class Tracker(Worker):
             self._tracker.send('event', **kwargs)
         except:
             log.exception('Error sending analytics')
-
-    @QtCore.pyqtSlot(object)
-    def _send_app_update_event(self, version):
-        self.send_event(category='AppUpdate', action='Update',
-                        label='Version', value=version)
 
     @QtCore.pyqtSlot(object, object)
     def _send_directedit_open(self, remote_info):
