@@ -802,7 +802,8 @@ class Engine(QObject):
 
     def get_server_version(self):
         server_version = self._dao.get_config('server_version')
-        Options.set('server_version', server_version, setter='server')
+        Options.set('server_version', server_version,
+                    setter='server', fail_on_error=False)
         return server_version
 
     @pyqtSlot()

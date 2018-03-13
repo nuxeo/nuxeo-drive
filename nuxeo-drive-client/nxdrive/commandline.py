@@ -12,7 +12,7 @@ from logging import getLogger
 from . import __version__
 from .logging_config import configure
 from .options import Options
-from .utils import default_nuxeo_drive_folder, normalized_path
+from .utils import normalized_path
 
 try:
     import ipdb as pdb
@@ -26,7 +26,6 @@ except ImportError:
 
 log = getLogger(__name__)
 
-DEFAULT_NX_DRIVE_FOLDER = default_nuxeo_drive_folder()
 USAGE = """ndrive [command]
 
 If no command is provided, the graphical application is
@@ -175,8 +174,7 @@ class CliHandler(object):
         bind_server_parser.add_argument(
             '--local-folder',
             help='Local folder that will host the list of synchronized '
-            'workspaces with a remote Nuxeo server.',
-            default=DEFAULT_NX_DRIVE_FOLDER)
+            'workspaces with a remote Nuxeo server.', type=str)
         bind_server_parser.add_argument(
             'username', help='User account to connect to Nuxeo')
         bind_server_parser.add_argument(
@@ -193,8 +191,7 @@ class CliHandler(object):
         unbind_server_parser.add_argument(
             '--local-folder',
             help='Local folder that hosts the list of synchronized '
-            'workspaces with a remote Nuxeo server.',
-            default=DEFAULT_NX_DRIVE_FOLDER)
+            'workspaces with a remote Nuxeo server.', type=str)
 
         # Bind root folders
         bind_root_parser = subparsers.add_parser(
@@ -209,8 +206,7 @@ class CliHandler(object):
             '--local-folder',
             help='Local folder that will host the list of synchronized '
             'workspaces with a remote Nuxeo server. Must be bound with the '
-            '"bind-server" command.',
-            default=DEFAULT_NX_DRIVE_FOLDER)
+            '"bind-server" command.', type=str)
         bind_root_parser.add_argument(
             '--remote-repo', default=Options.remote_repo,
             help='Name of the remote repository.')
@@ -229,8 +225,7 @@ class CliHandler(object):
             '--local-folder',
             help='Local folder that will host the list of synchronized '
             'workspaces with a remote Nuxeo server. Must be bound with the '
-            '"bind-server" command.',
-            default=DEFAULT_NX_DRIVE_FOLDER)
+            '"bind-server" command.', type=str)
         unbind_root_parser.add_argument(
             '--remote-repo', default=Options.remote_repo,
             help="Name of the remote repository.")
@@ -374,7 +369,8 @@ class CliHandler(object):
     def handle(self, argv):
         """ Parse options, setup logs and manager and dispatch execution. """
         options = self.parse_cli(argv)
-        if hasattr(options, 'local_folder'):
+
+        if getattr(options, 'local_folder', ''):
             options.local_folder = normalized_path(options.local_folder)
 
         # 'launch' is the default command if None is provided
@@ -445,9 +441,10 @@ class CliHandler(object):
 
     def clean_folder(self, options):
         from .client.local_client import LocalClient
-        if options.local_folder is None:
+        if not options.local_folder:
             print('A folder must be specified')
-            return 0
+            return 1
+
         client = LocalClient(unicode(options.local_folder))
         client.clean_xattr_root()
         return 0
@@ -480,9 +477,6 @@ class CliHandler(object):
                 password = None
                 check_credentials = False
 
-        if not options.local_folder:
-            options.local_folder = DEFAULT_NX_DRIVE_FOLDER
-
         self.manager.bind_server(
             options.local_folder,
             options.nuxeo_url,
@@ -497,16 +491,18 @@ class CliHandler(object):
             if engine.local_folder == options.local_folder:
                 self.manager.unbind_engine(uid)
                 return 0
-        return 0
+        log.error('No engine registered for local folder %r',
+                  options.local_folder)
+        return 1
 
     def bind_root(self, options):
         for engine in self.manager.get_engines().values():
             log.trace('Comparing: %r to %r',
                       engine.local_folder, options.local_folder)
             if engine.local_folder == options.local_folder:
-                engine.get_remote_doc_client(
-                    repository=options.remote_repo).register_as_root(
-                    options.remote_root)
+                client = engine.get_remote_doc_client(
+                    repository=options.remote_repo)
+                client.register_as_root(options.remote_root)
                 return 0
         log.error('No engine registered for local folder %r',
                   options.local_folder)

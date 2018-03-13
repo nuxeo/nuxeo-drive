@@ -98,6 +98,7 @@
 - Removed `WebDriveAPI.get_appname()`
 - Moved commandline.py:`dumpstacks()` to \_\_main__.py
 - Moved commandline.py:`win32_unicode_argv()` to \_\_main__.py
+- Removed commandline.py:`DEFAULT_NX_DRIVE_FOLDER`
 - Removed commandline.py:`GET_CTL_MAX_NB_TRIES`
 - Removed commandline.py:`GET_CTL_SLEEP_DURATION`
 - Removed client/common.py::`DuplicationError()`
@@ -109,8 +110,10 @@
 - Removed updater.py
 - Added utils.py::`version_between()`
 - Added utils.py::`version_le()`
+- Removed utils.py::`NUXEO_DRIVE_FOLDER_NAME`
 - Removed utils.py::`ServerLoader()`
 - Changed utils.py::`find_resource_dir(directory, default_path)` to `find_resource(folder, filename)`
+- Moved utils.py::`default_nuxeo_drive_folder()` to `Manager.get_default_nuxeo_drive_folder()`
 - Removed wui/conflicts.py::`WebConflictsDialog()`
 
 # 3.0.5

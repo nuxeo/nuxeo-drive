@@ -277,9 +277,11 @@ class MetaOptions(type):
             # We allow to set something when the default is None
             if (not isinstance(new_value, type_orig)
                     and not isinstance(old_value, type(None))):
-                err = ('The value of the option %r is of type %s,'
-                       ' while %s is required.')
-                raise TypeError(err % (
+                if not fail_on_error:
+                    return
+
+                err = 'The type of the option {} is {}, while {} is required.'
+                raise TypeError(err.format(
                     item, type(new_value).__name__, type(old_value).__name__))
 
             # Only update if the setter has rights to
