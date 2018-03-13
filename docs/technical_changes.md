@@ -15,8 +15,8 @@
 - Removed `Application.icon_spin_count`
 - Removed `Application.engineWidget`
 - Removed `Application.mainEngine`
-- Removed `Application.spin_transferring_icon()`
 - Removed `Application.restart()`
+- Removed `Application.spin_transferring_icon()`
 - Removed `Application.updated_version`
 - Removed `BaseAutomationClient.is_addon_installed()`
 - Removed `ConfigurationDAO.begin_transaction()`
