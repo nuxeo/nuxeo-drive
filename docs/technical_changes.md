@@ -36,6 +36,7 @@
 - Removed `Engine.resolve_with_duplicate()`
 - Removed `EngineDAO.mark_descendants_remotely_deleted()`
 - Removed `EngineDAO.mark_descendants_locally_created()`
+- Changed `EngineDAO.update_remote_state()` `versionned` keyword argument to `versioned`
 - Removed `EngineDAO.update_local_paths()`
 - Removed `EngineLogger.logger`
 - Removed `FileInfo.get_parent()`
@@ -52,6 +53,7 @@
 - Removed `LocalWatcher.get_windows_watchdog_event_buffer()`
 - Removed `LocalWatcher.set_windows_watchdog_event_buffer()`
 - Removed `Manager.check_version_updated()`
+- Removed `Manager.find_exe_path()`
 - Removed `Manager.get_engines_type()`
 - Removed `Manager.get_version()`. Use `version` property instead.
 - Removed `Manager.get_version_finder()`
@@ -75,7 +77,6 @@
 - Removed `RemoteWatcher.testing`
 - Removed `RestAPIClient.get_acls()`
 - Removed `StatusTreeview.filter_sync`
-- Removed `WebAuthenticationApi.create_account()`
 - Removed `WebConflictsApi.resolve_with_duplicate()`
 - Removed `WebDriveApi.file_dialog_dir`
 - Removed `WebDriveApi.get_last_url()`
@@ -95,6 +96,8 @@
 - Added `Translator.translations()`
 - Added `WebDriveAPI.get_translations()`
 - Removed `WebDriveAPI.get_appname()`
+- Moved commandline.py:`dumpstacks()` to \_\_main__.py
+- Moved commandline.py:`win32_unicode_argv()` to \_\_main__.py
 - Removed commandline.py:`GET_CTL_MAX_NB_TRIES`
 - Removed commandline.py:`GET_CTL_SLEEP_DURATION`
 - Removed client/common.py::`DuplicationError()`

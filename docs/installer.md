@@ -25,13 +25,10 @@ We decided to use [PyInstaller](http://www.pyinstaller.org/) to freeze the code:
 Currently, only macOS and Windows are supported.
 There is no built-in support for installer on GNU/Linux.
 
-#### GNU/Linux
-
-TODO: complete when [NXDRIVE-351](https://jira.nuxeo.com/browse/NXDRIVE-351) is done.
-
 #### macOS
 
-TODO
+We generate a signed DMG of the final folder created by PyInstaller and containing all required files for Drive to work.
+If you want to exactly know how it is done, check the file `tools/osx/deploy_jenkins_slace.sh`.
 
 #### Windows
 
@@ -74,7 +71,7 @@ If you used to customize the installation process, know that the same arguments 
 - new: `nuxeo-drive.exe /silent /ARG=value ...`
 
 **Warning**: it is now highly deprecated to use the `TARGETDIR` argument. For convenient reasons, we decided to not allow the user to choose the installation folder.
-So it may work, but we **do not support** this as it can break the auto-update and introduce other issues.
+So it *may* work, but we **do not support** this as it can break the auto-update and introduce other issues.
 
 ###### Mandatory arguments
 

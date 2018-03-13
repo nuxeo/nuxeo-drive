@@ -16,16 +16,15 @@ from PyQt4.QtGui import QApplication
 from PyQt4.QtScript import QScriptEngine
 from PyQt4.QtWebKit import qWebKitVersion
 
-from nxdrive import __version__
-from nxdrive.client import LocalClient
-from nxdrive.client.base_automation_client import get_proxies_for_handler
-from nxdrive.logging_config import FILE_HANDLER
-from nxdrive.notification import DefaultNotificationService
-from nxdrive.options import Options, server_updater
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.updater import updater
-from nxdrive.utils import (ENCODING, OSX_SUFFIX, decrypt, encrypt,
-                           normalized_path)
+from . import __version__
+from .client import LocalClient
+from .client.base_automation_client import get_proxies_for_handler
+from .logging_config import FILE_HANDLER
+from .notification import DefaultNotificationService
+from .options import Options, server_updater
+from .osi import AbstractOSIntegration
+from .updater import updater
+from .utils import ENCODING, decrypt, encrypt, normalized_path
 
 if AbstractOSIntegration.is_windows():
     import _winreg
@@ -237,7 +236,6 @@ class Manager(QtCore.QObject):
     _singleton = None
     app_name = 'Nuxeo Drive'
 
-    __exe_path = None
     __device_id = None
 
     @staticmethod
@@ -270,8 +268,8 @@ class Manager(QtCore.QObject):
 
         self._engine_definitions = None
 
-        from nxdrive.engine.engine import Engine
-        from nxdrive.engine.next.engine_next import EngineNext
+        from .engine.engine import Engine
+        from .engine.next.engine_next import EngineNext
         self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
         self._engines = None
         self.proxies = dict()
@@ -387,7 +385,7 @@ class Manager(QtCore.QObject):
             self.osi.register_startup()
 
     def _create_autolock_service(self):
-        from nxdrive.autolocker import ProcessAutoLockerWorker
+        from .autolocker import ProcessAutoLockerWorker
         self.autolock_service = ProcessAutoLockerWorker(
             30, self._dao, folder=self.direct_edit_folder)
         self.started.connect(self.autolock_service._thread.start)
@@ -397,7 +395,7 @@ class Manager(QtCore.QObject):
         if not self.get_tracking():
             return None
 
-        from nxdrive.engine.tracker import Tracker
+        from .engine.tracker import Tracker
         tracker = Tracker(self)
         # Start the tracker when we launch
         self.started.connect(tracker._thread.start)
@@ -415,7 +413,7 @@ class Manager(QtCore.QObject):
         return self._dao
 
     def _create_dao(self):
-        from nxdrive.engine.dao.sqlite import ManagerDAO
+        from .engine.dao.sqlite import ManagerDAO
         self._dao = ManagerDAO(self._get_db())
 
     def _create_server_config_updater(self):
@@ -446,7 +444,7 @@ class Manager(QtCore.QObject):
                 engine.get_update_infos()
 
     def _create_direct_edit(self, url):
-        from nxdrive.direct_edit import DirectEdit
+        from .direct_edit import DirectEdit
         self.direct_edit = DirectEdit(self, self.direct_edit_folder, url)
         self.started.connect(self.direct_edit._thread.start)
         return self.direct_edit
@@ -655,48 +653,10 @@ class Manager(QtCore.QObject):
         return 'ndrive'
 
     def generate_report(self, path=None):
-        from nxdrive.report import Report
+        from .report import Report
         report = Report(self, path)
         report.generate()
         return report.get_path()
-
-    def find_exe_path(self):
-        """ Introspect the Python runtime to find the frozen Windows exe. """
-
-        if not self.__exe_path:
-            import nxdrive
-            path = os.path.realpath(os.path.dirname(nxdrive.__file__))
-            log.trace('Found nxdrive path=%r', path)
-
-            # Detect frozen win32 executable under Windows
-            executable = sys.executable
-            if 'appdata' in executable:
-                executable = os.path.join(os.path.dirname(executable),
-                                          '..', '..', os.path.basename(
-                                          sys.executable))
-                exe_path = os.path.abspath(executable)
-                if os.path.exists(exe_path):
-                    log.trace('Returning exe path=%r', exe_path)
-                    self.__exe_path = exe_path
-                    return self.__exe_path
-
-            # Detect OSX frozen app
-            if path.endswith(OSX_SUFFIX):
-                log.trace('Detected OS X frozen app')
-                exe_path = path.replace(
-                    OSX_SUFFIX, 'Contents/MacOS/' + self._get_binary_name())
-                if os.path.exists(exe_path):
-                    log.trace('Returning exe path=%r', exe_path)
-                    self.__exe_path = exe_path
-                    return self.__exe_path
-
-            # Fall-back to the regular method that should work both the
-            # ndrive script
-            exe_path = sys.argv[0]
-            log.trace('Returning default exe path=%r', exe_path)
-            self.__exe_path = exe_path
-
-        return self.__exe_path
 
     def set_auto_start(self, value):
         self._dao.update_config("auto_start", value)
@@ -1079,7 +1039,7 @@ class Manager(QtCore.QObject):
         self._script_object = obj
 
     def _create_script_engine(self):
-        from nxdrive.scripting import DriveScript
+        from .scripting import DriveScript
         self._script_engine = QScriptEngine()
         if self._script_object is None:
             self._script_object = DriveScript(self)

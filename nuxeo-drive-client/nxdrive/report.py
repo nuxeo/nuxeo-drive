@@ -4,7 +4,7 @@ from datetime import datetime
 from logging import getLogger
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
-from nxdrive.logging_config import MAX_LOG_DISPLAYED, get_handler
+from .logging_config import MAX_LOG_DISPLAYED, get_handler
 
 log = getLogger(__name__)
 

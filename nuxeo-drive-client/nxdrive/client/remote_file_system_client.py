@@ -8,11 +8,11 @@ from datetime import datetime
 from logging import getLogger
 from threading import current_thread
 
-from nxdrive.engine.activity import FileAction
 from .base_automation_client import (BaseAutomationClient,
                                      DOWNLOAD_TMP_FILE_PREFIX,
                                      DOWNLOAD_TMP_FILE_SUFFIX)
 from .common import NotFound
+from ..engine.activity import FileAction
 
 log = getLogger(__name__)
 

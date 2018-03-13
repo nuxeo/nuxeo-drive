@@ -9,15 +9,6 @@ from time import sleep
 
 from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
-from nxdrive.client import (LocalClient, RemoteDocumentClient,
-                            RemoteFileSystemClient,
-                            RemoteFilteredFileSystemClient)
-from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.client.common import BaseClient, NotFound, safe_filename
-from nxdrive.client.rest_api_client import RestAPIClient
-from nxdrive.options import Options
-from nxdrive.osi import AbstractOSIntegration
-from nxdrive.utils import find_icon, normalized_path
 from .activity import Action, FileAction
 from .dao.sqlite import EngineDAO
 from .processor import Processor
@@ -25,6 +16,15 @@ from .queue_manager import QueueManager
 from .watcher.local_watcher import LocalWatcher
 from .watcher.remote_watcher import RemoteWatcher
 from .workers import PairInterrupt, ThreadInterrupt, Worker
+from ..client import (LocalClient, RemoteDocumentClient,
+                      RemoteFileSystemClient,
+                      RemoteFilteredFileSystemClient)
+from ..client.base_automation_client import Unauthorized
+from ..client.common import BaseClient, NotFound, safe_filename
+from ..client.rest_api_client import RestAPIClient
+from ..options import Options
+from ..osi import AbstractOSIntegration
+from ..utils import find_icon, normalized_path
 
 log = getLogger(__name__)
 
@@ -117,6 +117,8 @@ class Engine(QObject):
         if binder is not None:
             self.bind(binder)
         self._load_configuration()
+        # Set server version in the Options
+        self.get_server_version()
         self._local_watcher = self._create_local_watcher()
         self.create_thread(worker=self._local_watcher)
         self._remote_watcher = self._create_remote_watcher(Options.delay)
@@ -843,7 +845,7 @@ class Engine(QObject):
 
         self._dao.insert_local_state(local_info, '')
         row = self._dao.get_state_from_local('/')
-        self._dao.update_remote_state(row, remote_info, remote_parent_path='', versionned=False)
+        self._dao.update_remote_state(row, remote_info, remote_parent_path='', versioned=False)
         local_client.set_root_id(self._server_url + "|" + self._remote_user +
                             "|" + self._manager.device_id + "|" + self.uid)
         local_client.set_remote_id('/', remote_info.uid)

@@ -1,4 +1,7 @@
 # coding: utf-8
+"""
+Query formatting in this file is based on http://www.sqlstyle.guide/
+"""
 import os
 import sqlite3
 import sys
@@ -10,7 +13,7 @@ from PyQt4.QtCore import QObject, pyqtSignal
 
 log = getLogger(__name__)
 
-SCHEMA_VERSION = "schema_version"
+SCHEMA_VERSION = 'schema_version'
 
 # Summary status from last known pair of states
 # (local_state, remote_state)
@@ -134,10 +137,7 @@ class ConfigurationDAO(QObject):
         self.in_tx = None
         self._tx_lock = RLock()
         # If we dont share connection no need to lock
-        if self.share_connection:
-            self._lock = RLock()
-        else:
-            self._lock = FakeLock()
+        self._lock = RLock() if self.share_connection else FakeLock()
         # Use to clean
         self._connections = []
         self._create_main_conn()
@@ -145,15 +145,15 @@ class ConfigurationDAO(QObject):
         c = self._conn.cursor()
         self._init_db(c)
         if migrate:
-            res = c.execute("SELECT value FROM Configuration WHERE name='"+SCHEMA_VERSION+"'").fetchone()
-            if res is None:
-                schema = 0
-            else:
-                schema = int(res[0])
+            res = c.execute('SELECT value '
+                            '  FROM Configuration '
+                            ' WHERE name = ?', (SCHEMA_VERSION,)).fetchone()
+            schema = int(res[0]) if res else 0
             if schema != self.schema_version:
                 self._migrate_db(c, schema)
         else:
-            c.execute("INSERT INTO Configuration(name,value) VALUES(?,?)", (SCHEMA_VERSION, self.schema_version))
+            c.execute('INSERT INTO Configuration (name, value) '
+                      'VALUES (?, ?)', (SCHEMA_VERSION, self.schema_version))
         self._conn.commit()
         self._conns = local()
         # FOR PYTHON 3.3...
@@ -168,26 +168,26 @@ class ConfigurationDAO(QObject):
 
     def _migrate_table(self, cursor, name):
         # Add the last_transfer
-        tmpname = name + 'Migration'
-        cursor.execute("ALTER TABLE " + name + " RENAME TO " + tmpname)
+        tmpname = '{}Migration'.format(name)
+        cursor.execute('ALTER TABLE {} RENAME TO {}'.format(name, tmpname))
         # Because Windows dont release the table, force the creation
         self._create_table(cursor, name, force=True)
         target_cols = self._get_columns(cursor, name)
         source_cols = self._get_columns(cursor, tmpname)
         cols = ', '.join(set(target_cols).intersection(source_cols))
-        cursor.execute("INSERT INTO " + name + "(" + cols + ") SELECT " + cols + " FROM " + tmpname)
-        cursor.execute("DROP TABLE " + tmpname)
+        cursor.execute('INSERT INTO {} ({}) '
+                       'SELECT {}'
+                       '  FROM {}'.format(
+            name, cols, cols, tmpname))
+        cursor.execute('DROP TABLE {}'.format(tmpname))
 
     def _create_table(self, cursor, name, force=False):
-        if name == "Configuration":
+        if name == 'Configuration':
             return self._create_configuration_table(cursor)
 
     def _get_columns(self, cursor, table):
-        cols = []
-        res = cursor.execute("PRAGMA table_info('" + table + "')").fetchall()
-        for col in res:
-            cols.append(col.name)
-        return cols
+        return [col.name for col in cursor.execute(
+            "PRAGMA table_info('{}')".format(table)).fetchall()]
 
     def _migrate_db(self, cursor, version):
         if version < 1:
@@ -195,15 +195,21 @@ class ConfigurationDAO(QObject):
 
     def _init_db(self, cursor):
         # http://www.stevemcarthur.co.uk/blog/post/some-kind-of-disk-io-error-occurred-sqlite
-        cursor.execute("PRAGMA journal_mode = MEMORY")
+        cursor.execute('PRAGMA journal_mode = MEMORY')
         self._create_configuration_table(cursor)
 
     def _create_configuration_table(self, cursor):
-        cursor.execute("CREATE TABLE if not exists Configuration(name VARCHAR NOT NULL, value VARCHAR, PRIMARY KEY (name))")
+        cursor.execute('CREATE TABLE if not exists Configuration ('
+                       '    name    VARCHAR NOT NULL,'
+                       '    value   VARCHAR,'
+                       '    PRIMARY KEY (name)'
+                       ')')
 
     def _create_main_conn(self):
-        log.debug('Create main connexion on %r (dir_exists=%r, file_exists=%r)',
-                  self._db, os.path.exists(os.path.dirname(self._db)), os.path.exists(self._db))
+        log.debug(
+            'Create main connexion on %r (dir_exists=%r, file_exists=%r)',
+            self._db, os.path.exists(os.path.dirname(self._db)),
+            os.path.exists(self._db))
         self._conn = AutoRetryConnection(self._db, check_same_thread=False)
         self._connections.append(self._conn)
 
@@ -229,7 +235,7 @@ class ConfigurationDAO(QObject):
         # If in transaction
         if self.in_tx is not None:
             if current_thread().ident != self.in_tx:
-                log.trace("In transaction wait for read connection")
+                log.trace('In transaction wait for read connection')
                 # Wait for the thread in transaction to finished
                 with self._tx_lock:
                     pass
@@ -238,7 +244,8 @@ class ConfigurationDAO(QObject):
                 return self._conn
         if not hasattr(self._conns, '_conn') or self._conns._conn is None:
             # Dont check same thread for closing purpose
-            self._conns._conn = AutoRetryConnection(self._db, check_same_thread=False)
+            self._conns._conn = AutoRetryConnection(
+                self._db, check_same_thread=False)
             self._connections.append(self._conns._conn)
         self._conns._conn.row_factory = factory
         # Python3.3 feature
@@ -253,7 +260,8 @@ class ConfigurationDAO(QObject):
             self._get_write_connection().commit()
 
     def _delete_config(self, cursor, name):
-        cursor.execute("DELETE FROM Configuration WHERE name=?", (name,))
+        cursor.execute('DELETE FROM Configuration'
+                       '       WHERE name = ?', (name,))
 
     def delete_config(self, name):
         with self._lock:
@@ -267,20 +275,23 @@ class ConfigurationDAO(QObject):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            if value is not None:
-                c.execute("UPDATE OR IGNORE Configuration SET value=? WHERE name=?", (value,name))
-                c.execute("INSERT OR IGNORE INTO Configuration(value,name) VALUES(?,?)", (value,name))
+            if value:
+                c.execute('UPDATE OR IGNORE Configuration'
+                          '             SET value = ?'
+                          '           WHERE name = ?', (value, name))
+                c.execute('INSERT OR IGNORE INTO Configuration (value, name) '
+                          'VALUES (?, ?)', (value, name))
             else:
-                c.execute("DELETE FROM Configuration WHERE name=?", (name,))
+                self._delete_config(c, name)
             if self.auto_commit:
                 con.commit()
 
     def get_config(self, name, default=None):
         c = self._get_read_connection().cursor()
-        obj = c.execute("SELECT value FROM Configuration WHERE name=?",(name,)).fetchone()
-        if obj is None:
-            return default
-        return obj.value
+        obj = c.execute('SELECT value'
+                        '  FROM Configuration'
+                        ' WHERE name = ?', (name,)).fetchone()
+        return obj.value if obj else default
 
 
 class ManagerDAO(ConfigurationDAO):
@@ -290,26 +301,42 @@ class ManagerDAO(ConfigurationDAO):
 
     def _init_db(self, cursor):
         super(ManagerDAO, self)._init_db(cursor)
-        cursor.execute("CREATE TABLE if not exists Engines(uid VARCHAR, engine VARCHAR NOT NULL, name VARCHAR, local_folder VARCHAR NOT NULL UNIQUE, PRIMARY KEY(uid))")
-        cursor.execute("CREATE TABLE if not exists Notifications(uid VARCHAR UNIQUE, engine VARCHAR, level VARCHAR, title VARCHAR, description VARCHAR, action VARCHAR, flags INT, PRIMARY KEY(uid))")
-        cursor.execute("CREATE TABLE if not exists AutoLock(path VARCHAR, remote_id VARCHAR, process INT, PRIMARY KEY(path))")
+        cursor.execute('CREATE TABLE if not exists Engines ('
+                       '    uid          VARCHAR,'
+                       '    engine       VARCHAR NOT NULL,'
+                       '    name         VARCHAR,'
+                       '    local_folder VARCHAR NOT NULL UNIQUE,'
+                       '    PRIMARY KEY (uid)'
+                       ')')
+        cursor.execute('CREATE TABLE if not exists Notifications ('
+                       '    uid         VARCHAR UNIQUE,'
+                       '    engine      VARCHAR,'
+                       '    level       VARCHAR,'
+                       '    title       VARCHAR,'
+                       '    description VARCHAR,'
+                       '    action      VARCHAR,'
+                       '    flags       INT,'
+                       '    PRIMARY KEY (uid)'
+                       ')')
+        cursor.execute('CREATE TABLE if not exists AutoLock ('
+                       '    path      VARCHAR,'
+                       '    remote_id VARCHAR,'
+                       '    process   INT,'
+                       '    PRIMARY KEY(path)'
+                       ')')
 
     def insert_notification(self, notification):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute('INSERT INTO Notifications'
-                      '            (uid, engine, level, title, description,'
-                      '             action, flags)'
-                      '     VALUES (?, ?, ?, ?, ?, ?, ?)',
-                      (notification.uid,
-                       notification.engine_uid,
-                       notification.level,
-                       notification.title,
-                       notification.description,
-                       notification.action,
-                       notification.flags,
-                       ))
+            c.execute(
+                'INSERT INTO Notifications '
+                '(uid, engine, level, title, description, action, flags) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?)',
+                (notification.uid, notification.engine_uid,
+                 notification.level, notification.title,
+                 notification.description, notification.action,
+                 notification.flags))
             if self.auto_commit:
                 con.commit()
 
@@ -317,26 +344,32 @@ class ManagerDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM AutoLock WHERE path = ?", (path,))
+            c.execute('DELETE FROM AutoLock'
+                      ' WHERE path = ?', (path,))
             if self.auto_commit:
                 con.commit()
 
     def get_locked_paths(self):
         con = self._get_read_connection()
         c = con.cursor()
-        return c.execute("SELECT * FROM AutoLock").fetchall()
+        return c.execute('SELECT * '
+                         'FROM AutoLock').fetchall()
 
     def lock_path(self, path, process, doc_id):
         with self._lock:
             try:
                 con = self._get_write_connection()
                 c = con.cursor()
-                c.execute("INSERT INTO AutoLock(path,process,remote_id) VALUES(?,?,?)", (path, process, doc_id))
+                c.execute('INSERT INTO AutoLock (path, process, remote_id) '
+                          'VALUES (?, ?, ?)', (path, process, doc_id))
                 if self.auto_commit:
                     con.commit()
             except sqlite3.IntegrityError:
                 # Already there just update the process
-                c.execute("UPDATE AutoLock SET process=?, remote_id=? WHERE path=?", (process, doc_id, path))
+                c.execute('UPDATE AutoLock'
+                          '   SET process = ?,'
+                          '       remote_id = ?'
+                          ' WHERE path = ?', (process, doc_id, path))
                 if self.auto_commit:
                     con.commit()
 
@@ -349,28 +382,34 @@ class ManagerDAO(ConfigurationDAO):
                       '       title = ?,'
                       '       description = ?'
                       ' WHERE uid = ?',
-                      (notification.level,
-                       notification.title,
-                       notification.description,
-                       notification.uid,
-                       ))
+                      (notification.level, notification.title,
+                       notification.description, notification.uid))
             if self.auto_commit:
                 con.commit()
 
     def get_notifications(self, discarded=True):
-        from nxdrive.notification import Notification
+        # Flags used:
+        #    1 = Notification.FLAG_DISCARD
         c = self._get_read_connection().cursor()
+        req = ('SELECT *'
+               '  FROM Notifications'
+               ' WHERE (flags & 1) = 0')
         if discarded:
-            return c.execute("SELECT * FROM Notifications").fetchall()
-        else:
-            return c.execute("SELECT * FROM Notifications WHERE (flags & " + str(Notification.FLAG_DISCARD) + ") = 0").fetchall()
+            req = 'SELECT * FROM Notifications'
+
+        return c.execute(req).fetchall()
 
     def discard_notification(self, uid):
-        from nxdrive.notification import Notification
+        # Flags used:
+        #    1 = Notification.FLAG_DISCARD
+        #    4 = Notification.FLAG_DISCARDABLE
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE Notifications SET flags = (flags | " + str(Notification.FLAG_DISCARD) + ") WHERE uid=? AND (flags & " + str(Notification.FLAG_DISCARDABLE) + ") = " + str(Notification.FLAG_DISCARDABLE), (uid,))
+            c.execute('UPDATE Notifications'
+                      '   SET flags = (flags | 1)'
+                      ' WHERE uid = ?'
+                      '   AND (flags & 4) = 4', (uid,))
             if self.auto_commit:
                 con.commit()
 
@@ -378,27 +417,45 @@ class ManagerDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM Notifications WHERE uid=?", (uid,))
+            c.execute('DELETE FROM Notifications'
+                      ' WHERE uid = ?', (uid,))
             if self.auto_commit:
                 con.commit()
 
     def _migrate_db(self, cursor, version):
         if version < 2:
-            cursor.execute("CREATE TABLE if not exists Notifications(uid VARCHAR, engine VARCHAR, level VARCHAR, title VARCHAR, description VARCHAR, action VARCHAR, flags INT, PRIMARY KEY(uid))")
+            cursor.execute('CREATE TABLE if not exists Notifications ('
+                           '    uid         VARCHAR,'
+                           '    engine      VARCHAR,'
+                           '    level       VARCHAR,'
+                           '    title       VARCHAR,'
+                           '    description VARCHAR,'
+                           '    action      VARCHAR,'
+                           '    flags       INT,'
+                           '    PRIMARY KEY (uid)'
+                           ')')
             self.update_config(SCHEMA_VERSION, 2)
         if version < 3:
-            cursor.execute("CREATE TABLE if not exists AutoLock(path VARCHAR, remote_id VARCHAR, process INT, PRIMARY KEY(path))")
+            cursor.execute('CREATE TABLE if not exists AutoLock ('
+                           '    path      VARCHAR,'
+                           '    remote_id VARCHAR,'
+                           '    process   INT,'
+                           '    PRIMARY KEY (path)'
+                           ')')
             self.update_config(SCHEMA_VERSION, 3)
 
     def get_engines(self):
         c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM Engines").fetchall()
+        return c.execute('SELECT *'
+                         ' FROM Engines').fetchall()
 
     def update_engine_path(self, engine, path):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE Engines SET local_folder=? WHERE uid=?", (path, engine))
+            c.execute('UPDATE Engines'
+                      '   SET local_folder = ?'
+                      ' WHERE uid = ?', (path, engine))
             if self.auto_commit:
                 con.commit()
 
@@ -406,17 +463,21 @@ class ManagerDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("INSERT INTO Engines(local_folder, engine, uid, name) VALUES(?,?,?,?)", (path, engine, key, name))
+            c.execute('INSERT INTO Engines (local_folder, engine, uid, name) '
+                      'VALUES (?, ?, ?, ?)', (path, engine, key, name))
             if self.auto_commit:
                 con.commit()
-            result = c.execute("SELECT * FROM Engines WHERE uid=?", (key,)).fetchone()
+            result = c.execute('SELECT *'
+                               '  FROM Engines'
+                               ' WHERE uid = ?', (key,)).fetchone()
         return result
 
     def delete_engine(self, uid):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM Engines WHERE uid=?", (uid,))
+            c.execute('DELETE FROM Engines'
+                      ' WHERE uid = ?', (uid,))
             if self.auto_commit:
                 con.commit()
 
@@ -442,57 +503,89 @@ class EngineDAO(ConfigurationDAO):
             self._migrate_table(cursor, 'States')
         except sqlite3.IntegrityError:
             # If we cannot smoothly migrate harder migration
-            cursor.execute("DROP TABLE if exists StatesMigration")
+            cursor.execute('DROP TABLE if exists StatesMigration')
             self._reinit_states(cursor)
 
     def _migrate_db(self, cursor, version):
         if version < 1:
             self._migrate_state(cursor)
-            cursor.execute(u"UPDATE States SET last_transfer = 'upload' WHERE last_local_updated < last_remote_updated AND folderish=0;")
-            cursor.execute(u"UPDATE States SET last_transfer = 'download' WHERE last_local_updated > last_remote_updated AND folderish=0;")
+            cursor.execute("UPDATE States"
+                           "   SET last_transfer = 'upload'"
+                           " WHERE last_local_updated < last_remote_updated"
+                           "   AND folderish = 0")
+            cursor.execute("UPDATE States"
+                           "   SET last_transfer = 'download'"
+                           " WHERE last_local_updated > last_remote_updated"
+                           "   AND folderish = 0")
             self.update_config(SCHEMA_VERSION, 1)
         if version < 2:
-            cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
+            cursor.execute('CREATE TABLE if not exists ToRemoteScan ('
+                           '    path STRING NOT NULL,'
+                           '    PRIMARY KEY (path)'
+                           ')')
             self.update_config(SCHEMA_VERSION, 2)
         if version < 3:
             self._migrate_state(cursor)
             self.update_config(SCHEMA_VERSION, 3)
 
-    def _reinit_database(self):
-        self.reinit_states()
-
     def _create_table(self, cursor, name, force=False):
-        if name == "States":
+        if name == 'States':
             return self._create_state_table(cursor, force)
         super(EngineDAO, self)._create_table(cursor, name, force)
 
     @staticmethod
     def _create_state_table(cursor, force=False):
-        if force:
-            statement = ''
-        else:
-            statement = 'if not exists '
-        # Cannot force UNIQUE for local_path as duplicate can have virtual the same path until they are resolved by Processor
+        statement = '' if force else 'if not exists'
+        # Cannot force UNIQUE for a local_path as a duplicate can have
+        # virtually the same path until they are resolved by Processor
         # Should improve that
-        cursor.execute("CREATE TABLE "+statement+"States(id INTEGER NOT NULL, last_local_updated TIMESTAMP,"
-          + "last_remote_updated TIMESTAMP, local_digest VARCHAR, remote_digest VARCHAR, local_path VARCHAR,"
-          + "remote_ref VARCHAR, local_parent_path VARCHAR, remote_parent_ref VARCHAR, remote_parent_path VARCHAR,"
-          + "local_name VARCHAR, remote_name VARCHAR, size INTEGER DEFAULT (0), folderish INTEGER, local_state VARCHAR DEFAULT('unknown'), remote_state VARCHAR DEFAULT('unknown'),"
-          + "pair_state VARCHAR DEFAULT('unknown'), remote_can_rename INTEGER, remote_can_delete INTEGER, remote_can_update INTEGER,"
-          + "remote_can_create_child INTEGER, last_remote_modifier VARCHAR,"
-          + "last_sync_date TIMESTAMP, error_count INTEGER DEFAULT (0), last_sync_error_date TIMESTAMP, last_error VARCHAR, last_error_details TEXT, version INTEGER DEFAULT (0), processor INTEGER DEFAULT (0), last_transfer VARCHAR, PRIMARY KEY (id),"
-          +  "UNIQUE(remote_ref, remote_parent_ref), UNIQUE(remote_ref, local_path));")
+        cursor.execute(
+            "CREATE TABLE {} States ("
+            "    id                      INTEGER    NOT NULL,"
+            "    last_local_updated      TIMESTAMP,"
+            "    last_remote_updated     TIMESTAMP,"
+            "    local_digest            VARCHAR,"
+            "    remote_digest           VARCHAR,"
+            "    local_path              VARCHAR,"
+            "    remote_ref              VARCHAR,"
+            "    local_parent_path       VARCHAR,"
+            "    remote_parent_ref       VARCHAR,"
+            "    remote_parent_path      VARCHAR,"
+            "    local_name              VARCHAR,"
+            "    remote_name             VARCHAR,"
+            "    size                    INTEGER    DEFAULT (0),"
+            "    folderish               INTEGER,"
+            "    local_state             VARCHAR    DEFAULT('unknown'),"
+            "    remote_state            VARCHAR    DEFAULT('unknown'),"
+            "    pair_state              VARCHAR    DEFAULT('unknown'),"
+            "    remote_can_rename       INTEGER,"
+            "    remote_can_delete       INTEGER,"
+            "    remote_can_update       INTEGER,"
+            "    remote_can_create_child INTEGER,"
+            "    last_remote_modifier    VARCHAR,"
+            "    last_sync_date          TIMESTAMP,"
+            "    error_count             INTEGER    DEFAULT (0),"
+            "    last_sync_error_date    TIMESTAMP,"
+            "    last_error              VARCHAR,"
+            "    last_error_details      TEXT,"
+            "    version                 INTEGER    DEFAULT (0),"
+            "    processor               INTEGER    DEFAULT (0),"
+            "    last_transfer           VARCHAR,"
+            "    PRIMARY KEY (id),"
+            "    UNIQUE(remote_ref, remote_parent_ref),"
+            "    UNIQUE(remote_ref, local_path))".format(statement))
 
     def _init_db(self, cursor):
         super(EngineDAO, self)._init_db(cursor)
-        cursor.execute("CREATE TABLE if not exists Filters(path STRING NOT NULL, PRIMARY KEY(path))")
-        cursor.execute("CREATE TABLE if not exists RemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
-        cursor.execute("CREATE TABLE if not exists ToRemoteScan(path STRING NOT NULL, PRIMARY KEY(path))")
+        for table in ('Filters', 'RemoteScan', 'ToRemoteScan'):
+            cursor.execute('CREATE TABLE if not exists {} ('
+                           '   path STRING NOT NULL,'
+                           '   PRIMARY KEY (path)'
+                           ')'.format(table))
         self._create_state_table(cursor)
 
     def _get_read_connection(self, factory=None):
-        if factory is None:
-            factory = self._state_factory
+        factory = factory or self._state_factory
         return super(EngineDAO, self)._get_read_connection(factory)
 
     def acquire_state(self, thread_id, row_id):
@@ -503,7 +596,7 @@ class EngineDAO(ConfigurationDAO):
             except:
                 self.release_processor(thread_id)
                 raise
-        raise sqlite3.OperationalError("Cannot acquire")
+        raise sqlite3.OperationalError('Cannot acquire')
 
     def release_state(self, thread_id):
         self.release_processor(thread_id)
@@ -513,7 +606,10 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             # TO_REVIEW Might go back to primary key id
-            c.execute("UPDATE States SET processor=0 WHERE processor=?", (processor_id,))
+            c.execute('UPDATE States'
+                      '   SET processor = 0'
+                      ' WHERE processor = ?',
+                      (processor_id,))
             if self.auto_commit:
                 con.commit()
         return c.rowcount > 0
@@ -522,19 +618,22 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET processor=? WHERE id=? AND (processor=0 OR processor=?)", (thread_id, row_id, thread_id))
+            c.execute('UPDATE States'
+                      '   SET processor = ?'
+                      ' WHERE id = ?'
+                      '   AND processor IN (0, ?)',
+                      (thread_id, row_id, thread_id))
             if self.auto_commit:
                 con.commit()
         return c.rowcount == 1
 
     def _reinit_states(self, cursor):
-        cursor.execute("DROP TABLE States")
+        cursor.execute('DROP TABLE States')
         self._create_state_table(cursor, force=True)
-        self._delete_config(cursor, "remote_last_sync_date")
-        self._delete_config(cursor, "remote_last_event_log_id")
-        self._delete_config(cursor, "remote_last_event_last_root_definitions")
-        self._delete_config(cursor, "remote_last_full_scan")
-        self._delete_config(cursor, "last_sync_date")
+        for config in ('remote_last_sync_date', 'remote_last_event_log_id',
+                       'remote_last_event_last_root_definitions',
+                       'remote_last_full_scan', 'last_sync_date'):
+            self._delete_config(cursor, config)
 
     def reinit_states(self):
         with self._lock:
@@ -548,8 +647,13 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET processor=0")
-            c.execute("UPDATE States SET error_count=0, last_sync_error_date=NULL, last_error = NULL WHERE pair_state='synchronized'")
+            c.execute('UPDATE States'
+                      '   SET processor = 0')
+            c.execute("UPDATE States"
+                      "   SET error_count = 0,"
+                      "       last_sync_error_date = NULL,"
+                      "       last_error = NULL"
+                      " WHERE pair_state = 'synchronized'")
             if self.auto_commit:
                 con.commit()
             con.execute('VACUUM')
@@ -558,12 +662,18 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            update = "UPDATE States SET remote_state='deleted', pair_state=?"
-            c.execute(update + " WHERE id=?", ('remotely_deleted', doc_pair.id))
+            update = ("UPDATE States"
+                      "   SET remote_state = 'deleted',"
+                      "       pair_state = ?")
+            c.execute('{} WHERE id = ?'.format(update),
+                      ('remotely_deleted', doc_pair.id))
             if doc_pair.folderish:
-                c.execute(update + self._get_recursive_remote_condition(doc_pair), ('parent_remotely_deleted',))
+                c.execute('{} {}'.format(
+                    update, self._get_recursive_remote_condition(doc_pair)),
+                    ('parent_remotely_deleted',))
             # Only queue parent
-            self._queue_pair_state(doc_pair.id, doc_pair.folderish, 'remotely_deleted')
+            self._queue_pair_state(
+                doc_pair.id, doc_pair.folderish, 'remotely_deleted')
             if self.auto_commit:
                 con.commit()
 
@@ -574,22 +684,35 @@ class EngineDAO(ConfigurationDAO):
                 con = self._get_write_connection()
                 c = con.cursor()
                 # Check parent to see current pair state
-                parent = c.execute("SELECT * FROM States WHERE local_path=?", (doc_pair.local_parent_path,)).fetchone()
-                if parent is not None and (parent.pair_state == 'locally_deleted' or parent.pair_state == 'parent_locally_deleted'):
+                parent = c.execute('SELECT * '
+                                   '  FROM States'
+                                   ' WHERE local_path = ?',
+                                   (doc_pair.local_parent_path,)).fetchone()
+                if parent and (
+                        parent.pair_state in ('locally_deleted',
+                                              'parent_locally_deleted')):
                     current_state = 'parent_locally_deleted'
                 else:
                     current_state = 'locally_deleted'
-                update = "UPDATE States SET local_state='deleted', pair_state=?"
-                c.execute(update + " WHERE id=?", (current_state, doc_pair.id))
+
+                update = ("UPDATE States"
+                          "   SET local_state = 'deleted',"
+                          "       pair_state = ?")
+                c.execute('{} WHERE id = ?'.format(update),
+                          (current_state, doc_pair.id))
                 if doc_pair.folderish:
-                    c.execute(update + self._get_recursive_condition(doc_pair), ('parent_locally_deleted',))
+                    c.execute('{} {}'.format(
+                        update, self._get_recursive_condition(doc_pair)),
+                        ('parent_locally_deleted',))
                 if self.auto_commit:
                     con.commit()
         finally:
-            self._queue_manager.interrupt_processors_on(doc_pair.local_path, exact_match=False)
+            self._queue_manager.interrupt_processors_on(
+                doc_pair.local_path, exact_match=False)
             # Only queue parent
-            if current_state is not None and current_state == "locally_deleted":
-                self._queue_pair_state(doc_pair.id, doc_pair.folderish, current_state)
+            if current_state and current_state == 'locally_deleted':
+                self._queue_pair_state(
+                    doc_pair.id, doc_pair.folderish, current_state)
 
     def insert_local_state(self, info, parent_path):
         pair_state = PAIR_STATES.get(('created', 'unknown'))
@@ -598,37 +721,43 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             name = os.path.basename(info.path)
-            c.execute("INSERT INTO States(last_local_updated, local_digest, "
-                      + "local_path, local_parent_path, local_name, folderish, size, local_state, remote_state, pair_state)"
-                      + " VALUES(?,?,?,?,?,?,?,'created','unknown',?)", (info.last_modification_time, digest, info.path,
-                                                    parent_path, name, info.folderish, info.size, pair_state))
+            c.execute("INSERT INTO States "
+                      "(last_local_updated, local_digest, local_path, "
+                      "local_parent_path, local_name, folderish, size, "
+                      "local_state, remote_state, pair_state) "
+                      "VALUES (?, ?, ?, ?, ?, ?, ?, 'created', 'unknown', ?)",
+                (info.last_modification_time, digest, info.path,
+                 parent_path, name, info.folderish, info.size, pair_state))
             row_id = c.lastrowid
-            parent = c.execute("SELECT * FROM States WHERE local_path=?", (parent_path,)).fetchone()
-            # Dont queue if parent is not yet created
-            if (parent is None and parent_path == '') or (parent is not None and parent.pair_state != "locally_created"):
+            parent = c.execute('SELECT *'
+                               '  FROM States'
+                               ' WHERE local_path = ?',
+                               (parent_path,)).fetchone()
+            # Don't queue if parent is not yet created
+            if ((parent is None and parent_path == '')
+                    or (parent and parent.pair_state != 'locally_created')):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
             if self.auto_commit:
                 con.commit()
-            self._items_count = self._items_count + 1
+            self._items_count += 1
         return row_id
 
     def get_last_files(self, number, direction=''):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        condition = ''
-        if direction == 'remote':
-            condition = 'AND last_transfer = "upload"'
-        elif direction == 'local':
-            condition = 'AND last_transfer = "download"'
-        return c.execute('SELECT *'
-                         '  FROM States'
-                         ' WHERE pair_state = "synchronized"'
-                         '   AND folderish = 0'
-                         '       {}'
-                         ' ORDER BY last_sync_date DESC'
-                         ' LIMIT {}'.format(condition, number)).fetchall()
+        conditions = {'remote': "AND last_transfer = 'upload'",
+                      'local': "AND last_transfer = 'download'"}
+        condition = conditions.get(direction, '')
+        return c.execute("SELECT *"
+                         "  FROM States"
+                         " WHERE pair_state = 'synchronized'"
+                         "   AND folderish = 0 {} "
+                         " ORDER BY last_sync_date DESC"
+                         " LIMIT {}".format(
+                            condition, number)).fetchall()
 
     def _get_to_sync_condition(self):
-        return "pair_state != 'synchronized' AND pair_state != 'unsynchronized'"
+        return ("pair_state != 'synchronized' "
+                "AND pair_state != 'unsynchronized'")
 
     def register_queue_manager(self, manager):
         # Prevent any update while init queue
@@ -637,28 +766,33 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection(factory=self._state_factory)
             c = con.cursor()
             # Order by path to be sure to process parents before childs
-            pairs = c.execute("SELECT * FROM States WHERE " + self._get_to_sync_condition() + " ORDER BY local_path ASC").fetchall()
+            pairs = c.execute('SELECT *'
+                              '  FROM States'
+                              ' WHERE {}'
+                              ' ORDER BY local_path ASC'.format(
+                                  self._get_to_sync_condition())).fetchall()
             folders = dict()
             for pair in pairs:
                 # Add all the folders
                 if pair.folderish:
                     folders[pair.local_path] = True
                 if pair.local_parent_path not in folders:
-                    self._queue_manager.push_ref(pair.id, pair.folderish, pair.pair_state)
+                    self._queue_manager.push_ref(
+                        pair.id, pair.folderish, pair.pair_state)
         # Dont block everything if queue manager fail
         # TODO As the error should be fatal not sure we need this
 
     def _queue_pair_state(self, row_id, folderish, pair_state, pair=None):
-        if (self._queue_manager is not None
+        if (self._queue_manager
                 and pair_state not in ('synchronized', 'unsynchronized')):
             if pair_state == 'conflicted':
-                log.trace("Emit newConflict with: %r, pair=%r", row_id, pair)
+                log.trace('Emit newConflict with: %r, pair=%r', row_id, pair)
                 self.newConflict.emit(row_id)
             else:
-                log.trace("Push to queue: %s, pair=%r", pair_state, pair)
+                log.trace('Push to queue: %s, pair=%r', pair_state, pair)
                 self._queue_manager.push_ref(row_id, folderish, pair_state)
         else:
-            log.trace("Will not push pair: %s, pair=%r", pair_state, pair)
+            log.trace('Will not push pair: %s, pair=%r', pair_state, pair)
 
     def _get_pair_state(self, row):
         return PAIR_STATES.get((row.local_state, row.remote_state))
@@ -667,29 +801,38 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET last_transfer=? WHERE id=?", (transfer, row_id))
+            c.execute('UPDATE States'
+                      '   SET last_transfer = ?'
+                      ' WHERE id = ?',
+                      (transfer, row_id))
             if self.auto_commit:
                 con.commit()
 
     def get_dedupe_pair(self, name, parent, row_id):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE id != ? AND local_name=? AND remote_parent_ref=?",
-                                    (row_id, name, parent)).fetchone()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE id != ?'
+                         '   AND local_name = ?'
+                         '   AND remote_parent_ref = ?',
+                         (row_id, name, parent)).fetchone()
 
     def remove_local_path(self, row_id):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET local_path='' WHERE id=?", (row_id,))
+            c.execute("UPDATE States"
+                      "   SET local_path = ''"
+                      " WHERE id = ?", (row_id,))
             if self.auto_commit:
                 con.commit()
 
-    def update_local_state(self, row, info, versionned=True, queue=True):
+    def update_local_state(self, row, info, versioned=True, queue=True):
         row.pair_state = self._get_pair_state(row)
         log.trace('Updating local state for row=%r with info=%r', row, info)
 
         version = ''
-        if versionned:
+        if versioned:
             version = ', version = version + 1'
             log.trace('Increasing version to %d for pair %r',
                       row.version + 1, row)
@@ -702,26 +845,17 @@ class EngineDAO(ConfigurationDAO):
                       '   SET last_local_updated = ?,'
                       '       local_digest = ?,'
                       '       local_path = ?,'
-                      '       local_parent_path = ?,'
-                      '       local_name = ?,'
+                      '       local_parent_path = ?, '
+                      '       local_name = ?, '
                       '       local_state = ?,'
                       '       size = ?,'
-                      '       remote_state = ?,'
-                      '       pair_state = ?'
-                      '       {version}'
+                      '       remote_state = ?, '
+                      '       pair_state = ? {version}'
                       ' WHERE id = ?'.format(version=version),
-                      (
-                          info.last_modification_time,
-                          row.local_digest,
-                          info.path,
-                          parent_path,
-                          os.path.basename(info.path),
-                          row.local_state,
-                          info.size,
-                          row.remote_state,
-                          row.pair_state,
-                          row.id,
-                      ))
+                (info.last_modification_time, row.local_digest,
+                 info.path, parent_path, os.path.basename(info.path),
+                 row.local_state, info.size, row.remote_state,
+                 row.pair_state, row.id,))
             if queue:
                 parent = c.execute('SELECT *'
                                    '  FROM States'
@@ -730,154 +864,214 @@ class EngineDAO(ConfigurationDAO):
                 # Don't queue if parent is not yet created
                 if ((not parent and not parent_path)
                         or (parent and parent.local_state != 'created')):
-                    self._queue_pair_state(row.id, info.folderish, row.pair_state, pair=row)
+                    self._queue_pair_state(
+                        row.id, info.folderish, row.pair_state, pair=row)
             if self.auto_commit:
                 con.commit()
 
     def update_local_modification_time(self, row, info):
-        self.update_local_state(row, info, versionned=False, queue=False)
+        self.update_local_state(row, info, versioned=False, queue=False)
 
     def get_valid_duplicate_file(self, digest):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_digest=? AND pair_state='synchronized'", (digest,)).fetchone()
+        return c.execute("SELECT *"
+                         "  FROM States"
+                         " WHERE remote_digest = ?"
+                         "   AND pair_state = 'synchronized'",
+                         (digest,)).fetchone()
 
     def get_remote_descendants(self, path):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_parent_path LIKE ?", (path + '%',)).fetchall()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE remote_parent_path LIKE ?',
+                         ('{}%'.format(path),)).fetchall()
 
     def get_remote_descendants_from_ref(self, ref):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_parent_path LIKE ?", ('%' + ref + '%',)).fetchall()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE remote_parent_path LIKE ?',
+                         ('%{}%'.format(ref),)).fetchall()
 
     def get_remote_children(self, ref):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_parent_ref=?", (ref,)).fetchall()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE remote_parent_ref = ?',
+                         (ref,)).fetchall()
 
     def get_new_remote_children(self, ref):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_state='created' AND local_state='unknown'", (ref,)).fetchall()
+        return c.execute("SELECT *"
+                         "  FROM States"
+                         " WHERE remote_parent_ref = ?"
+                         "   AND remote_state = 'created'"
+                         "   AND local_state = 'unknown'",
+                         (ref,)).fetchall()
 
     def get_unsynchronized_count(self):
-        return self.get_count("pair_state='unsynchronized'")
+        return self.get_count("pair_state = 'unsynchronized'")
 
     def get_conflict_count(self):
-        return self.get_count("pair_state='conflicted'")
+        return self.get_count("pair_state = 'conflicted'")
 
     def get_error_count(self, threshold=3):
-        return self.get_count("error_count > " + str(threshold))
+        return self.get_count('error_count > {}'.format(str(threshold)))
 
     def get_syncing_count(self, threshold=3):
-        query = "pair_state!='synchronized' AND pair_state!='conflicted' AND pair_state!='unsynchronized' AND error_count < " + str(threshold)
-        count = self.get_count(query)
+        count = self.get_count("    pair_state != 'synchronized' "
+                               "AND pair_state != 'conflicted' "
+                               "AND pair_state != 'unsynchronized' "
+                               "AND error_count < {}".format(
+                                   str(threshold)))
         if self._items_count is not None and count != self._items_count:
-            log.trace("Cache Syncing count incorrect should be %d was %d", count, self._items_count)
+            log.trace('Cache Syncing count incorrect should be %d was %d',
+                      count, self._items_count)
             self._items_count = count
         return count
 
     def get_sync_count(self, filetype=None):
-        query = "pair_state='synchronized'"
-        if filetype == "file":
-            query = query + " AND folderish=0"
-        elif filetype == "folder":
-            query = query + " AND folderish=1"
-        return self.get_count(query)
+        conditions = {'file': 'AND folderish = 0',
+                      'folder': 'AND folderish = 1'}
+        condition = conditions.get(filetype, '')
+        return self.get_count(
+            "pair_state = 'synchronized' {}".format(condition))
 
     def get_count(self, condition=None):
-        query = "SELECT COUNT(*) as count FROM States"
-        if condition is not None:
-            query = query + " WHERE " + condition
+        query = ('SELECT COUNT(*) as count'
+                 '  FROM States')
+        if condition:
+            query = '{} WHERE {}'.format(query, condition)
         c = self._get_read_connection(factory=self._state_factory).cursor()
         return c.execute(query).fetchone().count
 
     def get_global_size(self):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT SUM(size) as sum FROM States WHERE pair_state='synchronized'").fetchone().sum
+        return c.execute("SELECT SUM(size) as sum"
+                         "  FROM States"
+                         " WHERE pair_state = 'synchronized'").fetchone().sum
 
     def get_unsynchronizeds(self):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE pair_state='unsynchronized'").fetchall()
+        return c.execute("SELECT *"
+                         "  FROM States"
+                         " WHERE pair_state = 'unsynchronized'").fetchall()
 
     def get_conflicts(self):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE pair_state='conflicted'").fetchall()
+        return c.execute("SELECT *"
+                         "  FROM States"
+                         " WHERE pair_state = 'conflicted'").fetchall()
 
     def get_errors(self, limit=3):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE error_count>?", (limit,)).fetchall()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE error_count > ?',
+                         (limit,)).fetchall()
 
     def get_local_children(self, path):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE local_parent_path=?", (path,)).fetchall()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE local_parent_path = ?',
+                         (path,)).fetchall()
 
     def get_states_from_partial_local(self, path):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE local_path LIKE ?", (path + '%',)).fetchall()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE local_path LIKE ?',
+                         ('{}%'.format(path),)).fetchall()
 
     def get_first_state_from_partial_remote(self, ref):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_ref LIKE ? ORDER BY last_remote_updated ASC LIMIT 1",
-                         ('%' + ref,)).fetchone()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE remote_ref LIKE ? '
+                         ' ORDER BY last_remote_updated ASC'
+                         ' LIMIT 1', ('%{}'.format(ref),)).fetchone()
 
     def get_normal_state_from_remote(self, ref):
         # TODO Select the only states that is not a collection
         states = self.get_states_from_remote(ref)
-        if not states:
-            return None
-        return states[0]
+        return states[0] if states else None
 
     def get_state_from_remote_with_path(self, ref, path):
         # remote_path root is empty, should refactor this
-        if path == '/':
-            path = ""
+        path = '' if path == '/' else path
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_ref=? AND remote_parent_path=?", (ref,path)).fetchone()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE remote_ref = ?'
+                         '   AND remote_parent_path = ?',
+                             (ref, path)).fetchone()
 
     def get_states_from_remote(self, ref):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE remote_ref=?", (ref,)).fetchall()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE remote_ref = ?',
+                         (ref,)).fetchall()
 
     def get_state_from_id(self, row_id, from_write=False):
         # Dont need to read from write as auto_commit is True
         if from_write and self.auto_commit:
             from_write = False
         try:
+            factory = self._state_factory
             if from_write:
                 self._lock.acquire()
-                c = self._get_write_connection(factory=self._state_factory).cursor()
+                c = self._get_write_connection(factory=factory).cursor()
             else:
-                c = self._get_read_connection(factory=self._state_factory).cursor()
-            state = c.execute("SELECT * FROM States WHERE id=?", (row_id,)).fetchone()
+                c = self._get_read_connection(factory=factory).cursor()
+            state = c.execute('SELECT *'
+                              '  FROM States'
+                              ' WHERE id = ?',
+                              (row_id,)).fetchone()
         finally:
             if from_write:
                 self._lock.release()
         return state
 
     def _get_recursive_condition(self, doc_pair):
-        res = (" WHERE (local_parent_path LIKE '" + self._escape(doc_pair.local_path) + "/%'"
-                    + " OR local_parent_path = '" + self._escape(doc_pair.local_path) + "')")
-        if doc_pair.remote_ref is not None:
-            res += " AND remote_parent_path LIKE '" + self._escape(doc_pair.remote_parent_path +
-                    '/' + doc_pair.remote_ref) + "%'"
+        path = self._escape(doc_pair.local_path)
+        res = (" WHERE (local_parent_path LIKE '{}/%'"
+               "    OR local_parent_path = '{}')").format(path, path)
+        if doc_pair.remote_ref:
+            path = self._escape('{}/{}'.format(doc_pair.remote_parent_path,
+                                               doc_pair.remote_ref))
+            res = "{} AND remote_parent_path LIKE '{}%'".format(res, path)
         return res
 
     def _get_recursive_remote_condition(self, doc_pair):
-        remote_path = (self._escape(doc_pair.remote_parent_path)
-                       + '/' + self._escape(doc_pair.remote_name))
-        return (" WHERE remote_parent_path LIKE '" + remote_path + "/%'"
-                " OR remote_parent_path = '" + remote_path + "'")
+        path = self._escape('{}/{}'.format(
+            doc_pair.remote_parent_path, doc_pair.remote_name.encode('utf-8')))
+        return (" WHERE remote_parent_path LIKE '{}/%'"
+                "    OR remote_parent_path = '{}'").format(path, path)
 
     def update_remote_parent_path(self, doc_pair, new_path):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             if doc_pair.folderish:
-                remote_path = doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
-                query = "UPDATE States SET remote_parent_path='%s/%s' || substr(remote_parent_path,%d)" % (
-                    self._escape(new_path), self._escape(doc_pair.remote_ref), len(remote_path) + 1)
-                query = query + self._get_recursive_remote_condition(doc_pair)
-                log.trace("Update remote_parent_path: " + query)
+                path = '{}/{}'.format(doc_pair.remote_parent_path,
+                                      doc_pair.remote_ref)
+                query = ('UPDATE States'
+                         '   SET remote_parent_path = {}/{}'
+                         '       || substr(remote_parent_path,{})'
+                         '          {}').format(
+                    self._escape(new_path),
+                    self._escape(doc_pair.remote_ref), len(path) + 1,
+                    self._get_recursive_remote_condition(doc_pair))
+
+                log.trace('Update remote_parent_path: {}'.format(query))
                 c.execute(query)
-            c.execute("UPDATE States SET remote_parent_path=? WHERE id=?", (new_path, doc_pair.id))
+            c.execute('UPDATE States'
+                      '   SET remote_parent_path = ?'
+                      ' WHERE id = ?',
+                      (new_path, doc_pair.id))
             if self.auto_commit:
                 con.commit()
 
@@ -888,15 +1082,22 @@ class EngineDAO(ConfigurationDAO):
             if doc_pair.folderish:
                 if new_path == '/':
                     new_path = ''
-                escaped_new_path = self._escape(new_path)
-                escaped_new_name = self._escape(new_name)
-                query = ("UPDATE States SET local_parent_path='%s/%s' || substr(local_parent_path,%d), local_path='%s/%s' || substr(local_path,%d)" %
-                         (escaped_new_path, escaped_new_name, len(doc_pair.local_path) + 1,
-                          escaped_new_path, escaped_new_name, len(doc_pair.local_path)+1))
-                query = query + self._get_recursive_condition(doc_pair)
+                path = '{}/{}'.format(self._escape(new_path),
+                                      self._escape(new_name))
+                count = len(doc_pair.local_path) + 1
+                query = ("UPDATE States"
+                         "   SET local_parent_path = '{0}'"
+                         "       || substr(local_parent_path, {1}),"
+                         "          local_path='{0}'"
+                         "       || substr(local_path, {1}) "
+                         "          {2}".format(
+                        path, count, self._get_recursive_condition(doc_pair)))
                 c.execute(query)
             # Dont need to update the path as it is refresh later
-            c.execute("UPDATE States SET local_parent_path=? WHERE id=?", (new_path, doc_pair.id))
+            c.execute('UPDATE States'
+                      '   SET local_parent_path = ?'
+                      ' WHERE id = ?',
+                      (new_path, doc_pair.id))
             if self.auto_commit:
                 con.commit()
 
@@ -904,136 +1105,173 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            update = "UPDATE States SET local_digest=NULL, last_local_updated=NULL, local_name=NULL, remote_state='created', pair_state='remotely_created'"
-            c.execute(update + " WHERE id=" + str(doc_pair.id))
+            update = ("UPDATE States"
+                      "   SET local_digest = NULL,"
+                      "       last_local_updated = NULL,"
+                      "       local_name = NULL,"
+                      "       remote_state = 'created',"
+                      "       pair_state = 'remotely_created'")
+            c.execute('{} WHERE id = {}'.format(update, str(doc_pair.id)))
             if doc_pair.folderish:
-                c.execute(update + self._get_recursive_condition(doc_pair))
+                c.execute('{} {}'.format(
+                    update, self._get_recursive_condition(doc_pair)))
             if self.auto_commit:
                 con.commit()
-            self._queue_pair_state(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
+            self._queue_pair_state(
+                doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
 
     def remove_state(self, doc_pair, remote_recursion=False):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM States WHERE id=?", (doc_pair.id,))
+            c.execute('DELETE FROM States'
+                      ' WHERE id = ?', (doc_pair.id,))
             if doc_pair.folderish:
                 if remote_recursion:
-                    c.execute("DELETE FROM States" + self._get_recursive_remote_condition(doc_pair))
+                    condition = self._get_recursive_remote_condition(doc_pair)
                 else:
-                    c.execute("DELETE FROM States" + self._get_recursive_condition(doc_pair))
+                    condition = self._get_recursive_condition(doc_pair)
+                c.execute('DELETE FROM States {}'.format(condition))
             if self.auto_commit:
                 con.commit()
 
     def get_state_from_local(self, path):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT * FROM States WHERE local_path=?", (path,)).fetchone()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE local_path = ?',
+                         (path,)).fetchone()
 
-    def insert_remote_state(self, info, remote_parent_path, local_path, local_parent_path):
+    def insert_remote_state(self, info, remote_parent_path, local_path,
+                            local_parent_path):
         pair_state = PAIR_STATES.get(('unknown', 'created'))
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("INSERT INTO States (remote_ref, remote_parent_ref, " +
-                      "remote_parent_path, remote_name, last_remote_updated, remote_can_rename," +
-                      "remote_can_delete, remote_can_update, " +
-                      "remote_can_create_child, last_remote_modifier, remote_digest," +
-                      "folderish, last_remote_modifier, local_path, local_parent_path, remote_state, local_state, pair_state, local_name)" +
-                      " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'created','unknown',?, ?)",
-                      (info.uid, info.parent_uid, remote_parent_path, info.name,
-                       info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
-                       info.can_create_child, info.last_contributor, info.digest, info.folderish, info.last_contributor,
+            c.execute("INSERT INTO States "
+                      "(remote_ref, remote_parent_ref, remote_parent_path, "
+                      "remote_name, last_remote_updated, remote_can_rename, "
+                      "remote_can_delete, remote_can_update, "
+                      "remote_can_create_child, last_remote_modifier, "
+                      "remote_digest, folderish, last_remote_modifier, "
+                      "local_path, local_parent_path, remote_state, "
+                      "local_state, pair_state, local_name) "
+                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+                      "'created', 'unknown', ?, ?)",
+                      (info.uid, info.parent_uid, remote_parent_path,
+                       info.name, info.last_modification_time,
+                       info.can_rename, info.can_delete, info.can_update,
+                       info.can_create_child, info.last_contributor,
+                       info.digest, info.folderish, info.last_contributor,
                        local_path, local_parent_path, pair_state, info.name))
             row_id = c.lastrowid
             if self.auto_commit:
                 con.commit()
             # Check if parent is not in creation
-            parent = c.execute("SELECT * FROM States WHERE remote_ref=?", (info.parent_uid,)).fetchone()
-            if (parent is None and local_parent_path == '') or (parent is not None and parent.pair_state != "remotely_created"):
+            parent = c.execute('SELECT *'
+                               '  FROM States'
+                               ' WHERE remote_ref = ?',
+                               (info.parent_uid,)).fetchone()
+            if ((parent is None and local_parent_path == '')
+                    or (parent and parent.pair_state != 'remotely_created')):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
-            self._items_count = self._items_count + 1
+            self._items_count += 1
         return row_id
 
     def queue_children(self, row):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            children = c.execute("SELECT * FROM States WHERE remote_parent_ref=? or local_parent_path=? AND " +
-                                    self._get_to_sync_condition(), (row.remote_ref, row.local_path)).fetchall()
+            children = c.execute('SELECT *'
+                                 '  FROM States'
+                                 ' WHERE remote_parent_ref = ?'
+                                 '    OR local_parent_path = ?'
+                                 '   AND {}'.format(
+                                     self._get_to_sync_condition()),
+                (row.remote_ref, row.local_path)).fetchall()
             log.debug('Queuing %d children of %r', len(children), row)
             for child in children:
-                self._queue_pair_state(child.id, child.folderish, child.pair_state)
+                self._queue_pair_state(
+                    child.id, child.folderish, child.pair_state)
 
     def increase_error(self, row, error, details=None, incr=1):
         error_date = datetime.utcnow()
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET last_error=?, last_sync_error_date=?, error_count = error_count + ?, last_error_details=? " +
-                      "WHERE id=?", (error, error_date, incr, details, row.id))
+            c.execute('UPDATE States'
+                      '   SET last_error = ?,'
+                      '       last_sync_error_date = ?,'
+                      '       error_count = error_count + ?,'
+                      '       last_error_details = ?'
+                      ' WHERE id = ?',
+                      (error, error_date, incr, details, row.id))
             if self.auto_commit:
                 con.commit()
         row.last_error = error
-        row.error_count = row.error_count + incr
+        row.error_count += incr
 
     def reset_error(self, row, last_error=None):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute('UPDATE States'
-                      '   SET last_error=?,'
-                      '       last_error_details=NULL,'
-                      '       last_sync_error_date=NULL,'
-                      '       error_count=0'
-                      ' WHERE id=?',
+                      '   SET last_error = ?,'
+                      '       last_error_details = NULL,'
+                      '       last_sync_error_date = NULL,'
+                      '       error_count = 0'
+                      ' WHERE id = ?',
                       (last_error, row.id))
             if self.auto_commit:
                 con.commit()
             self._queue_pair_state(row.id, row.folderish, row.pair_state)
-            self._items_count = self._items_count + 1
+            self._items_count += 1
         row.last_error = None
         row.error_count = 0
 
-    def force_remote(self, row):
+    def _force_sync(self, row, local, remote, pair):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET local_state='synchronized', remote_state='modified', pair_state='remotely_modified', last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
-                      " WHERE id=? AND version=?", (row.id, row.version))
-            self._queue_pair_state(row.id, row.folderish, "remotely_modified")
+            c.execute('UPDATE States'
+                      '   SET local_state = ?,'
+                      '       remote_state = ?,'
+                      '       pair_state = ?,'
+                      '       last_error = NULL,'
+                      '       last_sync_error_date = NULL,'
+                      '       error_count = 0'
+                      ' WHERE id = ?'
+                      '   AND version = ?',
+                      (local, remote, pair, row.id, row.version))
+            self._queue_pair_state(row.id, row.folderish, pair)
             if self.auto_commit:
                 con.commit()
         if c.rowcount == 1:
-            self._items_count = self._items_count + 1
+            self._items_count += 1
             return True
         return False
 
+    def force_remote(self, row):
+        return self._force_sync(
+            row, 'synchronized', 'modified', 'remotely_modified')
+
     def force_local(self, row):
-        with self._lock:
-            pair_state = 'locally_resolved'
-            con = self._get_write_connection()
-            c = con.cursor()
-            c.execute("UPDATE States SET local_state='resolved', remote_state='unknown', pair_state=?, last_error=NULL, last_sync_error_date=NULL, error_count = 0" +
-                      " WHERE id=? AND version=?", (pair_state, row.id, row.version))
-            self._queue_pair_state(row.id, row.folderish, pair_state)
-            if self.auto_commit:
-                con.commit()
-        if c.rowcount == 1:
-            self._items_count = self._items_count + 1
-            return True
-        return False
+        return self._force_sync(
+            row, 'resolved', 'unknown', 'locally_resolved')
 
     def set_conflict_state(self, row):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET pair_state='conflicted' WHERE id=?",
-                      (row.id, ))
+            c.execute('UPDATE States'
+                      '   SET pair_state = ?'
+                      ' WHERE id = ?',
+                      ('conflicted', row.id))
             self.newConflict.emit(row.id)
             if self.auto_commit:
                 con.commit()
         if c.rowcount == 1:
-            self._items_count = self._items_count - 1
+            self._items_count -= 1
             return True
         return False
 
@@ -1041,9 +1279,16 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("UPDATE States SET pair_state='unsynchronized', last_sync_date=?, processor = 0," +
-                      "last_error=?, error_count=0, last_sync_error_date=NULL WHERE id=?",
-                      (datetime.utcnow(), last_error, row.id))
+            c.execute('UPDATE States'
+                      '   SET pair_state = ?,'
+                      '       last_sync_date = ?,'
+                      '       processor = 0,'
+                      '       last_error = ?,'
+                      '       error_count = 0,'
+                      '       last_sync_error_date = NULL'
+                      ' WHERE id = ?',
+                      ('unsynchronized', datetime.utcnow(),
+                       last_error, row.id))
             if self.auto_commit:
                 con.commit()
 
@@ -1053,8 +1298,8 @@ class EngineDAO(ConfigurationDAO):
         log.trace('Try to synchronize state for [local_path=%r, '
                   'remote_name=%r, version=%s] with version=%s '
                   'and dynamic_states=%r',
-                  row.local_path, row.remote_name, row.version, version,
-                  dynamic_states)
+                  row.local_path, row.remote_name,
+                  row.version, version, dynamic_states)
 
         # Set default states to synchronized, if wanted
         if not dynamic_states:
@@ -1076,16 +1321,9 @@ class EngineDAO(ConfigurationDAO):
                       '       error_count = 0,'
                       '       last_sync_error_date = NULL'
                       ' WHERE id = ?'
-                      '       AND version = ?',
-                      (
-                          row.local_state,
-                          row.remote_state,
-                          row.pair_state,
-                          row.local_digest,
-                          datetime.utcnow(),
-                          row.id,
-                          version,
-                      ))
+                      '   AND version = ?',
+                      (row.local_state, row.remote_state, row.pair_state,
+                       row.local_digest, datetime.utcnow(), row.id, version))
             if self.auto_commit:
                 con.commit()
         result = c.rowcount == 1
@@ -1105,10 +1343,10 @@ class EngineDAO(ConfigurationDAO):
                           '       error_count = 0,'
                           '       last_sync_error_date = NULL'
                           ' WHERE id = ?'
-                          '       AND local_path = ?'
-                          '       AND remote_name = ?'
-                          '       AND remote_ref = ?'
-                          '       AND remote_parent_ref = ?',
+                          '   AND local_path = ?'
+                          '   AND remote_name = ?'
+                          '   AND remote_ref = ?'
+                          '   AND remote_parent_ref = ?',
                           (row.local_state, row.remote_state, row.pair_state,
                            datetime.utcnow(), row.id, row.local_path,
                            row.remote_name, row.remote_ref,
@@ -1121,7 +1359,9 @@ class EngineDAO(ConfigurationDAO):
             log.trace('Was not able to synchronize state: %r', row)
             con = self._get_read_connection()
             c = con.cursor()
-            row2 = c.execute('SELECT * FROM States WHERE id = ?',
+            row2 = c.execute('SELECT *'
+                             '  FROM States'
+                             ' WHERE id = ?',
                              (row.id,)).fetchone()
             if row2 is None:
                 log.trace('No more row')
@@ -1133,7 +1373,9 @@ class EngineDAO(ConfigurationDAO):
 
         return result
 
-    def update_remote_state(self, row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False, no_digest=False):
+    def update_remote_state(self, row, info, remote_parent_path=None,
+                            versioned=True, queue=True, force_update=False,
+                            no_digest=False):
         row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
@@ -1166,45 +1408,65 @@ class EngineDAO(ConfigurationDAO):
         if (row.pair_state not in ('conflicted', 'remotely_created')
                 and row.folderish
                 and row.local_name
-                and row.local_name != info.name):
+                and row.local_name != info.name
+                and row.local_state != 'resolved'):
             # We check the current pair_state to not interfer with conflicted
             # documents (a move on both sides) nor with newly remotely
             # created ones.
             row.remote_state = 'modified'
             row.pair_state = self._get_pair_state(row)
 
-        version = ''
-        if versionned:
-            version = ', version=version+1'
-            log.trace('Increasing version to %d for pair %r', row.version + 1, row)
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            query = "UPDATE States SET remote_ref=?, remote_parent_ref=?, " + \
-                      "remote_parent_path=?, remote_name=?, last_remote_updated=?, remote_can_rename=?," + \
-                      "remote_can_delete=?, remote_can_update=?, " + \
-                      "remote_can_create_child=?, last_remote_modifier=?,"
+            query = ('UPDATE States'
+                     '   SET remote_ref = ?,'
+                     '       remote_parent_ref = ?,'
+                     '       remote_parent_path = ?,'
+                     '       remote_name = ?,'
+                     '       last_remote_updated = ?,'
+                     '       remote_can_rename = ?,'
+                     '       remote_can_delete = ?,'
+                     '       remote_can_update = ?,'
+                     '       remote_can_create_child = ?,'
+                     '       last_remote_modifier = ?,'
+                     '       local_state = ?,'
+                     '       remote_state = ?,'
+                     '       pair_state = ?')
+
             if not no_digest and info.digest is not None:
-                query = query + "remote_digest='" + info.digest + "',"
-            query = query + " local_state=?," + \
-                      "remote_state=?, pair_state=?" + version + " WHERE id=?"
+                query += ", remote_digest = '{}'".format(info.digest)
+
+            if versioned:
+                query += ', version = version+1'
+                log.trace('Increasing version to %d for pair %r',
+                          row.version + 1, row)
+
+            query += ' WHERE id = ?'
             c.execute(query,
-                      (info.uid, info.parent_uid, remote_parent_path, info.name,
-                       info.last_modification_time, info.can_rename, info.can_delete, info.can_update,
-                       info.can_create_child, info.last_contributor, row.local_state,
-                       row.remote_state, row.pair_state, row.id))
+                      (info.uid, info.parent_uid, remote_parent_path,
+                       info.name, info.last_modification_time,
+                       info.can_rename, info.can_delete, info.can_update,
+                       info.can_create_child, info.last_contributor,
+                       row.local_state, row.remote_state, row.pair_state,
+                       row.id))
             if self.auto_commit:
                 con.commit()
             if queue:
                 # Check if parent is not in creation
-                parent = c.execute("SELECT * FROM States WHERE remote_ref=?", (info.parent_uid,)).fetchone()
+                parent = c.execute('SELECT *'
+                                   '  FROM States'
+                                   ' WHERE remote_ref = ?',
+                    (info.parent_uid,)).fetchone()
                 # Parent can be None if the parent is filtered
-                if (parent is not None and parent.pair_state != "remotely_created") or parent is None:
-                    self._queue_pair_state(row.id, info.folderish, row.pair_state)
+                if ((parent and parent.pair_state != 'remotely_created')
+                        or parent is None):
+                    self._queue_pair_state(
+                        row.id, info.folderish, row.pair_state)
 
     def _clean_filter_path(self, path):
-        if not path.endswith("/"):
-            path += "/"
+        if not path.endswith('/'):
+            path += '/'
         return path
 
     def add_path_to_scan(self, path):
@@ -1214,9 +1476,12 @@ class EngineDAO(ConfigurationDAO):
                 con = self._get_write_connection()
                 c = con.cursor()
                 # Remove any subchilds as it is gonna be scanned anyway
-                c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (path+'%',))
+                c.execute('DELETE FROM ToRemoteScan'
+                          ' WHERE path LIKE ?',
+                          (path + '%',))
                 # ADD IT
-                c.execute("INSERT INTO ToRemoteScan(path) VALUES(?)", (path,))
+                c.execute('INSERT INTO ToRemoteScan (path) '
+                          'VALUES (?)', (path,))
                 if self.auto_commit:
                     con.commit()
         except sqlite3.IntegrityError:
@@ -1229,7 +1494,8 @@ class EngineDAO(ConfigurationDAO):
                 con = self._get_write_connection()
                 c = con.cursor()
                 # ADD IT
-                c.execute("DELETE FROM ToRemoteScan WHERE path=?", (path,))
+                c.execute('DELETE FROM ToRemoteScan'
+                          ' WHERE path = ?', (path,))
                 if self.auto_commit:
                     con.commit()
         except sqlite3.IntegrityError:
@@ -1237,7 +1503,8 @@ class EngineDAO(ConfigurationDAO):
 
     def get_paths_to_scan(self):
         c = self._get_read_connection().cursor()
-        return c.execute('SELECT * FROM ToRemoteScan').fetchall()
+        return c.execute('SELECT *'
+                         '  FROM ToRemoteScan').fetchall()
 
     def add_path_scanned(self, path):
         path = self._clean_filter_path(path)
@@ -1246,7 +1513,8 @@ class EngineDAO(ConfigurationDAO):
                 con = self._get_write_connection()
                 c = con.cursor()
                 # ADD IT
-                c.execute("INSERT INTO RemoteScan(path) VALUES(?)", (path,))
+                c.execute('INSERT INTO RemoteScan (path) '
+                          'VALUES (?)', (path,))
                 if self.auto_commit:
                     con.commit()
         except sqlite3.IntegrityError:
@@ -1256,49 +1524,67 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM RemoteScan")
+            c.execute('DELETE FROM RemoteScan')
             if self.auto_commit:
                 con.commit()
 
     def is_path_scanned(self, path):
         path = self._clean_filter_path(path)
         c = self._get_read_connection().cursor()
-        row = c.execute("SELECT COUNT(path) FROM RemoteScan WHERE path=? LIMIT 1", (path,)).fetchone()
+        row = c.execute('SELECT COUNT(path)'
+                        '  FROM RemoteScan'
+                        ' WHERE path = ?'
+                        ' LIMIT 1',
+            (path,)).fetchone()
         return row[0] > 0
-
-    def get_previous_sync_file(self, ref, sync_mode=None):
-        mode_condition = ""
-        if sync_mode is not None:
-            mode_condition = "AND last_transfer='" + sync_mode + "' "
-        state = self.get_normal_state_from_remote(ref)
-        if state is None:
-            return None
-        c = self._get_read_connection().cursor()
-        return c.execute(u"SELECT * FROM States WHERE last_sync_date>? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date ASC LIMIT 1", (state.last_sync_date,)).fetchone()
 
     @staticmethod
     def get_batch_sync_ignore():
-        return "AND ( pair_state != 'unsynchronized' AND pair_state != 'conflicted') AND folderish=0 "
+        return ("AND (pair_state != 'unsynchronized' "
+                "AND pair_state != 'conflicted') "
+                "AND folderish = 0 ")
 
-    def get_next_sync_file(self, ref, sync_mode=None):
-        mode_condition = ""
-        if sync_mode is not None:
-            mode_condition = "AND last_transfer='" + sync_mode + "' "
+    def _get_adjacent_sync_file(self, ref, comp, order, sync_mode=None):
         state = self.get_normal_state_from_remote(ref)
         if state is None:
             return None
+
+        mode = "AND last_transfer='{}' ".format(sync_mode) if sync_mode else ''
         c = self._get_read_connection().cursor()
-        return c.execute(u"SELECT * FROM States WHERE last_sync_date<? " + mode_condition + self.get_batch_sync_ignore() + " ORDER BY last_sync_date DESC LIMIT 1", (state.last_sync_date,)).fetchone()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE last_sync_date {} ?'
+                         ' {}{} '
+                         ' ORDER BY last_sync_date {}'
+                         ' LIMIT 1'.format(comp, mode,
+                                           self.get_batch_sync_ignore(),
+                                           order),
+                         (state.last_sync_date,)).fetchone()
+
+    def get_previous_sync_file(self, ref, sync_mode=None):
+        return self._get_adjacent_sync_file(ref, '>', 'ASC', sync_mode)
+
+    def get_next_sync_file(self, ref, sync_mode=None):
+        return self._get_adjacent_sync_file(ref, '<', 'DESC', sync_mode)
+
+    def _get_adjacent_folder_file(self, ref, comp, order):
+        state = self.get_normal_state_from_remote(ref)
+        c = self._get_read_connection().cursor()
+        return c.execute('SELECT *'
+                         '  FROM States'
+                         ' WHERE remote_parent_ref = ?'
+                         '   AND remote_name {} ?'
+                         '   AND folderish = 0'
+                         ' ORDER BY remote_name {}'
+                         ' LIMIT 1'.format(comp, order),
+                         (state.remote_parent_ref,
+                          state.remote_name)).fetchone()
 
     def get_next_folder_file(self, ref):
-        state = self.get_normal_state_from_remote(ref)
-        c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_name > ? AND folderish=0 ORDER BY remote_name ASC LIMIT 1", (state.remote_parent_ref,state.remote_name)).fetchone()
+        return self._get_adjacent_folder_file(ref, '>', 'ASC')
 
     def get_previous_folder_file(self, ref):
-        state = self.get_normal_state_from_remote(ref)
-        c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM States WHERE remote_parent_ref=? AND remote_name < ? AND folderish=0 ORDER BY remote_name DESC LIMIT 1", (state.remote_parent_ref,state.remote_name)).fetchone()
+        return self._get_adjacent_folder_file(ref, '<', 'DESC')
 
     def is_filter(self, path):
         path = self._clean_filter_path(path)
@@ -1307,7 +1593,8 @@ class EngineDAO(ConfigurationDAO):
 
     def get_filters(self):
         c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM Filters").fetchall()
+        return c.execute('SELECT *'
+                         '  FROM Filters').fetchall()
 
     def add_filter(self, path):
         if self.is_filter(path):
@@ -1317,11 +1604,14 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             # DELETE ANY SUBFILTERS
-            c.execute("DELETE FROM Filters WHERE path LIKE ?", (path + '%',))
+            c.execute('DELETE FROM Filters'
+                      ' WHERE path LIKE ?', (path + '%',))
             # PREVENT ANY RESCAN
-            c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (path+'%',))
+            c.execute('DELETE FROM ToRemoteScan'
+                      ' WHERE path LIKE ?', (path + '%',))
             # ADD IT
-            c.execute("INSERT INTO Filters(path) VALUES(?)", (path,))
+            c.execute('INSERT INTO Filters (path) '
+                      'VALUES (?)', (path,))
             # TODO ADD THIS path AS remotely_deleted
             if self.auto_commit:
                 con.commit()
@@ -1333,7 +1623,8 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM Filters WHERE path LIKE ?", (path + '%',))
+            c.execute('DELETE FROM Filters'
+                      ' WHERE path LIKE ?', (path + '%',))
             if self.auto_commit:
                 con.commit()
             self._filters = self.get_filters()

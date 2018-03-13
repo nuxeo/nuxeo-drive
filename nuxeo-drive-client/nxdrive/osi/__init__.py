@@ -138,16 +138,15 @@ class AbstractOSIntegration(object):
 
     @staticmethod
     def is_linux():
-        return not (AbstractOSIntegration.is_mac()
-                    or AbstractOSIntegration.is_windows())
+        return sys.platform == 'linux2'
 
     @staticmethod
     def get(manager):
         if AbstractOSIntegration.is_mac():
-            from nxdrive.osi.darwin.darwin import DarwinIntegration
+            from .darwin.darwin import DarwinIntegration
             integration, nature = DarwinIntegration, 'macOS'
         elif AbstractOSIntegration.is_windows():
-            from nxdrive.osi.windows.windows import WindowsIntegration
+            from .windows.windows import WindowsIntegration
             integration, nature = WindowsIntegration, 'Windows'
         else:
             integration, nature = AbstractOSIntegration, 'None'

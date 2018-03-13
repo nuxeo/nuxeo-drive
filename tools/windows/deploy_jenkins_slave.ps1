@@ -326,7 +326,7 @@ function launch_tests {
 function start_nxdrive {
 	# Start Nuxeo Drive
 	$Env:PYTHONPATH = "$Env:WORKSPACE_DRIVE\nuxeo-drive-client"
-	& $Env:PYTHON_DIR\python nuxeo-drive-client/nxdrive/commandline.py
+	& $Env:PYTHON_DIR\python -m nxdrive
 }
 
 function unzip($filename, $dest_dir) {

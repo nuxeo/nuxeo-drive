@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import sys
 import urllib2
 from logging import getLogger
 
@@ -8,7 +9,7 @@ import objc
 from AppKit import NSRegisterServicesProvider, NSURLPboardType
 from Foundation import NSObject, NSURL
 
-from nxdrive.utils import normalized_path
+from ...utils import normalized_path
 from .. import AbstractOSIntegration
 
 log = getLogger(__name__)
@@ -80,28 +81,30 @@ class DarwinIntegration(AbstractOSIntegration):
     )
 
     def _get_agent_file(self):
-        agents_folder = os.path.expanduser('~/Library/LaunchAgents')
-        agent_filepath = os.path.join(
-            agents_folder, self._manager.get_cf_bundle_identifier() + '.plist')
-        return agent_filepath
+        return os.path.join(
+            os.path.expanduser('~/Library/LaunchAgents'),
+            self._manager.get_cf_bundle_identifier() + '.plist')
 
     def register_startup(self):
-        """Register the Nuxeo Drive.app as a user Launch Agent
-
+        """
+        Register the Nuxeo Drive.app as a user Launch Agent.
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
         """
-        agent_filepath = self._get_agent_file()
-        agents_folder = os.path.dirname(agent_filepath)
-        exe_path = self._manager.find_exe_path()
-        log.debug('Registering "%s" for startup in: %s',
-                  exe_path, agent_filepath)
 
+        agent = os.path.join(
+            os.path.expanduser('~/Library/LaunchAgents'),
+            self._manager.get_cf_bundle_identifier() + '.plist')
+        if os.path.isfile(agent):
+            return
+
+        agents_folder = os.path.dirname(agent)
         if not os.path.exists(agents_folder):
-            log.debug('Making launch agent folder %s', agents_folder)
+            log.debug('Making launch agent folder %r', agents_folder)
             os.makedirs(agents_folder)
 
-        log.debug('Writing launch agent file %s', agent_filepath)
-        with open(agent_filepath, 'wb') as f:
+        exe_path = os.path.realpath(os.path.dirname(sys.executable))
+        log.debug('Registering %r for startup in %r', exe_path, agent)
+        with open(agent, 'wb') as f:
             f.write(self.NDRIVE_AGENT_TEMPLATE % exe_path)
 
     def unregister_startup(self):

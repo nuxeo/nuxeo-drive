@@ -3,9 +3,9 @@ import os
 import shutil
 from logging import getLogger
 
-from nxdrive.client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
-                                                   DOWNLOAD_TMP_FILE_SUFFIX)
-from nxdrive.engine.processor import Processor as OldProcessor
+from ...client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
+                                              DOWNLOAD_TMP_FILE_SUFFIX)
+from ..processor import Processor as OldProcessor
 
 log = getLogger(__name__)
 

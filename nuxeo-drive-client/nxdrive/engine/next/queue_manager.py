@@ -2,7 +2,7 @@
 import time
 from logging import getLogger
 
-from nxdrive.engine.queue_manager import QueueManager as OldQueueManager
+from ..queue_manager import QueueManager as OldQueueManager
 
 log = getLogger(__name__)
 

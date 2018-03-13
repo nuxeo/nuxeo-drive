@@ -9,14 +9,13 @@ from urllib2 import HTTPError, URLError
 
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 
-from nxdrive.client import NotFound
-from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.client.common import (COLLECTION_SYNC_ROOT_FACTORY_NAME,
-                                   safe_filename)
-from nxdrive.client.remote_file_system_client import RemoteFileInfo
-from nxdrive.engine.activity import Action, tooltip
-from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
-from nxdrive.utils import current_milli_time, path_join
+from ..activity import Action, tooltip
+from ..workers import EngineWorker, ThreadInterrupt
+from ...client import NotFound
+from ...client.base_automation_client import Unauthorized
+from ...client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME, safe_filename
+from ...client.remote_file_system_client import RemoteFileInfo
+from ...utils import current_milli_time, path_join
 
 log = getLogger(__name__)
 

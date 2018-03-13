@@ -3,18 +3,16 @@
 
 import argparse
 import os
-import signal
 import sys
-import threading
 import traceback
 from datetime import datetime
 from getpass import getpass
 from logging import getLogger
 
-from nxdrive import __version__
-from nxdrive.logging_config import configure
-from nxdrive.options import Options
-from nxdrive.utils import default_nuxeo_drive_folder, normalized_path
+from . import __version__
+from .logging_config import configure
+from .options import Options
+from .utils import default_nuxeo_drive_folder, normalized_path
 
 try:
     import ipdb as pdb
@@ -329,7 +327,7 @@ class CliHandler(object):
         if configs:
             config.read(configs)
 
-        from nxdrive.osi import AbstractOSIntegration
+        from .osi import AbstractOSIntegration
         args = AbstractOSIntegration.get(None).get_system_configuration()
         if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
             env = config.get(ConfigParser.DEFAULTSECT, 'env')
@@ -417,19 +415,19 @@ class CliHandler(object):
                 raise
 
     def get_manager(self):
-        from nxdrive.manager import Manager
+        from .manager import Manager
         return Manager()
 
     def _get_application(self, console=False):
         if console:
-            from nxdrive.console import ConsoleApplication
+            from .console import ConsoleApplication
             return ConsoleApplication(self.manager)
-        from nxdrive.wui.application import Application
+        from .wui.application import Application
         return Application(self.manager)
 
     def launch(self, options=None, console=False):
         """Launch the Qt app in the main thread and sync in another thread."""
-        from nxdrive.utils import PidLockFile
+        from .utils import PidLockFile
 
         lock = PidLockFile(self.manager.nxdrive_home, 'qt')
         if lock.lock():
@@ -446,7 +444,7 @@ class CliHandler(object):
         return exit_code
 
     def clean_folder(self, options):
-        from nxdrive.client.local_client import LocalClient
+        from .client.local_client import LocalClient
         if options.local_folder is None:
             print('A folder must be specified')
             return 0
@@ -541,67 +539,3 @@ class CliHandler(object):
         segfault_file = open(segfault_filename, 'a')
         segfault_file.write('\n\n\n>>> {}\n'.format(datetime.now()))
         faulthandler.enable(file=segfault_file)
-
-
-def dumpstacks(signal, frame):
-    id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
-    code = []
-    for thread_id, stack in sys._current_frames().items():
-        code.append(
-            '\n# Thread: %s(%d)' % (id2name.get(thread_id, ''), thread_id))
-        for filename, lineno, name, line in traceback.extract_stack(stack):
-            code.append(
-                'File: "%s", line %d, in %s' % (filename, lineno, name))
-            if line:
-                code.append('  %s' % (line.strip()))
-    print('\n'.join(code))
-
-
-def win32_unicode_argv():
-    """ Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-    strings.
-
-    Versions 2.x of Python don't support Unicode in sys.argv on
-    Windows, with the underlying Windows API instead replacing multi-byte
-    characters with '?'.
-
-    See http://stackoverflow.com/questions/846850/read-unicode-characters-from-command-line-arguments-in-python-2-x-on-windows
-    """
-
-    from ctypes import POINTER, byref, cdll, c_int, windll
-    from ctypes.wintypes import LPCWSTR, LPWSTR
-
-    GetCommandLineW = cdll.kernel32.GetCommandLineW
-    GetCommandLineW.argtypes = []
-    GetCommandLineW.restype = LPCWSTR
-
-    CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-    CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-    CommandLineToArgvW.restype = POINTER(LPWSTR)
-
-    cmd = GetCommandLineW()
-    argc = c_int(0)
-    argv = CommandLineToArgvW(cmd, byref(argc))
-    if argc.value > 0:
-        # Remove Python executable and commands if present
-        start = argc.value - len(sys.argv)
-        return [argv[i] for i in
-                xrange(start, argc.value)]
-
-
-def main():
-    if sys.version_info[0] != 2 or sys.version_info[1] != 7:
-        raise RuntimeError('Nuxeo Drive requires Python 2.7')
-
-    # Print thread dump when receiving SIGUSR1,
-    # except under Windows (no SIGUSR1)
-    # Get the Ctrl+C to interrupt application
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-    if sys.platform != 'win32':
-        signal.signal(signal.SIGUSR1, dumpstacks)
-    argv = win32_unicode_argv() if sys.platform == 'win32' else sys.argv
-    return CliHandler().handle(argv)
-
-
-if __name__ == '__main__':
-    sys.exit(main())

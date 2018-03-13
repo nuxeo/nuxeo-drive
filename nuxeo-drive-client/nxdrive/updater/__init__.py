@@ -3,7 +3,7 @@
 
 from logging import getLogger
 
-from nxdrive.options import Options
+from ..options import Options
 from .utils import get_latest_compatible_version
 
 log = getLogger(__name__)
