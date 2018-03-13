@@ -83,8 +83,10 @@ Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
-; Waiting for official support: https://www.jrsoftware.org/files/istrans/
-;Name: "swedish"; MessagesFile: "compiler:Languages\Swedish.isl"
+
+; Waiting for official support: http://www.jrsoftware.org/files/istrans/
+Name: "indonesian"; MessagesFile: "unofficial_i18n\Indonesian.isl"
+Name: "swedish"; MessagesFile: "unofficial_i18n\Swedish.isl"
 
 
 [CustomMessages]

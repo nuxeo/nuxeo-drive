@@ -21,6 +21,7 @@ See [docs/deployment.md](docs/deployment.md).
 ## Client Architecture
 
 ![Nuxeo Drive architecture][nuxeo-drive-architecture-schema]
+
 [nuxeo-drive-architecture-schema]: https://www.lucidchart.com/publicSegments/view/54e8e2a7-d2a4-4ec7-9843-5c740a00c10b/image.png
 
 **CommandLine**
@@ -97,7 +98,9 @@ Load labels translation and offer the translation service as static method
 Base of all Nuxeo Drive window, it is basically a WebKit view with a Drive JavaScript object mapped by the JavaScript API
 
 QT is heavily used in the new client. Here is a diagram of the signals/slots connections: 
+
 ![Signals/slots connections][signals-slots-connections]
+
 [signals-slots-connections]: https://www.lucidchart.com/publicSegments/view/54efbff4-c180-41d8-9184-0b1d0a00c10b/image.png
 
 RemoteWatcher logic schemas: [https://www.lucidchart.com/documents/view/3081771a-786b-486e-bfaa-ee7ae77a3807](https://www.lucidchart.com/documents/view/3081771a-786b-486e-bfaa-ee7ae77a3807)
