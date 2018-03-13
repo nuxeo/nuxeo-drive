@@ -1,10 +1,11 @@
 # Configuration
 
-Nuxeo Drive has different parameters that you can set up through (sorted by priority):
-- via the REST API endpoint `/drive/configuration` served by the server (since [NXP-22946](https://jira.nuxeo.com/browse/NXP-22946) and Drive 3.0.0);
-- a `$HOME/.nuxeo-drive/config.ini` file;
-- with a registry key inside `HKEY_CURRENT_USER\Software\Nuxeo\Drive` (since Drive 3.1.0, Windows only);
-- via the command line;
+Nuxeo Drive has different parameters that you can set up through:
+- the REST API endpoint `/drive/configuration` served by the server (since [NXP-22946](https://jira.nuxeo.com/browse/NXP-22946) and Drive 3.0.0),
+- a `$HOME/.nuxeo-drive/config.ini` file,
+- a registry key inside `HKEY_CURRENT_USER\Software\Nuxeo\Drive` (since Drive 3.1.0, Windows only),
+- the command line.
+Each of these ways overrides the previous one.
 
 ## Parameters
 
@@ -28,16 +29,16 @@ Nuxeo Drive has different parameters that you can set up through (sorted by prio
 | `proxy-type` | None | Define proxy type. This can also be set up by the user from the Settings window.
 | `timeout` | 30 | Define the socket timeout.
 | `update-check-delay` | 3600 | Define the auto-update check delay. 0 means disabled.
-| `update-site-url` | http://community.nuxeo.com/static/drive-updates/ | Configure custom update website. See Nuxeo Drive Update Site for more details.
+| `update-site-url` | http://community.nuxeo.com/static/drive-updates/ | Configure a custom update website. See Nuxeo Drive Update Site for more details.
 
 ## Command Line Arguments
 
-When use as command line argument you need to prefix with long argument modifier `--`, example: `--log-level-file TRACE`.
+When used as a command line argument you need to prefix with the long argument modifier `--`, e.g.: `--log-level-file TRACE`.
 
 ## Configuration File
 
 Instead of using command line arguments, you can create the `config.ini` file into the `$HOME/.nuxeo-drive` folder.
-The file syntax is like:
+The file syntax is:
 
     [DEFAULT]
     env = custom
@@ -46,4 +47,4 @@ The file syntax is like:
     log-level-file = TRACE
     debug = False
 
-You just have to add parameters inside the `[custom]` section.
+You can add parameters inside the `[custom]` section.

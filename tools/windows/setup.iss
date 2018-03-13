@@ -89,7 +89,7 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [CustomMessages]
 ; Translations from Crowdin
-; NOTE: when upgrading silently, english is use by default. So we are not using it for now.
+; NOTE: when upgrading silently, english is used by default. So we are not using it for now.
 
 ; Context meny entry: Access online
 english.ctx_menu_access_online=Access online
@@ -188,7 +188,7 @@ end;
 
 
 function WantToStart(): Boolean;
-// Start Drive after the installation, usefull for scripted calls (silent auto-update for instance).
+// Start Drive after the installation, useful for scripted calls (silent auto-update for instance).
 // It will check the "/START=auto" argument to enable the auto start.
 // Also, if none of /[VERY]SILENT are passed, consider it too (1st GUI installation for instance).
 var

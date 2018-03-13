@@ -2,27 +2,27 @@
 
 ## Old Implementation
 
-Until Drive 3.1.0, we were using the [Esky](https://pypi.org/project/esky/) framework. It has worked for years but when we needed to move forward to Python 3 and Qt 5, we were stuck:
-- [unmaintained](https://github.com/cloudmatrix/esky/commit/d0a107f6d672fd49a2aafe9581bbcdb73fbf9c6b) since 2016-08-04;
-- [discontinued](https://github.com/cloudmatrix/esky/commit/6fde3201f0335064931a6c7f7847fc5ad39001b4) since 2018-02-25;
-- errors when dealing with the Windows UAC;
-- not Python 3 compliant.
+Until Drive 3.1.0, we were using the [Esky](https://pypi.org/project/esky/) framework. It has worked for years but was preventing the move to Python 3 and Qt 5:
+- [Unmaintained](https://github.com/cloudmatrix/esky/commit/d0a107f6d672fd49a2aafe9581bbcdb73fbf9c6b) since 2016-08-04;
+- [Discontinued](https://github.com/cloudmatrix/esky/commit/6fde3201f0335064931a6c7f7847fc5ad39001b4) since 2018-02-25;
+- Errors when dealing with the Windows UAC;
+- Not Python 3 compliant.
 
-So, with the issue [NXDRIVE-1143](https://jira.nuxeo.com/browse/NXDRIVE-1143), we decided to seek for an alternative.
+So, with the issue [NXDRIVE-1143](https://jira.nuxeo.com/browse/NXDRIVE-1143), we decided to seek an alternative.
 
 ## Alternatives
 
-The only one that was viable at the time was [PyUpdater](http://www.pyupdater.org/). But:
-- the documentation was lacking of good/complete examples;
-- its usage was not intuitive nor easy;
-- too broad for our needs.
+The only one viable at the time was [PyUpdater](http://www.pyupdater.org/). However:
+- The documentation was lacking good/complete examples;
+- Its usage was not intuitive nor easy;
+- It was too broad for our needs.
 
 ## Current Implementation
 
 We wrote our own auto-update framework knowing:
-- the code freeze is done with PyInstaller;
-- the macOS installer uses OS specific commands to generate a `.dmg`;
-- the Windows installer uses the Inno Setup Compiler that outputs a single `.exe`;
+- The code freeze is done with PyInstaller;
+- The macOS installer uses OS-specific commands to generate a `.dmg`;
+- The Windows installer uses the Inno Setup Compiler that outputs a single `.exe`.
 
 Currently, only macOS and Windows are supported.
 There is no built-in support for auto-updater on GNU/Linux.
@@ -97,43 +97,43 @@ Each entry describes a version with:
 - `min`: the minimum Nuxeo version required for this release to work with. **Mandatory**.
 - `max`: the maximum Nuxeo version required for this release to work with. If not defined, Drive will consider the current Nuxeo version as acceptable to work with.
 
-`min` and `max` can take a Hot Fixe (HF) version, helpful to isolate some versions.
+`min` and `max` can take a Hot Fix (HF) version, helpful to isolate some versions.
 
 Notes:
-- when a version is very old, and if you consider the file is growing to big, you can easily remove entries that are archived;
-- a version not listed can physically exist on the server but the reverse is not true: if a version is listed, files must exist on the server.
+- When a version is very old, and if you consider the file is growing to big, you can easily remove entries that are archived;
+- A version not listed can physically exist on the server but the reverse is not true: if a version is listed, files must exist on the server.
 
 ### Client
 
 When setting the `update-site-url` or `beta-update-site-url` parameter, it must point to `https://example.org/drive-updates/`, also:
-- you do not specify `/beta` or `/release` at the end of the URL, Drive will compute the final URL depending setted options;
-- of course, if you are using a specific domain name where the tree is at the root, use only `https://example.org/`;
-- the trailing slash is **not** mandatory.
+- You do not specify `/beta` or `/release` at the end of the URL, Drive will compute the final URL depending on set options;
+- Of course, if you are using a specific domain name where the tree is at the root, use only `https://example.org/`;
+- The trailing slash is **not** mandatory.
 
 Process:
-1. fetch the file `versions.yml` from the defined URL in `update-site-url` (or `beta-update-site-url`);
-2. find the latest version sorted by `type` and the current Nuxeo version;
-3. download the version specific to the current OS (`.dmg` for macOS, `.exe` for Windows, ... ) into a temporary folder;
-4. verify the checksum of the downloaded file.
+1. Fetch the file `versions.yml` from the defined URL in `update-site-url` (or `beta-update-site-url`);
+2. Find the latest version sorted by `type` and the current Nuxeo version;
+3. Download the version specific to the current OS (`.dmg` for macOS, `.exe` for Windows, ... ) into a temporary folder;
+4. Verify the checksum of the downloaded file.
 
-Then, actions taken are OS specific.
+Then, actions taken are OS-specific.
 
 #### macOS
 
-1. mount the `nuxeo-drive-x.y.z.dmg` file;
-2. backup the current `.app` in `/Applications`;
-3. copy the new `.app` to `/Applications`;
-5. unmount the `.dmg`;
-6. delete the `.dmg`;
-4. restart Drive.
+1. Mount the `nuxeo-drive-x.y.z.dmg` file;
+2. Backup the current `.app` in `/Applications`;
+3. Copy the new `.app` to `/Applications`;
+5. Unmount the `.dmg`;
+6. Delete the `.dmg`;
+4. Restart Drive.
 
 #### Windows
 
 The only action to do is to install the new version by calling `nuxeo-drive-x.y.z.exe /VERYSILENT /START=auto` from the temporary folder.
 The installer will automagically:
 
-1. stop Drive;
-2. install the new version, it will upgrade the old one without personal data loss;
-3. start Drive.
+1. Stop Drive;
+2. Install the new version, it will upgrade the old one without personal data loss;
+3. Start Drive.
 
-So, a big thank you Inno Setup! Upgrade made so easy :)
+So, a big thank you to Inno Setup! Upgrade made so easy :)

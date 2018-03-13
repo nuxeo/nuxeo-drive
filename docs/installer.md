@@ -2,23 +2,23 @@
 
 ## Old Implementation
 
-Until Drive 3.1.0, we were using [cx_Freeze](https://pypi.org/project/cx_Freeze/) in conjonction with either [Esky](https://pypi.org/project/esky/) (Windows) or [py2app](https://pypi.org/project/py2app/) (macOS) to freeze the code and create installer.
-It has worked for years but when we needed to move forward to Python 3 and Qt 5, we were stuck:
-- the cx_Freeze update from 4.3.3 to latest 5.1.1 was impossible due to Esky incompatibilty;
-- the Windows installer was not ideal with lot of issues (executable information, panel configuration information, ... );
-- not possible to sign installers and packages;
-- cx_Freeze and Esky were not Python 3 compliant.
+Until Drive 3.1.0, we were using [cx_Freeze](https://pypi.org/project/cx_Freeze/) in conjunction with [Esky](https://pypi.org/project/esky/) (Windows) or [py2app](https://pypi.org/project/py2app/) (macOS) to freeze the code and create installer.
+It has worked for years but was preventing our move to Python 3 and Qt 5:
+- The cx_Freeze update from 4.3.3 to latest 5.1.1 is impossible due to Esky incompatibility;
+- The Windows installer is not ideal with lot of issues (executable information, panel configuration information, ...);
+- It is not possible to sign installers and packages;
+- cx_Freeze and Esky are not Python 3 compliant.
 
-So, with the issue [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730), we decided to seek for an alternative.
+So, with the issue [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730), we decided to seek an alternative.
 
 ## Current Implementation
 
 ### Freezer
 
 We decided to use [PyInstaller](http://www.pyinstaller.org/) to freeze the code:
-- installation made easy;
-- a uniq way to build releases on GNU/Linux, macOS and Windows;
-- code-signing executables.
+- Installation made easy;
+- A unique way to build releases on GNU/Linux, macOS and Windows;
+- Code-signing executables.
 
 ### Installers
 
@@ -33,25 +33,24 @@ If you want to exactly know how it is done, check the file `tools/osx/deploy_jen
 #### Windows
 
 [Inno Setup](http://www.jrsoftware.org/) is used to build the installer:
-- no more modifications into the registry with Python;
-- easily expandable (customers could customize their installers);
-- installation more than easy (click on Next, Next and OK);
-- no more admin rights required ([NXDRIVE-601](https://jira.nuxeo.com/browse/NXDRIVE-601));
-- installer with our logo and colors;
-- complete uninstaller (Drive files and regedit purgation, but not personnal files);
-- good informations and logo in the panel configuration ([NXDRIVE-512](https://jira.nuxeo.com/browse/NXDRIVE-512) and [NXDRIVE-448](https://jira.nuxeo.com/browse/NXDRIVE-448));
-- possibility to sign the package;
-- installation via CLI possible;
-- we can build the installer via a batch script;
-- update is easy, just download the new version and click on Next, Next and OK;
-- we can remove Esky and purge the monstruous `setup.py` file.
+- No more modifications into the registry with Python;
+- Easily expandable (customers can customize their installers);
+- Installation and update more than easy (download and click on Next, Next and OK);
+- No more admin rights required ([NXDRIVE-601](https://jira.nuxeo.com/browse/NXDRIVE-601));
+- Installer with our logo and colors;
+- Complete uninstaller (Drive files and regedit purge, but not personal files);
+- Good information and logo in the panel configuration ([NXDRIVE-512](https://jira.nuxeo.com/browse/NXDRIVE-512) and [NXDRIVE-448](https://jira.nuxeo.com/browse/NXDRIVE-448));
+- Possibility to sign the package;
+- Installation via CLI possible;
+- Installer can be built via a batch script;
+- we can remove Esky and purge the monstrous `setup.py` file.
 
 ##### Installer Customization
 
-The installer generator is drived by the file `tools\windows\setup.iss`. It is quite easy to read and understand, even more easier to customize.
+The installer generator is drived by the file `tools\windows\setup.iss`. It is quite easy to read and understand, even easier to customize.
 So if you plan to create your own Nuxeo Drive installer, this is where to look at. We put a lot of comments in the file and modifying it will not require extended technical skills.
 
-When you are done with it, you call the *Inno Setup Compiler* like:
+When you are done with it, you call the *Inno Setup Compiler* with:
 
     "C:\Program Files (x86)\Inno Setup 5\iscc.exe" /DMyAppVersion="x.y.z" "tools\windows\setup.iss"
 
@@ -67,8 +66,8 @@ As of Nuxeo Drive 3.1.0, we changed the way Drive is packaged. We are now creati
 
 If you used to customize the installation process, know that the same arguments are taken into account, but the way you declare them changes:
 
-- old: `msiexec /i nuxeo-drive.msi /qn /quiet ARG=value ...`
-- new: `nuxeo-drive.exe /silent /ARG=value ...`
+- Old: `msiexec /i nuxeo-drive.msi /qn /quiet ARG=value ...`
+- New: `nuxeo-drive.exe /silent /ARG=value ...`
 
 **Warning**: it is now highly deprecated to use the `TARGETDIR` argument. For convenient reasons, we decided to not allow the user to choose the installation folder.
 So it *may* work, but we **do not support** this as it can break the auto-update and introduce other issues.
@@ -106,7 +105,7 @@ Even if `username` is wrong, it will allow the customization of the Nuxeo server
 
 ###### Windows CLI for Nuxeo Drive
 
-Usefull commands for sysadmin, but it can be helpful for every one in time.
+Useful commands for sysadmin, but it can be helpful to everyone at times.
 
 - Stop/Kill Nuxeo Drive:
 ```

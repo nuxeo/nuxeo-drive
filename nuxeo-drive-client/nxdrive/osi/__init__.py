@@ -101,7 +101,8 @@ class AbstractOSIntegration(object):
     def uninstall(self):
         """
         Actions to perform before uninstalling Drive.
-        One action might do nothing depending its OS specific implementation.
+        One action might do nothing depending on its OS-specific
+        implementation.
         """
 
         self.unregister_startup()

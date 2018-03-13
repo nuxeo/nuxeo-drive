@@ -104,6 +104,8 @@ class Updater(BaseUpdater):
         Restart the current application to take into account the new version.
         """
 
-        cmd = 'sleep 5 ; open "/Applications/{}.app"'.format(self.manager.app_name)
-        log.debug('Launching the new %s version in 5 secondes ...', self.manager.app_name)
+        cmd = 'sleep 5 ; open "/Applications/{}.app"'.format(
+            self.manager.app_name)
+        log.debug('Launching the new %s version in 5 seconds ...',
+                  self.manager.app_name)
         subprocess.Popen(cmd, shell=True, close_fds=True)

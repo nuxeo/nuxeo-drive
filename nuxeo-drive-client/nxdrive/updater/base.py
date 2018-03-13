@@ -26,7 +26,7 @@ log = getLogger(__name__)
 class BaseUpdater(PollWorker):
     """ Updater class for frozen application. """
 
-    # Used on macOS to trigger the application exit on sucessfull update
+    # Used on macOS to trigger the application exit on sucessful update
     appUpdated = pyqtSignal()
 
     # Used to display a notification when a new version is available
@@ -90,7 +90,7 @@ class BaseUpdater(PollWorker):
         # type: (unicode, unicode) -> None
         """
         Trigger the auto-update notification with given status and version.
-        Used for debug purpose only.
+        Used for debugging purposes only.
         """
 
         if status == UPDATE_STATUS_UPDATING:
@@ -106,7 +106,7 @@ class BaseUpdater(PollWorker):
         # type: (unicode) -> None
         """
         Install the new version.
-        Uninstallation of the old one or any actions need to install
+        Uninstallation of the old one or any actions needed to install
         the new one has to be handled by this method.
         """
         raise NotImplementedError()
@@ -115,7 +115,8 @@ class BaseUpdater(PollWorker):
         # type: () -> None
         """
         Check for an update.
-        Used when changing the beta channel option or when binding a new engine.
+        Used when changing the beta channel option or when
+        binding a new engine.
         """
 
         if not self.enable:
@@ -161,7 +162,7 @@ class BaseUpdater(PollWorker):
 
     def _fetch_versions(self):
         # type: () -> None
-        """ Fetch available versions.  It sets `self.versions` on success. """
+        """ Fetch available versions. It sets `self.versions` on success. """
 
         url = self.update_site + '/versions.yml'
         try:
@@ -181,7 +182,7 @@ class BaseUpdater(PollWorker):
 
     def _get_update_status(self):
         # type: () -> Tuple[unicode, Union[None, bool]]
-        """ Retreive available versions and find a possible candidate. """
+        """ Retrieve available versions and find a possible candidate. """
 
         try:
             # Fetch all available versions
@@ -241,7 +242,7 @@ class BaseUpdater(PollWorker):
     def _install(self, version, filename):
         # type: (unicode, unicode) -> None
         """
-        OS specific method to install the new version.
+        OS-specific method to install the new version.
         It must take care of uninstalling the current one.
         """
 
@@ -250,7 +251,7 @@ class BaseUpdater(PollWorker):
 
     def _is_valid(self, version, filename):
         # type: (unicode, unicode) -> bool
-        """ Check the downloaded file integrity.  Use SHA256 by default. """
+        """ Check the downloaded file integrity. Use SHA256 by default. """
 
         info = self.versions.get(version, {})
         checksums = info.get('checksum', {})
@@ -284,7 +285,8 @@ class BaseUpdater(PollWorker):
                 self._handle_status()
                 ret = status != UPDATE_STATUS_UNAVAILABLE_SITE
             finally:
-                # Reset the update site URL to force recomputation the next time
+                # Reset the update site URL to force
+                # recomputation the next time
                 self.__update_site = None
 
         return ret

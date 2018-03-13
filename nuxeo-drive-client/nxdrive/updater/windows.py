@@ -21,7 +21,7 @@ class Updater(BaseUpdater):
             - install the new version
             - start Drive
 
-        So, a big thank you Inno Setup!
+        So, a big thank you to Inno Setup!
         """
 
         log.debug('Calling %r /verysilent /start=auto', filename)

@@ -17,7 +17,7 @@ def updater(*args, **kwargs):
     # type: (*Any, **Any) -> Updater
     """
     Factory returning a proper Updater class instance.
-    It detects the plateform we are running on and choose the most adapted
+    It detects the platform we are running on and chooses the most suited
     updater class.
     It then proxies its arguments to the class for instantiation.
     """

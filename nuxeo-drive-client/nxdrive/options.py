@@ -31,7 +31,7 @@ To set an option, you must call `Options.set` only:
 
     >>> Options.set('delay', 42)
 
-_For tests purpose_, you can set an option as simply as:
+_For testing purposes_, you can set an option as simply as:
 
     >>> Options.delay = 42
 
@@ -39,7 +39,7 @@ This is the equivalent of:
 
     >>> Options.set('delay', 42, setter='manual')
 
-_For tests purpose_, a `Options.mock` decorator is available.
+_For testing purposes_, a `Options.mock` decorator is available.
 
 ---
 
@@ -356,16 +356,16 @@ class Options(object):
 
     def __init__(self):
         """ Prevent class instances. """
-        raise RuntimeError('Cannot be instanciated.')
+        raise RuntimeError('Cannot be instantiated.')
 
 
 def server_updater(*args):
     # type: (*Any) -> ServerOptionsUpdater
     """
-    Helper to create the worker that will check for options updates
+    Helper to create the worker that will check for option updates
     on the server.
     We use this to prevent loading any Drive related stuff and keep
-    the possibility to import other classes without nothing else needed.
+    the possibility to import other classes without anything else needed.
     """
 
     import json
@@ -374,7 +374,7 @@ def server_updater(*args):
     from .engine.workers import PollWorker
 
     class ServerOptionsUpdater(PollWorker):
-        """ Class for checking server's config.json updates. """
+        """ Class for checking the server's config.json updates. """
 
         def __init__(self, manager):
             # type: (Manager) -> None
