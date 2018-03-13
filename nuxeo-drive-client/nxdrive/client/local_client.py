@@ -7,11 +7,11 @@ import os
 import shutil
 import sys
 import tempfile
-import time
 import unicodedata
 import uuid
 from datetime import datetime
 from logging import getLogger
+from time import mktime, strptime
 
 from send2trash import send2trash
 
@@ -780,7 +780,7 @@ FolderType=Generic
             try:
                 mtime = int(mtime)
             except ValueError:
-                mtime = time.mktime(time.strptime(mtime, '%Y-%m-%d %H:%M:%S'))
+                mtime = mktime(strptime(mtime, '%Y-%m-%d %H:%M:%S'))
             os.utime(filename, (mtime, mtime))
 
         if ctime:
