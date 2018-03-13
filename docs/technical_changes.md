@@ -11,9 +11,12 @@
 - Removed `AbstractOSIntegration.unregister_desktop_link()`
 - Removed `Application.app_updated()`
 - Removed `Application.engineLogger`
+- Removed `Application.icon_spin_timer`
+- Removed `Application.icon_spin_count`
 - Removed `Application.engineWidget`
 - Removed `Application.mainEngine`
 - Removed `Application.restart()`
+- Removed `Application.spin_transferring_icon()`
 - Removed `Application.updated_version`
 - Removed `BaseAutomationClient.is_addon_installed()`
 - Removed `ConfigurationDAO.begin_transaction()`
