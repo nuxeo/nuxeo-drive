@@ -15,6 +15,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
 - [NXDRIVE-1123](https://jira.nuxeo.com/browse/NXDRIVE-1123): Access right-click action on folders on Windows
 - [NXDRIVE-1124](https://jira.nuxeo.com/browse/NXDRIVE-1124): Right click menu entry on files: "Copy share-link"
+- [NXDRIVE-1136](https://jira.nuxeo.com/browse/NXDRIVE-1136): Change systray icon on update
 - [NXDRIVE-1149](https://jira.nuxeo.com/browse/NXDRIVE-1149): New language: Indonesian
 
 ### Packaging / Build

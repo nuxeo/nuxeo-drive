@@ -275,14 +275,11 @@ class ConfigurationDAO(QObject):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            if value:
-                c.execute('UPDATE OR IGNORE Configuration'
-                          '             SET value = ?'
-                          '           WHERE name = ?', (value, name))
-                c.execute('INSERT OR IGNORE INTO Configuration (value, name) '
-                          'VALUES (?, ?)', (value, name))
-            else:
-                self._delete_config(c, name)
+            c.execute('UPDATE OR IGNORE Configuration'
+                      '             SET value = ?'
+                      '           WHERE name = ?', (value, name))
+            c.execute('INSERT OR IGNORE INTO Configuration (value, name) '
+                      'VALUES (?, ?)', (value, name))
             if self.auto_commit:
                 con.commit()
 
@@ -955,9 +952,13 @@ class EngineDAO(ConfigurationDAO):
 
     def get_global_size(self):
         c = self._get_read_connection(factory=self._state_factory).cursor()
-        return c.execute("SELECT SUM(size) as sum"
-                         "  FROM States"
-                         " WHERE pair_state = 'synchronized'").fetchone().sum
+        total = c.execute("SELECT SUM(size) as sum"
+                          "  FROM States"
+                          " WHERE folderish = 0"
+                          "   AND pair_state = 'synchronized'").fetchone().sum
+        # `total` may be `None` if there is not synced files,
+        # so we ensure to have an int at the end
+        return total or 0
 
     def get_unsynchronizeds(self):
         c = self._get_read_connection(factory=self._state_factory).cursor()

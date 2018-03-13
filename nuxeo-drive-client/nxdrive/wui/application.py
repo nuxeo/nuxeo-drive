@@ -86,6 +86,7 @@ class Application(SimpleApplication):
 
     tray_icon = None
     icon_state = None
+    update_available = False
 
     def __init__(self, manager, *args):
         super(Application, self).__init__(manager, *args)
@@ -242,7 +243,9 @@ class Application(SimpleApplication):
             paused &= engine.is_paused()
             offline &= engine.is_offline()
 
-        if offline:
+        if self.update_available:
+            new_state = 'update_available'
+        elif offline:
             new_state = 'stopping'
             Action(Translator.get('OFFLINE'))
         elif invalid_credentials:
@@ -406,6 +409,11 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def _update_notification(self):
+        # Change the systray icon
+        self.update_available = True
+        self.change_systray_icon()
+
+        # Display a notification
         status, version = self.manager.get_updater().last_status[:2]
         replacements = {'version': version}
 
@@ -470,10 +478,13 @@ class Application(SimpleApplication):
 
         Return True of the icon has changed state.
         """
+
         if self.icon_state == state:
             # Nothing to update
             return False
+
         self.tray_icon.setToolTip(self.get_tooltip())
+
         # Handle animated transferring icon
         if state == 'transferring':
             self.icon_spin_timer.start(150)
@@ -481,6 +492,7 @@ class Application(SimpleApplication):
             self.icon_spin_timer.stop()
             icon = find_icon('systray_icon_%s_18.png' % state)
             self.tray_icon.setIcon(QIcon(icon))
+
         self.icon_state = state
         return True
 
