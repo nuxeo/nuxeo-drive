@@ -6,21 +6,21 @@ import os
 import urllib2
 from logging import getLogger
 
-from PyQt4.QtCore import QTimer, Qt, pyqtSlot
+from PyQt4.QtCore import Qt, pyqtSlot
 from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
-                         QIcon, QMenu, QMessageBox, QSystemTrayIcon, QTextEdit,
-                         QVBoxLayout)
+                         QIcon, QMenu, QMessageBox, QMovie, QSystemTrayIcon,
+                         QTextEdit, QVBoxLayout)
 from markdown import markdown
 
+from .modal import WebModal
+from .systray import DriveSystrayIcon
+from .translator import Translator
 from ..engine.activity import Action, FileAction
 from ..notification import Notification
 from ..options import Options
 from ..osi import AbstractOSIntegration, parse_protocol_url
 from ..updater.constants import UPDATE_STATUS_DOWNGRADE_NEEDED
 from ..utils import find_icon, find_resource
-from .modal import WebModal
-from .systray import DriveSystrayIcon
-from .translator import Translator
 
 log = getLogger(__name__)
 
@@ -102,10 +102,9 @@ class Application(SimpleApplication):
         self.aboutToQuit.connect(self.manager.stop)
         self.manager.dropEngine.connect(self.dropped_engine)
 
-        # Timer to spin the transferring icon
-        self.icon_spin_timer = QTimer()
-        self.icon_spin_timer.timeout.connect(self.spin_transferring_icon)
-        self.icon_spin_count = 0
+        # Movie to animate the transferring icon
+        self.animated_icon = QMovie(find_icon('transferring.gif'))
+        self.animated_icon.frameChanged.connect(self._uddate_animated_icon)
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
@@ -261,6 +260,10 @@ class Application(SimpleApplication):
             Action.finish_action()
 
         self.set_icon_state(new_state)
+
+    def _uddate_animated_icon(self):
+        icon = QIcon(self.animated_icon.currentPixmap())
+        self.tray_icon.setIcon(icon)
 
     def _get_settings_dialog(self, section):
         from .settings import WebSettingsDialog
@@ -487,20 +490,14 @@ class Application(SimpleApplication):
 
         # Handle animated transferring icon
         if state == 'transferring':
-            self.icon_spin_timer.start(150)
+            self.animated_icon.start()
         else:
-            self.icon_spin_timer.stop()
+            self.animated_icon.stop()
             icon = find_icon('systray_icon_%s_18.png' % state)
             self.tray_icon.setIcon(QIcon(icon))
 
         self.icon_state = state
         return True
-
-    def spin_transferring_icon(self):
-        icon = find_icon('systray_icon_transferring_%s.png'
-                         % (self.icon_spin_count + 1))
-        self.tray_icon.setIcon(QIcon(icon))
-        self.icon_spin_count = (self.icon_spin_count + 1) % 10
 
     def get_tooltip(self):
         actions = Action.get_actions()
