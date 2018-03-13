@@ -20,6 +20,8 @@ code_sign() {
 
     echo ">>> [sign] Unlocking the Nuxeo keychain"
     security unlock-keychain -p "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}"
+    security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}"
+    security set-keychain-settings "${LOGIN_KEYCHAIN_PATH}"
 
     echo ">>> [sign] Signing the file ${app}"
     if [[ $# > 1 ]]; then

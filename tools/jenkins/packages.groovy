@@ -25,8 +25,9 @@ properties([
 ])
 
 // Jenkins slaves we will build on
-// We need to use OSXSLAVE-DRIVE instead of OSXSLAVE because it contains
-// the manual installation of Qt4 & the macOS codesigning certificates.
+//   Until NXDRIVE-864 is done, we need to use OSXSLAVE-DRIVE
+//   instead of OSXSLAVE because it contains the manual
+//   installation of Qt4 & the macOS codesigning certificates.
 slaves = ['OSXSLAVE-DRIVE', 'SLAVE', 'WINSLAVE']
 labels = [
     'OSXSLAVE-DRIVE': 'macOS',
