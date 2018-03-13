@@ -89,14 +89,15 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [CustomMessages]
 ; Translations from Crowdin
+; NOTE: when upgrading silently, english is used by default. So we are not using it for now.
 
 ; Context meny entry: Access online
 english.ctx_menu_access_online=Access online
-french.ctx_menu_access_online=Voir en ligne
+;french.ctx_menu_access_online=Voir en ligne
 
 ; Context meny entry: Copy share-link
 english.ctx_menu_copy_share_link=Copy share-link
-french.ctx_menu_copy_share_link=Copier le lien de partage
+;french.ctx_menu_copy_share_link=Copier le lien de partage
 
 
 [Tasks]
@@ -158,7 +159,7 @@ Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 2\command"; Va
 
 [Run]
 ; Launch Nuxeo Drive after installation
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall; Check: WantToStart
 
 ; Bind an eventual engine (arguments are not case sensitive):
 ;    {#MyAppExeName} /SILENT ARGS
@@ -168,7 +169,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 ;    /TARGETUSERNAME="username"               (mandatory)
 ;    /TARGETPASSWORD="password"
 ;    /TARGETDRIVEFOLDER="%USERPROFILE%\Documents\Nuxeo Drive"
-Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --password ""{param:TARGETPASSWORD}"" --local-folder ""{param:TARGETDRIVEFOLDER}"" ""{param:TARGETUSERNAME}"" ""{param:TARGETURL}"""; Flags: postinstall skipifnotsilent; Check: NeedEngineBinding
+Filename: "{app}\{#MyAppExeName}"; Parameters: "bind-server --password ""{param:TARGETPASSWORD}"" --local-folder ""{param:TARGETDRIVEFOLDER}"" ""{param:TARGETUSERNAME}"" ""{param:TARGETURL}"""; Flags: nowait postinstall skipifnotsilent; Check: NeedEngineBinding
 
 
 [Code]
@@ -182,5 +183,18 @@ begin
     url := ExpandConstant('{param:TARGETURL}');
     username := ExpandConstant('{param:TARGETUSERNAME}');
     if (Length(url) > 0) and (Length(username) > 0) then
+        Result := True;
+end;
+
+
+function WantToStart(): Boolean;
+// Start Drive after the installation, useful for scripted calls (silent auto-update for instance).
+// It will check the "/START=auto" argument to enable the auto start.
+// Also, if none of /[VERY]SILENT are passed, consider it too (1st GUI installation for instance).
+var
+    start: String;
+begin
+    start := ExpandConstant('{param:START}');
+    if (Length(start) > 0) or not WizardSilent() then
         Result := True;
 end;

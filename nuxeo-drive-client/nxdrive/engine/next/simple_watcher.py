@@ -7,10 +7,10 @@ from time import sleep, time
 
 from watchdog.events import DirModifiedEvent
 
-from nxdrive.client.local_client import FileInfo
-from nxdrive.engine.watcher.local_watcher import LocalWatcher
-from nxdrive.engine.workers import ThreadInterrupt
-from nxdrive.utils import current_milli_time, normalize_event_filename
+from ...client.local_client import FileInfo
+from ...engine.watcher.local_watcher import LocalWatcher
+from ...engine.workers import ThreadInterrupt
+from ...utils import current_milli_time, normalize_event_filename
 
 log = getLogger(__name__)
 

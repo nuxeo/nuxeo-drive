@@ -1,7 +1,7 @@
 # coding: utf-8
 from PyQt4.QtCore import Qt, pyqtSlot
 
-from nxdrive.wui.dialog import WebDialog, WebDriveApi
+from .dialog import WebDialog, WebDriveApi
 
 
 class WebModalApi(WebDriveApi):

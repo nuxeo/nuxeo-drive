@@ -1,7 +1,6 @@
 # coding: utf-8
 import os
 import platform
-import sip
 import subprocess
 import sys
 import urllib2
@@ -11,21 +10,21 @@ from logging import getLogger
 from urlparse import urlparse
 
 import pypac
+import sip
 from PyQt4 import QtCore
 from PyQt4.QtGui import QApplication
 from PyQt4.QtScript import QScriptEngine
 from PyQt4.QtWebKit import qWebKitVersion
 
-from nxdrive import __version__
-from nxdrive.client import LocalClient
-from nxdrive.client.base_automation_client import get_proxies_for_handler
-from nxdrive.logging_config import FILE_HANDLER
-from nxdrive.notification import DefaultNotificationService
-from nxdrive.options import Options
-from nxdrive.osi import AbstractOSIntegration
-# from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
-from nxdrive.utils import (ENCODING, OSX_SUFFIX, decrypt, encrypt,
-                           normalized_path)
+from . import __version__
+from .client import LocalClient
+from .client.base_automation_client import get_proxies_for_handler
+from .logging_config import FILE_HANDLER
+from .notification import DefaultNotificationService
+from .options import Options, server_updater
+from .osi import AbstractOSIntegration
+from .updater import updater
+from .utils import ENCODING, decrypt, encrypt, normalized_path
 
 if AbstractOSIntegration.is_windows():
     import _winreg
@@ -237,7 +236,6 @@ class Manager(QtCore.QObject):
     _singleton = None
     app_name = 'Nuxeo Drive'
 
-    __exe_path = None
     __device_id = None
 
     @staticmethod
@@ -270,8 +268,8 @@ class Manager(QtCore.QObject):
 
         self._engine_definitions = None
 
-        from nxdrive.engine.engine import Engine
-        from nxdrive.engine.next.engine_next import EngineNext
+        from .engine.engine import Engine
+        from .engine.next.engine_next import EngineNext
         self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
         self._engines = None
         self.proxies = dict()
@@ -286,6 +284,23 @@ class Manager(QtCore.QObject):
         # Set the logs levels option
         if FILE_HANDLER:
             FILE_HANDLER.setLevel(Options.log_level_file)
+
+        # Force language
+        if Options.force_locale is not None:
+            self.set_config('locale', Options.force_locale)
+
+        # Persist beta channel check
+        Options.set('beta_channel', self.get_beta_channel(), setter='manual')
+
+        # Keep a trace of installed versions
+        if not self.get_config('original_version'):
+            self.set_config('original_version', self.version)
+
+        # Store the old version to be able to show release notes
+        self.old_version = self.get_config('client_version')
+        if self.old_version != self.version:
+            self.set_config('client_version', self.version)
+            self.clientUpdated.emit(self.old_version, self.version)
 
         # Add auto-lock on edit
         res = self._dao.get_config('direct_edit_auto_lock')
@@ -305,24 +320,16 @@ class Manager(QtCore.QObject):
 
         # Pause if in debug
         self._pause = Options.debug
-        self.updated = False  # self.update_version()
 
         # Connect all Qt signals
         self.notification_service.init_signals()
         self.load()
 
         # Create the server's configuration getter verification thread
-        # self._create_server_config_updater(Options.update_check_delay)
+        self._create_server_config_updater()
 
         # Create the application update verification thread
-        # self._create_updater(Options.update_check_delay)
-
-        # Force language
-        if Options.force_locale is not None:
-            self.set_config('locale', Options.force_locale)
-
-        # Persist beta channel check
-        Options.set('beta_channel', self.get_beta_channel(), setter='manual')
+        self._create_updater()
 
         # Setup analytics tracker
         self._tracker = self._create_tracker()
@@ -351,7 +358,7 @@ class Manager(QtCore.QObject):
 
     def get_metrics(self):
         return {
-            'version': self.get_version(),
+            'version': self.version,
             'auto_start': self.get_auto_start(),
             'auto_update': self.get_auto_update(),
             'beta_channel': self.get_beta_channel(),
@@ -378,7 +385,7 @@ class Manager(QtCore.QObject):
             self.osi.register_startup()
 
     def _create_autolock_service(self):
-        from nxdrive.autolocker import ProcessAutoLockerWorker
+        from .autolocker import ProcessAutoLockerWorker
         self.autolock_service = ProcessAutoLockerWorker(
             30, self._dao, folder=self.direct_edit_folder)
         self.started.connect(self.autolock_service._thread.start)
@@ -388,7 +395,7 @@ class Manager(QtCore.QObject):
         if not self.get_tracking():
             return None
 
-        from nxdrive.engine.tracker import Tracker
+        from .engine.tracker import Tracker
         tracker = Tracker(self)
         # Start the tracker when we launch
         self.started.connect(tracker._thread.start)
@@ -406,41 +413,21 @@ class Manager(QtCore.QObject):
         return self._dao
 
     def _create_dao(self):
-        from nxdrive.engine.dao.sqlite import ManagerDAO
+        from .engine.dao.sqlite import ManagerDAO
         self._dao = ManagerDAO(self._get_db())
 
-    def _create_server_config_updater(self, update_check_delay):
-        # type: (int) -> Any
-        if update_check_delay == 0:
+    def _create_server_config_updater(self):
+        # type: () -> None
+        if not Options.update_check_delay:
             return
 
-        self.server_config_updater = ServerOptionsUpdater(
-            self, check_interval=update_check_delay)
+        self.server_config_updater = server_updater(self)
         self.started.connect(self.server_config_updater._thread.start)
-        return self.server_config_updater
 
-    def _create_updater(self, update_check_delay):
-        if update_check_delay == 0:
-            log.info("Update check delay is 0, disabling autoupdate")
-            self._app_updater = FakeUpdater()
-            return self._app_updater
-        # Enable the capacity to extend the AppUpdater
-        self._app_updater = AppUpdater(self, version_finder=self.get_version_finder(),
-                                       check_interval=update_check_delay)
+    def _create_updater(self):
+        self._app_updater = updater(self)
         self.started.connect(self._app_updater._thread.start)
         return self._app_updater
-
-    def get_version_finder(self):
-        # Used by extended application to inject version finder
-        if self.get_beta_channel():
-            log.debug('Update beta channel activated')
-            update_site_url = Options.beta_update_site_url
-        else:
-            update_site_url = Options.update_site_url
-
-        if not update_site_url.endswith('/'):
-            update_site_url += '/'
-        return update_site_url
 
     def get_updater(self):  # TODO: Remove
         return self._app_updater
@@ -457,7 +444,7 @@ class Manager(QtCore.QObject):
                 engine.get_update_infos()
 
     def _create_direct_edit(self, url):
-        from nxdrive.direct_edit import DirectEdit
+        from .direct_edit import DirectEdit
         self.direct_edit = DirectEdit(self, self.direct_edit_folder, url)
         self.started.connect(self.direct_edit._thread.start)
         return self.direct_edit
@@ -528,16 +515,13 @@ class Manager(QtCore.QObject):
             self._engines[engine.uid].online.connect(self._force_autoupdate)
             self.initEngine.emit(self._engines[engine.uid])
 
-    def _get_default_nuxeo_drive_name(self):  # TODO: Move to constants.py
-        return 'Nuxeo Drive'
-
     def _force_autoupdate(self):
         if self._app_updater.get_next_poll() > 60 and self._app_updater.get_last_poll() > 1800:
             self._app_updater.force_poll()
 
     def get_default_nuxeo_drive_folder(self):
-        # TODO: Factorize with utils.default_nuxeo_drive_folder
-        """Find a reasonable location for the root Nuxeo Drive folder
+        """
+        Find a reasonable location for the root Nuxeo Drive folder
 
         This folder is user specific, typically under the home folder.
 
@@ -550,50 +534,51 @@ class Manager(QtCore.QObject):
         path contains non ASCII characters since Unicode coercion attempts to
         decode the byte string as an ASCII string.
         """
-        if sys.platform == "win32":
+
+        folder = ''
+        if sys.platform == 'win32':
             from win32com.shell import shell, shellcon
             try:
-                my_documents = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL,
-                                                     None, 0)
+                folder = shell.SHGetFolderPath(
+                    0, shellcon.CSIDL_PERSONAL, None, 0)
             except:
-                # In some cases (not really sure how this happens) the current user
-                # is not allowed to access its 'My Documents' folder path through
-                # the win32com shell API, which raises the following error:
-                # com_error: (-2147024891, 'Access is denied.', None, None)
-                # We noticed that in this case the 'Location' tab is missing in the
-                # Properties window of 'My Documents' accessed through the
-                # Explorer.
-                # So let's fall back on a manual (and poor) detection.
-                # WARNING: it's important to check 'Documents' first as under
-                # Windows 7 there also exists a 'My Documents' folder invisible in
-                # the Explorer and cmd / powershell but visible from Python.
-                # First try regular location for documents under Windows 7 and up
-                log.debug("Access denied to win32com shell API: SHGetFolderPath,"
-                          " falling back on manual detection of My Documents")
-                my_documents = os.path.expanduser(r'~\Documents')
-                my_documents = unicode(my_documents.decode(ENCODING))
+                """
+                In some cases (not really sure how this happens) the current user
+                is not allowed to access its 'My Documents' folder path through
+                the win32com shell API, which raises the following error:
+                com_error: (-2147024891, 'Access is denied.', None, None)
+                We noticed that in this case the 'Location' tab is missing in the
+                Properties window of 'My Documents' accessed through the
+                Explorer.
+                So let's fall back on a manual (and poor) detection.
+                WARNING: it's important to check 'Documents' first as under
+                Windows 7 there also exists a 'My Documents' folder invisible in
+                the Explorer and cmd / powershell but visible from Python.
+                First try regular location for documents under Windows 7 and up
+                """
+                log.error('Access denied to the API SHGetFolderPath,'
+                          ' falling back on manual detection')
+                folder = os.path.expanduser(r'~\Documents')
+                folder = unicode(folder.decode(ENCODING))
 
-            if os.path.exists(my_documents):
-                nuxeo_drive_folder = self._increment_local_folder(my_documents, self._get_default_nuxeo_drive_name())
-                log.debug("Will use '%s' as default Nuxeo Drive folder location under Windows", nuxeo_drive_folder)
-                return nuxeo_drive_folder
+        if not folder:
+            # Fall back on home folder otherwise
+            folder = os.path.expanduser('~')
+            folder = unicode(folder.decode(ENCODING))
 
-        # Fall back on home folder otherwise
-        user_home = os.path.expanduser('~')
-        user_home = unicode(user_home.decode(ENCODING))
-        nuxeo_drive_folder = self._increment_local_folder(user_home, self._get_default_nuxeo_drive_name())
-        log.debug("Will use '%s' as default Nuxeo Drive folder location", nuxeo_drive_folder)
-        return nuxeo_drive_folder
+        folder = self._increment_local_folder(folder, self.app_name)
+        log.debug('Will use %r as default folder location', folder)
+        return folder
 
     def _increment_local_folder(self, basefolder, name):
-        nuxeo_drive_folder = os.path.join(basefolder, name)
+        folder = os.path.join(basefolder, name)
         num = 2
-        while not self.check_local_folder_available(nuxeo_drive_folder):
-            nuxeo_drive_folder = os.path.join(basefolder, name + " " + str(num))
+        while not self.check_local_folder_available(folder):
+            folder = os.path.join(basefolder, name + ' ' + str(num))
             num += 1
-            if num > 10:
-                return ""
-        return nuxeo_drive_folder
+            if num > 42:
+                return ''
+        return folder
 
     def open_local_file(self, file_path, select=False):  # TODO: Move to utils.py
         """
@@ -626,11 +611,6 @@ class Manager(QtCore.QObject):
                 # xdg-open should be supported by recent Gnome, KDE, Xfce
                 log.error('Failed to find and editor for: %r', file_path)
 
-    def check_version_updated(self):  # TODO: Use it!
-        last_version = self._dao.get_config("client_version")
-        if last_version != self.get_version():
-            self.clientUpdated.emit(last_version, self.get_version())
-
     @property
     def device_id(self):
         # type: () -> unicode
@@ -652,67 +632,34 @@ class Manager(QtCore.QObject):
         return self._dao.update_config(key, value)
 
     def get_direct_edit_auto_lock(self):
-        return self._dao.get_config("direct_edit_auto_lock", "1") == "1"
+        # Enabled by default, if app is frozen
+        return self._dao.get_config(
+            'direct_edit_auto_lock', str(int(Options.is_frozen))) == '1'
 
     def set_direct_edit_auto_lock(self, value):
-        self._dao.update_config("direct_edit_auto_lock", value)
+        self._dao.update_config('direct_edit_auto_lock', value)
 
     def get_auto_update(self):
-        # By default auto update
-        return self._dao.get_config("auto_update", "1") == "1"
+        # Enabled by default, if app is frozen
+        return self._dao.get_config(
+            'auto_update', str(int(Options.is_frozen))) == '1'
 
     def set_auto_update(self, value):
-        self._dao.update_config("auto_update", value)
+        self._dao.update_config('auto_update', value)
 
     def get_auto_start(self):
-        return self._dao.get_config("auto_start", "1") == "1"
+        # Enabled by default, if app is frozen
+        return self._dao.get_config(
+            'auto_start', str(int(Options.is_frozen))) == '1'
 
     def _get_binary_name(self):  # TODO: Move to constants.py
         return 'ndrive'
 
     def generate_report(self, path=None):
-        from nxdrive.report import Report
+        from .report import Report
         report = Report(self, path)
         report.generate()
         return report.get_path()
-
-    def find_exe_path(self):
-        """ Introspect the Python runtime to find the frozen Windows exe. """
-
-        if not self.__exe_path:
-            import nxdrive
-            path = os.path.realpath(os.path.dirname(nxdrive.__file__))
-            log.trace('Found nxdrive path=%r', path)
-
-            # Detect frozen win32 executable under Windows
-            executable = sys.executable
-            if 'appdata' in executable:
-                executable = os.path.join(os.path.dirname(executable),
-                                          '..', '..', os.path.basename(
-                                          sys.executable))
-                exe_path = os.path.abspath(executable)
-                if os.path.exists(exe_path):
-                    log.trace('Returning exe path=%r', exe_path)
-                    self.__exe_path = exe_path
-                    return self.__exe_path
-
-            # Detect OSX frozen app
-            if path.endswith(OSX_SUFFIX):
-                log.trace('Detected OS X frozen app')
-                exe_path = path.replace(
-                    OSX_SUFFIX, 'Contents/MacOS/' + self._get_binary_name())
-                if os.path.exists(exe_path):
-                    log.trace('Returning exe path=%r', exe_path)
-                    self.__exe_path = exe_path
-                    return self.__exe_path
-
-            # Fall-back to the regular method that should work both the
-            # ndrive script
-            exe_path = sys.argv[0]
-            log.trace('Returning default exe path=%r', exe_path)
-            self.__exe_path = exe_path
-
-        return self.__exe_path
 
     def set_auto_start(self, value):
         self._dao.update_config("auto_start", value)
@@ -830,9 +777,14 @@ class Manager(QtCore.QObject):
                 _winreg.CloseKey(settings)
         elif AbstractOSIntegration.is_mac():
             # Use SystemConfiguration library
-            config = SystemConfiguration.SCDynamicStoreCopyProxies(None)
-            if 'ProxyAutoConfigEnable' in config and \
-                    'ProxyAutoConfigURLString' in config:
+            try:
+                config = SystemConfiguration.SCDynamicStoreCopyProxies(None)
+            except AttributeError:
+                # It may happen on rare cases. The next call will work.
+                return
+
+            if ('ProxyAutoConfigEnable' in config
+                    and 'ProxyAutoConfigURLString' in config):
                 # 'Auto Proxy Discovery' or WPAD is not supported yet
                 # Only 'Automatic Proxy configuration' URL setting is supported
                 if not ('ProxyAutoDiscoveryEnable' in config
@@ -951,10 +903,13 @@ class Manager(QtCore.QObject):
         if self._engines is None:
             self.load()
 
+        if not local_folder:
+            local_folder = self.get_default_nuxeo_drive_folder()
         local_folder = normalized_path(local_folder)
         if local_folder == self.nxdrive_home:
             # Prevent from binding in the configuration folder
             raise FolderAlreadyUsed()
+
         uid = uuid.uuid1().hex
 
         # TODO Check that engine is not inside another or same position
@@ -1014,20 +969,9 @@ class Manager(QtCore.QObject):
     def get_engines(self):  # TODO: Remove
         return self._engines
 
-    def get_version(self):  # TODO: Convert to property
+    @property
+    def version(self):
         return __version__
-
-    def update_version(self, device_config):
-        if self.version != device_config.client_version:
-            log.info("Detected version upgrade: current version = %s,"
-                     " new version = %s => upgrading current version,"
-                     " yet DB upgrade might be needed.",
-                     device_config.client_version,
-                     self.version)
-            device_config.client_version = self.version
-            self.get_session().commit()
-            return True
-        return False
 
     def is_started(self):  # TODO: Remove
         return self._started
@@ -1106,7 +1050,7 @@ class Manager(QtCore.QObject):
         self._script_object = obj
 
     def _create_script_engine(self):
-        from nxdrive.scripting import DriveScript
+        from .scripting import DriveScript
         self._script_engine = QScriptEngine()
         if self._script_object is None:
             self._script_object = DriveScript(self)

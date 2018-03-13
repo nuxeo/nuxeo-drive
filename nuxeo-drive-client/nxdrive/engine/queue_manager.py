@@ -7,7 +7,7 @@ from threading import Lock
 
 from PyQt4.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 
-from nxdrive.engine.processor import Processor
+from .processor import Processor
 
 log = getLogger(__name__)
 WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32

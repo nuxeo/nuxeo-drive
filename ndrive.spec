@@ -22,7 +22,7 @@ excludes = [
     'IPython',
 ]
 
-a = Analysis([os.path.join(nxdrive, 'commandline.py')],
+a = Analysis([os.path.join(nxdrive, '__main__.py')],
              pathex=[cwd],
              datas=[(data, 'data')],
              excludes=excludes)
