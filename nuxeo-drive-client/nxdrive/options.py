@@ -145,7 +145,11 @@ class MetaOptions(type):
         'max_errors': (3, 'default'),
         'max_sync_step': (10, 'default'),
         'nxdrive_home': (
-            os.path.join(os.path.expanduser('~'), '.nuxeo-drive'), 'default'),
+            os.path.join(
+                unicode(os.path.expanduser('~').decode(
+                    locale.getpreferredencoding() or 'utf-8')),
+                '.nuxeo-drive'),
+            'default'),
         'nofscheck': (False, 'default'),
         'protocol_url': (None, 'default'),
         'proxy_exceptions': (None, 'default'),

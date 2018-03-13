@@ -102,10 +102,10 @@ class DarwinIntegration(AbstractOSIntegration):
             log.debug('Making launch agent folder %r', agents_folder)
             os.makedirs(agents_folder)
 
-        exe_path = os.path.realpath(sys.executable)
-        log.debug('Registering %r for startup in %r', exe_path, agent)
+        exe = os.path.realpath(sys.executable)
+        log.debug('Registering %r for startup in %r', exe, agent)
         with open(agent, 'wb') as f:
-            f.write(self.NDRIVE_AGENT_TEMPLATE % exe_path)
+            f.write(self.NDRIVE_AGENT_TEMPLATE % exe)
 
     def unregister_startup(self):
         agent = self._get_agent_file()
