@@ -342,7 +342,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
     reason='GNU/Linux uses native LocalClient.')
 class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
     """
-    Test LocalClient using OS specific commands to make FS operations.
+    Test LocalClient using OS-specific commands to make FS operations.
     This will simulate user actions on:
         - Explorer (Windows)
         - File Manager (macOS)

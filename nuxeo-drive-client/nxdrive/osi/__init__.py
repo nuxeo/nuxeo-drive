@@ -99,14 +99,13 @@ class AbstractOSIntegration(object):
         return True
 
     def uninstall(self):
-        """ Several action to do before uninstalling Drive. """
+        """
+        Actions to perform before uninstalling Drive.
+        One action might do nothing depending on its OS-specific
+        implementation.
+        """
 
-        # macOS only
-        self.unregister_contextual_menu()
-        self.unregister_protocol_handlers()
         self.unregister_startup()
-
-        # Windows and macOS
         self.unregister_folder_link(None)
 
     def register_protocol_handlers(self):
@@ -140,16 +139,15 @@ class AbstractOSIntegration(object):
 
     @staticmethod
     def is_linux():
-        return not (AbstractOSIntegration.is_mac()
-                    or AbstractOSIntegration.is_windows())
+        return sys.platform == 'linux2'
 
     @staticmethod
     def get(manager):
         if AbstractOSIntegration.is_mac():
-            from nxdrive.osi.darwin.darwin import DarwinIntegration
+            from .darwin.darwin import DarwinIntegration
             integration, nature = DarwinIntegration, 'macOS'
         elif AbstractOSIntegration.is_windows():
-            from nxdrive.osi.windows.windows import WindowsIntegration
+            from .windows.windows import WindowsIntegration
             integration, nature = WindowsIntegration, 'Windows'
         else:
             integration, nature = AbstractOSIntegration, 'None'

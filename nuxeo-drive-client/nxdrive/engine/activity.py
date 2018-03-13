@@ -2,7 +2,7 @@
 import os
 from threading import current_thread
 
-from nxdrive.utils import current_milli_time
+from ..utils import current_milli_time
 
 
 class Action(object):

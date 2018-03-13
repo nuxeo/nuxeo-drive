@@ -6,7 +6,7 @@ import json
 import urllib2
 from logging import getLogger
 
-from nxdrive.client.base_automation_client import get_proxy_handler
+from .base_automation_client import get_proxy_handler
 
 log = getLogger(__name__)
 

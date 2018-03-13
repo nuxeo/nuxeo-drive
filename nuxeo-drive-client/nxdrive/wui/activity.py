@@ -1,6 +1,6 @@
 # coding: utf-8
-from nxdrive.wui.dialog import WebDialog
-from nxdrive.wui.translator import Translator
+from .dialog import WebDialog
+from .translator import Translator
 
 
 class WebActivityDialog(WebDialog):
