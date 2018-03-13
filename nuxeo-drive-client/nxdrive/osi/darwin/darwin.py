@@ -102,6 +102,28 @@ class DarwinIntegration(AbstractOSIntegration):
                     pass
         return result
 
+    def _set_monitoring(self, operation, path):
+        """
+        Send a notification through the macOS notification center
+        to the FinderSync app extension.
+
+        :param operation: 'watch' or 'unwatch'
+        :param path: path to the folder
+        """
+        from Foundation import NSDistributedNotificationCenter
+        nc = NSDistributedNotificationCenter.defaultCenter()
+        nc.postNotificationName_object_userInfo_(
+            'watchFolders', None,
+            {'operation': operation, 'path': path})
+
+    def watch_folder(self, folder):
+        log.debug('FinderSync now watching {}'.format(folder))
+        self._set_monitoring('watch', folder)
+
+    def unwatch_folder(self, folder):
+        log.debug('FinderSync now ignoring {}'.format(folder))
+        self._set_monitoring('unwatch', folder)
+
     def register_folder_link(self, folder_path, name=None):
         from LaunchServices import LSSharedFileListInsertItemURL
         from LaunchServices import kLSSharedFileListItemBeforeFirst

@@ -923,9 +923,14 @@ class Manager(QtCore.QObject):
         return True
 
     def update_engine_path(self, uid, local_folder):
-        # Dont update the engine by itself, should be only used by engine.update_engine_path
+        # Dont update the engine by itself,
+        # should be only used by engine.update_engine_path
         if uid in self._engine_definitions:
+            # Unwatch old folder
+            self.osi.unwatch_folder(self._engine_definitions[uid].local_folder)
             self._engine_definitions[uid].local_folder = local_folder
+        # Watch new folder
+        self.osi.watch_folder(local_folder)
         self._dao.update_engine_path(uid, local_folder)
 
     def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
@@ -956,6 +961,8 @@ class Manager(QtCore.QObject):
             raise FolderAlreadyUsed()
         uid = uuid.uuid1().hex
 
+        # Watch folder in the file explorer
+        self.osi.watch_folder(local_folder)
         # TODO Check that engine is not inside another or same position
         engine_def = self._dao.add_engine(engine_type, local_folder, uid, name)
         try:
@@ -987,6 +994,8 @@ class Manager(QtCore.QObject):
     def unbind_engine(self, uid):
         if self._engines is None:
             self.load()
+        # Unwatch folder
+        self.osi.unwatch_folder(self._engines[uid].local_folder)
         self._engines[uid].suspend()
         self._engines[uid].unbind()
         self._dao.delete_engine(uid)

@@ -14,16 +14,20 @@ import Cocoa
 import FinderSync
 
 class FinderSync: FIFinderSync {
-
-    var myFolderURL = URL(fileURLWithPath: "/Users/tiger-222")
     var icon = NSImage(named: NSImage.Name(rawValue: "icon_64.png"))
-
+    
     override init() {
         NSLog("FinderSync() launched from %@", Bundle.main.bundlePath as NSString)
         super.init()
-
-        // Set up the directory we are syncing.
-        FIFinderSyncController.default().directoryURLs = [self.myFolderURL]
+        
+        // Upon startup, we are not watching any directories
+        FIFinderSyncController.default().directoryURLs = []
+        
+        // We add an observer to listen to watch notifications from the main application
+        DistributedNotificationCenter.default.addObserver(self,
+                                                          selector: #selector(setWatchedFolders),
+                                                          name: NSNotification.Name("watchFolders"),
+                                                          object: nil)
 
         // Set up images for our badge identifiers.
         // For demonstration purposes, this uses off-the-shelf images.
@@ -35,6 +39,29 @@ class FinderSync: FIFinderSync {
                                                        label: "Status Two",
                                                        forBadgeIdentifier: "Two")
         */
+    }
+    
+    deinit {
+        // Remove the observer from the system upon shutdown
+        DistributedNotificationCenter.default.removeObserver(self,
+                                                             name: NSNotification.Name("watchFolders"),
+                                                             object: nil)
+    }
+    
+    @objc func setWatchedFolders(notification: NSNotification) {
+        NSLog("Notification: %@", notification)
+        
+        // Retrieve the operation (watch/unwatch) and the path from the notification dictionary
+        if let operation = notification.userInfo!["operation"], let path = notification.userInfo!["path"] {
+            let target = URL(fileURLWithPath: path as! String)
+            if operation as! String == "watch" {
+                NSLog("Now watching: %@", target.path as NSString)
+                FIFinderSyncController.default().directoryURLs.insert(target)
+            } else if operation as! String == "unwatch" {
+                NSLog("Now ignoring: %@", target.path as NSString)
+                FIFinderSyncController.default().directoryURLs.remove(target)
+            }
+        }
     }
 
     // Primary Finder Sync protocol methods

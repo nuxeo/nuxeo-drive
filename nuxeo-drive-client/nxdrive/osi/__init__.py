@@ -39,6 +39,12 @@ class AbstractOSIntegration(object):
     def unregister_protocol_handlers(self):
         pass
 
+    def watch_folder(self, folder):
+        pass
+
+    def unwatch_folder(self, folder):
+        pass
+
     def register_folder_link(self, folder_path, name=None):
         pass
 
