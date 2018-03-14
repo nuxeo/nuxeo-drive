@@ -118,8 +118,8 @@
 - Removed osi/\_\_init__.py::`NXDRIVE_EDIT_URL_PREFIX`
 - Removed osi/\_\_init__.py::`NXDRIVE_EDIT_URL_PATTERN_1`
 - Removed osi/\_\_init__.py::`NXDRIVE_EDIT_URL_PATTERN_2`
-- Removed os/darwin/darwin.py::`RightClickService()`
-- Removed os/darwin/darwin.py::`serviceSelector()`
+- Removed osi/darwin/darwin.py::`RightClickService()`
+- Removed osi/darwin/darwin.py::`serviceSelector()`
 - Added updater package
 - Removed updater.py
 - Added utils.py::`version_between()`
