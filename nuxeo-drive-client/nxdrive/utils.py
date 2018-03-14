@@ -12,6 +12,8 @@ import time
 import urlparse
 from logging import getLogger
 
+import re
+
 from .options import Options
 
 DEVICE_DESCRIPTIONS = {
@@ -511,7 +513,9 @@ def parse_protocol_url(url_string):
 
                       'nxdrive://(?P<cmd>share_link)/(?P<path>.*)',
 
-                      'nxdrive://(?P<cmd>access)/(?P<path>.*)']
+                      'nxdrive://(?P<cmd>access)/(?P<path>.*)',
+
+                      'nxdrive://(?P<cmd>trigger_watch)']
 
     parsed_url = None
     for regex in protocol_regex:
@@ -529,6 +533,8 @@ def parse_protocol_url(url_string):
         return parse_edit_protocol(parsed_url, url_string)
     if cmd in ('access', 'share_link'):
         return dict(command=cmd, filepath=parsed_url.get('path'))
+    else:
+        return dict(command=cmd)
 
 
 def parse_edit_protocol(parsed_url, url_string):

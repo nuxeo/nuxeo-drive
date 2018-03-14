@@ -4,8 +4,9 @@ import sys
 import urllib2
 from logging import getLogger
 
-from ...utils import normalized_path
 from .. import AbstractOSIntegration
+from ...constants import BUNDLE_IDENTIFIER
+from ...utils import normalized_path
 
 log = getLogger(__name__)
 
@@ -28,10 +29,16 @@ class DarwinIntegration(AbstractOSIntegration):
         '</plist>'
     )
 
+    def __init__(self, manager):
+        super(DarwinIntegration, self).__init__(manager)
+        log.debug('Telling plugInKit to use the FinderSync')
+        os.system('pluginkit -e use -i {}.NuxeoFinderSync'.format(
+            BUNDLE_IDENTIFIER))
+
     def _get_agent_file(self):
         return os.path.join(
             os.path.expanduser('~/Library/LaunchAgents'),
-            self._manager.get_cf_bundle_identifier() + '.plist')
+            '{}.plist'.format(BUNDLE_IDENTIFIER))
 
     def register_startup(self):
         """
@@ -40,7 +47,7 @@ class DarwinIntegration(AbstractOSIntegration):
         """
         agent = os.path.join(
             os.path.expanduser('~/Library/LaunchAgents'),
-            self._manager.get_cf_bundle_identifier() + '.plist')
+            '{}.plist'.format(BUNDLE_IDENTIFIER))
         if os.path.isfile(agent):
             return
 
@@ -115,9 +122,9 @@ class DarwinIntegration(AbstractOSIntegration):
         """
         from Foundation import NSDistributedNotificationCenter
         nc = NSDistributedNotificationCenter.defaultCenter()
+        name = '{}.watchFolder'.format(BUNDLE_IDENTIFIER)
         nc.postNotificationName_object_userInfo_(
-            'watchFolders', None,
-            {'operation': operation, 'path': path})
+            name, None, {'operation': operation, 'path': path})
 
     def watch_folder(self, folder):
         log.debug('FinderSync now watching {}'.format(folder))

@@ -15,6 +15,8 @@ import FinderSync
 
 class FinderSync: FIFinderSync {
     var icon = NSImage(named: NSImage.Name(rawValue: "icon_64.png"))
+    let watchFolderNotif = NSNotification.Name("org.nuxeo.drive.watchFolder")
+    let triggerWatchNotif = NSNotification.Name("org.nuxeo.drive.triggerWatch")
     
     override init() {
         NSLog("FinderSync() launched from %@", Bundle.main.bundlePath as NSString)
@@ -26,8 +28,11 @@ class FinderSync: FIFinderSync {
         // We add an observer to listen to watch notifications from the main application
         DistributedNotificationCenter.default.addObserver(self,
                                                           selector: #selector(setWatchedFolders),
-                                                          name: NSNotification.Name("watchFolders"),
+                                                          name: self.watchFolderNotif,
                                                           object: nil)
+
+        let triggerURL = URL(string: "nxdrive://trigger_watch")
+        NSWorkspace.shared.open(triggerURL!)
 
         // Set up images for our badge identifiers.
         // For demonstration purposes, this uses off-the-shelf images.
@@ -44,13 +49,11 @@ class FinderSync: FIFinderSync {
     deinit {
         // Remove the observer from the system upon shutdown
         DistributedNotificationCenter.default.removeObserver(self,
-                                                             name: NSNotification.Name("watchFolders"),
+                                                             name: self.watchFolderNotif,
                                                              object: nil)
     }
     
     @objc func setWatchedFolders(notification: NSNotification) {
-        NSLog("Notification: %@", notification)
-        
         // Retrieve the operation (watch/unwatch) and the path from the notification dictionary
         if let operation = notification.userInfo!["operation"], let path = notification.userInfo!["path"] {
             let target = URL(fileURLWithPath: path as! String)

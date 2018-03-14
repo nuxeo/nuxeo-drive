@@ -1002,10 +1002,6 @@ class Manager(QtCore.QObject):
             return self.get_root_id(parent)
         return ref
 
-    @staticmethod
-    def get_cf_bundle_identifier():
-        return "org.nuxeo.drive"
-
     def open_metadata_window(self, file_path, application=None):
         """
         Open the user's browser to a remote document's metadata.

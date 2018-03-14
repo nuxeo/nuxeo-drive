@@ -642,6 +642,12 @@ class Application(SimpleApplication):
                             info['server_url'], info['doc_id'],
                             user=info['user'],
                             download_url=info['download_url'])
+                    elif cmd == 'trigger_watch':
+                        log.debug('Received triggerWatch')
+                        if self.manager._engines is None:
+                            self.manager.load()
+                        for engine in self.manager._engine_definitions:
+                            self.manager.osi.watch_folder(engine.local_folder)
             except:
                 log.exception('Error handling URL event: %s', url)
         return super(Application, self).event(event)
