@@ -3,8 +3,8 @@ from logging import getLogger
 
 from PyQt4 import QtCore
 
-from nxdrive.wui.dialog import Promise, WebDriveApi
-from nxdrive.wui.translator import Translator
+from .dialog import Promise, WebDriveApi
+from .translator import Translator
 
 log = getLogger(__name__)
 

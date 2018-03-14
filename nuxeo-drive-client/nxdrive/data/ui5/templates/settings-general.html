@@ -1,34 +1,36 @@
 <div id="general-view">
-	<div class="checkbox" ng-show="os_version != 'win32'">
-	<label>
-		<input type="checkbox" value="" ng-model="auto_start" ng-click="setAutoStart()">
-		<span translate>AUTOSTART</span>
-	</label>
-	</div>
-	<div class="checkbox">
-	<label>
-		<input type="checkbox" value="" ng-model="auto_update" ng-click="setAutoUpdate()">
-		<span translate>AUTOUPDATE</span>
-	</label>
-	</div>
-	<div class="checkbox">
-	<label>
-    	<input type="checkbox" ng-model="direct_edit_auto_lock" ng-click="setDirectEditAutoLock()">
-    	<span translate>DIRECT_EDIT_AUTO_LOCK</span>
-	</label>
-	</div>
-	<div class="checkbox">
-	<label>
-		<input type="checkbox" value="" ng-model="beta_channel" ng-click="setBetaChannel()">
-		<span translate>BETACHANNEL</span>
-	</label>
-	</div>
-	<div class="checkbox">
-	<label>
-		<input type="checkbox" value="" ng-model="tracking" ng-click="setTracking()">
-		<span translate>TRACKER</span>
-	</label>
-	</div>
+	<div ng-show="is_frozen">
+		<div class="checkbox" ng-show="os_version != 'win32'">
+		<label>
+			<input type="checkbox" value="" ng-model="auto_start" ng-click="setAutoStart()">
+			<span translate>AUTOSTART</span>
+		</label>
+		</div>
+		<div class="checkbox">
+		<label>
+			<input type="checkbox" value="" ng-model="auto_update" ng-click="setAutoUpdate()">
+			<span translate>AUTOUPDATE</span>
+		</label>
+		</div>
+		<div class="checkbox">
+		<label>
+			<input type="checkbox" ng-model="direct_edit_auto_lock" ng-click="setDirectEditAutoLock()">
+			<span translate>DIRECT_EDIT_AUTO_LOCK</span>
+		</label>
+		</div>
+		<div class="checkbox">
+		<label>
+			<input type="checkbox" value="" ng-model="beta_channel" ng-click="setBetaChannel()">
+			<span translate>BETACHANNEL</span>
+		</label>
+		</div>
+		<div class="checkbox">
+		<label>
+			<input type="checkbox" value="" ng-model="tracking" ng-click="setTracking()">
+			<span translate>TRACKER</span>
+		</label>
+		</div>
+		</div>
 	<form class="form-horizontal">
 	  <div class="form-group">
 	    <label for="languageSelect" class="col-sm-10 control-label" translate>LANGUAGE_SELECT</label>

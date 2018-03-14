@@ -11,9 +11,15 @@
 - Removed `AbstractOSIntegration.register_desktop_link()`
 - Removed `AbstractOSIntegration.unregister_contextual_menu()`
 - Removed `AbstractOSIntegration.unregister_desktop_link()`
+- Removed `Application.app_updated()`
 - Removed `Application.engineLogger`
+- Removed `Application.icon_spin_timer`
+- Removed `Application.icon_spin_count`
 - Removed `Application.engineWidget`
 - Removed `Application.mainEngine`
+- Removed `Application.restart()`
+- Removed `Application.spin_transferring_icon()`
+- Removed `Application.updated_version`
 - Removed `BaseAutomationClient.is_addon_installed()`
 - Removed `ConfigurationDAO.begin_transaction()`
 - Removed `ConfigurationDAO.dispose_thread()`
@@ -37,6 +43,7 @@
 - Removed `Engine.resolve_with_duplicate()`
 - Removed `EngineDAO.mark_descendants_remotely_deleted()`
 - Removed `EngineDAO.mark_descendants_locally_created()`
+- Changed `EngineDAO.update_remote_state()` `versionned` keyword argument to `versioned`
 - Removed `EngineDAO.update_local_paths()`
 - Removed `EngineLogger.logger`
 - Removed `FileInfo.get_parent()`
@@ -52,14 +59,20 @@
 - Removed `LocalWatcher.set_windows_folder_scan_delay()`
 - Removed `LocalWatcher.get_windows_watchdog_event_buffer()`
 - Removed `LocalWatcher.set_windows_watchdog_event_buffer()`
+- Removed `Manager.check_version_updated()`
+- Removed `Manager.find_exe_path()`
 - Removed `Manager.get_engines_type()`
+- Removed `Manager.get_version()`. Use `version` property instead.
+- Removed `Manager.get_version_finder()`
 - Removed `Manager.list_server_bindings()`
+- Removed `Manager.update_version()`
 - Removed `Notification.add_replacement()`
 - Removed `Notification.generate_uid()`
 - Removed `Notification.is_volatile()`
 - Removed `Notification.remove_replacement()`
 - Removed `Notification.trigger()`
 - Removed `Options.quit_timeout`
+- Removed `Options.stop_on_error`
 - Removed `Processor.path_locks()`
 - Removed `QueueManager.init_queue()`
 - Removed `RemoteDocumentClient.check_writable()`
@@ -71,7 +84,6 @@
 - Removed `RemoteWatcher.testing`
 - Removed `RestAPIClient.get_acls()`
 - Removed `StatusTreeview.filter_sync`
-- Removed `WebAuthenticationApi.create_account()`
 - Removed `WebConflictsApi.resolve_with_duplicate()`
 - Removed `WebDriveApi.file_dialog_dir`
 - Removed `WebDriveApi.get_last_url()`
@@ -91,12 +103,16 @@
 - Added `Translator.translations()`
 - Added `WebDriveAPI.get_translations()`
 - Removed `WebDriveAPI.get_appname()`
+- Moved commandline.py:`dumpstacks()` to \_\_main__.py
+- Moved commandline.py:`win32_unicode_argv()` to \_\_main__.py
+- Removed commandline.py:`DEFAULT_NX_DRIVE_FOLDER`
 - Removed commandline.py:`GET_CTL_MAX_NB_TRIES`
 - Removed commandline.py:`GET_CTL_SLEEP_DURATION`
 - Removed client/common.py::`DuplicationError()`
 - Removed engine/engine.py::`EngineLogger()`
 - Moved gui/resources.py::`find_icon()` to utils.py
 - Removed gui/folder_treeview.py::`DocClient()`
+- Added options.py::`server_updater()`
 - Moved osi/\_\_init__.py::`parse_edit_protocol()` to utils.py
 - Moved osi/\_\_init__.py::`parse_protocol_url()` to utils.py
 - Removed osi/\_\_init__.py::`NXDRIVE_EDIT_URL_PREFIX`
@@ -104,8 +120,14 @@
 - Removed osi/\_\_init__.py::`NXDRIVE_EDIT_URL_PATTERN_2`
 - Removed os/darwin/darwin.py::`RightClickService()`
 - Removed os/darwin/darwin.py::`serviceSelector()`
+- Added updater package
+- Removed updater.py
+- Added utils.py::`version_between()`
+- Added utils.py::`version_le()`
+- Removed utils.py::`NUXEO_DRIVE_FOLDER_NAME`
 - Removed utils.py::`ServerLoader()`
 - Changed utils.py::`find_resource_dir(directory, default_path)` to `find_resource(folder, filename)`
+- Moved utils.py::`default_nuxeo_drive_folder()` to `Manager.get_default_nuxeo_drive_folder()`
 - Removed wui/conflicts.py::`WebConflictsDialog()`
 
 # 3.0.5

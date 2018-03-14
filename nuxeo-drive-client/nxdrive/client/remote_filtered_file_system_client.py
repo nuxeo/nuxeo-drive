@@ -1,7 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 
-from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
+from .remote_file_system_client import RemoteFileSystemClient
 
 log = getLogger(__name__)
 

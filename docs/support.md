@@ -47,3 +47,15 @@ As of now, we are using the __Python 2.7__.
 History:
 
 - `2014-??-??`: dropped support for Python 2.6
+
+
+## Translations
+
+Nuxeo Drive is translated in several languages. For now, officially supported ones are:
+
+- English
+- French
+- German
+- Indonesian
+- Japanese
+- Spanish

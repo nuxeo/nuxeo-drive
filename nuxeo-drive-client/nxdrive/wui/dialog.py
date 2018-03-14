@@ -14,19 +14,18 @@ from PyQt4.QtNetwork import (QNetworkProxy, QNetworkProxyFactory,
                              QSslCertificate)
 from dateutil.tz import tzlocal
 
-from nxdrive.client.base_automation_client import Unauthorized
-from nxdrive.engine.activity import Action, FileAction
-from nxdrive.engine.dao.sqlite import StateRow
-from nxdrive.engine.engine import Engine
-from nxdrive.engine.workers import Worker
-from nxdrive.manager import FolderAlreadyUsed
-from nxdrive.notification import Notification
-from nxdrive.options import Options
-# from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
-from nxdrive.wui.translator import Translator
+from .translator import Translator
+from ..client.base_automation_client import Unauthorized
+from ..engine.activity import Action, FileAction
+from ..engine.dao.sqlite import StateRow
+from ..engine.engine import Engine
+from ..engine.workers import Worker
+from ..manager import FolderAlreadyUsed
+from ..notification import Notification
+from ..options import Options
+from ..updater.constants import UPDATE_STATUS_UNAVAILABLE_SITE
 
 log = getLogger(__name__)
-UPDATE_STATUS_UNAVAILABLE_SITE = 'unavailable_site'
 
 
 class PromiseWrapper(QtCore.QObject):
@@ -323,7 +322,7 @@ class WebDriveApi(QtCore.QObject):
         status = UPDATE_STATUS_UNAVAILABLE_SITE, None
         updater = self._manager.get_updater()
         if updater:
-            status = updater.get_status()
+            status = updater.last_status
         return self._json(status)
 
     @QtCore.pyqtSlot(result=str)
@@ -334,7 +333,7 @@ class WebDriveApi(QtCore.QObject):
     def app_update(self, version):
         updater = self._manager.get_updater()
         if updater:
-            updater.update(str(version))
+            updater.update(version)
 
     @QtCore.pyqtSlot(str, result=str)
     def get_actions(self, uid):
@@ -363,6 +362,10 @@ class WebDriveApi(QtCore.QObject):
             for conflict in engine.get_errors():
                 result.append(self._export_state(conflict))
         return self._json(result)
+
+    @QtCore.pyqtSlot(result=bool)
+    def is_frozen(self):
+        return Options.is_frozen
 
     @QtCore.pyqtSlot(str, str)
     def show_metadata(self, uid, ref):
@@ -523,7 +526,7 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(result=str)
     def get_version(self):
-        return self._manager.get_version()
+        return self._manager.version
 
     @QtCore.pyqtSlot(result=str)
     def get_update_url(self):

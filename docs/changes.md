@@ -3,14 +3,21 @@ Release date: `2018-??-??`
 
 ### Core
 - [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations
+- [NXDRIVE-925](https://jira.nuxeo.com/browse/NXDRIVE-925): Conflict resolve using local is not working
 - [NXDRIVE-1121](https://jira.nuxeo.com/browse/NXDRIVE-1121): Set modified date to Nuxeo platform modified date
+- [NXDRIVE-1130](https://jira.nuxeo.com/browse/NXDRIVE-1130): Set creation date to Nuxeo platform creation date
 - [NXDRIVE-1132](https://jira.nuxeo.com/browse/NXDRIVE-1132): Security fix in the Crypto module (move to PyCryptodome)
 - [NXDRIVE-1133](https://jira.nuxeo.com/browse/NXDRIVE-1133): Purge dead code reported by the 'vulture' tool
+- [NXDRIVE-1143](https://jira.nuxeo.com/browse/NXDRIVE-1143): New auto-update framework (**breaking change**)
+- [NXDRIVE-1152](https://jira.nuxeo.com/browse/NXDRIVE-1152): Handle document delete operation by server version
 
 ### GUI
 - [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
 - [NXDRIVE-1123](https://jira.nuxeo.com/browse/NXDRIVE-1123): Access right-click action on folders on Windows
 - [NXDRIVE-1124](https://jira.nuxeo.com/browse/NXDRIVE-1124): Right click menu entry on files: "Copy share-link"
+- [NXDRIVE-1136](https://jira.nuxeo.com/browse/NXDRIVE-1136): Change systray icon on update
+- [NXDRIVE-1140](https://jira.nuxeo.com/browse/NXDRIVE-1140): Use a GIF for the transferring icon
+- [NXDRIVE-1149](https://jira.nuxeo.com/browse/NXDRIVE-1149): New language: Indonesian
 
 ### Packaging / Build
 - [NXDRIVE-448](https://jira.nuxeo.com/browse/NXDRIVE-448): Fix version displayed in Windows uninstall
@@ -20,15 +27,22 @@ Release date: `2018-??-??`
 - [NXDRIVE-1125](https://jira.nuxeo.com/browse/NXDRIVE-1125): Make Finder interactions through FinderSync extension on macOS
 
 #### Minor changes
+- CLI: Removed `--stop-on-error` argument
 - Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
 - Jenkins: Possibility to launch the beta job on a given branch
 - Jenkins: Possibility to launch the release job on a given beta version
+- Jenkins: Update the Nuxeo snapshot to 10.2
+- Packaging: Fix symlink creation in `deploy.sh`
 - Packaging: Merged OS specific requirements-*.txt into one file
+- Packaging: Added `pyaml` 17.12.1
+- Packaging: Added `requests` 2.18.4
 - Packaging: Removed `cffi`, will be installed with `xattr`
 - Packaging: Updated `Js2Py` from 0.58 to 0.59
 - Packaging: Updated `pypac` from 0.4.0 to 0.8.1
-- Packaging: Updated `pytest` from 3.3.2 to 3.4.1
+- Packaging: Updated `pytest` from 3.3.2 to 3.4.2
+- Packaging: Updated `python-dateutil` from 2.6.1 to 2.7.0
 - Packaging: Updated `xattr` from 0.9.2 to 0.9.3
+- Tracker: Removed the `Update` event
 
 
 # 3.0.6

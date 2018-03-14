@@ -7,10 +7,10 @@ from time import sleep, time
 
 from watchdog.events import DirModifiedEvent
 
-from nxdrive.client.local_client import FileInfo
-from nxdrive.engine.watcher.local_watcher import LocalWatcher
-from nxdrive.engine.workers import ThreadInterrupt
-from nxdrive.utils import current_milli_time, normalize_event_filename
+from ...client.local_client import FileInfo
+from ...engine.watcher.local_watcher import LocalWatcher
+from ...engine.workers import ThreadInterrupt
+from ...utils import current_milli_time, normalize_event_filename
 
 log = getLogger(__name__)
 
@@ -68,7 +68,7 @@ class SimpleWatcher(LocalWatcher):
         if local_info is None:
             log.warning("Should not disapear")
             return
-        self._dao.update_local_state(doc_pair, local_info, versionned=True)
+        self._dao.update_local_state(doc_pair, local_info, versioned=True)
         log.warning("has update with moved status")
 
     def handle_watchdog_event(self, evt):
@@ -118,7 +118,7 @@ class SimpleWatcher(LocalWatcher):
                     doc_pair.local_state = 'modified'
             doc_pair.local_digest = digest
             log.warning("file is updated: %r", doc_pair)
-            self._dao.update_local_state(doc_pair, local_info, versionned=True)
+            self._dao.update_local_state(doc_pair, local_info, versioned=True)
 
     def _execute(self):
         try:

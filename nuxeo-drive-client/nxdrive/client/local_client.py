@@ -7,22 +7,22 @@ import os
 import shutil
 import sys
 import tempfile
-import time
 import unicodedata
 import uuid
 from datetime import datetime
 from logging import getLogger
+from time import mktime, strptime
 
 from send2trash import send2trash
 
-from nxdrive.client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
-                                                   DOWNLOAD_TMP_FILE_SUFFIX)
-from nxdrive.client.common import (BaseClient, DuplicationDisabledError,
-                                   FILE_BUFFER_SIZE, NotFound,
-                                   UNACCESSIBLE_HASH, safe_filename)
-from nxdrive.options import Options
-from nxdrive.utils import (guess_digest_algorithm, normalized_path,
-                           safe_long_path)
+from .base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
+                                     DOWNLOAD_TMP_FILE_SUFFIX)
+from .common import (BaseClient, DuplicationDisabledError,
+                     FILE_BUFFER_SIZE, NotFound,
+                     UNACCESSIBLE_HASH, safe_filename)
+from ..options import Options
+from ..utils import (guess_digest_algorithm, normalized_path,
+                     safe_long_path)
 
 # from typing import List, Optional, Text, Tuple, Union
 
@@ -780,7 +780,7 @@ FolderType=Generic
             try:
                 mtime = int(mtime)
             except ValueError:
-                mtime = time.mktime(time.strptime(mtime, '%Y-%m-%d %H:%M:%S'))
+                mtime = mktime(strptime(mtime, '%Y-%m-%d %H:%M:%S'))
             os.utime(filename, (mtime, mtime))
 
         if ctime:

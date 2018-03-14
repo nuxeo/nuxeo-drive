@@ -58,11 +58,11 @@ class TestLocalMoveAndRename(UnitTestCase):
         remote_client = self.remote_document_client_1
         marker = False
 
-        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True, force_update=False,
-                                    no_digest=False):
+        def update_remote_state(row, info, remote_parent_path=None, versioned=True, queue=True, force_update=False,
+                                no_digest=False):
             global marker
             EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path=remote_parent_path,
-                                    versionned=versionned, queue=queue, force_update=force_update, no_digest=no_digest)
+                                    versioned=versioned, queue=queue, force_update=force_update, no_digest=no_digest)
             if row.local_name == 'New Folder' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed Folder')
                 marker = True
@@ -155,11 +155,11 @@ class TestLocalMoveAndRename(UnitTestCase):
         remote_client = self.remote_document_client_1
         marker = False
 
-        def update_remote_state(row, info, remote_parent_path=None, versionned=True, queue=True,
+        def update_remote_state(row, info, remote_parent_path=None, versioned=True, queue=True,
                                 force_update=False, no_digest=False):
             global marker
             EngineDAO.update_remote_state(self.engine_1._dao, row, info, remote_parent_path=remote_parent_path,
-                                versionned=versionned, queue=queue, force_update=force_update, no_digest=no_digest)
+                                versioned=versioned, queue=queue, force_update=force_update, no_digest=no_digest)
             if row.local_name == 'File.txt' and not marker:
                 root_local_client.rename(row.local_path, 'Renamed File.txt')
                 marker = True

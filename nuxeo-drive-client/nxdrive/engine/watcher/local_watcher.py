@@ -12,13 +12,13 @@ from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
 
-from nxdrive.client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
-from nxdrive.client.local_client import LocalClient
-from nxdrive.engine.activity import tooltip
-from nxdrive.engine.workers import EngineWorker, ThreadInterrupt
-from nxdrive.options import Options
-from nxdrive.utils import (current_milli_time, force_decode,
-                           is_generated_tmp_file, normalize_event_filename)
+from ..activity import tooltip
+from ..workers import EngineWorker, ThreadInterrupt
+from ...client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
+from ...client.local_client import LocalClient
+from ...options import Options
+from ...utils import (current_milli_time, force_decode, is_generated_tmp_file,
+                      normalize_event_filename)
 
 log = getLogger(__name__)
 
@@ -662,10 +662,10 @@ class LocalWatcher(EngineWorker):
                     doc_pair.local_state = 'moved'
                     old_local_path = doc_pair.local_path
                     self._dao.update_local_state(
-                        doc_pair, local_info, versionned=True)
+                        doc_pair, local_info, versioned=True)
 
             self._dao.update_local_state(
-                doc_pair, local_info, versionned=False)
+                doc_pair, local_info, versioned=False)
 
             if (self._windows
                     and old_local_path is not None

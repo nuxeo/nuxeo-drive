@@ -1,14 +1,12 @@
 # coding: utf-8
 """
-Options managements.
+Options management.
 
-The goal is to have a uniq object `Options` where the whole configuration
-is centralized.  Any other part of Drive should use it directly by just
-importing the class.  No instanciation is needed and therefore forbidden.
+The goal is to have a unique object `Options` where the whole configuration
+is centralized. Any other part of Drive should use it directly by just
+importing the class. No instantiation is needed and therefore it is forbidden.
 
-    >>> from nxdrive.options import Options
-
-Using `repr` or `str` on `Options` has different meaning.
+Using `repr` or `str` on `Options` has different meanings.
 
     >>> repr(Options)
     Options(delay[default]=30, ...)
@@ -24,7 +22,7 @@ configuration):
     >>> str(Options)
     Options(delay[local]=42, locale[cli]='fr', timeout[server]=-1)
 
-You can access to a given option as simply as:
+You can access a given option as simply as:
 
     >>> Options.delay
     30
@@ -33,7 +31,7 @@ To set an option, you must call `Options.set` only:
 
     >>> Options.set('delay', 42)
 
-_For tests purpose_, you can set an option as simply as:
+_For testing purposes_, you can set an option as simply as:
 
     >>> Options.delay = 42
 
@@ -41,7 +39,12 @@ This is the equivalent of:
 
     >>> Options.set('delay', 42, setter='manual')
 
-_For tests purpose_, a `Options.mock` decorator is available.
+_For testing purposes_, a `Options.mock` decorator is available.
+
+---
+
+We also provide the `server_updater()` helper.
+It creates the worker that will check for options update on the server.
 """
 
 from __future__ import unicode_literals
@@ -50,10 +53,15 @@ import locale
 import logging
 import os.path
 import sys
+from copy import deepcopy
 
-# from typing import Any, Dict, Tuple
+try:
+    from typing import Any, Dict, Tuple
+except ImportError:
+    pass
 
-__all__ = ('Options',)
+
+__all__ = ('Options', 'server_updater')
 
 log = logging.getLogger(__name__)
 
@@ -68,12 +76,12 @@ class MetaOptions(type):
             name: (value, setter),
         }
 
-        - name: option's name
-        - value: option's value
-        - setter: which part setted it up (the server, the default conf, ...)
+        - name: option name
+        - value: option value
+        - setter: which part set it up (the server, the default conf, ...)
 
-    Depending the setter, the options can or cannot be updated.  A simple log
-    line will be sent using the logging module.
+    Depending on the setter, the options can or cannot be updated.
+    A simple log line will be sent using the logging module.
     """
 
     # Ignored files, checked lowercase
@@ -119,7 +127,7 @@ class MetaOptions(type):
     options = {
         'beta_channel': (False, 'default'),
         'beta_update_site_url': (
-            'http://community.nuxeo.com/static/drive-tests/', 'default'),
+            'https://community.nuxeo.com/static/drive-updates', 'default'),
         'consider_ssl_errors': (False, 'default'),
         'debug': (False, 'default'),
         'debug_pydev': (False, 'default'),
@@ -137,7 +145,11 @@ class MetaOptions(type):
         'max_errors': (3, 'default'),
         'max_sync_step': (10, 'default'),
         'nxdrive_home': (
-            os.path.join(os.path.expanduser('~'), '.nuxeo-drive'), 'default'),
+            os.path.join(
+                unicode(os.path.expanduser('~').decode(
+                    locale.getpreferredencoding() or 'utf-8')),
+                '.nuxeo-drive'),
+            'default'),
         'nofscheck': (False, 'default'),
         'protocol_url': (None, 'default'),
         'proxy_exceptions': (None, 'default'),
@@ -151,13 +163,14 @@ class MetaOptions(type):
         'server_version': (None, 'default'),
         'theme': ('ui5', 'default'),
         'startup_page': ('drive_login.jsp', 'default'),
-        'stop_on_error': (True, 'default'),
         'timeout': (30, 'default'),
         'ui': ('jsf', 'default'),
         'update_check_delay': (3600, 'default'),
         'update_site_url': (
-            'http://community.nuxeo.com/static/drive/', 'default'),
+            'http://community.nuxeo.com/static/drive-updates', 'default'),
     }  # type: Dict[unicode, Tuple[Any, unicode]]
+
+    default_options = deepcopy(options)
 
     # Callbacks for any option change.
     # Callable signature must be: (new_value: str) -> None
@@ -167,7 +180,7 @@ class MetaOptions(type):
     def __getattr__(self, item):
         # type (unicode) -> Any
         """
-        Override to permit retreiving an option as simply as `Options.delay`.
+        Override to allow retrieving an option as simply as `Options.delay`.
 
         If the option does not exist, returns `None`.
         """
@@ -181,8 +194,8 @@ class MetaOptions(type):
     def __setattr__(self, item, value):
         # type: (unicode, Any) -> None
         """
-        Override to permit setting an option as simply as `Options.delay = 42`.
-        If the option does not exist, does nothing.
+        Override to allow setting an option as simply as `Options.delay = 42`.
+        If the option does not exist, it does nothing.
 
         Use in tests only.
         """
@@ -212,9 +225,9 @@ class MetaOptions(type):
         Set an option.
 
         If the option does not exist, if will be ignored if `fail_on_error`
-        equals `False`, overwise `KeyError` will be raised.
+        equals `False`, otherwise `KeyError` will be raised.
 
-        If the `setter` has the right to override the option's value, set
+        If the `setter` has the right to override the option value, set
         `new_value`, else do nothing.
 
         Any `list` will be converted to a sorted `tuple`.
@@ -222,11 +235,11 @@ class MetaOptions(type):
 
         If the type of the new value differs from the original one,
         raises `ValueError`.  It helps preventing assigning a `str` when
-        a `tuple` is required to keep the rest of code consistent.
+        a `tuple` is required to keep the rest of the code consistent.
 
         Finally, if a callback is set for that option and if the `new_value`
         is assigned to the option, the callback will be called with the
-        `new_value` as lone argument.
+        `new_value` as sole argument.
         """
 
         try:
@@ -244,7 +257,7 @@ class MetaOptions(type):
                 new_value = new_value.decode(
                     locale.getpreferredencoding() or 'utf-8')
 
-            # Try implicit conversions.  We do not use isinstance to prevent
+            # Try implicit conversions. We do not use isinstance to prevent
             # checking against subtypes.
             type_orig = type(old_value)
             if type_orig is bool:
@@ -264,9 +277,11 @@ class MetaOptions(type):
             # We allow to set something when the default is None
             if (not isinstance(new_value, type_orig)
                     and not isinstance(old_value, type(None))):
-                err = ('The value of the option %r is of type %s,'
-                       ' while %s is required.')
-                raise TypeError(err % (
+                if not fail_on_error:
+                    return
+
+                err = 'The type of the option {} is {}, while {} is required.'
+                raise TypeError(err.format(
                     item, type(new_value).__name__, type(old_value).__name__))
 
             # Only update if the setter has rights to
@@ -320,18 +335,18 @@ class MetaOptions(type):
                 ...
 
         """
-
-        from copy import deepcopy
+        def reinit():
+            setattr(MetaOptions, 'callbacks', {})
+            setattr(MetaOptions, 'options',
+                    deepcopy(MetaOptions.default_options))
 
         def decorator(func):
             def wrapper(*args, **kwargs):
-                callbacks_orig = deepcopy(MetaOptions.__dict__['callbacks'])
-                options_orig = deepcopy(MetaOptions.__dict__['options'])
+                reinit()
                 try:
                     return func(*args, **kwargs)
                 finally:
-                    setattr(MetaOptions, 'callbacks', callbacks_orig)
-                    setattr(MetaOptions, 'options', options_orig)
+                    reinit()
             return wrapper
         return decorator
 
@@ -341,4 +356,53 @@ class Options(object):
 
     def __init__(self):
         """ Prevent class instances. """
-        raise RuntimeError('Cannot be instanciated.')
+        raise RuntimeError('Cannot be instantiated.')
+
+
+def server_updater(*args):
+    # type: (*Any) -> ServerOptionsUpdater
+    """
+    Helper to create the worker that will check for option updates
+    on the server.
+    We use this to prevent loading any Drive related stuff and keep
+    the possibility to import other classes without anything else needed.
+    """
+
+    import json
+
+    from PyQt4.QtCore import pyqtSlot
+    from .engine.workers import PollWorker
+
+    class ServerOptionsUpdater(PollWorker):
+        """ Class for checking the server's config.json updates. """
+
+        def __init__(self, manager):
+            # type: (Manager) -> None
+
+            super(ServerOptionsUpdater, self).__init__(
+                Options.update_check_delay)
+            self.manager = manager
+
+        @pyqtSlot()
+        def _poll(self):
+            # type: () -> bool
+            """ Check for the configuration file and apply updates. """
+
+            for _, engine in self.manager._engines.items():
+                client = engine.get_remote_doc_client()
+                if not client:
+                    continue
+
+                try:
+                    raw, _ = client.do_get(
+                        client.rest_api_url + 'drive/configuration')
+                    conf = json.loads(raw, encoding='utf-8')
+                except Exception as exc:
+                    log.error('Polling error: {}'.format(exc))
+                else:
+                    Options.update(conf, setter='server', fail_on_error=True)
+                    break
+
+            return True
+
+    return ServerOptionsUpdater(*args)

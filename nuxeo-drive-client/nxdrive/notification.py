@@ -5,7 +5,7 @@ from threading import Lock
 
 from PyQt4.QtCore import QObject, pyqtSignal
 
-from nxdrive.wui.translator import Translator
+from .wui.translator import Translator
 
 log = getLogger(__name__)
 
