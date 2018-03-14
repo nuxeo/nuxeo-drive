@@ -25,6 +25,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-512](https://jira.nuxeo.com/browse/NXDRIVE-512): Windows application properties not set
 - [NXDRIVE-601](https://jira.nuxeo.com/browse/NXDRIVE-601): Provide a user installation mode on Windows
 - [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730): Move to PyInstaller (**breaking change**)
+- [NXDRIVE-1125](https://jira.nuxeo.com/browse/NXDRIVE-1125): Make Finder interactions through FinderSync extension on macOS
 
 #### Minor changes
 - CLI: Removed `--stop-on-error` argument

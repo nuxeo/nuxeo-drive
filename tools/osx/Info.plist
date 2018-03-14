@@ -8,7 +8,7 @@
 
     <!-- App name and display name -->
 	<key>CFBundleName</key>
-	<string>Nuxeo Drive</string>
+	<string>NuxeoDrive</string>
 	<key>CFBundleDisplayName</key>
 	<string>Nuxeo Drive</string>
 
@@ -34,63 +34,16 @@
 	</dict>
 	<!-- Bundle executable -->
 	<key>CFBundleExecutable</key>
-	<string>MacOS/ndrive</string>
-
-	<!--Right-click services -->
-	<key>NSServices</key>
-	<array>
-		<dict>
-			<key>NSPortName</key>
-			<string>Nuxeo Drive</string>
-			<key>NSSendFileTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
-			<key>NSRequiredContext</key>
-			<dict/>
-			<key>NSSendTypes</key>
-			<array>
-				<string>NSStringPboardType</string>
-			</array>
-			<key>NSMessage</key>
-			<string>openInBrowser</string>
-			<key>NSMenuItem</key>
-			<dict>
-				<key>default</key>
-				<string>Access online</string>
-			</dict>
-		</dict>
-		<dict>
-			<key>NSPortName</key>
-			<string>Nuxeo Drive</string>
-			<key>NSSendFileTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
-			<key>NSRequiredContext</key>
-			<dict/>
-			<key>NSSendTypes</key>
-			<array>
-				<string>NSStringPboardType</string>
-			</array>
-			<key>NSMessage</key>
-			<string>copyShareLink</string>
-			<key>NSMenuItem</key>
-			<dict>
-				<key>default</key>
-				<string>Copy share-link</string>
-			</dict>
-		</dict>
-	</array>
+	<string>ndrive</string>
 
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>NSHighResolutionCapable</key>
 	<string>True</string>
 	<key>LSBackgroundOnly</key>
-	<string>YES</string>
+	<true/>
 	<key>LSUIElement</key>
-	<string>1</string>
+	<true/>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 </dict>

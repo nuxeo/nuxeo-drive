@@ -9,7 +9,7 @@
 #     --start: start Nuxeo Drive
 #     --tests: launch the tests suite
 #
-# See /docs/deployment.md for more informations.
+# See /docs/deployment.md for more information.
 #
 
 # Global variables
@@ -150,6 +150,7 @@ install_deps() {
     ${PIP} setuptools
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-dev.txt
+    pyenv rehash
 }
 
 install_pyenv() {

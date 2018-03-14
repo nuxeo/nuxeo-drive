@@ -18,9 +18,9 @@ from .translator import Translator
 from ..engine.activity import Action, FileAction
 from ..notification import Notification
 from ..options import Options
-from ..osi import AbstractOSIntegration, parse_protocol_url
+from ..osi import AbstractOSIntegration
 from ..updater.constants import UPDATE_STATUS_DOWNGRADE_NEEDED
-from ..utils import find_icon, find_resource
+from ..utils import find_icon, find_resource, parse_protocol_url
 
 log = getLogger(__name__)
 
@@ -631,13 +631,23 @@ class Application(SimpleApplication):
                 log.debug('Event url=%s, info=%r', url, info)
                 if info is not None:
                     log.debug('Received nxdrive URL scheme event: %s', url)
-                    # This is a quick operation, no need to fork a QThread
-                    self.manager.direct_edit.edit(
-                        info['server_url'],
-                        info['doc_id'],
-                        user=info['user'],
-                        download_url=info['download_url'],
-                    )
+                    cmd = info['command']
+                    if cmd == 'access':
+                        self.manager.open_metadata_window(info['filepath'])
+                    elif cmd == 'share_link':
+                        self.manager.copy_share_link(info['filepath'])
+                    elif 'edit' in cmd:
+                        # This is a quick operation, no need to fork a QThread
+                        self.manager.direct_edit.edit(
+                            info['server_url'], info['doc_id'],
+                            user=info['user'],
+                            download_url=info['download_url'])
+                    elif cmd == 'trigger_watch':
+                        log.debug('Received triggerWatch')
+                        if self.manager._engines is None:
+                            self.manager.load()
+                        for engine in self.manager._engine_definitions:
+                            self.manager.osi.watch_folder(engine.local_folder)
             except:
                 log.exception('Error handling URL event: %s', url)
         return super(Application, self).event(event)

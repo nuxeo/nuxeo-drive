@@ -17,9 +17,8 @@ from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import ThreadInterrupt, Worker
-from .osi import parse_protocol_url
 from .utils import (current_milli_time, force_decode, guess_digest_algorithm,
-                    normalize_event_filename, simplify_url)
+                    normalize_event_filename, parse_protocol_url, simplify_url)
 
 log = getLogger(__name__)
 

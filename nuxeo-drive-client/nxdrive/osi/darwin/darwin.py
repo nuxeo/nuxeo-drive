@@ -4,62 +4,11 @@ import sys
 import urllib2
 from logging import getLogger
 
-import AppKit
-import objc
-from AppKit import NSRegisterServicesProvider, NSURLPboardType
-from Foundation import NSObject, NSURL
-
-from ...utils import normalized_path
 from .. import AbstractOSIntegration
+from ...constants import BUNDLE_IDENTIFIER
+from ...utils import normalized_path
 
 log = getLogger(__name__)
-
-
-def serviceSelector(fn):
-    # this is the signature of service selectors
-    return objc.selector(fn, signature='v@:@@o^@')
-
-
-class RightClickService(NSObject):
-
-    @serviceSelector
-    def openInBrowser_userData_error_(self, pboard, data, error):
-        log.trace('openInBrowser has been called')
-        try:
-            path = self.get_file_path(pboard)
-            log.debug('Accessing online: %s', path)
-            from PyQt4.QtCore import QCoreApplication
-            QCoreApplication.instance().show_metadata(path)
-        except:
-            log.exception('Right click service error')
-
-    @serviceSelector
-    def copyShareLink_userData_error_(self, pboard, data, error):
-        log.trace('copyShareLink has been called')
-        try:
-            path = self.get_file_path(pboard)
-            log.debug('Copying share-link for: %s', path)
-            from PyQt4.QtCore import QCoreApplication
-            QCoreApplication.instance().manager.copy_share_link(path)
-        except:
-            log.exception('Right click service error')
-
-    @objc.python_method
-    def get_file_path(self, pboard):
-        types = pboard.types()
-        if NSURLPboardType in types:
-            pboardArray = pboard.propertyListForType_(NSURLPboardType)
-            log.error('Retrieve property list %r', pboardArray)
-            for value in pboardArray:
-                if not value:
-                    continue
-                # TODO Replug prompt_metadata on this one
-                url = NSURL.URLWithString_(value)
-                if url:
-                    return url.path()
-                if value.startswith('file://'):
-                    value = value[7:]
-                return urllib2.unquote(value)
 
 
 class DarwinIntegration(AbstractOSIntegration):
@@ -80,20 +29,25 @@ class DarwinIntegration(AbstractOSIntegration):
         '</plist>'
     )
 
+    def __init__(self, manager):
+        super(DarwinIntegration, self).__init__(manager)
+        log.debug('Telling plugInKit to use the FinderSync')
+        os.system('pluginkit -e use -i {}.NuxeoFinderSync'.format(
+            BUNDLE_IDENTIFIER))
+
     def _get_agent_file(self):
         return os.path.join(
             os.path.expanduser('~/Library/LaunchAgents'),
-            self._manager.get_cf_bundle_identifier() + '.plist')
+            '{}.plist'.format(BUNDLE_IDENTIFIER))
 
     def register_startup(self):
         """
         Register the Nuxeo Drive.app as a user Launch Agent.
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
         """
-
         agent = os.path.join(
             os.path.expanduser('~/Library/LaunchAgents'),
-            self._manager.get_cf_bundle_identifier() + '.plist')
+            '{}.plist'.format(BUNDLE_IDENTIFIER))
         if os.path.isfile(agent):
             return
 
@@ -112,20 +66,6 @@ class DarwinIntegration(AbstractOSIntegration):
         if os.path.isfile(agent):
             log.debug('Unregistering startup agent %r', agent)
             os.remove(agent)
-
-    def _register_services(self):
-        NSRegisterServicesProvider(RightClickService.alloc().init(),
-                                   self._manager.app_name)
-        # Refresh services
-        AppKit.NSUpdateDynamicServices()
-
-    def register_contextual_menu(self):
-        # Register the service that handle the right click
-        self._register_services()
-
-    def unregister_contextual_menu(self):
-        # Specified in the Bundle plist
-        pass
 
     def register_protocol_handlers(self):
         """Register the URL scheme listener using PyObjC"""
@@ -171,6 +111,28 @@ class DarwinIntegration(AbstractOSIntegration):
                 except:
                     pass
         return result
+
+    def _set_monitoring(self, operation, path):
+        """
+        Send a notification through the macOS notification center
+        to the FinderSync app extension.
+
+        :param operation: 'watch' or 'unwatch'
+        :param path: path to the folder
+        """
+        from Foundation import NSDistributedNotificationCenter
+        nc = NSDistributedNotificationCenter.defaultCenter()
+        name = '{}.watchFolder'.format(BUNDLE_IDENTIFIER)
+        nc.postNotificationName_object_userInfo_(
+            name, None, {'operation': operation, 'path': path})
+
+    def watch_folder(self, folder):
+        log.debug('FinderSync now watching {}'.format(folder))
+        self._set_monitoring('watch', folder)
+
+    def unwatch_folder(self, folder):
+        log.debug('FinderSync now ignoring {}'.format(folder))
+        self._set_monitoring('unwatch', folder)
 
     def register_folder_link(self, folder_path, name=None):
         from LaunchServices import LSSharedFileListInsertItemURL

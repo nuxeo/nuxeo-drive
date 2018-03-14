@@ -7,7 +7,9 @@
 - Removed `AbstractOSIntegration.is_same_partition()`
 - Removed `AbstractOSIntegration.os_version_above()`
 - Removed `AbstractOSIntegration.os_version_below()`
+- Removed `AbstractOSIntegration.register_contextual_menu()`
 - Removed `AbstractOSIntegration.register_desktop_link()`
+- Removed `AbstractOSIntegration.unregister_contextual_menu()`
 - Removed `AbstractOSIntegration.unregister_desktop_link()`
 - Removed `Application.app_updated()`
 - Removed `Application.engineLogger`
@@ -27,6 +29,8 @@
 - Removed `ConsoleApplication.connect_engine_quit()`
 - Removed `ConsoleApplication.quit_after_timeout()`
 - Removed `ConsoleApplication.quit_if_sync_completed()`
+- Removed `DarwinIntegration.register_contextual_menu()`
+- Removed `DarwinIntegration.unregister_contextual_menu()`
 - Removed `Engine.BATCH_MODE_DOWNLOAD`
 - Removed `Engine.BATCH_MODE_FOLDER`
 - Removed `Engine.BATCH_MODE_SYNC`
@@ -109,6 +113,13 @@
 - Moved gui/resources.py::`find_icon()` to utils.py
 - Removed gui/folder_treeview.py::`DocClient()`
 - Added options.py::`server_updater()`
+- Moved osi/\_\_init__.py::`parse_edit_protocol()` to utils.py
+- Moved osi/\_\_init__.py::`parse_protocol_url()` to utils.py
+- Removed osi/\_\_init__.py::`NXDRIVE_EDIT_URL_PREFIX`
+- Removed osi/\_\_init__.py::`NXDRIVE_EDIT_URL_PATTERN_1`
+- Removed osi/\_\_init__.py::`NXDRIVE_EDIT_URL_PATTERN_2`
+- Removed osi/darwin/darwin.py::`RightClickService()`
+- Removed osi/darwin/darwin.py::`serviceSelector()`
 - Added updater package
 - Removed updater.py
 - Added utils.py::`version_between()`
