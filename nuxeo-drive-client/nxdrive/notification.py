@@ -206,6 +206,22 @@ class DebugNotification(Notification):
         self.action = ''
 
 
+class DeletionDifferentAccountNotification(Notification):
+    def __init__(self, uid, path):
+        values = {'name': path}
+        super(DeletionDifferentAccountNotification, self).__init__(
+            'DELETION_DIFFERENT_ACCOUNT',
+            engine_uid=uid,
+            title=Translator.get('DELETION_INFO'),
+            description=Translator.get('NOTIF_DELETION_DIFFERENT_ACCOUNT',
+                                       values),
+            flags=(Notification.FLAG_PERSISTENT
+                   | Notification.FLAG_BUBBLE
+                   | Notification.FLAG_DISCARD_ON_TRIGGER
+                   | Notification.FLAG_REMOVE_ON_DISCARD),
+        )
+
+
 class ErrorNotification(Notification):
     def __init__(self, engine_uid, doc_pair):
         values = dict(name='')
@@ -440,6 +456,7 @@ class DefaultNotificationService(NotificationService):
         self._manager.autolock_service.documentLocked.connect(self._lockDocument)
 
     def _connect_engine(self, engine):
+        engine.deletionDifferentAccount.connect(self._deletionDifferentAccount)
         engine.newConflict.connect(self._newConflict)
         engine.newError.connect(self._newError)
         engine.newReadonly.connect(self._newReadonly)
@@ -449,6 +466,11 @@ class DefaultNotificationService(NotificationService):
         engine.online.connect(self._validAuthentication)
         engine.errorOpenedFile.connect(self._errorOpenedFile)
         engine.fileDeletionErrorTooLong.connect(self._fileDeletionErrorTooLong)
+
+    def _deletionDifferentAccount(self, path):
+        engine_uid = self.sender().uid
+        self.send_notification(
+            DeletionDifferentAccountNotification(engine_uid, path))
 
     def _errorOpenedFile(self, doc):
         self.send_notification(ErrorOpenedFile(

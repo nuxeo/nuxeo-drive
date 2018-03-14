@@ -50,6 +50,7 @@ class Engine(QObject):
     _start = pyqtSignal()
     _stop = pyqtSignal()
     _scanPair = pyqtSignal(str)
+    deletionDifferentAccount = pyqtSignal(object)
     errorOpenedFile = pyqtSignal(object)
     fileDeletionErrorTooLong = pyqtSignal(object)
     syncStarted = pyqtSignal(object)

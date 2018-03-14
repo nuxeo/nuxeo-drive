@@ -9,6 +9,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1132](https://jira.nuxeo.com/browse/NXDRIVE-1132): Security fix in the Crypto module (move to PyCryptodome)
 - [NXDRIVE-1133](https://jira.nuxeo.com/browse/NXDRIVE-1133): Purge dead code reported by the 'vulture' tool
 - [NXDRIVE-1143](https://jira.nuxeo.com/browse/NXDRIVE-1143): New auto-update framework (**breaking change**)
+- [NXDRIVE-1147](https://jira.nuxeo.com/browse/NXDRIVE-1147): Do not definitively delete a document synced elsewhere
 - [NXDRIVE-1152](https://jira.nuxeo.com/browse/NXDRIVE-1152): Handle document delete operation by server version
 
 ### GUI
