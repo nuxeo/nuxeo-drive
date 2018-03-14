@@ -5,10 +5,9 @@ export OSI="osx"
 
 . "$(python -c "import os.path; print(os.path.realpath('$0').replace('/osx/', '/posix/'))")"
 
-code_sign() {
+prepare_signing() {
     # Code sign the app
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-OSX-Code-Signing
-    local app="$1"
 
     if [[ -z ${SIGNING_ID:-} ]]; then
         echo ">>> [sign] WARNING: Signing ID is unavailable, application won't be signed."
@@ -22,17 +21,6 @@ code_sign() {
     security unlock-keychain -p "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}"
     security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}"
     security set-keychain-settings "${LOGIN_KEYCHAIN_PATH}"
-
-    echo ">>> [sign] Signing the file ${app}"
-    if [[ $# > 1 ]]; then
-        codesign --deep --force --preserve-metadata=entitlements --verbose --sign "${SIGNING_ID}" --entitlements $2 "${app}"
-    else
-        codesign --deep --force --verbose --sign "${SIGNING_ID}" "${app}"
-    fi
-
-    echo ">>> [sign] Verifying code signature"
-    codesign --verify --verbose "${app}"
-    # spctl --assess -vv "${app}"
 }
 
 create_package() {
@@ -61,7 +49,21 @@ create_package() {
     rm -rf "${extension_path}/build"
 
     echo ">>> [package] Creating the DMG file"
-    code_sign "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex" "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements"
+
+    prepare_signing
+    echo ">>> [sign] Signing the app extension"
+    codesign -dfvs "${SIGNING_ID}" --entitlements "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements" "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
+
+    echo ">>> [sign] Signing the app"
+    # We recursively sign all the files without --force so the app
+    # extension keeps its entitlements and its sandboxing
+    find "${pkg_path}/Contents/MacOS" -type f -exec codesign -ds "${SIGNING_ID}" {} \;
+    # Then we shallow sign the .app
+    codesign -vs "${SIGNING_ID}" "${pkg_path}"
+
+    echo ">>> [sign] Verifying code signature"
+    codesign -vv "${pkg_path}"
+    spctl --assess -vv "${pkg_path}"
 
     echo ">>> [DMG] ${bundle_name} version ${app_version}"
     # Compute DMG name and size
@@ -89,7 +91,7 @@ create_package() {
     # Clean tmp directories
     rm -rf "${src_folder_tmp}" "${dmg_tmp}"
 
-    code_sign "dist/nuxeo-drive-${app_version}.dmg"
+    codesign -vs "${SIGNING_ID}" "dist/nuxeo-drive-${app_version}.dmg"
     rm -rf "${pkg_path}"
 }
 
