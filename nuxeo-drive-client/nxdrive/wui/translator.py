@@ -63,6 +63,21 @@ class Translator(object):
                 value = values[attr]
             except KeyError:
                 value = ''
+
+            # For notifications, the text is limited to 200 characters
+            # https://msdn.microsoft.com/en-us/library/windows/desktop/ee330740(v=vs.85).aspx
+            # This is related to Windows, but we apply the truncation everywhere
+            if attr in ('folder', 'name') and len(value) > 70:
+                original = value
+                try:
+                    if isinstance(value, unicode):
+                        value = value.encode('utf-8')
+                    value = value.decode('utf-8')
+                    value = u'{}…{}'.format(value[:30], value[-40:])
+                except:
+                    # If we failed to manage the unicode mess, just ignore it
+                    value = original
+
             result = result.replace(token, value)
         return result
 

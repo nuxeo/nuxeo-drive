@@ -85,23 +85,33 @@ def test_load_existing_language():
     assert Translator.get('BOUZOUF') == 'BOUZOUF'
 
 
-def test_token():
-    options = dict()
-    options['token_1'] = 'First Token'
-    options['token_2'] = 'Another One'
+@pytest.mark.parametrize('token, result', [
+    ('TOKEN_NORMAL', 'Language First Token'),
+    ('TOKEN_DOUBLE', 'First Token Language Another One'),
+    ('TOKEN_UNKNOWN', ' TOKEN'),
+    ('TOKEN_WITH_NO_SPACE', 'First Token TOKEN'),
+    ('TOKEN_REPEAT', 'First Token TOKEN First Token'),
+])
+def test_token(token, result):
+    options = {'token_1': 'First Token', 'token_2': 'Another One'}
     Translator(MockManager(), get_folder('i18n'))
-    '''
-    "TOKEN_NORMAL": "Language {{ token_1 }}",
-    "TOKEN_DOUBLE": "{{ token_1 }} Language {{ token_2 }}",
-    "TOKEN_UNKNOWN": "{{ token_unknown }} TOKEN",
-    "TOKEN_WITH_NO_SPACE": "{{token_1}} TOKEN",
-    "TOKEN_REPEAT": "{{token_1}} TOKEN {{ token_1 }}"
-    '''
-    assert Translator.get('TOKEN_NORMAL', options) == 'Language First Token'
-    assert Translator.get('TOKEN_DOUBLE', options) == 'First Token Language Another One'
-    assert Translator.get('TOKEN_UNKNOWN', options) == ' TOKEN'
-    assert Translator.get('TOKEN_WITH_NO_SPACE', options) == 'First Token TOKEN'
-    assert Translator.get('TOKEN_REPEAT', options) == 'First Token TOKEN First Token'
+    assert Translator.get(token, options) == result
+
+
+@pytest.mark.parametrize('token', [
+    'ERROR_ON_FILE',
+    'ERROR_ON_FOLDER',
+    'ERROR_ON_BOTH',
+])
+def test_truncated_paths(token):
+    values = {
+        'name': os.path.sep.join(['A' * 12, 'b' * 321, 'C' * 22]),
+        'folder': os.path.sep.join(['A' * 12, 'b' * 13, 'ç' * 20, 'à' * 71]),
+    }
+    Translator(MockManager(), get_folder('i18n'))
+    text = Translator.get(token, values)
+    assert u'…' in text
+    assert len(text) < 200
 
 
 def get_folder(folder):
