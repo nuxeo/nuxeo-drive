@@ -32,9 +32,7 @@ code_sign() {
 
     echo ">>> [sign] Verifying code signature"
     codesign --verify --verbose "${app}"
-    if [[ $# -eq 1 ]]; then
-        spctl --assess -vv "${app}"
-    fi
+    # spctl --assess -vv "${app}"
 }
 
 create_package() {
