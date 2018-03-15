@@ -20,8 +20,7 @@
 	</form>
 </div>
 <div ng-show="app_update[0] == 'update_available' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-info user-action" translate translate_values="{ version:app_update[1] }">UPGRADE_AVAILABLE</div>
-<div ng-show="app_update[0] == 'downgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger user-action" translate translate_values="{ version:app_update[1] }">DOWNGRADE_NEEDED</div>
-<div ng-show="app_update[0] == 'upgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger user-action" translate translate_values="{ version:app_update[1] }">UPGRADE_NEEDED</div>
+<div ng-show="app_update[0] == 'downgrade_needed' && confirmAppUpdateDialog == null" ng-click="confirmAppUpdate(app_update[1])" class="notification notification-danger user-action" translate translate_values="{ version:app_update[1] }">NOTIF_UPDATE_DOWNGRADE</div>
 <div ng-show="app_update[0] == 'updating'" class="notification notification-info">
 	<span translate translate_values="{ version:app_update[1] }">UPDATING_VERSION</span>
 	<div class="progress" style="height: 4px;">

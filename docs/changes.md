@@ -20,6 +20,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1136](https://jira.nuxeo.com/browse/NXDRIVE-1136): Change systray icon on update
 - [NXDRIVE-1140](https://jira.nuxeo.com/browse/NXDRIVE-1140): Use a GIF for the transferring icon
 - [NXDRIVE-1149](https://jira.nuxeo.com/browse/NXDRIVE-1149): New language: Indonesian
+- [NXDRIVE-1166](https://jira.nuxeo.com/browse/NXDRIVE-1166): Display a notification on new update on GNU/Linux
 
 ### Packaging / Build
 - [NXDRIVE-448](https://jira.nuxeo.com/browse/NXDRIVE-448): Fix version displayed in Windows uninstall
@@ -29,6 +30,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1125](https://jira.nuxeo.com/browse/NXDRIVE-1125): Make Finder interactions through FinderSync extension on macOS
 
 #### Minor changes
+- Auto-update: automatically install a new update if no bound engine
 - CLI: Removed `--stop-on-error` argument
 - Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
 - Jenkins: Possibility to launch the beta job on a given branch

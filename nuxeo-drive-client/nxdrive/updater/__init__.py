@@ -25,7 +25,7 @@ def updater(*args, **kwargs):
     if not Options.update_check_delay:
         # The user manually disabled the auto-update
         from .base import BaseUpdater as Updater
-        setattr(Updater, '_enable', False)
+        setattr(Updater, '_can_update', False)
         log.info('Update check delay is set to 0, disabling auto-update')
     else:
         import platform
@@ -37,7 +37,7 @@ def updater(*args, **kwargs):
             from .windows import Updater
         else:
             from .base import BaseUpdater as Updater
-            setattr(Updater, '_enable', False)
+            setattr(Updater, '_can_update', False)
 
     return Updater(*args, **kwargs)
 

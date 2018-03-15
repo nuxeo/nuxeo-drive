@@ -430,13 +430,6 @@ class Manager(QtCore.QObject):
         if self.get_updater() is not None:
             self.get_updater().refresh_status()
 
-    def _refresh_engine_update_infos(self):
-        log.debug('Refreshing engine infos')
-        engines = self.get_engines()
-        if engines:
-            for engine in engines.itervalues():
-                engine.get_update_infos()
-
     def _create_direct_edit(self, url):
         from .direct_edit import DirectEdit
         self.direct_edit = DirectEdit(self, self.direct_edit_folder, url)

@@ -113,8 +113,9 @@ When setting the `update-site-url` or `beta-update-site-url` parameter, it must 
 Process:
 1. Fetch the file `versions.yml` from the defined URL in `update-site-url` (or `beta-update-site-url`);
 2. Find the latest version sorted by `type` and the current Nuxeo version;
-3. Download the version specific to the current OS (`.dmg` for macOS, `.exe` for Windows, ... ) into a temporary folder;
-4. Verify the checksum of the downloaded file.
+3. If the "Auto-update" option is not checked or if there is no bound engine, stop there;
+4. Download the version specific to the current OS (`.dmg` for macOS, `.exe` for Windows, ... ) into a temporary folder;
+5. Verify the checksum of the downloaded file.
 
 Then, actions taken are OS-specific.
 

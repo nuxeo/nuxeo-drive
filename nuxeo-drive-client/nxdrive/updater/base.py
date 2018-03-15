@@ -43,7 +43,7 @@ class BaseUpdater(PollWorker):
         super(BaseUpdater, self).__init__(Options.update_check_delay)
         self.manager = manager
 
-        self.enable = getattr(self, '_enable', Options.is_frozen)
+        self.enable = getattr(self, '_can_update', Options.is_frozen)
         self.last_status = (UPDATE_STATUS_UP_TO_DATE, None)
 
         if not self.enable:
@@ -115,13 +115,8 @@ class BaseUpdater(PollWorker):
         # type: () -> None
         """
         Check for an update.
-        Used when changing the beta channel option or when
-        binding a new engine.
+        Used when changing the beta channel option or when binding a new engine.
         """
-
-        if not self.enable:
-            return
-
         self._poll()
 
     @pyqtSlot(str)
@@ -129,10 +124,10 @@ class BaseUpdater(PollWorker):
         if not self.enable:
             return
 
-        log.info('Starting application update process')
         version = str(version)
-        filename = self._download(version)
-        self._install(version, filename)
+        log.info('Starting application update process to version %s', version)
+        self.last_status = (UPDATE_STATUS_UPDATING, version, 50)
+        self._install(version, self._download(version))
 
     #
     # Private methods, should not try to override
@@ -212,32 +207,28 @@ class BaseUpdater(PollWorker):
 
         if status == UPDATE_STATUS_UNAVAILABLE_SITE:
             log.warning('Update site is unavailable, as a consequence'
-                        ' update features won\'t be available')
-        elif status == UPDATE_STATUS_DOWNGRADE_NEEDED:
-            log.info('Downgrade to version %r is needed', version)
-            log.info('As current client version is not compatible with'
-                     ' server version, a downgrade is needed.'
-                     ' Synchronization won\'t start until then.')
-            self.manager.stop()
-            self.updateAvailable.emit()
-        elif status == UPDATE_STATUS_UPDATE_AVAILABLE:
-            if self.manager.get_auto_update():
-                log.info('An application update is available and'
-                         ' auto-update is checked')
-                self.last_status = (UPDATE_STATUS_UPDATING, version, 0)
-                try:
-                    self.update(version)
-                except UpdateError:
-                    log.exception('An error occurred while trying to '
-                                  'automatically update Nuxeo Drive to '
-                                  'version %r', version)
-            else:
-                log.info('An update is available and auto-update is not'
-                         ' checked, let\'s just update the systray notification'
-                         ' and let the user explicitly choose to update')
-                self.updateAvailable.emit()
-        else:
+                        ' update features won\'t be available.')
+            return
+
+        if status not in (UPDATE_STATUS_DOWNGRADE_NEEDED,
+                          UPDATE_STATUS_UPDATE_AVAILABLE):
             log.debug('You are up-to-date!')
+            return
+
+        self.updateAvailable.emit()
+
+        if status == UPDATE_STATUS_DOWNGRADE_NEEDED:
+            self.manager.stop()
+            return
+
+        if self.manager.get_auto_update() or not self.manager.get_engines():
+            # Automatically update if:
+            #  - the auto-update option is checked
+            #  - there is no bound engine
+            try:
+                self.update(version)
+            except UpdateError:
+                log.exception('Auto-update error')
 
     def _install(self, version, filename):
         # type: (unicode, unicode) -> None
@@ -275,7 +266,7 @@ class BaseUpdater(PollWorker):
     def _poll(self):
         ret = True
 
-        if self.enable and self.last_status != UPDATE_STATUS_UPDATING:
+        if self.last_status != UPDATE_STATUS_UPDATING:
             log.debug('Polling %r for update, the current version is %r',
                       self.update_site, self.manager.version)
             try:
