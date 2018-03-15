@@ -537,7 +537,7 @@ class Processor(EngineWorker):
                 if 'default#' in remote_ref:
                     # Document appears to be deleted server side.
                     self._synchronize_remotely_deleted(
-                        doc_pair, local_client, remote_client, force=True)
+                        doc_pair, local_client, remote_client, notif=True)
                 return
 
             try:
@@ -1074,7 +1074,7 @@ class Processor(EngineWorker):
         doc_pair,
         local_client,
         remote_client,
-        force=False
+        notif=False
     ):
         try:
             if doc_pair.local_state != 'deleted':
@@ -1086,10 +1086,16 @@ class Processor(EngineWorker):
                     file_out = self._get_temporary_file(local_client.abspath(doc_pair.local_path))
                     if os.path.exists(file_out):
                         os.remove(file_out)
-                if force or not self._engine.use_trash():
+
+                if not self._engine.use_trash():
+                    # Force the complete file deletion
                     local_client.delete_final(doc_pair.local_path)
                 else:
                     local_client.delete(doc_pair.local_path)
+
+                if notif:
+                    self._engine.deletionDifferentAccount.emit(doc_pair.local_path)
+
             self._dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
         finally:
