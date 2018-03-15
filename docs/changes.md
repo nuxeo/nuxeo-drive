@@ -1,5 +1,10 @@
-# dev
-Release date: `2018-??-??`
+# 3.0.7
+Release date: `2018-05-31`
+
+It is a hybrid release that makes the bridge between versions 3.0.6 and 3.1.0.
+As new installer and auto-updater were introduced in 3.1.0, we did that to no break the auto-update process.
+
+This is the lastest 3.0.x release that forces the upgrade to a newer version.
 
 
 # 3.0.6

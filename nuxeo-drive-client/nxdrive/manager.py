@@ -20,9 +20,9 @@ from nxdrive.client import LocalClient
 from nxdrive.client.base_automation_client import get_proxies_for_handler
 from nxdrive.logging_config import FILE_HANDLER
 from nxdrive.notification import DefaultNotificationService
-from nxdrive.options import Options
+from nxdrive.options import Options, server_updater
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.updater import AppUpdater, FakeUpdater, ServerOptionsUpdater
+from nxdrive.updater import updater
 from nxdrive.utils import (ENCODING, OSX_SUFFIX, decrypt, encrypt,
                            normalized_path)
 
@@ -328,10 +328,10 @@ class Manager(QtCore.QObject):
         self.load()
 
         # Create the server's configuration getter verification thread
-        self._create_server_config_updater(Options.update_check_delay)
+        self._create_server_config_updater()
 
         # Create the application update verification thread
-        self._create_updater(Options.update_check_delay)
+        self._create_updater()
 
         # Force language
         if Options.force_locale is not None:
@@ -401,9 +401,6 @@ class Manager(QtCore.QObject):
         return self.autolock_service
 
     def _create_tracker(self):
-        if not self.get_tracking():
-            return None
-
         from nxdrive.engine.tracker import Tracker
         tracker = Tracker(self)
         # Start the tracker when we launch
@@ -425,24 +422,17 @@ class Manager(QtCore.QObject):
         from nxdrive.engine.dao.sqlite import ManagerDAO
         self._dao = ManagerDAO(self._get_db())
 
-    def _create_server_config_updater(self, update_check_delay):
-        # type: (int) -> Any
-        if update_check_delay == 0:
+    def _create_server_config_updater(self):
+        # type: () -> None
+        if not Options.update_check_delay:
             return
 
-        self.server_config_updater = ServerOptionsUpdater(
-            self, check_interval=update_check_delay)
+        self.server_config_updater = server_updater(self)
         self.started.connect(self.server_config_updater._thread.start)
         return self.server_config_updater
 
-    def _create_updater(self, update_check_delay):
-        if update_check_delay == 0:
-            log.info("Update check delay is 0, disabling autoupdate")
-            self._app_updater = FakeUpdater()
-            return self._app_updater
-        # Enable the capacity to extend the AppUpdater
-        self._app_updater = AppUpdater(self, version_finder=self.get_version_finder(),
-                                       check_interval=update_check_delay)
+    def _create_updater(self, *_):
+        self._app_updater = updater(self)
         self.started.connect(self._app_updater._thread.start)
         return self._app_updater
 
@@ -687,7 +677,7 @@ class Manager(QtCore.QObject):
 
     def get_auto_update(self):
         # By default auto update
-        return self._dao.get_config("auto_update", "1") == "1"
+        return True
 
     def set_auto_update(self, value):
         self._dao.update_config("auto_update", value)
@@ -1044,6 +1034,10 @@ class Manager(QtCore.QObject):
 
     def get_engines_type(self):  # TODO: Remove
         return self._engine_types
+
+    @property
+    def version(self):
+        return __version__
 
     def get_version(self):  # TODO: Convert to property
         return __version__

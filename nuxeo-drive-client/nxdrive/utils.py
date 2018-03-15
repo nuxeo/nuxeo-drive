@@ -14,8 +14,6 @@ from urllib2 import HTTPError, URLError, urlopen
 
 import psutil
 import rfc3987
-from Crypto import Random
-from Crypto.Cipher import AES
 
 from nxdrive.options import Options
 
@@ -245,6 +243,21 @@ def normalized_path(path):
         os.path.normpath(os.path.abspath(os.path.expanduser(path))))
 
 
+def version_between(x, y, z):
+    """ x <= y <= y """
+    return version_le(x, y) and version_le(y, z)
+
+
+def version_le(x, y):
+    """ x <= y """
+    return version_compare_client(x, y) <= 0
+
+
+def version_lt(x, y):
+    """ x < y """
+    return version_compare_client(x, y) < 0
+
+
 def normalize_event_filename(filename, action=True):
     # type: (unicode, bool) -> unicode
     """
@@ -422,25 +435,34 @@ def force_decode(string, codecs=('utf-8', 'cp1252')):
 
 
 def encrypt(plaintext, secret, lazy=True):
-    """Symetric encryption using AES"""
+    """ Symetric encryption using AES. """
+
+    from Cryptodome.Random import get_random_bytes
+    from Cryptodome.Cipher import AES
+
     secret = _lazysecret(secret) if lazy else secret
-    iv = Random.new().read(AES.block_size)
+    iv = get_random_bytes(AES.block_size)
     encobj = AES.new(secret, AES.MODE_CFB, iv)
     return base64.b64encode(iv + encobj.encrypt(plaintext))
 
 
 def decrypt(ciphertext, secret, lazy=True):
-    """Symetric decryption using AES"""
+    """ Symetric decryption using AES. """
+
+    from Cryptodome.Cipher import AES
+
     secret = _lazysecret(secret) if lazy else secret
     ciphertext = base64.b64decode(ciphertext)
     iv = ciphertext[:AES.block_size]
     ciphertext = ciphertext[AES.block_size:]
-    # Dont fail on decrypt
+
+    # Don't fail on decrypt
     try:
         encobj = AES.new(secret, AES.MODE_CFB, iv)
         return encobj.decrypt(ciphertext)
     except:
-        return
+        return None
+
 
 
 def _lazysecret(secret, blocksize=32, padding='}'):

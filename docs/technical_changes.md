@@ -2,9 +2,6 @@
 [//]: # (Note 2: single files last)
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
-# dev
--
-
 # 3.0.5
 - Changed `BlacklistQueue.get()`, it is now a generator.
 - Removed `CLIHandler.edit()`

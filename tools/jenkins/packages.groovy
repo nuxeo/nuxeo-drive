@@ -32,11 +32,11 @@ properties([
 //      Then, OSXSLAVE-DRIVE will be the good value.
 // Note 2017-07-21:
 //      Later, when we will be in Python3/Qt5, the good value will be OSXSLAVE.
-slaves = ['TWANG', 'SLAVE', 'WINSLAVE']
+slaves = ['TWANG', 'windb2']
 labels = [
     'TWANG': 'macOS',
     'SLAVE': 'GNU/Linux',
-    'WINSLAVE': 'Windows'
+    'windb2': 'Windows'
 ]
 builders = [:]
 
@@ -95,10 +95,10 @@ for (x in slaves) {
                         try {
                             if (osi == 'macOS') {
                                 sh 'tools/osx/deploy_jenkins_slave.sh --build'
-                                archive 'dist/*.dmg, dist/*.zip'
+                                archive 'dist/*.json, dist/*.dmg, dist/*.zip'
                             } else if (osi == 'GNU/Linux') {
                                 sh 'tools/linux/deploy_jenkins_slave.sh --build'
-                                archive 'dist/*.json, dist/*.deb, dist/*.zip'
+                                archive 'dist/*.deb, dist/*.zip'
                             } else {
                                 bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
                                 archive 'dist/*.msi, dist/*.zip'

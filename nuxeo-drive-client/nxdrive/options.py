@@ -116,9 +116,9 @@ class MetaOptions(type):
 
     # Default options
     options = {
-        'beta_channel': (False, 'default'),
+        'beta_channel': (False, 'manual'),
         'beta_update_site_url': (
-            'http://community.nuxeo.com/static/drive-tests/', 'default'),
+            'https://community.nuxeo.com/static/drive-updates/', 'manual'),
         'consider_ssl_errors': (False, 'default'),
         'debug': (False, 'default'),
         'debug_pydev': (False, 'default'),
@@ -149,9 +149,9 @@ class MetaOptions(type):
         'stop_on_error': (True, 'default'),
         'timeout': (30, 'default'),
         'ui': ('jsf', 'default'),
-        'update_check_delay': (3600, 'default'),
+        'update_check_delay': (60, 'default'),
         'update_site_url': (
-            'http://community.nuxeo.com/static/drive/', 'default'),
+            'https://community.nuxeo.com/static/drive-updates/', 'manual'),
     }  # type: Dict[unicode, Tuple[Any, unicode]]
 
     # Callbacks for any option change.
@@ -337,3 +337,52 @@ class Options(object):
     def __init__(self):
         """ Prevent class instances. """
         raise RuntimeError('Cannot be instanciated.')
+
+
+def server_updater(*args):
+    # type: (*Any) -> ServerOptionsUpdater
+    """
+    Helper to create the worker that will check for option updates
+    on the server.
+    We use this to prevent loading any Drive related stuff and keep
+    the possibility to import other classes without anything else needed.
+    """
+
+    import json
+
+    from PyQt4.QtCore import pyqtSlot
+    from .engine.workers import PollWorker
+
+    class ServerOptionsUpdater(PollWorker):
+        """ Class for checking the server's config.json updates. """
+
+        def __init__(self, manager):
+            # type: (Manager) -> None
+
+            super(ServerOptionsUpdater, self).__init__(
+                Options.update_check_delay)
+            self.manager = manager
+
+        @pyqtSlot()
+        def _poll(self):
+            # type: () -> bool
+            """ Check for the configuration file and apply updates. """
+
+            for _, engine in self.manager._engines.items():
+                client = engine.get_remote_doc_client()
+                if not client:
+                    continue
+
+                try:
+                    raw, _ = client.do_get(
+                        client.rest_api_url + 'drive/configuration')
+                    conf = json.loads(raw, encoding='utf-8')
+                except Exception as exc:
+                    log.error('Polling error: {}'.format(exc))
+                else:
+                    Options.update(conf, setter='server', fail_on_error=True)
+                    break
+
+            return True
+
+    return ServerOptionsUpdater(*args)

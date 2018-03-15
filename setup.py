@@ -361,6 +361,8 @@ class NuxeoDriveSetup(object):
             'ipdb',
             'pydoc',
             'yappi',
+            'collections._weakref',
+            'collections.sys',
         ]
         if attribs.include_xattr_binaries():
             includes.append('cffi')

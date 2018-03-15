@@ -90,6 +90,7 @@ class Application(SimpleApplication):
 
     tray_icon = None
     icon_state = None
+    update_available = True
 
     def __init__(self, manager, *args):
         super(Application, self).__init__(manager, *args)
@@ -120,7 +121,7 @@ class Application(SimpleApplication):
         self.icon_spin_count = 0
 
         # Application update
-        self.manager.get_updater().appUpdated.connect(self.app_updated)
+        self.manager.get_updater().appUpdated.connect(self.quit)
         self.updated_version = None
 
         # This is a windowless application mostly using the system tray
@@ -249,34 +250,7 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def change_systray_icon(self):
-        syncing = False
-        engines = self.manager.get_engines()
-        invalid_credentials = True
-        paused = True
-        offline = True
-
-        for engine in engines.itervalues():
-            syncing |= engine.is_syncing()
-            invalid_credentials &= engine.has_invalid_credentials()
-            paused &= engine.is_paused()
-            offline &= engine.is_offline()
-
-        if offline:
-            new_state = 'stopping'
-            Action(Translator.get('OFFLINE'))
-        elif invalid_credentials:
-            new_state = 'stopping'
-            Action(Translator.get('INVALID_CREDENTIALS'))
-        elif not engines or paused:
-            new_state = 'disabled'
-            Action.finish_action()
-        elif syncing:
-            new_state = 'transferring'
-        else:
-            new_state = 'asleep'
-            Action.finish_action()
-
-        self.set_icon_state(new_state)
+        self.set_icon_state('update_available')
 
     def _get_settings_dialog(self, section):
         from nxdrive.wui.settings import WebSettingsDialog
@@ -425,16 +399,26 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def _update_notification(self):
+        # Change the systray icon
+        self.change_systray_icon()
+
+        # Display a notification
         replacements = dict(version=self.manager.get_updater().get_status()[1])
+
+        description = Translator.get('AUTOUPDATE_UPGRADE', replacements)
+        flags = Notification.FLAG_BUBBLE | Notification.FLAG_UNIQUE
+        if AbstractOSIntegration.is_linux():
+            description += ' ' + Translator.get('AUTOUPDATE_MANUAL')
+            flags |= Notification.FLAG_SYSTRAY
+
+        log.warning(description)
         notification = Notification(
-            uuid='AutoUpdate',
-            flags=(Notification.FLAG_BUBBLE
-                   | Notification.FLAG_VOLATILE
-                   | Notification.FLAG_UNIQUE),
-            title=Translator.get('AUTOUPDATE_NOTIFICATION_TITLE', replacements),
-            description=Translator.get('AUTOUPDATE_NOTIFICATION_MESSAGE',
-                                       replacements),
+                uuid='AutoUpdate',
+                flags=flags,
+                title=Translator.get('NOTIF_UPDATE_TITLE', replacements),
+                description=description
         )
+
         self.manager.notification_service.send_notification(notification)
 
     @pyqtSlot()
@@ -490,12 +474,8 @@ class Application(SimpleApplication):
             return False
         self.tray_icon.setToolTip(self.get_tooltip())
         # Handle animated transferring icon
-        if state == 'transferring':
-            self.icon_spin_timer.start(150)
-        else:
-            self.icon_spin_timer.stop()
-            icon = find_icon('nuxeo_drive_systray_icon_%s_18.png' % state)
-            self.tray_icon.setIcon(QIcon(icon))
+        icon = find_icon('nuxeo_drive_systray_icon_update_available_18.png')
+        self.tray_icon.setIcon(QIcon(icon))
         self.icon_state = state
         return True
 

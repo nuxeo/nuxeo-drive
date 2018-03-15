@@ -14,6 +14,8 @@ param (
 	[switch]$tests = $false
 )
 
+Import-Module BitsTransfer
+
 # Stop the execution on the first error
 $ErrorActionPreference = "Stop"
 
@@ -139,8 +141,7 @@ function download($url, $output, [bool]$check=$true) {
 		echo ">>> [$try/5] Downloading $url"
 		echo "                   to $output"
 		Try {
-			$curl = New-Object System.Net.WebClient
-			$curl.DownloadFile($url, $output)
+			Start-BitsTransfer -Source $url -Destination $output
 		} Catch {}
 		$try += 1
 		Start-Sleep -s 5
