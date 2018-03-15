@@ -420,16 +420,20 @@ class Application(SimpleApplication):
         status, version = self.manager.get_updater().last_status[:2]
         replacements = {'version': version}
 
-        msg = 'AUTOUPDATE_UPGRADE'
-        if status == UPDATE_STATUS_DOWNGRADE_NEEDED:
-            msg = 'AUTOUPDATE_DOWNGRADE'
+        msg = ('AUTOUPDATE_UPGRADE',
+               'AUTOUPDATE_DOWNGRADE')[status == UPDATE_STATUS_DOWNGRADE_NEEDED]
+        description = Translator.get(msg, replacements)
+        flags = Notification.FLAG_BUBBLE | Notification.FLAG_UNIQUE
+        if AbstractOSIntegration.is_linux():
+            description += ' ' + Translator.get('AUTOUPDATE_MANUAL')
+            flags |= Notification.FLAG_SYSTRAY
 
+        log.warning(description)
         notification = Notification(
             uuid='AutoUpdate',
-            flags=(Notification.FLAG_BUBBLE
-                   | Notification.FLAG_VOLATILE
-                   | Notification.FLAG_UNIQUE),
-            description=Translator.get(msg, replacements),
+            flags=flags,
+            title=Translator.get('NOTIF_UPDATE_TITLE', replacements),
+            description=description
         )
         self.manager.notification_service.send_notification(notification)
 

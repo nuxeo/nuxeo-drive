@@ -553,6 +553,7 @@ class Engine(QObject):
             thread.start()
         self.syncStarted.emit(0)
         self._start.emit()
+        self.get_update_infos()
 
     def get_threads(self):
         return self._threads
