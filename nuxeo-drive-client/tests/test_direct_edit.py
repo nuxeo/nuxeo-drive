@@ -190,3 +190,16 @@ class TestDirectEdit(UnitTestCase):
         # Unknown user
         user = self.engine_1.get_user_full_name('unknown')
         self.assertEqual(user, 'unknown')
+
+    def test_download_url_with_spaces(self):
+        scheme, host = self.nuxeo_url.split('://')
+        filename = 'My file with spaces.txt'
+        doc_id = self.remote.make_file('/', filename, 'Some content.')
+
+        url = ('nxdrive://edit/{scheme}/{host}/user/{user}/repo/default/'
+               'nxdocid/{doc_id}/filename/{filename}/downloadUrl/'
+               'nxfile/default/{doc_id}/file:content/{filename}').format(
+            scheme=scheme, host=host, user=self.user_1,
+            doc_id=doc_id, filename=filename)
+
+        self._direct_edit_update(doc_id, filename, 'Test', url)

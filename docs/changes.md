@@ -11,6 +11,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1143](https://jira.nuxeo.com/browse/NXDRIVE-1143): New auto-update framework (**breaking change**)
 - [NXDRIVE-1147](https://jira.nuxeo.com/browse/NXDRIVE-1147): Do not definitively delete a document synced elsewhere
 - [NXDRIVE-1152](https://jira.nuxeo.com/browse/NXDRIVE-1152): Handle document delete operation by server version
+- [NXDRIVE-1163](https://jira.nuxeo.com/browse/NXDRIVE-1163): Direct Edit does not work with filenames containing spaces
 
 ### GUI
 - [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
