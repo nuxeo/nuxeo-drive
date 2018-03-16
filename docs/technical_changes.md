@@ -62,6 +62,7 @@
 - Removed `Manager.check_version_updated()`
 - Removed `Manager.find_exe_path()`
 - Removed `Manager.get_engines_type()`
+- Removed `Manager.get_updater()`. Use `updater` attribute instead.
 - Removed `Manager.get_version()`. Use `version` property instead.
 - Removed `Manager.get_version_finder()`
 - Removed `Manager.list_server_bindings()`

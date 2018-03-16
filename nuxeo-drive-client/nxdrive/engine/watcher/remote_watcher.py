@@ -575,6 +575,8 @@ class RemoteWatcher(EngineWorker):
             # TODO In case of pause or stop: save the last event id
             self._interact()
 
+            log.trace('Processing event: %r', change)
+
             event_id = change.get('eventId')
             remote_ref = change['fileSystemItemId']
             processed = False
@@ -586,7 +588,6 @@ class RemoteWatcher(EngineWorker):
             if processed:
                 # A more recent version was already processed
                 continue
-
             fs_item = change.get('fileSystemItem')
             new_info = self._client.file_to_info(fs_item) if fs_item else None
 
@@ -594,7 +595,6 @@ class RemoteWatcher(EngineWorker):
                 log.debug('Ignoring banned file: %r', new_info)
                 continue
 
-            log.trace("Processing event: %r", change)
             # Possibly fetch multiple doc pairs as the same doc can be synchronized at 2 places,
             # typically if under a sync root and locally edited.
             # See https://jira.nuxeo.com/browse/NXDRIVE-125
