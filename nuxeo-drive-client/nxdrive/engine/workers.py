@@ -170,7 +170,7 @@ class Worker(QObject, object):
     @pyqtSlot()
     def run(self):
         """
-        Handle the infinite loop runned by the worker thread.
+        Handle the infinite loop run by the worker thread.
         It handles exception and logging.
         """
 

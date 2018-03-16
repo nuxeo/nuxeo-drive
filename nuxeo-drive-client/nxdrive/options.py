@@ -164,7 +164,6 @@ class MetaOptions(type):
         'theme': ('ui5', 'default'),
         'startup_page': ('drive_login.jsp', 'default'),
         'timeout': (30, 'default'),
-        'ui': ('jsf', 'default'),
         'update_check_delay': (3600, 'default'),
         'update_site_url': (
             'http://community.nuxeo.com/static/drive-updates', 'default'),
@@ -400,6 +399,7 @@ def server_updater(*args):
                 except Exception as exc:
                     log.error('Polling error: {}'.format(exc))
                 else:
+                    engine.set_ui(conf.pop('ui'))
                     Options.update(conf, setter='server', fail_on_error=True)
                     break
 
