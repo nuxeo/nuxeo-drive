@@ -308,7 +308,6 @@ class UnitTestCase(SimpleUnitTestCase):
             return MacLocalClient(path)
         return LocalClient(path)
 
-    @Options.mock()
     def setUpApp(self, server_profile=None, register_roots=True):
         if Manager._singleton:
             Manager._singleton = None

@@ -14,7 +14,6 @@ from .common_unit_test import UnitTestCase
 
 class TestRemoteDeletion(UnitTestCase):
 
-    @Options.mock()
     def test_synchronize_remote_deletion(self):
         """Test that deleting remote documents is impacted client side
 
