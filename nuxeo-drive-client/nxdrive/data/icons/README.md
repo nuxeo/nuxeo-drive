@@ -4,7 +4,7 @@ This is the icons list and their specifications for a good branding.
 
 ## Graphist Work
 
-Note: Use a base size of 256x256 pixels.
+Note: Use a base size of 256x256 pixels if nothing specified.
 
 - app_icon.svg
 - systray_asleep.svg
@@ -14,7 +14,7 @@ Note: Use a base size of 256x256 pixels.
 - systray_update_avalaible.svg
 - folder_mac.svg
 - folder_windows.svg
-- wizard.svg, see [NXDRIVE-1137](https://jira.nuxeo.com/browse/NXDRIVE-1137) for details and screenshot
+- wizard.svg, see [NXDRIVE-1137](https://jira.nuxeo.com/browse/NXDRIVE-1137) for size and screenshot
 
 ## Packager Work
 

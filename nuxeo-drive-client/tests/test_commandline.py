@@ -55,7 +55,7 @@ delay = 3
     def test_update_site_url(self):
         argv = ["ndrive", "console", "--update-site-url", "DEBUG_TEST"]
         options = self.cmd.parse_cli([])
-        assert options.update_site_url == 'http://community.nuxeo.com/static/drive/'
+        assert options.update_site_url == 'http://community.nuxeo.com/static/drive-updates'
 
         # Normal arg
         options = self.cmd.parse_cli(argv)

@@ -288,7 +288,9 @@ class ConfigurationDAO(QObject):
         obj = c.execute('SELECT value'
                         '  FROM Configuration'
                         ' WHERE name = ?', (name,)).fetchone()
-        return obj.value if obj else default
+        if not obj or not obj.value:
+            return default
+        return obj.value
 
 
 class ManagerDAO(ConfigurationDAO):
