@@ -3,6 +3,7 @@ import os
 import shutil
 from unittest import skip
 
+from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from .common_unit_test import UnitTestCase
 
@@ -81,6 +82,7 @@ class TestLocalDeletion(UnitTestCase):
         # Because remote_document_client_1 was used
         self.assertTrue(self.local_client_1.get_remote_id('/').endswith(new_info.parent_uid))
 
+    @Options.mock()
     def test_move_untrash_file_on_parent_with_no_rights(self):
         # Setup
         file_path = '/ToDelete/File_To_Delete.txt'
