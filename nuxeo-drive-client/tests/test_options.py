@@ -161,6 +161,7 @@ def test_setters():
     assert Options.delay == 222
 
 
+@pytest.mark.skip('Waiting for NXDRIVE-1162')
 def test_site_update_url():
     for url in (Options.update_site_url,
                 Options.beta_update_site_url):

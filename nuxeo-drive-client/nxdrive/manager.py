@@ -274,7 +274,7 @@ class Manager(QtCore.QObject):
         self._engines = None
         self.proxies = dict()
         self.proxy_exceptions = None
-        self._app_updater = None
+        self.updater = None
         self.server_config_updater = None
         if Options.proxy_server is not None:
             proxy = ProxySettings()
@@ -419,16 +419,12 @@ class Manager(QtCore.QObject):
         self.started.connect(self.server_config_updater._thread.start)
 
     def _create_updater(self):
-        self._app_updater = updater(self)
-        self.started.connect(self._app_updater._thread.start)
-        return self._app_updater
-
-    def get_updater(self):  # TODO: Remove
-        return self._app_updater
+        self.updater = updater(self)
+        self.started.connect(self.updater._thread.start)
+        return self.updater
 
     def refresh_update_status(self):
-        if self.get_updater() is not None:
-            self.get_updater().refresh_status()
+        self.updater.refresh_status()
 
     def _create_direct_edit(self, url):
         from .direct_edit import DirectEdit
@@ -503,8 +499,8 @@ class Manager(QtCore.QObject):
             self.initEngine.emit(self._engines[engine.uid])
 
     def _force_autoupdate(self):
-        if self._app_updater.get_next_poll() > 60 and self._app_updater.get_last_poll() > 1800:
-            self._app_updater.force_poll()
+        if self.updater.get_next_poll() > 60 and self.updater.get_last_poll() > 1800:
+            self.updater.force_poll()
 
     def get_default_nuxeo_drive_folder(self):
         """

@@ -319,11 +319,7 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(result=str)
     def get_update_status(self):
-        status = UPDATE_STATUS_UNAVAILABLE_SITE, None
-        updater = self._manager.get_updater()
-        if updater:
-            status = updater.last_status
-        return self._json(status)
+        return self._json(self._manager.updater.last_status)
 
     @QtCore.pyqtSlot(result=str)
     def get_os_version(self):
@@ -331,9 +327,7 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(str)
     def app_update(self, version):
-        updater = self._manager.get_updater()
-        if updater:
-            updater.update(version)
+        self._manager.updater.update(version)
 
     @QtCore.pyqtSlot(str, result=str)
     def get_actions(self, uid):

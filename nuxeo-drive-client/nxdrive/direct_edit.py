@@ -5,6 +5,7 @@ import sys
 from Queue import Empty, Queue
 from logging import getLogger
 from time import sleep
+from urllib import quote
 
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from watchdog.observers import Observer
@@ -227,7 +228,7 @@ class DirectEdit(Worker):
         else:
             log.debug('Downloading file %r', info.filename)
             if url:
-                remote_client.do_get(url,
+                remote_client.do_get(quote(url, safe='/:'),
                                      file_out=file_out,
                                      digest=info.digest,
                                      digest_algorithm=info.digest_algorithm)

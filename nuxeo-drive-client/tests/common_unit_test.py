@@ -26,6 +26,7 @@ from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
+from nxdrive.updater.base import BaseUpdater
 from nxdrive.wui.translator import Translator
 from .common import RemoteDocumentClientForTests, TEST_DEFAULT_DELAY, \
     TEST_WORKSPACE_PATH, clean_dir
@@ -73,7 +74,7 @@ FILE_CONTENT = """
 Engine.register_folder_link = lambda *args: None
 LocalClient.has_folder_icon = lambda *args: True
 Manager._handle_os = lambda: None
-Manager._create_updater = lambda *args: None
+BaseUpdater._can_update = False
 Manager._create_server_config_updater = lambda *args: None
 
 
@@ -307,7 +308,6 @@ class UnitTestCase(SimpleUnitTestCase):
             return MacLocalClient(path)
         return LocalClient(path)
 
-    @Options.mock()
     def setUpApp(self, server_profile=None, register_roots=True):
         if Manager._singleton:
             Manager._singleton = None

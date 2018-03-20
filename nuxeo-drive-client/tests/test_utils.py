@@ -211,6 +211,17 @@ def test_version_between(x, y, z):
     assert nxdrive.utils.version_between(x, y, z)
 
 
+@pytest.mark.parametrize('x, y', [
+    ('7.10', '10.1-SNAPSHOT'),
+    ('10.1-SNAPSHOT', '10.1'),
+    ('10.1', '10.2-SNAPSHOT'),
+    ('10.1', '10.1-HF1'),
+    ('10.1-SNAPSHOT', '10.1-HF1'),
+])
+def test_version_lt(x, y):
+    assert nxdrive.utils.version_lt(x, y)
+
+
 @pytest.mark.parametrize('x, y, result', [
     # Releases
     ('5.9.2', '5.9.3', -1),

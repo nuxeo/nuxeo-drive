@@ -14,7 +14,6 @@ from .common_unit_test import UnitTestCase
 
 class TestRemoteDeletion(UnitTestCase):
 
-    @Options.mock()
     def test_synchronize_remote_deletion(self):
         """Test that deleting remote documents is impacted client side
 
@@ -41,7 +40,7 @@ class TestRemoteDeletion(UnitTestCase):
         # Create documents in the remote root workspace
         # then synchronize
         folder_id = remote.make_folder('/', 'Test folder')
-        remote.make_file('/Test folder', 'joe.txt', 'Some content')
+        file_id = remote.make_file('/Test folder', 'joe.txt', 'Some content')
 
         self.wait_sync(wait_for_async=True)
         assert local.exists('/Test folder')
@@ -54,6 +53,7 @@ class TestRemoteDeletion(UnitTestCase):
 
         # Restore folder from trash then synchronize
         remote.undelete(folder_id)
+        remote.undelete(file_id)
         self.wait_sync(wait_for_async=True)
         assert local.exists('/Test folder')
         assert local.exists('/Test folder/joe.txt')
@@ -65,6 +65,8 @@ class TestRemoteDeletion(UnitTestCase):
 
         # Restore sync root from trash then synchronize
         remote_admin.undelete(self.workspace)
+        remote_admin.undelete(folder_id)
+        remote_admin.undelete(file_id)
         self.wait_sync(wait_for_async=True)
         assert local.exists('/')
         assert local.exists('/Test folder')
