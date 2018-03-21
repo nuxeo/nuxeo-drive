@@ -45,6 +45,7 @@
 - Removed `Engine.get_next_file()`
 - Removed `Engine.get_previous_file()`
 - Removed `Engine.resolve_with_duplicate()`
+- Added `Engine.set_ui()`
 - Removed `EngineDAO.mark_descendants_remotely_deleted()`
 - Removed `EngineDAO.mark_descendants_locally_created()`
 - Changed `EngineDAO.update_remote_state()` `versionned` keyword argument to `versioned`
@@ -79,6 +80,7 @@
 - Removed `Notification.trigger()`
 - Removed `Options.quit_timeout`
 - Removed `Options.stop_on_error`
+- Removed `Options.ui`
 - Removed `Processor.path_locks()`
 - Removed `QueueManager.init_queue()`
 - Removed `RemoteDocumentClient.check_writable()`

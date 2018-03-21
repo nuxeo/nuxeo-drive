@@ -93,7 +93,8 @@ class Engine(QObject):
         self.remote_filtered_fs_client_factory = remote_filtered_fs_client_factory
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
-        # Folder locker - LocalFolder processor can prevent others processors to operate on a folder
+        # Folder locker - LocalFolder processor can prevent
+        # others processors to operate on a folder
         self._folder_lock = None
         # Case sensitive partition
         self._case_sensitive = None
@@ -130,8 +131,10 @@ class Engine(QObject):
         self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
         self._queue_manager = self._create_queue_manager(processors)
         # Launch queue processors after first remote_watcher pass
-        self._remote_watcher.initiate.connect(self._queue_manager.init_processors)
-        self._remote_watcher.remoteWatcherStopped.connect(self._queue_manager.shutdown_processors)
+        self._remote_watcher.initiate.connect(
+            self._queue_manager.init_processors)
+        self._remote_watcher.remoteWatcherStopped.connect(
+            self._queue_manager.shutdown_processors)
         # Connect last_sync checked
         self._remote_watcher.updated.connect(self._check_last_sync)
         # Connect for sync start
@@ -172,8 +175,10 @@ class Engine(QObject):
             self.start()
 
     def stop_processor_on(self, path):
-        for worker in self.get_queue_manager().get_processors_on(path, exact_match=True):
-            log.trace('Quitting processor: %r as requested to stop on %r', worker, path)
+        for worker in self.get_queue_manager().get_processors_on(
+                path, exact_match=True):
+            log.trace('Quitting processor: %r as requested to stop on %r',
+                      worker, path)
             worker.quit()
 
     def set_local_folder(self, path):
@@ -188,9 +193,14 @@ class Engine(QObject):
         # Check for each processor
         log.debug('Local Folder locking on %r', path)
         while self.get_queue_manager().has_file_processors_on(path):
-            log.trace("Local folder locking wait for file processor to finish")
+            log.trace('Local folder locking wait for file processor to finish')
             sleep(1)
         log.debug('Local Folder lock setup completed on %r', path)
+
+    def set_ui(self, value):
+        self._dao.update_config('ui', value)
+        self._ui = value
+        log.debug('UI preferences set to {}'.format(value))
 
     def release_folder_lock(self):
         log.debug("Local Folder unlocking")
@@ -204,11 +214,11 @@ class Engine(QObject):
             return
         self._offline_state = value
         if value:
-            log.debug("Engine %s goes offline", self.uid)
+            log.debug('Engine %s goes offline', self.uid)
             self._queue_manager.suspend()
             self.offline.emit()
         else:
-            log.debug("Engine %s goes online", self.uid)
+            log.debug('Engine %s goes online', self.uid)
             self._queue_manager.resume()
             self.online.emit()
 
@@ -221,9 +231,11 @@ class Engine(QObject):
         if remote_ref is None:
             return
         self._dao.add_filter(path)
-        pair = self._dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
+        pair = self._dao.get_state_from_remote_with_path(remote_ref,
+                                                         remote_parent_path)
         if pair is None:
-            log.debug('Cannot find the pair: %s (%r)', remote_ref, remote_parent_path)
+            log.debug('Cannot find the pair: %s (%r)',
+                      remote_ref, remote_parent_path)
             return
         self._dao.delete_remote_state(pair)
 
@@ -254,7 +266,7 @@ class Engine(QObject):
             'uid': remote_ref_segments[2],
             'token': self.get_remote_token(),
         }
-        return urls.get(Options.ui, 'web').format(**infos)
+        return urls.get(self._ui, 'web').format(**infos)
 
     def get_remote_url(self):
         """
@@ -265,7 +277,8 @@ class Engine(QObject):
         """
 
         urls = {
-            'jsf': '{server}nxhome/{repo}/default-domain@view_home?tabIds=USER_CENTER%3AuserCenterNuxeoDrive',
+            'jsf': ('{server}nxhome/{repo}/default-domain@view_home?'
+                    'tabIds=USER_CENTER%3AuserCenterNuxeoDrive'),
             'web': '{server}ui?token={token}#!/drive',
         }
 
@@ -274,7 +287,7 @@ class Engine(QObject):
             'repo': Options.remote_repo,
             'token': self.get_remote_token(),
         }
-        return urls.get(Options.ui, 'web').format(**infos)
+        return urls.get(self._ui, 'web').format(**infos)
 
     def is_syncing(self):
         return self._sync_started
@@ -373,11 +386,13 @@ class Engine(QObject):
         return url
 
     def _load_configuration(self):
-        self._web_authentication = self._dao.get_config('web_authentication', '0') == '1'
+        self._web_authentication = self._dao.get_config(
+            'web_authentication', '0') == '1'
         self._server_url = self._dao.get_config('server_url')
         self._remote_user = self._dao.get_config('remote_user')
         self._remote_password = self._dao.get_config('remote_password')
         self._remote_token = self._dao.get_config('remote_token')
+        self._ui = self._dao.get_config('ui', default='web')
         if self._remote_password is None and self._remote_token is None:
             self.set_invalid_credentials(
                 reason='found no password nor token in engine configuration')
@@ -499,27 +514,30 @@ class Engine(QObject):
         blacklist_size = self._queue_manager.get_errors_count()
         qm_size = self._queue_manager.get_overall_size()
         qm_active = self._queue_manager.active()
-        empty_polls = self._remote_watcher.get_metrics()["empty_polls"]
+        empty_polls = self._remote_watcher.get_metrics()['empty_polls']
         if not AbstractOSIntegration.is_windows():
             win_info = 'not Windows'
         else:
-            win_info = 'Windows with win queue size = %d and win folder scan size = %d' % (
-                self._local_watcher.get_win_queue_size(), self._local_watcher.get_win_folder_scan_size())
-        log.debug('Checking sync completed: queue manager is %s, overall size = %d, empty polls count = %d'
-                  ', local watcher empty events = %d, blacklist = %d, %s',
+            win_info = ('Windows with win queue size = %d and win folder '
+                        'scan size = %d' % (
+                            self._local_watcher.get_win_queue_size(),
+                            self._local_watcher.get_win_folder_scan_size()))
+        log.debug('Checking sync completed: queue manager is %s, '
+                  'overall size = %d, empty polls count = %d, '
+                  'local watcher empty events = %d, blacklist = %d, %s',
                   'active' if qm_active else 'inactive', qm_size, empty_polls,
-                    empty_events, blacklist_size, win_info)
+                  empty_events, blacklist_size, win_info)
         local_metrics = self._local_watcher.get_metrics()
         if (qm_size == 0 and not qm_active and empty_polls > 0
                 and empty_events):
             if blacklist_size != 0:
                 self.syncPartialCompleted.emit()
                 return
-            self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
+            self._dao.update_config('last_sync_date',
+                                    datetime.datetime.utcnow())
             if local_metrics['last_event'] == 0:
                 log.trace('No watchdog event detected but sync is completed')
-            if self._sync_started:
-                self._sync_started = False
+            self._sync_started = False
             log.trace('Emitting syncCompleted for engine %s', self.uid)
             self.syncCompleted.emit()
 
@@ -560,10 +578,10 @@ class Engine(QObject):
 
     def get_status(self):
         QCoreApplication.processEvents()
-        log.debug("Engine status")
+        log.debug('Engine status')
         for thread in self._threads:
-            log.debug("%r", thread.worker.get_metrics())
-        log.debug("%r", self._queue_manager.get_metrics())
+            log.debug('%r', thread.worker.get_metrics())
+        log.debug('%r', self._queue_manager.get_metrics())
 
     def get_metrics(self):
         return {
@@ -674,7 +692,7 @@ class Engine(QObject):
         self._remote_token = nxclient.request_token()
         if self._remote_token is None:
             raise Exception
-        self._dao.update_config("remote_token", self._remote_token)
+        self._dao.update_config('remote_token', self._remote_token)
         self.set_invalid_credentials(value=False)
         self.invalidate_client_cache()
         # In case of a binding
@@ -684,7 +702,7 @@ class Engine(QObject):
     def update_token(self, token):
         self._load_configuration()
         self._remote_token = token
-        self._dao.update_config("remote_token", self._remote_token)
+        self._dao.update_config('remote_token', self._remote_token)
         self.set_invalid_credentials(value=False)
         self.invalidate_client_cache()
         self.start()
@@ -738,11 +756,11 @@ class Engine(QObject):
             # password in the DB
             self._remote_password = None
         # Save the configuration
-        self._dao.update_config("web_authentication", self._web_authentication)
-        self._dao.update_config("server_url", self._server_url)
-        self._dao.update_config("remote_user", self._remote_user)
-        self._dao.update_config("remote_password", self._remote_password)
-        self._dao.update_config("remote_token", self._remote_token)
+        self._dao.update_config('web_authentication', self._web_authentication)
+        self._dao.update_config('server_url', self._server_url)
+        self._dao.update_config('remote_user', self._remote_user)
+        self._dao.update_config('remote_password', self._remote_password)
+        self._dao.update_config('remote_token', self._remote_token)
         if nxclient:
             self.get_update_infos(nxclient)
             # Check for the root
@@ -759,8 +777,10 @@ class Engine(QObject):
             if root_id is not None:
                 # server_url|user|device_id|uid
                 token = root_id.split("|")
-                if self._server_url != token[0] or self._remote_user != token[1]:
-                    raise RootAlreadyBindWithDifferentAccount(token[1], token[0])
+                if (self._server_url != token[0]
+                        or self._remote_user != token[1]):
+                    raise RootAlreadyBindWithDifferentAccount(token[1],
+                                                              token[0])
 
     def _check_root(self):
         root = self._dao.get_state_from_local("/")
@@ -788,7 +808,8 @@ class Engine(QObject):
 
     def cancel_action_on(self, pair_id):
         for thread in self._threads:
-            if hasattr(thread, "worker") and isinstance(thread.worker, Processor):
+            if (hasattr(thread, 'worker')
+                    and isinstance(thread.worker, Processor)):
                 pair = thread.worker.get_current_pair()
                 if pair is not None and pair.id == pair_id:
                     thread.worker.quit()
@@ -810,7 +831,7 @@ class Engine(QObject):
 
     @pyqtSlot()
     def invalidate_client_cache(self):
-        log.debug("Invalidate client cache")
+        log.debug('Invalidate client cache')
         self._remote_clients.clear()
         self.invalidClientsCache.emit()
 
@@ -848,9 +869,11 @@ class Engine(QObject):
 
         self._dao.insert_local_state(local_info, '')
         row = self._dao.get_state_from_local('/')
-        self._dao.update_remote_state(row, remote_info, remote_parent_path='', versioned=False)
-        local_client.set_root_id(self._server_url + "|" + self._remote_user +
-                            "|" + self._manager.device_id + "|" + self.uid)
+        self._dao.update_remote_state(
+            row, remote_info, remote_parent_path='', versioned=False)
+        local_client.set_root_id('{}|{}|{}|{}'.format(
+            self._server_url, self._remote_user,
+            self._manager.device_id, self.uid))
         local_client.set_remote_id('/', remote_info.uid)
         self._dao.synchronize_state(row)
         # The root should also be sync
@@ -913,7 +936,8 @@ class Engine(QObject):
 
         return remote_client
 
-    def get_remote_doc_client(self, repository=Options.remote_repo, base_folder=None):
+    def get_remote_doc_client(self, repository=Options.remote_repo,
+                              base_folder=None):
         if self._invalid_credentials:
             return None
 
