@@ -506,8 +506,8 @@ def parse_protocol_url(url_string):
         return None
 
     protocol_regex = [('nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/'
-                       '(?P<server>.*)/user/(?P<username>\w*)/repo/'
-                       '(?P<repo>\w*)/nxdocid/(?P<docid>(\d|[a-f]|-)*)/'
+                       '(?P<server>.*)/user/(?P<username>.*)/repo/'
+                       '(?P<repo>.*)/nxdocid/(?P<docid>(\d|[a-f]|-)*)/'
                        'filename/(?P<filename>[^/]*)(/downloadUrl/'
                        '(?P<download>.*)|)'),
 

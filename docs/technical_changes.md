@@ -11,6 +11,8 @@
 - Removed `AbstractOSIntegration.register_desktop_link()`
 - Removed `AbstractOSIntegration.unregister_contextual_menu()`
 - Removed `AbstractOSIntegration.unregister_desktop_link()`
+- Added `AbstractOSIntegration.unwatch_folder()`
+- Added `AbstractOSIntegration.watch_folder()`
 - Removed `Application.app_updated()`
 - Removed `Application.engineLogger`
 - Removed `Application.icon_spin_timer`
@@ -31,6 +33,8 @@
 - Removed `ConsoleApplication.quit_if_sync_completed()`
 - Removed `DarwinIntegration.register_contextual_menu()`
 - Removed `DarwinIntegration.unregister_contextual_menu()`
+- Added `DarwinIntegration.unwatch_folder()`
+- Added `DarwinIntegration.watch_folder()`
 - Removed `Engine.BATCH_MODE_DOWNLOAD`
 - Removed `Engine.BATCH_MODE_FOLDER`
 - Removed `Engine.BATCH_MODE_SYNC`
@@ -62,7 +66,9 @@
 - Removed `LocalWatcher.set_windows_watchdog_event_buffer()`
 - Removed `Manager.check_version_updated()`
 - Removed `Manager.find_exe_path()`
+- Removed `Manager.get_cf_bundle_identifier()`
 - Removed `Manager.get_engines_type()`
+- Removed `Manager.get_updater()`. Use `updater` attribute instead.
 - Removed `Manager.get_version()`. Use `version` property instead.
 - Removed `Manager.get_version_finder()`
 - Removed `Manager.list_server_bindings()`
@@ -111,6 +117,7 @@
 - Removed commandline.py:`GET_CTL_MAX_NB_TRIES`
 - Removed commandline.py:`GET_CTL_SLEEP_DURATION`
 - Removed client/common.py::`DuplicationError()`
+- Added constants.py::`BUNDLE_IDENTIFIER`
 - Removed engine/engine.py::`EngineLogger()`
 - Moved gui/resources.py::`find_icon()` to utils.py
 - Removed gui/folder_treeview.py::`DocClient()`

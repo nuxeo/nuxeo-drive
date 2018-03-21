@@ -11,7 +11,7 @@ Each of these ways overrides the previous one.
 
 | Parameter | Default Value | Description
 |---|---|---
-| `beta-update-site-url` | http://community.nuxeo.com/static/drive-updates/ | Configure custom beta update website.
+| `beta-update-site-url` | http://community.nuxeo.com/static/drive-updates | Configure custom beta update website.
 | `consider-ssl-errors` | False | Define if SSL errors should be ignored.
 | `debug` | False | Activate the debug window, and debug mode.
 | `delay` | 30 | Define the delay before each remote check.
@@ -29,7 +29,7 @@ Each of these ways overrides the previous one.
 | `proxy-type` | None | Define proxy type. This can also be set up by the user from the Settings window.
 | `timeout` | 30 | Define the socket timeout.
 | `update-check-delay` | 3600 | Define the auto-update check delay. 0 means disabled.
-| `update-site-url` | http://community.nuxeo.com/static/drive-updates/ | Configure a custom update website. See Nuxeo Drive Update Site for more details.
+| `update-site-url` | http://community.nuxeo.com/static/drive-updates | Configure a custom update website. See Nuxeo Drive Update Site for more details.
 
 ## Command Line Arguments
 

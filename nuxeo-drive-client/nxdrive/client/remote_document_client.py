@@ -209,11 +209,13 @@ class RemoteDocumentClient(BaseAutomationClient):
         op_input = 'doc:' + self._check_ref(ref)
         if use_trash:
             try:
-                if version_lt(Options.server_version, '10.1'):
-                    return self.execute('Document.SetLifeCycle',
-                                        op_input=op_input, value='delete')
-                else:
-                    return self.execute('Document.Trash', op_input=op_input)
+                # We need more stability in the Trash behavior before
+                # we can use it instead of the SetLifeCycle operation
+                # if version_lt(Options.server_version, '10.1'):
+                return self.execute('Document.SetLifeCycle',
+                                    op_input=op_input, value='delete')
+                # else:
+                #    return self.execute('Document.Trash', op_input=op_input)
             except urllib2.HTTPError as e:
                 if e.code != 500:
                     raise
@@ -221,11 +223,13 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def undelete(self, uid):
         op_input = 'doc:' + uid
-        if version_lt(Options.server_version, '10.1'):
-            return self.execute('Document.SetLifeCycle',
-                                op_input=op_input, value='undelete')
-        else:
-            return self.execute('Document.Untrash', op_input=op_input)
+        # We need more stability in the Trash behavior before
+        # we can use it instead of the SetLifeCycle operation
+        # if version_lt(Options.server_version, '10.1'):
+        return self.execute('Document.SetLifeCycle',
+                            op_input=op_input, value='undelete')
+        # else:
+        #    return self.execute('Document.Untrash', op_input=op_input)
 
     def delete_content(self, ref, xpath=None):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)

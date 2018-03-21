@@ -19,7 +19,8 @@ from ..engine.activity import Action, FileAction
 from ..notification import Notification
 from ..options import Options
 from ..osi import AbstractOSIntegration
-from ..updater.constants import UPDATE_STATUS_DOWNGRADE_NEEDED
+from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
+                                 UPDATE_STATUS_UP_TO_DATE)
 from ..utils import find_icon, find_resource, parse_protocol_url
 
 log = getLogger(__name__)
@@ -86,7 +87,6 @@ class Application(SimpleApplication):
 
     tray_icon = None
     icon_state = None
-    update_available = False
 
     def __init__(self, manager, *args):
         super(Application, self).__init__(manager, *args)
@@ -123,7 +123,7 @@ class Application(SimpleApplication):
             self._setup_notification_center()
 
         # Application update
-        self.manager.get_updater().appUpdated.connect(self.quit)
+        self.manager.updater.appUpdated.connect(self.quit)
 
         # Display release notes on new version
         if self.manager.old_version != self.manager.version:
@@ -230,6 +230,11 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def change_systray_icon(self):
+        # Update status has the precedence over other ones
+        if self.manager.updater.last_status[0] != UPDATE_STATUS_UP_TO_DATE:
+            self.set_icon_state('update_available')
+            return
+
         syncing = False
         engines = self.manager.get_engines()
         invalid_credentials = True
@@ -242,9 +247,7 @@ class Application(SimpleApplication):
             paused &= engine.is_paused()
             offline &= engine.is_offline()
 
-        if self.update_available:
-            new_state = 'update_available'
-        elif offline:
+        if offline:
             new_state = 'stopping'
             Action(Translator.get('OFFLINE'))
         elif invalid_credentials:
@@ -399,7 +402,7 @@ class Application(SimpleApplication):
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)
         self.manager.notification_service.newNotification.connect(self._new_notification)
-        self.manager.get_updater().updateAvailable.connect(self._update_notification)
+        self.manager.updater.updateAvailable.connect(self._update_notification)
         if not self.manager.get_engines():
             self.show_settings()
         else:
@@ -412,12 +415,10 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def _update_notification(self):
-        # Change the systray icon
-        self.update_available = True
         self.change_systray_icon()
 
         # Display a notification
-        status, version = self.manager.get_updater().last_status[:2]
+        status, version = self.manager.updater.last_status[:2]
         replacements = {'version': version}
 
         msg = ('AUTOUPDATE_UPGRADE',

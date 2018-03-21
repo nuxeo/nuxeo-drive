@@ -30,6 +30,7 @@ from urllib2 import URLError
 from mock import patch
 
 from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
+from nxdrive.options import Options
 from .common import TEST_DEFAULT_DELAY
 from .common_unit_test import UnitTestCase
 
@@ -67,7 +68,7 @@ class TestBulkRemoteChanges(UnitTestCase):
         self.last_root_definitions = None
         # Initialize last event log id (lower bound)
         self.wait()
-    
+
     @patch.object(RemoteFileSystemClient, 'get_children_info',
                   mock_get_children_info)
     @patch.object(RemoteFileSystemClient, 'file_to_info', mock_file_to_info)
@@ -142,6 +143,7 @@ to local PC.
 
         # Restore folder 'shared' from trash
         remote.undelete(shared)
+        remote.undelete(readme1)
         self.wait_sync(wait_for_async=True)
 
         remote.make_file(

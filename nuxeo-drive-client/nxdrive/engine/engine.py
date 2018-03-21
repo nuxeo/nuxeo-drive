@@ -438,7 +438,7 @@ class Engine(QObject):
             pwd_update_required=self.has_invalid_credentials())
 
     def set_invalid_credentials(self, value=True, reason=None):
-        changed = self._invalid_credentials != value
+        changed = self._invalid_credentials is not value
         self._invalid_credentials = value
         if value and changed:
             msg = 'Setting invalid credentials'

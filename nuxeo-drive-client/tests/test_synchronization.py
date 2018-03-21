@@ -153,8 +153,9 @@ class TestSynchronization(UnitTestCase):
             HTTPErrorMock(None, 401, 'Mock', None, None),
             HTTPErrorMock(None, 403, 'Mock', None, None),
         ]
+        remote = self.engine_1.get_remote_client()
         for error in errors:
-            self.engine_1.get_remote_client().make_server_call_raise(error)
+            remote.make_server_call_raise(error)
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
             assert self.engine_1.is_offline()
 
@@ -163,7 +164,7 @@ class TestSynchronization(UnitTestCase):
             self.engine_1.resume()
 
         # Re-enable network
-        self.engine_1.get_remote_client().make_server_call_raise(None)
+        remote.make_server_call_raise(None)
         self.engine_1.remote_filtered_fs_client_factory = RemoteFilteredFileSystemClient
         self.engine_1.invalidate_client_cache()
 

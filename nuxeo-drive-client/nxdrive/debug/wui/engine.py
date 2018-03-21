@@ -153,9 +153,7 @@ class DebugDriveApi(WebDriveApi):
 
     @QtCore.pyqtSlot(str, str)
     def set_app_update(self, status, version):
-        updater = self._manager.get_updater()
-        if updater:
-            updater.force_status(str(status), str(version))
+        self._manager.updater.force_status(str(status), str(version))
 
     @QtCore.pyqtSlot(str, str)
     def resume_queue(self, uid, queue):
