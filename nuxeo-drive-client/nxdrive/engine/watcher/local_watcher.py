@@ -838,6 +838,7 @@ class LocalWatcher(EngineWorker):
                 if doc_pair.pair_state == 'unsynchronized':
                     log.debug('Ignoring %r as marked unsynchronized',
                               doc_pair.local_path)
+
                     if evt.event_type in ('deleted', 'moved'):
                         path = (evt.dest_path
                                 if evt.event_type == 'moved'
@@ -848,8 +849,19 @@ class LocalWatcher(EngineWorker):
                                       evt.event_type, doc_pair)
                             self._dao.remove_state(doc_pair)
                     return
+                if (evt.event_type == 'created'
+                        and doc_pair.local_state == 'deleted'
+                        and doc_pair.pair_state == 'locally_deleted'):
+                    log.debug('File has been deleted/created quickly, '
+                              'it must be a replace.')
+                    doc_pair.local_state = 'modified'
+                    doc_pair.remote_state = 'unknown'
+                    doc_pair.pair_state = 'locally_modified'
+                    self._dao.update_local_state(
+                        doc_pair, self.client.get_info(rel_path))
 
-                self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
+                self._handle_watchdog_event_on_known_pair(doc_pair, evt,
+                                                          rel_path)
                 return
 
             if evt.event_type == 'deleted':
