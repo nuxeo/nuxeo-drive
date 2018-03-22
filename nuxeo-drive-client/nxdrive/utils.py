@@ -505,15 +505,14 @@ def parse_protocol_url(url_string):
     if not url_string.startswith('nxdrive://'):
         return None
 
-    protocol_regex = [('nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/'
-                       '(?P<server>.*)/user/(?P<username>.*)/repo/'
-                       '(?P<repo>.*)/nxdocid/(?P<docid>(\d|[a-f]|-)*)/'
-                       'filename/(?P<filename>[^/]*)(/downloadUrl/'
-                       '(?P<download>.*)|)'),
+    protocol_regex = ['nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/'
+                      '(?P<server>.*)/user/(?P<username>.*)/repo/'
+                      '(?P<repo>.*)/nxdocid/(?P<docid>(\d|[a-f]|-)*)/'
+                      'filename/(?P<filename>[^/]*)(/downloadUrl/'
+                      '(?P<download>.*)|)',
 
-                      'nxdrive://(?P<cmd>share_link)/(?P<path>.*)',
-
-                      'nxdrive://(?P<cmd>access)/(?P<path>.*)',
+                      'nxdrive://(?P<cmd>(share_link|access|sync_status))/'
+                      '(?P<path>.*)',
 
                       'nxdrive://(?P<cmd>trigger_watch)']
 
@@ -531,7 +530,7 @@ def parse_protocol_url(url_string):
     cmd = parsed_url.get('cmd')
     if cmd == 'edit':
         return parse_edit_protocol(parsed_url, url_string)
-    if cmd in ('access', 'share_link'):
+    if cmd in ('access', 'share_link', 'sync_status'):
         return dict(command=cmd, filepath=parsed_url.get('path'))
     else:
         return dict(command=cmd)

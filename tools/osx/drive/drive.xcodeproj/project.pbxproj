@@ -9,10 +9,14 @@
 /* Begin PBXBuildFile section */
 		8B6E724A2046EE3E00AB5771 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E72492046EE3E00AB5771 /* AppDelegate.swift */; };
 		8B6E724C2046EE3E00AB5771 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E724B2046EE3E00AB5771 /* ViewController.swift */; };
-		8B6E724E2046EE3E00AB5771 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B6E724D2046EE3E00AB5771 /* Assets.xcassets */; };
 		8B6E72512046EE3E00AB5771 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8B6E724F2046EE3E00AB5771 /* Main.storyboard */; };
 		8B6E72602046EE5400AB5771 /* FinderSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E725F2046EE5400AB5771 /* FinderSync.swift */; };
 		8B6E72652046EE5400AB5771 /* NuxeoFinderSync.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8B6E725D2046EE5400AB5771 /* NuxeoFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8BDDFB2A2063EB4D00A42273 /* emblem-drive_sync.png in Resources */ = {isa = PBXBuildFile; fileRef = 8BDDFB262063EB4D00A42273 /* emblem-drive_sync.png */; };
+		8BDDFB2B2063EB4D00A42273 /* emblem-drive_conflict.png in Resources */ = {isa = PBXBuildFile; fileRef = 8BDDFB272063EB4D00A42273 /* emblem-drive_conflict.png */; };
+		8BDDFB2C2063EB4D00A42273 /* emblem-drive_pending.png in Resources */ = {isa = PBXBuildFile; fileRef = 8BDDFB282063EB4D00A42273 /* emblem-drive_pending.png */; };
+		8BDDFB2D2063EB4D00A42273 /* emblem-drive_locked.png in Resources */ = {isa = PBXBuildFile; fileRef = 8BDDFB292063EB4D00A42273 /* emblem-drive_locked.png */; };
+		8BDDFB2F2063EFF100A42273 /* emblem-drive_not_sync.png in Resources */ = {isa = PBXBuildFile; fileRef = 8BDDFB2E2063EFF100A42273 /* emblem-drive_not_sync.png */; };
 		8BFDE4EE20486A5C00618B67 /* icon_64.png in Resources */ = {isa = PBXBuildFile; fileRef = 8BFDE4ED20486A5C00618B67 /* icon_64.png */; };
 /* End PBXBuildFile section */
 
@@ -44,13 +48,17 @@
 		8B6E72462046EE3D00AB5771 /* drive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = drive.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B6E72492046EE3E00AB5771 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		8B6E724B2046EE3E00AB5771 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-		8B6E724D2046EE3E00AB5771 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8B6E72502046EE3E00AB5771 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		8B6E72522046EE3E00AB5771 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8B6E725D2046EE5400AB5771 /* NuxeoFinderSync.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NuxeoFinderSync.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B6E725F2046EE5400AB5771 /* FinderSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSync.swift; sourceTree = "<group>"; };
 		8B6E72612046EE5400AB5771 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8B6E72622046EE5400AB5771 /* NuxeoFinderSync.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NuxeoFinderSync.entitlements; sourceTree = "<group>"; };
+		8BDDFB262063EB4D00A42273 /* emblem-drive_sync.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "emblem-drive_sync.png"; sourceTree = "<group>"; };
+		8BDDFB272063EB4D00A42273 /* emblem-drive_conflict.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "emblem-drive_conflict.png"; sourceTree = "<group>"; };
+		8BDDFB282063EB4D00A42273 /* emblem-drive_pending.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "emblem-drive_pending.png"; sourceTree = "<group>"; };
+		8BDDFB292063EB4D00A42273 /* emblem-drive_locked.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "emblem-drive_locked.png"; sourceTree = "<group>"; };
+		8BDDFB2E2063EFF100A42273 /* emblem-drive_not_sync.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "emblem-drive_not_sync.png"; sourceTree = "<group>"; };
 		8BFDE4ED20486A5C00618B67 /* icon_64.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon_64.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -95,7 +103,6 @@
 			children = (
 				8B6E72492046EE3E00AB5771 /* AppDelegate.swift */,
 				8B6E724B2046EE3E00AB5771 /* ViewController.swift */,
-				8B6E724D2046EE3E00AB5771 /* Assets.xcassets */,
 				8B6E724F2046EE3E00AB5771 /* Main.storyboard */,
 				8B6E72522046EE3E00AB5771 /* Info.plist */,
 			);
@@ -105,6 +112,11 @@
 		8B6E725E2046EE5400AB5771 /* NuxeoFinderSync */ = {
 			isa = PBXGroup;
 			children = (
+				8BDDFB2E2063EFF100A42273 /* emblem-drive_not_sync.png */,
+				8BDDFB272063EB4D00A42273 /* emblem-drive_conflict.png */,
+				8BDDFB292063EB4D00A42273 /* emblem-drive_locked.png */,
+				8BDDFB282063EB4D00A42273 /* emblem-drive_pending.png */,
+				8BDDFB262063EB4D00A42273 /* emblem-drive_sync.png */,
 				8B6E725F2046EE5400AB5771 /* FinderSync.swift */,
 				8BFDE4ED20486A5C00618B67 /* icon_64.png */,
 				8B6E72612046EE5400AB5771 /* Info.plist */,
@@ -209,7 +221,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8B6E724E2046EE3E00AB5771 /* Assets.xcassets in Resources */,
 				8B6E72512046EE3E00AB5771 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -218,7 +229,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8BDDFB2C2063EB4D00A42273 /* emblem-drive_pending.png in Resources */,
+				8BDDFB2F2063EFF100A42273 /* emblem-drive_not_sync.png in Resources */,
+				8BDDFB2D2063EB4D00A42273 /* emblem-drive_locked.png in Resources */,
+				8BDDFB2B2063EB4D00A42273 /* emblem-drive_conflict.png in Resources */,
 				8BFDE4EE20486A5C00618B67 /* icon_64.png in Resources */,
+				8BDDFB2A2063EB4D00A42273 /* emblem-drive_sync.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -17,14 +17,34 @@ class FinderSync: FIFinderSync {
     var icon = NSImage(named: NSImage.Name(rawValue: "icon_64.png"))
     let watchFolderNotif = NSNotification.Name("org.nuxeo.drive.watchFolder")
     let triggerWatchNotif = NSNotification.Name("org.nuxeo.drive.triggerWatch")
+    let syncStatusNotif = NSNotification.Name("org.nuxeo.drive.syncStatus")
+    
+    let badges: [(image: NSImage, label: String, identifier: String)] = [
+        (image: #imageLiteral(resourceName: "emblem-drive_sync.png"), label: "Synchronized", identifier: "synced"),
+        (image: #imageLiteral(resourceName: "emblem-drive_pending.png"), label: "Syncing", identifier: "syncing"),
+        (image: #imageLiteral(resourceName: "emblem-drive_conflict.png"), label: "Conflicted", identifier: "conflicted"),
+        (image: #imageLiteral(resourceName: "emblem-drive_locked.png"), label: "Locked", identifier: "locked"),
+        (image: #imageLiteral(resourceName: "emblem-drive_not_sync.png"), label: "Not Synchronized", identifier: "unsynced")
+    ]
     
     override init() {
         NSLog("FinderSync() launched from %@", Bundle.main.bundlePath as NSString)
         super.init()
         
         // Upon startup, we are not watching any directories
-        FIFinderSyncController.default().directoryURLs = []
+        FIFinderSyncController.default().directoryURLs = [URL(fileURLWithPath: "/Users/lea/Nuxeo Drive")]
+        for badge in self.badges {
+            FIFinderSyncController.default().setBadgeImage(
+                badge.image,
+                label: badge.label,
+                forBadgeIdentifier: badge.identifier
+            )
+        }
         
+        DistributedNotificationCenter.default.addObserver(self,
+                                                          selector: #selector(setSyncStatus),
+                                                          name: self.syncStatusNotif,
+                                                          object: nil)
         // We add an observer to listen to watch notifications from the main application
         DistributedNotificationCenter.default.addObserver(self,
                                                           selector: #selector(setWatchedFolders),
@@ -49,6 +69,9 @@ class FinderSync: FIFinderSync {
     deinit {
         // Remove the observer from the system upon shutdown
         DistributedNotificationCenter.default.removeObserver(self,
+                                                             name: self.syncStatusNotif,
+                                                             object: nil)
+        DistributedNotificationCenter.default.removeObserver(self,
                                                              name: self.watchFolderNotif,
                                                              object: nil)
     }
@@ -64,6 +87,15 @@ class FinderSync: FIFinderSync {
                 NSLog("Now ignoring: %@", target.path as NSString)
                 FIFinderSyncController.default().directoryURLs.remove(target)
             }
+        }
+    }
+    
+    @objc func setSyncStatus(notification: NSNotification) {
+        // Retrieve the operation (watch/unwatch) and the path from the notification dictionary
+        if let status = notification.userInfo!["status"], let path = notification.userInfo!["path"] {
+            NSLog("Setting sync status of %@ to %@", path as! NSString, status as! NSString)
+            let target = URL(fileURLWithPath: path as! String)
+            FIFinderSyncController.default().setBadgeIdentifier(status as! String, for: target)
         }
     }
 
@@ -90,6 +122,7 @@ class FinderSync: FIFinderSync {
         let badgeIdentifier = ["", "One", "Two"][whichBadge]
         FIFinderSyncController.default().setBadgeIdentifier(badgeIdentifier, for: url)
         */
+        getSyncStatus(target: url)
     }
 
     // Toolbar
@@ -130,6 +163,12 @@ class FinderSync: FIFinderSync {
         menu.addItem(item2)
 
         return menu
+    }
+    
+    func getSyncStatus(target: URL?) {
+        // Called by requestBadgeIdentifier to ask Drive for a status
+        NSLog("sync_status: target: %@", target!.path as NSString)
+        openNXUrl(command: "sync_status", target: target)
     }
 
     @IBAction func openInBrowser(_ sender: AnyObject?) {

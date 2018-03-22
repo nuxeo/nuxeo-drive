@@ -112,19 +112,27 @@ class DarwinIntegration(AbstractOSIntegration):
                     pass
         return result
 
-    def _set_monitoring(self, operation, path):
+    def _send_notification(self, name, content):
         """
         Send a notification through the macOS notification center
         to the FinderSync app extension.
 
-        :param operation: 'watch' or 'unwatch'
-        :param path: path to the folder
+        :param name: name of the notification
+        :param content: content to send
         """
         from Foundation import NSDistributedNotificationCenter
         nc = NSDistributedNotificationCenter.defaultCenter()
+        nc.postNotificationName_object_userInfo_(name, None, content)
+
+    def _set_monitoring(self, operation, path):
+        """
+        Set the monitoring of a folder by the FinderSync.
+
+        :param operation: 'watch' or 'unwatch'
+        :param path: path to the folder
+        """
         name = '{}.watchFolder'.format(BUNDLE_IDENTIFIER)
-        nc.postNotificationName_object_userInfo_(
-            name, None, {'operation': operation, 'path': path})
+        self._send_notification(name, {'operation': operation, 'path': path})
 
     def watch_folder(self, folder):
         log.debug('FinderSync now watching {}'.format(folder))
@@ -133,6 +141,26 @@ class DarwinIntegration(AbstractOSIntegration):
     def unwatch_folder(self, folder):
         log.debug('FinderSync now ignoring {}'.format(folder))
         self._set_monitoring('unwatch', folder)
+
+    def send_sync_status(self, state, path):
+        """
+        Send the sync status of a file to the FinderSync.
+
+        :param state: current local state of the file
+        :param path: full path of the file
+        """
+        name = '{}.syncStatus'.format(BUNDLE_IDENTIFIER)
+        status = 'unsynced'
+        if state.pair_state == 'conflicted':
+            status = 'conflicted'
+        elif state.local_state == 'synchronized':
+            status = 'synced'
+        elif state.processor != 0:
+            status = 'syncing'
+
+        log.debug('Sending status {} for file {} to FinderSync'.format(
+            status, path))
+        self._send_notification(name, {'status': status, 'path': path})
 
     def register_folder_link(self, folder_path, name=None):
         from LaunchServices import LSSharedFileListInsertItemURL

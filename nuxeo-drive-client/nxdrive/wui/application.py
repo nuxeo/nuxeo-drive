@@ -637,22 +637,47 @@ class Application(SimpleApplication):
                 if info is not None:
                     log.debug('Received nxdrive URL scheme event: %s', url)
                     cmd = info['command']
+                    path = info.get('filepath', None)
+                    manager = self.manager
+                
+                    # Command to open the file on the platform in the browser
                     if cmd == 'access':
-                        self.manager.open_metadata_window(info['filepath'])
+                        manager.open_metadata_window(path)
+
+                    # Command to copy the platform share link in the clipboard
                     elif cmd == 'share_link':
-                        self.manager.copy_share_link(info['filepath'])
+                        manager.copy_share_link(path)
+
+                    # Command to direct edit the file
                     elif 'edit' in cmd:
                         # This is a quick operation, no need to fork a QThread
-                        self.manager.direct_edit.edit(
+                        manager.direct_edit.edit(
                             info['server_url'], info['doc_id'],
                             user=info['user'],
                             download_url=info['download_url'])
+
+                    # Command to trigger the watch on the synced folders
                     elif cmd == 'trigger_watch':
                         log.debug('Received triggerWatch')
-                        if self.manager._engines is None:
-                            self.manager.load()
-                        for engine in self.manager._engine_definitions:
-                            self.manager.osi.watch_folder(engine.local_folder)
+                        if manager._engines is None:
+                            manager.load()
+                        for engine in manager._engine_definitions:
+                            manager.osi.watch_folder(engine.local_folder)
+
+                    # Command to retrieve the sync status of a file
+                    elif cmd == 'sync_status':
+                        log.debug('Received getSyncStatus')
+                        if manager._engines is None:
+                            manager.load()
+                        rel_path = None
+                        for engine in manager._engine_definitions:
+                            if path.startswith(engine.local_folder):
+                                rel_path = path.replace(engine.local_folder,
+                                                        '')
+                                dao = manager._engines[engine.uid]._dao
+                                state = dao.get_state_from_local(rel_path)
+                                manager.osi.send_sync_status(state, path)
+                                break
             except:
                 log.exception('Error handling URL event: %s', url)
         return super(Application, self).event(event)
