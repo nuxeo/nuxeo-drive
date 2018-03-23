@@ -335,16 +335,14 @@ class LocalWatcher(EngineWorker):
                         log.debug('Found potential moved file %r[%s]',
                                   child_info.path, remote_id)
                         doc_pair = dao.get_normal_state_from_remote(remote_id)
-                        local_path = doc_pair.local_path
-                        doc_exists = client.exists(local_path)
 
-                        if doc_pair and doc_exists:
+                        if doc_pair and client.exists(doc_pair.local_path):
                             if (not client.is_case_sensitive()
-                                    and local_path.lower()
+                                    and doc_pair.local_path.lower()
                                     == child_info.path.lower()):
-                                log.debug('Case renaming on a case insensitive'
-                                          ' filesystem, update info '
-                                          'and ignore: %r', doc_pair)
+                                log.debug('Case renaming on a case '
+                                          'insensitive filesystem, update '
+                                          'info and ignore: %r', doc_pair)
                                 if doc_pair.local_name in children:
                                     del children[doc_pair.local_name]
                                 doc_pair.local_state = 'moved'
@@ -354,11 +352,12 @@ class LocalWatcher(EngineWorker):
                             child_full_path = client.abspath(child_info.path)
                             child_creation_time = self.get_creation_time(
                                 child_full_path)
-                            doc_full_path = client.abspath(local_path)
+                            doc_full_path = client.abspath(
+                                doc_pair.local_path)
                             doc_creation_time = self.get_creation_time(
                                 doc_full_path)
                             log.trace('child_cre_time=%f, doc_cre_time=%f',
-                                      child_creation_time, doc_creation_time)
+                                child_creation_time, doc_creation_time)
                         if not doc_pair:
                             log.debug('Cannot find reference for %r in '
                                       'database, put it in locally_created '
@@ -370,35 +369,37 @@ class LocalWatcher(EngineWorker):
                             log.debug('Skip pair as it is being processed: %r',
                                       doc_pair)
                             continue
-                        elif local_path == child_info.path:
+                        elif doc_pair.local_path == child_info.path:
                             log.debug('Skip pair as it is not a real move: %r',
                                       doc_pair)
                             continue
-                        elif (not doc_exists or
-                              (doc_exists
-                               and child_creation_time < doc_creation_time)):
-                                # If file exists at old location, and the file
-                                # at the original location is newer, it is
-                                # moved to the new location earlier then copied
-                                # back
+                        elif (not client.exists(doc_pair.local_path)
+                              or (client.exists(doc_pair.local_path) and
+                                  child_creation_time < doc_creation_time)):
+                            # If file exists at old location, and the file
+                            # at the original location is newer, it is
+                            # moved to the new location earlier then copied
+                            # back
                             log.debug('Found moved file')
                             doc_pair.local_state = 'moved'
                             dao.update_local_state(doc_pair, child_info)
                             self._protected_files[doc_pair.remote_ref] = True
-
-                            if (doc_exists and
-                                    child_creation_time < doc_creation_time):
-                                # Need to put back the newly created - need to
-                                # check if it is already there
-                                log.trace('Found a moved file that has been'
-                                          ' copy/paste back: %r', local_path)
-                                client.remove_remote_id(local_path)
+                            if (client.exists(doc_pair.local_path)
+                                    and child_creation_time
+                                    < doc_creation_time):
+                                # Need to put back the new created - need to
+                                # check maybe if already there
+                                log.trace('Found a moved file that has been '
+                                          'copy/paste back: %r',
+                                          doc_pair.local_path)
+                                client.remove_remote_id(doc_pair.local_path)
                                 dao.insert_local_state(
-                                    client.get_info(local_path),
-                                    dirname(local_path))
+                                    client.get_info(doc_pair.local_path),
+                                    os.path.dirname(doc_pair.local_path))
                         else:
                             # File still exists - must check the remote_id
-                            old_remote_id = client.get_remote_id(local_path)
+                            old_remote_id = client.get_remote_id(
+                                doc_pair.local_path)
                             if old_remote_id == remote_id:
                                 # Local copy paste
                                 log.debug('Found a copy-paste of document')
@@ -416,7 +417,8 @@ class LocalWatcher(EngineWorker):
                                     if old_pair.local_digest != digest:
                                         old_pair.local_digest = digest
                                     dao.update_local_state(
-                                        old_pair, client.get_info(local_path))
+                                        old_pair,
+                                        client.get_info(doc_pair.local_path))
                                     self._protected_files[
                                         old_pair.remote_ref] = True
                                 doc_pair.local_state = 'moved'
