@@ -35,6 +35,11 @@ class DarwinIntegration(AbstractOSIntegration):
         os.system('pluginkit -e use -i {}.NuxeoFinderSync'.format(
             BUNDLE_IDENTIFIER))
 
+    def _cleanup(self):
+        log.debug('Telling plugInKit to ignore the FinderSync')
+        os.system('pluginkit -e ignore -i {}.NuxeoFinderSync'.format(
+            BUNDLE_IDENTIFIER))
+
     def _get_agent_file(self):
         return os.path.join(
             os.path.expanduser('~/Library/LaunchAgents'),
@@ -151,12 +156,13 @@ class DarwinIntegration(AbstractOSIntegration):
         """
         name = '{}.syncStatus'.format(BUNDLE_IDENTIFIER)
         status = 'unsynced'
-        if state.pair_state == 'conflicted':
-            status = 'conflicted'
-        elif state.local_state == 'synchronized':
-            status = 'synced'
-        elif state.processor != 0:
-            status = 'syncing'
+        if state:
+            if state.pair_state == 'conflicted':
+                status = 'conflicted'
+            elif state.local_state == 'synchronized':
+                status = 'synced'
+            elif state.processor != 0:
+                status = 'syncing'
 
         log.debug('Sending status {} for file {} to FinderSync'.format(
             status, path))

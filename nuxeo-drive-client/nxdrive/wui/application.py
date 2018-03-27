@@ -104,7 +104,7 @@ class Application(SimpleApplication):
 
         # Movie to animate the transferring icon
         self.animated_icon = QMovie(find_icon('transferring.gif'))
-        self.animated_icon.frameChanged.connect(self._uddate_animated_icon)
+        self.animated_icon.frameChanged.connect(self._update_animated_icon)
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
@@ -115,7 +115,7 @@ class Application(SimpleApplication):
         self.manager.direct_edit.directEditConflict.connect(self._direct_edit_conflict)
         self.manager.direct_edit.directEditError.connect(self._direct_edit_error)
 
-        # Check if actions is required, separate method so it can be override
+        # Check if actions is required, separate method so it can be overridden
         self.init_checks()
 
         # Setup notification center for macOS
@@ -264,7 +264,7 @@ class Application(SimpleApplication):
 
         self.set_icon_state(new_state)
 
-    def _uddate_animated_icon(self):
+    def _update_animated_icon(self):
         icon = QIcon(self.animated_icon.currentPixmap())
         self.tray_icon.setIcon(icon)
 
@@ -639,7 +639,7 @@ class Application(SimpleApplication):
                     cmd = info['command']
                     path = info.get('filepath', None)
                     manager = self.manager
-                
+
                     # Command to open the file on the platform in the browser
                     if cmd == 'access':
                         manager.open_metadata_window(path)
@@ -671,7 +671,11 @@ class Application(SimpleApplication):
                             manager.load()
                         rel_path = None
                         for engine in manager._engine_definitions:
-                            if path.startswith(engine.local_folder):
+                            # Only send status if we picked the right
+                            # engine and if we're not targeting the root
+                            if (path.startswith(engine.local_folder)
+                                    and not os.path.samefile(
+                                        path, engine.local_folder)):
                                 rel_path = path.replace(engine.local_folder,
                                                         '')
                                 dao = manager._engines[engine.uid]._dao

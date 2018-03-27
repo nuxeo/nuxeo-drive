@@ -113,6 +113,8 @@ class Processor(EngineWorker):
             remote_client = self._engine.get_remote_client()
             try:
                 doc_pair = self._dao.acquire_state(self._thread_id, item.id)
+                self._engine._manager.osi.send_sync_status(
+                    doc_pair, local_client.abspath(doc_pair.local_path))
             except sqlite3.OperationalError:
                 state = self._dao.get_state_from_id(item.id)
                 if state:
@@ -224,6 +226,10 @@ class Processor(EngineWorker):
                 try:
                     soft_lock = self._lock_soft_path(doc_pair.local_path)
                     sync_handler(doc_pair, local_client, remote_client)
+                    if 'deleted' not in doc_pair.pair_state:
+                        self._engine._manager.osi.send_sync_status(
+                            doc_pair,
+                            local_client.abspath(doc_pair.local_path))
                     self._current_metrics['end_time'] = current_milli_time()
                     self.pairSync.emit(doc_pair, self._current_metrics)
                 except ThreadInterrupt:

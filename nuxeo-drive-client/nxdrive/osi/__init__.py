@@ -44,6 +44,9 @@ class AbstractOSIntegration(object):
     def unwatch_folder(self, folder):
         pass
 
+    def send_sync_status(self, state, path):
+        pass
+
     def register_folder_link(self, folder_path, name=None):
         pass
 

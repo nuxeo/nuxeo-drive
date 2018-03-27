@@ -18,7 +18,8 @@ class FinderSync: FIFinderSync {
     let watchFolderNotif = NSNotification.Name("org.nuxeo.drive.watchFolder")
     let triggerWatchNotif = NSNotification.Name("org.nuxeo.drive.triggerWatch")
     let syncStatusNotif = NSNotification.Name("org.nuxeo.drive.syncStatus")
-    
+    let fileStatus = FileStatus()
+
     let badges: [(image: NSImage, label: String, identifier: String)] = [
         (image: #imageLiteral(resourceName: "emblem-drive_sync.png"), label: "Synchronized", identifier: "synced"),
         (image: #imageLiteral(resourceName: "emblem-drive_pending.png"), label: "Syncing", identifier: "syncing"),
@@ -26,13 +27,13 @@ class FinderSync: FIFinderSync {
         (image: #imageLiteral(resourceName: "emblem-drive_locked.png"), label: "Locked", identifier: "locked"),
         (image: #imageLiteral(resourceName: "emblem-drive_not_sync.png"), label: "Not Synchronized", identifier: "unsynced")
     ]
-    
+
     override init() {
         NSLog("FinderSync() launched from %@", Bundle.main.bundlePath as NSString)
         super.init()
-        
+
         // Upon startup, we are not watching any directories
-        FIFinderSyncController.default().directoryURLs = [URL(fileURLWithPath: "/Users/lea/Nuxeo Drive")]
+        FIFinderSyncController.default().directoryURLs = []
         for badge in self.badges {
             FIFinderSyncController.default().setBadgeImage(
                 badge.image,
@@ -40,9 +41,9 @@ class FinderSync: FIFinderSync {
                 forBadgeIdentifier: badge.identifier
             )
         }
-        
+
         DistributedNotificationCenter.default.addObserver(self,
-                                                          selector: #selector(setSyncStatus),
+                                                          selector: #selector(receiveSyncStatus),
                                                           name: self.syncStatusNotif,
                                                           object: nil)
         // We add an observer to listen to watch notifications from the main application
@@ -65,7 +66,7 @@ class FinderSync: FIFinderSync {
                                                        forBadgeIdentifier: "Two")
         */
     }
-    
+
     deinit {
         // Remove the observer from the system upon shutdown
         DistributedNotificationCenter.default.removeObserver(self,
@@ -75,7 +76,7 @@ class FinderSync: FIFinderSync {
                                                              name: self.watchFolderNotif,
                                                              object: nil)
     }
-    
+
     @objc func setWatchedFolders(notification: NSNotification) {
         // Retrieve the operation (watch/unwatch) and the path from the notification dictionary
         if let operation = notification.userInfo!["operation"], let path = notification.userInfo!["path"] {
@@ -89,14 +90,21 @@ class FinderSync: FIFinderSync {
             }
         }
     }
-    
-    @objc func setSyncStatus(notification: NSNotification) {
-        // Retrieve the operation (watch/unwatch) and the path from the notification dictionary
+
+    @objc func receiveSyncStatus(notification: NSNotification) {
+        // Retrieve the operation status and the path from the notification dictionary
         if let status = notification.userInfo!["status"], let path = notification.userInfo!["path"] {
-            NSLog("Setting sync status of %@ to %@", path as! NSString, status as! NSString)
-            let target = URL(fileURLWithPath: path as! String)
-            FIFinderSyncController.default().setBadgeIdentifier(status as! String, for: target)
+            NSLog("Receiving sync status of %@ to %@", path as! NSString, status as! NSString)
+            fileStatus.insert(path: path as! String, status: status as! String)
+            setSyncStatus(path: path as! String, status: status as! String)
         }
+    }
+
+    func setSyncStatus(path: String, status: String) {
+        // Set the badge identifier for the target file
+        NSLog("Setting sync status of %@ to %@", path, status)
+        let target = URL(fileURLWithPath: path)
+        FIFinderSyncController.default().setBadgeIdentifier(status, for: target)
     }
 
     // Primary Finder Sync protocol methods
@@ -115,14 +123,12 @@ class FinderSync: FIFinderSync {
     override func requestBadgeIdentifier(for url: URL) {
         // Badges on synced files and folders
         NSLog("requestBadgeIdentifierForURL: %@", url.path as NSString)
-        // For demonstration purposes, this picks one of our two badges, or no badge at all, based on the filename.
-        // Inspiration: https://github.com/haiwen/seafile-client/blob/master/fsplugin/FinderSync.mm
-        /*
-        let whichBadge = abs(url.path.hash) % 3
-        let badgeIdentifier = ["", "One", "Two"][whichBadge]
-        FIFinderSyncController.default().setBadgeIdentifier(badgeIdentifier, for: url)
-        */
-        getSyncStatus(target: url)
+        let entries = fileStatus.select(path: url.path as String)
+        if entries.isEmpty {
+            getSyncStatus(target: url)
+        } else {
+            setSyncStatus(path: url.path as String, status: entries.first!)
+        }
     }
 
     // Toolbar
@@ -164,7 +170,7 @@ class FinderSync: FIFinderSync {
 
         return menu
     }
-    
+
     func getSyncStatus(target: URL?) {
         // Called by requestBadgeIdentifier to ask Drive for a status
         NSLog("sync_status: target: %@", target!.path as NSString)
