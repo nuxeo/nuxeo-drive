@@ -711,6 +711,10 @@ class RemoteWatcher(EngineWorker):
                             except (OSError, IOError) as exc:
                                 log.trace('Cannot handle readonly for %r (%r)', doc_pair, exc)
                                 del exc  # Fix reference leak
+
+                pair = self._dao.get_state_from_id(doc_pair.id)
+                self._engine._manager.osi.send_sync_status(
+                    pair, self._local_client.abspath(pair.local_path))
                 updated = True
                 refreshed.add(remote_ref)
 

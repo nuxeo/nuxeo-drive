@@ -633,9 +633,9 @@ class Application(SimpleApplication):
             url = str(event.url().toString())
             try:
                 info = parse_protocol_url(url)
-                log.debug('Event url=%s, info=%r', url, info)
+                if 'sync_status' not in url:
+                    log.debug('Event url=%s, info=%r', url, info)
                 if info is not None:
-                    log.debug('Received nxdrive URL scheme event: %s', url)
                     cmd = info['command']
                     path = info.get('filepath', None)
                     manager = self.manager
@@ -666,7 +666,7 @@ class Application(SimpleApplication):
 
                     # Command to retrieve the sync status of a file
                     elif cmd == 'sync_status':
-                        log.debug('Received getSyncStatus')
+                        log.trace('Event url=%s, info=%r', url, info)
                         if manager._engines is None:
                             manager.load()
                         rel_path = None

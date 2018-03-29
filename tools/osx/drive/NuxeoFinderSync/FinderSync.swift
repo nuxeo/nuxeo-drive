@@ -29,7 +29,7 @@ class FinderSync: FIFinderSync {
     ]
 
     override init() {
-        NSLog("FinderSync() launched from %@", Bundle.main.bundlePath as NSString)
+        //NSLog("FinderSync() launched from %@", Bundle.main.bundlePath as NSString)
         super.init()
 
         // Upon startup, we are not watching any directories
@@ -94,15 +94,15 @@ class FinderSync: FIFinderSync {
     @objc func receiveSyncStatus(notification: NSNotification) {
         // Retrieve the operation status and the path from the notification dictionary
         if let status = notification.userInfo!["status"], let path = notification.userInfo!["path"] {
-            NSLog("Receiving sync status of %@ to %@", path as! NSString, status as! NSString)
-            fileStatus.insert(path: path as! String, status: status as! String)
+            //NSLog("Receiving sync status of %@ to %@", path as! NSString, status as! NSString)
+            fileStatus.insertStatus(status as! String, for: path as! String)
             setSyncStatus(path: path as! String, status: status as! String)
         }
     }
 
     func setSyncStatus(path: String, status: String) {
         // Set the badge identifier for the target file
-        NSLog("Setting sync status of %@ to %@", path, status)
+        //NSLog("Setting sync status of %@ to %@", path, status)
         let target = URL(fileURLWithPath: path)
         FIFinderSyncController.default().setBadgeIdentifier(status, for: target)
     }
@@ -112,22 +112,21 @@ class FinderSync: FIFinderSync {
     override func beginObservingDirectory(at url: URL) {
         // The user is now seeing the container's contents.
         // If they see it in more than one view at a time, we're only told once.
-        NSLog("beginObservingDirectoryAtURL: %@", url.path as NSString)
+        //NSLog("beginObservingDirectoryAtURL: %@", url.path as NSString)
     }
 
     override func endObservingDirectory(at url: URL) {
         // The user is no longer seeing the container's contents.
-        NSLog("endObservingDirectoryAtURL: %@", url.path as NSString)
+        //NSLog("endObservingDirectoryAtURL: %@", url.path as NSString)
     }
 
     override func requestBadgeIdentifier(for url: URL) {
         // Badges on synced files and folders
-        NSLog("requestBadgeIdentifierForURL: %@", url.path as NSString)
-        let entries = fileStatus.select(path: url.path as String)
-        if entries.isEmpty {
-            getSyncStatus(target: url)
+        //NSLog("requestBadgeIdentifierForURL: %@", url.path as NSString)
+        if let status = fileStatus.getStatus(for: url.path as String) {
+            setSyncStatus(path: url.path as String, status: status)
         } else {
-            setSyncStatus(path: url.path as String, status: entries.first!)
+            getSyncStatus(target: url)
         }
     }
 
@@ -173,7 +172,7 @@ class FinderSync: FIFinderSync {
 
     func getSyncStatus(target: URL?) {
         // Called by requestBadgeIdentifier to ask Drive for a status
-        NSLog("sync_status: target: %@", target!.path as NSString)
+        //NSLog("sync_status: target: %@", target!.path as NSString)
         openNXUrl(command: "sync_status", target: target)
     }
 
@@ -181,7 +180,7 @@ class FinderSync: FIFinderSync {
         // Event fired by "Access online" menu entry
         let items = FIFinderSyncController.default().selectedItemURLs()
         for item in items! {
-            NSLog("openInBrowser: target: %@", item.path as NSString)
+            //NSLog("openInBrowser: target: %@", item.path as NSString)
             openNXUrl(command: "access", target: item)
         }
     }
@@ -190,7 +189,7 @@ class FinderSync: FIFinderSync {
         // Event fired by "Copy share-link" menu entry
         let items = FIFinderSyncController.default().selectedItemURLs()
         for item in items! {
-            NSLog("copyShareLink: target: %@", item.path as NSString)
+            //NSLog("copyShareLink: target: %@", item.path as NSString)
             openNXUrl(command: "share_link", target: item)
         }
     }
@@ -200,10 +199,10 @@ class FinderSync: FIFinderSync {
         guard let targetPath = target?.path else {
             return
         }
-        NSLog("Target path is %@", targetPath)
+        //NSLog("Target path is %@", targetPath)
         let request = String(format: "nxdrive://%@/%@", command, targetPath)
         let url = URL(string: request.replacingOccurrences(of: " ", with: "%20"))
-        NSLog("Launching URL %@", request)
+        //NSLog("Launching URL %@", request)
         NSWorkspace.shared.open(url!)
     }
 

@@ -226,10 +226,11 @@ class Processor(EngineWorker):
                 try:
                     soft_lock = self._lock_soft_path(doc_pair.local_path)
                     sync_handler(doc_pair, local_client, remote_client)
-                    if 'deleted' not in doc_pair.pair_state:
+
+                    pair = self._dao.get_state_from_id(doc_pair.id)
+                    if pair and 'deleted' not in pair.pair_state:
                         self._engine._manager.osi.send_sync_status(
-                            doc_pair,
-                            local_client.abspath(doc_pair.local_path))
+                            pair, local_client.abspath(pair.local_path))
                     self._current_metrics['end_time'] = current_milli_time()
                     self.pairSync.emit(doc_pair, self._current_metrics)
                 except ThreadInterrupt:

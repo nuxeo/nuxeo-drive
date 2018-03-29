@@ -161,10 +161,12 @@ class DarwinIntegration(AbstractOSIntegration):
                 status = 'conflicted'
             elif state.local_state == 'synchronized':
                 status = 'synced'
+            elif state.pair_state == 'unsynchronized':
+                status = 'unsynced'
             elif state.processor != 0:
                 status = 'syncing'
 
-        log.debug('Sending status {} for file {} to FinderSync'.format(
+        log.trace('Sending status {} for file {} to FinderSync'.format(
             status, path))
         self._send_notification(name, {'status': status, 'path': path})
 
