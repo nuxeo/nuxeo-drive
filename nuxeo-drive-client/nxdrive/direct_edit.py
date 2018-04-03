@@ -369,7 +369,7 @@ class DirectEdit(Worker):
     def _handle_lock_queue(self):
         local = self._local_client
 
-        while not self._lock_queue.empty():
+        while 'items':
             try:
                 item = self._lock_queue.get_nowait()
             except Empty:
@@ -398,7 +398,7 @@ class DirectEdit(Worker):
                 else:
                     purge = False
 
-                if purge or action.startswith('unlock'):
+                if purge or action == 'unlock_orphan':
                     path = local.abspath(ref)
                     log.trace('Remove orphan: %r', path)
                     self.autolock.orphan_unlocked(path)
@@ -414,7 +414,8 @@ class DirectEdit(Worker):
             except:
                 # Try again in 30s
                 log.exception('Cannot %s document %r', action, ref)
-                self.directEditLockError.emit(action, os.path.basename(ref), uid)
+                self.directEditLockError.emit(
+                    action, os.path.basename(ref), uid)
 
     def _send_lock_status(self, ref):
         manager = self._manager

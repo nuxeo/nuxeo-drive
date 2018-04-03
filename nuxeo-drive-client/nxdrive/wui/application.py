@@ -20,7 +20,8 @@ from ..notification import Notification
 from ..options import Options
 from ..osi import AbstractOSIntegration
 from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
-                                 UPDATE_STATUS_UP_TO_DATE)
+                                 UPDATE_STATUS_UP_TO_DATE,
+                                 UPDATE_STATUS_UNAVAILABLE_SITE)
 from ..utils import find_icon, find_resource, parse_protocol_url
 
 log = getLogger(__name__)
@@ -231,7 +232,8 @@ class Application(SimpleApplication):
     @pyqtSlot()
     def change_systray_icon(self):
         # Update status has the precedence over other ones
-        if self.manager.updater.last_status[0] != UPDATE_STATUS_UP_TO_DATE:
+        if self.manager.updater.last_status[0] not in (
+                UPDATE_STATUS_UP_TO_DATE, UPDATE_STATUS_UNAVAILABLE_SITE):
             self.set_icon_state('update_available')
             return
 
