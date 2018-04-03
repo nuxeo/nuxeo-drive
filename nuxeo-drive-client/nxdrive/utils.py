@@ -505,17 +505,25 @@ def parse_protocol_url(url_string):
     if not url_string.startswith('nxdrive://'):
         return None
 
-    protocol_regex = [('nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/'
-                       '(?P<server>.*)/user/(?P<username>.*)/repo/'
-                       '(?P<repo>.*)/nxdocid/(?P<docid>(\d|[a-f]|-)*)/'
-                       'filename/(?P<filename>[^/]*)(/downloadUrl/'
-                       '(?P<download>.*)|)'),
+    protocol_regex = (
+        # A document to open using Direct Edit
+        ('nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/'
+         'user/(?P<username>.*)/repo/(?P<repo>.*)/'
+         'nxdocid/(?P<docid>(\d|[a-f]|-)*)/filename/(?P<filename>[^/]*)'
+         '(/downloadUrl/(?P<download>.*)|)'),
 
-                      'nxdrive://(?P<cmd>share_link)/(?P<path>.*)',
+        # Event from context menu: Access online
+        'nxdrive://(?P<cmd>access-online)/(?P<path>.*)',
 
-                      'nxdrive://(?P<cmd>access)/(?P<path>.*)',
+        # Event from context menu: Copy share-link
+        'nxdrive://(?P<cmd>copy-share-link)/(?P<path>.*)',
 
-                      'nxdrive://(?P<cmd>trigger_watch)']
+        # Event from context menu: Edit metadata
+        'nxdrive://(?P<cmd>edit-metadata)/(?P<path>.*)',
+
+        # Event from macOS to (un)watch a folder (FinderSync framework)
+        'nxdrive://(?P<cmd>trigger-watch)',
+    )
 
     parsed_url = None
     for regex in protocol_regex:
@@ -531,10 +539,9 @@ def parse_protocol_url(url_string):
     cmd = parsed_url.get('cmd')
     if cmd == 'edit':
         return parse_edit_protocol(parsed_url, url_string)
-    if cmd in ('access', 'share_link'):
+    elif cmd in ('access-online', 'copy-share-link', 'edit-metadata'):
         return dict(command=cmd, filepath=parsed_url.get('path'))
-    else:
-        return dict(command=cmd)
+    return dict(command=cmd)
 
 
 def parse_edit_protocol(parsed_url, url_string):
@@ -542,7 +549,7 @@ def parse_edit_protocol(parsed_url, url_string):
     scheme = parsed_url.get('scheme')
     if scheme not in ('http', 'https'):
         raise ValueError(
-            'Invalid command {} : scheme should be http or https'.format(
+            'Invalid command {}: scheme should be http or https'.format(
                 url_string))
 
     server_url = '{}://{}'.format(scheme, parsed_url.get('server'))

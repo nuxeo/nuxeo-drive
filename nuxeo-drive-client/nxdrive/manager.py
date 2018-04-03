@@ -991,11 +991,8 @@ class Manager(QtCore.QObject):
             return self.get_root_id(parent)
         return ref
 
-    def open_metadata_window(self, file_path, application=None):
-        """
-        Open the user's browser to a remote document's metadata.
-        Shows a dialog box on failure.
-        """
+    def ctx_access_online(self, file_path):
+        """ Open the user's browser to a remote document. """
 
         log.debug('Opening metadata window for %r', file_path)
         try:
@@ -1006,7 +1003,34 @@ class Manager(QtCore.QObject):
         else:
             self.open_local_file(url)
 
-    def get_metadata_infos(self, file_path):
+    def ctx_copy_share_link(self, file_path):
+        """ Copy the document's share-link to the clipboard. """
+
+        url = self.get_metadata_infos(file_path)
+        log.info('Copied %r', url)
+        if sys.platform == 'win32':
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardText(url, win32clipboard.CF_UNICODETEXT)
+            win32clipboard.CloseClipboard()
+        else:
+            cb = QApplication.clipboard()
+            cb.clear(mode=cb.Clipboard)
+            cb.setText(url, mode=cb.Clipboard)
+
+    def ctx_edit_metadata(self, file_path):
+        """ Open the user's browser to a remote document's metadata. """
+
+        log.debug('Opening metadata window for %r', file_path)
+        try:
+            url = self.get_metadata_infos(file_path, edit=True)
+        except ValueError:
+            log.warning('The document %r is not handled by the Nuxeo server'
+                        ' or is not synchronized yet.', file_path)
+        else:
+            self.open_local_file(url)
+
+    def get_metadata_infos(self, file_path, edit=False):
         remote_ref = LocalClient.get_path_remote_id(file_path)
         if remote_ref is None:
             raise ValueError(
@@ -1020,20 +1044,7 @@ class Manager(QtCore.QObject):
             raise ValueError(
                 'Unknown engine %s for %r' % (root_values[3], file_path))
 
-        return engine.get_metadata_url(remote_ref)
-
-    def copy_share_link(self, file_path):
-        url = self.get_metadata_infos(file_path)
-        log.info('Copied %r', url)
-        if sys.platform == 'win32':
-            win32clipboard.OpenClipboard()
-            win32clipboard.EmptyClipboard()
-            win32clipboard.SetClipboardText(url, win32clipboard.CF_UNICODETEXT)
-            win32clipboard.CloseClipboard()
-        else:
-            cb = QApplication.clipboard()
-            cb.clear(mode=cb.Clipboard)
-            cb.setText(url, mode=cb.Clipboard)
+        return engine.get_metadata_url(remote_ref, edit=edit)
 
     def set_script_object(self, obj):  # TODO: Remove
         # Used to enhance scripting with UI

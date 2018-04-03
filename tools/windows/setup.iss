@@ -101,6 +101,10 @@ english.ctx_menu_access_online=Access online
 english.ctx_menu_copy_share_link=Copy share-link
 ;french.ctx_menu_copy_share_link=Copier le lien de partage
 
+; Context meny entry: Edit metadata
+english.ctx_menu_edit_metadata=Edit metadata
+;french.ctx_menu_edit_metadata=Éditer les métadonnées
+
 
 [Tasks]
 ; Create the desktop icon
@@ -142,21 +146,27 @@ Root: HKCU; Subkey: "Software\Classes\nxdrive\shell\open\command"; ValueType: ex
 ; On files
 Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 1"; ValueType: expandsz; ValueData: "{cm:ctx_menu_access_online}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 1"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
-Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 1\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" metadata --file ""%1"""
+Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 1\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" access-online --file ""%1"""
 ; On folders
 Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 1"; ValueType: expandsz; ValueData: "{cm:ctx_menu_access_online}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 1"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
-Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 1\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" metadata --file ""%1"""
+Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 1\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" access-online --file ""%1"""
 
 ; Context menu entry: Copy share-link
 ; On files
 Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 2"; ValueType: expandsz; ValueData: "{cm:ctx_menu_copy_share_link}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 2"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
-Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 2\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" share-link --file ""%1"""
+Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 2\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" copy-share-link --file ""%1"""
 ; On folders
 Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 2"; ValueType: expandsz; ValueData: "{cm:ctx_menu_copy_share_link}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 2"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
-Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 2\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" share-link --file ""%1"""
+Root: HKCU; Subkey: "Software\Classes\directory\shell\Nuxeo Drive 2\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" copy-share-link --file ""%1"""
+
+; Context menu entry: Edit metadata
+; On files only
+Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 3"; ValueType: expandsz; ValueData: "{cm:ctx_menu_edit_metadata}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 3"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
+Root: HKCU; Subkey: "Software\Classes\*\shell\Nuxeo Drive 3\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" edit-metadata --file ""%1"""
 
 
 [Run]

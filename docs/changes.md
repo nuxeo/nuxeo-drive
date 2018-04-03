@@ -1,6 +1,11 @@
 # dev
 Release date: `2018-??-??`
 
+Changes in command line arguments:
+- `access-online`
+- `share-link` -> `copy-share-link`
+- `metadata` -> `edit-metadata`
+
 ### Core
 - [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations
 - [NXDRIVE-925](https://jira.nuxeo.com/browse/NXDRIVE-925): Conflict resolve using local is not working
@@ -22,6 +27,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1136](https://jira.nuxeo.com/browse/NXDRIVE-1136): Change systray icon on update
 - [NXDRIVE-1140](https://jira.nuxeo.com/browse/NXDRIVE-1140): Use a GIF for the transferring icon
 - [NXDRIVE-1149](https://jira.nuxeo.com/browse/NXDRIVE-1149): New language: Indonesian
+- [NXDRIVE-1158](https://jira.nuxeo.com/browse/NXDRIVE-1158): Restore the context menu "Edit metadata"
 - [NXDRIVE-1166](https://jira.nuxeo.com/browse/NXDRIVE-1166): Display a notification on new update on GNU/Linux
 
 ### Packaging / Build

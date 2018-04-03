@@ -637,17 +637,19 @@ class Application(SimpleApplication):
                 if info is not None:
                     log.debug('Received nxdrive URL scheme event: %s', url)
                     cmd = info['command']
-                    if cmd == 'access':
-                        self.manager.open_metadata_window(info['filepath'])
-                    elif cmd == 'share_link':
-                        self.manager.copy_share_link(info['filepath'])
+                    if cmd == 'access-online':
+                        self.manager.ctx_access_online(info['filepath'])
+                    elif cmd == 'copy-share-link':
+                        self.manager.ctx_copy_share_link(info['filepath'])
+                    elif cmd == 'edit-metadata':
+                        self.manager.ctx_edit_metadata(info['filepath'])
                     elif 'edit' in cmd:
                         # This is a quick operation, no need to fork a QThread
                         self.manager.direct_edit.edit(
                             info['server_url'], info['doc_id'],
                             user=info['user'],
                             download_url=info['download_url'])
-                    elif cmd == 'trigger_watch':
+                    elif cmd == 'trigger-watch':
                         log.debug('Received triggerWatch')
                         if self.manager._engines is None:
                             self.manager.load()
