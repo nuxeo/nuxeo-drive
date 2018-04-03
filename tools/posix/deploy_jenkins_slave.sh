@@ -148,6 +148,7 @@ install_deps() {
     echo ">>> Installing requirements"
     # Do not delete, it fixes "Could not import setuptools which is required to install from a source distribution."
     ${PIP} setuptools
+    ${PIP} pip
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-dev.txt
     pyenv rehash

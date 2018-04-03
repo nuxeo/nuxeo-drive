@@ -31,6 +31,9 @@ Release date: `2018-??-??`
 - [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730): Move to PyInstaller (**breaking change**)
 - [NXDRIVE-1125](https://jira.nuxeo.com/browse/NXDRIVE-1125): Make Finder interactions through FinderSync extension on macOS
 
+### Tests
+- [NXDRIVE-1173](https://jira.nuxeo.com/browse/NXDRIVE-1173): Fix pip installation on Windows
+
 #### Minor changes
 - Auto-update: automatically install a new update if no bound engine
 - CLI: Removed `--stop-on-error` argument

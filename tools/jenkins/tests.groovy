@@ -93,7 +93,8 @@ for (def x in slaves) {
     builders[slave] = {
         node(slave) {
             withEnv(["WORKSPACE=${pwd()}"]) {
-                if (params.CLEAN_WORKSPACE) {
+                // TODO: Remove Windows part when https://github.com/pypa/pip/issues/5155 is resolved
+                if (params.CLEAN_WORKSPACE || slave.toLowerCase() == "windows") {
                     deleteDir()
                 }
 
