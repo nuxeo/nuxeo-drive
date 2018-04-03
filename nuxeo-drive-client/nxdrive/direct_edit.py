@@ -387,6 +387,7 @@ class DirectEdit(Worker):
                     remote.lock(uid)
                     local.set_remote_id(dir_path, '1', name='nxdirecteditlock')
                     # Emit the lock signal only when the lock is really set
+                    self._send_lock_status(ref)
                     self.autolock.documentLocked.emit(os.path.basename(ref))
                     continue
 
@@ -406,6 +407,7 @@ class DirectEdit(Worker):
 
                 local.remove_remote_id(dir_path, name='nxdirecteditlock')
                 # Emit the signal only when the unlock is done
+                self._send_lock_status(ref)
                 self.autolock.documentUnlocked.emit(os.path.basename(ref))
             except ThreadInterrupt:
                 raise
@@ -413,6 +415,17 @@ class DirectEdit(Worker):
                 # Try again in 30s
                 log.exception('Cannot %s document %r', action, ref)
                 self.directEditLockError.emit(action, os.path.basename(ref), uid)
+
+    def _send_lock_status(self, ref):
+        manager = self._manager
+        if manager._engines is None:
+            manager.load()
+        for engine in manager._engine_definitions:
+            dao = manager._engines[engine.uid]._dao
+            state = dao.get_states_from_remote(ref)
+            if state:
+                path = os.path.join(engine.local_folder, state.local_path)
+                manager.osi.send_sync_status(state, path)
 
     def _handle_upload_queue(self):
         local = self._local_client

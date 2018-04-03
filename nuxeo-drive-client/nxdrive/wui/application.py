@@ -669,17 +669,15 @@ class Application(SimpleApplication):
                         log.trace('Event url=%s, info=%r', url, info)
                         if manager._engines is None:
                             manager.load()
-                        rel_path = None
                         for engine in manager._engine_definitions:
                             # Only send status if we picked the right
                             # engine and if we're not targeting the root
                             if (path.startswith(engine.local_folder)
                                     and not os.path.samefile(
                                         path, engine.local_folder)):
-                                rel_path = path.replace(engine.local_folder,
-                                                        '')
+                                r_path = path.replace(engine.local_folder, '')
                                 dao = manager._engines[engine.uid]._dao
-                                state = dao.get_state_from_local(rel_path)
+                                state = dao.get_state_from_local(r_path)
                                 manager.osi.send_sync_status(state, path)
                                 break
             except:

@@ -351,8 +351,8 @@ class ManagerDAO(ConfigurationDAO):
     def get_locked_paths(self):
         con = self._get_read_connection()
         c = con.cursor()
-        return c.execute('SELECT * '
-                         'FROM AutoLock').fetchall()
+        return c.execute('SELECT *'
+                         '  FROM AutoLock').fetchall()
 
     def lock_path(self, path, process, doc_id):
         with self._lock:

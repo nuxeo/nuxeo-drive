@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import stat
 import sys
 import urllib2
 from logging import getLogger
@@ -154,9 +155,16 @@ class DarwinIntegration(AbstractOSIntegration):
         :param state: current local state of the file
         :param path: full path of the file
         """
+        if not os.path.exists(path):
+            return
+
         name = '{}.syncStatus'.format(BUNDLE_IDENTIFIER)
         status = 'unsynced'
-        if state:
+
+        readonly = (os.stat(path).st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
+        if readonly:
+            status = 'locked'
+        elif state:
             if state.pair_state == 'conflicted':
                 status = 'conflicted'
             elif state.local_state == 'synchronized':
