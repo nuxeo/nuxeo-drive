@@ -13,6 +13,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1152](https://jira.nuxeo.com/browse/NXDRIVE-1152): Handle document delete operation by server version
 - [NXDRIVE-1154](https://jira.nuxeo.com/browse/NXDRIVE-1154): Persist the server's UI into the local configuration database
 - [NXDRIVE-1163](https://jira.nuxeo.com/browse/NXDRIVE-1163): Direct Edit does not work with filenames containing spaces
+- [NXDRIVE-1174](https://jira.nuxeo.com/browse/NXDRIVE-1174): Efficient `ConfigurationDAO.update_config()`
 
 ### GUI
 - [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry

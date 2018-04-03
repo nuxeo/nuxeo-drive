@@ -125,6 +125,8 @@ class FakeLock(object):
 
 class ConfigurationDAO(QObject):
 
+    _state_factory = StateRow
+
     def __init__(self, db):
         super(ConfigurationDAO, self).__init__()
         log.debug('Create DAO on %r', db)
@@ -140,8 +142,9 @@ class ConfigurationDAO(QObject):
         self._lock = RLock() if self.share_connection else FakeLock()
         # Use to clean
         self._connections = []
+        self._conns = local()
         self._create_main_conn()
-        self._conn.row_factory = StateRow
+        self._conn.row_factory = self._state_factory
         c = self._conn.cursor()
         self._init_db(c)
         if migrate:
@@ -155,7 +158,6 @@ class ConfigurationDAO(QObject):
             c.execute('INSERT INTO Configuration (name, value) '
                       'VALUES (?, ?)', (SCHEMA_VERSION, self.schema_version))
         self._conn.commit()
-        self._conns = local()
         # FOR PYTHON 3.3...
         # if log.getEffectiveLevel() < 6:
         #    self._conn.set_trace_callback(self._log_trace)
@@ -211,6 +213,7 @@ class ConfigurationDAO(QObject):
             self._db, os.path.exists(os.path.dirname(self._db)),
             os.path.exists(self._db))
         self._conn = AutoRetryConnection(self._db, check_same_thread=False)
+        self._conn.row_factory = self._state_factory
         self._connections.append(self._conn)
 
     def _log_trace(self, query):
@@ -223,15 +226,14 @@ class ConfigurationDAO(QObject):
         self._connections = []
         self._conn = None
 
-    def _get_write_connection(self, factory=StateRow):
+    def _get_write_connection(self):
         if self.share_connection or self.in_tx:
             if self._conn is None:
                 self._create_main_conn()
-            self._conn.row_factory = factory
             return self._conn
-        return self._get_read_connection(factory)
+        return self._get_read_connection()
 
-    def _get_read_connection(self, factory=StateRow):
+    def _get_read_connection(self):
         # If in transaction
         if self.in_tx is not None:
             if current_thread().ident != self.in_tx:
@@ -242,12 +244,14 @@ class ConfigurationDAO(QObject):
             else:
                 # Return the write connection
                 return self._conn
-        if not hasattr(self._conns, '_conn') or self._conns._conn is None:
+
+        if getattr(self._conns, '_conn', None) is None:
             # Dont check same thread for closing purpose
             self._conns._conn = AutoRetryConnection(
                 self._db, check_same_thread=False)
+            self._conns._conn.row_factory = self._state_factory
             self._connections.append(self._conns._conn)
-        self._conns._conn.row_factory = factory
+
         # Python3.3 feature
         # if log.getEffectiveLevel() < 6:
         #     self._conns._conn.set_trace_callback(self._log_trace)
@@ -272,6 +276,9 @@ class ConfigurationDAO(QObject):
                 con.commit()
 
     def update_config(self, name, value):
+        if self.get_config(name) == value:
+            return
+
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -484,11 +491,12 @@ class ManagerDAO(ConfigurationDAO):
 class EngineDAO(ConfigurationDAO):
     newConflict = pyqtSignal(object)
 
-    def __init__(self, db, state_factory=StateRow):
+    def __init__(self, db, state_factory=None):
         self._filters = None
         self._queue_manager = None
         super(EngineDAO, self).__init__(db)
-        self._state_factory = state_factory
+        if state_factory:
+            self._state_factory = state_factory
         self._filters = self.get_filters()
         self._items_count = None
         self._items_count = self.get_syncing_count()
@@ -589,10 +597,6 @@ class EngineDAO(ConfigurationDAO):
                            '   PRIMARY KEY (path)'
                            ')'.format(table))
         self._create_state_table(cursor)
-
-    def _get_read_connection(self, factory=None):
-        factory = factory or self._state_factory
-        return super(EngineDAO, self)._get_read_connection(factory)
 
     def acquire_state(self, thread_id, row_id):
         if self.acquire_processor(thread_id, row_id):
@@ -749,7 +753,7 @@ class EngineDAO(ConfigurationDAO):
         return row_id
 
     def get_last_files(self, number, direction=''):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         conditions = {'remote': "AND last_transfer = 'upload'",
                       'local': "AND last_transfer = 'download'"}
         condition = conditions.get(direction, '')
@@ -769,7 +773,7 @@ class EngineDAO(ConfigurationDAO):
         # Prevent any update while init queue
         with self._lock:
             self._queue_manager = manager
-            con = self._get_write_connection(factory=self._state_factory)
+            con = self._get_write_connection()
             c = con.cursor()
             # Order by path to be sure to process parents before childs
             pairs = c.execute('SELECT *'
@@ -815,7 +819,7 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
 
     def get_dedupe_pair(self, name, parent, row_id):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE id != ?'
@@ -879,7 +883,7 @@ class EngineDAO(ConfigurationDAO):
         self.update_local_state(row, info, versioned=False, queue=False)
 
     def get_valid_duplicate_file(self, digest):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute("SELECT *"
                          "  FROM States"
                          " WHERE remote_digest = ?"
@@ -887,28 +891,28 @@ class EngineDAO(ConfigurationDAO):
                          (digest,)).fetchone()
 
     def get_remote_descendants(self, path):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE remote_parent_path LIKE ?',
                          ('{}%'.format(path),)).fetchall()
 
     def get_remote_descendants_from_ref(self, ref):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE remote_parent_path LIKE ?',
                          ('%{}%'.format(ref),)).fetchall()
 
     def get_remote_children(self, ref):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE remote_parent_ref = ?',
                          (ref,)).fetchall()
 
     def get_new_remote_children(self, ref):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute("SELECT *"
                          "  FROM States"
                          " WHERE remote_parent_ref = ?"
@@ -949,11 +953,11 @@ class EngineDAO(ConfigurationDAO):
                  '  FROM States')
         if condition:
             query = '{} WHERE {}'.format(query, condition)
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute(query).fetchone().count
 
     def get_global_size(self):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         total = c.execute("SELECT SUM(size) as sum"
                           "  FROM States"
                           " WHERE folderish = 0"
@@ -963,40 +967,40 @@ class EngineDAO(ConfigurationDAO):
         return total or 0
 
     def get_unsynchronizeds(self):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute("SELECT *"
                          "  FROM States"
                          " WHERE pair_state = 'unsynchronized'").fetchall()
 
     def get_conflicts(self):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute("SELECT *"
                          "  FROM States"
                          " WHERE pair_state = 'conflicted'").fetchall()
 
     def get_errors(self, limit=3):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE error_count > ?',
                          (limit,)).fetchall()
 
     def get_local_children(self, path):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE local_parent_path = ?',
                          (path,)).fetchall()
 
     def get_states_from_partial_local(self, path):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE local_path LIKE ?',
                          ('{}%'.format(path),)).fetchall()
 
     def get_first_state_from_partial_remote(self, ref):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE remote_ref LIKE ? '
@@ -1011,7 +1015,7 @@ class EngineDAO(ConfigurationDAO):
     def get_state_from_remote_with_path(self, ref, path):
         # remote_path root is empty, should refactor this
         path = '' if path == '/' else path
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE remote_ref = ?'
@@ -1019,7 +1023,7 @@ class EngineDAO(ConfigurationDAO):
                              (ref, path)).fetchone()
 
     def get_states_from_remote(self, ref):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE remote_ref = ?',
@@ -1030,12 +1034,11 @@ class EngineDAO(ConfigurationDAO):
         if from_write and self.auto_commit:
             from_write = False
         try:
-            factory = self._state_factory
             if from_write:
                 self._lock.acquire()
-                c = self._get_write_connection(factory=factory).cursor()
+                c = self._get_write_connection().cursor()
             else:
-                c = self._get_read_connection(factory=factory).cursor()
+                c = self._get_read_connection().cursor()
             state = c.execute('SELECT *'
                               '  FROM States'
                               ' WHERE id = ?',
@@ -1146,7 +1149,7 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
 
     def get_state_from_local(self, path):
-        c = self._get_read_connection(factory=self._state_factory).cursor()
+        c = self._get_read_connection().cursor()
         return c.execute('SELECT *'
                          '  FROM States'
                          ' WHERE local_path = ?',
@@ -1368,8 +1371,7 @@ class EngineDAO(ConfigurationDAO):
 
         if not result:
             log.trace('Was not able to synchronize state: %r', row)
-            con = self._get_read_connection()
-            c = con.cursor()
+            c = self._get_read_connection().cursor()
             row2 = c.execute('SELECT *'
                              '  FROM States'
                              ' WHERE id = ?',

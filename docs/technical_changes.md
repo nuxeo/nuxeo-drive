@@ -46,6 +46,7 @@
 - Removed `Engine.get_previous_file()`
 - Removed `Engine.resolve_with_duplicate()`
 - Added `Engine.set_ui()`
+- Changed `EngineDAO.__init__(self, db, state_factory=StateRow)` to `state_factory=None`
 - Removed `EngineDAO.mark_descendants_remotely_deleted()`
 - Removed `EngineDAO.mark_descendants_locally_created()`
 - Changed `EngineDAO.update_remote_state()` `versionned` keyword argument to `versioned`
