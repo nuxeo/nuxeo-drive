@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8B33E77F206D7A500070F15A /* emblem-drive_error.png in Resources */ = {isa = PBXBuildFile; fileRef = 8B33E77E206D7A500070F15A /* emblem-drive_error.png */; };
 		8B6E724A2046EE3E00AB5771 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E72492046EE3E00AB5771 /* AppDelegate.swift */; };
 		8B6E724C2046EE3E00AB5771 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E724B2046EE3E00AB5771 /* ViewController.swift */; };
 		8B6E72512046EE3E00AB5771 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8B6E724F2046EE3E00AB5771 /* Main.storyboard */; };
@@ -46,6 +47,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		8B33E77E206D7A500070F15A /* emblem-drive_error.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "emblem-drive_error.png"; sourceTree = "<group>"; };
 		8B6E72462046EE3D00AB5771 /* drive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = drive.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B6E72492046EE3E00AB5771 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		8B6E724B2046EE3E00AB5771 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -114,6 +116,7 @@
 		8B6E725E2046EE5400AB5771 /* NuxeoFinderSync */ = {
 			isa = PBXGroup;
 			children = (
+				8B33E77E206D7A500070F15A /* emblem-drive_error.png */,
 				8BDDFB2E2063EFF100A42273 /* emblem-drive_not_sync.png */,
 				8BDDFB272063EB4D00A42273 /* emblem-drive_conflict.png */,
 				8BDDFB292063EB4D00A42273 /* emblem-drive_locked.png */,
@@ -234,6 +237,7 @@
 			files = (
 				8BDDFB2C2063EB4D00A42273 /* emblem-drive_pending.png in Resources */,
 				8BDDFB2F2063EFF100A42273 /* emblem-drive_not_sync.png in Resources */,
+				8B33E77F206D7A500070F15A /* emblem-drive_error.png in Resources */,
 				8BDDFB2D2063EB4D00A42273 /* emblem-drive_locked.png in Resources */,
 				8BDDFB2B2063EB4D00A42273 /* emblem-drive_conflict.png in Resources */,
 				8BFDE4EE20486A5C00618B67 /* icon_64.png in Resources */,

@@ -165,7 +165,9 @@ class DarwinIntegration(AbstractOSIntegration):
         if readonly:
             status = 'locked'
         elif state:
-            if state.pair_state == 'conflicted':
+            if state.error_count > 0:
+                status = 'error'
+            elif state.pair_state == 'conflicted':
                 status = 'conflicted'
             elif state.local_state == 'synchronized':
                 status = 'synced'
