@@ -176,7 +176,7 @@ function install_deps {
 			ExitWithCode $lastExitCode
 		}
 	}
-	# TODO: Uncomment when https://github.com/pypa/pip/issues/5155 is resolved
+	# TODO: Uncomment when https://github.com/pypa/pip/issues/3055 is resolved
 	# & $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT pip
 
 	Write-Output ">>> Installing requirements"
