@@ -7,7 +7,7 @@ from logging import getLogger
 
 from .. import AbstractOSIntegration
 from ...constants import BUNDLE_IDENTIFIER
-from ...utils import normalized_path
+from ...utils import normalized_path, force_decode
 
 log = getLogger(__name__)
 
@@ -141,11 +141,11 @@ class DarwinIntegration(AbstractOSIntegration):
         self._send_notification(name, {'operation': operation, 'path': path})
 
     def watch_folder(self, folder):
-        log.debug('FinderSync now watching {}'.format(folder))
+        log.debug('FinderSync now watching %r', folder)
         self._set_monitoring('watch', folder)
 
     def unwatch_folder(self, folder):
-        log.debug('FinderSync now ignoring {}'.format(folder))
+        log.debug('FinderSync now ignoring %r', folder)
         self._set_monitoring('unwatch', folder)
 
     def send_sync_status(self, state, path):
@@ -155,6 +155,7 @@ class DarwinIntegration(AbstractOSIntegration):
         :param state: current local state of the file
         :param path: full path of the file
         """
+        path = force_decode(path)
         if not os.path.exists(path):
             return
 
@@ -176,8 +177,7 @@ class DarwinIntegration(AbstractOSIntegration):
             elif state.processor != 0:
                 status = 'syncing'
 
-        log.trace('Sending status {} for file {} to FinderSync'.format(
-            status, path))
+        log.trace('Sending status %r for file %r to FinderSync', status, path)
         self._send_notification(name, {'status': status, 'path': path})
 
     def register_folder_link(self, folder_path, name=None):

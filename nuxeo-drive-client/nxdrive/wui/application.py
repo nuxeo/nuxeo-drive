@@ -5,6 +5,7 @@ import json
 import os
 import urllib2
 from logging import getLogger
+from urllib import unquote
 
 from PyQt4.QtCore import Qt, pyqtSlot
 from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
@@ -22,7 +23,7 @@ from ..osi import AbstractOSIntegration
 from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
                                  UPDATE_STATUS_UP_TO_DATE,
                                  UPDATE_STATUS_UNAVAILABLE_SITE)
-from ..utils import find_icon, find_resource, parse_protocol_url
+from ..utils import find_icon, find_resource, parse_protocol_url, force_decode
 
 log = getLogger(__name__)
 
@@ -632,7 +633,7 @@ class Application(SimpleApplication):
     def event(self, event):
         """Handle URL scheme events under OSX"""
         if hasattr(event, 'url'):
-            url = str(event.url().toString())
+            url = unquote(str(event.url().toString()))
             try:
                 info = parse_protocol_url(url)
                 if 'sync_status' not in url:
@@ -674,10 +675,12 @@ class Application(SimpleApplication):
                         for engine in manager._engine_definitions:
                             # Only send status if we picked the right
                             # engine and if we're not targeting the root
-                            if (path.startswith(engine.local_folder)
-                                    and not os.path.samefile(
-                                        path, engine.local_folder)):
-                                r_path = path.replace(engine.local_folder, '')
+                            path = force_decode(path)
+                            engine_path = force_decode(engine.local_folder)
+                            if (path.startswith(engine_path)
+                                    and not os.path.samefile(path,
+                                                             engine_path)):
+                                r_path = path.replace(engine_path, '')
                                 dao = manager._engines[engine.uid]._dao
                                 state = dao.get_state_from_local(r_path)
                                 manager.osi.send_sync_status(state, path)

@@ -201,8 +201,8 @@ class FinderSync: FIFinderSync {
             return
         }
         //NSLog("Target path is %@", targetPath)
-        let request = String(format: "nxdrive://%@/%@", command, targetPath)
-        let url = URL(string: request.replacingOccurrences(of: " ", with: "%20"))
+        let request = String(format: "nxdrive://%@/%@", command, targetPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)!)
+        let url = URL(string: request)
         //NSLog("Launching URL %@", request)
         NSWorkspace.shared.open(url!)
     }
