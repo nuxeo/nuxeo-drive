@@ -24,6 +24,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1140](https://jira.nuxeo.com/browse/NXDRIVE-1140): Use a GIF for the transferring icon
 - [NXDRIVE-1149](https://jira.nuxeo.com/browse/NXDRIVE-1149): New language: Indonesian
 - [NXDRIVE-1166](https://jira.nuxeo.com/browse/NXDRIVE-1166): Display a notification on new update on GNU/Linux
+- [NXDRIVE-1175](https://jira.nuxeo.com/browse/NXDRIVE-1175): New language: Hebrew
 
 ### Packaging / Build
 - [NXDRIVE-448](https://jira.nuxeo.com/browse/NXDRIVE-448): Fix version displayed in Windows uninstall
