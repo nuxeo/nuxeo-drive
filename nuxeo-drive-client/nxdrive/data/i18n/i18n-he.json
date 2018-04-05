@@ -95,7 +95,7 @@
     "IGNORE_REASON_UNKNOWN": "This file is ignored for unknown reason",
     "INVALID_CREDENTIALS": "Invalid credentials",
     "INVALID_PARTITION": "This type of partition is not supported",
-    "LANGUAGE": "English",
+    "LANGUAGE": "עברית",
     "LANGUAGE_SELECT": "Language",
     "LAST_CONTRIBUTOR": "Last contributor: {{ contributor }}",
     "LAST_SYNCHRONIZED": "Last synchronization: {{ date }}",
