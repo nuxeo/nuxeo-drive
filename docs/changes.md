@@ -16,6 +16,7 @@ Release date: `2018-??-??`
 - [NXDRIVE-1174](https://jira.nuxeo.com/browse/NXDRIVE-1174): Efficient `ConfigurationDAO.update_config()`
 
 ### GUI
+- [NXDRIVE-891](https://jira.nuxeo.com/browse/NXDRIVE-891): Locked notification displays 'userid' instead of full username
 - [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
 - [NXDRIVE-1123](https://jira.nuxeo.com/browse/NXDRIVE-1123): Access right-click action on folders on Windows
 - [NXDRIVE-1124](https://jira.nuxeo.com/browse/NXDRIVE-1124): Right click menu entry on files: "Copy share-link"

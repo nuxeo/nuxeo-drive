@@ -245,10 +245,12 @@ class DirectEdit(Worker):
         info = remote.doc_to_info(doc, fetch_parent_uid=False)
 
         if info.lock_owner and info.lock_owner != engine.remote_user:
-            log.debug('Doc %r was locked by %s on %s, edit not allowed',
-                      info.name, info.lock_owner, info.lock_created)
-            self.directEditLocked.emit(
-                info.name, info.lock_owner, info.lock_created)
+            # Retreive the user full name, will be cached
+            owner = engine.get_user_full_name(info.lock_owner)
+
+            log.debug('Doc %r was locked by %s (%s) on %s, edit not allowed',
+                      info.name, owner, info.lock_owner, info.lock_created)
+            self.directEditLocked.emit(info.name, owner, info.lock_created)
             info = None
         elif info.permissions and 'Write' not in info.permissions:
             log.debug('Doc %r is readonly for %s, edit not allowed',
