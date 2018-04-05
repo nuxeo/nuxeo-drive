@@ -21,12 +21,13 @@ class FinderSync: FIFinderSync {
     let fileStatus = FileStatus()
 
     let badges: [(image: NSImage, label: String, identifier: String)] = [
-        (image: #imageLiteral(resourceName: "emblem-drive_sync.png"), label: "Synchronized", identifier: "synced"),
-        (image: #imageLiteral(resourceName: "emblem-drive_pending.png"), label: "Syncing", identifier: "syncing"),
-        (image: #imageLiteral(resourceName: "emblem-drive_conflict.png"), label: "Conflicted", identifier: "conflicted"),
-        (image: #imageLiteral(resourceName: "emblem-drive_error.png"), label: "In Error", identifier: "error"),
-        (image: #imageLiteral(resourceName: "emblem-drive_locked.png"), label: "Locked", identifier: "locked"),
-        (image: #imageLiteral(resourceName: "emblem-drive_not_sync.png"), label: "Not Synchronized", identifier: "unsynced")
+        (image: #imageLiteral(resourceName: "badge_synced.png"), label: "Synchronized", identifier: "synced"),
+        (image: #imageLiteral(resourceName: "badge_syncing.png"), label: "Syncing", identifier: "syncing"),
+        (image: #imageLiteral(resourceName: "badge_conflicted.png"), label: "Conflicted", identifier: "conflicted"),
+        (image: #imageLiteral(resourceName: "badge_error.png"), label: "In Error", identifier: "error"),
+        (image: #imageLiteral(resourceName: "badge_locked.png"), label: "Locked", identifier: "locked"),
+        (image: #imageLiteral(resourceName: "badge_unsynced.png"), label: "Not Synchronized", identifier: "unsynced")
+
     ]
 
     override init() {

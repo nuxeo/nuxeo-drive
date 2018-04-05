@@ -790,6 +790,8 @@ FolderType=Generic
                 ctime = datetime.strptime(ctime, '%Y-%m-%d %H:%M:%S')
 
             if sys.platform == 'darwin':
+                if isinstance(filename, unicode):
+                    filename = filename.encode('utf8')
                 os.system('SetFile -d "{}" "{}"'.format(
                     ctime.strftime('%m/%d/%Y %H:%M:%S'), filename))
             elif sys.platform == 'win32':
