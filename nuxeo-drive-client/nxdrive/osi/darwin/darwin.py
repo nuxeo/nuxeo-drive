@@ -155,30 +155,35 @@ class DarwinIntegration(AbstractOSIntegration):
         :param state: current local state of the file
         :param path: full path of the file
         """
-        path = force_decode(path)
-        if not os.path.exists(path):
-            return
+        try:
+            path = force_decode(path)
+            if not os.path.exists(path):
+                return
 
-        name = '{}.syncStatus'.format(BUNDLE_IDENTIFIER)
-        status = 'unsynced'
+            name = '{}.syncStatus'.format(BUNDLE_IDENTIFIER)
+            status = 'unsynced'
 
-        readonly = (os.stat(path).st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
-        if readonly:
-            status = 'locked'
-        elif state:
-            if state.error_count > 0:
-                status = 'error'
-            elif state.pair_state == 'conflicted':
-                status = 'conflicted'
-            elif state.local_state == 'synchronized':
-                status = 'synced'
-            elif state.pair_state == 'unsynchronized':
-                status = 'unsynced'
-            elif state.processor != 0:
-                status = 'syncing'
+            readonly = (os.stat(path).st_mode
+                        & (stat.S_IWUSR | stat.S_IWGRP)) == 0
+            if readonly:
+                status = 'locked'
+            elif state:
+                if state.error_count > 0:
+                    status = 'error'
+                elif state.pair_state == 'conflicted':
+                    status = 'conflicted'
+                elif state.local_state == 'synchronized':
+                    status = 'synced'
+                elif state.pair_state == 'unsynchronized':
+                    status = 'unsynced'
+                elif state.processor != 0:
+                    status = 'syncing'
 
-        log.trace('Sending status %r for file %r to FinderSync', status, path)
-        self._send_notification(name, {'status': status, 'path': path})
+            log.trace('Sending status %r for file %r to FinderSync',
+                      status, path)
+            self._send_notification(name, {'status': status, 'path': path})
+        except:
+            log.exception('Error while trying to send status to FinderSync')
 
     def register_folder_link(self, folder_path, name=None):
         from LaunchServices import LSSharedFileListInsertItemURL

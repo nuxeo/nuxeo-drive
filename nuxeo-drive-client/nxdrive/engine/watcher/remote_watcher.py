@@ -408,11 +408,11 @@ class RemoteWatcher(EngineWorker):
         return child_pair, True
 
     @staticmethod
-    def _handle_readonly(local_client, doc_pair, event_id):
+    def _handle_readonly(local_client, doc_pair):
         # Don't use readonly on folder for win32 and on Locally Edited
         if doc_pair.folderish and os.sys.platform == 'win32':
             return
-        if doc_pair.is_readonly() or event_id == 'documentLocked':
+        if doc_pair.is_readonly():
             log.debug('Setting %r as readonly', doc_pair.local_path)
             local_client.set_readonly(doc_pair.local_path)
         else:
@@ -708,7 +708,7 @@ class RemoteWatcher(EngineWorker):
                             doc_pair = self._dao.get_state_from_id(doc_pair.id)
                             try:
                                 self._handle_readonly(
-                                    self._local_client, doc_pair, event_id)
+                                    self._local_client, doc_pair)
                             except (OSError, IOError) as exc:
                                 log.trace('Cannot handle readonly for %r (%r)', doc_pair, exc)
                                 del exc  # Fix reference leak

@@ -113,8 +113,6 @@ class Processor(EngineWorker):
             remote_client = self._engine.get_remote_client()
             try:
                 doc_pair = self._dao.acquire_state(self._thread_id, item.id)
-                self._engine._manager.osi.send_sync_status(
-                    doc_pair, local_client.abspath(doc_pair.local_path))
             except sqlite3.OperationalError:
                 state = self._dao.get_state_from_id(item.id)
                 if state:
@@ -147,6 +145,9 @@ class Processor(EngineWorker):
                 self._current_doc_pair = doc_pair
                 if not self.check_pair_state(doc_pair):
                     continue
+
+                self._engine._manager.osi.send_sync_status(
+                    doc_pair, local_client.abspath(doc_pair.local_path))
 
                 if (AbstractOSIntegration.is_mac()
                         and local_client.exists(doc_pair.local_path)):
