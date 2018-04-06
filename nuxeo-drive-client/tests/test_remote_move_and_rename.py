@@ -130,6 +130,11 @@ class TestRemoteMoveAndRename(UnitTestCase):
                                                u'/Renamed File 1.1 \xe9.odt')
         assert file_1_1_state.local_name == u'Renamed File 1.1 \xe9.odt'
 
+        # Test for encoding error regressions
+        assert self.engine_1.get_dao()._get_recursive_condition(file_1_1_state)
+        assert self.engine_1.get_dao()._get_recursive_remote_condition(
+            file_1_1_state)
+
         # Check parents of renamed files to ensure it is an actual rename
         # that has been performed and not a move
         file_1_local_info = local.get_info(
