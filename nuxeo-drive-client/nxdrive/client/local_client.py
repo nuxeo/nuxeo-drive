@@ -21,8 +21,7 @@ from .common import (BaseClient, DuplicationDisabledError,
                      FILE_BUFFER_SIZE, NotFound,
                      UNACCESSIBLE_HASH, safe_filename)
 from ..options import Options
-from ..utils import (guess_digest_algorithm, normalized_path,
-                     safe_long_path)
+from ..utils import guess_digest_algorithm, normalized_path, safe_long_path
 
 # from typing import List, Optional, Text, Tuple, Union
 
@@ -790,6 +789,8 @@ FolderType=Generic
                 ctime = datetime.strptime(ctime, '%Y-%m-%d %H:%M:%S')
 
             if sys.platform == 'darwin':
+                if isinstance(filename, unicode):
+                    filename = filename.encode('utf8')
                 os.system('SetFile -d "{}" "{}"'.format(
                     ctime.strftime('%m/%d/%Y %H:%M:%S'), filename))
             elif sys.platform == 'win32':

@@ -59,18 +59,16 @@ PAIR_STATES = {
 
 class AutoRetryCursor(sqlite3.Cursor):
     def execute(self, *args, **kwargs):
-        count = 0
+        count = 1
         while True:
             count += 1
             try:
-                obj = super(AutoRetryCursor, self).execute(*args, **kwargs)
-                if count > 1:
-                    log.trace('Result returned from try #%d', count)
-                return obj
-            except sqlite3.OperationalError as e:
-                log.trace('Retry locked database #%d', count)
+                return super(AutoRetryCursor, self).execute(*args, **kwargs)
+            except sqlite3.OperationalError as exc:
+                log.debug('Retry locked database #%d, args=%r, kwargs=%r',
+                          count, args, kwargs)
                 if count > 5:
-                    raise e
+                    raise exc
 
 
 class AutoRetryConnection(sqlite3.Connection):
@@ -678,9 +676,9 @@ class EngineDAO(ConfigurationDAO):
             c.execute('{} WHERE id = ?'.format(update),
                       ('remotely_deleted', doc_pair.id))
             if doc_pair.folderish:
-                c.execute('{} {}'.format(
-                    update, self._get_recursive_remote_condition(doc_pair)),
-                    ('parent_remotely_deleted',))
+                c.execute(update + ' '
+                          + self._get_recursive_remote_condition(doc_pair),
+                          ('parent_remotely_deleted',))
             # Only queue parent
             self._queue_pair_state(
                 doc_pair.id, doc_pair.folderish, 'remotely_deleted')
@@ -711,9 +709,9 @@ class EngineDAO(ConfigurationDAO):
                 c.execute('{} WHERE id = ?'.format(update),
                           (current_state, doc_pair.id))
                 if doc_pair.folderish:
-                    c.execute('{} {}'.format(
-                        update, self._get_recursive_condition(doc_pair)),
-                        ('parent_locally_deleted',))
+                    c.execute(update + ' '
+                              + self._get_recursive_condition(doc_pair),
+                              ('parent_locally_deleted',))
                 if self.auto_commit:
                     con.commit()
         finally:
@@ -1050,36 +1048,34 @@ class EngineDAO(ConfigurationDAO):
 
     def _get_recursive_condition(self, doc_pair):
         path = self._escape(doc_pair.local_path)
-        res = (" WHERE (local_parent_path LIKE '{}/%'"
-               "    OR local_parent_path = '{}')").format(path, path)
+        res = (" WHERE (local_parent_path LIKE '" + path + "/%'"
+               "        OR local_parent_path = '" + path + "')")
         if doc_pair.remote_ref:
-            path = self._escape('{}/{}'.format(doc_pair.remote_parent_path,
-                                               doc_pair.remote_ref))
-            res = "{} AND remote_parent_path LIKE '{}%'".format(res, path)
+            path = self._escape(doc_pair.remote_parent_path
+                                + '/' + doc_pair.remote_ref)
+            res += " AND remote_parent_path LIKE '" + path + "%'"
         return res
 
     def _get_recursive_remote_condition(self, doc_pair):
-        path = self._escape('{}/{}'.format(
-            doc_pair.remote_parent_path, doc_pair.remote_name.encode('utf-8')))
-        return (" WHERE remote_parent_path LIKE '{}/%'"
-                "    OR remote_parent_path = '{}'").format(path, path)
+        path = self._escape(doc_pair.remote_parent_path.encode('utf-8')
+                            + '/' + doc_pair.remote_name)
+        return (" WHERE remote_parent_path LIKE '" + path + "/%'"
+                "    OR remote_parent_path = '" + path + "'")
 
     def update_remote_parent_path(self, doc_pair, new_path):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             if doc_pair.folderish:
-                path = '{}/{}'.format(doc_pair.remote_parent_path,
-                                      doc_pair.remote_ref)
-                query = ('UPDATE States'
-                         '   SET remote_parent_path = {}/{}'
-                         '       || substr(remote_parent_path,{})'
-                         '          {}').format(
-                    self._escape(new_path),
-                    self._escape(doc_pair.remote_ref), len(path) + 1,
-                    self._get_recursive_remote_condition(doc_pair))
+                count = str(len(doc_pair.remote_parent_path
+                                + '/' + doc_pair.remote_ref) + 1)
+                path = self._escape(new_path + '/' + doc_pair.remote_ref)
+                query = ("UPDATE States"
+                         "   SET remote_parent_path = '" + path + "'"
+                         "     || substr(remote_parent_path, " + count + ")"
+                         + self._get_recursive_remote_condition(doc_pair))
 
-                log.trace('Update remote_parent_path: {}'.format(query))
+                log.trace('Update remote_parent_path %r', query)
                 c.execute(query)
             c.execute('UPDATE States'
                       '   SET remote_parent_path = ?'
@@ -1095,16 +1091,14 @@ class EngineDAO(ConfigurationDAO):
             if doc_pair.folderish:
                 if new_path == '/':
                     new_path = ''
-                path = '{}/{}'.format(self._escape(new_path),
-                                      self._escape(new_name))
-                count = len(doc_pair.local_path) + 1
+                path = self._escape(new_path + '/' + new_name)
+                count = str(len(doc_pair.local_path) + 1)
                 query = ("UPDATE States"
-                         "   SET local_parent_path = '{0}'"
-                         "       || substr(local_parent_path, {1}),"
-                         "          local_path='{0}'"
-                         "       || substr(local_path, {1}) "
-                         "          {2}".format(
-                        path, count, self._get_recursive_condition(doc_pair)))
+                         "   SET local_parent_path = '" + path + "'"
+                         "       || substr(local_parent_path, " + count + "),"
+                         "          local_path = '" + path + "'"
+                         "       || substr(local_path, " + count + ") "
+                         + self._get_recursive_condition(doc_pair))
                 c.execute(query)
             # Dont need to update the path as it is refresh later
             c.execute('UPDATE States'
@@ -1144,7 +1138,7 @@ class EngineDAO(ConfigurationDAO):
                     condition = self._get_recursive_remote_condition(doc_pair)
                 else:
                     condition = self._get_recursive_condition(doc_pair)
-                c.execute('DELETE FROM States {}'.format(condition))
+                c.execute('DELETE FROM States ' + condition)
             if self.auto_commit:
                 con.commit()
 
@@ -1200,8 +1194,7 @@ class EngineDAO(ConfigurationDAO):
                                  '  FROM States'
                                  ' WHERE remote_parent_ref = ?'
                                  '    OR local_parent_path = ?'
-                                 '   AND {}'.format(
-                                     self._get_to_sync_condition()),
+                                 '   AND ' + self._get_to_sync_condition(),
                 (row.remote_ref, row.local_path)).fetchall()
             log.debug('Queuing %d children of %r', len(children), row)
             for child in children:
