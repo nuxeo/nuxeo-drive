@@ -199,28 +199,33 @@ class RemoteWatcher(EngineWorker):
         scroll_id = None
         batch_size = 100
         t1 = None
+
         while 'Scrolling':
             t0 = datetime.now()
             if t1 is not None:
-                log.trace('Local processing of descendants of %r (%s) took %s ms', remote_info.name, remote_info.uid,
+                log.trace('Local processing of descendants of %r (%s) took %s ms',
+                          remote_info.name, remote_info.uid,
                           self._get_elapsed_time_milliseconds(t1, t0))
+
             # Scroll through a batch of descendants
-            log.trace('Scrolling through at most [%d] descendants of %r (%s)', batch_size, remote_info.name,
+            log.trace('Scrolling through at most [%d] descendants of %r (%s)',
+                      batch_size, remote_info.name,
                       remote_info.uid)
-            scroll_res = self._client.scroll_descendants(remote_info.uid, scroll_id, batch_size=batch_size)
+            scroll_res = self._client.scroll_descendants(
+                remote_info.uid, scroll_id, batch_size=batch_size)
             t1 = datetime.now()
             elapsed = self._get_elapsed_time_milliseconds(t0, t1)
             descendants_info = scroll_res['descendants']
             if not descendants_info:
-                log.trace('Remote scroll request retrieved no descendants of %r (%s), took %s ms', remote_info.name,
-                          remote_info.uid, elapsed)
+                log.trace('Remote scroll request retrieved no descendants of %r'
+                          ' (%s), took %s ms',
+                          remote_info.name, remote_info.uid, elapsed)
                 break
 
-            log.trace('Remote scroll request retrieved %d descendants of %r (%s), took %s ms', len(descendants_info),
+            log.trace('Remote scroll request retrieved %d descendants of %r'
+                      ' (%s), took %s ms', len(descendants_info),
                       remote_info.name, remote_info.uid, elapsed)
             scroll_id = scroll_res['scroll_id']
-
-            del scroll_res['descendants']  # Fix reference leak
 
             # Results are not necessarily sorted
             descendants_info = sorted(descendants_info, key=lambda x: x.path)
@@ -228,23 +233,33 @@ class RemoteWatcher(EngineWorker):
             # Handle descendants
             for descendant_info in descendants_info:
                 if self.filtered(descendant_info):
-                    log.debug('Ignoring banned file: %r', descendant_info)
+                    log.debug('Ignoring banned document %s', descendant_info)
+                    descendants.pop(descendant_info.uid, None)
                     continue
 
-                log.trace('Handling remote descendant: %r', descendant_info)
+                if self._dao.is_filter(descendant_info.path):
+                    # Skip filtered document
+                    descendants.pop(descendant_info.uid, None)
+                    continue
+
+                log.trace('Handling remote descendant %r', descendant_info)
                 if descendant_info.uid in descendants:
                     descendant_pair = descendants.pop(descendant_info.uid)
                     if self._check_modified(descendant_pair, descendant_info):
                         descendant_pair.remote_state = 'modified'
                     self._dao.update_remote_state(descendant_pair, descendant_info)
-                else:
-                    parent_pair = self._dao.get_normal_state_from_remote(descendant_info.parent_uid)
-                    if parent_pair is None:
-                        log.trace('Cannot find parent pair of remote descendant, postponing processing of %r',
-                                  descendant_info)
-                        to_process.append(descendant_info)
-                        continue
-                    self._find_remote_child_match_or_create(parent_pair, descendant_info)
+                    continue
+
+                parent_pair = self._dao.get_normal_state_from_remote(
+                    descendant_info.parent_uid)
+                if not parent_pair:
+                    log.trace('Cannot find parent pair of remote descendant,'
+                              ' postponing processing of %s', descendant_info)
+                    to_process.append(descendant_info)
+                    continue
+
+                self._find_remote_child_match_or_create(
+                    parent_pair, descendant_info)
 
             # Check if synchronization thread was suspended
             self._interact()
@@ -252,16 +267,22 @@ class RemoteWatcher(EngineWorker):
         if to_process:
             t0 = datetime.now()
             to_process = sorted(to_process, key=lambda x: x.path)
-            log.trace('Processing [%d] postponed descendants of %r (%s)', len(to_process), remote_info.name,
-                      remote_info.uid)
+            log.trace('Processing [%d] postponed descendants of %r (%s)',
+                      len(to_process), remote_info.name, remote_info.uid)
             for descendant_info in to_process:
-                parent_pair = self._dao.get_normal_state_from_remote(descendant_info.parent_uid)
-                if parent_pair is None:
-                    log.error("Cannot find parent pair of postponed remote descendant, ignoring %s", descendant_info)
+                parent_pair = self._dao.get_normal_state_from_remote(
+                    descendant_info.parent_uid)
+                if not parent_pair:
+                    log.error('Cannot find parent pair of postponed remote'
+                              ' descendant, ignoring %s', descendant_info)
                     continue
-                self._find_remote_child_match_or_create(parent_pair, descendant_info)
+
+                self._find_remote_child_match_or_create(
+                    parent_pair, descendant_info)
+
             t1 = datetime.now()
-            log.trace('Postponed descendants processing took %s ms', self._get_elapsed_time_milliseconds(t0, t1))
+            log.trace('Postponed descendants processing took %s ms',
+                      self._get_elapsed_time_milliseconds(t0, t1))
 
         # Delete remaining
         for deleted in descendants.values():

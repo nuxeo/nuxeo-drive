@@ -52,6 +52,9 @@
 - Changed `EngineDAO.update_remote_state()` `versionned` keyword argument to `versioned`
 - Removed `EngineDAO.update_local_paths()`
 - Removed `EngineLogger.logger`
+- Removed `FileInfo.get_checkstate()`. Use `state` attribute instead.
+- Removed `FileInfo.set_checkstate()`. Use `state` attribute instead.
+- Removed `FileInfo.get_old_value()`. Use `old_state` attribute instead.
 - Removed `FileInfo.get_parent()`
 - Removed `FolderTreeview.set_client()`
 - Removed `LocalClient.DEDUPED_BASENAME_PATTERN`

@@ -492,14 +492,15 @@ class EngineDAO(ConfigurationDAO):
     newConflict = pyqtSignal(object)
 
     def __init__(self, db, state_factory=None):
-        self._filters = None
-        self._queue_manager = None
-        super(EngineDAO, self).__init__(db)
         if state_factory:
             self._state_factory = state_factory
-        self._filters = self.get_filters()
-        self._items_count = None
+
+        super(EngineDAO, self).__init__(db)
+
+        self._queue_manager = None
+        self._items_count = 0
         self._items_count = self.get_syncing_count()
+        self._filters = self.get_filters()
         self.reinit_processors()
 
     def get_schema_version(self):
@@ -935,7 +936,7 @@ class EngineDAO(ConfigurationDAO):
                                "AND pair_state != 'unsynchronized' "
                                "AND error_count < {}".format(
                                    str(threshold)))
-        if self._items_count is not None and count != self._items_count:
+        if self._items_count != count:
             log.trace('Cache Syncing count incorrect should be %d was %d',
                       count, self._items_count)
             self._items_count = count
@@ -1601,8 +1602,7 @@ class EngineDAO(ConfigurationDAO):
 
     def is_filter(self, path):
         path = self._clean_filter_path(path)
-        return any((path.startswith(filter_obj.path)
-                    for filter_obj in self._filters))
+        return any(path.startswith(doc.path) for doc in self._filters)
 
     def get_filters(self):
         c = self._get_read_connection().cursor()
@@ -1612,22 +1612,28 @@ class EngineDAO(ConfigurationDAO):
     def add_filter(self, path):
         if self.is_filter(path):
             return
+
         path = self._clean_filter_path(path)
+        log.trace('Add filter on %r', path)
+
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            # DELETE ANY SUBFILTERS
-            c.execute('DELETE FROM Filters'
-                      ' WHERE path LIKE ?', (path + '%',))
-            # PREVENT ANY RESCAN
+            # Delete any subfilters
+            c.execute('DELETE FROM Filters WHERE path LIKE ?', (path + '%',))
+
+            # Prevent any rescan
             c.execute('DELETE FROM ToRemoteScan'
                       ' WHERE path LIKE ?', (path + '%',))
-            # ADD IT
-            c.execute('INSERT INTO Filters (path) '
-                      'VALUES (?)', (path,))
-            # TODO ADD THIS path AS remotely_deleted
+
+            # Add it
+            c.execute('INSERT INTO Filters (path) VALUES (?)', (path,))
+
+            # TODO: Add this path as remotely_deleted?
+
             if self.auto_commit:
                 con.commit()
+
             self._filters = self.get_filters()
             self._items_count = self.get_syncing_count()
 

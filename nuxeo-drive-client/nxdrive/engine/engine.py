@@ -233,14 +233,14 @@ class Engine(QObject):
         self._dao.add_filter(path)
         pair = self._dao.get_state_from_remote_with_path(remote_ref,
                                                          remote_parent_path)
-        if pair is None:
+        if not pair:
             log.debug('Cannot find the pair: %s (%r)',
                       remote_ref, remote_parent_path)
             return
         self._dao.delete_remote_state(pair)
 
     def remove_filter(self, path):
-        self.get_dao().remove_filter(path)
+        self._dao.remove_filter(path)
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
 
