@@ -13,5 +13,5 @@
 fff688dc4968ec80bbb0eedf45de82db  python-2.7.14.msi
 
 # SIP
-ae4f2db79713046d61b2a44e5ee1e3ab  sip-4.19.7.tar.gz
-f8856b709eb92dfb9820d4234854922c  sip-4.19.7.zip
+0625fb20347d4ff1b5da551539be0727  sip-4.19.8.tar.gz
+8ac2349d2d171f2661e208da7efbe627  sip-4.19.8.zip

@@ -84,7 +84,7 @@ function check_vars {
 		}
 	}
 	if (-Not ($Env:SIP_VERSION)) {
-		$Env:SIP_VERSION = "4.19.7"  # XXX: SIP_VERSION
+		$Env:SIP_VERSION = "4.19.8"  # XXX: SIP_VERSION
 	}
 	if (-Not ($Env:QT_PATH)) {
 		$Env:QT_PATH = "C:\Qt\4.8.7"

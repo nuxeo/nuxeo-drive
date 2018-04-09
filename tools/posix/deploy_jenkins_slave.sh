@@ -78,7 +78,7 @@ check_vars() {
             export WORKSPACE_DRIVE="${WORKSPACE}"
         fi
     fi
-    export SIP_VERSION=${SIP_VERSION:=4.19.7}  # XXX: SIP_VERSION
+    export SIP_VERSION=${SIP_VERSION:=4.19.8}  # XXX: SIP_VERSION
     export STORAGE_DIR="${WORKSPACE}/deploy-dir"
 
     if [ "${COMPILE_WITH_DEBUG:=unset}" != "unset" ]; then
