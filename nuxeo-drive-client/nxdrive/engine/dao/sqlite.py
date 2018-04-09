@@ -348,22 +348,20 @@ class ManagerDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute('DELETE FROM AutoLock'
-                      ' WHERE path = ?', (path,))
+            c.execute('DELETE FROM AutoLock WHERE path = ?', (path,))
             if self.auto_commit:
                 con.commit()
 
     def get_locked_paths(self):
         con = self._get_read_connection()
         c = con.cursor()
-        return c.execute('SELECT *'
-                         '  FROM AutoLock').fetchall()
+        return c.execute('SELECT * FROM AutoLock').fetchall()
 
     def lock_path(self, path, process, doc_id):
         with self._lock:
+            con = self._get_write_connection()
+            c = con.cursor()
             try:
-                con = self._get_write_connection()
-                c = con.cursor()
                 c.execute('INSERT INTO AutoLock (path, process, remote_id) '
                           'VALUES (?, ?, ?)', (path, process, doc_id))
                 if self.auto_commit:
@@ -421,8 +419,7 @@ class ManagerDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute('DELETE FROM Notifications'
-                      ' WHERE uid = ?', (uid,))
+            c.execute('DELETE FROM Notifications WHERE uid = ?', (uid,))
             if self.auto_commit:
                 con.commit()
 
@@ -450,8 +447,7 @@ class ManagerDAO(ConfigurationDAO):
 
     def get_engines(self):
         c = self._get_read_connection().cursor()
-        return c.execute('SELECT *'
-                         ' FROM Engines').fetchall()
+        return c.execute('SELECT * FROM Engines').fetchall()
 
     def update_engine_path(self, engine, path):
         with self._lock:
@@ -480,8 +476,7 @@ class ManagerDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute('DELETE FROM Engines'
-                      ' WHERE uid = ?', (uid,))
+            c.execute('DELETE FROM Engines WHERE uid = ?', (uid,))
             if self.auto_commit:
                 con.commit()
 

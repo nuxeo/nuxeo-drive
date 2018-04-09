@@ -631,61 +631,69 @@ class Application(SimpleApplication):
         self.tray_icon.show()
 
     def event(self, event):
-        """Handle URL scheme events under OSX"""
-        if hasattr(event, 'url'):
-            url = unquote(str(event.url().toString()))
-            try:
-                info = parse_protocol_url(url)
-                if 'sync_status' not in url:
-                    log.debug('Event url=%s, info=%r', url, info)
-                if info is not None:
-                    cmd = info['command']
-                    path = info.get('filepath', None)
-                    manager = self.manager
+        """ Handle URL scheme events under macOS. """
 
-                    # Command to open the file on the platform in the browser
-                    if cmd == 'access':
-                        manager.open_metadata_window(path)
+        url = getattr(event, 'url', None)
+        if not url:
+            # This is not an event for us!
+            return super(Application, self).event(event)
 
-                    # Command to copy the platform share link in the clipboard
-                    elif cmd == 'share_link':
-                        manager.copy_share_link(path)
+        try:
+            final_url = unquote(str(event.url().toString()))
+            self._handle_macos_event(final_url)
+        except:
+            log.exception('Error handling URL event %r', url)
 
-                    # Command to direct edit the file
-                    elif 'edit' in cmd:
-                        # This is a quick operation, no need to fork a QThread
-                        manager.direct_edit.edit(
-                            info['server_url'], info['doc_id'],
-                            user=info['user'],
-                            download_url=info['download_url'])
+    def _handle_macos_event(self, url):
+        # type: (str) -> None
+        """ Handle a macOS event URL. """
 
-                    # Command to trigger the watch on the synced folders
-                    elif cmd == 'trigger_watch':
-                        log.debug('Received triggerWatch')
-                        if manager._engines is None:
-                            manager.load()
-                        for engine in manager._engine_definitions:
-                            manager.osi.watch_folder(engine.local_folder)
+        info = parse_protocol_url(url)
+        if not info:
+            return
 
-                    # Command to retrieve the sync status of a file
-                    elif cmd == 'sync_status':
-                        log.trace('Event url=%s, info=%r', url, info)
-                        if manager._engines is None:
-                            manager.load()
-                        for engine in manager._engine_definitions:
-                            # Only send status if we picked the right
-                            # engine and if we're not targeting the root
-                            path = unicodedata.normalize('NFC',
-                                                         force_decode(path))
-                            engine_path = force_decode(engine.local_folder)
-                            if (path.startswith(engine_path)
-                                    and not os.path.samefile(path,
-                                                             engine_path)):
-                                r_path = path.replace(engine_path, '')
-                                dao = manager._engines[engine.uid]._dao
-                                state = dao.get_state_from_local(r_path)
-                                manager.osi.send_sync_status(state, path)
-                                break
-            except:
-                log.exception('Error handling URL event: %s', url)
-        return super(Application, self).event(event)
+        cmd = info['command']
+        path = info.get('filepath', None)
+        manager = self.manager
+
+        # Note: commands are sorted by usage intensity
+        if cmd == 'sync-status':
+            # Command to retrieve the sync status of a file
+            log.trace('Event URL=%r, info=%r', url, info)
+            for engine in manager._engine_definitions:
+                # Only send status if we picked the right
+                # engine and if we're not targeting the root
+                path = unicodedata.normalize(
+                    'NFC', force_decode(path))
+                if (path.startswith(engine.local_folder)
+                        and not os.path.samefile(
+                                path, engine.local_folder)):
+                    r_path = path.replace(engine.local_folder, '')
+                    dao = manager._engines[engine.uid]._dao
+                    state = dao.get_state_from_local(r_path)
+                    manager.osi.send_sync_status(state, path)
+                    break
+            return
+
+        log.debug('Event URL=%s, info=%r', url, info)
+
+        # Event fired by a context menu item
+        func = {
+            'access-online': manager.ctx_access_online,
+            'copy-share-link': manager.ctx_copy_share_link,
+            'edit-metadata': manager.ctx_edit_metadata,
+        }.get(cmd, None)
+        if func:
+            return func(path)
+
+        if 'edit' in cmd:
+            return manager.direct_edit.edit(
+                info['server_url'],
+                info['doc_id'],
+                user=info['user'],
+                download_url=info['download_url'])
+        elif cmd == 'trigger-watch':
+            for engine in manager._engine_definitions:
+                manager.osi.watch_folder(engine.local_folder)
+        else:
+            log.warning('Unknown event URL=%r, info=%r', url, info)

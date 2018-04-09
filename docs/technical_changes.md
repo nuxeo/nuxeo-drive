@@ -23,6 +23,9 @@
 - Removed `Application.spin_transferring_icon()`
 - Removed `Application.updated_version`
 - Removed `BaseAutomationClient.is_addon_installed()`
+- Added `CliHandler.ctx_access_online()`
+- Moved `CliHandler.metadata(options)` to `ctx_edit_metadata(options)`
+- Moved `CliHandler.share_link(file_path)` to `ctx_copy_share_link(options)`
 - Removed `ConfigurationDAO.begin_transaction()`
 - Removed `ConfigurationDAO.dispose_thread()`
 - Removed `ConfigurationDAO.end_transaction()`
@@ -35,6 +38,7 @@
 - Removed `DarwinIntegration.unregister_contextual_menu()`
 - Added `DarwinIntegration.unwatch_folder()`
 - Added `DarwinIntegration.watch_folder()`
+- Added `edit=False` keyword to `Engine.get_metadata_url()`
 - Removed `Engine.BATCH_MODE_DOWNLOAD`
 - Removed `Engine.BATCH_MODE_FOLDER`
 - Removed `Engine.BATCH_MODE_SYNC`
@@ -68,6 +72,10 @@
 - Removed `LocalWatcher.set_windows_folder_scan_delay()`
 - Removed `LocalWatcher.get_windows_watchdog_event_buffer()`
 - Removed `LocalWatcher.set_windows_watchdog_event_buffer()`
+- Added `Manager.ctx_access_online()`
+- Added `edit=False` keyword to `Manager.get_metadata_infos()`
+- Moved `Manager.copy_share_link(file_path)` to `ctx_copy_share_link(file_path)`
+- Moved `Manager.open_metadata_window(file_path, application=None)` to `ctx_edit_metadata(file_path)`
 - Removed `Manager.check_version_updated()`
 - Removed `Manager.find_exe_path()`
 - Removed `Manager.get_cf_bundle_identifier()`

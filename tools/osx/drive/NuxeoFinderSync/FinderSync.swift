@@ -54,7 +54,7 @@ class FinderSync: FIFinderSync {
                                                           name: self.watchFolderNotif,
                                                           object: nil)
 
-        let triggerURL = URL(string: "nxdrive://trigger_watch")
+        let triggerURL = URL(string: "nxdrive://trigger-watch")
         NSWorkspace.shared.open(triggerURL!)
 
         // Set up images for our badge identifiers.
@@ -157,7 +157,7 @@ class FinderSync: FIFinderSync {
 
         // Access online
         let item1 = NSMenuItem(title: "Access online",
-                               action: #selector(openInBrowser(_:)),
+                               action: #selector(accessOnline(_:)),
                                keyEquivalent: "A")
         item1.image = self.icon
         menu.addItem(item1)
@@ -169,21 +169,28 @@ class FinderSync: FIFinderSync {
         item2.image = self.icon
         menu.addItem(item2)
 
+        // Edit metadata
+        let item3 = NSMenuItem(title: "Edit metadata",
+                               action: #selector(editMetadata(_:)),
+                               keyEquivalent: "E")
+        item3.image = self.icon
+        menu.addItem(item3)
+
         return menu
     }
 
     func getSyncStatus(target: URL?) {
         // Called by requestBadgeIdentifier to ask Drive for a status
-        //NSLog("sync_status: target: %@", target!.path as NSString)
-        openNXUrl(command: "sync_status", target: target)
+        //NSLog("getSyncStatus: target: %@", target!.path as NSString)
+        openNXUrl(command: "sync-status", target: target)
     }
 
-    @IBAction func openInBrowser(_ sender: AnyObject?) {
+    @IBAction func accessOnline(_ sender: AnyObject?) {
         // Event fired by "Access online" menu entry
         let items = FIFinderSyncController.default().selectedItemURLs()
         for item in items! {
-            //NSLog("openInBrowser: target: %@", item.path as NSString)
-            openNXUrl(command: "access", target: item)
+            //NSLog("accessOnline: target: %@", item.path as NSString)
+            openNXUrl(command: "access-online", target: item)
         }
     }
 
@@ -192,7 +199,16 @@ class FinderSync: FIFinderSync {
         let items = FIFinderSyncController.default().selectedItemURLs()
         for item in items! {
             //NSLog("copyShareLink: target: %@", item.path as NSString)
-            openNXUrl(command: "share_link", target: item)
+            openNXUrl(command: "copy-share-link", target: item)
+        }
+    }
+
+    @IBAction func editMetadata(_ sender: AnyObject?) {
+        // Event fired by "Edit metadata" menu entry
+        let items = FIFinderSyncController.default().selectedItemURLs()
+        for item in items! {
+            //NSLog("editMetadata: target: %@", item.path as NSString)
+            openNXUrl(command: "edit-metadata", target: item)
         }
     }
 
@@ -202,7 +218,9 @@ class FinderSync: FIFinderSync {
             return
         }
         //NSLog("Target path is %@", targetPath)
-        let request = String(format: "nxdrive://%@/%@", command, targetPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)!)
+        let request = String(format: "nxdrive://%@/%@",
+                             command,
+                             targetPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)!)
         let url = URL(string: request)
         //NSLog("Launching URL %@", request)
         NSWorkspace.shared.open(url!)
