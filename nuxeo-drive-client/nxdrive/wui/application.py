@@ -1,8 +1,8 @@
 # coding: utf-8
 """ Main Qt application handling OS events and system tray UI. """
-
 import json
 import os
+import unicodedata
 import urllib2
 from logging import getLogger
 from urllib import unquote
@@ -21,9 +21,9 @@ from ..notification import Notification
 from ..options import Options
 from ..osi import AbstractOSIntegration
 from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
-                                 UPDATE_STATUS_UP_TO_DATE,
-                                 UPDATE_STATUS_UNAVAILABLE_SITE)
-from ..utils import find_icon, find_resource, parse_protocol_url, force_decode
+                                 UPDATE_STATUS_UNAVAILABLE_SITE,
+                                 UPDATE_STATUS_UP_TO_DATE)
+from ..utils import find_icon, find_resource, force_decode, parse_protocol_url
 
 log = getLogger(__name__)
 
@@ -675,7 +675,8 @@ class Application(SimpleApplication):
                         for engine in manager._engine_definitions:
                             # Only send status if we picked the right
                             # engine and if we're not targeting the root
-                            path = force_decode(path)
+                            path = unicodedata.normalize('NFC',
+                                                         force_decode(path))
                             engine_path = force_decode(engine.local_folder)
                             if (path.startswith(engine_path)
                                     and not os.path.samefile(path,
