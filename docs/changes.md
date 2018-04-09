@@ -56,6 +56,7 @@ Release date: `2018-??-??`
 - Packaging: Updated `pytest` from 3.3.2 to 3.5.0
 - Packaging: Updated `python-dateutil` from 2.6.1 to 2.7.2
 - Packaging: Updated `xattr` from 0.9.2 to 0.9.3
+- Packaging: Upgraded `SIP` from 4.19.7 to 4.19.8
 - Tracker: Removed the `Update` event
 
 
