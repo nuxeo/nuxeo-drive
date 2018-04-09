@@ -52,6 +52,7 @@ Release date: `2018-??-??`
 - Packaging: Added `requests` 2.18.4
 - Packaging: Removed `cffi`, will be installed with `xattr`
 - Packaging: Updated `Js2Py` from 0.58 to 0.59
+- Packaging: Updated `pycryptodomex` from 3.5.1 to 3.6.0
 - Packaging: Updated `pypac` from 0.4.0 to 0.8.1
 - Packaging: Updated `pytest` from 3.3.2 to 3.5.0
 - Packaging: Updated `python-dateutil` from 2.6.1 to 2.7.2
