@@ -32,7 +32,7 @@ timestamps {
                 stage('Create') {
                     sshagent([credential_id]) {
                         sh 'tools/release.sh --create'
-                        archive 'draft.json'
+                        archive 'draft.json, *.yml'
                     }
                 }
 
