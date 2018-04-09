@@ -421,8 +421,6 @@ class DirectEdit(Worker):
 
     def _send_lock_status(self, ref):
         manager = self._manager
-        if manager._engines is None:
-            manager.load()
         for engine in manager._engine_definitions:
             dao = manager._engines[engine.uid]._dao
             state = dao.get_states_from_remote(ref)
