@@ -100,7 +100,7 @@ Each entry describes a version with:
 `min` and `max` can take a Hot Fix (HF) version, helpful to isolate some versions.
 
 Notes:
-- When a version is very old, and if you consider the file is growing to big, you can easily remove entries that are archived;
+- When a version is very old, and if you consider the file is growing too big, you can easily remove entries that are archived;
 - A version not listed can physically exist on the server but the reverse is not true: if a version is listed, files must exist on the server.
 
 ### Client

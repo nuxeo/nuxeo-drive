@@ -47,6 +47,7 @@ Changes in command line arguments:
 - [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730): Move to PyInstaller (**breaking change**)
 - [NXDRIVE-1125](https://jira.nuxeo.com/browse/NXDRIVE-1125): Make Finder interactions through FinderSync extension on macOS
 - [NXDRIVE-1146](https://jira.nuxeo.com/browse/NXDRIVE-1146): Drop module availability on PyPi
+- [NXDRIVE-1162](https://jira.nuxeo.com/browse/NXDRIVE-1162): Update deploy scripts according to the new auto-update framework
 - [NXDRIVE-1187](https://jira.nuxeo.com/browse/NXDRIVE-1187): Fix the PowerShell download command for Windows packaging
 - [NXDRIVE-1202](https://jira.nuxeo.com/browse/NXDRIVE-1202): Upgrade to Python 2.7.15
 
