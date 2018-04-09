@@ -59,13 +59,14 @@ class FiltersDialog(QtGui.QDialog):
         super(FiltersDialog, self).accept()
 
     def apply_filters(self):
-        for item in self.tree_view.dirty_items:
+        items = sorted(self.tree_view.dirty_items, key=lambda x: x.get_path())
+        for item in items:
             path = item.get_path()
-            if item.get_checkstate() == QtCore.Qt.Unchecked:
+            if item.state == QtCore.Qt.Unchecked:
                 self._engine.add_filter(path)
-            elif item.get_checkstate() == QtCore.Qt.Checked:
+            elif item.state == QtCore.Qt.Checked:
                 self._engine.remove_filter(path)
-            elif item.get_old_value() == QtCore.Qt.Unchecked:
+            elif item.old_state == QtCore.Qt.Unchecked:
                 # Now partially checked and was before a filter
 
                 # Remove current parent filter and need to commit to enable the
@@ -75,7 +76,7 @@ class FiltersDialog(QtGui.QDialog):
                 # We need to browse every child and create a filter for
                 # unchecked as they are not dirty but has become root filter
                 for child in item.get_children():
-                    if child.get_checkstate() == QtCore.Qt.Unchecked:
+                    if child.state == QtCore.Qt.Unchecked:
                         self._engine.add_filter(child.get_path())
 
         if not self._engine.is_started():

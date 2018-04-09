@@ -99,12 +99,11 @@ class StatusTreeview(QtGui.QTreeView):
 
         if parent_item:
             path = parent_item.local_path
-        childs = self._dao.get_local_children(path)
 
         # Remove loading child
         parent.removeRows(0, parent.rowCount())
 
-        for child in childs:
+        for child in self._dao.get_local_children(path):
             name = child.local_name
             if name is None:
                 name = child.remote_name
@@ -133,12 +132,14 @@ class StatusTreeview(QtGui.QTreeView):
             subitem.setSelectable(True)
             subitem.setEditable(False)
             subitem.setData(QtCore.QVariant(child), QtCore.Qt.UserRole)
+
             # Create a fake loading item for now
             if child.folderish:
                 loaditem = QtGui.QStandardItem('')
                 loaditem.setSelectable(False)
                 subitem.appendRow(loaditem)
             parent.appendRow([subitem, subitem_status, subitem_date])
+
             # Used later for update
             child.parent = parent
             if on_conflicted:

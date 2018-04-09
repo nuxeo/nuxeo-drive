@@ -948,7 +948,7 @@ class Processor(EngineWorker):
         except OSError:
             pass
 
-    def _synchronize_remotely_created(self, doc_pair, local_client, remote_client):
+    def _synchronize_remotely_created(self, doc_pair, local, remote):
         name = doc_pair.remote_name
         # Find the parent pair to find the path of the local folder to
         # create the document into
@@ -957,76 +957,79 @@ class Processor(EngineWorker):
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             raise ValueError(
-                "Could not find parent folder of doc %r (%r)"
-                " folder" % (name, doc_pair.remote_ref))
+                'Could not find parent folder of doc %r (%r)'
+                ' folder' % (name, doc_pair.remote_ref))
 
         if parent_pair.local_path is None:
             if parent_pair.pair_state == 'unsynchronized':
                 self._dao.unsynchronize_state(doc_pair, 'PARENT_UNSYNC')
-                self._handle_unsynchronized(local_client, doc_pair)
+                self._handle_unsynchronized(local, doc_pair)
                 return
 
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             raise ValueError(
-                "Parent folder of doc %r (%r) is not bound to a local"
-                " folder" % (name, doc_pair.remote_ref))
+                'Parent folder of doc %r (%r) is not bound to a local'
+                ' folder' % (name, doc_pair.remote_ref))
 
         path = doc_pair.remote_parent_path + '/' + doc_pair.remote_ref
-        if remote_client.is_filtered(path):
-            # It is filtered so skip and remove from the LastKnownState
+        if remote.is_filtered(path):
+            nature = ('file', 'folder')[doc_pair.folderish]
+            log.trace('Skip filtered %s %r', nature, doc_pair.local_path)
             self._dao.remove_state(doc_pair)
             return
 
-        if not local_client.exists(doc_pair.local_path):
+        if not local.exists(doc_pair.local_path):
             # Check the parent's UID. A file cannot be created
             # if the parent's name is equal but not the UID.
-            remote_parent_ref = local_client.get_remote_id(parent_pair.local_path)
+            remote_parent_ref = local.get_remote_id(parent_pair.local_path)
             if remote_parent_ref != parent_pair.remote_ref:
                 return
             try:
                 path = self._create_remotely(
-                    local_client, remote_client, doc_pair, parent_pair, name)
+                    local, remote, doc_pair, parent_pair, name)
             except NotFound:
                 # Drive was shut while syncing a root.  While stopped, the root
                 # was unsynced via the Web-UI.  At the restart, remotely
                 # created files queue may have obsolete informations.
                 # To prevent inconsistency, we remotely remove the pair.
                 self._synchronize_remotely_deleted(
-                    doc_pair, local_client, remote_client)
+                    doc_pair, local, remote)
                 return
         else:
             path = doc_pair.local_path
-            remote_ref = local_client.get_remote_id(doc_pair.local_path)
+            remote_ref = local.get_remote_id(doc_pair.local_path)
             if remote_ref is not None and remote_ref == doc_pair.remote_ref:
-                log.debug('remote_ref (xattr) = %s, doc_pair.remote_ref = %s => setting conflicted state', remote_ref,
-                          doc_pair.remote_ref)
+                log.debug('remote_ref (xattr) = %s, doc_pair.remote_ref = %s'
+                          ' => setting conflicted state',
+                          remote_ref, doc_pair.remote_ref)
                 # Set conflict state for now
                 # TO_REVIEW May need to overwrite
                 self._dao.set_conflict_state(doc_pair)
                 return
             elif remote_ref is not None:
                 # Case of several documents with same name or case insensitive hard drive
-                path = self._create_remotely(local_client, remote_client,
+                path = self._create_remotely(local, remote,
                                              doc_pair, parent_pair, name)
-        local_client.set_remote_id(path, doc_pair.remote_ref)
+
+        local.set_remote_id(path, doc_pair.remote_ref)
         if path != doc_pair.local_path and doc_pair.folderish:
             # Update childs
             self._dao.update_local_parent_path(doc_pair, os.path.basename(path), os.path.dirname(path))
-        self._refresh_local_state(doc_pair, local_client.get_info(path))
-        self._handle_readonly(local_client, doc_pair)
+        self._refresh_local_state(doc_pair, local.get_info(path))
+        self._handle_readonly(local, doc_pair)
         if not self._dao.synchronize_state(doc_pair):
             log.debug("Pair is not in synchronized state (version issue): %r", doc_pair)
             # Need to check if this is a remote or local change
             new_pair = self._dao.get_state_from_id(doc_pair.id)
             # Only local 'moved' change that can happen on a pair with processor
             if new_pair.local_state == 'moved':
-                self._synchronize_locally_moved(new_pair, local_client, remote_client, update=False)
+                self._synchronize_locally_moved(new_pair, local, remote, update=False)
             else:
                 if new_pair.remote_state == 'deleted':
-                    self._synchronize_remotely_deleted(new_pair, local_client, remote_client)
+                    self._synchronize_remotely_deleted(new_pair, local, remote)
                 else:
-                    self._synchronize_remotely_modified(new_pair, local_client, remote_client)
+                    self._synchronize_remotely_modified(new_pair, local, remote)
 
     def _create_remotely(self, local, remote, doc_pair, parent_pair, name):
         # TODO Shared this locking system / Can have concurrent lock
