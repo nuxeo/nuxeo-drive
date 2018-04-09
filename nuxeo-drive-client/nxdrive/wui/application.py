@@ -1,10 +1,11 @@
 # coding: utf-8
 """ Main Qt application handling OS events and system tray UI. """
-
 import json
 import os
+import unicodedata
 import urllib2
 from logging import getLogger
+from urllib import unquote
 
 from PyQt4.QtCore import Qt, pyqtSlot
 from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
@@ -20,8 +21,9 @@ from ..notification import Notification
 from ..options import Options
 from ..osi import AbstractOSIntegration
 from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
+                                 UPDATE_STATUS_UNAVAILABLE_SITE,
                                  UPDATE_STATUS_UP_TO_DATE)
-from ..utils import find_icon, find_resource, parse_protocol_url
+from ..utils import find_icon, find_resource, force_decode, parse_protocol_url
 
 log = getLogger(__name__)
 
@@ -104,7 +106,7 @@ class Application(SimpleApplication):
 
         # Movie to animate the transferring icon
         self.animated_icon = QMovie(find_icon('transferring.gif'))
-        self.animated_icon.frameChanged.connect(self._uddate_animated_icon)
+        self.animated_icon.frameChanged.connect(self._update_animated_icon)
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
@@ -115,7 +117,7 @@ class Application(SimpleApplication):
         self.manager.direct_edit.directEditConflict.connect(self._direct_edit_conflict)
         self.manager.direct_edit.directEditError.connect(self._direct_edit_error)
 
-        # Check if actions is required, separate method so it can be override
+        # Check if actions is required, separate method so it can be overridden
         self.init_checks()
 
         # Setup notification center for macOS
@@ -231,7 +233,8 @@ class Application(SimpleApplication):
     @pyqtSlot()
     def change_systray_icon(self):
         # Update status has the precedence over other ones
-        if self.manager.updater.last_status[0] != UPDATE_STATUS_UP_TO_DATE:
+        if self.manager.updater.last_status[0] not in (
+                UPDATE_STATUS_UP_TO_DATE, UPDATE_STATUS_UNAVAILABLE_SITE):
             self.set_icon_state('update_available')
             return
 
@@ -264,7 +267,7 @@ class Application(SimpleApplication):
 
         self.set_icon_state(new_state)
 
-    def _uddate_animated_icon(self):
+    def _update_animated_icon(self):
         icon = QIcon(self.animated_icon.currentPixmap())
         self.tray_icon.setIcon(icon)
 
@@ -630,29 +633,59 @@ class Application(SimpleApplication):
     def event(self, event):
         """Handle URL scheme events under OSX"""
         if hasattr(event, 'url'):
-            url = str(event.url().toString())
+            url = unquote(str(event.url().toString()))
             try:
                 info = parse_protocol_url(url)
-                log.debug('Event url=%s, info=%r', url, info)
+                if 'sync_status' not in url:
+                    log.debug('Event url=%s, info=%r', url, info)
                 if info is not None:
-                    log.debug('Received nxdrive URL scheme event: %s', url)
                     cmd = info['command']
+                    path = info.get('filepath', None)
+                    manager = self.manager
+
+                    # Command to open the file on the platform in the browser
                     if cmd == 'access':
-                        self.manager.open_metadata_window(info['filepath'])
+                        manager.open_metadata_window(path)
+
+                    # Command to copy the platform share link in the clipboard
                     elif cmd == 'share_link':
-                        self.manager.copy_share_link(info['filepath'])
+                        manager.copy_share_link(path)
+
+                    # Command to direct edit the file
                     elif 'edit' in cmd:
                         # This is a quick operation, no need to fork a QThread
-                        self.manager.direct_edit.edit(
+                        manager.direct_edit.edit(
                             info['server_url'], info['doc_id'],
                             user=info['user'],
                             download_url=info['download_url'])
+
+                    # Command to trigger the watch on the synced folders
                     elif cmd == 'trigger_watch':
                         log.debug('Received triggerWatch')
-                        if self.manager._engines is None:
-                            self.manager.load()
-                        for engine in self.manager._engine_definitions:
-                            self.manager.osi.watch_folder(engine.local_folder)
+                        if manager._engines is None:
+                            manager.load()
+                        for engine in manager._engine_definitions:
+                            manager.osi.watch_folder(engine.local_folder)
+
+                    # Command to retrieve the sync status of a file
+                    elif cmd == 'sync_status':
+                        log.trace('Event url=%s, info=%r', url, info)
+                        if manager._engines is None:
+                            manager.load()
+                        for engine in manager._engine_definitions:
+                            # Only send status if we picked the right
+                            # engine and if we're not targeting the root
+                            path = unicodedata.normalize('NFC',
+                                                         force_decode(path))
+                            engine_path = force_decode(engine.local_folder)
+                            if (path.startswith(engine_path)
+                                    and not os.path.samefile(path,
+                                                             engine_path)):
+                                r_path = path.replace(engine_path, '')
+                                dao = manager._engines[engine.uid]._dao
+                                state = dao.get_state_from_local(r_path)
+                                manager.osi.send_sync_status(state, path)
+                                break
             except:
                 log.exception('Error handling URL event: %s', url)
         return super(Application, self).event(event)

@@ -464,6 +464,8 @@ class Manager(QtCore.QObject):
             if engine.is_started():
                 log.debug('Stop engine %s', uid)
                 engine.stop()
+        if AbstractOSIntegration.is_mac():
+            self.osi._cleanup()
         self.stopped.emit()
 
     def start(self, euid=None):

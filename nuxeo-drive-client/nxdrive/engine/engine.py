@@ -631,6 +631,8 @@ class Engine(QObject):
             elif emit:
                 # Raise conflict only if not resolvable
                 self.newConflict.emit(row_id)
+                self._manager.osi.send_sync_status(
+                    pair, local_client.abspath(pair.local_path))
         except:
             log.exception('Conflict resolver error')
 
