@@ -248,18 +248,18 @@ class Application(SimpleApplication):
             offline &= engine.is_offline()
 
         if offline:
-            new_state = 'stopping'
+            new_state = 'error'
             Action(Translator.get('OFFLINE'))
         elif invalid_credentials:
-            new_state = 'stopping'
+            new_state = 'error'
             Action(Translator.get('INVALID_CREDENTIALS'))
         elif not engines or paused:
             new_state = 'disabled'
             Action.finish_action()
         elif syncing:
-            new_state = 'transferring'
+            new_state = 'syncing'
         else:
-            new_state = 'asleep'
+            new_state = 'idle'
             Action.finish_action()
 
         self.set_icon_state(new_state)
@@ -498,8 +498,7 @@ class Application(SimpleApplication):
             self.animated_icon.start()
         else:
             self.animated_icon.stop()
-            icon = find_icon('systray_icon_%s_18.png' % state)
-            self.tray_icon.setIcon(QIcon(icon))
+            self.tray_icon.setIcon(self.icons[state])
 
         self.icon_state = state
         return True
@@ -624,6 +623,14 @@ class Application(SimpleApplication):
     def setup_systray(self):
         self.tray_icon = DriveSystrayIcon(self)
         self.tray_icon.setToolTip(self.manager.app_name)
+        self.icons = {}
+        for state in ['idle', 'disabled', 'conflict', 'error',
+                      'notification', 'syncing', 'paused']:
+            icon = QIcon()
+            icon.addFile(find_icon('systray_icon_%s.svg' % state))
+            icon.addFile(find_icon('systray_icon_active.svg'),
+                         mode=QIcon.Active)
+            self.icons[state] = icon
         self.set_icon_state('disabled')
         self.tray_icon.show()
 
