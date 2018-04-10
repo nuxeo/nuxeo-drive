@@ -7,14 +7,20 @@ This is the icons list and their specifications for a good branding.
 Note: Use a base size of 256x256 pixels if nothing specified.
 
 - app_icon.svg
-- systray_asleep.svg
-- systray_disabled.svg
-- systray_enabled.svg
-- systray_stopped.svg
-- systray_update_avalaible.svg
 - folder_mac.svg
 - folder_windows.svg
 - wizard.svg, see [NXDRIVE-1137](https://jira.nuxeo.com/browse/NXDRIVE-1137) for size and screenshot
+
+Specifically, for the systray status icon:
+- active.svg (only macOS: for when the systray icon is pressed)
+- conflict.svg
+- disabled.svg
+- error.svg
+- idle.svg
+- notification.svg
+- paused.svg
+- syncing.svg
+- update.svg
 
 ## Packager Work
 

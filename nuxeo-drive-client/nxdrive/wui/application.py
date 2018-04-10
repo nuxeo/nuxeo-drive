@@ -620,9 +620,9 @@ class Application(SimpleApplication):
         for state in ['idle', 'disabled', 'conflict', 'error',
                       'notification', 'syncing', 'paused', 'update']:
             icon = QIcon()
-            icon.addFile(find_icon('systray_icon_%s.svg' % state),
+            icon.addFile(find_icon('%s.svg' % state),
                          mode=QIcon.Normal)
-            icon.addFile(find_icon('systray_icon_active.svg'),
+            icon.addFile(find_icon('active.svg'),
                          mode=QIcon.Selected)
             self.icons[state] = icon
         self.set_icon_state('disabled')
