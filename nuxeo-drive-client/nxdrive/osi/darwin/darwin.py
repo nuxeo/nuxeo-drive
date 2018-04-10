@@ -1,12 +1,13 @@
 # coding: utf-8
 import os
+import stat
 import sys
 import urllib2
 from logging import getLogger
 
 from .. import AbstractOSIntegration
 from ...constants import BUNDLE_IDENTIFIER
-from ...utils import normalized_path
+from ...utils import normalized_path, force_decode
 
 log = getLogger(__name__)
 
@@ -33,6 +34,11 @@ class DarwinIntegration(AbstractOSIntegration):
         super(DarwinIntegration, self).__init__(manager)
         log.debug('Telling plugInKit to use the FinderSync')
         os.system('pluginkit -e use -i {}.NuxeoFinderSync'.format(
+            BUNDLE_IDENTIFIER))
+
+    def _cleanup(self):
+        log.debug('Telling plugInKit to ignore the FinderSync')
+        os.system('pluginkit -e ignore -i {}.NuxeoFinderSync'.format(
             BUNDLE_IDENTIFIER))
 
     def _get_agent_file(self):
@@ -112,27 +118,72 @@ class DarwinIntegration(AbstractOSIntegration):
                     pass
         return result
 
-    def _set_monitoring(self, operation, path):
+    def _send_notification(self, name, content):
         """
         Send a notification through the macOS notification center
         to the FinderSync app extension.
 
-        :param operation: 'watch' or 'unwatch'
-        :param path: path to the folder
+        :param name: name of the notification
+        :param content: content to send
         """
         from Foundation import NSDistributedNotificationCenter
         nc = NSDistributedNotificationCenter.defaultCenter()
+        nc.postNotificationName_object_userInfo_(name, None, content)
+
+    def _set_monitoring(self, operation, path):
+        """
+        Set the monitoring of a folder by the FinderSync.
+
+        :param operation: 'watch' or 'unwatch'
+        :param path: path to the folder
+        """
         name = '{}.watchFolder'.format(BUNDLE_IDENTIFIER)
-        nc.postNotificationName_object_userInfo_(
-            name, None, {'operation': operation, 'path': path})
+        self._send_notification(name, {'operation': operation, 'path': path})
 
     def watch_folder(self, folder):
-        log.debug('FinderSync now watching {}'.format(folder))
+        log.debug('FinderSync now watching %r', folder)
         self._set_monitoring('watch', folder)
 
     def unwatch_folder(self, folder):
-        log.debug('FinderSync now ignoring {}'.format(folder))
+        log.debug('FinderSync now ignoring %r', folder)
         self._set_monitoring('unwatch', folder)
+
+    def send_sync_status(self, state, path):
+        """
+        Send the sync status of a file to the FinderSync.
+
+        :param state: current local state of the file
+        :param path: full path of the file
+        """
+        try:
+            path = force_decode(path)
+            if not os.path.exists(path):
+                return
+
+            name = '{}.syncStatus'.format(BUNDLE_IDENTIFIER)
+            status = 'unsynced'
+
+            readonly = (os.stat(path).st_mode
+                        & (stat.S_IWUSR | stat.S_IWGRP)) == 0
+            if readonly:
+                status = 'locked'
+            elif state:
+                if state.error_count > 0:
+                    status = 'error'
+                elif state.pair_state == 'conflicted':
+                    status = 'conflicted'
+                elif state.local_state == 'synchronized':
+                    status = 'synced'
+                elif state.pair_state == 'unsynchronized':
+                    status = 'unsynced'
+                elif state.processor != 0:
+                    status = 'syncing'
+
+            log.trace('Sending status %r for file %r to FinderSync',
+                      status, path)
+            self._send_notification(name, {'status': status, 'path': path})
+        except:
+            log.exception('Error while trying to send status to FinderSync')
 
     def register_folder_link(self, folder_path, name=None):
         from LaunchServices import LSSharedFileListInsertItemURL

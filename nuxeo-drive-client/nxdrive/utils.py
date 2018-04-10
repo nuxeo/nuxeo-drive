@@ -505,17 +505,29 @@ def parse_protocol_url(url_string):
     if not url_string.startswith('nxdrive://'):
         return None
 
-    protocol_regex = [('nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/'
-                       '(?P<server>.*)/user/(?P<username>.*)/repo/'
-                       '(?P<repo>.*)/nxdocid/(?P<docid>(\d|[a-f]|-)*)/'
-                       'filename/(?P<filename>[^/]*)(/downloadUrl/'
-                       '(?P<download>.*)|)'),
+    # Commands that need a path to work with
+    path_cmds = ('access-online',
+                 'copy-share-link',
+                 'edit-metadata',
+                 'sync-status')
 
-                      'nxdrive://(?P<cmd>share_link)/(?P<path>.*)',
+    protocol_regex = (
+        # Direct Edit stuff
+        ('nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/'
+         'user/(?P<username>.*)/repo/(?P<repo>.*)/'
+         'nxdocid/(?P<docid>(\d|[a-f]|-)*)/filename/(?P<filename>[^/]*)'
+         '(/downloadUrl/(?P<download>.*)|)'),
 
-                      'nxdrive://(?P<cmd>access)/(?P<path>.*)',
+        # Events from context menu:
+        #     - Access online
+        #     - Copy share-link
+        #     - Edit metadata
+        # And event from macOS to sync the document status (FinderSync)
+        'nxdrive://(?P<cmd>({}))/(?P<path>.*)'.format('|'.join(path_cmds)),
 
-                      'nxdrive://(?P<cmd>trigger_watch)']
+        # Event from macOS to (un)watch a folder (FinderSync)
+        'nxdrive://(?P<cmd>trigger-watch)',
+    )
 
     parsed_url = None
     for regex in protocol_regex:
@@ -531,10 +543,9 @@ def parse_protocol_url(url_string):
     cmd = parsed_url.get('cmd')
     if cmd == 'edit':
         return parse_edit_protocol(parsed_url, url_string)
-    if cmd in ('access', 'share_link'):
+    elif cmd in path_cmds:
         return dict(command=cmd, filepath=parsed_url.get('path'))
-    else:
-        return dict(command=cmd)
+    return dict(command=cmd)
 
 
 def parse_edit_protocol(parsed_url, url_string):
@@ -542,7 +553,7 @@ def parse_edit_protocol(parsed_url, url_string):
     scheme = parsed_url.get('scheme')
     if scheme not in ('http', 'https'):
         raise ValueError(
-            'Invalid command {} : scheme should be http or https'.format(
+            'Invalid command {}: scheme should be http or https'.format(
                 url_string))
 
     server_url = '{}://{}'.format(scheme, parsed_url.get('server'))

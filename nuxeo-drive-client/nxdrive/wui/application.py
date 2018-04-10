@@ -1,10 +1,11 @@
 # coding: utf-8
 """ Main Qt application handling OS events and system tray UI. """
-
 import json
 import os
+import unicodedata
 import urllib2
 from logging import getLogger
+from urllib import unquote
 
 from PyQt4.QtCore import Qt, pyqtSlot
 from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
@@ -22,7 +23,7 @@ from ..osi import AbstractOSIntegration
 from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
                                  UPDATE_STATUS_UNAVAILABLE_SITE,
                                  UPDATE_STATUS_UP_TO_DATE)
-from ..utils import find_icon, find_resource, parse_protocol_url
+from ..utils import find_icon, find_resource, force_decode, parse_protocol_url
 
 log = getLogger(__name__)
 
@@ -112,7 +113,7 @@ class Application(SimpleApplication):
         self.manager.direct_edit.directEditConflict.connect(self._direct_edit_conflict)
         self.manager.direct_edit.directEditError.connect(self._direct_edit_error)
 
-        # Check if actions is required, separate method so it can be override
+        # Check if actions is required, separate method so it can be overridden
         self.init_checks()
 
         # Setup notification center for macOS
@@ -628,31 +629,69 @@ class Application(SimpleApplication):
         self.tray_icon.show()
 
     def event(self, event):
-        """Handle URL scheme events under OSX"""
-        if hasattr(event, 'url'):
-            url = str(event.url().toString())
-            try:
-                info = parse_protocol_url(url)
-                log.debug('Event url=%s, info=%r', url, info)
-                if info is not None:
-                    log.debug('Received nxdrive URL scheme event: %s', url)
-                    cmd = info['command']
-                    if cmd == 'access':
-                        self.manager.open_metadata_window(info['filepath'])
-                    elif cmd == 'share_link':
-                        self.manager.copy_share_link(info['filepath'])
-                    elif 'edit' in cmd:
-                        # This is a quick operation, no need to fork a QThread
-                        self.manager.direct_edit.edit(
-                            info['server_url'], info['doc_id'],
-                            user=info['user'],
-                            download_url=info['download_url'])
-                    elif cmd == 'trigger_watch':
-                        log.debug('Received triggerWatch')
-                        if self.manager._engines is None:
-                            self.manager.load()
-                        for engine in self.manager._engine_definitions:
-                            self.manager.osi.watch_folder(engine.local_folder)
-            except:
-                log.exception('Error handling URL event: %s', url)
-        return super(Application, self).event(event)
+        """ Handle URL scheme events under macOS. """
+
+        url = getattr(event, 'url', None)
+        if not url:
+            # This is not an event for us!
+            return super(Application, self).event(event)
+
+        try:
+            final_url = unquote(str(event.url().toString()))
+            self._handle_macos_event(final_url)
+        except:
+            log.exception('Error handling URL event %r', url)
+
+    def _handle_macos_event(self, url):
+        # type: (str) -> None
+        """ Handle a macOS event URL. """
+
+        info = parse_protocol_url(url)
+        if not info:
+            return
+
+        cmd = info['command']
+        path = info.get('filepath', None)
+        manager = self.manager
+
+        # Note: commands are sorted by usage intensity
+        if cmd == 'sync-status':
+            # Command to retrieve the sync status of a file
+            log.trace('Event URL=%r, info=%r', url, info)
+            for engine in manager._engine_definitions:
+                # Only send status if we picked the right
+                # engine and if we're not targeting the root
+                path = unicodedata.normalize(
+                    'NFC', force_decode(path))
+                if (path.startswith(engine.local_folder)
+                        and not os.path.samefile(
+                                path, engine.local_folder)):
+                    r_path = path.replace(engine.local_folder, '')
+                    dao = manager._engines[engine.uid]._dao
+                    state = dao.get_state_from_local(r_path)
+                    manager.osi.send_sync_status(state, path)
+                    break
+            return
+
+        log.debug('Event URL=%s, info=%r', url, info)
+
+        # Event fired by a context menu item
+        func = {
+            'access-online': manager.ctx_access_online,
+            'copy-share-link': manager.ctx_copy_share_link,
+            'edit-metadata': manager.ctx_edit_metadata,
+        }.get(cmd, None)
+        if func:
+            return func(path)
+
+        if 'edit' in cmd:
+            return manager.direct_edit.edit(
+                info['server_url'],
+                info['doc_id'],
+                user=info['user'],
+                download_url=info['download_url'])
+        elif cmd == 'trigger-watch':
+            for engine in manager._engine_definitions:
+                manager.osi.watch_folder(engine.local_folder)
+        else:
+            log.warning('Unknown event URL=%r, info=%r', url, info)

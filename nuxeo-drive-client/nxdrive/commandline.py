@@ -38,8 +38,9 @@ Possible commands:
 - bind-root
 - unbind-root
 - clean_folder
-- metadata
-- share-link
+- access-online
+- copy-share-link
+- edit-metadata
 
 To get options for a specific command:
 
@@ -81,12 +82,10 @@ class CliHandler(object):
 
         common_parser.add_argument(
             '--locale', default=Options.locale,
-            choices=('de', 'en', 'es', 'fr', 'jp'),
             help='Select the default language')
 
         common_parser.add_argument(
-            '--force-locale', choices=('de', 'en', 'es', 'fr', 'jp'),
-            help='Force the language')
+            '--force-locale', help='Force the language')
 
         common_parser.add_argument(
             '--update-site-url', default=Options.update_site_url,
@@ -251,19 +250,29 @@ class CliHandler(object):
             '--local-folder', help='Local folder to clean.')
         clean_parser.set_defaults(command='clean_folder')
 
-        # Display the metadata window
-        metadata_parser = subparsers.add_parser(
-            'metadata', help='Display the metadata window for a given file.',
+        # Context menu: Access online
+        ctx_item1 = subparsers.add_parser(
+            'access-online',
+            help='Open the document in the browser.',
             parents=[common_parser])
-        metadata_parser.set_defaults(command='metadata')
-        metadata_parser.add_argument('--file', default='', help='File path.')
+        ctx_item1.set_defaults(command='ctx_access_online')
+        ctx_item1.add_argument('--file', default='', help='File path.')
 
-        # Copy the share-link
-        share_link_parser = subparsers.add_parser(
-            'share-link', help='Copy the file\'s share-link to the clipboard.',
+        # Context menu: Copy the share-link
+        ctx_item2 = subparsers.add_parser(
+            'copy-share-link',
+            help="Copy the document's share-link to the clipboard.",
             parents=[common_parser])
-        share_link_parser.set_defaults(command='share_link')
-        share_link_parser.add_argument('--file', default='', help='File path.')
+        ctx_item2.set_defaults(command='ctx_copy_share_link')
+        ctx_item2.add_argument('--file', default='', help='File path.')
+
+        # Context menu: Edit metadata
+        ctx_item3 = subparsers.add_parser(
+            'edit-metadata',
+            help='Display the metadata window for a given file.',
+            parents=[common_parser])
+        ctx_item3.set_defaults(command='ctx_edit_metadata')
+        ctx_item3.add_argument('--file', default='', help='File path.')
 
         return parser
     """Command Line Interface handler: parse options and execute operation"""
@@ -455,13 +464,20 @@ class CliHandler(object):
             pydevd.settrace()
         return self.launch(options=options, console=True)
 
-    def metadata(self, options):
+    def ctx_access_online(self, options):
+        """ Event fired by "Access online" menu entry. """
         file_path = normalized_path(options.file)
-        self.manager.open_metadata_window(file_path)
+        self.manager.ctx_access_online(file_path)
 
-    def share_link(self, options):
+    def ctx_copy_share_link(self, options):
+        """ Event fired by "Copy share-link" menu entry. """
         file_path = normalized_path(options.file)
-        self.manager.copy_share_link(file_path)
+        self.manager.ctx_copy_share_link(file_path)
+
+    def ctx_edit_metadata(self, options):
+        """ Event fired by "Edit metadata" menu entry. """
+        file_path = normalized_path(options.file)
+        self.manager.ctx_edit_metadata(file_path)
 
     def download_edit(self, options):
         self.launch(options=options)

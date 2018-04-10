@@ -244,18 +244,19 @@ class Engine(QObject):
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
 
-    def get_metadata_url(self, remote_ref):
+    def get_metadata_url(self, remote_ref, edit=False):
         """
         Build the document's metadata URL based on the server's UI.
         Default is Web-UI.  In case of unknown UI, use the default value.
 
         :param str remote_ref: The document remote reference (UID) of the
             document we want to show metadata.
+        :param bool edit: Show the metadata edit page instead of the document.
         :return str: The complete URL.
         """
 
         urls = {
-            'jsf': '{server}nxdoc/{repo}/{uid}/view_documents?token={token}',
+            'jsf': '{server}nxdoc/{repo}/{uid}/{edit}?token={token}',
             'web': '{server}ui?token={token}#!/doc/{uid}',
         }
 
@@ -264,6 +265,7 @@ class Engine(QObject):
             'server': self.server_url,
             'repo': remote_ref_segments[1],
             'uid': remote_ref_segments[2],
+            'edit': ('view_documents', 'view_drive_metadata')[edit],
             'token': self.get_remote_token(),
         }
         return urls.get(self._ui, 'web').format(**infos)
@@ -631,6 +633,8 @@ class Engine(QObject):
             elif emit:
                 # Raise conflict only if not resolvable
                 self.newConflict.emit(row_id)
+                self._manager.osi.send_sync_status(
+                    pair, local_client.abspath(pair.local_path))
         except:
             log.exception('Conflict resolver error')
 
