@@ -9,7 +9,7 @@ from urllib import unquote
 
 from PyQt4.QtCore import Qt, pyqtSlot
 from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
-                         QIcon, QMenu, QMessageBox, QMovie, QSystemTrayIcon,
+                         QIcon, QMenu, QMessageBox, QSystemTrayIcon,
                          QTextEdit, QVBoxLayout)
 from markdown import markdown
 
@@ -103,10 +103,6 @@ class Application(SimpleApplication):
 
         self.aboutToQuit.connect(self.manager.stop)
         self.manager.dropEngine.connect(self.dropped_engine)
-
-        # Movie to animate the transferring icon
-        self.animated_icon = QMovie(find_icon('transferring.gif'))
-        self.animated_icon.frameChanged.connect(self._update_animated_icon)
 
         # This is a windowless application mostly using the system tray
         self.setQuitOnLastWindowClosed(False)
@@ -234,42 +230,43 @@ class Application(SimpleApplication):
     def change_systray_icon(self):
         # Update status has the precedence over other ones
         if self.manager.updater.last_status[0] not in (
-                UPDATE_STATUS_UP_TO_DATE, UPDATE_STATUS_UNAVAILABLE_SITE):
-            self.set_icon_state('update_available')
+                UPDATE_STATUS_UNAVAILABLE_SITE,
+                UPDATE_STATUS_UP_TO_DATE):
+            self.set_icon_state('update')
             return
 
-        syncing = False
+        syncing = conflict = False
         engines = self.manager.get_engines()
-        invalid_credentials = True
-        paused = True
-        offline = True
+        invalid_credentials = paused = offline = True
 
         for engine in engines.itervalues():
             syncing |= engine.is_syncing()
             invalid_credentials &= engine.has_invalid_credentials()
             paused &= engine.is_paused()
             offline &= engine.is_offline()
+            conflict |= bool(engine.get_conflicts())
 
         if offline:
-            new_state = 'stopping'
+            new_state = 'error'
             Action(Translator.get('OFFLINE'))
         elif invalid_credentials:
-            new_state = 'stopping'
+            new_state = 'error'
             Action(Translator.get('INVALID_CREDENTIALS'))
-        elif not engines or paused:
+        elif not engines:
             new_state = 'disabled'
             Action.finish_action()
+        elif paused:
+            new_state = 'paused'
+            Action.finish_action()
         elif syncing:
-            new_state = 'transferring'
+            new_state = 'syncing'
+        elif conflict:
+            new_state = 'conflict'
         else:
-            new_state = 'asleep'
+            new_state = 'idle'
             Action.finish_action()
 
         self.set_icon_state(new_state)
-
-    def _update_animated_icon(self):
-        icon = QIcon(self.animated_icon.currentPixmap())
-        self.tray_icon.setIcon(icon)
 
     def _get_settings_dialog(self, section):
         from .settings import WebSettingsDialog
@@ -495,15 +492,7 @@ class Application(SimpleApplication):
             return False
 
         self.tray_icon.setToolTip(self.get_tooltip())
-
-        # Handle animated transferring icon
-        if state == 'transferring':
-            self.animated_icon.start()
-        else:
-            self.animated_icon.stop()
-            icon = find_icon('systray_icon_%s_18.png' % state)
-            self.tray_icon.setIcon(QIcon(icon))
-
+        self.tray_icon.setIcon(self.icons[state])
         self.icon_state = state
         return True
 
@@ -627,6 +616,15 @@ class Application(SimpleApplication):
     def setup_systray(self):
         self.tray_icon = DriveSystrayIcon(self)
         self.tray_icon.setToolTip(self.manager.app_name)
+        self.icons = {}
+        for state in ['idle', 'disabled', 'conflict', 'error',
+                      'notification', 'syncing', 'paused', 'update']:
+            icon = QIcon()
+            icon.addFile(find_icon('%s.svg' % state),
+                         mode=QIcon.Normal)
+            icon.addFile(find_icon('active.svg'),
+                         mode=QIcon.Selected)
+            self.icons[state] = icon
         self.set_icon_state('disabled')
         self.tray_icon.show()
 

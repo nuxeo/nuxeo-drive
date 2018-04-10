@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="30px" height="30px" viewBox="0 0 30 30" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 49.3 (51167) - http://www.bohemiancoding.com/sketch -->
+    <title>error Mac</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="error-Mac" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="error_state" transform="translate(16.000000, 17.000000)" fill="#CD2800" fill-rule="nonzero">
+            <path d="M7.93875,2 L6,3.93875 L4.06125,2 L3,3.06125 L4.93875,5 L3,6.93875 L4.06125,8 L6,6.06125 L7.93875,8 L9,6.93875 L7.06125,5 L9,3.06125 L7.93875,2 Z M6,11 C2.6925,11 0,8.3075 0,5 C0,1.6925 2.6925,-1 6,-1 C9.3075,-1 12,1.6925 12,5 C12,8.3075 9.3075,11 6,11 Z" id="Shape"></path>
+        </g>
+        <g id="NUXEO-X" transform="translate(3.000000, 3.000000)" fill="#383F46" fill-rule="nonzero">
+            <polygon id="Combined-Shape" points="0 4.87323192 7.12676808 12 0 19.1235655 0 24 4.87643448 24 24 4.87323192 24 0 19.1267681 0 12 7.12356552 4.87643448 0 0 0"></polygon>
+        </g>
+    </g>
+</svg>
