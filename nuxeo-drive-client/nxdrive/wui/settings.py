@@ -265,7 +265,7 @@ class WebSettingsApi(WebDriveApi):
 
     def update_token(self, engine, token):
         engine.update_token(token)
-        self.application.set_icon_state('asleep')
+        self.application.set_icon_state('idle')
 
     @QtCore.pyqtSlot(str, result=str)
     def web_update_token(self, uid):
