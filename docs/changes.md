@@ -21,6 +21,7 @@ Changes in command line arguments:
 - [NXDRIVE-1174](https://jira.nuxeo.com/browse/NXDRIVE-1174): Efficient `ConfigurationDAO.update_config()`
 
 ### GUI
+- [NXDRIVE-715](https://jira.nuxeo.com/browse/NXDRIVE-715): Use SVG for icons
 - [NXDRIVE-891](https://jira.nuxeo.com/browse/NXDRIVE-891): Locked notification displays 'userid' instead of full username
 - [NXDRIVE-1025](https://jira.nuxeo.com/browse/NXDRIVE-1025): Filters issue with folders at the same tree level
 - [NXDRIVE-1108](https://jira.nuxeo.com/browse/NXDRIVE-1108): Standardize and rename context menu entry
