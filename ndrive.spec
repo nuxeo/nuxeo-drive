@@ -6,7 +6,7 @@ import sys
 
 cwd = os.getcwd()
 tools = os.path.join(cwd, 'tools')
-nxdrive = os.path.join(cwd, 'nuxeo-drive-client', 'nxdrive')
+nxdrive = os.path.join(cwd, 'nxdrive')
 data = os.path.join(nxdrive, 'data')
 icon = {
     'darwin': os.path.join(tools, 'osx', 'app_icon.icns'),

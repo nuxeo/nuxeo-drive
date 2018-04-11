@@ -42,6 +42,7 @@ Changes in command line arguments:
 - [NXDRIVE-601](https://jira.nuxeo.com/browse/NXDRIVE-601): Provide a user installation mode on Windows
 - [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730): Move to PyInstaller (**breaking change**)
 - [NXDRIVE-1125](https://jira.nuxeo.com/browse/NXDRIVE-1125): Make Finder interactions through FinderSync extension on macOS
+- [NXDRIVE-1146](https://jira.nuxeo.com/browse/NXDRIVE-1146): Drop module availability on PyPi
 
 ### Tests
 - [NXDRIVE-1173](https://jira.nuxeo.com/browse/NXDRIVE-1173): Fix pip installation on Windows

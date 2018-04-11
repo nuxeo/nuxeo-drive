@@ -202,7 +202,6 @@ timeout(240) {
                         dir('sources') {
                             def drive_version = sh(
                                 script: """
-                                        cd nuxeo-drive-client; \
                                         python -c 'import nxdrive; print(nxdrive.__version__)'; \
                                         cd .. \
                                         """,
@@ -228,8 +227,8 @@ timeout(240) {
                                         -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client \
                                         -Dsonar.projectBaseDir="${env.WORKSPACE}" \
                                         -Dsonar.projectVersion="${drive_version}" \
-                                        -Dsonar.sources=../nuxeo-drive-client/nxdrive \
-                                        -Dsonar.tests=../nuxeo-drive-client/tests \
+                                        -Dsonar.sources=../nxdrive \
+                                        -Dsonar.tests=../tests \
                                         -Dsonar.python.coverage.reportPath=coverage.xml \
                                         -Dsonar.python.pylint.reportPath=pylint-report.txt \
                                         -Dsonar.exclusions=ftest/pom.xml

@@ -195,7 +195,7 @@ def start_drive(tag=None, reset=False, gdb=False, msg='', **kwargs):
     if msg:
         msg = '[' + msg + ']'
 
-    cmd = ('python nuxeo-drive-client/scripts/ndrive.py'
+    cmd = ('python scripts/ndrive.py'
            ' --log-level-console=ERROR'
            ' --log-level-file=TRACE'
            )

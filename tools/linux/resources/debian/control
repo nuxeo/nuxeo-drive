@@ -9,8 +9,8 @@ X-Python-Version: >= 2.7
 Package: @package.name@
 Architecture: all
 Depends: ${python:Depends}, python-psutil, python-faulthandler, python-poster (>= 0.8.1), python-crypto (>= 2.6)
-Provides: nuxeo-drive-client
-Conflicts: nuxeo-drive-client
+Provides: nuxeo-drive
+Conflicts: nuxeo-drive
 Description: Client side of Nuxeo Driver
  This package provides the desktop synchronization
  of local folders with remote Nuxeo workspaces.

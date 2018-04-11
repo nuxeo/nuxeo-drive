@@ -8,7 +8,7 @@
     </parent>
 
     <groupId>org.nuxeo.packaging</groupId>
-    <artifactId>nuxeo-drive-client-debian</artifactId>
+    <artifactId>nuxeo-drive-debian</artifactId>
     <packaging>pom</packaging>
     <name>Nuxeo Drive Client Debian package</name>
     <description>Generate .deb package for the Nuxeo Drive client</description>

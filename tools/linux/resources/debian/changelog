@@ -1,7 +1,7 @@
 @package.name@ (@package.fullversion@) raring; urgency=low
 
   * Dummy line for auto-versioning
-    For nuxeo-drive-client changelog, see: https://github.com/nuxeo/nuxeo-drive
+    For nuxeo-drive changelog, see: https://github.com/nuxeo/nuxeo-drive
 
  -- Nuxeo Packagers <packagers@nuxeo.com>  Mon, 28 Oct 2013 17:11:00 +0100
 

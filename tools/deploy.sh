@@ -1,6 +1,6 @@
 #!/bin/sh -eu
 #
-# Deploy a release: it means moving artifacts from the staging site to the production's one, uploading to PyPi and
+# Deploy a release: it means moving artifacts from the staging site to the production's one and
 # converting GitHub pre-release to release.
 #
 # Warning: do not execute this script manually but from Jenkins.
@@ -56,10 +56,6 @@ for folder in \$(find ${path}/drive/latest -maxdepth 1 -type d); do
     ln -sfv ${exe} \$folder/nuxeo-drive.${ext_win_only}
 done
 EOF
-
-    # TODO: To remove?
-    # echo ">>> [${latest_release}] Uploading to PyPi"
-    # python setup.py sdist upload
 
     echo ">>> [${latest_release}] Saving release on GitHub"
     # Fetch the pre-release informations to find the complete URL

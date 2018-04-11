@@ -21,7 +21,7 @@
   <target name="fetch-nuxeo-drive-mp">
     <exec executable="python" failonerror="true">
       <arg value="../tools/integration_tests_setup.py" />
-      <arg value="--base-folder=../nuxeo-drive-client" />
+      <arg value="--base-folder=.." />
       <arg value="--work-folder=${out.dir}" />
       <arg value="fetch-mp" />
       <arg value="--url=${nuxeo.drive.mp.url}" />
@@ -39,7 +39,7 @@
     <echo level="info">ENGINE environment variable = ${env.ENGINE}</echo>
     <exec executable="python" failonerror="true">
       <arg value="../tools/integration_tests_setup.py" />
-      <arg value="--base-folder=../nuxeo-drive-client" />
+      <arg value="--base-folder=.." />
       <arg value="--work-folder=${out.dir}" />
       <arg value="test" />
       <arg value="--server-url=${env.SERVER_URL}" />

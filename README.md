@@ -184,7 +184,7 @@ In that case you need to specify your locale as :
 
 Translations are managed with [Crowdin](https://crowdin.com/).
 
-The reference file [i18n.json](https://github.com/nuxeo/nuxeo-drive/blob/master/nuxeo-drive-client/nxdrive/data/i18n/i18n.json) contains the labels and the English values.
+The reference file [i18n.json](https://github.com/nuxeo/nuxeo-drive/blob/master/nxdrive/data/i18n/i18n.json) contains the labels and the English values.
 
 Translations for other languages are managed in the [nuxeo-drive](https://crowdin.com/project/nuxeo-drive) Crowdin project, e.g. [French](https://crowdin.com/translate/nuxeo-drive/40/en-fr).
 
