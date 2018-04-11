@@ -8,7 +8,7 @@ Install Nautilus required addon:
 
 Install the extension:
 
-    cp nuxeo-drive-client/tools/linux/resources/nautilus/contextual_menu.py ~/.local/share/nautilus-python/extensions
+    cp tools/linux/resources/nautilus/contextual_menu.py ~/.local/share/nautilus-python/extensions
 
 # macOS
 

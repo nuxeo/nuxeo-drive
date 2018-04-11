@@ -24,7 +24,7 @@ $global:SERVER = "https://nuxeo-jenkins-public-resources.s3.eu-west-3.amazonaws.
 
 function build_installer {
 	# Build the installer
-	$app_version = (Get-Content nuxeo-drive-client/nxdrive/__init__.py) -match "__version__" -replace "'", "" -replace "__version__ = ", ""
+	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace "'", "" -replace "__version__ = ", ""
 
 	Write-Output ">>> [$app_version] Freezing the application"
 	& $Env:PYTHON_DIR\Scripts\pyinstaller ndrive.spec --noconfirm
@@ -127,11 +127,11 @@ function check_vars {
 
 	Set-Location "$Env:WORKSPACE_DRIVE"
 
-	if (-Not ($Env:SPECIFIC_TEST) -Or ($Env:SPECIFIC_TEST -eq "") -Or ($Env:SPECIFIC_TEST -eq "nuxeo-drive-client\tests")) {
-		$Env:SPECIFIC_TEST = "nuxeo-drive-client\tests"
+	if (-Not ($Env:SPECIFIC_TEST) -Or ($Env:SPECIFIC_TEST -eq "") -Or ($Env:SPECIFIC_TEST -eq "tests")) {
+		$Env:SPECIFIC_TEST = "tests"
 	} else {
 		Write-Output "    SPECIFIC_TEST        = $Env:SPECIFIC_TEST"
-		$Env:SPECIFIC_TEST = "nuxeo-drive-client\tests\$Env:SPECIFIC_TEST"
+		$Env:SPECIFIC_TEST = "tests\$Env:SPECIFIC_TEST"
 	}
 }
 
@@ -311,7 +311,7 @@ function launch_tests {
 	}
 	& $Env:PYTHON_DIR\python $global:PYTHON_OPT -m pytest $Env:SPECIFIC_TEST `
 		--cov-report= `
-		--cov=nuxeo-drive-client/nxdrive `
+		--cov=nxdrive `
 		--showlocals `
 		--strict `
 		--failed-first `
@@ -327,7 +327,7 @@ function launch_tests {
 
 function start_nxdrive {
 	# Start Nuxeo Drive
-	$Env:PYTHONPATH = "$Env:WORKSPACE_DRIVE\nuxeo-drive-client"
+	$Env:PYTHONPATH = "$Env:WORKSPACE_DRIVE"
 	& $Env:PYTHON_DIR\python -m nxdrive
 }
 

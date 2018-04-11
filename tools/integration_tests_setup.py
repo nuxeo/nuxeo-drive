@@ -23,7 +23,7 @@ try:
 except ImportError:
     import urllib.request as urllib2
 
-DEFAULT_BASE_FOLDER = 'nuxeo-drive-client'
+DEFAULT_BASE_FOLDER = '.'
 DEFAULT_WORK_FOLDER = 'target'
 MARKET_PLACE_PREFIX = "nuxeo-drive"
 DEFAULT_MARKETPLACE_PATTERN = MARKET_PLACE_PREFIX + r"\-\d\.\d.*?\.zip"

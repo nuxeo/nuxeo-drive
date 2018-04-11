@@ -185,7 +185,7 @@ def version_find():
     :return tuple: The version and line number where it is defined.
     """
 
-    path = os.path.join('nuxeo-drive-client', 'nxdrive', '__init__.py')
+    path = os.path.join('nxdrive', '__init__.py')
     with io.open(path, encoding='utf-8') as handler:
         for lineno, line in enumerate(handler.readlines()):
             if line.startswith('__version__'):
@@ -195,7 +195,7 @@ def version_find():
 def version_update(version, lineno):
     """ Update Drive version. """
 
-    path = os.path.join('nuxeo-drive-client', 'nxdrive', '__init__.py')
+    path = os.path.join('nxdrive', '__init__.py')
 
     with io.open(path, encoding='utf-8') as handler:
         content = handler.readlines()

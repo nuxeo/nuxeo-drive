@@ -211,7 +211,7 @@ def get_issue_infos(issue, raw=False):
 def get_version():
     """ Find the current version. """
 
-    init_file = 'nuxeo-drive-client/nxdrive/__init__.py'
+    init_file = 'nxdrive/__init__.py'
     with codecs.open(init_file, encoding='utf-8') as handler:
         for line in handler.readlines():
             if line.startswith('__version__'):

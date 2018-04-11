@@ -25,7 +25,7 @@
             <isset property="env.nuxeo.version" />
         </condition>
         <!-- drive client settints -->
-        <loadproperties srcFile="${maven.basedir}/nuxeo-drive-client/nxdrive/__init__.py">
+        <loadproperties srcFile="${maven.basedir}/nxdrive/__init__.py">
             <filterchain>
                 <linecontains>
                     <contains value="__version__" />
@@ -192,9 +192,9 @@
             </fileset>
             <filterset refid="nxvars" />
         </copy>
-        <move file="${out.dir}/${package.name}-${package.fullversion}/debian/nuxeo-drive-client.manpages"
+        <move file="${out.dir}/${package.name}-${package.fullversion}/debian/nuxeo-drive.manpages"
               tofile="${out.dir}/${package.name}-${package.fullversion}/debian/${package.name}.manpages" />
-        <move file="${out.dir}/${package.name}-${package.fullversion}/debian/nuxeo-drive-client.lintian-overrides"
+        <move file="${out.dir}/${package.name}-${package.fullversion}/debian/nuxeo-drive.lintian-overrides"
               tofile="${out.dir}/${package.name}-${package.fullversion}/debian/${package.name}.lintian-overrides" />
 
         <!-- Add sources -->
@@ -202,12 +202,12 @@
         <copy file="${maven.basedir}/setup.py" tofile="${out.dir}/${package.name}-${package.fullversion}/setup.py" />
         <chmod file="${out.dir}/${package.name}-${package.fullversion}/setup.py" perm="0755" />
         <copy file="${maven.basedir}/README.md" tofile="${out.dir}/${package.name}-${package.fullversion}/README.md" />
-        <!--<copy todir="${out.dir}/${package.name}-${package.fullversion}/nuxeo-drive-client">
-            <fileset dir="${maven.basedir}/nuxeo-drive-client">
+        <!--<copy todir="${out.dir}/${package.name}-${package.fullversion}">
+            <fileset dir="${maven.basedir}">
                 <include name="**" />
             </fileset>
         </copy>-->
-        <symlink resource="${maven.basedir}/nuxeo-drive-client" link="${out.dir}/${package.name}-${package.fullversion}/nuxeo-drive-client" />
+        <symlink resource="${maven.basedir}" link="${out.dir}/${package.name}-${package.fullversion}" />
         <symlink resource="${maven.basedir}/launcher.pyw" link="${out.dir}/${package.name}-${package.fullversion}/launcher.pyw" />
 
     </target>

@@ -1,6 +1,6 @@
 # Nuxeo Drive functional tests
 
-Maven module to run the functional tests located in the [nxdrive.test](https://github.com/nuxeo/nuxeo-drive/tree/master/nuxeo-drive-client/nxdrive/tests) Python module.
+Maven module to run the functional tests located in the [nxdrive.test](https://github.com/nuxeo/nuxeo-drive/tree/master/nxdrive/tests) Python module.
 
 Uses the [ant-assembly-maven-plugin](https://github.com/nuxeo/ant-assembly-maven-plugin/) and [nuxeo-ftest](https://github.com/nuxeo/tools-nuxeo-ftest) resources to:
 
