@@ -654,25 +654,6 @@ class Application(SimpleApplication):
         path = info.get('filepath', None)
         manager = self.manager
 
-        # Note: commands are sorted by usage intensity
-        if cmd == 'sync-status':
-            # Command to retrieve the sync status of a file
-            log.trace('Event URL=%r, info=%r', url, info)
-            for engine in manager._engine_definitions:
-                # Only send status if we picked the right
-                # engine and if we're not targeting the root
-                path = unicodedata.normalize(
-                    'NFC', force_decode(path))
-                if (path.startswith(engine.local_folder)
-                        and not os.path.samefile(
-                                path, engine.local_folder)):
-                    r_path = path.replace(engine.local_folder, '')
-                    dao = manager._engines[engine.uid]._dao
-                    state = dao.get_state_from_local(r_path)
-                    manager.osi.send_sync_status(state, path)
-                    break
-            return
-
         log.debug('Event URL=%s, info=%r', url, info)
 
         # Event fired by a context menu item

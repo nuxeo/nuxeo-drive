@@ -508,8 +508,7 @@ def parse_protocol_url(url_string):
     # Commands that need a path to work with
     path_cmds = ('access-online',
                  'copy-share-link',
-                 'edit-metadata',
-                 'sync-status')
+                 'edit-metadata')
 
     protocol_regex = (
         # Direct Edit stuff

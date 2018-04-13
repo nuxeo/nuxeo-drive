@@ -19,6 +19,7 @@ class FinderSync: FIFinderSync {
     let triggerWatchNotif = NSNotification.Name("org.nuxeo.drive.triggerWatch")
     let syncStatusNotif = NSNotification.Name("org.nuxeo.drive.syncStatus")
     let fileStatus = FileStatus()
+    var socket: SocketCom?
 
     let badges: [(image: NSImage, label: String, identifier: String)] = [
         (image: #imageLiteral(resourceName: "badge_synced.png"), label: "Synchronized", identifier: "synced"),
@@ -54,19 +55,12 @@ class FinderSync: FIFinderSync {
                                                           name: self.watchFolderNotif,
                                                           object: nil)
 
+        let addr = "127.0.0.1"
+        let port = 50765
+        self.socket = SocketCom(addr: addr, port: port)
+
         let triggerURL = URL(string: "nxdrive://trigger-watch")
         NSWorkspace.shared.open(triggerURL!)
-
-        // Set up images for our badge identifiers.
-        // For demonstration purposes, this uses off-the-shelf images.
-        /*
-        FIFinderSyncController.default().setBadgeImage(NSImage(named: .colorPanel)!,
-                                                       label: "Status One",
-                                                       forBadgeIdentifier: "One")
-        FIFinderSyncController.default().setBadgeImage(NSImage(named: .caution)!,
-                                                       label: "Status Two",
-                                                       forBadgeIdentifier: "Two")
-        */
     }
 
     deinit {
@@ -182,7 +176,7 @@ class FinderSync: FIFinderSync {
     func getSyncStatus(target: URL?) {
         // Called by requestBadgeIdentifier to ask Drive for a status
         //NSLog("getSyncStatus: target: %@", target!.path as NSString)
-        openNXUrl(command: "sync-status", target: target)
+        self.socket!.send(content: target!.path)
     }
 
     @IBAction func accessOnline(_ sender: AnyObject?) {
