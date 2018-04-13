@@ -6,9 +6,9 @@ import sys
 import urllib2
 from logging import getLogger
 
-from nxdrive.engine.workers import Worker
 from .. import AbstractOSIntegration
 from ...constants import BUNDLE_IDENTIFIER
+from ...engine.workers import Worker
 from ...utils import force_decode, normalized_path
 
 log = getLogger(__name__)

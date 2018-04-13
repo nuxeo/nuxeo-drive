@@ -2,7 +2,6 @@
 """ Main Qt application handling OS events and system tray UI. """
 import json
 import os
-import unicodedata
 import urllib2
 from logging import getLogger
 from urllib import unquote
@@ -23,7 +22,7 @@ from ..osi import AbstractOSIntegration
 from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
                                  UPDATE_STATUS_UNAVAILABLE_SITE,
                                  UPDATE_STATUS_UP_TO_DATE)
-from ..utils import find_icon, find_resource, force_decode, parse_protocol_url
+from ..utils import find_icon, find_resource, parse_protocol_url
 
 log = getLogger(__name__)
 
