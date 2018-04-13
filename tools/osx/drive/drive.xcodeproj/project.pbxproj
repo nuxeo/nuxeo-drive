@@ -18,6 +18,7 @@
 		8B6E72512046EE3E00AB5771 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8B6E724F2046EE3E00AB5771 /* Main.storyboard */; };
 		8B6E72602046EE5400AB5771 /* FinderSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E725F2046EE5400AB5771 /* FinderSync.swift */; };
 		8B6E72652046EE5400AB5771 /* NuxeoFinderSync.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8B6E725D2046EE5400AB5771 /* NuxeoFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8B86F52E207F892C00495CF7 /* Socket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B86F52D207F892C00495CF7 /* Socket.swift */; };
 		8BEE71D32069518400E79EF1 /* FileStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BEE71D22069518400E79EF1 /* FileStatus.swift */; };
 		8BFDE4EE20486A5C00618B67 /* icon_64.png in Resources */ = {isa = PBXBuildFile; fileRef = 8BFDE4ED20486A5C00618B67 /* icon_64.png */; };
 /* End PBXBuildFile section */
@@ -62,6 +63,7 @@
 		8B6E725F2046EE5400AB5771 /* FinderSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSync.swift; sourceTree = "<group>"; };
 		8B6E72612046EE5400AB5771 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8B6E72622046EE5400AB5771 /* NuxeoFinderSync.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NuxeoFinderSync.entitlements; sourceTree = "<group>"; };
+		8B86F52D207F892C00495CF7 /* Socket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Socket.swift; sourceTree = "<group>"; };
 		8BEE71D22069518400E79EF1 /* FileStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileStatus.swift; sourceTree = "<group>"; };
 		8BFDE4ED20486A5C00618B67 /* icon_64.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon_64.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -127,6 +129,7 @@
 				8B6E72612046EE5400AB5771 /* Info.plist */,
 				8B6E72622046EE5400AB5771 /* NuxeoFinderSync.entitlements */,
 				8BEE71D22069518400E79EF1 /* FileStatus.swift */,
+				8B86F52D207F892C00495CF7 /* Socket.swift */,
 			);
 			path = NuxeoFinderSync;
 			sourceTree = "<group>";
@@ -199,6 +202,9 @@
 							com.apple.ApplicationGroups.Mac = {
 								enabled = 1;
 							};
+							com.apple.Sandbox = {
+								enabled = 1;
+							};
 						};
 					};
 				};
@@ -263,6 +269,7 @@
 			files = (
 				8B6E72602046EE5400AB5771 /* FinderSync.swift in Sources */,
 				8BEE71D32069518400E79EF1 /* FileStatus.swift in Sources */,
+				8B86F52E207F892C00495CF7 /* Socket.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

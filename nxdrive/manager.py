@@ -1,8 +1,10 @@
 # coding: utf-8
 import os
 import platform
+import sip
 import subprocess
 import sys
+import unicodedata
 import urllib2
 import uuid
 from collections import namedtuple
@@ -10,7 +12,6 @@ from logging import getLogger
 from urlparse import urlparse
 
 import pypac
-import sip
 from PyQt4 import QtCore
 from PyQt4.QtGui import QApplication
 from PyQt4.QtScript import QScriptEngine
@@ -24,7 +25,7 @@ from .notification import DefaultNotificationService
 from .options import Options, server_updater
 from .osi import AbstractOSIntegration
 from .updater import updater
-from .utils import ENCODING, decrypt, encrypt, normalized_path
+from .utils import ENCODING, decrypt, encrypt, force_decode, normalized_path
 
 if AbstractOSIntegration.is_windows():
     import _winreg
@@ -334,6 +335,10 @@ class Manager(QtCore.QObject):
         # Setup analytics tracker
         self._tracker = self._create_tracker()
 
+        # Create the FinderSync listener thread
+        if sys.platform == 'darwin':
+            self._create_findersync_listener()
+
     @staticmethod
     def _bypass_https_verification():
         """
@@ -422,6 +427,12 @@ class Manager(QtCore.QObject):
         self.updater = updater(self)
         self.started.connect(self.updater._thread.start)
         return self.updater
+
+    def _create_findersync_listener(self):
+        from .osi.darwin.darwin import FinderSyncListener
+        self._findersync_listener = FinderSyncListener(self)
+        self.started.connect(self._findersync_listener._thread.start)
+        return self._findersync_listener
 
     def refresh_update_status(self):
         self.updater.refresh_status()
@@ -1047,6 +1058,19 @@ class Manager(QtCore.QObject):
                 'Unknown engine %s for %r' % (root_values[3], file_path))
 
         return engine.get_metadata_url(remote_ref, edit=edit)
+
+    def send_sync_status(self, path):
+        for engine in self._engine_definitions:
+            # Only send status if we picked the right
+            # engine and if we're not targeting the root
+            path = unicodedata.normalize('NFC', force_decode(path))
+            if (path.startswith(engine.local_folder)
+                    and not os.path.samefile(path, engine.local_folder)):
+                r_path = path.replace(engine.local_folder, '')
+                dao = self._engines[engine.uid]._dao
+                state = dao.get_state_from_local(r_path)
+                self.osi.send_sync_status(state, path)
+                break
 
     def set_script_object(self, obj):  # TODO: Remove
         # Used to enhance scripting with UI

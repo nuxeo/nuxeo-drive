@@ -2,7 +2,6 @@
 """ Main Qt application handling OS events and system tray UI. """
 import json
 import os
-import unicodedata
 import urllib2
 from logging import getLogger
 from urllib import unquote
@@ -23,7 +22,7 @@ from ..osi import AbstractOSIntegration
 from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
                                  UPDATE_STATUS_UNAVAILABLE_SITE,
                                  UPDATE_STATUS_UP_TO_DATE)
-from ..utils import find_icon, find_resource, force_decode, parse_protocol_url
+from ..utils import find_icon, find_resource, parse_protocol_url
 
 log = getLogger(__name__)
 
@@ -653,25 +652,6 @@ class Application(SimpleApplication):
         cmd = info['command']
         path = info.get('filepath', None)
         manager = self.manager
-
-        # Note: commands are sorted by usage intensity
-        if cmd == 'sync-status':
-            # Command to retrieve the sync status of a file
-            log.trace('Event URL=%r, info=%r', url, info)
-            for engine in manager._engine_definitions:
-                # Only send status if we picked the right
-                # engine and if we're not targeting the root
-                path = unicodedata.normalize(
-                    'NFC', force_decode(path))
-                if (path.startswith(engine.local_folder)
-                        and not os.path.samefile(
-                                path, engine.local_folder)):
-                    r_path = path.replace(engine.local_folder, '')
-                    dao = manager._engines[engine.uid]._dao
-                    state = dao.get_state_from_local(r_path)
-                    manager.osi.send_sync_status(state, path)
-                    break
-            return
 
         log.debug('Event URL=%s, info=%r', url, info)
 

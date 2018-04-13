@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import socket
 import stat
 import sys
 import urllib2
@@ -7,7 +8,8 @@ from logging import getLogger
 
 from .. import AbstractOSIntegration
 from ...constants import BUNDLE_IDENTIFIER
-from ...utils import normalized_path, force_decode
+from ...engine.workers import Worker
+from ...utils import force_decode, normalized_path
 
 log = getLogger(__name__)
 
@@ -249,3 +251,48 @@ class DarwinIntegration(AbstractOSIntegration):
             if name == item_name:
                 return item
         return None
+
+
+class FinderSyncListener(Worker):
+    def __init__(self, manager):
+        super(FinderSyncListener, self).__init__()
+        self._manager = manager
+        self.host = 'localhost'
+        self.port = 50765
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.get_thread().started.connect(self.run)
+
+    def _execute(self):
+        self._sock.bind((self.host, self.port))
+        self._sock.listen(5)
+        log.debug('FinderSync listening on %s, %s', self.host, self.port)
+        while True:
+            self._interact()
+            conn, addr = self._sock.accept()
+            client = SocketThread(conn, addr, self._manager)
+            client.start()
+
+    def quit(self):
+        super(FinderSyncListener, self).quit()
+        self._sock.close()
+
+
+class SocketThread(Worker):
+    def __init__(self, socket, addr, manager):
+        super(SocketThread, self).__init__()
+        self._manager = manager
+        self._sock = socket
+        self.addr = addr
+        self.get_thread().started.connect(self.run)
+
+    def _execute(self):
+        content = ''
+        while True:
+            data = self._sock.recv(1024)
+            if not data:
+                break
+            content += data
+        log.trace('SocketThread for %s: received %s', self.addr, content)
+        self._sock.close()
+        self._manager.send_sync_status(content)
