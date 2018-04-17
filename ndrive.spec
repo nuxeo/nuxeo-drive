@@ -18,19 +18,21 @@ excludes = [
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-remove-tkinter-tcl
     'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter',
 
-    # macOS fix
-    'IPython',
+    # Misc
+    'PIL', 'ipdb', 'numpy', 'pydev', 'scipy', 'yappi',
 ]
 
-a = Analysis([os.path.join(nxdrive, '__main__.py')],
-             pathex=[cwd],
-             datas=[(data, 'data')],
-             excludes=excludes)
+data = [(data, 'data')]
 
 if sys.platform == 'win32':
     # Missing OpenSSL DLLs
-    a.datas += [('libeay32.dll', tools + '\windows\libeay32.dll', 'DATA')]
-    a.datas += [('ssleay32.dll', tools + '\windows\ssleay32.dll', 'DATA')]
+    data.append((tools + '\windows\libeay32.dll', 'libeay32.dll'))
+    data.append((tools + '\windows\ssleay32.dll', 'ssleay32.dll'))
+
+a = Analysis([os.path.join(nxdrive, '__main__.py')],
+             pathex=[cwd],
+             datas=data,
+             excludes=excludes)
 
 pyz = PYZ(a.pure, a.zipped_data)
 
@@ -39,6 +41,9 @@ exe = EXE(pyz,
           exclude_binaries=True,
           name='ndrive',
           console=False,
+          debug=False,
+          strip=False,
+          upx=False,
           icon=icon)
 
 coll = COLLECT(exe,

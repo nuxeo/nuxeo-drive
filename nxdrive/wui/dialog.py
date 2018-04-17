@@ -23,7 +23,6 @@ from ..engine.workers import Worker
 from ..manager import FolderAlreadyUsed
 from ..notification import Notification
 from ..options import Options
-from ..updater.constants import UPDATE_STATUS_UNAVAILABLE_SITE
 
 log = getLogger(__name__)
 
@@ -538,21 +537,35 @@ class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
     def __init__(self, application, token):
         super(TokenNetworkAccessManager, self).__init__()
         self.token = token
+
         if not Options.debug:
             cache = QtNetwork.QNetworkDiskCache(self)
             cache.setCacheDirectory(application.get_cache_folder())
             self.setCache(cache)
 
-    def createRequest(self, op, req, outgoingData):
-        if self.token is not None:
-            req.setRawHeader("X-Authentication-Token", QtCore.QByteArray(self.token))
-        return super(TokenNetworkAccessManager, self).createRequest(op, req, outgoingData)
+    def createRequest(self, operation, request, data):
+        if self.token:
+            request.setRawHeader(
+                'X-Authentication-Token', QtCore.QByteArray(self.token))
+
+        return super(TokenNetworkAccessManager, self).createRequest(
+            operation, request, data)
 
 
 class DriveWebPage(QtWebKit.QWebPage):
+
     @QtCore.pyqtSlot()
     def shouldInterruptJavaScript(self):
         return True
+
+    def javaScriptConsoleMessage(self, msg, lineno, source):
+        # type: (str, int, str) -> None
+        """ Prints client console message in current output stream. """
+        super(DriveWebPage, self).javaScriptConsoleMessage(msg, lineno, source)
+
+        filename = source.split(os.path.sep)[-1]
+        log_type = 'error' if 'Error' in msg else 'info'
+        getattr(log, log_type)('JS console(%s:%d): %s', filename, lineno, msg)
 
 
 class WebDialog(QtGui.QDialog):
@@ -569,6 +582,7 @@ class WebDialog(QtGui.QDialog):
     ):
         super(WebDialog, self).__init__()
         self.setWindowTitle(title)
+        self.setWindowIcon(QtGui.QIcon(application.get_window_icon()))
         self.view = QtWebKit.QWebView()
         self.frame = None
         self.page = DriveWebPage()
@@ -578,14 +592,10 @@ class WebDialog(QtGui.QDialog):
         self.zoom_factor = application.osi.zoom_factor
 
         if Options.debug:
-            QtWebKit.QWebSettings.globalSettings().setAttribute(
+            self.view.settings().setAttribute(
                 QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
         else:
             self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
-
-        icon = application.get_window_icon()
-        if icon is not None:
-            self.setWindowIcon(QtGui.QIcon(icon))
 
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
         self.setLayout(QtGui.QVBoxLayout())
