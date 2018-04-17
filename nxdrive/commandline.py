@@ -338,12 +338,20 @@ class CliHandler(object):
             for item in config.items(env):
                 if item[0] == 'env':
                     continue
+
                 value = item[1]
                 if value == '':
                     continue
+
                 if '\n' in value:
-                    # Treat multiline option as a set
-                    value = tuple(sorted(item[1].split()))
+                    if '=' in value:
+                        log.error(
+                            'Malformatted parameter in config.ini: %r => %r',
+                            item[0], value)
+                        value = value.split()[0].split('=')[0].strip()
+                    else:
+                        # Treat multiline option as a set
+                        value = tuple(sorted(item[1].split()))
                 args[item[0].replace('-', '_')] = value
         if args:
             Options.update(args, setter='local')

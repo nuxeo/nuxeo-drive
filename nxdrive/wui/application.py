@@ -32,10 +32,9 @@ class SimpleApplication(QApplication):
 
     def __init__(self, manager, argv=()):
         super(SimpleApplication, self).__init__(list(argv))
-        # Make dialog unique
-        self.uniqueDialogs = dict()
-
         self.manager = manager
+
+        self.dialogs = dict()
         self.osi = self.manager.osi
         self.setApplicationName(manager.app_name)
         self._init_translator()
@@ -47,21 +46,16 @@ class SimpleApplication(QApplication):
         window.show()
         window.raise_()
 
-    def _get_unique_dialog(self, name):
-        if name in self.uniqueDialogs:
-            return self.uniqueDialogs[name]
-
     def _destroy_dialog(self):
         sender = self.sender()
         name = str(sender.objectName())
-        if name in self.uniqueDialogs:
-            del self.uniqueDialogs[name]
+        self.dialogs.pop(name, None)
 
     def _create_unique_dialog(self, name, dialog):
-        self.uniqueDialogs[name] = dialog
         dialog.setObjectName(name)
         dialog.setAttribute(Qt.WA_DeleteOnClose)
         dialog.destroyed.connect(self._destroy_dialog)
+        self.dialogs[name] = dialog
 
     def _init_translator(self):
         locale = Options.force_locale or Options.locale
@@ -217,9 +211,6 @@ class Application(SimpleApplication):
             engine.set_local_folder(unicode(new_path))
             engine.start()
 
-    def get_cache_folder(self):
-        return os.path.join(self.manager.nxdrive_home, 'cache', 'wui')
-
     @pyqtSlot(object)
     def dropped_engine(self, engine):
         # Update icon in case the engine dropped was syncing
@@ -267,39 +258,31 @@ class Application(SimpleApplication):
 
         self.set_icon_state(new_state)
 
-    def _get_settings_dialog(self, section):
-        from .settings import WebSettingsDialog
-        return WebSettingsDialog(self, section)
-
-    def _get_conflicts_dialog(self, engine):
-        from .dialog import WebDialog
-        from .conflicts import WebConflictsApi
-        return WebDialog(
-            self,
-            'conflicts.html',
-            api=WebConflictsApi(self, engine),
-        )
-
     @pyqtSlot()
     def show_conflicts_resolution(self, engine):
-        conflicts = self._get_unique_dialog('conflicts')
-        if conflicts is None:
-            conflicts = self._get_conflicts_dialog(engine)
+        conflicts = self.dialogs.get('conflicts')
+        if not conflicts:
+            from .dialog import WebDialog
+            from .conflicts import WebConflictsApi
+            conflicts = WebDialog(
+                    self,
+                    'conflicts.html',
+                    api=WebConflictsApi(self, engine),
+            )
             self._create_unique_dialog('conflicts', conflicts)
-        else:
-            conflicts.api.set_engine(engine)
+
+        conflicts.api.set_engine(engine)
         self._show_window(conflicts)
 
     @pyqtSlot()
     def show_settings(self, section='Accounts'):
-        if section is None:
-            section = 'Accounts'
-        settings = self._get_unique_dialog('settings')
-        if settings is None:
-            settings = self._get_settings_dialog(section)
+        settings = self.dialogs.get('settings')
+        if not settings:
+            from .settings import WebSettingsDialog
+            settings = WebSettingsDialog(self, section)
             self._create_unique_dialog('settings', settings)
-        else:
-            settings.set_section(section)
+
+        settings.set_section(section)
         self._show_window(settings)
 
     @pyqtSlot()
@@ -310,16 +293,14 @@ class Application(SimpleApplication):
     def destroyed_filters_dialog(self):
         self.filters_dlg = None
 
-    def _get_filters_dialog(self, engine):
-        from ..gui.folders_dialog import FiltersDialog
-        return FiltersDialog(self, engine)
-
     @pyqtSlot()
     def show_filters(self, engine):
-        if self.filters_dlg is not None:
+        if self.filters_dlg:
             self.filters_dlg.close()
             self.filters_dlg = None
-        self.filters_dlg = self._get_filters_dialog(engine)
+
+        from ..gui.folders_dialog import FiltersDialog
+        self.filters_dlg = FiltersDialog(self, engine)
         self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
         self.filters_dlg.show()
 
@@ -387,8 +368,8 @@ class Application(SimpleApplication):
 
     @pyqtSlot()
     def show_debug_window(self):
-        debug = self._get_unique_dialog('debug')
-        if debug is None:
+        debug = self.dialogs.get('debug')
+        if not debug:
             from ..debug.wui.engine import EngineDialog
             debug = EngineDialog(self)
             self._create_unique_dialog('debug', debug)
@@ -443,8 +424,9 @@ class Application(SimpleApplication):
             self.manager.notification_service.trigger_notification(self.current_notification.uid)
 
     def _setup_notification_center(self):
-        from ..osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
-        if self._delegator is None:
+        from ..osi.darwin.pyNotificationCenter import (setup_delegator,
+                                                       NotificationDelegator)
+        if not self._delegator:
             self._delegator = NotificationDelegator.alloc().init()
             self._delegator._manager = self.manager
         setup_delegator(self._delegator)
@@ -601,10 +583,6 @@ class Application(SimpleApplication):
         dialog.setLayout(layout)
         dialog.exec_()
 
-    @staticmethod
-    def get_mac_app():
-        return 'ndrive'
-
     def show_dialog(self, url):
         from .dialog import WebDialog
         WebDialog(self, url).show()
@@ -613,17 +591,18 @@ class Application(SimpleApplication):
         self.manager.open_metadata_window(file_path)
 
     def setup_systray(self):
+        icons = {}
+        for state in ('idle', 'disabled', 'conflict', 'error',
+                      'notification', 'syncing', 'paused', 'update'):
+            icon = QIcon()
+            icon.addFile(find_icon('%s.svg' % state), mode=QIcon.Normal)
+            if AbstractOSIntegration.is_mac():
+                icon.addFile(find_icon('active.svg'), mode=QIcon.Selected)
+            icons[state] = icon
+        setattr(self, 'icons', icons)
+
         self.tray_icon = DriveSystrayIcon(self)
         self.tray_icon.setToolTip(self.manager.app_name)
-        self.icons = {}
-        for state in ['idle', 'disabled', 'conflict', 'error',
-                      'notification', 'syncing', 'paused', 'update']:
-            icon = QIcon()
-            icon.addFile(find_icon('%s.svg' % state),
-                         mode=QIcon.Normal)
-            icon.addFile(find_icon('active.svg'),
-                         mode=QIcon.Selected)
-            self.icons[state] = icon
         self.set_icon_state('disabled')
         self.tray_icon.show()
 

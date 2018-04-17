@@ -524,11 +524,11 @@ class Engine(QObject):
                         'scan size = %d' % (
                             self._local_watcher.get_win_queue_size(),
                             self._local_watcher.get_win_folder_scan_size()))
-        log.debug('Checking sync completed: queue manager is %s, '
+        log.debug('Checking sync completed [%s]: queue manager is %s, '
                   'overall size = %d, empty polls count = %d, '
                   'local watcher empty events = %d, blacklist = %d, %s',
-                  'active' if qm_active else 'inactive', qm_size, empty_polls,
-                  empty_events, blacklist_size, win_info)
+                  'active' if qm_active else 'inactive', self.uid,
+                  qm_size, empty_polls, empty_events, blacklist_size, win_info)
         local_metrics = self._local_watcher.get_metrics()
         if (qm_size == 0 and not qm_active and empty_polls > 0
                 and empty_events):
@@ -587,6 +587,7 @@ class Engine(QObject):
 
     def get_metrics(self):
         return {
+            'uid': self.uid,
             'conflicted_files': self._dao.get_conflict_count(),
             'error_files': self._dao.get_error_count(),
             'files_size': self._dao.get_global_size(),

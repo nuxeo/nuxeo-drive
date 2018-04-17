@@ -49,6 +49,7 @@ create_package() {
     rm -rf "${extension_path}/build"
 
     echo ">>> [package] Creating the DMG file"
+    rm -fv ${output_dir}/*.dmg
 
     prepare_signing
     if [ "${SIGNING_ID:=unset}" != "unset" ]; then

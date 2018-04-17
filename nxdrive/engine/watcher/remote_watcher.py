@@ -31,11 +31,8 @@ class RemoteWatcher(EngineWorker):
     def __init__(self, engine, dao, delay):
         super(RemoteWatcher, self).__init__(engine, dao)
         self.server_interval = delay
-        # Review to delete
-        self._init()
-        self._next_check = 0
 
-    def _init(self):
+        self._next_check = 0
         self._last_sync_date = self._dao.get_config('remote_last_sync_date')
         self._last_event_log_id = self._dao.get_config('remote_last_event_log_id')
         self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
@@ -67,7 +64,6 @@ class RemoteWatcher(EngineWorker):
     def _execute(self):
         first_pass = True
         try:
-            self._init()
             while True:
                 self._interact()
                 now = current_milli_time()
@@ -518,9 +514,9 @@ class RemoteWatcher(EngineWorker):
                 self._engine.set_invalid_credentials(reason=err)
                 self._engine.set_offline()
             else:
-                log.exception(err)
-        except (BadStatusLine, URLError, socket.error):
-            log.exception('Network error')
+                log.error(err)
+        except (BadStatusLine, URLError, socket.error) as exc:
+            log.error('Network error: %s', exc)
         except ThreadInterrupt:
             raise
         except:
@@ -616,14 +612,13 @@ class RemoteWatcher(EngineWorker):
                 log.debug('Ignoring banned file: %r', new_info)
                 continue
 
-            # Possibly fetch multiple doc pairs as the same doc can be synchronized at 2 places,
-            # typically if under a sync root and locally edited.
-            # See https://jira.nuxeo.com/browse/NXDRIVE-125
+            # Possibly fetch multiple doc pairs as the same doc can be
+            # synchronized at 2 places, typically if under a sync root
+            # and locally edited (NXDRIVE-125).
             doc_pairs = self._dao.get_states_from_remote(remote_ref)
             if not doc_pairs:
                 # Relax constraint on factory name in FileSystemItem id to
-                # match 'deleted' or 'securityUpdated' events.
-                # See https://jira.nuxeo.com/browse/NXDRIVE-167
+                # match 'deleted' or 'securityUpdated' events (NXDRIVE-167).
                 doc_pair = self._dao.get_first_state_from_partial_remote(remote_ref)
                 if doc_pair is not None:
                     doc_pairs = [doc_pair]
@@ -631,7 +626,9 @@ class RemoteWatcher(EngineWorker):
             updated = False
             doc_pairs = doc_pairs or []
             for doc_pair in doc_pairs:
-                doc_pair_repr = doc_pair.local_path if doc_pair.local_path is not None else doc_pair.remote_name
+                doc_pair_repr = (doc_pair.local_path
+                                 if doc_pair.local_path is not None
+                                 else doc_pair.remote_name)
                 if event_id == 'deleted':
                     if fs_item is None:
                         if doc_pair.local_path == '':

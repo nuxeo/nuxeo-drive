@@ -438,11 +438,11 @@ class DirectEdit(Worker):
                 break
 
             log.trace('Handling DirectEdit queue ref: %r', ref)
-
             uid, engine, remote, digest_algorithm, digest = self._extract_edit_info(ref)
+
             # Don't update if digest are the same
-            info = local.get_info(ref)
             try:
+                info = local.get_info(ref)
                 current_digest = info.get_digest(digest_func=digest_algorithm)
                 if current_digest == digest:
                     continue
@@ -475,6 +475,9 @@ class DirectEdit(Worker):
                 self._last_action_timing = current_milli_time() - start_time
                 self.directEditUploadCompleted.emit(os.path.basename(os_path))
                 self.editDocument.emit(remote_info)
+            except NotFound:
+                # Not found on the server, just skip it
+                continue
             except ThreadInterrupt:
                 raise
             except:

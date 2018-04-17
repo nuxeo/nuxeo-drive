@@ -357,7 +357,6 @@ class UnitTestCase(SimpleUnitTestCase):
         os.mkdir(self.nxdrive_conf_folder_2)
 
         Options.delay = TEST_DEFAULT_DELAY
-        # Options.autolock_interval = 30
         Options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager()
         self.connected = False
@@ -369,7 +368,7 @@ class UnitTestCase(SimpleUnitTestCase):
 
         self.version = __version__
         url = self.nuxeo_url
-        log.debug("Will use %s as url", url)
+        log.debug('Will use %s as URL', url)
         if '#' in url:
             # Remove the engine type for the rest of the test
             self.nuxeo_url = url.split('#')[0]
