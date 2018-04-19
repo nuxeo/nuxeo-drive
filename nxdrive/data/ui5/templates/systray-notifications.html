@@ -1,6 +1,6 @@
 <div ng-repeat="notification in notifications" class="notification notification-{{ notification.level }}" ng-click="triggerNotification(notification)">
 	<div style="width: 98%; text-align: center; white-space: normal;" translate translate-values="notification.replacements">{{ notification.title }}</div>
-	<div ng-show="notification.discardable" style="font-size: 8px; margin-right: 5px; margin-top: -8px;" class="pull-right" ng-click="discardNotification(notification);"><span class="glyphicon glyphicon-remove"></span></div>
+	<div ng-show="notification.discardable" style="font-size: 8px; margin-right: 5px; margin-top: -8px;" class="pull-right" ng-click="discardNotification(notification);"><img src="imgs/remove.png" class="icon icon-notif"/></div>
 	<div ng-show="notification.description" style="padding: 5px; width: 98%; text-align: center; white-space: normal; font-weight: normal;" translate translate-values="notification.replacements">{{ notification.description }}</div>
 </div>
 <div ng-show="confirmAppUpdateDialog != null" class="notification-info" style="padding: 10px; padding-bottom: 0px; height: 65px;">
@@ -8,13 +8,13 @@
 	<form>
 		<div class="row">
 			<div class="col-xs-2" style="padding-top: 20px;">
-				<span ng-click="confirmAppUpdate(null)" class="glyphicon glyphicon-remove-sign alert-danger pull-left user-action" style="font-size: 20px;background: none;">&nbsp;</span>
+				<span ng-click="confirmAppUpdate(null)" class="alert-danger pull-left user-action" style="font-size: 20px;background: none;"><img src="imgs/remove-sign.png" class="icon icon-activitys"/></span>
 			</div>
 			<div class="checkbox col-xs-8" style="padding-top: 10px;">
-				<input type="checkbox" style="margin-top: -3px" ng-model="autoUpdate" ng-click="setAutoUpdate(autoUpdate)"><span translate>AUTOUPDATE</span>
+				<input type="checkbox" style="margin-top: -3px" ng-model="autoUpdate" ng-click="setAutoUpdate(autoUpdate)"> <span translate>AUTOUPDATE</span>
 			</div>
 			<div class="col-xs-2" style="padding-top: 20px;">
-				<span ng-click="appUpdate()" class="col-xs-4 glyphicon glyphicon-ok-sign alert-success pull-right user-action" style="font-size: 20px;background: none;">&nbsp;</span>
+				<span ng-click="appUpdate()" class="col-xs-4 alert-success pull-right user-action" style="font-size: 20px;background: none;"><img src="imgs/ok-sign.png" class="icon icon-activitys"/></span>
 			</div>
 		</div>
 	</form>

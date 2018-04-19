@@ -1,6 +1,6 @@
   <div>
     <span class="account-name">{{ engine.name }}</span>
-    <span class="glyphicon glyphicon-cog" ng-click="advanced_systray()" ng-show="need_adv_menu()"></span>
+    <img src="imgs/cog.png" class="icon pull-right" ng-click="advanced_systray()" ng-show="need_adv_menu()"/>
   	<ul class="engine-navbar" ng-show="engines.length > 1">
   		<li ng-repeat="engine in engines" ng-class="getEngineClass(engine)">
   		  <a href="#" ng-click="setEngine(engine)">

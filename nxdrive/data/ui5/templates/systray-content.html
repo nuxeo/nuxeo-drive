@@ -16,16 +16,16 @@
   <div id="sub-menu">
     <span translate>RECENTLY_UPDATED</span>
     <a ng-click="open_local('/')" title="{{ 'OPEN_ROOT_FOLDER' | translate }}">
-      <span class="glyphicon glyphicon-folder-open"></span>
+      <img src="imgs/open-folder.png" class="icon"/>
     </a>
     <a ng-click="open_remote()" title="{{ 'OPEN_SERVER' | translate }}">
-      <span class="glyphicon glyphicon-globe"></span>
+      <img src="imgs/globe.png" class="icon"/>
     </a>
     <a ng-show="!is_paused()" ng-click="suspend()" title="{{ 'SUSPEND' | translate }}">
-      <span class="glyphicon glyphicon-pause"></span>
+      <img src="imgs/pause.png" class="icon"/>
     </a>
     <a ng-show="is_paused()" ng-click="resume()" title="{{ 'RESUME' | translate }}">
-      <span class="glyphicon glyphicon-play"></span>
+      <img src="imgs/play.png" class="icon"/>
     </a>
   </div>
   <div class="list-group" drive-include="systray-files"></div>
