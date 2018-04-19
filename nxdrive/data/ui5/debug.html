@@ -102,9 +102,9 @@
 		}
 		$scope.pause_class = function(type) {
 			if ($scope.is_paused(type)) {
-				return "glyphicon-play";
+				return "play";
 			} else {
-				return "glyphicon-pause";
+				return "pause";
 			}
 		}
 		$scope.is_paused = function(type) {
@@ -172,6 +172,11 @@
 .logs tbody {
 	font-size: 10px;
 }
+
+.icon {
+  width: 16px;
+  height: 16px;
+  margin-top: -5px }
 </style>
 </head>
 <body ng-app="DriveDebug" ng-controller="DriveDebugCtl">

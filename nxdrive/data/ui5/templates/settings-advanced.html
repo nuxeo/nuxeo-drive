@@ -52,7 +52,7 @@
       <div class="alert alert-{{ message_type }}" role="alert" ng-show="message != ''">
   	 	{{ message }}
 	  </div>
-	  <button type="button" class="btn btn-default btn-primary" ng-click="saveProxy()" ng-disabled="currentAction == 'PROXY_APPLYING'"><span ng-show="currentAction == 'PROXY_APPLYING'" class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span><span translate>APPLY</span></button>
+	  <button type="button" class="btn btn-default btn-primary" ng-click="saveProxy()" ng-disabled="currentAction == 'PROXY_APPLYING'"><img ng-show="currentAction == 'PROXY_APPLYING'" src="imgs/refresh.png" class="icon refresh-animate"/>&nbsp;<span translate>APPLY</span></button>
 
 	</form>
 </div>

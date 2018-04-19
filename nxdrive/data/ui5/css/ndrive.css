@@ -12,6 +12,42 @@ body {
   overflow: hidden;
   visibility: hidden; }
 
+.dropdown-menu {
+  box-shadow: 0 6px 1px rgba(0, 0, 0, .175) }
+
+.icon {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  opacity: .8;}
+
+.icon:hover {
+  opacity: 1.0;
+  cursor: pointer}
+
+.icon-activity {
+  width: 8px;
+  height: 8px;
+  opacity: 1}
+
+.icon-activity:hover {
+  cursor: default}
+
+.icon-notif {
+  width: 8px;
+  height: 8px;
+  opacity: .5 }
+
+.icon-list-alt {
+  background-color: #fff;
+  border-radius: 4px;
+  float: right;
+  opacity: .6;
+  margin: -40px 0 0}
+
+.icon-list-alt:hover {
+  opacity: 1.0 }
+
 /* =Systray window */
 #systray-hello,
 #systray-hello > div {
@@ -57,16 +93,6 @@ body {
   overflow: hidden;
   white-space: nowrap; }
 
-#systray-top .glyphicon-cog {
-  display: inline-block;
-  float: right;
-  margin-left: 10px;
-  padding: .3em 0 0 0; }
-
-#systray-top .glyphicon-cog:hover {
-  color: #00adff;
-  cursor: pointer; }
-
 #systray-bottom {
   border-top: 1px solid #e1e1e1; }
 
@@ -94,10 +120,6 @@ body {
   min-width: 16px;
   margin-left: 10px; }
 
-#sub-menu .glyphicon {
-  color: #213f7d;
-  padding: 4px 3px 3px 0; }
-
 #systray .list-group {
   height: 260px; }
 
@@ -116,37 +138,19 @@ body {
 #systray .list-group-item:first-child {
   border-top: none; }
 
-.list-group-item .glyphicon-list-alt {
-  background-color: #fff;
-  border-radius: 4px;
-  color: #999;
-  margin: -45px 0 0;
-  padding: 8px 8px 4px 6px; }
-
 .list-group-item:hover {
   background-color: #f6f9ff; }
 
-.list-group-item:hover .glyphicon-list-alt {
-  color: #000; }
-
-#sub-menu .glyphicon:hover,
-.list-group-item .document:hover,
-.list-group-item:hover .glyphicon-list-alt:hover {
+.list-group-item .document:hover {
   color: #00adff;
   cursor: pointer; }
-
-.last-sync .glyphicon {
-  vertical-align: text-bottom;
-  display: inline-block;
-  margin-top: -2px;
-  font-size: 8px; }
 
 .notification {
   width: 100%;
   min-height: 20px;
   padding-top: 4px; }
 
-.notification.user-action, .glyphicon.user-action {
+.notification.user-action {
   cursor: pointer; }
 
 .notification-info {
@@ -203,19 +207,12 @@ body {
   display: block;
   line-height: 20px; }
 
-.list-group-item:hover .glyphicon-folder-close:before {
-  content: "\e118" !important; }
-
-#systray-bottom .glyphicon-ok {
-  color: #00cd65;
-  padding: .1em;}
-
 #systray-bottom .sync-status {
   text-align: right; }
 
 #systray-bottom .sync-status img {
-  height: 18px;
-  width: 18px; }
+  height: 16px;
+  width: 16px; }
 
 /* =Settings window */
 #drive-settings {
@@ -309,11 +306,9 @@ a, a:link {
 	position: relative !important;
 }
 
-.glyphicon-refresh-animate {
+.refresh-animate {
     -animation: spin 1.0s infinite linear;
-    -ms-animation: spin 1.0s infinite linear;
     -webkit-animation: spinw 1.0s infinite linear;
-    -moz-animation: spinm 1.0s infinite linear;
     top: -2px;
     height: 8px;
 }

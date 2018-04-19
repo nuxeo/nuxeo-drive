@@ -123,7 +123,7 @@ var SettingsController = function($scope, $interval, $translate) {
 		var button = angular.element($event.currentTarget);
 		$scope.currentConfirm = button;
 		if (button.hasClass("btn-danger")) {
-			button.html('<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate" aria-hidden="true"></span>&nbsp;' + $translate.instant("DISCONNECTING"))
+			button.html('<img src="imgs/refresh.png" class="icon refresh-animate" aria-hidden="true"/>&nbsp;' + $translate.instant("DISCONNECTING"))
 			when (drive.unbind_server_async($scope.currentAccount.uid)).then( function() {
 				button.html($translate.instant("DISCONNECT"));
 				button.removeClass("btn-danger");

@@ -588,7 +588,7 @@ class Application(SimpleApplication):
         WebDialog(self, url).show()
 
     def show_metadata(self, file_path):
-        self.manager.open_metadata_window(file_path)
+        self.manager.ctx_edit_metadata(file_path)
 
     def setup_systray(self):
         icons = {}

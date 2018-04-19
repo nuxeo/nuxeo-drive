@@ -3,10 +3,10 @@
   </div>
 <div class="sync-status">
   <div ng-show="engine.paused">
-    <span title="{{ENGINE_PAUSED | translate }}" class="glyphicon glyphicon-pause"></span>
+    <span title="{{ENGINE_PAUSED | translate }}"><img src="imgs/pause.png" class="icon"/></span>
   </div>
   <div ng-show="engine.syncing != 'syncing' && !engine.paused">
-    <span title="{{SYNCHRONIZATION_COMPLETED | translate }}" class="glyphicon glyphicon-ok"></span>
+    <span title="{{SYNCHRONIZATION_COMPLETED | translate }}"><img src="imgs/ok-green.png" class="icon icon-activity"/></span>
   </div>
   <div ng-show="!engine.paused && engine.syncing == 'syncing'">
     <span title="{{SYNCHRONIZATION_IN_PROGRESS | translate }}" ng-show="engine.syncing_count > 0" translate="SYNCHRONIZATION_ITEMS_LEFT" translate-values="{ number: engine.syncing_count }"></span>&nbsp;<img src="../icons/icon_64.png" width="48" height="48" />

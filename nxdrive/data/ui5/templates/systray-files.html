@@ -9,13 +9,13 @@
     <div ng-click="open_local(state.local_path)">
       <span class="document">{{ state.name }}</span>
       <p class="last-sync">
-        <span class="glyphicon glyphicon-arrow-up" ng-show="state.last_transfer == 'upload'"></span>
-        <span class="glyphicon glyphicon-arrow-down" ng-show="state.last_transfer == 'download'"></span>
+        <span ng-show="state.last_transfer == 'upload'"><img src="imgs/arrow-up.png" class="icon icon-activity"/></span>
+        <span ng-show="state.last_transfer == 'download'"><img src="imgs/arrow-down.png" class="icon icon-activity"/></span>
         <span ng-show="state.last_sync < 60" translate>NOW</span>
         <span ng-show="state.last_sync > 60 && state.last_sync < 3600" translate translate-values="{ interval: '{{state.last_sync / 60 | number:0}}'}">MINS_AGO</span>
         <span ng-show="state.last_sync > 3600 && state.last_sync < 86400" translate translate-values="{ interval: '{{state.last_sync / 3600 | number:0}}'}">HOURS_AGO</span>
         <span ng-show="state.last_sync > 86400">{{ state.last_sync_date }}</span>
       </p>
     </div>
-    <span class="glyphicon glyphicon-list-alt pull-right" ng-click="show_metadata(state.local_path);"></span>
+    <span class="icon-list-alt" ng-click="show_metadata(state.local_path);"><img src="imgs/list-alt.png" class="icon"/></span>
   </li>
