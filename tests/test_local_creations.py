@@ -16,6 +16,25 @@ log = getLogger(__name__)
 
 class TestLocalCreations(UnitTestCase):
 
+    def test_mini_scenario(self):
+        local = self.local_root_client_1
+        remote = self.remote_file_system_client_1
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        local.make_folder('/' + self.workspace_title, 'A')
+        folder_path_1 = self.workspace_title + '/A'
+
+        test_doc_path = os.path.join(self.location, 'resources', 'cat.jpg')
+        abs_folder_path_1 = local.abspath('/' + folder_path_1)
+        dst_path = os.path.join(abs_folder_path_1, 'cat.jpg')
+        shutil.copyfile(test_doc_path, dst_path)
+
+        self.wait_sync(timeout=100)
+        uid = local.get_remote_id('/' + folder_path_1 + '/cat.jpg')
+        assert remote.exists(uid)
+
     def test_local_create_folders_and_children_files(self):
         """
         1. create folder 'Nuxeo Drive Test Workspace/A' with 100 files in it

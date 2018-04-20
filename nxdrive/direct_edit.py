@@ -228,10 +228,8 @@ class DirectEdit(Worker):
         else:
             log.debug('Downloading file %r', info.filename)
             if url:
-                remote_client.do_get(quote(url, safe='/:'),
-                                     file_out=file_out,
-                                     digest=info.digest,
-                                     digest_algorithm=info.digest_algorithm)
+                remote_client.download(quote(url, safe='/:'),
+                                       file_out=file_out, digest=info.digest)
             else:
                 remote_client.get_blob(info, file_out=file_out)
         return file_out

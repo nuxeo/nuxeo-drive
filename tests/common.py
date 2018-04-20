@@ -104,7 +104,7 @@ class RemoteDocumentClientForTests(RemoteDocumentClient):
 
     def mass_import(self, target_path, nb_nodes, nb_threads=12):
         tx_timeout = 3600
-        url = self.server_url + 'site/randomImporter/run?'
+        url = 'site/randomImporter/run'
         params = {
             'targetPath': target_path,
             'batchSize': 50,
@@ -115,30 +115,23 @@ class RemoteDocumentClientForTests(RemoteDocumentClient):
             'nonUniform': 'true',
             'transactionTimeout': tx_timeout
         }
-        for param, value in params.iteritems():
-            url += param + '=' + str(value) + '&'
         headers = self._get_common_headers()
-        headers.update({'Nuxeo-Transaction-Timeout': tx_timeout})
-        try:
-            log.info(
-                'Calling random mass importer on %s with %d threads and %d nodes',
-                target_path, nb_threads, nb_nodes)
-            self.opener.open(urllib2.Request(url, headers=headers), timeout=tx_timeout)
-        except Exception as e:
-            self._log_details(e)
-            raise e
+        headers['Nuxeo-Transaction-Timeout'] = tx_timeout
+
+        log.info('Calling random mass importer on %s with %d threads '
+                 'and %d nodes', target_path, nb_threads, nb_nodes)
+
+        self.client.client.request('GET', url, params=params,
+                                   headers=headers, timeout=tx_timeout)
 
     def wait_for_async_and_es_indexing(self):
         """ Use for test_volume only. """
 
         tx_timeout = 3600
         extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout}
-        self.execute(
-            'Elasticsearch.WaitForIndexing',
-            timeout=tx_timeout,
-            extra_headers=extra_headers,
-            timeoutSecond=tx_timeout,
-            refresh=True)
+        self.execute('Elasticsearch.WaitForIndexing', timeout=tx_timeout,
+                     extra_headers=extra_headers, timeoutSecond=tx_timeout,
+                     refresh=True)
 
     def result_set_query(self, query):
         return self.execute('Repository.ResultSetQuery', query=query)

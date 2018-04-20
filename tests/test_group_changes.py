@@ -1,6 +1,8 @@
 # coding: utf-8
 from logging import getLogger
 
+from nuxeo.models import Document
+
 from .common import RemoteDocumentClientForTests
 from .common_unit_test import UnitTestCase
 
@@ -15,6 +17,21 @@ class TestGroupChanges(UnitTestCase):
 
     def setUp(self):
         remote = self.remote_restapi_client_admin
+
+        # Create test workspace
+        workspaces_path = '/default-domain/workspaces'
+        workspace_name = 'groupChangesTestWorkspace'
+        self.workspace_path = workspaces_path + '/' + workspace_name
+        workspace = Document(
+            name=workspace_name,
+            type='Workspace',
+            properties={'dc:title': 'Group Changes Test Workspace'}
+        )
+
+        self.workspace_uid = remote.client.documents.create(
+            workspace, parent_path=workspaces_path).uid
+        #remote.execute('path' + workspaces_path, method='POST',
+        # body=workspace)
 
         # Create test groups
         group_names = remote.get_group_names()
@@ -34,16 +51,6 @@ class TestGroupChanges(UnitTestCase):
         self.assertTrue('parentGroup' in group_names)
         self.assertTrue('grandParentGroup' in group_names)
 
-        # Create test workspace
-        workspaces_path = '/default-domain/workspaces'
-        workspace_name = 'groupChangesTestWorkspace'
-        self.workspace_path = workspaces_path + '/' + workspace_name
-        workspace = {'entity-type': 'document',
-                     'name': workspace_name,
-                     'type': 'Workspace',
-                     'properties': {'dc:title': 'Group Changes Test Workspace'}
-                     }
-        remote.execute('path' + workspaces_path, method='POST', body=workspace)
 
         self.admin_remote = RemoteDocumentClientForTests(
             self.nuxeo_url, self.admin_user, 'nxdrive-test-administrator-device',
@@ -53,7 +60,7 @@ class TestGroupChanges(UnitTestCase):
         remote = self.remote_restapi_client_admin
 
         # Delete test workspace
-        remote.execute('path' + self.workspace_path, method='DELETE')
+        remote.client.documents.delete(self.workspace_uid)
 
         # Delete test groups
         remote.delete_group('grandParentGroup')
@@ -239,10 +246,10 @@ class TestGroupChanges(UnitTestCase):
         sync_root_id = self.admin_remote.make_folder('/', 'syncRoot')
 
         log.debug('Grant ReadWrite permission to %s on syncRoot', ancestor_group)
-        self.admin_remote.execute("Document.SetACE",
+        self.admin_remote.execute('Document.SetACE',
                                   op_input='doc:' + sync_root_id,
                                   user=ancestor_group,
-                                  permission="ReadWrite")
+                                  permission='ReadWrite')
 
         log.debug('Register syncRoot for driveuser_1')
         self._register_sync_root_user1(sync_root_id)

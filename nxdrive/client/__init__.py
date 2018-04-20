@@ -1,5 +1,5 @@
 # coding: utf-8
-from .base_automation_client import AddonNotInstalled, Unauthorized
+from .base_automation_client import AddonNotInstalled
 from .common import NotFound
 from .local_client import LocalClient, safe_filename
 from .remote_document_client import NuxeoDocumentInfo, RemoteDocumentClient

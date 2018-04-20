@@ -34,6 +34,9 @@ class DarwinIntegration(AbstractOSIntegration):
 
     def __init__(self, manager):
         super(DarwinIntegration, self).__init__(manager)
+        self._init()
+
+    def _init(self):
         log.debug('Telling plugInKit to use the FinderSync')
         os.system('pluginkit -e use -i {}.NuxeoFinderSync'.format(
             BUNDLE_IDENTIFIER))

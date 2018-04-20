@@ -5,14 +5,14 @@ from datetime import datetime
 from httplib import BadStatusLine
 from logging import getLogger
 from time import sleep
-from urllib2 import HTTPError, URLError
 
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
+from nuxeo.exceptions import HTTPError, Unauthorized
+from requests import ConnectionError
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker, ThreadInterrupt
 from ...client import NotFound
-from ...client.base_automation_client import Unauthorized
 from ...client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME, safe_filename
 from ...client.remote_file_system_client import RemoteFileInfo
 from ...utils import current_milli_time, path_join
@@ -453,13 +453,15 @@ class RemoteWatcher(EngineWorker):
     def _check_offline(self):
         try:
             self._client = self._engine.get_remote_client()
-        except HTTPError as e:
-            if e.code in (401, 403):
-                self._engine.set_invalid_credentials(
-                    reason='got HTTPError %d while checking if offline' % e.code)
         except Unauthorized as e:
             self._engine.set_invalid_credentials(
-                reason='got Unauthorized with code %r while checking if offline' % e.code)
+                reason='got Unauthorized with code %r while checking '
+                       'if offline' % e.status)
+        except HTTPError as e:
+            if e.status in (401, 403):
+                self._engine.set_invalid_credentials(
+                    reason='got HTTPError %d while checking if offline'
+                           % e.status)
         except:
             pass
 
@@ -513,13 +515,14 @@ class RemoteWatcher(EngineWorker):
             self._update_remote_states()
             (self.updated, self.initiate)[first_pass].emit()
         except HTTPError as e:
-            err = 'HTTP error %d while trying to handle remote changes' % e.code
-            if e.code in (401, 403):
+            err = ('HTTP error %d while trying to handle remote changes'
+                   % e.status)
+            if e.status in (401, 403):
                 self._engine.set_invalid_credentials(reason=err)
                 self._engine.set_offline()
             else:
                 log.exception(err)
-        except (BadStatusLine, URLError, socket.error):
+        except (BadStatusLine, ConnectionError, socket.error):
             log.exception('Network error')
         except ThreadInterrupt:
             raise

@@ -85,12 +85,12 @@ class TestEncoding(UnitTestCase):
             u"Contenu avec caract\xe8res accentu\xe9s.".encode('utf-8'))
 
     def test_name_normalization(self):
-        self.local_client.make_file('/',
-            u'espace\xa0 et TM\u2122.doc')
+        filename = u'espace\xa0 et TM\u2122.doc'
+        self.local_client.make_file('/', filename)
         self.wait_sync(wait_for_async=True)
-        self.assertEqual(self.remote_client.get_info(
-            u'/espace\xa0 et TM\u2122.doc').name,
-            u'espace\xa0 et TM\u2122.doc')
+
+        info = self.remote_client.get_info('/' + filename)
+        assert info.name == filename
 
     @skipIf(AbstractOSIntegration.is_mac(),
             'Normalization dont work on Mac')

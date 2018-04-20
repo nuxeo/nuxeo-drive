@@ -13,9 +13,10 @@ from PyQt4 import QtCore, QtGui, QtNetwork, QtWebKit
 from PyQt4.QtNetwork import (QNetworkProxy, QNetworkProxyFactory,
                              QSslCertificate)
 from dateutil.tz import tzlocal
+from nuxeo.exceptions import Unauthorized
+from requests import ConnectionError
 
 from .translator import Translator
-from ..client.base_automation_client import Unauthorized
 from ..engine.activity import Action, FileAction
 from ..engine.dao.sqlite import StateRow
 from ..engine.engine import Engine
@@ -23,7 +24,6 @@ from ..engine.workers import Worker
 from ..manager import FolderAlreadyUsed
 from ..notification import Notification
 from ..options import Options
-from ..updater.constants import UPDATE_STATUS_UNAVAILABLE_SITE
 
 log = getLogger(__name__)
 
@@ -242,7 +242,7 @@ class WebDriveApi(QtCore.QObject):
             return 'FOLDER_USED'
         except Unauthorized:
             return 'UNAUTHORIZED'
-        except urllib2.URLError as e:
+        except ConnectionError as e:
             if e.errno == 61:
                 return 'CONNECTION_REFUSED'
             return 'CONNECTION_ERROR'

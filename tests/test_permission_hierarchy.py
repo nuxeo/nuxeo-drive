@@ -1,9 +1,9 @@
 # coding: utf-8
 import hashlib
 import sys
-from urllib2 import HTTPError
 
 import pytest
+from nuxeo.exceptions import HTTPError
 
 from nxdrive.client import LocalClient
 from .common_unit_test import RemoteDocumentClientForTests, UnitTestCase

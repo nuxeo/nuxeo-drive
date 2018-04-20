@@ -14,6 +14,8 @@ from logging import getLogger
 
 import re
 
+import requests
+
 from .options import Options
 
 DEVICE_DESCRIPTIONS = {
@@ -412,7 +414,7 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
     :return: The complete URL.
     """
 
-    from urllib2 import HTTPError, URLError, urlopen
+    from requests import ConnectionError, HTTPError
     import rfc3987
 
     parts = urlparse.urlsplit(str(url))
@@ -460,15 +462,16 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
         try:
             rfc3987.parse(new_url, rule='URI')
             log.trace('Testing URL %r', new_url)
-            ret = urlopen(new_url + '/' + login_page, timeout=timeout)
+            ret = requests.get(new_url + '/' + login_page, timeout=timeout)
+            ret.raise_for_status()
         except HTTPError as exc:
-            if exc.code == 401:
+            if exc.response.status_code == 401:
                 # When there is only Web-UI installed, the code is 401.
                 return new_url
-        except (ValueError, URLError):
+        except (ValueError, ConnectionError):
             pass
         else:
-            if ret.code == 200:
+            if ret.status_code == 200:
                 return new_url
 
     if not url.lower().startswith('http'):

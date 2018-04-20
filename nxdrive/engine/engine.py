@@ -1,13 +1,14 @@
 # coding: utf-8
 import datetime
 import os
-import urllib2
 from cookielib import CookieJar
 from logging import getLogger
 from threading import Thread, current_thread
 from time import sleep
 
 from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
+from nuxeo.exceptions import HTTPError, Unauthorized
+from requests import ConnectionError
 
 from .activity import Action, FileAction
 from .dao.sqlite import EngineDAO
@@ -19,7 +20,6 @@ from .workers import PairInterrupt, ThreadInterrupt, Worker
 from ..client import (LocalClient, RemoteDocumentClient,
                       RemoteFileSystemClient,
                       RemoteFilteredFileSystemClient)
-from ..client.base_automation_client import Unauthorized
 from ..client.common import BaseClient, NotFound, safe_filename
 from ..client.rest_api_client import RestAPIClient
 from ..options import Options
@@ -998,9 +998,8 @@ class Engine(QObject):
         if not cache_only:
             rest_client = self.get_rest_api_client()
             try:
-                response = rest_client.get_user_full_name(userid)
-                prop = response['properties']
-            except urllib2.URLError:
+                prop = rest_client.nuxeo.users.get(userid).properties
+            except (HTTPError, ConnectionError):
                 log.exception('Network error')
             except (TypeError, KeyError):
                 log.exception('Content error')

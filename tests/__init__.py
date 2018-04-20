@@ -10,9 +10,9 @@ class RemoteTestClient(RemoteFileSystemClient):
     _server_error = None
     raise_on = None
 
-    def do_get(self, *args, **kwargs):
+    def download(self, *args, **kwargs):
         self._raise(self._download_remote_error, *args, **kwargs)
-        return super(RemoteTestClient, self).do_get(*args, **kwargs)
+        return super(RemoteTestClient, self).download(*args, **kwargs)
 
     def upload(self, *args, **kwargs):
         self._raise(self._upload_remote_error, *args, **kwargs)

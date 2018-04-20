@@ -71,7 +71,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return self.file_to_info(fs_item)
 
     def get_filesystem_root_info(self):
-        toplevel_folder = self.execute("NuxeoDrive.GetTopLevelFolder")
+        toplevel_folder = self.execute('NuxeoDrive.GetTopLevelFolder')
         return self.file_to_info(toplevel_folder)
 
     def get_content(self, fs_item_id):
@@ -84,10 +84,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
         """
         fs_item_info = self.get_info(fs_item_id)
         download_url = self.server_url + fs_item_info.download_url
-        FileAction("Download", None, fs_item_info.name, 0)
-        content, _ = self.do_get(
-            download_url, digest=fs_item_info.digest,
-            digest_algorithm=fs_item_info.digest_algorithm)
+        FileAction('Download', None, fs_item_info.name, 0)
+        content = self.download(download_url, digest=fs_item_info.digest)
         self.end_action()
         return content
 
@@ -98,9 +96,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
         Raises NotFound if file system item with id fs_item_id
         cannot be found
         """
-        if fs_item_info is None:
-            fs_item_info = self.get_info(fs_item_id,
-                                         parent_fs_item_id=parent_fs_item_id)
+        fs_item_info = fs_item_info or self.get_info(
+            fs_item_id, parent_fs_item_id=parent_fs_item_id)
         download_url = self.server_url + fs_item_info.download_url
         file_name = os.path.basename(file_path)
         if file_out is None:
@@ -111,9 +108,8 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
         FileAction('Download', file_out, file_name, 0)
         try:
-            _, tmp_file = self.do_get(
-                download_url, file_out=file_out, digest=fs_item_info.digest,
-                digest_algorithm=fs_item_info.digest_algorithm)
+            tmp_file = self.download(
+                download_url, file_out=file_out, digest=fs_item_info.digest)
         except Exception as e:
             if os.path.exists(file_out):
                 os.remove(file_out)

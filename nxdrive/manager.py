@@ -12,6 +12,7 @@ from logging import getLogger
 from urlparse import urlparse
 
 import pypac
+import requests
 from PyQt4 import QtCore
 from PyQt4.QtGui import QApplication
 from PyQt4.QtScript import QScriptEngine
@@ -194,14 +195,12 @@ class ProxySettings(object):
             return default
 
         try:
-            response = urllib2.urlopen(self.pac_url)
-        except urllib2.URLError:
+            response = requests.get(self.pac_url)
+        except requests.ConnectionError:
             log.exception('Network error')
             return default
         else:
-            pac_script = response.read()
-            response.close()
-
+            pac_script = response.text
         try:
             pac_data = pypac.parser.PACFile(pac_script)
             resolver = pypac.resolver.ProxyResolver(pac_data)

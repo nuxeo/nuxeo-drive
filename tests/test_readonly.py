@@ -4,9 +4,9 @@ import shutil
 import sys
 import time
 from logging import getLogger
-from urllib2 import HTTPError
 
 import pytest
+from nuxeo.exceptions import HTTPError
 
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from .common import TEST_WORKSPACE_PATH

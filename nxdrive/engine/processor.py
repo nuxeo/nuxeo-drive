@@ -3,18 +3,17 @@ import os
 import shutil
 import socket
 import sqlite3
-import sys
 from logging import getLogger
 from threading import Lock
 from time import sleep
-from urllib2 import HTTPError, URLError
 
 from PyQt4.QtCore import pyqtSignal
+from nuxeo.exceptions import CorruptedFile, HTTPError
+from requests import ConnectionError
 
 from .activity import Action
 from .workers import EngineWorker, PairInterrupt, ThreadInterrupt
-from ..client.base_automation_client import (CorruptedFile,
-                                             DOWNLOAD_TMP_FILE_PREFIX,
+from ..client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
                                              DOWNLOAD_TMP_FILE_SUFFIX)
 from ..client.common import (DuplicationDisabledError, NotFound,
                              UNACCESSIBLE_HASH, safe_filename)
@@ -237,13 +236,13 @@ class Processor(EngineWorker):
                 except ThreadInterrupt:
                     raise
                 except HTTPError as exc:
-                    if exc.code == 404:
+                    if exc.status == 404:
                         # We saw it happened once a migration is done.
                         # Nuxeo kept the document reference but it does
                         # not exist physically anywhere.
                         log.debug('The document does not exist anymore: %r', doc_pair)
                         self._dao.remove_state(doc_pair)
-                    elif exc.code == 409:  # Conflict
+                    elif exc.status == 409:  # Conflict
                         # It could happen on multiple files drag'n drop
                         # starting with identical characters.
                         log.debug('Delaying conflicted document: %r', doc_pair)
@@ -252,7 +251,7 @@ class Processor(EngineWorker):
                         self._handle_pair_handler_exception(
                             doc_pair, handler_name, exc)
                     continue
-                except (URLError, socket.error, PairInterrupt) as exc:
+                except (ConnectionError, socket.error, PairInterrupt) as exc:
                     # socket.error for SSLError
                     log.debug('%s on %r, wait 1s and requeue',
                               type(exc).__name__, doc_pair)
@@ -312,7 +311,7 @@ class Processor(EngineWorker):
                                                 + '/'
                                                 + doc_pair.remote_ref)
                         self._engine.fileDeletionErrorTooLong.emit(doc_pair)
-                    elif getattr(exc, 'trash_issue'):
+                    elif getattr(exc, 'trash_issue', None):
                         """
                         Special value to handle trash issues from filters on
                         Windows when there is one or more files opened by
@@ -594,7 +593,7 @@ class Processor(EngineWorker):
                     return
             except HTTPError as e:
                 # undelete will fail if you dont have the rights
-                if e.code != 403:
+                if e.status != 403:
                     raise e
                 log.trace('Create new document as current known document'
                           ' is not accessible: %s', remote_ref)

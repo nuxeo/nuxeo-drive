@@ -393,9 +393,9 @@ def server_updater(*args):
                     continue
 
                 try:
-                    raw, _ = client.do_get(
-                        client.rest_api_url + 'drive/configuration')
-                    conf = json.loads(raw, encoding='utf-8')
+                    resp = client.client.client.request(
+                        'GET', client.rest_api_url + 'drive/configuration')
+                    conf = resp.json()
                 except Exception as exc:
                     log.error('Polling error: {}'.format(exc))
                 else:

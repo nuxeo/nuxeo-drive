@@ -3,6 +3,7 @@ import urllib2
 from logging import getLogger
 
 from PyQt4 import QtCore
+from requests import ConnectionError
 
 from .dialog import WebDialog, WebDriveApi
 from .translator import Translator
@@ -56,7 +57,7 @@ class WebAuthenticationApi(WebDriveApi):
             log.debug('Updating token for account [%s, %s, %s]',
                       engine.local_folder, engine.server_url, engine.remote_user)
             self._settings_api.update_token(engine, token)
-        except urllib2.URLError as e:
+        except ConnectionError as e:
             log.exception('HTTP Error')
             if e.errno == 61:
                 error = 'CONNECTION_REFUSED'

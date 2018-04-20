@@ -5,12 +5,15 @@ from collections import namedtuple
 from logging import getLogger
 from urllib import urlencode
 
+import requests
 from PyQt4 import QtCore, QtGui
+from nuxeo.exceptions import Unauthorized, HTTPError
+from requests import ConnectionError
 
 from .authentication import WebAuthenticationApi, WebAuthenticationDialog
 from .dialog import Promise, WebDialog, WebDriveApi
 from .translator import Translator
-from ..client.base_automation_client import (AddonNotInstalled, Unauthorized,
+from ..client.base_automation_client import (AddonNotInstalled,
                                              get_opener_proxies,
                                              get_proxy_handler)
 from ..client.common import NotFound
@@ -150,9 +153,9 @@ class WebSettingsApi(WebDriveApi):
             return 'UNAUTHORIZED'
         except FolderAlreadyUsed:
             return 'FOLDER_USED'
-        except urllib2.HTTPError:
+        except HTTPError:
             return 'CONNECTION_ERROR'
-        except urllib2.URLError as e:
+        except ConnectionError as e:
             if e.errno == 61:
                 return 'CONNECTION_REFUSED'
             return 'CONNECTION_ERROR'
@@ -251,11 +254,9 @@ class WebSettingsApi(WebDriveApi):
                 'User-Agent': (self._manager.app_name
                                + '/' + self._manager.version),
             }
-            req = urllib2.Request(url, headers=headers)
-            response = opener.open(req, timeout=STARTUP_PAGE_CONNECTION_TIMEOUT)
-            status = response.getcode()
-        except urllib2.HTTPError as e:
-            status = e.code
+            response = requests.get(url, headers=headers,
+                                    timeout=STARTUP_PAGE_CONNECTION_TIMEOUT)
+            status = response.status_code
         except:
             log.exception('Error while trying to connect to Nuxeo Drive'
                           ' startup page with URL %s', url)

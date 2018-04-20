@@ -1,7 +1,8 @@
 # coding: utf-8
-import urllib2
 from itertools import product
 from time import sleep
+
+from nuxeo.exceptions import HTTPError
 
 from nxdrive.client import LocalClient
 from nxdrive.client.remote_filtered_file_system_client import \
@@ -11,6 +12,7 @@ from nxdrive.engine.engine import Engine
 from . import RemoteTestClient
 from .common import RemoteDocumentClientForTests
 from .common_unit_test import RandomBug, UnitTestCase
+
 
 # TODO NXDRIVE-170: refactor
 
@@ -627,7 +629,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         # Simulate server error
         self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
         self.engine_1.invalidate_client_cache()
-        error = urllib2.HTTPError(None, 500, 'Mock server error', None, None)
+        error = HTTPError(status=500, message='Mock server error')
         self.engine_1.get_remote_client().make_server_call_raise(error)
 
         local_client.rename(u'/Original Folder 1', u'IOErrorTest')

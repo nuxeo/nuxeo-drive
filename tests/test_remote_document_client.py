@@ -4,8 +4,11 @@ from shutil import copyfile
 from time import sleep
 from unittest import SkipTest
 
-from nxdrive.client import LocalClient, NotFound, RemoteDocumentClient, \
-    Unauthorized
+import pytest
+from nuxeo.auth import TokenAuth
+from nuxeo.exceptions import Unauthorized, HTTPError
+
+from nxdrive.client import LocalClient, NotFound, RemoteDocumentClient
 from .common import SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from .common_unit_test import UnitTestCase
 
@@ -42,61 +45,62 @@ class TestRemoteDocumentClient(UnitTestCase):
                 token='some-bad-token')
 
     def test_make_token(self):
-        remote_client = self.remote_document_client_1
-        token = remote_client.request_token()
+        remote = self.remote_document_client_1
+        token = remote.request_token()
         if token is None:
             raise SkipTest('nuxeo-platform-login-token is not deployed')
-        self.assertGreater(len(token), 5)
-        self.assertEqual(remote_client.auth[0], 'X-Authentication-Token')
-        self.assertEqual(remote_client.auth[1], token)
+        assert len(token) > 5
+        auth = remote.client.client.auth
+        assert isinstance(auth, TokenAuth)
+        assert auth.token == token
 
-        remote_client.unregister_as_root(self.workspace)
+        remote.unregister_as_root(self.workspace)
         self.wait()
 
         # Requesting token is an idempotent operation
-        token2 = remote_client.request_token()
-        self.assertEqual(token, token2)
+        token2 = remote.request_token()
+        assert token == token2
 
         # It's possible to create a new client using the same token
-        remote_client2 = RemoteDocumentClient(
-            remote_client.server_url, remote_client.user_id,
-            remote_client.device_id, remote_client.client_version,
+        remote2 = RemoteDocumentClient(
+            remote.server_url, remote.user_id,
+            remote.device_id, remote.client_version,
             token=token, base_folder=self.workspace)
 
-        token3 = remote_client.request_token()
-        self.assertEqual(token, token3)
+        token3 = remote.request_token()
+        assert token == token3
 
         # Register a root with client 2 and see it with client one
-        folder_1 = remote_client2.make_folder('/', 'Folder 1')
-        remote_client2.register_as_root(folder_1)
+        folder_1 = remote2.make_folder('/', 'Folder 1')
+        remote2.register_as_root(folder_1)
 
-        roots = remote_client.get_roots()
-        self.assertEqual(len(roots), 1)
-        self.assertEqual(roots[0].name, 'Folder 1')
+        roots = remote.get_roots()
+        assert len(roots) == 1
+        assert roots[0].name == 'Folder 1'
 
         # The root can also been seen with a new client connected using
         # password based auth
-        remote_client3 = RemoteDocumentClient(
-            remote_client.server_url, remote_client.user_id,
-            remote_client.device_id, remote_client.client_version,
+        remote3 = RemoteDocumentClient(
+            remote.server_url, remote.user_id,
+            remote.device_id, remote.client_version,
             password=self.password_1, base_folder=None)
-        roots = remote_client3.get_roots()
-        self.assertEqual(len(roots), 1)
-        self.assertEqual(roots[0].name, 'Folder 1')
+        roots = remote3.get_roots()
+        assert len(roots) == 1
+        assert roots[0].name == 'Folder 1'
 
         # Another device using the same user credentials will get a different
         # token
-        remote_client4 = RemoteDocumentClient(
-            remote_client.server_url, remote_client.user_id,
-            'other-test-device', remote_client.client_version,
+        remote4 = RemoteDocumentClient(
+            remote.server_url, remote.user_id,
+            'other-test-device', remote.client_version,
             password=self.password_1, base_folder=None)
-        token4 = remote_client4.request_token()
-        self.assertNotEquals(token, token4)
+        token4 = remote4.request_token()
+        assert token != token4
 
         # A client can revoke a token explicitly and thus lose credentials
-        remote_client4.revoke_token()
-        with self.assertRaises(IOError):
-            remote_client4.get_roots()
+        remote4.revoke_token()
+        with pytest.raises(HTTPError):
+            remote4.get_roots()
 
     def test_make_documents(self):
         remote_client = self.remote_document_client_1
@@ -356,14 +360,14 @@ class TestRemoteDocumentClient(UnitTestCase):
 
     def test_server_reachable(self):
         remote_client = self.remote_document_client_1
-        self.assertTrue(remote_client.server_reachable())
+        assert remote_client.server_reachable()
 
-        server_url = remote_client.server_url
-        remote_client.server_url = 'http://example.org/'
+        server_url = remote_client.client.client.host
+        remote_client.client.client.host = 'http://example.org/'
         try:
-            self.assertFalse(remote_client.server_reachable())
+            assert not remote_client.server_reachable()
         finally:
-            remote_client.server_url = server_url
+            remote_client.client.client.host = server_url
 
     def test_bad_mime_type(self):
         remote_client = self.remote_document_client_1

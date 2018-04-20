@@ -15,9 +15,10 @@ from logging import getLogger
 from os.path import dirname
 from threading import Thread
 from time import sleep
-from urllib2 import URLError
 
 from PyQt4 import QtCore
+from nuxeo.exceptions import HTTPError
+from requests import ConnectionError
 
 from nxdrive import __version__
 from nxdrive.client import LocalClient, RemoteFileSystemClient, RestAPIClient
@@ -26,10 +27,11 @@ from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
+from nxdrive.osi.darwin.darwin import DarwinIntegration
 from nxdrive.updater.base import BaseUpdater
 from nxdrive.wui.translator import Translator
-from .common import RemoteDocumentClientForTests, TEST_DEFAULT_DELAY, \
-    TEST_WORKSPACE_PATH, clean_dir
+from .common import (RemoteDocumentClientForTests, TEST_DEFAULT_DELAY,
+                     TEST_WORKSPACE_PATH, clean_dir)
 
 YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '') != ''
 if YAPPI_PATH:
@@ -76,6 +78,9 @@ LocalClient.has_folder_icon = lambda *args: True
 Manager._handle_os = lambda: None
 BaseUpdater._can_update = False
 Manager._create_server_config_updater = lambda *args: None
+DarwinIntegration._init = lambda *args: None
+DarwinIntegration._cleanup = lambda *args: None
+DarwinIntegration._send_notification = lambda *args: None
 
 
 class RandomBugError(Exception):
@@ -440,7 +445,7 @@ class UnitTestCase(SimpleUnitTestCase):
         """ Skip HTTP errors when cleaning up the test. """
         try:
             self.root_remote_client.unregister_as_root(workspace)
-        except URLError:
+        except (HTTPError, ConnectionError):
             pass
 
     def bind_engine(self, number, start_engine=True):

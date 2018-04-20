@@ -22,3 +22,6 @@ pyobjc==4.1; sys_platform == 'darwin'
 
 # Windows specific
 pypiwin32==219; python_version == '2.7' and sys_platform == 'win32'  # pyup: ignore
+
+# Nuxeo Python client
+git+https://github.com/nuxeo/nuxeo-python-client@wip-NXPY-58-drive-integration#egg=nuxeo

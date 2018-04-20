@@ -1,9 +1,6 @@
 # coding: utf-8
 """ Common Nuxeo Automation client utilities. """
 
-import base64
-import hashlib
-import json
 import os
 import random
 import socket
@@ -12,17 +9,19 @@ import tempfile
 import time
 import urllib2
 from logging import getLogger
-from urllib import urlencode
 from urllib2 import ProxyHandler
 from urlparse import urlparse
 
+from nuxeo.auth import TokenAuth
+from nuxeo.client import Nuxeo
+from nuxeo.exceptions import HTTPError
+from nuxeo.models import Batch, FileBlob
 from poster.streaminghttp import get_handlers
 
-from .common import BaseClient, FILE_BUFFER_SIZE, safe_filename
+from .common import BaseClient, FILE_BUFFER_SIZE
 from ..engine.activity import Action, FileAction
 from ..options import Options
-from ..utils import (TOKEN_PERMISSION, force_decode, get_device,
-                     guess_digest_algorithm, guess_mime_type)
+from ..utils import (TOKEN_PERMISSION, get_device)
 
 log = getLogger(__name__)
 
@@ -54,17 +53,17 @@ def get_proxies_for_handler(proxy_settings):
     else:
         # Manual proxy settings, build proxy string and exceptions list
         if proxy_settings.authenticated:
-            proxy_string = "%s:%s@%s:%s" % (proxy_settings.username,
+            proxy_string = '%s:%s@%s:%s' % (proxy_settings.username,
                                             proxy_settings.password,
                                             proxy_settings.server,
                                             proxy_settings.port)
         else:
-            proxy_string = "%s:%s" % (proxy_settings.server,
+            proxy_string = '%s:%s' % (proxy_settings.server,
                                       proxy_settings.port)
         if proxy_settings.proxy_type is None:
             proxies = {'http': proxy_string, 'https': proxy_string}
         else:
-            proxies = {proxy_settings.proxy_type: ("%s://%s" % (proxy_settings.proxy_type, proxy_string))}
+            proxies = {proxy_settings.proxy_type: ('%s://%s' % (proxy_settings.proxy_type, proxy_string))}
         if proxy_settings.exceptions and proxy_settings.exceptions.strip():
             proxy_exceptions = [e.strip() for e in
                                 proxy_settings.exceptions.split(',')]
@@ -111,22 +110,6 @@ class AddonNotInstalled(Exception):
 
 class NewUploadAPINotAvailable(Exception):
     pass
-
-
-class CorruptedFile(Exception):
-    pass
-
-
-class Unauthorized(Exception):
-
-    def __init__(self, server_url, user_id, code=403):
-        self.server_url = server_url
-        self.user_id = user_id
-        self.code = code
-
-    def __str__(self):
-        return ("'%s' is not authorized to access '%s' with"
-                " the provided credentials" % (self.user_id, self.server_url))
 
 
 class BaseAutomationClient(BaseClient):
@@ -180,15 +163,19 @@ class BaseAutomationClient(BaseClient):
         self.upload_tmp_dir = (upload_tmp_dir if upload_tmp_dir is not None
                                else tempfile.gettempdir())
 
-        if not server_url.endswith('/'):
-            server_url += '/'
-        self.server_url = server_url
-
-        self.repository = repository
-
         self.user_id = user_id
         self.device_id = device_id
         self.client_version = client_version
+        self.server_url = server_url
+        self.repository = repository
+
+        self.client = Nuxeo(host=server_url, app_name=self.application_name,
+                            version=client_version, repository=repository,
+                            cookie_jar=cookie_jar, proxies=proxies)
+
+        self.client.unlock_path = self.unlock_path
+        self.client.lock_path = self.lock_path
+        self.client.check_suspended = check_suspended
         self._update_auth(password=password, token=token)
 
         self.cookie_jar = cookie_jar
@@ -198,7 +185,7 @@ class BaseAutomationClient(BaseClient):
         # Get proxy handler
         proxy_handler = get_proxy_handler(proxies,
                                           proxy_exceptions=proxy_exceptions,
-                                          url=self.server_url)
+                                          url=server_url)
 
         # Build URL openers
         self.opener = urllib2.build_opener(cookie_processor, proxy_handler)
@@ -245,79 +232,11 @@ class BaseAutomationClient(BaseClient):
 
     def check_access(self):
         """ Simple call to check credentials. """
-
-        url = self.automation_url + 'logInAudit'
-        headers = self._get_common_headers()
-        log.trace('Checking credentials at %r with headers=%r', url, headers)
-        req = urllib2.Request(url, headers=headers)
-        try:
-            self.opener.open(req, timeout=self.timeout)
-        except urllib2.HTTPError as exc:
-            if exc.code in (401, 403):
-                raise Unauthorized(self.server_url, self.user_id, exc.code)
-            raise exc
-        except:
-            raise
+        self.client.client.request('GET', 'site/automation/logInAudit',
+            headers=self._get_common_headers())
 
     def fetch_api(self):
-        base_error_message = (
-            "Failed to connect to Nuxeo server %s"
-        ) % (self.server_url)
-        url = self.automation_url
-        headers = self._get_common_headers()
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r and cookies %r",
-                  url, headers, cookies)
-        req = urllib2.Request(url, headers=headers)
-        try:
-            response = json.loads(self.opener.open(
-                req, timeout=self.timeout).read())
-        except urllib2.HTTPError as e:
-            if e.code == 401 or e.code == 403:
-                raise Unauthorized(self.server_url, self.user_id, e.code)
-            else:
-                msg = base_error_message + "\nHTTP error %d" % e.code
-                if hasattr(e, 'msg'):
-                    msg += ": " + e.msg
-                e.msg = msg
-                raise e
-        except urllib2.URLError as e:
-            msg = base_error_message
-            if hasattr(e, 'message') and e.message:
-                e_msg = force_decode(": " + e.message)
-                if e_msg is not None:
-                    msg += e_msg
-            elif hasattr(e, 'reason') and e.reason:
-                if hasattr(e.reason, 'message') and e.reason.message:
-                    e_msg = force_decode(": " + e.reason.message)
-                    if e_msg is not None:
-                        msg += e_msg
-                elif hasattr(e.reason, 'strerror') and e.reason.strerror:
-                    e_msg = force_decode(": " + e.reason.strerror)
-                    if e_msg is not None:
-                        msg += e_msg
-            if self.is_proxy:
-                msg += ("\nPlease check your Internet connection,"
-                        + " make sure the Nuxeo server URL is valid"
-                        + " and check the proxy settings.")
-            else:
-                msg += ("\nPlease check your Internet connection"
-                        + " and make sure the Nuxeo server URL is valid.")
-            e.msg = msg
-            raise e
-        except Exception as e:
-            msg = base_error_message
-            if hasattr(e, 'msg'):
-                msg += ": " + e.msg
-            e.msg = msg
-            raise e
-
-        operations = {}
-        for operation in response['operations']:
-            operations[operation['id']] = operation
-            for alias in operation.get('aliases', []):
-                operations[alias] = operation
-        self.__operations = operations
+        self.__operations = self.client.operations.operations
 
         # Is event log id available in change summary?
         # See https://jira.nuxeo.com/browse/NXP-14826
@@ -329,83 +248,20 @@ class BaseAutomationClient(BaseClient):
                 check_params=False, void_op=False, extra_headers=None,
                 enrichers=None, file_out=None, **params):
         """Execute an Automation operation"""
-        if check_params:
-            self._check_params(command, params)
-
-        if url is None:
-            url = self.automation_url + command
-        headers = {
-            "Content-Type": "application/json+nxrequest",
-            "Accept": "application/json+nxentity, */*",
-            "X-NXproperties": "*",
-            # Keep compatibility with old header name
-            "X-NXDocumentProperties": "*",
-        }
-        if void_op:
-            headers.update({"X-NXVoidOperation": "true"})
+        headers = extra_headers or {}
         if self.repository != 'default':
-            headers.update({"X-NXRepository": self.repository})
-        if extra_headers is not None:
-            headers.update(extra_headers)
-        if enrichers is not None:
+            headers.update({'X-NXRepository': self.repository})
+        if enrichers:
             headers.update({
                 'X-NXenrichers.document': ', '.join(enrichers),
             })
-        headers.update(self._get_common_headers())
 
-        json_struct = {'params': {}}
-        for k, v in params.items():
-            if v is None:
-                continue
-            if k == 'properties':
-                s = ""
-                for propname, propvalue in v.items():
-                    s += "%s=%s\n" % (propname, propvalue)
-                json_struct['params'][k] = s.strip()
-            else:
-                json_struct['params'][k] = v
-        if op_input:
-            json_struct['input'] = op_input
-        data = json.dumps(json_struct)
-
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r, cookies %r"
-                  " and JSON payload %r",
-                  url, headers, cookies,  data)
-        req = urllib2.Request(url, data, headers)
         timeout = self.timeout if timeout == -1 else timeout
-        try:
-            resp = self.opener.open(req, timeout=timeout)
-        except Exception as e:
-            log_details = self._log_details(e)
-            if isinstance(log_details, tuple):
-                _, _, _, error = log_details
-                if error and error.startswith("Unable to find batch"):
-                    raise InvalidBatchException()
-            raise e
-        current_action = Action.get_current_action()
-        if current_action and current_action.progress is None:
-            current_action.progress = 0
-        if file_out is not None:
-            locker = self.unlock_path(file_out)
-            try:
-                with open(file_out, "wb") as f:
-                    while True:
-                        # Check if synchronization thread was suspended
-                        if self.check_suspended is not None:
-                            self.check_suspended('File download: %s'
-                                                 % file_out)
-                        buffer_ = resp.read(FILE_BUFFER_SIZE)
-                        if buffer_ == '':
-                            break
-                        if current_action:
-                            current_action.progress += FILE_BUFFER_SIZE
-                        f.write(buffer_)
-                return None, file_out
-            finally:
-                self.lock_path(file_out, locker)
-        else:
-            return self._read_response(resp, url)
+
+        return self.client.operations.execute(
+            command=command, input_obj=op_input, check_params=check_params,
+            void_op=void_op, headers=headers, file_out=file_out,
+            timeout=timeout, **params)
 
     def execute_with_blob_streaming(self, command, file_path, filename=None,
                                     mime_type=None, **params):
@@ -414,22 +270,30 @@ class BaseAutomationClient(BaseClient):
         Upload is streamed.
         """
         tick = time.time()
-        action = FileAction("Upload", file_path, filename)
+        action = FileAction('Upload', file_path, filename)
         try:
-            batch_id = None
+            batch = None
             if self.is_new_upload_api_available():
                 try:
-                    # Init resumable upload getting a batch id generated by the server
-                    # This batch id is to be used as a resumable session id
-                    batch_id = self.init_upload()['batchId']
+                    # Init resumable upload getting a batch generated by the
+                    # server. This batch is to be used as a resumable session
+                    batch = self.init_upload()
                 except NewUploadAPINotAvailable:
-                    log.debug('New upload API is not available on server %s', self.server_url)
+                    log.debug('New upload API is not available on server %s',
+                              self.server_url)
                     self.new_upload_api_available = False
-            if batch_id is None:
+            if batch is None:
                 # New upload API is not available, generate a batch id
-                batch_id = self._generate_unique_id()
-            upload_result = self.upload(batch_id, file_path, filename=filename,
-                                        mime_type=mime_type)
+                batch = Batch(batchId=self._generate_unique_id())
+                batch.service = self.client.uploads
+
+            blob = FileBlob(file_path)
+            if filename:
+                blob.name = filename
+            if mime_type:
+                blob.mimetype = mime_type
+            upload_result = batch.upload(blob)
+
             upload_duration = int(time.time() - tick)
             action.transfer_duration = upload_duration
             # Use upload duration * 2 as Nuxeo transaction timeout
@@ -439,17 +303,18 @@ class BaseAutomationClient(BaseClient):
                       ' with file %s', tx_timeout, DEFAULT_NUXEO_TX_TIMEOUT,
                       upload_duration, command, file_path)
             if upload_duration > 0:
-                log.trace("Speed for %d o is %d s : %f o/s", os.stat(file_path).st_size, upload_duration, os.stat(file_path).st_size / upload_duration)
+                log.trace('Speed for %d o is %d s : %f o/s',
+                          os.stat(file_path).st_size, upload_duration,
+                          os.stat(file_path).st_size / upload_duration)
             # NXDRIVE-433: Compat with 7.4 intermediate state
-            if upload_result.get('uploaded') is None:
-                self.new_upload_api_available = False
-            if upload_result.get('batchId') is not None:
-                result = self.execute_batch(command, batch_id, '0', tx_timeout,
-                                          **params)
-                return result
+            self.new_upload_api_available = upload_result.uploaded is not None
+            if upload_result.batch_id is not None:
+                return self.execute_batch(command, upload_result,
+                                          tx_timeout, **params)
             else:
-                raise ValueError("Bad response from batch upload with id '%s'"
-                                 " and file path '%s'" % (batch_id, file_path))
+                raise ValueError("Bad response from batch upload with id '%s' "
+                                 "and file path '%s'" % (batch.uid,
+                                                         file_path))
         except InvalidBatchException:
             self.cookie_jar.clear_session_cookies()
         finally:
@@ -462,45 +327,25 @@ class BaseAutomationClient(BaseClient):
         return FILE_BUFFER_SIZE
 
     def init_upload(self):
-        url = self.rest_api_url + self.batch_upload_path
-        headers = self._get_common_headers()
-        # Force empty data to perform a POST request
-        req = urllib2.Request(url, data='', headers=headers)
         try:
-            resp = self.opener.open(req, timeout=self.timeout)
-        except Exception as e:
-            log_details = self._log_details(e)
-            if isinstance(log_details, tuple):
-                status, code, message, _ = log_details
-                if status == 404:
-                    raise NewUploadAPINotAvailable()
-                if status == 500:
-                    not_found_exceptions = ['com.sun.jersey.api.NotFoundException',
-                                            'org.nuxeo.ecm.webengine.model.TypeNotFoundException']
-                    for exception in not_found_exceptions:
-                        if code == exception or exception in message:
-                            raise NewUploadAPINotAvailable()
+            return self.client.uploads.batch()
+        except HTTPError as e:
+            if e.status == 404:
+                raise NewUploadAPINotAvailable()
+            if e.status == 500:
+                not_found_exceptions = [
+                    'com.sun.jersey.api.NotFoundException',
+                    'org.nuxeo.ecm.webengine.model.TypeNotFoundException']
+                for exception in not_found_exceptions:
+                    if exception in e.stacktrace or exception in e.message:
+                        raise NewUploadAPINotAvailable()
             raise e
-        return self._read_response(resp, url)
 
     def server_reachable(self):
         """
         Simple call to the server status page to check if it is reachable.
         """
-
-        url = self.server_url + 'runningstatus'
-        headers = self._get_common_headers()
-        log.trace('Checking server availability at %r with headers=%r',
-                  url, headers)
-        req = urllib2.Request(url, headers=headers)
-        try:
-            ret = self.opener.open(req, timeout=self.timeout)
-        except:
-            pass
-        else:
-            if ret.code == 200:
-                return True
-        return False
+        return self.client.client.is_reachable()
 
     def upload(self, batch_id, file_path, filename=None, file_index=0,
                mime_type=None):
@@ -509,76 +354,34 @@ class BaseAutomationClient(BaseClient):
         Uses poster.httpstreaming to stream the upload
         and not load the whole file in memory.
         """
-        FileAction("Upload", file_path, filename)
-        # Request URL
-        if self.is_new_upload_api_available():
-            url = self.rest_api_url + self.batch_upload_path + '/' + batch_id + '/' + str(file_index)
-        else:
-            # Backward compatibility with old batch upload API
-            url = self.automation_url.encode('ascii') + self.batch_upload_url
+        FileAction('Upload', file_path, filename)
 
-        # HTTP headers
-        if filename is None:
-            filename = os.path.basename(file_path)
-        file_size = os.path.getsize(file_path)
-        if mime_type is None:
-            mime_type = guess_mime_type(filename)
-        # Quote UTF-8 filenames even though JAX-RS does not seem to be able
-        # to retrieve them as per: https://tools.ietf.org/html/rfc5987
-        filename = safe_filename(filename)
-        quoted_filename = urllib2.quote(filename.encode('utf-8'))
-        headers = {
-            "X-File-Name": quoted_filename,
-            "X-File-Size": file_size,
-            "X-File-Type": mime_type,
-            "Content-Type": "application/octet-stream",
-            "Content-Length": file_size,
-        }
-        if not self.is_new_upload_api_available():
-            headers.update({"X-Batch-Id": batch_id, "X-File-Idx": file_index})
-        headers.update(self._get_common_headers())
+        blob = FileBlob(file_path)
+        batch = Batch(batchId=batch_id)
+        batch.service = self.client.uploads
 
-        # Request data
-        input_file = open(file_path, 'rb')
-        # Use file system block size if available for streaming buffer
-        fs_block_size = self.get_upload_buffer(input_file)
-        data = self._read_data(input_file, fs_block_size)
-
-        # Execute request
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r and cookies %r for file %s",
-                  url, headers, cookies, file_path)
-        req = urllib2.Request(url, data, headers)
-        try:
-            resp = self.streaming_opener.open(req, timeout=self.blob_timeout)
-        except Exception as e:
-            log_details = self._log_details(e)
-            if isinstance(log_details, tuple):
-                _, _, _, error = log_details
-                if error and error.startswith("Unable to find batch"):
-                    raise InvalidBatchException()
-            raise e
-        finally:
-            input_file.close()
+        resp = batch.upload(blob)
         self.end_action()
-        return self._read_response(resp, url)
+
+        return resp
 
     @staticmethod
     def end_action():
         Action.finish_action()
 
-    def execute_batch(self, op_id, batch_id, file_idx, tx_timeout, **params):
+    def execute_batch(self, command, blob, tx_timeout, **params):
         """Execute a file upload Automation batch"""
-        extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout, }
+        extra_headers = {'Nuxeo-Transaction-Timeout': str(tx_timeout), }
         if self.is_new_upload_api_available():
-            url = (self.rest_api_url + self.batch_upload_path + '/' + batch_id + '/' + file_idx
-                   + '/execute/' + op_id)
-            return self.execute(None, url=url, timeout=tx_timeout,
-                                check_params=False, extra_headers=extra_headers, **params)
+            return self.execute(
+                command, timeout=tx_timeout, op_input=blob,
+                check_params=False, extra_headers=extra_headers, **params)
         else:
+            raise NotImplementedError()
             return self.execute(self.batch_execute_url, timeout=tx_timeout,
-                                operationId=op_id, batchId=batch_id, fileIdx=file_idx,
-                                check_params=False, extra_headers=extra_headers, **params)
+                                operationId=command, batchId=blob.batch_id,
+                                fileIdx=blob.fileIdx, check_params=False,
+                                extra_headers=extra_headers, **params)
 
     def is_event_log_id_available(self):
         return self.is_event_log_id
@@ -594,47 +397,9 @@ class BaseAutomationClient(BaseClient):
 
     def request_token(self, revoke=False):
         """Request and return a new token for the user"""
-        base_error_message = (
-            "Failed to connect to Nuxeo server %s with user %s"
-            " to acquire a token"
-        ) % (self.server_url, self.user_id)
-
-        parameters = {
-            'deviceId': self.device_id,
-            'applicationName': self.application_name,
-            'permission': TOKEN_PERMISSION,
-            'revoke': str(revoke).lower(),
-            'deviceDescription': get_device(),
-        }
-        url = self.server_url + 'authentication/token?'
-        url += urlencode(parameters)
-
-        headers = self._get_common_headers()
-        cookies = self._get_cookies()
-        log.trace("Calling %s with headers %r and cookies %r",
-                  url, headers, cookies)
-        req = urllib2.Request(url, headers=headers)
-        try:
-            token = self.opener.open(req, timeout=self.timeout).read()
-        except urllib2.HTTPError as e:
-            if e.code == 401 or e.code == 403:
-                raise Unauthorized(self.server_url, self.user_id, e.code)
-            elif e.code == 404:
-                # Token based auth is not supported by this server
-                return None
-            else:
-                e.msg = base_error_message + ": HTTP error %d" % e.code
-                raise e
-        except Exception as e:
-            if hasattr(e, 'msg'):
-                e.msg = base_error_message + ": " + e.msg
-            raise
-        cookies = self._get_cookies()
-        log.trace("Got token '%s' with cookies %r", token, cookies)
-        # Use the (potentially re-newed) token from now on
-        if not revoke:
-            self._update_auth(token=token)
-        return token
+        return self.client.client.request_auth_token(
+            device_id=self.device_id, app_name=self.application_name,
+            permission=TOKEN_PERMISSION, device=get_device(), revoke=revoke)
 
     def revoke_token(self):
         self.request_token(revoke=True)
@@ -642,43 +407,37 @@ class BaseAutomationClient(BaseClient):
     def wait(self):
         # Used for tests
         if self.is_elasticsearch_audit():
-            self.execute("NuxeoDrive.WaitForElasticsearchCompletion")
+            self.execute('NuxeoDrive.WaitForElasticsearchCompletion')
         else:
             # Backward compatibility with JPA audit implementation,
-            # in which case we are also backward compatible with date based resolution
+            # in which case we are also backward compatible
+            # with date based resolution
             if not self.is_event_log_id_available():
                 time.sleep(AUDIT_CHANGE_FINDER_TIME_RESOLUTION)
-            self.execute("NuxeoDrive.WaitForAsyncCompletion")
+            self.execute('NuxeoDrive.WaitForAsyncCompletion')
 
     def make_tmp_file(self, content):
-        """Create a temporary file with the given content for streaming upload purpose.
+        """Create a temporary file with the given content
+        for streaming upload purposes.
 
-        Make sure that you remove the temporary file with os.remove() when done with it.
+        Make sure that you remove the temporary file with os.remove()
+        when done with it.
         """
         fd, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
                                     dir=self.upload_tmp_dir)
-        with open(path, "wb") as f:
+        with open(path, 'wb') as f:
             f.write(content)
         os.close(fd)
         return path
 
     def _update_auth(self, password=None, token=None):
-        """
-        When username retrieved from database, check for unicode and convert to string.
-        Note: base64Encoding for unicode type will fail, hence converting to string
-        """
-        if self.user_id and isinstance(self.user_id, unicode):
-            self.user_id = unicode(self.user_id).encode('utf-8')
-
-        # Select the most appropriate auth headers based on credentials
-        if token is not None:
-            self.auth = ('X-Authentication-Token', token)
-        elif password is not None:
-            basic_auth = 'Basic %s' % base64.b64encode(
-                    self.user_id + ":" + password).strip()
-            self.auth = ("Authorization", basic_auth)
+        """Select the most appropriate auth headers based on credentials"""
+        if token:
+            self.client.client.auth = TokenAuth(token)
+        elif password:
+            self.client.client.auth = (self.user_id, password)
         else:
-            raise ValueError("Either password or token must be provided")
+            raise ValueError('Either password or token must be provided')
 
     def _get_common_headers(self):
         """
@@ -697,7 +456,6 @@ class BaseAutomationClient(BaseClient):
             'X-Client-Version': self.client_version,
             'User-Agent': self.application_name + '/' + self.client_version,
             'X-Application-Name': self.application_name,
-            self.auth[0]: self.auth[1],
             'Cache-Control': 'no-cache',
         }
 
@@ -708,84 +466,17 @@ class BaseAutomationClient(BaseClient):
         if command not in self.operations:
             if command.startswith('NuxeoDrive.'):
                 raise AddonNotInstalled(
-                    "Either nuxeo-drive addon is not installed on server %s or"
-                    " server version is lighter than the minimum version"
-                    " compatible with the client version %s, in which case a"
-                    " downgrade of Nuxeo Drive is needed." % (
+                    'Either nuxeo-drive addon is not installed on server %s '
+                    'or server version is lighter than the minimum version '
+                    'compatible with the client version %s, in which case '
+                    'a downgrade of Nuxeo Drive is needed.' % (
                         self.server_url, self.client_version))
             else:
                 raise ValueError("'%s' is not a registered operations."
                                  % command)
         return self.operations[command]
 
-    def _check_params(self, command, params):
-        method = self._check_operation(command)
-        required_params = []
-        other_params = []
-        for param in method['params']:
-            if param['required']:
-                required_params.append(param['name'])
-            else:
-                other_params.append(param['name'])
-
-        for param in params.keys():
-            if (param not in required_params
-                    and not param in other_params):
-                log.trace("Unexpected param '%s' for operation '%s'",
-                          param, command)
-        for param in required_params:
-            if not param in params:
-                raise ValueError(
-                    "Missing required param '%s' for operation '%s'" % (
-                        param, command))
-
         # TODO: add typechecking
-
-    def _read_response(self, response, url):
-        info, s = response.info(), response.read()
-        del response  # Fix reference leak
-        content_type = info.get('content-type', '')
-        cookies = self._get_cookies()
-        if content_type.startswith("application/json"):
-            log.trace("Response for '%s' with cookies %r: %r",
-                      url, cookies, s)
-            return json.loads(s) if s else None
-        else:
-            log.trace("Response for '%s' with cookies %r has content-type %r",
-                      url, cookies, content_type)
-            return s
-
-    @staticmethod
-    def _log_details(e):
-        if hasattr(e, "fp"):
-            detail = e.fp.read()
-            try:
-                exc = json.loads(detail)
-                message = exc.get('message')
-                stack = exc.get('stack')
-                error = exc.get('error')
-                if message:
-                    log.debug('Remote exception message: %s', message)
-                if stack:
-                    log.debug('Remote exception stack: %r', exc['stack'],
-                              exc_info=True)
-                else:
-                    log.debug('Remote exception details: %r', detail)
-                return exc.get('status'), exc.get('code'), message, error
-            except:
-                # Error message should always be a JSON message,
-                # but sometimes it's not
-                if '<html>' in detail:
-                    message = e
-                else:
-                    message = detail
-                log.error(message)
-                if isinstance(e, urllib2.HTTPError):
-                    code = e.code
-                    del e  # Fix reference leak
-                    return code, None, message, None
-        del e  # Fix reference leak
-        return None
 
     @staticmethod
     def _generate_unique_id():
@@ -793,93 +484,26 @@ class BaseAutomationClient(BaseClient):
 
         return str(time.time()) + '_' + str(random.randint(0, 1000000000))
 
-    def _read_data(self, file_object, buffer_size):
-        while True:
-            current_action = Action.get_current_action()
-            if current_action is not None and current_action.suspend:
-                break
-            # Check if synchronization thread was suspended
-            if self.check_suspended is not None:
-                self.check_suspended('File upload: %s' % file_object.name)
-            r = file_object.read(buffer_size)
-            if not r:
-                break
-            if current_action is not None:
-                current_action.progress += buffer_size
-            yield r
+    def download(self, url, file_out=None, digest=None):
+        log.trace('Downloading file from %r to %r with digest=%s',
+                  url, file_out, digest)
 
-    def do_get(self, url, file_out=None, digest=None, digest_algorithm=None):
-        log.trace('Downloading file from %r to %r with digest=%s, digest_algorithm=%s', url, file_out, digest,
-                  digest_algorithm)
-        h = None
-        if digest is not None:
-            if digest_algorithm is None:
-                digest_algorithm = guess_digest_algorithm(digest)
-                log.trace('Guessed digest algorithm from digest: %s', digest_algorithm)
-            digester = getattr(hashlib, digest_algorithm, None)
-            if digester is None:
-                raise ValueError('Unknow digest method: ' + digest_algorithm)
-            h = digester()
-        headers = self._get_common_headers()
-        base_error_message = (
-            "Failed to connect to Nuxeo server %r with user %r"
-        ) % (self.server_url, self.user_id)
-        try:
-            log.trace("Calling '%s' with headers: %r", url, headers)
-            req = urllib2.Request(url, headers=headers)
-            response = self.opener.open(req, timeout=self.blob_timeout)
-            current_action = Action.get_current_action()
-            # Get the size file
-            if (current_action
-                    and response is not None
-                    and response.info() is not None):
-                current_action.size = int(response.info().getheader(
-                                                    'Content-Length', 0))
-            if file_out is not None:
-                locker = self.unlock_path(file_out)
-                try:
-                    with open(file_out, "wb") as f:
-                        while True:
-                            # Check if synchronization thread was suspended
-                            if self.check_suspended is not None:
-                                self.check_suspended('File download: %s'
-                                                     % file_out)
-                            buffer_ = response.read(FILE_BUFFER_SIZE)
-                            if buffer_ == '':
-                                break
-                            if current_action:
-                                current_action.progress += FILE_BUFFER_SIZE
-                            f.write(buffer_)
-                            if h is not None:
-                                h.update(buffer_)
-                    if digest is not None:
-                        actual_digest = h.hexdigest()
-                        if digest != actual_digest:
-                            if os.path.exists(file_out):
-                                os.remove(file_out)
-                            raise CorruptedFile("Corrupted file %r: expected digest = %s, actual digest = %s"
-                                                % (file_out, digest, actual_digest))
-                    return None, file_out
-                finally:
-                    self.lock_path(file_out, locker)
-            else:
-                result = response.read()
-                if h is not None:
-                    h.update(result)
-                    if digest is not None:
-                        actual_digest = h.hexdigest()
-                        if digest != actual_digest:
-                            raise CorruptedFile("Corrupted file: expected digest = %s, actual digest = %s"
-                                                % (digest, actual_digest))
-                return result, None
-        except urllib2.HTTPError as e:
-            if e.code == 401 or e.code == 403:
-                raise Unauthorized(self.server_url, self.user_id, e.code)
-            else:
-                e.msg = base_error_message + ": HTTP error %d" % e.code
-                raise e
-        except Exception as e:
-            if hasattr(e, 'msg'):
-                e.msg = base_error_message + ": " + e.msg
-            raise
+        resp = self.client.client.request(
+            'GET', url.replace(self.server_url, ''))
 
+        current_action = Action.get_current_action()
+        if current_action and resp:
+            current_action.size = int(resp.headers.get('Content-Length', 0))
+
+        if file_out:
+            locker = self.unlock_path(file_out)
+            try:
+                self.client.operations.save_to_file(
+                    current_action, resp, file_out, digest=digest,
+                    chunk_size=FILE_BUFFER_SIZE)
+            finally:
+                self.lock_path(file_out, locker)
+            return file_out
+        else:
+            result = resp.content
+            return result

@@ -4,16 +4,15 @@
 import datetime
 import os
 import unicodedata
-import urllib2
 from collections import namedtuple
 from logging import getLogger
 
 from dateutil import parser
+from nuxeo.exceptions import HTTPError
 
 from .base_automation_client import BaseAutomationClient
 from .common import NotFound, safe_filename
 from ..options import Options
-from ..utils import version_lt
 
 log = getLogger(__name__)
 
@@ -216,8 +215,8 @@ class RemoteDocumentClient(BaseAutomationClient):
                                     op_input=op_input, value='delete')
                 # else:
                 #    return self.execute('Document.Trash', op_input=op_input)
-            except urllib2.HTTPError as e:
-                if e.code != 500:
+            except HTTPError as e:
+                if e.status != 500:
                     raise
         return self.execute('Document.Delete', op_input=op_input)
 
@@ -446,9 +445,9 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def fetch(self, ref, **kwargs):
         try:
-            return self.execute("Document.Fetch", value=ref, **kwargs)
-        except urllib2.HTTPError as e:
-            if e.code == 404:
+            return self.execute('Document.Fetch', value=ref, **kwargs)
+        except HTTPError as e:
+            if e.status == 404:
                 raise NotFound("Failed to fetch document %r on server %r" % (
                     ref, self.server_url))
             raise e
@@ -460,7 +459,7 @@ class RemoteDocumentClient(BaseAutomationClient):
     def get_blob(self, ref, file_out=None):
         if isinstance(ref, NuxeoDocumentInfo):
             doc_id = ref.uid
-            if not ref.has_blob and ref.doc_type == "Note":
+            if not ref.has_blob and ref.doc_type == 'Note':
                 doc = self.fetch(doc_id)
                 content = doc['properties'].get('note:note')
                 if file_out is not None and content is not None:
@@ -469,7 +468,7 @@ class RemoteDocumentClient(BaseAutomationClient):
                 return content
         else:
             doc_id = ref
-        return self.execute("Blob.Get", op_input="doc:" + doc_id,
+        return self.execute('Blob.Get', op_input='doc:' + doc_id, json=False,
                             timeout=self.blob_timeout, file_out=file_out)
 
     def attach_blob(self, ref, blob, filename):
@@ -481,7 +480,7 @@ class RemoteDocumentClient(BaseAutomationClient):
             os.remove(file_path)
 
     def delete_blob(self, ref, xpath=None):
-        return self.execute("Blob.Remove", op_input="doc:" + ref, xpath=xpath)
+        return self.execute('Blob.Remove', op_input='doc:' + ref, xpath=xpath)
 
     def log_on_server(self, message, level='WARN'):
         """ Log the current test server side.  Helpful for debugging. """

@@ -1,7 +1,9 @@
 # coding: utf-8
 import socket
 import time
-import urllib2
+
+from nuxeo.exceptions import HTTPError
+from requests import ConnectionError
 
 from nxdrive.client import LocalClient
 from nxdrive.client.remote_filtered_file_system_client import \
@@ -9,11 +11,11 @@ from nxdrive.client.remote_filtered_file_system_client import \
 from nxdrive.osi import AbstractOSIntegration
 from . import RemoteTestClient
 from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from .common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT, RandomBug, \
-    UnitTestCase
+from .common_unit_test import (DEFAULT_WAIT_SYNC_TIMEOUT, RandomBug,
+                               UnitTestCase)
 
 
-class HTTPErrorMock(urllib2.HTTPError):
+class HTTPErrorMock(HTTPError):
     """ Just to have a working repr() for debug facilities ... """
 
     def __repr__(self):
@@ -150,8 +152,8 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
         self.engine_1.invalidate_client_cache()
         errors = [
-            HTTPErrorMock(None, 401, 'Mock', None, None),
-            HTTPErrorMock(None, 403, 'Mock', None, None),
+            HTTPErrorMock(status=401, message='Mock'),
+            HTTPErrorMock(status=403, message='Mock'),
         ]
         remote = self.engine_1.get_remote_client()
         for error in errors:
@@ -318,7 +320,7 @@ class TestSynchronization(UnitTestCase):
         # Simulate a server failure on file download
         self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
         self.engine_1.invalidate_client_cache()
-        error = HTTPErrorMock(None, 500, 'Mock download error', None, None)
+        error = HTTPErrorMock(status=500, message='Mock download error')
         self.engine_1.get_remote_client().make_download_raise(error)
 
         # File is not synchronized but synchronization does not fail either,
@@ -370,9 +372,9 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
         self.engine_1.invalidate_client_cache()
         errors = [
-            urllib2.URLError('Mock URLError'),
+            ConnectionError('Mock connection error'),
             socket.error('Mock socket error'),
-            HTTPErrorMock(None, 503, 'Mock', None, None)
+            HTTPErrorMock(status=503, message='Mock')
         ]
         engine_started = False
         for error in errors:
@@ -632,7 +634,7 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.remote_filtered_fs_client_factory = RemoteTestClient
         self.engine_1.invalidate_client_cache()
         self.engine_1.get_remote_client().make_download_raise(
-            HTTPErrorMock('', 400, 'Mock', {}, None))
+            HTTPErrorMock(status=400, message='Mock'))
         remote.make_file('/', 'test.odt', 'Some content.')
         self.engine_1.start()
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
@@ -923,7 +925,7 @@ class TestSynchronization(UnitTestCase):
         # Simulate a server conflict on file upload
         engine.remote_filtered_fs_client_factory = RemoteTestClient
         engine.invalidate_client_cache()
-        error = HTTPErrorMock(None, 409, 'Mock Conflict', None, None)
+        error = HTTPErrorMock(status=409, message='Mock Conflict')
         engine.get_remote_client().make_upload_raise(error)
         engine.get_remote_client().raise_on = _raise_for_second_file_only
 
