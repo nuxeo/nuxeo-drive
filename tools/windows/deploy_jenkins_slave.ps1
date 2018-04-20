@@ -22,6 +22,9 @@ $global:PYTHON_OPT = "-E", "-s"
 $global:PIP_OPT = "-m", "pip", "install", "--upgrade", "--upgrade-strategy=only-if-needed"
 $global:SERVER = "https://nuxeo-jenkins-public-resources.s3.eu-west-3.amazonaws.com/drive"
 
+# Imports
+Import-Module BitsTransfer
+
 function build_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace "'", "" -replace "__version__ = ", ""
@@ -151,8 +154,7 @@ function download($url, $output, [bool]$check=$true) {
 		Write-Output ">>> [$try/5] Downloading $url"
 		Write-Output "                   to $output"
 		Try {
-			$curl = New-Object System.Net.WebClient
-			$curl.DownloadFile($url, $output)
+			Start-BitsTransfer -Source $url -Destination $output
 		} Catch {}
 		$try += 1
 		Start-Sleep -s 5

@@ -158,7 +158,7 @@ class Tracker(Worker):
         for _, engine in engines.iteritems():
             stats = engine.get_metrics()
             for key, value in stats.iteritems():
-                log.trace('Send Statistics(Engine) %s:%d', key, value)
+                log.trace('Send Statistics(Engine) %s: %r', key, value)
                 self.send_event(category='Statistics', action='Engine',
                                 label=key, value=value)
         self._stat_timer.start(60 * 60 * 1000)
