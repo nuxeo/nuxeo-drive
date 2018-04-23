@@ -3,7 +3,7 @@ faulthandler==3.0  # TODO: Remove when NXDRIVE-691 is done
 Js2Py==0.59; python_version == '2.7'
 markdown==2.6.11
 poster==0.8.1; python_version == '2.7'  # TODO: Remove when NXDRIVE-825 is done
-psutil==5.4.3
+psutil==5.4.4
 pyaml==17.12.1
 pycryptodomex==3.6.0
 pypac==0.8.1
