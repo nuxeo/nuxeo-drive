@@ -51,6 +51,7 @@ Changes in command line arguments:
 #### Minor changes
 - Auto-update: automatically install a new update if no bound engine
 - CLI: Removed `--stop-on-error` argument
+- Doc: Removed the "Microsoft Visual C++ Compiler for Python 2.7" requirement
 - Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
 - Jenkins: Possibility to launch the beta job on a given branch
 - Jenkins: Possibility to launch the release job on a given beta version
