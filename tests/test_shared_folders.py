@@ -33,8 +33,8 @@ class TestSharedFolders(UnitTestCase):
             parent_folder_uid = remote_user1.make_folder(user1_workspace_uid, 'Parent')
 
             # As user1 grant Everything permission to user2 on parent folder
-            op_input = "doc:" + parent_folder_uid
-            admin_remote_client.execute("Document.SetACE", op_input=op_input, user=self.user_2,
+            input_obj = "doc:" + parent_folder_uid
+            admin_remote_client.execute("Document.SetACE", input_obj=input_obj, user=self.user_2,
                                         permission="Everything", grant="true")
 
             # As user1 create a child folder in parent folder
@@ -87,7 +87,7 @@ class TestSharedFolders(UnitTestCase):
         # Remove ReadWrite permission for user_1 on the test workspace
         test_workspace = 'doc:' + TEST_WORKSPACE_PATH
         self.root_remote_client.execute('Document.SetACE',
-                                        op_input=test_workspace,
+                                        input_obj=test_workspace,
                                         user=self.user_2,
                                         permission='ReadWrite',
                                         grant=True)
@@ -101,7 +101,7 @@ class TestSharedFolders(UnitTestCase):
 
         # Grant Read permission for user_1 on the test folder and register
         self.root_remote_client.execute('Document.SetACE',
-                                        op_input='doc:' + folder,
+                                        input_obj='doc:' + folder,
                                         user=self.user_1,
                                         permission='Read')
         remote_1.register_as_root(folder)
@@ -133,7 +133,7 @@ class TestSharedFolders(UnitTestCase):
 
         # Restore write permission to user_1 (=> ReadWrite)
         self.root_remote_client.execute('Document.SetACE',
-                                        op_input='doc:' + folder,
+                                        input_obj='doc:' + folder,
                                         user=self.user_1,
                                         permission='ReadWrite')
         self.wait()

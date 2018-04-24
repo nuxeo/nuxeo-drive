@@ -17,11 +17,12 @@ from threading import Thread
 from time import sleep
 
 from PyQt4 import QtCore
+from nuxeo.client import Nuxeo
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
 from nxdrive import __version__
-from nxdrive.client import LocalClient, RemoteFileSystemClient, RestAPIClient
+from nxdrive.client import LocalClient, RemoteFileSystemClient
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
@@ -275,8 +276,8 @@ class UnitTestCase(SimpleUnitTestCase):
             self.root_remote_client.activate_profile(server_profile)
 
         # Call the Nuxeo operation to setup the integration test environment
-        credentials = self.root_remote_client.execute(
-            "NuxeoDrive.SetupIntegrationTests",
+        credentials = self.root_remote_client.operations.execute(
+            command='NuxeoDrive.SetupIntegrationTests',
             userNames="user_1, user_2", permission='ReadWrite')
 
         credentials = [c.strip().split(u":") for c in credentials.split(u",")]
@@ -284,10 +285,10 @@ class UnitTestCase(SimpleUnitTestCase):
         self.user_2, self.password_2 = credentials[1]
         ws_info = self.root_remote_client.fetch(u'/default-domain/workspaces/')
         children = self.root_remote_client.get_children(ws_info['uid'])
-        log.debug("SuperWorkspace info: %r", ws_info)
-        log.debug("SuperWorkspace children: %r", children)
+        log.debug('SuperWorkspace info: %r', ws_info)
+        log.debug('SuperWorkspace children: %r', children)
         ws_info = self.root_remote_client.fetch(TEST_WORKSPACE_PATH)
-        log.debug("Workspace info: %r", ws_info)
+        log.debug('Workspace info: %r', ws_info)
         self.workspace = ws_info[u'uid']
         self.workspace_title = ws_info[u'title']
         self.workspace_1 = self.workspace
@@ -298,7 +299,8 @@ class UnitTestCase(SimpleUnitTestCase):
     def tearDownServer(self, server_profile=None):
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
-        self.root_remote_client.execute('NuxeoDrive.TearDownIntegrationTests')
+        self.root_remote_client.operations.execute(
+            command='NuxeoDrive.TearDownIntegrationTests')
 
         # Deactivate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
@@ -428,11 +430,8 @@ class UnitTestCase(SimpleUnitTestCase):
             self.version,
             password=self.password_2, upload_tmp_dir=self.upload_tmp_dir)
 
-        self.remote_restapi_client_admin = RestAPIClient(
-            self.nuxeo_url, self.admin_user, u'nxdrive-test-device-2',
-            self.version,
-            password=self.password
-        )
+        self.api_client = Nuxeo(auth=(self.admin_user, self.password),
+                                host=self.nuxeo_url, version=self.version)
 
         # Register sync roots
         if register_roots:
@@ -850,13 +849,11 @@ class UnitTestCase(SimpleUnitTestCase):
         self.manager_1.generate_report(path)
 
     def _set_read_permission(self, user, doc_path, grant):
-        op_input = "doc:" + doc_path
+        input_obj = "doc:" + doc_path
         if grant:
-            self.root_remote_client.execute("Document.SetACE",
-                                            op_input=op_input,
-                                            user=user,
-                                            permission="Read",
-                                            grant="true")
+            self.root_remote_client.operations.execute(
+                command='Document.SetACE', input_obj=input_obj, user=user,
+                permission='Read', grant='true')
         else:
             self.root_remote_client.block_inheritance(doc_path)
 
@@ -926,11 +923,13 @@ class UnitTestCase(SimpleUnitTestCase):
         """
 
         remote = self.root_remote_client
-        op_input = 'doc:' + doc_path
+        input_obj = 'doc:' + doc_path
         if grant:
-            remote.execute('Document.SetACE', op_input=op_input,
-                           user=user, permission='Read')
+            remote.operations.execute(
+                command='Document.SetACE', input_obj=input_obj, user=user,
+                permission='Read')
             remote.block_inheritance(doc_path, overwrite=False)
         else:
-            remote.execute('Document.SetACE', op_input=op_input, user=user,
-                           permission='ReadWrite', grant='true')
+            remote.operations.execute(
+                command='Document.SetACE', input_obj=input_obj, user=user,
+                permission='ReadWrite', grant='true')

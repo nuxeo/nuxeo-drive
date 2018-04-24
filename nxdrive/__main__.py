@@ -2,7 +2,6 @@
 import signal
 import sys
 
-
 from nxdrive.commandline import CliHandler
 
 

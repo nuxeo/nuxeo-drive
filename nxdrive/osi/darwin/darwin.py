@@ -3,8 +3,9 @@ import os
 import socket
 import stat
 import sys
-import urllib2
 from logging import getLogger
+
+from nuxeo.compat import quote
 
 from .. import AbstractOSIntegration
 from ...constants import BUNDLE_IDENTIFIER
@@ -207,7 +208,7 @@ class DarwinIntegration(AbstractOSIntegration):
             return
 
         url = CFURLCreateWithString(
-            None, 'file://{}'.format(urllib2.quote(folder_path)), None)
+            None, 'file://{}'.format(quote(folder_path)), None)
         if not url:
             log.warning(
                 'Could not generate valid favorite URL for: %r', folder_path)

@@ -1,5 +1,4 @@
 # coding: utf-8
-import urllib2
 import urlparse
 from collections import namedtuple
 from logging import getLogger
@@ -7,15 +6,13 @@ from urllib import urlencode
 
 import requests
 from PyQt4 import QtCore, QtGui
-from nuxeo.exceptions import Unauthorized, HTTPError
+from nuxeo.exceptions import HTTPError, Unauthorized
 from requests import ConnectionError
 
 from .authentication import WebAuthenticationApi, WebAuthenticationDialog
 from .dialog import Promise, WebDialog, WebDriveApi
 from .translator import Translator
-from ..client.base_automation_client import (AddonNotInstalled,
-                                             get_opener_proxies,
-                                             get_proxy_handler)
+from ..client.base_automation_client import AddonNotInstalled
 from ..client.common import NotFound
 from ..engine.engine import (InvalidDriveException,
                              RootAlreadyBindWithDifferentAccount)
@@ -240,13 +237,8 @@ class WebSettingsApi(WebDriveApi):
             (parts.scheme, parts.netloc, parts.path, '', parts.fragment))
 
         try:
-            proxy_handler = get_proxy_handler(
-                self._manager.get_proxies(server_url))
-            opener = urllib2.build_opener(proxy_handler)
-            log.debug('Proxy configuration for startup page connection: %s,'
-                      ' effective proxy list: %r',
-                      self._manager.get_proxy_settings().config,
-                      get_opener_proxies(opener))
+            log.debug('Proxy configuration for startup page connection: %s',
+                      self._manager.get_proxy_settings().config)
             headers = {
                 'X-Application-Name': self._manager.app_name,
                 'X-Device-Id': self._manager.device_id,

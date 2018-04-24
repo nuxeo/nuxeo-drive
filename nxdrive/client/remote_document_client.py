@@ -10,8 +10,9 @@ from logging import getLogger
 from dateutil import parser
 from nuxeo.exceptions import HTTPError
 
-from .base_automation_client import BaseAutomationClient
+from nxdrive.utils import make_tmp_file
 from .common import NotFound, safe_filename
+from .nuxeo_client import BaseNuxeo
 from ..options import Options
 
 log = getLogger(__name__)
@@ -59,7 +60,7 @@ class NuxeoDocumentInfo(BaseNuxeoDocumentInfo):
         return self.digest
 
 
-class RemoteDocumentClient(BaseAutomationClient):
+class RemoteDocumentClient(BaseNuxeo):
     """Nuxeo document oriented Automation client
 
     Uses Automation standard document API. Deprecated in NuxeDrive
@@ -69,20 +70,9 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     # Override constructor to initialize base folder
     # which is specific to RemoteDocumentClient
-    def __init__(self, server_url, user_id, device_id, client_version,
-                 proxies=None, proxy_exceptions=None,
-                 password=None, token=None, repository=Options.remote_repo,
-                 base_folder=None, timeout=20, blob_timeout=None,
-                 cookie_jar=None, upload_tmp_dir=None, check_suspended=None):
-        super(RemoteDocumentClient, self).__init__(
-            server_url, user_id, device_id, client_version,
-            proxies=proxies, proxy_exceptions=proxy_exceptions,
-            password=password, token=token, repository=repository,
-            timeout=timeout, blob_timeout=blob_timeout,
-            cookie_jar=cookie_jar, upload_tmp_dir=upload_tmp_dir,
-            check_suspended=check_suspended)
-
-        # fetch the root folder ref
+    def __init__(self, *args, **kwargs):
+        base_folder = kwargs.pop('base_folder', None)
+        super(RemoteDocumentClient, self).__init__(*args, **kwargs)
         self.set_base_folder(base_folder)
 
     def set_base_folder(self, base_folder):
@@ -102,7 +92,7 @@ class RemoteDocumentClient(BaseAutomationClient):
                            include_versions=include_versions):
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
-                    self._check_ref(ref), self.server_url))
+                    self._check_ref(ref), self.client.host))
             return None
         return self.doc_to_info(self.fetch(self._check_ref(ref)),
                                 fetch_parent_uid=fetch_parent_uid)
@@ -171,9 +161,9 @@ class RemoteDocumentClient(BaseAutomationClient):
                     mime_type=None, doc_type=FILE_TYPE):
         """Create a document by streaming the file with the given path"""
         ref = self.make_file(parent, name, doc_type=doc_type)
-        self.execute_with_blob_streaming("Blob.Attach", file_path,
-                                         filename=filename, document=ref,
-                                         mime_type=mime_type)
+        self.upload(
+            file_path, filename=filename, mime_type=mime_type,
+            command='Blob.Attach', document=ref)
         return ref
 
     def update_content(self, ref, content, filename=None):
@@ -201,34 +191,37 @@ class RemoteDocumentClient(BaseAutomationClient):
         params = {'document': ref}
         if self.is_nuxeo_drive_attach_blob():
             params.update({'applyVersioningPolicy': apply_versioning_policy})
-        self.execute_with_blob_streaming(
-            op_name, file_path, filename=filename, mime_type=mime_type, **params)
+        self.upload(
+            file_path, filename=filename, mime_type=mime_type,
+            command=op_name, **params)
 
     def delete(self, ref, use_trash=True):
-        op_input = 'doc:' + self._check_ref(ref)
+        input_obj = 'doc:' + self._check_ref(ref)
         if use_trash:
             try:
                 # We need more stability in the Trash behavior before
                 # we can use it instead of the SetLifeCycle operation
                 # if version_lt(Options.server_version, '10.1'):
-                return self.execute('Document.SetLifeCycle',
-                                    op_input=op_input, value='delete')
+                return self.operations.execute(command='Document.SetLifeCycle',
+                                               input_obj=input_obj,
+                                               value='delete')
                 # else:
-                #    return self.execute('Document.Trash', op_input=op_input)
+                #    return self.operations.execute(command='Document.Trash', input_obj=input_obj)
             except HTTPError as e:
                 if e.status != 500:
                     raise
-        return self.execute('Document.Delete', op_input=op_input)
+        return self.operations.execute(command='Document.Delete',
+                                       input_obj=input_obj)
 
     def undelete(self, uid):
-        op_input = 'doc:' + uid
+        input_obj = 'doc:' + uid
         # We need more stability in the Trash behavior before
         # we can use it instead of the SetLifeCycle operation
         # if version_lt(Options.server_version, '10.1'):
-        return self.execute('Document.SetLifeCycle',
-                            op_input=op_input, value='undelete')
+        return self.operations.execute(command='Document.SetLifeCycle',
+                                       input_obj=input_obj, value='undelete')
         # else:
-        #    return self.execute('Document.Untrash', op_input=op_input)
+        #    return self.operations.execute(command='Document.Untrash', input_obj=input_obj)
 
     def delete_content(self, ref, xpath=None):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)
@@ -337,7 +330,9 @@ class RemoteDocumentClient(BaseAutomationClient):
 
         # Normalize using NFC to make the tests more intuitive
         if 'uid:major_version' in props and 'uid:minor_version' in props:
-            version = str(props['uid:major_version']) + '.' + str(props['uid:minor_version'])
+            version = (str(props['uid:major_version'])
+                       + '.'
+                       + str(props['uid:minor_version']))
         else:
             version = None
         if name is not None:
@@ -345,7 +340,7 @@ class RemoteDocumentClient(BaseAutomationClient):
         return NuxeoDocumentInfo(
             self._base_folder_ref, name, doc['uid'], parent_uid,
             doc['path'], folderish, last_update, last_contributor,
-            digest_algorithm, digest, self.repository, doc['type'],
+            digest_algorithm, digest, self.client.repository, doc['type'],
             version, doc['state'], has_blob, filename,
             lock_owner, lock_created, permissions)
 
@@ -375,85 +370,94 @@ class RemoteDocumentClient(BaseAutomationClient):
 
     def create(self, ref, doc_type, name=None, properties=None):
         name = safe_filename(name)
-        return self.execute("Document.Create", op_input="doc:" + ref,
+        return self.operations.execute(
+            command='Document.Create', input_obj='doc:' + ref,
             type=doc_type, name=name, properties=properties)
 
     def update(self, ref, properties=None):
-        return self.execute("Document.Update", op_input="doc:" + ref,
+        return self.operations.execute(
+            command='Document.Update', input_obj='doc:' + ref,
             properties=properties)
 
     def get_children(self, ref):
-        return self.execute("Document.GetChildren", op_input="doc:" + ref)
+        return self.operations.execute(
+            command='Document.GetChildren', input_obj='doc:' + ref)
 
     def is_locked(self, ref):
         data = self.fetch(ref, extra_headers={'fetch-document': 'lock'})
         return 'lockCreated' in data
 
     def lock(self, ref):
-        return self.execute("Document.Lock", op_input="doc:" + self._check_ref(ref))
+        return self.operations.execute(
+            command='Document.Lock', input_obj='doc:' + self._check_ref(ref))
 
     def unlock(self, ref):
-        return self.execute("Document.Unlock", op_input="doc:" + self._check_ref(ref))
+        return self.operations.execute(
+            command='Document.Unlock', input_obj='doc:' + self._check_ref(ref))
 
     def create_user(self, user_name, **kwargs):
-        return self.execute('User.CreateOrUpdate', username=user_name, **kwargs)
+        return self.operations.execute(
+            command='User.CreateOrUpdate', username=user_name, **kwargs)
 
     def move(self, ref, target, name=None):
-        return self.execute("Document.Move",
-                            op_input="doc:" + self._check_ref(ref),
-                            target=self._check_ref(target), name=name)
+        return self.operations.execute(
+            command='Document.Move', input_obj='doc:' + self._check_ref(ref),
+            target=self._check_ref(target), name=name)
 
     def copy(self, ref, target, name=None):
-        return self.execute("Document.Copy",
-                            op_input="doc:" + self._check_ref(ref),
-                            target=self._check_ref(target), name=name)
+        return self.operations.execute(
+            command='Document.Copy', input_obj='doc:' + self._check_ref(ref),
+            target=self._check_ref(target), name=name)
 
     def create_version(self, ref, increment='None'):
-        doc = self.execute("Document.CreateVersion",
-                            op_input="doc:" + self._check_ref(ref),
-                            increment=increment)
+        doc = self.operations.execute(
+            command='Document.CreateVersion',
+            input_obj='doc:' + self._check_ref(ref), increment=increment)
         return doc['uid']
 
     def get_versions(self, ref):
-        extra_headers = {'X-NXfetch.document': 'versionLabel'}
-        versions = self.execute(
-            'Document.GetVersions',
-            op_input='doc:' + self._check_ref(ref),
-            extra_headers=extra_headers)
+        headers = {'X-NXfetch.document': 'versionLabel'}
+        versions = self.operations.execute(command='Document.GetVersions',
+            input_obj='doc:' + self._check_ref(ref), headers=headers)
         return [(v['uid'], v['versionLabel']) for v in versions['entries']]
 
     def restore_version(self, version):
-        doc = self.execute("Document.RestoreVersion",
-                            op_input="doc:" + self._check_ref(version))
+        doc = self.operations.execute(
+            command='Document.RestoreVersion',
+            input_obj='doc:' + self._check_ref(version))
         return doc['uid']
 
     def block_inheritance(self, ref, overwrite=True):
-        op_input = "doc:" + self._check_ref(ref)
-        self.execute("Document.SetACE",
-            op_input=op_input,
-            user="Administrator",
-            permission="Everything",
+        input_obj = 'doc:' + self._check_ref(ref)
+        self.operations.execute(
+            command='Document.SetACE',
+            input_obj=input_obj,
+            user='Administrator',
+            permission='Everything',
             overwrite=overwrite)
-        self.execute("Document.SetACE",
-            op_input=op_input,
-            user="Everyone",
-            permission="Everything",
-            grant="false",
+        self.operations.execute(
+            command='Document.SetACE',
+            input_obj=input_obj,
+            user='Everyone',
+            permission='Everything',
+            grant='false',
             overwrite=False)
 
-    # These ones are special: no 'op_input' parameter
+    # These ones are special: no 'input_obj' parameter
 
     def fetch(self, ref, **kwargs):
         try:
-            return self.execute('Document.Fetch', value=ref, **kwargs)
+            return self.operations.execute(
+                command='Document.Fetch', value=ref, **kwargs)
         except HTTPError as e:
             if e.status == 404:
-                raise NotFound("Failed to fetch document %r on server %r" % (
-                    ref, self.server_url))
+                raise NotFound('Failed to fetch document %r on server %r' % (
+                    ref, self.client.host))
             raise e
 
     def query(self, query, language=None):
-        return self.execute("Document.Query", query=query, language=language)
+        return self.operations.execute(
+            command='Document.Query', query=query, language=language)
 
     # Blob category
     def get_blob(self, ref, file_out=None):
@@ -468,46 +472,47 @@ class RemoteDocumentClient(BaseAutomationClient):
                 return content
         else:
             doc_id = ref
-        return self.execute('Blob.Get', op_input='doc:' + doc_id, json=False,
-                            timeout=self.blob_timeout, file_out=file_out)
+        return self.operations.execute(
+            command='Blob.Get', input_obj='doc:' + doc_id, json=False,
+            timeout=self.blob_timeout, file_out=file_out)
 
     def attach_blob(self, ref, blob, filename):
-        file_path = self.make_tmp_file(blob)
+        file_path = make_tmp_file(self.upload_tmp_dir, blob)
         try:
-            return self.execute_with_blob_streaming(
-                'Blob.Attach', file_path, filename=filename, document=ref)
+            return self.upload(
+                file_path, filename=filename, command='Blob.Attach',
+                document=ref)
         finally:
             os.remove(file_path)
 
     def delete_blob(self, ref, xpath=None):
-        return self.execute('Blob.Remove', op_input='doc:' + ref, xpath=xpath)
+        return self.operations.execute(
+            command='Blob.Remove', input_obj='doc:' + ref, xpath=xpath)
 
     def log_on_server(self, message, level='WARN'):
         """ Log the current test server side.  Helpful for debugging. """
-
-        return self.execute('Log', message=message, level=level.lower())
+        return self.operations.execute(
+            command='Log', message=message, level=level.lower())
 
     #
     # Nuxeo Drive specific operations
     #
-
     def get_roots(self):
-        entries = self.execute('NuxeoDrive.GetRoots')['entries']
-        return self._filtered_results(entries, fetch_parent_uid=False)
+        res = self.operations.execute(command='NuxeoDrive.GetRoots')
+        return self._filtered_results(res['entries'], fetch_parent_uid=False)
 
     def get_update_info(self):
-        return self.execute('NuxeoDrive.GetClientUpdateInfo')
+        return self.operations.execute(
+            command='NuxeoDrive.GetClientUpdateInfo')
 
     def register_as_root(self, ref):
-        self.execute(
-            'NuxeoDrive.SetSynchronization',
-            op_input='doc:' + self._check_ref(ref),
-            enable=True)
+        self.operations.execute(
+            command='NuxeoDrive.SetSynchronization',
+            input_obj='doc:' + self._check_ref(ref), enable=True)
         return True
 
     def unregister_as_root(self, ref):
-        self.execute(
-            'NuxeoDrive.SetSynchronization',
-            op_input='doc:' + self._check_ref(ref),
-            enable=False)
+        self.operations.execute(
+            command='NuxeoDrive.SetSynchronization',
+            input_obj='doc:' + self._check_ref(ref), enable=False)
         return True

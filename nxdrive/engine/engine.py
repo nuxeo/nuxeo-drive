@@ -7,6 +7,7 @@ from threading import Thread, current_thread
 from time import sleep
 
 from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
+from nuxeo.client import Nuxeo
 from nuxeo.exceptions import HTTPError, Unauthorized
 from requests import ConnectionError
 
@@ -21,7 +22,6 @@ from ..client import (LocalClient, RemoteDocumentClient,
                       RemoteFileSystemClient,
                       RemoteFilteredFileSystemClient)
 from ..client.common import BaseClient, NotFound, safe_filename
-from ..client.rest_api_client import RestAPIClient
 from ..options import Options
 from ..osi import AbstractOSIntegration
 from ..utils import find_icon, normalized_path
@@ -975,7 +975,7 @@ class Engine(QObject):
             self._dao.dispose()
 
     def get_rest_api_client(self):
-        return RestAPIClient(
+        return Nuxeo(
             self.server_url,
             self.remote_user,
             self._manager.device_id,
@@ -998,7 +998,7 @@ class Engine(QObject):
         if not cache_only:
             rest_client = self.get_rest_api_client()
             try:
-                prop = rest_client.nuxeo.users.get(userid).properties
+                prop = rest_client.users.get(userid).properties
             except (HTTPError, ConnectionError):
                 log.exception('Network error')
             except (TypeError, KeyError):

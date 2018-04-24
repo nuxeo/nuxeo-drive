@@ -16,7 +16,6 @@ import uuid
 
 from nuxeo.nuxeo import Nuxeo
 
-
 nuxeo = Nuxeo(base_url=os.environ.get('NXDRIVE_TEST_NUXEO_URL',
                                       'http://localhost:8080/nuxeo'),
               auth={'username': 'Administrator',

@@ -139,7 +139,7 @@ class TestPermissionHierarchy(UnitTestCase):
         folder_a_fs = self.local_client_2.get_remote_id('/Other Docs/Folder A')
         # Unshare Folder A and share Folder C
         self.admin.execute('Document.RemoveACL',
-                           op_input='doc:' + test_folder_uid,
+                           input_obj='doc:' + test_folder_uid,
                            acl='local')
         self.set_readonly(self.user_2, folder_c)
         self.user2.register_as_root(folder_c)

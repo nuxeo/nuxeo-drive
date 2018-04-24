@@ -1,8 +1,8 @@
 # coding: utf-8
-import psutil
 from copy import deepcopy
 from logging import getLogger
 
+import psutil
 from PyQt4.QtCore import QTimer, pyqtSignal
 
 from .engine.workers import PollWorker, ThreadInterrupt

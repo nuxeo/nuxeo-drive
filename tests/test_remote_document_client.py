@@ -6,7 +6,7 @@ from unittest import SkipTest
 
 import pytest
 from nuxeo.auth import TokenAuth
-from nuxeo.exceptions import Unauthorized, HTTPError
+from nuxeo.exceptions import HTTPError, Unauthorized
 
 from nxdrive.client import LocalClient, NotFound, RemoteDocumentClient
 from .common import SOME_TEXT_CONTENT, SOME_TEXT_DIGEST

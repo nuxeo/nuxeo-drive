@@ -10,7 +10,7 @@ class TestConcurrentSynchronization(UnitTestCase):
     def create_docs(self, parent, number, name_pattern=None, delay=1.0):
         return self.root_remote_client.execute(
             "NuxeoDrive.CreateTestDocuments",
-            op_input="doc:" + parent, namePattern=name_pattern,
+            input_obj="doc:" + parent, namePattern=name_pattern,
             number=number, delay=int(delay * 1000))
 
     @RandomBug('NXDRIVE-808', target='linux', repeat=2)

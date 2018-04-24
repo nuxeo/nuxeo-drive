@@ -30,7 +30,6 @@ from urllib2 import URLError
 from mock import patch
 
 from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
-from nxdrive.options import Options
 from .common import TEST_DEFAULT_DELAY
 from .common_unit_test import UnitTestCase
 

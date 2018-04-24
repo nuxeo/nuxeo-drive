@@ -8,10 +8,11 @@ from datetime import datetime
 from logging import getLogger
 from threading import current_thread
 
-from .base_automation_client import (BaseAutomationClient,
-                                     DOWNLOAD_TMP_FILE_PREFIX,
+from nxdrive.utils import make_tmp_file
+from .base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
                                      DOWNLOAD_TMP_FILE_SUFFIX)
 from .common import NotFound
+from .nuxeo_client import BaseNuxeo
 from ..engine.activity import FileAction
 
 log = getLogger(__name__)
@@ -49,7 +50,7 @@ class RemoteFileInfo(BaseRemoteFileInfo):
         return self.digest
 
 
-class RemoteFileSystemClient(BaseAutomationClient):
+class RemoteFileSystemClient(BaseNuxeo):
     """File system oriented Automation client
 
     Uses the FileSystemItem API.
@@ -66,12 +67,13 @@ class RemoteFileSystemClient(BaseAutomationClient):
         if fs_item is None:
             if raise_if_missing:
                 raise NotFound("Could not find '%s' on '%s'" % (
-                    fs_item_id, self.server_url))
+                    fs_item_id, self.client.host))
             return None
         return self.file_to_info(fs_item)
 
     def get_filesystem_root_info(self):
-        toplevel_folder = self.execute('NuxeoDrive.GetTopLevelFolder')
+        toplevel_folder = self.operations.execute(
+            command='NuxeoDrive.GetTopLevelFolder')
         return self.file_to_info(toplevel_folder)
 
     def get_content(self, fs_item_id):
@@ -83,10 +85,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
         cannot be found
         """
         fs_item_info = self.get_info(fs_item_id)
-        download_url = self.server_url + fs_item_info.download_url
+        download_url = self.client.host + fs_item_info.download_url
         FileAction('Download', None, fs_item_info.name, 0)
         content = self.download(download_url, digest=fs_item_info.digest)
-        self.end_action()
+        FileAction.finish_action()
         return content
 
     def stream_content(self, fs_item_id, file_path, parent_fs_item_id=None,
@@ -98,7 +100,7 @@ class RemoteFileSystemClient(BaseAutomationClient):
         """
         fs_item_info = fs_item_info or self.get_info(
             fs_item_id, parent_fs_item_id=parent_fs_item_id)
-        download_url = self.server_url + fs_item_info.download_url
+        download_url = self.client.host + fs_item_info.download_url
         file_name = os.path.basename(file_path)
         if file_out is None:
             file_dir = os.path.dirname(file_path)
@@ -115,16 +117,18 @@ class RemoteFileSystemClient(BaseAutomationClient):
                 os.remove(file_out)
             raise e
         finally:
-            self.end_action()
+            FileAction.finish_action()
         return tmp_file
 
     def get_children_info(self, fs_item_id):
-        children = self.execute('NuxeoDrive.GetChildren', id=fs_item_id)
+        children = self.operations.execute(
+            command='NuxeoDrive.GetChildren', id=fs_item_id)
         return [self.file_to_info(fs_item) for fs_item in children]
 
     def scroll_descendants(self, fs_item_id, scroll_id, batch_size=100):
-        res = self.execute('NuxeoDrive.ScrollDescendants', id=fs_item_id,
-                           scrollId=scroll_id, batchSize=batch_size)
+        res = self.operations.execute(
+            command='NuxeoDrive.ScrollDescendants', id=fs_item_id,
+            scrollId=scroll_id, batchSize=batch_size)
         return {
             'scroll_id': res['scrollId'],
             'descendants': [self.file_to_info(fs_item)
@@ -135,9 +139,9 @@ class RemoteFileSystemClient(BaseAutomationClient):
         return False
 
     def make_folder(self, parent_id, name, overwrite=False):
-        fs_item = self.execute('NuxeoDrive.CreateFolder',
-                               parentId=parent_id, name=name,
-                               overwrite=overwrite)
+        fs_item = self.operations.execute(
+            command='NuxeoDrive.CreateFolder', parentId=parent_id, name=name,
+            overwrite=overwrite)
         return self.file_to_info(fs_item)
 
     def make_file(self, parent_id, name, content):
@@ -145,12 +149,11 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
         Creates a temporary file from the content then streams it.
         """
-        file_path = self.make_tmp_file(content)
+        file_path = make_tmp_file(self.upload_tmp_dir, content)
         try:
-            fs_item = self.execute_with_blob_streaming('NuxeoDrive.CreateFile',
-                                                       file_path,
-                                                       filename=name,
-                                                       parentId=parent_id)
+            fs_item = self.upload(
+                file_path, filename=name, command='NuxeoDrive.CreateFile',
+                parentId=parent_id)
             return self.file_to_info(fs_item)
         finally:
             os.remove(file_path)
@@ -162,12 +165,10 @@ class RemoteFileSystemClient(BaseAutomationClient):
         :param overwrite: Allows to overwrite an existing document with the
         same title on the server.
         """
-        fs_item = self.execute_with_blob_streaming('NuxeoDrive.CreateFile',
-                                                   file_path,
-                                                   filename=filename,
-                                                   mime_type=mime_type,
-                                                   parentId=parent_id,
-                                                   overwrite=overwrite)
+        fs_item = self.upload(
+            file_path, filename=filename, mime_type=mime_type,
+            command='NuxeoDrive.CreateFile', parentId=parent_id,
+            overwrite=overwrite)
         return self.file_to_info(fs_item)
 
     def update_content(self, fs_item_id, content, filename=None,
@@ -176,15 +177,13 @@ class RemoteFileSystemClient(BaseAutomationClient):
 
         Creates a temporary file from the content then streams it.
         """
-        file_path = self.make_tmp_file(content)
+        file_path = make_tmp_file(self.upload_tmp_dir, content)
         try:
             if filename is None:
                 filename = self.get_info(fs_item_id).name
-            fs_item = self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
-                                                       file_path,
-                                                       filename=filename,
-                                                       mime_type=mime_type,
-                                                       id=fs_item_id)
+            fs_item = self.upload(
+                file_path, filename=filename, mime_type=mime_type,
+                command='NuxeoDrive.UpdateFile', id=fs_item_id)
             return self.file_to_info(fs_item)
         finally:
             os.remove(file_path)
@@ -192,33 +191,33 @@ class RemoteFileSystemClient(BaseAutomationClient):
     def stream_update(self, fs_item_id, file_path, parent_fs_item_id=None,
                       filename=None):
         """Update a document by streaming the file with the given path"""
-        fs_item = self.execute_with_blob_streaming('NuxeoDrive.UpdateFile',
-                                                   file_path,
-                                                   filename=filename,
-                                                   id=fs_item_id,
-                                                   parentId=parent_fs_item_id)
+        fs_item = self.upload(
+            file_path, filename=filename, command='NuxeoDrive.UpdateFile',
+            id=fs_item_id, parentId=parent_fs_item_id)
         return self.file_to_info(fs_item)
 
     def delete(self, fs_item_id, parent_fs_item_id=None):
-        self.execute('NuxeoDrive.Delete', id=fs_item_id,
-                     parentId=parent_fs_item_id)
+        self.operations.execute(
+            command='NuxeoDrive.Delete', id=fs_item_id,
+            parentId=parent_fs_item_id)
 
     def exists(self, fs_item_id):
-        return self.execute('NuxeoDrive.FileSystemItemExists', id=fs_item_id)
+        return self.operations.execute(
+            command='NuxeoDrive.FileSystemItemExists', id=fs_item_id)
 
     def rename(self, fs_item_id, new_name):
-        return self.file_to_info(self.execute('NuxeoDrive.Rename',
-                                              id=fs_item_id, name=new_name))
+        return self.file_to_info(self.operations.execute(
+            command='NuxeoDrive.Rename', id=fs_item_id, name=new_name))
 
     def move(self, fs_item_id, new_parent_id):
-        return self.file_to_info(self.execute('NuxeoDrive.Move',
-                                              srcId=fs_item_id,
-                                              destId=new_parent_id))
+        return self.file_to_info(self.operations.execute(
+            command='NuxeoDrive.Move', srcId=fs_item_id, destId=new_parent_id))
 
     def conflicted_name(self, original_name):
         """Generate a new name suitable for conflict deduplication."""
-        return self.execute('NuxeoDrive.GenerateConflictedItemName',
-                            name=original_name)
+        return self.operations.execute(
+            command='NuxeoDrive.GenerateConflictedItemName',
+            name=original_name)
 
     @staticmethod
     def file_to_info(fs_item):
@@ -278,11 +277,13 @@ class RemoteFileSystemClient(BaseAutomationClient):
         if fs_item_id is None:
             log.warning('get_fs_item() called without fs_item_id')
             return None
-        return self.execute('NuxeoDrive.GetFileSystemItem', id=fs_item_id,
-                            parentId=parent_fs_item_id)
+        return self.operations.execute(
+            command='NuxeoDrive.GetFileSystemItem', id=fs_item_id,
+            parentId=parent_fs_item_id)
 
     def get_top_level_children(self):
-        return self.execute('NuxeoDrive.GetTopLevelChildren')
+        return self.operations.execute(
+            command='NuxeoDrive.GetTopLevelChildren')
 
     def get_changes(self, last_root_definitions,
                     log_id=None, last_sync_date=None):
@@ -290,11 +291,11 @@ class RemoteFileSystemClient(BaseAutomationClient):
             # If available, use last event log id as 'lowerBound' parameter
             # according to the new implementation of the audit change finder,
             # see https://jira.nuxeo.com/browse/NXP-14826.
-            return self.execute(
-                'NuxeoDrive.GetChangeSummary', lowerBound=log_id,
+            return self.operations.execute(
+                command='NuxeoDrive.GetChangeSummary', lowerBound=log_id,
                 lastSyncActiveRootDefinitions=last_root_definitions)
         # Use last sync date as 'lastSyncDate' parameter according to the
         # old implementation of the audit change finder.
-        return self.execute(
-            'NuxeoDrive.GetChangeSummary', lastSyncDate=last_sync_date,
+        return self.operations.execute(
+            command='NuxeoDrive.GetChangeSummary', lastSyncDate=last_sync_date,
             lastSyncActiveRootDefinitions=last_root_definitions)

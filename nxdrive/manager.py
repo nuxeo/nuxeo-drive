@@ -5,7 +5,6 @@ import sip
 import subprocess
 import sys
 import unicodedata
-import urllib2
 import uuid
 from collections import namedtuple
 from logging import getLogger
@@ -148,36 +147,27 @@ class ProxySettings(object):
                     self.authenticated, self.username, self.exceptions)
 
     @staticmethod
-    def validate_proxy(proxy_server, target_url):
+    def validate_proxy(proxy_url, target_url):
         """
         Validate a proxy server for the give the target URL.
 
-        :param proxy_server: The proxy server to validate
+        :param proxy_url: The proxy server to validate
         :param target_url: The target URL to check
-        :return: (True, proxy_setting) if proxy server is valid for the
-                                       target_url
-                 (False, proxy_setting) if proxy server does not work for
-                                        the target_url
+        :return: (True, proxy_settings) if proxy server is valid for the
+                                        target_url
+                 (False, proxy_settings) if proxy server does not work for
+                                         the target_url
         """
 
-        proxy_setting = {}
-        log.trace('Validating proxy server: %s for %s', proxy_server,
-                  target_url)
+        proxy_settings = None
+        log.trace('Validating proxy server: %s for %s', proxy_url, target_url)
         try:
-            if proxy_server.upper() == 'DIRECT':
-                opener = urllib2.build_opener()
-            else:
-                proxy_setting = {'http': proxy_server, 'https': proxy_server}
-                proxy = urllib2.ProxyHandler(proxy_setting)
-                opener = urllib2.build_opener(proxy)
-            response = opener.open(target_url)
-            if response:
-                response.read()
-            response.close()
-            return True, proxy_setting
-        except urllib2.HTTPError:
-            log.exception('Invalid proxy server')
-        return False, proxy_setting
+            if proxy_url.upper() != 'DIRECT':
+                proxy_settings = {'http': proxy_url, 'https': proxy_url}
+            resp = requests.get(target_url, proxies=proxy_settings)
+            return resp.ok, proxy_settings
+        except Exception:
+            return False, proxy_settings
 
     def get_proxies_automatic(self, url):
         """
@@ -212,11 +202,10 @@ class ProxySettings(object):
             proxy_list = resolver.get_proxies(url)
 
         for item in proxy_list:
-            proxy_server = item.lstrip('PROXY ')
-            working, proxy_setting = self.validate_proxy(
-                proxy_server=proxy_server, target_url=url)
+            proxy_url = item.lstrip('PROXY ')
+            working, proxy_settings = self.validate_proxy(proxy_url, url)
             if working:
-                return proxy_setting
+                return proxy_settings
 
         return default
 
@@ -690,46 +679,40 @@ class Manager(QtCore.QObject):
         return self._tracker.uid if self._tracker else ''
 
     def validate_proxy_settings(self, proxy_settings):
-        conn = None
-        url = "http://www.google.com"
+        url = 'http://www.google.com'
         try:
             if proxy_settings.config in ('Manual', 'System'):
                 proxies, _ = get_proxies_for_handler(proxy_settings)
-                opener = urllib2.build_opener(urllib2.ProxyHandler(proxies),
-                                              urllib2.HTTPBasicAuthHandler(),
-                                              urllib2.HTTPHandler)
-                conn = opener.open(url)
-                conn.read()
+                resp = requests.get(url, proxies=proxies)
+                resp.raise_for_status()
             elif proxy_settings.config == 'Automatic':
-                conn = urllib2.urlopen(proxy_settings.pac_url)
-                if conn:
-                    pac_script = conn.read()
-                    pac_data = pypac.parser.PACFile(pac_script)
-                    resolver = pypac.resolver.ProxyResolver(pac_data)
-                    if self._engine_definitions:
-                        # Check if every server URL can be resolved to some
-                        # proxy server
-                        for engine_def in self._engine_definitions:
-                            url = self._engines[engine_def.uid].server_url
-                            resolver.get_proxies(url)
-                    else:
+                resp = requests.get(proxy_settings.pac_url)
+                resp.raise_for_status()
+                pac_script = resp.text
+                pac_data = pypac.parser.PACFile(pac_script)
+                resolver = pypac.resolver.ProxyResolver(pac_data)
+                if self._engine_definitions:
+                    # Check if every server URL can be resolved to some
+                    # proxy server
+                    for engine_def in self._engine_definitions:
+                        url = self._engines[engine_def.uid].server_url
                         resolver.get_proxies(url)
+                else:
+                    resolver.get_proxies(url)
         except Exception as e:
             log.error('Exception (%s) when validating proxy server for %s',
                       e, url)
             return False
         finally:
-            if conn:
-                conn.close()
-        return True
+            return True
 
     def set_proxy_settings(self, proxy_settings, force=False):
         if force or self.validate_proxy_settings(proxy_settings):
             proxy_settings.save(self._dao)
             self.refresh_proxies(proxy_settings)
-            log.info("Proxy settings successfully updated: %r", proxy_settings)
-            return ""
-        return "PROXY_INVALID"
+            log.info('Proxy settings successfully updated: %r', proxy_settings)
+            return ''
+        return 'PROXY_INVALID'
 
     def refresh_proxies(self, proxy_settings=None):
         """ Refresh current proxies with the given settings. """

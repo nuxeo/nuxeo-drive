@@ -90,10 +90,10 @@ class TestLocalShareMoveFolders(UnitTestCase):
         dst = self.local_client_1.abspath(self.folder_path_2)
     
         wait_for_security_update = True                                        
-        op_input = self.local_client_1.get_remote_id('/a1').split('#')[-1]
+        input_obj = self.local_client_1.get_remote_id('/a1').split('#')[-1]
         admin_remote_client.execute("Document.AddPermission",
                                     url = admin_remote_client.rest_api_url + 'automation/Document.AddPermission',
-                                    op_input=op_input,
+                                    input_obj=input_obj,
                                     username=self.user_2,
                                     permission="Everything",
                                     grant="true")        

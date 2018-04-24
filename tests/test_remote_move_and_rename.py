@@ -520,10 +520,10 @@ class TestRemoteMoveAndRename(UnitTestCase):
     def test_remote_move_to_non_sync_root(self):
         # Grant ReadWrite permission on Workspaces for test user
         workspaces_path = '/default-domain/workspaces'
-        op_input = 'doc:' + workspaces_path
+        input_obj = 'doc:' + workspaces_path
         self.root_remote_client.execute(
             'Document.SetACE',
-            op_input=op_input,
+            input_obj=input_obj,
             user=self.user_1,
             permission='ReadWrite',
             grant='true')

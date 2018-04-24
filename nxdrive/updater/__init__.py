@@ -3,8 +3,8 @@
 
 from logging import getLogger
 
-from ..options import Options
 from .utils import get_latest_compatible_version
+from ..options import Options
 
 log = getLogger(__name__)
 

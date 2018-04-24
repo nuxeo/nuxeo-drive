@@ -296,10 +296,10 @@ class TestSecurityUpdates(UnitTestCase):
                     '/Test folder/Remote sub folder 2/remote sub file 2.txt'))
 
     def _set_read_permission(self, user, doc_path, grant):
-        op_input = "doc:" + doc_path
+        input_obj = "doc:" + doc_path
         if grant:
             self.root_remote_client.execute("Document.SetACE",
-                op_input=op_input,
+                input_obj=input_obj,
                 user=user,
                 permission="Read",
                 grant="true")

@@ -5,6 +5,7 @@ import sys
 import time
 
 import pytest
+
 from nxdrive.client import LocalClient
 from .common import (OS_STAT_MTIME_RESOLUTION,
                      REMOTE_MODIFICATION_TIME_RESOLUTION)

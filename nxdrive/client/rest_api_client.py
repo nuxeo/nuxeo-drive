@@ -2,14 +2,11 @@
 """Client for the Nuxeo REST API."""
 
 import json
-import urllib2
 from logging import getLogger
 
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.models import Group
-
-from .base_automation_client import get_proxy_handler
 
 log = getLogger(__name__)
 
@@ -37,13 +34,6 @@ class RestAPIClient(object):
 
         # Build URL opener
         self.cookie_jar = cookie_jar
-        cookie_processor = urllib2.HTTPCookieProcessor(
-            cookiejar=cookie_jar)
-        # Get proxy handler
-        proxy_handler = get_proxy_handler(proxies,
-                                          proxy_exceptions=proxy_exceptions,
-                                          url=self.server_url)
-        self.opener = urllib2.build_opener(cookie_processor, proxy_handler)
 
     def __repr__(self):
         attrs = ', '.join('{}={!r}'.format(attr, getattr(self, attr, None))

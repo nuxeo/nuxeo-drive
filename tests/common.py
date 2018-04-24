@@ -6,13 +6,12 @@ import logging
 import os
 import shutil
 import time
-import urllib2
 from logging import getLogger
 
 from nxdrive.client import RemoteDocumentClient
 from nxdrive.client.common import BaseClient
 from nxdrive.logging_config import configure
-from nxdrive.utils import safe_long_path
+from nxdrive.utils import safe_long_path, make_tmp_file
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
@@ -82,25 +81,25 @@ def clean_dir(_dir, retry=1, max_retries=5):
 class RemoteDocumentClientForTests(RemoteDocumentClient):
 
     def get_repository_names(self):
-        return self.execute("GetRepositories")[u'value']
+        return self.operations.execute(command='GetRepositories')[u'value']
 
     def make_file_in_user_workspace(self, content, filename):
         """Stream the given content as a document in the user workspace"""
-        file_path = self.make_tmp_file(content)
+        file_path = make_tmp_file(self.upload_tmp_dir, content)
         try:
-            return self.execute_with_blob_streaming(
-                'UserWorkspace.CreateDocumentFromBlob',
-                file_path,
-                filename=filename)
+            return self.upload(file_path, filename=filename,
+                               command='UserWorkspace.CreateDocumentFromBlob')
         finally:
             os.remove(file_path)
 
     def activate_profile(self, profile):
-        self.execute('NuxeoDrive.SetActiveFactories', profile=profile)
+        self.operations.execute(
+            command='NuxeoDrive.SetActiveFactories', profile=profile)
 
     def deactivate_profile(self, profile):
-        self.execute('NuxeoDrive.SetActiveFactories', profile=profile,
-                     enable=False)
+        self.operations.execute(
+            command='NuxeoDrive.SetActiveFactories', profile=profile,
+            enable=False)
 
     def mass_import(self, target_path, nb_nodes, nb_threads=12):
         tx_timeout = 3600
@@ -115,8 +114,7 @@ class RemoteDocumentClientForTests(RemoteDocumentClient):
             'nonUniform': 'true',
             'transactionTimeout': tx_timeout
         }
-        headers = self._get_common_headers()
-        headers['Nuxeo-Transaction-Timeout'] = tx_timeout
+        headers = {'Nuxeo-Transaction-Timeout': tx_timeout}
 
         log.info('Calling random mass importer on %s with %d threads '
                  'and %d nodes', target_path, nb_threads, nb_nodes)
@@ -129,9 +127,11 @@ class RemoteDocumentClientForTests(RemoteDocumentClient):
 
         tx_timeout = 3600
         extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout}
-        self.execute('Elasticsearch.WaitForIndexing', timeout=tx_timeout,
-                     extra_headers=extra_headers, timeoutSecond=tx_timeout,
-                     refresh=True)
+        self.operations.execute(
+            command='Elasticsearch.WaitForIndexing', timeout=tx_timeout,
+            extra_headers=extra_headers, timeoutSecond=tx_timeout,
+            refresh=True)
 
     def result_set_query(self, query):
-        return self.execute('Repository.ResultSetQuery', query=query)
+        return self.operations.execute(
+            command='Repository.ResultSetQuery', query=query)

@@ -7,7 +7,6 @@ from threading import current_thread
 from unittest import SkipTest
 
 from nxdrive.client import LocalClient, NotFound
-from nuxeo.exceptions import CorruptedFile
 from .common import FS_ITEM_ID_PREFIX
 from .common_unit_test import UnitTestCase
 

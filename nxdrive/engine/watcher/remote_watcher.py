@@ -540,13 +540,10 @@ class RemoteWatcher(EngineWorker):
 
         self._last_root_definitions = summary['activeSynchronizationRootDefinitions']
         self._last_sync_date = summary['syncDate']
-        if self._client.is_event_log_id_available():
-            # If available, read 'upperBound' key as last event log id
-            # according to the new implementation of the audit change finder,
-            # see https://jira.nuxeo.com/browse/NXP-14826.
-            self._last_event_log_id = summary['upperBound']
-        else:
-            self._last_event_log_id = None
+        # If available, read 'upperBound' key as last event log id
+        # according to the new implementation of the audit change finder,
+        # see https://jira.nuxeo.com/browse/NXP-14826.
+        self._last_event_log_id = summary.get('upperBound', None)
 
         self._dao.update_config('remote_last_sync_date', self._last_sync_date)
         self._dao.update_config('remote_last_event_log_id', self._last_event_log_id)

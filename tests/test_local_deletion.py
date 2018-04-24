@@ -98,9 +98,9 @@ class TestLocalDeletion(UnitTestCase):
 
         # Remove rights
         folder_path = u'/default-domain/workspaces/nuxeo-drive-test-workspace/ToDelete'
-        op_input = "doc:" + folder_path
+        input_obj = "doc:" + folder_path
         self.root_remote_client.execute("Document.SetACE",
-                                        op_input=op_input,
+                                        input_obj=input_obj,
                                         user=self.user_1,
                                         permission="Read")
         self.root_remote_client.block_inheritance(folder_path, overwrite=False)
@@ -137,9 +137,9 @@ class TestLocalDeletion(UnitTestCase):
 
         # Remove rights
         folder_path = u'/default-domain/workspaces/nuxeo-drive-test-workspace/ToCopy'
-        op_input = "doc:" + folder_path
+        input_obj = "doc:" + folder_path
         self.root_remote_client.execute("Document.SetACE",
-                                        op_input=op_input,
+                                        input_obj=input_obj,
                                         user=self.user_1,
                                         permission="Read")
         self.root_remote_client.block_inheritance(folder_path, overwrite=False)

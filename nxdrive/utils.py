@@ -7,12 +7,13 @@ to speed-up command line calls without loading everything at startup.
 import base64
 import locale
 import os
+import re
+import stat
 import sys
+import tempfile
 import time
 import urlparse
 from logging import getLogger
-
-import re
 
 import requests
 
@@ -36,7 +37,6 @@ WIN32_PATCHED_MIME_TYPES = {
     'application/x-mspowerpoint.12':
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 }
-TOKEN_PERMISSION = 'ReadWrite'
 ENCODING = locale.getpreferredencoding()
 
 log = getLogger(__name__)
@@ -47,7 +47,7 @@ def current_milli_time():
 
 
 def get_device():
-    """ Retreive the device type. """
+    """ Retrieve the device type. """
 
     device = DEVICE_DESCRIPTIONS.get(sys.platform)
     if not device:
@@ -568,6 +568,77 @@ def parse_edit_protocol(parsed_url, url_string):
                 download_url=parsed_url.get('download'))
 
 
+def set_path_readonly(path):
+    current = os.stat(path).st_mode
+    if os.path.isdir(path):
+        # Need to add
+        right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IRUSR)
+        if current & ~right == 0:
+            return
+        os.chmod(path, right)
+    else:
+        # Already in read only
+        right = (stat.S_IRGRP | stat.S_IRUSR)
+        if current & ~right == 0:
+            return
+        os.chmod(path, right)
+
+
+def unset_path_readonly(path):
+    current = os.stat(path).st_mode
+    if os.path.isdir(path):
+        right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
+                            stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
+        if current & right == right:
+            return
+        os.chmod(path, right)
+    else:
+        right = (stat.S_IRGRP | stat.S_IRUSR |
+                         stat.S_IWGRP | stat.S_IWUSR)
+        if current & right == right:
+            return
+        os.chmod(path, right)
+
+
+def unlock_path(path, unlock_parent=True):
+    result = 0
+    if unlock_parent:
+        parent_path = os.path.dirname(path)
+        if (os.path.exists(parent_path) and
+            not os.access(parent_path, os.W_OK)):
+            unset_path_readonly(parent_path)
+            result |= 2
+    if os.path.exists(path) and not os.access(path, os.W_OK):
+        unset_path_readonly(path)
+        result |= 1
+    return result
+
+
+def lock_path(path, locker):
+    if locker == 0:
+        return
+    if locker & 1 == 1:
+        set_path_readonly(path)
+    if locker & 2 == 2:
+        parent = os.path.dirname(path)
+        set_path_readonly(parent)
+
+
+def make_tmp_file(dir, content):
+    """Create a temporary file with the given content
+    for streaming upload purposes.
+
+    Make sure that you remove the temporary file with os.remove()
+    when done with it.
+    """
+    fd, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
+                                dir=dir)
+    with open(path, 'wb') as f:
+        f.write(content)
+    os.close(fd)
+    return path
+
+
 class PidLockFile(object):
     """ This class handle the pid lock file"""
     def __init__(self, folder, key):
@@ -587,7 +658,7 @@ class PidLockFile(object):
         pid_filepath = self._get_sync_pid_filepath()
         try:
             os.unlink(pid_filepath)
-        except Exception, e:
+        except Exception as e:
             log.warning('Failed to remove stalled PID file: %r'
                         ' for stopped process %d: %r',
                         pid_filepath, os.getpid(), e)
@@ -630,7 +701,7 @@ class PidLockFile(object):
                     msg = 'Removed old PID file %r for stopped process %d' % (
                         pid_filepath, pid)
                 log.info(msg)
-            except Exception, e:
+            except Exception as e:
                 if pid is not None:
                     msg = ('Failed to remove stalled PID file: %r for'
                            ' stopped process %d: %r'

@@ -1,8 +1,8 @@
 # coding: utf-8
 from PyQt4 import QtCore, QtGui
 
-from ..wui.translator import Translator
 from .folders_treeview import FilteredFsClient, FolderTreeview
+from ..wui.translator import Translator
 
 
 class FiltersDialog(QtGui.QDialog):

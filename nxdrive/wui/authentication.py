@@ -1,5 +1,4 @@
 # coding: utf-8
-import urllib2
 from logging import getLogger
 
 from PyQt4 import QtCore

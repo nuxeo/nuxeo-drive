@@ -1,12 +1,11 @@
 # coding: utf-8
 import os
 import shutil
+import sys
+import time
 from logging import getLogger
 
 import pytest
-import time
-
-import sys
 
 from common_unit_test import UnitTestCase
 from .common_unit_test import FILE_CONTENT

@@ -367,8 +367,6 @@ def server_updater(*args):
     the possibility to import other classes without anything else needed.
     """
 
-    import json
-
     from PyQt4.QtCore import pyqtSlot
     from .engine.workers import PollWorker
 

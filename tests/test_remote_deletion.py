@@ -7,7 +7,6 @@ from shutil import copyfile
 from mock import Mock, patch
 
 from nxdrive.engine.engine import Engine
-from nxdrive.options import Options
 from .common import OS_STAT_MTIME_RESOLUTION
 from .common_unit_test import UnitTestCase
 
@@ -194,9 +193,9 @@ class TestRemoteDeletion(UnitTestCase):
                        wait_for_engine_2=True)
         assert local.exists('/Test folder')
         assert local.exists('/Test folder/joe.odt')
-        op_input = 'doc:' + self.workspace
+        input_obj = 'doc:' + self.workspace
         self.root_remote_client.execute(
-            'Document.RemoveACL', op_input=op_input, acl='local')
+            'Document.RemoveACL', input_obj=input_obj, acl='local')
         self.wait_sync(wait_for_async=True, wait_for_engine_1=False,
                        wait_for_engine_2=True)
         assert not local.exists('/Test folder')
