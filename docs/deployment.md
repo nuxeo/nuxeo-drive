@@ -20,9 +20,7 @@ Possible `ARG`:
     --start: start Nuxeo Drive
     --tests: launch the tests suite
 
-Notes:
-1. Executing the script without argument will setup the isolated environment.
-2. For now, code signing is not implemented.
+Executing the script without argument will setup/update the isolated environment.
 
 ### Dependencies:
 
@@ -44,7 +42,7 @@ You will also need to install the Qt4 qmake tool and the Qt4 library:
 
 ## Windows
 
-PowerShell **4.0** or above is required to run this script. You can find installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-windows-powershell).
+**PowerShell 4.0 or above** is required to run this script. You can find installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-windows-powershell).
 
 ### Usage
 
@@ -56,9 +54,7 @@ Possible `ARG`:
     -start: start Nuxeo Drive
     -tests: launch the tests suite
 
-Notes:
-1. Executing the script without argument will setup the isolated environment.
-2. For now, code signing is not implemented.
+Executing the script without argument will setup.update the isolated environment.
 
 ### Dependencies:
 
@@ -68,8 +64,7 @@ Notes:
 
 ### Troubleshooting
 
-If you get an error message complaining about the lack of signature for this script.
-You can disable that security check with the following command inside PowerShell (as Administrator):
+If you get an error message complaining about the lack of signature for this script, you can disable that security check with the following command inside PowerShell (as Administrator):
 
 	set-executionpolicy -executionpolicy unrestricted
 
@@ -85,14 +80,14 @@ __Important__: those values are given as example, if you want up-to-date ones, p
 
 ### Required Envars
 
-- `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `2.7.13`.
-- `PYQT_VERSION` is the required **PyQt version** to use, i.e. `4.12`.
+- `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `2.7.14`.
+- `PYQT_VERSION` is the required **PyQt version** to use, i.e. `4.12.1`.
 - `WORKSPACE` is the **absolute path to the WORKSPACE**, i.e. `/opt/jenkins/workspace/xxx`.
 - `WORKSPACE_DRIVE` is the **absolute path to Drive sources**, i.e. `$WORKSPACE/sources`. If not defined, it will be set to `$WORKSPACE/sources` or `$WORKSPACE/nuxeo-drive` if folder exists else `$WORKSPACE`.
 
 ### Optional Envars
 
-- `SIP_VERSION` is the **SIP version** to use, i.e. `4.19`.
+- `SIP_VERSION` is the **SIP version** to use, i.e. `4.19.8`.
 - `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
 - `SPECIFIC_TEST` is a **specific test** to launch. The syntax must be the same as [pytest markers](http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id), i.e.:
 ```
