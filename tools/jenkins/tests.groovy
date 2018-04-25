@@ -125,6 +125,9 @@ for (def x in slaves) {
                         }
 
                         def jdk = tool name: 'java-8-openjdk'
+                        if (osi == 'macOS') {
+                            jdk = tool name: 'java-8-oracle'
+                        }
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"
