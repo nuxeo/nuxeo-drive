@@ -124,7 +124,7 @@ for (def x in slaves) {
                             return
                         }
 
-                        def jdk = tool name: 'java-8-oracle'
+                        def jdk = tool name: 'java-8-openjdk'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"
@@ -195,7 +195,7 @@ timeout(240) {
                     try {
                         checkout_custom()
 
-                        def jdk = tool name: 'java-8-oracle'
+                        def jdk = tool name: 'java-8-openjdk'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
 

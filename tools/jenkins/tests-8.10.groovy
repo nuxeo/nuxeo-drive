@@ -114,7 +114,7 @@ for (def x in slaves) {
 
                     stage(osi + ' Tests') {
                         // Launch the tests suite
-                        def jdk = tool name: 'java-8-oracle'
+                        def jdk = tool name: 'java-8-openjdk'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"

@@ -47,6 +47,7 @@ Changes in command line arguments:
 
 ### Tests
 - [NXDRIVE-1173](https://jira.nuxeo.com/browse/NXDRIVE-1173): Fix pip installation on Windows
+- [NXDRIVE-1191](https://jira.nuxeo.com/browse/NXDRIVE-1191): Use Java OpenJDK instead of Java Oracle
 
 #### Minor changes
 - Auto-update: automatically install a new update if no bound engine
