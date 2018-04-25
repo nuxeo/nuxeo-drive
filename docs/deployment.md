@@ -87,6 +87,7 @@ __Important__: those values are given as example, if you want up-to-date ones, p
 
 ### Optional Envars
 
+- `SIGNING_ID` is the certificate **authority name**.
 - `SIP_VERSION` is the **SIP version** to use, i.e. `4.19.8`.
 - `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
 - `SPECIFIC_TEST` is a **specific test** to launch. The syntax must be the same as [pytest markers](http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id), i.e.:
@@ -105,10 +106,11 @@ __Important__: those values are given as example, if you want up-to-date ones, p
 Those are related to code-signing:
 - `KEYCHAIN_PATH` is the **full path** to the certificate.
 - `KEYCHAIN_PWD` is the **password** to unlock the certificate.
-- `SIGNING_ID` is the certificate **authority name**.
 
 #### Windows specific
 
+- `APP_NAME` is the **application name** used for code sign, i.e. `Nuxeo Drive`.
 - `QT_PATH` is the **Qt path**, i.e. `C:\Qt\4.8.7`.
 - `MINGW_PATH` is the **MinGW path** to use, i.e. `C:\mingw32`.
 - `ISCC_PATH` is the **Inno Setup path** to use, i.e. `C:\Program Files (x86)\Inno Setup 5`.
+- `SIGNTOOL_PATH` is the **SignTool path** to use, i.e. `C:\Program Files (x86)\Windows Kits\10\App Certification Kit`.

@@ -34,12 +34,14 @@ function build_installer {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+	sign "dist\ndrive\ndrive.exe"
 
 	Write-Output ">>> [$app_version] Building the installer"
 	& $Env:ISCC_PATH\iscc /DMyAppVersion="$app_version" "tools\windows\setup.iss"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+	sign "dist\nuxeo-drive-$app_version.exe"
 }
 
 function check_import($import) {
@@ -321,6 +323,41 @@ function launch_tests {
 		-r fE `
 		-W error `
 		-v
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+}
+
+function sign($file) {
+	# Code sign a file
+	if (-Not ($Env:SIGNTOOL_PATH)) {
+		Write-Output ">>> SIGNTOOL_PATH not set, skipping code signature"
+		return
+	}
+	if (-Not ($Env:SIGNING_ID)) {
+		$Env:SIGNING_ID = "Nuxeo"
+		Write-Output ">>> SIGNING_ID is not set, using 'Nuxeo'"
+	}
+	if (-Not ($Env:APP_NAME)) {
+		$Env:APP_NAME = "Nuxeo Drive"
+	}
+
+	Write-Output ">>> Signing $file"
+	& $Env:SIGNTOOL_PATH\signtool.exe sign `
+		/a  `
+		/s MY `
+		/n "$Env:SIGNING_ID" `
+		/d "$Env:APP_NAME" `
+		/fd sha256 `
+		/tr http://sha256timestamp.ws.symantec.com/sha256/timestamp `
+		/v `
+		"$file"
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+
+	Write-Output ">>> Verifying $file"
+	& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}

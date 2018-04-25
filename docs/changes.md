@@ -37,6 +37,8 @@ Changes in command line arguments:
 - [NXDRIVE-1175](https://jira.nuxeo.com/browse/NXDRIVE-1175): New language: Hebrew
 
 ### Packaging / Build
+- [NXDRIVE-136](https://jira.nuxeo.com/browse/NXDRIVE-136): Activate code signing on macOS (valid until 2023-03-10)
+- [NXDRIVE-261](https://jira.nuxeo.com/browse/NXDRIVE-261): Activate code signing on Windows (valid until 2021-04-25)
 - [NXDRIVE-448](https://jira.nuxeo.com/browse/NXDRIVE-448): Fix version displayed in Windows uninstall
 - [NXDRIVE-512](https://jira.nuxeo.com/browse/NXDRIVE-512): Windows application properties not set
 - [NXDRIVE-601](https://jira.nuxeo.com/browse/NXDRIVE-601): Provide a user installation mode on Windows
