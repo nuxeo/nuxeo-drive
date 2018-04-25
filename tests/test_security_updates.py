@@ -298,11 +298,9 @@ class TestSecurityUpdates(UnitTestCase):
     def _set_read_permission(self, user, doc_path, grant):
         input_obj = "doc:" + doc_path
         if grant:
-            self.root_remote_client.execute("Document.SetACE",
-                input_obj=input_obj,
-                user=user,
-                permission="Read",
-                grant="true")
+            self.root_remote_client.operations.execute(
+                command='Document.SetACE', input_obj=input_obj, user=user,
+                permission='Read', grant='true')
         else:
             self.root_remote_client.block_inheritance(doc_path)
 

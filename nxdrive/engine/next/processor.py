@@ -4,8 +4,7 @@ import shutil
 from logging import getLogger
 
 from ..processor import Processor as OldProcessor
-from ...client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
-                                              DOWNLOAD_TMP_FILE_SUFFIX)
+from ...constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
 
 log = getLogger(__name__)
 

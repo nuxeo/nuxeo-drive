@@ -24,7 +24,7 @@ class TestRemoteChanges(UnitTestCase):
                                             log_id=self.last_event_log_id,
                                             last_sync_date=self.last_sync_date)
         self.last_sync_date = summary['syncDate']
-        if remote_client.is_event_log_id_available():
+        if 'upperBound' in summary:
             self.last_event_log_id = summary['upperBound']
         self.last_root_definitions = summary['activeSynchronizationRootDefinitions']
         return summary
@@ -38,7 +38,7 @@ class TestRemoteChanges(UnitTestCase):
         first_timestamp = summary['syncDate']
         assert first_timestamp > 0
         first_event_log_id = 0
-        if remote_client.is_event_log_id_available():
+        if 'upperBound' in summary:
             first_event_log_id = summary['upperBound']
             assert first_event_log_id >= 0
 
@@ -48,7 +48,7 @@ class TestRemoteChanges(UnitTestCase):
         assert not summary['activeSynchronizationRootDefinitions']
         second_time_stamp = summary['syncDate']
         assert second_time_stamp >= first_timestamp
-        if remote_client.is_event_log_id_available():
+        if 'upperBound' in summary:
             second_event_log_id = summary['upperBound']
             assert second_event_log_id >= first_event_log_id
 

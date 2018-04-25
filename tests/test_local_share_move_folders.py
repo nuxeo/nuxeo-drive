@@ -78,7 +78,8 @@ class TestLocalShareMoveFolders(UnitTestCase):
                          (len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
         self.assertEqual(set(remote_children_1), set(['file%03d.png' % file_num
                                                       for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
-    @patch.object(RemoteWatcher, '_get_changes', mock_get_changes)  
+
+    @patch.object(RemoteWatcher, '_get_changes', mock_get_changes)
     def test_local_share_move_folder_with_files(self):
         global wait_for_security_update
         admin_remote_client = self.root_remote_client
@@ -91,12 +92,9 @@ class TestLocalShareMoveFolders(UnitTestCase):
     
         wait_for_security_update = True                                        
         input_obj = self.local_client_1.get_remote_id('/a1').split('#')[-1]
-        admin_remote_client.execute("Document.AddPermission",
-                                    url = admin_remote_client.rest_api_url + 'automation/Document.AddPermission',
-                                    input_obj=input_obj,
-                                    username=self.user_2,
-                                    permission="Everything",
-                                    grant="true")        
+        admin_remote_client.operations.execute(
+            command='Document.AddPermission', input_obj=input_obj,
+            username=self.user_2, permission='Everything', grant='true')
 
         self.wait_sync(enforce_errors=True)
         

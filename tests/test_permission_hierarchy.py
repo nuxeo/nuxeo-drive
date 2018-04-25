@@ -27,8 +27,9 @@ class TestPermissionHierarchy(UnitTestCase):
         self.local_client_2 = LocalClient(self.local_nxdrive_folder_2)
 
         # Make sure user workspace is created and fetch its UID
-        self.workspace_uid = self.user1.make_file_in_user_workspace(
-            'File in user workspace', filename='USFile.txt')['parentRef']
+        res = self.user1.make_file_in_user_workspace(
+            'File in user workspace', filename='USFile.txt')
+        self.workspace_uid = res['parentRef']
         self.addCleanup(self.delete_wspace)
 
     def delete_wspace(self):
@@ -115,7 +116,8 @@ class TestPermissionHierarchy(UnitTestCase):
         self.assertTrue(self.local_client_2.exists('/Other Docs'))
 
         # Create test folder in user workspace as user1
-        test_folder_uid = self.user1.make_folder(self.workspace_uid, 'Folder A')
+        test_folder_uid = self.user1.make_folder(self.workspace_uid,
+                                                 'Folder A')
         folder_b = self.user1.make_folder(test_folder_uid, 'Folder B')
         folder_c = self.user1.make_folder(folder_b, 'Folder C')
         folder_d = self.user1.make_folder(folder_c, 'Folder D')
@@ -138,9 +140,9 @@ class TestPermissionHierarchy(UnitTestCase):
             '/Other Docs/Folder A/Folder B')
         folder_a_fs = self.local_client_2.get_remote_id('/Other Docs/Folder A')
         # Unshare Folder A and share Folder C
-        self.admin.execute('Document.RemoveACL',
-                           input_obj='doc:' + test_folder_uid,
-                           acl='local')
+        self.admin.execute(
+            command='Document.RemoveACL', input_obj='doc:' + test_folder_uid,
+            acl='local')
         self.set_readonly(self.user_2, folder_c)
         self.user2.register_as_root(folder_c)
         self.wait_sync(wait_for_async=True,

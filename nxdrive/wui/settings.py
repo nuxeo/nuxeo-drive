@@ -12,13 +12,13 @@ from requests import ConnectionError
 from .authentication import WebAuthenticationApi, WebAuthenticationDialog
 from .dialog import Promise, WebDialog, WebDriveApi
 from .translator import Translator
-from ..client.base_automation_client import AddonNotInstalled
 from ..client.common import NotFound
+from ..constants import TOKEN_PERMISSION
 from ..engine.engine import (InvalidDriveException,
                              RootAlreadyBindWithDifferentAccount)
 from ..manager import FolderAlreadyUsed, ProxySettings
 from ..options import Options
-from ..utils import TOKEN_PERMISSION, get_device, guess_server_url
+from ..utils import get_device, guess_server_url
 
 log = getLogger(__name__)
 

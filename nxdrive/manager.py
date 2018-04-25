@@ -19,13 +19,13 @@ from PyQt4.QtWebKit import qWebKitVersion
 
 from . import __version__
 from .client import LocalClient
-from .client.base_automation_client import get_proxies_for_handler
 from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
 from .options import Options, server_updater
 from .osi import AbstractOSIntegration
 from .updater import updater
-from .utils import ENCODING, decrypt, encrypt, force_decode, normalized_path
+from .utils import (ENCODING, decrypt, encrypt, force_decode,
+                    get_proxies_for_handler, normalized_path)
 
 if AbstractOSIntegration.is_windows():
     import _winreg

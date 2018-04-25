@@ -13,10 +13,9 @@ from requests import ConnectionError
 
 from .activity import Action
 from .workers import EngineWorker, PairInterrupt, ThreadInterrupt
-from ..client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
-                                             DOWNLOAD_TMP_FILE_SUFFIX)
 from ..client.common import (DuplicationDisabledError, NotFound,
                              UNACCESSIBLE_HASH, safe_filename)
+from ..constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
 from ..osi import AbstractOSIntegration
 from ..utils import current_milli_time, is_generated_tmp_file
 

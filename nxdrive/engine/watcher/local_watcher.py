@@ -15,8 +15,8 @@ from watchdog.observers import Observer
 
 from ..activity import tooltip
 from ..workers import EngineWorker, ThreadInterrupt
-from ...client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from ...client.local_client import LocalClient
+from ...constants import DOWNLOAD_TMP_FILE_SUFFIX
 from ...options import Options
 from ...utils import (current_milli_time, force_decode, is_generated_tmp_file,
                       normalize_event_filename as normalize)

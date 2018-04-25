@@ -9,6 +9,7 @@ from nuxeo.auth import TokenAuth
 from nuxeo.exceptions import HTTPError, Unauthorized
 
 from nxdrive.client import LocalClient, NotFound, RemoteDocumentClient
+from nxdrive.utils import make_tmp_file
 from .common import SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from .common_unit_test import UnitTestCase
 
@@ -35,12 +36,12 @@ class TestRemoteDocumentClient(UnitTestCase):
     def test_authentication_failure(self):
         with self.assertRaises(Unauthorized):
             RemoteDocumentClient(
-                self.remote_document_client_1.server_url,
+                self.remote_document_client_1.client.host,
                 'someone else', 'test-device', self.version,
                 password='bad password')
         with self.assertRaises(Unauthorized):
             RemoteDocumentClient(
-                self.remote_document_client_1.server_url,
+                self.remote_document_client_1.client.host,
                 'someone else', 'test-device', self.version,
                 token='some-bad-token')
 
@@ -50,7 +51,7 @@ class TestRemoteDocumentClient(UnitTestCase):
         if token is None:
             raise SkipTest('nuxeo-platform-login-token is not deployed')
         assert len(token) > 5
-        auth = remote.client.client.auth
+        auth = remote.client.auth
         assert isinstance(auth, TokenAuth)
         assert auth.token == token
 
@@ -63,8 +64,8 @@ class TestRemoteDocumentClient(UnitTestCase):
 
         # It's possible to create a new client using the same token
         remote2 = RemoteDocumentClient(
-            remote.server_url, remote.user_id,
-            remote.device_id, remote.client_version,
+            remote.client.host, remote.user_id,
+            remote.device_id, remote.version,
             token=token, base_folder=self.workspace)
 
         token3 = remote.request_token()
@@ -81,8 +82,8 @@ class TestRemoteDocumentClient(UnitTestCase):
         # The root can also been seen with a new client connected using
         # password based auth
         remote3 = RemoteDocumentClient(
-            remote.server_url, remote.user_id,
-            remote.device_id, remote.client_version,
+            remote.client.host, remote.user_id,
+            remote.device_id, remote.version,
             password=self.password_1, base_folder=None)
         roots = remote3.get_roots()
         assert len(roots) == 1
@@ -91,8 +92,8 @@ class TestRemoteDocumentClient(UnitTestCase):
         # Another device using the same user credentials will get a different
         # token
         remote4 = RemoteDocumentClient(
-            remote.server_url, remote.user_id,
-            'other-test-device', remote.client_version,
+            remote.client.host, remote.user_id,
+            'other-test-device', remote.version,
             password=self.password_1, base_folder=None)
         token4 = remote4.request_token()
         assert token != token4
@@ -325,49 +326,40 @@ class TestRemoteDocumentClient(UnitTestCase):
         self.assertEqual(len(remote_client.get_roots()), 0)
 
     def test_streaming_upload(self):
-        remote_client = self.remote_document_client_1
+        remote = self.remote_document_client_1
 
         # Create a document by streaming a text file
-        file_path = remote_client.make_tmp_file("Some content.")
+        file_path = make_tmp_file(remote.upload_tmp_dir, 'Some content.')
         try:
-            doc_ref = remote_client.stream_file(self.workspace, 'Streamed text file', file_path,
-                                                filename='My streamed file.txt')
+            doc_ref = remote.stream_file(
+                self.workspace, 'Streamed text file', file_path,
+                filename='My streamed file.txt')
         finally:
             os.remove(file_path)
-        self.assertEqual(remote_client.get_info(doc_ref).name,
+        self.assertEqual(remote.get_info(doc_ref).name,
                          'Streamed text file')
-        self.assertEqual(remote_client.get_content(doc_ref), "Some content.")
+        self.assertEqual(remote.get_content(doc_ref), 'Some content.')
 
         # Update a document by streaming a new text file
-        file_path = remote_client.make_tmp_file("Other content.")
+        file_path = make_tmp_file(remote.upload_tmp_dir, 'Other content.')
         try:
-            remote_client.stream_update(doc_ref, file_path, filename='My updated file.txt')
+            remote.stream_update(doc_ref, file_path,
+                                 filename='My updated file.txt')
         finally:
             os.remove(file_path)
-        self.assertEqual(remote_client.get_content(doc_ref), "Other content.")
+        self.assertEqual(remote.get_content(doc_ref), 'Other content.')
 
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
         copyfile(self.location + '/resources/testFile.pdf', file_path)
-        doc_ref = remote_client.stream_file(self.workspace,
-                                  'Streamed binary file', file_path)
+        doc_ref = remote.stream_file(self.workspace,
+                                     'Streamed binary file', file_path)
         local_client = LocalClient(self.upload_tmp_dir)
-        doc_info = remote_client.get_info(doc_ref)
+        doc_info = remote.get_info(doc_ref)
         self.assertEqual(doc_info.name, 'Streamed binary file')
         self.assertEqual(doc_info.digest_algorithm, 'md5')
         self.assertEqual(doc_info.digest,
                          local_client.get_info('/testFile.pdf').get_digest())
-
-    def test_server_reachable(self):
-        remote_client = self.remote_document_client_1
-        assert remote_client.server_reachable()
-
-        server_url = remote_client.client.client.host
-        remote_client.client.client.host = 'http://example.org/'
-        try:
-            assert not remote_client.server_reachable()
-        finally:
-            remote_client.client.client.host = server_url
 
     def test_bad_mime_type(self):
         remote_client = self.remote_document_client_1

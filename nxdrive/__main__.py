@@ -2,7 +2,7 @@
 import signal
 import sys
 
-from nxdrive.commandline import CliHandler
+from .commandline import CliHandler
 
 
 def dumpstacks(*args, **kwargs):

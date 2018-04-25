@@ -33,9 +33,10 @@ class TestSharedFolders(UnitTestCase):
             parent_folder_uid = remote_user1.make_folder(user1_workspace_uid, 'Parent')
 
             # As user1 grant Everything permission to user2 on parent folder
-            input_obj = "doc:" + parent_folder_uid
-            admin_remote_client.execute("Document.SetACE", input_obj=input_obj, user=self.user_2,
-                                        permission="Everything", grant="true")
+            input_obj = 'doc:' + parent_folder_uid
+            admin_remote_client.operations.execute(
+                command='Document.SetACE', input_obj=input_obj,
+                user=self.user_2, permission='Everything', grant='true')
 
             # As user1 create a child folder in parent folder
             child_folder_uid = remote_user1.make_folder(parent_folder_uid, 'Child')
@@ -86,11 +87,9 @@ class TestSharedFolders(UnitTestCase):
 
         # Remove ReadWrite permission for user_1 on the test workspace
         test_workspace = 'doc:' + TEST_WORKSPACE_PATH
-        self.root_remote_client.execute('Document.SetACE',
-                                        input_obj=test_workspace,
-                                        user=self.user_2,
-                                        permission='ReadWrite',
-                                        grant=True)
+        self.root_remote_client.operations.execute(
+            command='Document.SetACE', input_obj=test_workspace,
+            user=self.user_2, permission='ReadWrite', grant=True)
 
         # Create initial folders and files as user_2
         folder = remote_2.make_folder('/', 'Folder01')
@@ -100,10 +99,9 @@ class TestSharedFolders(UnitTestCase):
         file_id = remote_2.make_file(folder, 'File01.txt', 'plaintext')
 
         # Grant Read permission for user_1 on the test folder and register
-        self.root_remote_client.execute('Document.SetACE',
-                                        input_obj='doc:' + folder,
-                                        user=self.user_1,
-                                        permission='Read')
+        self.root_remote_client.operations.execute(
+            command='Document.SetACE', input_obj='doc:' + folder,
+            user=self.user_1, permission='Read')
         remote_1.register_as_root(folder)
 
         # Start engine and wait for sync
@@ -132,10 +130,9 @@ class TestSharedFolders(UnitTestCase):
             self.engine_1.stop()
 
         # Restore write permission to user_1 (=> ReadWrite)
-        self.root_remote_client.execute('Document.SetACE',
-                                        input_obj='doc:' + folder,
-                                        user=self.user_1,
-                                        permission='ReadWrite')
+        self.root_remote_client.operations.execute(
+            command='Document.SetACE', input_obj='doc:' + folder,
+            user=self.user_1, permission='ReadWrite')
         self.wait()
 
         # Make changes

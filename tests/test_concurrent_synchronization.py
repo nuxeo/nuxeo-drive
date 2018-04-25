@@ -8,9 +8,9 @@ from .common_unit_test import RandomBug, TEST_DEFAULT_DELAY, UnitTestCase
 
 class TestConcurrentSynchronization(UnitTestCase):
     def create_docs(self, parent, number, name_pattern=None, delay=1.0):
-        return self.root_remote_client.execute(
-            "NuxeoDrive.CreateTestDocuments",
-            input_obj="doc:" + parent, namePattern=name_pattern,
+        return self.root_remote_client.operations.execute(
+            command='NuxeoDrive.CreateTestDocuments',
+            input_obj='doc:' + parent, namePattern=name_pattern,
             number=number, delay=int(delay * 1000))
 
     @RandomBug('NXDRIVE-808', target='linux', repeat=2)

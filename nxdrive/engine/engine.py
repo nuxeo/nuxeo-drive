@@ -7,7 +7,6 @@ from threading import Thread, current_thread
 from time import sleep
 
 from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
-from nuxeo.client import Nuxeo
 from nuxeo.exceptions import HTTPError, Unauthorized
 from requests import ConnectionError
 
@@ -19,12 +18,13 @@ from .watcher.local_watcher import LocalWatcher
 from .watcher.remote_watcher import RemoteWatcher
 from .workers import PairInterrupt, ThreadInterrupt, Worker
 from ..client import (LocalClient, RemoteDocumentClient,
-                      RemoteFileSystemClient,
-                      RemoteFilteredFileSystemClient)
-from ..client.common import BaseClient, NotFound, safe_filename
+                      RemoteFileSystemClient, RemoteFilteredFileSystemClient)
+from ..client.common import NotFound, safe_filename
+from ..client.nuxeo_client import BaseNuxeo
 from ..options import Options
 from ..osi import AbstractOSIntegration
-from ..utils import find_icon, normalized_path
+from ..utils import (find_icon, normalized_path, set_path_readonly,
+                     unset_path_readonly)
 
 log = getLogger(__name__)
 
@@ -790,12 +790,12 @@ class Engine(QObject):
         root = self._dao.get_state_from_local("/")
         if root is None:
             if os.path.exists(self.local_folder):
-                BaseClient.unset_path_readonly(self.local_folder)
+                unset_path_readonly(self.local_folder)
             self._make_local_folder(self.local_folder)
             self._add_top_level_state()
             self._set_root_icon()
             self.add_to_favorites()
-            BaseClient.set_path_readonly(self.local_folder)
+            set_path_readonly(self.local_folder)
 
     def add_to_favorites(self):
         # type: () -> None
@@ -917,7 +917,7 @@ class Engine(QObject):
         if remote_client is None:
             kwargs = {
                 'proxies': self._manager.get_proxies(self._server_url),
-                'proxy_exceptions': self._manager.proxy_exceptions,
+                #'proxy_exceptions': self._manager.proxy_exceptions,
                 'password': self._remote_password,
                 'timeout': self.timeout,
                 'cookie_jar': self.cookie_jar,
@@ -975,7 +975,7 @@ class Engine(QObject):
             self._dao.dispose()
 
     def get_rest_api_client(self):
-        return Nuxeo(
+        return BaseNuxeo(
             self.server_url,
             self.remote_user,
             self._manager.device_id,
@@ -984,7 +984,7 @@ class Engine(QObject):
             timeout=self.timeout,
             cookie_jar=self.cookie_jar,
             proxies=self._manager.get_proxies(self._server_url),
-            proxy_exceptions=self._manager.proxy_exceptions,
+            proxy_exceptions=self._manager.proxy_exceptions
         )
 
     def get_user_full_name(self, userid, cache_only=False):

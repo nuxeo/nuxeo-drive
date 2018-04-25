@@ -8,12 +8,12 @@ from datetime import datetime
 from logging import getLogger
 from threading import current_thread
 
-from nxdrive.utils import make_tmp_file
-from .base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
-                                     DOWNLOAD_TMP_FILE_SUFFIX)
 from .common import NotFound
 from .nuxeo_client import BaseNuxeo
+from ..constants import (DOWNLOAD_TMP_FILE_PREFIX,
+                         DOWNLOAD_TMP_FILE_SUFFIX)
 from ..engine.activity import FileAction
+from ..utils import make_tmp_file
 
 log = getLogger(__name__)
 

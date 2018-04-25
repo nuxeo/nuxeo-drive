@@ -14,12 +14,12 @@ import sys
 import time
 import uuid
 
-from nuxeo.nuxeo import Nuxeo
+from nuxeo.client import Nuxeo
+from nuxeo.models import Document
 
-nuxeo = Nuxeo(base_url=os.environ.get('NXDRIVE_TEST_NUXEO_URL',
-                                      'http://localhost:8080/nuxeo'),
-              auth={'username': 'Administrator',
-                    'password': 'Administrator'})
+nuxeo = Nuxeo(host=os.environ.get('NXDRIVE_TEST_NUXEO_URL',
+                                  'http://localhost:8080/nuxeo'),
+              auth=('Administrator', 'Administrator'))
 
 
 def actions(workspace):
@@ -78,12 +78,10 @@ def create_files_remotely(workspace, files=None, folders=None, random=True):
             doc = 'doc_' + str(n) + '.txt'
             n += 1
 
-        doc_infos = {'name': doc,
-                     'type': 'Note',
-                     'properties': {'dc:title': doc,
-                                    'note:note': 'Content ' + doc}}
-        nuxeo.repository().create(
-            '/default-domain/workspaces/' + parent, doc_infos)
+        doc_info = Document(name=doc, type='Note', properties={
+            'dc:title': doc, 'note:note': 'Content ' + doc})
+        nuxeo.documents.create(
+            doc_info, parent_path='/default-domain/workspaces/' + parent)
         debug('Created remote file {!r} in {!r}'.format(doc, parent))
 
     if folders:
@@ -120,16 +118,14 @@ def create_workspace():
     """ Create a uniq workspace. """
 
     path = 'tests-' + str(uuid.uuid1()).split('-')[0]
-    ws = {'name': path,
-          'type': 'Workspace',
-          'properties': {'dc:title': path}}
-    workspace = nuxeo.repository().create('/default-domain/workspaces', ws)
-    workspace.save()
+    ws = Document(name=path, type='Workspace', properties={'dc:title': path})
+    workspace = nuxeo.documents.create(
+        ws, parent_path='/default-domain/workspaces')
 
     # Enable synchronization on this workspace
-    operation = nuxeo.operation('NuxeoDrive.SetSynchronization')
-    operation.params({'enable': True})
-    operation.input(workspace.path)
+    operation = nuxeo.operations.new('NuxeoDrive.SetSynchronization')
+    operation.params = {'enable': True}
+    operation.input_obj = workspace.path
     operation.execute()
 
     debug('Created workspace ' + path)
@@ -138,9 +134,9 @@ def create_workspace():
 
 def get_children(path):
 
-    doc = nuxeo.repository().fetch('/default-domain/workspaces/' + path)
-    docs = nuxeo.repository().query({'pageProvider': 'CURRENT_DOC_CHILDREN',
-                                     'queryParams': [doc.uid]})
+    doc = nuxeo.documents.get(path='/default-domain/workspaces/' + path)
+    docs = nuxeo.client.query({'pageProvider': 'CURRENT_DOC_CHILDREN',
+                               'queryParams': [doc.uid]})
     return docs['entries']
 
 
@@ -151,7 +147,7 @@ def rename(document):
     document.properties.update({
         'dc:title': new_name,
         'dc:description': 'Document renamed'})
-    nuxeo.repository().update(document)
+    nuxeo.documents.put(document)
     debug('Renamed {!r} -> {!r}'.format(document.title, new_name))
 
 

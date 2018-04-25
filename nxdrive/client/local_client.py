@@ -16,13 +16,13 @@ from time import mktime, strptime
 from nuxeo.compat import text
 from send2trash import send2trash
 
-from .base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
-                                     DOWNLOAD_TMP_FILE_SUFFIX)
-from .common import (BaseClient, DuplicationDisabledError,
-                     FILE_BUFFER_SIZE, NotFound,
+from .common import (DuplicationDisabledError, FILE_BUFFER_SIZE, NotFound,
                      UNACCESSIBLE_HASH, safe_filename)
+from ..constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
 from ..options import Options
-from ..utils import guess_digest_algorithm, normalized_path, safe_long_path
+from ..utils import (guess_digest_algorithm, lock_path, normalized_path,
+                     safe_long_path, set_path_readonly, unlock_path,
+                     unset_path_readonly)
 
 # from typing import List, Optional, Text, Tuple, Union
 
@@ -114,7 +114,7 @@ class FileInfo(object):
         return h.hexdigest()
 
 
-class LocalClient(BaseClient):
+class LocalClient(object):
     """ Client API implementation for the local file system. """
 
     CASE_RENAME_PREFIX = 'driveCaseRename_'
@@ -158,14 +158,14 @@ class LocalClient(BaseClient):
         # type: (Text) -> None
 
         path = self.abspath(ref)
-        self.set_path_readonly(path)
+        set_path_readonly(path)
 
     def unset_readonly(self, ref):
         # type: (Text) -> None
 
         path = self.abspath(ref)
         if os.path.exists(path):
-            self.unset_path_readonly(path)
+            unset_path_readonly(path)
 
     def clean_xattr_root(self):
         # type: () -> None
@@ -212,11 +212,11 @@ class LocalClient(BaseClient):
         except OSError as e:
             if e.errno != errno.EACCES:
                 raise e
-            self.unset_path_readonly(path)
+            unset_path_readonly(path)
             try:
                 os.remove(path_alt)
             finally:
-                self.set_path_readonly(path)
+                set_path_readonly(path)
 
     @staticmethod
     def _remove_remote_id_unix(path, name='ndrive'):
@@ -237,7 +237,7 @@ class LocalClient(BaseClient):
 
         path = self.abspath(ref)
         log.trace('Removing xattr %r from %r', name, path)
-        locker = self.unlock_path(path, False)
+        locker = unlock_path(path, False)
         func = (self._remove_remote_id_windows
                 if sys.platform == 'win32'
                 else self._remove_remote_id_unix)
@@ -249,7 +249,7 @@ class LocalClient(BaseClient):
             if exc.errno not in (errno.ENOENT, 93):
                 raise exc
         finally:
-            self.lock_path(path, locker)
+            lock_path(path, locker)
 
     def has_folder_icon(self, ref):
         # type: (Text) -> bool
@@ -368,7 +368,7 @@ FolderType=Generic
 
         path = self.abspath(ref)
         log.trace('Setting xattr %s with value %r on %r', name, remote_id, path)
-        locker = self.unlock_path(path, False)
+        locker = unlock_path(path, False)
         if sys.platform == 'win32':
             path_alt = path + ':' + name
             try:
@@ -384,14 +384,14 @@ FolderType=Generic
             except IOError as e:
                 # Should not happen
                 if e.errno == os.errno.EACCES:
-                    self.unset_path_readonly(path)
+                    unset_path_readonly(path)
                     with open(path_alt, 'w') as f:
                         f.write(remote_id)
-                    self.set_path_readonly(path)
+                    set_path_readonly(path)
                 else:
                     raise e
             finally:
-                self.lock_path(path, locker)
+                lock_path(path, locker)
             return
 
         if sys.platform == 'linux2':
@@ -401,7 +401,7 @@ FolderType=Generic
             xattr.setxattr(path, name, remote_id)
             os.utime(path, (stat_.st_atime, stat_.st_mtime))
         finally:
-            self.lock_path(path, locker)
+            lock_path(path, locker)
 
     def get_remote_id(self, ref, name='ndrive'):
         # type: (Text, Text) -> Union[Text, None]
@@ -568,13 +568,13 @@ FolderType=Generic
         # type: (Text, bool, bool) -> int
 
         path = ref if is_abs else self.abspath(ref)
-        return self.unlock_path(path, unlock_parent)
+        return unlock_path(path, unlock_parent)
 
     def lock_ref(self, ref, locker, is_abs=False):
         # type: (Text, int, bool) -> int
 
         path = ref if is_abs else self.abspath(ref)
-        return self.lock_path(path, locker)
+        return lock_path(path, locker)
 
     def make_folder(self, parent, name):
         # type: (Text, Text) -> Text

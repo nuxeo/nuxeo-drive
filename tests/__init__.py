@@ -10,6 +10,10 @@ class RemoteTestClient(RemoteFileSystemClient):
     _server_error = None
     raise_on = None
 
+    def __init__(self, *args, **kwargs):
+        super(RemoteTestClient, self).__init__(*args, **kwargs)
+        self.operations.execute = self.execute
+
     def download(self, *args, **kwargs):
         self._raise(self._download_remote_error, *args, **kwargs)
         return super(RemoteTestClient, self).download(*args, **kwargs)
@@ -18,13 +22,9 @@ class RemoteTestClient(RemoteFileSystemClient):
         self._raise(self._upload_remote_error, *args, **kwargs)
         return super(RemoteTestClient, self).upload(*args, **kwargs)
 
-    def fetch_api(self):
-        self._raise(self._server_error)
-        return super(RemoteTestClient, self).fetch_api()
-
     def execute(self, *args, **kwargs):
         self._raise(self._server_error, *args, **kwargs)
-        return super(RemoteTestClient, self).execute(*args, **kwargs)
+        return self.operations.execute(*args, **kwargs)
 
     def make_download_raise(self, error):
         """ Make next calls to do_get() raise the provided exception. """

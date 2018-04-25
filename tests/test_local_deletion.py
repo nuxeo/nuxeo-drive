@@ -87,22 +87,24 @@ class TestLocalDeletion(UnitTestCase):
         # Setup
         file_path = '/ToDelete/File_To_Delete.txt'
         self.local_client_1.make_folder('/', 'ToDelete')
-        self.local_client_1.make_file('/ToDelete', 'File_To_Delete.txt', 'This is a content')
+        self.local_client_1.make_file('/ToDelete', 'File_To_Delete.txt',
+                                      'This is a content')
         self.wait_sync()
         self.assertTrue(self.remote_document_client_1.exists(file_path))
-        old_info = self.remote_document_client_1.get_info(file_path, use_trash=True)
+        old_info = self.remote_document_client_1.get_info(file_path,
+                                                          use_trash=True)
         abs_path = self.local_client_1.abspath(file_path)
         # Pretend we had trash the file
-        shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))
+        shutil.move(abs_path, os.path.join(self.local_test_folder_1,
+                                           'File_To_Delete.txt'))
         self.wait_sync(wait_for_async=True)
 
         # Remove rights
         folder_path = u'/default-domain/workspaces/nuxeo-drive-test-workspace/ToDelete'
-        input_obj = "doc:" + folder_path
-        self.root_remote_client.execute("Document.SetACE",
-                                        input_obj=input_obj,
-                                        user=self.user_1,
-                                        permission="Read")
+        input_obj = 'doc:' + folder_path
+        self.root_remote_client.operations.execute(
+            command='Document.SetACE', input_obj=input_obj, user=self.user_1,
+            permission='Read')
         self.root_remote_client.block_inheritance(folder_path, overwrite=False)
         self.root_remote_client.delete(folder_path)
         self.wait_sync(wait_for_async=True)
@@ -110,8 +112,11 @@ class TestLocalDeletion(UnitTestCase):
         self.assertFalse(self.local_client_1.exists(file_path))
 
         # See if it untrash or recreate
-        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1.abspath('/'))
-        self.assertIsNotNone(self.local_client_1.get_remote_id('/File_To_Delete.txt'))
+        shutil.move(os.path.join(self.local_test_folder_1,
+                                 'File_To_Delete.txt'),
+                    self.local_client_1.abspath('/'))
+        self.assertIsNotNone(
+            self.local_client_1.get_remote_id('/File_To_Delete.txt'))
         self.wait_sync(wait_for_async=True)
         self.assertTrue(self.local_client_1.exists('/File_To_Delete.txt'))
         new_uid = self.local_client_1.get_remote_id('/File_To_Delete.txt')
@@ -125,23 +130,25 @@ class TestLocalDeletion(UnitTestCase):
         file_path = '/ToDelete/File_To_Delete.txt'
         self.local_client_1.make_folder('/', 'ToDelete')
         self.local_client_1.make_folder('/', 'ToCopy')
-        self.local_client_1.make_file('/ToDelete', 'File_To_Delete.txt', 'This is a content')
+        self.local_client_1.make_file('/ToDelete', 'File_To_Delete.txt',
+                                      'This is a content')
         self.wait_sync()
         self.assertTrue(self.remote_document_client_1.exists(file_path))
-        old_info = self.remote_document_client_1.get_info(file_path, use_trash=True)
+        old_info = self.remote_document_client_1.get_info(file_path,
+                                                          use_trash=True)
         abs_path = self.local_client_1.abspath(file_path)
 
         # Pretend we had trash the file
-        shutil.move(abs_path, os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'))
+        shutil.move(abs_path, os.path.join(self.local_test_folder_1,
+                                           'File_To_Delete.txt'))
         self.wait_sync(wait_for_async=True)
 
         # Remove rights
         folder_path = u'/default-domain/workspaces/nuxeo-drive-test-workspace/ToCopy'
-        input_obj = "doc:" + folder_path
-        self.root_remote_client.execute("Document.SetACE",
-                                        input_obj=input_obj,
-                                        user=self.user_1,
-                                        permission="Read")
+        input_obj = 'doc:' + folder_path
+        self.root_remote_client.operations.execute(
+            command='Document.SetACE', input_obj=input_obj, user=self.user_1,
+            permission='Read')
         self.root_remote_client.block_inheritance(folder_path, overwrite=False)
         # Delete
         self.local_client_1.delete('/ToDelete')
@@ -151,7 +158,9 @@ class TestLocalDeletion(UnitTestCase):
 
         # See if it untrash or unsynchronized
         self.local_client_1.unlock_ref('/ToCopy')
-        shutil.move(os.path.join(self.local_test_folder_1, 'File_To_Delete.txt'), self.local_client_1.abspath('/ToCopy'))
+        shutil.move(os.path.join(self.local_test_folder_1,
+                                 'File_To_Delete.txt'),
+                    self.local_client_1.abspath('/ToCopy'))
         self.wait_sync(wait_for_async=True)
 
     def test_untrash_file_on_delete_parent(self):

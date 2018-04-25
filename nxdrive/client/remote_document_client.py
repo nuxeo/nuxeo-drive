@@ -10,10 +10,10 @@ from logging import getLogger
 from dateutil import parser
 from nuxeo.exceptions import HTTPError
 
-from nxdrive.utils import make_tmp_file
 from .common import NotFound, safe_filename
 from .nuxeo_client import BaseNuxeo
 from ..options import Options
+from ..utils import make_tmp_file
 
 log = getLogger(__name__)
 
@@ -127,7 +127,7 @@ class RemoteDocumentClient(BaseNuxeo):
             # list, a dedicated exception?
             raise RuntimeError("Folder %r on server %r has more than the"
                                "maximum number of children: %d" % (
-                                   ref, self.server_url, MAX_CHILDREN))
+                                   ref, self.client.host, MAX_CHILDREN))
 
         return self._filtered_results(entries)
 
@@ -139,7 +139,7 @@ class RemoteDocumentClient(BaseNuxeo):
         # server.
         parent = self._check_ref(parent)
         doc = self.create(parent, doc_type, name=name,
-                    properties={'dc:title': name})
+                          properties={'dc:title': name})
         return doc[u'uid']
 
     def make_file(self, parent, name, content=None, doc_type=FILE_TYPE):
@@ -384,7 +384,7 @@ class RemoteDocumentClient(BaseNuxeo):
             command='Document.GetChildren', input_obj='doc:' + ref)
 
     def is_locked(self, ref):
-        data = self.fetch(ref, extra_headers={'fetch-document': 'lock'})
+        data = self.fetch(ref, headers={'fetch-document': 'lock'})
         return 'lockCreated' in data
 
     def lock(self, ref):

@@ -10,16 +10,16 @@ from urllib import quote
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from watchdog.observers import Observer
 
-from .client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
-                                            DOWNLOAD_TMP_FILE_SUFFIX)
-from .client.common import BaseClient, NotFound
+from .client.common import NotFound
 from .client.local_client import LocalClient
+from .constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
 from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import ThreadInterrupt, Worker
 from .utils import (current_milli_time, force_decode, guess_digest_algorithm,
-                    normalize_event_filename, parse_protocol_url, simplify_url)
+                    normalize_event_filename, parse_protocol_url, simplify_url,
+                    unset_path_readonly)
 
 log = getLogger(__name__)
 
@@ -224,7 +224,7 @@ class DirectEdit(Worker):
             shutil.copy(existing_file_path, file_out)
             if pair.is_readonly():
                 log.debug('Unsetting readonly flag on copied file %r', file_out)
-                BaseClient.unset_path_readonly(file_out)
+                unset_path_readonly(file_out)
         else:
             log.debug('Downloading file %r', info.filename)
             if url:
@@ -237,7 +237,7 @@ class DirectEdit(Worker):
     def _get_info(self, engine, remote, doc_id, user):
         doc = remote.fetch(
             doc_id,
-            extra_headers={'fetch-document': 'lock'},
+            headers={'fetch-document': 'lock'},
             enrichers=['permissions'],
         )
         info = remote.doc_to_info(doc, fetch_parent_uid=False)

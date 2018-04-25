@@ -194,8 +194,8 @@ class TestRemoteDeletion(UnitTestCase):
         assert local.exists('/Test folder')
         assert local.exists('/Test folder/joe.odt')
         input_obj = 'doc:' + self.workspace
-        self.root_remote_client.execute(
-            'Document.RemoveACL', input_obj=input_obj, acl='local')
+        self.root_remote_client.operations.execute(
+            command='Document.RemoveACL', input_obj=input_obj, acl='local')
         self.wait_sync(wait_for_async=True, wait_for_engine_1=False,
                        wait_for_engine_2=True)
         assert not local.exists('/Test folder')

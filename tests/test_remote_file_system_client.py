@@ -7,6 +7,7 @@ from threading import current_thread
 from unittest import SkipTest
 
 from nxdrive.client import LocalClient, NotFound
+from nxdrive.utils import make_tmp_file
 from .common import FS_ITEM_ID_PREFIX
 from .common_unit_test import UnitTestCase
 
@@ -142,7 +143,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
     def test_scroll_descendants(self):
         remote = self.remote_file_system_client_1
 
-        if 'NuxeoDrive.ScrollDescendants' not in remote.operations:
+        if 'NuxeoDrive.ScrollDescendants' not in remote.operations.operations:
             raise SkipTest('Scroll descendants not available.')
 
         # Create documents
@@ -402,36 +403,34 @@ class TestRemoteFileSystemClient(UnitTestCase):
         self.assertTrue(new_name.endswith(").doc"))
 
     def test_streaming_upload(self):
-        remote_client = self.remote_file_system_client_1
+        remote = self.remote_file_system_client_1
 
         # Create a document by streaming a text file
-        file_path = remote_client.make_tmp_file("Some content.")
+        file_path = make_tmp_file(remote.upload_tmp_dir, 'Some content.')
         try:
-            fs_item_info = remote_client.stream_file(self.workspace_id, file_path, filename='My streamed file.txt')
+            fs_item_info = remote.stream_file(self.workspace_id, file_path,
+                                              filename='My streamed file.txt')
         finally:
             os.remove(file_path)
         fs_item_id = fs_item_info.uid
-        self.assertEqual(fs_item_info.name,
-                        'My streamed file.txt')
-        self.assertEqual(remote_client.get_content(fs_item_id),
-                         "Some content.")
+        self.assertEqual(fs_item_info.name, 'My streamed file.txt')
+        self.assertEqual(remote.get_content(fs_item_id), 'Some content.')
 
         # Update a document by streaming a new text file
-        file_path = remote_client.make_tmp_file("Other content.")
+        file_path = make_tmp_file(remote.upload_tmp_dir, 'Other content.')
         try:
-            fs_item_info = remote_client.stream_update(fs_item_id, file_path, filename='My updated file.txt')
+            fs_item_info = remote.stream_update(fs_item_id, file_path,
+                                                filename='My updated file.txt')
         finally:
             os.remove(file_path)
         self.assertEqual(fs_item_info.uid, fs_item_id)
-        self.assertEqual(fs_item_info.name,
-                        'My updated file.txt')
-        self.assertEqual(remote_client.get_content(fs_item_id),
-                         "Other content.")
+        self.assertEqual(fs_item_info.name, 'My updated file.txt')
+        self.assertEqual(remote.get_content(fs_item_id), 'Other content.')
 
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
         copyfile(self.location + '/resources/testFile.pdf', file_path)
-        fs_item_info = remote_client.stream_file(self.workspace_id, file_path)
+        fs_item_info = remote.stream_file(self.workspace_id, file_path)
         local_client = LocalClient(self.upload_tmp_dir)
         self.assertEqual(fs_item_info.name, 'testFile.pdf')
         self.assertEqual(fs_item_info.digest,

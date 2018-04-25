@@ -9,9 +9,8 @@ import time
 from logging import getLogger
 
 from nxdrive.client import RemoteDocumentClient
-from nxdrive.client.common import BaseClient
 from nxdrive.logging_config import configure
-from nxdrive.utils import safe_long_path, make_tmp_file
+from nxdrive.utils import make_tmp_file, safe_long_path, unset_path_readonly
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
@@ -68,9 +67,9 @@ def clean_dir(_dir, retry=1, max_retries=5):
     try:
         for dirpath, folders, filenames in os.walk(to_remove):
             for folder in folders:
-                BaseClient.unset_path_readonly(os.path.join(dirpath, folder))
+                unset_path_readonly(os.path.join(dirpath, folder))
             for filename in filenames:
-                BaseClient.unset_path_readonly(os.path.join(dirpath, filename))
+                unset_path_readonly(os.path.join(dirpath, filename))
         shutil.rmtree(to_remove)
     except:
         if retry < max_retries:
@@ -114,23 +113,22 @@ class RemoteDocumentClientForTests(RemoteDocumentClient):
             'nonUniform': 'true',
             'transactionTimeout': tx_timeout
         }
-        headers = {'Nuxeo-Transaction-Timeout': tx_timeout}
+        headers = {'Nuxeo-Transaction-Timeout': str(tx_timeout)}
 
         log.info('Calling random mass importer on %s with %d threads '
                  'and %d nodes', target_path, nb_threads, nb_nodes)
 
-        self.client.client.request('GET', url, params=params,
-                                   headers=headers, timeout=tx_timeout)
+        self.client.request('GET', url, params=params, headers=headers,
+                            timeout=tx_timeout)
 
     def wait_for_async_and_es_indexing(self):
         """ Use for test_volume only. """
 
         tx_timeout = 3600
-        extra_headers = {'Nuxeo-Transaction-Timeout': tx_timeout}
+        headers = {'Nuxeo-Transaction-Timeout': str(tx_timeout)}
         self.operations.execute(
             command='Elasticsearch.WaitForIndexing', timeout=tx_timeout,
-            extra_headers=extra_headers, timeoutSecond=tx_timeout,
-            refresh=True)
+            headers=headers, timeoutSecond=tx_timeout, refresh=True)
 
     def result_set_query(self, query):
         return self.operations.execute(
