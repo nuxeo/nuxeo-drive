@@ -2,12 +2,6 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 ; >>> http://www.jrsoftware.org/ishelp/ <<<
 
-
-; ##################################################
-; TODO: Sign the installer
-; ##################################################
-
-
 #define MyAppName "Nuxeo Drive"
 #define MyAppPublisher "Nuxeo"
 #define MyAppURL "https://www.nuxeo.com/products/drive-desktop-sync/"
@@ -25,12 +19,13 @@
 AppId={{64519FA4-137A-4DC6-BF91-E2B698C02788}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+VersionInfoVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppUpdatesURL}
-AppCopyright="© {#MyAppPublisher}"
+AppCopyright="© {#MyAppPublisher}. All rights reserved."
 
 ; Outputs
 OutputDir=..\..\dist
