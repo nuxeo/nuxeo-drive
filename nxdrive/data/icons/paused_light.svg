@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="30px" height="30px" viewBox="0 0 30 30" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 49.3 (51167) - http://www.bohemiancoding.com/sketch -->
+    <title>paused Mac Copy</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <path d="M6,0 C2.69169231,0 0,2.69076923 0,6 C0,9.30830769 2.69169231,12 6,12 C9.30830769,12 12,9.30830769 12,6 C12,2.69076923 9.30830769,0 6,0 Z" id="path-1"></path>
+    </defs>
+    <g id="paused-Mac-Copy" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="paused_state" transform="translate(16.000000, 16.000000)">
+            <mask id="mask-2" fill="white">
+                <use xlink:href="#path-1"></use>
+            </mask>
+            <use id="Mask" fill="#383F46" fill-rule="nonzero" xlink:href="#path-1"></use>
+            <polygon id="Path" fill="#FFFFFF" mask="url(#mask-2)" points="5.4 3 4.2 3 4.2 9 5.4 9"></polygon>
+            <polygon id="Path" fill="#FFFFFF" mask="url(#mask-2)" points="6.6 3 6.6 9 7.8 9 7.8 3"></polygon>
+            <g id="Group" mask="url(#mask-2)">
+                <g transform="translate(6.000000, 2.400000)"></g>
+            </g>
+        </g>
+        <g id="NUXEO-X" transform="translate(3.000000, 3.000000)" fill="#FFFFFF" fill-rule="nonzero">
+            <polygon id="Combined-Shape" points="0 4.87323192 7.12676808 12 0 19.1235655 0 24 4.87643448 24 24 4.87323192 24 0 19.1267681 0 12 7.12356552 4.87643448 0 0 0"></polygon>
+        </g>
+    </g>
+</svg>

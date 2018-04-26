@@ -594,8 +594,10 @@ class Application(SimpleApplication):
         icons = {}
         for state in ('idle', 'disabled', 'conflict', 'error',
                       'notification', 'syncing', 'paused', 'update'):
+            name = '{}{}.svg'.format(
+                state, '_light' if AbstractOSIntegration.is_windows() else '')
             icon = QIcon()
-            icon.addFile(find_icon('%s.svg' % state), mode=QIcon.Normal)
+            icon.addFile(find_icon(name), mode=QIcon.Normal)
             if AbstractOSIntegration.is_mac():
                 icon.addFile(find_icon('active.svg'), mode=QIcon.Selected)
             icons[state] = icon
