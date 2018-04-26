@@ -636,12 +636,6 @@ FolderType=Generic
         if not os.path.exists(os_path):
             return
 
-        if sys.platform == 'win32':
-            # Send2Trash uses a SHFileOperation on Windows, which fails on
-            # any path prefixed with "\\?\" (from official documentation).
-            # So removing that prefix.
-            os_path = os_path.lstrip('\\\\?\\')
-
         log.trace('Trashing %r', os_path)
 
         # Send2Trash needs bytes

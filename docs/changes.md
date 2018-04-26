@@ -65,6 +65,7 @@ Changes in command line arguments:
 - Packaging: Added `pyaml` 17.12.1
 - Packaging: Added `requests` 2.18.4
 - Packaging: Removed `cffi`, will be installed with `xattr`
+- Packaging: Removed `yappi`, useless on CI
 - Packaging: Updated `Js2Py` from 0.58 to 0.59
 - Packaging: Updated `pycryptodomex` from 3.5.1 to 3.6.0
 - Packaging: Updated `pypac` from 0.4.0 to 0.8.1

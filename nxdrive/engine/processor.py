@@ -289,7 +289,7 @@ class Processor(EngineWorker):
                                  doc_pair.remote_ref)
                         self._engine.errorOpenedFile.emit(doc_pair)
                         self._postpone_pair(doc_pair, 'Used by another process')
-                    elif error in (111, 121, 124, 206):
+                    elif error in (111, 121, 124, 206, 1223):
                         """
                         WindowsError: [Error 111] ??? (seems related to deep
                         tree)
@@ -307,12 +307,15 @@ class Processor(EngineWorker):
                         WindowsError: [Error 206] The filename or extension is
                         too long.
                         Cause: even the full short path is too long
+
+                        OSError: Couldn't perform operation. Error code: 1223
+                        Seems related to long paths
                         """
                         self._dao.remove_filter(doc_pair.remote_parent_path
                                                 + '/'
                                                 + doc_pair.remote_ref)
                         self._engine.fileDeletionErrorTooLong.emit(doc_pair)
-                    elif getattr(exc, 'trash_issue'):
+                    elif getattr(exc, 'trash_issue', False):
                         """
                         Special value to handle trash issues from filters on
                         Windows when there is one or more files opened by
