@@ -533,7 +533,8 @@ class Processor(EngineWorker):
                 'Parent folder of %r, %r is not bound to a remote folder'
                 % (doc_pair.local_path, doc_pair.local_parent_path))
 
-        if remote_ref is not None and '#' in remote_ref:
+        uid = info = remote_doc_client = None
+        if remote_ref and '#' in remote_ref:
             # Get the remote doc
             # Verify it is not already synced elsewhere (a missed move?)
             # If same hash don't do anything and reconcile
@@ -548,14 +549,15 @@ class Processor(EngineWorker):
             log.warning('This document %r has remote_ref %s, info=%r',
                         doc_pair, remote_ref, info)
             if not info:
-                # Document not found in server by remote document client.
-                # Either it was deleted or it is a local virtual folder.
-                if 'default#' in remote_ref:
-                    # Document appears to be deleted server side.
-                    self._synchronize_remotely_deleted(
-                        doc_pair, local, remote, notif=True)
-                return
+                # The document has an invalid remote ID.
+                # Continue the document creation after purging the ID.
+                log.debug('Removing xattr(s) on %r', doc_pair.local_path)
+                func = ('remove_remote_id',
+                        'clean_xattr_folder_recursive')[doc_pair.folderish]
+                getattr(local, func)(doc_pair.local_path)
+                remote_ref = None
 
+        if remote_ref:
             try:
                 if info.state == 'deleted':
                     log.debug('Untrash from the client: %r', doc_pair)
@@ -604,6 +606,13 @@ class Processor(EngineWorker):
                     raise e
                 log.trace('Create new document as current known document'
                           ' is not accessible: %s', remote_ref)
+            except NotFound:
+                # The document has an invalid remote ID.
+                # It happens when locally untrashing a folder
+                # containing files. Just ignore the error and proceed
+                # to the document creation.
+                log.debug('Removing xattr on %r', doc_pair.local_path)
+                local.remove_remote_id(doc_pair.local_path)
 
         parent_ref = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:

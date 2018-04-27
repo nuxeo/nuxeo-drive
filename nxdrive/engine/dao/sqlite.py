@@ -682,41 +682,28 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
 
     def delete_local_state(self, doc_pair):
-        current_state = None
         try:
             with self._lock:
                 con = self._get_write_connection()
                 c = con.cursor()
-                # Check parent to see current pair state
-                parent = c.execute('SELECT * '
-                                   '  FROM States'
-                                   ' WHERE local_path = ?',
-                                   (doc_pair.local_parent_path,)).fetchone()
-                if parent and (
-                        parent.pair_state in ('locally_deleted',
-                                              'parent_locally_deleted')):
-                    current_state = 'parent_locally_deleted'
-                else:
-                    current_state = 'locally_deleted'
-
                 update = ("UPDATE States"
                           "   SET local_state = 'deleted',"
                           "       pair_state = ?")
                 c.execute('{} WHERE id = ?'.format(update),
-                          (current_state, doc_pair.id))
+                          ('locally_deleted', doc_pair.id))
                 if doc_pair.folderish:
                     c.execute(update + ' '
                               + self._get_recursive_condition(doc_pair),
-                              ('parent_locally_deleted',))
+                              ('locally_deleted',))
                 if self.auto_commit:
                     con.commit()
         finally:
             self._queue_manager.interrupt_processors_on(
                 doc_pair.local_path, exact_match=False)
+
             # Only queue parent
-            if current_state and current_state == 'locally_deleted':
-                self._queue_pair_state(
-                    doc_pair.id, doc_pair.folderish, current_state)
+            self._queue_pair_state(
+                doc_pair.id, doc_pair.folderish, 'locally_deleted')
 
     def insert_local_state(self, info, parent_path):
         pair_state = PAIR_STATES.get(('created', 'unknown'))
