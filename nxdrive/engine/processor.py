@@ -1101,8 +1101,7 @@ class Processor(EngineWorker):
         self,
         doc_pair,
         local_client,
-        remote_client,
-        notif=False
+        remote_client
     ):
         try:
             if doc_pair.local_state != 'deleted':
@@ -1120,9 +1119,6 @@ class Processor(EngineWorker):
                     local_client.delete_final(doc_pair.local_path)
                 else:
                     local_client.delete(doc_pair.local_path)
-
-                if notif:
-                    self._engine.deletionDifferentAccount.emit(doc_pair.local_path)
 
             self._dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
