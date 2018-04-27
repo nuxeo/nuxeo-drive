@@ -37,12 +37,13 @@ ConflictsController.prototype.updateErrors = function($scope) {
 	var errors = angular.fromJson(drive.get_errors()),
 	    ignoreds = angular.fromJson(drive.get_ignoreds()),
 	    reasons = [
-	        'READONLY',
-	        'PARENT_UNSYNC',
+	        'CORRUPT',
+	        'DEDUP',
 	        'LOCKED',
 	        'MANUAL',
-	        'DEDUP',
-	        'CORRUPT',
+	        'NOT_FOUND',
+	        'PARENT_UNSYNC',
+	        'READONLY',
 	    ];
 
 	for (error in errors) {

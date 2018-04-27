@@ -330,7 +330,7 @@ class Manager(QtCore.QObject):
         self._create_server_config_updater()
 
         # Create the application update verification thread
-        self._create_updater()
+        self.updater = self._create_updater()
 
         # Setup analytics tracker
         self._tracker = self._create_tracker()
@@ -424,9 +424,9 @@ class Manager(QtCore.QObject):
         self.started.connect(self.server_config_updater._thread.start)
 
     def _create_updater(self):
-        self.updater = updater(self)
-        self.started.connect(self.updater._thread.start)
-        return self.updater
+        updater_ = updater(self)
+        self.started.connect(updater_._thread.start)
+        return updater_
 
     def _create_findersync_listener(self):
         from .osi.darwin.darwin import FinderSyncListener
@@ -435,7 +435,8 @@ class Manager(QtCore.QObject):
         return self._findersync_listener
 
     def refresh_update_status(self):
-        self.updater.refresh_status()
+        if self.updater:
+            self.updater.refresh_status()
 
     def _create_direct_edit(self, url):
         from .direct_edit import DirectEdit

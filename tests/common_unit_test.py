@@ -26,7 +26,6 @@ from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.updater.base import BaseUpdater
 from nxdrive.wui.translator import Translator
 from .common import RemoteDocumentClientForTests, TEST_DEFAULT_DELAY, \
     TEST_WORKSPACE_PATH, clean_dir
@@ -73,9 +72,9 @@ FILE_CONTENT = """
 # Remove features for tests
 Engine.register_folder_link = lambda *args: None
 LocalClient.has_folder_icon = lambda *args: True
-Manager._handle_os = lambda: None
-BaseUpdater._can_update = False
+Manager._create_updater = lambda *args: None
 Manager._create_server_config_updater = lambda *args: None
+Manager._handle_os = lambda: None
 
 
 class RandomBugError(Exception):

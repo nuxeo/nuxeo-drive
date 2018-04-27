@@ -527,7 +527,7 @@ class Engine(QObject):
         log.debug('Checking sync completed [%s]: queue manager is %s, '
                   'overall size = %d, empty polls count = %d, '
                   'local watcher empty events = %d, blacklist = %d, %s',
-                  'active' if qm_active else 'inactive', self.uid,
+                  self.uid, 'active' if qm_active else 'inactive',
                   qm_size, empty_polls, empty_events, blacklist_size, win_info)
         local_metrics = self._local_watcher.get_metrics()
         if (qm_size == 0 and not qm_active and empty_polls > 0

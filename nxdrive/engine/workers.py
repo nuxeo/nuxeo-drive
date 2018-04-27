@@ -206,14 +206,14 @@ class EngineWorker(Worker):
         pass
 
     def giveup_error(self, doc_pair, error, exception=None):
-        details = repr(exception) if exception else None
+        details = str(exception) if exception else None
         log.debug('Give up for error [%s] (%r) for %r', error, details, doc_pair)
         self._dao.increase_error(doc_pair, error, details=details, incr=self._engine.get_queue_manager().get_error_threshold()+1)
         # Push it to generate the error notification
         self._engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
     def increase_error(self, doc_pair, error, exception=None):
-        details = repr(exception) if exception else None
+        details = str(exception) if exception else None
         log.debug('Increasing error [%s] (%r) for %r', error, details, doc_pair)
         self._dao.increase_error(doc_pair, error, details=details)
         self._engine.get_queue_manager().push_error(doc_pair, exception=exception)
