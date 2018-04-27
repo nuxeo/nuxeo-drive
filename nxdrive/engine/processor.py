@@ -267,6 +267,11 @@ class Processor(EngineWorker):
                 except CorruptedFile as exc:
                     self.increase_error(doc_pair, 'CORRUPT', exception=exc)
                     continue
+                except NotFound as exc:
+                    log.debug('The document or its parent does '
+                              'not exist anymore: %r', doc_pair)
+                    self.giveup_error(doc_pair, 'NOT_FOUND', exception=exc)
+                    continue
                 except OSError as exc:
                     # Try to handle different kind of Windows error
                     error = getattr(exc, 'winerror', exc.errno)
@@ -481,8 +486,8 @@ class Processor(EngineWorker):
         """ NXDRIVE-766: processes a locally resolved conflict. """
         return self._synchronize_locally_created(doc_pair, local_client, remote_client, overwrite=True)
 
-    def _synchronize_locally_created(self, doc_pair, local_client,
-                                     remote_client, overwrite=False):
+    def _synchronize_locally_created(
+            self, doc_pair, local, remote, overwrite=False):
         """
         :param bool overwrite: Allows to overwrite an existing document
                                with the same title on the server.
@@ -502,7 +507,7 @@ class Processor(EngineWorker):
                     self.increase_error(doc_pair, 'Can be a temporary file')
                     return
 
-        remote_ref = local_client.get_remote_id(doc_pair.local_path)
+        remote_ref = local.get_remote_id(doc_pair.local_path)
         # Find the parent pair to find the ref of the remote folder to
         # create the document
         parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
@@ -512,8 +517,8 @@ class Processor(EngineWorker):
         if parent_pair is None:
             # Try to get it from xattr
             log.trace("Fallback to xattr")
-            if local_client.exists(doc_pair.local_parent_path):
-                parent_ref = local_client.get_remote_id(doc_pair.local_parent_path)
+            if local.exists(doc_pair.local_parent_path):
+                parent_ref = local.get_remote_id(doc_pair.local_parent_path)
                 parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
 
         if parent_pair is None or parent_pair.remote_ref is None:
@@ -522,7 +527,7 @@ class Processor(EngineWorker):
             if (parent_pair is not None
                     and parent_pair.pair_state == 'unsynchronized'):
                 self._dao.unsynchronize_state(doc_pair, 'PARENT_UNSYNC')
-                self._handle_unsynchronized(local_client, doc_pair)
+                self._handle_unsynchronized(local, doc_pair)
                 return
             raise ValueError(
                 'Parent folder of %r, %r is not bound to a remote folder'
@@ -548,7 +553,7 @@ class Processor(EngineWorker):
                 if 'default#' in remote_ref:
                     # Document appears to be deleted server side.
                     self._synchronize_remotely_deleted(
-                        doc_pair, local_client, remote_client, notif=True)
+                        doc_pair, local, remote, notif=True)
                 return
 
             try:
@@ -557,38 +562,36 @@ class Processor(EngineWorker):
                     remote_doc_client.undelete(uid)
                     remote_parent_path = (parent_pair.remote_parent_path + '/'
                                           + parent_pair.remote_ref)
-                    fs_item_info = remote_client.get_info(remote_ref)
+                    fs_item_info = remote.get_info(remote_ref)
                     # Handle document move
                     if fs_item_info.parent_uid != parent_pair.remote_ref:
-                        fs_item_info = remote_client.move(
+                        fs_item_info = remote.move(
                             fs_item_info.uid, parent_pair.remote_ref)
                     # Handle document rename
                     if fs_item_info.name != doc_pair.local_name:
-                        fs_item_info = remote_client.rename(
+                        fs_item_info = remote.rename(
                             fs_item_info.uid, doc_pair.local_name)
                     self._dao.update_remote_state(
                         doc_pair, fs_item_info,
                         remote_parent_path=remote_parent_path, versioned=False)
                     # Handle document modification - update the doc_pair
                     doc_pair = self._dao.get_state_from_id(doc_pair.id)
-                    self._synchronize_locally_modified(
-                        doc_pair, local_client, remote_client)
+                    self._synchronize_locally_modified(doc_pair, local, remote)
                     return
 
-                fs_item_info = remote_client.get_info(remote_ref)
+                fs_item_info = remote.get_info(remote_ref)
                 log.trace('Compare parents: %r | %r', fs_item_info.parent_uid,
                           parent_pair.remote_ref)
                 # Document exists on the server
                 if (parent_pair.remote_ref is not None
                         and parent_pair.remote_ref == fs_item_info.parent_uid
-                        and local_client.is_equal_digests(doc_pair.local_digest,
-                                                          fs_item_info.digest,
-                                                          doc_pair.local_path)
+                        and local.is_equal_digests(doc_pair.local_digest,
+                                                   fs_item_info.digest,
+                                                   doc_pair.local_path)
                         and (doc_pair.local_name == info.name
                              or doc_pair.local_state == 'resolved')):
                     if overwrite and info.folderish:
-                        self._synchronize_locally_moved(
-                            doc_pair, local_client, remote_client)
+                        self._synchronize_locally_moved(doc_pair, local, remote)
                     else:
                         log.warning(
                             'Document is already on the server should not create: %r | %r',
@@ -609,63 +612,65 @@ class Processor(EngineWorker):
             if doc_pair.folderish:
                 log.debug('Creating remote folder %r in folder %r',
                           name, parent_pair.remote_name)
-                fs_item_info = remote_client.make_folder(parent_ref, name,
-                                                         overwrite=overwrite)
+                fs_item_info = remote.make_folder(
+                    parent_ref, name, overwrite=overwrite)
                 remote_ref = fs_item_info.uid
             else:
                 # TODO Check if the file is already on the server with the
                 # TODO good digest
                 log.debug('Creating remote document %r in folder %r',
                           name, parent_pair.remote_name)
-                info = local_client.get_info(doc_pair.local_path)
+                info = local.get_info(doc_pair.local_path)
                 if info.size != doc_pair.size:
                     # Size has changed ( copy must still be running )
                     doc_pair.local_digest = UNACCESSIBLE_HASH
-                    self._dao.update_local_state(doc_pair, info,
-                                                 versioned=False, queue=False)
+                    self._dao.update_local_state(
+                        doc_pair, info, versioned=False, queue=False)
                     self._postpone_pair(doc_pair, 'Unaccessible hash')
                     return
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
                     doc_pair.local_digest = info.get_digest()
                     log.trace("Creation of postponed local file: %r", doc_pair)
-                    self._dao.update_local_state(doc_pair, info,
-                                                 versioned=False, queue=False)
+                    self._dao.update_local_state(
+                        doc_pair, info, versioned=False, queue=False)
                     if doc_pair.local_digest == UNACCESSIBLE_HASH:
                         self._postpone_pair(doc_pair, 'Unaccessible hash')
                         return
-                fs_item_info = remote_client.stream_file(
-                    parent_ref, local_client.abspath(doc_pair.local_path),
+                fs_item_info = remote.stream_file(
+                    parent_ref, local.abspath(doc_pair.local_path),
                     filename=name, overwrite=overwrite)
                 remote_ref = fs_item_info.uid
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
+
             with self._dao._lock:
                 remote_id_done = False
                 # NXDRIVE-599: set as soon as possible the remote_id as
                 # update_remote_state can crash with InterfaceError
                 try:
-                    local_client.set_remote_id(doc_pair.local_path, remote_ref)
+                    local.set_remote_id(doc_pair.local_path, remote_ref)
                     remote_id_done = True
                 except (NotFound, IOError, OSError):
                     pass
-                self._dao.update_remote_state(doc_pair, fs_item_info,
-                                              remote_parent_path=remote_parent_path,
-                                              versioned=False, queue=False)
+                self._dao.update_remote_state(
+                    doc_pair, fs_item_info,
+                    remote_parent_path=remote_parent_path,
+                    versioned=False,
+                    queue=False)
             log.trace("Put remote_ref in %s", remote_ref)
             try:
                 if not remote_id_done:
-                    local_client.set_remote_id(doc_pair.local_path, remote_ref)
+                    local.set_remote_id(doc_pair.local_path, remote_ref)
             except (NotFound, IOError, OSError):
                 new_pair = self._dao.get_state_from_id(doc_pair.id)
                 # File has been moved during creation
                 if new_pair.local_path != doc_pair.local_path:
-                    local_client.set_remote_id(new_pair.local_path, remote_ref)
-                    self._synchronize_locally_moved(new_pair, local_client,
-                                                    remote_client, update=False)
+                    local.set_remote_id(new_pair.local_path, remote_ref)
+                    self._synchronize_locally_moved(
+                        new_pair, local, remote, update=False)
                     return
-            self._synchronize_if_not_remotely_dirty(doc_pair, local_client,
-                                                    remote_client,
-                                                    remote_info=fs_item_info)
+            self._synchronize_if_not_remotely_dirty(
+                doc_pair, local, remote, remote_info=fs_item_info)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
             log.warning('Will not synchronize %s %r created in'
@@ -674,14 +679,14 @@ class Processor(EngineWorker):
             if doc_pair.folderish:
                 doc_pair.remote_can_create_child = False
             if self._engine.local_rollback():
-                local_client.delete(doc_pair.local_path)
+                local.delete(doc_pair.local_path)
                 self._dao.remove_state(doc_pair)
             else:
                 log.debug('Set pair unsynchronized: %r', doc_pair)
                 self._dao.unsynchronize_state(doc_pair, 'READONLY')
-                self._engine.newReadonly.emit(doc_pair.local_name,
-                                              parent_pair.remote_name)
-                self._handle_unsynchronized(local_client, doc_pair)
+                self._engine.newReadonly.emit(
+                    doc_pair.local_name, parent_pair.remote_name)
+                self._handle_unsynchronized(local, doc_pair)
 
     def _synchronize_locally_deleted(self, doc_pair, local_client, remote_client):
         if not doc_pair.remote_ref:

@@ -44,6 +44,9 @@
 	<div class="panel panel-default" ng-repeat="pair in errors">
 		<div class="panel-heading">{{ pair.name }}{{ pair.folderish ? '/' : '' }}</div>
 		<div class="panel-body">{{ pair.error_reason | translate }}</div>
+		<div class="panel-body" ng-show="pair.details" style="font-family:monospace;font-size:.9em;">
+			<span translate>TECHNICAL_DETAILS</span><br>{{ pair.details }}
+		</div>
 		<div class="panel-body">
 			<span style="color: #999; margin-bottom: 10px;cursor: pointer;" ng-click="open_local(pair.local_parent_path)" translate translate-values="{ path:'{{ pair.local_parent_path }}'}">FILE_PATH</span><br />
 			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ contributor:'{{ pair.last_contributor }}'}">LAST_CONTRIBUTOR</span><br />
