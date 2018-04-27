@@ -9,6 +9,7 @@ Changes in command line arguments:
 ### Core
 - [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations
 - [NXDRIVE-925](https://jira.nuxeo.com/browse/NXDRIVE-925): Conflict resolve using local is not working
+- [NXDRIVE-988](https://jira.nuxeo.com/browse/NXDRIVE-988): Handle local document deletion and restore on macOS
 - [NXDRIVE-1121](https://jira.nuxeo.com/browse/NXDRIVE-1121): Set modified date to Nuxeo platform modified date
 - [NXDRIVE-1130](https://jira.nuxeo.com/browse/NXDRIVE-1130): Set creation date to Nuxeo platform creation date
 - [NXDRIVE-1132](https://jira.nuxeo.com/browse/NXDRIVE-1132): Security fix in the Crypto module (move to PyCryptodome)
