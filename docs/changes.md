@@ -68,9 +68,11 @@ Changes in command line arguments:
 - Packaging: Removed `cffi`, will be installed with `xattr`
 - Packaging: Removed `yappi`, useless on CI
 - Packaging: Updated `Js2Py` from 0.58 to 0.59
-- Packaging: Updated `pycryptodomex` from 3.5.1 to 3.6.0
+- Packaging: Updated `faulthandler` from 3.0 to 3.1
+- Packaging: Updated `psutil` from 5.4.3 to 5.4.4
+- Packaging: Updated `pycryptodomex` from 3.5.1 to 3.6.1
 - Packaging: Updated `pypac` from 0.4.0 to 0.8.1
-- Packaging: Updated `pytest` from 3.3.2 to 3.5.0
+- Packaging: Updated `pytest` from 3.3.2 to 3.5.1
 - Packaging: Updated `python-dateutil` from 2.6.1 to 2.7.2
 - Packaging: Updated `xattr` from 0.9.2 to 0.9.3
 - Packaging: Upgraded `SIP` from 4.19.7 to 4.19.8
