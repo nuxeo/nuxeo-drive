@@ -57,7 +57,7 @@ SetupIconFile=app_icon.ico
 
 ; Pictures
 ; 164x314px
-;WizardImageFile=wizard.bmp
+WizardImageFile=wizard.bmp
 ; 55x58px
 WizardSmallImageFile=wizard-small.bmp
 
