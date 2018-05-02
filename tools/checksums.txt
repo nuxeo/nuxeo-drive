@@ -10,7 +10,7 @@
 0112e15858cd7d318a09e7366922f874  PyQt4_gpl_x11-4.12.1.tar.gz
 
 # Python
-fff688dc4968ec80bbb0eedf45de82db  python-2.7.14.msi
+023e49c9fba54914ebc05c4662a93ffe  python-2.7.15.msi
 
 # SIP
 0625fb20347d4ff1b5da551539be0727  sip-4.19.8.tar.gz
