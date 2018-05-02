@@ -40,8 +40,8 @@ properties_rc = None
 
 if sys.platform == 'win32':
     # Missing OpenSSL DLLs
-    data.append((tools + '\windows\libeay32.dll', 'libeay32.dll'))
-    data.append((tools + '\windows\ssleay32.dll', 'ssleay32.dll'))
+    data.append((tools + '\windows\libeay32.dll', '.'))
+    data.append((tools + '\windows\ssleay32.dll', '.'))
 
     # Set executable properties
     properties_tpl = tools + '\windows\properties_tpl.rc'
