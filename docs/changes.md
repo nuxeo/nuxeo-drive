@@ -48,6 +48,7 @@ Changes in command line arguments:
 - [NXDRIVE-1125](https://jira.nuxeo.com/browse/NXDRIVE-1125): Make Finder interactions through FinderSync extension on macOS
 - [NXDRIVE-1146](https://jira.nuxeo.com/browse/NXDRIVE-1146): Drop module availability on PyPi
 - [NXDRIVE-1187](https://jira.nuxeo.com/browse/NXDRIVE-1187): Fix the PowerShell download command for Windows packaging
+- [NXDRIVE-1202](https://jira.nuxeo.com/browse/NXDRIVE-1202): Upgrade to Python 2.7.15
 
 ### Tests
 - [NXDRIVE-1173](https://jira.nuxeo.com/browse/NXDRIVE-1173): Fix pip installation on Windows
