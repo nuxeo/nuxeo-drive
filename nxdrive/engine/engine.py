@@ -16,9 +16,8 @@ from .queue_manager import QueueManager
 from .watcher.local_watcher import LocalWatcher
 from .watcher.remote_watcher import RemoteWatcher
 from .workers import PairInterrupt, ThreadInterrupt, Worker
-from ..client import LocalClient
+from ..client import LocalClient, FilteredRemote, Remote
 from ..client.common import NotFound, safe_filename
-from ..client.remote_client import FilteredRemote, Remote
 from ..options import Options
 from ..osi import AbstractOSIntegration
 from ..utils import (find_icon, normalized_path, set_path_readonly,
@@ -728,9 +727,8 @@ class Engine(QObject):
     def bind(self, binder):
         check_credentials = not (hasattr(binder, 'no_check')
                                  and binder.no_check)
-        check_fs = not Options.nofscheck
-        if hasattr(binder, 'no_fscheck') and binder.no_fscheck:
-            check_fs = False
+        check_fs = not (Options.nofscheck or
+                        (hasattr(binder, 'no_fscheck') and binder.no_fscheck))
         self._server_url = self._normalize_url(binder.url)
         self._remote_user = binder.username
         self._remote_password = binder.password

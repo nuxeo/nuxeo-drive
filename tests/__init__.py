@@ -4,8 +4,7 @@ import os
 
 from nuxeo.exceptions import HTTPError
 
-from nxdrive.client import safe_filename
-from nxdrive.client.remote_client import NuxeoDocumentInfo, Remote
+from nxdrive.client import NuxeoDocumentInfo, Remote, safe_filename
 from nxdrive.logging_config import configure
 from nxdrive.utils import make_tmp_file
 

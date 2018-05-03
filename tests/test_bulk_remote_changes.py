@@ -25,11 +25,11 @@ Note: searching for the following regular expression in log file
 
 from logging import getLogger
 from time import sleep
-from urllib2 import URLError
+from requests import ConnectionError
 
 from mock import patch
 
-from nxdrive.client.remote_client import Remote
+from nxdrive.client import Remote
 from .common import TEST_DEFAULT_DELAY
 from .common_unit_test import UnitTestCase
 
@@ -44,7 +44,8 @@ def mock_get_children_info(self, *args, **kwargs):
     if network_error > 0:
         network_error -= 1
         # Simulate a network error during the call to NuxeoDrive.GetChildren
-        raise URLError('Network error simulated for NuxeoDrive.GetChildren')
+        raise ConnectionError('Network error simulated '
+                              'for NuxeoDrive.GetChildren')
     return original_get_children_info(self, *args, **kwargs)
 
 

@@ -175,7 +175,7 @@ class TestLocalFilter(UnitTestCase):
         assert not local.exists('/Test/Subfolder/SubSubfolder')
         assert not local.exists('/Test/Subfolder/SubSubfolder/joe4.txt')
 
-    # @RandomBug('NXDRIVE-814', target='mac', mode='BYPASS')
+    @RandomBug('NXDRIVE-814', target='mac', mode='BYPASS')
     def test_synchronize_local_filter_with_remote_trash(self):
         self.engine_1.start()
 
