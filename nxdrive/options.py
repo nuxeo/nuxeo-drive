@@ -386,16 +386,16 @@ def server_updater(*args):
             """ Check for the configuration file and apply updates. """
 
             for _, engine in self.manager._engines.items():
-                client = engine.get_remote_doc_client()
+                client = engine.remote.client if engine.remote else None
                 if not client:
                     continue
 
                 try:
-                    resp = client.client.client.request(
-                        'GET', client.rest_api_url + 'drive/configuration')
+                    resp = client.request(
+                        'GET', client.api_path + '/drive/configuration')
                     conf = resp.json()
                 except Exception as exc:
-                    log.error('Polling error: {}'.format(exc))
+                    log.error('Polling error: %r', exc)
                 else:
                     engine.set_ui(conf.pop('ui'))
                     Options.update(conf, setter='server', fail_on_error=True)

@@ -19,6 +19,7 @@ from PyQt4.QtWebKit import qWebKitVersion
 
 from . import __version__
 from .client import LocalClient
+from .constants import APP_NAME
 from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
 from .options import Options, server_updater
@@ -223,7 +224,7 @@ class Manager(QtCore.QObject):
     suspended = QtCore.pyqtSignal()
     resumed = QtCore.pyqtSignal()
     _singleton = None
-    app_name = 'Nuxeo Drive'
+    app_name = APP_NAME
 
     __device_id = None
 

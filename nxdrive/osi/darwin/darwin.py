@@ -273,9 +273,12 @@ class FinderSyncListener(Worker):
         log.debug('FinderSync listening on %s, %s', self.host, self.port)
         while True:
             self._interact()
-            conn, addr = self._sock.accept()
-            client = SocketThread(conn, addr, self._manager)
-            client.start()
+            try:
+                conn, addr = self._sock.accept()
+                client = SocketThread(conn, addr, self._manager)
+                client.start()
+            except socket.timeout:
+                pass
 
     def quit(self):
         super(FinderSyncListener, self).quit()

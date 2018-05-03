@@ -8,7 +8,6 @@ from time import sleep
 
 from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError, Unauthorized
-from requests import ConnectionError
 
 from .activity import Action, FileAction
 from .dao.sqlite import EngineDAO
@@ -17,10 +16,9 @@ from .queue_manager import QueueManager
 from .watcher.local_watcher import LocalWatcher
 from .watcher.remote_watcher import RemoteWatcher
 from .workers import PairInterrupt, ThreadInterrupt, Worker
-from ..client import (LocalClient, RemoteDocumentClient,
-                      RemoteFileSystemClient, RemoteFilteredFileSystemClient)
+from ..client import LocalClient
 from ..client.common import NotFound, safe_filename
-from ..client.nuxeo_client import BaseNuxeo
+from ..client.remote_client import FilteredRemote, Remote
 from ..options import Options
 from ..osi import AbstractOSIntegration
 from ..utils import (find_icon, normalized_path, set_path_readonly,
@@ -77,20 +75,18 @@ class Engine(QObject):
     type = 'NXDRIVE'
 
     def __init__(self, manager, definition, binder=None, processors=5,
-                 remote_doc_client_factory=RemoteDocumentClient,
-                 remote_fs_client_factory=RemoteFileSystemClient,
-                 remote_filtered_fs_client_factory=RemoteFilteredFileSystemClient):
+                 remote_cls=Remote,
+                 filtered_remote_cls=FilteredRemote,
+                 local_cls=LocalClient):
         super(Engine, self).__init__()
 
         self.version = manager.version
-        self._remote_clients = dict()
-        # Used for binding server / roots and managing tokens
-        self.remote_doc_client_factory = remote_doc_client_factory
 
-        # Used for FS synchronization operations
-        self.remote_fs_client_factory = remote_fs_client_factory
-        # Used for FS synchronization operations
-        self.remote_filtered_fs_client_factory = remote_filtered_fs_client_factory
+        self.remote_cls = remote_cls
+        self.filtered_remote_cls = filtered_remote_cls
+        self.local_cls = local_cls
+        self.remote = None
+
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
         # Folder locker - LocalFolder processor can prevent
@@ -106,7 +102,14 @@ class Engine(QObject):
         self._manager = manager
         # Remove remote client cache on proxy update
         self._manager.proxyUpdated.connect(self.invalidate_client_cache)
+
         self.local_folder = definition.local_folder
+
+        self.local = self.local_cls(self.local_folder,
+                                    case_sensitive=self._case_sensitive)
+        if self._case_sensitive is None and os.path.exists(self.local_folder):
+            self._case_sensitive = self.local.is_case_sensitive()
+
         self.uid = definition.uid
         self.name = definition.name
         self._stopped = True
@@ -119,6 +122,7 @@ class Engine(QObject):
         if binder is not None:
             self.bind(binder)
         self._load_configuration()
+        self.init_remote()
         # Set server version in the Options
         self.get_server_version()
         self._local_watcher = self._create_local_watcher()
@@ -203,7 +207,7 @@ class Engine(QObject):
         log.debug('UI preferences set to {}'.format(value))
 
     def release_folder_lock(self):
-        log.debug("Local Folder unlocking")
+        log.debug('Local Folder unlocking')
         self._folder_lock = None
 
     def get_last_files(self, number, direction=None):
@@ -344,13 +348,10 @@ class Engine(QObject):
     def unbind(self):
         self.stop()
         try:
-            doc_client = self.get_remote_doc_client()
-            if doc_client:
-                doc_client.revoke_token()
+            if self.remote:
+                self.remote.revoke_token()
         except Unauthorized:
             # Token already revoked
-            # The exception can happened in both get_remote_doc_client()
-            # and revoke_token()
             pass
         except:
             log.exception('Unbind error')
@@ -371,12 +372,11 @@ class Engine(QObject):
         if not os.path.exists(self.local_folder):
             self.rootDeleted.emit()
             return False
-        client = self.get_local_client()
-        client.set_remote_id('/', tag_value, tag)
-        if client.get_remote_id('/', tag) != tag_value:
+        self.local.set_remote_id('/', tag_value, tag)
+        if self.local.get_remote_id('/', tag) != tag_value:
             return False
-        client.remove_remote_id('/', tag)
-        return client.get_remote_id('/', tag) is None
+        self.local.remove_remote_id('/', tag)
+        return self.local.get_remote_id('/', tag) is None
 
     @staticmethod
     def _normalize_url(url):
@@ -408,7 +408,7 @@ class Engine(QObject):
         return self._dao.get_config('remote_user')
 
     def get_remote_token(self):
-        return self._dao.get_config("remote_token")
+        return self._dao.get_config('remote_token')
 
     def _create_queue_manager(self, processors):
         kwargs = {}
@@ -428,7 +428,7 @@ class Engine(QObject):
                             'ndrive_' + self.uid + '.db')
 
     def get_abspath(self, path):
-        return self.get_local_client().abspath(path)
+        return self.local.abspath(path)
 
     def get_binder(self):
         return ServerBindingSettings(
@@ -607,9 +607,8 @@ class Engine(QObject):
             return
 
         try:
-            local_client = self.get_local_client()
-            parent_ref = local_client.get_remote_id(pair.local_parent_path)
-            same_digests = local_client.is_equal_digests(pair.local_digest,
+            parent_ref = self.local.get_remote_id(pair.local_parent_path)
+            same_digests = self.local.is_equal_digests(pair.local_digest,
                                                          pair.remote_digest,
                                                          pair.local_path)
             log.warning(
@@ -634,7 +633,7 @@ class Engine(QObject):
                 # Raise conflict only if not resolvable
                 self.newConflict.emit(row_id)
                 self._manager.osi.send_sync_status(
-                    pair, local_client.abspath(pair.local_path))
+                    pair, self.local.abspath(pair.local_path))
         except:
             log.exception('Conflict resolver error')
 
@@ -671,29 +670,24 @@ class Engine(QObject):
     def use_trash():
         return True
 
-    def get_update_infos(self, client=None):
-        client = client or self.get_remote_doc_client()
-        if not client:
+    def get_update_infos(self, remote=None):
+        remote = remote or self.remote
+        if not remote:
             return
 
-        update_info = client.get_update_info()
-        log.debug('Fetched update info for engine [%s] from server %s: %r',
-                  self.name, self._server_url, update_info)
-        self._dao.update_config(
-            'server_version', update_info.get('serverVersion'))
+        try:
+            update_info = remote.get_update_info()
+            log.debug('Fetched update info for engine [%s] from server %s: %r',
+                      self.name, self._server_url, update_info)
+            self._dao.update_config(
+                'server_version', update_info.get('serverVersion'))
+        except Exception:
+            log.exception('Unable to get update info')
 
     def update_password(self, password):
         self._load_configuration()
-        nxclient = self.remote_doc_client_factory(
-            self._server_url,
-            self._remote_user,
-            self._manager.device_id,
-            self._manager.version,
-            proxies=self._manager.get_proxies(self._server_url),
-            proxy_exceptions=self._manager.proxy_exceptions,
-            password=str(password),
-            timeout=self._handshake_timeout)
-        self._remote_token = nxclient.request_token()
+        self.remote.client.auth = (self.remote.user_id, password)
+        self._remote_token = self.remote.request_token()
         if self._remote_token is None:
             raise Exception
         self._dao.update_config('remote_token', self._remote_token)
@@ -711,10 +705,29 @@ class Engine(QObject):
         self.invalidate_client_cache()
         self.start()
 
+    def init_remote(self):
+        # Used for FS synchronization operations
+        rargs = (
+            self._server_url,
+            self._remote_user,
+            self._manager.device_id,
+            self.version)
+        rkwargs = {
+            'proxies': self._manager.get_proxies(self._server_url),
+            'password': self._remote_password,
+            'timeout': self.timeout,
+            'cookie_jar': self.cookie_jar,
+            'token': self._remote_token,
+            'check_suspended': self.suspend_client
+        }
+
+        self.unfiltered_remote = self.remote_cls(*rargs, **rkwargs)
+        rkwargs['dao'] = self._dao
+        self.remote = self.filtered_remote_cls(*rargs, **rkwargs)
+
     def bind(self, binder):
-        check_credential = True
-        if hasattr(binder, 'no_check') and binder.no_check:
-            check_credential = False
+        check_credentials = not (hasattr(binder, 'no_check')
+                                 and binder.no_check)
         check_fs = not Options.nofscheck
         if hasattr(binder, 'no_fscheck') and binder.no_fscheck:
             check_fs = False
@@ -723,6 +736,9 @@ class Engine(QObject):
         self._remote_password = binder.password
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
+
+        self.init_remote()
+
         if check_fs:
             created_folder = False
             try:
@@ -735,26 +751,14 @@ class Engine(QObject):
             except Exception as e:
                 if created_folder:
                     try:
-                        local_client = self.get_local_client()
-                        local_client.unset_readonly(self.local_folder)
+                        self.local.unset_readonly(self.local_folder)
                         os.rmdir(self.local_folder)
                     except:
                         pass
                 raise e
-        nxclient = None
-        if check_credential:
-            nxclient = self.remote_doc_client_factory(
-                self._server_url,
-                self._remote_user,
-                self._manager.device_id,
-                self._manager.version,
-                proxies=self._manager.get_proxies(self._server_url),
-                proxy_exceptions=self._manager.proxy_exceptions,
-                password=self._remote_password,
-                token=self._remote_token,
-                timeout=self._handshake_timeout)
+        if check_credentials:
             if self._remote_token is None:
-                self._remote_token = nxclient.request_token()
+                self._remote_token = self.remote.request_token()
         if self._remote_token is not None:
             # The server supports token based identification: do not store the
             # password in the DB
@@ -765,8 +769,8 @@ class Engine(QObject):
         self._dao.update_config('remote_user', self._remote_user)
         self._dao.update_config('remote_password', self._remote_password)
         self._dao.update_config('remote_token', self._remote_token)
-        if nxclient:
-            self.get_update_infos(nxclient)
+        if self.remote:
+            self.get_update_infos(self.remote)
             # Check for the root
             # If the top level state for the server binding doesn't exist,
             # create the local folder and the top level state.
@@ -776,11 +780,10 @@ class Engine(QObject):
         if not self._manager.osi.is_partition_supported(path):
             raise InvalidDriveException()
         if os.path.exists(path):
-            local_client = self.get_local_client()
-            root_id = local_client.get_root_id()
+            root_id = self.local.get_root_id()
             if root_id is not None:
                 # server_url|user|device_id|uid
-                token = root_id.split("|")
+                token = root_id.split('|')
                 if (self._server_url != token[0]
                         or self._remote_user != token[1]):
                     raise RootAlreadyBindWithDifferentAccount(token[1],
@@ -818,15 +821,6 @@ class Engine(QObject):
                 if pair is not None and pair.id == pair_id:
                     thread.worker.quit()
 
-    def get_local_client(self):
-        client = LocalClient(
-            self.local_folder,
-            case_sensitive=self._case_sensitive,
-        )
-        if self._case_sensitive is None and os.path.exists(self.local_folder):
-            self._case_sensitive = client.is_case_sensitive()
-        return client
-
     def get_server_version(self):
         server_version = self._dao.get_config('server_version')
         Options.set('server_version', server_version,
@@ -836,12 +830,10 @@ class Engine(QObject):
     @pyqtSlot()
     def invalidate_client_cache(self):
         log.debug('Invalidate client cache')
-        self._remote_clients.clear()
         self.invalidClientsCache.emit()
 
     def _set_root_icon(self):
-        local_client = self.get_local_client()
-        if not local_client.exists('/') or local_client.has_folder_icon('/'):
+        if not self.local.exists('/') or self.local.has_folder_icon('/'):
             return
 
         if AbstractOSIntegration.is_mac():
@@ -855,30 +847,28 @@ class Engine(QObject):
         if not icon:
             return
 
-        locker = local_client.unlock_ref('/', unlock_parent=False)
+        locker = self.local.unlock_ref('/', unlock_parent=False)
         try:
-            local_client.set_folder_icon('/', icon)
+            self.local.set_folder_icon('/', icon)
         finally:
-            local_client.lock_ref('/', locker)
+            self.local.lock_ref('/', locker)
 
     def _add_top_level_state(self):
-        local_client = self.get_local_client()
-        local_info = local_client.get_info(u'/')
+        local_info = self.local.get_info(u'/')
 
-        remote_client = self.get_remote_client()
-        if not remote_client:
+        if not self.remote:
             return
 
-        remote_info = remote_client.get_filesystem_root_info()
+        remote_info = self.remote.get_filesystem_root_info()
 
         self._dao.insert_local_state(local_info, '')
         row = self._dao.get_state_from_local('/')
         self._dao.update_remote_state(
             row, remote_info, remote_parent_path='', versioned=False)
-        local_client.set_root_id('{}|{}|{}|{}'.format(
+        self.local.set_root_id('{}|{}|{}|{}'.format(
             self._server_url, self._remote_user,
             self._manager.device_id, self.uid))
-        local_client.set_remote_id('/', remote_info.uid)
+        self.local.set_remote_id('/', remote_info.uid)
         self._dao.synchronize_state(row)
         # The root should also be sync
 
@@ -897,75 +887,12 @@ class Engine(QObject):
         current_file = None
         action = Action.get_current_action()
         if isinstance(action, FileAction):
-            client = self.get_local_client()
-            current_file = client.get_path(action.filepath)
+            current_file = self.local.get_path(action.filepath)
         if (current_file is not None and self._folder_lock is not None
                 and current_file.startswith(self._folder_lock)):
             log.debug('PairInterrupt %r because lock on %r',
                       current_file, self._folder_lock)
             raise PairInterrupt
-
-    def get_remote_client(self, filtered=True):
-        """ Return a client for the FileSystem abstraction. """
-
-        if self._invalid_credentials:
-            return None
-
-        cache_key = (self._manager.device_id, filtered)
-        remote_client = self._remote_clients.get(cache_key)
-
-        if remote_client is None:
-            kwargs = {
-                'proxies': self._manager.get_proxies(self._server_url),
-                #'proxy_exceptions': self._manager.proxy_exceptions,
-                'password': self._remote_password,
-                'timeout': self.timeout,
-                'cookie_jar': self.cookie_jar,
-                'token': self._remote_token,
-                'check_suspended': self.suspend_client,
-            }
-            if filtered:
-                kwargs['dao'] = self._dao
-
-            cls = (self.remote_fs_client_factory,
-                   self.remote_filtered_fs_client_factory)[filtered]
-            remote_client = cls(
-                self._server_url,
-                self._remote_user,
-                self._manager.device_id,
-                self.version,
-                **kwargs)
-
-            self._remote_clients[cache_key] = remote_client
-
-        return remote_client
-
-    def get_remote_doc_client(self, repository=Options.remote_repo,
-                              base_folder=None):
-        if self._invalid_credentials:
-            return None
-
-        cache_key = (self._manager.device_id, 'remote_doc')
-        remote_client = self._remote_clients.get(cache_key)
-
-        if not remote_client:
-            remote_client = self.remote_doc_client_factory(
-                self._server_url,
-                self._remote_user,
-                self._manager.device_id,
-                self.version,
-                proxies=self._manager.get_proxies(self._server_url),
-                proxy_exceptions=self._manager.proxy_exceptions,
-                password=self._remote_password,
-                token=self._remote_token,
-                repository=repository,
-                base_folder=base_folder,
-                timeout=self._handshake_timeout,
-                cookie_jar=self.cookie_jar,
-                check_suspended=self.suspend_client)
-            self._remote_clients[cache_key] = remote_client
-
-        return remote_client
 
     def create_processor(self, item_getter, **kwargs):
         return Processor(self, item_getter, **kwargs)
@@ -973,19 +900,6 @@ class Engine(QObject):
     def dispose_db(self):
         if self._dao is not None:
             self._dao.dispose()
-
-    def get_rest_api_client(self):
-        return BaseNuxeo(
-            self.server_url,
-            self.remote_user,
-            self._manager.device_id,
-            self._manager.version,
-            token=self.get_remote_token(),
-            timeout=self.timeout,
-            cookie_jar=self.cookie_jar,
-            proxies=self._manager.get_proxies(self._server_url),
-            proxy_exceptions=self._manager.proxy_exceptions
-        )
 
     def get_user_full_name(self, userid, cache_only=False):
         """ Get the last contributor full name. """
@@ -996,11 +910,10 @@ class Engine(QObject):
             full_name = userid
 
         if not cache_only:
-            rest_client = self.get_rest_api_client()
             try:
-                prop = rest_client.users.get(userid).properties
-            except (HTTPError, ConnectionError):
-                log.exception('Network error')
+                prop = self.remote.users.get(userid).properties
+            except HTTPError:
+                pass
             except (TypeError, KeyError):
                 log.exception('Content error')
             else:

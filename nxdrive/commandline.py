@@ -516,9 +516,7 @@ class CliHandler(object):
             log.trace('Comparing: %r to %r',
                       engine.local_folder, options.local_folder)
             if engine.local_folder == options.local_folder:
-                client = engine.get_remote_doc_client(
-                    repository=options.remote_repo)
-                client.register_as_root(options.remote_root)
+                engine.remote.register_as_root(options.remote_root)
                 return 0
         log.error('No engine registered for local folder %r',
                   options.local_folder)
@@ -527,9 +525,7 @@ class CliHandler(object):
     def unbind_root(self, options):
         for engine in self.manager.get_engines().values():
             if engine.local_folder == options.local_folder:
-                engine.get_remote_doc_client(
-                    repository=options.remote_repo).unregister_as_root(
-                    options.remote_root)
+                engine.remote.unregister_as_root(options.remote_root)
                 return 0
         log.error('No engine registered for local folder %r',
                   options.local_folder)

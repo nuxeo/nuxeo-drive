@@ -5,9 +5,12 @@ import json
 import os.path
 import sys
 import time
-import urllib2
 import uuid
 from logging import getLogger
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
 from PyQt4 import QtCore, QtGui, QtNetwork, QtWebKit
 from PyQt4.QtNetwork import (QNetworkProxy, QNetworkProxyFactory,
@@ -686,7 +689,7 @@ class WebDialog(QtGui.QDialog):
         elif proxy_settings.config == 'Automatic':
             proxy_settings = manager.get_proxies(server_url)
             protocol = server_url.split(":")[0]
-            proxy_server_info = urllib2.urlparse.urlparse(proxy_settings[protocol])
+            proxy_server_info = urlparse(proxy_settings[protocol])
             proxy = QNetworkProxy(QNetworkProxy.HttpProxy, hostName=proxy_server_info.hostname, 
                                   port=proxy_server_info.port)
             QNetworkProxy.setApplicationProxy(proxy)

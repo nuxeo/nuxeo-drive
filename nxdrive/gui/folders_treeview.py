@@ -167,7 +167,7 @@ class FilteredFsClient(Client):
 
     def get_children(self, parent=None):
         if parent:
-            for info in self.fs_client.get_children_info(parent.get_id()):
+            for info in self.fs_client.get_fs_children(parent.get_id()):
                 yield FsFileInfo(info, parent, self.get_item_state(info.path))
             return
 

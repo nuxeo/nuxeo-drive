@@ -16,9 +16,10 @@ from time import mktime, strptime
 from nuxeo.compat import text
 from send2trash import send2trash
 
-from .common import (DuplicationDisabledError, FILE_BUFFER_SIZE, NotFound,
+from .common import (DuplicationDisabledError, NotFound,
                      UNACCESSIBLE_HASH, safe_filename)
-from ..constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
+from ..constants import (DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX,
+                         FILE_BUFFER_SIZE)
 from ..options import Options
 from ..utils import (guess_digest_algorithm, lock_path, normalized_path,
                      safe_long_path, set_path_readonly, unlock_path,

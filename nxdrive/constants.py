@@ -12,3 +12,6 @@ DOWNLOAD_TMP_FILE_PREFIX = '.'
 DOWNLOAD_TMP_FILE_SUFFIX = '.nxpart'
 
 TOKEN_PERMISSION = 'ReadWrite'
+DEFAULT_TYPES = ('File', 'Note', 'Workspace', 'Folder')
+
+MAX_CHILDREN = 1000

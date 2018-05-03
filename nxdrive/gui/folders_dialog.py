@@ -45,7 +45,7 @@ class FiltersDialog(QtGui.QDialog):
 
         self.resize(491, 443)
         filters = self._engine.get_dao().get_filters()
-        fs_client = self._engine.get_remote_client(filtered=False)
+        fs_client = self._engine.remote
         client = FilteredFsClient(fs_client, filters)
         return FolderTreeview(self, client)
 
