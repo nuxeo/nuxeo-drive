@@ -35,87 +35,91 @@ class StubLocalClient(object):
     """
 
     def test_make_documents(self):
-        doc_1 = self.local_client_1.make_file('/', 'Document 1.txt')
-        assert self.local_client_1.exists(doc_1)
-        assert not self.local_client_1.get_content(doc_1)
-        doc_1_info = self.local_client_1.get_info(doc_1)
+        local = self.local_1
+        doc_1 = local.make_file('/', 'Document 1.txt')
+        assert local.exists(doc_1)
+        assert not local.get_content(doc_1)
+        doc_1_info = local.get_info(doc_1)
         assert doc_1_info.name == 'Document 1.txt'
         assert doc_1_info.path == doc_1
         assert doc_1_info.get_digest() == EMPTY_DIGEST
         assert not doc_1_info.folderish
 
-        doc_2 = self.local_client_1.make_file(
+        doc_2 = local.make_file(
             '/', 'Document 2.txt', content=SOME_TEXT_CONTENT)
-        assert self.local_client_1.exists(doc_2)
-        assert self.local_client_1.get_content(doc_2) ==  SOME_TEXT_CONTENT
-        doc_2_info = self.local_client_1.get_info(doc_2)
+        assert local.exists(doc_2)
+        assert local.get_content(doc_2) ==  SOME_TEXT_CONTENT
+        doc_2_info = local.get_info(doc_2)
         assert doc_2_info.name == 'Document 2.txt'
         assert doc_2_info.path == doc_2
         assert doc_2_info.get_digest() == SOME_TEXT_DIGEST
         assert not doc_2_info.folderish
 
-        self.local_client_1.delete(doc_2)
-        assert self.local_client_1.exists(doc_1)
-        assert not self.local_client_1.exists(doc_2)
+        local.delete(doc_2)
+        assert local.exists(doc_1)
+        assert not local.exists(doc_2)
 
-        folder_1 = self.local_client_1.make_folder('/', 'A new folder')
-        assert self.local_client_1.exists(folder_1)
-        folder_1_info = self.local_client_1.get_info(folder_1)
+        folder_1 = local.make_folder('/', 'A new folder')
+        assert local.exists(folder_1)
+        folder_1_info = local.get_info(folder_1)
         assert folder_1_info.name == 'A new folder'
         assert folder_1_info.path == folder_1
         assert not folder_1_info.get_digest()
         assert folder_1_info.folderish
 
-        doc_3 = self.local_client_1.make_file(
+        doc_3 = local.make_file(
             folder_1, 'Document 3.txt', content=SOME_TEXT_CONTENT)
-        self.local_client_1.delete(folder_1)
-        assert not self.local_client_1.exists(folder_1)
-        assert not self.local_client_1.exists(doc_3)
+        local.delete(folder_1)
+        assert not local.exists(folder_1)
+        assert not local.exists(doc_3)
 
     def test_get_info_invalid_date(self):
-        doc_1 = self.local_client_1.make_file('/', 'Document 1.txt')
-        os.utime(self.local_client_1.abspath(
+        local = self.local_1
+        doc_1 = local.make_file('/', 'Document 1.txt')
+        os.utime(local.abspath(
                 os.path.join('/', 'Document 1.txt')), (0, 999999999999999))
-        doc_1_info = self.local_client_1.get_info(doc_1)
+        doc_1_info = local.get_info(doc_1)
         assert doc_1_info.name == 'Document 1.txt'
         assert doc_1_info.path == doc_1
         assert doc_1_info.get_digest() == EMPTY_DIGEST
         assert not doc_1_info.folderish
 
     def test_complex_filenames(self):
+        local = self.local_1
         # create another folder with the same title
         title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
 
-        folder_1 = self.local_client_1.make_folder('/', title_with_accents)
-        folder_1_info = self.local_client_1.get_info(folder_1)
+        folder_1 = local.make_folder('/', title_with_accents)
+        folder_1_info = local.get_info(folder_1)
         assert folder_1_info.name == title_with_accents
 
         # create another folder with the same title
         with pytest.raises(DuplicationDisabledError):
-            self.local_client_1.make_folder('/', title_with_accents)
+            local.make_folder('/', title_with_accents)
 
         # Create a long file name with weird chars
         long_filename = u"\xe9" * 50 + u"%$#!()[]{}+_-=';&^" + u".doc"
-        file_1 = self.local_client_1.make_file(folder_1, long_filename)
-        file_1 = self.local_client_1.get_info(file_1)
+        file_1 = local.make_file(folder_1, long_filename)
+        file_1 = local.get_info(file_1)
         assert file_1.name == long_filename
         assert file_1.path == folder_1_info.path + u"/" + long_filename
 
         # Create a file with invalid chars
         invalid_filename = u"a/b\\c*d:e<f>g?h\"i|j.doc"
         escaped_filename = u"a-b-c-d-e-f-g-h-i-j.doc"
-        file_2 = self.local_client_1.make_file(folder_1, invalid_filename)
-        file_2 = self.local_client_1.get_info(file_2)
+        file_2 = local.make_file(folder_1, invalid_filename)
+        file_2 = local.get_info(file_2)
         assert file_2.name == escaped_filename
         assert file_2.path == folder_1_info.path + u'/' + escaped_filename
 
     @pytest.mark.xfail(True, raises=NotFound, reason='Must fail.')
     def test_missing_file(self):
-        self.local_client_1.get_info('/Something Missing')
+        local = self.local_1
+        local.get_info('/Something Missing')
 
     @pytest.mark.timeout(30)
     def test_case_sensitivity(self):
-        local = self.local_client_1
+        local = self.local_1
         sensitive = local.is_case_sensitive()
         log.info('OS is case sensitive: %r', sensitive)
 
@@ -136,7 +140,7 @@ class StubLocalClient(object):
         https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
         """
 
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
         long_name = 'a' * 32
         short_name = 'AAAAAA~1'
@@ -159,31 +163,32 @@ class StubLocalClient(object):
         assert children[0].name == long_name
 
     def test_get_children_info(self):
-        folder_1 = self.local_client_1.make_folder('/', 'Folder 1')
-        folder_2 = self.local_client_1.make_folder('/', 'Folder 2')
-        file_1 = self.local_client_1.make_file(
+        local = self.local_1
+        folder_1 = local.make_folder('/', 'Folder 1')
+        folder_2 = local.make_folder('/', 'Folder 2')
+        file_1 = local.make_file(
             '/', 'File 1.txt', content=b'foo\n')
 
         # not a direct child of '/'
-        self.local_client_1.make_file(folder_1, 'File 2.txt', content=b'bar\n')
+        local.make_file(folder_1, 'File 2.txt', content=b'bar\n')
 
         # ignored files
         data = b'baz\n'
-        self.local_client_1.make_file('/', '.File 2.txt', content=data)
-        self.local_client_1.make_file('/', '~$File 2.txt', content=data)
-        self.local_client_1.make_file('/', 'File 2.txt~', content=data)
-        self.local_client_1.make_file('/', 'File 2.txt.swp', content=data)
-        self.local_client_1.make_file('/', 'File 2.txt.lock', content=data)
-        self.local_client_1.make_file('/', 'File 2.txt.part', content=data)
-        self.local_client_1.make_file('/', '.File 2.txt.nxpart', content=data)
-        if self.local_client_1.is_case_sensitive():
-            self.local_client_1.make_file('/', 'File 2.txt.LOCK', content=data)
+        local.make_file('/', '.File 2.txt', content=data)
+        local.make_file('/', '~$File 2.txt', content=data)
+        local.make_file('/', 'File 2.txt~', content=data)
+        local.make_file('/', 'File 2.txt.swp', content=data)
+        local.make_file('/', 'File 2.txt.lock', content=data)
+        local.make_file('/', 'File 2.txt.part', content=data)
+        local.make_file('/', '.File 2.txt.nxpart', content=data)
+        if local.is_case_sensitive():
+            local.make_file('/', 'File 2.txt.LOCK', content=data)
         else:
             with pytest.raises(DuplicationDisabledError):
-                self.local_client_1.make_file(
+                local.make_file(
                     '/', 'File 2.txt.LOCK', content=data)
 
-        workspace_children = self.local_client_1.get_children_info('/')
+        workspace_children = local.get_children_info('/')
         assert len(workspace_children) == 3
         assert workspace_children[0].path == file_1
         assert workspace_children[1].path == folder_1
@@ -192,21 +197,22 @@ class StubLocalClient(object):
     def test_deep_folders(self):
         # Check that local client can workaround the default Windows
         # MAX_PATH limit
+        local = self.local_1
         folder = '/'
         for _i in range(30):
-            folder = self.local_client_1.make_folder(folder, '0123456789')
+            folder = local.make_folder(folder, '0123456789')
 
         # Last Level
-        last_level_folder_info = self.local_client_1.get_info(folder)
+        last_level_folder_info = local.get_info(folder)
         assert last_level_folder_info.path == '/0123456789' * 30
 
         # Create a nested file
-        deep_file = self.local_client_1.make_file(
+        deep_file = local.make_file(
             folder, 'File.txt', content=b'Some Content.')
 
         # Check the consistency of get_children_info and get_info
-        deep_file_info = self.local_client_1.get_info(deep_file)
-        deep_children = self.local_client_1.get_children_info(folder)
+        deep_file_info = local.get_info(deep_file)
+        deep_children = local.get_children_info(folder)
         assert len(deep_children) == 1
         deep_child_info = deep_children[0]
         assert deep_file_info.name == deep_child_info.name
@@ -214,74 +220,80 @@ class StubLocalClient(object):
         assert deep_file_info.get_digest() == deep_child_info.get_digest()
 
         # Update the file content
-        self.local_client_1.update_content(deep_file, b'New Content.')
-        assert self.local_client_1.get_content(deep_file) == b'New Content.'
+        local.update_content(deep_file, b'New Content.')
+        assert local.get_content(deep_file) == b'New Content.'
 
         # Delete the folder
-        self.local_client_1.delete(folder)
-        assert not self.local_client_1.exists(folder)
-        assert not self.local_client_1.exists(deep_file)
+        local.delete(folder)
+        assert not local.exists(folder)
+        assert not local.exists(deep_file)
 
         # Delete the root folder and descendants
-        self.local_client_1.delete('/0123456789')
-        assert not self.local_client_1.exists('/0123456789')
+        local.delete('/0123456789')
+        assert not local.exists('/0123456789')
 
     def test_get_new_file(self):
-        path, os_path, name = self.local_client_1.get_new_file(
+        local = self.local_1
+        path, os_path, name = local.get_new_file(
             '/', 'Document 1.txt')
         assert path == '/Document 1.txt'
-        assert os_path.endswith(os.path.join(self.workspace_title, 'Document 1.txt'))
+        assert os_path.endswith(os.path.join(self.workspace_title,
+                                             'Document 1.txt'))
         assert name == 'Document 1.txt'
-        assert not self.local_client_1.exists(path)
+        assert not local.exists(path)
         assert not os.path.exists(os_path)
 
     def test_xattr(self):
-        ref = self.local_client_1.make_file('/', 'File 2.txt', content=b'baz\n')
-        path = self.local_client_1.abspath(ref)
+        local = self.local_1
+        ref = local.make_file('/', 'File 2.txt',
+                                            content=b'baz\n')
+        path = local.abspath(ref)
         mtime = int(os.path.getmtime(path))
         sleep(1)
-        self.local_client_1.set_remote_id(ref, 'TEST')
+        local.set_remote_id(ref, 'TEST')
         assert mtime == int(os.path.getmtime(path))
         sleep(1)
-        self.local_client_1.remove_remote_id(ref)
+        local.remove_remote_id(ref)
         assert mtime == int(os.path.getmtime(path))
 
     def test_get_path(self):
+        local = self.local_1
         doc = 'doc.txt'
         abs_path = os.path.join(
             self.local_nxdrive_folder_1, self.workspace_title, doc)
-        assert self.local_client_1.get_path(abs_path) == '/' + doc
+        assert local.get_path(abs_path) == '/' + doc
 
         # Encoding test
-        assert self.local_client_1.get_path('été.txt') == '/'
+        assert local.get_path('été.txt') == '/'
 
     def test_is_equal_digests(self):
+        local = self.local_1
         content = b'joe'
-        local_path = self.local_client_1.make_file('/', 'File.txt',
+        local_path = local.make_file('/', 'File.txt',
                                                    content=content)
         local_digest = hashlib.md5(content).hexdigest()
         # Equal digests
-        assert self.local_client_1.is_equal_digests(
+        assert local.is_equal_digests(
             local_digest, local_digest, local_path)
 
         # Different digests with same digest algorithm
         other_content = b'jack'
         remote_digest = hashlib.md5(other_content).hexdigest()
         assert local_digest != remote_digest
-        assert not self.local_client_1.is_equal_digests(
+        assert not local.is_equal_digests(
             local_digest, remote_digest, local_path)
 
         # Different digests with different digest algorithms but same content
         remote_digest = hashlib.sha1(content).hexdigest()
         assert local_digest != remote_digest
-        assert self.local_client_1.is_equal_digests(
+        assert local.is_equal_digests(
             local_digest, remote_digest, local_path)
 
         # Different digests with different digest algorithms and different
         # content
         remote_digest = hashlib.sha1(other_content).hexdigest()
         assert local_digest != remote_digest
-        assert not self.local_client_1.is_equal_digests(
+        assert not local.is_equal_digests(
             local_digest, remote_digest, local_path)
 
 
@@ -317,7 +329,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
         LocalClient.rename().
         """
 
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Step 1: remotely create an accentued folder

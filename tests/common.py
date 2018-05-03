@@ -8,9 +8,8 @@ import shutil
 import time
 from logging import getLogger
 
-from nxdrive.client import RemoteDocumentClient
 from nxdrive.logging_config import configure
-from nxdrive.utils import make_tmp_file, safe_long_path, unset_path_readonly
+from nxdrive.utils import safe_long_path, unset_path_readonly
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
@@ -75,61 +74,3 @@ def clean_dir(_dir, retry=1, max_retries=5):
         if retry < max_retries:
             time.sleep(2)
             clean_dir(_dir, retry=retry + 1)
-
-
-class RemoteDocumentClientForTests(RemoteDocumentClient):
-
-    def get_repository_names(self):
-        return self.operations.execute(command='GetRepositories')[u'value']
-
-    def make_file_in_user_workspace(self, content, filename):
-        """Stream the given content as a document in the user workspace"""
-        file_path = make_tmp_file(self.upload_tmp_dir, content)
-        try:
-            return self.upload(file_path, filename=filename,
-                               command='UserWorkspace.CreateDocumentFromBlob')
-        finally:
-            os.remove(file_path)
-
-    def activate_profile(self, profile):
-        self.operations.execute(
-            command='NuxeoDrive.SetActiveFactories', profile=profile)
-
-    def deactivate_profile(self, profile):
-        self.operations.execute(
-            command='NuxeoDrive.SetActiveFactories', profile=profile,
-            enable=False)
-
-    def mass_import(self, target_path, nb_nodes, nb_threads=12):
-        tx_timeout = 3600
-        url = 'site/randomImporter/run'
-        params = {
-            'targetPath': target_path,
-            'batchSize': 50,
-            'nbThreads': nb_threads,
-            'interactive': 'true',
-            'fileSizeKB': 1,
-            'nbNodes': nb_nodes,
-            'nonUniform': 'true',
-            'transactionTimeout': tx_timeout
-        }
-        headers = {'Nuxeo-Transaction-Timeout': str(tx_timeout)}
-
-        log.info('Calling random mass importer on %s with %d threads '
-                 'and %d nodes', target_path, nb_threads, nb_nodes)
-
-        self.client.request('GET', url, params=params, headers=headers,
-                            timeout=tx_timeout)
-
-    def wait_for_async_and_es_indexing(self):
-        """ Use for test_volume only. """
-
-        tx_timeout = 3600
-        headers = {'Nuxeo-Transaction-Timeout': str(tx_timeout)}
-        self.operations.execute(
-            command='Elasticsearch.WaitForIndexing', timeout=tx_timeout,
-            headers=headers, timeoutSecond=tx_timeout, refresh=True)
-
-    def result_set_query(self, query):
-        return self.operations.execute(
-            command='Repository.ResultSetQuery', query=query)

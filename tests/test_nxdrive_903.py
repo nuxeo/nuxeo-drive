@@ -42,7 +42,7 @@ class Test(UnitTestCase):
         """ On Windows, some files are postponed. Ignore the test if so. """
 
         remote = self.remote_document_client_1
-        local_1, local_2 = self.local_client_1,  self.local_client_2
+        local_1, local_2 = self.local_1, self.local_2
         engine_1, engine_2 = self.engine_1, self.engine_2
         nb_folders, nb_files = 5, 5
 
@@ -89,7 +89,7 @@ class Test(UnitTestCase):
             for file_ in files[folder]:
                 name = os.path.basename(file_)
                 new_name = os.path.splitext(name)[0] + '-renamed.txt'
-                new_file = local_1.rename(new_folder + '/' +  name, new_name)
+                new_file = local_1.rename(new_folder + '/' + name, new_name)
                 new_files[new_folder].append(new_file.path)
         self.wait_sync()
 

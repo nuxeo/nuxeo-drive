@@ -3,7 +3,7 @@ from logging import getLogger
 
 from nuxeo.models import Document, Group
 
-from .common import RemoteDocumentClientForTests
+from tests import DocRemote
 from .common_unit_test import UnitTestCase
 
 log = getLogger(__name__)
@@ -16,20 +16,19 @@ class TestGroupChanges(UnitTestCase):
     """
 
     def setUp(self):
-        remote = self.api_client
+        remote = self.root_remote
 
         # Create test workspace
         workspaces_path = '/default-domain/workspaces'
         workspace_name = 'groupChangesTestWorkspace'
         self.workspace_path = workspaces_path + '/' + workspace_name
-        workspace = Document(
-            name=workspace_name,
-            type='Workspace',
-            properties={'dc:title': 'Group Changes Test Workspace'}
-        )
 
-        self.workspace_uid = remote.documents.create(
-            workspace, parent_path=workspaces_path).uid
+        self.workspace = remote.documents.create(
+            Document(
+                name=workspace_name,
+                type='Workspace',
+                properties={'dc:title': 'Group Changes Test Workspace'}
+            ), parent_path=workspaces_path)
 
         # Create test groups
         group_names = self.get_group_names()
@@ -39,12 +38,12 @@ class TestGroupChanges(UnitTestCase):
         assert 'grandParentGroup' not in group_names
 
         for group in [
-            Group(groupname='group1', member_users=['driveuser_1']),
-            Group(groupname='group2', member_users=['driveuser_1']),
-            Group(groupname='parentGroup', member_groups=['group1']),
-            Group(groupname='grandParentGroup', member_groups=['parentGroup'])
+            Group(groupname='group1', memberUsers=['driveuser_1']),
+            Group(groupname='group2', memberUsers=['driveuser_1']),
+            Group(groupname='parentGroup', memberGroups=['group1']),
+            Group(groupname='grandParentGroup', memberGroups=['parentGroup'])
         ]:
-            self.api_client.groups.create(group)
+            remote.groups.create(group)
 
         group_names = self.get_group_names()
         assert 'group1' in group_names
@@ -52,17 +51,21 @@ class TestGroupChanges(UnitTestCase):
         assert 'parentGroup' in group_names
         assert 'grandParentGroup' in group_names
 
-        self.admin_remote = RemoteDocumentClientForTests(
+        self.admin_remote = DocRemote(
             self.nuxeo_url, self.admin_user,
             'nxdrive-test-administrator-device',
             self.version, password=self.password,
             base_folder=self.workspace_path)
 
+        log.debug('Block inheritance on workspace')
+        self.admin_remote.block_inheritance(self.workspace.uid,
+                                            overwrite=False)
+
     def tearDown(self):
-        remote = self.api_client
+        remote = self.root_remote
 
         # Delete test workspace
-        remote.client.documents.delete(self.workspace_uid)
+        self.workspace.delete()
 
         # Delete test groups
         remote.groups.delete('grandParentGroup')
@@ -78,8 +81,8 @@ class TestGroupChanges(UnitTestCase):
 
     def get_group_names(self):
         return [entry['groupname']
-                for entry in self.api_client.client.request(
-                'GET', (self.api_client.client.api_path
+                for entry in self.remote_1.client.request(
+                'GET', (self.remote_1.client.api_path
                         + '/groups/search?q=*')).json()['entries']]
 
     def test_group_changes_on_sync_root(self):
@@ -108,7 +111,8 @@ class TestGroupChanges(UnitTestCase):
 
     def test_group_changes_on_sync_root_child(self):
         """
-        Test changes on a group that has access to a child of a synchronization root.
+        Test changes on a group that has access
+        to a child of a synchronization root.
         """
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -144,7 +148,8 @@ class TestGroupChanges(UnitTestCase):
 
     def test_group_changes_on_sync_root_parent(self):
         """
-        Test changes on a group that has access to the parent of a synchronization root.
+        Test changes on a group that has access
+        to the parent of a synchronization root.
         """
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -171,18 +176,20 @@ class TestGroupChanges(UnitTestCase):
 
     def test_changes_with_parent_group(self):
         """
-        Test changes on the parent group of a group that has access to a synchronization root.
+        Test changes on the parent group of a group
+        that has access to a synchronization root.
         """
         self._test_group_changes_with_ancestor_groups('parentGroup')
 
     def test_changes_with_grand_parent_group(self):
         """
-        Test changes on the grandparent group of a group that has access to a synchronization root.
+        Test changes on the grandparent group of a group
+        that has access to a synchronization root.
         """
         self._test_group_changes_with_ancestor_groups('grandParentGroup')
 
     def _register_sync_root_user1(self, sync_root_id):
-        user1_remote = RemoteDocumentClientForTests(
+        user1_remote = DocRemote(
             self.nuxeo_url, self.user_1, 'nxdrive-test-device-1', self.version,
             password=self.password_1, base_folder=sync_root_id,
             upload_tmp_dir=self.upload_tmp_dir)
@@ -200,12 +207,12 @@ class TestGroupChanges(UnitTestCase):
                   group_name,
                   folder_path,
                   need_parent)
-        remote = self.api_client
+        remote = self.admin_remote
         local = self.local_root_client_1
 
         log.debug('Remove driveuser_1 from %s', group_name)
         group = remote.groups.get(group_name)
-        group.member_users = []
+        group.memberUsers = []
         group.save()
 
         log.debug('Check that %s is deleted locally', folder_path)
@@ -213,7 +220,7 @@ class TestGroupChanges(UnitTestCase):
         assert not local.exists(folder_path)
 
         log.debug('Add driveuser_1 to %s', group_name)
-        group.member_users = ['driveuser_1']
+        group.memberUsers = ['driveuser_1']
         group.save()
 
         log.debug('Check that %s is created locally', folder_path)
@@ -229,7 +236,7 @@ class TestGroupChanges(UnitTestCase):
 
         log.debug('Create %s', group_name)
         remote.groups.create(
-            Group(groupname=group_name, member_users=['driveuser_1']))
+            Group(groupname=group_name, memberUsers=['driveuser_1']))
 
         if need_parent:
             log.debug('%s should not be created locally since '
@@ -249,7 +256,8 @@ class TestGroupChanges(UnitTestCase):
 
     def _test_group_changes_with_ancestor_groups(self, ancestor_group):
         """
-        Test changes on a descendant group of the given group that has access to a synchronization root.
+        Test changes on a descendant group of the given group
+        that has access to a synchronization root.
         """
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)

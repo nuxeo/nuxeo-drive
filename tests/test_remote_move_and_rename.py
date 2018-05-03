@@ -9,8 +9,8 @@ from mock import Mock, patch
 
 from nxdrive.client import LocalClient
 from nxdrive.engine.engine import Engine
-from .common import (REMOTE_MODIFICATION_TIME_RESOLUTION,
-                     RemoteDocumentClientForTests)
+from tests import DocRemote
+from .common import REMOTE_MODIFICATION_TIME_RESOLUTION
 from .common_unit_test import UnitTestCase
 
 
@@ -31,7 +31,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
            |       |-- Original File 3.odt
         """
 
-        remote = self.remote_file_system_client_1
+        remote = self.remote_1
 
         self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
                              + self.workspace)
@@ -65,22 +65,22 @@ class TestRemoteMoveAndRename(UnitTestCase):
         return self.engine_1.get_dao().get_normal_state_from_remote(remote)
 
     def test_remote_rename_file(self):
-        remote = self.remote_file_system_client_1
-        local = self.local_client_1
+        remote = self.remote_1
+        local = self.local_1
 
         file_1_docref = self.file_1_id.split('#')[-1]
-        file_1_version = self.remote_document_client_1.get_info(file_1_docref).version
+        file_1_version = remote.get_info(file_1_docref).version
 
         # Rename /Original Fil\xe9 1.odt to /Renamed File 1.odt
         remote.rename(self.file_1_id, 'Renamed File 1.odt')
-        assert remote.get_info(self.file_1_id).name == 'Renamed File 1.odt'
+        assert remote.get_fs_info(self.file_1_id).name == 'Renamed File 1.odt'
 
         self.wait_sync(wait_for_async=True)
 
-        version = self.remote_document_client_1.get_info(file_1_docref).version
+        version = remote.get_info(file_1_docref).version
 
         # Check remote file name
-        assert remote.get_info(self.file_1_id).name == 'Renamed File 1.odt'
+        assert remote.get_fs_info(self.file_1_id).name == 'Renamed File 1.odt'
         assert file_1_version == version
 
         # Check local file name
@@ -101,16 +101,19 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # will be different from the pair state's last remote update time
         time.sleep(REMOTE_MODIFICATION_TIME_RESOLUTION)
         remote.rename(self.file_1_id, 'Renamed Again File 1.odt')
-        assert remote.get_info(self.file_1_id).name == 'Renamed Again File 1.odt'
+        assert (remote.get_fs_info(self.file_1_id).name
+                == 'Renamed Again File 1.odt')
         remote.rename(self.file_1_1_id, u'Renamed File 1.1 \xe9.odt')
-        assert remote.get_info(self.file_1_1_id).name ==  u'Renamed File 1.1 \xe9.odt'
+        assert (remote.get_fs_info(self.file_1_1_id).name
+                ==  u'Renamed File 1.1 \xe9.odt')
 
         self.wait_sync(wait_for_async=True)
 
-        info = remote.get_info(self.file_1_id)
+        info = remote.get_fs_info(self.file_1_id)
         assert info.name == 'Renamed Again File 1.odt'
-        assert remote.get_info(self.file_1_1_id).name == u'Renamed File 1.1 \xe9.odt'
-        version = self.remote_document_client_1.get_info(file_1_docref).version
+        assert (remote.get_fs_info(self.file_1_1_id).name
+                == u'Renamed File 1.1 \xe9.odt')
+        version = remote.get_info(file_1_docref).version
         assert file_1_version == version
 
         # Check local file names
@@ -149,15 +152,14 @@ class TestRemoteMoveAndRename(UnitTestCase):
                                                     u'Original Fold\xe9r 1')
 
     def test_remote_rename_update_content_file(self):
-        remote = self.remote_file_system_client_1
-        local = self.local_client_1
+        remote = self.remote_1
+        local = self.local_1
 
         # Update the content of /'Original Fil\xe9 1.odt' and rename it
         # to /Renamed File 1.odt
-        remote.update_content(self.file_1_id,
-                              'Updated content',
+        remote.update_content(self.file_1_id, 'Updated content',
                               filename=u'Renamed File 1.odt')
-        assert remote.get_info(self.file_1_id).name == 'Renamed File 1.odt'
+        assert remote.get_fs_info(self.file_1_id).name == 'Renamed File 1.odt'
         assert remote.get_content(self.file_1_id) == 'Updated content'
 
         self.wait_sync(wait_for_async=True)
@@ -168,20 +170,24 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert local.get_content('/Renamed File 1.odt') == 'Updated content'
 
     def test_remote_move_file(self):
-        remote = self.remote_file_system_client_1
-        local = self.local_client_1
+        remote = self.remote_1
+        local = self.local_1
 
         # Move /Original Fil\xe9 1.odt
         #   to /Original Fold\xe9r 1/Original Fil\xe9 1.odt
         remote.move(self.file_1_id, self.folder_1_id)
-        assert remote.get_info(self.file_1_id).name == u'Original Fil\xe9 1.odt'
-        assert remote.get_info(self.file_1_id).parent_uid == self.folder_1_id
+        assert (remote.get_fs_info(self.file_1_id).name
+                == u'Original Fil\xe9 1.odt')
+        assert (remote.get_fs_info(self.file_1_id).parent_uid
+                == self.folder_1_id)
 
         self.wait_sync(wait_for_async=True)
 
         # Check remote file
-        assert remote.get_info(self.file_1_id).name == u'Original Fil\xe9 1.odt'
-        assert remote.get_info(self.file_1_id).parent_uid == self.folder_1_id
+        assert (remote.get_fs_info(self.file_1_id).name
+                == u'Original Fil\xe9 1.odt')
+        assert (remote.get_fs_info(self.file_1_id).parent_uid
+                == self.folder_1_id)
 
         # Check local file
         assert not local.exists(u'/Original Fil\xe9 1.odt')
@@ -200,20 +206,24 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert file_1_state.local_name == u'Original Fil\xe9 1.odt'
 
     def test_remote_move_and_rename_file(self):
-        remote = self.remote_file_system_client_1
-        local = self.local_client_1
+        remote = self.remote_1
+        local = self.local_1
 
         # Rename /'Original Fil\xe9 1.odt' to /Renamed File 1.odt
         remote.rename(self.file_1_id, u'Renamed File 1 \xe9.odt')
         remote.move(self.file_1_id, self.folder_1_id)
-        assert remote.get_info(self.file_1_id).name == u'Renamed File 1 \xe9.odt'
-        assert remote.get_info(self.file_1_id).parent_uid == self.folder_1_id
+        assert (remote.get_fs_info(self.file_1_id).name
+                == u'Renamed File 1 \xe9.odt')
+        assert (remote.get_fs_info(self.file_1_id).parent_uid
+                == self.folder_1_id)
 
         self.wait_sync(wait_for_async=True)
 
         # Check remote file
-        assert remote.get_info(self.file_1_id).name == u'Renamed File 1 \xe9.odt'
-        assert remote.get_info(self.file_1_id).parent_uid == self.folder_1_id
+        assert (remote.get_fs_info(self.file_1_id).name
+                == u'Renamed File 1 \xe9.odt')
+        assert (remote.get_fs_info(self.file_1_id).parent_uid
+                == self.folder_1_id)
 
         # Check local file
         assert not local.exists(u'/Original Fil\xe9 1.odt')
@@ -232,12 +242,13 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert file_1_state.local_name == u'Renamed File 1 \xe9.odt'
 
     def test_remote_rename_folder(self):
-        remote = self.remote_file_system_client_1
-        local = self.local_client_1
+        remote = self.remote_1
+        local = self.local_1
 
         # Rename a non empty folder with some content
         remote.rename(self.folder_1_id, u'Renamed Folder 1 \xe9')
-        assert remote.get_info(self.folder_1_id).name == u'Renamed Folder 1 \xe9'
+        assert (remote.get_fs_info(self.folder_1_id).name
+                == u'Renamed Folder 1 \xe9')
 
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
@@ -280,8 +291,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert folder_1_1_state.local_name == 'Sub-Folder 1.1'
 
     def test_remote_rename_case_folder(self):
-        remote = self.remote_file_system_client_1
-        local = self.local_client_1
+        remote = self.remote_1
+        local = self.local_1
 
         assert local.exists(u'/Original Fold\xe9r 1')
 
@@ -294,8 +305,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert local.exists(u'/Original Fold\xe9r 1')
 
     def test_remote_rename_case_folder_stopped(self):
-        remote = self.remote_file_system_client_1
-        local = self.local_client_1
+        remote = self.remote_1
+        local = self.local_1
         self.engine_1.stop()
         assert local.exists(u'/Original Fold\xe9r 1')
 
@@ -311,21 +322,25 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert local.exists(u'/Original Fold\xe9r 1')
 
     def test_remote_move_folder(self):
-        remote = self.remote_file_system_client_1
-        local = self.local_client_1
+        remote = self.remote_1
+        local = self.local_1
 
         # Move a non empty folder with some content
         remote.move(self.folder_1_id, self.folder_2_id)
-        assert remote.get_info(self.folder_1_id).name == u'Original Fold\xe9r 1'
-        assert remote.get_info(self.folder_1_id).parent_uid == self.folder_2_id
+        assert (remote.get_fs_info(self.folder_1_id).name
+                == u'Original Fold\xe9r 1')
+        assert (remote.get_fs_info(self.folder_1_id).parent_uid
+                == self.folder_2_id)
 
         # Synchronize: only the folder move is detected: all
         # the descendants are automatically realigned
         self.wait_sync(wait_for_async=True)
 
         # Check remote folder
-        assert remote.get_info(self.folder_1_id).name == u'Original Fold\xe9r 1'
-        assert remote.get_info(self.folder_1_id).parent_uid == self.folder_2_id
+        assert (remote.get_fs_info(self.folder_1_id).name
+                == u'Original Fold\xe9r 1')
+        assert (remote.get_fs_info(self.folder_1_id).parent_uid
+                == self.folder_2_id)
 
         # Check local folder
         assert not local.exists(u'/Original Fold\xe9r 1')
@@ -383,14 +398,14 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert folder_1_1_state.local_name == 'Sub-Folder 1.1'
 
     def test_concurrent_remote_rename_folder(self):
-        remote = self.remote_file_system_client_1
-        local = self.local_client_1
+        remote = self.remote_1
+        local = self.local_1
 
         # Rename non empty folders concurrently
         remote.rename(self.folder_1_id, 'Renamed Folder 1')
-        assert remote.get_info(self.folder_1_id).name == 'Renamed Folder 1'
+        assert remote.get_fs_info(self.folder_1_id).name == 'Renamed Folder 1'
         remote.rename(self.folder_2_id, 'Renamed Folder 2')
-        assert remote.get_info(self.folder_2_id).name == 'Renamed Folder 2'
+        assert remote.get_fs_info(self.folder_2_id).name == 'Renamed Folder 2'
 
         # Synchronize: only the folder renaming is detected: all
         # the descendants are automatically realigned
@@ -428,14 +443,13 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert file_3_state.local_name == 'Original File 3.odt'
 
     def test_remote_rename_sync_root_folder(self):
-        remote = self.remote_file_system_client_1
+        remote = self.remote_1
         local = LocalClient(self.local_nxdrive_folder_1)
 
         # Rename a sync root folder
-        remote.rename(
-            self.workspace_id,
-            'Renamed Nuxeo Drive Test Workspace')
-        assert remote.get_info(self.workspace_id).name == 'Renamed Nuxeo Drive Test Workspace'
+        remote.rename(self.workspace_id, 'Renamed Nuxeo Drive Test Workspace')
+        assert remote.get_fs_info(
+            self.workspace_id).name == 'Renamed Nuxeo Drive Test Workspace'
 
         # Synchronize: only the sync root folder renaming is detected: all
         # the descendants are automatically realigned
@@ -460,8 +474,9 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Check child state
         file_1_state = self.get_state(self.file_1_id)
-        assert file_1_state.local_path  == (u'/Renamed Nuxeo Drive Test Workspace'
-                                            u'/Original Fil\xe9 1.odt')
+        assert (file_1_state.local_path
+                == u'/Renamed Nuxeo Drive Test Workspace'
+                   u'/Original Fil\xe9 1.odt')
         assert file_1_state.local_name == u'Original Fil\xe9 1.odt'
 
         # Check child name
@@ -474,8 +489,9 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Check child state
         folder_1_state = self.get_state(self.folder_1_id)
-        assert folder_1_state.local_path == (u'/Renamed Nuxeo Drive Test Workspace'
-                                             u'/Original Fold\xe9r 1')
+        assert (folder_1_state.local_path
+                == u'/Renamed Nuxeo Drive Test Workspace'
+                   u'/Original Fold\xe9r 1')
         assert folder_1_state.local_name == u'Original Fold\xe9r 1'
 
         # Check child name
@@ -493,9 +509,9 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Check child state
         folder_1_1_state = self.get_state(self.folder_1_1_id)
-        assert folder_1_1_state.local_path == (u'/Renamed Nuxeo Drive Test Workspace'
-                                               u'/Original Fold\xe9r 1'
-                                               u'/Sub-Folder 1.1')
+        assert (folder_1_1_state.local_path
+                == u'/Renamed Nuxeo Drive Test Workspace'
+                   u'/Original Fold\xe9r 1/Sub-Folder 1.1')
         assert folder_1_1_state.local_name == 'Sub-Folder 1.1'
 
         # Check child name
@@ -512,28 +528,28 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Check child state
         file_1_1_state = self.get_state(self.file_1_1_id)
-        assert file_1_1_state.local_path == (u'/Renamed Nuxeo Drive Test Workspace'
-                                             u'/Original Fold\xe9r 1'
-                                             u'/Original File 1.1.odt')
+        assert (file_1_1_state.local_path
+                == u'/Renamed Nuxeo Drive Test Workspace'
+                   u'/Original Fold\xe9r 1/Original File 1.1.odt')
         assert file_1_1_state.local_name == 'Original File 1.1.odt'
 
     def test_remote_move_to_non_sync_root(self):
         # Grant ReadWrite permission on Workspaces for test user
         workspaces_path = '/default-domain/workspaces'
         input_obj = 'doc:' + workspaces_path
-        self.root_remote_client.operations.execute(
+        self.root_remote.operations.execute(
             command='Document.SetACE', input_obj=input_obj,
             user=self.user_1, permission='ReadWrite', grant='true')
 
-        workspaces_info = self.root_remote_client.fetch(workspaces_path)
+        workspaces_info = self.root_remote.fetch(workspaces_path)
         workspaces = workspaces_info['uid']
 
         # Get remote client with Workspaces as base folder and local client
-        remote = RemoteDocumentClientForTests(
+        remote = DocRemote(
             self.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
             self.version, password=self.password_1, base_folder=workspaces,
             upload_tmp_dir=self.upload_tmp_dir)
-        local = self.local_client_1
+        local = self.local_1
 
         # Create a non synchronized folder
         unsync_folder = remote.make_folder('/', 'Non synchronized folder')
@@ -563,13 +579,15 @@ class TestRemoteMoveAndRename(UnitTestCase):
 class TestSyncRemoteMoveAndRename(UnitTestCase):
 
     def setUp(self):
-        local = self.local_client_1
-        remote = self.remote_file_system_client_1
+        local = self.local_1
+        remote = self.remote_1
 
         # Create documents in the remote root workspace
-        self.workspace_id = 'defaultSyncRootFolderItemFactory#default#' + self.workspace
+        self.workspace_id = ('defaultSyncRootFolderItemFactory#default#'
+                             + self.workspace)
         self.workspace_pair_local_path = '/' + self.workspace_title
-        self.folder_id = remote.make_folder(self.workspace_id, 'Test folder').uid
+        self.folder_id = remote.make_folder(
+            self.workspace_id, 'Test folder').uid
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -577,8 +595,8 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
 
     @pytest.mark.skipif(sys.platform != 'win32', reason='Windows only.')
     def test_synchronize_remote_move_file_while_accessing(self):
-        local = self.local_client_1
-        remote = self.remote_file_system_client_1
+        local = self.local_1
+        remote = self.remote_1
 
         file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
         copyfile(self.location + '/resources/testFile.pdf', file_path)
@@ -602,8 +620,8 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         assert not local.exists('/Test folder/testFile.pdf')
 
     def test_synchronize_remote_move_while_download_file(self):
-        local = self.local_client_1
-        remote = self.remote_file_system_client_1
+        local = self.local_1
+        remote = self.remote_1
 
         # Create documents in the remote root workspace
         new_folder_id = remote.make_folder(self.folder_id, 'New folder').uid
@@ -622,10 +640,10 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         self.engine_1.file_id = None
 
         try:
-            self.engine_1.suspend_client = _suspend_check
+            self.engine_1.remote.check_suspended = _suspend_check
             self.engine_1.invalidate_client_cache()
-            with open(self.location + '/resources/testFile.pdf') as content_file:
-                content = content_file.read()
+            with open(self.location + '/resources/testFile.pdf') as f:
+                content = f.read()
             self.engine_1.file_id = remote.make_file(
                 self.folder_id, 'testFile.pdf', content=content).uid
 
@@ -634,12 +652,12 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
             assert not local.exists('/Test folder/testFile.pdf')
             assert local.exists('/Test folder/New folder/testFile.pdf')
         finally:
-            self.engine_1.suspend_client = Engine.suspend_client
+            self.engine_1.remote.check_suspended = Engine.suspend_client
 
     @pytest.mark.skipif(sys.platform != 'win32', reason='Windows only.')
     def test_synchronize_remote_rename_file_while_accessing(self):
-        local = self.local_client_1
-        remote = self.remote_file_system_client_1
+        local = self.local_1
+        remote = self.remote_1
 
         file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
         copyfile(self.location + '/resources/testFile.pdf', file_path)
@@ -663,14 +681,14 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         assert not local.exists('/Test folder/testFile.pdf')
 
     def test_synchronize_remote_rename_while_download_file(self):
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         def _suspend_check(*_):
             """ Add delay when upload and download. """
             if not self.engine_1.has_rename:
                 # Rename remote file while downloading
-                self.remote_file_system_client_1.rename(
+                self.remote_1.rename(
                     self.folder_id, 'Test folder renamed')
                 self.engine_1.has_rename = True
             time.sleep(3)
@@ -679,10 +697,11 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         self.engine_1.has_rename = False
         self.engine_1.invalidate_client_cache()
 
-        with patch.object(self.engine_1, 'suspend_client', new_callable=_suspend_check):
-            with open(self.location + '/resources/testFile.pdf') as content_file:
+        with patch.object(self.engine_1.remote, 'check_suspended',
+                          new_callable=_suspend_check):
+            with open(self.location + '/resources/testFile.pdf') as f:
                 remote.make_file(
-                    '/Test folder', 'testFile.pdf', content=content_file.read())
+                    '/Test folder', 'testFile.pdf', content=f.read())
 
             # Rename remote folder then synchronize
             self.wait_sync(wait_for_async=True)
@@ -694,15 +713,15 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         if sys.platform == 'win32':
             self._remote_rename_while_upload()
         else:
-            func = 'nxdrive.client.base_automation_client.os.fstatvfs'
+            func = 'nxdrive.client.remote_client.os.fstatvfs'
             with patch(func) as mock_os:
                 mock_os.return_value = Mock()
                 mock_os.return_value.f_bsize = 4096
                 self._remote_rename_while_upload()
 
     def _remote_rename_while_upload(self):
-        local = self.local_client_1
-        remote = self.remote_file_system_client_1
+        local = self.local_1
+        remote = self.remote_1
 
         def _suspend_check(*_):
             """ Add delay when upload and download. """
@@ -710,11 +729,14 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
                 time.sleep(1)
             Engine.suspend_client(self.engine_1)
 
-        with patch.object(self.engine_1, 'suspend_client', new_callable=_suspend_check):
+        with patch.object(self.engine_1.remote, 'check_suspended',
+                          new_callable=_suspend_check):
             # Create a document by streaming a binary file
-            file_path = os.path.join(local.abspath('/Test folder'), 'testFile.pdf')
+            file_path = os.path.join(local.abspath('/Test folder'),
+                                     'testFile.pdf')
             copyfile(self.location + '/resources/testFile.pdf', file_path)
-            file_path = os.path.join(local.abspath('/Test folder'), 'testFile2.pdf')
+            file_path = os.path.join(local.abspath('/Test folder'),
+                                     'testFile2.pdf')
             copyfile(self.location + '/resources/testFile.pdf', file_path)
 
             # Rename remote folder then synchronize
@@ -735,7 +757,7 @@ class TestRemoteMove(UnitTestCase):
         not sync properly.
         """
 
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
         engine = self.engine_1
 
@@ -764,9 +786,8 @@ class TestRemoteFiles(UnitTestCase):
         Check that remote (lower|upper)case renaming is taken
         into account locally.
         """
-
         remote = self.remote_document_client_1
-        local = self.local_client_1
+        local = self.local_1
         engine = self.engine_1
 
         # Create an innocent file, lower case

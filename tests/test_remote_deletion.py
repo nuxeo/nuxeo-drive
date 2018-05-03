@@ -32,9 +32,9 @@ class TestRemoteDeletion(UnitTestCase):
         # Bind the server and root workspace
         self.engine_1.start()
         # Get local and remote clients
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
-        remote_admin = self.root_remote_client
+        remote_admin = self.root_remote
 
         # Create documents in the remote root workspace
         # then synchronize
@@ -72,7 +72,7 @@ class TestRemoteDeletion(UnitTestCase):
         assert local.exists('/Test folder/joe.txt')
 
     def _remote_deletion_while_upload(self):
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
         self.engine_1.start()
 
@@ -81,8 +81,7 @@ class TestRemoteDeletion(UnitTestCase):
             time.sleep(1)
             Engine.suspend_client(self.engine_1)
 
-        with patch.object(
-                self.engine_1, 'suspend_client', new_callable=_suspend_check):
+            self.engine_1.remote.check_suspended = _suspend_check
             self.engine_1.invalidate_client_cache()
 
             # Create documents in the remote root workspace
@@ -106,14 +105,13 @@ class TestRemoteDeletion(UnitTestCase):
         if sys.platform == 'win32':
             self._remote_deletion_while_upload()
         else:
-            with patch('nxdrive.client.base_automation_client.'
-                       'os.fstatvfs') as mock_os:
+            with patch('nxdrive.client.remote_client.os.fstatvfs') as mock_os:
                 mock_os.return_value = Mock()
                 mock_os.return_value.f_bsize = 4096
                 self._remote_deletion_while_upload()
 
     def _remote_deletion_while_download_file(self):
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         def _suspend_check(*_):
@@ -133,7 +131,7 @@ class TestRemoteDeletion(UnitTestCase):
         self.engine_1.has_delete = False
 
         try:
-            self.engine_1.suspend_client = _suspend_check
+            self.engine_1.remote.check_suspended = _suspend_check
             self.engine_1.invalidate_client_cache()
             # Create documents in the remote root workspace
             remote.make_folder('/', 'Test folder')
@@ -145,7 +143,7 @@ class TestRemoteDeletion(UnitTestCase):
             self.wait_sync(wait_for_async=True)
             assert not local.exists('/Test folder/testFile.pdf')
         finally:
-            self.engine_1.suspend_client = Engine.suspend_client
+            self.engine_1.remote.check_suspended = Engine.suspend_client
 
     def test_synchronize_remote_deletion_while_download_file(self):
         if sys.platform == 'win32':
@@ -158,7 +156,7 @@ class TestRemoteDeletion(UnitTestCase):
 
     def test_synchronize_remote_deletion_with_close_name(self):
         self.engine_1.start()
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
         remote.make_folder('/', 'Folder 1')
         remote.make_folder('/', 'Folder 1b')
@@ -181,7 +179,7 @@ class TestRemoteDeletion(UnitTestCase):
 
         # Get local and remote clients
         self.engine_2.start()
-        local = self.local_client_2
+        local = self.local_2
         remote = self.remote_document_client_2
 
         # Create a folder with a child file in the remote root workspace
@@ -194,7 +192,7 @@ class TestRemoteDeletion(UnitTestCase):
         assert local.exists('/Test folder')
         assert local.exists('/Test folder/joe.odt')
         input_obj = 'doc:' + self.workspace
-        self.root_remote_client.operations.execute(
+        self.root_remote.operations.execute(
             command='Document.RemoveACL', input_obj=input_obj, acl='local')
         self.wait_sync(wait_for_async=True, wait_for_engine_1=False,
                        wait_for_engine_2=True)
@@ -206,7 +204,7 @@ class TestRemoteDeletion(UnitTestCase):
 
         # Get local and remote clients
         self.engine_1.start()
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create a folder with a child file in the remote root workspace

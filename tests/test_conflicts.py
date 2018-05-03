@@ -13,17 +13,17 @@ class TestConflicts(UnitTestCase):
         super(TestConflicts, self).setUp()
         self.workspace_id = ('defaultSyncRootFolderItemFactory#'
                              'default#{}'.format(self.workspace))
-        self.file_id = self.remote_file_system_client_1.make_file(
+        self.file_id = self.remote_1.make_file(
             self.workspace_id, 'test.txt', 'Some content').uid
         self.get_remote_state = \
             self.engine_1.get_dao().get_normal_state_from_remote
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        assert self.local_client_1.exists('/test.txt')
+        assert self.local_1.exists('/test.txt')
 
     def test_self_conflict(self):
-        remote = self.remote_file_system_client_1
-        local = self.local_client_1
+        remote = self.remote_1
+        local = self.local_1
         # Update content on both sides by the same user, remote last
         remote.update_content(self.file_id, 'Remote update')
         local.update_content('/test.txt', 'Local update')
@@ -33,7 +33,7 @@ class TestConflicts(UnitTestCase):
         assert local.exists('/test.txt')
         assert local.get_content('/test.txt') == 'Local update'
 
-        remote_children = remote.get_children_info(self.workspace_id)
+        remote_children = remote.get_fs_children(self.workspace_id)
         assert len(remote_children) == 1
         assert remote_children[0].uid == self.file_id
         assert remote_children[0].name == 'test.txt'
@@ -50,7 +50,7 @@ class TestConflicts(UnitTestCase):
         assert local.exists('/test.txt')
         assert local.get_content('/test.txt') == 'Local update 2'
 
-        remote_children = remote.get_children_info(self.workspace_id)
+        remote_children = remote.get_fs_children(self.workspace_id)
         assert len(remote_children) == 1
         assert remote_children[0].uid == self.file_id
         assert remote_children[0].name == 'test.txt'
@@ -59,8 +59,8 @@ class TestConflicts(UnitTestCase):
 
     @RandomBug('NXDRIVE-771', target='linux', mode='BYPASS')
     def test_real_conflict(self):
-        local = self.local_client_1
-        remote = self.remote_file_system_client_2
+        local = self.local_1
+        remote = self.remote_2
 
         # Update content on both sides by different users, remote last
         time.sleep(OS_STAT_MTIME_RESOLUTION)
@@ -90,12 +90,12 @@ class TestConflicts(UnitTestCase):
         assert pair
         self.engine_1.resolve_with_local(pair.id)
         self.wait_sync(wait_for_async=True)
-        assert (self.remote_file_system_client_2.get_content(self.file_id)
+        assert (self.remote_2.get_content(self.file_id)
                 == 'Local update 2')
 
     def test_resolve_local_folder(self):
-        local = self.local_client_1
-        remote = self.remote_file_system_client_1
+        local = self.local_1
+        remote = self.remote_1
 
         self.engine_1.suspend()
         workspace = 'defaultSyncRootFolderItemFactory#default#{}'.format(
@@ -124,7 +124,7 @@ class TestConflicts(UnitTestCase):
         assert children[0].folderish
         assert children[0].name == 'ABC_123'
 
-        children = remote.get_children_info(self.workspace_id)
+        children = remote.get_fs_children(self.workspace_id)
         assert len(children) == 2
         assert not children[0].folderish
         assert children[1].folderish
@@ -137,13 +137,13 @@ class TestConflicts(UnitTestCase):
         assert pair
         self.engine_1.resolve_with_remote(pair.id)
         self.wait_sync(wait_for_async=True)
-        assert (self.local_client_1.get_content('/test.txt')
+        assert (self.local_1.get_content('/test.txt')
                 == 'Remote update 2')
 
     def test_conflict_on_lock(self):
         doc_uid = self.file_id.split("#")[-1]
-        local = self.local_client_1
-        remote = self.remote_file_system_client_2
+        local = self.local_1
+        remote = self.remote_2
         self.remote_document_client_2.lock(doc_uid)
         local.update_content('/test.txt', 'Local update')
         self.wait_sync(wait_for_async=True)
@@ -175,8 +175,8 @@ class TestConflicts(UnitTestCase):
         self._XLS_local_update_on_locked_document()
 
     def _XLS_local_update_on_locked_document(self, locked_from_start=True):
-        remote = self.remote_file_system_client_2
-        local = self.local_client_1
+        remote = self.remote_2
+        local = self.local_1
 
         # user2: create remote XLS file
         fs_item_id = remote.make_file(
@@ -278,8 +278,8 @@ class TestConflicts(UnitTestCase):
         assert (local.get_content('/Excel 97 file.xls')
                 == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03')
 
-        assert len(remote.get_children_info(self.workspace_id)) == 2
-        assert remote.get_info(fs_item_id).name == 'New Excel 97 file.xls'
+        assert len(remote.get_fs_children(self.workspace_id)) == 2
+        assert remote.get_fs_info(fs_item_id).name == 'New Excel 97 file.xls'
         assert (remote.get_content(fs_item_id)
                 == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x02')
 

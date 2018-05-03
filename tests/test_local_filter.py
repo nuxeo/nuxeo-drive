@@ -30,7 +30,7 @@ class TestLocalFilter(UnitTestCase):
         # Bind the server and root workspace
         self.engine_1.start()
         # Get local and remote clients
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create documents in the remote root workspace
@@ -83,8 +83,8 @@ class TestLocalFilter(UnitTestCase):
         hexafile = '2345BCDF'
         self.engine_1.start()
         self.wait_sync()
-        self.local_client_1.make_folder('/', hexaname)
-        self.local_client_1.make_file('/', hexafile, 'test')
+        self.local_1.make_folder('/', hexaname)
+        self.local_1.make_file('/', hexafile, 'test')
         # Make sure that a folder is synchronized directly
         # no matter what and the file is postponed
         self.wait_sync(enforce_errors=False,fail_if_timeout=False)
@@ -95,7 +95,7 @@ class TestLocalFilter(UnitTestCase):
         # Force the postponed to ensure it's synchronized now
         self.engine_1.get_queue_manager().requeue_errors()
         self.wait_sync(wait_for_async=True)
-        assert self.local_client_1.exists('/' + hexafile)
+        assert self.local_1.exists('/' + hexafile)
         children = self.remote_document_client_1.get_children_info(
             self.workspace)
         log.debug('Children retrieved: %r', children)
@@ -107,7 +107,7 @@ class TestLocalFilter(UnitTestCase):
         # Bind the server and root workspace
         self.engine_1.start()
         # Get local and remote clients
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create documents in the remote root workspace
@@ -180,7 +180,7 @@ class TestLocalFilter(UnitTestCase):
         self.engine_1.start()
 
         # Get local and remote clients
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create documents in the remote root workspace

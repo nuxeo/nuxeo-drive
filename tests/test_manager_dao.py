@@ -20,7 +20,8 @@ class ManagerDAOTest(unittest.TestCase):
             os.makedirs(self.tmpdir)
 
         self.test_folder = tempfile.mkdtemp(u'-nxdrive-tests', dir=self.tmpdir)
-        self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL', 'http://localhost:8080/nuxeo')
+        self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL',
+                                        'http://localhost:8080/nuxeo')
         self.admin_user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
         # Handle the # in url
         if '#' in self.nuxeo_url:
@@ -50,20 +51,20 @@ class ManagerDAOTest(unittest.TestCase):
         # Verify that it does fail
         dao.lock_path('/test_3', 4, 'doc_id_4')
         locks = dao.get_locked_paths()
-        self.assertEqual(len(locks), 3)
+        assert len(locks) == 3
         dao.unlock_path('/test')
         locks = dao.get_locked_paths()
-        self.assertEqual(len(locks), 3)
+        assert len(locks) == 3
         dao.unlock_path('/test_1')
         locks = dao.get_locked_paths()
-        self.assertEqual(len(locks), 2)
-        self.assertEqual(locks[0].path, '/test_2')
-        self.assertEqual(locks[0].process, 2)
-        self.assertEqual(locks[0].remote_id, 'doc_id_2')
-        self.assertEqual(locks[1].path, '/test_3')
+        assert len(locks) == 2
+        assert locks[0].path == '/test_2'
+        assert locks[0].process == 2
+        assert locks[0].remote_id == 'doc_id_2'
+        assert locks[1].path == '/test_3'
         # Verify it has auto-update
-        self.assertEqual(locks[1].process, 4)
-        self.assertEqual(locks[1].remote_id, 'doc_id_4')
+        assert locks[1].process == 4
+        assert locks[1].remote_id == 'doc_id_4'
 
     def test_notifications(self):
         from nxdrive.notification import Notification
@@ -77,12 +78,12 @@ class ManagerDAOTest(unittest.TestCase):
         dao = manager.get_dao()
         dao.insert_notification(notif)
         dao.insert_notification(notif2)
-        self.assertEqual(len(dao.get_notifications()), 2)
+        assert len(dao.get_notifications()) == 2
         dao.discard_notification(notif.uid)
-        self.assertEqual(len(dao.get_notifications(discarded=False)), 1)
-        self.assertEqual(len(dao.get_notifications()), 2)
+        assert len(dao.get_notifications(discarded=False)) == 1
+        assert len(dao.get_notifications()) == 2
         dao.remove_notification(notif.uid)
-        self.assertEqual(len(dao.get_notifications()), 1)
+        assert len(dao.get_notifications()) == 1
         dao.discard_notification(notif2.uid)
-        self.assertEqual(len(dao.get_notifications()), 1)
-        self.assertEqual(len(dao.get_notifications(discarded=True)), 1)
+        assert len(dao.get_notifications()) == 1
+        assert len(dao.get_notifications(discarded=True)) == 1

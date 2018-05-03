@@ -76,7 +76,8 @@ class TestReadOnly(UnitTestCase):
         remote = self.remote_document_client_1
 
         # Try to create the file
-        state = self.touch(os.path.join(self.local_nxdrive_folder_1, 'test.txt'))
+        state = self.touch(os.path.join(self.local_nxdrive_folder_1,
+                                        'test.txt'))
 
         if sys.platform != 'win32':
             # The creation must have failed
@@ -97,7 +98,7 @@ class TestReadOnly(UnitTestCase):
         without error, if the OS allowes it (unlikely).
         """
 
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create documents and sync
@@ -124,7 +125,7 @@ class TestReadOnly(UnitTestCase):
         """ Local deletions are filtered. """
 
         remote = self.remote_document_client_1
-        local = self.local_client_1
+        local = self.local_1
 
         folder = remote.make_folder('/', 'test-ro')
         remote.make_file(folder, 'test.txt', content=b'42')
@@ -158,7 +159,7 @@ class TestReadOnly(UnitTestCase):
         """
 
         remote = self.remote_document_client_1
-        local = self.local_client_1
+        local = self.local_1
 
         # folder-src is the source from where documents will be moved, RO
         # folder-dst is the destination where documents will be moved, RO
@@ -208,7 +209,7 @@ class TestReadOnly(UnitTestCase):
         """
 
         remote = self.remote_document_client_1
-        local = self.local_client_1
+        local = self.local_1
 
         # folder-ro is the source from where documents will be moved, RO
         # folder-rw is the destination where documents will be moved, RW
@@ -255,7 +256,7 @@ class TestReadOnly(UnitTestCase):
         without error.
         """
 
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create documents and sync
@@ -315,7 +316,7 @@ class TestReadOnly(UnitTestCase):
         """ Local deletions are filtered. """
 
         remote = self.remote_document_client_1
-        local = self.local_client_1
+        local = self.local_1
 
         folder = remote.make_folder('/', 'test-ro')
         remote.make_folder(folder, 'foo')
@@ -349,7 +350,7 @@ class TestReadOnly(UnitTestCase):
         """
 
         remote = self.remote_document_client_1
-        local = self.local_client_1
+        local = self.local_1
 
         # folder-src is the source that will be moved, RO
         # folder-dst is the destination, RO
@@ -398,7 +399,7 @@ class TestReadOnly(UnitTestCase):
         """
 
         remote = self.remote_document_client_1
-        local = self.local_client_1
+        local = self.local_1
 
         # folder-src is the source that will be moved, RO
         # folder-dst is the destination, RO
@@ -439,7 +440,8 @@ class TestReadOnly(UnitTestCase):
             assert self.engine_1.get_dao().get_filters()
             doc_pair = remote.get_info(folder_ro1)
             root_path = (
-                '/org.nuxeo.drive.service.impl.DefaultTopLevelFolderItemFactory#'
+                '/org.nuxeo.drive.service.impl'
+                '.DefaultTopLevelFolderItemFactory#'
                 '/defaultSyncRootFolderItemFactory#default#'
                 '{}/defaultFileSystemItemFactory#default#{}')
             ref = root_path.format(doc_pair.root, doc_pair.uid)
@@ -454,7 +456,7 @@ class TestReadOnly(UnitTestCase):
         without error, and it will be re-renamed.
         """
 
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create documents and sync
@@ -514,7 +516,7 @@ Scenario:
 Expected Result: Files should sync with the server.
         """
 
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create documents and sync
@@ -537,7 +539,8 @@ Expected Result: Files should sync with the server.
         self.wait_sync()
 
         # Remove read-only
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH + '/ReadFolder', grant=False)
+        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH + '/ReadFolder',
+                          grant=False)
         self.wait_sync(wait_for_async=True)
         local.unset_readonly('/MEFolder/shareme.doc')
 

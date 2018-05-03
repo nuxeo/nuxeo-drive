@@ -55,7 +55,8 @@ delay = 3
     def test_update_site_url(self):
         argv = ["ndrive", "console", "--update-site-url", "DEBUG_TEST"]
         options = self.cmd.parse_cli([])
-        assert options.update_site_url == 'http://community.nuxeo.com/static/drive-updates'
+        assert (options.update_site_url
+                == 'http://community.nuxeo.com/static/drive-updates')
 
         # Normal arg
         options = self.cmd.parse_cli(argv)
@@ -81,7 +82,7 @@ delay = 3
 
     @Options.mock()
     def test_default_override(self):
-        self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
+        self.cmd.default_home = tempfile.mkdtemp('config', dir=self.tmpdir)
         self.clean_ini()
         argv = ['ndrive', 'console', '--log-level-console=WARNING']
 

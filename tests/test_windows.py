@@ -37,8 +37,8 @@ class TestWindows(UnitTestCase):
                                  'test.odt')
         shutil.copyfile(test_file, os.path.join(sync_root, 'test.odt'))
         self.wait_sync()
-        self.assertTrue(remote.exists('/test.odt'))
-        self.assertEqual(remote.get_content('/test.odt'), 'Updated content.')
+        assert remote.exists('/test.odt')
+        assert remote.get_content('/test.odt') == 'Updated content.'
 
         # Copy the oldest file to the root workspace and synchronize it.
         # First wait a bit for file time stamps to increase enough.
@@ -47,8 +47,8 @@ class TestWindows(UnitTestCase):
             os.path.join(self.local_test_folder_1, 'test.odt'),
             os.path.join(sync_root, 'test.odt'))
         self.wait_sync()
-        self.assertTrue(remote.exists('/test.odt'))
-        self.assertEqual(remote.get_content('/test.odt'), 'Some content.')
+        assert remote.exists('/test.odt')
+        assert remote.get_content('/test.odt') == 'Some content.'
 
     def test_concurrent_file_access(self):
         """Test update/deletion of a locally locked file.
@@ -64,7 +64,7 @@ class TestWindows(UnitTestCase):
         self.engine_1.start()
 
         # Get local and remote clients
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create file in the remote root workspace
@@ -73,8 +73,8 @@ class TestWindows(UnitTestCase):
 
         # Launch first synchronization
         self.wait_sync(wait_for_async=True)
-        self.assertTrue(local.exists('/test_update.docx'))
-        self.assertTrue(local.exists('/test_delete.docx'))
+        assert local.exists('/test_update.docx')
+        assert local.exists('/test_delete.docx')
 
         # Open locally synchronized files to lock them and generate a
         # WindowsError when trying to update / delete them
@@ -92,34 +92,35 @@ class TestWindows(UnitTestCase):
         remote.make_file('/', 'other.docx', 'Other content.')
 
         # Synchronize
-        self.wait_sync(wait_for_async=True, enforce_errors=False, fail_if_timeout=False)
+        self.wait_sync(wait_for_async=True, enforce_errors=False,
+                       fail_if_timeout=False)
         if sys.platform == 'win32':
             # As local file are locked, a WindowsError should occur during the
             # local update process, therefore:
             # - Opened local files should still exist and not have been
             #   modified
             # - Synchronization should not fail: doc pairs should be
-            #   blacklisted and other remote modifications should be locally synchronized
-            self.assertTrue(local.exists('/test_update.docx'))
-            self.assertEqual(local.get_content('/test_update.docx'),
-                             'Some content to update.')
-            self.assertTrue(local.exists('/test_delete.docx'))
-            self.assertEqual(local.get_content('/test_delete.docx'),
-                             'Some content to delete.')
-            self.assertTrue(local.exists('/other.docx'))
-            self.assertEqual(local.get_content('/other.docx'),
-                             'Other content.')
+            #   blacklisted and other remote modifications should be
+            #   locally synchronized
+            assert local.exists('/test_update.docx')
+            assert (local.get_content('/test_update.docx')
+                    == 'Some content to update.')
+            assert local.exists('/test_delete.docx')
+            assert (local.get_content('/test_delete.docx')
+                    == 'Some content to delete.')
+            assert local.exists('/other.docx')
+            assert local.get_content('/other.docx') == 'Other content.'
 
             # Synchronize again
             self.wait_sync(enforce_errors=False, fail_if_timeout=False)
             # Blacklisted files should be ignored as delay (60 seconds by
             # default) is not expired, nothing should have changed
-            self.assertTrue(local.exists('/test_update.docx'))
-            self.assertEqual(local.get_content('/test_update.docx'),
-                             'Some content to update.')
-            self.assertTrue(local.exists('/test_delete.docx'))
-            self.assertEqual(local.get_content('/test_delete.docx'),
-                             'Some content to delete.')
+            assert local.exists('/test_update.docx')
+            assert (local.get_content('/test_update.docx')
+                    == 'Some content to update.')
+            assert local.exists('/test_delete.docx')
+            assert (local.get_content('/test_delete.docx')
+                    == 'Some content to delete.')
 
             # Release file locks by closing them
             file1_desc.close()
@@ -131,16 +132,14 @@ class TestWindows(UnitTestCase):
             # Previously blacklisted files should be updated / deleted locally,
             # temporary download file should not be there anymore and there
             # should be no pending items left
-            self.assertTrue(local.exists('/test_update.docx'))
-            self.assertEqual(local.get_content('/test_update.docx'),
-                             'Updated content.')
-            self.assertFalse(local.exists('/test_delete.docx'))
+            assert local.exists('/test_update.docx')
+            assert local.get_content('/test_update.docx') == 'Updated content.'
+            assert not local.exists('/test_delete.docx')
         else:
-            self.assertTrue(local.exists('/test_update.docx'))
-            self.assertEqual(local.get_content('/test_update.docx'),
-                             'Updated content.')
+            assert local.exists('/test_update.docx')
+            assert local.get_content('/test_update.docx') == 'Updated content.'
             self.assertNxPart('/', 'test_update.docx')
-            self.assertFalse(local.exists('/test_delete.docx'))
+            assert not local.exists('/test_delete.docx')
 
     @pytest.mark.skipif(sys.platform != 'win32', reason='Windows only.')
     def test_registry_configuration(self):

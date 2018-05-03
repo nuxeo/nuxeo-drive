@@ -29,7 +29,7 @@ class TestOfflineChangesSync(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        self.local = self.local_client_1
+        self.local = self.local_1
         self.remote = self.remote_document_client_1
         # Create a folder and a file in server side.
         # Wait for Drive to finish sync (download)
@@ -39,7 +39,7 @@ class TestOfflineChangesSync(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Verify that the folder and file are sync'd (download) successfully
-        self.assertTrue(self.local.exists('/Folder1/File1.txt'))
+        assert self.local.exists('/Folder1/File1.txt')
 
     @staticmethod
     def copy_with_xattr(src, dst):
@@ -83,22 +83,22 @@ class TestOfflineChangesSync(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Verify there is no change in local pc
-        self.assertTrue(self.local.exists('/Folder1/File1_renamed.txt'))
-        self.assertTrue(self.local.exists('/Folder1/File1 - Copy.txt'))
-        self.assertFalse(self.local.exists('/Folder1/File1.txt'))
+        assert self.local.exists('/Folder1/File1_renamed.txt')
+        assert self.local.exists('/Folder1/File1 - Copy.txt')
+        assert not self.local.exists('/Folder1/File1.txt')
 
         # Verify that local changes are uploaded to server successfully
         if self.remote.exists('/Folder1/File1 - Copy.txt'):
             # '/Folder1/File1 - Copy.txt' is uploaded to server.
             # So original file named should be changed as 'File_renamed.txt'
             remote_info = self.remote.get_info(self.file1_remote)
-            self.assertEqual(remote_info.name, 'File1_renamed.txt')
+            assert remote_info.name == 'File1_renamed.txt'
         else:
-            # Original file is renamed as 'File1 - Copy.txt'. This is a bug only
-            # if Drive is online during copy + rename
-            self.assertTrue(self.remote.exists('/Folder1/File1_renamed.txt'))
+            # Original file is renamed as 'File1 - Copy.txt'.
+            # This is a bug only if Drive is online during copy + rename
+            assert self.remote.exists('/Folder1/File1_renamed.txt')
             remote_info = self.remote.get_info(self.file1_remote)
-            self.assertEqual(remote_info.name, 'File1 - Copy.txt')
+            assert remote_info.name == 'File1 - Copy.txt'
 
     def test_copy_paste_normal(self):
         """
@@ -118,19 +118,19 @@ class TestOfflineChangesSync(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Verify there is no change in local pc
-        self.assertTrue(self.local.exists('/Folder1/File1_renamed.txt'))
-        self.assertTrue(self.local.exists('/Folder1/File1 - Copy.txt'))
-        self.assertFalse(self.local.exists('/Folder1/File1.txt'))
+        assert self.local.exists('/Folder1/File1_renamed.txt')
+        assert self.local.exists('/Folder1/File1 - Copy.txt')
+        assert not self.local.exists('/Folder1/File1.txt')
 
         # Verify that local changes are uploaded to server successfully
         if self.remote.exists('/Folder1/File1 - Copy.txt'):
             # '/Folder1/File1 - Copy.txt' is uploaded to server.
             # So original file named should be changed as 'File_renamed.txt'
             remote_info = self.remote.get_info(self.file1_remote)
-            self.assertEqual(remote_info.name, 'File1_renamed.txt')
+            assert remote_info.name == 'File1_renamed.txt'
         else:
-            # Original file is renamed as 'File1 - Copy.txt'. This is a bug only
-            # if Drive is online during copy + rename
-            self.assertTrue(self.remote.exists('/Folder1/File1_renamed.txt'))
+            # Original file is renamed as 'File1 - Copy.txt'.
+            # This is a bug only if Drive is online during copy + rename
+            assert self.remote.exists('/Folder1/File1_renamed.txt')
             remote_info = self.remote.get_info(self.file1_remote)
-            self.assertEqual(remote_info.name, 'File1 - Copy.txt')
+            assert remote_info.name == 'File1 - Copy.txt'

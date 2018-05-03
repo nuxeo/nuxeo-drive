@@ -19,8 +19,7 @@ class TestRemoteChanges(UnitTestCase):
 
     def get_changes(self):
         self.wait()
-        remote_client = self.remote_file_system_client_1
-        summary = remote_client.get_changes(self.last_root_definitions,
+        summary = self.remote_1.get_changes(self.last_root_definitions,
                                             log_id=self.last_event_log_id,
                                             last_sync_date=self.last_sync_date)
         self.last_sync_date = summary['syncDate']
@@ -30,7 +29,6 @@ class TestRemoteChanges(UnitTestCase):
         return summary
 
     def test_changes_without_active_roots(self):
-        remote_client = self.remote_file_system_client_1
         summary = self.get_changes()
         assert not summary['hasTooManyChanges']
         assert not summary['fileSystemChanges']
@@ -54,10 +52,10 @@ class TestRemoteChanges(UnitTestCase):
 
     def test_changes_root_registrations(self):
         # Lets create some folders in Nuxeo
-        remote_client = self.remote_document_client_1
-        folder_1 = remote_client.make_folder(self.workspace, 'Folder 1')
-        folder_2 = remote_client.make_folder(self.workspace, 'Folder 2')
-        remote_client.make_folder(folder_2, 'Folder 2.2')
+        remote = self.remote_document_client_1
+        folder_1 = remote.make_folder(self.workspace, 'Folder 1')
+        folder_2 = remote.make_folder(self.workspace, 'Folder 2')
+        remote.make_folder(folder_2, 'Folder 2.2')
 
         # Check no changes without any registered roots
         summary = self.get_changes()
@@ -66,7 +64,7 @@ class TestRemoteChanges(UnitTestCase):
         assert not summary['fileSystemChanges']
 
         # Let's register one of the previously created folders as sync root
-        remote_client.register_as_root(folder_1)
+        remote.register_as_root(folder_1)
 
         summary = self.get_changes()
         assert not summary['hasTooManyChanges']
@@ -81,7 +79,7 @@ class TestRemoteChanges(UnitTestCase):
         assert change['docUuid'] == folder_1
 
         # Let's register the second root
-        remote_client.register_as_root(folder_2)
+        remote.register_as_root(folder_2)
 
         summary = self.get_changes()
         assert not summary['hasTooManyChanges']
@@ -105,8 +103,8 @@ class TestRemoteChanges(UnitTestCase):
         assert not len(summary['fileSystemChanges'])
 
         # Let's unregister both roots at the same time
-        remote_client.unregister_as_root(folder_1)
-        remote_client.unregister_as_root(folder_2)
+        remote.unregister_as_root(folder_1)
+        remote.unregister_as_root(folder_2)
 
         summary = self.get_changes()
 
@@ -136,12 +134,12 @@ class TestRemoteChanges(UnitTestCase):
 
     def test_sync_root_parent_registration(self):
         # Create a folder
-        remote_client = self.remote_document_client_1
-        folder_1 = remote_client.make_folder(self.workspace, 'Folder 1')
+        remote = self.remote_document_client_1
+        folder_1 = remote.make_folder(self.workspace, 'Folder 1')
         self.get_changes()
 
         # Mark Folder 1 as a sync root
-        remote_client.register_as_root(folder_1)
+        remote.register_as_root(folder_1)
 
         summary = self.get_changes()
         assert len(summary['fileSystemChanges']) == 1
@@ -152,7 +150,7 @@ class TestRemoteChanges(UnitTestCase):
         assert change['fileSystemItemId'] == 'defaultSyncRootFolderItemFactory#default#%s' % folder_1
 
         # Mark parent folder as a sync root, should unregister Folder 1
-        remote_client.register_as_root(self.workspace)
+        remote.register_as_root(self.workspace)
         summary = self.get_changes()
         assert len(summary['fileSystemChanges']) == 2
 
