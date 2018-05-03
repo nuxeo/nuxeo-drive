@@ -20,9 +20,7 @@ Possible `ARG`:
     --start: start Nuxeo Drive
     --tests: launch the tests suite
 
-Notes:
-1. Executing the script without argument will setup the isolated environment.
-2. For now, code signing is not implemented.
+Executing the script without argument will setup/update the isolated environment.
 
 ### Dependencies:
 
@@ -44,7 +42,7 @@ You will also need to install the Qt4 qmake tool and the Qt4 library:
 
 ## Windows
 
-PowerShell **4.0** or above is required to run this script. You can find installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-windows-powershell).
+**PowerShell 4.0 or above** is required to run this script. You can find installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-windows-powershell).
 
 ### Usage
 
@@ -56,21 +54,17 @@ Possible `ARG`:
     -start: start Nuxeo Drive
     -tests: launch the tests suite
 
-Notes:
-1. Executing the script without argument will setup the isolated environment.
-2. For now, code signing is not implemented.
+Executing the script without argument will setup.update the isolated environment.
 
 ### Dependencies:
 
 - [MinGW-w64](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/4.8.2/threads-posix/dwarf/i686-4.8.2-release-posix-dwarf-rt_v3-rev3.7z/download);
 - [Qt 4.8.7 open-source](https://download.qt.io/official_releases/qt/4.8/4.8.7/qt-opensource-windows-x86-mingw482-4.8.7.exe);
-- [Microsoft Visual C++ Compiler for Python 2.7](https://www.microsoft.com/en-us/download/details.aspx?id=44266) to build a few required modules;
 - [Inno Setup 5.5.9 (u)](http://www.jrsoftware.org/download.php/is-unicode.exe) to create the installer.
 
 ### Troubleshooting
 
-If you get an error message complaining about the lack of signature for this script.
-You can disable that security check with the following command inside PowerShell (as Administrator):
+If you get an error message complaining about the lack of signature for this script, you can disable that security check with the following command inside PowerShell (as Administrator):
 
 	set-executionpolicy -executionpolicy unrestricted
 
@@ -86,14 +80,15 @@ __Important__: those values are given as example, if you want up-to-date ones, p
 
 ### Required Envars
 
-- `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `2.7.13`.
-- `PYQT_VERSION` is the required **PyQt version** to use, i.e. `4.12`.
+- `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `2.7.14`.
+- `PYQT_VERSION` is the required **PyQt version** to use, i.e. `4.12.1`.
 - `WORKSPACE` is the **absolute path to the WORKSPACE**, i.e. `/opt/jenkins/workspace/xxx`.
 - `WORKSPACE_DRIVE` is the **absolute path to Drive sources**, i.e. `$WORKSPACE/sources`. If not defined, it will be set to `$WORKSPACE/sources` or `$WORKSPACE/nuxeo-drive` if folder exists else `$WORKSPACE`.
 
 ### Optional Envars
 
-- `SIP_VERSION` is the **SIP version** to use, i.e. `4.19`.
+- `SIGNING_ID` is the certificate **authority name**.
+- `SIP_VERSION` is the **SIP version** to use, i.e. `4.19.8`.
 - `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
 - `SPECIFIC_TEST` is a **specific test** to launch. The syntax must be the same as [pytest markers](http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id), i.e.:
 ```
@@ -111,10 +106,11 @@ __Important__: those values are given as example, if you want up-to-date ones, p
 Those are related to code-signing:
 - `KEYCHAIN_PATH` is the **full path** to the certificate.
 - `KEYCHAIN_PWD` is the **password** to unlock the certificate.
-- `SIGNING_ID` is the certificate **authority name**.
 
 #### Windows specific
 
+- `APP_NAME` is the **application name** used for code sign, i.e. `Nuxeo Drive`.
 - `QT_PATH` is the **Qt path**, i.e. `C:\Qt\4.8.7`.
 - `MINGW_PATH` is the **MinGW path** to use, i.e. `C:\mingw32`.
 - `ISCC_PATH` is the **Inno Setup path** to use, i.e. `C:\Program Files (x86)\Inno Setup 5`.
+- `SIGNTOOL_PATH` is the **SignTool path** to use, i.e. `C:\Program Files (x86)\Windows Kits\10\App Certification Kit`.

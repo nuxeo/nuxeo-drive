@@ -29,6 +29,7 @@ pypi*
 .settings
 *.swp
 target
+tools/windows/properties.rc
 venv
 xcuserdata
 yacctab.py

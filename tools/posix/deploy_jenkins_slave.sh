@@ -262,7 +262,6 @@ launch_tests() {
         --strict \
         --failed-first \
         --no-print-logs \
-        --log-level=CRITICAL \
         -r fE \
         -W error \
         -v

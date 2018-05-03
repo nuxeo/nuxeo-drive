@@ -31,11 +31,8 @@ class RemoteWatcher(EngineWorker):
     def __init__(self, engine, dao, delay):
         super(RemoteWatcher, self).__init__(engine, dao)
         self.server_interval = delay
-        # Review to delete
-        self._init()
-        self._next_check = 0
 
-    def _init(self):
+        self._next_check = 0
         self._last_sync_date = self._dao.get_config('remote_last_sync_date')
         self._last_event_log_id = self._dao.get_config('remote_last_event_log_id')
         self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
@@ -67,7 +64,6 @@ class RemoteWatcher(EngineWorker):
     def _execute(self):
         first_pass = True
         try:
-            self._init()
             while True:
                 self._interact()
                 now = current_milli_time()
@@ -515,9 +511,9 @@ class RemoteWatcher(EngineWorker):
                 self._engine.set_invalid_credentials(reason=err)
                 self._engine.set_offline()
             else:
-                log.exception(err)
-        except (BadStatusLine, ConnectionError, socket.error):
-            log.exception('Network error')
+                log.error(err)
+        except (BadStatusLine, ConnectionError, socket.error) as exc:
+            log.error('Network error: %s', exc)
         except ThreadInterrupt:
             raise
         except:

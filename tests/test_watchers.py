@@ -136,7 +136,7 @@ class TestWatchers(UnitTestCase):
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
         assert len(children) == 5
         for child in children:
-            assert child.pair_state == 'parent_locally_deleted'
+            assert child.pair_state == 'locally_deleted'
 
     def test_local_scan_delete_synced(self):
         # Test the deletion after first local scan
@@ -150,7 +150,7 @@ class TestWatchers(UnitTestCase):
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
         assert len(children) == 5
         for child in children:
-            assert child.pair_state == 'parent_locally_deleted'
+            assert child.pair_state ==  'locally_deleted'
 
     def test_local_scan_error(self):
         local = self.local_1

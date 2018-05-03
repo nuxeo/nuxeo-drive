@@ -83,4 +83,5 @@ class WebConflictsApi(WebDriveApi):
         result["last_local_update"] = "" if date_time == 0 else Translator.format_datetime(date_time)
         result["remote_can_update"] = state.remote_can_update
         result['remote_can_rename'] = state.remote_can_rename
+        result['details'] = state.last_error_details
         return result

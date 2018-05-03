@@ -41,9 +41,22 @@ log-level-console = TRACE
 debug = False
 
 [DEV]
-log-level-console = ERROR
+log_level-console = ERROR
 delay = 3
 """ % env)
+
+    def create_ini_bad(self, filename='config.ini'):
+        with open(filename, 'w+') as inifile:
+            inifile.writelines("""
+[DEFAULT]
+env = bad
+
+[bad]
+log-level-console = TRACE
+ debug = False
+
+delay = 3
+""")
 
     def clean_ini(self, filename='config.ini'):
         try:
@@ -53,6 +66,7 @@ delay = 3
 
     @Options.mock()
     def test_update_site_url(self):
+        Options.nxdrive_home = tempfile.mkdtemp('config', dir=self.tmpdir)
         argv = ["ndrive", "console", "--update-site-url", "DEBUG_TEST"]
         options = self.cmd.parse_cli([])
         assert (options.update_site_url
@@ -64,7 +78,7 @@ delay = 3
 
     @Options.mock()
     def test_system_default(self):
-        self.cmd.default_home = tempfile.mkdtemp("config", dir=self.tmpdir)
+        Options.nxdrive_home = tempfile.mkdtemp('config', dir=self.tmpdir)
         original = AbstractOSIntegration.get
         AbstractOSIntegration.get = staticmethod(getOSIntegration)
         try:
@@ -82,7 +96,7 @@ delay = 3
 
     @Options.mock()
     def test_default_override(self):
-        self.cmd.default_home = tempfile.mkdtemp('config', dir=self.tmpdir)
+        Options.nxdrive_home = tempfile.mkdtemp('config', dir=self.tmpdir)
         self.clean_ini()
         argv = ['ndrive', 'console', '--log-level-console=WARNING']
 
@@ -108,4 +122,16 @@ delay = 3
         self.create_ini(env='DEV')
         options = self.cmd.parse_cli([])
         assert options.log_level_console == 'ERROR'
+        self.clean_ini()
+
+    @Options.mock()
+    def test_malformatted_line(self):
+        Options.nxdrive_home = tempfile.mkdtemp('config', dir=self.tmpdir)
+        self.clean_ini()
+
+        # config.ini override
+        self.create_ini_bad()
+        options = self.cmd.parse_cli([])
+        assert options.log_level_console == 'TRACE'
+        assert options.delay == 3
         self.clean_ini()

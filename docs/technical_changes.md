@@ -18,6 +18,8 @@
 - Removed `Application.icon_spin_timer`
 - Removed `Application.icon_spin_count`
 - Removed `Application.engineWidget`
+- Removed `Application.get_cache_folder()`
+- Removed `Application.get_mac_app()`
 - Removed `Application.mainEngine`
 - Removed `Application.restart()`
 - Removed `Application.spin_transferring_icon()`

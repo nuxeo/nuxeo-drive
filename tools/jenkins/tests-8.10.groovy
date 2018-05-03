@@ -2,7 +2,7 @@
 // Script to launch Nuxeo Drive tests on every supported platform.
 
 // Default values for required envars
-python_drive_version = '2.7.14'  // XXX: PYTHON_DRIVE_VERSION
+python_drive_version = '2.7.15'  // XXX: PYTHON_DRIVE_VERSION
 pyqt_version = '4.12.1'  // XXX: PYQT_VERSION
 
 // Pipeline properties
@@ -114,7 +114,7 @@ for (def x in slaves) {
 
                     stage(osi + ' Tests') {
                         // Launch the tests suite
-                        def jdk = tool name: 'java-8-oracle'
+                        def jdk = tool name: 'java-8-openjdk'
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"

@@ -29,7 +29,6 @@ from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.osi.darwin.darwin import DarwinIntegration
-from nxdrive.updater.base import BaseUpdater
 from nxdrive.wui.translator import Translator
 from tests import DocRemote
 from .common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
@@ -74,15 +73,15 @@ FILE_CONTENT = """
     """
 
 # Remove features for tests
-Engine.register_folder_link = lambda *args: None
 LocalClient.has_folder_icon = lambda *args: True
-Manager._handle_os = lambda: None
-BaseUpdater._can_update = False
-Manager._create_server_config_updater = lambda *args: None
-DarwinIntegration._init = lambda *args: None
+Engine.register_folder_link = lambda *args: None
 DarwinIntegration._cleanup = lambda *args: None
+DarwinIntegration._init = lambda *args: None
 DarwinIntegration._send_notification = lambda *args: None
 Manager._create_findersync_listener = lambda *args: None
+Manager._create_updater = lambda *args: None
+Manager._create_server_config_updater = lambda *args: None
+Manager._handle_os = lambda: None
 Manager.send_sync_status = lambda *args: None
 
 
@@ -375,7 +374,6 @@ class UnitTestCase(SimpleUnitTestCase):
         os.mkdir(self.nxdrive_conf_folder_2)
 
         Options.delay = TEST_DEFAULT_DELAY
-        # Options.autolock_interval = 30
         Options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager()
         self.connected = False
@@ -387,7 +385,7 @@ class UnitTestCase(SimpleUnitTestCase):
 
         self.version = __version__
         url = self.nuxeo_url
-        log.debug('Will use %s as url', url)
+        log.debug('Will use %s as URL', url)
         if '#' in url:
             # Remove the engine type for the rest of the test
             self.nuxeo_url = url.split('#')[0]

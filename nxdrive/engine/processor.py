@@ -274,6 +274,11 @@ class Processor(EngineWorker):
                 except CorruptedFile as exc:
                     self.increase_error(doc_pair, 'CORRUPT', exception=exc)
                     continue
+                except NotFound as exc:
+                    log.debug('The document or its parent does '
+                              'not exist anymore: %r', doc_pair)
+                    self.giveup_error(doc_pair, 'NOT_FOUND', exception=exc)
+                    continue
                 except OSError as exc:
                     # Try to handle different kind of Windows error
                     error = getattr(exc, 'winerror', exc.errno)
@@ -295,9 +300,9 @@ class Processor(EngineWorker):
                                  doc_pair.pair_state, doc_pair.local_path,
                                  doc_pair.remote_ref)
                         self._engine.errorOpenedFile.emit(doc_pair)
-                        self._postpone_pair(doc_pair,
-                                            'Used by another process')
-                    elif error in (111, 121, 124, 206):
+                        self._postpone_pair(
+                            doc_pair, 'Used by another process')
+                    elif error in (111, 121, 124, 206, 1223):
                         """
                         WindowsError: [Error 111] ??? (seems related to deep
                         tree)
@@ -315,12 +320,15 @@ class Processor(EngineWorker):
                         WindowsError: [Error 206] The filename or extension is
                         too long.
                         Cause: even the full short path is too long
+
+                        OSError: Couldn't perform operation. Error code: 1223
+                        Seems related to long paths
                         """
                         self._dao.remove_filter(doc_pair.remote_parent_path
                                                 + '/'
                                                 + doc_pair.remote_ref)
                         self._engine.fileDeletionErrorTooLong.emit(doc_pair)
-                    elif getattr(exc, 'trash_issue', None):
+                    elif getattr(exc, 'trash_issue', False):
                         """
                         Special value to handle trash issues from filters on
                         Windows when there is one or more files opened by
@@ -525,7 +533,7 @@ class Processor(EngineWorker):
 
         if parent_pair is None:
             # Try to get it from xattr
-            log.trace("Fallback to xattr")
+            log.trace('Fallback to xattr')
             if self.local.exists(doc_pair.local_parent_path):
                 parent_ref = self.local.get_remote_id(
                     doc_pair.local_parent_path)
@@ -544,7 +552,8 @@ class Processor(EngineWorker):
                 'Parent folder of %r, %r is not bound to a remote folder'
                 % (doc_pair.local_path, doc_pair.local_parent_path))
 
-        if remote_ref is not None and '#' in remote_ref:
+        uid = info = remote_doc_client = None
+        if remote_ref and '#' in remote_ref:
             # Get the remote doc
             # Verify it is not already synced elsewhere (a missed move?)
             # If same hash don't do anything and reconcile
@@ -555,13 +564,15 @@ class Processor(EngineWorker):
             log.warning('This document %r has remote_ref %s, info=%r',
                         doc_pair, remote_ref, info)
             if not info:
-                # Document not found in server by remote document client.
-                # Either it was deleted or it is a local virtual folder.
-                if 'default#' in remote_ref:
-                    # Document appears to be deleted server side.
-                    self._synchronize_remotely_deleted(doc_pair, notif=True)
-                return
+                # The document has an invalid remote ID.
+                # Continue the document creation after purging the ID.
+                log.debug('Removing xattr(s) on %r', doc_pair.local_path)
+                func = ('remove_remote_id',
+                        'clean_xattr_folder_recursive')[doc_pair.folderish]
+                getattr(self.local, func)(doc_pair.local_path)
+                remote_ref = None
 
+        if remote_ref:
             try:
                 if info.state == 'deleted':
                     log.debug('Untrash from the client: %r', doc_pair)
@@ -610,6 +621,13 @@ class Processor(EngineWorker):
                     raise e
                 log.trace('Create new document as current known document'
                           ' is not accessible: %s', remote_ref)
+            except NotFound:
+                # The document has an invalid remote ID.
+                # It happens when locally untrashing a folder
+                # containing files. Just ignore the error and proceed
+                # to the document creation.
+                log.debug('Removing xattr on %r', doc_pair.local_path)
+                self.local.remove_remote_id(doc_pair.local_path)
 
         parent_ref = parent_pair.remote_ref
         if parent_pair.remote_can_create_child:
@@ -630,15 +648,15 @@ class Processor(EngineWorker):
                 if info.size != doc_pair.size:
                     # Size has changed ( copy must still be running )
                     doc_pair.local_digest = UNACCESSIBLE_HASH
-                    self._dao.update_local_state(doc_pair, info,
-                                                 versioned=False, queue=False)
+                    self._dao.update_local_state(
+                        doc_pair, info, versioned=False, queue=False)
                     self._postpone_pair(doc_pair, 'Unaccessible hash')
                     return
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
                     doc_pair.local_digest = info.get_digest()
                     log.trace("Creation of postponed local file: %r", doc_pair)
-                    self._dao.update_local_state(doc_pair, info,
-                                                 versioned=False, queue=False)
+                    self._dao.update_local_state(
+                        doc_pair, info, versioned=False, queue=False)
                     if doc_pair.local_digest == UNACCESSIBLE_HASH:
                         self._postpone_pair(doc_pair, 'Unaccessible hash')
                         return
@@ -648,6 +666,7 @@ class Processor(EngineWorker):
                 remote_ref = fs_item_info.uid
                 self._dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
+
             with self._dao._lock:
                 remote_id_done = False
                 # NXDRIVE-599: set as soon as possible the remote_id as
@@ -672,8 +691,8 @@ class Processor(EngineWorker):
                     self.local.set_remote_id(new_pair.local_path, remote_ref)
                     self._synchronize_locally_moved(new_pair, update=False)
                     return
-            self._synchronize_if_not_remotely_dirty(doc_pair,
-                                                    remote_info=fs_item_info)
+            self._synchronize_if_not_remotely_dirty(
+                doc_pair, remote_info=fs_item_info)
         else:
             child_type = 'folder' if doc_pair.folderish else 'file'
             log.warning('Will not synchronize %s %r created in'
@@ -687,8 +706,8 @@ class Processor(EngineWorker):
             else:
                 log.debug('Set pair unsynchronized: %r', doc_pair)
                 self._dao.unsynchronize_state(doc_pair, 'READONLY')
-                self._engine.newReadonly.emit(doc_pair.local_name,
-                                              parent_pair.remote_name)
+                self._engine.newReadonly.emit(
+                    doc_pair.local_name, parent_pair.remote_name)
                 self._handle_unsynchronized(doc_pair)
 
     def _synchronize_locally_deleted(self, doc_pair):
@@ -1101,7 +1120,7 @@ class Processor(EngineWorker):
         finally:
             self._lock_readonly(local_parent_path)
 
-    def _synchronize_remotely_deleted(self, doc_pair, notif=False):
+    def _synchronize_remotely_deleted(self, doc_pair):
         try:
             if doc_pair.local_state != 'deleted':
                 log.debug('Deleting locally %r', self.local.abspath(
@@ -1120,11 +1139,6 @@ class Processor(EngineWorker):
                     self.local.delete_final(doc_pair.local_path)
                 else:
                     self.local.delete(doc_pair.local_path)
-
-                if notif:
-                    self._engine.deletionDifferentAccount.emit(
-                        doc_pair.local_path)
-
             self._dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
         finally:

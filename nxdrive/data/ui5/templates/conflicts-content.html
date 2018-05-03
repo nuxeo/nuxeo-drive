@@ -11,12 +11,10 @@
 			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ date:'{{ pair.last_sync_date ? pair.last_sync_date : pair.last_remote_update }}'}">LAST_SYNCHRONIZED</span><br />
   			<div class="btn-group" role="group" aria-label="...">
  				<button type="button" ng-click="open_local(pair.local_path)" class="btn btn-default">
-					<span class="glyphicon glyphicon-file">&nbsp;</span>
-					<span translate>OPEN_LOCAL</span>
+					<img src="imgs/file.png" class="icon"/>&nbsp;<span translate>OPEN_LOCAL</span>
 				</button>
 				<button ng-hide="pair.folderish" type="button" ng-click="open_remote(pair.remote_ref, pair.remote_name)" class="btn btn-default">
-					<span class="glyphicon glyphicon-globe">&nbsp;</span>
-					<span translate>OPEN_REMOTE</span>
+					<img src="imgs/globe.png" class="icon"/>&nbsp;<span translate>OPEN_REMOTE</span>
 				</button>
   			</div>
 
@@ -29,16 +27,14 @@
 				<ul class="dropdown-menu" role="menu">
 					<li ng-show="pair.remote_can_update || (pair.folderish && pair.remote_can_rename)">
 						<a href="#" ng-click="resolve_with_local(pair.id)">
-							<span class="glyphicon glyphicon-file">&nbsp;</span>
-							<span translate>CONFLICT_USE_LOCAL</span>
+							<img src="imgs/file.png" class="icon icon-notif"/>&nbsp;<span translate>CONFLICT_USE_LOCAL</span>
 						</a>
 					</li>
 					<li ng-show="pair.remote_can_update || (pair.folderish && pair.remote_can_rename)" class="divider"></li>
 
 					<li>
 						<a href="#" ng-click="resolve_with_remote(pair.id)">
-							<span class="glyphicon glyphicon-globe">&nbsp;</span>
-							<span translate>CONFLICT_USE_REMOTE</span>
+							<img src="imgs/globe.png" class="icon"/>&nbsp;<span translate>CONFLICT_USE_REMOTE</span>
 						</a>
 					</li>
 				</ul>
@@ -48,6 +44,9 @@
 	<div class="panel panel-default" ng-repeat="pair in errors">
 		<div class="panel-heading">{{ pair.name }}{{ pair.folderish ? '/' : '' }}</div>
 		<div class="panel-body">{{ pair.error_reason | translate }}</div>
+		<div class="panel-body" ng-show="pair.details" style="font-family:monospace;font-size:.9em;">
+			<span translate>TECHNICAL_DETAILS</span><br>{{ pair.details }}
+		</div>
 		<div class="panel-body">
 			<span style="color: #999; margin-bottom: 10px;cursor: pointer;" ng-click="open_local(pair.local_parent_path)" translate translate-values="{ path:'{{ pair.local_parent_path }}'}">FILE_PATH</span><br />
 			<span style="color: #999; margin-bottom: 10px;" translate translate-values="{ contributor:'{{ pair.last_contributor }}'}">LAST_CONTRIBUTOR</span><br />
@@ -61,8 +60,7 @@
 				<ul class="dropdown-menu" role="menu">
 					<li>
 						<a href="#" ng-click="unsynchronize_pair(pair.id, pair.last_error)">
-							<span class="glyphicon glyphicon-eye-close">&nbsp;</span>
-							<span translate>IGNORE_PAIR</span>
+							<img src="imgs/eye-close.png" class="icon"/>&nbsp;<span translate>IGNORE_PAIR</span>
 						</a>
 					</li>
 				</ul>

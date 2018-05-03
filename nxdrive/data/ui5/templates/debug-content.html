@@ -7,12 +7,12 @@
       </a>
     </div>
     <ul class="nav navbar-nav">
-      <li ng-show="!is_paused('engine')"><a href="#" ng-click="pause('engine')"><span class="glyphicon glyphicon-pause"></span>&nbsp;Pause</a></li>
-      <li ng-show="is_paused('engine')"><a href="#" ng-click="pause('engine')"><span class="glyphicon glyphicon-play"></span>&nbsp;Resume</a></li>
+      <li ng-show="!is_paused('engine')"><a href="#" ng-click="pause('engine')"><img src="imgs/pause.png" class="icon"/>&nbsp;Pause</a></li>
+      <li ng-show="is_paused('engine')"><a href="#" ng-click="pause('engine')"><img src="imgs/play.png" class="icon"/>&nbsp;Resume</a></li>
     </ul>
   	<ul class="nav navbar-nav navbar-right">
-      <li><a href="#" ng-click="pause('local_watcher')"><span ng-class="pause_class('local_watcher')" class="glyphicon"></span>&nbsp;Local Watcher</a></li>
-      <li><a href="#" ng-click="pause('remote_watcher')"><span ng-class="pause_class('remote_watcher')" class="glyphicon"></span>&nbsp;Remote Watcher</a></li>
+      <li><a href="#" ng-click="pause('local_watcher')"><img src="imgs/{{ pause_class('local_watcher') }}.png" class="icon"/>&nbsp;Local Watcher</a></li>
+      <li><a href="#" ng-click="pause('remote_watcher')"><img src="imgs/{{ pause_class('remote_watcher') }}.png" class="icon"/>&nbsp;Remote Watcher</a></li>
       <li class="dropdown">
         <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><b>{{ engine.name }}</b><span class="caret"></span></a>
           <ul class="dropdown-menu" role="menu">
@@ -36,7 +36,7 @@
 			<table class="table table-hover table-condensed">
 			<thead>
 				<tr>
-					<th><a href="#" ng-click="pause('local_folder_queue')"><span ng-class="pause_class('local_folder_queue')" class="glyphicon"></span>&nbsp;Local Folders</a><span class="badge pull-right">{{ engine.queue.local_folder_queue }}</span></th>
+					<th><a href="#" ng-click="pause('local_folder_queue')"><span ng-class="pause_class('local_folder_queue')"></span>&nbsp;Local Folders</a><span class="badge pull-right">{{ engine.queue.local_folder_queue }}</span></th>
 				</tr>
 			</thead>
 			</table>
@@ -54,7 +54,7 @@
 			<table class="table table-hover">
 				<thead>
 					<tr>
-						<th><a href="#" ng-click="pause('local_file_queue')"><span ng-class="pause_class('local_file_queue')" class="glyphicon"></span>&nbsp;Local Files</a><span class="badge pull-right">{{ engine.queue.local_file_queue }}</span></th>
+						<th><a href="#" ng-click="pause('local_file_queue')"><span ng-class="pause_class('local_file_queue')"></span>&nbsp;Local Files</a><span class="badge pull-right">{{ engine.queue.local_file_queue }}</span></th>
 					</tr>
 				</thead>
 			</table>
@@ -72,7 +72,7 @@
 			<table class="table table-hover">
 			<thead>
 				<tr>
-					<th><a href="#" ng-click="pause('remote_folder_queue')"><span ng-class="pause_class('remote_folder_queue')" class="glyphicon"></span>&nbsp;Remote Folders</a><span class="badge pull-right">{{ engine.queue.remote_folder_queue }}</span></th>
+					<th><a href="#" ng-click="pause('remote_folder_queue')"><span ng-class="pause_class('remote_folder_queue')"></span>&nbsp;Remote Folders</a><span class="badge pull-right">{{ engine.queue.remote_folder_queue }}</span></th>
 				</tr>
 			</thead>
 			</table>
@@ -90,7 +90,7 @@
 			<table class="table table-hover">
 				<thead>
 					<tr>
-						<th><a href="#" ng-click="pause('remote_file_queue')"><span ng-class="pause_class('remote_file_queue')" class="glyphicon"></span>&nbsp;Remote Files</a><span class="badge pull-right">{{ engine.queue.remote_file_queue }}</span></th>
+						<th><a href="#" ng-click="pause('remote_file_queue')"><span ng-class="pause_class('remote_file_queue')"></span>&nbsp;Remote Files</a><span class="badge pull-right">{{ engine.queue.remote_file_queue }}</span></th>
 					</tr>
 				</thead>
 			</table>
@@ -109,7 +109,7 @@
 		<table class="table table-hover table-condensed">
 		<thead>
 			<tr>
-				<th colspan="2"><a href="#" ng-click="refreshLogs()"><span class="glyphicon glyphicon-refresh"></span>&nbsp;Logs</a></th>
+				<th colspan="2"><a href="#" ng-click="refreshLogs()"><img src="imgs/refresh.png" class="icon"/>&nbsp;Logs</a></th>
 			</tr>
 		</thead>
 		</table>
@@ -131,7 +131,7 @@
 			<thead>
 				<tr>
 					<th>
-						<ul style="margin-bottom: 0px; padding-left: 0px;"><li style="list-style-type: none;" class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span class="glyphicon glyphicon-equalizer">&nbsp;</span>Metrics {{ metrics_name }}<span class="caret"></span></a>
+						<ul style="margin-bottom: 0px; padding-left: 0px;"><li style="list-style-type: none;" class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><img src="imgs/equalizer.png" class="icon"/> Metrics {{ metrics_name }}<span class="caret"></span></a>
 			          <ul class="dropdown-menu" role="menu">
 			            <li><a href="#" ng-click="setMetrics('QueueManager', engine.queue.metrics)">QueueManager</a></li>
 			            <li><a href="#" ng-click="setMetrics('Engine', engine.metrics)">Engine</a></li>
@@ -221,7 +221,7 @@
 			<thead>
 				<tr>
 					<th>
-						<ul style="margin-bottom: 0px; padding-left: 0px;"><li style="list-style-type: none;" class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span class="glyphicon glyphicon-circle-arrow-down">&nbsp;</span>AppUpdater {{ app_update[0] }}<span class="caret"></span></a>
+						<ul style="margin-bottom: 0px; padding-left: 0px;"><li style="list-style-type: none;" class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><img src="imgs/arrow-down.png" class="icon"/></span>AppUpdater {{ app_update[0] }}<span class="caret"></span></a>
 			          <ul class="dropdown-menu" role="menu">
 			            <li><a href="#" ng-click="setAppUpdate('downgrade_needed', '1.9.0129')">Downgrade needed</a></li>
 			            <li><a href="#" ng-click="setAppUpdate('upgrade_needed', '2.1.0108')">Upgrade needed</a></li>
@@ -241,7 +241,7 @@
 			<thead>
 				<tr>
 					<th>
-						<span class="glyphicon glyphicon-save-file">&nbsp;</span>DirectEdit
+						<img src="imgs/save.png" class="icon"/>&nbsp;</span>DirectEdit
           			</th>
 				</tr>
 			</thead>

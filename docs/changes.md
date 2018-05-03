@@ -9,6 +9,7 @@ Changes in command line arguments:
 ### Core
 - [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations
 - [NXDRIVE-925](https://jira.nuxeo.com/browse/NXDRIVE-925): Conflict resolve using local is not working
+- [NXDRIVE-988](https://jira.nuxeo.com/browse/NXDRIVE-988): Handle local document deletion and restore on macOS
 - [NXDRIVE-1121](https://jira.nuxeo.com/browse/NXDRIVE-1121): Set modified date to Nuxeo platform modified date
 - [NXDRIVE-1130](https://jira.nuxeo.com/browse/NXDRIVE-1130): Set creation date to Nuxeo platform creation date
 - [NXDRIVE-1132](https://jira.nuxeo.com/browse/NXDRIVE-1132): Security fix in the Crypto module (move to PyCryptodome)
@@ -21,6 +22,7 @@ Changes in command line arguments:
 - [NXDRIVE-1174](https://jira.nuxeo.com/browse/NXDRIVE-1174): Efficient `ConfigurationDAO.update_config()`
 
 ### GUI
+- [NXDRIVE-289](https://jira.nuxeo.com/browse/NXDRIVE-289): Use light icons on Windows
 - [NXDRIVE-715](https://jira.nuxeo.com/browse/NXDRIVE-715): Use SVG for icons
 - [NXDRIVE-891](https://jira.nuxeo.com/browse/NXDRIVE-891): Locked notification displays 'userid' instead of full username
 - [NXDRIVE-1025](https://jira.nuxeo.com/browse/NXDRIVE-1025): Filters issue with folders at the same tree level
@@ -37,19 +39,25 @@ Changes in command line arguments:
 - [NXDRIVE-1175](https://jira.nuxeo.com/browse/NXDRIVE-1175): New language: Hebrew
 
 ### Packaging / Build
+- [NXDRIVE-136](https://jira.nuxeo.com/browse/NXDRIVE-136): Activate code signing on macOS (valid until 2023-03-10)
+- [NXDRIVE-261](https://jira.nuxeo.com/browse/NXDRIVE-261): Activate code signing on Windows (valid until 2021-04-25)
 - [NXDRIVE-448](https://jira.nuxeo.com/browse/NXDRIVE-448): Fix version displayed in Windows uninstall
 - [NXDRIVE-512](https://jira.nuxeo.com/browse/NXDRIVE-512): Windows application properties not set
 - [NXDRIVE-601](https://jira.nuxeo.com/browse/NXDRIVE-601): Provide a user installation mode on Windows
 - [NXDRIVE-730](https://jira.nuxeo.com/browse/NXDRIVE-730): Move to PyInstaller (**breaking change**)
 - [NXDRIVE-1125](https://jira.nuxeo.com/browse/NXDRIVE-1125): Make Finder interactions through FinderSync extension on macOS
 - [NXDRIVE-1146](https://jira.nuxeo.com/browse/NXDRIVE-1146): Drop module availability on PyPi
+- [NXDRIVE-1187](https://jira.nuxeo.com/browse/NXDRIVE-1187): Fix the PowerShell download command for Windows packaging
+- [NXDRIVE-1202](https://jira.nuxeo.com/browse/NXDRIVE-1202): Upgrade to Python 2.7.15
 
 ### Tests
 - [NXDRIVE-1173](https://jira.nuxeo.com/browse/NXDRIVE-1173): Fix pip installation on Windows
+- [NXDRIVE-1191](https://jira.nuxeo.com/browse/NXDRIVE-1191): Use Java OpenJDK instead of Java Oracle
 
 #### Minor changes
 - Auto-update: automatically install a new update if no bound engine
 - CLI: Removed `--stop-on-error` argument
+- Doc: Removed the "Microsoft Visual C++ Compiler for Python 2.7" requirement
 - Framework: Use ecm:isVersion instead of ecm:isCheckedInVersion
 - Jenkins: Possibility to launch the beta job on a given branch
 - Jenkins: Possibility to launch the release job on a given beta version
@@ -59,10 +67,13 @@ Changes in command line arguments:
 - Packaging: Added `pyaml` 17.12.1
 - Packaging: Added `requests` 2.18.4
 - Packaging: Removed `cffi`, will be installed with `xattr`
+- Packaging: Removed `yappi`, useless on CI
 - Packaging: Updated `Js2Py` from 0.58 to 0.59
-- Packaging: Updated `pycryptodomex` from 3.5.1 to 3.6.0
+- Packaging: Updated `faulthandler` from 3.0 to 3.1
+- Packaging: Updated `psutil` from 5.4.3 to 5.4.4
+- Packaging: Updated `pycryptodomex` from 3.5.1 to 3.6.1
 - Packaging: Updated `pypac` from 0.4.0 to 0.8.1
-- Packaging: Updated `pytest` from 3.3.2 to 3.5.0
+- Packaging: Updated `pytest` from 3.3.2 to 3.5.1
 - Packaging: Updated `python-dateutil` from 2.6.1 to 2.7.2
 - Packaging: Updated `xattr` from 0.9.2 to 0.9.3
 - Packaging: Upgraded `SIP` from 4.19.7 to 4.19.8
