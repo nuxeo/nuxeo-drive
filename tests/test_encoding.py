@@ -79,7 +79,7 @@ class TestEncoding(UnitTestCase):
         assert info.name == filename
 
     @skipIf(AbstractOSIntegration.is_mac(),
-            'Normalization dont work on Mac')
+            'Normalization doesn\'t work on Mac')
     def test_fileinfo_normalization(self):
         self.engine_1.stop()
         name = u'Teste\u0301'

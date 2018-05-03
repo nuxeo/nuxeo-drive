@@ -12,9 +12,8 @@ from requests import ConnectionError
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker, ThreadInterrupt
-from ...client import NotFound
+from ...client import NotFound, RemoteFileInfo
 from ...client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME, safe_filename
-from ...client.remote_client import RemoteFileInfo
 from ...utils import current_milli_time, path_join
 
 log = getLogger(__name__)

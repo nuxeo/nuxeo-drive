@@ -81,25 +81,25 @@ class TestRemoteDeletion(UnitTestCase):
             time.sleep(1)
             Engine.suspend_client(self.engine_1)
 
-            self.engine_1.remote.check_suspended = _suspend_check
-            self.engine_1.invalidate_client_cache()
+        self.engine_1.remote.check_suspended = _suspend_check
+        self.engine_1.invalidate_client_cache()
 
-            # Create documents in the remote root workspace
-            remote.make_folder('/', 'Test folder')
-            self.wait_sync(wait_for_async=True)
+        # Create documents in the remote root workspace
+        remote.make_folder('/', 'Test folder')
+        self.wait_sync(wait_for_async=True)
 
-            # Create a document by streaming a binary file
-            file_path = os.path.join(
-                local.abspath('/Test folder'), 'testFile.pdf')
-            copyfile(self.location + '/resources/testFile.pdf', file_path)
-            file_path = os.path.join(
-                local.abspath('/Test folder'), 'testFile2.pdf')
-            copyfile(self.location + '/resources/testFile.pdf', file_path)
+        # Create a document by streaming a binary file
+        file_path = os.path.join(
+            local.abspath('/Test folder'), 'testFile.pdf')
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
+        file_path = os.path.join(
+            local.abspath('/Test folder'), 'testFile2.pdf')
+        copyfile(self.location + '/resources/testFile.pdf', file_path)
 
-            # Delete remote folder then synchronize
-            remote.delete('/Test folder')
-            self.wait_sync(wait_for_async=True)
-            assert not local.exists('/Test folder')
+        # Delete remote folder then synchronize
+        remote.delete('/Test folder')
+        self.wait_sync(wait_for_async=True)
+        assert not local.exists('/Test folder')
 
     def test_synchronize_remote_deletion_while_upload(self):
         if sys.platform == 'win32':

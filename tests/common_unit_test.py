@@ -21,8 +21,7 @@ from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
 from nxdrive import __version__
-from nxdrive.client import LocalClient
-from nxdrive.client.remote_client import Remote
+from nxdrive.client import LocalClient, Remote
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
