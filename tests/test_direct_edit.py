@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 
+from nuxeo.exceptions import HTTPError
 from nuxeo.models import User
 
 from nxdrive.client import LocalClient
@@ -189,8 +190,14 @@ class TestDirectEdit(UnitTestCase):
 
         # Create a complete user
         remote = self.root_remote
-        user = remote.users.create(User(properties={
-            'username': 'john', 'firstName': 'John', 'lastName': 'Doe'}))
+        try:
+            user = remote.users.create(User(properties={
+                'username': 'john', 'firstName': 'John', 'lastName': 'Doe'}))
+        except HTTPError as exc:
+            if exc.status != 409:
+                raise
+            user = remote.users.get('john')
+
         try:
             username = self.engine_1.get_user_full_name('john')
             assert username == 'John Doe'
