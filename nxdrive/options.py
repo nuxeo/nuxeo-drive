@@ -160,7 +160,6 @@ class MetaOptions(type):
             os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(__file__)),
                          'data'),
             'default'),
-        'server_version': (None, 'default'),
         'theme': ('ui5', 'default'),
         'startup_page': ('drive_login.jsp', 'default'),
         'timeout': (30, 'default'),

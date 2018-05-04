@@ -452,34 +452,19 @@ class RemoteWatcher(EngineWorker):
         self._dao.clean_scanned()
 
     def _check_offline(self):
-        self.local = self._engine.local
-        self.remote = self._engine.remote
-        if self.remote is None:
-            # Being there means invalid credentials
-            self._engine.set_offline()
-            return None
+        if not self._engine.is_offline():
+            return False
 
-        if self._engine.is_offline():
-            try:
-                # Try to get the server status
-                self.remote.server_reachable()
+        # Try to get the server status
+        online = self.remote.client.request('GET', 'runningstatus', False)
+        if online:
+            self._engine.set_offline(value=False)
 
-                # If retrieved
-                self._engine.set_offline(value=False)
-                return self.remote
-            except ThreadInterrupt as e:
-                raise e
-            except:
-                return None
-
-        return self.remote
+        return not online
 
     def _handle_changes(self, first_pass=False):
         log.trace('Handle remote changes, first_pass=%r', first_pass)
         self._check_offline()
-        if self.remote is None:
-            return False
-
         try:
             if not self._last_remote_full_scan:
                 self._scan_remote()

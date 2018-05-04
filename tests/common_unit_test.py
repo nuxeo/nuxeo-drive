@@ -29,7 +29,7 @@ from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.osi.darwin.darwin import DarwinIntegration
 from nxdrive.wui.translator import Translator
-from tests import DocRemote
+from . import DocRemote
 from .common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
 
 YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '') != ''
@@ -630,7 +630,7 @@ class UnitTestCase(SimpleUnitTestCase):
             if fatal:
                 self.fail(err)
             else:
-                log.warn(err)
+                log.warning(err)
         else:
             log.debug('Wait for sync timeout')
 

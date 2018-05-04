@@ -59,13 +59,13 @@ class TestLongPath(UnitTestCase):
         self.wait_sync(wait_for_async=True, timeout=45, fail_if_timeout=False)
         remote_children_of_c = self.remote_1.get_children_info(self.folder_c)
         children_names = [item.name for item in remote_children_of_c]
-        log.warn('Verify if FOLDER_D is uploaded to server')
+        log.warning('Verify if FOLDER_D is uploaded to server')
         assert FOLDER_D in children_names
         folder_d = [item.uid for item
                     in remote_children_of_c if item.name == FOLDER_D][0]
         remote_children_of_d = self.remote_1.get_children_info(folder_d)
         children_names = [item.name for item in remote_children_of_d]
-        log.warn('Verify if FOLDER_D\File2.txt is uploaded to server')
+        log.warning('Verify if FOLDER_D\File2.txt is uploaded to server')
         assert 'File2.txt' in children_names
 
     def test_setup_on_long_path(self):

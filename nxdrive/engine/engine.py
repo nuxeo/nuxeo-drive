@@ -571,7 +571,6 @@ class Engine(QObject):
             thread.start()
         self.syncStarted.emit(0)
         self._start.emit()
-        self.get_update_infos()
 
     def get_threads(self):
         return self._threads
@@ -607,9 +606,8 @@ class Engine(QObject):
 
         try:
             parent_ref = self.local.get_remote_id(pair.local_parent_path)
-            same_digests = self.local.is_equal_digests(pair.local_digest,
-                                                         pair.remote_digest,
-                                                         pair.local_path)
+            same_digests = self.local.is_equal_digests(
+                pair.local_digest, pair.remote_digest, pair.local_path)
             log.warning(
                 'Conflict resolver: names=%r(%r|%r) digests=%r(%s|%s)'
                 ' parents=%r(%s|%s) [emit=%r]',
@@ -669,26 +667,12 @@ class Engine(QObject):
     def use_trash():
         return True
 
-    def get_update_infos(self, remote=None):
-        remote = remote or self.remote
-        if not remote:
-            return
-
-        try:
-            update_info = remote.get_update_info()
-            log.debug('Fetched update info for engine [%s] from server %s: %r',
-                      self.name, self._server_url, update_info)
-            self._dao.update_config(
-                'server_version', update_info.get('serverVersion'))
-        except Exception:
-            log.exception('Unable to get update info')
-
     def update_password(self, password):
         self._load_configuration()
         self.remote.client.auth = (self.remote.user_id, password)
         self._remote_token = self.remote.request_token()
         if self._remote_token is None:
-            raise Exception
+            raise ValueError
         self._dao.update_config('remote_token', self._remote_token)
         self.set_invalid_credentials(value=False)
         self.invalidate_client_cache()
@@ -710,14 +694,15 @@ class Engine(QObject):
             self._server_url,
             self._remote_user,
             self._manager.device_id,
-            self.version)
+            self.version,
+        )
         rkwargs = {
             'proxies': self._manager.get_proxies(self._server_url),
             'password': self._remote_password,
             'timeout': self.timeout,
             'cookie_jar': self.cookie_jar,
             'token': self._remote_token,
-            'check_suspended': self.suspend_client
+            'check_suspended': self.suspend_client,
         }
 
         self.unfiltered_remote = self.remote_cls(*rargs, **rkwargs)
@@ -768,7 +753,6 @@ class Engine(QObject):
         self._dao.update_config('remote_password', self._remote_password)
         self._dao.update_config('remote_token', self._remote_token)
         if self.remote:
-            self.get_update_infos(self.remote)
             # Check for the root
             # If the top level state for the server binding doesn't exist,
             # create the local folder and the top level state.
@@ -828,6 +812,7 @@ class Engine(QObject):
     @pyqtSlot()
     def invalidate_client_cache(self):
         log.debug('Invalidate client cache')
+        # TODO: called on new proxy settings and update_password()
         self.invalidClientsCache.emit()
 
     def _set_root_icon(self):

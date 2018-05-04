@@ -55,8 +55,7 @@ class Processor(EngineWorker):
                 Processor.readonly_locks[self._engine.uid] = dict()
             if path in Processor.readonly_locks[self._engine.uid]:
                 log.trace('Readonly unlock: increase count on %r', path)
-                Processor.readonly_locks[self._engine.uid][path][0] = \
-                    Processor.readonly_locks[self._engine.uid][path][0] + 1
+                Processor.readonly_locks[self._engine.uid][path][0] += 1
             else:
                 lock = self.local.unlock_ref(path)
                 log.trace('Readonly unlock: unlock on %r with %d', path, lock)
@@ -69,8 +68,7 @@ class Processor(EngineWorker):
             if path not in Processor.readonly_locks[self._engine.uid]:
                 log.debug('Readonly lock: cannot find reference on %r', path)
                 return
-            Processor.readonly_locks[self._engine.uid][path][0] = \
-                Processor.readonly_locks[self._engine.uid][path][0] - 1
+            Processor.readonly_locks[self._engine.uid][path][0] -= 1
             log.trace('Readonly lock: update lock count on %r to %d', path,
                       Processor.readonly_locks[self._engine.uid][path][0])
             if Processor.readonly_locks[self._engine.uid][path][0] <= 0:
@@ -114,8 +112,6 @@ class Processor(EngineWorker):
             if not item:
                 break
 
-            self.local = self._engine.local
-            self.remote = self._engine.remote
             try:
                 doc_pair = self._dao.acquire_state(self._thread_id, item.id)
             except sqlite3.OperationalError:
@@ -368,10 +364,10 @@ class Processor(EngineWorker):
 
     def _synchronize_conflicted(self, doc_pair):
         if (doc_pair.local_state == 'moved'
-                and (doc_pair.remote_state == 'moved'
-                     or doc_pair.remote_state == 'unknown')):
+                and doc_pair.remote_state in ('moved', 'unknown')):
             # Manual conflict resolution needed
             self._dao.set_conflict_state(doc_pair)
+
         # Auto-resolve conflict
         elif not doc_pair.folderish:
             if self.local.is_equal_digests(doc_pair.local_digest,
@@ -554,7 +550,6 @@ class Processor(EngineWorker):
 
         uid = info = remote_doc_client = None
         if remote_ref and '#' in remote_ref:
-            # Get the remote doc
             # Verify it is not already synced elsewhere (a missed move?)
             # If same hash don't do anything and reconcile
             uid = remote_ref.split('#')[-1]

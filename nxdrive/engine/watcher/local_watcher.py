@@ -89,7 +89,6 @@ class LocalWatcher(EngineWorker):
                 self._interact()
                 sleep(0.01)
 
-                self.local = self._engine.local
                 while not self.watchdog_queue.empty():
                     self.handle_watchdog_event(self.watchdog_queue.get())
 

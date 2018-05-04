@@ -149,6 +149,7 @@ class DocRemote(RemoteTest):
             type=doc_type, name=name, properties=properties)
 
     def make_folder(self, parent, name, doc_type=FOLDER_TYPE):
+        # type (str, str, str) -> str
         # TODO: make it possible to configure context dependent:
         # - SocialFolder under SocialFolder or SocialWorkspace
         # - Folder under Folder or Workspace
@@ -241,7 +242,7 @@ class DocRemote(RemoteTest):
             try:
                 # We need more stability in the Trash behavior before
                 # we can use it instead of the SetLifeCycle operation
-                # if version_lt(Options.server_version, '10.1'):
+                # if version_lt(self.client.server_version, '10.1'):
                 return self.operations.execute(command='Document.SetLifeCycle',
                                                input_obj=input_obj,
                                                value='delete')
@@ -258,7 +259,7 @@ class DocRemote(RemoteTest):
         input_obj = 'doc:' + uid
         # We need more stability in the Trash behavior before
         # we can use it instead of the SetLifeCycle operation
-        # if version_lt(Options.server_version, '10.1'):
+        # if version_lt(self.client.server_version, '10.1'):
         return self.operations.execute(command='Document.SetLifeCycle',
                                        input_obj=input_obj, value='undelete')
         # else:

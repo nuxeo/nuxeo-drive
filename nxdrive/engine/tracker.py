@@ -55,7 +55,7 @@ class Tracker(Worker):
     def current_locale(self):
         """ Detect the OS default language. """
 
-        #encoding = locale.getdefaultlocale()[1]
+        encoding = locale.getdefaultlocale()[1]
         if sys.platform == 'win32':
             l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
             l10n = locale.windows_locale[l10n_code]

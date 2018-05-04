@@ -705,7 +705,7 @@ class Manager(QtCore.QObject):
             log.error('Exception (%s) when validating proxy server for %s',
                       e, url)
             return False
-        finally:
+        else:
             return True
 
     def set_proxy_settings(self, proxy_settings, force=False):

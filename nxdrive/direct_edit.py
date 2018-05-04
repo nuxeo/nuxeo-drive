@@ -227,21 +227,21 @@ class DirectEdit(Worker):
         else:
             log.debug('Downloading file %r', info.filename)
             if url:
-                self.remote.download(quote(url, safe='/:'), file_out=file_out,
-                                     digest=info.digest,
-                                     check_suspended=self.stop_client)
+                engine.remote.download(quote(url, safe='/:'), file_out=file_out,
+                                       digest=info.digest,
+                                       check_suspended=self.stop_client)
             else:
-                self.remote.get_blob(info, file_out=file_out,
-                                     check_suspended=self.stop_client)
+                engine.remote.get_blob(info, file_out=file_out,
+                                       check_suspended=self.stop_client)
         return file_out
 
     def _get_info(self, engine, doc_id, user):
-        doc = self.remote.fetch(
+        doc = engine.remote.fetch(
             doc_id,
             headers={'fetch-document': 'lock'},
             enrichers=['permissions'],
         )
-        info = self.remote.doc_to_info(doc, fetch_parent_uid=False)
+        info = engine.remote.doc_to_info(doc, fetch_parent_uid=False)
 
         if info.lock_owner and info.lock_owner != engine.remote_user:
             # Retrieve the user full name, will be cached
@@ -265,7 +265,7 @@ class DirectEdit(Worker):
         if not engine:
             return None
 
-        # Get document info
+        # Get document info, used ub self._handle_*_queue()
         self.remote = engine.remote
 
         # Avoid any link with the engine, remote_doc are not cached so we

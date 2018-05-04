@@ -28,9 +28,9 @@ log = getLogger(__name__)
 
 socket.setdefaulttimeout(TX_TIMEOUT)
 
-# Data transfer objects
 
-BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
+# Data Transfer Object for remote file info
+RemoteFileInfo = namedtuple('RemoteFileInfo', [
     'name',  # title of the file (not guaranteed to be locally unique)
     'uid',  # id of the file
     'parent_uid',  # id of the parent file
@@ -53,15 +53,8 @@ BaseRemoteFileInfo = namedtuple('RemoteFileInfo', [
 ])
 
 
-class RemoteFileInfo(BaseRemoteFileInfo):
-    """Data Transfer Object for remote file info"""
-
-    # Consistency with the local client API
-    def get_digest(self):
-        return self.digest
-
-
-BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
+# Data Transfer Object for doc info on the Remote Nuxeo repository
+NuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'root',  # ref of the document that serves as sync root
     'name',  # title of the document (not guaranteed to be locally unique)
     'uid',   # ref of the document
@@ -82,14 +75,6 @@ BaseNuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'lock_created',  # lock creation time
     'permissions',  # permissions
 ])
-
-
-class NuxeoDocumentInfo(BaseNuxeoDocumentInfo):
-    """Data Transfer Object for doc info on the Remote Nuxeo repository"""
-
-    # Consistency with the local client API
-    def get_digest(self):
-        return self.digest
 
 
 class Remote(Nuxeo):
@@ -125,7 +110,7 @@ class Remote(Nuxeo):
         self.client.headers.update({
             'X-User-Id': user_id,
             'X-Device-Id': device_id,
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'no-cache',
         })
 
         if dao:
@@ -149,7 +134,7 @@ class Remote(Nuxeo):
         else:
             self._base_folder_ref, self._base_folder_path = None, None
 
-        self.check_access()
+        # self.check_access()
 
     def __repr__(self):
         attrs = sorted(self.__init__.__code__.co_varnames[1:])
@@ -184,7 +169,7 @@ class Remote(Nuxeo):
 
     def download(self, url, file_out=None, digest=None, **kwargs):
         # type: (Text, Optional[Text], Optional[Text], Any) -> Text
-        log.trace('Downloading file from %r to %r with digest=%s',
+        log.trace('Downloading file from %r to %r with digest=%r',
                   url, file_out, digest)
 
         resp = self.client.request(
@@ -461,7 +446,7 @@ class Remote(Nuxeo):
         input_obj = 'doc:' + uid
         # We need more stability in the Trash behavior before
         # we can use it instead of the SetLifeCycle operation
-        # if version_lt(Options.server_version, '10.1'):
+        # if version_lt(self.client.server_version, '10.1'):
         return self.operations.execute(command='Document.SetLifeCycle',
                                        input_obj=input_obj, value='undelete')
         # else:
