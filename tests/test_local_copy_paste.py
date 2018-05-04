@@ -2,11 +2,8 @@
 import os
 import shutil
 import sys
-from logging import getLogger
 
 from .common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
-
-log = getLogger(__name__)
 
 
 class TestLocalCopyPaste(UnitTestCase):
@@ -21,23 +18,19 @@ class TestLocalCopyPaste(UnitTestCase):
     FOLDER_2 = u'B'
     SYNC_TIMEOUT = 100  # in seconds
 
-    '''
-        1. create folder 'Nuxeo Drive Test Workspace/A' with 100 files in it
-        2. create folder 'Nuxeo Drive Test Workspace/B'
-    '''
+    """
+    1. create folder 'Nuxeo Drive Test Workspace/A' with 100 files in it
+    2. create folder 'Nuxeo Drive Test Workspace/B'
+    """
 
     def setUp(self):
         super(TestLocalCopyPaste, self).setUp()
 
-        log.debug('*** enter TestLocalCopyPaste.setUp() ***')
         remote = self.remote_1
         local_root = self.local_root_client_1
-        log.debug('*** engine1 starting ***')
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
-        log.debug('*** engine1 synced ***')
-        log.debug("full local root path %s", local_root.get_info("/"))
         assert local_root.exists('/Nuxeo Drive Test Workspace'),\
             'Nuxeo Drive Test Workspace should be sync'
 
@@ -77,7 +70,6 @@ class TestLocalCopyPaste(UnitTestCase):
             dst_path = os.path.join(abs_folder_path_1, filename)
             shutil.copyfile(self.test_doc_path, dst_path)
             self.local_files_list.append(filename)
-        log.debug('local test files created in Nuxeo Drive Test Workspace/A')
 
         self.engine_1.start()
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
@@ -96,37 +88,15 @@ class TestLocalCopyPaste(UnitTestCase):
         assert (len(remote.get_fs_children(self.remote_ref_1))
                 == self.NUMBER_OF_LOCAL_FILES_TOTAL)
 
-        log.debug('*** exit TestLocalCopyPaste.setUp() ***')
-
-    def tearDown(self):
-        log.debug('*** enter TestLocalCopyPaste.tearDown() ***')
-        local_root = self.local_root_client_1
-        # list content of folder A
-        abs_folder_path_1 = local_root.abspath(self.folder_path_1)
-        log.debug('content of folder "%s"', abs_folder_path_1)
-        for f in os.listdir(abs_folder_path_1):
-            log.debug(f)
-
-        # list content of folder B
-        abs_folder_path_2 = local_root.abspath(self.folder_path_2)
-        log.debug('content of folder "%s"', abs_folder_path_2)
-        for f in os.listdir(abs_folder_path_2):
-            log.debug(f)
-
-        super(TestLocalCopyPaste, self).tearDown()
-        log.debug('*** exit TestLocalCopyPaste.tearDown() ***')
-
-    @RandomBug('NXDRIVE-815', target='mac', repeat=5)
-    @RandomBug('NXDRIVE-815', target='windows', repeat=5)
+    # @RandomBug('NXDRIVE-815', target='mac', repeat=5)
+    # @RandomBug('NXDRIVE-815', target='windows', repeat=5)
     def test_local_copy_paste_files(self):
-        self._local_copy_paste_files(stopped=False)
+        self._local_copy_paste_files()
 
     def test_local_copy_paste_files_stopped(self):
         self._local_copy_paste_files(stopped=True)
 
     def _local_copy_paste_files(self, stopped=False):
-        log.debug(
-            '*** enter TestLocalCopyPaste.test_local_copy_paste_files() ***')
         if not stopped:
             self.engine_1.start()
         # copy all children (files) of A to B
@@ -140,7 +110,6 @@ class TestLocalCopyPaste(UnitTestCase):
         if stopped:
             self.engine_1.start()
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
-        log.debug('*** engine1 synced ***')
 
         # expect local 'Nuxeo Drive Test Workspace/A' to contain all the files
         abs_folder_path_1 = local_root.abspath(self.folder_path_1)
@@ -225,24 +194,6 @@ class TestLocalCopyPaste(UnitTestCase):
                       '\n%s\n\nmissing files\n%s') % (remote_ref_2_name,
                                                       extra, missing)
 
-        # output the results before asserting
-        if not cond1:
-            log.debug(error1)
-        if not cond2:
-            log.debug(error2)
-        if not cond3:
-            log.debug(error3)
-        if not cond4:
-            log.debug(error4)
-        if not cond5:
-            log.debug(error5)
-        if not cond6:
-            log.debug(error6)
-        if not cond7:
-            log.debug(error7)
-        if not cond8:
-            log.debug(error8)
-
         assert cond1, error1
         assert cond2, error2
         assert cond3, error3
@@ -251,14 +202,9 @@ class TestLocalCopyPaste(UnitTestCase):
         assert cond6, error6
         assert cond7, error7
         assert cond8, error8
-        log.debug(
-            '*** exit TestLocalCopyPaste.test_local_copy_paste_files() ***')
 
     def _get_test_resources_path(self):
-        try:
-            module = sys.modules[self.__module__]
-            test_resources_path = os.path.join(
-                os.path.dirname(module.__file__), 'resources')
-            return test_resources_path
-        except Exception as e:
-            log.error('path error: ', e)
+        module = sys.modules[self.__module__]
+        test_resources_path = os.path.join(
+            os.path.dirname(module.__file__), 'resources')
+        return test_resources_path
