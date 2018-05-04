@@ -130,6 +130,9 @@ class RandomBug(object):
         if os.environ.get('RANDOM_BUG_MODE', '') in self.MODES:
             self._mode = os.environ['RANDOM_BUG_MODE']
 
+        # TODO: waiting for a proper pytest plugin with NXDRIVE-1078
+        self._mode = 'BYPASS'
+
     def __call__(self, func):
         @wraps(func)
         def _callable(*args, **kwargs):

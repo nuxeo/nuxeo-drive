@@ -83,8 +83,8 @@ class TestLocalCopyPaste(UnitTestCase):
         assert (len(remote.get_fs_children(self.remote_ref_1))
                 == self.NUMBER_OF_LOCAL_FILES_TOTAL)
 
-    # @RandomBug('NXDRIVE-815', target='mac', repeat=5)
-    # @RandomBug('NXDRIVE-815', target='windows', repeat=5)
+    @RandomBug('NXDRIVE-815', target='mac', repeat=5)
+    @RandomBug('NXDRIVE-815', target='windows', repeat=5)
     def test_local_copy_paste_files(self):
         self._local_copy_paste_files()
 
