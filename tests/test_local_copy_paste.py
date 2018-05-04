@@ -55,20 +55,15 @@ class TestLocalCopyPaste(UnitTestCase):
             local_root.make_file(self.folder_path_1, filename, FILE_CONTENT)
             self.local_files_list.append(filename)
 
-        test_resources_path = self._get_test_resources_path()
-        if test_resources_path is None:
-            test_resources_path = 'tests/resources'
-        self.test_doc_path = os.path.join(test_resources_path,
-                                          TestLocalCopyPaste.TEST_DOC_RESOURCE)
-
         # add image files in folder 'Nuxeo Drive Test Workspace/A'
         abs_folder_path_1 = local_root.abspath(self.folder_path_1)
+        test_doc_path = self.location + '/resources/cat.jpg'
         for file_num in range(self.NUMBER_OF_LOCAL_TEXT_FILES + 1,
                               self.NUMBER_OF_LOCAL_FILES_TOTAL + 1):
             filename = self.FILE_NAME_PATTERN % (file_num, os.path.splitext(
                 self.TEST_DOC_RESOURCE)[1])
             dst_path = os.path.join(abs_folder_path_1, filename)
-            shutil.copyfile(self.test_doc_path, dst_path)
+            shutil.copyfile(test_doc_path, dst_path)
             self.local_files_list.append(filename)
 
         self.engine_1.start()
@@ -202,9 +197,3 @@ class TestLocalCopyPaste(UnitTestCase):
         assert cond6, error6
         assert cond7, error7
         assert cond8, error8
-
-    def _get_test_resources_path(self):
-        module = sys.modules[self.__module__]
-        test_resources_path = os.path.join(
-            os.path.dirname(module.__file__), 'resources')
-        return test_resources_path

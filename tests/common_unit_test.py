@@ -73,7 +73,7 @@ FILE_CONTENT = """
 
 # Remove features for tests
 LocalClient.has_folder_icon = lambda *args: True
-Engine.register_folder_link = lambda *args: None
+Engine.add_to_favorites = lambda *args: None
 DarwinIntegration._cleanup = lambda *args: None
 DarwinIntegration._init = lambda *args: None
 DarwinIntegration.send_sync_status = lambda *args: None
