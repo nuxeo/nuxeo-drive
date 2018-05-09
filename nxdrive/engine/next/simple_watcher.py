@@ -41,6 +41,10 @@ class SimpleWatcher(LocalWatcher):
     def get_scan_delay(self):
         return self._scan_delay
 
+    def is_inside(self, abspath):
+        # type: (Text) -> bool
+        return abspath.startswith(self.client.base_folder)
+
     def is_pending_scan(self, ref):
         return ref in self._to_scan
 
@@ -54,7 +58,7 @@ class SimpleWatcher(LocalWatcher):
         doc_pair = self._dao.get_state_from_local(rel_path)
         # Add for security src_path and dest_path parent - not sure it is needed
         self._push_to_scan(os.path.dirname(rel_path))
-        if self.client.is_inside(dst_path):
+        if self.is_inside(dst_path):
             dst_rel_path = self.client.get_path(dst_path)
             self._push_to_scan(os.path.dirname(dst_rel_path))
         if (doc_pair is None):
@@ -153,7 +157,7 @@ class SimpleWatcher(LocalWatcher):
                 # Need to create a list of to scan as
                 # the dictionary cannot grow while iterating
                 local_scan = []
-                for path, last_event_time in self._to_scan.iteritems():
+                for path, last_event_time in self._to_scan.items():
                     if last_event_time < threshold_time:
                         local_scan.append(path)
                 for path in local_scan:
@@ -176,7 +180,7 @@ class SimpleWatcher(LocalWatcher):
         to_deletes = copy.copy(self._delete_files)
         # Enforce the scan of all folders
         # to check if the file hasn't moved there
-        for path, _ in self._to_scan.iteritems():
+        for path, _ in self._to_scan.items():
             self._scan_path(path)
         for deleted in to_deletes:
             if deleted not in self._delete_files:

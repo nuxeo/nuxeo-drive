@@ -115,7 +115,7 @@ class RemoteDocumentClientForTests(RemoteDocumentClient):
             'nonUniform': 'true',
             'transactionTimeout': tx_timeout
         }
-        for param, value in params.iteritems():
+        for param, value in params.items():
             url += param + '=' + str(value) + '&'
         headers = self._get_common_headers()
         headers.update({'Nuxeo-Transaction-Timeout': tx_timeout})
