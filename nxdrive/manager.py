@@ -840,19 +840,18 @@ class Manager(QtCore.QObject):
                                 name, binder, starts=start_engine)
 
     def _get_engine_name(self, server_url):
-        import urlparse
-        urlp = urlparse.urlparse(server_url)
+        urlp = urlparse(server_url)
         return urlp.hostname
 
     def check_local_folder_available(self, local_folder):
         if self._engine_definitions is None:
             return True
         if not local_folder.endswith('/'):
-            local_folder = local_folder + '/'
+            local_folder += '/'
         for engine in self._engine_definitions:
             other = engine.local_folder
             if not other.endswith('/'):
-                other = other + '/'
+                other += '/'
             if other.startswith(local_folder) or local_folder.startswith(other):
                 return False
         return True
@@ -973,9 +972,10 @@ class Manager(QtCore.QObject):
             if engine.is_syncing():
                 syncing_engines.append(uid)
         if syncing_engines:
-            log.debug("Some engines are currently synchronizing: %s", syncing_engines)
+            log.debug('Some engines are currently synchronizing: %s',
+                      syncing_engines)
             return True
-        log.debug("No engine currently synchronizing")
+        log.debug('No engine currently synchronizing')
         return False
 
     def get_root_id(self, file_path):

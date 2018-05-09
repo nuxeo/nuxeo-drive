@@ -13,7 +13,7 @@ from datetime import datetime
 from logging import getLogger
 from time import mktime, strptime
 
-from nuxeo.compat import text
+from nuxeo.compat import get_text
 from send2trash import send2trash
 
 from .common import (DuplicationDisabledError, NotFound,
@@ -503,7 +503,7 @@ FolderType=Generic
         # type: (Text, Text) -> bool
         """ Note: added parent_ref to be able to filter on size if needed. """
 
-        file_name = text(file_name.lower())
+        file_name = get_text(file_name.lower())
 
         if (file_name.endswith(Options.ignored_suffixes)
                 or file_name.startswith(Options.ignored_prefixes)):

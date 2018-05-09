@@ -2,7 +2,6 @@
 import os
 import socket
 from datetime import datetime
-from httplib import BadStatusLine
 from logging import getLogger
 from time import sleep
 
@@ -496,7 +495,7 @@ class RemoteWatcher(EngineWorker):
                 self._engine.set_offline()
             else:
                 log.error(err)
-        except (BadStatusLine, ConnectionError, socket.error) as exc:
+        except (ConnectionError, socket.error) as exc:
             log.error('Network error: %s', exc)
         except ThreadInterrupt:
             raise
@@ -712,10 +711,8 @@ class RemoteWatcher(EngineWorker):
                                                    'documentUnlocked')
                         if doc_pair.remote_state != 'created':
                             if (new_info.digest != doc_pair.remote_digest
-                                    or safe_filename(new_info.name)
-                                    != doc_pair.remote_name
-                                    or new_info.parent_uid
-                                    != doc_pair.remote_parent_ref
+                                    or safe_filename(new_info.name) != doc_pair.remote_name
+                                    or new_info.parent_uid != doc_pair.remote_parent_ref
                                     or event_id == 'securityUpdated'
                                     or lock_update):
                                 doc_pair.remote_state = 'modified'
