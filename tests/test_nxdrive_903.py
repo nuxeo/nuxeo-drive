@@ -31,16 +31,12 @@ from __future__ import unicode_literals
 
 import os.path
 
-from .common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class Test(UnitTestCase):
 
-    @RandomBug('NXDRIVE-903', target='windows', mode='BYPASS')
-    @RandomBug('NXDRIVE-903', target='mac', mode='BYPASS')
     def test_nxdrive_903(self):
-        """ On Windows, some files are postponed. Ignore the test if so. """
-
         remote = self.remote_document_client_1
         local_1, local_2 = self.local_client_1,  self.local_client_2
         engine_1, engine_2 = self.engine_1, self.engine_2
@@ -89,7 +85,7 @@ class Test(UnitTestCase):
             for file_ in files[folder]:
                 name = os.path.basename(file_)
                 new_name = os.path.splitext(name)[0] + '-renamed.txt'
-                new_file = local_1.rename(new_folder + '/' +  name, new_name)
+                new_file = local_1.rename(new_folder + '/' + name, new_name)
                 new_files[new_folder].append(new_file.path)
         self.wait_sync()
 
@@ -103,6 +99,9 @@ class Test(UnitTestCase):
         # Steps 19 -> 21
         engine_2.resume()
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
+
+        # Ensure there is no postponed nor documents in error
+        assert not engine_2.get_dao().get_error_count(threshold=0)
 
         # Get a list of all synchronized folders to have a better view of
         # what is synced as expected

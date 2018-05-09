@@ -20,6 +20,8 @@ log = getLogger(__name__)
 
 class Tracker(Worker):
 
+    fmt_event = 'Send {category}({action}) {label}: {value!r}'
+
     def __init__(self, manager, uid='UA-81135-23'):
         super(Tracker, self).__init__()
         self._manager = manager
@@ -38,7 +40,7 @@ class Tracker(Worker):
         self._stat_timer.timeout.connect(self._send_stats)
 
         # Connect engines
-        for _, engine in self._manager.get_engines().iteritems():
+        for _, engine in self._manager.get_engines().items():
             self.connect_engine(engine)
         self._manager.newEngine.connect(self.connect_engine)
         if self._manager.direct_edit is not None:
@@ -102,6 +104,8 @@ class Tracker(Worker):
                 'dimension8': engine.get_server_version(),
                 'dimension9': engine.remote_user,
             })
+
+        log.trace(self.fmt_event.format(**kwargs))
         try:
             self._tracker.send('event', **kwargs)
         except:
@@ -112,57 +116,57 @@ class Tracker(Worker):
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
             extension = 'unknown'
-        extension = extension.lower()
-        timing = self._manager.direct_edit.get_metrics()['last_action_timing']
-        log.trace('Send DirectEdit(Open) OverallTime: %d extension: %s',
-                  timing, extension)
-        self.send_event(category='DirectEdit', action="Open",
-                        label=extension, value=timing)
+
+        self.send_event(
+            category='DirectEdit',
+            action='Open',
+            label=extension.lower(),
+            value=self._manager.direct_edit.get_metrics()['last_action_timing'])
 
     @QtCore.pyqtSlot(object, object)
     def _send_directedit_edit(self, remote_info):
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
             extension = 'unknown'
-        extension = extension.lower()
-        timing = self._manager.direct_edit.get_metrics()['last_action_timing']
-        log.trace('Send DirectEdit(Edit) OverallTime: %d extension: %s',
-                  timing, extension)
-        self.send_event(category='DirectEdit', action='Edit',
-                        label=extension, value=timing)
+
+        self.send_event(
+            category='DirectEdit',
+            action='Edit',
+            label=extension.lower(),
+            value=self._manager.direct_edit.get_metrics()['last_action_timing'])
 
     @QtCore.pyqtSlot(object, object)
-    def _send_sync_event(self, _, metrics):
-        speed = None
-        timing = None
-        if 'start_time' in metrics and 'end_time' in metrics:
-            timing = metrics['end_time'] - metrics['start_time']
-        if "speed" in metrics:
-            speed = metrics['speed']
-        if timing is not None:
-            log.trace('Send TransferOperation(%s) OverallTime: %d',
-                      metrics['handler'], timing)
+    def _send_sync_event(self, metrics):
+        timing = metrics.get('end_time', 0) - metrics['start_time']
+        speed = metrics.get('speed', None)
+
+        if timing > 0:
             self.send_event(
-                category='TransferOperation', action=metrics['handler'],
-                label='OverallTime', value=timing)
-        if speed is not None:
-            log.trace('Send TransferOperation(%s) Speed: %d',
-                      metrics['handler'], speed)
+                category='TransferOperation',
+                action=metrics['handler'],
+                label='OverallTime',
+                value=timing)
+
+        if speed:
             self.send_event(
-                category='TransferOperation', action=metrics['handler'],
-                label='Speed', value=speed)
+                category='TransferOperation',
+                action=metrics['handler'],
+                label='Speed',
+                value=speed)
 
     @QtCore.pyqtSlot()
     def _send_stats(self):
-        engines = self._manager.get_engines()
-        for _, engine in engines.iteritems():
-            stats = engine.get_metrics()
-            for key, value in stats.iteritems():
+        for _, engine in self._manager.get_engines().items():
+            for key, value in engine.get_metrics().items():
                 if not isinstance(value, int):
                     log.trace('Skip non integer Statistics(Engine) %s: %r',
                               key, value)
                     continue
-                log.trace('Send Statistics(Engine) %s: %d', key, value)
-                self.send_event(category='Statistics', action='Engine',
-                                label=key, value=value)
+
+                self.send_event(
+                    category='Statistics',
+                    action='Engine',
+                    label=key,
+                    value=value)
+
         self._stat_timer.start(60 * 60 * 1000)

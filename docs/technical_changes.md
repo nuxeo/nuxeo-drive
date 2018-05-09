@@ -65,10 +65,11 @@
 - Removed `FolderTreeview.set_client()`
 - Removed `LocalClient.DEDUPED_BASENAME_PATTERN`
 - Removed `LocalClient.root`
+- Removed `LocalClient.check_writable()`
 - Removed `LocalClient.duplicate_file()`
 - Removed `LocalClient.duplication_enabled()`
 - Removed `LocalClient.get_parent_ref()`
-- Removed `LocalClient.check_writable()`
+- Removed `LocalClient.is_inside()`
 - Removed `LocalClient.unset_folder_icon()`
 - Removed `LocalWatcher.get_windows_folder_scan_delay()`
 - Removed `LocalWatcher.set_windows_folder_scan_delay()`
