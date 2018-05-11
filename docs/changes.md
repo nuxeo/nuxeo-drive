@@ -37,7 +37,6 @@ Changes in command line arguments:
 - [NXDRIVE-1158](https://jira.nuxeo.com/browse/NXDRIVE-1158): Restore the context menu "Edit metadata"
 - [NXDRIVE-1166](https://jira.nuxeo.com/browse/NXDRIVE-1166): Display a notification on new update on GNU/Linux
 - [NXDRIVE-1175](https://jira.nuxeo.com/browse/NXDRIVE-1175): New language: Hebrew
-- [NXDRIVE-1203](https://jira.nuxeo.com/browse/NXDRIVE-1203): Files appears as "not synced" when restarting nuxeo drive
 
 ### Packaging / Build
 - [NXDRIVE-136](https://jira.nuxeo.com/browse/NXDRIVE-136): Activate code signing on macOS (valid until 2023-03-10)
