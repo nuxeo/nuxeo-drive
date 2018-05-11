@@ -101,9 +101,16 @@ class Engine(QObject):
         # Remove remote client cache on proxy update
         self._manager.proxyUpdated.connect(self.invalidate_client_cache)
         self.local_folder = definition.local_folder
+
+        self.local = self.local_cls(
+            self.local_folder, case_sensitive=self._case_sensitive)
+        if self._case_sensitive is None and os.path.exists(self.local_folder):
+            self._case_sensitive = self.local.is_case_sensitive()
+
         # Keep folder path with backslash to find the right engine when
         # FinderSync is asking for the status of a file
         self.local_folder_bs = self._normalize_url(self.local_folder)
+
         self.uid = definition.uid
         self.name = definition.name
         self._stopped = True

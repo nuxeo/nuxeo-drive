@@ -666,7 +666,7 @@ class RemoteWatcher(EngineWorker):
                         Locally Edited one) that is also under a sync root.
                         Indeed, in this case, when adapted as a FileSystemItem,
                         its parent path will be the one of the sync root because
-                        it takes precedence over the collection, see 
+                        it takes precedence over the collection, see
                         AbstractDocumentBackedFileSystemItem constructor.
                         """
                         consistent_new_info = new_info
@@ -761,7 +761,8 @@ class RemoteWatcher(EngineWorker):
                 parent_pairs = self._dao.get_states_from_remote(
                     new_info.parent_uid)
                 for parent_pair in parent_pairs:
-                    child_pair, new_pair = self._find_remote_child_match_or_create(parent_pair, new_info)
+                    child_pair, new_pair = self._find_remote_child_match_or_create(
+                        parent_pair, new_info)
                     if new_pair:
                         log.debug('Marked doc_pair %r as remote creation',
                                   child_pair.remote_name)

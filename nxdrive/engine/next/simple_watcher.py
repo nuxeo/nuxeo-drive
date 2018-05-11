@@ -59,9 +59,9 @@ class SimpleWatcher(LocalWatcher):
         # Add for security src_path and dest_path parent - not sure it is needed
         self._push_to_scan(os.path.dirname(rel_path))
         if self.is_inside(dst_path):
-            dst_rel_path = self.client.get_path(dst_path)
+            dst_rel_path = self.local.get_path(dst_path)
             self._push_to_scan(os.path.dirname(dst_rel_path))
-        if (doc_pair is None):
+        if not doc_pair:
             # Scan new parent
             log.warning("NO PAIR")
             return
