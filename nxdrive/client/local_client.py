@@ -79,10 +79,7 @@ class FileInfo(object):
         self.name = os.path.basename(path)
 
     def __repr__(self):
-        return self.__unicode__().encode('ascii', 'ignore')
-
-    def __unicode__(self):
-        return u'FileInfo[%s, remote_ref=%s]' % (self.filepath, self.remote_ref)
+        return 'FileInfo<path=%r, remote_ref=%r>' % (self.filepath, self.remote_ref)
 
     def get_digest(self, digest_func=None):
         # type: (Optional[callable]) -> Union[Text, None]
@@ -122,6 +119,7 @@ class LocalClient(object):
 
     def __init__(self, base_folder, **kwargs):
         self._case_sensitive = kwargs.pop('case_sensitive', None)
+        self.is_case_sensitive()
 
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
@@ -144,7 +142,7 @@ class LocalClient(object):
 
         if self._case_sensitive is None:
             path = tempfile.mkdtemp(prefix='.caseTest_')
-            self._case_sensitive = not os.path.exists(path.upper())
+            self._case_sensitive = not os.path.isdir(path.upper())
             os.rmdir(path)
         return self._case_sensitive
 
@@ -263,7 +261,7 @@ class LocalClient(object):
         else:
             return False
 
-        return os.path.exists(meta_file)
+        return os.path.isfile(meta_file)
 
     def set_folder_icon(self, ref, icon):
         if icon is None:
@@ -291,7 +289,7 @@ FolderType=Generic
         # Create the desktop.ini file inside the ReadOnly shared folder.
         os_path = self.abspath(ref)
         created_ini_file_path = os.path.join(os_path, 'desktop.ini')
-        if not os.path.exists(created_ini_file_path):
+        if not os.path.isfile(created_ini_file_path):
             try:
                 with open(created_ini_file_path, 'w') as create_file:
                     create_file.write(desktop_ini_content)
@@ -349,7 +347,7 @@ FolderType=Generic
             xattr.setxattr(target_folder, xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
             # Create the 'Icon\r' file
             meta_file = os.path.join(target_folder, "Icon\r")
-            if os.path.exists(meta_file):
+            if os.path.isfile(meta_file):
                 os.remove(meta_file)
             open(meta_file, "w").close()
             # Configure 'com.apple.FinderInfo' for the Icon file
@@ -438,7 +436,7 @@ FolderType=Generic
         os_path = self.abspath(ref)
         if not os.path.exists(os_path):
             if raise_if_missing:
-                err = 'Could not find file into {!r}: ref={!r}, os_path={!r}'
+                err = 'Could not find doc into {!r}: ref={!r}, os_path={!r}'
                 raise NotFound(err.format(self.base_folder, ref, os_path))
             return None
 
@@ -627,7 +625,7 @@ FolderType=Generic
         with open(self.abspath(ref), 'wb') as f:
             f.write(content)
 
-        for name, value in xattrs.iteritems():
+        for name, value in xattrs.items():
             if value is not None:
                 self.set_remote_id(ref, value, name=name)
 
@@ -707,7 +705,7 @@ FolderType=Generic
         source_os_path = self.abspath(ref)
         parent = ref.rsplit(u'/', 1)[0]
         old_name = ref.rsplit(u'/', 1)[1]
-        parent = u'/' if parent == '' else parent
+        parent = parent or u'/'
         locker = self.unlock_ref(source_os_path, is_abs=True)
         try:
             # Check if only case renaming
@@ -742,7 +740,7 @@ FolderType=Generic
         if ref == u'/':
             raise ValueError('Cannot move the toplevel folder.')
 
-        name = name if name is not None else ref.rsplit(u'/', 1)[1]
+        name = name or ref.rsplit(u'/', 1)[1]
         filename = self.abspath(ref)
         target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
         locker = self.unlock_ref(filename, is_abs=True)
@@ -775,6 +773,10 @@ FolderType=Generic
             try:
                 mtime = int(mtime)
             except ValueError:
+                # Threading bugfix
+                # Fixed in Python 3, see https://bugs.python.org/issue9260
+                # TODO: Remove with NXDRIVE-691
+                import _strptime
                 mtime = mktime(strptime(mtime, '%Y-%m-%d %H:%M:%S'))
             os.utime(filename, (mtime, mtime))
 
@@ -801,11 +803,6 @@ FolderType=Generic
                     win32con.FILE_ATTRIBUTE_NORMAL,
                     None)
                 win32file.SetFileTime(winfile, ctime)
-
-    def is_inside(self, abspath):
-        # type: (Text) -> bool
-
-        return abspath.startswith(self.base_folder)
 
     def get_path(self, abspath):
         # type: (Text) -> Text

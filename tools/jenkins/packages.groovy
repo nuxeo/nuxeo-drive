@@ -99,10 +99,12 @@ for (x in slaves) {
                                 archive 'dist/*.dmg'
                             } else if (osi == 'GNU/Linux') {
                                 sh 'tools/linux/deploy_jenkins_slave.sh --build'
-                                archive 'dist/*.json, dist/*.deb'
+                                // TODO: NXDRIVE-351
+                                // archive 'dist/*.deb'
                             } else {
+                                env.SIGNTOOL_PATH = "C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit"
                                 bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
-                                archive 'dist/*.exe, dist/*.msi'
+                                archive 'dist/*.exe'
                             }
                         } catch(e) {
                             currentBuild.result = 'FAILURE'

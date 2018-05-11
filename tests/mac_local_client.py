@@ -5,6 +5,7 @@ user actions.
 """
 
 import os
+import time
 
 import Cocoa
 
@@ -48,6 +49,7 @@ class MacLocalClient(LocalClient):
 
         error = None
         result = self.fm.moveItemAtPath_toPath_error_(src, dst, error)
+        time.sleep(0.05)
         self._process_result(result)
 
     def rename(self, srcref, to_name):

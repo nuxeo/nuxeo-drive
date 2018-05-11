@@ -50,6 +50,7 @@
 - Removed `Engine.get_last_sync()`
 - Removed `Engine.get_next_file()`
 - Removed `Engine.get_previous_file()`
+- Added `Engine.local_folder_bs`
 - Removed `Engine.resolve_with_duplicate()`
 - Added `Engine.set_ui()`
 - Changed `EngineDAO.__init__(self, db, state_factory=StateRow)` to `state_factory=None`
@@ -65,10 +66,11 @@
 - Removed `FolderTreeview.set_client()`
 - Removed `LocalClient.DEDUPED_BASENAME_PATTERN`
 - Removed `LocalClient.root`
+- Removed `LocalClient.check_writable()`
 - Removed `LocalClient.duplicate_file()`
 - Removed `LocalClient.duplication_enabled()`
 - Removed `LocalClient.get_parent_ref()`
-- Removed `LocalClient.check_writable()`
+- Removed `LocalClient.is_inside()`
 - Removed `LocalClient.unset_folder_icon()`
 - Removed `LocalWatcher.get_windows_folder_scan_delay()`
 - Removed `LocalWatcher.set_windows_folder_scan_delay()`

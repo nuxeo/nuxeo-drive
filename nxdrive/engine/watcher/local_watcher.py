@@ -252,12 +252,14 @@ class LocalWatcher(EngineWorker):
 
     @pyqtSlot(str)
     def scan_pair(self, local_path):
-        info = self.local.get_info(local_path)
         to_pause = not self._engine.get_queue_manager().is_paused()
         if to_pause:
             self._suspend_queue()
+
+        info = self.local.get_info(local_path)
         self._scan_recursive(info, recursive=False)
         self._scan_handle_deleted_files()
+
         if to_pause:
             self._engine.get_queue_manager().resume()
 
@@ -719,6 +721,7 @@ class LocalWatcher(EngineWorker):
                             local_info.last_modification_time.timetuple())
                         self._folder_scan_events[rel_path] = t, doc_pair
             return
+
         acquired_pair = None
         try:
             acquired_pair = dao.acquire_state(self._thread_id, doc_pair.id)
@@ -857,12 +860,12 @@ class LocalWatcher(EngineWorker):
 
             if force_decode(dst_path) in (
                     filename, force_decode(evt.src_path.strip())):
-                log.debug('Ignoring move from %r to normalized name: %r',
+                log.debug('Ignoring move from %r to normalized %r',
                           evt.src_path, dst_path)
                 return
-
-        log.debug('Handling watchdog event [%s] on %r',
-                  evt.event_type, evt.src_path)
+        else:
+            log.debug('Handling watchdog event [%s] on %r',
+                      evt.event_type, evt.src_path)
 
         try:
             src_path = normalize(evt.src_path)
@@ -928,6 +931,7 @@ class LocalWatcher(EngineWorker):
                 rel_path = client.get_path(src_path)
                 local_info = client.get_info(rel_path, raise_if_missing=False)
                 doc_pair = dao.get_state_from_local(rel_path)
+
                 # If the file exists but not the pair
                 if local_info is not None and doc_pair is None:
                     # Check if it is a pair that we loose track of
@@ -938,6 +942,7 @@ class LocalWatcher(EngineWorker):
                                 and not client.exists(doc_pair.local_path)):
                             log.debug('Pair re-moved detected for %r',
                                       doc_pair)
+
                             # Can be a move inside a folder that has also moved
                             self._handle_watchdog_event_on_known_pair(
                                 doc_pair, evt, rel_path)
@@ -947,6 +952,7 @@ class LocalWatcher(EngineWorker):
                     if rel_parent_path == '':
                         rel_parent_path = '/'
                     dao.insert_local_state(local_info, rel_parent_path)
+
                     # An event can be missed inside a new created folder as
                     # watchdog will put listener after it
                     if local_info.folderish:
@@ -956,6 +962,7 @@ class LocalWatcher(EngineWorker):
                             if doc_pair:
                                 self._schedule_win_folder_scan(doc_pair)
                 return
+
             # if the pair is modified and not known consider as created
             if evt.event_type not in ('created', 'modified'):
                 log.debug('Unhandled case: %r %r %r', evt, rel_path, file_name)

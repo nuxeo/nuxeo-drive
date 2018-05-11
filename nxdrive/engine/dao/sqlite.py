@@ -908,14 +908,13 @@ class EngineDAO(ConfigurationDAO):
         return self.get_count("pair_state = 'conflicted'")
 
     def get_error_count(self, threshold=3):
-        return self.get_count('error_count > {}'.format(str(threshold)))
+        return self.get_count('error_count > {}'.format(threshold))
 
     def get_syncing_count(self, threshold=3):
         count = self.get_count("    pair_state != 'synchronized' "
                                "AND pair_state != 'conflicted' "
                                "AND pair_state != 'unsynchronized' "
-                               "AND error_count < {}".format(
-                                   str(threshold)))
+                               "AND error_count < {}".format(threshold))
         if self._items_count != count:
             log.trace('Cache Syncing count incorrect should be %d was %d',
                       count, self._items_count)

@@ -64,7 +64,7 @@ class Engine(QObject):
     newReadonly = pyqtSignal(object, object)
     deleteReadonly = pyqtSignal(object)
     newLocked = pyqtSignal(object, object, object)
-    newSync = pyqtSignal(object, object)
+    newSync = pyqtSignal(object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
     offline = pyqtSignal()
@@ -100,14 +100,10 @@ class Engine(QObject):
         self._manager = manager
         # Remove remote client cache on proxy update
         self._manager.proxyUpdated.connect(self.invalidate_client_cache)
-
         self.local_folder = definition.local_folder
-
-        self.local = self.local_cls(self.local_folder,
-                                    case_sensitive=self._case_sensitive)
-        if self._case_sensitive is None and os.path.exists(self.local_folder):
-            self._case_sensitive = self.local.is_case_sensitive()
-
+        # Keep folder path with backslash to find the right engine when
+        # FinderSync is asking for the status of a file
+        self.local_folder_bs = self._normalize_url(self.local_folder)
         self.uid = definition.uid
         self.name = definition.name
         self._stopped = True
@@ -159,6 +155,10 @@ class Engine(QObject):
         # Pause in case of no more space on the device
         self.noSpaceLeftOnDevice.connect(self.suspend)
 
+    def __repr__(self):
+        fmt = '{name}<name={cls.name!r}, uid={cls.uid!r}, type={cls.type!r}>'
+        return fmt.format(name=type(self).__name__, cls=self)
+
     @pyqtSlot(object)
     def _check_sync_start(self, row_id):
         if not self._sync_started:
@@ -177,15 +177,15 @@ class Engine(QObject):
             self.start()
 
     def stop_processor_on(self, path):
-        for worker in self.get_queue_manager().get_processors_on(
-                path, exact_match=True):
+        for worker in self.get_queue_manager().get_processors_on(path):
             log.trace('Quitting processor: %r as requested to stop on %r',
                       worker, path)
             worker.quit()
 
     def set_local_folder(self, path):
-        log.debug("Update local folder to '%s'", path)
+        log.debug('Update local folder to %r', path)
         self.local_folder = path
+        self.local_folder_bs = self._normalize_url(self.local_folder)
         self._local_watcher.stop()
         self._create_local_watcher()
         self._manager.update_engine_path(self.uid, path)
@@ -356,13 +356,15 @@ class Engine(QObject):
 
         self.dispose_db()
         log.debug('Remove DB file %r', self._get_db_file())
-        try:
-            os.remove(self._get_db_file())
-        except (IOError, OSError) as exc:
-            if exc.errno != 2:  # File not found, already removed
-                log.exception('Database removal error')
-
         self._manager.osi.unregister_folder_link(self.local_folder)
+
+        # Keep the database for tests
+        if not os.environ.get('WORKSPACE', False):
+            try:
+                os.remove(self._get_db_file())
+            except (IOError, OSError) as exc:
+                if exc.errno != 2:  # File not found, already removed
+                    log.exception('Database removal error')
 
     def check_fs_marker(self):
         tag = 'drive-fs-test'
@@ -476,9 +478,10 @@ class Engine(QObject):
     def create_thread(self, worker=None, name=None, start_connect=True):
         if worker is None:
             worker = Worker(self, name=name)
-        # If subclass of Processor then connect the newSync signal
+
         if isinstance(worker, Processor):
             worker.pairSync.connect(self.newSync)
+
         thread = worker.get_thread()
         if start_connect:
             thread.started.connect(worker.run)

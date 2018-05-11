@@ -24,7 +24,7 @@ log = getLogger(__name__)
 
 
 class Processor(EngineWorker):
-    pairSync = pyqtSignal(object, object)
+    pairSync = pyqtSignal(object)
     path_locker = Lock()
     soft_locks = dict()
     readonly_locks = dict()
@@ -44,15 +44,14 @@ class Processor(EngineWorker):
         with Processor.path_locker:
             if self._engine.uid not in Processor.soft_locks:
                 Processor.soft_locks[self._engine.uid] = dict()
-            try:
-                del Processor.soft_locks[self._engine.uid][path]
-            except Exception as e:
-                log.trace(e)
+            else:
+                Processor.soft_locks[self._engine.uid].pop(path, None)
 
     def _unlock_readonly(self, path):
         with Processor.readonly_locker:
             if self._engine.uid not in Processor.readonly_locks:
                 Processor.readonly_locks[self._engine.uid] = dict()
+
             if path in Processor.readonly_locks[self._engine.uid]:
                 log.trace('Readonly unlock: increase count on %r', path)
                 Processor.readonly_locks[self._engine.uid][path][0] += 1
@@ -65,12 +64,15 @@ class Processor(EngineWorker):
         with Processor.readonly_locker:
             if self._engine.uid not in Processor.readonly_locks:
                 Processor.readonly_locks[self._engine.uid] = dict()
+
             if path not in Processor.readonly_locks[self._engine.uid]:
                 log.debug('Readonly lock: cannot find reference on %r', path)
                 return
+
             Processor.readonly_locks[self._engine.uid][path][0] -= 1
             log.trace('Readonly lock: update lock count on %r to %d', path,
                       Processor.readonly_locks[self._engine.uid][path][0])
+
             if Processor.readonly_locks[self._engine.uid][path][0] <= 0:
                 self.local.lock_ref(
                     path, Processor.readonly_locks[self._engine.uid][path][1])
@@ -97,12 +99,9 @@ class Processor(EngineWorker):
     def check_pair_state(doc_pair):
         """ Eliminate unprocessable states. """
 
-        if (not doc_pair
-                or doc_pair.pair_state == 'synchronized'
-                or doc_pair.pair_state == 'unsynchronized'
-                or doc_pair.pair_state is None
-                or doc_pair.pair_state.startswith('parent_')):
-            log.trace('Skip as pair is in non-processable state: %r', doc_pair)
+        if any((doc_pair.pair_state in ('synchronized', 'unsynchronized'),
+                doc_pair.pair_state.startswith('parent_'))):
+            log.trace('Skip pair in non-processable state: %r', doc_pair)
             return False
         return True
 
@@ -125,7 +124,8 @@ class Processor(EngineWorker):
                                   ' Skipping.')
                         continue
 
-                    log.trace('Cannot acquire state for: %r', item)
+                    log.trace('Cannot acquire state for item %r (%r)',
+                              item, state)
                     self._postpone_pair(item, 'Pair in use', interval=3)
                 continue
 
@@ -141,6 +141,7 @@ class Processor(EngineWorker):
                     doc_pair.local_path = os.path.join(
                         doc_pair.local_parent_path, doc_pair.remote_name)
                     log.trace('Re-guess local_path from duplicate: %r', doc_pair)
+
                 log.debug('Executing processor on %r(%d)', doc_pair,
                           doc_pair.version)
                 self._current_doc_pair = doc_pair
@@ -184,7 +185,7 @@ class Processor(EngineWorker):
                             continue
 
                         doc_pair = self._dao.get_state_from_id(doc_pair.id)
-                        if not self.check_pair_state(doc_pair):
+                        if not doc_pair or not self.check_pair_state(doc_pair):
                             continue
                     except NotFound:
                         doc_pair.remote_ref = None
@@ -229,13 +230,14 @@ class Processor(EngineWorker):
                 try:
                     soft_lock = self._lock_soft_path(doc_pair.local_path)
                     sync_handler(doc_pair)
+                    self._current_metrics['end_time'] = current_milli_time()
 
                     pair = self._dao.get_state_from_id(doc_pair.id)
                     if pair and 'deleted' not in pair.pair_state:
                         self._engine._manager.osi.send_sync_status(
                             pair, self.local.abspath(pair.local_path))
-                    self._current_metrics['end_time'] = current_milli_time()
-                    self.pairSync.emit(doc_pair, self._current_metrics)
+
+                    self.pairSync.emit(self._current_metrics)
                 except ThreadInterrupt:
                     raise
                 except HTTPError as exc:
@@ -746,15 +748,10 @@ class Processor(EngineWorker):
         """
         A file has been moved locally, and an error occurs when tried to
         move on the server.
-
-        :param doc_pair:
-        :param update:
-        :return: None
         """
 
         remote_info = None
         self._search_for_dedup(doc_pair, doc_pair.remote_name)
-
         if doc_pair.local_name != doc_pair.remote_name:
             try:
                 if not doc_pair.remote_can_rename:
@@ -1178,48 +1175,49 @@ class Processor(EngineWorker):
         doc_pair.last_local_updated = local_info.last_modification_time
 
     def _is_remote_move(self, doc_pair):
-        local_parent_pair = self._dao.get_state_from_local(
-            doc_pair.local_parent_path)
-        remote_parent_pair = self._get_normal_state_from_remote_ref(
+        local_parent = self._dao.get_state_from_local(doc_pair.local_parent_path)
+        remote_parent = self._get_normal_state_from_remote_ref(
             doc_pair.remote_parent_ref)
-        log.debug('is_remote_move: name=%r, local=%r, remote=%r',
-                  doc_pair.remote_name, local_parent_pair, remote_parent_pair)
-        return (local_parent_pair is not None
-                and remote_parent_pair is not None
-                and local_parent_pair.id != remote_parent_pair.id,
-                remote_parent_pair)
+        state = (local_parent and remote_parent
+                 and local_parent.id != remote_parent.id)
+        log.debug('is_remote_move=%r: name=%r, local=%r, remote=%r',
+                  state, doc_pair.remote_name, local_parent, remote_parent)
+        return state, remote_parent
 
     def _handle_failed_remote_move(self, source_pair, target_pair):
         pass
 
     def _handle_failed_remote_rename(self, source_pair, target_pair):
-        # An error occurs return false
+        """ An error occurs return False. """
+
+        force = AbstractOSIntegration.is_windows()
+        if not self._engine.local_rollback(force=force):
+            return False
+
         log.error('Renaming %r to %r canceled',
                   target_pair.remote_name, target_pair.local_name)
-        if self._engine.local_rollback(
-                force=AbstractOSIntegration.is_windows()):
-            try:
-                info = self.local.rename(target_pair.local_path,
-                                         target_pair.remote_name)
-                self._dao.update_local_state(source_pair, info, queue=False)
-                if source_pair != target_pair:
-                    if target_pair.folderish:
-                        # Remove "new" created tree
-                        pairs = self._dao.get_states_from_partial_local(
-                                target_pair.local_path).all()
-                        for pair in pairs:
-                            self._dao.remove_state(pair)
-                        pairs = self._dao.get_states_from_partial_local(
-                                source_pair.local_path).all()
-                        for pair in pairs:
-                            self._dao.synchronize_state(pair)
-                    else:
-                        self._dao.remove_state(target_pair)
-                self._dao.synchronize_state(source_pair)
-                return True
-            except:
-                log.exception('Cannot rollback local modification')
-        return False
+
+        try:
+            info = self.local.rename(target_pair.local_path,
+                                     target_pair.remote_name)
+            self._dao.update_local_state(source_pair, info, queue=False)
+            if source_pair != target_pair:
+                if target_pair.folderish:
+                    # Remove "new" created tree
+                    pairs = self._dao.get_states_from_partial_local(
+                            target_pair.local_path).all()
+                    for pair in pairs:
+                        self._dao.remove_state(pair)
+                    pairs = self._dao.get_states_from_partial_local(
+                            source_pair.local_path).all()
+                    for pair in pairs:
+                        self._dao.synchronize_state(pair)
+                else:
+                    self._dao.remove_state(target_pair)
+            self._dao.synchronize_state(source_pair)
+            return True
+        except:
+            log.exception('Cannot rollback local modification')
 
     def _handle_unsynchronized(self, doc_pair):
         # Used for overwrite

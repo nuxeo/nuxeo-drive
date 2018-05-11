@@ -511,7 +511,7 @@ class CliHandler(object):
         return 0
 
     def unbind_server(self, options):
-        for uid, engine in self.manager.get_engines().iteritems():
+        for uid, engine in self.manager.get_engines().items():
             if engine.local_folder == options.local_folder:
                 self.manager.unbind_engine(uid)
                 return 0

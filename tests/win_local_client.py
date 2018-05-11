@@ -12,6 +12,7 @@ For MTA, you still must use SHFileOperation.
 """
 
 import os
+import time
 
 from win32com.shell import shell, shellcon
 
@@ -48,8 +49,8 @@ class WindowsLocalClient(LocalClient):
     def abspath(self, ref):
         # Remove \\?\
         abs_path = super(WindowsLocalClient, self).abspath(ref)
-        if len(abs_path) >= 260:
-            log.warning(('The path is longer than 260 characters and '
+        if len(abs_path) >= 255:
+            log.warning(('The path is longer than 255 characters and '
                          'WindowsLocalClient is about the remove the long path '
                          'prefix. So the test is likely to fail.'))
         return abs_path[4:]
@@ -60,6 +61,7 @@ class WindowsLocalClient(LocalClient):
         new_path = os.path.join(os.path.dirname(path), to_name)
         res = shell.SHFileOperation((0, shellcon.FO_RENAME, path, new_path,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
+        time.sleep(0.1)
         if res[0] != 0:
             raise IOError(res, locals())
         return MockFile(os.path.join(parent, to_name))

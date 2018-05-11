@@ -548,13 +548,11 @@ class RemoteWatcher(EngineWorker):
             remote_path = '/'
             self._dao.add_path_to_scan(remote_path)
             self._dao.update_config('remote_need_full_scan', remote_path)
-            del summary['fileSystemChanges']  # Fix reference leak
             return
 
         if not summary['fileSystemChanges']:
             self._metrics['empty_polls'] += 1
             self.noChangesFound.emit()
-            del summary['fileSystemChanges']  # Fix reference leak
             return
 
         # Fetch all events and consider the most recent first
@@ -563,7 +561,6 @@ class RemoteWatcher(EngineWorker):
                                 reverse=True)
 
         n_changes = len(sorted_changes)
-        del summary['fileSystemChanges']  # Fix reference leak
         self._metrics['last_changes'] = n_changes
         self._metrics['empty_polls'] = 0
         self.changesFound.emit(n_changes)
@@ -663,38 +660,36 @@ class RemoteWatcher(EngineWorker):
                                   doc_pair_repr)
                         self._dao.delete_remote_state(doc_pair)
                     else:
-                        # Make new_info consistent with actual doc pair
-                        # parent path for a doc member of a collection
-                        # (typically the Locally Edited one) that is
-                        # also under a sync root. Indeed, in this case,
-                        # when adapted as a FileSystemItem, its parent path
-                        # will be the one of the sync root because it takes
-                        # precedence over the collection,
-                        # see AbstractDocumentBackedFileSystemItem constructor.
+                        """
+                        Make new_info consistent with actual doc pair parent
+                        path for a doc member of a collection (typically the
+                        Locally Edited one) that is also under a sync root.
+                        Indeed, in this case, when adapted as a FileSystemItem,
+                        its parent path will be the one of the sync root because
+                        it takes precedence over the collection, see 
+                        AbstractDocumentBackedFileSystemItem constructor.
+                        """
                         consistent_new_info = new_info
-                        if (remote_parent_factory
-                                == COLLECTION_SYNC_ROOT_FACTORY_NAME):
-                            new_info_parent_uid = doc_pair.remote_parent_ref
-                            new_info_path = (doc_pair.remote_parent_path
-                                             + '/' + remote_ref)
+                        if remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME:
                             consistent_new_info = RemoteFileInfo(
-                                new_info.name,
-                                new_info.uid,
-                                new_info_parent_uid,
-                                new_info_path,
-                                new_info.folderish,
-                                new_info.last_modification_time,
-                                new_info.last_contributor,
-                                new_info.digest,
-                                new_info.digest_algorithm,
-                                new_info.download_url,
-                                new_info.can_rename,
-                                new_info.can_delete,
-                                new_info.can_update,
-                                new_info.can_create_child,
-                                new_info.lock_owner,
-                                new_info.lock_created,
-                                new_info.can_scroll_descendants,
+                                name=new_info.name,
+                                uid=new_info.uid,
+                                parent_uid=doc_pair.remote_parent_ref,
+                                path=doc_pair.remote_parent_path + '/' + remote_ref,
+                                folderish=new_info.folderish,
+                                last_modification_time=new_info.last_modification_time,
+                                creation_time=new_info.creation_time,
+                                last_contributor=new_info.last_contributor,
+                                digest=new_info.digest,
+                                digest_algorithm=new_info.digest_algorithm,
+                                download_url=new_info.download_url,
+                                can_rename=new_info.can_rename,
+                                can_delete=new_info.can_delete,
+                                can_update= new_info.can_update,
+                                can_create_child=new_info.can_create_child,
+                                lock_owner=new_info.lock_owner,
+                                lock_created=new_info.lock_created,
+                                can_scroll_descendants=new_info.can_scroll_descendants,
                             )
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved
@@ -709,13 +704,24 @@ class RemoteWatcher(EngineWorker):
                         # persisted, so not part of the dirty check
                         lock_update = event_id in ('documentLocked',
                                                    'documentUnlocked')
-                        if doc_pair.remote_state != 'created':
-                            if (new_info.digest != doc_pair.remote_digest
-                                    or safe_filename(new_info.name) != doc_pair.remote_name
-                                    or new_info.parent_uid != doc_pair.remote_parent_ref
-                                    or event_id == 'securityUpdated'
-                                    or lock_update):
-                                doc_pair.remote_state = 'modified'
+
+                        # Perform a regular document update on a document
+                        # that has been updated, renamed or moved
+
+                        if doc_pair.remote_state != 'created' and any((
+                                new_info.digest != doc_pair.remote_digest,
+                                safe_filename(new_info.name) != doc_pair.remote_name,
+                                new_info.parent_uid != doc_pair.remote_parent_ref,
+                                event_id == 'securityUpdated',
+                                lock_update)):
+                            doc_pair.remote_state = 'modified'
+
+                        log.debug(
+                            'Refreshing remote state info for doc_pair=%r,'
+                            ' event_id=%r, new_info=%r (force_recursion=%d)',
+                            doc_pair, event_id, new_info,
+                            event_id == 'securityUpdated')
+
                         remote_parent_path = os.path.dirname(new_info.path)
                         # TODO Add modify local_path and local_parent_path
                         # if needed
@@ -723,14 +729,16 @@ class RemoteWatcher(EngineWorker):
                             doc_pair, new_info,
                             remote_parent_path=remote_parent_path,
                             force_update=lock_update)
+
                         if doc_pair.folderish:
-                            log.trace('Force scan recursive on %r : %d',
+                            log.trace('Force scan recursive on %r: %r',
                                       doc_pair, event_id == 'securityUpdated')
                             self._force_remote_scan(
                                 doc_pair, consistent_new_info,
                                 remote_path=new_info.path,
                                 force_recursion=event_id == 'securityUpdated',
                                 moved=event_id == 'documentMoved')
+
                         if lock_update:
                             doc_pair = self._dao.get_state_from_id(doc_pair.id)
                             try:
@@ -739,11 +747,11 @@ class RemoteWatcher(EngineWorker):
                             except (OSError, IOError) as exc:
                                 log.trace('Cannot handle readonly for %r (%r)',
                                           doc_pair, exc)
-                                del exc  # Fix reference leak
 
                 pair = self._dao.get_state_from_id(doc_pair.id)
                 self._engine._manager.osi.send_sync_status(
                     pair, self.local.abspath(pair.local_path))
+
                 updated = True
                 refreshed.add(remote_ref)
 
@@ -753,10 +761,7 @@ class RemoteWatcher(EngineWorker):
                 parent_pairs = self._dao.get_states_from_remote(
                     new_info.parent_uid)
                 for parent_pair in parent_pairs:
-
-                    child_pair, new_pair = \
-                        self._find_remote_child_match_or_create(parent_pair,
-                                                                new_info)
+                    child_pair, new_pair = self._find_remote_child_match_or_create(parent_pair, new_info)
                     if new_pair:
                         log.debug('Marked doc_pair %r as remote creation',
                                   child_pair.remote_name)
@@ -774,8 +779,8 @@ class RemoteWatcher(EngineWorker):
                     break
 
                 if not created:
-                    log.debug('Could not match changed document '
-                              'to a bound local folder: %r', new_info)
+                    log.debug('Could not match changed document to a bound '
+                              'local folder: %r', new_info)
 
         # Sort by path the deletion to only mark parent
         sorted_deleted = sorted(delete_queue, key=lambda x: x.local_path)
@@ -785,18 +790,23 @@ class RemoteWatcher(EngineWorker):
             skip = False
             for processed in delete_processed:
                 path = processed.local_path
+
                 if path[-1] != '/':
                     path += '/'
+
                 if delete_pair.local_path.startswith(path):
                     skip = True
                     break
+
             if skip:
                 continue
+
             # Verify the file is really deleted
             if self.remote.get_fs_item(delete_pair.remote_ref) is not None:
                 continue
+
             delete_processed.append(delete_pair)
-            log.debug('Marking doc_pair "%r" as deleted', delete_pair)
+            log.debug('Marking doc_pair %r as deleted', delete_pair)
             self._dao.delete_remote_state(delete_pair)
 
     def filtered(self, info):

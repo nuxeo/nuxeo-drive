@@ -306,7 +306,7 @@ class Application(SimpleApplication):
 
     def show_file_status(self):
         from ..gui.status_dialog import StatusDialog
-        for _, engine in self.manager.get_engines().iteritems():
+        for _, engine in self.manager.get_engines().items():
             self.status = StatusDialog(engine.get_dao())
             self.status.show()
             break
@@ -378,7 +378,7 @@ class Application(SimpleApplication):
     def init_checks(self):
         if Options.debug:
             self.show_debug_window()
-        for _, engine in self.manager.get_engines().iteritems():
+        for _, engine in self.manager.get_engines().items():
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)
         self.manager.notification_service.newNotification.connect(self._new_notification)
