@@ -106,6 +106,9 @@ class Engine(QObject):
         # Remove remote client cache on proxy update
         self._manager.proxyUpdated.connect(self.invalidate_client_cache)
         self.local_folder = definition.local_folder
+        # Keep folder path with backslash to find the right engine when
+        # FinderSync is asking for the status of a file
+        self.local_folder_bs = self._normalize_url(self.local_folder)
         self.uid = definition.uid
         self.name = definition.name
         self._stopped = True
@@ -186,6 +189,7 @@ class Engine(QObject):
     def set_local_folder(self, path):
         log.debug('Update local folder to %r', path)
         self.local_folder = path
+        self.local_folder_bs = self._normalize_url(self.local_folder)
         self._local_watcher.stop()
         self._create_local_watcher()
         self._manager.update_engine_path(self.uid, path)

@@ -50,6 +50,7 @@
 - Removed `Engine.get_last_sync()`
 - Removed `Engine.get_next_file()`
 - Removed `Engine.get_previous_file()`
+- Added `Engine.local_folder_bs`
 - Removed `Engine.resolve_with_duplicate()`
 - Added `Engine.set_ui()`
 - Changed `EngineDAO.__init__(self, db, state_factory=StateRow)` to `state_factory=None`
