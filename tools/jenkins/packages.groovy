@@ -102,6 +102,7 @@ for (x in slaves) {
                                 // TODO: NXDRIVE-351
                                 // archive 'dist/*.deb'
                             } else {
+                                env.SIGNTOOL_PATH = "C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit"
                                 bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
                                 archive 'dist/*.exe'
                             }
