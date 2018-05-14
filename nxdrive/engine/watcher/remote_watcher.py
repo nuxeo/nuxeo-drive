@@ -35,16 +35,12 @@ class RemoteWatcher(EngineWorker):
         self._last_event_log_id = self._dao.get_config('remote_last_event_log_id')
         self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
         self._last_remote_full_scan = self._dao.get_config('remote_last_full_scan')
-        self.remote = self._engine.remote
-        self.local = self._engine.local
+        self.local = self.engine.local
         self._metrics = {
             'last_remote_scan_time': -1,
             'last_remote_update_time': -1,
             'empty_polls': 0,
         }
-
-    def get_engine(self):
-        return self._engine
 
     def get_metrics(self):
         metrics = super(RemoteWatcher, self).get_metrics()
@@ -82,12 +78,13 @@ class RemoteWatcher(EngineWorker):
         try:
             if from_state is None:
                 from_state = self._dao.get_state_from_local('/')
-            remote_info = self.remote.get_fs_info(from_state.remote_ref)
+            remote_info = self.engine.remote.get_fs_info(
+                from_state.remote_ref)
             self._dao.update_remote_state(
                 from_state, remote_info,
                 remote_parent_path=from_state.remote_parent_path)
         except NotFound:
-            log.debug("Marking %r as remotely deleted.", from_state)
+            log.debug('Marking %r as remotely deleted', from_state)
             # Should unbind ?
             # from_state.update_remote(None)
             self._dao.commit()
@@ -125,11 +122,12 @@ class RemoteWatcher(EngineWorker):
             parent_path = ''
         # If pair is present already
         try:
-            child_info = self.remote.get_fs_info(remote_ref)
+            child_info = self.engine.remote.get_fs_info(remote_ref)
         except NotFound:
             # The folder has been deleted
             return
-        doc_pair = self._dao.get_state_from_remote_with_path(remote_ref, parent_path)
+        doc_pair = self._dao.get_state_from_remote_with_path(
+            remote_ref, parent_path)
         if doc_pair is not None:
             self._do_scan_remote(doc_pair, child_info)
             return
@@ -206,7 +204,7 @@ class RemoteWatcher(EngineWorker):
             log.trace('Scrolling through at most [%d] descendants of %r (%s)',
                       batch_size, remote_info.name,
                       remote_info.uid)
-            scroll_res = self.remote.scroll_descendants(
+            scroll_res = self.engine.remote.scroll_descendants(
                 remote_info.uid, scroll_id, batch_size=batch_size)
             t1 = datetime.now()
             elapsed = self._get_elapsed_time_milliseconds(t0, t1)
@@ -307,7 +305,7 @@ class RemoteWatcher(EngineWorker):
         # Detect recently deleted children
         db_children = self._dao.get_remote_children(doc_pair.remote_ref)
         children = {child.remote_ref: child for child in db_children}
-        children_info = self.remote.get_fs_children(remote_info.uid)
+        children_info = self.engine.remote.get_fs_children(remote_info.uid)
 
         to_scan = []
         for child_info in children_info:
@@ -413,7 +411,7 @@ class RemoteWatcher(EngineWorker):
                                 synced = child_pair.pair_state == 'synchronized'
                         # Can be updated in previous call
                         if synced:
-                            self._engine.stop_processor_on(child_pair.local_path)
+                            self.engine.stop_processor_on(child_pair.local_path)
                         # Push the remote_Id
                         log.debug('Set remote ID on %r / %r == %r', child_pair, child_pair.local_path, child_pair.local_path)
                         self.local.set_remote_id(child_pair.local_path, child_info.uid)
@@ -451,13 +449,12 @@ class RemoteWatcher(EngineWorker):
         self._dao.clean_scanned()
 
     def _check_offline(self):
-        if not self._engine.is_offline():
+        if not self.engine.is_offline():
             return False
 
-        # Try to get the server status
-        online = self.remote.client.request('GET', 'runningstatus', default=False)
+        online = self.engine.remote.client.is_reachable()
         if online:
-            self._engine.set_offline(value=False)
+            self.engine.set_offline(value=False)
 
         return not online
 
@@ -491,8 +488,8 @@ class RemoteWatcher(EngineWorker):
             err = ('HTTP error %d while trying to handle remote changes'
                    % e.status)
             if e.status in (401, 403):
-                self._engine.set_invalid_credentials(reason=err)
-                self._engine.set_offline()
+                self.engine.set_invalid_credentials(reason=err)
+                self.engine.set_offline()
             else:
                 log.error(err)
         except (ConnectionError, socket.error) as exc:
@@ -509,9 +506,10 @@ class RemoteWatcher(EngineWorker):
 
     def _get_changes(self):
         """Fetch incremental change summary from the server"""
-        summary = self.remote.get_changes(self._last_root_definitions,
-                                          self._last_event_log_id,
-                                          self._last_sync_date)
+        summary = self.engine.remote.get_changes(
+            self._last_root_definitions,
+            self._last_event_log_id,
+            self._last_sync_date)
 
         root_defs = summary['activeSynchronizationRootDefinitions']
         self._last_root_definitions = root_defs
@@ -587,7 +585,8 @@ class RemoteWatcher(EngineWorker):
                 # A more recent version was already processed
                 continue
             fs_item = change.get('fileSystemItem')
-            new_info = self.remote.file_to_info(fs_item) if fs_item else None
+            new_info = (self.engine.remote.file_to_info(fs_item)
+                        if fs_item else None)
 
             if self.filtered(new_info):
                 log.debug('Ignoring banned file: %r', new_info)
@@ -747,7 +746,7 @@ class RemoteWatcher(EngineWorker):
                                           doc_pair, exc)
 
                 pair = self._dao.get_state_from_id(doc_pair.id)
-                self._engine._manager.osi.send_sync_status(
+                self.engine._manager.osi.send_sync_status(
                     pair, self.local.abspath(pair.local_path))
 
                 updated = True
@@ -801,7 +800,7 @@ class RemoteWatcher(EngineWorker):
                 continue
 
             # Verify the file is really deleted
-            if self.remote.get_fs_item(delete_pair.remote_ref) is not None:
+            if self.engine.remote.get_fs_item(delete_pair.remote_ref):
                 continue
 
             delete_processed.append(delete_pair)

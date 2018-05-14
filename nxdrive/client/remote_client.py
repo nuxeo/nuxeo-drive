@@ -236,7 +236,7 @@ class Remote(Nuxeo):
                     command, file_path)
 
                 if upload_duration > 0:
-                    log.trace('Speed for %d o is %d s : %f o/s',
+                    log.trace('Speed for %d o is %ds: %f o/s',
                               os.stat(file_path).st_size, upload_duration,
                               os.stat(file_path).st_size / upload_duration)
 
@@ -244,7 +244,7 @@ class Remote(Nuxeo):
                     headers = {'Nuxeo-Transaction-Timeout': str(tx_timeout)}
                     return self.operations.execute(
                         command=command, timeout=tx_timeout,
-                        input_obj=upload_result, check_params=False,
+                        input_obj=upload_result,
                         headers=headers, **params)
             finally:
                 FileAction.finish_action()
@@ -256,7 +256,7 @@ class Remote(Nuxeo):
                                    parent_fs_item_id=parent_fs_item_id)
         if fs_item is None:
             if raise_if_missing:
-                raise NotFound("Could not find '%s' on '%s'" % (
+                raise NotFound('Could not find %r on %r' % (
                     fs_item_id, self.client.host))
             return None
         return self.file_to_info(fs_item)
@@ -728,7 +728,7 @@ class Remote(Nuxeo):
             "       ORDER BY dc:title, dc:created LIMIT %d"
         ) % (ref, "', '".join(types), limit)
 
-        entries = self.query(query)[u'entries']
+        entries = self.query(query)['entries']
         if len(entries) == MAX_CHILDREN:
             # TODO: how to best handle this case? A warning and return an empty
             # list, a dedicated exception?

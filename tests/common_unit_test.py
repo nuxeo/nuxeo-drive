@@ -212,21 +212,21 @@ class StubQApplication(QtCore.QCoreApplication):
 
     @QtCore.pyqtSlot()
     def remote_scan_completed(self):
-        uid = self.sender().get_engine().uid
+        uid = self.sender().engine.uid
         log.debug('Remote scan completed for engine %s', uid)
         self._test._wait_remote_scan[uid] = False
 
     @QtCore.pyqtSlot(int)
     def remote_changes_found(self, change_count):
-        uid = self.sender().get_engine().uid
+        uid = self.sender().engine.uid
         log.debug("Remote changes slot for: %s", uid)
         change_count = int(change_count)
         self._test._remote_changes_count[uid] = change_count
 
     @QtCore.pyqtSlot()
     def no_remote_changes_found(self,):
-        uid = self.sender().get_engine().uid
-        log.trace("No remote changes slot for: %s", uid)
+        uid = self.sender().engine.uid
+        log.trace('No remote changes slot for %s', uid)
         self._test._no_remote_changes[uid] = True
 
     @QtCore.pyqtSlot(object, object)
@@ -339,7 +339,6 @@ class UnitTestCase(SimpleUnitTestCase):
         self.password = os.environ.get('NXDRIVE_TEST_PASSWORD',
                                        'Administrator')
         self.report_path = os.environ.get('REPORT_PATH')
-        self.tearedDown = False
 
         self.tmpdir = os.path.join(os.environ.get('WORKSPACE', ''), 'tmp')
         self.addCleanup(clean_dir, self.tmpdir)
@@ -679,7 +678,6 @@ class UnitTestCase(SimpleUnitTestCase):
 
     def reinit(self):
         self.tearDown()
-        self.tearDownApp()
         self.setUpApp()
         try:
             self.setUp()
@@ -699,6 +697,7 @@ class UnitTestCase(SimpleUnitTestCase):
             sleep(1)
             self.setup_profiler()
             super(UnitTestCase, self).run(result)
+            self.generate_report()
             self.teardown_profiler()
             self.app.quit()
             log.debug('UnitTest thread finished')
@@ -707,47 +706,8 @@ class UnitTestCase(SimpleUnitTestCase):
         sync_thread.start()
         self.app.exec_()
         sync_thread.join(30)
-        self.tearDownApp()
         del self.app
         log.debug('UnitTest run finished')
-
-    def tearDown(self):
-        self.generate_report()
-        try:
-            super(UnitTestCase, self).tearDown()
-        except StandardError:
-            pass
-        try:
-            self.tearDownApp()
-        except StandardError:
-            pass
-
-    def tearDownApp(self):
-        if self.tearedDown:
-            return
-
-        log.debug('TearDown unit test')
-
-        if hasattr(self, 'engine_1'):
-            del self.engine_1
-        self.engine_1 = None
-        if hasattr(self, 'engine_2'):
-            del self.engine_2
-        self.engine_2 = None
-        del self.local_1
-        self.local_1 = None
-        del self.local_2
-        self.local_2 = None
-        del self.remote_document_client_1
-        self.remote_document_client_1 = None
-        del self.remote_document_client_2
-        self.remote_document_client_2 = None
-        del self.remote_1
-        self.remote_1 = None
-        del self.remote_2
-        self.remote_2 = None
-
-        self.tearedDown = True
 
     def _stop_managers(self):
         """ Called by self.addCleanup() to stop all managers. """
@@ -766,7 +726,6 @@ class UnitTestCase(SimpleUnitTestCase):
                         pass
         finally:
             Manager._singleton = None
-            self.tearedDown = True
 
     def _check_cleanup(self):
         """ Called by self.addCleanup() to ensure folders are deleted. """

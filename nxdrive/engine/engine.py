@@ -83,7 +83,7 @@ class Engine(QObject):
         self.remote_cls = remote_cls
         self.filtered_remote_cls = filtered_remote_cls
         self.local_cls = local_cls
-        self.remote = None
+        self.remote = self.unfiltered_remote = None
 
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
@@ -120,50 +120,62 @@ class Engine(QObject):
         self._offline_state = False
         self._threads = list()
         self._dao = EngineDAO(self._get_db_file())
-        if binder is not None:
+
+        if binder:
             self.bind(binder)
         self._load_configuration()
-        self.init_remote()
-        # Set server version in the Options
+
+        if not self.remote:
+            self.init_remote()
+
         self.get_server_version()
+
         self._local_watcher = self._create_local_watcher()
         self.create_thread(worker=self._local_watcher)
         self._remote_watcher = self._create_remote_watcher(Options.delay)
         self.create_thread(worker=self._remote_watcher, start_connect=False)
+
         # Launch remote_watcher after first local scan
         self._local_watcher.rootDeleted.connect(self.rootDeleted)
         self._local_watcher.rootMoved.connect(self.rootMoved)
         self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
         self._queue_manager = self._create_queue_manager(processors)
+
         # Launch queue processors after first remote_watcher pass
         self._remote_watcher.initiate.connect(
             self._queue_manager.init_processors)
         self._remote_watcher.remoteWatcherStopped.connect(
             self._queue_manager.shutdown_processors)
+
         # Connect last_sync checked
         self._remote_watcher.updated.connect(self._check_last_sync)
+
         # Connect for sync start
         self.newQueueItem.connect(self._check_sync_start)
         self._queue_manager.newItem.connect(self._check_sync_start)
+
         # Connect components signals to engine signals
         self._queue_manager.newItem.connect(self.newQueueItem)
         self._queue_manager.newErrorGiveUp.connect(self.newError)
+
         # Some conflict can be resolved automatically
         self._dao.newConflict.connect(self.conflict_resolver)
         # Try to resolve conflict on startup
         for conflict in self._dao.get_conflicts():
             self.conflict_resolver(conflict.id, emit=False)
+
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
-        # Set the root icon
+
         self._set_root_icon()
-        # Set user full name
         self._user_cache = dict()
+
         # Pause in case of no more space on the device
         self.noSpaceLeftOnDevice.connect(self.suspend)
 
     def __repr__(self):
-        fmt = '{name}<name={cls.name!r}, uid={cls.uid!r}, type={cls.type!r}>'
+        fmt = ('{name}<name={cls.name!r}, offline={cls._offline_state!r}'
+               ', uid={cls.uid!r}, type={cls.type!r}>')
         return fmt.format(name=type(self).__name__, cls=self)
 
     @pyqtSlot(object)
@@ -749,13 +761,15 @@ class Engine(QObject):
                     except:
                         pass
                 raise e
-        if check_credentials:
-            if self._remote_token is None:
-                self._remote_token = self.remote.request_token()
+
+        if check_credentials and self._remote_token is None:
+            self._remote_token = self.remote.request_token()
+
         if self._remote_token is not None:
             # The server supports token based identification: do not store the
             # password in the DB
             self._remote_password = None
+
         # Save the configuration
         self._dao.update_config('web_authentication', self._web_authentication)
         self._dao.update_config('server_url', self._server_url)

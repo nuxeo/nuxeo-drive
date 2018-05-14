@@ -56,7 +56,7 @@ class LocalWatcher(EngineWorker):
         self._init()
 
     def _init(self):
-        self.local = self._engine.local
+        self.local = self.engine.local
         self._metrics = {
             'last_local_scan_time': -1,
             'new_files': 0,
@@ -214,7 +214,7 @@ class LocalWatcher(EngineWorker):
     def _scan(self):
         log.debug('Full scan started')
         start_ms = current_milli_time()
-        to_pause = not self._engine.get_queue_manager().is_paused()
+        to_pause = not self.engine.get_queue_manager().is_paused()
         if to_pause:
             self._suspend_queue()
         self._delete_files = dict()
@@ -227,7 +227,7 @@ class LocalWatcher(EngineWorker):
         log.debug('Full scan finished in %dms',
                   self._metrics['last_local_scan_time'])
         if to_pause:
-            self._engine.get_queue_manager().resume()
+            self.engine.get_queue_manager().resume()
         self.localScanFinished.emit()
 
     def _scan_handle_deleted_files(self):
@@ -245,14 +245,14 @@ class LocalWatcher(EngineWorker):
         return metrics
 
     def _suspend_queue(self):
-        queue = self._engine.get_queue_manager()
+        queue = self.engine.get_queue_manager()
         queue.suspend()
         for processor in queue.get_processors_on('/', exact_match=False):
             processor.stop()
 
     @pyqtSlot(str)
     def scan_pair(self, local_path):
-        to_pause = not self._engine.get_queue_manager().is_paused()
+        to_pause = not self.engine.get_queue_manager().is_paused()
         if to_pause:
             self._suspend_queue()
 
@@ -261,7 +261,7 @@ class LocalWatcher(EngineWorker):
         self._scan_handle_deleted_files()
 
         if to_pause:
-            self._engine.get_queue_manager().resume()
+            self.engine.get_queue_manager().resume()
 
     def empty_events(self):
         return self.watchdog_queue.empty() and (
@@ -888,7 +888,7 @@ class LocalWatcher(EngineWorker):
                 return
 
             doc_pair = dao.get_state_from_local(rel_path)
-            self._engine._manager.osi.send_sync_status(doc_pair, src_path)
+            self.engine._manager.osi.send_sync_status(doc_pair, src_path)
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
                     log.debug('Ignoring %r as marked unsynchronized',
@@ -1004,7 +1004,7 @@ class LocalWatcher(EngineWorker):
                             log.debug('Moving to a read-only folder: %r -> %r',
                                       from_pair, dst_parent)
                             dao.unsynchronize_state(from_pair, 'READONLY')
-                            self._engine.newReadonly.emit(
+                            self.engine.newReadonly.emit(
                                 from_pair.local_name, dst_parent.remote_name)
                             return
 
@@ -1014,7 +1014,7 @@ class LocalWatcher(EngineWorker):
                             dirname(from_pair.local_path))
                         if (src_parent
                                 and not src_parent.remote_can_create_child):
-                            self._engine.newReadonly.emit(
+                            self.engine.newReadonly.emit(
                                 from_pair.local_name, dst_parent.remote_name)
                             log.debug('Converting the move to a create '
                                       'for %r -> %r', from_pair, src_path)

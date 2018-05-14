@@ -103,7 +103,7 @@ class WebDriveApi(QtCore.QObject):
         return json.dumps(obj, default=self._json_default)
 
     def _export_engine(self, engine):
-        if engine is None:
+        if not engine:
             return {}
 
         bind = engine.get_binder()
@@ -206,10 +206,7 @@ class WebDriveApi(QtCore.QObject):
 
     def _get_engine(self, uid):
         engines = self._manager.get_engines()
-        try:
-            return engines[uid]
-        except KeyError:
-            return None
+        return engines.get(uid)
 
     @QtCore.pyqtSlot()
     def retry(self):

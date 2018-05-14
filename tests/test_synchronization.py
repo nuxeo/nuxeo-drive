@@ -144,11 +144,11 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Simulate bad responses
+        remote_orig = self.engine_1.remote
         self.engine_1.remote = RemoteTest(
             self.nuxeo_url, self.user_1,
             u'nxdrive-test-administrator-device', self.version,
             password=self.password_1)
-        self.engine_1.invalidate_client_cache()
         errors = [HTTPError(status=401, message='Mock'),
                   HTTPError(status=403, message='Mock')]
         remote = self.engine_1.remote
@@ -164,7 +164,7 @@ class TestSynchronization(UnitTestCase):
 
         # Re-enable network
         remote.make_server_call_raise(None)
-        self.engine_1.invalidate_client_cache()
+        self.engine_1.remote = remote_orig
 
     def test_synchronization_modification_on_created_file(self):
         # Regression test: a file is created locally, then modification is
