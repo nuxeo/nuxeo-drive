@@ -31,10 +31,14 @@ class RemoteWatcher(EngineWorker):
         self.server_interval = delay
 
         self._next_check = 0
-        self._last_sync_date = self._dao.get_config('remote_last_sync_date')
-        self._last_event_log_id = self._dao.get_config('remote_last_event_log_id')
-        self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
-        self._last_remote_full_scan = self._dao.get_config('remote_last_full_scan')
+        self._last_sync_date = self._dao.get_config(
+            'remote_last_sync_date', 0)
+        self._last_event_log_id = self._dao.get_config(
+            'remote_last_event_log_id', 0)
+        self._last_root_definitions = self._dao.get_config(
+            'remote_last_root_definitions', '')
+        self._last_remote_full_scan = self._dao.get_config(
+            'remote_last_full_scan')
         self._metrics = {
             'last_remote_scan_time': -1,
             'last_remote_update_time': -1,
@@ -520,11 +524,11 @@ class RemoteWatcher(EngineWorker):
 
         root_defs = summary['activeSynchronizationRootDefinitions']
         self._last_root_definitions = root_defs
-        self._last_sync_date = summary['syncDate']
+        self._last_sync_date = int(summary['syncDate'])
         # If available, read 'upperBound' key as last event log id
         # according to the new implementation of the audit change finder,
         # see https://jira.nuxeo.com/browse/NXP-14826.
-        self._last_event_log_id = summary.get('upperBound', None)
+        self._last_event_log_id = int(summary.get('upperBound', 0))
 
         self._dao.update_config('remote_last_sync_date', self._last_sync_date)
         self._dao.update_config('remote_last_event_log_id',

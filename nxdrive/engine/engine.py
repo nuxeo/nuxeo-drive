@@ -446,9 +446,6 @@ class Engine(QObject):
         return os.path.join(normalized_path(self._manager.nxdrive_home),
                             'ndrive_' + self.uid + '.db')
 
-    def get_abspath(self, path):
-        return self.local.abspath(path)
-
     def get_binder(self):
         return ServerBindingSettings(
             server_url=self._server_url,

@@ -365,7 +365,7 @@ class WebDriveApi(QtCore.QObject):
     def show_metadata(self, uid, ref):
         engine = self._get_engine(str(uid))
         if engine:
-            path = engine.get_abspath(unicode(ref))
+            path = engine.local.abspath(unicode(ref))
             self.application.show_metadata(path)
 
     @QtCore.pyqtSlot(str, result=str)
@@ -467,7 +467,7 @@ class WebDriveApi(QtCore.QObject):
         else:
             engine = self._get_engine(uid)
             if engine:
-                filepath = engine.get_abspath(path)
+                filepath = engine.local.abspath(path)
                 self._manager.open_local_file(filepath)
 
     @QtCore.pyqtSlot()

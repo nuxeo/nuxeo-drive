@@ -19,6 +19,10 @@ def configure_logger():
     configure(console_level='TRACE',
               command_name='test',
               force_configure=True,
+              use_file_handler=True,
+              log_filename=os.path.join(
+                  os.environ.get('WORKSPACE', ''),
+                  'tmp', 'testing.log'),
               formatter=formatter)
 
 
@@ -129,15 +133,8 @@ class RemoteTest(Remote):
             command='Log', message=message, level=level.lower())
 
     def wait(self):
-        if self.is_elasticsearch_audit():
-            self.operations.execute(
-                command='NuxeoDrive.WaitForElasticsearchCompletion')
-        else:
-            # Backward compatibility with JPA audit implementation,
-            # in which case we are also backward compatible
-            # with date based resolution
-            self.operations.execute(
-                command='NuxeoDrive.WaitForAsyncCompletion')
+        self.operations.execute(
+            command='NuxeoDrive.WaitForElasticsearchCompletion')
 
 
 class DocRemote(RemoteTest):

@@ -140,27 +140,11 @@ class Remote(Nuxeo):
         else:
             self._base_folder_ref, self._base_folder_path = None, None
 
-        # self.check_access()
-
     def __repr__(self):
         attrs = sorted(self.__init__.__code__.co_varnames[1:])
         attrs = ', '.join('{}={!r}'.format(attr, getattr(self, attr, None))
                           for attr in attrs)
         return '<{} {}>'.format(self.__class__.__name__, attrs)
-
-    def check_access(self):
-        # type: () -> None
-        """ Simple call to check credentials. """
-        self.client.request('GET', 'site/automation/logInAudit')
-
-    def is_elasticsearch_audit(self):
-        # type: () -> bool
-        return ('NuxeoDrive.WaitForElasticsearchCompletion'
-                in self.operations.operations)
-
-    def is_nuxeo_drive_attach_blob(self):
-        # type: () -> bool
-        return 'NuxeoDrive.AttachBlob' in self.operations.operations
 
     def request_token(self, revoke=False):
         # type: (bool) -> Text
@@ -429,18 +413,14 @@ class Remote(Nuxeo):
                 file_path, filename=filename, command='NuxeoDrive.UpdateFile',
                 id=fs_item_id, parentId=parent_fs_item_id)
             return self.file_to_info(fs_item)
-        else:
-            ref = self._check_ref(fs_item_id)
-            op_name = ('NuxeoDrive.AttachBlob'
-                       if self.is_nuxeo_drive_attach_blob()
-                       else 'Blob.Attach')
-            params = {'document': ref}
-            if self.is_nuxeo_drive_attach_blob():
-                params.update(
-                    {'applyVersioningPolicy': apply_versioning_policy})
-            self.upload(
-                file_path, filename=filename, mime_type=mime_type,
-                command=op_name, **params)
+
+        self.upload(
+            file_path,
+            filename=filename,
+            mime_type=mime_type,
+            command='NuxeoDrive.AttachBlob',
+            document=self._check_ref(fs_item_id),
+            applyVersioningPolicy=apply_versioning_policy)
 
     def delete(self, fs_item_id, parent_fs_item_id=None):
         # type: (Text, Optional[Text]) -> None
