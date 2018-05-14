@@ -861,7 +861,15 @@ class EngineDAO(ConfigurationDAO):
                 con.commit()
 
     def update_local_modification_time(self, row, info):
-        self.update_local_state(row, info, versioned=False, queue=False)
+        with self._lock:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute('UPDATE States'
+                      '   SET last_local_updated = ?'
+                      ' WHERE id = ?',
+                      (info.last_modification_time, row.id,))
+            if self.auto_commit:
+                con.commit()
 
     def get_valid_duplicate_file(self, digest):
         c = self._get_read_connection().cursor()
