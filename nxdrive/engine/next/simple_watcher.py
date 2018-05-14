@@ -43,7 +43,7 @@ class SimpleWatcher(LocalWatcher):
 
     def is_inside(self, abspath):
         # type: (Text) -> bool
-        return abspath.startswith(self.client.base_folder)
+        return abspath.startswith(self.local.base_folder)
 
     def is_pending_scan(self, ref):
         return ref in self._to_scan

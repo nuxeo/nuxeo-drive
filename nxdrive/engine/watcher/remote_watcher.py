@@ -455,7 +455,7 @@ class RemoteWatcher(EngineWorker):
             return False
 
         # Try to get the server status
-        online = self.remote.client.request('GET', 'runningstatus', False)
+        online = self.remote.client.request('GET', 'runningstatus', default=False)
         if online:
             self._engine.set_offline(value=False)
 
@@ -513,8 +513,8 @@ class RemoteWatcher(EngineWorker):
                                           self._last_event_log_id,
                                           self._last_sync_date)
 
-        self._last_root_definitions = \
-            summary['activeSynchronizationRootDefinitions']
+        root_defs = summary['activeSynchronizationRootDefinitions']
+        self._last_root_definitions = root_defs
         self._last_sync_date = summary['syncDate']
         # If available, read 'upperBound' key as last event log id
         # according to the new implementation of the audit change finder,
@@ -643,17 +643,15 @@ class RemoteWatcher(EngineWorker):
                     remote_parent_factory = doc_pair.remote_parent_ref.split('#', 1)[0]
                     new_info_parent_factory = new_info.parent_uid.split('#', 1)[0]
                     # Specific cases of a move on a locally edited doc
-                    if (event_id == 'documentMoved'
-                            and remote_parent_factory
-                            == COLLECTION_SYNC_ROOT_FACTORY_NAME):
+                    if (remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME
+                            and event_id == 'documentMoved'):
                         # If moved from a non sync root to a sync root,
                         # break to creation case (updated is False).
                         # If moved from a sync root to a non sync root,
                         # break to noop (updated is True).
                         break
-                    elif (event_id == 'documentMoved'
-                          and new_info_parent_factory
-                          == COLLECTION_SYNC_ROOT_FACTORY_NAME):
+                    elif (new_info_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME
+                          and event_id == 'documentMoved'):
                         # If moved from a sync root to a non sync root,
                         # delete from local sync root
                         log.debug('Marking doc_pair %r as deleted',
