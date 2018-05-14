@@ -522,10 +522,8 @@ class Application(SimpleApplication):
         if not beta:
             return
 
-        url = ('https://api.github.com/repos/'
-               'nuxeo/nuxeo-drive'
-               '/releases/tags/'
-               'release-' + version)
+        url = ('https://api.github.com/repos/nuxeo/nuxeo-drive'
+               '/releases/tags/release-' + version)
 
         if beta:
             version += ' beta'
@@ -545,8 +543,8 @@ class Application(SimpleApplication):
             return
 
         try:
-            data = json.loads(content)
-        except (TypeError, ValueError):
+            data = content.json()
+        except ValueError:
             log.exception('[%s] Invalid release notes', version)
             return
 

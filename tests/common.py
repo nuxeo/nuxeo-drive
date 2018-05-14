@@ -2,13 +2,10 @@
 """ Common test utilities."""
 
 import hashlib
-import logging
 import os
 import shutil
 import time
-from logging import getLogger
 
-from nxdrive.logging_config import configure
 from nxdrive.utils import safe_long_path, unset_path_readonly
 
 # Default remote watcher delay used for tests
@@ -28,25 +25,9 @@ SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
 
 # 1s resolution on HFS+ on OSX
-# 2s resolution on FAT but can be ignored as no Jenkins is running the test
-# suite under windows on FAT partitions
 # ~0.01s resolution for NTFS
 # 0.001s for EXT4FS
 OS_STAT_MTIME_RESOLUTION = 1.0
-
-
-def configure_logger():
-    formatter = logging.Formatter(
-        '%(thread)-4d %(module)-22s %(levelname).1s %(message)s')
-    configure(console_level='TRACE',
-              command_name='test',
-              force_configure=True,
-              formatter=formatter)
-
-
-# Configure test logger
-configure_logger()
-log = getLogger(__name__)
 
 
 def clean_dir(_dir, retry=1, max_retries=5):
@@ -54,8 +35,6 @@ def clean_dir(_dir, retry=1, max_retries=5):
 
     if not os.path.exists(_dir):
         return
-
-    log.debug('%d/%d Removing directory %r', retry, max_retries, _dir)
 
     to_remove = safe_long_path(_dir)
     test_data = os.environ.get('TEST_SAVE_DATA')

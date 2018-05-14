@@ -15,8 +15,6 @@ import time
 import urlparse
 from logging import getLogger
 
-import requests
-
 from .options import Options
 
 DEVICE_DESCRIPTIONS = {
@@ -414,7 +412,7 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
     :return: The complete URL.
     """
 
-    from requests import ConnectionError, HTTPError
+    import requests
     import rfc3987
 
     parts = urlparse.urlsplit(str(url))
@@ -464,11 +462,11 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
             log.trace('Testing URL %r', new_url)
             ret = requests.get(new_url + '/' + login_page, timeout=timeout)
             ret.raise_for_status()
-        except HTTPError as exc:
+        except requests.HTTPError as exc:
             if exc.response.status_code == 401:
                 # When there is only Web-UI installed, the code is 401.
                 return new_url
-        except (ValueError, ConnectionError):
+        except (ValueError, requests.ConnectionError):
             pass
         else:
             if ret.status_code == 200:
@@ -573,39 +571,35 @@ def set_path_readonly(path):
     if os.path.isdir(path):
         # Need to add
         right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IRUSR)
-        if current & ~right == 0:
-            return
-        os.chmod(path, right)
+        if current & ~right != 0:
+            os.chmod(path, right)
     else:
         # Already in read only
         right = (stat.S_IRGRP | stat.S_IRUSR)
-        if current & ~right == 0:
-            return
-        os.chmod(path, right)
+        if current & ~right != 0:
+            os.chmod(path, right)
 
 
 def unset_path_readonly(path):
     current = os.stat(path).st_mode
     if os.path.isdir(path):
-        right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP |
-                            stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
-        if current & right == right:
-            return
-        os.chmod(path, right)
+        right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
+                 | stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
+        if current & right != right:
+            os.chmod(path, right)
     else:
-        right = (stat.S_IRGRP | stat.S_IRUSR |
-                         stat.S_IWGRP | stat.S_IWUSR)
-        if current & right == right:
-            return
-        os.chmod(path, right)
+        right = (stat.S_IRGRP | stat.S_IRUSR
+                 | stat.S_IWGRP | stat.S_IWUSR)
+        if current & right != right:
+            os.chmod(path, right)
 
 
 def unlock_path(path, unlock_parent=True):
     result = 0
     if unlock_parent:
         parent_path = os.path.dirname(path)
-        if (os.path.exists(parent_path) and
-            not os.access(parent_path, os.W_OK)):
+        if (os.path.exists(parent_path)
+                and not os.access(parent_path, os.W_OK)):
             unset_path_readonly(parent_path)
             result |= 2
     if os.path.exists(path) and not os.access(path, os.W_OK):
@@ -624,7 +618,7 @@ def lock_path(path, locker):
         set_path_readonly(parent)
 
 
-def make_tmp_file(dir, content):
+def make_tmp_file(folder, content):
     """Create a temporary file with the given content
     for streaming upload purposes.
 
@@ -632,7 +626,7 @@ def make_tmp_file(dir, content):
     when done with it.
     """
     fd, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
-                                dir=dir)
+                                dir=folder)
     with open(path, 'wb') as f:
         f.write(content)
     os.close(fd)
