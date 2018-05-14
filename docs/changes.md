@@ -75,7 +75,7 @@ Changes in command line arguments:
 - Packaging: Updated `pycryptodomex` from 3.5.1 to 3.6.1
 - Packaging: Updated `pypac` from 0.4.0 to 0.8.1
 - Packaging: Updated `pytest` from 3.3.2 to 3.5.1
-- Packaging: Updated `python-dateutil` from 2.6.1 to 2.7.2
+- Packaging: Updated `python-dateutil` from 2.6.1 to 2.7.3
 - Packaging: Updated `xattr` from 0.9.2 to 0.9.3
 - Packaging: Upgraded `SIP` from 4.19.7 to 4.19.8
 - Tracker: Removed the `Update` event
