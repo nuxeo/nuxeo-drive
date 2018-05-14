@@ -61,7 +61,7 @@ class WindowsLocalClient(LocalClient):
         new_path = os.path.join(os.path.dirname(path), to_name)
         res = shell.SHFileOperation((0, shellcon.FO_RENAME, path, new_path,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
-        time.sleep(0.1)
+        time.sleep(0.5)
         if res[0] != 0:
             raise IOError(res, locals())
         return MockFile(os.path.join(parent, to_name))
