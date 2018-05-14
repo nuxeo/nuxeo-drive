@@ -154,6 +154,7 @@
 - Changed utils.py::`find_resource_dir(directory, default_path)` to `find_resource(folder, filename)`
 - Moved utils.py::`default_nuxeo_drive_folder()` to `Manager.get_default_nuxeo_drive_folder()`
 - Removed wui/conflicts.py::`WebConflictsDialog()`
+- Removed wui/modal.py
 
 # 3.0.5
 - Changed `BlacklistQueue.get()`, it is now a generator.
