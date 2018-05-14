@@ -34,7 +34,10 @@ from .common import TEST_DEFAULT_DELAY, TEST_WORKSPACE_PATH, clean_dir
 
 YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '') != ''
 if YAPPI_PATH:
-    import yappi
+    try:
+        import yappi
+    except ImportError:
+        yappi = None
 
 
 log = getLogger(__name__)
@@ -285,7 +288,7 @@ class UnitTestCase(SimpleUnitTestCase):
         # Call the Nuxeo operation to setup the integration test environment
         credentials = self.root_remote.operations.execute(
             command='NuxeoDrive.SetupIntegrationTests',
-            userNames='user_1, user_2', permission='ReadWrite')
+            userNames=u'user_1, user_2', permission=u'ReadWrite')
 
         credentials = [c.strip().split(u':') for c in credentials.split(u',')]
         self.user_1, self.password_1 = credentials[0]

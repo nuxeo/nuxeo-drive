@@ -35,7 +35,6 @@ class RemoteWatcher(EngineWorker):
         self._last_event_log_id = self._dao.get_config('remote_last_event_log_id')
         self._last_root_definitions = self._dao.get_config('remote_last_root_definitions')
         self._last_remote_full_scan = self._dao.get_config('remote_last_full_scan')
-        self.local = self.engine.local
         self._metrics = {
             'last_remote_scan_time': -1,
             'last_remote_update_time': -1,
@@ -374,9 +373,9 @@ class RemoteWatcher(EngineWorker):
         remote_parent_path = parent_pair.remote_parent_path + '/' + parent_pair.remote_ref
         # Try to get the local definition if not linked
         child_pair = self._dao.get_state_from_local(local_path)
-        if child_pair is None and parent_pair is not None and self.local.exists(parent_pair.local_path):
-            for child in self.local.get_children_info(parent_pair.local_path):
-                if self.local.get_remote_id(child.path) == child_info.uid:
+        if child_pair is None and parent_pair is not None and self.engine.local.exists(parent_pair.local_path):
+            for child in self.engine.local.get_children_info(parent_pair.local_path):
+                if self.engine.local.get_remote_id(child.path) == child_info.uid:
                     log.debug('Found a local rename case: %r on %r', child_info, child.path)
                     child_pair = self._dao.get_state_from_local(child.path)
                     break
@@ -384,14 +383,17 @@ class RemoteWatcher(EngineWorker):
             if child_pair.remote_ref is not None and child_pair.remote_ref != child_info.uid:
                 log.debug("Got an existing pair with different id: %r | %r", child_pair, child_info)
             else:
-                if (child_pair.folderish == child_info.folderish
-                        and self.local.is_equal_digests(child_pair.local_digest, child_info.digest,
-                                child_pair.local_path, remote_digest_algorithm=child_info.digest_algorithm)):
+                if (child_pair.folderish is child_info.folderish is False
+                        and self.engine.local.is_equal_digests(
+                            child_pair.local_digest,
+                            child_info.digest,
+                            child_pair.local_path,
+                            remote_digest_algorithm=child_info.digest_algorithm)):
                     # Local rename
                     if child_pair.local_path != local_path:
                         child_pair.local_state = 'moved'
                         child_pair.remote_state = 'unknown'
-                        local_info = self.local.get_info(child_pair.local_path)
+                        local_info = self.engine.local.get_info(child_pair.local_path)
                         self._dao.update_local_state(child_pair, local_info)
                         self._dao.update_remote_state(child_pair, child_info, remote_parent_path=remote_parent_path)
                     else:
@@ -401,9 +403,10 @@ class RemoteWatcher(EngineWorker):
                         if not synced:
                             # Try again, might happen that it has been modified locally and remotely
                             child_pair = self._dao.get_state_from_id(child_pair.id)
-                            if (child_pair.folderish == child_info.folderish
-                                    and self.local.is_equal_digests(
-                                        child_pair.local_digest, child_info.digest,
+                            if (child_pair.folderish is child_info.folderish is False
+                                    and self.engine.local.is_equal_digests(
+                                        child_pair.local_digest,
+                                        child_info.digest,
                                         child_pair.local_path,
                                         remote_digest_algorithm=child_info.digest_algorithm)):
                                 self._dao.synchronize_state(child_pair)
@@ -413,8 +416,12 @@ class RemoteWatcher(EngineWorker):
                         if synced:
                             self.engine.stop_processor_on(child_pair.local_path)
                         # Push the remote_Id
-                        log.debug('Set remote ID on %r / %r == %r', child_pair, child_pair.local_path, child_pair.local_path)
-                        self.local.set_remote_id(child_pair.local_path, child_info.uid)
+                        log.debug('Set remote ID on %r / %r == %r',
+                                  child_pair,
+                                  child_pair.local_path,
+                                  child_pair.local_path)
+                        self.engine.local.set_remote_id(
+                            child_pair.local_path, child_info.uid)
                         if child_pair.folderish:
                             self._dao.queue_children(child_pair)
                 else:
@@ -747,7 +754,7 @@ class RemoteWatcher(EngineWorker):
 
                 pair = self._dao.get_state_from_id(doc_pair.id)
                 self.engine._manager.osi.send_sync_status(
-                    pair, self.local.abspath(pair.local_path))
+                    pair, self.engine.local.abspath(pair.local_path))
 
                 updated = True
                 refreshed.add(remote_ref)
@@ -811,4 +818,4 @@ class RemoteWatcher(EngineWorker):
         """ Check if a remote document is locally ignored. """
         return (info is not None
                 and not info.folderish
-                and self.local.is_ignored('/', info.name))
+                and self.engine.local.is_ignored('/', info.name))

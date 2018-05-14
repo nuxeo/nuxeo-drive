@@ -9,9 +9,13 @@ from datetime import datetime
 from logging import getLogger
 from threading import Lock, current_thread
 
+import nuxeo.constants
+nuxeo.constants.CHECK_PARAMS = True
+
 from dateutil import parser
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
+from nuxeo.compat import get_text
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import FileBlob
 
@@ -534,17 +538,23 @@ class Remote(Nuxeo):
     def get_changes(self, last_root_definitions,
                     log_id=None, last_sync_date=None):
         # type: (Text, Optional[int], Optional[int]) -> Dict[Text, Any]
+        if not last_root_definitions:
+            last_root_definitions = get_text('')
+
         if log_id:
             # If available, use last event log id as 'lowerBound' parameter
             # according to the new implementation of the audit change finder,
             # see https://jira.nuxeo.com/browse/NXP-14826.
             return self.operations.execute(
-                command='NuxeoDrive.GetChangeSummary', lowerBound=log_id,
+                command='NuxeoDrive.GetChangeSummary',
+                lowerBound=int(log_id),
                 lastSyncActiveRootDefinitions=last_root_definitions)
+
         # Use last sync date as 'lastSyncDate' parameter according to the
         # old implementation of the audit change finder.
         return self.operations.execute(
-            command='NuxeoDrive.GetChangeSummary', lastSyncDate=last_sync_date,
+            command='NuxeoDrive.GetChangeSummary',
+            lastSyncDate=int(last_sync_date),
             lastSyncActiveRootDefinitions=last_root_definitions)
 
     # From DocumentClient
@@ -552,7 +562,7 @@ class Remote(Nuxeo):
         # type: (Text, Any) -> Dict[Text, Any]
         try:
             return self.operations.execute(
-                command='Document.Fetch', value=ref, **kwargs)
+                command='Document.Fetch', value=get_text(ref), **kwargs)
         except HTTPError as e:
             if e.status == 404:
                 raise NotFound('Failed to fetch document %r on server %r' % (
