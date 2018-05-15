@@ -1,7 +1,10 @@
 # coding: utf-8
+import sys
 from logging import getLogger
 
-from .common_unit_test import RandomBug, UnitTestCase
+import pytest
+
+from .common_unit_test import UnitTestCase
 
 log = getLogger(__name__)
 
@@ -102,7 +105,8 @@ class TestLocalFilter(UnitTestCase):
         assert len(children) == 2
         assert children[1].name == '2345BCDF'
 
-    @RandomBug('NXDRIVE-808', target='linux', mode='BYPASS')
+    @pytest.mark.random(
+        'NXDRIVE-808', condition=(sys.platform == 'linux2'), mode='BYPASS')
     def test_synchronize_local_filter_with_move(self):
         # Bind the server and root workspace
         self.engine_1.start()
@@ -175,7 +179,6 @@ class TestLocalFilter(UnitTestCase):
         assert not local.exists('/Test/Subfolder/SubSubfolder')
         assert not local.exists('/Test/Subfolder/SubSubfolder/joe4.txt')
 
-    # @RandomBug('NXDRIVE-814', target='mac', mode='BYPASS')
     def test_synchronize_local_filter_with_remote_trash(self):
         self.engine_1.start()
 
