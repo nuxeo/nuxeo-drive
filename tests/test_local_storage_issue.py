@@ -1,10 +1,12 @@
 # coding: utf-8
 import os
 
+import pytest
+
 from nxdrive.client.remote_filtered_file_system_client import \
     RemoteFilteredFileSystemClient
 from . import RemoteTestClient
-from .common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class TestLocalStorageSpaceIssue(UnitTestCase):
@@ -23,9 +25,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.assertEqual(len(children), 1)
         self.assertEqual(children[0].name, "Test.txt")
 
-    @RandomBug('NXDRIVE-818', target='windows', mode='BYPASS')
-    @RandomBug('NXDRIVE-818', target='mac', mode='BYPASS')
-    @RandomBug('NXDRIVE-818', target='linux', mode='BYPASS')
+    @pytest.mark.random('NXDRIVE-818', mode='BYPASS')
     def test_synchronize_no_space_left_on_device(self):
         local = self.local_client_1
         remote = self.remote_document_client_1
