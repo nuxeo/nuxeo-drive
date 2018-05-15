@@ -691,6 +691,7 @@ class LocalWatcher(EngineWorker):
             rel_parent_path = client.get_path(dirname(src_path)) or '/'
 
             # Ignore inner movement
+            versioned = False
             remote_parent_ref = client.get_remote_id(rel_parent_path)
             parent_path = dirname(doc_pair.local_path)
             if (doc_pair.remote_name == local_info.name
@@ -705,9 +706,9 @@ class LocalWatcher(EngineWorker):
                 if doc_pair.local_state != 'created':
                     doc_pair.local_state = 'moved'
                     old_local_path = doc_pair.local_path
-                    dao.update_local_state(doc_pair, local_info)
+                    versioned = True
 
-            dao.update_local_state(doc_pair, local_info, versioned=False)
+            dao.update_local_state(doc_pair, local_info, versioned=versioned)
 
             if (self._windows
                     and old_local_path is not None

@@ -12,7 +12,6 @@ from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
                          QTextEdit, QVBoxLayout)
 from markdown import markdown
 
-from .modal import WebModal
 from .systray import DriveSystrayIcon
 from .translator import Translator
 from ..engine.activity import Action, FileAction
@@ -61,7 +60,7 @@ class SimpleApplication(QApplication):
         locale = Options.force_locale or Options.locale
         Translator(
             self.manager,
-            find_resource('i18n', ''),
+            find_resource('i18n'),
             self.manager.get_config('locale', locale),
         )
 
@@ -103,8 +102,10 @@ class Application(SimpleApplication):
         self.setup_systray()
 
         # Direct Edit
-        self.manager.direct_edit.directEditConflict.connect(self._direct_edit_conflict)
-        self.manager.direct_edit.directEditError.connect(self._direct_edit_error)
+        self.manager.direct_edit.directEditConflict.connect(
+            self._direct_edit_conflict)
+        self.manager.direct_edit.directEditError.connect(
+            self._direct_edit_error)
 
         # Check if actions is required, separate method so it can be overridden
         self.init_checks()
@@ -126,21 +127,27 @@ class Application(SimpleApplication):
         try:
             filename = unicode(filename)
             if filename in self._conflicts_modals:
-                log.trace('Filename already in _conflicts_modals: %r', filename)
+                log.trace('Filename already in _conflicts_modals: %r',
+                          filename)
                 return
             log.trace('Putting filename in _conflicts_modals: %r', filename)
             self._conflicts_modals[filename] = True
             info = dict(name=filename)
-            dlg = WebModal(
-                self,
-                Translator.get('DIRECT_EDIT_CONFLICT_MESSAGE', info),
-            )
-            dlg.add_button('OVERWRITE',
-                           Translator.get('DIRECT_EDIT_CONFLICT_OVERWRITE'))
-            dlg.add_button('CANCEL',
-                           Translator.get('DIRECT_EDIT_CONFLICT_CANCEL'))
-            res = dlg.exec_()
-            if res == 'OVERWRITE':
+
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowIcon(QIcon(self.get_window_icon()))
+            msg.setText(Translator.get('DIRECT_EDIT_CONFLICT_MESSAGE', info))
+            overwrite = msg.addButton(
+                Translator.get('DIRECT_EDIT_CONFLICT_OVERWRITE'),
+                QMessageBox.AcceptRole)
+            cancel = msg.addButton(
+                Translator.get('DIRECT_EDIT_CONFLICT_CANCEL'),
+                QMessageBox.RejectRole)
+
+            msg.exec_()
+            res = msg.clickedButton()
+            if res == overwrite:
                 self.manager.direct_edit.force_update(unicode(ref),
                                                       unicode(digest))
             del self._conflicts_modals[filename]
@@ -165,49 +172,62 @@ class Application(SimpleApplication):
         engine = self.sender()
         info = {'folder': engine.local_folder}
         log.debug('Root has been deleted for engine: %s', engine.uid)
-        dlg = WebModal(self, Translator.get('DRIVE_ROOT_DELETED', info))
-        dlg.add_button('RECREATE',
-                       Translator.get('DRIVE_ROOT_RECREATE'),
-                       style='primary')
-        dlg.add_button('DISCONNECT',
-                       Translator.get('DRIVE_ROOT_DISCONNECT'),
-                       style='danger')
-        res = dlg.exec_()
-        if res == 'DISCONNECT':
+
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setText(Translator.get('DRIVE_ROOT_DELETED', info))
+        recreate = msg.addButton(
+            Translator.get('DRIVE_ROOT_RECREATE'), QMessageBox.AcceptRole)
+        disconnect = msg.addButton(
+            Translator.get('DRIVE_ROOT_DISCONNECT'), QMessageBox.RejectRole)
+
+        msg.exec_()
+        res = msg.clickedButton()
+        if res == disconnect:
             self.manager.unbind_engine(engine.uid)
-        elif res == 'RECREATE':
+        elif res == recreate:
             engine.reinit()
             engine.start()
 
     @pyqtSlot()
     def _no_space_left(self):
-        dialog = WebModal(self, Translator.get('NO_SPACE_LEFT_ON_DEVICE'))
-        dialog.add_button('OK', Translator.get('OK'))
-        dialog.exec_()
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setText(Translator.get('NO_SPACE_LEFT_ON_DEVICE'))
+        msg.addButton(Translator.get('OK'), QMessageBox.AcceptRole)
+        msg.exec_()
 
     @pyqtSlot(str)
     def _root_moved(self, new_path):
         engine = self.sender()
-        log.debug('Root has been moved for engine: %s to %r', engine.uid, new_path)
+        log.debug('Root has been moved for engine: %s to %r',
+                  engine.uid, new_path)
         info = {
             'folder': engine.local_folder,
             'new_folder': new_path,
         }
-        dlg = WebModal(self, Translator.get('DRIVE_ROOT_MOVED', info))
-        dlg.add_button('MOVE',
-                       Translator.get('DRIVE_ROOT_UPDATE'),
-                       style='primary')
-        dlg.add_button('RECREATE', Translator.get('DRIVE_ROOT_RECREATE'))
-        dlg.add_button('DISCONNECT',
-                       Translator.get('DRIVE_ROOT_DISCONNECT'),
-                       style='danger')
-        res = dlg.exec_()
-        if res == 'DISCONNECT':
+
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setText(Translator.get('DRIVE_ROOT_MOVED', info))
+        move = msg.addButton(
+            Translator.get('DRIVE_ROOT_UPDATE'), QMessageBox.AcceptRole)
+        recreate = msg.addButton(
+            Translator.get('DRIVE_ROOT_RECREATE'), QMessageBox.AcceptRole)
+        disconnect = msg.addButton(
+            Translator.get('DRIVE_ROOT_DISCONNECT'), QMessageBox.RejectRole)
+        msg.exec_()
+        res = msg.clickedButton()
+
+        if res == disconnect:
             self.manager.unbind_engine(engine.uid)
-        elif res == 'RECREATE':
+        elif res == recreate:
             engine.reinit()
             engine.start()
-        elif res == 'MOVE':
+        elif res == move:
             engine.set_local_folder(unicode(new_path))
             engine.start()
 
@@ -229,7 +249,7 @@ class Application(SimpleApplication):
         engines = self.manager.get_engines()
         invalid_credentials = paused = offline = True
 
-        for engine in engines.itervalues():
+        for engine in engines.values():
             syncing |= engine.is_syncing()
             invalid_credentials &= engine.has_invalid_credentials()
             paused &= engine.is_paused()
@@ -334,7 +354,8 @@ class Application(SimpleApplication):
     def _debug_toggle_invalid_credentials(self):
         sender = self.sender()
         engine = sender.data().toPyObject()
-        engine.set_invalid_credentials(not engine.has_invalid_credentials(), reason='debug')
+        engine.set_invalid_credentials(not engine.has_invalid_credentials(),
+                                       reason='debug')
 
     @pyqtSlot()
     def _debug_show_file_status(self):
@@ -381,7 +402,8 @@ class Application(SimpleApplication):
         for _, engine in self.manager.get_engines().items():
             self._connect_engine(engine)
         self.manager.newEngine.connect(self._connect_engine)
-        self.manager.notification_service.newNotification.connect(self._new_notification)
+        self.manager.notification_service.newNotification.connect(
+            self._new_notification)
         self.manager.updater.updateAvailable.connect(self._update_notification)
         if not self.manager.get_engines():
             self.show_settings()
@@ -421,7 +443,8 @@ class Application(SimpleApplication):
     @pyqtSlot()
     def message_clicked(self):
         if self.current_notification:
-            self.manager.notification_service.trigger_notification(self.current_notification.uid)
+            self.manager.notification_service.trigger_notification(
+                self.current_notification.uid)
 
     def _setup_notification_center(self):
         from ..osi.darwin.pyNotificationCenter import (setup_delegator,
@@ -483,7 +506,7 @@ class Application(SimpleApplication):
             return self.default_tooltip
 
         # Display only the first action for now
-        for action in actions.itervalues():
+        for action in actions.values():
             if action and not action.type.startswith('_'):
                 break
         else:

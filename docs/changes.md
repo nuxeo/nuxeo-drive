@@ -20,6 +20,7 @@ Changes in command line arguments:
 - [NXDRIVE-1154](https://jira.nuxeo.com/browse/NXDRIVE-1154): Persist the server's UI into the local configuration database
 - [NXDRIVE-1163](https://jira.nuxeo.com/browse/NXDRIVE-1163): Direct Edit does not work with filenames containing spaces
 - [NXDRIVE-1174](https://jira.nuxeo.com/browse/NXDRIVE-1174): Efficient `ConfigurationDAO.update_config()`
+- [NXDRIVE-1207](https://jira.nuxeo.com/browse/NXDRIVE-1207): Modifying a file overwrites event on its parent folder
 
 ### GUI
 - [NXDRIVE-289](https://jira.nuxeo.com/browse/NXDRIVE-289): Use light icons on Windows
@@ -37,6 +38,7 @@ Changes in command line arguments:
 - [NXDRIVE-1158](https://jira.nuxeo.com/browse/NXDRIVE-1158): Restore the context menu "Edit metadata"
 - [NXDRIVE-1166](https://jira.nuxeo.com/browse/NXDRIVE-1166): Display a notification on new update on GNU/Linux
 - [NXDRIVE-1175](https://jira.nuxeo.com/browse/NXDRIVE-1175): New language: Hebrew
+- [NXDRIVE-1193](https://jira.nuxeo.com/browse/NXDRIVE-1193): Switch all HTML messages box to simple Qt box
 
 ### Packaging / Build
 - [NXDRIVE-136](https://jira.nuxeo.com/browse/NXDRIVE-136): Activate code signing on macOS (valid until 2023-03-10)
@@ -75,7 +77,7 @@ Changes in command line arguments:
 - Packaging: Updated `pycryptodomex` from 3.5.1 to 3.6.1
 - Packaging: Updated `pypac` from 0.4.0 to 0.8.1
 - Packaging: Updated `pytest` from 3.3.2 to 3.5.1
-- Packaging: Updated `python-dateutil` from 2.6.1 to 2.7.2
+- Packaging: Updated `python-dateutil` from 2.6.1 to 2.7.3
 - Packaging: Updated `xattr` from 0.9.2 to 0.9.3
 - Packaging: Upgraded `SIP` from 4.19.7 to 4.19.8
 - Tracker: Removed the `Update` event
