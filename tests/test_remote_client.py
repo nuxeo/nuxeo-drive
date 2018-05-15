@@ -538,11 +538,6 @@ class TestRemoteFileSystemClient(UnitTestCase):
         remote.unregister_as_root(folder)
         assert not remote.get_roots()
 
-    def test_get_update_info(self):
-        update_info = self.remote_1.get_update_info()
-        assert update_info.get('serverVersion')
-        assert update_info.get('updateSiteURL')
-
     def test_lock_unlock(self):
         remote = self.remote_document_client_1
         doc_id = remote.make_file(

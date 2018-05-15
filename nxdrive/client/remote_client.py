@@ -9,9 +9,6 @@ from datetime import datetime
 from logging import getLogger
 from threading import Lock, current_thread
 
-import nuxeo.constants
-nuxeo.constants.CHECK_PARAMS = True
-
 from dateutil import parser
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
@@ -231,9 +228,10 @@ class Remote(Nuxeo):
                 if command:
                     headers = {'Nuxeo-Transaction-Timeout': str(tx_timeout)}
                     return self.operations.execute(
-                        command=command, timeout=tx_timeout,
+                        command=command,
                         input_obj=upload_result,
-                        headers=headers, **params)
+                        headers=headers,
+                        **params)
             finally:
                 FileAction.finish_action()
 
@@ -410,8 +408,11 @@ class Remote(Nuxeo):
         """Update a document by streaming the file with the given path"""
         if fs:
             fs_item = self.upload(
-                file_path, filename=filename, command='NuxeoDrive.UpdateFile',
-                id=fs_item_id, parentId=parent_fs_item_id)
+                file_path,
+                filename=filename,
+                command='NuxeoDrive.UpdateFile',
+                id=fs_item_id,
+                parentId=parent_fs_item_id)
             return self.file_to_info(fs_item)
 
         self.upload(
@@ -518,23 +519,20 @@ class Remote(Nuxeo):
     def get_changes(self, last_root_definitions,
                     log_id=None, last_sync_date=None):
         # type: (Text, Optional[int], Optional[int]) -> Dict[Text, Any]
-        if not last_root_definitions:
-            last_root_definitions = get_text('')
-
         if log_id:
             # If available, use last event log id as 'lowerBound' parameter
             # according to the new implementation of the audit change finder,
             # see https://jira.nuxeo.com/browse/NXP-14826.
             return self.operations.execute(
                 command='NuxeoDrive.GetChangeSummary',
-                lowerBound=int(log_id),
+                lowerBound=log_id,
                 lastSyncActiveRootDefinitions=last_root_definitions)
 
         # Use last sync date as 'lastSyncDate' parameter according to the
         # old implementation of the audit change finder.
         return self.operations.execute(
             command='NuxeoDrive.GetChangeSummary',
-            lastSyncDate=int(last_sync_date),
+            lastSyncDate=last_sync_date,
             lastSyncActiveRootDefinitions=last_root_definitions)
 
     # From DocumentClient
@@ -746,9 +744,13 @@ class Remote(Nuxeo):
                 return content
         else:
             doc_id = ref
+
         return self.operations.execute(
-            command='Blob.Get', input_obj='doc:' + doc_id, json=False,
-            timeout=self.blob_timeout, file_out=file_out, **kwargs)
+            command='Blob.Get',
+            input_obj='doc:' + doc_id,
+            json=False,
+            file_out=file_out,
+            **kwargs)
 
     def lock(self, ref):
         # type: (Text) -> Dict[Text, Any]
@@ -764,11 +766,6 @@ class Remote(Nuxeo):
         # type: () -> List[NuxeoDocumentInfo]
         res = self.operations.execute(command='NuxeoDrive.GetRoots')
         return self._filtered_results(res['entries'], fetch_parent_uid=False)
-
-    def get_update_info(self):
-        # type: () -> Dict[Text, Any]
-        return self.operations.execute(
-            command='NuxeoDrive.GetClientUpdateInfo')
 
     def register_as_root(self, ref):
         # type: (Text) -> bool

@@ -1,12 +1,18 @@
 # coding: utf-8
+from __future__ import unicode_literals
+
 import logging
 import os
 
+import nuxeo.constants
 from nuxeo.exceptions import HTTPError
 
 from nxdrive.client import NuxeoDocumentInfo, Remote, safe_filename
 from nxdrive.logging_config import configure
 from nxdrive.utils import make_tmp_file
+
+# Automatically check all operations done with the Python client
+nuxeo.constants.CHECK_PARAMS = True
 
 FILE_TYPE = 'File'
 FOLDER_TYPE = 'Folder'
@@ -297,16 +303,18 @@ class DocRemote(RemoteTest):
 
     def block_inheritance(self, ref, overwrite=True):
         input_obj = 'doc:' + self._check_ref(ref)
+
         self.operations.execute(
             command='Document.SetACE',
             input_obj=input_obj,
             user='Administrator',
             permission='Everything',
             overwrite=overwrite)
+
         self.operations.execute(
             command='Document.SetACE',
             input_obj=input_obj,
             user='Everyone',
             permission='Everything',
-            grant='false',
+            grant=False,
             overwrite=False)

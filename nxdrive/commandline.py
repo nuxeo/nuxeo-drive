@@ -304,6 +304,10 @@ class CliHandler(object):
         self.load_config(parser)
         options = parser.parse_args(filtered_args)
         if options.debug:
+            # Automatically check all operations done with the Python client
+            import nuxeo.constants
+            nuxeo.constants.CHECK_PARAMS = True
+
             # Install Post-Mortem debugger hook
 
             def info(etype, value, tb):

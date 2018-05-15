@@ -210,7 +210,7 @@ class TestDirectEdit(UnitTestCase):
 
     def test_download_url_with_spaces(self):
         scheme, host = self.nuxeo_url.split('://')
-        filename = 'My file with spaces.txt'
+        filename = u'My file with spaces.txt'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
 
         url = ('nxdrive://edit/{scheme}/{host}/user/{user}/repo/default/'
