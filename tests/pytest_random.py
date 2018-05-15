@@ -39,6 +39,15 @@ def get_condition(item):
 def pytest_configure(config):
     """ Set the default mode upon pytest loading. """
     config.default_mode = os.environ.get('RANDOM_BUG_MODE', None)
+    config.addinivalue_line(
+        "markers",
+        "random(reason, condition=True, mode='BYPASS', repeat=10): "
+        "if condition is False, test runs normally, else: "
+        "if mode is BYPASS, skip test. "
+        "If mode is RELAX, run test until it succeeds or "
+        "has ran <repeat> times. "
+        "If mode is STRICT, run test until it fails or "
+        "has ran <repeat> times. ")
 
 
 def pytest_collection_modifyitems(items):
