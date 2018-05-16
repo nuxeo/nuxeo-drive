@@ -1,7 +1,6 @@
 # coding: utf-8
 import os
 import shutil
-import sys
 
 from .common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
 

@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
-from unittest import skipIf
+
+import pytest
 
 from nxdrive.osi import AbstractOSIntegration
 from .common_unit_test import UnitTestCase
@@ -78,8 +79,9 @@ class TestEncoding(UnitTestCase):
         info = self.remote.get_info('/' + filename)
         assert info.name == filename
 
-    @skipIf(AbstractOSIntegration.is_mac(),
-            'Normalization doesn\'t work on Mac')
+    @pytest.mark.skipif(
+        AbstractOSIntegration.is_mac(),
+        reason="Normalization doesn't work on Mac")
     def test_fileinfo_normalization(self):
         self.engine_1.stop()
         name = u'Teste\u0301'

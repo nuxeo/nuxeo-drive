@@ -38,6 +38,7 @@ class TestReinitDatabase(UnitTestCase):
     def _reinit_database(self):
         # Unbind engine
         self.manager_1.unbind_engine(self.engine_1.uid)
+
         # Re-bind engine
         self.engine_1 = self.manager_1.bind_server(
             self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1,
@@ -57,6 +58,7 @@ class TestReinitDatabase(UnitTestCase):
         # Start engine and wait for synchronization
         self.engine_1.start()
         self.wait_remote_scan()
+
         # Check everything is synchronized
         self._check_states()
 
@@ -64,60 +66,66 @@ class TestReinitDatabase(UnitTestCase):
         # Modify the remote file
         self.remote.update_content('/Test folder/Test.txt',
                                    'Content has changed')
+
         # Start engine and wait for synchronization
         self.engine_1.start()
         self.wait_sync(wait_for_async=True, timeout=5, fail_if_timeout=False)
+
         # Check that a conflict is detected
         self._check_conflict_detection()
         file_state = self.engine_1.get_dao().get_state_from_local(
             '/' + self.workspace_title + '/Test folder/Test.txt')
         assert file_state
         assert file_state.pair_state == 'conflicted'
+
         # Assert content of the local file has not changed
-        assert (self.local.get_content('/Test folder/Test.txt')
-                == 'This is some content'),\
-            'Local content should not have changed'
+        content = self.local.get_content('/Test folder/Test.txt')
+        assert content == 'This is some content'
 
     def test_synchronize_local_change(self):
         # Modify the local file
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         self.local.update_content('/Test folder/Test.txt',
                                   'Content has changed')
+
         # Start engine and wait for synchronization
         self.engine_1.start()
         self.wait_sync(timeout=5, fail_if_timeout=False)
+
         # Check that a conflict is detected
         self._check_conflict_detection()
         file_state = self.engine_1.get_dao().get_state_from_local(
             '/' + self.workspace_title + '/Test folder/Test.txt')
         assert file_state
         assert file_state.pair_state == 'conflicted'
+
         # Assert content of the remote file has not changed
-        assert (self.remote.get_content('/Test folder/Test.txt')
-                == 'This is some content'),\
-            'Remote content should not have changed'
+        content = self.remote.get_content('/Test folder/Test.txt')
+        assert content == 'This is some content'
 
     def test_synchronize_remote_and_local_change(self):
         # Modify the remote file
         self.remote.update_content('/Test folder/Test.txt',
                                    'Content has remotely changed')
+
         # Modify the local file
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         self.local.update_content('/Test folder/Test.txt',
                                   'Content has locally changed')
+
         # Start engine and wait for synchronization
         self.engine_1.start()
         self.wait_sync(wait_for_async=True, timeout=5, fail_if_timeout=False)
+
         # Check that a conflict is detected
         self._check_conflict_detection()
         file_state = self.engine_1.get_dao().get_state_from_local(
             '/' + self.workspace_title + '/Test folder/Test.txt')
         assert file_state
         assert file_state.pair_state == 'conflicted'
+
         # Assert content of the local and remote files has not changed
-        assert (self.local.get_content('/Test folder/Test.txt')
-                == 'Content has locally changed'),\
-            'Local content should not have changed'
-        assert (self.remote.get_content('/Test folder/Test.txt')
-                == 'Content has remotely changed'),\
-            'Remote content should not have changed'
+        content = self.local.get_content('/Test folder/Test.txt')
+        assert content == 'Content has locally changed'
+        content = self.remote.get_content('/Test folder/Test.txt')
+        assert content == 'Content has remotely changed'

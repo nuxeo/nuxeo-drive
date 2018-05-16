@@ -3,7 +3,7 @@ from logging import getLogger
 
 from nuxeo.models import Document, Group
 
-from tests import DocRemote
+from . import DocRemote
 from .common_unit_test import UnitTestCase
 
 log = getLogger(__name__)
@@ -32,10 +32,9 @@ class TestGroupChanges(UnitTestCase):
 
         # Create test groups
         group_names = self.get_group_names()
-        assert 'group1' not in group_names
-        assert 'group2' not in group_names
-        assert 'parentGroup' not in group_names
-        assert 'grandParentGroup' not in group_names
+        for group in ('group1', 'group2', 'parentGroup', 'grandParentGroup'):
+            if group in group_names:
+                remote.groups.delete(group)
 
         for group in [
             Group(groupname='group1', memberUsers=['driveuser_1']),
@@ -125,13 +124,17 @@ class TestGroupChanges(UnitTestCase):
 
         log.debug('Grant ReadWrite permission to group1 on syncRoot')
         self.admin_remote.operations.execute(
-            command='Document.SetACE', input_obj='doc:' + sync_root_id,
-            user='group1', permission='ReadWrite')
+            command='Document.SetACE',
+            input_obj='doc:' + sync_root_id,
+            user='group1',
+            permission='ReadWrite')
 
         log.debug('Grant ReadWrite permission to group2 on child')
         self.admin_remote.operations.execute(
-            command='Document.SetACE', input_obj='doc:' + child_id,
-            user='group2', permission='ReadWrite')
+            command='Document.SetACE',
+            input_obj='doc:' + child_id,
+            user='group2',
+            permission='ReadWrite')
 
         log.debug('Block inheritance on child')
         self.admin_remote.block_inheritance(child_id, overwrite=False)
@@ -162,8 +165,10 @@ class TestGroupChanges(UnitTestCase):
 
         log.debug('Grant ReadWrite permission to group1 on parent')
         self.admin_remote.operations.execute(
-            command='Document.SetACE', input_obj='doc:' + parent_id,
-            user='group1', permission='ReadWrite')
+            command='Document.SetACE',
+            input_obj='doc:' + parent_id,
+            user='group1',
+            permission='ReadWrite')
 
         log.debug('Register syncRoot for driveuser_1')
         self._register_sync_root_user1(sync_root_id)
@@ -190,8 +195,12 @@ class TestGroupChanges(UnitTestCase):
 
     def _register_sync_root_user1(self, sync_root_id):
         user1_remote = DocRemote(
-            self.nuxeo_url, self.user_1, 'nxdrive-test-device-1', self.version,
-            password=self.password_1, base_folder=sync_root_id,
+            self.nuxeo_url,
+            self.user_1,
+            'nxdrive-test-device-1',
+            self.version,
+            password=self.password_1,
+            base_folder=sync_root_id,
             upload_tmp_dir=self.upload_tmp_dir)
         user1_remote.register_as_root(sync_root_id)
 

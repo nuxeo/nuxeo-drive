@@ -1,14 +1,12 @@
 # coding: utf-8
 import os
 import shutil
-from logging import getLogger
 
 from mock import patch
 
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 from .common_unit_test import UnitTestCase
 
-log = getLogger(__name__)
 wait_for_security_update = False
 src = None
 dst = None
@@ -56,7 +54,6 @@ class TestLocalShareMoveFolders(UnitTestCase):
             file_name = self.FILE_NAME_PATTERN % (file_num, 'png')
             file_path = os.path.join(abs_folder_path_1, file_name)
             self.generate_random_png(file_path)
-        log.debug('Local test files created in a1')
 
         self.engine_1.start()
         self.wait_sync(timeout=60, wait_win=True)
@@ -75,9 +72,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
 
         assert local.exists(folder)
         children = [child.name for child in local.get_children_info(folder)]
-        assert len(children) == num, \
-            'Number of local files (%d) in %s is different ' \
-            'from original (%d)' % (len(children), folder, num)
+        assert len(children) == num
         assert set(children) == names
 
     def _check_remote(self, folder):
@@ -89,13 +84,10 @@ class TestLocalShareMoveFolders(UnitTestCase):
 
         uid = local.get_remote_id(folder)
         assert uid is not None
-        log.debug('Remote ref of %s: %s', folder, uid)
         assert remote.fs_exists(uid)
 
         children = [child.name for child in remote.get_fs_children(uid)]
-        assert len(children) == num,\
-            'Number of remote files (%d) in %s is different ' \
-            'from original (%d)' % (len(children), folder, num)
+        assert len(children) == num
         assert set(children) == names
 
     @patch.object(RemoteWatcher, '_get_changes', mock_get_changes)
@@ -111,8 +103,10 @@ class TestLocalShareMoveFolders(UnitTestCase):
         wait_for_security_update = True                                        
         input_obj = local.get_remote_id('/a1').split('#')[-1]
         remote.operations.execute(
-            command='Document.AddPermission', input_obj=input_obj,
-            username=self.user_2, permission='Everything')
+            command='Document.AddPermission',
+            input_obj=input_obj,
+            username=self.user_2,
+            permission='Everything')
 
         self.wait_sync()
         
@@ -136,7 +130,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         uid = local.get_remote_id('/a2/a1')
         remote.make_folder(uid.split('#')[-1], 'inside_a1')
         
-        self.wait_sync(fail_if_timeout=True)
+        self.wait_sync()
         
         # Check that a1 doesn't exist anymore locally
         assert local.exists('/a2/a1/inside_a1')

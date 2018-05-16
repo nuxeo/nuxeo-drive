@@ -3,14 +3,10 @@ import os
 import shutil
 import sys
 import time
-from logging import getLogger
 
 import pytest
 
-from common_unit_test import UnitTestCase
-from .common_unit_test import FILE_CONTENT
-
-log = getLogger(__name__)
+from .common_unit_test import FILE_CONTENT, UnitTestCase
 
 
 class TestLocalCreations(UnitTestCase):

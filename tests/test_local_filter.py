@@ -1,9 +1,5 @@
 # coding: utf-8
-from logging import getLogger
-
 from .common_unit_test import RandomBug, UnitTestCase
-
-log = getLogger(__name__)
 
 
 class TestLocalFilter(UnitTestCase):
@@ -98,15 +94,11 @@ class TestLocalFilter(UnitTestCase):
         assert self.local_1.exists('/' + hexafile)
         children = self.remote_document_client_1.get_children_info(
             self.workspace)
-        log.debug('Children retrieved: %r', children)
         assert len(children) == 2
         assert children[1].name == '2345BCDF'
 
     @RandomBug('NXDRIVE-808', target='linux', mode='BYPASS')
     def test_synchronize_local_filter_with_move(self):
-        # Bind the server and root workspace
-        self.engine_1.start()
-        # Get local and remote clients
         local = self.local_1
         remote = self.remote_document_client_1
 
@@ -122,7 +114,7 @@ class TestLocalFilter(UnitTestCase):
         remote.make_file(
             '/Test/Subfolder/SubSubfolder', 'joe4.txt', 'Some qwqwqontent')
 
-        # Fake server binding with the unit test class
+        self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         assert local.exists('/Test')
         assert local.exists('/Test/joe.txt')
@@ -175,7 +167,6 @@ class TestLocalFilter(UnitTestCase):
         assert not local.exists('/Test/Subfolder/SubSubfolder')
         assert not local.exists('/Test/Subfolder/SubSubfolder/joe4.txt')
 
-    @RandomBug('NXDRIVE-814', target='mac', mode='BYPASS')
     def test_synchronize_local_filter_with_remote_trash(self):
         self.engine_1.start()
 

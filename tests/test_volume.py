@@ -4,7 +4,8 @@ import shutil
 from copy import copy
 from logging import getLogger
 from math import floor, log10
-from unittest import SkipTest, skipIf
+
+import pytest
 
 from .common import TEST_WORKSPACE_PATH
 from .common_unit_test import UnitTestCase
@@ -44,8 +45,9 @@ class VolumeTestCase(UnitTestCase):
                     self.generate_random_png(file_path)
                 self.items = self.items + 1
 
-    @skipIf('TEST_VOLUME' not in os.environ,
-            'Deactivate if not launch on purpose with TEST_VOLUME set')
+    @pytest.mark.skipif(
+        'TEST_VOLUME' not in os.environ,
+        reason='Deactivate if not launch on purpose with TEST_VOLUME set')
     def create(self, stopped=True, wait_for_sync=True):
         self.fake = False
         if not self.fake:
@@ -170,7 +172,7 @@ class VolumeTestCase(UnitTestCase):
         # While we are started
         # Move one parent to the second children
         if len(self.tree['childs']) < 3 or self.depth < 2:
-            raise SkipTest("Can't execute this test on so few data")
+            raise pytest.skip("Can't execute this test on so few data")
         # Move root 2 in, first subchild of 1
         root_2 = self.get_path(True, 1, 2)
         child = self.get_path(True, self.depth, 1)
@@ -272,9 +274,10 @@ class VolumeTestCase(UnitTestCase):
         self._check_folder(self.get_path(True, 1, self.num_folders+2),
                            added=[self.get_name(True, 1, 1)])
 
-    @skipIf('TEST_REMOTE_SCAN_VOLUME' not in os.environ
-            or int(os.environ['TEST_REMOTE_SCAN_VOLUME']) == 0,
-            'Skipped as TEST_REMOTE_SCAN_VOLUME is no set')
+    @pytest.mark.skipIf(
+        'TEST_REMOTE_SCAN_VOLUME' not in os.environ
+        or int(os.environ['TEST_REMOTE_SCAN_VOLUME']) == 0,
+        reason='Skipped as TEST_REMOTE_SCAN_VOLUME is no set')
     def test_remote_scan(self):
         nb_nodes = int(os.environ['TEST_REMOTE_SCAN_VOLUME'])
         # Random mass import

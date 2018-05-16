@@ -1,11 +1,8 @@
 # coding: utf-8
 import os
 import shutil
-from logging import getLogger
 
 from .common_unit_test import UnitTestCase
-
-log = getLogger(__name__)
 
 
 class TestLocalMoveFolders(UnitTestCase):
@@ -36,7 +33,6 @@ class TestLocalMoveFolders(UnitTestCase):
             for name in names:
                 file_path = os.path.join(local.abspath(path), name)
                 self.generate_random_png(file_path)
-            log.debug('Local test files created in %s', path)
 
         self.engine_1.start()
         self.wait_sync(timeout=60, wait_win=True)
@@ -47,20 +43,15 @@ class TestLocalMoveFolders(UnitTestCase):
             assert local.exists(folder)
             children = [child.name for child
                         in local.get_children_info(folder)]
-            assert len(children) == num,\
-                ('Number of local files (%d) in %s is different '
-                 'from original (%d)') % (len(children), folder, num)
+            assert len(children) == num
             assert set(children) == names
 
             # Check remote files
             uid = local.get_remote_id(folder)
             assert uid is not None
-            log.debug('Remote ref of %s: %s', folder, uid)
             assert remote.fs_exists(uid)
             children = [child.name for child in remote.get_fs_children(uid)]
-            assert len(children) == num,\
-                ('Number of remote files (%d) in %s is different '
-                 'from original (%d)' % (len(children), folder, num))
+            assert len(children) == num
             assert set(children) == names
 
     def test_local_move_folder_with_files(self):
@@ -85,20 +76,15 @@ class TestLocalMoveFolders(UnitTestCase):
             assert local.exists(folder)
             children = [child.name for child in local.get_children_info(folder)
                         if not child.folderish]
-            assert len(children) == num,\
-                ('Number of local files (%d) in %s is different '
-                 'from original (%d)') % (len(children), folder, num)
+            assert len(children) == num
             assert set(children) == names
 
             uid = local.get_remote_id(folder)
             assert uid is not None
-            log.debug('Remote ref of %s: %s', folder, uid)
             assert remote.fs_exists(uid)
             children = [child.name for child in remote.get_fs_children(uid)
                         if not child.folderish]
-            assert len(children) == num, \
-                ('Number of remote files (%d) in %s is different '
-                 'from original (%d)') % (len(children), folder, num)
+            assert len(children) == num
             assert set(children) == names
 
     def test_local_move_folder_both_sides_while_stopped(self):
@@ -155,6 +141,6 @@ class TestLocalMoveFolders(UnitTestCase):
         assert local.exists('/Folder1_LocalRename')
 
         # Check folder status
-        folder_pair_state = self.engine_1.get_dao()\
-            .get_normal_state_from_remote(folder_remote_ref)
+        folder_pair_state = (self.engine_1.get_dao()
+                             .get_normal_state_from_remote(folder_remote_ref))
         assert folder_pair_state.pair_state == 'conflicted'

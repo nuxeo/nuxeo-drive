@@ -2,7 +2,8 @@
 import os
 import shutil
 from logging import getLogger
-from unittest import skipIf
+
+import pytest
 
 from nxdrive.osi import AbstractOSIntegration
 from .common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
@@ -127,9 +128,10 @@ class MultipleFilesTestCase(UnitTestCase):
             self.folder_path_1, self.folder_path_2,
             os.path.dirname(self.folder_path_1), stopped=False)
 
-    @skipIf(AbstractOSIntegration.is_linux(),
-            'NXDRIVE-471: Not handled under GNU/Linux as'
-            ' creation time is not stored')
+    @pytest.mark.skipif(
+        AbstractOSIntegration.is_linux(),
+        reason='NXDRIVE-471: Not handled under GNU/Linux as'
+               ' creation time is not stored')
     def test_move_and_copy_paste_folder_original_location_stopped(self):
         self._move_and_copy_paste_folder(
             self.folder_path_1, self.folder_path_2,

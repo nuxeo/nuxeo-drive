@@ -1,14 +1,12 @@
 # coding: utf-8
 import sys
-from logging import getLogger
 from shutil import copyfile
-from unittest import skipIf
+
+import pytest
 
 from nxdrive.client import LocalClient
 from nxdrive.osi import AbstractOSIntegration
 from .common_unit_test import RandomBug, UnitTestCase
-
-log = getLogger(__name__)
 
 
 class TestWatchers(UnitTestCase):
@@ -226,7 +224,6 @@ class TestWatchers(UnitTestCase):
         # Check content update
         # NXDRIVE-389: Reload the engine to be sure that
         # the pairs are all synchronized
-        log.debug('Update content of avoir et etre')
         local.update_content(u'/Accentu\xe9 avec un \xea et un \xe9.odt',
                              u'Updated content')
         local.update_content(u'/P\xf4le appliqu\xe9/avoir et \xeatre.odt',
@@ -251,8 +248,9 @@ class TestWatchers(UnitTestCase):
         assert not remote.exists(
             u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt')
 
-    @skipIf(AbstractOSIntegration.is_windows(),
-            'Windows cannot have file ending with a space.')
+    @pytest.mark.skipif(
+        AbstractOSIntegration.is_windows(),
+        reason='Windows cannot have file ending with a space.')
     def test_watchdog_space_remover(self):
         """
         Test files and folders ending with space.
