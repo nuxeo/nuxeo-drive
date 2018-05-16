@@ -539,7 +539,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         input_obj = 'doc:' + workspaces_path
         self.root_remote.operations.execute(
             command='Document.SetACE', input_obj=input_obj,
-            user=self.user_1, permission='ReadWrite', grant='true')
+            user=self.user_1, permission='ReadWrite', grant=True)
 
         workspaces_info = self.root_remote.fetch(workspaces_path)
         workspaces = workspaces_info['uid']

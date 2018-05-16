@@ -9,9 +9,9 @@ class TestRemoteChanges(UnitTestCase):
 
     def setUp(self):
         super(TestRemoteChanges, self).setUp()
-        self.last_sync_date = None
-        self.last_event_log_id = None
-        self.last_root_definitions = None
+        self.last_sync_date = 0
+        self.last_event_log_id = 0
+        self.last_root_definitions = ''
         # Initialize last event log id (lower bound)
         self.get_changes()
 

@@ -112,14 +112,14 @@ class TestLocalShareMoveFolders(UnitTestCase):
         input_obj = local.get_remote_id('/a1').split('#')[-1]
         remote.operations.execute(
             command='Document.AddPermission', input_obj=input_obj,
-            username=self.user_2, permission='Everything', grant='true')
+            username=self.user_2, permission='Everything')
 
-        self.wait_sync(enforce_errors=True)
+        self.wait_sync()
         
         wait_for_security_update = False
                 
         # Sync after move operation
-        self.wait_sync(enforce_errors=True)
+        self.wait_sync()
         # Check that a1 doesn't exist anymore locally
         assert not local.exists('/a1')
 

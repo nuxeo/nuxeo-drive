@@ -32,7 +32,7 @@ class TestSharedFolders(UnitTestCase):
             input_obj = 'doc:' + parent_uid
             admin_remote_client.operations.execute(
                 command='Document.SetACE', input_obj=input_obj,
-                user=self.user_2, permission='Everything', grant='true')
+                user=self.user_2, permission='Everything', grant=True)
 
             # As user1 create a child folder in parent folder
             child_folder_uid = remote_1.make_folder(parent_uid, 'Child')

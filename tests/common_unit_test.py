@@ -916,4 +916,4 @@ class UnitTestCase(SimpleUnitTestCase):
         else:
             remote.operations.execute(
                 command='Document.SetACE', input_obj=input_obj, user=user,
-                permission='ReadWrite', grant='true')
+                permission='ReadWrite', grant=True)
