@@ -17,18 +17,18 @@ class Processor(OldProcessor):
         log.warning('acquire...')
         result = super(Processor, self).acquire_state(row_id)
         if (result is not None
-                and self._engine.get_local_watcher().is_pending_scan(
+                and self.engine.get_local_watcher().is_pending_scan(
                     result.local_parent_path)):
             self._dao.release_processor(self._thread_id)
             # Postpone pair for watcher delay
-            self._engine.get_queue_manager().postpone_pair(
-                result, self._engine.get_local_watcher().get_scan_delay())
+            self.engine.get_queue_manager().postpone_pair(
+                result, self.engine.get_local_watcher().get_scan_delay())
             return None
         log.warning('Acquired: %r', result)
         return result
 
     def _get_partial_folders(self):
-        local = self._engine.local
+        local = self.engine.local
         if not local.exists('/.partials'):
             local.make_folder('/', '.partials')
         return local.abspath('/.partials')

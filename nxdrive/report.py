@@ -1,4 +1,4 @@
-# conding: utfr-8
+# coding: utf-8
 import os
 from datetime import datetime
 from logging import getLogger

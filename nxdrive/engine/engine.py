@@ -97,9 +97,9 @@ class Engine(QObject):
         # Make all the automation client related to this manager
         # share cookies using threadsafe jar
         self.cookie_jar = CookieJar()
-        self._manager = manager
+        self.manager = manager
         # Remove remote client cache on proxy update
-        self._manager.proxyUpdated.connect(self.invalidate_client_cache)
+        self.manager.proxyUpdated.connect(self.invalidate_client_cache)
         self.local_folder = definition.local_folder
 
         self.local = self.local_cls(
@@ -207,7 +207,7 @@ class Engine(QObject):
         self.local_folder_bs = self._normalize_url(self.local_folder)
         self._local_watcher.stop()
         self._create_local_watcher()
-        self._manager.update_engine_path(self.uid, path)
+        self.manager.update_engine_path(self.uid, path)
 
     def set_local_folder_lock(self, path):
         self._folder_lock = path
@@ -326,7 +326,7 @@ class Engine(QObject):
         # TODO Implement a TemporaryWorker
 
         def run():
-            self._manager.direct_edit.edit(
+            self.manager.direct_edit.edit(
                 self._server_url,
                 doc_ref,
                 user=self._remote_user,
@@ -337,7 +337,7 @@ class Engine(QObject):
     def open_remote(self, url=None):
         if url is None:
             url = self.get_remote_url()
-        self._manager.open_local_file(url)
+        self.manager.open_local_file(url)
 
     def resume(self):
         self._pause = False
@@ -375,7 +375,7 @@ class Engine(QObject):
 
         self.dispose_db()
         log.debug('Remove DB file %r', self._get_db_file())
-        self._manager.osi.unregister_folder_link(self.local_folder)
+        self.manager.osi.unregister_folder_link(self.local_folder)
 
         # Keep the database for tests
         if not os.environ.get('WORKSPACE', False):
@@ -443,7 +443,7 @@ class Engine(QObject):
         return LocalWatcher(self, self._dao)
 
     def _get_db_file(self):
-        return os.path.join(normalized_path(self._manager.nxdrive_home),
+        return os.path.join(normalized_path(self.manager.nxdrive_home),
                             'ndrive_' + self.uid + '.db')
 
     def get_binder(self):
@@ -580,8 +580,8 @@ class Engine(QObject):
         self._check_root()
 
         # Launch the server confg file updater
-        if self._manager.server_config_updater:
-            self._manager.server_config_updater.force_poll()
+        if self.manager.server_config_updater:
+            self.manager.server_config_updater.force_poll()
 
         self._stopped = False
         Processor.soft_locks = dict()
@@ -648,7 +648,7 @@ class Engine(QObject):
             elif emit:
                 # Raise conflict only if not resolvable
                 self.newConflict.emit(row_id)
-                self._manager.osi.send_sync_status(
+                self.manager.osi.send_sync_status(
                     pair, self.local.abspath(pair.local_path))
         except:
             log.exception('Conflict resolver error')
@@ -712,11 +712,11 @@ class Engine(QObject):
         rargs = (
             self._server_url,
             self._remote_user,
-            self._manager.device_id,
+            self.manager.device_id,
             self.version,
         )
         rkwargs = {
-            'proxies': self._manager.get_proxies(self._server_url),
+            'proxies': self.manager.get_proxies(self._server_url),
             'password': self._remote_password,
             'timeout': self.timeout,
             'cookie_jar': self.cookie_jar,
@@ -780,7 +780,7 @@ class Engine(QObject):
             self._check_root()
 
     def _check_fs(self, path):
-        if not self._manager.osi.is_partition_supported(path):
+        if not self.manager.osi.is_partition_supported(path):
             raise InvalidDriveException()
         if os.path.exists(path):
             root_id = self.local.get_root_id()
@@ -809,7 +809,7 @@ class Engine(QObject):
         Register the local folder as a favorite.
         Let the possibility to override that method from tests.
         """
-        self._manager.osi.register_folder_link(self.local_folder)
+        self.manager.osi.register_folder_link(self.local_folder)
 
     def _make_local_folder(self, local_folder):
         if not os.path.exists(local_folder):
@@ -871,7 +871,7 @@ class Engine(QObject):
             row, remote_info, remote_parent_path='', versioned=False)
         self.local.set_root_id('{}|{}|{}|{}'.format(
             self._server_url, self._remote_user,
-            self._manager.device_id, self.uid))
+            self.manager.device_id, self.uid))
         self.local.set_remote_id('/', remote_info.uid)
         self._dao.synchronize_state(row)
         # The root should also be sync

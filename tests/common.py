@@ -1,6 +1,5 @@
 # coding: utf-8
 """ Common test utilities."""
-
 import hashlib
 import os
 import shutil

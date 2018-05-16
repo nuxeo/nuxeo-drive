@@ -34,62 +34,62 @@ class Processor(EngineWorker):
         super(Processor, self).__init__(engine, engine.get_dao(), **kwargs)
         self._current_doc_pair = None
         self._get_item = item_getter
-        self._engine = engine
-        self.local = self._engine.local
-        self.remote = self._engine.remote
+        self.engine = engine
+        self.local = self.engine.local
+        self.remote = self.engine.remote
 
     def _unlock_soft_path(self, path):
         log.trace('Soft unlocking %r', path)
         path = path.lower()
         with Processor.path_locker:
-            if self._engine.uid not in Processor.soft_locks:
-                Processor.soft_locks[self._engine.uid] = dict()
+            if self.engine.uid not in Processor.soft_locks:
+                Processor.soft_locks[self.engine.uid] = dict()
             else:
-                Processor.soft_locks[self._engine.uid].pop(path, None)
+                Processor.soft_locks[self.engine.uid].pop(path, None)
 
     def _unlock_readonly(self, path):
         with Processor.readonly_locker:
-            if self._engine.uid not in Processor.readonly_locks:
-                Processor.readonly_locks[self._engine.uid] = dict()
+            if self.engine.uid not in Processor.readonly_locks:
+                Processor.readonly_locks[self.engine.uid] = dict()
 
-            if path in Processor.readonly_locks[self._engine.uid]:
+            if path in Processor.readonly_locks[self.engine.uid]:
                 log.trace('Readonly unlock: increase count on %r', path)
-                Processor.readonly_locks[self._engine.uid][path][0] += 1
+                Processor.readonly_locks[self.engine.uid][path][0] += 1
             else:
                 lock = self.local.unlock_ref(path)
                 log.trace('Readonly unlock: unlock on %r with %d', path, lock)
-                Processor.readonly_locks[self._engine.uid][path] = [1, lock]
+                Processor.readonly_locks[self.engine.uid][path] = [1, lock]
 
     def _lock_readonly(self, path):
         with Processor.readonly_locker:
-            if self._engine.uid not in Processor.readonly_locks:
-                Processor.readonly_locks[self._engine.uid] = dict()
+            if self.engine.uid not in Processor.readonly_locks:
+                Processor.readonly_locks[self.engine.uid] = dict()
 
-            if path not in Processor.readonly_locks[self._engine.uid]:
+            if path not in Processor.readonly_locks[self.engine.uid]:
                 log.debug('Readonly lock: cannot find reference on %r', path)
                 return
 
-            Processor.readonly_locks[self._engine.uid][path][0] -= 1
+            Processor.readonly_locks[self.engine.uid][path][0] -= 1
             log.trace('Readonly lock: update lock count on %r to %d', path,
-                      Processor.readonly_locks[self._engine.uid][path][0])
+                      Processor.readonly_locks[self.engine.uid][path][0])
 
-            if Processor.readonly_locks[self._engine.uid][path][0] <= 0:
+            if Processor.readonly_locks[self.engine.uid][path][0] <= 0:
                 self.local.lock_ref(
-                    path, Processor.readonly_locks[self._engine.uid][path][1])
+                    path, Processor.readonly_locks[self.engine.uid][path][1])
                 log.trace('Readonly lock: relocked %r with %d', path,
-                          Processor.readonly_locks[self._engine.uid][path][1])
-                del Processor.readonly_locks[self._engine.uid][path]
+                          Processor.readonly_locks[self.engine.uid][path][1])
+                del Processor.readonly_locks[self.engine.uid][path]
 
     def _lock_soft_path(self, path):
         log.trace('Soft locking %r', path)
         path = path.lower()
         with Processor.path_locker:
-            if self._engine.uid not in Processor.soft_locks:
-                Processor.soft_locks[self._engine.uid] = dict()
-            if path in Processor.soft_locks[self._engine.uid]:
+            if self.engine.uid not in Processor.soft_locks:
+                Processor.soft_locks[self.engine.uid] = dict()
+            if path in Processor.soft_locks[self.engine.uid]:
                 raise PairInterrupt
             else:
-                Processor.soft_locks[self._engine.uid][path] = True
+                Processor.soft_locks[self.engine.uid][path] = True
                 return path
 
     def get_current_pair(self):
@@ -148,7 +148,13 @@ class Processor(EngineWorker):
                 if not self.check_pair_state(doc_pair):
                     continue
 
-                self._engine._manager.osi.send_sync_status(
+                # Ensure we are using the good clients
+                if self.remote is not self.engine.remote:
+                    self.remote = self.engine.remote
+                if self.local is not self.engine.local:
+                    self.local = self.engine.local
+
+                self.engine._manager.osi.send_sync_status(
                     doc_pair, self.local.abspath(doc_pair.local_path))
 
                 if (AbstractOSIntegration.is_mac()
@@ -234,7 +240,7 @@ class Processor(EngineWorker):
 
                     pair = self._dao.get_state_from_id(doc_pair.id)
                     if pair and 'deleted' not in pair.pair_state:
-                        self._engine._manager.osi.send_sync_status(
+                        self.engine._manager.osi.send_sync_status(
                             pair, self.local.abspath(pair.local_path))
 
                     self.pairSync.emit(self._current_metrics)
@@ -262,7 +268,7 @@ class Processor(EngineWorker):
                     log.debug('%s on %r, wait 1s and requeue',
                               type(exc).__name__, doc_pair)
                     sleep(1)
-                    self._engine.get_queue_manager().push(doc_pair)
+                    self.engine.get_queue_manager().push(doc_pair)
                     continue
                 except DuplicationDisabledError:
                     self.giveup_error(doc_pair, 'DEDUP')
@@ -297,7 +303,7 @@ class Processor(EngineWorker):
                                  ' action(%s) on %r, ref=%r',
                                  doc_pair.pair_state, doc_pair.local_path,
                                  doc_pair.remote_ref)
-                        self._engine.errorOpenedFile.emit(doc_pair)
+                        self.engine.errorOpenedFile.emit(doc_pair)
                         self._postpone_pair(
                             doc_pair, 'Used by another process')
                     elif error in (111, 121, 124, 206, 1223):
@@ -325,7 +331,7 @@ class Processor(EngineWorker):
                         self._dao.remove_filter(doc_pair.remote_parent_path
                                                 + '/'
                                                 + doc_pair.remote_ref)
-                        self._engine.fileDeletionErrorTooLong.emit(doc_pair)
+                        self.engine.fileDeletionErrorTooLong.emit(doc_pair)
                     elif getattr(exc, 'trash_issue', False):
                         """
                         Special value to handle trash issues from filters on
@@ -333,7 +339,7 @@ class Processor(EngineWorker):
                         another software blocking any action.
                         """
                         doc_pair.trash_issue = True
-                        self._engine.errorOpenedFile.emit(doc_pair)
+                        self.engine.errorOpenedFile.emit(doc_pair)
                         self._postpone_pair(doc_pair, 'Trashing not possible')
                     else:
                         self._handle_pair_handler_exception(
@@ -344,7 +350,7 @@ class Processor(EngineWorker):
                         doc_pair, handler_name, exc)
                     continue
             except ThreadInterrupt:
-                self._engine.get_queue_manager().push(doc_pair)
+                self.engine.get_queue_manager().push(doc_pair)
                 raise
             except Exception as exc:
                 log.exception('Pair error')
@@ -358,8 +364,8 @@ class Processor(EngineWorker):
 
     def _handle_pair_handler_exception(self, doc_pair, handler_name, e):
         if isinstance(e, IOError) and e.errno == 28:
-            self._engine.noSpaceLeftOnDevice.emit()
-            self._engine.suspend()
+            self.engine.noSpaceLeftOnDevice.emit()
+            self.engine.suspend()
         log.exception('Unknown error')
         self.increase_error(doc_pair, 'SYNC_HANDLER_%s' % handler_name,
                             exception=e)
@@ -461,7 +467,7 @@ class Processor(EngineWorker):
             else:
                 log.debug('Skip update of remote document %r as '
                           'it is read-only.', doc_pair.local_name)
-                if self._engine.local_rollback():
+                if self.engine.local_rollback():
                     self.local.delete(doc_pair.local_path)
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
@@ -470,11 +476,11 @@ class Processor(EngineWorker):
                                                    raise_if_missing=False)
                     if info is None or info.lock_owner is None:
                         self._dao.unsynchronize_state(doc_pair, 'READONLY')
-                        self._engine.newReadonly.emit(doc_pair.local_name,
-                                                      None)
+                        self.engine.newReadonly.emit(doc_pair.local_name,
+                                                     None)
                     else:
                         self._dao.unsynchronize_state(doc_pair, 'LOCKED')
-                        self._engine.newLocked.emit(
+                        self.engine.newLocked.emit(
                             doc_pair.local_name, info.lock_owner,
                             info.lock_created)
                     self._handle_unsynchronized(doc_pair)
@@ -495,7 +501,7 @@ class Processor(EngineWorker):
 
         log.trace('Postpone action on document(%s): %r', reason, doc_pair)
         doc_pair.error_count = 1
-        self._engine.get_queue_manager().push_error(
+        self.engine.get_queue_manager().push_error(
             doc_pair, exception=None, interval=interval)
 
     def _synchronize_locally_resolved(self, doc_pair):
@@ -697,13 +703,13 @@ class Processor(EngineWorker):
                         child_type, doc_pair.local_name, parent_pair.local_name)
             if doc_pair.folderish:
                 doc_pair.remote_can_create_child = False
-            if self._engine.local_rollback():
+            if self.engine.local_rollback():
                 self.local.delete(doc_pair.local_path)
                 self._dao.remove_state(doc_pair)
             else:
                 log.debug('Set pair unsynchronized: %r', doc_pair)
                 self._dao.unsynchronize_state(doc_pair, 'READONLY')
-                self._engine.newReadonly.emit(
+                self.engine.newReadonly.emit(
                     doc_pair.local_name, parent_pair.remote_name)
                 self._handle_unsynchronized(doc_pair)
 
@@ -732,7 +738,7 @@ class Processor(EngineWorker):
                 self._dao.remove_state(doc_pair)
                 self._dao.add_filter(
                     doc_pair.remote_parent_path + '/' + doc_pair.remote_ref)
-                self._engine.deleteReadonly.emit(doc_pair.local_name)
+                self.engine.deleteReadonly.emit(doc_pair.local_name)
         self._search_for_dedup(doc_pair)
 
     def _synchronize_locally_moved_remotely_modified(self, doc_pair):
@@ -916,7 +922,7 @@ class Processor(EngineWorker):
                 else:
                     file_or_folder = 'folder' if doc_pair.folderish else 'file'
                     if doc_pair.folderish:
-                        self._engine.set_local_folder_lock(doc_pair.local_path)
+                        self.engine.set_local_folder_lock(doc_pair.local_path)
                     if is_move:
                         # Move and potential rename
                         moved_name = (doc_pair.remote_name
@@ -974,7 +980,7 @@ class Processor(EngineWorker):
         finally:
             if doc_pair.folderish:
                 # Release folder lock in any case
-                self._engine.release_folder_lock()
+                self.engine.release_folder_lock()
 
         if not self.tmp_file:
             return
@@ -1118,7 +1124,7 @@ class Processor(EngineWorker):
                 log.debug('Deleting locally %r', self.local.abspath(
                     doc_pair.local_path))
                 if doc_pair.folderish:
-                    self._engine.set_local_folder_lock(doc_pair.local_path)
+                    self.engine.set_local_folder_lock(doc_pair.local_path)
                 else:
                     # Check for nxpart to clean up
                     file_out = self._get_temporary_file(
@@ -1126,7 +1132,7 @@ class Processor(EngineWorker):
                     if os.path.exists(file_out):
                         os.remove(file_out)
 
-                if not self._engine.use_trash():
+                if not self.engine.use_trash():
                     # Force the complete file deletion
                     self.local.delete_final(doc_pair.local_path)
                 else:
@@ -1135,7 +1141,7 @@ class Processor(EngineWorker):
             self._search_for_dedup(doc_pair)
         finally:
             if doc_pair.folderish:
-                self._engine.release_folder_lock()
+                self.engine.release_folder_lock()
 
     def _synchronize_unknown_deleted(self, doc_pair):
         # Somehow a pair can get to an inconsistent state:
@@ -1191,7 +1197,7 @@ class Processor(EngineWorker):
         """ An error occurs return False. """
 
         force = AbstractOSIntegration.is_windows()
-        if not self._engine.local_rollback(force=force):
+        if not self.engine.local_rollback(force=force):
             return False
 
         log.error('Renaming %r to %r canceled',
