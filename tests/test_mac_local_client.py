@@ -1,12 +1,13 @@
 # coding: utf-8
-from unittest import skipIf
+
+import pytest
 
 from nxdrive.osi import AbstractOSIntegration
 from .common_unit_test import UnitTestCase
 
 
-@skipIf(not AbstractOSIntegration.is_mac(),
-        'Not relevant on GNU/Linux nor Windows')
+@pytest.mark.skipif(not AbstractOSIntegration.is_mac(),
+                    reason='Not relevant on GNU/Linux nor Windows')
 class TestMacSpecific(UnitTestCase):
 
     def test_finder_in_use(self):

@@ -7,12 +7,12 @@ import random
 import struct
 import sys
 import tempfile
-import unittest
 import zlib
 from logging import getLogger
 from os.path import dirname
 from threading import Thread
 from time import sleep
+from unittest import TestCase
 from urllib2 import URLError
 
 from PyQt4 import QtCore
@@ -124,7 +124,7 @@ class StubQApplication(QtCore.QCoreApplication):
         self._test.unbind_engine(number)
 
 
-class UnitTestCase(unittest.TestCase):
+class UnitTestCase(TestCase):
 
     def setUpServer(self, server_profile=None):
         # Save the current path for test files

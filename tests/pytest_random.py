@@ -41,7 +41,7 @@ def pytest_configure(config):
     config.default_mode = os.environ.get('RANDOM_BUG_MODE', None)
     config.addinivalue_line(
         "markers",
-        "random(reason, condition=True, mode='BYPASS', repeat=10): "
+        "random(reason, condition=True, mode='RELAX', repeat=10): "
         "if condition is False, test runs normally, else: "
         "if mode is BYPASS, skip test. "
         "If mode is RELAX, run test until it succeeds or "
@@ -84,7 +84,7 @@ def pytest_runtest_protocol(item, nextitem):
             if mode == 'RELAX':
                 condition = not report.failed or hasattr(report, 'wasxfail')
             elif mode == 'STRICT':
-                condition = report.failed
+                condition = report.failed or report.skipped
 
             # we only mess with the report if it's a call report
             if i == repeat - 1 or condition or not report.when == 'call':

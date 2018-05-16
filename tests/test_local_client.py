@@ -127,9 +127,7 @@ class StubLocalClient(object):
                 local.make_file('/', 'ABC.txt')
         assert len(local.get_children_info('/')) == sensitive + 1
 
-    @pytest.mark.skipif(
-        sys.platform != 'win32',
-        reason='Windows only.')
+    @pytest.mark.skipif(sys.platform != 'win32', reason='Windows only.')
     def test_windows_short_names(self):
         """
         Test 8.3 file name convention:
@@ -338,8 +336,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
 
 
 @pytest.mark.skipif(
-    sys.platform == 'linux2',
-    reason='GNU/Linux uses native LocalClient.')
+    sys.platform == 'linux2', reason='GNU/Linux uses native LocalClient.')
 class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
     """
     Test LocalClient using OS-specific commands to make FS operations.

@@ -4,7 +4,8 @@ import operator
 import os
 from shutil import copyfile
 from threading import current_thread
-from unittest import SkipTest
+
+import pytest
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.base_automation_client import CorruptedFile
@@ -172,7 +173,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
         remote = self.remote_file_system_client_1
 
         if 'NuxeoDrive.ScrollDescendants' not in remote.operations:
-            raise SkipTest('Scroll descendants not available.')
+            pytest.skip('Scroll descendants not available.')
 
         # Create documents
         folder_1 = remote.make_folder(self.workspace_id, 'Folder 1').uid

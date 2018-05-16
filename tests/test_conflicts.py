@@ -2,7 +2,6 @@
 import shutil
 import sys
 import time
-from unittest import skip
 
 import pytest
 
@@ -164,17 +163,19 @@ class TestConflicts(UnitTestCase):
         assert remote.get_content(self.file_id) == 'Remote update'
         assert self.get_remote_state(self.file_id).pair_state == 'conflicted'
 
-    # @skipIf(not AbstractOSIntegration.is_windows(),
-    #        'Windows Office only test')
-    @skip(('NXDRIVE-776: Random bug but we cannot use pytest.mark.random '
-           'because this test would take ~30 minutes to complete.'))
+    # @pytest.mark.skipif(not AbstractOSIntegration.is_windows(),
+    #                     reason='Windows Office only test')
+    @pytest.mark.random('NXDRIVE-776: Random bug but we cannot use '
+                        'pytest.mark.random because this test would '
+                        'take ~30 minutes to complete.', mode='BYPASS')
     def test_XLS_conflict_on_locked_document(self):
         self._XLS_local_update_on_locked_document(locked_from_start=False)
 
-    # @skipIf(not AbstractOSIntegration.is_windows(),
-    #        'Windows Office only test')
-    @skip(('NXDRIVE-776: Random bug but we cannot use pytest.mark.random '
-           'because this test would take ~30 minutes to complete.'))
+    # @pytest.mark.skipif(not AbstractOSIntegration.is_windows(),
+    #                     reason='Windows Office only test')
+    @pytest.mark.random('NXDRIVE-776: Random bug but we cannot use '
+                        'pytest.mark.random because this test would '
+                        'take ~30 minutes to complete.', mode='BYPASS')
     def test_XLS_conflict_on_locked_document_from_start(self):
         self._XLS_local_update_on_locked_document()
 

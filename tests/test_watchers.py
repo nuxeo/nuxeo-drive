@@ -2,7 +2,6 @@
 import sys
 from logging import getLogger
 from shutil import copyfile
-from unittest import skipIf
 
 import pytest
 
@@ -238,8 +237,8 @@ class TestWatchers(UnitTestCase):
         self.assertFalse(remote.exists(u'/Accentue\u0301.odt'))
         self.assertFalse(remote.exists(u'/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt'))
 
-    @skipIf(AbstractOSIntegration.is_windows(),
-            'Windows cannot have file ending with a space.')
+    @pytest.mark.skipif(AbstractOSIntegration.is_windows(),
+                        reason='Windows cannot have file ending with a space.')
     def test_watchdog_space_remover(self):
         """
         Test files and folders ending with space.
