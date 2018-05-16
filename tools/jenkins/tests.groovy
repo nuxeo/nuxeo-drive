@@ -135,7 +135,6 @@ for (def x in slaves) {
                         dir('sources') {
                             // Set up the report name folder
                             env.REPORT_PATH = env.WORKSPACE + '/sources'
-                            env.TEST_REMOTE_SCAN_VOLUME = 100
 
                             try {
                                 if (osi == 'macOS') {
