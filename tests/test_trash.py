@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import os.path
+import sys
 from tempfile import gettempdir
 
 from send2trash import send2trash as trash
@@ -8,7 +9,11 @@ from send2trash import send2trash as trash
 
 def create_tree():
     filename = 'A' * 100
-    parent = '\\\\?\\' + os.path.join(gettempdir(), filename)
+    if sys.platform == 'win32':
+        parent = '\\\\?\\'
+    else:
+        parent = ''
+    parent += os.path.join(gettempdir(), filename)
     path = os.path.join(
         parent,
         filename,
