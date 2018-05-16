@@ -889,7 +889,7 @@ class LocalWatcher(EngineWorker):
                 return
 
             doc_pair = dao.get_state_from_local(rel_path)
-            self.engine._manager.osi.send_sync_status(doc_pair, src_path)
+            self.engine.manager.osi.send_sync_status(doc_pair, src_path)
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
                     log.debug('Ignoring %r as marked unsynchronized',

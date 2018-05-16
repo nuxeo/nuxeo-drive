@@ -456,7 +456,7 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
     ]
 
     for new_url_parts in urls:
-        new_url = urlparse.urlunsplit(new_url_parts)
+        new_url = urlparse.urlunsplit(new_url_parts).rstrip('/')
         try:
             rfc3987.parse(new_url, rule='URI')
             log.trace('Testing URL %r', new_url)

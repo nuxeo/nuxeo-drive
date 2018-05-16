@@ -31,10 +31,10 @@ class RemoteWatcher(EngineWorker):
         self.server_interval = delay
 
         self._next_check = 0
-        self._last_sync_date = self._dao.get_config(
-            'remote_last_sync_date', 0)
-        self._last_event_log_id = self._dao.get_config(
-            'remote_last_event_log_id', 0)
+        self._last_sync_date = int(
+            self._dao.get_config('remote_last_sync_date', 0))
+        self._last_event_log_id = int(
+            self._dao.get_config('remote_last_event_log_id', 0))
         self._last_root_definitions = self._dao.get_config(
             'remote_last_root_definitions', '')
         self._last_remote_full_scan = self._dao.get_config(
@@ -757,7 +757,7 @@ class RemoteWatcher(EngineWorker):
                                           doc_pair, exc)
 
                 pair = self._dao.get_state_from_id(doc_pair.id)
-                self.engine._manager.osi.send_sync_status(
+                self.engine.manager.osi.send_sync_status(
                     pair, self.engine.local.abspath(pair.local_path))
 
                 updated = True

@@ -1,7 +1,5 @@
 # coding: utf-8
 """ Common test utilities. """
-from __future__ import unicode_literals
-
 import itertools
 import os
 import random

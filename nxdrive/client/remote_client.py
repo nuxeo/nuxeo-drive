@@ -517,7 +517,7 @@ class Remote(Nuxeo):
             command='NuxeoDrive.GetTopLevelChildren')
 
     def get_changes(self, last_root_definitions,
-                    log_id=None, last_sync_date=None):
+                    log_id=0, last_sync_date=0):
         # type: (Text, Optional[int], Optional[int]) -> Dict[Text, Any]
         if log_id:
             # If available, use last event log id as 'lowerBound' parameter
@@ -660,10 +660,9 @@ class Remote(Nuxeo):
 
         return filtered
 
-    def query(self, query, language=None):
-        # type: (Text, Optional[Text]) -> Dict[Text, Any]
-        return self.operations.execute(
-            command='Document.Query', query=query, language=language)
+    def query(self, query):
+        # type: (Text) -> Dict[Text, Any]
+        return self.operations.execute(command='Document.Query', query=query)
 
     def exists(self, ref, use_trash=True, include_versions=False):
         # type: (unicode, bool, bool) -> bool

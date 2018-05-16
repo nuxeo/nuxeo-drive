@@ -154,7 +154,7 @@ class Processor(EngineWorker):
                 if self.local is not self.engine.local:
                     self.local = self.engine.local
 
-                self.engine._manager.osi.send_sync_status(
+                self.engine.manager.osi.send_sync_status(
                     doc_pair, self.local.abspath(doc_pair.local_path))
 
                 if (AbstractOSIntegration.is_mac()
@@ -240,7 +240,7 @@ class Processor(EngineWorker):
 
                     pair = self._dao.get_state_from_id(doc_pair.id)
                     if pair and 'deleted' not in pair.pair_state:
-                        self.engine._manager.osi.send_sync_status(
+                        self.engine.manager.osi.send_sync_status(
                             pair, self.local.abspath(pair.local_path))
 
                     self.pairSync.emit(self._current_metrics)
