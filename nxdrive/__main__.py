@@ -2,7 +2,9 @@
 import signal
 import sys
 
-from .commandline import CliHandler
+# We cannot use a relative import here, else Drive will not start
+# when packaged.
+from nxdrive.commandline import CliHandler
 
 
 def dumpstacks(*args, **kwargs):
