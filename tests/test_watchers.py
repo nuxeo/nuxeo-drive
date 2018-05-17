@@ -32,7 +32,7 @@ class TestWatchers(UnitTestCase):
         # With root
         self.assertEqual(len(res), folders + files + 1)
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-808', condition=(sys.platform == 'win32'), repeat=2)
     def test_reconcile_scan(self):
         files, folders = self.make_local_tree()
@@ -72,9 +72,9 @@ class TestWatchers(UnitTestCase):
         # With root
         self.assertEqual(len(res), folders + files + 1)
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-806', condition=(sys.platform == 'linux2'), mode='BYPASS')
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-806', condition=(sys.platform == 'win32'), repeat=2)
     def test_local_watchdog_creation(self):
         # Test the creation after first local scan
@@ -261,7 +261,7 @@ class TestWatchers(UnitTestCase):
         self.assertEqual(remote.get_info(u'/Accentue\u0301.odt').name,
                          u'Accentu\xe9 avec un \xea et un \xe9.odt')
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-808', condition=(sys.platform == 'darwin'), repeat=5)
     def test_watchdog_encoding(self):
         local = self.local_client_1
@@ -321,7 +321,7 @@ class TestWatchers(UnitTestCase):
         self.assertFalse(
             remote.exists(u'/Sub folder/e\u0302tre ou ne pas \xeatre.odt'))
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-808', condition=(sys.platform == 'win32'), repeat=2)
     def test_watcher_remote_id_setter(self):
         local = self.local_client_1

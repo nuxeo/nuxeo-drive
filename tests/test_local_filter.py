@@ -105,7 +105,7 @@ class TestLocalFilter(UnitTestCase):
         assert len(children) == 2
         assert children[1].name == '2345BCDF'
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-808', condition=(sys.platform == 'linux2'), mode='BYPASS')
     def test_synchronize_local_filter_with_move(self):
         # Bind the server and root workspace

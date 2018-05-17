@@ -11,7 +11,7 @@ from _pytest.runner import runtestprotocol
 
 
 def get_random(item):
-    random = item.get_marker('random')
+    random = item.get_marker('randombug')
     if random:
         for mark in random._marks:
             if mark.kwargs.get('condition', True):
@@ -41,7 +41,7 @@ def pytest_configure(config):
     config.default_mode = os.environ.get('RANDOM_BUG_MODE', None)
     config.addinivalue_line(
         "markers",
-        "random(reason, condition=True, mode='RELAX', repeat=10): "
+        "randombug(reason, condition=True, mode='RELAX', repeat=10): "
         "if condition is False, test runs normally, else: "
         "if mode is BYPASS, skip test. "
         "If mode is RELAX, run test until it succeeds or "

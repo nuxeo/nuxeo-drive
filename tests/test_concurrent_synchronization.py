@@ -16,7 +16,7 @@ class TestConcurrentSynchronization(UnitTestCase):
             op_input="doc:" + parent, namePattern=name_pattern,
             number=number, delay=int(delay * 1000))
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-808', condition=(sys.platform == 'linux2'), repeat=2)
     def test_find_changes_with_many_doc_creations(self):
         local = self.local_client_1
@@ -205,8 +205,8 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Check Test folder has not been re-created locally
         self.assertFalse(local.exists('/Test folder'))
 
-    @pytest.mark.random('NXDRIVE-718', condition=(sys.platform == 'linux2'))
-    @pytest.mark.random(
+    @pytest.mark.randombug('NXDRIVE-718', condition=(sys.platform == 'linux2'))
+    @pytest.mark.randombug(
         'NXDRIVE-718', condition=(sys.platform == 'darwin'), repeat=2)
     def test_update_local_file_content_update_remote_file_property(self):
         # Get local and remote clients

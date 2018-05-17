@@ -45,7 +45,7 @@ class MultipleFilesTestCase(UnitTestCase):
     def test_move_and_copy_paste_folder_original_location_from_child_stopped(self):
         self._move_and_copy_paste_folder_original_location_from_child()
 
-    @pytest.mark.random('NXDRIVE-808', condition=(sys.platform == 'darwin'))
+    @pytest.mark.randombug('NXDRIVE-808', condition=(sys.platform == 'darwin'))
     def test_move_and_copy_paste_folder_original_location_from_child(self):
         self._move_and_copy_paste_folder_original_location_from_child(False)
 
@@ -138,8 +138,8 @@ class MultipleFilesTestCase(UnitTestCase):
                          'file names are different')
         log.debug('*** exit MultipleFilesTestCase._move_and_copy_paste_folder')
 
-    @pytest.mark.random('NXDRIVE-720', condition=(sys.platform == 'linux2'))
-    @pytest.mark.random('NXDRIVE-813', condition=(sys.platform == 'darwin'))
+    @pytest.mark.randombug('NXDRIVE-720', condition=(sys.platform == 'linux2'))
+    @pytest.mark.randombug('NXDRIVE-813', condition=(sys.platform == 'darwin'))
     def test_move_and_copy_paste_folder_original_location(self):
         self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2,
                                          os.path.dirname(self.folder_path_1),

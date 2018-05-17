@@ -59,7 +59,7 @@ class TestConflicts(UnitTestCase):
         assert remote.get_content(remote_children[0].uid) == 'Remote update 2'
         assert self.get_remote_state(self.file_id).pair_state == 'conflicted'
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-771', condition=(sys.platform == 'linux2'), mode='BYPASS')
     def test_real_conflict(self):
         local = self.local_client_1
@@ -165,17 +165,17 @@ class TestConflicts(UnitTestCase):
 
     # @pytest.mark.skipif(not AbstractOSIntegration.is_windows(),
     #                     reason='Windows Office only test')
-    @pytest.mark.random('NXDRIVE-776: Random bug but we cannot use '
-                        'pytest.mark.random because this test would '
-                        'take ~30 minutes to complete.', mode='BYPASS')
+    @pytest.mark.randombug('NXDRIVE-776: Random bug but we cannot use '
+                           'pytest.mark.random because this test would '
+                           'take ~30 minutes to complete.', mode='BYPASS')
     def test_XLS_conflict_on_locked_document(self):
         self._XLS_local_update_on_locked_document(locked_from_start=False)
 
     # @pytest.mark.skipif(not AbstractOSIntegration.is_windows(),
     #                     reason='Windows Office only test')
-    @pytest.mark.random('NXDRIVE-776: Random bug but we cannot use '
-                        'pytest.mark.random because this test would '
-                        'take ~30 minutes to complete.', mode='BYPASS')
+    @pytest.mark.randombug('NXDRIVE-776: Random bug but we cannot use '
+                           'pytest.mark.random because this test would '
+                           'take ~30 minutes to complete.', mode='BYPASS')
     def test_XLS_conflict_on_locked_document_from_start(self):
         self._XLS_local_update_on_locked_document()
 

@@ -10,7 +10,7 @@ from .common_unit_test import UnitTestCase
 
 class TestSecurityUpdates(UnitTestCase):
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-821', condition=(sys.platform == 'darwin'), mode='BYPASS')
     def test_synchronize_denying_read_access(self):
         """Test that denying Read access server side is impacted client side

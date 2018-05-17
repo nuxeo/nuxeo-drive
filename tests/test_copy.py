@@ -8,7 +8,7 @@ from .common_unit_test import UnitTestCase
 
 class TestCopy(UnitTestCase):
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-808', condition=(sys.platform == 'linux2'), repeat=5)
     def test_synchronize_remote_copy(self):
         local = self.local_client_1

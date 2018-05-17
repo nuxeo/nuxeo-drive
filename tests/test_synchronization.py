@@ -673,7 +673,7 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/test.odt'))
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-808', condition=(sys.platform == 'darwin'), repeat=2)
     def test_synchronize_deletion(self):
         local = self.local_client_1

@@ -25,7 +25,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.assertEqual(len(children), 1)
         self.assertEqual(children[0].name, "Test.txt")
 
-    @pytest.mark.random('NXDRIVE-818', mode='BYPASS')
+    @pytest.mark.randombug('NXDRIVE-818', mode='BYPASS')
     def test_synchronize_no_space_left_on_device(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

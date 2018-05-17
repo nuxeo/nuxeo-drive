@@ -11,8 +11,6 @@ pytest_plugins = 'pytester'
 @pytest.fixture(autouse=True)
 def plugin(testdir):
     testdir.makeconftest("""
-        import pytest
-        
         pytest_plugins = 'tests.pytest_random'
     """)
 
@@ -43,7 +41,7 @@ def test_no_repeat_on_skipif_mark(testdir):
     testdir.makepyfile("""
         import pytest
         @pytest.mark.skipif(reason='Skipping this test')
-        @pytest.mark.random('NXDRIVE-0', mode='STRICT')
+        @pytest.mark.randombug('NXDRIVE-0', mode='STRICT')
         def test_skip():
             pass
     """)
@@ -54,7 +52,7 @@ def test_no_repeat_on_skipif_mark(testdir):
 def test_no_repeat_on_skip_call(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', mode='STRICT')
+        @pytest.mark.randombug('NXDRIVE-0', mode='STRICT')
         def test_skip():
             pytest.skip('Skipping this test')
     """)
@@ -66,7 +64,7 @@ def test_no_repeat_on_xfail_mark(testdir):
     testdir.makepyfile("""
         import pytest
         @pytest.mark.xfail()
-        @pytest.mark.random('NXDRIVE-0')
+        @pytest.mark.randombug('NXDRIVE-0')
         def test_xfail():
             assert False
     """)
@@ -77,7 +75,7 @@ def test_no_repeat_on_xfail_mark(testdir):
 def test_no_repeat_on_xfail_call(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0')
+        @pytest.mark.randombug('NXDRIVE-0')
         def test_xfail():
             pytest.xfail('Skipping this test')
     """)
@@ -88,7 +86,7 @@ def test_no_repeat_on_xfail_call(testdir):
 def test_relax_on_failing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0')
+        @pytest.mark.randombug('NXDRIVE-0')
         def test_fail(): assert False
     """)
     result = testdir.runpytest()
@@ -98,7 +96,7 @@ def test_relax_on_failing_test(testdir):
 def test_relax_on_passing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0')
+        @pytest.mark.randombug('NXDRIVE-0')
         def test_success(): assert True
     """)
     result = testdir.runpytest()
@@ -108,7 +106,7 @@ def test_relax_on_passing_test(testdir):
 def test_relax_and_false_condition_on_failing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', condition=False)
+        @pytest.mark.randombug('NXDRIVE-0', condition=False)
         def test_fail(): assert False
     """)
     result = testdir.runpytest()
@@ -118,7 +116,7 @@ def test_relax_and_false_condition_on_failing_test(testdir):
 def test_relax_passing_after_failure(testdir):
     testdir.makepyfile("""
             import pytest
-            @pytest.mark.random('NXDRIVE-0')
+            @pytest.mark.randombug('NXDRIVE-0')
             def test_fail():
                 """ + temporary_failure(3))
     result = testdir.runpytest()
@@ -128,7 +126,7 @@ def test_relax_passing_after_failure(testdir):
 def test_strict_on_failing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', mode='STRICT')
+        @pytest.mark.randombug('NXDRIVE-0', mode='STRICT')
         def test_fail(): assert False
     """)
     result = testdir.runpytest()
@@ -138,7 +136,7 @@ def test_strict_on_failing_test(testdir):
 def test_strict_on_passing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', mode='STRICT')
+        @pytest.mark.randombug('NXDRIVE-0', mode='STRICT')
         def test_success(): assert True
     """)
     result = testdir.runpytest()
@@ -148,7 +146,7 @@ def test_strict_on_passing_test(testdir):
 def test_strict_and_false_condition_on_passing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', condition=False, mode='STRICT')
+        @pytest.mark.randombug('NXDRIVE-0', condition=False, mode='STRICT')
         def test_success(): assert True
     """)
     result = testdir.runpytest()
@@ -158,7 +156,7 @@ def test_strict_and_false_condition_on_passing_test(testdir):
 def test_strict_failing_after_success(testdir):
     testdir.makepyfile("""
             import pytest
-            @pytest.mark.random('NXDRIVE-0', mode='STRICT')
+            @pytest.mark.randombug('NXDRIVE-0', mode='STRICT')
             def test_fail():
                 """ + temporary_failure(3, reverse=True))
     result = testdir.runpytest()
@@ -168,7 +166,7 @@ def test_strict_failing_after_success(testdir):
 def test_strict_and_lower_repeat_number_on_passing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', repeat=5, mode='STRICT')
+        @pytest.mark.randombug('NXDRIVE-0', repeat=5, mode='STRICT')
         def test_success(): assert True
     """)
     result = testdir.runpytest()
@@ -178,7 +176,7 @@ def test_strict_and_lower_repeat_number_on_passing_test(testdir):
 def test_bypass_on_passing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', mode='BYPASS')
+        @pytest.mark.randombug('NXDRIVE-0', mode='BYPASS')
         def test_success(): assert True
     """)
     result = testdir.runpytest()
@@ -188,7 +186,7 @@ def test_bypass_on_passing_test(testdir):
 def test_bypass_on_failing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', mode='BYPASS')
+        @pytest.mark.randombug('NXDRIVE-0', mode='BYPASS')
         def test_fail(): assert False
     """)
     result = testdir.runpytest()
@@ -198,7 +196,7 @@ def test_bypass_on_failing_test(testdir):
 def test_bypass_and_false_condition_on_passing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', condition=False, mode='BYPASS')
+        @pytest.mark.randombug('NXDRIVE-0', condition=False, mode='BYPASS')
         def test_success(): assert True
     """)
     result = testdir.runpytest()
@@ -208,7 +206,7 @@ def test_bypass_and_false_condition_on_passing_test(testdir):
 def test_bypass_and_false_condition_on_failing_test(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', condition=False, mode='BYPASS')
+        @pytest.mark.randombug('NXDRIVE-0', condition=False, mode='BYPASS')
         def test_fail(): assert False
     """)
     result = testdir.runpytest()

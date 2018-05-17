@@ -9,7 +9,7 @@ from .common_unit_test import UnitTestCase
 
 class TestSynchronizationSuspend(UnitTestCase):
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-805', condition=(sys.platform == 'win32'), repeat=2)
     def test_basic_synchronization_suspend(self):
         local = self.local_client_1
@@ -74,7 +74,7 @@ class TestSynchronizationSuspend(UnitTestCase):
         self.assertEqual(len(remote.get_children_info(self.workspace_1)), 2)
         self.assertFalse(engine.get_queue_manager().is_paused())
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-812', condition=(sys.platform == 'linux2'), mode='BYPASS')
     def test_synchronization_end_with_children_ignore_parent(self):
         """ NXDRIVE-655: children of ignored folder are not ignored. """

@@ -117,7 +117,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(len(local_client.get_children_info(u'/')), 5)
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-811', condition=(sys.platform == 'win32'), mode='BYPASS')
     def test_local_rename_file_while_creating_before_marker(self):
         global marker, client

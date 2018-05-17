@@ -14,7 +14,7 @@ from .common_unit_test import UnitTestCase
 
 class TestWindows(UnitTestCase):
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-719', condition=(sys.platform == 'linux2'), mode='BYPASS')
     def test_local_replace(self):
         local = LocalClient(self.local_test_folder_1)

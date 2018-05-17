@@ -108,7 +108,7 @@ class TestLocalCopyPaste(UnitTestCase):
         super(TestLocalCopyPaste, self).tearDown()
         log.debug('*** exit TestLocalCopyPaste.tearDown() ***')
 
-    @pytest.mark.random(
+    @pytest.mark.randombug(
         'NXDRIVE-815', condition=(sys.platform != 'linux2'), repeat=5)
     def test_local_copy_paste_files(self):
         self._local_copy_paste_files(stopped=False)
