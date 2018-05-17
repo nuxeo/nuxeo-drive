@@ -498,8 +498,8 @@ class UnitTestCase(SimpleUnitTestCase):
         engine = 'engine_' + str(number)
         while timeout > 0:
             sleep(1)
-            timeout = timeout - 1
-            if hasattr(self, engine):
+            timeout -= 1
+            if getattr(self, engine, False):
                 return
         self.fail('Wait for bind engine expired')
 
@@ -507,8 +507,8 @@ class UnitTestCase(SimpleUnitTestCase):
         engine = 'engine_' + str(number)
         while timeout > 0:
             sleep(1)
-            timeout = timeout - 1
-            if not hasattr(self, engine):
+            timeout -= 1
+            if not getattr(self, engine, False):
                 return
         self.fail('Wait for unbind engine expired')
 

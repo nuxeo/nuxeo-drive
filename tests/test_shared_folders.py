@@ -86,8 +86,11 @@ class TestSharedFolders(UnitTestCase):
         # Remove ReadWrite permission for user_1 on the test workspace
         test_workspace = 'doc:' + TEST_WORKSPACE_PATH
         self.root_remote.operations.execute(
-            command='Document.SetACE', input_obj=test_workspace,
-            user=self.user_2, permission='ReadWrite', grant=True)
+            command='Document.SetACE',
+            input_obj=test_workspace,
+            user=self.user_2,
+            permission='ReadWrite',
+            grant=True)
 
         # Create initial folders and files as user_2
         folder = remote_2.make_folder('/', 'Folder01')
@@ -98,8 +101,10 @@ class TestSharedFolders(UnitTestCase):
 
         # Grant Read permission for user_1 on the test folder and register
         self.root_remote.operations.execute(
-            command='Document.SetACE', input_obj='doc:' + folder,
-            user=self.user_1, permission='Read')
+            command='Document.SetACE',
+            input_obj='doc:' + folder,
+            user=self.user_1,
+            permission='Read')
         remote_1.register_as_root(folder)
 
         # Start engine and wait for sync
@@ -129,8 +134,10 @@ class TestSharedFolders(UnitTestCase):
 
         # Restore write permission to user_1 (=> ReadWrite)
         self.root_remote.operations.execute(
-            command='Document.SetACE', input_obj='doc:' + folder,
-            user=self.user_1, permission='ReadWrite')
+            command='Document.SetACE',
+            input_obj='doc:' + folder,
+            user=self.user_1,
+            permission='ReadWrite')
         self.wait()
 
         # Make changes
@@ -167,8 +174,8 @@ class TestSharedFolders(UnitTestCase):
             assert file_info.name == 'File01.txt'
             assert remote_2.exists('/Folder01/SubFolder01/Image01.png')
             # File is in conflict
-            file_pair_state = self.engine_1.get_dao()\
-                .get_normal_state_from_remote(file_remote_ref)
+            file_pair_state = (self.engine_1.get_dao()
+                               .get_normal_state_from_remote(file_remote_ref))
             assert file_pair_state.pair_state == 'conflicted'
         else:
             # File has been renamed and image deleted
