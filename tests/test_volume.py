@@ -13,6 +13,9 @@ from .common_unit_test import UnitTestCase
 log = getLogger(__name__)
 
 
+@pytest.mark.skipif(
+    'TEST_VOLUME' not in os.environ,
+    reason='Deactivate if not launched on purpose with TEST_VOLUME set')
 class VolumeTestCase(UnitTestCase):
 
     NUMBER_OF_LOCAL_FILES = 10
@@ -43,11 +46,8 @@ class VolumeTestCase(UnitTestCase):
                 if not self.fake:
                     file_path = os.path.join(abspath, filename)
                     self.generate_random_png(file_path)
-                self.items = self.items + 1
+                self.items += 1
 
-    @pytest.mark.skipif('TEST_VOLUME' not in os.environ,
-                        reason='Deactivate if not launch on purpose '
-                               'with TEST_VOLUME set')
     def create(self, stopped=True, wait_for_sync=True):
         self.fake = False
         if not self.fake:
