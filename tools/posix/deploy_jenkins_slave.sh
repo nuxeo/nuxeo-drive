@@ -262,7 +262,6 @@ launch_tests() {
         --strict \
         --failed-first \
         --no-print-logs \
-        -p tests.pytest_random
         -r fE \
         -W error \
         -v

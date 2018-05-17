@@ -1,4 +1,4 @@
-# conding: utf-8
+# coding: utf-8
 """ Tests for pytests_random: a pytest plugin to mitigate random failures.
 
     Adapted from github.com/pytest-dev/pytest-rerunfailures
@@ -11,6 +11,8 @@ pytest_plugins = 'pytester'
 @pytest.fixture(autouse=True)
 def plugin(testdir):
     testdir.makeconftest("""
+        import pytest
+        
         pytest_plugins = 'tests.pytest_random'
     """)
 
@@ -64,7 +66,7 @@ def test_no_repeat_on_xfail_mark(testdir):
     testdir.makepyfile("""
         import pytest
         @pytest.mark.xfail()
-        @pytest.mark.random('NXDRIVE-0', mode='RELAX')
+        @pytest.mark.random('NXDRIVE-0')
         def test_xfail():
             assert False
     """)
@@ -75,7 +77,7 @@ def test_no_repeat_on_xfail_mark(testdir):
 def test_no_repeat_on_xfail_call(testdir):
     testdir.makepyfile("""
         import pytest
-        @pytest.mark.random('NXDRIVE-0', mode='STRICT')
+        @pytest.mark.random('NXDRIVE-0')
         def test_xfail():
             pytest.xfail('Skipping this test')
     """)
