@@ -39,6 +39,8 @@ def get_condition(item):
 def pytest_configure(config):
     """ Set the default mode upon pytest loading. """
     config.default_mode = os.environ.get('RANDOM_BUG_MODE', None)
+    if config.default_mode == 'None':
+        config.default_mode = None
     config.addinivalue_line(
         "markers",
         "randombug(reason, condition=True, mode='RELAX', repeat=10): "
@@ -103,4 +105,4 @@ def pytest_runtest_protocol(item, nextitem):
 
 def pytest_report_teststatus(report):
     if report.outcome == 'repeat':
-        return 'repeated', 'R', ('REPEAT', {'yellow': True})
+        return 'repeated', 'R', ('REPEATED', {'yellow': True})
