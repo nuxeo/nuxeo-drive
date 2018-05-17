@@ -262,6 +262,7 @@ launch_tests() {
         --strict \
         --failed-first \
         --no-print-logs \
+        --trace-config \
         -r fE \
         -W error \
         -v
