@@ -48,7 +48,6 @@ The `device_config` table of the SQLite database needs a unique id as a primary 
             proxy_authenticated BOOLEAN,
             proxy_username VARCHAR,
             proxy_password BLOB,
-            proxy_exceptions VARCHAR,
             auto_update BOOLEAN,
             PRIMARY KEY (device_id),
             CHECK (proxy_authenticated IN (0, 1))

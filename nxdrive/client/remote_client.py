@@ -17,10 +17,9 @@ from nuxeo.exceptions import HTTPError
 from nuxeo.models import FileBlob
 
 from . import NotFound
-from ..constants import (APP_NAME, BLOB_TIMEOUT, DEFAULT_TYPES,
-                         DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX,
-                         FILE_BUFFER_SIZE, MAX_CHILDREN, TIMEOUT,
-                         TOKEN_PERMISSION, TX_TIMEOUT)
+from ..constants import (APP_NAME, DEFAULT_TYPES, DOWNLOAD_TMP_FILE_PREFIX,
+                         DOWNLOAD_TMP_FILE_SUFFIX, FILE_BUFFER_SIZE,
+                         MAX_CHILDREN, TIMEOUT, TOKEN_PERMISSION, TX_TIMEOUT)
 from ..engine.activity import Action, FileAction
 from ..options import Options
 from ..utils import get_device, lock_path, make_tmp_file, unlock_path
@@ -88,13 +87,10 @@ class Remote(Nuxeo):
             version,  # type: Text
             dao=None,  # type: Optional[Any]
             proxies=None,  # type: Optional[Dict]
-            proxy_exceptions=None,  # type: Optional[List]
             password=None,  # type: Optional[Text]
             token=None,  # type: Optional[Text]
             repository=Options.remote_repo,  # type: Text
             timeout=TIMEOUT,  # type: int
-            blob_timeout=BLOB_TIMEOUT,  # type: int
-            cookie_jar=None,  # type: Optional[CookieJar]
             upload_tmp_dir=None,  # type: Optional[Text]
             check_suspended=None,  # type: Optional[Callable]
             base_folder=None,  # type: Optional[Text]
@@ -104,9 +100,13 @@ class Remote(Nuxeo):
         self.kwargs = kwargs
 
         super(Remote, self).__init__(
-            auth=auth, host=url, app_name=APP_NAME,
-            version=version, proxies=proxies, repository=repository,
-            cookie_jar=cookie_jar, **kwargs)
+            auth=auth,
+            host=url,
+            app_name=APP_NAME,
+            version=version,
+            proxies=proxies,
+            repository=repository,
+            **kwargs)
 
         self.client.headers.update({
             'X-User-Id': user_id,
@@ -118,7 +118,6 @@ class Remote(Nuxeo):
             self._dao = dao
 
         self.timeout = timeout if timeout > 0 else TIMEOUT
-        self.blob_timeout = blob_timeout if blob_timeout > 0 else BLOB_TIMEOUT
 
         self.device_id = device_id
         self.user_id = user_id
@@ -167,12 +166,15 @@ class Remote(Nuxeo):
             current_action.size = int(resp.headers.get('Content-Length', 0))
 
         if file_out:
-            check_suspended = kwargs.pop('check_suspended',
-                                         self.check_suspended)
+            check_suspended = kwargs.pop(
+                'check_suspended', self.check_suspended)
             locker = unlock_path(file_out)
             try:
                 self.operations.save_to_file(
-                    current_action, resp, file_out, digest=digest,
+                    current_action,
+                    resp,
+                    file_out,
+                    digest=digest,
                     chunk_size=FILE_BUFFER_SIZE,
                     check_suspended=check_suspended)
             finally:

@@ -8,8 +8,6 @@ from .common_unit_test import UnitTestCase
 class TestReinitDatabase(UnitTestCase):
 
     def setUp(self):
-        super(TestReinitDatabase, self).setUp()
-
         self.local = self.local_1
         self.remote = self.remote_document_client_1
 
@@ -23,33 +21,17 @@ class TestReinitDatabase(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Verify that everything is synchronized
-        assert self.local.exists('/Test folder'), 'Local folder should exist'
-        assert self.local.exists('/Test folder/Test.txt'),\
-            'Local file should exist'
+        assert self.local.exists('/Test folder')
+        assert self.local.exists('/Test folder/Test.txt')
 
         # Destroy database
-        self._reinit_database()
+        self.unbind_engine(1)
+        self.bind_engine(1, start_engine=False)
 
     def _check_states(self):
         rows = self.engine_1.get_dao().get_states_from_partial_local('/')
         for row in rows:
             assert row.pair_state == 'synchronized'
-
-    def _reinit_database(self):
-        # Unbind engine
-        self.manager_1.unbind_engine(self.engine_1.uid)
-
-        # Re-bind engine
-        self.engine_1 = self.manager_1.bind_server(
-            self.local_nxdrive_folder_1, self.nuxeo_url, self.user_1,
-            self.password_1, start_engine=False)
-        self.engine_1.syncCompleted.connect(self.app.sync_completed)
-        self.engine_1.get_remote_watcher().remoteScanFinished.connect(
-            self.app.remote_scan_completed)
-        self.engine_1.get_remote_watcher().changesFound.connect(
-            self.app.remote_changes_found)
-        self.engine_1.get_remote_watcher().noChangesFound.connect(
-            self.app.no_remote_changes_found)
 
     def _check_conflict_detection(self):
         assert len(self.engine_1.get_dao().get_conflicts()) == 1

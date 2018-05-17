@@ -4,7 +4,6 @@ BUNDLE_IDENTIFIER = 'org.nuxeo.drive'
 APP_NAME = 'Nuxeo Drive'
 
 TIMEOUT = 20
-BLOB_TIMEOUT = 60
 TX_TIMEOUT = 300
 FILE_BUFFER_SIZE = 1024 ** 2
 

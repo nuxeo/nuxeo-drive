@@ -94,9 +94,6 @@ class Engine(QObject):
         self._case_sensitive = None
         self.timeout = 30
         self._handshake_timeout = 60
-        # Make all the automation client related to this manager
-        # share cookies using threadsafe jar
-        self.cookie_jar = CookieJar()
         self.manager = manager
         # Remove remote client cache on proxy update
         self.manager.proxyUpdated.connect(self.invalidate_client_cache)
@@ -719,7 +716,6 @@ class Engine(QObject):
             'proxies': self.manager.get_proxies(self._server_url),
             'password': self._remote_password,
             'timeout': self.timeout,
-            'cookie_jar': self.cookie_jar,
             'token': self._remote_token,
             'check_suspended': self.suspend_client,
         }
@@ -773,11 +769,11 @@ class Engine(QObject):
         self._dao.update_config('remote_user', self._remote_user)
         self._dao.update_config('remote_password', self._remote_password)
         self._dao.update_config('remote_token', self._remote_token)
-        if self.remote:
-            # Check for the root
-            # If the top level state for the server binding doesn't exist,
-            # create the local folder and the top level state.
-            self._check_root()
+
+        # Check for the root
+        # If the top level state for the server binding doesn't exist,
+        # create the local folder and the top level state.
+        self._check_root()
 
     def _check_fs(self, path):
         if not self.manager.osi.is_partition_supported(path):

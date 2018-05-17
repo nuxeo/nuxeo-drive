@@ -54,8 +54,7 @@ class ProxySettings(object):
     """ Summarize HTTP proxy settings. """
 
     def __init__(self, dao=None, config='System', proxy_type=None, server=None,
-                 port=None, authenticated=False, username=None, password=None,
-                 exceptions=None):
+                 port=None, authenticated=False, username=None, password=None):
         self.config = config
         self.proxy_type = proxy_type
         self.server = server
@@ -63,7 +62,6 @@ class ProxySettings(object):
         self.authenticated = authenticated
         self.username = username
         self.password = password
-        self.exceptions = exceptions
         self.pac_url = None
         if dao is not None:
             self.load(dao)
@@ -99,9 +97,6 @@ class ProxySettings(object):
                 result += self.server + ":" + str(self.port)
         return result
 
-    def set_exceptions(self, exceptions):
-        self.exceptions = exceptions
-
     def save(self, dao, token=None):
         # Encrypt password with token as the secret
         if token is None:
@@ -113,7 +108,6 @@ class ProxySettings(object):
         password = encrypt(self.password, token)
         dao.update_config("proxy_password", password)
         dao.update_config("proxy_username", self.username)
-        dao.update_config("proxy_exceptions", self.exceptions)
         dao.update_config("proxy_port", self.port)
         dao.update_config("proxy_type", self.proxy_type)
         dao.update_config("proxy_config", self.config)
@@ -128,7 +122,6 @@ class ProxySettings(object):
         self.server = dao.get_config("proxy_server")
         self.username = dao.get_config("proxy_username")
         password = dao.get_config("proxy_password")
-        self.exceptions = dao.get_config("proxy_exceptions")
         self.authenticated = (dao.get_config("proxy_authenticated", "0") == "1")
         self.pac_url = dao.get_config("proxy_pac_url")
         if token is None:
@@ -143,9 +136,9 @@ class ProxySettings(object):
 
     def __repr__(self):
         return ("ProxySettings<config=%s, proxy_type=%s, server=%s, port=%s, "
-                "authenticated=%r, username=%s, exceptions=%s>") % (
+                "authenticated=%r, username=%s>") % (
                     self.config, self.proxy_type, self.server, self.port,
-                    self.authenticated, self.username, self.exceptions)
+                    self.authenticated, self.username)
 
     @staticmethod
     def validate_proxy(proxy_url, target_url):
@@ -263,7 +256,6 @@ class Manager(QtCore.QObject):
         self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
         self._engines = None
         self.proxies = dict()
-        self.proxy_exceptions = None
         self.updater = None
         self.server_config_updater = None
         if Options.proxy_server is not None:
@@ -681,10 +673,10 @@ class Manager(QtCore.QObject):
         return self._tracker.uid if self._tracker else ''
 
     def validate_proxy_settings(self, proxy_settings):
-        url = 'http://www.google.com'
+        url = 'http://www.example.org'
         try:
             if proxy_settings.config in ('Manual', 'System'):
-                proxies, _ = get_proxies_for_handler(proxy_settings)
+                proxies = get_proxies_for_handler(proxy_settings)
                 resp = requests.get(url, proxies=proxies)
                 resp.raise_for_status()
             elif proxy_settings.config == 'Automatic':
@@ -705,8 +697,7 @@ class Manager(QtCore.QObject):
             log.error('Exception (%s) when validating proxy server for %s',
                       e, url)
             return False
-        else:
-            return True
+        return True
 
     def set_proxy_settings(self, proxy_settings, force=False):
         if force or self.validate_proxy_settings(proxy_settings):
@@ -724,8 +715,7 @@ class Manager(QtCore.QObject):
         proxy_settings = (proxy_settings if proxy_settings is not None
                           else self.get_proxy_settings())
         if proxy_settings.config in ('Manual', 'System'):
-            self.proxies['default'], self.proxy_exceptions = \
-                get_proxies_for_handler(proxy_settings)
+            self.proxies['default'] = get_proxies_for_handler(proxy_settings)
         elif proxy_settings.config == 'Automatic':
             if self._engine_definitions:
                 for engine_def in self._engine_definitions:
@@ -734,10 +724,9 @@ class Manager(QtCore.QObject):
                     log.trace('Setting proxy for %s to %r', server_url,
                               self.proxies[server_url])
             else:
-                self.proxies['default'] = \
-                    proxy_settings.get_proxies_automatic(url)
+                self.proxies['default'] = proxy_settings.get_proxies_automatic(url)
         else:
-            self.proxies['default'], self.proxy_exceptions = {}, None
+            self.proxies['default'] = {}
 
         log.trace('Effective proxy: %r', self.proxies['default'])
         self.proxyUpdated.emit(proxy_settings)
@@ -905,15 +894,12 @@ class Manager(QtCore.QObject):
         try:
             self._engines[uid] = self._engine_types[engine_type](
                 self, engine_def, binder=binder)
-        except Exception as e:
+        except Exception as exc:
             log.exception('Engine error')
-            try:
-                del self._engines[uid]
-            except KeyError:
-                pass
+            self._engines.pop(uid, None)
             self._dao.delete_engine(uid)
             # TODO Remove the DB?
-            raise e
+            raise exc
 
         self._engine_definitions.append(engine_def)
         # As new engine was just bound, refresh application update status

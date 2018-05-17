@@ -152,7 +152,6 @@ class MetaOptions(type):
             'default'),
         'nofscheck': (False, 'default'),
         'protocol_url': (None, 'default'),
-        'proxy_exceptions': (None, 'default'),
         'proxy_server': (None, 'default'),
         'proxy_type': (None, 'default'),
         'remote_repo': ('default', 'default'),
