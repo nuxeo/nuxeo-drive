@@ -387,7 +387,7 @@ class RemoteWatcher(EngineWorker):
             if child_pair.remote_ref is not None and child_pair.remote_ref != child_info.uid:
                 log.debug("Got an existing pair with different id: %r | %r", child_pair, child_info)
             else:
-                if (child_pair.folderish is child_info.folderish is False
+                if (child_pair.folderish == child_info.folderish
                         and self.engine.local.is_equal_digests(
                             child_pair.local_digest,
                             child_info.digest,
