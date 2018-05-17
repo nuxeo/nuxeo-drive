@@ -238,8 +238,9 @@ class DirectEdit(Worker):
     def _get_info(self, engine, doc_id, user):
         doc = engine.remote.fetch(
             doc_id,
-            headers={'fetch-document': 'lock',
-                     'enrichers-document': 'permissions'})
+            headers={'fetch-document': 'lock'},
+            enrichers=['permissions'],
+        )
         info = engine.remote.doc_to_info(doc, fetch_parent_uid=False)
 
         if info.lock_owner and info.lock_owner != engine.remote_user:
