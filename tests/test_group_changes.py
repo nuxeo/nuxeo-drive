@@ -56,10 +56,6 @@ class TestGroupChanges(UnitTestCase):
             self.version, password=self.password,
             base_folder=self.workspace_path)
 
-        log.debug('Block inheritance on workspace')
-        self.admin_remote.block_inheritance(self.workspace.uid,
-                                            overwrite=False)
-
     def tearDown(self):
         remote = self.root_remote
 
@@ -256,7 +252,7 @@ class TestGroupChanges(UnitTestCase):
 
             log.trace('Add %s as a subgroup of parentGroup', group_name)
             group = remote.groups.get('parentGroup')
-            group.member_groups = [group_name]
+            group.memberGroups = [group_name]
             group.save()
 
         log.debug('Check that %s is created locally', folder_path)
