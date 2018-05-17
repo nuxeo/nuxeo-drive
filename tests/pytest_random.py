@@ -28,6 +28,8 @@ def get_mode(item):
     random = get_random(item)
     mode = (item.config.default_mode
             or random.kwargs.get('mode', 'RELAX')) if random else None
+    if mode not in ['RELAX', 'STRICT', 'BYPASS']:
+        mode = 'RELAX'
     return mode
 
 
@@ -39,7 +41,7 @@ def get_condition(item):
 def pytest_configure(config):
     """ Set the default mode upon pytest loading. """
     config.default_mode = os.environ.get('RANDOM_BUG_MODE', None)
-    if config.default_mode == 'None':
+    if config.default_mode not in ['RELAX', 'STRICT', 'BYPASS']:
         config.default_mode = None
     config.addinivalue_line(
         "markers",
