@@ -1065,7 +1065,7 @@ class Manager(QtCore.QObject):
             # Only send status if we picked the right
             # engine and if we're not targeting the root
             path = unicodedata.normalize('NFC', force_decode(path))
-            if (path.startswith(engine.local_folder_bs)
+            if (path.startswith(self._engines[engine.uid].local_folder_bs)
                     and not os.path.samefile(path, engine.local_folder)):
                 r_path = path.replace(engine.local_folder, '')
                 dao = self._engines[engine.uid]._dao
