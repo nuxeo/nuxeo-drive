@@ -1,14 +1,17 @@
 # coding: utf-8
+import sys
 import time
-from unittest import skip
+
+import pytest
 
 from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from .common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class TestSecurityUpdates(UnitTestCase):
 
-    @RandomBug('NXDRIVE-821', target='mac', mode='BYPASS')
+    @pytest.mark.randombug(
+        'NXDRIVE-821', condition=(sys.platform == 'darwin'), mode='BYPASS')
     def test_synchronize_denying_read_access(self):
         """Test that denying Read access server side is impacted client side
 
@@ -74,7 +77,7 @@ class TestSecurityUpdates(UnitTestCase):
         self.assertTrue(local.exists('/Test folder'))
         self.assertTrue(local.exists('/Test folder/joe.txt'))
 
-    @skip('NXDRIVE-170: WIP')
+    @pytest.mark.skip('NXDRIVE-170: WIP')
     def test_synchronize_denying_read_access_local_modification(self):
         # TO_REVIEW: Trash feature, delete it, might need to modify the behavior
         """Test denying Read access with concurrent local modification

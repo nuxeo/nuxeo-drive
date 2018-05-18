@@ -2,10 +2,11 @@
 import os
 from shutil import copyfile
 from time import sleep
-from unittest import SkipTest
 
-from nxdrive.client import LocalClient, NotFound, RemoteDocumentClient, \
-    Unauthorized
+import pytest
+
+from nxdrive.client import (LocalClient, NotFound, RemoteDocumentClient,
+                            Unauthorized)
 from .common import SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
 from .common_unit_test import UnitTestCase
 
@@ -45,7 +46,7 @@ class TestRemoteDocumentClient(UnitTestCase):
         remote_client = self.remote_document_client_1
         token = remote_client.request_token()
         if token is None:
-            raise SkipTest('nuxeo-platform-login-token is not deployed')
+            pytest.skip('nuxeo-platform-login-token is not deployed')
         self.assertGreater(len(token), 5)
         self.assertEqual(remote_client.auth[0], 'X-Authentication-Token')
         self.assertEqual(remote_client.auth[1], token)

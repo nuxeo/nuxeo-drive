@@ -1,7 +1,10 @@
 # coding: utf-8
 import socket
+import sys
 import time
 import urllib2
+
+import pytest
 
 from nxdrive.client import LocalClient
 from nxdrive.client.remote_filtered_file_system_client import \
@@ -9,8 +12,7 @@ from nxdrive.client.remote_filtered_file_system_client import \
 from nxdrive.osi import AbstractOSIntegration
 from . import RemoteTestClient
 from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from .common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT, RandomBug, \
-    UnitTestCase
+from .common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT, UnitTestCase
 
 
 class HTTPErrorMock(urllib2.HTTPError):
@@ -671,7 +673,8 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.assertFalse(local.exists('/test.odt'))
 
-    @RandomBug('NXDRIVE-808', target='mac', repeat=2)
+    @pytest.mark.randombug(
+        'NXDRIVE-808', condition=(sys.platform == 'darwin'), repeat=2)
     def test_synchronize_deletion(self):
         local = self.local_client_1
         remote = self.remote_document_client_1

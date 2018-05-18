@@ -1,7 +1,8 @@
 # coding: utf-8
 import os
 import shutil
-from unittest import skip
+
+import pytest
 
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
@@ -119,7 +120,8 @@ class TestLocalDeletion(UnitTestCase):
         self.assertIsNotNone(new_uid)
         self.assertFalse(new_uid.endswith(old_info.uid))
 
-    @skip('Wait to know what is the expectation - the previous folder doesnt exist')
+    @pytest.mark.skip(reason='Wait to know what is the expectation '
+                             '- the previous folder doesnt exist')
     def test_move_untrash_file_on_parent_with_no_rights_on_destination(self):
         # Setup the test
         file_path = '/ToDelete/File_To_Delete.txt'

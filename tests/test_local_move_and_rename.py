@@ -1,7 +1,10 @@
 # coding: utf-8
+import sys
 import urllib2
 from itertools import product
 from time import sleep
+
+import pytest
 
 from nxdrive.client import LocalClient
 from nxdrive.client.remote_filtered_file_system_client import \
@@ -10,7 +13,8 @@ from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.engine.engine import Engine
 from . import RemoteTestClient
 from .common import RemoteDocumentClientForTests
-from .common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import UnitTestCase
+
 
 # TODO NXDRIVE-170: refactor
 
@@ -113,7 +117,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         self.assertEqual(len(local_client.get_children_info(u'/')), 5)
         self.assertEqual(len(remote_client.get_children_info(self.workspace_1)), 5)
 
-    @RandomBug('NXDRIVE-811', target='windows', mode='BYPASS')
+    @pytest.mark.randombug(
+        'NXDRIVE-811', condition=(sys.platform == 'win32'), mode='BYPASS')
     def test_local_rename_file_while_creating_before_marker(self):
         global marker, client
         local_client = self.local_client_1

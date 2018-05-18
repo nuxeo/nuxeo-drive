@@ -4,7 +4,9 @@ import shutil
 import sys
 from logging import getLogger
 
-from .common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
+import pytest
+
+from .common_unit_test import FILE_CONTENT, UnitTestCase
 
 log = getLogger(__name__)
 
@@ -106,8 +108,8 @@ class TestLocalCopyPaste(UnitTestCase):
         super(TestLocalCopyPaste, self).tearDown()
         log.debug('*** exit TestLocalCopyPaste.tearDown() ***')
 
-    @RandomBug('NXDRIVE-815', target='mac', repeat=5)
-    @RandomBug('NXDRIVE-815', target='windows', repeat=5)
+    @pytest.mark.randombug(
+        'NXDRIVE-815', condition=(sys.platform != 'linux2'), repeat=5)
     def test_local_copy_paste_files(self):
         self._local_copy_paste_files(stopped=False)
 
