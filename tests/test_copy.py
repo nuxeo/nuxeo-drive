@@ -1,10 +1,15 @@
 # coding: utf-8
-from .common_unit_test import RandomBug, UnitTestCase
+import sys
+
+import pytest
+
+from .common_unit_test import UnitTestCase
 
 
 class TestCopy(UnitTestCase):
 
-    @RandomBug('NXDRIVE-808', target='linux', repeat=5)
+    @pytest.mark.randombug(
+        'NXDRIVE-808', condition=(sys.platform == 'linux2'), repeat=5)
     def test_synchronize_remote_copy(self):
         local = self.local_1
         remote = self.remote_document_client_1

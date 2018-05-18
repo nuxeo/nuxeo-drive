@@ -145,9 +145,8 @@ class TestLocalDeletion(UnitTestCase):
         assert new_uid is not None
         assert not new_uid.endswith(old_info.uid)
 
-    @pytest.mark.skip(
-        "Wait to know what is the expectation"
-        " - the previous folder doesn't exist")
+    @pytest.mark.skip(reason='Wait to know what is the expectation '
+                             '- the previous folder doesnt exist')
     def test_move_untrash_file_on_parent_with_no_rights_on_destination(self):
         local = self.local_1
         remote = self.remote_document_client_1

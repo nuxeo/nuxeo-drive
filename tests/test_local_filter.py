@@ -1,5 +1,9 @@
 # coding: utf-8
-from .common_unit_test import RandomBug, UnitTestCase
+import sys
+
+import pytest
+
+from .common_unit_test import UnitTestCase
 
 
 class TestLocalFilter(UnitTestCase):
@@ -97,7 +101,8 @@ class TestLocalFilter(UnitTestCase):
         assert len(children) == 2
         assert children[1].name == '2345BCDF'
 
-    @RandomBug('NXDRIVE-808', target='linux', mode='BYPASS')
+    @pytest.mark.randombug(
+        'NXDRIVE-808', condition=(sys.platform == 'linux2'), mode='BYPASS')
     def test_synchronize_local_filter_with_move(self):
         local = self.local_1
         remote = self.remote_document_client_1

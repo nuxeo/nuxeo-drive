@@ -7,15 +7,15 @@ from math import floor, log10
 
 import pytest
 
-if 'TEST_VOLUME' not in os.environ:
-    pytestmark = pytest.mark.skip('Deactivate if not launch on purpose with TEST_VOLUME set')
-
 from .common import TEST_WORKSPACE_PATH
 from .common_unit_test import UnitTestCase
 
 log = getLogger(__name__)
 
 
+@pytest.mark.skipif(
+    'TEST_VOLUME' not in os.environ,
+    reason='Deactivate if not launched on purpose with TEST_VOLUME set')
 class VolumeTestCase(UnitTestCase):
 
     NUMBER_OF_LOCAL_FILES = 10
@@ -46,7 +46,7 @@ class VolumeTestCase(UnitTestCase):
                 if not self.fake:
                     file_path = os.path.join(abspath, filename)
                     self.generate_random_png(file_path)
-                self.items = self.items + 1
+                self.items += 1
 
     def create(self, stopped=True, wait_for_sync=True):
         self.fake = False
@@ -171,8 +171,8 @@ class VolumeTestCase(UnitTestCase):
             self.engine_1.stop()
         # While we are started
         # Move one parent to the second children
-        if len(self.tree['childs']) < 3 or self.depth < 2:
-            raise pytest.skip("Can't execute this test on so few data")
+        if len(self.tree["childs"]) < 3 or self.depth < 2:
+            pytest.skip("Can't execute this test on so few data")
         # Move root 2 in, first subchild of 1
         root_2 = self.get_path(True, 1, 2)
         child = self.get_path(True, self.depth, 1)
@@ -274,6 +274,9 @@ class VolumeTestCase(UnitTestCase):
         self._check_folder(self.get_path(True, 1, self.num_folders+2),
                            added=[self.get_name(True, 1, 1)])
 
+    @pytest.mark.skipif('TEST_REMOTE_SCAN_VOLUME' not in os.environ
+                        or int(os.environ['TEST_REMOTE_SCAN_VOLUME']) == 0,
+                        reason='Skipped as TEST_REMOTE_SCAN_VOLUME is no set')
     def test_remote_scan(self):
         nb_nodes = int(os.environ.get('TEST_REMOTE_SCAN_VOLUME', 20))
         # Random mass import

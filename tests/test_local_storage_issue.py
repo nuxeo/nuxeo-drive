@@ -1,8 +1,10 @@
 # coding: utf-8
 import os
 
+import pytest
+
 from . import RemoteTest
-from .common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class TestLocalStorageSpaceIssue(UnitTestCase):
@@ -22,9 +24,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         assert len(children) == 1
         assert children[0].name == "Test.txt"
 
-    @RandomBug('NXDRIVE-818', target='windows', mode='BYPASS')
-    @RandomBug('NXDRIVE-818', target='mac', mode='BYPASS')
-    @RandomBug('NXDRIVE-818', target='linux', mode='BYPASS')
+    @pytest.mark.randombug('NXDRIVE-818', mode='BYPASS')
     def test_synchronize_no_space_left_on_device(self):
         local = self.local_1
         remote = self.remote_document_client_1

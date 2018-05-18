@@ -1,13 +1,14 @@
 # coding: utf-8
+import sys
 from itertools import product
 from time import sleep
 
-from nuxeo.exceptions import HTTPError
+import pytest
 
 from nxdrive.client import LocalClient
 from nxdrive.engine.dao.sqlite import EngineDAO
 from . import DocRemote, RemoteTest
-from .common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 # TODO NXDRIVE-170: refactor
@@ -108,7 +109,8 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(local.get_children_info(u'/')) == 5
         assert len(remote.get_children_info(self.workspace_1)) == 5
 
-    @RandomBug('NXDRIVE-811', target='windows', mode='BYPASS')
+    @pytest.mark.randombug(
+        'NXDRIVE-811', condition=(sys.platform == 'win32'), mode='BYPASS')
     def test_local_rename_file_while_creating_before_marker(self):
         global marker, local
         root_local = self.local_root_client_1

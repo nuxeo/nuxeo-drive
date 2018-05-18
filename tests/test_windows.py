@@ -9,12 +9,13 @@ import pytest
 from nxdrive.client import LocalClient
 from .common import (OS_STAT_MTIME_RESOLUTION,
                      REMOTE_MODIFICATION_TIME_RESOLUTION)
-from .common_unit_test import RandomBug, UnitTestCase
+from .common_unit_test import UnitTestCase
 
 
 class TestWindows(UnitTestCase):
 
-    @RandomBug('NXDRIVE-719', target='linux', mode='BYPASS')
+    @pytest.mark.randombug(
+        'NXDRIVE-719', condition=(sys.platform == 'linux2'), mode='BYPASS')
     def test_local_replace(self):
         local = LocalClient(self.local_test_folder_1)
         remote = self.remote_document_client_1

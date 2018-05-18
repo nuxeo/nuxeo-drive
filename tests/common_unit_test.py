@@ -6,14 +6,13 @@ import random
 import struct
 import sys
 import tempfile
-import traceback
-import unittest
 import zlib
-from functools import wraps
 from logging import getLogger
 from os.path import dirname
 from threading import Thread
 from time import sleep
+from unittest import TestCase
+from urllib2 import URLError
 
 from PyQt4 import QtCore
 from nuxeo.exceptions import HTTPError
@@ -88,109 +87,6 @@ Manager._handle_os = lambda: None
 Manager.send_sync_status = lambda *args: None
 
 
-class RandomBugError(Exception):
-
-    def __init__(self, message, cause=None):
-        msg = (message if cause is None else message + u'\nCaused by ' +
-                                             repr(cause) + u'\n' +
-                                             traceback.format_exc())
-        super(RandomBugError, self).__init__(msg)
-        self.cause = cause
-
-
-class RandomBug(object):
-    """
-    Use this annotation if a bug is a RandomBug, you need to track it with a ticket before.
-    """
-    MODES = ('RELAX', 'STRICT', 'BYPASS')
-    OS = ('windows', 'mac', 'linux')
-
-    def __init__(self, ticket, target=None, repeat=10, mode='RELAX'):
-        """
-        :param ticket: Nuxeo ticket that tracks the random
-        :param target: Restrict the annotation only for a specific OS target
-        :param repeat: Number of times to repeat the test
-        :param mode: Mode of the bug
-
-        RELAX: will retry as repeat times until it succeeds
-        STRICT: will repeat it until it fails or hits the repeat limit
-        BYPASS: skip the test
-        """
-        self._os = target.lower()
-        self._mode = mode.upper()
-        if self._os not in self.OS:
-            raise ValueError('Random bug, invalid OS: {} not in ({})'.format(
-                    self._os, ', '.join(self.OS)))
-        if self._mode not in self.MODES:
-            raise ValueError('Random bug, invalid mode: {} not in ({})'.format(
-                    self._mode, ', '.join(self.MODES)))
-
-        self._repeat = max(1, repeat)
-        # Enforce a ticket reference
-        self._ticket = ticket
-
-        if os.environ.get('RANDOM_BUG_MODE', '') in self.MODES:
-            self._mode = os.environ['RANDOM_BUG_MODE']
-
-        # TODO: waiting for a proper pytest plugin with NXDRIVE-1078
-        self._mode = 'BYPASS'
-
-    def __call__(self, func):
-        @wraps(func)
-        def _callable(*args, **kwargs):
-            # Handle specific OS
-            if not getattr(AbstractOSIntegration, 'is_' + self._os)():
-                return func(*args, **kwargs)
-
-            # Skip if in BYPASS mode
-            if self._mode == 'BYPASS':
-                raise unittest.SkipTest('RandomTest is in BYPASS mode')
-
-            res = None
-            for retry in range(1, self._repeat + 1):
-                log.info('Repeating test %s %d/%d',
-                         func.func_name, retry, self._repeat)
-                try:
-                    res = func(*args, **kwargs)
-                except Exception as e:
-                    success = False
-                    # In strict mode we propagate the exception
-                    if self._mode == 'STRICT':
-                        raise e
-                else:
-                    success = True
-                finally:
-                    # In RELAX mode, if the test succeeds once we don't fail
-                    if self._mode == 'RELAX' and success:
-                        return res
-                if SimpleUnitTestCase.getSingleton() and retry <= self._repeat:
-                    SimpleUnitTestCase.getSingleton().reinit()
-
-            # In RELAX mode, if the test never succeeds we fail because
-            # it means that this is probably not a random bug but a
-            # systematic one
-            if self._mode == 'RELAX':
-                raise RandomBugError(
-                    'No success after %d tries in %s mode.'
-                    ' Either the %s issue is not random or '
-                    'you should increase the `repeat` value.' %
-                    (self._repeat, self._mode, self._ticket),
-                    cause=e)
-
-            # In STRICT mode, if the test never fails we fail because
-            # it means that this is probably not a random bug anymore
-            if self._mode == 'STRICT':
-                raise RandomBugError(
-                    'No failure after %d tries in %s mode.'
-                    ' Either the %s issue is fixed or you should'
-                    ' increase the `repeat` value.' %
-                    (self._repeat, self._mode, self._ticket))
-            return res
-
-        _callable._repeat = self._repeat
-        return _callable
-
-
 class StubQApplication(QtCore.QCoreApplication):
 
     bindEngine = QtCore.pyqtSignal(object, object)
@@ -209,7 +105,7 @@ class StubQApplication(QtCore.QCoreApplication):
             self._test._wait_sync[uid] = False
             log.debug("Sync Completed slot for: %s", uid)
         else:
-            for uid in self._test._wait_sync.iterkeys():
+            for uid in self._test._wait_sync.keys():
                 self._test._wait_sync[uid] = False
 
     @QtCore.pyqtSlot()
@@ -240,31 +136,7 @@ class StubQApplication(QtCore.QCoreApplication):
         self._test.unbind_engine(number)
 
 
-class SimpleUnitTestCase(unittest.TestCase):
-    """
-    Simple unit test to handle reinit on RandomBug
-    """
-    _singleton = None
-
-    @staticmethod
-    def getSingleton():
-        return SimpleUnitTestCase._singleton
-
-    def reinit(self):
-        """
-        Launch the tearDown and setUp of the test
-        :return:
-        """
-        self.tearDown()
-        self.setUp()
-
-    def run(self, *args, **kwargs):
-        SimpleUnitTestCase._singleton = self
-        super(SimpleUnitTestCase, self).run(*args, **kwargs)
-        SimpleUnitTestCase._singleton = None
-
-
-class UnitTestCase(SimpleUnitTestCase):
+class UnitTestCase(TestCase):
 
     def setUpServer(self, server_profile=None):
         # Save the current path for test files

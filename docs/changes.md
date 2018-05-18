@@ -54,6 +54,7 @@ Changes in command line arguments:
 - [NXDRIVE-1202](https://jira.nuxeo.com/browse/NXDRIVE-1202): Upgrade to Python 2.7.15
 
 ### Tests
+- [NXDRIVE-1078](https://jira.nuxeo.com/browse/NXDRIVE-1078): Create a pytest plugin for random bugs
 - [NXDRIVE-1173](https://jira.nuxeo.com/browse/NXDRIVE-1173): Fix pip installation on Windows
 - [NXDRIVE-1191](https://jira.nuxeo.com/browse/NXDRIVE-1191): Use Java OpenJDK instead of Java Oracle
 

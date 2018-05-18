@@ -1,15 +1,17 @@
 # coding: utf-8
+import sys
 import time
 
 import pytest
 
 from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from .common_unit_test import UnitTestCase, RandomBug
+from .common_unit_test import UnitTestCase
 
 
 class TestSecurityUpdates(UnitTestCase):
 
-    @RandomBug('NXDRIVE-821', target='mac', mode='BYPASS')
+    @pytest.mark.randombug(
+        'NXDRIVE-821', condition=sys.platform == 'darwin', mode='BYPASS')
     def test_synchronize_denying_read_access(self):
         """Test that denying Read access server side is impacted client side
 

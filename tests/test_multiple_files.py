@@ -1,12 +1,13 @@
 # coding: utf-8
 import os
 import shutil
+import sys
 from logging import getLogger
 
 import pytest
 
 from nxdrive.osi import AbstractOSIntegration
-from .common_unit_test import FILE_CONTENT, RandomBug, UnitTestCase
+from .common_unit_test import FILE_CONTENT, UnitTestCase
 
 log = getLogger(__name__)
 
@@ -43,7 +44,7 @@ class MultipleFilesTestCase(UnitTestCase):
     def test_move_and_copy_paste_folder_original_location_from_child_stopped(self):
         self._move_and_copy_paste_folder_original_location_from_child()
 
-    @RandomBug('NXDRIVE-808', target='mac')
+    @pytest.mark.randombug('NXDRIVE-808', condition=(sys.platform == 'darwin'))
     def test_move_and_copy_paste_folder_original_location_from_child(self):
         self._move_and_copy_paste_folder_original_location_from_child(False)
 
@@ -58,14 +59,14 @@ class MultipleFilesTestCase(UnitTestCase):
 
     def _move_and_copy_paste_folder(self, folder_1, folder_2, target_folder,
                                     stopped=True):
-        '''
+        """
         /folder_1
         /folder_2
         /target_folder
         Will
         move /folder1 inside /folder2/ as /folder2/folder1
         copy /folder2/folder1 into /target_folder/
-        '''
+        """
         if stopped:
             self.engine_1.stop()
         remote = self.remote_1
@@ -121,17 +122,16 @@ class MultipleFilesTestCase(UnitTestCase):
 
         log.debug('*** exit MultipleFilesTestCase._move_and_copy_paste_folder')
 
-    @RandomBug('NXDRIVE-720', target='linux')
-    @RandomBug('NXDRIVE-813', target='mac')
+    @pytest.mark.randombug('NXDRIVE-720', condition=(sys.platform == 'linux2'))
+    @pytest.mark.randombug('NXDRIVE-813', condition=(sys.platform == 'darwin'))
     def test_move_and_copy_paste_folder_original_location(self):
-        self._move_and_copy_paste_folder(
-            self.folder_path_1, self.folder_path_2,
-            os.path.dirname(self.folder_path_1), stopped=False)
+        self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2,
+                                         os.path.dirname(self.folder_path_1),
+                                         stopped=False)
 
-    @pytest.mark.skipif(
-        AbstractOSIntegration.is_linux(),
-        reason='NXDRIVE-471: Not handled under GNU/Linux as'
-               ' creation time is not stored')
+    @pytest.mark.skipif(AbstractOSIntegration.is_linux(),
+                        reason='NXDRIVE-471: Not handled under GNU/Linux as '
+                        'creation time is not stored')
     def test_move_and_copy_paste_folder_original_location_stopped(self):
         self._move_and_copy_paste_folder(
             self.folder_path_1, self.folder_path_2,
