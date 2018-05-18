@@ -17,7 +17,6 @@ import time
 from win32com.shell import shell, shellcon
 
 from nxdrive.client.local_client import LocalClient
-from .common import log
 
 
 class MockFile(object):
@@ -50,9 +49,11 @@ class WindowsLocalClient(LocalClient):
         # Remove \\?\
         abs_path = super(WindowsLocalClient, self).abspath(ref)
         if len(abs_path) >= 255:
-            log.warning(('The path is longer than 255 characters and '
-                         'WindowsLocalClient is about the remove the long path '
-                         'prefix. So the test is likely to fail.'))
+            import warnings
+            warnings.warn(
+                'The path is longer than 255 characters and the '
+                'WindowsLocalClient is about the remove the long path '
+                'prefix. So the test is likely to fail.')
         return abs_path[4:]
 
     def rename(self, srcref, to_name):
@@ -70,7 +71,8 @@ class WindowsLocalClient(LocalClient):
         path = self.abspath(ref)
         # FOF_ALLOWUNDO send to Trash
         res = shell.SHFileOperation((0, shellcon.FO_DELETE, path, None,
-                                     shellcon.FOF_NOCONFIRMATION | shellcon.FOF_ALLOWUNDO,
+                                     shellcon.FOF_NOCONFIRMATION
+                                     | shellcon.FOF_ALLOWUNDO,
                                      None, None))
         if res[0] != 0:
             raise IOError(res, locals())

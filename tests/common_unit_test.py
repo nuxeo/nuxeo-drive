@@ -12,7 +12,6 @@ from os.path import dirname
 from threading import Thread
 from time import sleep
 from unittest import TestCase
-from urllib2 import URLError
 
 from PyQt4 import QtCore
 from nuxeo.exceptions import HTTPError
