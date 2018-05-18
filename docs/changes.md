@@ -67,6 +67,7 @@ Changes in command line arguments:
 - Jenkins: Update the Nuxeo snapshot to 10.2
 - Packaging: Fix symlink creation in `deploy.sh`
 - Packaging: Merged OS specific requirements-*.txt into one file
+- Packaging: Added `nuxeo` 2.0.0
 - Packaging: Added `pyaml` 17.12.1
 - Packaging: Added `requests` 2.18.4
 - Packaging: Removed `cffi`, will be installed with `xattr`
