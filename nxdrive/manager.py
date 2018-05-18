@@ -272,7 +272,7 @@ class Manager(QtCore.QObject):
         from .engine.engine import Engine
         from .engine.next.engine_next import EngineNext
         self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
-        self._engines = None
+        self._engines = {}
         self.proxies = dict()
         self.proxy_exceptions = None
         self.updater = None
@@ -1061,14 +1061,14 @@ class Manager(QtCore.QObject):
         return engine.get_metadata_url(remote_ref, edit=edit)
 
     def send_sync_status(self, path):
-        for engine in self._engine_definitions:
+        for engine in self._engines.values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
             path = unicodedata.normalize('NFC', force_decode(path))
-            if (path.startswith(self._engines[engine.uid].local_folder_bs)
+            if (path.startswith(engine.local_folder_bs)
                     and not os.path.samefile(path, engine.local_folder)):
                 r_path = path.replace(engine.local_folder, '')
-                dao = self._engines[engine.uid]._dao
+                dao = engine._dao
                 state = dao.get_state_from_local(r_path)
                 self.osi.send_sync_status(state, path)
                 break
