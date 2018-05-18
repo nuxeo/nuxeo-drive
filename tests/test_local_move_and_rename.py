@@ -2,6 +2,7 @@
 import sys
 from itertools import product
 from time import sleep
+from urllib2 import HTTPError
 
 import pytest
 
@@ -588,7 +589,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             u'nxdrive-test-administrator-device', self.version,
             password=self.password_1)
         self.engine_1.invalidate_client_cache()
-        error = HTTPError(status=500, message='Mock server error')
+        error = HTTPError('', 500, 'Mock server error', {}, None)
         self.engine_1.remote.make_server_call_raise(error)
 
         local.rename(u'/Original Folder 1', u'IOErrorTest')
