@@ -904,7 +904,7 @@ class Manager(QtCore.QObject):
         if engine_type not in self._engine_types:
             raise EngineTypeMissing()
 
-        if self._engines is None:
+        if not self._engines:
             self.load()
 
         if not local_folder:
@@ -947,7 +947,7 @@ class Manager(QtCore.QObject):
         return self._engines[uid]
 
     def unbind_engine(self, uid):
-        if self._engines is None:
+        if not self._engines:
             self.load()
         # Unwatch folder
         self.osi.unwatch_folder(self._engines[uid].local_folder)
@@ -960,7 +960,7 @@ class Manager(QtCore.QObject):
         self._engine_definitions = self._dao.get_engines()
 
     def unbind_all(self):
-        if self._engines is None:
+        if not self._engines:
             self.load()
         for engine in self._engine_definitions:
             self.unbind_engine(engine.uid)
