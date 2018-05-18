@@ -6,7 +6,7 @@ from logging import getLogger
 from time import sleep
 
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
-from nuxeo.exceptions import HTTPError
+from nuxeo.exceptions import BadQuery, HTTPError
 from requests import ConnectionError
 
 from ..activity import Action, tooltip
@@ -505,6 +505,12 @@ class RemoteWatcher(EngineWorker):
                 log.error(err)
         except (ConnectionError, socket.error) as exc:
             log.error('Network error: %s', exc)
+        except BadQuery as exc:
+            # This should never happen: there is an error in the operation's
+            # parameters sent to the server.  This exception is possible only
+            # in debug mode or when running the test suite.
+            log.critical(exc, exc_info=True)
+            raise
         except ThreadInterrupt:
             raise
         except:
