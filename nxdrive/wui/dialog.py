@@ -120,6 +120,8 @@ class WebDriveApi(QtCore.QObject):
             'queue': engine.get_queue_manager().get_metrics(),
             'web_authentication': bind.web_authentication,
             'server_url': bind.server_url,
+            'default_ui': engine._ui,
+            'ui': engine._force_ui or engine._ui,
             'username': bind.username,
             'need_password_update': bind.pwd_update_required,
             'initialized': bind.initialized,

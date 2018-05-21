@@ -1,7 +1,6 @@
 # coding: utf-8
 import datetime
 import os
-from cookielib import CookieJar
 from logging import getLogger
 from threading import Thread, current_thread
 from time import sleep
@@ -16,7 +15,7 @@ from .queue_manager import QueueManager
 from .watcher.local_watcher import LocalWatcher
 from .watcher.remote_watcher import RemoteWatcher
 from .workers import PairInterrupt, ThreadInterrupt, Worker
-from ..client import LocalClient, FilteredRemote, Remote
+from ..client import FilteredRemote, LocalClient, Remote
 from ..client.common import NotFound, safe_filename
 from ..options import Options
 from ..osi import AbstractOSIntegration
@@ -207,10 +206,12 @@ class Engine(QObject):
             sleep(1)
         log.debug('Local Folder lock setup completed on %r', path)
 
-    def set_ui(self, value):
-        self._dao.update_config('ui', value)
-        self._ui = value
-        log.debug('UI preferences set to {}'.format(value))
+    def set_ui(self, value, overwrite=True):
+        name = ['ui', 'force_ui']
+        self._dao.update_config(name[overwrite], value)
+        setattr(self, '_' + name[overwrite], value)
+
+        log.debug('{} preferences set to {}'.format(name[overwrite], value))
 
     def release_folder_lock(self):
         log.debug('Local Folder unlocking')
@@ -278,7 +279,7 @@ class Engine(QObject):
             'edit': ('view_documents', 'view_drive_metadata')[edit],
             'token': self.get_remote_token(),
         }
-        return urls.get(self._ui, 'web').format(**infos)
+        return urls.get(self._force_ui or self._ui).format(**infos)
 
     def get_remote_url(self):
         """
@@ -299,7 +300,7 @@ class Engine(QObject):
             'repo': Options.remote_repo,
             'token': self.get_remote_token(),
         }
-        return urls.get(self._ui, 'web').format(**infos)
+        return urls.get(self._force_ui or self._ui).format(**infos)
 
     def is_syncing(self):
         return self._sync_started
@@ -400,7 +401,8 @@ class Engine(QObject):
         self._remote_user = self._dao.get_config('remote_user')
         self._remote_password = self._dao.get_config('remote_password')
         self._remote_token = self._dao.get_config('remote_token')
-        self._ui = self._dao.get_config('ui', default='web')
+        self._ui = self._dao.get_config('ui', default='jsf')
+        self._force_ui = self._dao.get_config('force_ui')
         if self._remote_password is None and self._remote_token is None:
             self.set_invalid_credentials(
                 reason='found no password nor token in engine configuration')
