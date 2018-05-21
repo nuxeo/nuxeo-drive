@@ -594,7 +594,9 @@ class UnitTestCase(TestCase):
         """ Called by self.addCleanup() to ensure folders are deleted. """
         try:
             for root, _, files in os.walk(self.tmpdir):
-                log.error('tempdir not cleaned-up: %r (%d)', root, len(files))
+                if files:
+                    log.error(
+                        'tempdir not cleaned-up: %r', root)
         except OSError:
             pass
 
