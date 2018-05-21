@@ -262,7 +262,6 @@ launch_tests() {
         --strict \
         --failed-first \
         --no-print-logs \
-        --capture=no \
         -r fE \
         -W error \
         -v

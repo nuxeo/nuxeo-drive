@@ -64,7 +64,7 @@ class Report(object):
             try:
                 myzip.write(path, rel_path, compress_type=comp)
             except:
-                log.exception('Impossible to copy the log %s', rel_path)
+                log.exception('Impossible to copy the log %r', rel_path)
 
     @staticmethod
     def copy_db(myzip, dao):
