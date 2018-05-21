@@ -268,6 +268,7 @@ class UnitTestCase(TestCase):
         self.setUpServer(server_profile)
         self.addCleanup(self.tearDownServer, server_profile)
         self.addCleanup(self._stop_managers)
+        self.addCleanup(self.generate_report)
 
         self._wait_sync = {}
         self._wait_remote_scan = {}
@@ -549,16 +550,6 @@ class UnitTestCase(TestCase):
             stats.print_all(out=fd, columns=columns)
         log.debug('Profiler Report generated in %r', report_path)
 
-    def reinit(self):
-        self.tearDown()
-        self.setUpApp()
-        try:
-            self.setUp()
-        except StandardError:
-            # We can end on a wait timeout. Just ignore it, the test should
-            # fail and will be launched again.
-            pass
-
     def run(self, result=None):
         self.app = StubQApplication([], self)
         self.setUpApp()
@@ -570,7 +561,6 @@ class UnitTestCase(TestCase):
             sleep(1)
             self.setup_profiler()
             super(UnitTestCase, self).run(result)
-            self.generate_report()
             self.teardown_profiler()
             self.app.quit()
             log.debug('UnitTest thread finished')
@@ -671,7 +661,7 @@ class UnitTestCase(TestCase):
             file_count += len(filenames)
         if os.path.exists(os.path.join(path, '.partials')):
             dir_count -= 1
-        return (dir_count, file_count)
+        return dir_count, file_count
 
     def get_full_queue(self, queue, dao=None):
         if dao is None:
