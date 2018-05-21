@@ -374,13 +374,11 @@ class Engine(QObject):
         log.debug('Remove DB file %r', self._get_db_file())
         self.manager.osi.unregister_folder_link(self.local_folder)
 
-        # Keep the database for tests
-        if not os.environ.get('WORKSPACE', False):
-            try:
-                os.remove(self._get_db_file())
-            except (IOError, OSError) as exc:
-                if exc.errno != 2:  # File not found, already removed
-                    log.exception('Database removal error')
+        try:
+            os.remove(self._get_db_file())
+        except (IOError, OSError) as exc:
+            if exc.errno != 2:  # File not found, already removed
+                log.exception('Database removal error')
 
     def check_fs_marker(self):
         tag = 'drive-fs-test'
