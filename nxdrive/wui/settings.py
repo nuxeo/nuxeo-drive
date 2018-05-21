@@ -279,6 +279,15 @@ class WebSettingsApi(WebDriveApi):
                           ' authentication window for token update')
             return 'CONNECTION_UNKNOWN'
 
+    @QtCore.pyqtSlot(str, str, result=str)
+    def set_server_ui(self, uid, server_ui):
+        log.debug('Setting ui to %s', server_ui)
+        engine = self._get_engine(str(uid))
+        if engine is None:
+            return 'CONNECTION_UNKNOWN'
+        engine.set_ui(str(server_ui))
+        return ''
+
     @QtCore.pyqtSlot(str, object)
     def _open_authentication_dialog(self, url, callback_params):
         api = WebAuthenticationApi(self, callback_params)
