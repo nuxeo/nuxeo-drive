@@ -21,7 +21,7 @@ properties([
         [$class: 'StringParameterDefinition',
             name: 'PYTEST_ADDOPTS',
             defaultValue: '',
-            description: 'Extra command line options for pytest.'],
+            description: 'Extra command line options for pytest. Useful for debugging: --capture=no'],
         [$class: 'ChoiceParameterDefinition',
             name: 'RANDOM_BUG_MODE',
             choices: 'None\nRELAX\nSTRICT\nBYPASS',
