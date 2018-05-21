@@ -300,7 +300,7 @@ class TestSecurityUpdates(UnitTestCase):
         if grant:
             self.root_remote.operations.execute(
                 command='Document.SetACE', input_obj=input_obj, user=user,
-                permission='Read', grant='true')
+                permission='Read', grant=True)
         else:
             self.root_remote.block_inheritance(doc_path)
 
