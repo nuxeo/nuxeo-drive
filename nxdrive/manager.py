@@ -630,9 +630,6 @@ class Manager(QtCore.QObject):
         return self._dao.get_config(
             'auto_start', str(int(Options.is_frozen))) == '1'
 
-    def _get_binary_name(self):  # TODO: Move to constants.py
-        return 'ndrive'
-
     def generate_report(self, path=None):
         from .report import Report
         report = Report(self, path)

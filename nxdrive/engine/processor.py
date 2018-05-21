@@ -556,7 +556,7 @@ class Processor(EngineWorker):
                 'Parent folder of %r, %r is not bound to a remote folder'
                 % (doc_pair.local_path, doc_pair.local_parent_path))
 
-        uid = info = remote_doc_client = None
+        uid = info = None
         if remote_ref and '#' in remote_ref:
             # Verify it is not already synced elsewhere (a missed move?)
             # If same hash don't do anything and reconcile
