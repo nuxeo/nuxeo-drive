@@ -3,6 +3,7 @@ import os
 
 import pytest
 
+from nxdrive.client.local_client import FileInfo
 from nxdrive.osi import AbstractOSIntegration
 from .common_unit_test import UnitTestCase
 
@@ -82,8 +83,12 @@ class TestEncoding(UnitTestCase):
         name = u'Teste\u0301'
         self.local.make_file('/', name, 'Test')
 
+        # FileInfo() will normalize the filename
+        info = FileInfo(self.local.base_folder, '/' + name, False, 0)
+        assert info.name != name
+
         # The encoding should be different,
         # cannot trust the get_children as they use FileInfo
         children = os.listdir(self.local.abspath('/'))
-        children.sort()
+        assert len(children) == 1
         assert children[0] != name
