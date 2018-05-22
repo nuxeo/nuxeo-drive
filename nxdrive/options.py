@@ -166,7 +166,7 @@ class MetaOptions(type):
         'timeout': (30, 'default'),
         'update_check_delay': (3600, 'default'),
         'update_site_url': (
-            'http://community.nuxeo.com/static/drive-updates', 'default'),
+            'https://community.nuxeo.com/static/drive-updates', 'default'),
     }  # type: Dict[unicode, Tuple[Any, unicode]]
 
     default_options = deepcopy(options)

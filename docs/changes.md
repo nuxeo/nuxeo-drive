@@ -1,10 +1,10 @@
-# dev
-Release date: `2018-??-??`
+# 3.1.0
+Release date: `2018-05-23`
 
 Changes in command line arguments:
-- `access-online`
-- `share-link` -> `copy-share-link`
-- `metadata` -> `edit-metadata`
+- Added `access-online`
+- Renamed `share-link` -> `copy-share-link`
+- Renamed `metadata` -> `edit-metadata`
 
 ### Core
 - [NXDRIVE-626](https://jira.nuxeo.com/browse/NXDRIVE-626): Use Crowdin for label translations

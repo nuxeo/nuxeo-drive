@@ -12,8 +12,8 @@ release() {
     local drive_version
     local release_url
     local path
-    local dmg
-    local exe
+    local final_dmg
+    local final_exe
 
     drive_version="$1"
     latest_release="release-${drive_version}"
@@ -24,21 +24,21 @@ release() {
     fi
 
     path="/var/www/community.nuxeo.com/static/drive-updates"
-    dmg="${path}/beta/nuxeo-drive-${drive_version}.dmg"
-    exe="${path}/beta/nuxeo-drive-${drive_version}.exe"
+    final_dmg="${path}/release/nuxeo-drive-${drive_version}.dmg"
+    final_exe="${path}/release/nuxeo-drive-${drive_version}.exe"
 
     echo ">>> [${latest_release}] Deploying to the production website"
     ssh -T nuxeo@lethe.nuxeo.com <<EOF
 # Move beta files into the release folder
-mv -vf ${path}/beta/*${drive_version}* ${path}/release
+mv -vf ${path}/beta/*${drive_version}* ${path}/release/
 
 # Create symbolic links of the latest packages
-ln -sfv ${dmg} ${path}/nuxeo-drive.dmg
-ln -sfv ${exe} ${path}/nuxeo-drive.exe
+ln -sfv ${final_dmg} ${path}/nuxeo-drive.dmg
+ln -sfv ${final_exe} ${path}/nuxeo-drive.exe
 EOF
 
     echo ">>> [release ${drive_version}] Generating the versions file"
-    python -m pip install --user --upgrade pyaml
+    python -m pip install --user pyaml==17.12.1
     rsync -vz nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-updates/versions.yml .
     python tools/versions.py --promote "${drive_version}"
     rsync -vz versions.yml nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-updates/

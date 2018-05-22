@@ -25,10 +25,15 @@ properties([
 ])
 
 // Jenkins slaves we will build on
+//
 //   Until NXDRIVE-864 is done, we need to use OSXSLAVE-DRIVE
 //   instead of OSXSLAVE because it contains the manual
-//   installation of Qt4 & the macOS codesigning certificates.
-slaves = ['OSXSLAVE-DRIVE', 'SLAVE', 'WINSLAVE']
+//   installation of Qt4 & the macOS code-signing certificate.
+//
+//   Until NXDRIVE-351 is done, the SLAVE slave is not needed.
+//
+//slaves = ['OSXSLAVE-DRIVE', 'SLAVE', 'WINSLAVE']
+slaves = ['OSXSLAVE-DRIVE', 'WINSLAVE']
 labels = [
     'OSXSLAVE-DRIVE': 'macOS',
     'SLAVE': 'GNU/Linux',
@@ -89,22 +94,30 @@ for (x in slaves) {
                         env.PYQT_VERSION = pyqt_version
 
                         try {
-                            if (osi == 'macOS') {
-                                env.SIGNING_ID = "NUXEO CORP"
-                                env.LOGIN_KEYCHAIN_PATH = "/Users/jenkins/Library/Keychains/login.keychain-db"
-
-                                withCredentials([string(credentialsId: 'MOBILE_LOGIN_KEYCHAIN_PASSWORD', variable: 'LOGIN_KEYCHAIN_PASSWORD')]) {
-                                    sh 'tools/osx/deploy_jenkins_slave.sh --build'
-                                }
-                                archive 'dist/*.dmg'
-                            } else if (osi == 'GNU/Linux') {
+                            if (osi == 'GNU/Linux') {
                                 sh 'tools/linux/deploy_jenkins_slave.sh --build'
-                                // TODO: NXDRIVE-351
-                                // archive 'dist/*.deb'
+                                archive 'dist/*.deb'
+                            } else if (osi == 'macOS') {
+                                def env_vars = [
+                                    'SIGNING_ID=NUXEO CORP',
+                                    'LOGIN_KEYCHAIN_PATH=/Users/jenkins/Library/Keychains/login.keychain-db',
+                                ]
+                                withEnv(env_vars) {
+                                    withCredentials([string(credentialsId: 'MOBILE_LOGIN_KEYCHAIN_PASSWORD',
+                                                            variable: 'LOGIN_KEYCHAIN_PASSWORD')]) {
+                                        sh 'tools/osx/deploy_jenkins_slave.sh --build'
+                                        archive 'dist/*.dmg'
+                                    }
+                                }
                             } else {
-                                env.SIGNTOOL_PATH = "C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit"
-                                bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
-                                archive 'dist/*.exe'
+                                def env_vars = [
+                                    'SIGNING_ID=Nuxeo',
+                                    'SIGNTOOL_PATH=C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit',
+                                ]
+                                withEnv(env_vars) {
+                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
+                                    archive 'dist/*.exe'
+                                }
                             }
                         } catch(e) {
                             currentBuild.result = 'FAILURE'
