@@ -683,7 +683,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         local = self.local_1
         remote = self.remote_document_client_1
 
-        def _suspend_check(*_):
+        def check_suspended(*_):
             """ Add delay when upload and download. """
             if not self.engine_1.has_rename:
                 # Rename remote file while downloading
@@ -697,7 +697,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         self.engine_1.invalidate_client_cache()
 
         with patch.object(self.engine_1.remote, 'check_suspended',
-                          new_callable=_suspend_check):
+                          new_callable=check_suspended):
             with open(self.location + '/resources/testFile.pdf') as f:
                 remote.make_file(
                     '/Test folder', 'testFile.pdf', content=f.read())
@@ -722,14 +722,14 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         local = self.local_1
         remote = self.remote_1
 
-        def _suspend_check(*_):
+        def check_suspended(*_):
             """ Add delay when upload and download. """
             if not local.exists('/Test folder renamed'):
                 time.sleep(1)
             Engine.suspend_client(self.engine_1)
 
         with patch.object(self.engine_1.remote, 'check_suspended',
-                          new_callable=_suspend_check):
+                          new=check_suspended):
             # Create a document by streaming a binary file
             file_path = os.path.join(local.abspath('/Test folder'),
                                      'testFile.pdf')

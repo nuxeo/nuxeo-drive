@@ -75,30 +75,29 @@ class TestRemoteDeletion(UnitTestCase):
         remote = self.remote_document_client_1
         self.engine_1.start()
 
-        def _suspend_check(*_):
+        def check_suspended(*_):
             """ Add delay when upload and download. """
             time.sleep(1)
             Engine.suspend_client(self.engine_1)
 
-        self.engine_1.remote.check_suspended = _suspend_check
-        self.engine_1.invalidate_client_cache()
+        with patch.object(self.engine_1.remote, 'check_suspended',
+                          new=check_suspended):
+            # Create documents in the remote root workspace
+            remote.make_folder('/', 'Test folder')
+            self.wait_sync(wait_for_async=True)
 
-        # Create documents in the remote root workspace
-        remote.make_folder('/', 'Test folder')
-        self.wait_sync(wait_for_async=True)
+            # Create a document by streaming a binary file
+            file_path = os.path.join(
+                local.abspath('/Test folder'), 'testFile.pdf')
+            copyfile(self.location + '/resources/testFile.pdf', file_path)
+            file_path = os.path.join(
+                local.abspath('/Test folder'), 'testFile2.pdf')
+            copyfile(self.location + '/resources/testFile.pdf', file_path)
 
-        # Create a document by streaming a binary file
-        file_path = os.path.join(
-            local.abspath('/Test folder'), 'testFile.pdf')
-        copyfile(self.location + '/resources/testFile.pdf', file_path)
-        file_path = os.path.join(
-            local.abspath('/Test folder'), 'testFile2.pdf')
-        copyfile(self.location + '/resources/testFile.pdf', file_path)
-
-        # Delete remote folder then synchronize
-        remote.delete('/Test folder')
-        self.wait_sync(wait_for_async=True)
-        assert not local.exists('/Test folder')
+            # Delete remote folder then synchronize
+            remote.delete('/Test folder')
+            self.wait_sync(wait_for_async=True)
+            assert not local.exists('/Test folder')
 
     def test_synchronize_remote_deletion_while_upload(self):
         if sys.platform == 'win32':
@@ -113,7 +112,7 @@ class TestRemoteDeletion(UnitTestCase):
         local = self.local_1
         remote = self.remote_document_client_1
 
-        def _suspend_check(*_):
+        def check_suspended(*_):
             """ Add delay when upload and download. """
             if not self.engine_1.has_delete:
                 # Delete remote file while downloading
@@ -130,7 +129,7 @@ class TestRemoteDeletion(UnitTestCase):
         self.engine_1.has_delete = False
 
         with patch.object(self.engine_1.remote, 'check_suspended',
-                          new_callable=_suspend_check):
+                          new_callable=check_suspended):
             # Create documents in the remote root workspace
             remote.make_folder('/', 'Test folder')
             with open(self.location + '/resources/testFile.pdf', 'rb') as pdf:

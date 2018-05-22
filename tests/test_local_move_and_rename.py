@@ -5,6 +5,7 @@ from time import sleep
 from urllib2 import HTTPError
 
 import pytest
+from mock import patch
 
 from nxdrive.client import LocalClient
 from nxdrive.engine.dao.sqlite import EngineDAO
@@ -57,30 +58,27 @@ class TestLocalMoveAndRename(UnitTestCase):
         remote = self.remote_document_client_1
         marker = False
 
-        def update_remote_state(row, info, remote_parent_path=None,
-                                versioned=True, queue=True, force_update=False,
-                                no_digest=False):
+        def update_remote_state(row, *args, **kwargs):
             global marker
             EngineDAO.update_remote_state(
-                self.engine_1._dao, row, info,
-                remote_parent_path=remote_parent_path,
-                versioned=versioned, queue=queue,
-                force_update=force_update, no_digest=no_digest)
+                self.engine_1._dao, row, *args, **kwargs)
             if row.local_name == 'New Folder' and not marker:
                 root_local.rename(row.local_path, 'Renamed Folder')
                 marker = True
 
-        self.engine_1._dao.update_remote_state = update_remote_state
-        local.make_folder('/', 'New Folder')
-        self.wait_sync(fail_if_timeout=False)
+        with patch.object(self.engine_1._dao, 'update_remote_state',
+                          new=update_remote_state):
+            local.make_folder('/', 'New Folder')
+            self.wait_sync(fail_if_timeout=False)
 
-        assert local.exists(u'/Renamed Folder')
-        assert not local.exists(u'/New Folder')
-        # Path don't change on Nuxeo
-        info = remote.get_info(u'/New Folder')
-        assert 'Renamed Folder' == info.name
-        assert len(local.get_children_info(u'/')) == 5
-        assert len(remote.get_children_info(self.workspace_1)) == 5
+            assert local.exists(u'/Renamed Folder')
+            assert not local.exists(u'/New Folder')
+
+            # Path doesn't change on Nuxeo
+            info = remote.get_info(u'/New Folder')
+            assert info.name == 'Renamed Folder'
+            assert len(local.get_children_info(u'/')) == 5
+            assert len(remote.get_children_info(self.workspace_1)) == 5
 
     def test_local_rename_file_while_creating(self):
         global marker, local
@@ -96,19 +94,21 @@ class TestLocalMoveAndRename(UnitTestCase):
                 root_local.rename(ref, 'Renamed File.txt')
                 marker = True
 
-        self.engine_1.local.set_remote_id = set_remote_id
-        self.local_1.make_file('/', u'File.txt',
-                               content=u'Some Content 2'.encode('utf-8'))
-        self.wait_sync(fail_if_timeout=False)
+        with patch.object(self.engine_1.local, 'set_remote_id',
+                          new=set_remote_id):
+            self.local_1.make_file('/', u'File.txt',
+                                   content=u'Some Content 2'.encode('utf-8'))
+            self.wait_sync(fail_if_timeout=False)
 
-        local = self.local_1
-        assert local.exists(u'/Renamed File.txt')
-        assert not local.exists(u'/File.txt')
-        # Path don't change on Nuxeo
-        info = remote.get_info(u'/File.txt')
-        assert 'Renamed File.txt' == info.name
-        assert len(local.get_children_info(u'/')) == 5
-        assert len(remote.get_children_info(self.workspace_1)) == 5
+            local = self.local_1
+            assert local.exists(u'/Renamed File.txt')
+            assert not local.exists(u'/File.txt')
+
+            # Path doesn't change on Nuxeo
+            info = remote.get_info(u'/File.txt')
+            assert info.name == 'Renamed File.txt'
+            assert len(local.get_children_info(u'/')) == 5
+            assert len(remote.get_children_info(self.workspace_1)) == 5
 
     @pytest.mark.randombug(
         'NXDRIVE-811', condition=(sys.platform == 'win32'), mode='BYPASS')
@@ -125,21 +125,23 @@ class TestLocalMoveAndRename(UnitTestCase):
                 marker = True
             LocalClient.set_remote_id(local, ref, remote_id, name)
 
-        self.engine_1.local.set_remote_id = set_remote_id
-        self.local_1.make_file('/', u'File.txt',
-                               content=u'Some Content 2'.encode('utf-8'))
-        self.wait_sync(fail_if_timeout=False)
+        with patch.object(self.engine_1.local, 'set_remote_id',
+                          new=set_remote_id):
+            self.local_1.make_file('/', u'File.txt',
+                                   content=u'Some Content 2'.encode('utf-8'))
+            self.wait_sync(fail_if_timeout=False)
 
-        local = self.local_1
-        remote = self.remote_document_client_1
+            local = self.local_1
+            remote = self.remote_document_client_1
 
-        assert local.exists(u'/Renamed File.txt')
-        assert not local.exists(u'/File.txt')
-        # Path don't change on Nuxeo
-        info = remote.get_info(u'/File.txt')
-        assert 'Renamed File.txt' == info.name
-        assert len(local.get_children_info(u'/')) == 5
-        assert len(remote.get_children_info(self.workspace_1)) == 5
+            assert local.exists(u'/Renamed File.txt')
+            assert not local.exists(u'/File.txt')
+
+            # Path doesn't change on Nuxeo
+            info = remote.get_info(u'/File.txt')
+            assert info.name == 'Renamed File.txt'
+            assert len(local.get_children_info(u'/')) == 5
+            assert len(remote.get_children_info(self.workspace_1)) == 5
 
     def test_local_rename_file_while_creating_after_marker(self):
         global marker
@@ -148,31 +150,28 @@ class TestLocalMoveAndRename(UnitTestCase):
         remote = self.remote_document_client_1
         marker = False
 
-        def update_remote_state(row, info, remote_parent_path=None,
-                                versioned=True, queue=True,
-                                force_update=False, no_digest=False):
+        def update_remote_state(row, *args, **kwargs):
             global marker
             EngineDAO.update_remote_state(
-                self.engine_1._dao, row, info,
-                remote_parent_path=remote_parent_path,
-                versioned=versioned, queue=queue,
-                force_update=force_update, no_digest=no_digest)
+                self.engine_1._dao, row,  *args, **kwargs)
             if row.local_name == 'File.txt' and not marker:
                 root_local.rename(row.local_path, 'Renamed File.txt')
                 marker = True
 
-        self.engine_1._dao.update_remote_state = update_remote_state
-        local.make_file('/', u'File.txt',
-                               content=u'Some Content 2'.encode('utf-8'))
-        self.wait_sync(fail_if_timeout=False)
+        with patch.object(self.engine_1._dao, 'update_remote_state',
+                          new=update_remote_state):
+            local.make_file('/', u'File.txt',
+                            content=u'Some Content 2'.encode('utf-8'))
+            self.wait_sync(fail_if_timeout=False)
 
-        assert local.exists(u'/Renamed File.txt')
-        assert not local.exists(u'/File.txt')
-        # Path don't change on Nuxeo
-        info = remote.get_info(u'/File.txt')
-        assert 'Renamed File.txt' == info.name
-        assert len(local.get_children_info(u'/')) == 5
-        assert len(remote.get_children_info(self.workspace_1)) == 5
+            assert local.exists(u'/Renamed File.txt')
+            assert not local.exists(u'/File.txt')
+
+            # Path doesn't change on Nuxeo
+            info = remote.get_info(u'/File.txt')
+            assert info.name == 'Renamed File.txt'
+            assert len(local.get_children_info(u'/')) == 5
+            assert len(remote.get_children_info(self.workspace_1)) == 5
 
     def test_replace_file(self):
         local = self.local_1
@@ -438,7 +437,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(remote.get_children_info(self.workspace_1)) == 5
 
     def test_local_rename_file_after_create_detected(self):
-        # Office 2010 and >, create a tmp file with 8 chars
+        # MS Office 2010+ creates a tmp file with 8 chars
         # and move it right after
         global marker
         local = self.local_1
@@ -453,19 +452,22 @@ class TestLocalMoveAndRename(UnitTestCase):
                 marker = True
             EngineDAO.insert_local_state(self.engine_1._dao, info, parent_path)
 
-        self.engine_1._dao.insert_local_state = insert_local_state
-        # Might be blacklisted once
-        self.engine_1.get_queue_manager()._error_interval = 3
-        local.make_file('/', u'File.txt',
-                        content=u'Some Content 2'.encode('utf-8'))
-        sleep(10)
-        self.wait_sync(fail_if_timeout=False)
-        assert local.exists(u'/Renamed File.txt')
-        assert not local.exists(u'/File.txt')
-        # Path dont change on Nuxeo
-        assert local.get_remote_id('/Renamed File.txt') is not None
-        assert len(local.get_children_info(u'/')) == 5
-        assert len(remote.get_children_info(self.workspace_1)) == 5
+        with patch.object(self.engine_1._dao, 'insert_local_state',
+                          new=insert_local_state):
+            # Might be blacklisted once
+            self.engine_1.get_queue_manager()._error_interval = 3
+            local.make_file('/', u'File.txt',
+                            content=u'Some Content 2'.encode('utf-8'))
+            sleep(10)
+            self.wait_sync(fail_if_timeout=False)
+
+            assert local.exists(u'/Renamed File.txt')
+            assert not local.exists(u'/File.txt')
+
+            # Path doesn't change on Nuxeo
+            assert local.get_remote_id('/Renamed File.txt') is not None
+            assert len(local.get_children_info(u'/')) == 5
+            assert len(remote.get_children_info(self.workspace_1)) == 5
 
     def test_local_move_folder(self):
         local = self.local_1
