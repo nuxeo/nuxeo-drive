@@ -21,8 +21,6 @@ FOLDER_D = 'D' * 50
 
 class TestLongPath(UnitTestCase):
     def setUp(self):
-        UnitTestCase.setUp(self)
-        self.local_1 = self.local_1
         self.remote_1 = self.remote_document_client_1
         log.info('Create a folder AAAA... (90 chars) in server')
         self.folder_a = self.remote_1.make_folder('/', FOLDER_A)
@@ -31,9 +29,7 @@ class TestLongPath(UnitTestCase):
         self.remote_1.make_file(self.folder_c, 'File1.txt', 'Sample Content')
 
     def tearDown(self):
-        log.info('Delete the folder AAA... in server')
         self.remote_1.delete(self.folder_a, use_trash=False)
-        UnitTestCase.tearDown(self)
 
     def test_long_path(self):
         self.engine_1.start()
@@ -69,7 +65,7 @@ class TestLongPath(UnitTestCase):
         assert 'File2.txt' in children_names
 
     def test_setup_on_long_path(self):
-        """ NXDRIVE 689: Fix error when adding a new account when installation
+        """ NXDRIVE-689: Fix error when adding a new account when installation
             path is greater than 245 characters.
         """
 
@@ -79,17 +75,18 @@ class TestLongPath(UnitTestCase):
         # On Mac, avoid permission denied error
         self.engine_1.local.clean_xattr_root()
 
-        test_folder_len = 245 - len(str(self.local_nxdrive_folder_1))
-        test_folder = 'A' * test_folder_len
-
-        self.local_nxdrive_folder_1 = os.path.join(self.local_nxdrive_folder_1,
-                                                   test_folder)
+        test_folder_len = 245 - len(self.local_nxdrive_folder_1)
+        self.local_nxdrive_folder_1 = os.path.join(
+            self.local_nxdrive_folder_1, 'A' * test_folder_len)
         assert len(self.local_nxdrive_folder_1) > 245
 
         self.manager_1.unbind_all()
         self.engine_1 = self.manager_1.bind_server(
-                self.local_nxdrive_folder_1, self.nuxeo_url, self.user_2,
-                self.password_2, start_engine=False)
+            self.local_nxdrive_folder_1,
+            self.nuxeo_url,
+            self.user_2,
+            self.password_2,
+            start_engine=False)
 
         self.engine_1.start()
         self.engine_1.stop()
