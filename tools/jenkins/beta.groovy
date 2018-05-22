@@ -32,7 +32,7 @@ timestamps {
                 stage('Create') {
                     sshagent([credential_id]) {
                         sh 'tools/release.sh --create'
-                        archive 'draft.json, *.yml'
+                        archive 'draft.json'
                     }
                 }
 
@@ -51,6 +51,7 @@ timestamps {
                     }
                     sshagent([credential_id]) {
                         sh 'tools/release.sh --publish'
+                        archive "${release}.yml, versions.yml"
                     }
                     release = release.replace('release-', '').trim()
                     currentBuild.description = "Beta ${release}"

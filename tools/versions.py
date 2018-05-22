@@ -67,7 +67,7 @@ def merge():
 
     # Write back the updated versions details
     with open('versions.yml', 'w') as yml:
-        yaml.dump(versions, yml, indent=4, default_flow_style=False)
+        yaml.safe_dump(versions, yml, indent=4, default_flow_style=False)
 
 
 def promote(version):
@@ -89,7 +89,7 @@ def promote(version):
 
     # Write back the updated versions details
     with open('versions.yml', 'w') as yml:
-        yaml.dump(versions, yml, indent=4, default_flow_style=False)
+        yaml.safe_dump(versions, yml, indent=4, default_flow_style=False)
 
 
 def main():

@@ -2,7 +2,7 @@
 [//]: # (Note 2: single files last)
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
-# dev
+# 3.1.0
 - Removed `AbstractOSIntegration.get_os_version()`
 - Removed `AbstractOSIntegration.is_same_partition()`
 - Removed `AbstractOSIntegration.os_version_above()`

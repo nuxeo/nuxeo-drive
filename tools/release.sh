@@ -53,8 +53,6 @@ create_beta() {
     echo ">>> [beta ${drive_version}] Creating the tag"
     git tag -a "release-${drive_version}" -m "Release ${drive_version}"
     git push origin --tags
-
-    python tools/versions.py --add "beta-${drive_version}"
 }
 
 publish_beta() {
@@ -69,9 +67,14 @@ publish_beta() {
     curl -L "$artifacts" -o dist.zip
     unzip -o dist.zip
 
-    echo ">>> [beta ${drive_version}] Generating the versions file"
-    python -m pip install --user --upgrade pyaml
+    echo ">>> [beta ${drive_version}] Generating ${drive_version}.yml"
+    python -m pip install --user pyaml==17.12.1
+    python tools/versions.py --add "beta-${drive_version}"
+
+    echo ">>> [beta ${drive_version}] Merging into versions.yml"
     rsync -vz nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-updates/versions.yml .
+    pwd
+    ls
     python tools/versions.py --merge
 
     echo ">>> [beta ${drive_version}] Deploying to the staging website"

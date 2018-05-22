@@ -69,7 +69,7 @@ delay = 3
         Options.nxdrive_home = tempfile.mkdtemp('config', dir=self.tmpdir)
         argv = ["ndrive", "console", "--update-site-url", "DEBUG_TEST"]
         options = self.cmd.parse_cli([])
-        assert options.update_site_url == 'http://community.nuxeo.com/static/drive-updates'
+        assert options.update_site_url == Options.update_site_url
 
         # Normal arg
         options = self.cmd.parse_cli(argv)
