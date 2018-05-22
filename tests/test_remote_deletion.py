@@ -6,7 +6,6 @@ from shutil import copyfile
 
 from mock import Mock, patch
 
-from nuxeo.utils import SwapAttr
 from nxdrive.engine.engine import Engine
 from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
 
@@ -130,7 +129,8 @@ class TestRemoteDeletion(UnitTestCase):
         self.engine_1.start()
         self.engine_1.has_delete = False
 
-        with SwapAttr(self.engine_1.remote, 'check_suspended', _suspend_check):
+        with patch.object(self.engine_1.remote, 'check_suspended',
+                          new_callable=_suspend_check):
             # Create documents in the remote root workspace
             remote.make_folder('/', 'Test folder')
             with open(self.location + '/resources/testFile.pdf', 'rb') as pdf:
