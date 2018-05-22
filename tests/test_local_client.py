@@ -14,7 +14,7 @@ import pytest
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.common import DuplicationDisabledError
-from .common import SOME_TEXT_CONTENT, SOME_TEXT_DIGEST, UnitTestCase
+from .common import UnitTestCase
 
 if sys.platform == 'win32':
     import win32api
