@@ -1,8 +1,7 @@
 # coding: utf-8
 import time
 
-from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from .common_unit_test import UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH, UnitTestCase
 
 
 class TestVersioning(UnitTestCase):

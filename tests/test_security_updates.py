@@ -3,8 +3,7 @@ import time
 
 import pytest
 
-from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from .common_unit_test import UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH, UnitTestCase
 
 
 class TestSecurityUpdates(UnitTestCase):

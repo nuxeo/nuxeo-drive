@@ -6,7 +6,7 @@ import pytest
 
 from nxdrive.client import LocalClient
 from nxdrive.osi import AbstractOSIntegration
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestWatchers(UnitTestCase):

@@ -3,16 +3,15 @@ import socket
 import sys
 import time
 
+import pytest
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
-
-import pytest
 
 from nxdrive.client import LocalClient
 from nxdrive.osi import AbstractOSIntegration
 from . import RemoteTest
-from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH
-from .common_unit_test import DEFAULT_WAIT_SYNC_TIMEOUT, UnitTestCase
+from .common import (DEFAULT_WAIT_SYNC_TIMEOUT, OS_STAT_MTIME_RESOLUTION,
+                     TEST_WORKSPACE_PATH, UnitTestCase)
 
 
 class TestSynchronization(UnitTestCase):

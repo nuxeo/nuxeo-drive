@@ -8,8 +8,7 @@ import pytest
 
 from nxdrive.client import LocalClient
 from .common import (OS_STAT_MTIME_RESOLUTION,
-                     REMOTE_MODIFICATION_TIME_RESOLUTION)
-from .common_unit_test import UnitTestCase
+                     REMOTE_MODIFICATION_TIME_RESOLUTION, UnitTestCase)
 
 
 class TestWindows(UnitTestCase):

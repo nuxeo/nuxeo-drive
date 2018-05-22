@@ -4,7 +4,7 @@ import shutil
 import tempfile
 from logging import getLogger
 
-from .common_unit_test import FILE_CONTENT, UnitTestCase
+from .common import FILE_CONTENT, UnitTestCase
 
 log = getLogger(__name__)
 TEST_TIMEOUT = 60

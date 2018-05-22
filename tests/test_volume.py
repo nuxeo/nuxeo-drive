@@ -7,8 +7,7 @@ from math import floor, log10
 
 import pytest
 
-from .common import TEST_WORKSPACE_PATH
-from .common_unit_test import UnitTestCase
+from .common import TEST_WORKSPACE_PATH, UnitTestCase
 
 log = getLogger(__name__)
 

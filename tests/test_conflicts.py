@@ -5,8 +5,7 @@ import time
 
 import pytest
 
-from .common import OS_STAT_MTIME_RESOLUTION
-from .common_unit_test import UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
 
 
 class TestConflicts(UnitTestCase):

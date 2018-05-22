@@ -5,8 +5,8 @@ import time
 import pytest
 
 from .common import (OS_STAT_MTIME_RESOLUTION,
-                     REMOTE_MODIFICATION_TIME_RESOLUTION)
-from .common_unit_test import TEST_DEFAULT_DELAY, UnitTestCase
+                     REMOTE_MODIFICATION_TIME_RESOLUTION, TEST_DEFAULT_DELAY,
+                     UnitTestCase)
 
 
 class TestConcurrentSynchronization(UnitTestCase):

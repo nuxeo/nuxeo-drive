@@ -9,8 +9,7 @@ import pytest
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.utils import make_tmp_file
-from .common import FS_ITEM_ID_PREFIX
-from .common_unit_test import UnitTestCase
+from .common import FS_ITEM_ID_PREFIX, UnitTestCase
 
 
 class TestRemoteFileSystemClient(UnitTestCase):

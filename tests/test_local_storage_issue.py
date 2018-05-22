@@ -4,7 +4,7 @@ import os
 import pytest
 
 from . import RemoteTest
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestLocalStorageSpaceIssue(UnitTestCase):

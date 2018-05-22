@@ -4,7 +4,7 @@ import sys
 from logging import getLogger
 
 from nxdrive.utils import safe_long_path
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 if sys.platform == 'win32':
     import win32api

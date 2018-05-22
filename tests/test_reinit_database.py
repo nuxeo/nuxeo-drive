@@ -2,7 +2,7 @@
 import time
 
 from .common import OS_STAT_MTIME_RESOLUTION
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestReinitDatabase(UnitTestCase):

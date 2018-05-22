@@ -30,8 +30,7 @@ from requests import ConnectionError
 from mock import patch
 
 from nxdrive.client import Remote
-from .common import TEST_DEFAULT_DELAY
-from .common_unit_test import UnitTestCase
+from .common import TEST_DEFAULT_DELAY, UnitTestCase
 
 log = getLogger(__name__)
 network_error = 0

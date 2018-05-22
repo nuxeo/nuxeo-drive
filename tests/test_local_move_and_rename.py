@@ -9,7 +9,7 @@ import pytest
 from nxdrive.client import LocalClient
 from nxdrive.engine.dao.sqlite import EngineDAO
 from . import DocRemote, RemoteTest
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 # TODO NXDRIVE-170: refactor

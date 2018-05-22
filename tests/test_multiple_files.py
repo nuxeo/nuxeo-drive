@@ -7,7 +7,7 @@ from logging import getLogger
 import pytest
 
 from nxdrive.osi import AbstractOSIntegration
-from .common_unit_test import FILE_CONTENT, UnitTestCase
+from .common import FILE_CONTENT, UnitTestCase
 
 log = getLogger(__name__)
 

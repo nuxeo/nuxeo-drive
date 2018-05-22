@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestLocalFilter(UnitTestCase):

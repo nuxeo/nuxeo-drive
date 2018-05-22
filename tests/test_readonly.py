@@ -9,8 +9,7 @@ import pytest
 from nuxeo.exceptions import HTTPError
 
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
-from .common import TEST_WORKSPACE_PATH
-from .common_unit_test import UnitTestCase
+from .common import TEST_WORKSPACE_PATH, UnitTestCase
 
 log = getLogger(__name__)
 

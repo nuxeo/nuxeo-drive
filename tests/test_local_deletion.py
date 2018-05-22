@@ -6,7 +6,7 @@ import pytest
 
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestLocalDeletion(UnitTestCase):

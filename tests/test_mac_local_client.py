@@ -2,7 +2,7 @@
 import pytest
 
 from nxdrive.osi import AbstractOSIntegration
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 @pytest.mark.skipif(

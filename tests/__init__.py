@@ -19,7 +19,7 @@ DEFAULT_TYPES = ('File', 'Note', 'Workspace', 'Folder')
 
 def configure_logger():
     formatter = logging.Formatter(
-        '%(thread)-4d %(module)-16s %(levelname).1s %(message)s')
+        '%(thread)-4d %(module)-14s %(levelname).1s %(message)s')
     configure(console_level='TRACE',
               command_name='test',
               force_configure=True,

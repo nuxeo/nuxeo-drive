@@ -8,8 +8,7 @@ from mock import Mock, patch
 
 from nuxeo.utils import SwapAttr
 from nxdrive.engine.engine import Engine
-from .common import OS_STAT_MTIME_RESOLUTION
-from .common_unit_test import UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
 
 
 class TestRemoteDeletion(UnitTestCase):

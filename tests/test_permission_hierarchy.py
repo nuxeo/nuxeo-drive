@@ -6,7 +6,7 @@ import pytest
 from nuxeo.exceptions import HTTPError
 
 from nxdrive.client import LocalClient
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestPermissionHierarchy(UnitTestCase):

@@ -5,7 +5,7 @@ import pytest
 
 from nxdrive.client.local_client import FileInfo
 from nxdrive.osi import AbstractOSIntegration
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestEncoding(UnitTestCase):

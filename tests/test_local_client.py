@@ -5,7 +5,6 @@ See win_local_client.py and mac_local_client.py for more informations.
 
 See NXDRIVE-742.
 """
-
 import hashlib
 import os
 import sys
@@ -16,8 +15,8 @@ import pytest
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.common import DuplicationDisabledError
-from .common import EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST
-from .common_unit_test import UnitTestCase
+from .common import (EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST,
+                     UnitTestCase)
 
 if sys.platform == 'win32':
     import win32api

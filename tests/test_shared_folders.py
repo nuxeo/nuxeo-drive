@@ -1,7 +1,6 @@
 # coding: utf-8
 from nxdrive.client import LocalClient
-from .common import TEST_WORKSPACE_PATH
-from .common_unit_test import UnitTestCase
+from .common import TEST_WORKSPACE_PATH, UnitTestCase
 
 
 class TestSharedFolders(UnitTestCase):

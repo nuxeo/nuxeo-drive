@@ -6,7 +6,7 @@ from nuxeo.models import User
 
 from nxdrive.client import LocalClient
 from nxdrive.engine.engine import Engine, ServerBindingSettings
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class MockUrlTestEngine(Engine):

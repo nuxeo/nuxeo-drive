@@ -4,7 +4,7 @@ from logging import getLogger
 from nuxeo.models import Document, Group
 
 from . import DocRemote
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 log = getLogger(__name__)
 

@@ -4,7 +4,7 @@ import sys
 import pytest
 
 from nxdrive.osi import AbstractOSIntegration
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestSynchronizationSuspend(UnitTestCase):

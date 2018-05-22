@@ -7,7 +7,7 @@ later when Drive becomes online.
 import shutil
 
 from nxdrive.osi import AbstractOSIntegration
-from .common_unit_test import FILE_CONTENT, UnitTestCase
+from .common import FILE_CONTENT, UnitTestCase
 
 if AbstractOSIntegration.is_windows():
     from win32com.shell import shell, shellcon

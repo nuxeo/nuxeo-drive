@@ -31,7 +31,7 @@ from __future__ import unicode_literals
 
 import os.path
 
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class Test(UnitTestCase):

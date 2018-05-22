@@ -2,7 +2,7 @@
 import os
 import shutil
 
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestLocalMoveFolders(UnitTestCase):

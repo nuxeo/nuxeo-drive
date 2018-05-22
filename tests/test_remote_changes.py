@@ -1,5 +1,5 @@
 # coding: utf-8
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestRemoteChanges(UnitTestCase):

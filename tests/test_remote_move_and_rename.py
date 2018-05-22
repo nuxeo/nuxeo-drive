@@ -10,8 +10,7 @@ from mock import Mock, patch
 from nxdrive.client import LocalClient
 from nxdrive.engine.engine import Engine
 from tests import DocRemote
-from .common import REMOTE_MODIFICATION_TIME_RESOLUTION
-from .common_unit_test import UnitTestCase
+from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, UnitTestCase
 
 
 class TestRemoteMoveAndRename(UnitTestCase):

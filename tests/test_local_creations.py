@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from .common_unit_test import FILE_CONTENT, UnitTestCase
+from .common import FILE_CONTENT, UnitTestCase
 
 
 class TestLocalCreations(UnitTestCase):
