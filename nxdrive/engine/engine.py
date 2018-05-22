@@ -83,7 +83,7 @@ class Engine(QObject):
         self.remote_cls = remote_cls
         self.filtered_remote_cls = filtered_remote_cls
         self.local_cls = local_cls
-        self.remote = self.unfiltered_remote = None
+        self.remote = None
 
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
@@ -710,10 +710,8 @@ class Engine(QObject):
             'timeout': self.timeout,
             'token': self._remote_token,
             'check_suspended': self.suspend_client,
+            'dao': self._dao,
         }
-
-        self.unfiltered_remote = self.remote_cls(*rargs, **rkwargs)
-        rkwargs['dao'] = self._dao
         self.remote = self.filtered_remote_cls(*rargs, **rkwargs)
 
     def bind(self, binder):
