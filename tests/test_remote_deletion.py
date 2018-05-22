@@ -6,6 +6,7 @@ from shutil import copyfile
 
 from mock import Mock, patch
 
+from nuxeo.utils import SwapAttr
 from nxdrive.engine.engine import Engine
 from .common import OS_STAT_MTIME_RESOLUTION
 from .common_unit_test import UnitTestCase
@@ -125,14 +126,12 @@ class TestRemoteDeletion(UnitTestCase):
                 else:
                     self.engine_1.has_delete = True
             time.sleep(1)
-            Engine.suspend_client(self.engine_1)
+            self.engine_1.suspend_client()
 
         self.engine_1.start()
         self.engine_1.has_delete = False
 
-        try:
-            self.engine_1.remote.check_suspended = _suspend_check
-            self.engine_1.invalidate_client_cache()
+        with SwapAttr(self.engine_1.remote, 'check_suspended', _suspend_check):
             # Create documents in the remote root workspace
             remote.make_folder('/', 'Test folder')
             with open(self.location + '/resources/testFile.pdf',
@@ -142,8 +141,6 @@ class TestRemoteDeletion(UnitTestCase):
 
             self.wait_sync(wait_for_async=True)
             assert not local.exists('/Test folder/testFile.pdf')
-        finally:
-            self.engine_1.remote.check_suspended = Engine.suspend_client
 
     def test_synchronize_remote_deletion_while_download_file(self):
         if sys.platform == 'win32':
