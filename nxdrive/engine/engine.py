@@ -90,18 +90,14 @@ class Engine(QObject):
         # Folder locker - LocalFolder processor can prevent
         # others processors to operate on a folder
         self._folder_lock = None
-        # Case sensitive partition
-        self._case_sensitive = None
         self.timeout = 30
         self._handshake_timeout = 60
         self.manager = manager
         # Remove remote client cache on proxy update
         self.manager.proxyUpdated.connect(self.invalidate_client_cache)
+
         self.local_folder = definition.local_folder
-
-        self.local = self.local_cls(
-            self.local_folder, case_sensitive=self._case_sensitive)
-
+        self.local = self.local_cls(self.local_folder)
         # Keep folder path with backslash to find the right engine when
         # FinderSync is asking for the status of a file
         self.local_folder_bs = self._normalize_url(self.local_folder)
