@@ -116,11 +116,10 @@ class LocalClient(object):
     """ Client API implementation for the local file system. """
 
     CASE_RENAME_PREFIX = 'driveCaseRename_'
+    _case_sensitive = None
 
     def __init__(self, base_folder, **kwargs):
-        self._case_sensitive = kwargs.pop('case_sensitive', None)
-        self.is_case_sensitive()
-
+        self._digest_func = kwargs.pop('digest_func', 'md5')
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = kwargs.pop('check_suspended', None)
@@ -128,7 +127,8 @@ class LocalClient(object):
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
         self.base_folder = base_folder
-        self._digest_func = kwargs.pop('digest_func', 'md5')
+
+        self.is_case_sensitive()
 
     def __repr__(self):
         return ('<{name}'
