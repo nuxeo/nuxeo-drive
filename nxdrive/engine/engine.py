@@ -119,8 +119,6 @@ class Engine(QObject):
         if not self.remote:
             self.init_remote()
 
-        self.get_server_version()
-
         self._local_watcher = self._create_local_watcher()
         self.create_thread(worker=self._local_watcher)
         self._remote_watcher = self._create_remote_watcher(Options.delay)
@@ -809,12 +807,6 @@ class Engine(QObject):
                 pair = thread.worker.get_current_pair()
                 if pair is not None and pair.id == pair_id:
                     thread.worker.quit()
-
-    def get_server_version(self):
-        server_version = self._dao.get_config('server_version')
-        Options.set('server_version', server_version,
-                    setter='server', fail_on_error=False)
-        return server_version
 
     @pyqtSlot()
     def invalidate_client_cache(self):
