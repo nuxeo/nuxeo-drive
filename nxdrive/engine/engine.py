@@ -865,6 +865,7 @@ class Engine(QObject):
     def suspend_client(self, *_):
         if self.is_paused() or self._stopped:
             raise ThreadInterrupt
+
         # Verify thread status
         thread_id = current_thread().ident
         for thread in self._threads:
@@ -873,6 +874,7 @@ class Engine(QObject):
                     and thread.worker.get_thread_id() == thread_id
                     and not thread.worker.is_started()):
                 raise ThreadInterrupt
+
         # Get action
         current_file = None
         action = Action.get_current_action()
@@ -882,7 +884,7 @@ class Engine(QObject):
                 and current_file.startswith(self._folder_lock)):
             log.debug('PairInterrupt %r because lock on %r',
                       current_file, self._folder_lock)
-            raise PairInterrupt
+            raise PairInterrupt()
 
     def create_processor(self, item_getter, **kwargs):
         return Processor(self, item_getter, **kwargs)

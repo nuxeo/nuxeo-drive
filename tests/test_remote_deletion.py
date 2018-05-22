@@ -133,10 +133,8 @@ class TestRemoteDeletion(UnitTestCase):
         with SwapAttr(self.engine_1.remote, 'check_suspended', _suspend_check):
             # Create documents in the remote root workspace
             remote.make_folder('/', 'Test folder')
-            with open(self.location + '/resources/testFile.pdf',
-                      'r') as content_file:
-                content = content_file.read()
-            remote.make_file('/Test folder', 'testFile.pdf', content)
+            with open(self.location + '/resources/testFile.pdf', 'rb') as pdf:
+                remote.make_file('/Test folder', 'testFile.pdf', pdf.read())
 
             self.wait_sync(wait_for_async=True)
             assert not local.exists('/Test folder/testFile.pdf')
