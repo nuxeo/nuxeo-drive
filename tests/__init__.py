@@ -12,10 +12,6 @@ from nxdrive.utils import make_tmp_file
 # Automatically check all operations done with the Python client
 nuxeo.constants.CHECK_PARAMS = True
 
-FILE_TYPE = 'File'
-FOLDER_TYPE = 'Folder'
-DEFAULT_TYPES = ('File', 'Note', 'Workspace', 'Folder')
-
 
 def configure_logger():
     formatter = logging.Formatter(
@@ -149,7 +145,7 @@ class DocRemote(RemoteTest):
             command='Document.Create', input_obj='doc:' + ref,
             type=doc_type, name=name, properties=properties)
 
-    def make_folder(self, parent, name, doc_type=FOLDER_TYPE):
+    def make_folder(self, parent, name, doc_type='Folder'):
         # type (str, str, str) -> str
         # TODO: make it possible to configure context dependent:
         # - SocialFolder under SocialFolder or SocialWorkspace
@@ -161,7 +157,7 @@ class DocRemote(RemoteTest):
                           properties={'dc:title': name})
         return doc[u'uid']
 
-    def make_file(self, parent, name, content=None, doc_type=FILE_TYPE):
+    def make_file(self, parent, name, content=None, doc_type='File'):
         """Create a document of the given type with the given name and content
 
         Creates a temporary file from the content then streams it.
@@ -186,7 +182,7 @@ class DocRemote(RemoteTest):
             os.remove(file_path)
 
     def stream_file(self, parent, name, file_path, filename=None,
-                    mime_type=None, doc_type=FILE_TYPE):
+                    mime_type=None, doc_type='File'):
         """Create a document by streaming the file with the given path"""
         ref = self.make_file(parent, name, doc_type=doc_type)
         self.upload(

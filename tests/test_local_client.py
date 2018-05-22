@@ -8,21 +8,21 @@ See NXDRIVE-742.
 import hashlib
 import os
 import sys
-from logging import getLogger
 from time import sleep
 
 import pytest
 
 from nxdrive.client import LocalClient, NotFound
 from nxdrive.client.common import DuplicationDisabledError
-from .common import (EMPTY_DIGEST, SOME_TEXT_CONTENT, SOME_TEXT_DIGEST,
-                     UnitTestCase)
+from .common import SOME_TEXT_CONTENT, SOME_TEXT_DIGEST, UnitTestCase
 
 if sys.platform == 'win32':
     import win32api
 
 
-log = getLogger(__name__)
+EMPTY_DIGEST = hashlib.md5().hexdigest()
+SOME_TEXT_CONTENT = b'Some text content.'
+SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 
 
 class StubLocalClient(object):
@@ -120,7 +120,6 @@ class StubLocalClient(object):
     def test_case_sensitivity(self):
         local = self.local_1
         sensitive = local.is_case_sensitive()
-        log.info('OS is case sensitive: %r', sensitive)
 
         local.make_file('/', 'abc.txt')
         if sensitive:

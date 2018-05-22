@@ -1,6 +1,5 @@
 # coding: utf-8
 """ Common test utilities. """
-import hashlib
 import itertools
 import os
 import random
@@ -46,10 +45,6 @@ TEST_WORKSPACE_PATH = (
     '/default-domain/workspaces/nuxeo-drive-test-workspace')
 FS_ITEM_ID_PREFIX = 'defaultFileSystemItemFactory#default#'
 
-EMPTY_DIGEST = hashlib.md5().hexdigest()
-SOME_TEXT_CONTENT = b'Some text content.'
-SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
-
 # 1s time resolution as we truncate remote last modification time to the
 # seconds in RemoteFileSystemClient.file_to_info() because of the datetime
 # resolution of some databases (MySQL...)
@@ -62,7 +57,6 @@ OS_STAT_MTIME_RESOLUTION = 1.0
 
 log = getLogger(__name__)
 DEFAULT_WAIT_SYNC_TIMEOUT = 30
-DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT = 10
 FILE_CONTENT = """
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut egestas 
     condimentum egestas.
@@ -557,7 +551,7 @@ class UnitTestCase(TestCase):
         else:
             log.debug('Wait for sync timeout')
 
-    def wait_remote_scan(self, timeout=DEFAULT_WAIT_REMOTE_SCAN_TIMEOUT,
+    def wait_remote_scan(self, timeout=10,
                          wait_for_engine_1=True, wait_for_engine_2=False):
         log.debug('Wait for remote scan')
         self._wait_remote_scan = {self.engine_1.uid: wait_for_engine_1,
