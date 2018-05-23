@@ -575,7 +575,6 @@ class Remote(Nuxeo):
             # no millisecond?
             last_update = datetime.strptime(
                 doc['lastModified'], '%Y-%m-%dT%H:%M:%SZ')
-        last_contributor = props['dc:lastContributor']
 
         # TODO: support other main files
         has_blob = False
@@ -642,11 +641,25 @@ class Remote(Nuxeo):
         if name is not None:
             name = unicodedata.normalize('NFC', name)
         return NuxeoDocumentInfo(
-            self._base_folder_ref, name, doc['uid'], parent_uid,
-            doc['path'], folderish, last_update, last_contributor,
-            digest_algorithm, digest, self.client.repository, doc['type'],
-            version, doc['state'], is_trashed, has_blob, filename,
-            lock_owner, lock_created, permissions)
+            root=self._base_folder_ref,
+            name=name, uid=doc['uid'],
+            parent_uid=parent_uid,
+            path=doc['path'],
+            folderish=folderish,
+            last_modification_time=last_update,
+            last_contributor=props['dc:lastContributor'],
+            digest_algorithm=digest_algorithm,
+            digest=digest,
+            repository=self.client.repository,
+            doc_type=doc['type'],
+            version=version,
+            state=doc['state'],
+            is_trashed=is_trashed,
+            has_blob=has_blob,
+            filename=filename,
+            lock_owner=lock_owner,
+            lock_created=lock_created,
+            permissions=permissions)
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):
