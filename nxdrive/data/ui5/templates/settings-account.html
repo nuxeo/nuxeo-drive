@@ -27,6 +27,15 @@
       <input ng-disabled="currentAccount.initialized" class="form-control" id="username" placeholder="{{ 'ENGINE_USERNAME_PLACEHOLDER' | translate }}" ng-model="currentAccount.username">
     </div>
   </div>
+  <div class="form-group" ng-show="currentAccount.initialized">
+    <label for="serverUI" class="col-sm-2 control-label" translate>SERVER_UI</label>
+    <div class="col-sm-6">
+      <select class="form-control" id="serverUI" ng-model="currentAccount.ui" ng-change="setUI()">
+        <option value="web">Web UI {{ defaultUILabel("web") }}</option>
+        <option value="jsf">JSF UI {{ defaultUILabel("jsf") }}</option>
+      </select>
+    </div>
+  </div>
   <div class="form-group" ng-show="!webAuthenticationAvailable && !currentAccount.initialized">
     <label for="password" class="col-sm-2 control-label" translate>PASSWORD</label>
     <div class="col-sm-10">

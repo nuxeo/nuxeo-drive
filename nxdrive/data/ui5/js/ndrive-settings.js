@@ -39,6 +39,16 @@ var SettingsController = function($scope, $interval, $translate) {
 	$scope.updateToken = function() {
 		self.updateToken($scope, $translate);
 	}
+	$scope.setUI = function() {
+		self.setUI($scope, $translate);
+	}
+	$scope.defaultUILabel = function(ui) {
+		if (ui == $scope.currentAccount.default_ui) {
+			return "(" + $translate.instant("SERVER_DEFAULT") + ")";
+		} else {
+			return "";
+		}
+	}
 	$scope.validForm = function() {
 		if ($scope.webAuthenticationAvailable) {
 			return ($scope.currentAccount.local_folder && $scope.currentAccount.server_url);
@@ -264,6 +274,14 @@ SettingsController.prototype.webAuthentication = function($scope, $translate) {
 SettingsController.prototype.updateToken = function($scope, $translate) {
 	$scope.reinitMsgs();
 	var res = drive.web_update_token($scope.currentAccount.uid);
+	if (res != "") {
+		$scope.setErrorMessage($translate.instant(res));
+	}
+}
+
+SettingsController.prototype.setUI = function($scope, $translate) {
+	$scope.reinitMsgs();
+	var res = drive.set_server_ui($scope.currentAccount.uid, $scope.currentAccount.ui);
 	if (res != "") {
 		$scope.setErrorMessage($translate.instant(res));
 	}
