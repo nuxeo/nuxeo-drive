@@ -250,15 +250,6 @@ class DocRemote(RemoteTest):
         return self.operations.execute(command='Document.Delete',
                                        input_obj=input_obj)
 
-    def undelete(self, uid):
-        input_obj = 'doc:' + uid
-        if not self._has_new_trash_service:
-            return self.operations.execute(
-                command='Document.SetLifeCycle',
-                input_obj=input_obj, value='undelete')
-        else:
-           return self.documents.untrash(uid)
-
     def delete_content(self, ref, xpath=None):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)
 
