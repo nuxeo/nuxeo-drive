@@ -51,7 +51,8 @@ class TestRemoteDeletion(UnitTestCase):
 
         # Restore folder from trash then synchronize
         remote.undelete(folder_id)
-        remote.undelete(file_id)
+        if not remote._has_new_trash_service:
+            remote.undelete(file_id)
         self.wait_sync(wait_for_async=True)
         assert local.exists('/Test folder')
         assert local.exists('/Test folder/joe.txt')
@@ -63,8 +64,9 @@ class TestRemoteDeletion(UnitTestCase):
 
         # Restore sync root from trash then synchronize
         remote_admin.undelete(self.workspace)
-        remote_admin.undelete(folder_id)
-        remote_admin.undelete(file_id)
+        if not remote._has_new_trash_service:
+            remote_admin.undelete(folder_id)
+            remote_admin.undelete(file_id)
         self.wait_sync(wait_for_async=True)
         assert local.exists('/')
         assert local.exists('/Test folder')

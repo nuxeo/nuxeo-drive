@@ -3,6 +3,7 @@ Release date: `2018-??-??`
 
 ### Core
 - [NXDRIVE-825](https://jira.nuxeo.com/browse/NXDRIVE-825): Rely on the Python client for all Nuxeo API calls (**breaking change**)
+- [NXDRIVE-1201](https://jira.nuxeo.com/browse/NXDRIVE-1201): Adapt Drive for new Trash API behavior
 
 #### Minor changes
 - Jenkins:Added the `PYTEST_ADDOPTS` parameter to the Drive-tests job

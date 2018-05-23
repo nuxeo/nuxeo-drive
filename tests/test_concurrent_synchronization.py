@@ -47,7 +47,6 @@ class TestConcurrentSynchronization(UnitTestCase):
         local_children_names.sort()
         assert local_children_names == children_names
 
-    @pytest.mark.skip('TODO: NXDRIVE-1201')
     def test_delete_local_folder_2_clients(self):
         # Get local clients for each device and remote client
         local1 = self.local_1
