@@ -63,7 +63,8 @@ class BaseUpdater(PollWorker):
         """
 
         for engine in self.manager.get_engines().values():
-            return engine.get_server_version()
+            if engine.remote:
+                return engine.remote.client.server_version
         return None
 
     @property

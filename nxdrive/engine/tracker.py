@@ -101,7 +101,7 @@ class Tracker(Worker):
             self._tracker.set({
                 'dimension6': urlparse.urlsplit(engine.server_url).hostname,
                 'dimension7': engine.server_url,
-                'dimension8': engine.get_server_version(),
+                'dimension8': engine.remote.client.server_version,
                 'dimension9': engine.remote_user,
             })
 
