@@ -10,7 +10,9 @@ from nxdrive.logging_config import configure
 from nxdrive.utils import make_tmp_file
 
 # Automatically check all operations done with the Python client
-nuxeo.constants.CHECK_PARAMS = True
+# Note: set to True when needed, it is not effective becauce it slowes down
+# tests on Windows by a factor of 3.
+nuxeo.constants.CHECK_PARAMS = not True
 
 
 def configure_logger():

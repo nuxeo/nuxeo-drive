@@ -17,6 +17,7 @@ import time
 from win32com.shell import shell, shellcon
 
 from nxdrive.client.local_client import LocalClient
+from . import log
 
 
 class MockFile(object):
@@ -49,8 +50,7 @@ class WindowsLocalClient(LocalClient):
         # Remove \\?\
         abs_path = super(WindowsLocalClient, self).abspath(ref)
         if len(abs_path) >= 255:
-            import warnings
-            warnings.warn(
+            log.warning(
                 'The path is longer than 255 characters and the '
                 'WindowsLocalClient is about the remove the long path '
                 'prefix. So the test is likely to fail.')
