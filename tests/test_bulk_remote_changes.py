@@ -14,7 +14,7 @@ Fix: Handle the error in GetChildren API gracefully and re-queue
 Testing: This issue can be testing by simulating network of the API
     using a mock framework:
     1. Emulate the GetChildren API error by mocking the
-       RemoteFileSystemClient.get_children_info method
+       Remote.get_fs_children method
     2. The mocked method will raise an exception on demand
        to simulate the server side / network errors
 
@@ -25,19 +25,17 @@ Note: searching for the following regular expression in log file
 
 from logging import getLogger
 from time import sleep
-from urllib2 import URLError
+from requests import ConnectionError
 
 from mock import patch
 
-from nxdrive.client.remote_file_system_client import RemoteFileSystemClient
-from nxdrive.options import Options
-from .common import TEST_DEFAULT_DELAY
-from .common_unit_test import UnitTestCase
+from nxdrive.client import Remote
+from .common import TEST_DEFAULT_DELAY, UnitTestCase
 
 log = getLogger(__name__)
 network_error = 0
-original_get_children_info = RemoteFileSystemClient.get_children_info
-original_file_to_info = RemoteFileSystemClient.file_to_info
+original_get_children_info = Remote.get_fs_children
+original_file_to_info = Remote.file_to_info
 
 
 def mock_get_children_info(self, *args, **kwargs):
@@ -45,7 +43,8 @@ def mock_get_children_info(self, *args, **kwargs):
     if network_error > 0:
         network_error -= 1
         # Simulate a network error during the call to NuxeoDrive.GetChildren
-        raise URLError('Network error simulated for NuxeoDrive.GetChildren')
+        raise ConnectionError('Network error simulated '
+                              'for NuxeoDrive.GetChildren')
     return original_get_children_info(self, *args, **kwargs)
 
 
@@ -63,15 +62,15 @@ class TestBulkRemoteChanges(UnitTestCase):
     """
 
     def setUp(self):
-        self.last_sync_date = None
-        self.last_event_log_id = None
-        self.last_root_definitions = None
+        self.last_sync_date = 0
+        self.last_event_log_id = 0
+        self.last_root_definitions = ''
         # Initialize last event log id (lower bound)
         self.wait()
 
-    @patch.object(RemoteFileSystemClient, 'get_children_info',
+    @patch.object(Remote, 'get_fs_children',
                   mock_get_children_info)
-    @patch.object(RemoteFileSystemClient, 'file_to_info', mock_file_to_info)
+    @patch.object(Remote, 'file_to_info', mock_file_to_info)
     def test_many_changes(self):
         """
 Objective: The objective is to make a lot of remote changes (including a folder
@@ -100,7 +99,7 @@ to local PC.
         """
         global network_error
         remote = self.remote_document_client_1
-        local = self.local_client_1
+        local = self.local_1
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -135,7 +134,7 @@ to local PC.
         network_error = 2
         remote.make_file(
             folder1, 'sample1.txt', content='This is a another sample file1')
-        self.remote_document_client_2.register_as_root(shared)
+        self.remote_2.register_as_root(shared)
 
         # Delete folder 'shared'
         remote.delete(shared)

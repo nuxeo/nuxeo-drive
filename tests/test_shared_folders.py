@@ -1,72 +1,70 @@
 # coding: utf-8
 from nxdrive.client import LocalClient
-from .common import RemoteDocumentClientForTests, TEST_WORKSPACE_PATH
-from .common_unit_test import UnitTestCase
+from .common import TEST_WORKSPACE_PATH, UnitTestCase
 
 
 class TestSharedFolders(UnitTestCase):
 
     def test_move_sync_root_child_to_user_workspace(self):
         """See https://jira.nuxeo.com/browse/NXP-14870"""
-        admin_remote_client = self.root_remote_client
-        user1_workspace_uid = None
+        admin_remote_client = self.root_remote
+        uid = None
         try:
             # Get remote  and local clients
-            remote_user1 = RemoteDocumentClientForTests(
-                self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-                self.version, password=self.password_1,
-                upload_tmp_dir=self.upload_tmp_dir)
-            remote_user2 = RemoteDocumentClientForTests(
-                self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-                self.version, password=self.password_2,
-                upload_tmp_dir=self.upload_tmp_dir)
+            remote_1 = self.remote_document_client_1
+            remote_2 = self.remote_document_client_2
+
             local_user2 = LocalClient(self.local_nxdrive_folder_2)
 
-            # Make sure personal workspace is created for user1 and fetch its uid
-            user1_workspace_uid = remote_user1.make_file_in_user_workspace('File in user workspace',
-                                                                           filename='UWFile.txt')['parentRef']
+            # Make sure personal workspace is created for user1
+            # and fetch its uid
+            uid = remote_1.make_file_in_user_workspace(
+                'File in user workspace', filename='UWFile.txt')['parentRef']
 
             # As user1 register personal workspace as a sync root
-            remote_user1.register_as_root(user1_workspace_uid)
+            remote_1.register_as_root(uid)
 
             # As user1 create a parent folder in user1's personal workspace
-            parent_folder_uid = remote_user1.make_folder(user1_workspace_uid, 'Parent')
+            parent_uid = remote_1.make_folder(uid, 'Parent')
 
             # As user1 grant Everything permission to user2 on parent folder
-            op_input = "doc:" + parent_folder_uid
-            admin_remote_client.execute("Document.SetACE", op_input=op_input, user=self.user_2,
-                                        permission="Everything", grant="true")
+            input_obj = 'doc:' + parent_uid
+            admin_remote_client.operations.execute(
+                command='Document.SetACE', input_obj=input_obj,
+                user=self.user_2, permission='Everything', grant=True)
 
             # As user1 create a child folder in parent folder
-            child_folder_uid = remote_user1.make_folder(parent_folder_uid, 'Child')
+            child_folder_uid = remote_1.make_folder(parent_uid, 'Child')
 
             # As user2 register parent folder as a sync root
-            remote_user2.register_as_root(parent_folder_uid)
-            remote_user2.unregister_as_root(self.workspace)
+            remote_2.register_as_root(parent_uid)
+            remote_2.unregister_as_root(self.workspace)
             # Start engine for user2
             self.engine_2.start()
 
             # Wait for synchronization
-            self.wait_sync(wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True)
+            self.wait_sync(wait_for_async=True, wait_for_engine_1=False,
+                           wait_for_engine_2=True)
 
             # Check locally synchronized content
-            self.assertEqual(len(local_user2.get_children_info('/')), 1)
-            self.assertTrue(local_user2.exists('/Parent'))
-            self.assertTrue(local_user2.exists('/Parent/Child'))
+            assert len(local_user2.get_children_info('/')) == 1
+            assert local_user2.exists('/Parent')
+            assert local_user2.exists('/Parent/Child')
 
             # As user1 move child folder to user1's personal workspace
-            remote_user1.move(child_folder_uid, user1_workspace_uid)
+            remote_1.move(child_folder_uid, uid)
 
             # Wait for synchronization
-            self.wait_sync(wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True)
+            self.wait_sync(wait_for_async=True, wait_for_engine_1=False,
+                           wait_for_engine_2=True)
 
             # Check locally synchronized content
-            self.assertFalse(local_user2.exists('/Parent/Child'))
+            assert not local_user2.exists('/Parent/Child')
 
         finally:
             # Cleanup user1 personal workspace
-            if user1_workspace_uid is not None and admin_remote_client.exists(user1_workspace_uid):
-                admin_remote_client.delete(user1_workspace_uid,
+            if uid is not None and admin_remote_client.exists(uid):
+                admin_remote_client.delete(uid,
                                            use_trash=False)
 
     def test_local_changes_while_stopped(self):
@@ -86,11 +84,12 @@ class TestSharedFolders(UnitTestCase):
 
         # Remove ReadWrite permission for user_1 on the test workspace
         test_workspace = 'doc:' + TEST_WORKSPACE_PATH
-        self.root_remote_client.execute('Document.SetACE',
-                                        op_input=test_workspace,
-                                        user=self.user_2,
-                                        permission='ReadWrite',
-                                        grant=True)
+        self.root_remote.operations.execute(
+            command='Document.SetACE',
+            input_obj=test_workspace,
+            user=self.user_2,
+            permission='ReadWrite',
+            grant=True)
 
         # Create initial folders and files as user_2
         folder = remote_2.make_folder('/', 'Folder01')
@@ -100,10 +99,11 @@ class TestSharedFolders(UnitTestCase):
         file_id = remote_2.make_file(folder, 'File01.txt', 'plaintext')
 
         # Grant Read permission for user_1 on the test folder and register
-        self.root_remote_client.execute('Document.SetACE',
-                                        op_input='doc:' + folder,
-                                        user=self.user_1,
-                                        permission='Read')
+        self.root_remote.operations.execute(
+            command='Document.SetACE',
+            input_obj='doc:' + folder,
+            user=self.user_1,
+            permission='Read')
         remote_1.register_as_root(folder)
 
         # Start engine and wait for sync
@@ -113,16 +113,16 @@ class TestSharedFolders(UnitTestCase):
         # First checks
         file_pair_state = self.engine_1.get_dao().get_state_from_local(
            '/Folder01/File01.txt')
-        self.assertIsNotNone(file_pair_state)
+        assert file_pair_state is not None
         file_remote_ref = file_pair_state.remote_ref
-        self.assertTrue(remote_2.exists('/Folder01'))
-        self.assertTrue(remote_2.exists('/Folder01/File01.txt'))
-        self.assertTrue(remote_2.exists('/Folder01/SubFolder01'))
-        self.assertTrue(remote_2.exists('/Folder01/SubFolder01/Image01.png'))
-        self.assertTrue(local_1.exists('/Folder01'))
-        self.assertTrue(local_1.exists('/Folder01/File01.txt'))
-        self.assertTrue(local_1.exists('/Folder01/SubFolder01'))
-        self.assertTrue(local_1.exists('/Folder01/SubFolder01/Image01.png'))
+        assert remote_2.exists('/Folder01')
+        assert remote_2.exists('/Folder01/File01.txt')
+        assert remote_2.exists('/Folder01/SubFolder01')
+        assert remote_2.exists('/Folder01/SubFolder01/Image01.png')
+        assert local_1.exists('/Folder01')
+        assert local_1.exists('/Folder01/File01.txt')
+        assert local_1.exists('/Folder01/SubFolder01')
+        assert local_1.exists('/Folder01/SubFolder01/Image01.png')
 
         # Unbind or stop engine
         if unbind:
@@ -132,10 +132,11 @@ class TestSharedFolders(UnitTestCase):
             self.engine_1.stop()
 
         # Restore write permission to user_1 (=> ReadWrite)
-        self.root_remote_client.execute('Document.SetACE',
-                                        op_input='doc:' + folder,
-                                        user=self.user_1,
-                                        permission='ReadWrite')
+        self.root_remote.operations.execute(
+            command='Document.SetACE',
+            input_obj='doc:' + folder,
+            user=self.user_1,
+            permission='ReadWrite')
         self.wait()
 
         # Make changes
@@ -151,38 +152,39 @@ class TestSharedFolders(UnitTestCase):
         self.wait_sync()
 
         # Check client side
-        self.assertTrue(local_1.exists('/Folder01'))
+        assert local_1.exists('/Folder01')
         if unbind:
             # File has been renamed and deleted image has been recreated
-            self.assertFalse(local_1.exists('/Folder01/File01.txt'))
-            self.assertTrue(local_1.exists('/Folder01/File01_renamed.txt'))
-            self.assertTrue(local_1.exists('/Folder01/SubFolder01/Image01.png'))
+            assert not local_1.exists('/Folder01/File01.txt')
+            assert local_1.exists('/Folder01/File01_renamed.txt')
+            assert local_1.exists('/Folder01/SubFolder01/Image01.png')
         else:
             # File has been renamed and image deleted
-            self.assertFalse(local_1.exists('/Folder01/File01.txt'))
-            self.assertTrue(local_1.exists('/Folder01/File01_renamed.txt'))
-            self.assertFalse(local_1.exists('/Folder01/SubFolder01/Image01.png'))
+            assert not local_1.exists('/Folder01/File01.txt')
+            assert local_1.exists('/Folder01/File01_renamed.txt')
+            assert not local_1.exists('/Folder01/SubFolder01/Image01.png')
 
         # Check server side
         children = remote_2.get_children_info(folder)
-        self.assertEqual(len(children), 2)
+        assert len(children) == 2
         file_info = remote_2.get_info(file_id)
         if unbind:
             # File has not been renamed and image has not been deleted
-            self.assertEqual(file_info.name, 'File01.txt')
-            self.assertTrue(remote_2.exists('/Folder01/SubFolder01/Image01.png'))
+            assert file_info.name == 'File01.txt'
+            assert remote_2.exists('/Folder01/SubFolder01/Image01.png')
             # File is in conflict
-            file_pair_state = self.engine_1.get_dao().get_normal_state_from_remote(file_remote_ref)
-            self.assertEqual(file_pair_state.pair_state, 'conflicted')
+            file_pair_state = (self.engine_1.get_dao()
+                               .get_normal_state_from_remote(file_remote_ref))
+            assert file_pair_state.pair_state == 'conflicted'
         else:
             # File has been renamed and image deleted
-            self.assertEqual(file_info.name, 'File01_renamed.txt')
-            self.assertFalse(remote_2.exists('/Folder01/SubFolder01/Image01.png'))
+            assert file_info.name == 'File01_renamed.txt'
+            assert not remote_2.exists('/Folder01/SubFolder01/Image01.png')
 
     def test_conflict_resolution_with_renaming(self):
         """ NXDRIVE-645: shared Folders conflict resolution with renaming. """
 
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_2
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -193,13 +195,13 @@ class TestSharedFolders(UnitTestCase):
 
         # First checks, everything should be online for every one
         self.wait_sync(wait_for_async=True)
-        self.assertTrue(remote.exists('/Final'))
-        self.assertTrue(remote.exists('/Final/Aerial04.png'))
-        self.assertTrue(local.exists('/Final'))
-        self.assertTrue(local.exists('/Final/Aerial04.png'))
+        assert remote.exists('/Final')
+        assert remote.exists('/Final/Aerial04.png')
+        assert local.exists('/Final')
+        assert local.exists('/Final/Aerial04.png')
         folder_pair_state = self.engine_1.get_dao().get_state_from_local(
             '/' + self.workspace_title + '/Final')
-        self.assertIsNotNone(folder_pair_state)
+        assert folder_pair_state is not None
 
         # Stop clients
         self.engine_1.stop()
@@ -215,14 +217,14 @@ class TestSharedFolders(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Check remote
-        self.assertTrue(remote.exists('/Finished'))
-        self.assertTrue(remote.exists('/Finished/Aerial04.png'))
+        assert remote.exists('/Finished')
+        assert remote.exists('/Finished/Aerial04.png')
 
         # Check client
-        self.assertTrue(local.exists('/Finished'))
-        self.assertTrue(local.exists('/Finished/Aerial04.png'))
+        assert local.exists('/Finished')
+        assert local.exists('/Finished/Aerial04.png')
 
         # Check folder status
         folder_pair_state = self.engine_1.get_dao().get_state_from_id(
             folder_pair_state.id)
-        self.assertEqual(folder_pair_state.last_error, 'DEDUP')
+        assert folder_pair_state.last_error == 'DEDUP'

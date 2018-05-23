@@ -2,10 +2,10 @@
 """ Main Qt application handling OS events and system tray UI. """
 import json
 import os
-import urllib2
 from logging import getLogger
 from urllib import unquote
 
+import requests
 from PyQt4.QtCore import Qt, pyqtSlot
 from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
                          QIcon, QMenu, QMessageBox, QSystemTrayIcon,
@@ -545,18 +545,16 @@ class Application(SimpleApplication):
         if not beta:
             return
 
-        url = ('https://api.github.com/repos/'
-               'nuxeo/nuxeo-drive'
-               '/releases/tags/'
-               'release-' + version)
+        url = ('https://api.github.com/repos/nuxeo/nuxeo-drive'
+               '/releases/tags/release-' + version)
 
         if beta:
             version += ' beta'
 
         try:
-            content = urllib2.urlopen(url).read()
-        except urllib2.HTTPError as exc:
-            if exc.code == 404:
+            content = requests.get(url)
+        except requests.HTTPError as exc:
+            if exc.response.status_code == 404:
                 log.error('[%s] Release does not exist', version)
             else:
                 log.exception(
@@ -568,8 +566,8 @@ class Application(SimpleApplication):
             return
 
         try:
-            data = json.loads(content)
-        except (TypeError, ValueError):
+            data = content.json()
+        except ValueError:
             log.exception('[%s] Invalid release notes', version)
             return
 
@@ -632,6 +630,8 @@ class Application(SimpleApplication):
         self.tray_icon.show()
 
     def event(self, event):
+        # type: (QEvent) -> bool
+
         """ Handle URL scheme events under macOS. """
 
         url = getattr(event, 'url', None)
@@ -641,17 +641,18 @@ class Application(SimpleApplication):
 
         try:
             final_url = unquote(str(event.url().toString()))
-            self._handle_macos_event(final_url)
+            return self._handle_macos_event(final_url)
         except:
             log.exception('Error handling URL event %r', url)
+            return False
 
     def _handle_macos_event(self, url):
-        # type: (str) -> None
+        # type: (str) -> bool
         """ Handle a macOS event URL. """
 
         info = parse_protocol_url(url)
         if not info:
-            return
+            return False
 
         cmd = info['command']
         path = info.get('filepath', None)
@@ -666,10 +667,9 @@ class Application(SimpleApplication):
             'edit-metadata': manager.ctx_edit_metadata,
         }.get(cmd, None)
         if func:
-            return func(path)
-
-        if 'edit' in cmd:
-            return manager.direct_edit.edit(
+            func(path)
+        elif 'edit' in cmd:
+            manager.direct_edit.edit(
                 info['server_url'],
                 info['doc_id'],
                 user=info['user'],
@@ -679,3 +679,5 @@ class Application(SimpleApplication):
                 manager.osi.watch_folder(engine.local_folder)
         else:
             log.warning('Unknown event URL=%r, info=%r', url, info)
+            return False
+        return True

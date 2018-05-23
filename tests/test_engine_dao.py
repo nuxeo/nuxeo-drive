@@ -214,7 +214,7 @@ class EngineDAOTest(unittest.TestCase):
         assert result == 'Administrator'
         self._dao.update_config('empty', 'notAnymore')
         result = self._dao.get_config('empty', 'DefaultValue')
-        self.assertNotEquals(result, 'DefaultValue')
+        assert result != 'DefaultValue'
         self._dao.update_config('remote_user', 'Test')
         result = self._dao.get_config('remote_user', 'DefaultValue')
         assert result == 'Test'

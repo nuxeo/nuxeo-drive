@@ -2,6 +2,30 @@
 [//]: # (Note 2: single files last)
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
+# dev
+- Added `Engine.init_remote()`
+- Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, filtered_remote_cls, local_cls)`
+- Removed `Engine.get_abspath()`
+- Removed `Engine.get_local_client()`. Use `local` attribute instead.
+- Removed `Engine.get_remote_client()`. Use `remote` attribute instead.
+- Removed `Engine.get_rest_api_client()`. Use `remote` attribute instead.
+- Removed `Engine.get_server_version()`. Use `remote.client.server_version` attribute instead.
+- Removed `Engine.get_update_infos()`
+- Removed `Manager.exceptions`
+- Removed `Manager.set_exceptions()`
+- Removed `Options.server_version`. Use `Engine.remote.client.server_version` attribute instead.
+- Removed `Options.proxy_exceptions`
+- Removed `RemoteWatcher.get_engine()`. Use `engine` attribute instead.
+- Added `nxdrive/client/remote.py`
+- Added `exceptions.py`
+- Renamed `nxdrive/client/local_client.py` to `nxdrive/client/local.py`
+- Removed `nxdrive/client/base_automation_client.py`
+- Removed `nxdrive/client/common.py`
+- Removed `nxdrive/client/remote_document_client.py`
+- Removed `nxdrive/client/remote_file_system_client.py`
+- Removed `nxdrive/client/remote_filtered_file_system_client.py`
+- Removed `nxdrive/client/rest_api_client.py`
+
 # 3.1.0
 - Removed `AbstractOSIntegration.get_os_version()`
 - Removed `AbstractOSIntegration.is_same_partition()`

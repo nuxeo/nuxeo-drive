@@ -31,14 +31,14 @@ from __future__ import unicode_literals
 
 import os.path
 
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class Test(UnitTestCase):
 
     def test_nxdrive_903(self):
         remote = self.remote_document_client_1
-        local_1, local_2 = self.local_client_1,  self.local_client_2
+        local_1, local_2 = self.local_1, self.local_2
         engine_1, engine_2 = self.engine_1, self.engine_2
         nb_folders, nb_files = 5, 5
 

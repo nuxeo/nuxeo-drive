@@ -1,7 +1,8 @@
 # coding: utf-8
 import subprocess
-import urllib2
-import urlparse
+from urllib import unquote
+from urlparse import urlparse
+
 from gi.repository import GObject, Nautilus
 
 
@@ -53,4 +54,4 @@ class NuxeoDriveMenuProvider(GObject.GObject, Nautilus.MenuProvider):
 
     @staticmethod
     def _get_uri_path(uri):
-        return urllib2.unquote(urlparse.urlparse(uri).path)
+        return unquote(urlparse(uri).path)

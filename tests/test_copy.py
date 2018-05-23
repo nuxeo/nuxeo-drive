@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class TestCopy(UnitTestCase):
@@ -11,7 +11,7 @@ class TestCopy(UnitTestCase):
     @pytest.mark.randombug(
         'NXDRIVE-808', condition=(sys.platform == 'linux2'), repeat=5)
     def test_synchronize_remote_copy(self):
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create a file and a folder in the remote root workspace
@@ -21,18 +21,16 @@ class TestCopy(UnitTestCase):
         # Launch ndrive and check synchronization
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        self.assertTrue(local.exists('/'))
-        self.assertTrue(local.exists('/Test folder'))
-        self.assertTrue(local.exists('/test.odt'))
+        assert local.exists('/')
+        assert local.exists('/Test folder')
+        assert local.exists('/test.odt')
 
         # Copy the file to the folder remotely
         remote.copy('/test.odt', '/Test folder')
 
         # Launch ndrive and check synchronization
         self.wait_sync(wait_for_async=True)
-        self.assertTrue(local.exists('/test.odt'))
-        self.assertEqual(local.get_content('/test.odt'),
-                        'Some content.')
-        self.assertTrue(local.exists('/Test folder/test.odt'))
-        self.assertEqual(local.get_content('/Test folder/test.odt'),
-                         'Some content.')
+        assert local.exists('/test.odt')
+        assert local.get_content('/test.odt') == 'Some content.'
+        assert local.exists('/Test folder/test.odt')
+        assert local.get_content('/Test folder/test.odt') == 'Some content.'

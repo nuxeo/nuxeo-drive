@@ -10,16 +10,16 @@ from urllib import quote
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 from watchdog.observers import Observer
 
-from .client.base_automation_client import (DOWNLOAD_TMP_FILE_PREFIX,
-                                            DOWNLOAD_TMP_FILE_SUFFIX)
-from .client.common import BaseClient, NotFound
+from .client.common import NotFound
 from .client.local_client import LocalClient
+from .constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
 from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import ThreadInterrupt, Worker
 from .utils import (current_milli_time, force_decode, guess_digest_algorithm,
-                    normalize_event_filename, parse_protocol_url, simplify_url)
+                    normalize_event_filename, parse_protocol_url, simplify_url,
+                    unset_path_readonly)
 
 log = getLogger(__name__)
 
@@ -141,7 +141,7 @@ class DirectEdit(Worker):
 
             ref = children[0].path
             try:
-                _,  _, _, func, digest = self._extract_edit_info(ref)
+                _, _, func, digest = self._extract_edit_info(ref)
             except NotFound:
                 # Engine is not known anymore
                 purge(child.path)
@@ -207,8 +207,7 @@ class DirectEdit(Worker):
 
         return engine
 
-    @staticmethod
-    def _download(engine, remote_client, info, file_path, url=None):
+    def _download(self, engine, info, file_path, url=None):
         file_dir = os.path.dirname(file_path)
         file_name = os.path.basename(file_path)
         file_out = os.path.join(file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name
@@ -217,35 +216,35 @@ class DirectEdit(Worker):
         # Close to processor method - should try to refactor ?
         pair = engine.get_dao().get_valid_duplicate_file(info.digest)
         if pair:
-            local_client = engine.get_local_client()
-            existing_file_path = local_client.abspath(pair.local_path)
-            log.debug('Local file matches remote digest %r, copying it from %r',
-                      info.digest, existing_file_path)
+            existing_file_path = engine.local.abspath(pair.local_path)
+            log.debug('Local file matches remote digest %r, '
+                      'copying it from %r', info.digest, existing_file_path)
             shutil.copy(existing_file_path, file_out)
             if pair.is_readonly():
-                log.debug('Unsetting readonly flag on copied file %r', file_out)
-                BaseClient.unset_path_readonly(file_out)
+                log.debug('Unsetting readonly flag on copied file %r',
+                          file_out)
+                unset_path_readonly(file_out)
         else:
             log.debug('Downloading file %r', info.filename)
             if url:
-                remote_client.do_get(quote(url, safe='/:'),
-                                     file_out=file_out,
-                                     digest=info.digest,
-                                     digest_algorithm=info.digest_algorithm)
+                engine.remote.download(quote(url, safe='/:'), file_out=file_out,
+                                       digest=info.digest,
+                                       check_suspended=self.stop_client)
             else:
-                remote_client.get_blob(info, file_out=file_out)
+                engine.remote.get_blob(info, file_out=file_out,
+                                       check_suspended=self.stop_client)
         return file_out
 
-    def _get_info(self, engine, remote, doc_id, user):
-        doc = remote.fetch(
+    def _get_info(self, engine, doc_id, user):
+        doc = engine.remote.fetch(
             doc_id,
-            extra_headers={'fetch-document': 'lock'},
+            headers={'fetch-document': 'lock'},
             enrichers=['permissions'],
         )
-        info = remote.doc_to_info(doc, fetch_parent_uid=False)
+        info = engine.remote.doc_to_info(doc, fetch_parent_uid=False)
 
         if info.lock_owner and info.lock_owner != engine.remote_user:
-            # Retreive the user full name, will be cached
+            # Retrieve the user full name, will be cached
             owner = engine.get_user_full_name(info.lock_owner)
 
             log.debug('Doc %r was locked by %s (%s) on %s, edit not allowed',
@@ -266,13 +265,12 @@ class DirectEdit(Worker):
         if not engine:
             return None
 
-        # Get document info
-        remote = engine.get_remote_doc_client()
+        # Get document info, used ub self._handle_*_queue()
+        self.remote = engine.remote
 
         # Avoid any link with the engine, remote_doc are not cached so we
         # can do that
-        remote.check_suspended = self.stop_client
-        info = self._get_info(engine, remote, doc_id, user)
+        info = self._get_info(engine, doc_id, user)
         if not info:
             return None
 
@@ -294,7 +292,7 @@ class DirectEdit(Worker):
                 url += '/'
             url += download_url
 
-        tmp_file = self._download(engine, remote, info, file_path, url=url)
+        tmp_file = self._download(engine, info, file_path, url=url)
         if tmp_file is None:
             log.error('Download failed')
             return None
@@ -309,12 +307,14 @@ class DirectEdit(Worker):
             local.set_remote_id(dir_path, user, name='nxdirectedituser')
 
         if info.digest:
-            local.set_remote_id(dir_path, info.digest, name='nxdirecteditdigest')
+            local.set_remote_id(dir_path, info.digest,
+                                name='nxdirecteditdigest')
             # Set digest algorithm if not sent by the server
             digest_algorithm = info.digest_algorithm
             if not digest_algorithm:
                 digest_algorithm = guess_digest_algorithm(info.digest)
-            local.set_remote_id(dir_path, digest_algorithm, name='nxdirecteditdigestalgorithm')
+            local.set_remote_id(dir_path, digest_algorithm,
+                                name='nxdirecteditdigestalgorithm')
         local.set_remote_id(dir_path, filename, name='nxdirecteditname')
 
         # Rename to final filename
@@ -355,17 +355,17 @@ class DirectEdit(Worker):
         if not engine:
             raise NotFound()
 
-        remote_client = engine.get_remote_doc_client()
-        remote_client.check_suspended = self.stop_client
-        digest_algorithm = local.get_remote_id(dir_path, name='nxdirecteditdigestalgorithm')
+        digest_algorithm = local.get_remote_id(
+            dir_path, name='nxdirecteditdigestalgorithm')
         digest = local.get_remote_id(dir_path, name='nxdirecteditdigest')
         uid = local.get_remote_id(dir_path)
-        return uid, engine, remote_client, digest_algorithm, digest
+        return uid, engine, digest_algorithm, digest
 
     def force_update(self, ref, digest):
         local = self._local_client
         dir_path = os.path.dirname(ref)
-        local.set_remote_id(dir_path, unicode(digest), name='nxdirecteditdigest')
+        local.set_remote_id(dir_path, unicode(digest),
+                            name='nxdirecteditdigest')
         self._upload_queue.put(ref)
 
     def _handle_lock_queue(self):
@@ -384,9 +384,9 @@ class DirectEdit(Worker):
             dir_path = os.path.dirname(ref)
 
             try:
-                uid, _, remote, _, _ = self._extract_edit_info(ref)
+                uid, _, _, _ = self._extract_edit_info(ref)
                 if action == 'lock':
-                    remote.lock(uid)
+                    self.remote.lock(uid)
                     local.set_remote_id(dir_path, '1', name='nxdirecteditlock')
                     # Emit the lock signal only when the lock is really set
                     self._send_lock_status(ref)
@@ -394,7 +394,7 @@ class DirectEdit(Worker):
                     continue
 
                 try:
-                    remote.unlock(uid)
+                    self.remote.unlock(uid)
                 except NotFound:
                     purge = True
                 else:
@@ -438,35 +438,38 @@ class DirectEdit(Worker):
                 break
 
             log.trace('Handling DirectEdit queue ref: %r', ref)
-            uid, engine, remote, digest_algorithm, digest = self._extract_edit_info(ref)
 
+            uid, engine, algorithm, digest = self._extract_edit_info(
+                ref)
             # Don't update if digest are the same
             try:
                 info = local.get_info(ref)
-                current_digest = info.get_digest(digest_func=digest_algorithm)
+                current_digest = info.get_digest(digest_func=algorithm)
                 if current_digest == digest:
                     continue
 
                 start_time = current_milli_time()
-                log.trace('Local digest: %s is different from the recorded one:'
-                          ' %s - modification detected for %r',
-                          current_digest, digest, ref)
+                log.trace('Local digest: %s is different from '
+                          'the recorded one:  %s - modification detected '
+                          'for %r', current_digest, digest, ref)
 
                 # TO_REVIEW Should check if server-side blob has changed ?
-                # Update the document, should verify the remote hash NXDRIVE-187
-                remote_info = remote.get_info(uid)
+                # Update the document, should verify
+                # the remote hash NXDRIVE-187
+                remote_info = self.remote.get_info(uid)
                 if remote_info.digest != digest:
                     # Conflict detect
-                    log.trace('Remote digest: %s is different from the recorded'
-                              ' one: %s - conflict detected for %r',
-                              remote_info.digest, digest, ref)
+                    log.trace('Remote digest: %s is different from '
+                              'the recorded  one: %s - conflict detected '
+                              'for %r', remote_info.digest, digest, ref)
                     self.directEditConflict.emit(
                         os.path.basename(ref), ref, remote_info.digest)
                     continue
 
                 os_path = local.abspath(ref)
                 log.debug('Uploading file %r', os_path)
-                remote.stream_update(uid, os_path, apply_versioning_policy=True)
+                self.remote.stream_update(uid, os_path, fs=False,
+                                          apply_versioning_policy=True)
 
                 # Update hash value
                 dir_path = os.path.dirname(ref)
@@ -537,7 +540,8 @@ class DirectEdit(Worker):
         log.debug('Watching FS modification on %r', self._folder)
         self._event_handler = DriveFSEventHandler(self)
         self._observer = Observer()
-        self._observer.schedule(self._event_handler, self._folder, recursive=True)
+        self._observer.schedule(self._event_handler, self._folder,
+                                recursive=True)
         self._observer.start()
 
     def _stop_watchdog(self):
@@ -620,7 +624,8 @@ class DirectEdit(Worker):
                         self.autolock.set_autolock(path, self)
                     elif evt.event_type == 'deleted':
                         # Free the xattr to let _cleanup() does its work
-                        local.remove_remote_id(dir_path, name='nxdirecteditlock')
+                        local.remove_remote_id(dir_path,
+                                               name='nxdirecteditlock')
                 return
 
             if self.use_autolock and editing != '1':

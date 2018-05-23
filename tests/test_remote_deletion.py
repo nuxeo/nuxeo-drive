@@ -7,9 +7,7 @@ from shutil import copyfile
 from mock import Mock, patch
 
 from nxdrive.engine.engine import Engine
-from nxdrive.options import Options
-from .common import OS_STAT_MTIME_RESOLUTION
-from .common_unit_test import UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
 
 
 class TestRemoteDeletion(UnitTestCase):
@@ -33,9 +31,9 @@ class TestRemoteDeletion(UnitTestCase):
         # Bind the server and root workspace
         self.engine_1.start()
         # Get local and remote clients
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
-        remote_admin = self.root_remote_client
+        remote_admin = self.root_remote
 
         # Create documents in the remote root workspace
         # then synchronize
@@ -73,19 +71,17 @@ class TestRemoteDeletion(UnitTestCase):
         assert local.exists('/Test folder/joe.txt')
 
     def _remote_deletion_while_upload(self):
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
         self.engine_1.start()
 
-        def _suspend_check(*_):
+        def check_suspended(*_):
             """ Add delay when upload and download. """
             time.sleep(1)
             Engine.suspend_client(self.engine_1)
 
-        with patch.object(
-                self.engine_1, 'suspend_client', new_callable=_suspend_check):
-            self.engine_1.invalidate_client_cache()
-
+        with patch.object(self.engine_1.remote, 'check_suspended',
+                          new=check_suspended):
             # Create documents in the remote root workspace
             remote.make_folder('/', 'Test folder')
             self.wait_sync(wait_for_async=True)
@@ -107,17 +103,16 @@ class TestRemoteDeletion(UnitTestCase):
         if sys.platform == 'win32':
             self._remote_deletion_while_upload()
         else:
-            with patch('nxdrive.client.base_automation_client.'
-                       'os.fstatvfs') as mock_os:
+            with patch('nxdrive.client.remote_client.os.fstatvfs') as mock_os:
                 mock_os.return_value = Mock()
                 mock_os.return_value.f_bsize = 4096
                 self._remote_deletion_while_upload()
 
     def _remote_deletion_while_download_file(self):
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
-        def _suspend_check(*_):
+        def check_suspended(*_):
             """ Add delay when upload and download. """
             if not self.engine_1.has_delete:
                 # Delete remote file while downloading
@@ -128,25 +123,20 @@ class TestRemoteDeletion(UnitTestCase):
                 else:
                     self.engine_1.has_delete = True
             time.sleep(1)
-            Engine.suspend_client(self.engine_1)
+            self.engine_1.suspend_client()
 
         self.engine_1.start()
         self.engine_1.has_delete = False
 
-        try:
-            self.engine_1.suspend_client = _suspend_check
-            self.engine_1.invalidate_client_cache()
+        with patch.object(self.engine_1.remote, 'check_suspended',
+                          new_callable=check_suspended):
             # Create documents in the remote root workspace
             remote.make_folder('/', 'Test folder')
-            with open(self.location + '/resources/testFile.pdf',
-                      'r') as content_file:
-                content = content_file.read()
-            remote.make_file('/Test folder', 'testFile.pdf', content)
+            with open(self.location + '/resources/testFile.pdf', 'rb') as pdf:
+                remote.make_file('/Test folder', 'testFile.pdf', pdf.read())
 
             self.wait_sync(wait_for_async=True)
             assert not local.exists('/Test folder/testFile.pdf')
-        finally:
-            self.engine_1.suspend_client = Engine.suspend_client
 
     def test_synchronize_remote_deletion_while_download_file(self):
         if sys.platform == 'win32':
@@ -159,7 +149,7 @@ class TestRemoteDeletion(UnitTestCase):
 
     def test_synchronize_remote_deletion_with_close_name(self):
         self.engine_1.start()
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
         remote.make_folder('/', 'Folder 1')
         remote.make_folder('/', 'Folder 1b')
@@ -182,7 +172,7 @@ class TestRemoteDeletion(UnitTestCase):
 
         # Get local and remote clients
         self.engine_2.start()
-        local = self.local_client_2
+        local = self.local_2
         remote = self.remote_document_client_2
 
         # Create a folder with a child file in the remote root workspace
@@ -194,9 +184,9 @@ class TestRemoteDeletion(UnitTestCase):
                        wait_for_engine_2=True)
         assert local.exists('/Test folder')
         assert local.exists('/Test folder/joe.odt')
-        op_input = 'doc:' + self.workspace
-        self.root_remote_client.execute(
-            'Document.RemoveACL', op_input=op_input, acl='local')
+        input_obj = 'doc:' + self.workspace
+        self.root_remote.operations.execute(
+            command='Document.RemoveACL', input_obj=input_obj, acl='local')
         self.wait_sync(wait_for_async=True, wait_for_engine_1=False,
                        wait_for_engine_2=True)
         assert not local.exists('/Test folder')
@@ -207,7 +197,7 @@ class TestRemoteDeletion(UnitTestCase):
 
         # Get local and remote clients
         self.engine_1.start()
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create a folder with a child file in the remote root workspace

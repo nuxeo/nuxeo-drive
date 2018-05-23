@@ -27,7 +27,7 @@ class Worker(QObject, object):
     _action = None
     _name = None
     _thread_id = None
-    _engine = None
+    engine = None
     _pause = False
     actionUpdate = pyqtSignal(object)
 
@@ -197,8 +197,8 @@ class Worker(QObject, object):
 class EngineWorker(Worker):
     def __init__(self, engine, dao, thread=None, **kwargs):
         super(EngineWorker, self).__init__(thread=thread, **kwargs)
-        self._engine = engine
-        self._engine.invalidClientsCache.connect(self._reset_clients)
+        self.engine = engine
+        self.engine.invalidClientsCache.connect(self._reset_clients)
         self._dao = dao
 
     @pyqtSlot()
@@ -208,15 +208,15 @@ class EngineWorker(Worker):
     def giveup_error(self, doc_pair, error, exception=None):
         details = str(exception) if exception else None
         log.debug('Give up for error [%s] (%r) for %r', error, details, doc_pair)
-        self._dao.increase_error(doc_pair, error, details=details, incr=self._engine.get_queue_manager().get_error_threshold()+1)
+        self._dao.increase_error(doc_pair, error, details=details, incr=self.engine.get_queue_manager().get_error_threshold() + 1)
         # Push it to generate the error notification
-        self._engine.get_queue_manager().push_error(doc_pair, exception=exception)
+        self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
     def increase_error(self, doc_pair, error, exception=None):
         details = str(exception) if exception else None
         log.debug('Increasing error [%s] (%r) for %r', error, details, doc_pair)
         self._dao.increase_error(doc_pair, error, details=details)
-        self._engine.get_queue_manager().push_error(doc_pair, exception=exception)
+        self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
 
 class PollWorker(Worker):

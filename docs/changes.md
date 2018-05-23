@@ -1,3 +1,15 @@
+# dev
+Release date: `2018-??-??`
+
+### Core
+- [NXDRIVE-825](https://jira.nuxeo.com/browse/NXDRIVE-825): Rely on the Python client for all Nuxeo API calls (**breaking change**)
+
+#### Minor changes
+- Jenkins:Added the `PYTEST_ADDOPTS` parameter to the Drive-tests job
+- Jenkins: Removed the `ENABLE_PROFILER` parameter from the Drive-tests job
+- Packaging: Added `nuxeo` 2.0.0
+
+
 # 3.1.0
 Release date: `2018-05-23`
 

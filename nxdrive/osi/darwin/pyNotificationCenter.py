@@ -2,6 +2,7 @@
 """ Python integration macOS notification center. """
 from Foundation import (NSBundle, NSMutableDictionary, NSObject,
                         NSUserNotification, NSUserNotificationCenter)
+
 from ...constants import BUNDLE_IDENTIFIER
 
 

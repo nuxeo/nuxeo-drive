@@ -1,24 +1,24 @@
 # coding: utf-8
-import urllib2
 import urlparse
 from collections import namedtuple
 from logging import getLogger
 from urllib import urlencode
 
+import requests
 from PyQt4 import QtCore, QtGui
+from nuxeo.exceptions import HTTPError, Unauthorized
+from requests import ConnectionError
 
 from .authentication import WebAuthenticationApi, WebAuthenticationDialog
 from .dialog import Promise, WebDialog, WebDriveApi
 from .translator import Translator
-from ..client.base_automation_client import (AddonNotInstalled, Unauthorized,
-                                             get_opener_proxies,
-                                             get_proxy_handler)
 from ..client.common import NotFound
+from ..constants import TOKEN_PERMISSION
 from ..engine.engine import (InvalidDriveException,
                              RootAlreadyBindWithDifferentAccount)
 from ..manager import FolderAlreadyUsed, ProxySettings
 from ..options import Options
-from ..utils import TOKEN_PERMISSION, get_device, guess_server_url
+from ..utils import get_device, guess_server_url
 
 log = getLogger(__name__)
 
@@ -150,9 +150,9 @@ class WebSettingsApi(WebDriveApi):
             return 'UNAUTHORIZED'
         except FolderAlreadyUsed:
             return 'FOLDER_USED'
-        except urllib2.HTTPError:
+        except HTTPError:
             return 'CONNECTION_ERROR'
-        except urllib2.URLError as e:
+        except ConnectionError as e:
             if e.errno == 61:
                 return 'CONNECTION_REFUSED'
             return 'CONNECTION_ERROR'
@@ -237,13 +237,8 @@ class WebSettingsApi(WebDriveApi):
             (parts.scheme, parts.netloc, parts.path, '', parts.fragment))
 
         try:
-            proxy_handler = get_proxy_handler(
-                self._manager.get_proxies(server_url))
-            opener = urllib2.build_opener(proxy_handler)
-            log.debug('Proxy configuration for startup page connection: %s,'
-                      ' effective proxy list: %r',
-                      self._manager.get_proxy_settings().config,
-                      get_opener_proxies(opener))
+            log.debug('Proxy configuration for startup page connection: %s',
+                      self._manager.get_proxy_settings().config)
             headers = {
                 'X-Application-Name': self._manager.app_name,
                 'X-Device-Id': self._manager.device_id,
@@ -251,11 +246,9 @@ class WebSettingsApi(WebDriveApi):
                 'User-Agent': (self._manager.app_name
                                + '/' + self._manager.version),
             }
-            req = urllib2.Request(url, headers=headers)
-            response = opener.open(req, timeout=STARTUP_PAGE_CONNECTION_TIMEOUT)
-            status = response.getcode()
-        except urllib2.HTTPError as e:
-            status = e.code
+            response = requests.get(url, headers=headers,
+                                    timeout=STARTUP_PAGE_CONNECTION_TIMEOUT)
+            status = response.status_code
         except:
             log.exception('Error while trying to connect to Nuxeo Drive'
                           ' startup page with URL %s', url)

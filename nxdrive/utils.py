@@ -7,12 +7,13 @@ to speed-up command line calls without loading everything at startup.
 import base64
 import locale
 import os
+import re
+import stat
 import sys
+import tempfile
 import time
 import urlparse
 from logging import getLogger
-
-import re
 
 from .options import Options
 
@@ -34,7 +35,6 @@ WIN32_PATCHED_MIME_TYPES = {
     'application/x-mspowerpoint.12':
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 }
-TOKEN_PERMISSION = 'ReadWrite'
 ENCODING = locale.getpreferredencoding()
 
 log = getLogger(__name__)
@@ -45,7 +45,7 @@ def current_milli_time():
 
 
 def get_device():
-    """ Retreive the device type. """
+    """ Retrieve the device type. """
 
     device = DEVICE_DESCRIPTIONS.get(sys.platform)
     if not device:
@@ -412,7 +412,7 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
     :return: The complete URL.
     """
 
-    from urllib2 import HTTPError, URLError, urlopen
+    import requests
     import rfc3987
 
     parts = urlparse.urlsplit(str(url))
@@ -456,19 +456,20 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
     ]
 
     for new_url_parts in urls:
-        new_url = urlparse.urlunsplit(new_url_parts)
+        new_url = urlparse.urlunsplit(new_url_parts).rstrip('/')
         try:
             rfc3987.parse(new_url, rule='URI')
             log.trace('Testing URL %r', new_url)
-            ret = urlopen(new_url + '/' + login_page, timeout=timeout)
-        except HTTPError as exc:
-            if exc.code == 401:
+            ret = requests.get(new_url + '/' + login_page, timeout=timeout)
+            ret.raise_for_status()
+        except requests.HTTPError as exc:
+            if exc.response.status_code == 401:
                 # When there is only Web-UI installed, the code is 401.
                 return new_url
-        except (ValueError, URLError):
+        except (ValueError, requests.ConnectionError):
             pass
         else:
-            if ret.code == 200:
+            if ret.status_code == 200:
                 return new_url
 
     if not url.lower().startswith('http'):
@@ -565,6 +566,107 @@ def parse_edit_protocol(parsed_url, url_string):
                 download_url=parsed_url.get('download'))
 
 
+def set_path_readonly(path):
+    current = os.stat(path).st_mode
+    if os.path.isdir(path):
+        # Need to add
+        right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IRUSR)
+        if current & ~right != 0:
+            os.chmod(path, right)
+    else:
+        # Already in read only
+        right = (stat.S_IRGRP | stat.S_IRUSR)
+        if current & ~right != 0:
+            os.chmod(path, right)
+
+
+def unset_path_readonly(path):
+    current = os.stat(path).st_mode
+    if os.path.isdir(path):
+        right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
+                 | stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
+        if current & right != right:
+            os.chmod(path, right)
+    else:
+        right = (stat.S_IRGRP | stat.S_IRUSR
+                 | stat.S_IWGRP | stat.S_IWUSR)
+        if current & right != right:
+            os.chmod(path, right)
+
+
+def unlock_path(path, unlock_parent=True):
+    result = 0
+    if unlock_parent:
+        parent_path = os.path.dirname(path)
+        if (os.path.exists(parent_path)
+                and not os.access(parent_path, os.W_OK)):
+            unset_path_readonly(parent_path)
+            result |= 2
+    if os.path.exists(path) and not os.access(path, os.W_OK):
+        unset_path_readonly(path)
+        result |= 1
+    return result
+
+
+def lock_path(path, locker):
+    if locker == 0:
+        return
+    if locker & 1 == 1:
+        set_path_readonly(path)
+    if locker & 2 == 2:
+        parent = os.path.dirname(path)
+        set_path_readonly(parent)
+
+
+def make_tmp_file(folder, content):
+    """Create a temporary file with the given content
+    for streaming upload purposes.
+
+    Make sure that you remove the temporary file with os.remove()
+    when done with it.
+    """
+    fd, path = tempfile.mkstemp(suffix=u'-nxdrive-file-to-upload',
+                                dir=folder)
+    with open(path, 'wb') as f:
+        f.write(content)
+    os.close(fd)
+    return path
+
+
+def get_proxies_for_handler(proxy_settings):
+    """Return a pair containing proxy string and exceptions list"""
+    if proxy_settings.config == 'None':
+        # No proxy, return an empty dictionary to disable
+        # default proxy detection
+        return {}
+    elif proxy_settings.config == 'System':
+        # System proxy, return None to use default proxy detection
+        return None
+    else:
+        # Manual proxy settings, build proxy string and exceptions list
+        if proxy_settings.authenticated:
+            proxy_string = '%s:%s@%s:%s' % (proxy_settings.username,
+                                            proxy_settings.password,
+                                            proxy_settings.server,
+                                            proxy_settings.port)
+        else:
+            proxy_string = '%s:%s' % (proxy_settings.server,
+                                      proxy_settings.port)
+        if proxy_settings.proxy_type is None:
+            proxies = {'http': proxy_string, 'https': proxy_string}
+        else:
+            proxies = {proxy_settings.proxy_type: ('%s://%s' % (proxy_settings.proxy_type, proxy_string))}
+        return proxies
+
+
+def get_proxy_config(proxies):
+    if proxies is None:
+        return 'System'
+    elif proxies == {}:
+        return 'None'
+    return 'Manual'
+
+
 class PidLockFile(object):
     """ This class handle the pid lock file"""
     def __init__(self, folder, key):
@@ -584,7 +686,7 @@ class PidLockFile(object):
         pid_filepath = self._get_sync_pid_filepath()
         try:
             os.unlink(pid_filepath)
-        except Exception, e:
+        except Exception as e:
             log.warning('Failed to remove stalled PID file: %r'
                         ' for stopped process %d: %r',
                         pid_filepath, os.getpid(), e)
@@ -627,7 +729,7 @@ class PidLockFile(object):
                     msg = 'Removed old PID file %r for stopped process %d' % (
                         pid_filepath, pid)
                 log.info(msg)
-            except Exception, e:
+            except Exception as e:
                 if pid is not None:
                     msg = ('Failed to remove stalled PID file: %r for'
                            ' stopped process %d: %r'

@@ -2,13 +2,12 @@ appdirs==1.4.3
 faulthandler==3.1  # TODO: Remove when NXDRIVE-691 is done
 Js2Py==0.59; python_version == '2.7'
 markdown==2.6.11
-poster==0.8.1; python_version == '2.7'  # TODO: Remove when NXDRIVE-825 is done
+https://github.com/nuxeo/nuxeo-python-client/archive/master.zip
 psutil==5.4.4
 pyaml==17.12.1
 pycryptodomex==3.6.1
 pypac==0.8.1
 python-dateutil==2.7.3
-requests==2.18.4
 rfc3987==1.3.7
 Send2Trash==1.5.0
 universal-analytics-python==0.2.4; python_version == '2.7'

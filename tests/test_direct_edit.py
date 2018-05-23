@@ -1,9 +1,12 @@
 # coding: utf-8
 import os
 
+from nuxeo.exceptions import HTTPError
+from nuxeo.models import User
+
 from nxdrive.client import LocalClient
 from nxdrive.engine.engine import Engine, ServerBindingSettings
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
 
 class MockUrlTestEngine(Engine):
@@ -26,11 +29,13 @@ class TestDirectEdit(UnitTestCase):
     def setUpApp(self):
         super(TestDirectEdit, self).setUpApp()
         self.direct_edit = self.manager_1.direct_edit
-        self.direct_edit.directEditUploadCompleted.connect(self.app.sync_completed)
+        self.direct_edit.directEditUploadCompleted.connect(
+            self.app.sync_completed)
         self.direct_edit.start()
 
         self.remote = self.remote_document_client_1
-        self.local = LocalClient(os.path.join(self.nxdrive_conf_folder_1, 'edit'))
+        self.local = LocalClient(os.path.join(self.nxdrive_conf_folder_1,
+                                              'edit'))
 
     def tearDownApp(self):
         self.direct_edit.stop()
@@ -81,14 +86,15 @@ class TestDirectEdit(UnitTestCase):
         assert get_engine('https://localhost/nuxeo', user=user)
 
     def test_note_edit(self):
-        remote_fs_client = self.remote_file_system_client_1
-        toplevel_folder_info = remote_fs_client.get_filesystem_root_info()
-        workspace_id = remote_fs_client.get_children_info(
-            toplevel_folder_info.uid)[0].uid
-        file_1_id = remote_fs_client.make_file(workspace_id, u'Mode op\xe9ratoire.txt',
-                                               "Content of file 1 Avec des accents h\xe9h\xe9.").uid
-        doc_id = file_1_id.split('#')[-1]
-        self._direct_edit_update(doc_id, u'Mode op\xe9ratoire.txt', 'Atol de PomPom Gali')
+        remote = self.remote_1
+        info = remote.get_filesystem_root_info()
+        workspace_id = remote.get_fs_children(info.uid)[0].uid
+        file_id = remote.make_file(
+            workspace_id, u'Mode op\xe9ratoire.txt',
+            'Content of file 1 Avec des accents h\xe9h\xe9.').uid
+        doc_id = file_id.split('#')[-1]
+        self._direct_edit_update(
+            doc_id, u'Mode op\xe9ratoire.txt', 'Atol de PomPom Gali')
 
     def test_filename_encoding(self):
         filename = u'Mode op\xe9ratoire.txt'
@@ -103,9 +109,10 @@ class TestDirectEdit(UnitTestCase):
         filename = u'Mode operatoire.txt'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
         self.remote_document_client_2.lock(doc_id)
-        self.direct_edit.directEditLocked.connect(self._test_locked_file_signal)
+        self.direct_edit.directEditLocked.connect(
+            self._test_locked_file_signal)
         self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
-        self.assertTrue(self._received)
+        assert self._received
 
     def test_self_locked_file(self):
         filename = u'Mode operatoire.txt'
@@ -125,20 +132,20 @@ class TestDirectEdit(UnitTestCase):
             self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
         else:
             self.direct_edit.handle_url(url)
-        self.assertTrue(self.local.exists(local_path))
+        assert self.local.exists(local_path)
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.local.delete_final(local_path)
 
         # Update file content
         self.local.update_content(local_path, content)
         self.wait_sync()
-        self.assertEqual(self.remote.get_blob(self.remote.get_info(doc_id)), content)
+        assert self.remote.get_blob(self.remote.get_info(doc_id)) == content
 
         # Update file content twice
-        update_content = content + ' updated'
-        self.local.update_content(local_path, update_content)
+        content += ' updated'
+        self.local.update_content(local_path, content)
         self.wait_sync()
-        self.assertEqual(self.remote.get_blob(self.remote.get_info(doc_id)), update_content)
+        assert self.remote.get_blob(self.remote.get_info(doc_id)) == content
 
     def test_direct_edit_cleanup(self):
         filename = u'Mode op\xe9ratoire.txt'
@@ -151,7 +158,7 @@ class TestDirectEdit(UnitTestCase):
 
         self.manager_1.open_local_file = open_local_file
         self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
-        self.assertTrue(self.local.exists(local_path))
+        assert self.local.exists(local_path)
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.direct_edit.stop()
 
@@ -162,38 +169,48 @@ class TestDirectEdit(UnitTestCase):
 
         # Verify the cleanup dont delete document
         self.direct_edit._cleanup()
-        self.assertTrue(self.local.exists(local_path))
-        self.assertNotEquals(self.remote.get_blob(self.remote.get_info(doc_id)), 'Test')
+        assert self.local.exists(local_path)
+        assert self.remote.get_blob(self.remote.get_info(doc_id)) != 'Test'
 
         # Verify it reupload it
         self.direct_edit.start()
         self.wait_sync(timeout=2, fail_if_timeout=False)
-        self.assertTrue(self.local.exists(local_path))
-        self.assertEqual(self.remote.get_blob(self.remote.get_info(doc_id)), 'Test')
+        assert self.local.exists(local_path)
+        assert self.remote.get_blob(self.remote.get_info(doc_id)) == 'Test'
 
         # Verify it is cleanup if sync
         self.direct_edit.stop()
         self.direct_edit._cleanup()
-        self.assertFalse(self.local.exists(local_path))
+        assert not self.local.exists(local_path)
 
     def test_user_name(self):
         # user_1 is drive_user_1, no more informations
         user = self.engine_1.get_user_full_name(self.user_1)
-        self.assertEqual(user, self.user_1)
+        assert user == self.user_1
 
         # Create a complete user
-        remote = self.root_remote_client
-        remote.create_user('john', firstName='John', lastName='Doe')
-        user = self.engine_1.get_user_full_name('john')
-        self.assertEqual(user, 'John Doe')
+        remote = self.root_remote
+        try:
+            user = remote.users.create(User(properties={
+                'username': 'john', 'firstName': 'John', 'lastName': 'Doe'}))
+        except HTTPError as exc:
+            if exc.status != 409:
+                raise
+            user = remote.users.get('john')
+
+        try:
+            username = self.engine_1.get_user_full_name('john')
+            assert username == 'John Doe'
+        finally:
+            user.delete()
 
         # Unknown user
-        user = self.engine_1.get_user_full_name('unknown')
-        self.assertEqual(user, 'unknown')
+        username = self.engine_1.get_user_full_name('unknown')
+        assert username == 'unknown'
 
     def test_download_url_with_spaces(self):
         scheme, host = self.nuxeo_url.split('://')
-        filename = 'My file with spaces.txt'
+        filename = u'My file with spaces.txt'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
 
         url = ('nxdrive://edit/{scheme}/{host}/user/{user}/repo/default/'

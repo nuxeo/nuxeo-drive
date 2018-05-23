@@ -5,17 +5,21 @@ import json
 import os.path
 import sys
 import time
-import urllib2
 import uuid
 from logging import getLogger
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
 from PyQt4 import QtCore, QtGui, QtNetwork, QtWebKit
 from PyQt4.QtNetwork import (QNetworkProxy, QNetworkProxyFactory,
                              QSslCertificate)
 from dateutil.tz import tzlocal
+from nuxeo.exceptions import Unauthorized
+from requests import ConnectionError
 
 from .translator import Translator
-from ..client.base_automation_client import Unauthorized
 from ..engine.activity import Action, FileAction
 from ..engine.dao.sqlite import StateRow
 from ..engine.engine import Engine
@@ -99,7 +103,7 @@ class WebDriveApi(QtCore.QObject):
         return json.dumps(obj, default=self._json_default)
 
     def _export_engine(self, engine):
-        if engine is None:
+        if not engine:
             return {}
 
         bind = engine.get_binder()
@@ -202,10 +206,7 @@ class WebDriveApi(QtCore.QObject):
 
     def _get_engine(self, uid):
         engines = self._manager.get_engines()
-        try:
-            return engines[uid]
-        except KeyError:
-            return None
+        return engines.get(uid)
 
     @QtCore.pyqtSlot()
     def retry(self):
@@ -241,7 +242,7 @@ class WebDriveApi(QtCore.QObject):
             return 'FOLDER_USED'
         except Unauthorized:
             return 'UNAUTHORIZED'
-        except urllib2.URLError as e:
+        except ConnectionError as e:
             if e.errno == 61:
                 return 'CONNECTION_REFUSED'
             return 'CONNECTION_ERROR'
@@ -364,7 +365,7 @@ class WebDriveApi(QtCore.QObject):
     def show_metadata(self, uid, ref):
         engine = self._get_engine(str(uid))
         if engine:
-            path = engine.get_abspath(unicode(ref))
+            path = engine.local.abspath(unicode(ref))
             self.application.show_metadata(path)
 
     @QtCore.pyqtSlot(str, result=str)
@@ -466,7 +467,7 @@ class WebDriveApi(QtCore.QObject):
         else:
             engine = self._get_engine(uid)
             if engine:
-                filepath = engine.get_abspath(path)
+                filepath = engine.local.abspath(path)
                 self._manager.open_local_file(filepath)
 
     @QtCore.pyqtSlot()
@@ -691,7 +692,7 @@ class WebDialog(QtGui.QDialog):
         elif proxy_settings.config == 'Automatic':
             proxy_settings = manager.get_proxies(server_url)
             protocol = server_url.split(":")[0]
-            proxy_server_info = urllib2.urlparse.urlparse(proxy_settings[protocol])
+            proxy_server_info = urlparse(proxy_settings[protocol])
             proxy = QNetworkProxy(QNetworkProxy.HttpProxy, hostName=proxy_server_info.hostname, 
                                   port=proxy_server_info.port)
             QNetworkProxy.setApplicationProxy(proxy)

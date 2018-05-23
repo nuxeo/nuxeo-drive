@@ -15,8 +15,8 @@ from watchdog.observers import Observer
 
 from ..activity import tooltip
 from ..workers import EngineWorker, ThreadInterrupt
-from ...client.base_automation_client import DOWNLOAD_TMP_FILE_SUFFIX
 from ...client.local_client import LocalClient
+from ...constants import DOWNLOAD_TMP_FILE_SUFFIX
 from ...options import Options
 from ...utils import (current_milli_time, force_decode, is_generated_tmp_file,
                       normalize_event_filename as normalize)
@@ -56,7 +56,7 @@ class LocalWatcher(EngineWorker):
         self._init()
 
     def _init(self):
-        self.client = self._engine.get_local_client()
+        self.local = self.engine.local
         self._metrics = {
             'last_local_scan_time': -1,
             'new_files': 0,
@@ -72,7 +72,7 @@ class LocalWatcher(EngineWorker):
     def _execute(self):
         try:
             self._init()
-            if not self.client.exists('/'):
+            if not self.local.exists('/'):
                 self.rootDeleted.emit()
                 return
 
@@ -131,12 +131,12 @@ class LocalWatcher(EngineWorker):
                     log.debug('Win: ignoring delete event as waiting for '
                               'move resolution period expiration: %r', evt)
                     continue
-                if not self.client.exists(evt_pair.local_path):
+                if not self.local.exists(evt_pair.local_path):
                     log.debug('Win: handling watchdog delete '
                               'for event: %r', evt)
                     self._handle_watchdog_delete(evt_pair)
                 else:
-                    remote_id = self.client.get_remote_id(evt_pair.local_path)
+                    remote_id = self.local.get_remote_id(evt_pair.local_path)
                     if remote_id == evt_pair.remote_ref or remote_id is None:
                         log.debug('Win: ignoring delete event as '
                                   'file still exists: %r', evt)
@@ -179,13 +179,13 @@ class LocalWatcher(EngineWorker):
                     log.debug('Win: ignoring folder to scan as waiting for '
                               'folder scan delay expiration: %r', local_path)
                     continue
-                if not self.client.exists(local_path):
+                if not self.local.exists(local_path):
                     if local_path in self._folder_scan_events:
                         log.debug('Win: dequeuing folder scan event as '
                                   'folder doesn\'t exist: %r', local_path)
                         del self._folder_scan_events[local_path]
                     continue
-                local_info = self.client.get_info(local_path,
+                local_info = self.local.get_info(local_path,
                                                   raise_if_missing=False)
                 if local_info is None:
                     log.trace('Win: dequeuing folder scan event as '
@@ -194,7 +194,7 @@ class LocalWatcher(EngineWorker):
                     continue
                 log.debug('Win: handling folder to scan: %r', local_path)
                 self.scan_pair(local_path)
-                local_info = self.client.get_info(local_path,
+                local_info = self.local.get_info(local_path,
                                                   raise_if_missing=False)
 
                 mtime = mktime(local_info.last_modification_time.timetuple())
@@ -214,20 +214,20 @@ class LocalWatcher(EngineWorker):
     def _scan(self):
         log.debug('Full scan started')
         start_ms = current_milli_time()
-        to_pause = not self._engine.get_queue_manager().is_paused()
+        to_pause = not self.engine.get_queue_manager().is_paused()
         if to_pause:
             self._suspend_queue()
         self._delete_files = dict()
         self._protected_files = dict()
 
-        info = self.client.get_info('/')
+        info = self.local.get_info('/')
         self._scan_recursive(info)
         self._scan_handle_deleted_files()
         self._metrics['last_local_scan_time'] = current_milli_time() - start_ms
         log.debug('Full scan finished in %dms',
                   self._metrics['last_local_scan_time'])
         if to_pause:
-            self._engine.get_queue_manager().resume()
+            self.engine.get_queue_manager().resume()
         self.localScanFinished.emit()
 
     def _scan_handle_deleted_files(self):
@@ -245,23 +245,23 @@ class LocalWatcher(EngineWorker):
         return metrics
 
     def _suspend_queue(self):
-        queue = self._engine.get_queue_manager()
+        queue = self.engine.get_queue_manager()
         queue.suspend()
         for processor in queue.get_processors_on('/', exact_match=False):
             processor.stop()
 
     @pyqtSlot(str)
     def scan_pair(self, local_path):
-        to_pause = not self._engine.get_queue_manager().is_paused()
+        to_pause = not self.engine.get_queue_manager().is_paused()
         if to_pause:
             self._suspend_queue()
 
-        info = self.client.get_info(local_path)
+        info = self.local.get_info(local_path)
         self._scan_recursive(info, recursive=False)
         self._scan_handle_deleted_files()
 
         if to_pause:
-            self._engine.get_queue_manager().resume()
+            self.engine.get_queue_manager().resume()
 
     def empty_events(self):
         return self.watchdog_queue.empty() and (
@@ -285,7 +285,7 @@ class LocalWatcher(EngineWorker):
             # Don't interact if only one level
             self._interact()
 
-        dao, client = self._dao, self.client
+        dao, client = self._dao, self.local
         # Load all children from DB
         log.trace('Fetching DB local children of %r', info.path)
         db_children = dao.get_local_children(info.path)
@@ -561,7 +561,7 @@ class LocalWatcher(EngineWorker):
               otherwise we might miss some events
             - Increase the ReadDirectoryChangesW buffer size for Windows
         """
-        base = self.client.base_folder
+        base = self.local.base_folder
 
         if self._windows:
             try:
@@ -629,7 +629,7 @@ class LocalWatcher(EngineWorker):
 
     def _handle_watchdog_event_on_known_pair(self, doc_pair, evt, rel_path):
         log.trace('Watchdog event %r on known pair %r', evt, doc_pair)
-        dao, client = self._dao, self.client
+        dao, client = self._dao, self.local
 
         if evt.event_type == 'moved':
             # Ignore move to Office tmp file
@@ -747,7 +747,7 @@ class LocalWatcher(EngineWorker):
 
     def _handle_watchdog_event_on_known_acquired_pair(self, doc_pair, evt,
                                                       rel_path):
-        dao, client = self._dao, self.client
+        dao, client = self._dao, self.local
 
         if evt.event_type == 'deleted':
             if self._windows:
@@ -843,7 +843,7 @@ class LocalWatcher(EngineWorker):
 
     @tooltip('Handle watchdog event')
     def handle_watchdog_event(self, evt):
-        dao, client = self._dao, self.client
+        dao, client = self._dao, self.local
 
         # Ignore *.nxpart
         dst_path = getattr(evt, 'dest_path', '')
@@ -889,7 +889,7 @@ class LocalWatcher(EngineWorker):
                 return
 
             doc_pair = dao.get_state_from_local(rel_path)
-            self._engine._manager.osi.send_sync_status(doc_pair, src_path)
+            self.engine.manager.osi.send_sync_status(doc_pair, src_path)
             if doc_pair is not None:
                 if doc_pair.pair_state == 'unsynchronized':
                     log.debug('Ignoring %r as marked unsynchronized',
@@ -1005,7 +1005,7 @@ class LocalWatcher(EngineWorker):
                             log.debug('Moving to a read-only folder: %r -> %r',
                                       from_pair, dst_parent)
                             dao.unsynchronize_state(from_pair, 'READONLY')
-                            self._engine.newReadonly.emit(
+                            self.engine.newReadonly.emit(
                                 from_pair.local_name, dst_parent.remote_name)
                             return
 
@@ -1015,7 +1015,7 @@ class LocalWatcher(EngineWorker):
                             dirname(from_pair.local_path))
                         if (src_parent
                                 and not src_parent.remote_can_create_child):
-                            self._engine.newReadonly.emit(
+                            self.engine.newReadonly.emit(
                                 from_pair.local_name, dst_parent.remote_name)
                             log.debug('Converting the move to a create '
                                       'for %r -> %r', from_pair, src_path)
@@ -1105,7 +1105,7 @@ class LocalWatcher(EngineWorker):
                 and self._windows_folder_scan_delay > 0):
             log.debug('Add pair to folder scan events: %r', doc_pair)
             with self.lock:
-                local_info = self.client.get_info(doc_pair.local_path,
+                local_info = self.local.get_info(doc_pair.local_path,
                                                   raise_if_missing=False)
                 if local_info is not None:
                     self._folder_scan_events[doc_pair.local_path] = (

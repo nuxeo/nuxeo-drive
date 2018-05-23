@@ -18,6 +18,10 @@ properties([
             name: 'SPECIFIC_TEST',
             defaultValue: '',
             description: 'Specific test to launch. The syntax must be the same as <a href="http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id">pytest markers</a>'],
+        [$class: 'StringParameterDefinition',
+            name: 'PYTEST_ADDOPTS',
+            defaultValue: '',
+            description: 'Extra command line options for pytest. Useful for debugging: --capture=no'],
         [$class: 'ChoiceParameterDefinition',
             name: 'RANDOM_BUG_MODE',
             choices: 'None\nRELAX\nSTRICT\nBYPASS',
@@ -30,10 +34,6 @@ properties([
             name: 'CLEAN_WORKSPACE',
             defaultValue: false,
             description: 'Clean the entire workspace before doing anything.'],
-        [$class: 'BooleanParameterDefinition',
-            name: 'ENABLE_PROFILER',
-            defaultValue: false,
-            description: 'Use yappi profiler.'],
         [$class: 'BooleanParameterDefinition',
             name: 'ENABLE_SONAR',
             defaultValue: true,
@@ -135,7 +135,6 @@ for (def x in slaves) {
                         dir('sources') {
                             // Set up the report name folder
                             env.REPORT_PATH = env.WORKSPACE + '/sources'
-                            env.TEST_REMOTE_SCAN_VOLUME = 100
 
                             try {
                                 if (osi == 'macOS') {

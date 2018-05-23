@@ -1,14 +1,12 @@
 # coding: utf-8
 import os
 import shutil
-from logging import getLogger
 
 from mock import patch
 
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-from .common_unit_test import UnitTestCase
+from .common import UnitTestCase
 
-log = getLogger(__name__)
 wait_for_security_update = False
 src = None
 dst = None
@@ -27,6 +25,7 @@ def mock_get_changes(self, *args, **kwargs):
         return summary
     return original_get_changes(self, *args, **kwargs)
 
+
 class TestLocalShareMoveFolders(UnitTestCase):
 
     NUMBER_OF_LOCAL_IMAGE_FILES = 10
@@ -42,101 +41,96 @@ class TestLocalShareMoveFolders(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
 
+        local = self.local_1
         # Create a1 and a2
-        self.folder_path_1 = self.local_client_1.make_folder(u'/', u'a1')
-        self.folder_path_2 = self.local_client_1.make_folder(u'/', u'a2')
+        self.folder_path_1 = local.make_folder(u'/', u'a1')
+        self.folder_path_2 = local.make_folder(u'/', u'a2')
+
+        num = self.NUMBER_OF_LOCAL_IMAGE_FILES
 
         # Add image files to a1
-        abs_folder_path_1 = self.local_client_1.abspath(self.folder_path_1)
-        for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1):
+        abs_folder_path_1 = local.abspath(self.folder_path_1)
+        for file_num in range(1, num + 1):
             file_name = self.FILE_NAME_PATTERN % (file_num, 'png')
             file_path = os.path.join(abs_folder_path_1, file_name)
             self.generate_random_png(file_path)
-        log.debug('Local test files created in a1')
 
         self.engine_1.start()
         self.wait_sync(timeout=60, wait_win=True)
 
         # Check local files in a1
-        self.assertTrue(self.local_client_1.exists('/a1'))
-        children_1 = [child.name for child in self.local_client_1.get_children_info('/a1')]
-        self.assertEqual(len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of local files (%d) in a1 is different from original (%d)' %
-                         (len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(children_1), set(['file%03d.png' % file_num
-                                               for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
+        self._check_local('/a1')
 
         # Check remote files in a1
-        a1_remote_id = self.local_client_1.get_remote_id('/a1')
-        self.assertIsNotNone(a1_remote_id)
-        log.debug("Remote ref of a1: %s", a1_remote_id)
-        self.assertTrue(self.remote_file_system_client_1.exists(a1_remote_id))
+        self._check_remote('/a1')
 
-        remote_children_1 = [child.name for child in self.remote_file_system_client_1.get_children_info(a1_remote_id)]
-        self.assertEqual(len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of remote files (%d) in a1 is different from original (%d)' %
-                         (len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(remote_children_1), set(['file%03d.png' % file_num
-                                                      for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
-    @patch.object(RemoteWatcher, '_get_changes', mock_get_changes)  
+    def _check_local(self, folder):
+        local = self.local_1
+        num = self.NUMBER_OF_LOCAL_IMAGE_FILES
+        names = set(['file%03d.png' % file_num for file_num
+                     in range(1, num + 1)])
+
+        assert local.exists(folder)
+        children = [child.name for child in local.get_children_info(folder)]
+        assert len(children) == num
+        assert set(children) == names
+
+    def _check_remote(self, folder):
+        local = self.local_1
+        remote = self.remote_1
+        num = self.NUMBER_OF_LOCAL_IMAGE_FILES
+        names = set(['file%03d.png' % file_num for file_num
+                     in range(1, num + 1)])
+
+        uid = local.get_remote_id(folder)
+        assert uid is not None
+        assert remote.fs_exists(uid)
+
+        children = [child.name for child in remote.get_fs_children(uid)]
+        assert len(children) == num
+        assert set(children) == names
+
+    @patch.object(RemoteWatcher, '_get_changes', mock_get_changes)
     def test_local_share_move_folder_with_files(self):
-        global wait_for_security_update
-        admin_remote_client = self.root_remote_client
-                     
-        global src
-        src = self.local_client_1.abspath(self.folder_path_1)
-        
-        global dst
-        dst = self.local_client_1.abspath(self.folder_path_2)
+        global wait_for_security_update, src, dst
+
+        remote = self.root_remote
+        local = self.local_1
+
+        src = local.abspath(self.folder_path_1)
+        dst = local.abspath(self.folder_path_2)
     
         wait_for_security_update = True                                        
-        op_input = self.local_client_1.get_remote_id('/a1').split('#')[-1]
-        admin_remote_client.execute("Document.AddPermission",
-                                    url = admin_remote_client.rest_api_url + 'automation/Document.AddPermission',
-                                    op_input=op_input,
-                                    username=self.user_2,
-                                    permission="Everything",
-                                    grant="true")        
+        input_obj = local.get_remote_id('/a1').split('#')[-1]
+        remote.operations.execute(
+            command='Document.AddPermission',
+            input_obj=input_obj,
+            username=self.user_2,
+            permission='Everything')
 
-        self.wait_sync(enforce_errors=True)
+        self.wait_sync()
         
         wait_for_security_update = False
                 
         # Sync after move operation
-        self.wait_sync(enforce_errors=True)
+        self.wait_sync()
         # Check that a1 doesn't exist anymore locally
-        self.assertFalse(self.local_client_1.exists('/a1'))
+        assert not local.exists('/a1')
 
         # Check local files in a2/a1
-        self.assertTrue(self.local_client_1.exists('/a2/a1'))
-        children_1 = [child.name for child in self.local_client_1.get_children_info('/a2/a1')]
-        self.assertEqual(len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of local files (%d) in a1 is different from original (%d)' %
-                         (len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(children_1), set(['file%03d.png' % file_num
-                                               for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
+        self._check_local('/a2/a1')
 
         # Check that a1 doesn't exist anymore remotely
-        self.assertEqual(len(self.remote_document_client_1.get_children_info(self.workspace)), 1)
-
+        assert len(remote.get_children_info(self.workspace)) == 1
 
         # Check remote files in a2/a1
-        a1_remote_id = self.local_client_1.get_remote_id('/a2/a1')
-        self.assertIsNotNone(a1_remote_id)
-        log.debug("Remote ref of a1: %s", a1_remote_id)
-        self.assertTrue(self.remote_file_system_client_1.exists(a1_remote_id))
-
-        remote_children_1 = [child.name for child in self.remote_file_system_client_1.get_children_info(a1_remote_id)]
-        self.assertEqual(len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of remote files (%d) in a1 is different from original (%d)' %
-                         (len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(remote_children_1), set(['file%03d.png' % file_num
-                                                      for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
+        self._check_remote('/a2/a1')
         
         # As Admin create a folder inside a1
-        parent_folder_uid = admin_remote_client.make_folder(a1_remote_id.split('#')[-1], 'inside_a1')
+        uid = local.get_remote_id('/a2/a1')
+        remote.make_folder(uid.split('#')[-1], 'inside_a1')
         
-        self.wait_sync(fail_if_timeout=True)
+        self.wait_sync()
         
         # Check that a1 doesn't exist anymore locally
-        self.assertTrue(self.local_client_1.exists('/a2/a1/inside_a1'))
+        assert local.exists('/a2/a1/inside_a1')

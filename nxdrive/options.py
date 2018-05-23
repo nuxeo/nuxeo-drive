@@ -152,7 +152,6 @@ class MetaOptions(type):
             'default'),
         'nofscheck': (False, 'default'),
         'protocol_url': (None, 'default'),
-        'proxy_exceptions': (None, 'default'),
         'proxy_server': (None, 'default'),
         'proxy_type': (None, 'default'),
         'remote_repo': ('default', 'default'),
@@ -160,7 +159,6 @@ class MetaOptions(type):
             os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(__file__)),
                          'data'),
             'default'),
-        'server_version': (None, 'default'),
         'theme': ('ui5', 'default'),
         'startup_page': ('drive_login.jsp', 'default'),
         'timeout': (30, 'default'),
@@ -367,8 +365,6 @@ def server_updater(*args):
     the possibility to import other classes without anything else needed.
     """
 
-    import json
-
     from PyQt4.QtCore import pyqtSlot
     from .engine.workers import PollWorker
 
@@ -388,16 +384,16 @@ def server_updater(*args):
             """ Check for the configuration file and apply updates. """
 
             for _, engine in self.manager._engines.items():
-                client = engine.get_remote_doc_client()
+                client = engine.remote.client if engine.remote else None
                 if not client:
                     continue
 
                 try:
-                    raw, _ = client.do_get(
-                        client.rest_api_url + 'drive/configuration')
-                    conf = json.loads(raw, encoding='utf-8')
+                    resp = client.request(
+                        'GET', client.api_path + '/drive/configuration')
+                    conf = resp.json()
                 except Exception as exc:
-                    log.error('Polling error: {}'.format(exc))
+                    log.error('Polling error: %r', exc)
                 else:
                     engine.set_ui(conf.pop('ui'))
                     Options.update(conf, setter='server', fail_on_error=True)

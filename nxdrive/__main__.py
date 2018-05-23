@@ -2,7 +2,8 @@
 import signal
 import sys
 
-
+# We cannot use a relative import here, else Drive will not start
+# when packaged.
 from nxdrive.commandline import CliHandler
 
 

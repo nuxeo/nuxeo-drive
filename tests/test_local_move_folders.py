@@ -1,17 +1,13 @@
 # coding: utf-8
 import os
 import shutil
-from logging import getLogger
 
-from .common_unit_test import UnitTestCase
-
-log = getLogger(__name__)
+from .common import UnitTestCase
 
 
 class TestLocalMoveFolders(UnitTestCase):
 
     NUMBER_OF_LOCAL_IMAGE_FILES = 10
-    FILE_NAME_PATTERN = 'file%03d.%s'
 
     def _setup(self):
         """
@@ -23,130 +19,73 @@ class TestLocalMoveFolders(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
-
+        local = self.local_1
+        remote = self.remote_1
         # Create a1 and a2
-        self.folder_path_1 = self.local_client_1.make_folder(u'/', u'a1')
-        self.folder_path_2 = self.local_client_1.make_folder(u'/', u'a2')
+        self.folder_path_1 = local.make_folder(u'/', u'a1')
+        self.folder_path_2 = local.make_folder(u'/', u'a2')
 
-        # Add image files to a1
-        abs_folder_path_1 = self.local_client_1.abspath(self.folder_path_1)
-        for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1):
-            file_name = self.FILE_NAME_PATTERN % (file_num, 'png')
-            file_path = os.path.join(abs_folder_path_1, file_name)
-            self.generate_random_png(file_path)
-        log.debug('Local test files created in a1')
+        num = self.NUMBER_OF_LOCAL_IMAGE_FILES
+        names = set(['file%03d.png' % file_num
+                     for file_num in range(1, num + 1)])
 
-        # Add image files to a2
-        abs_folder_path_2 = self.local_client_1.abspath(self.folder_path_2)
-        for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1):
-            file_name = self.FILE_NAME_PATTERN % (file_num, 'png')
-            file_path = os.path.join(abs_folder_path_2, file_name)
-            self.generate_random_png(file_path)
-        log.debug('Local test files created in a2')
+        for path in [self.folder_path_1, self.folder_path_2]:
+            for name in names:
+                file_path = os.path.join(local.abspath(path), name)
+                self.generate_random_png(file_path)
 
         self.engine_1.start()
         self.wait_sync(timeout=60, wait_win=True)
 
-        # Check local files in a1
-        self.assertTrue(self.local_client_1.exists('/a1'))
-        children_1 = [child.name for child in self.local_client_1.get_children_info('/a1')]
-        self.assertEqual(len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of local files (%d) in a1 is different from original (%d)' %
-                         (len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(children_1), set(['file%03d.png' % file_num
-                                               for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
+        # Check /a1 and /a2
+        for folder in ['/a1', '/a2']:
+            # Check local files
+            assert local.exists(folder)
+            children = [child.name for child
+                        in local.get_children_info(folder)]
+            assert len(children) == num
+            assert set(children) == names
 
-        # Check local files in a2
-        self.assertTrue(self.local_client_1.exists('/a2'))
-        children_2 = [child.name for child in self.local_client_1.get_children_info('/a2')]
-        self.assertEqual(len(children_2), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of local files (%d) in a2 is different from original (%d)' %
-                         (len(children_2), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(children_2), set(['file%03d.png' % file_num
-                                               for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
-
-        # Check remote files in a1
-        a1_remote_id = self.local_client_1.get_remote_id('/a1')
-        self.assertIsNotNone(a1_remote_id)
-        log.debug("Remote ref of a1: %s", a1_remote_id)
-        self.assertTrue(self.remote_file_system_client_1.exists(a1_remote_id))
-
-        remote_children_1 = [child.name for child in self.remote_file_system_client_1.get_children_info(a1_remote_id)]
-        self.assertEqual(len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of remote files (%d) in a1 is different from original (%d)' %
-                         (len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(remote_children_1), set(['file%03d.png' % file_num
-                                                      for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
-
-        # Check remote files in a2
-        a2_remote_id = self.local_client_1.get_remote_id('/a2')
-        self.assertIsNotNone(a2_remote_id)
-        log.debug("Remote ref of a2: %s", a2_remote_id)
-        self.assertTrue(self.remote_file_system_client_1.exists(a2_remote_id))
-
-        remote_children_2 = [child.name for child in self.remote_file_system_client_1.get_children_info(a2_remote_id)]
-        self.assertEqual(len(remote_children_2), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of remote files (%d) in a2 is different from original (%d)' %
-                         (len(remote_children_2), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(remote_children_2), set(['file%03d.png' % file_num
-                                                      for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
+            # Check remote files
+            uid = local.get_remote_id(folder)
+            assert uid is not None
+            assert remote.fs_exists(uid)
+            children = [child.name for child in remote.get_fs_children(uid)]
+            assert len(children) == num
+            assert set(children) == names
 
     def test_local_move_folder_with_files(self):
         self._setup()
-        src = self.local_client_1.abspath(self.folder_path_1)
-        dst = self.local_client_1.abspath(self.folder_path_2)
+        local = self.local_1
+        remote = self.remote_1
+        remote_doc = self.remote_document_client_1
+        src = local.abspath(self.folder_path_1)
+        dst = local.abspath(self.folder_path_2)
         shutil.move(src, dst)
         self.wait_sync()
+        num = self.NUMBER_OF_LOCAL_IMAGE_FILES
+        names = set(['file%03d.png' % file_num
+                     for file_num in range(1, num + 1)])
 
-        # Check that a1 doesn't exist anymore locally
-        self.assertFalse(self.local_client_1.exists('/a1'))
+        # Check that a1 doesn't exist anymore locally and remotely
+        assert not local.exists('/a1')
+        assert len(remote_doc.get_children_info(self.workspace)) == 1
 
-        # Check local files in a2
-        self.assertTrue(self.local_client_1.exists('/a2'))
-        children_2 = [child.name for child in self.local_client_1.get_children_info('/a2') if not child.folderish]
-        self.assertEqual(len(children_2), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of local files (%d) in a2 is different from original (%d)' %
-                         (len(children_2), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(children_2), set(['file%03d.png' % file_num
-                                               for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
+        # Check /a2 and /a2/a1
+        for folder in ['/a2', '/a2/a1']:
+            assert local.exists(folder)
+            children = [child.name for child in local.get_children_info(folder)
+                        if not child.folderish]
+            assert len(children) == num
+            assert set(children) == names
 
-        # Check local files in a2/a1
-        self.assertTrue(self.local_client_1.exists('/a2/a1'))
-        children_1 = [child.name for child in self.local_client_1.get_children_info('/a2/a1')]
-        self.assertEqual(len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of local files (%d) in a1 is different from original (%d)' %
-                         (len(children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(children_1), set(['file%03d.png' % file_num
-                                               for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
-
-        # Check that a1 doesn't exist anymore remotely
-        self.assertEqual(len(self.remote_document_client_1.get_children_info(self.workspace)), 1)
-
-        # Check remote files in a2
-        a2_remote_id = self.local_client_1.get_remote_id('/a2')
-        self.assertIsNotNone(a2_remote_id)
-        log.debug("Remote ref of a2: %s", a2_remote_id)
-        self.assertTrue(self.remote_file_system_client_1.exists(a2_remote_id))
-
-        remote_children_2 = [child.name for child in self.remote_file_system_client_1.get_children_info(a2_remote_id)
-                             if not child.folderish]
-        self.assertEqual(len(remote_children_2), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of remote files (%d) in a2 is different from original (%d)' %
-                         (len(remote_children_2), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(remote_children_2), set(['file%03d.png' % file_num
-                                                      for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
-        # Check remote files in a2/a1
-        a1_remote_id = self.local_client_1.get_remote_id('/a2/a1')
-        self.assertIsNotNone(a1_remote_id)
-        log.debug("Remote ref of a1: %s", a1_remote_id)
-        self.assertTrue(self.remote_file_system_client_1.exists(a1_remote_id))
-
-        remote_children_1 = [child.name for child in self.remote_file_system_client_1.get_children_info(a1_remote_id)]
-        self.assertEqual(len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES,
-                         'Number of remote files (%d) in a1 is different from original (%d)' %
-                         (len(remote_children_1), self.NUMBER_OF_LOCAL_IMAGE_FILES))
-        self.assertEqual(set(remote_children_1), set(['file%03d.png' % file_num
-                                                      for file_num in range(1, self.NUMBER_OF_LOCAL_IMAGE_FILES + 1)]))
+            uid = local.get_remote_id(folder)
+            assert uid is not None
+            assert remote.fs_exists(uid)
+            children = [child.name for child in remote.get_fs_children(uid)
+                        if not child.folderish]
+            assert len(children) == num
+            assert set(children) == names
 
     def test_local_move_folder_both_sides_while_stopped(self):
         self._test_local_move_folder_both_sides(False)
@@ -155,9 +94,11 @@ class TestLocalMoveFolders(UnitTestCase):
         self._test_local_move_folder_both_sides(True)
 
     def _test_local_move_folder_both_sides(self, unbind):
-        """ NXDRIVE-647: sync when a folder is renamed locally and remotely. """
+        """
+        NXDRIVE-647: sync when a folder is renamed locally and remotely.
+        """
 
-        local = self.local_client_1
+        local = self.local_1
         remote = self.remote_document_client_1
 
         # Create initial folder and file
@@ -166,11 +107,11 @@ class TestLocalMoveFolders(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # First checks, everything should be online for every one
-        self.assertTrue(remote.exists('/Folder1'))
-        self.assertTrue(local.exists('/Folder1'))
+        assert remote.exists('/Folder1')
+        assert local.exists('/Folder1')
         folder_pair_state = self.engine_1.get_dao().get_state_from_local(
             '/' + self.workspace_title + '/Folder1')
-        self.assertIsNotNone(folder_pair_state)
+        assert folder_pair_state is not None
         folder_remote_ref = folder_pair_state.remote_ref
 
         # Unbind or stop engine
@@ -193,12 +134,13 @@ class TestLocalMoveFolders(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Check that nothing has changed
-        self.assertEqual(len(remote.get_children_info(self.workspace)), 1)
-        self.assertTrue(remote.exists(folder))
-        self.assertEqual(remote.get_info(folder).name, 'Folder1_ServerName')
-        self.assertEqual(len(local.get_children_info('/')), 1)
-        self.assertTrue(local.exists('/Folder1_LocalRename'))
+        assert len(remote.get_children_info(self.workspace)) == 1
+        assert remote.exists(folder)
+        assert remote.get_info(folder).name == 'Folder1_ServerName'
+        assert len(local.get_children_info('/')) == 1
+        assert local.exists('/Folder1_LocalRename')
 
         # Check folder status
-        folder_pair_state = self.engine_1.get_dao().get_normal_state_from_remote(folder_remote_ref)
-        self.assertEqual(folder_pair_state.pair_state, 'conflicted')
+        folder_pair_state = (self.engine_1.get_dao()
+                             .get_normal_state_from_remote(folder_remote_ref))
+        assert folder_pair_state.pair_state == 'conflicted'
