@@ -254,7 +254,7 @@ class Manager(QtCore.QObject):
         from .engine.engine import Engine
         from .engine.next.engine_next import EngineNext
         self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
-        self._engines = None
+        self._engines = {}
         self.proxies = dict()
         self.updater = None
         self.server_config_updater = None
@@ -872,7 +872,7 @@ class Manager(QtCore.QObject):
         if engine_type not in self._engine_types:
             raise EngineTypeMissing()
 
-        if self._engines is None:
+        if not self._engines:
             self.load()
 
         if not local_folder:
@@ -912,7 +912,7 @@ class Manager(QtCore.QObject):
         return self._engines[uid]
 
     def unbind_engine(self, uid):
-        if self._engines is None:
+        if not self._engines:
             self.load()
         # Unwatch folder
         self.osi.unwatch_folder(self._engines[uid].local_folder)
@@ -925,7 +925,7 @@ class Manager(QtCore.QObject):
         self._engine_definitions = self._dao.get_engines()
 
     def unbind_all(self):
-        if self._engines is None:
+        if not self._engines:
             self.load()
         for engine in self._engine_definitions:
             self.unbind_engine(engine.uid)
@@ -1027,14 +1027,14 @@ class Manager(QtCore.QObject):
         return engine.get_metadata_url(remote_ref, edit=edit)
 
     def send_sync_status(self, path):
-        for engine in self._engine_definitions:
+        for engine in self._engines.values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
             path = unicodedata.normalize('NFC', force_decode(path))
             if (path.startswith(engine.local_folder_bs)
                     and not os.path.samefile(path, engine.local_folder)):
                 r_path = path.replace(engine.local_folder, '')
-                dao = self._engines[engine.uid]._dao
+                dao = engine._dao
                 state = dao.get_state_from_local(r_path)
                 self.osi.send_sync_status(state, path)
                 break
