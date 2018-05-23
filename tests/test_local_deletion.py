@@ -73,6 +73,7 @@ class TestLocalDeletion(UnitTestCase):
         assert not local.exists('/' + file1)
         assert local.get_content('/' + file2) == 'New content'
 
+    @pytest.mark.skip('TODO: NXDRIVE-1201')
     def test_move_untrash_file_on_parent(self):
         local = self.local_1
         remote = self.remote_document_client_1
