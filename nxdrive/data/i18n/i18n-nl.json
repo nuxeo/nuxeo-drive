@@ -179,6 +179,8 @@
     "SECTION_GENERAL": "Algemeen",
     "SELECT_SYNC_FOLDERS": "Synchronisatiemappen selecteren",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Hiermee kunt u bepalen welke mappen lokaal moeten worden gesynchroniseerd. Hiervoor dient de engine online te zijn.",
+    "SERVER_DEFAULT": "Server default",
+    "SERVER_UI": "Server UI",
     "SETTINGS": "Instellingen",
     "SETTINGS_WINDOW_TITLE": "Nuxeo Drive - Instellingen",
     "SET_ACCOUNT": "Account instellen",
