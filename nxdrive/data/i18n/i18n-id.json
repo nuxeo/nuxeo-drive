@@ -179,6 +179,8 @@
     "SECTION_GENERAL": "Umum",
     "SELECT_SYNC_FOLDERS": "Pilih Folder Sync",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Memungkinkan anda memilih folder yang akan disinkronkan secara lokal. Ini membutuhkan mesin untuk online.",
+    "SERVER_DEFAULT": "Server default",
+    "SERVER_UI": "Server UI",
     "SETTINGS": "Pengaturan",
     "SETTINGS_WINDOW_TITLE": "Nuxeo Drive - Pengaturan",
     "SET_ACCOUNT": "Setel akun",
