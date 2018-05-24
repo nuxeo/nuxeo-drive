@@ -394,8 +394,9 @@ def server_updater(*args):
                     conf = resp.json()
                 except Exception as exc:
                     log.error('Polling error: %r', exc)
+                    engine.set_ui('jsf', overwrite=False)
                 else:
-                    engine.set_ui(conf.pop('ui'))
+                    engine.set_ui(conf.pop('ui'), overwrite=False)
                     Options.update(conf, setter='server', fail_on_error=True)
                     break
 
