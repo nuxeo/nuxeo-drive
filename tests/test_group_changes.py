@@ -16,6 +16,7 @@ class TestGroupChanges(UnitTestCase):
     """
 
     def setUp(self):
+        super(TestGroupChanges, self).setUp()
         remote = self.root_remote
 
         # Create test workspace
@@ -57,6 +58,7 @@ class TestGroupChanges(UnitTestCase):
             base_folder=self.workspace_path)
 
     def tearDown(self):
+        super(TestGroupChanges, self).tearDown()
         remote = self.root_remote
 
         # Delete test workspace

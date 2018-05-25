@@ -223,14 +223,14 @@ class Remote(Nuxeo):
                 tx_timeout = max(TX_TIMEOUT, upload_duration * 2)
                 log.trace(
                     'Using %d seconds [max(%d, 2 * upload time=%d)] as '
-                    'Nuxeo transaction timeout for batch execution of %s '
-                    'with file %s', tx_timeout, TX_TIMEOUT, upload_duration,
+                    'Nuxeo transaction timeout for batch execution of %r '
+                    'with file %r', tx_timeout, TX_TIMEOUT, upload_duration,
                     command, file_path)
 
                 if upload_duration > 0:
-                    log.trace('Speed for %d o is %ds: %f o/s',
-                              os.stat(file_path).st_size, upload_duration,
-                              os.stat(file_path).st_size / upload_duration)
+                    size = os.stat(file_path).st_size
+                    log.trace('Speed for %d bytes is %d sec: %f bytes/sec',
+                              size, upload_duration, size / upload_duration)
 
                 if command:
                     headers = {'Nuxeo-Transaction-Timeout': str(tx_timeout)}

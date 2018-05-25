@@ -21,6 +21,8 @@ FOLDER_D = 'D' * 50
 
 class TestLongPath(UnitTestCase):
     def setUp(self):
+        super(TestLongPath, self).setUp()
+
         self.remote_1 = self.remote_document_client_1
         log.info('Create a folder AAAA... (90 chars) in server')
         self.folder_a = self.remote_1.make_folder('/', FOLDER_A)
@@ -30,6 +32,7 @@ class TestLongPath(UnitTestCase):
 
     def tearDown(self):
         self.remote_1.delete(self.folder_a, use_trash=False)
+        super(TestLongPath, self).tearDown()
 
     def test_long_path(self):
         self.engine_1.start()

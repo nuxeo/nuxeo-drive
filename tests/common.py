@@ -176,11 +176,10 @@ class StubQApplication(QtCore.QCoreApplication):
 
 
 class UnitTestCase(TestCase):
+    # Save the current path for test files
+    location = dirname(__file__)
 
     def setUpServer(self, server_profile=None):
-        # Save the current path for test files
-        self.location = dirname(__file__)
-
         # Long timeout for the root client that is responsible for the test
         # environment set: this client is doing the first query on the Nuxeo
         # server and might need to wait for a long time without failing for
@@ -226,21 +225,9 @@ class UnitTestCase(TestCase):
         if server_profile is not None:
             self.root_remote.deactivate_profile(server_profile)
 
-    def get_local_client(self, path):
-        if AbstractOSIntegration.is_windows():
-            from tests.win_local_client import WindowsLocalClient
-            return WindowsLocalClient(path)
-        if AbstractOSIntegration.is_mac():
-            from tests.mac_local_client import MacLocalClient
-            return MacLocalClient(path)
-        return LocalClient(path)
-
     def setUpApp(self, server_profile=None, register_roots=True):
         if Manager._singleton:
             Manager._singleton = None
-
-        # Save the current path for test files
-        self.location = dirname(__file__)
 
         # Install callback early to be called the last
         self.addCleanup(self._check_cleanup)
@@ -364,6 +351,15 @@ class UnitTestCase(TestCase):
             self.addCleanup(self._unregister, self.workspace_1)
             self.remote_2.register_as_root(self.workspace_2)
             self.addCleanup(self._unregister, self.workspace_2)
+
+    def get_local_client(self, path):
+        if AbstractOSIntegration.is_windows():
+            from tests.win_local_client import WindowsLocalClient
+            return WindowsLocalClient(path)
+        if AbstractOSIntegration.is_mac():
+            from tests.mac_local_client import MacLocalClient
+            return MacLocalClient(path)
+        return LocalClient(path)
 
     def _unregister(self, workspace):
         """ Skip HTTP errors when cleaning up the test. """
@@ -639,8 +635,7 @@ class UnitTestCase(TestCase):
         try:
             for root, _, files in os.walk(self.tmpdir):
                 if files:
-                    log.error(
-                            'tempdir not cleaned-up: %r', root)
+                    log.error('tempdir not cleaned-up: %r', root)
         except OSError:
             pass
 
@@ -713,7 +708,7 @@ class UnitTestCase(TestCase):
         if dao is None:
             dao = self.engine_1.get_dao()
         result = []
-        while len(queue) > 0:
+        while queue:
             result.append(dao.get_state_from_id(queue.pop().id))
         return result
 
