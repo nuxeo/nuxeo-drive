@@ -460,17 +460,17 @@ def guess_server_url(url, login_page=Options.startup_page, timeout=5):
         try:
             rfc3987.parse(new_url, rule='URI')
             log.trace('Testing URL %r', new_url)
-            ret = requests.get(new_url + '/' + login_page, timeout=timeout)
-            ret.raise_for_status()
+            full_url = new_url + '/' + login_page
+            with requests.get(full_url, timeout=timeout) as resp:
+                resp.raise_for_status()
+                if resp.status_code == 200:
+                    return new_url
         except requests.HTTPError as exc:
             if exc.response.status_code == 401:
                 # When there is only Web-UI installed, the code is 401.
                 return new_url
         except (ValueError, requests.ConnectionError):
             pass
-        else:
-            if ret.status_code == 200:
-                return new_url
 
     if not url.lower().startswith('http'):
         return None

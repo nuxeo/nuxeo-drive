@@ -162,12 +162,11 @@ class BaseUpdater(PollWorker):
 
         url = self.update_site + '/versions.yml'
         try:
-            req = requests.get(url)
-            req.raise_for_status()
+            with requests.get(url) as resp:
+                resp.raise_for_status()
+                content = resp.text
         except Exception as exc:
             raise UpdateError('Impossible to get %r: %s' % (url, exc))
-        else:
-            content = req.text
 
         try:
             versions = yaml.safe_load(content)

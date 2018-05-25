@@ -570,6 +570,8 @@ class Application(SimpleApplication):
         except ValueError:
             log.exception('[%s] Invalid release notes', version)
             return
+        finally:
+            del content
 
         try:
             html = markdown(data['body'])
