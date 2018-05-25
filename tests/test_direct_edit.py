@@ -1,6 +1,8 @@
 # coding: utf-8
 import os
 
+import pytest
+
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import User
 
@@ -57,7 +59,7 @@ class TestDirectEdit(UnitTestCase):
         user = 'Administrator'
         get_engine = self.direct_edit._get_engine
         
-        assert get_engine(self.nuxeo_url, self.user_1)
+        assert get_engine(pytest.nuxeo_url, self.user_1)
 
         self.manager_1._engine_types['NXDRIVETESTURL'] = MockUrlTestEngine
 
@@ -111,7 +113,7 @@ class TestDirectEdit(UnitTestCase):
         self.remote_document_client_2.lock(doc_id)
         self.direct_edit.directEditLocked.connect(
             self._test_locked_file_signal)
-        self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+        self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
         assert self._received
 
     def test_self_locked_file(self):
@@ -129,7 +131,7 @@ class TestDirectEdit(UnitTestCase):
 
         self.manager_1.open_local_file = open_local_file
         if url is None:
-            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
         else:
             self.direct_edit.handle_url(url)
         assert self.local.exists(local_path)
@@ -157,7 +159,7 @@ class TestDirectEdit(UnitTestCase):
             pass
 
         self.manager_1.open_local_file = open_local_file
-        self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+        self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
         assert self.local.exists(local_path)
         self.wait_sync(timeout=2, fail_if_timeout=False)
         self.direct_edit.stop()
@@ -209,7 +211,7 @@ class TestDirectEdit(UnitTestCase):
         assert username == 'unknown'
 
     def test_download_url_with_spaces(self):
-        scheme, host = self.nuxeo_url.split('://')
+        scheme, host = pytest.nuxeo_url.split('://')
         filename = u'My file with spaces.txt'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
 
@@ -222,7 +224,7 @@ class TestDirectEdit(UnitTestCase):
         self._direct_edit_update(doc_id, filename, 'Test', url)
 
     def test_download_url_with_accents(self):
-        scheme, host = self.nuxeo_url.split('://')
+        scheme, host = pytest.nuxeo_url.split('://')
         filename = u'éèáä.txt'
         doc_id = self.remote.make_file('/', filename, 'Some content.')
 

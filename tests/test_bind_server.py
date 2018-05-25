@@ -27,12 +27,6 @@ class BindServerTest(unittest.TestCase):
         self.nxdrive_conf_folder = os.path.join(self.local_test_folder,
                                                 u'nuxeo-drive-conf')
 
-        self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL',
-                                        'http://localhost:8080/nuxeo')
-        self.user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
-        self.password = os.environ.get('NXDRIVE_TEST_PASSWORD',
-                                       'Administrator')
-
     def tearDown(self):
         Manager._singleton = None
 
@@ -46,5 +40,5 @@ class BindServerTest(unittest.TestCase):
 
         with pytest.raises(FolderAlreadyUsed):
             self.manager.bind_server(
-                self.nxdrive_conf_folder, self.nuxeo_url, self.user,
-                self.password, start_engine=False)
+                self.nxdrive_conf_folder, pytest.nuxeo_url, pytest.user,
+                pytest.password, start_engine=False)

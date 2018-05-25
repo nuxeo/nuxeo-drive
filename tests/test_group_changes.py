@@ -1,6 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 
+import pytest
 from nuxeo.models import Document, Group
 
 from . import DocRemote
@@ -52,9 +53,9 @@ class TestGroupChanges(UnitTestCase):
         assert 'grandParentGroup' in group_names
 
         self.admin_remote = DocRemote(
-            self.nuxeo_url, self.admin_user,
+            pytest.nuxeo_url, pytest.user,
             'nxdrive-test-administrator-device',
-            self.version, password=self.password,
+            pytest.version, password=pytest.password,
             base_folder=self.workspace_path)
 
     def tearDown(self):
@@ -193,10 +194,10 @@ class TestGroupChanges(UnitTestCase):
 
     def _register_sync_root_user1(self, sync_root_id):
         user1_remote = DocRemote(
-            self.nuxeo_url,
+            pytest.nuxeo_url,
             self.user_1,
             'nxdrive-test-device-1',
-            self.version,
+            pytest.version,
             password=self.password_1,
             base_folder=sync_root_id,
             upload_tmp_dir=self.upload_tmp_dir)

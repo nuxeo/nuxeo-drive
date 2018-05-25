@@ -5,12 +5,30 @@ import os
 import nuxeo.constants
 from nuxeo.exceptions import HTTPError
 
+from nxdrive.client import LocalClient
 from nxdrive.client import NuxeoDocumentInfo, Remote, safe_filename
+from nxdrive.engine.engine import Engine
 from nxdrive.logging_config import configure
+from nxdrive.manager import Manager
+from nxdrive.osi.darwin.darwin import DarwinIntegration
 from nxdrive.utils import make_tmp_file
 
 # Automatically check all operations done with the Python client
 nuxeo.constants.CHECK_PARAMS = True
+
+# Remove features for tests
+LocalClient.has_folder_icon = lambda *args: True
+Engine.add_to_favorites = lambda *args: None
+DarwinIntegration._cleanup = lambda *args: None
+DarwinIntegration._init = lambda *args: None
+DarwinIntegration.send_sync_status = lambda *args: None
+DarwinIntegration.watch_folder = lambda *args: None
+DarwinIntegration.unwatch_folder = lambda *args: None
+Manager._create_findersync_listener = lambda *args: None
+Manager._create_updater = lambda *args: None
+Manager._create_server_config_updater = lambda *args: None
+Manager._handle_os = lambda: None
+Manager.send_sync_status = lambda *args: None
 
 
 def configure_logger():
@@ -19,10 +37,6 @@ def configure_logger():
     configure(console_level='TRACE',
               command_name='test',
               force_configure=True,
-              use_file_handler=True,
-              log_filename=os.path.join(
-                  os.environ.get('WORKSPACE', ''),
-                  'tmp', 'testing.log'),
               formatter=formatter)
 
 

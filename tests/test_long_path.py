@@ -3,6 +3,8 @@ import os
 import sys
 from logging import getLogger
 
+import pytest
+
 from nxdrive.utils import safe_long_path
 from .common import UnitTestCase
 
@@ -86,7 +88,7 @@ class TestLongPath(UnitTestCase):
         self.manager_1.unbind_all()
         self.engine_1 = self.manager_1.bind_server(
             self.local_nxdrive_folder_1,
-            self.nuxeo_url,
+            pytest.nuxeo_url,
             self.user_2,
             self.password_2,
             start_engine=False)

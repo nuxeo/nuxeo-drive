@@ -558,9 +558,9 @@ class TestLocalMoveAndRename(UnitTestCase):
         # Use the Administrator to be able to introspect the container of the
         # test workspace.
         remote = DocRemote(
-            self.nuxeo_url, self.admin_user,
-            'nxdrive-test-administrator-device', self.version,
-            password=self.password, base_folder=self.workspace)
+            pytest.nuxeo_url, pytest.user,
+            'nxdrive-test-administrator-device', pytest.version,
+            password=pytest.password, base_folder=self.workspace)
         folder_1_uid = remote.get_info(u'/Original Folder 1').uid
 
         # Create new clients to be able to introspect the test sync root
@@ -587,8 +587,8 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         # Simulate server error
         self.engine_1.remote = RemoteTest(
-            self.nuxeo_url, self.user_1,
-            u'nxdrive-test-administrator-device', self.version,
+            pytest.nuxeo_url, self.user_1,
+            u'nxdrive-test-administrator-device', pytest.version,
             password=self.password_1)
         error = HTTPError('', 500, 'Mock server error', {}, None)
         self.engine_1.remote.make_server_call_raise(error)
