@@ -14,29 +14,20 @@ from threading import Thread
 from time import sleep
 from unittest import TestCase
 
+import pytest
 from PyQt4 import QtCore
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
-from nxdrive import __version__
 from nxdrive.client import LocalClient, Remote
-from nxdrive.engine.engine import Engine
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
-from nxdrive.osi.darwin.darwin import DarwinIntegration
 from nxdrive.utils import safe_long_path, unset_path_readonly
 from nxdrive.wui.translator import Translator
 from . import DocRemote
-
-YAPPI_PATH = os.environ.get('DRIVE_YAPPI', '') != ''
-if YAPPI_PATH:
-    try:
-        import yappi
-    except ImportError:
-        yappi = None
-
+from .conftest import root_remote
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
@@ -112,20 +103,6 @@ FILE_CONTENT = """
     Mauris quis dictum elit, eget tempus ex.
     """
 
-# Remove features for tests
-LocalClient.has_folder_icon = lambda *args: True
-Engine.add_to_favorites = lambda *args: None
-DarwinIntegration._cleanup = lambda *args: None
-DarwinIntegration._init = lambda *args: None
-DarwinIntegration.send_sync_status = lambda *args: None
-DarwinIntegration.watch_folder = lambda *args: None
-DarwinIntegration.unwatch_folder = lambda *args: None
-Manager._create_findersync_listener = lambda *args: None
-Manager._create_updater = lambda *args: None
-Manager._create_server_config_updater = lambda *args: None
-Manager._handle_os = lambda: None
-Manager.send_sync_status = lambda *args: None
-
 
 class StubQApplication(QtCore.QCoreApplication):
     bindEngine = QtCore.pyqtSignal(object, object)
@@ -185,10 +162,7 @@ class UnitTestCase(TestCase):
         # server and might need to wait for a long time without failing for
         # Nuxeo to finish initialize the repo on the first request after
         # startup
-        self.root_remote = DocRemote(
-                self.nuxeo_url, self.admin_user,
-                u'nxdrive-test-administrator-device', self.version,
-                password=self.password, base_folder=u'/', timeout=60)
+        self.root_remote = root_remote()
 
         # Activate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
@@ -232,12 +206,6 @@ class UnitTestCase(TestCase):
         # Install callback early to be called the last
         self.addCleanup(self._check_cleanup)
 
-        # Check the Nuxeo server test environment
-        self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL',
-                                        'http://localhost:8080/nuxeo')
-        self.admin_user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
-        self.password = os.environ.get('NXDRIVE_TEST_PASSWORD',
-                                       'Administrator')
         self.report_path = os.environ.get('REPORT_PATH')
 
         self.tmpdir = os.path.join(os.environ.get('WORKSPACE', ''), 'tmp')
@@ -286,12 +254,6 @@ class UnitTestCase(TestCase):
         Manager._singleton = None
         self.manager_2 = Manager()
 
-        self.version = __version__
-        url = self.nuxeo_url
-        log.debug('Will use %s as URL', url)
-        if '#' in url:
-            # Remove the engine type for the rest of the test
-            self.nuxeo_url = url.split('#')[0]
         self.setUpServer(server_profile)
         self.addCleanup(self.tearDownServer, server_profile)
         self.addCleanup(self._stop_managers)
@@ -320,28 +282,28 @@ class UnitTestCase(TestCase):
         # Document client to be used to create remote test documents
         # and folders
         self.remote_document_client_1 = DocRemote(
-                self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-                self.version, password=self.password_1,
+                pytest.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
+                pytest.version, password=self.password_1,
                 base_folder=self.workspace_1,
                 upload_tmp_dir=self.upload_tmp_dir)
 
         self.remote_document_client_2 = DocRemote(
-                self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-                self.version, password=self.password_2,
+                pytest.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
+                pytest.version, password=self.password_2,
                 base_folder=self.workspace_2,
                 upload_tmp_dir=self.upload_tmp_dir)
 
         # File system client to be used to create remote test documents
         # and folders
         self.remote_1 = Remote(
-                self.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
-                self.version, password=self.password_1,
+                pytest.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
+                pytest.version, password=self.password_1,
                 base_folder=self.workspace_1,
                 upload_tmp_dir=self.upload_tmp_dir)
 
         self.remote_2 = Remote(
-                self.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
-                self.version, password=self.password_2,
+                pytest.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
+                pytest.version, password=self.password_2,
                 base_folder=self.workspace_2,
                 upload_tmp_dir=self.upload_tmp_dir)
 
@@ -351,6 +313,25 @@ class UnitTestCase(TestCase):
             self.addCleanup(self._unregister, self.workspace_1)
             self.remote_2.register_as_root(self.workspace_2)
             self.addCleanup(self._unregister, self.workspace_2)
+
+    def tearDownApp(self):
+        attrs = (
+            'engine_1',
+            'engine_2',
+            'local_client_1',
+            'local_client_2',
+            'remote_1',
+            'remote_2',
+            'remote_document_client_1',
+            'remote_document_client_2',
+            'remote_file_system_client_1',
+            'remote_file_system_client_2',
+        )
+        for attr in attrs:
+            try:
+                delattr(self, attr)
+            except AttributeError:
+                pass
 
     def get_local_client(self, path):
         if AbstractOSIntegration.is_windows():
@@ -374,7 +355,7 @@ class UnitTestCase(TestCase):
         local_folder = getattr(self, 'local_nxdrive_folder_' + number_str)
         user = getattr(self, 'user_' + number_str)
         password = getattr(self, 'password_' + number_str)
-        engine = manager.bind_server(local_folder, self.nuxeo_url, user,
+        engine = manager.bind_server(local_folder, pytest.nuxeo_url, user,
                                      password, start_engine=start_engine)
 
         engine.syncCompleted.connect(self.app.sync_completed)
@@ -560,48 +541,13 @@ class UnitTestCase(TestCase):
             timeout -= 1
         self.fail("Wait for remote scan timeout expired")
 
-    @staticmethod
-    def is_profiling():
-        return YAPPI_PATH and yappi is not None
-
-    def setup_profiler(self):
-        if self.is_profiling():
-            yappi.start()
-
-    def teardown_profiler(self):
-        if not self.is_profiling():
-            return
-
-        if not os.path.exists(YAPPI_PATH):
-            os.mkdir(YAPPI_PATH)
-        report_path = os.path.join(YAPPI_PATH, self.id() + '-' + sys.platform
-                                   + '_yappi.txt')
-        with open(report_path, 'w') as fd:
-            fd.write('Threads\n=======\n')
-            columns = {0: ('name', 80), 1: ('tid', 15), 2: ('ttot', 8),
-                       3: ('scnt', 10)}
-            yappi.get_thread_stats().print_all(out=fd, columns=columns)
-
-            fd.write('\n\n\nMethods\n=======\n')
-            columns = {0: ('name', 80), 1: ('ncall', 5), 2: ('tsub', 8),
-                       3: ('ttot', 8), 4: ('tavg', 8)}
-            stats = yappi.get_func_stats()
-            stats.strip_dirs()
-            stats.print_all(out=fd, columns=columns)
-        log.debug('Profiler Report generated in %r', report_path)
-
     def run(self, result=None):
         self.app = StubQApplication([], self)
         self.setUpApp()
 
         def launch_test():
-            self.root_remote.log_on_server(
-                    '>>> testing: ' + self.id())
             log.debug('UnitTest thread started')
-            sleep(1)
-            self.setup_profiler()
             super(UnitTestCase, self).run(result)
-            self.teardown_profiler()
             self.app.quit()
             log.debug('UnitTest thread finished')
 
@@ -609,6 +555,7 @@ class UnitTestCase(TestCase):
         sync_thread.start()
         self.app.exec_()
         sync_thread.join(30)
+        self.tearDownApp()
         del self.app
         log.debug('UnitTest run finished')
 

@@ -20,15 +20,6 @@ class ManagerDAOTest(unittest.TestCase):
             os.makedirs(self.tmpdir)
 
         self.test_folder = tempfile.mkdtemp(u'-nxdrive-tests', dir=self.tmpdir)
-        self.nuxeo_url = os.environ.get('NXDRIVE_TEST_NUXEO_URL',
-                                        'http://localhost:8080/nuxeo')
-        self.admin_user = os.environ.get('NXDRIVE_TEST_USER', 'Administrator')
-        # Handle the # in url
-        if '#' in self.nuxeo_url:
-            # Remove the engine type for the rest of the test
-            self.nuxeo_url = self.nuxeo_url.split('#')[0]
-        if not self.nuxeo_url.endswith('/'):
-            self.nuxeo_url += '/'
 
     def tearDown(self):
         Manager._singleton = None

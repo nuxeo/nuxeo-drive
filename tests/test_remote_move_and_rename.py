@@ -545,8 +545,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Get remote client with Workspaces as base folder and local client
         remote = DocRemote(
-            self.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
-            self.version, password=self.password_1, base_folder=workspaces,
+            pytest.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
+            pytest.version, password=self.password_1, base_folder=workspaces,
             upload_tmp_dir=self.upload_tmp_dir)
         local = self.local_1
 

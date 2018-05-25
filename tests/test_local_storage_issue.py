@@ -40,8 +40,8 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
 
         # Synchronize simulating a "No space left on device" error
         self.engine_1.remote = RemoteTest(
-            self.nuxeo_url, self.user_1,
-            u'nxdrive-test-administrator-device', self.version,
+            pytest.nuxeo_url, self.user_1,
+            u'nxdrive-test-administrator-device', pytest.version,
             password=self.password_1)
         error = IOError('No space left on device')
         self.engine_1.remote.make_download_raise(error)

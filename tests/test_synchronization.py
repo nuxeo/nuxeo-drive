@@ -147,8 +147,8 @@ class TestSynchronization(UnitTestCase):
         # Simulate bad responses
         remote_orig = self.engine_1.remote
         self.engine_1.remote = RemoteTest(
-            self.nuxeo_url, self.user_1,
-            u'nxdrive-test-administrator-device', self.version,
+            pytest.nuxeo_url, self.user_1,
+            u'nxdrive-test-administrator-device', pytest.version,
             password=self.password_1)
         errors = [HTTPError(status=401, message='Mock'),
                   HTTPError(status=403, message='Mock')]
@@ -333,8 +333,8 @@ class TestSynchronization(UnitTestCase):
 
         # Simulate a server failure on file download
         self.engine_1.remote = RemoteTest(
-            self.nuxeo_url, self.user_1,
-            u'nxdrive-test-administrator-device', self.version,
+            pytest.nuxeo_url, self.user_1,
+            u'nxdrive-test-administrator-device', pytest.version,
             password=self.password_1)
         error = HTTPError(status=500, message='Mock download error')
         self.engine_1.remote.make_download_raise(error)
@@ -388,8 +388,8 @@ class TestSynchronization(UnitTestCase):
 
         # Find various ways to simulate a network failure
         self.engine_1.remote = RemoteTest(
-            self.nuxeo_url, self.user_1,
-            u'nxdrive-test-administrator-device', self.version,
+            pytest.nuxeo_url, self.user_1,
+            u'nxdrive-test-administrator-device', pytest.version,
             password=self.password_1)
         errors = [ConnectionError('Mock connection error'),
                   socket.error('Mock socket error'),
@@ -675,8 +675,8 @@ class TestSynchronization(UnitTestCase):
         remote = self.remote_document_client_1
 
         self.engine_1.remote = RemoteTest(
-            self.nuxeo_url, self.user_1,
-            u'nxdrive-test-administrator-device', self.version,
+            pytest.nuxeo_url, self.user_1,
+            u'nxdrive-test-administrator-device', pytest.version,
             password=self.password_1)
         self.engine_1.remote.make_download_raise(
             HTTPError(status=400, message='Mock'))
@@ -992,9 +992,9 @@ class TestSynchronization(UnitTestCase):
             return kwargs.get('filename').endswith('2.txt')
 
         # Simulate a server conflict on file upload
-        engine.remote = RemoteTest(self.nuxeo_url, self.user_1,
+        engine.remote = RemoteTest(pytest.nuxeo_url, self.user_1,
                                    u'nxdrive-test-administrator-device',
-                                   self.version, password=self.password_1)
+                                   pytest.version, password=self.password_1)
         error = HTTPError(status=409, message='Mock Conflict')
         engine.remote.make_upload_raise(error)
         engine.remote.raise_on = _raise_for_second_file_only
