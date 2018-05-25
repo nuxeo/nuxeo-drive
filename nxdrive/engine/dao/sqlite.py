@@ -221,8 +221,8 @@ class ConfigurationDAO(QObject):
         log.debug('Disposing SQLite database %r', self.get_db())
         for con in self._connections:
             con.close()
-        self._connections = []
-        self._conn = None
+        del self._connections
+        del self._conn
 
     def _get_write_connection(self):
         if self.share_connection or self.in_tx:

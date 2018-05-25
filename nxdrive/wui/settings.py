@@ -247,9 +247,10 @@ class WebSettingsApi(WebDriveApi):
                 'User-Agent': (self._manager.app_name
                                + '/' + self._manager.version),
             }
-            response = requests.get(url, headers=headers,
-                                    timeout=STARTUP_PAGE_CONNECTION_TIMEOUT)
-            status = response.status_code
+            timeout = STARTUP_PAGE_CONNECTION_TIMEOUT
+            with requests.get(
+                    url, headers=headers, timeout=timeout) as resp:
+                status = resp.status_code
         except:
             log.exception('Error while trying to connect to Nuxeo Drive'
                           ' startup page with URL %s', url)

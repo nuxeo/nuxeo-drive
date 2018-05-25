@@ -315,6 +315,16 @@ class UnitTestCase(TestCase):
             self.addCleanup(self._unregister, self.workspace_2)
 
     def tearDownApp(self):
+        try:
+            self.engine_1.remote.client._session.close()
+        except AttributeError:
+            pass
+
+        try:
+            self.engine_2.remote.client._session.close()
+        except AttributeError:
+            pass
+
         attrs = (
             'engine_1',
             'engine_2',

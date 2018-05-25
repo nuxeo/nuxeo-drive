@@ -184,9 +184,11 @@ class Remote(Nuxeo):
                     check_suspended=check_suspended)
             finally:
                 lock_path(file_out, locker)
+                del resp
             return file_out
         else:
             result = resp.content
+            del resp
             return result
 
     def upload(
@@ -216,6 +218,7 @@ class Remote(Nuxeo):
                 if mime_type:
                     blob.mimetype = mime_type
                 upload_result = batch.upload(blob)
+                blob.fd.close()
 
                 upload_duration = int(time.time() - tick)
                 action.transfer_duration = upload_duration

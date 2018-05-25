@@ -54,6 +54,10 @@ def cleanup_attrs(request):
         attr_orig = set(request.instance.__dict__.keys())
         yield
         for attr in set(request.instance.__dict__.keys()) - attr_orig:
+            if attr.startswith('engine_'):
+                engine = getattr(request.instance, attr)
+                if engine.remote:
+                    engine.remote.client._session.close()
             delattr(request.instance, attr)
 
 
