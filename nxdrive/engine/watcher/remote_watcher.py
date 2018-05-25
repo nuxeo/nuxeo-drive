@@ -54,10 +54,6 @@ class RemoteWatcher(EngineWorker):
         metrics['next_polling'] = self._next_check
         return dict(metrics.items() + self._metrics.items())
 
-    @pyqtSlot()
-    def _reset_clients(self):
-        pass
-
     def _execute(self):
         first_pass = True
         try:

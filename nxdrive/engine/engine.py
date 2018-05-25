@@ -58,7 +58,6 @@ class Engine(QObject):
     rootMoved = pyqtSignal(str)
     noSpaceLeftOnDevice = pyqtSignal()
     invalidAuthentication = pyqtSignal()
-    invalidClientsCache = pyqtSignal()
     newConflict = pyqtSignal(object)
     newReadonly = pyqtSignal(object, object)
     deleteReadonly = pyqtSignal(object)
@@ -361,10 +360,9 @@ class Engine(QObject):
         except:
             log.exception('Unbind error')
 
-        self.dispose_db()
-        log.debug('Remove DB file %r', self._get_db_file())
         self.manager.osi.unregister_folder_link(self.local_folder)
 
+        self.dispose_db()
         try:
             os.remove(self._get_db_file())
         except (IOError, OSError) as exc:
@@ -874,7 +872,7 @@ class Engine(QObject):
         return Processor(self, item_getter, **kwargs)
 
     def dispose_db(self):
-        if self._dao is not None:
+        if self._dao:
             self._dao.dispose()
 
     def get_user_full_name(self, userid, cache_only=False):

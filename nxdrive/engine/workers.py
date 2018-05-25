@@ -198,12 +198,7 @@ class EngineWorker(Worker):
     def __init__(self, engine, dao, thread=None, **kwargs):
         super(EngineWorker, self).__init__(thread=thread, **kwargs)
         self.engine = engine
-        self.engine.invalidClientsCache.connect(self._reset_clients)
         self._dao = dao
-
-    @pyqtSlot()
-    def _reset_clients(self):
-        pass
 
     def giveup_error(self, doc_pair, error, exception=None):
         details = str(exception) if exception else None
