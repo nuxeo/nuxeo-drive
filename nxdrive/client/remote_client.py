@@ -86,7 +86,7 @@ class Remote(Nuxeo):
             device_id,  # type: Text
             version,  # type: Text
             dao=None,  # type: Optional[Any]
-            proxies=None,  # type: Optional[Dict]
+            proxy=None,  # type: Type[Proxy]
             password=None,  # type: Optional[Text]
             token=None,  # type: Optional[Text]
             repository=Options.remote_repo,  # type: Text
@@ -104,7 +104,6 @@ class Remote(Nuxeo):
             host=url,
             app_name=APP_NAME,
             version=version,
-            proxies=proxies,
             repository=repository,
             **kwargs)
 
@@ -113,6 +112,8 @@ class Remote(Nuxeo):
             'X-Device-Id': device_id,
             'Cache-Control': 'no-cache',
         })
+
+        self.set_proxy(proxy)
 
         if dao:
             self._dao = dao
@@ -788,6 +789,12 @@ class Remote(Nuxeo):
         return self.operations.execute(
             command='NuxeoDrive.GenerateConflictedItemName',
             name=original_name)
+
+    def set_proxy(self, proxy):
+        # type: (Type[Proxy]) -> None
+        if proxy:
+            settings = proxy.settings(url=self.client.host)
+            self.client.client_kwargs['proxies'] = settings
 
 
 class FilteredRemote(Remote):

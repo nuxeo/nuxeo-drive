@@ -13,10 +13,11 @@ from .authentication import WebAuthenticationApi, WebAuthenticationDialog
 from .dialog import Promise, WebDialog, WebDriveApi
 from .translator import Translator
 from ..client.common import NotFound
+from ..client.proxy import get_proxy
 from ..constants import TOKEN_PERMISSION
 from ..engine.engine import (InvalidDriveException,
                              RootAlreadyBindWithDifferentAccount)
-from ..manager import FolderAlreadyUsed, ProxySettings
+from ..manager import FolderAlreadyUsed
 from ..options import Options
 from ..utils import get_device, guess_server_url
 
@@ -238,7 +239,7 @@ class WebSettingsApi(WebDriveApi):
 
         try:
             log.debug('Proxy configuration for startup page connection: %s',
-                      self._manager.get_proxy_settings().config)
+                      self._manager.proxy)
             headers = {
                 'X-Application-Name': self._manager.app_name,
                 'X-Device-Id': self._manager.device_id,
@@ -342,17 +343,17 @@ class WebSettingsApi(WebDriveApi):
 
     @QtCore.pyqtSlot(result=str)
     def get_proxy_settings(self):
-        settings = self._manager.get_proxy_settings()
+        proxy = self._manager.proxy
         result = {
-            'url': settings.to_url(with_credentials=False),
-            'config': settings.config,
-            'type': settings.proxy_type,
-            'server': settings.server,
-            'username': settings.username,
-            'authenticated': settings.authenticated == 1,
-            'password': settings.password,
-            'port': settings.port,
-            'pac_url': settings.pac_url,
+            'url': getattr(proxy, 'url', None),
+            'config': getattr(proxy, '_type', None),
+            'scheme': getattr(proxy, 'scheme', None),
+            'host': getattr(proxy, 'host', None),
+            'username': getattr(proxy, 'username', None),
+            'authenticated': getattr(proxy, 'authenticated', 0) == 1,
+            'password': getattr(proxy, 'password', None),
+            'port': getattr(proxy, 'port', None),
+            'pac_url': getattr(proxy, 'pac_url', None),
             }
         return self._json(result)
 
@@ -362,18 +363,13 @@ class WebSettingsApi(WebDriveApi):
         return Promise(self.set_proxy_settings, *args)
 
     @QtCore.pyqtSlot(str, str, bool, str, str, str, result=str)
-    def set_proxy_settings(self, config, server, authenticated, username, password, pac_url):
-        config = str(config) or 'System'
-        url = str(server)
-        settings = ProxySettings(config=config)
-        if config == 'Manual':
-            settings.from_url(url)
-        elif config == 'Automatic':
-            settings.pac_url = str(pac_url)
-        settings.authenticated = authenticated
-        settings.username = str(username)
-        settings.password = str(password)
-        return self._manager.set_proxy_settings(settings)
+    def set_proxy_settings(self, config, host, authenticated, username,
+                           password, pac_url):
+        proxy = get_proxy(
+            _type=str(config), url=str(host), authenticated=authenticated,
+            pac_url=str(pac_url), username=str(username),
+            password=str(password))
+        return self._manager.set_proxy(proxy)
 
 
 class WebSettingsDialog(WebDialog):

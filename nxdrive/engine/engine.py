@@ -705,12 +705,12 @@ class Engine(QObject):
             self.version,
         )
         rkwargs = {
-            'proxies': self.manager.get_proxies(self._server_url),
             'password': self._remote_password,
             'timeout': self.timeout,
             'token': self._remote_token,
             'check_suspended': self.suspend_client,
             'dao': self._dao,
+            'proxy': self.manager.proxy
         }
         self.remote = self.filtered_remote_cls(*rargs, **rkwargs)
 
