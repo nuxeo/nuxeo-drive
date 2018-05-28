@@ -3,10 +3,10 @@ import logging
 import os
 
 import nuxeo.constants
+import nuxeo.operations
 from nuxeo.exceptions import HTTPError
 
-from nxdrive.client import LocalClient
-from nxdrive.client import NuxeoDocumentInfo, Remote, safe_filename
+from nxdrive.client import LocalClient, NuxeoDocumentInfo, Remote, safe_filename
 from nxdrive.engine.engine import Engine
 from nxdrive.logging_config import configure
 from nxdrive.manager import Manager
@@ -44,8 +44,22 @@ def configure_logger():
 configure_logger()
 log = logging.getLogger(__name__)
 
+# Operations cache
+OPS_CACHE = None
 
-class RemoteTest(Remote):
+
+class RemoteBase(Remote):
+    def __init__(self, *args, **kwargs):
+        super(RemoteBase, self).__init__(*args, **kwargs)
+
+        # Save bandwith by caching operations details
+        global OPS_CACHE
+        if not OPS_CACHE:
+            OPS_CACHE = self.operations.operations
+            nuxeo.operations.API.ops = OPS_CACHE
+
+
+class RemoteTest(RemoteBase):
 
     _download_remote_error = None
     _upload_remote_error = None
