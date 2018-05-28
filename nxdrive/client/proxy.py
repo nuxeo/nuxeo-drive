@@ -1,18 +1,12 @@
 # coding: utf-8
-import sys
 from logging import getLogger
 from urlparse import urlparse
 
 import requests
-from pypac import PACSession, get_pac
+from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
 from nxdrive.utils import decrypt, encrypt
-
-if sys.platform == 'win32':
-    import _winreg
-elif sys.platform == 'darwin':
-    import SystemConfiguration
 
 log = getLogger(__name__)
 
@@ -55,8 +49,18 @@ class SystemProxy(Proxy):
 class ManualProxy(Proxy):
     _type = 'Manual'
 
-    def __init__(self, url=None, scheme=None, host=None, port=None,
-                 authenticated=False, username=None, password=None, **kwargs):
+    def __init__(
+        self,
+        url=None,  # type: Optional[Text]
+        scheme=None,  # type: Optional[Text]
+        host=None,  # type: Optional[Text]
+        port=None,  # type: Optional[int]
+        authenticated=False,  # type: bool
+        username=None,  # type: Optional[Text]
+        password=None,  # type: Optional[Text]
+        **kwargs  # type: Any
+    ):
+        # type: (...) -> None
         super(ManualProxy, self).__init__(**kwargs)
         if url:
             if '://' not in url:
@@ -78,7 +82,7 @@ class ManualProxy(Proxy):
     def url(self):
         if self.authenticated:
             return (self.scheme + '://' + self.username + ':'
-                    + self.password + '@' + self.host)
+                    + self.password + '@' + str(self.host))
         else:
             return self.scheme + '://' + self.host + ':' + str(self.port)
 
@@ -96,10 +100,12 @@ class ManualProxy(Proxy):
 class AutomaticProxy(Proxy):
     _type = 'Automatic'
 
-    def __init__(self, pac_url=None, **kwargs):
+    def __init__(self, pac_url=None, js=None, **kwargs):
+        # type: (Optional[Text], Optional[Text], Any) -> None
         super(AutomaticProxy, self).__init__(**kwargs)
-        self.pac_url = pac_url or _get_system_pac_url()
-        self.pac_file = get_pac(url=pac_url)
+        self.pac_url = pac_url
+        self.js = js
+        self.pac_file = get_pac(url=pac_url, js=js)
         self.resolver = ProxyResolver(self.pac_file)
 
     def settings(self, url=None, **kwargs):
@@ -126,7 +132,7 @@ def load_proxy(dao, token=None):
 
     elif _type == 'Manual':
         kwargs['scheme'] = dao.get_config('proxy_type')
-        kwargs['port'] = dao.get_config('proxy_port')
+        kwargs['port'] = int(dao.get_config('proxy_port'))
         kwargs['host'] = dao.get_config('proxy_server')
         kwargs['authenticated'] = (dao.get_config('proxy_authenticated', '0') == '1')
         if kwargs['authenticated']:
@@ -192,36 +198,6 @@ def _get_cls(_type):
         'Manual': ManualProxy,
         'Automatic': AutomaticProxy
     }
+    if _type not in proxy_cls:
+        raise ValueError('No proxy associated to type %s' % _type)
     return proxy_cls[_type]
-
-
-def _get_system_pac_url():
-    """ Get the proxy auto config (PAC) URL, if present. """
-
-    regkey = r'Software\Microsoft\Windows\CurrentVersion\Internet Settings'
-    if sys.platform == 'win32':
-        # Use the registry
-        settings = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, regkey)
-        try:
-            return str(_winreg.QueryValueEx(settings, 'AutoConfigURL')[0])
-        except OSError as e:
-            if e.errno not in (2,):
-                log.exception('Error retrieving PAC URL')
-        finally:
-            _winreg.CloseKey(settings)
-
-    elif sys.platform == 'darwin':
-        # Use SystemConfiguration library
-        try:
-            config = SystemConfiguration.SCDynamicStoreCopyProxies(None)
-        except AttributeError:
-            # It may happen on rare cases. The next call will work.
-            return
-
-        if ('ProxyAutoConfigEnable' in config
-                and 'ProxyAutoConfigURLString' in config):
-            # 'Auto Proxy Discovery' or WPAD is not supported yet
-            # Only 'Automatic Proxy configuration' URL setting is supported
-            if not ('ProxyAutoDiscoveryEnable' in config
-                    and config['ProxyAutoDiscoveryEnable'] == 1):
-                return str(config['ProxyAutoConfigURLString'])

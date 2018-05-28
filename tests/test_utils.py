@@ -2,7 +2,6 @@
 import pytest
 
 import nxdrive.utils
-from nxdrive.manager import ProxySettings
 
 
 def test_encrypt_decrypt():
@@ -14,59 +13,6 @@ def test_encrypt_decrypt():
     cipher = enc(pwd, token)
 
     assert dec(cipher, token) == pwd
-
-
-def test_proxy_settings():
-    proxy = ProxySettings()
-    proxy.from_url('localhost:3128')
-    assert not proxy.username
-    assert not proxy.password
-    assert not proxy.authenticated
-    assert proxy.server == 'localhost'
-    assert proxy.port == 3128
-    assert not proxy.proxy_type
-    assert proxy.to_url() == 'localhost:3128'
-    assert proxy.to_url(False) == 'localhost:3128'
-
-    proxy.from_url('user@localhost:3128')
-    assert proxy.username == 'user'
-    assert not proxy.password
-    assert not proxy.authenticated
-    assert proxy.server == 'localhost'
-    assert proxy.port == 3128
-    assert not proxy.proxy_type
-    assert proxy.to_url() == 'localhost:3128'
-    assert proxy.to_url(False) == 'localhost:3128'
-
-    proxy.from_url('user:password@localhost:3128')
-    assert proxy.username == 'user'
-    assert proxy.password == 'password'
-    assert proxy.authenticated
-    assert proxy.server == 'localhost'
-    assert proxy.port == 3128
-    assert not proxy.proxy_type
-    assert proxy.to_url() == 'user:password@localhost:3128'
-    assert proxy.to_url(False) == 'localhost:3128'
-
-    proxy.from_url('http://user:password@localhost:3128')
-    assert proxy.username == 'user'
-    assert proxy.password == 'password'
-    assert proxy.authenticated
-    assert proxy.server == 'localhost'
-    assert proxy.port == 3128
-    assert proxy.proxy_type == 'http'
-    assert proxy.to_url() == 'http://user:password@localhost:3128'
-    assert proxy.to_url(False) == 'http://localhost:3128'
-
-    proxy.from_url('https://user:password@localhost:3129')
-    assert proxy.username == 'user'
-    assert proxy.password == 'password'
-    assert proxy.authenticated
-    assert proxy.server == 'localhost'
-    assert proxy.port == 3129
-    assert proxy.proxy_type == 'https'
-    assert proxy.to_url() == 'https://user:password@localhost:3129'
-    assert proxy.to_url(False) == 'https://localhost:3129'
 
 
 @pytest.mark.parametrize('name, state', [
