@@ -19,14 +19,14 @@ from PyQt4 import QtCore
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
-from nxdrive.client import LocalClient, Remote
+from nxdrive.client import LocalClient
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
 from nxdrive.utils import safe_long_path, unset_path_readonly
 from nxdrive.wui.translator import Translator
-from . import DocRemote
+from . import DocRemote, RemoteBase
 from .conftest import root_remote
 
 # Default remote watcher delay used for tests
@@ -295,13 +295,13 @@ class UnitTestCase(TestCase):
 
         # File system client to be used to create remote test documents
         # and folders
-        self.remote_1 = Remote(
+        self.remote_1 = RemoteBase(
                 pytest.nuxeo_url, self.user_1, u'nxdrive-test-device-1',
                 pytest.version, password=self.password_1,
                 base_folder=self.workspace_1,
                 upload_tmp_dir=self.upload_tmp_dir)
 
-        self.remote_2 = Remote(
+        self.remote_2 = RemoteBase(
                 pytest.nuxeo_url, self.user_2, u'nxdrive-test-device-2',
                 pytest.version, password=self.password_2,
                 base_folder=self.workspace_2,
