@@ -354,7 +354,7 @@ class Engine(QObject):
         try:
             if self.remote:
                 self.remote.revoke_token()
-        except Unauthorized:
+        except HTTPError:
             # Token already revoked
             pass
         except:
