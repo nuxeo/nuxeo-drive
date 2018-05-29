@@ -346,7 +346,7 @@ class WebSettingsApi(WebDriveApi):
         proxy = self._manager.proxy
         result = {
             'url': getattr(proxy, 'url', None),
-            'config': getattr(proxy, '_type', None),
+            'config': getattr(proxy, 'category', None),
             'scheme': getattr(proxy, 'scheme', None),
             'host': getattr(proxy, 'host', None),
             'username': getattr(proxy, 'username', None),
@@ -366,7 +366,7 @@ class WebSettingsApi(WebDriveApi):
     def set_proxy_settings(self, config, host, authenticated, username,
                            password, pac_url):
         proxy = get_proxy(
-            _type=str(config), url=str(host), authenticated=authenticated,
+            category=str(config), url=str(host), authenticated=authenticated,
             pac_url=str(pac_url), username=str(username),
             password=str(password))
         return self._manager.set_proxy(proxy)

@@ -681,11 +681,11 @@ class WebDialog(QtGui.QDialog):
     @staticmethod
     def _set_proxy(manager, server_url=None):
         proxy = manager.proxy
-        if proxy._type == 'System':
+        if proxy.category == 'System':
             QNetworkProxyFactory.setUseSystemConfiguration(True)
             return
 
-        if proxy._type == 'Manual':
+        if proxy.category == 'Manual':
             q_proxy = QNetworkProxy(QNetworkProxy.HttpProxy,
                                     hostName=proxy.host,
                                     port=int(proxy.port))
@@ -693,7 +693,7 @@ class WebDialog(QtGui.QDialog):
                 q_proxy.setPassword(proxy.password)
                 q_proxy.setUser(proxy.username)
 
-        elif proxy._type == 'Automatic':
+        elif proxy.category == 'Automatic':
             proxy_url = proxy.settings(server_url)['http']
             parsed_url = urlparse(proxy_url)
             q_proxy = QNetworkProxy(QNetworkProxy.HttpProxy,

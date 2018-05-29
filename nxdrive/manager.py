@@ -96,10 +96,11 @@ class Manager(QtCore.QObject):
         self.server_config_updater = None
 
         if Options.proxy_server is not None:
-            self.proxy = get_proxy(_type='Manual', url=Options.proxy_server)
+            self.proxy = get_proxy(category='Manual', url=Options.proxy_server)
             save_proxy(self.proxy, self._dao)
         else:
             self.proxy = load_proxy(self._dao)
+        log.info('Proxy configuration is %r', self.proxy)
 
         # Set the logs levels option
         if FILE_HANDLER:

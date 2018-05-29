@@ -16,7 +16,7 @@ def config_dao():
 
 
 def test_manual_proxy():
-    proxy = get_proxy(_type='Manual', url='localhost:3128')
+    proxy = get_proxy(category='Manual', url='localhost:3128')
     assert isinstance(proxy, ManualProxy)
     assert not proxy.authenticated
     assert proxy.scheme == 'http'
@@ -36,7 +36,7 @@ def test_pac_proxy():
             return "DIRECT";
         }
     '''
-    proxy = get_proxy(_type='Automatic', js=js)
+    proxy = get_proxy(category='Automatic', js=js)
     assert isinstance(proxy, AutomaticProxy)
     settings = proxy.settings('http://nuxeo.com')
     assert settings['http'] == settings['https'] == 'http://localhost:8899'
@@ -46,7 +46,7 @@ def test_pac_proxy():
 
 
 def test_load(config_dao):
-    proxy = get_proxy(_type='Manual', url='localhost:3128')
+    proxy = get_proxy(category='Manual', url='localhost:3128')
 
     save_proxy(proxy, config_dao, 'mock_token')
     loaded_proxy = load_proxy(config_dao, 'mock_token')

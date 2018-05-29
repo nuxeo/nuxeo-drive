@@ -640,7 +640,6 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
 
         try:
             self.engine_1.remote.check_suspended = _suspend_check
-            self.engine_1.invalidate_client_cache()
             with open(self.location + '/resources/testFile.pdf') as f:
                 content = f.read()
             self.engine_1.file_id = remote.make_file(
@@ -694,7 +693,6 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
             Engine.suspend_client(self.engine_1)
 
         self.engine_1.has_rename = False
-        self.engine_1.invalidate_client_cache()
 
         with patch.object(self.engine_1.remote, 'check_suspended',
                           new_callable=check_suspended):

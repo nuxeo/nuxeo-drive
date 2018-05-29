@@ -92,8 +92,6 @@ class Engine(QObject):
         self.timeout = 30
         self._handshake_timeout = 60
         self.manager = manager
-        # Remove remote client cache on proxy update
-        self.manager.proxyUpdated.connect(self.invalidate_client_cache)
 
         self.local_folder = definition.local_folder
         self.local = self.local_cls(self.local_folder)
@@ -683,7 +681,6 @@ class Engine(QObject):
             raise ValueError
         self._dao.update_config('remote_token', self._remote_token)
         self.set_invalid_credentials(value=False)
-        self.invalidate_client_cache()
         # In case of a binding
         self._check_root()
         self.start()
@@ -693,7 +690,6 @@ class Engine(QObject):
         self._remote_token = token
         self._dao.update_config('remote_token', self._remote_token)
         self.set_invalid_credentials(value=False)
-        self.invalidate_client_cache()
         self.start()
 
     def init_remote(self):
@@ -710,7 +706,7 @@ class Engine(QObject):
             'token': self._remote_token,
             'check_suspended': self.suspend_client,
             'dao': self._dao,
-            'proxy': self.manager.proxy
+            'proxy': self.manager.proxy,
         }
         self.remote = self.filtered_remote_cls(*rargs, **rkwargs)
 
@@ -809,12 +805,6 @@ class Engine(QObject):
                 pair = thread.worker.get_current_pair()
                 if pair is not None and pair.id == pair_id:
                     thread.worker.quit()
-
-    @pyqtSlot()
-    def invalidate_client_cache(self):
-        log.debug('Invalidate client cache')
-        # TODO: called on new proxy settings and update_password()
-        self.invalidClientsCache.emit()
 
     def _set_root_icon(self):
         if not self.local.exists('/') or self.local.has_folder_icon('/'):
