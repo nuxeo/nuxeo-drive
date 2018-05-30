@@ -129,13 +129,15 @@ class AutomaticProxy(Proxy):
     def __init__(self, pac_url=None, js=None, **kwargs):
         # type: (Optional[Text], Optional[Text], Any) -> None
         super(AutomaticProxy, self).__init__(**kwargs)
-        if '://' not in pac_url:
+        if pac_url and '://' not in pac_url:
             pac_url = 'http://' + pac_url
         self.pac_url = pac_url
         self._js = js
         self._pac_file = get_pac(
-            url=pac_url, js=js,
-            allowed_content_types='application/octet-stream')
+            url=pac_url, js=js, allowed_content_types=[
+                'application/octet-stream',
+                'application/x-ns-proxy-autoconfig',
+                'application/x-javascript-config'])
         self._resolver = ProxyResolver(self._pac_file)
 
     def settings(self, url=None, **kwargs):

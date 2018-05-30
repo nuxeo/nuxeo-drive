@@ -11,6 +11,7 @@
 - Removed `Engine.get_rest_api_client()`. Use `remote` attribute instead.
 - Removed `Engine.get_server_version()`. Use `remote.client.server_version` attribute instead.
 - Removed `Engine.get_update_infos()`
+- Removed `Engine.invalidate_client_cache()`
 - Removed `Manager.exceptions`
 - Removed `Manager.get_proxies()`
 - Removed `Manager.get_proxy_settings()`
