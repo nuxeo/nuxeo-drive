@@ -433,17 +433,16 @@ class RemoteWatcher(EngineWorker):
         child_pair = self._dao.get_state_from_id(row_id, from_write=True)
         return child_pair, True
 
-    @staticmethod
-    def _handle_readonly(local_client, doc_pair):
+    def _handle_readonly(self, doc_pair):
         # Don't use readonly on folder for win32 and on Locally Edited
         if doc_pair.folderish and os.sys.platform == 'win32':
             return
         if doc_pair.is_readonly():
             log.debug('Setting %r as readonly', doc_pair.local_path)
-            local_client.set_readonly(doc_pair.local_path)
+            self.engine.local.set_readonly(doc_pair.local_path)
         else:
             log.debug('Unsetting %r as readonly', doc_pair.local_path)
-            local_client.unset_readonly(doc_pair.local_path)
+            self.engine.local.unset_readonly(doc_pair.local_path)
 
     def _partial_full_scan(self, path):
         log.debug('Continue full scan of %r', path)
@@ -752,8 +751,7 @@ class RemoteWatcher(EngineWorker):
                         if lock_update:
                             doc_pair = self._dao.get_state_from_id(doc_pair.id)
                             try:
-                                self._handle_readonly(
-                                    self.local, doc_pair)
+                                self._handle_readonly(doc_pair)
                             except (OSError, IOError) as exc:
                                 log.trace('Cannot handle readonly for %r (%r)',
                                           doc_pair, exc)
