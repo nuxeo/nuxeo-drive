@@ -8,6 +8,7 @@ Changes in command line arguments:
 ### Core
 - [NXDRIVE-825](https://jira.nuxeo.com/browse/NXDRIVE-825): Rely on the Python client for all Nuxeo API calls (**breaking change**)
 - [NXDRIVE-1068](https://jira.nuxeo.com/browse/NXDRIVE-1068): Move proxy support to a dedicated module
+- [NXDRIVE-1201](https://jira.nuxeo.com/browse/NXDRIVE-1201): Adapt Drive for new Trash API behavior
 
 ### GUI
 - [NXDRIVE-1183](https://jira.nuxeo.com/browse/NXDRIVE-1183): Make server UI selection smarter

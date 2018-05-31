@@ -237,31 +237,18 @@ class DocRemote(RemoteTest):
         input_obj = 'doc:' + self._check_ref(ref)
         if use_trash:
             try:
-                # We need more stability in the Trash behavior before
-                # we can use it instead of the SetLifeCycle operation
-                # if version_lt(self.client.server_version, '10.1'):
-                return self.operations.execute(command='Document.SetLifeCycle',
-                                               input_obj=input_obj,
-                                               value='delete')
-                # else:
-                #    return self.operations.execute(command='Document.Trash',
-                #                                   input_obj=input_obj)
+                if not self._has_new_trash_service:
+                    return self.operations.execute(
+                        command='Document.SetLifeCycle',
+                        input_obj=input_obj, value='delete')
+                else:
+                    return self.operations.execute(command='Document.Trash',
+                                                   input_obj=input_obj)
             except HTTPError as e:
                 if e.status != 500:
                     raise
         return self.operations.execute(command='Document.Delete',
                                        input_obj=input_obj)
-
-    def undelete(self, uid):
-        input_obj = 'doc:' + uid
-        # We need more stability in the Trash behavior before
-        # we can use it instead of the SetLifeCycle operation
-        # if version_lt(self.client.server_version, '10.1'):
-        return self.operations.execute(command='Document.SetLifeCycle',
-                                       input_obj=input_obj, value='undelete')
-        # else:
-        #    return self.operations.execute(command='Document.Untrash',
-        #                                   input_obj=input_obj)
 
     def delete_content(self, ref, xpath=None):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)

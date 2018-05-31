@@ -22,7 +22,8 @@ from ..constants import (APP_NAME, DEFAULT_TYPES, DOWNLOAD_TMP_FILE_PREFIX,
                          MAX_CHILDREN, TIMEOUT, TOKEN_PERMISSION, TX_TIMEOUT)
 from ..engine.activity import Action, FileAction
 from ..options import Options
-from ..utils import get_device, lock_path, make_tmp_file, unlock_path
+from ..utils import (get_device, lock_path, make_tmp_file, unlock_path,
+                     version_le)
 
 log = getLogger(__name__)
 
@@ -69,6 +70,7 @@ NuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
     'doc_type',  # Nuxeo document type
     'version',  # Nuxeo version
     'state',  # Nuxeo lifecycle state
+    'is_trashed',  # Nuxeo trashed status
     'has_blob',  # If this doc has blob
     'filename',  # Filename of document
     'lock_owner',  # lock owner
@@ -124,6 +126,8 @@ class Remote(Nuxeo):
         self.user_id = user_id
         self.version = version
         self.check_suspended = check_suspended
+        self._has_new_trash_service = not version_le(
+            self.client.server_version, '10.1')
 
         self.upload_tmp_dir = (upload_tmp_dir if upload_tmp_dir is not None
                                else tempfile.gettempdir())
@@ -435,14 +439,12 @@ class Remote(Nuxeo):
     def undelete(self, uid):
         # type: (Text) -> Text
         input_obj = 'doc:' + uid
-        # We need more stability in the Trash behavior before
-        # we can use it instead of the SetLifeCycle operation
-        # if version_lt(self.client.server_version, '10.1'):
-        return self.operations.execute(command='Document.SetLifeCycle',
-                                       input_obj=input_obj, value='undelete')
-        # else:
-        #    return self.operations.execute(
-        #       command='Document.Untrash', input_obj=input_obj)
+        if not self._has_new_trash_service:
+            return self.operations.execute(
+                command='Document.SetLifeCycle',
+                input_obj=input_obj, value='undelete')
+        else:
+            return self.documents.untrash(uid)
 
     def rename(self, fs_item_id, new_name):
         # type: (Text, Text) -> RemoteFileInfo
@@ -574,7 +576,6 @@ class Remote(Nuxeo):
             # no millisecond?
             last_update = datetime.strptime(
                 doc['lastModified'], '%Y-%m-%dT%H:%M:%SZ')
-        last_contributor = props['dc:lastContributor']
 
         # TODO: support other main files
         has_blob = False
@@ -624,6 +625,9 @@ class Remote(Nuxeo):
         # Permissions
         permissions = doc.get('contextParameters', {}).get('permissions', None)
 
+        # Trashed
+        is_trashed = doc.get('isTrashed', doc['state'] == 'deleted')
+
         # XXX: we need another roundtrip just to fetch the parent uid...
         if parent_uid is None and fetch_parent_uid:
             parent_uid = self.fetch(os.path.dirname(doc['path']))['uid']
@@ -638,11 +642,25 @@ class Remote(Nuxeo):
         if name is not None:
             name = unicodedata.normalize('NFC', name)
         return NuxeoDocumentInfo(
-            self._base_folder_ref, name, doc['uid'], parent_uid,
-            doc['path'], folderish, last_update, last_contributor,
-            digest_algorithm, digest, self.client.repository, doc['type'],
-            version, doc['state'], has_blob, filename,
-            lock_owner, lock_created, permissions)
+            root=self._base_folder_ref,
+            name=name, uid=doc['uid'],
+            parent_uid=parent_uid,
+            path=doc['path'],
+            folderish=folderish,
+            last_modification_time=last_update,
+            last_contributor=props['dc:lastContributor'],
+            digest_algorithm=digest_algorithm,
+            digest=digest,
+            repository=self.client.repository,
+            doc_type=doc['type'],
+            version=version,
+            state=doc['state'],
+            is_trashed=is_trashed,
+            has_blob=has_blob,
+            filename=filename,
+            lock_owner=lock_owner,
+            lock_created=lock_created,
+            permissions=permissions)
 
     def _filtered_results(self, entries, fetch_parent_uid=True,
                           parent_uid=None):
@@ -679,18 +697,13 @@ class Remote(Nuxeo):
         """
         ref = self._check_ref(ref)
         id_prop = 'ecm:path' if ref.startswith('/') else 'ecm:uuid'
-        if use_trash:
-            lifecyle_pred = "AND ecm:currentLifeCycleState != 'deleted'"
-        else:
-            lifecyle_pred = ""
-        if include_versions:
-            version_pred = ""
-        else:
-            version_pred = "AND ecm:isVersion = 0"
+
+        trash = self._get_trash_condition() if use_trash else ""
+        version = "" if include_versions else "AND ecm:isVersion = 0"
 
         query = ("SELECT * FROM Document WHERE %s = '%s' %s %s"
                  " LIMIT 1") % (
-            id_prop, ref, lifecyle_pred, version_pred)
+            id_prop, ref, trash, version)
         results = self.query(query)
         return len(results[u'entries']) == 1
 
@@ -709,14 +722,18 @@ class Remote(Nuxeo):
     def get_children_info(self, ref, types=DEFAULT_TYPES, limit=MAX_CHILDREN):
         # type: (Text, Tuple[Text], int) -> List[NuxeoDocumentInfo]
         ref = self._check_ref(ref)
+
         query = (
             "SELECT * FROM Document"
             "       WHERE ecm:parentId = '%s'"
             "       AND ecm:primaryType IN ('%s')"
-            "       AND ecm:currentLifeCycleState != 'deleted'"
+            "       %s"
             "       AND ecm:isVersion = 0"
             "       ORDER BY dc:title, dc:created LIMIT %d"
-        ) % (ref, "', '".join(types), limit)
+        ) % (ref,
+             "', '".join(types),
+             self._get_trash_condition(),
+             limit)
 
         entries = self.query(query)['entries']
         if len(entries) == MAX_CHILDREN:
@@ -795,6 +812,13 @@ class Remote(Nuxeo):
         if proxy:
             settings = proxy.settings(url=self.client.host)
             self.client.client_kwargs['proxies'] = settings
+
+    def _get_trash_condition(self):
+        # type: () -> Text
+        if not self._has_new_trash_service:
+            return "AND ecm:currentLifeCycleState != 'deleted'"
+        else:
+            return "AND ecm:isTrashed = 0"
 
 
 class FilteredRemote(Remote):

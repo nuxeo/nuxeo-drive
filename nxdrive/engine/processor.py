@@ -577,7 +577,7 @@ class Processor(EngineWorker):
 
         if remote_ref:
             try:
-                if info.state == 'deleted':
+                if info.is_trashed:
                     log.debug('Untrash from the client: %r', doc_pair)
                     self.remote.undelete(uid)
                     remote_parent_path = (parent_pair.remote_parent_path + '/'

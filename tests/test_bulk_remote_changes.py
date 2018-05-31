@@ -142,7 +142,8 @@ to local PC.
 
         # Restore folder 'shared' from trash
         remote.undelete(shared)
-        remote.undelete(readme1)
+        if not remote._has_new_trash_service:
+            remote.undelete(readme1)
         self.wait_sync(wait_for_async=True)
 
         remote.make_file(

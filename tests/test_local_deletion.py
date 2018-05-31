@@ -73,7 +73,6 @@ class TestLocalDeletion(UnitTestCase):
         assert not local.exists('/' + file1)
         assert local.get_content('/' + file2) == 'New content'
 
-    @pytest.mark.skip('TODO: NXDRIVE-1201')
     def test_move_untrash_file_on_parent(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -93,6 +92,7 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         assert not remote.exists(file_path)
         assert not local.exists(file_path)
+
         # See if it untrash or recreate
         shutil.move(os.path.join(self.local_test_folder_1, file1),
                     local.abspath('/'))
@@ -103,6 +103,7 @@ class TestLocalDeletion(UnitTestCase):
         # Because remote_document_client_1 was used
         assert local.get_remote_id('/').endswith(new_info.parent_uid)
 
+    @pytest.mark.skip('NXP-25066: Untrash raises 500 error here')
     @Options.mock()
     def test_move_untrash_file_on_parent_with_no_rights(self):
         local = self.local_1
