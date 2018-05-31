@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<component name="drive-disable-event-services-config">
+  <require>org.nuxeo.binary.metadata</require>
+  <require>org.nuxeo.ecm.platform.htmlsanitizer.HtmlSanitizerService</require>
+  <require>org.nuxeo.ecm.platform.notification.listener</require>
+  <require>org.nuxeo.ecm.platform.thumbnail.listener</require>
+
+  <extension target="org.nuxeo.ecm.core.event.EventServiceComponent" point="listener">
+    <listener name="binaryMetadataSyncListener" enabled="false" />
+    <listener name="checkBlobUpdate" enabled="false"/>
+    <listener name="htmlsanitizerlistener" enabled="false" />
+    <listener name="notificationListener" enabled="false" />
+    <listener name="proxySubscriptionPropagationListener" enabled="false" />
+    <listener name="updateThumbListener" enabled="false"/>
+  </extension>
+</component>

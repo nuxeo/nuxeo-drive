@@ -1,0 +1,4 @@
+custom.target=.
+
+# Disable blobs fulltext extraction
+nuxeo.vcs.fulltext.disabled=true

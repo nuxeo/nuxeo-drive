@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<component name="drive-disable-renditions">
+  <require>org.nuxeo.ecm.platform.video.workmanager</require>
+  <require>org.nuxeo.ecm.platform.picture.workmanager</require>
+  <extension point="queues" target="org.nuxeo.ecm.core.work.service">
+    <queue id="videoConversion" processing="false" />
+    <queue id="videoStoryboard" processing="false" />
+    <queue id="updateThumbListener" processing="false" />
+    <queue id="pictureViewsGeneration" processing="false" />
+  </extension>
+</component>

@@ -4,6 +4,38 @@
   <taskdef resource="net/sf/antcontrib/antlib.xml" />
 
   <property name="out.dir" value="${maven.project.build.directory}-${platform}" />
+  <property environment="env"/>
+
+  <target name="add-custom-template" unless="env.ENABLE_CONVERTERS">
+    <echo level="info">Disabling all converters ...</echo>
+    <echo level="info">To enable server converters, you have to set the ENABLE_CONVERTERS envar.</echo>
+    <antcall target="set-conf">
+      <param name="name" value="nuxeo.templates" />
+      <param name="value" value="postgresql,custom" />
+    </antcall>
+  </target>
+
+  <target name="enable-custom-template" unless="env.ENABLE_CONVERTERS">
+    <echo level="info">Activating the custom template to turn OFF all converters ...</echo>
+    <copy todir="${out.dir}/tomcat/templates/custom" verbose="true" overwrite="true">
+      <fileset dir="custom"/>
+    </copy>
+  </target>
+
+  <target name="prepare-tomcat-logs" depends="_init" if="is.tomcat" unless="env.ENABLE_CONVERTERS">
+    <echo level="info">Adding DEBUG logs to trace command line calls (to catch used converters) ...</echo>
+    <echo level="info">Just grep "Running system command:" ;)</echo>
+    <replace file="${nuxeo.home}/lib/log4j.xml">
+      <replacetoken><![CDATA[  <category name="org.nuxeo">
+]]></replacetoken>
+      <replacevalue><![CDATA[  <category name="org.nuxeo.ecm.platform.commandline.executor.service.executors">
+    <priority value="DEBUG" />
+  </category>
+
+  <category name="org.nuxeo">
+]]></replacevalue>
+    </replace>
+  </target>
 
   <unzip dest="${out.dir}/" overwrite="false">
     <artifact:resolveFile key="org.nuxeo:nuxeo-ftest::zip" />
