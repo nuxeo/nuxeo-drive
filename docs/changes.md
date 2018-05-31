@@ -2,6 +2,7 @@
 Release date: `2018-??-??`
 
 Changes in command line arguments:
+
 - Removed `proxy-exceptions`
 - Removed `proxy-type`: Pass the scheme directly in the `proxy-server` url
 
@@ -14,9 +15,9 @@ Changes in command line arguments:
 - [NXDRIVE-1183](https://jira.nuxeo.com/browse/NXDRIVE-1183): Make server UI selection smarter
 
 #### Minor changes
-- Jenkins:Added the `PYTEST_ADDOPTS` parameter to the Drive-tests job
+- Jenkins: Added the `PYTEST_ADDOPTS` parameter to the Drive-tests job
 - Jenkins: Removed the `ENABLE_PROFILER` parameter from the Drive-tests job
-- Packaging: Added `nuxeo` 2.0.0
+- Packaging: Added `nuxeo` 2.0.1
 - Packaging: Updated `pytest` from 3.5.1 to 3.6.0
 
 
