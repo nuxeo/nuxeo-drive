@@ -26,6 +26,7 @@
 - Removed `Manager.validate_proxy_settings()`
 - Removed `Options.server_version`. Use `Engine.remote.client.server_version` attribute instead.
 - Removed `Options.proxy_exceptions`
+- Removed `Options.proxy_type`
 - Added `Remote.set_proxy()`
 - Removed `RemoteWatcher.get_engine()`. Use `engine` attribute instead.
 - Added `nxdrive/client/remote.py`

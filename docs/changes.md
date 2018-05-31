@@ -1,6 +1,10 @@
 # dev
 Release date: `2018-??-??`
 
+Changes in command line arguments:
+- Removed `proxy-exceptions`
+- Removed `proxy-type`: Pass the scheme directly in the `proxy-server` url
+
 ### Core
 - [NXDRIVE-825](https://jira.nuxeo.com/browse/NXDRIVE-825): Rely on the Python client for all Nuxeo API calls (**breaking change**)
 - [NXDRIVE-1068](https://jira.nuxeo.com/browse/NXDRIVE-1068): Move proxy support to a dedicated module

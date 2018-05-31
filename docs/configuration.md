@@ -24,9 +24,7 @@ Each of these ways overrides the previous one.
 | `max-errors` | 3 | Define the maximum number of retries before considering the file as in error.
 | `ndrive-home` | `$HOME/.nuxeo-drive` | Define the personal folder.
 | `nofscheck` | False | Disable the standard check for binding, to allow installation on network filesystem.
-| `proxy-exceptions` | None | Define URLs exception for the proxy.
-| `proxy-server` | None | Define proxy server. This can also be set up by the user from the Settings window.
-| `proxy-type` | None | Define proxy type. This can also be set up by the user from the Settings window.
+| `proxy-server` | None | Define the address of the proxy server (e.g. `http://proxy.example.com:3128`). This can also be set up by the user from the Settings window.
 | `timeout` | 30 | Define the socket timeout.
 | `update-check-delay` | 3600 | Define the auto-update check delay. 0 means disabled.
 | `update-site-url` | https://community.nuxeo.com/static/drive-updates | Configure a custom update website. See Nuxeo Drive Update Site for more details.

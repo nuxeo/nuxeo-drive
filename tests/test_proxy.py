@@ -7,6 +7,8 @@ from mock import patch
 
 from nxdrive.client.proxy import *
 from nxdrive.engine.dao.sqlite import ConfigurationDAO
+from nxdrive.manager import Manager
+from nxdrive.options import Options
 
 js = '''
     function FindProxyForURL(url, host) {
@@ -111,3 +113,25 @@ def test_mock_autoconfigurl_mac(pac_file):
         settings = proxy.settings('http://example.com')
         assert settings['http'] is None
         assert settings['https'] is None
+
+
+@Options.mock()
+def test_cli_args():
+    url = 'http://username:password@localhost:8899'
+    Options.set('proxy_server', url, setter='cli')
+    manager = Manager()
+    proxy = manager.proxy
+    assert proxy
+    assert isinstance(proxy, ManualProxy)
+    assert proxy.authenticated
+    assert proxy.scheme == 'http'
+    assert proxy.host == 'localhost'
+    assert proxy.port == 8899
+    assert proxy.username == 'username'
+    assert proxy.password == 'password'
+    settings = proxy.settings()
+    assert settings['http'] == settings['https'] == url
+    manager.stop()
+    manager.unbind_all()
+    manager.dispose_all()
+    Manager._singleton = None

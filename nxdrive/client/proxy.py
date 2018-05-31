@@ -90,14 +90,16 @@ class ManualProxy(Proxy):
             self.scheme = url.scheme
             self.host = url.hostname
             self.port = url.port
+            self.username = url.username
+            self.password = url.password
         else:
             self.scheme = scheme
             self.host = host
             self.port = port
+            self.username = username
+            self.password = password
 
-        self.authenticated = authenticated
-        self.username = username
-        self.password = password
+        self.authenticated = authenticated or bool(url.username)
 
     @property
     def url(self):
@@ -170,7 +172,7 @@ def load_proxy(dao, token=None):
                 token = dao.get_config('device_id')
             if password is not None and token is not None:
                 token += '_proxy'
-                password = decrypt(password, str(token))
+                password = decrypt(str(password), str(token))
             else:
                 # If no server binding or no token available
                 # (possibly after token revocation) reset password
@@ -203,7 +205,7 @@ def save_proxy(proxy, dao, token=None):
                     'Your token has been revoked, please update '
                     'your password to acquire a new one.')
             token += '_proxy'
-            password = encrypt(proxy.password, str(token))
+            password = encrypt(str(proxy.password), str(token))
             dao.update_config('proxy_password', password)
 
 

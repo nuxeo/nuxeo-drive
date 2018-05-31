@@ -153,7 +153,6 @@ class MetaOptions(type):
         'nofscheck': (False, 'default'),
         'protocol_url': (None, 'default'),
         'proxy_server': (None, 'default'),
-        'proxy_type': (None, 'default'),
         'remote_repo': ('default', 'default'),
         'res_dir': (
             os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(__file__)),
