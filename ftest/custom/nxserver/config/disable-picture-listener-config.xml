@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<component name="drive-disable-picturelistener-config">
+  <require>org.nuxeo.ecm.platform.picture.listeners</require>
+  <require>org.nuxeo.ecm.platform.imaging.base.properties</require>
+  <extension target="org.nuxeo.ecm.core.event.EventServiceComponent" point="listener">
+    <listener name="pictureChangedListener" enabled="false" />
+    <listener name="pictureViewsGenerationListener" enabled="false" />
+  </extension>
+  <extension target="org.nuxeo.runtime.ConfigurationService" point="configuration">
+    <property name="nuxeo.picture.migration.enabled">false</property>
+  </extension>
+</component>

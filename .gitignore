@@ -28,7 +28,7 @@ pypi*
 .ropeproject
 .settings
 *.swp
-target
+target*
 tools/windows/properties.rc
 venv
 xcuserdata

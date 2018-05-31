@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<component name="drive-validation-config">
+  <require>org.nuxeo.ecm.core.api.DocumentValidationService.activations</require>
+  <extension target="org.nuxeo.ecm.core.api.DocumentValidationService" point="activations">
+    <validation context="createDocument" activated="false" />
+    <validation context="saveDocument" activated="false" />
+    <validation context="importDocument" activated="false" />
+  </extension>
+</component>

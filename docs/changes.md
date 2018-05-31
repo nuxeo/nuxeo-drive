@@ -14,6 +14,9 @@ Changes in command line arguments:
 ### GUI
 - [NXDRIVE-1183](https://jira.nuxeo.com/browse/NXDRIVE-1183): Make server UI selection smarter
 
+### Tests
+- [NXDRIVE-1212](https://jira.nuxeo.com/browse/NXDRIVE-1212): Disable all server converters, enabled on-demand
+
 #### Minor changes
 - Jenkins: Added the `PYTEST_ADDOPTS` parameter to the Drive-tests job
 - Jenkins: Removed the `ENABLE_PROFILER` parameter from the Drive-tests job

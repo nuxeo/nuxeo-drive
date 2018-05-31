@@ -90,6 +90,7 @@ __Important__: those values are given as example, if you want up-to-date ones, p
 - `SIGNING_ID` is the certificate **authority name**.
 - `SIP_VERSION` is the **SIP version** to use, i.e. `4.19.8`.
 - `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
+- `ENABLE_CONVERTERS` to enable all **server converters**. Effective only when tests are ran using Maven.
 - `SPECIFIC_TEST` is a **specific test** to launch. The syntax must be the same as [pytest markers](http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id), i.e.:
 ```
     test_local_client.py (an entire test file)
