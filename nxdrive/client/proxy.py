@@ -92,14 +92,14 @@ class ManualProxy(Proxy):
             self.port = url.port
             self.username = url.username
             self.password = url.password
+            self.authenticated = bool(url.username)
         else:
             self.scheme = scheme
             self.host = host
             self.port = port
             self.username = username
             self.password = password
-
-        self.authenticated = authenticated or bool(url.username)
+            self.authenticated = authenticated
 
     @property
     def url(self):
