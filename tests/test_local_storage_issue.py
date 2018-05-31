@@ -43,7 +43,6 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
             self.nuxeo_url, self.user_1,
             u'nxdrive-test-administrator-device', self.version,
             password=self.password_1)
-        self.engine_1.invalidate_client_cache()
         error = IOError('No space left on device')
         self.engine_1.remote.make_download_raise(error)
         self.engine_1.start()
@@ -66,7 +65,6 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
 
         # Synchronize without simulating any error
         self.engine_1.remote.make_download_raise(None)
-        self.engine_1.invalidate_client_cache()
         self.wait_sync(wait_for_async=True, timeout=10, fail_if_timeout=False,
                        enforce_errors=False)
         # Remote file should be created locally
@@ -80,7 +78,6 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
 
         # Retry to synchronize blacklisted file still simulating
         # a "No space left on device" error
-        self.engine_1.invalidate_client_cache()
         self.engine_1.remote.make_download_raise(error)
         # Re-queue pairs in error
         self.queue_manager_1.requeue_errors()
@@ -96,7 +93,6 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         # Synchronize without simulating any error, as if space had been made
         # available on device
         self.engine_1.remote.make_download_raise(None)
-        self.engine_1.invalidate_client_cache()
         # Re-queue pairs in error
         self.queue_manager_1.requeue_errors()
         self.wait_sync(enforce_errors=False)
