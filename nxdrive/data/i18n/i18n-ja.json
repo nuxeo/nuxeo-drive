@@ -179,6 +179,8 @@
     "SECTION_GENERAL": "一般",
     "SELECT_SYNC_FOLDERS": "同期フォルダを選択",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "どのフォルダをローカルで同期化するか選択できます。これにはエンジンがオンラインでなければなりません。",
+    "SERVER_DEFAULT": "Server default",
+    "SERVER_UI": "Server UI",
     "SETTINGS": "設定",
     "SETTINGS_WINDOW_TITLE": "Nuxeo Drive - 設定",
     "SET_ACCOUNT": "アカウントを設定",

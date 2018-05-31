@@ -179,6 +179,8 @@
     "SECTION_GENERAL": "Allgemein",
     "SELECT_SYNC_FOLDERS": "Synchronisationsordner auswählen",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Ermöglicht Ihnen auszuwählen, welche Ordner lokal synchronisiert werden sollen. Dafür muss die Engine online sein.",
+    "SERVER_DEFAULT": "Server default",
+    "SERVER_UI": "Server UI",
     "SETTINGS": "Einstellungen",
     "SETTINGS_WINDOW_TITLE": "Nuxeo Drive – Einstellungen",
     "SET_ACCOUNT": "Konto einrichten",

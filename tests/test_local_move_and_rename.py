@@ -590,7 +590,6 @@ class TestLocalMoveAndRename(UnitTestCase):
             self.nuxeo_url, self.user_1,
             u'nxdrive-test-administrator-device', self.version,
             password=self.password_1)
-        self.engine_1.invalidate_client_cache()
         error = HTTPError('', 500, 'Mock server error', {}, None)
         self.engine_1.remote.make_server_call_raise(error)
 
@@ -602,7 +601,6 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         # Remove faulty client and set engine online
         self.engine_1.remote.make_server_call_raise(None)
-        self.engine_1.invalidate_client_cache()
         self.engine_1.set_offline(value=False)
 
         self.wait_sync()

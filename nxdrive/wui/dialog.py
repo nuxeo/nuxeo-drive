@@ -120,6 +120,8 @@ class WebDriveApi(QtCore.QObject):
             'queue': engine.get_queue_manager().get_metrics(),
             'web_authentication': bind.web_authentication,
             'server_url': bind.server_url,
+            'default_ui': engine._ui,
+            'ui': engine._force_ui or engine._ui,
             'username': bind.username,
             'need_password_update': bind.pwd_update_required,
             'initialized': bind.initialized,
@@ -678,26 +680,29 @@ class WebDialog(QtGui.QDialog):
 
     @staticmethod
     def _set_proxy(manager, server_url=None):
-        proxy_settings = manager.get_proxy_settings()
-        if proxy_settings.config == 'Manual':
-            if proxy_settings.server and proxy_settings.port:
-                proxy = QNetworkProxy(QNetworkProxy.HttpProxy, hostName=proxy_settings.server,
-                                      port=int(proxy_settings.port))
-                if proxy_settings.authenticated:
-                    proxy.setPassword(proxy_settings.password)
-                    proxy.setUser(proxy_settings.username)
-                QNetworkProxy.setApplicationProxy(proxy)
-        elif proxy_settings.config == 'System':
+        proxy = manager.proxy
+        if proxy.category == 'System':
             QNetworkProxyFactory.setUseSystemConfiguration(True)
-        elif proxy_settings.config == 'Automatic':
-            proxy_settings = manager.get_proxies(server_url)
-            protocol = server_url.split(":")[0]
-            proxy_server_info = urlparse(proxy_settings[protocol])
-            proxy = QNetworkProxy(QNetworkProxy.HttpProxy, hostName=proxy_server_info.hostname, 
-                                  port=proxy_server_info.port)
-            QNetworkProxy.setApplicationProxy(proxy)
+            return
+
+        if proxy.category == 'Manual':
+            q_proxy = QNetworkProxy(QNetworkProxy.HttpProxy,
+                                    hostName=proxy.host,
+                                    port=int(proxy.port))
+            if proxy.authenticated:
+                q_proxy.setPassword(proxy.password)
+                q_proxy.setUser(proxy.username)
+
+        elif proxy.category == 'Automatic':
+            proxy_url = proxy.settings(server_url)['http']
+            parsed_url = urlparse(proxy_url)
+            q_proxy = QNetworkProxy(QNetworkProxy.HttpProxy,
+                                    hostName=parsed_url.hostname,
+                                    port=parsed_url.port)
         else:
-            QNetworkProxy.setApplicationProxy(QNetworkProxy(QNetworkProxy.NoProxy))
+            q_proxy = QNetworkProxy(QNetworkProxy.NoProxy)
+
+        QNetworkProxy.setApplicationProxy(q_proxy)
 
     @QtCore.pyqtSlot()
     def attachJsApi(self):

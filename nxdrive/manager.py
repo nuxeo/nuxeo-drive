@@ -10,8 +10,6 @@ from collections import namedtuple
 from logging import getLogger
 from urlparse import urlparse
 
-import pypac
-import requests
 from PyQt4 import QtCore
 from PyQt4.QtGui import QApplication
 from PyQt4.QtScript import QScriptEngine
@@ -19,21 +17,18 @@ from PyQt4.QtWebKit import qWebKitVersion
 
 from . import __version__
 from .client import LocalClient
+from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
 from .constants import APP_NAME
 from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
 from .options import Options, server_updater
 from .osi import AbstractOSIntegration
 from .updater import updater
-from .utils import (ENCODING, decrypt, encrypt, force_decode,
-                    get_proxies_for_handler, normalized_path)
+from .utils import (ENCODING, force_decode, normalized_path)
 
 if AbstractOSIntegration.is_windows():
-    import _winreg
     import win32api
     import win32clipboard
-elif AbstractOSIntegration.is_mac():
-    import SystemConfiguration
 
 log = getLogger(__name__)
 
@@ -44,164 +39,6 @@ class FolderAlreadyUsed(Exception):
 
 class EngineTypeMissing(Exception):
     pass
-
-
-class MissingToken(Exception):
-    pass
-
-
-class ProxySettings(object):
-    """ Summarize HTTP proxy settings. """
-
-    def __init__(self, dao=None, config='System', proxy_type=None, server=None,
-                 port=None, authenticated=False, username=None, password=None):
-        self.config = config
-        self.proxy_type = proxy_type
-        self.server = server
-        self.port = port
-        self.authenticated = authenticated
-        self.username = username
-        self.password = password
-        self.pac_url = None
-        if dao is not None:
-            self.load(dao)
-
-    def from_url(self, url):
-        if '://' not in url:
-            url = 'all://' + url
-        url_obj = urlparse(url)
-        self.username = url_obj.username
-        self.password = url_obj.password
-        self.authenticated = (self.username is not None and
-                              self.password is not None)
-        self.port = url_obj.port
-        self.server = url_obj.hostname
-        if url_obj.scheme == "all":
-            self.proxy_type = None
-        else:
-            self.proxy_type = url_obj.scheme
-        self.config = "Manual"
-
-    def to_url(self, with_credentials=True):
-        if self.config != "Manual":
-            return ""
-        result = ""
-        if self.proxy_type is not None:
-            result = self.proxy_type + "://"
-        if with_credentials and self.authenticated:
-            result += self.username + ":" + self.password + "@"
-        if self.server is not None:
-            if self.port is None:
-                result += self.server
-            else:
-                result += self.server + ":" + str(self.port)
-        return result
-
-    def save(self, dao, token=None):
-        # Encrypt password with token as the secret
-        if token is None:
-            token = dao.get_config("device_id")
-        if token is None:
-            raise MissingToken('Your token has been revoked, please update'
-                               ' your password to acquire a new one.')
-        token += '_proxy'
-        password = encrypt(self.password, token)
-        dao.update_config("proxy_password", password)
-        dao.update_config("proxy_username", self.username)
-        dao.update_config("proxy_port", self.port)
-        dao.update_config("proxy_type", self.proxy_type)
-        dao.update_config("proxy_config", self.config)
-        dao.update_config("proxy_server", self.server)
-        dao.update_config("proxy_authenticated", self.authenticated)
-        dao.update_config("proxy_pac_url", self.pac_url)
-
-    def load(self, dao, token=None):
-        self.config = dao.get_config("proxy_config", "System")
-        self.proxy_type = dao.get_config("proxy_type")
-        self.port = dao.get_config("proxy_port")
-        self.server = dao.get_config("proxy_server")
-        self.username = dao.get_config("proxy_username")
-        password = dao.get_config("proxy_password")
-        self.authenticated = (dao.get_config("proxy_authenticated", "0") == "1")
-        self.pac_url = dao.get_config("proxy_pac_url")
-        if token is None:
-            token = dao.get_config("device_id")
-        if password is not None and token is not None:
-            token += '_proxy'
-            self.password = decrypt(password, token)
-        else:
-            # If no server binding or no token available
-            # (possibly after token revocation) reset password
-            self.password = ''
-
-    def __repr__(self):
-        return ("ProxySettings<config=%s, proxy_type=%s, server=%s, port=%s, "
-                "authenticated=%r, username=%s>") % (
-                    self.config, self.proxy_type, self.server, self.port,
-                    self.authenticated, self.username)
-
-    @staticmethod
-    def validate_proxy(proxy_url, target_url):
-        """
-        Validate a proxy server for the give the target URL.
-
-        :param proxy_url: The proxy server to validate
-        :param target_url: The target URL to check
-        :return: (True, proxy_settings) if proxy server is valid for the
-                                        target_url
-                 (False, proxy_settings) if proxy server does not work for
-                                         the target_url
-        """
-
-        proxy_settings = None
-        log.trace('Validating proxy server: %s for %s', proxy_url, target_url)
-        try:
-            if proxy_url.upper() != 'DIRECT':
-                proxy_settings = {'http': proxy_url, 'https': proxy_url}
-            resp = requests.get(target_url, proxies=proxy_settings)
-            return resp.ok, proxy_settings
-        except Exception:
-            return False, proxy_settings
-
-    def get_proxies_automatic(self, url):
-        """
-        Get the proxy for the given URL.
-
-        :param url: The URL for which we need to find the proxy server
-        :return: proxy_setting using first valid proxy server IP (for URL),
-                 in a list of available proxy servers.
-                 Empty dictionary if there is no proxy server available
-                for given URL.
-        """
-
-        default = None
-        if self.config != 'Automatic':
-            return default
-
-        try:
-            response = requests.get(self.pac_url)
-        except requests.ConnectionError:
-            log.exception('Network error')
-            return default
-        else:
-            pac_script = response.text
-        try:
-            pac_data = pypac.parser.PACFile(pac_script)
-            resolver = pypac.resolver.ProxyResolver(pac_data)
-        except (pypac.parser.MalformedPacError,
-                pypac.resolver.ProxyConfigExhaustedError):
-            log.exception('PAC error')
-            return default
-        else:
-            proxy_list = resolver.get_proxies(url)
-
-        for item in proxy_list:
-            proxy_url = item.lstrip('PROXY ')
-            working, proxy_settings = self.validate_proxy(proxy_url, url)
-            if working:
-                return proxy_settings
-
-        return default
 
 
 class Manager(QtCore.QObject):
@@ -255,13 +92,15 @@ class Manager(QtCore.QObject):
         from .engine.next.engine_next import EngineNext
         self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
         self._engines = {}
-        self.proxies = dict()
         self.updater = None
         self.server_config_updater = None
+
         if Options.proxy_server is not None:
-            proxy = ProxySettings()
-            proxy.from_url(Options.proxy_server)
-            proxy.save(self._dao)
+            self.proxy = get_proxy(category='Manual', url=Options.proxy_server)
+            save_proxy(self.proxy, self._dao)
+        else:
+            self.proxy = load_proxy(self._dao)
+        log.info('Proxy configuration is %r', self.proxy)
 
         # Set the logs levels option
         if FILE_HANDLER:
@@ -288,8 +127,6 @@ class Manager(QtCore.QObject):
         res = self._dao.get_config('direct_edit_auto_lock')
         if res is None:
             self._dao.update_config('direct_edit_auto_lock', '1')
-
-        self.refresh_proxies()
 
         # Create DirectEdit
         self._create_autolock_service()
@@ -597,11 +434,6 @@ class Manager(QtCore.QObject):
             self._dao.update_config('device_id', self.__device_id)
         return self.__device_id
 
-    def get_proxy_settings(self):
-        """ Fetch proxy settings from database. """
-
-        return ProxySettings(dao=self._dao)
-
     def get_config(self, value, default=None):
         return self._dao.get_config(value, default)
 
@@ -669,143 +501,18 @@ class Manager(QtCore.QObject):
     def get_tracker_id(self):
         return self._tracker.uid if self._tracker else ''
 
-    def validate_proxy_settings(self, proxy_settings):
-        url = 'http://www.example.org'
-        try:
-            if proxy_settings.config in ('Manual', 'System'):
-                proxies = get_proxies_for_handler(proxy_settings)
-                resp = requests.get(url, proxies=proxies)
-                resp.raise_for_status()
-            elif proxy_settings.config == 'Automatic':
-                resp = requests.get(proxy_settings.pac_url)
-                resp.raise_for_status()
-                pac_script = resp.text
-                pac_data = pypac.parser.PACFile(pac_script)
-                resolver = pypac.resolver.ProxyResolver(pac_data)
-                if self._engine_definitions:
-                    # Check if every server URL can be resolved to some
-                    # proxy server
-                    for engine_def in self._engine_definitions:
-                        url = self._engines[engine_def.uid].server_url
-                        resolver.get_proxies(url)
-                else:
-                    resolver.get_proxies(url)
-        except Exception as e:
-            log.error('Exception (%s) when validating proxy server for %s',
-                      e, url)
-            return False
-        return True
+    def set_proxy(self, proxy):
+        for engine in self._engines.values():
+            url = engine._server_url
+            if not validate_proxy(proxy, url):
+                return 'PROXY_INVALID'
+            engine.remote.set_proxy(proxy)
 
-    def set_proxy_settings(self, proxy_settings, force=False):
-        if force or self.validate_proxy_settings(proxy_settings):
-            proxy_settings.save(self._dao)
-            self.refresh_proxies(proxy_settings)
-            log.info('Proxy settings successfully updated: %r', proxy_settings)
-            return ''
-        return 'PROXY_INVALID'
-
-    def refresh_proxies(self, proxy_settings=None):
-        """ Refresh current proxies with the given settings. """
-
-        url = 'http://www.google.com'
-        # If no proxy settings passed fetch them from database
-        proxy_settings = (proxy_settings if proxy_settings is not None
-                          else self.get_proxy_settings())
-        if proxy_settings.config in ('Manual', 'System'):
-            self.proxies['default'] = get_proxies_for_handler(proxy_settings)
-        elif proxy_settings.config == 'Automatic':
-            if self._engine_definitions:
-                for engine_def in self._engine_definitions:
-                    server_url = self._engines[engine_def.uid].server_url
-                    self.proxies[server_url] = proxy_settings.get_proxies_automatic(server_url)
-                    log.trace('Setting proxy for %s to %r', server_url,
-                              self.proxies[server_url])
-            else:
-                self.proxies['default'] = proxy_settings.get_proxies_automatic(url)
-        else:
-            self.proxies['default'] = {}
-
-        log.trace('Effective proxy: %r', self.proxies['default'])
-        self.proxyUpdated.emit(proxy_settings)
-
-    @staticmethod
-    def get_system_pac_url():
-        """ Get the proxy auto config (PAC) URL, if present. """
-
-        regkey = r'Software\Microsoft\Windows\CurrentVersion\Internet Settings'
-        if AbstractOSIntegration.is_windows():
-            # Use the registry
-            settings = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, regkey)
-            try:
-                return str(_winreg.QueryValueEx(settings, 'AutoConfigURL')[0])
-            except OSError as e:
-                if e.errno not in (2,):
-                    log.exception('Error retrieving PAC URL')
-            finally:
-                _winreg.CloseKey(settings)
-        elif AbstractOSIntegration.is_mac():
-            # Use SystemConfiguration library
-            try:
-                config = SystemConfiguration.SCDynamicStoreCopyProxies(None)
-            except AttributeError:
-                # It may happen on rare cases. The next call will work.
-                return
-
-            if ('ProxyAutoConfigEnable' in config
-                    and 'ProxyAutoConfigURLString' in config):
-                # 'Auto Proxy Discovery' or WPAD is not supported yet
-                # Only 'Automatic Proxy configuration' URL setting is supported
-                if not ('ProxyAutoDiscoveryEnable' in config
-                        and config['ProxyAutoDiscoveryEnable'] == 1):
-                    return str(config['ProxyAutoConfigURLString'])
-
-    def retreive_system_proxies(self, server_url):
-        """
-        Gets the proxy server if system is configured with PAC URL.
-
-        @param server_url: The server URL for which the proxy server
-                           should be determined
-        """
-
-        proxies = None
-        if self.proxies and 'default' in self.proxies:
-            proxies = self.proxies['default']
-        if proxies is None:
-            pac_url = self.get_system_pac_url()
-            if pac_url:
-                # A PAC URL is configured
-                proxy_settings = ProxySettings()
-                proxy_settings.config = 'Automatic'
-                proxy_settings.pac_url = pac_url
-                proxies = proxy_settings.get_proxies_automatic(server_url)
-                log.trace('System proxy (from PAC) retreived: %r', proxies)
-        return proxies
-
-    def get_proxies(self, server_url):
-        """
-        Returns the proxy server address based on server_url.
-        For Automatic Proxy Configuraiton (.pac) there can be
-        different proxy server for different out bound URLs.
-
-        :param server_url: The URL of the server
-        :return: The proxy settings required for the specific server
-        """
-
-        proxy_settings = self.get_proxy_settings()
-        proxies = {}
-
-        if proxy_settings.config == 'Manual':
-            if self.proxies and 'default' in self.proxies:
-                proxies = self.proxies['default']
-        elif proxy_settings.config == 'System':
-            proxies = self.retreive_system_proxies(server_url)
-        elif proxy_settings.config == 'Automatic':
-            if self.proxies.get(server_url) is None:
-                self.proxies[server_url] = \
-                    proxy_settings.get_proxies_automatic(server_url)
-            proxies = self.proxies[server_url]
-
-        return proxies
+        save_proxy(proxy, self._dao)
+        self.proxy = proxy
+        log.trace('Effective proxy: %r', proxy)
+        self.proxyUpdated.emit(proxy)
+        return ''
 
     def _get_default_server_type(self):  # TODO: Move to constants.py
         return "NXDRIVE"

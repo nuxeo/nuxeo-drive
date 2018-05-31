@@ -336,7 +336,6 @@ class TestSynchronization(UnitTestCase):
             self.nuxeo_url, self.user_1,
             u'nxdrive-test-administrator-device', self.version,
             password=self.password_1)
-        self.engine_1.invalidate_client_cache()
         error = HTTPError(status=500, message='Mock download error')
         self.engine_1.remote.make_download_raise(error)
 
@@ -358,7 +357,6 @@ class TestSynchronization(UnitTestCase):
 
         # Remove faulty client and reset errors
         self.engine_1.remote.make_download_raise(None)
-        self.engine_1.invalidate_client_cache()
         for state in states_in_error:
             self.engine_1.get_dao().reset_error(state)
 
@@ -393,7 +391,6 @@ class TestSynchronization(UnitTestCase):
             self.nuxeo_url, self.user_1,
             u'nxdrive-test-administrator-device', self.version,
             password=self.password_1)
-        self.engine_1.invalidate_client_cache()
         errors = [ConnectionError('Mock connection error'),
                   socket.error('Mock socket error'),
                   HTTPError(status=503, message='Mock')]
@@ -417,7 +414,6 @@ class TestSynchronization(UnitTestCase):
 
         # Re-enable network
         self.engine_1.remote.make_server_call_raise(None)
-        self.engine_1.invalidate_client_cache()
 
         # Verify that everything now gets synchronized
         self.wait_sync(wait_for_async=True)
@@ -999,7 +995,6 @@ class TestSynchronization(UnitTestCase):
         engine.remote = RemoteTest(self.nuxeo_url, self.user_1,
                                    u'nxdrive-test-administrator-device',
                                    self.version, password=self.password_1)
-        engine.invalidate_client_cache()
         error = HTTPError(status=409, message='Mock Conflict')
         engine.remote.make_upload_raise(error)
         engine.remote.raise_on = _raise_for_second_file_only
@@ -1021,7 +1016,6 @@ class TestSynchronization(UnitTestCase):
 
         # Re-enable default behavior
         engine.remote.reset_errors()
-        engine.invalidate_client_cache()
 
         self.wait_sync()
 

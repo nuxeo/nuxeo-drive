@@ -179,6 +179,8 @@
     "SECTION_GENERAL": "Generale",
     "SELECT_SYNC_FOLDERS": "Seleziona cartelle di sincronizzazione",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Consente di scegliere le cartelle da sincronizzare localmente. A tal fine è necessario che il motore sia online.",
+    "SERVER_DEFAULT": "Server default",
+    "SERVER_UI": "Server UI",
     "SETTINGS": "Impostazioni",
     "SETTINGS_WINDOW_TITLE": "Nuxeo Drive - Impostazioni",
     "SET_ACCOUNT": "Imposta account",

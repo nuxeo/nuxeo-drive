@@ -633,40 +633,6 @@ def make_tmp_file(folder, content):
     return path
 
 
-def get_proxies_for_handler(proxy_settings):
-    """Return a pair containing proxy string and exceptions list"""
-    if proxy_settings.config == 'None':
-        # No proxy, return an empty dictionary to disable
-        # default proxy detection
-        return {}
-    elif proxy_settings.config == 'System':
-        # System proxy, return None to use default proxy detection
-        return None
-    else:
-        # Manual proxy settings, build proxy string and exceptions list
-        if proxy_settings.authenticated:
-            proxy_string = '%s:%s@%s:%s' % (proxy_settings.username,
-                                            proxy_settings.password,
-                                            proxy_settings.server,
-                                            proxy_settings.port)
-        else:
-            proxy_string = '%s:%s' % (proxy_settings.server,
-                                      proxy_settings.port)
-        if proxy_settings.proxy_type is None:
-            proxies = {'http': proxy_string, 'https': proxy_string}
-        else:
-            proxies = {proxy_settings.proxy_type: ('%s://%s' % (proxy_settings.proxy_type, proxy_string))}
-        return proxies
-
-
-def get_proxy_config(proxies):
-    if proxies is None:
-        return 'System'
-    elif proxies == {}:
-        return 'None'
-    return 'Manual'
-
-
 class PidLockFile(object):
     """ This class handle the pid lock file"""
     def __init__(self, folder, key):

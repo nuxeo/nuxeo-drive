@@ -11,20 +11,36 @@
 - Removed `Engine.get_rest_api_client()`. Use `remote` attribute instead.
 - Removed `Engine.get_server_version()`. Use `remote.client.server_version` attribute instead.
 - Removed `Engine.get_update_infos()`
+- Removed `Engine.invalidate_client_cache()`
 - Removed `Manager.exceptions`
+- Removed `Manager.get_proxies()`
+- Removed `Manager.get_proxy_settings()`
+- Moved `Manager.get_system_pac_url()` to `nxdrive/client/proxy.py`
+- Removed `Manager.proxies`
+- Added `Manager.proxy`
+- Removed `Manager.refresh_proxies()`
+- Removed `Manager.retreive_system_proxies()`
 - Removed `Manager.set_exceptions()`
+- Added `Manager.set_proxy()`
+- Removed `Manager.set_proxy_settings()`
+- Removed `Manager.validate_proxy_settings()`
 - Removed `Options.server_version`. Use `Engine.remote.client.server_version` attribute instead.
 - Removed `Options.proxy_exceptions`
+- Removed `Options.proxy_type`
+- Added `Remote.set_proxy()`
 - Removed `RemoteWatcher.get_engine()`. Use `engine` attribute instead.
 - Added `nxdrive/client/remote.py`
 - Added `exceptions.py`
 - Renamed `nxdrive/client/local_client.py` to `nxdrive/client/local.py`
 - Removed `nxdrive/client/base_automation_client.py`
 - Removed `nxdrive/client/common.py`
+- Added `nxdrive/client/proxy.py`
 - Removed `nxdrive/client/remote_document_client.py`
 - Removed `nxdrive/client/remote_file_system_client.py`
 - Removed `nxdrive/client/remote_filtered_file_system_client.py`
 - Removed `nxdrive/client/rest_api_client.py`
+- Moved nxdrive/manager.py::`MissingToken` to `nxdrive/client/proxy.py`
+- Removed nxdrive/manager.py::`ProxySettings`
 
 # 3.1.0
 - Removed `AbstractOSIntegration.get_os_version()`

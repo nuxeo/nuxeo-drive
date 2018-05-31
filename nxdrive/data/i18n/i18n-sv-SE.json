@@ -179,6 +179,8 @@
     "SECTION_GENERAL": "Allmänt",
     "SELECT_SYNC_FOLDERS": "Välj mappar för synkronisering",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Gör det möjligt att välja vilka mappar som ska synkroniseras lokalt. För detta krävs att motorn är online.",
+    "SERVER_DEFAULT": "Server default",
+    "SERVER_UI": "Server UI",
     "SETTINGS": "Inställningar",
     "SETTINGS_WINDOW_TITLE": "Nuxeo Drive – inställningar",
     "SET_ACCOUNT": "Ange konto",
