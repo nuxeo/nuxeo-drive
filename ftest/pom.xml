@@ -20,7 +20,7 @@
   <properties>
     <!-- URL of the last archived artifacts of the nuxeo-drive marketplace
       package on Jenkins -->
-    <nuxeo.drive.mp.url>http://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/</nuxeo.drive.mp.url>
+    <nuxeo.drive.mp.url>https://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/</nuxeo.drive.mp.url>
   </properties>
 
   <dependencies>
@@ -106,7 +106,7 @@
   <repositories>
     <repository>
       <id>public</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public</url>
+      <url>https://maven.nuxeo.org/nexus/content/groups/public</url>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -116,7 +116,7 @@
     </repository>
     <repository>
       <id>public-snapshot</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot
+      <url>https://maven.nuxeo.org/nexus/content/groups/public-snapshot
       </url>
       <releases>
         <enabled>false</enabled>

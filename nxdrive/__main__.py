@@ -32,7 +32,7 @@ def win32_unicode_argv():
     Windows, with the underlying Windows API instead replacing multi-byte
     characters with '?'.
 
-    See http://stackoverflow.com/questions/846850/read-unicode-characters-from-command-line-arguments-in-python-2-x-on-windows
+    See https://stackoverflow.com/questions/846850/read-unicode-characters-from-command-line-arguments-in-python-2-x-on-windows
     """
 
     from ctypes import POINTER, byref, cdll, c_int, windll
