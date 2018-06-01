@@ -18,7 +18,7 @@ Contributors:
 Versionning
 -----------
 
-We use semantic versioning (http://semver.org) compliant with distutils
+We use semantic versioning (https://semver.org) compliant with distutils
 and the PEP-440.
 
 To declare a beta, use this schema:

@@ -13,10 +13,10 @@
     <name>Nuxeo Drive Client Debian package</name>
     <description>Generate .deb package for the Nuxeo Drive client</description>
 
-    <url>http://www.nuxeo.com/en/products</url>
+    <url>https://www.nuxeo.com/en/products</url>
     <organization>
         <name>Nuxeo</name>
-        <url>http://www.nuxeo.com</url>
+        <url>https://www.nuxeo.com</url>
     </organization>
     <licenses>
         <license>

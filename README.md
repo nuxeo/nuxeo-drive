@@ -4,7 +4,7 @@ This is an ongoing development project for desktop synchronization of local fold
 
 Watch this [screencast](https://embedwistia-a.akamaihd.net/deliveries/db284a19e500781cdca15ecb0e5901d62154f084/file.mp4) to get a 6 min overview of this project.
 
-See [USERDOC/Nuxeo Drive](http://doc.nuxeo.com/x/04HQ) for complete up-to-date documentation.
+See [USERDOC/Nuxeo Drive](https://doc.nuxeo.com/x/04HQ) for complete up-to-date documentation.
 
 Note: this documentation follows the Drive version of the master branch, which could evolve rapidly. To see the documentation of a given Drive release, use this kind of link:
 
@@ -26,7 +26,7 @@ Installing Nuxeo Drive requires two components: a server addon for the Nuxeo Pla
 
 **Stable releases for Nuxeo Drive** are available as a Marketplace package from the Nuxeo Online Services portal: [https://connect.nuxeo.com/nuxeo/site/marketplace/package/nuxeo-drive](https://connect.nuxeo.com/nuxeo/site/marketplace/package/nuxeo-drive)
 
-You can also fetch the **latest development version** of the [Marketplace package for the Nuxeo master branch](http://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace) from the Continuous Integration server (use at your own risk).
+You can also fetch the **latest development version** of the [Marketplace package for the Nuxeo master branch](https://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace) from the Continuous Integration server (use at your own risk).
 
 ### Installing the Marketplace Package
 
@@ -50,7 +50,7 @@ The easiest and safest way to build Drive is to follow the same steps as we do o
 
 #### xattr
 
-First note that Nuxeo Drive uses [Extended file attributes](http://en.wikipedia.org/wiki/Extended_file_attributes) through the [xattr](https://pypi.python.org/pypi/xattr/) Python wrapper.
+First note that Nuxeo Drive uses [Extended file attributes](https://en.wikipedia.org/wiki/Extended_file_attributes) through the [xattr](https://pypi.python.org/pypi/xattr/) Python wrapper.
 
 On FreeBSD and macOS, xattrs are enabled in the default kernel.
 
@@ -144,7 +144,7 @@ The desktop synchronization client can also be operated from the command-line:
     Alternatively you can bind to a Nuxeo server with your user credentials using the following commandline arguments:
 
     ```
-    ndrive bind-server nuxeo-username http://server:port/nuxeo --password secret
+    ndrive bind-server nuxeo-username https://server:port/nuxeo --password secret
     ```
     This will create a new folder called Nuxeo Drive in your home folder on GNU/Linux & macOS and under the Documents folder on  Windows.
 
