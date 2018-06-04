@@ -572,8 +572,6 @@ class DriveWebPage(QtWebKit.QWebPage):
 
 
 class WebDialog(QtGui.QDialog):
-    # An error has been raised while loading the HTML
-    loadError = QtCore.pyqtSignal(object)
 
     def __init__(
         self,
@@ -611,7 +609,6 @@ class WebDialog(QtGui.QDialog):
         if not Options.consider_ssl_errors:
             self.networkManager.sslErrors.connect(self._ssl_error_handler)
 
-        self.networkManager.finished.connect(self.requestFinished)
         self.page.setNetworkAccessManager(self.networkManager)
         if page is not None:
             self.load(page, api, application)
@@ -648,15 +645,6 @@ class WebDialog(QtGui.QDialog):
         self.attachJsApi()
         self.frame.javaScriptWindowObjectCleared.connect(self.attachJsApi)
         self.activateWindow()
-
-    @QtCore.pyqtSlot(object)
-    def requestFinished(self, reply):
-        if (self.request is not None
-                and reply.request().url() == self.request.url()
-                and reply.error() != QtNetwork.QNetworkReply.NoError):
-            # See http://doc.qt.io/qt-4.8/qnetworkreply.html#NetworkError-enum
-            error = dict(code=reply.error())
-            self.loadError.emit(error)
 
     def resize(self, width, height):
         super(WebDialog, self).resize(width * self.zoom_factor,

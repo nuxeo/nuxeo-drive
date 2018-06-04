@@ -42,20 +42,17 @@ class EngineTypeMissing(Exception):
 
 
 class Manager(QtCore.QObject):
-    proxyUpdated = QtCore.pyqtSignal(object)
-    clientUpdated = QtCore.pyqtSignal(object, object)
-    engineNotFound = QtCore.pyqtSignal(object)
     newEngine = QtCore.pyqtSignal(object)
     dropEngine = QtCore.pyqtSignal(object)
     initEngine = QtCore.pyqtSignal(object)
-    aboutToStart = QtCore.pyqtSignal(object)
     started = QtCore.pyqtSignal()
     stopped = QtCore.pyqtSignal()
     suspended = QtCore.pyqtSignal()
     resumed = QtCore.pyqtSignal()
-    _singleton = None
+
     app_name = APP_NAME
 
+    _singleton = None
     __device_id = None
 
     @staticmethod
@@ -121,7 +118,6 @@ class Manager(QtCore.QObject):
         self.old_version = self.get_config('client_version')
         if self.old_version != self.version:
             self.set_config('client_version', self.version)
-            self.clientUpdated.emit(self.old_version, self.version)
 
         # Add auto-lock on edit
         res = self._dao.get_config('direct_edit_auto_lock')
@@ -304,7 +300,6 @@ class Manager(QtCore.QObject):
             if euid is not None and euid != uid:
                 continue
             if not self._pause:
-                self.aboutToStart.emit(engine)
                 log.debug('Launch engine %s', uid)
                 try:
                     engine.start()
@@ -325,7 +320,6 @@ class Manager(QtCore.QObject):
                 log.warning('Cannot find engine %s anymore', engine.engine)
                 if engine.engine not in in_error:
                     in_error[engine.engine] = True
-                    self.engineNotFound.emit(engine)
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
             self._engines[engine.uid].online.connect(self._force_autoupdate)
             self.initEngine.emit(self._engines[engine.uid])
@@ -513,7 +507,6 @@ class Manager(QtCore.QObject):
         save_proxy(proxy, self._dao)
         self.proxy = proxy
         log.trace('Effective proxy: %r', proxy)
-        self.proxyUpdated.emit(proxy)
         return ''
 
     def _get_default_server_type(self):  # TODO: Move to constants.py

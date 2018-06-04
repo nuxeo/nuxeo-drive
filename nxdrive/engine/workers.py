@@ -3,8 +3,7 @@ from logging import getLogger
 from threading import current_thread
 from time import sleep, time
 
-from PyQt4.QtCore import (QCoreApplication, QObject, QThread, pyqtSignal,
-                          pyqtSlot)
+from PyQt4.QtCore import (QCoreApplication, QObject, QThread, pyqtSlot)
 
 from .activity import Action, IdleAction
 
@@ -29,7 +28,6 @@ class Worker(QObject, object):
     _thread_id = None
     engine = None
     _pause = False
-    actionUpdate = pyqtSignal(object)
 
     def __init__(self, thread=None, **kwargs):
         super(Worker, self).__init__()
@@ -133,9 +131,6 @@ class Worker(QObject, object):
 
     def _terminated(self):
         log.trace('Thread %s(%r) terminated', self._name, self._thread_id)
-
-    def _update_action(self, action):
-        self.actionUpdate.emit(action)
 
     @property
     def action(self):
