@@ -122,9 +122,11 @@ class AutomaticProxy(Proxy):
     The PAC file can be retrieved from a web address, or its JavaScript
     content can be directly passed to the constructor.
 
-    If the pac_url and the js arguments are both missing, and if the
-    OS is Windows, then pypac will automatically try to retrieve the
-    default PAC file address in the registry.
+    If the pac_url and the js arguments are both missing:
+       - macOS: pypac will automatically try to retrieve
+                the default PAC file address in the system preferences
+       - Windows: pypac will automatically try to retrieve
+                  the default PAC file address in the registry
     """
     category = 'Automatic'
 
@@ -207,7 +209,6 @@ def save_proxy(proxy, dao, token=None):
             token += '_proxy'
             password = encrypt(str(proxy.password), str(token))
             dao.update_config('proxy_password', password)
-
 
 
 def validate_proxy(proxy, url):
