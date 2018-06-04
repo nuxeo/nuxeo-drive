@@ -12,23 +12,31 @@
 - Removed `Engine.get_server_version()`. Use `remote.client.server_version` attribute instead.
 - Removed `Engine.get_update_infos()`
 - Removed `Engine.invalidate_client_cache()`
+- Added `Manager.proxy`
+- Added `Manager.set_proxy()`
+- Moved `Manager.get_system_pac_url()` to `nxdrive/client/proxy.py`
+- Removed `Manager.aboutToStart()`
+- Removed `Manager.clientUpdated()`
+- Removed `Manager.engineNotFound()`
 - Removed `Manager.exceptions`
 - Removed `Manager.get_proxies()`
 - Removed `Manager.get_proxy_settings()`
-- Moved `Manager.get_system_pac_url()` to `nxdrive/client/proxy.py`
 - Removed `Manager.proxies`
-- Added `Manager.proxy`
 - Removed `Manager.refresh_proxies()`
 - Removed `Manager.retreive_system_proxies()`
 - Removed `Manager.set_exceptions()`
-- Added `Manager.set_proxy()`
 - Removed `Manager.set_proxy_settings()`
+- Removed `Manager.proxyUpdated()`
 - Removed `Manager.validate_proxy_settings()`
 - Removed `Options.server_version`. Use `Engine.remote.client.server_version` attribute instead.
 - Removed `Options.proxy_exceptions`
 - Removed `Options.proxy_type`
+- Removed `QueueManager.queueEmpty()`
 - Added `Remote.set_proxy()`
 - Removed `RemoteWatcher.get_engine()`. Use `engine` attribute instead.
+- Removed `WebDialog.loadError()`
+- Removed `WebDialog.requestFinished()`
+- Removed `Worker.actionUpdate()`
 - Added `nxdrive/client/remote.py`
 - Added `exceptions.py`
 - Renamed `nxdrive/client/local_client.py` to `nxdrive/client/local.py`

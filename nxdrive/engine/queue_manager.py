@@ -30,7 +30,6 @@ class QueueManager(QObject):
     newItem = pyqtSignal(object)
     newError = pyqtSignal(object)
     newErrorGiveUp = pyqtSignal(object)
-    queueEmpty = pyqtSignal()
     queueProcessing = pyqtSignal()
     queueFinishedProcessing = pyqtSignal()
     # Only used by Unit Test
@@ -449,7 +448,6 @@ class QueueManager(QObject):
                 and self._local_file_queue.empty()
                 and self._remote_folder_queue.empty()
                 and self._remote_file_queue.empty())):
-            self.queueEmpty.emit()
             if not self.is_active():
                 self.queueFinishedProcessing.emit()
             return

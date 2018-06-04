@@ -6,7 +6,7 @@ from threading import Thread, current_thread
 from time import sleep
 
 from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
-from nuxeo.exceptions import HTTPError, Unauthorized
+from nuxeo.exceptions import HTTPError
 
 from .activity import Action, FileAction
 from .dao.sqlite import EngineDAO
