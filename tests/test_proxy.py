@@ -82,7 +82,6 @@ def _patch_winreg_qve(**kwargs):
     return patch('pypac.os_settings.winreg.QueryValueEx', **kwargs)
 
 
-@pytest.mark.skip('Disabled until pypac 0.8.2')
 @pytest.mark.skipif(sys.platform != 'win32', reason='Only for Windows')
 def test_mock_autoconfigurl_windows(pac_file):
     with _patch_winreg_qve(return_value=(pac_file, 'foo')):
@@ -99,7 +98,6 @@ def _patch_pyobjc_dscp(**kwargs):
     return patch('pypac.os_settings.SystemConfiguration.SCDynamicStoreCopyProxies', **kwargs)
 
 
-@pytest.mark.skip('Disabled until pypac 0.8.2')
 @pytest.mark.skipif(sys.platform != 'darwin', reason='Only for macOS')
 def test_mock_autoconfigurl_mac(pac_file):
     with _patch_pyobjc_dscp(return_value={

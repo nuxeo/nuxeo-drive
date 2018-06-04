@@ -21,6 +21,7 @@ Changes in command line arguments:
 - Jenkins: Added the `PYTEST_ADDOPTS` parameter to the Drive-tests job
 - Jenkins: Removed the `ENABLE_PROFILER` parameter from the Drive-tests job
 - Packaging: Added `nuxeo` 2.0.1
+- Packaging: Updated `pypac` from 0.8.1 to 0.9.0
 - Packaging: Updated `pytest` from 3.5.1 to 3.6.0
 
 
