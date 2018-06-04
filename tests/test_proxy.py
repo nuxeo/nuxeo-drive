@@ -35,7 +35,12 @@ def pac_file():
     with open(pac, 'w') as f:
         f.write(js)
 
-    yield 'file://' + os.path.abspath(pac)
+    path = 'file://' + os.path.abspath(pac)
+    if sys.platform == 'win32':
+        # PyPAC does not accept "file://E:\\proxy.pac" but "file://E:/proxy.pac"
+        path = path.replace('\\', '/')
+
+    yield path
 
     try:
         os.remove(pac)
@@ -54,7 +59,7 @@ def test_manual_proxy():
     assert settings['http'] == settings['https'] == 'http://localhost:3128'
 
 
-def test_pac_proxy():
+def test_pac_proxy_js():
     proxy = get_proxy(category='Automatic', js=js)
     assert isinstance(proxy, AutomaticProxy)
     settings = proxy.settings('http://nuxeo.com')
@@ -87,6 +92,7 @@ def test_mock_autoconfigurl_windows(pac_file):
     with _patch_winreg_qve(return_value=(pac_file, 'foo')):
         proxy = get_proxy(category='Automatic')
         assert isinstance(proxy, AutomaticProxy)
+        assert proxy._pac_file
         settings = proxy.settings('http://nuxeo.com')
         assert settings['http'] == settings['https'] == 'http://localhost:8899'
         settings = proxy.settings('http://example.com')
@@ -106,6 +112,7 @@ def test_mock_autoconfigurl_mac(pac_file):
     }):
         proxy = get_proxy(category='Automatic')
         assert isinstance(proxy, AutomaticProxy)
+        assert proxy._pac_file
         settings = proxy.settings('http://nuxeo.com')
         assert settings['http'] == settings['https'] == 'http://localhost:8899'
         settings = proxy.settings('http://example.com')

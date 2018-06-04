@@ -97,7 +97,7 @@ class Manager(QtCore.QObject):
 
         if Options.proxy_server is not None:
             self.proxy = get_proxy(category='Manual', url=Options.proxy_server)
-            save_proxy(self.proxy, self._dao)
+            save_proxy(self.proxy, self._dao, token=self.device_id)
         else:
             self.proxy = load_proxy(self._dao)
         log.info('Proxy configuration is %r', self.proxy)
@@ -430,8 +430,10 @@ class Manager(QtCore.QObject):
     def device_id(self):
         # type: () -> unicode
         if not self.__device_id:
-            self.__device_id = uuid.uuid1().hex
-            self._dao.update_config('device_id', self.__device_id)
+            self.__device_id = self._dao.get_config('device_id')
+            if not self.__device_id:
+                self.__device_id = uuid.uuid1().hex
+                self._dao.update_config('device_id', self.__device_id)
         return self.__device_id
 
     def get_config(self, value, default=None):
