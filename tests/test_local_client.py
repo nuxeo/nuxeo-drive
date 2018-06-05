@@ -6,6 +6,7 @@ See win_local_client.py and mac_local_client.py for more informations.
 See NXDRIVE-742.
 """
 import hashlib
+import operator
 import os
 from time import sleep
 
@@ -278,6 +279,74 @@ class StubLocalClient:
         remote_digest = hashlib.sha1(other_content).hexdigest()
         assert local_digest != remote_digest
         assert not local.is_equal_digests(local_digest, remote_digest, local_path)
+
+    def test_long_path(self):
+        """NXDRIVE-1090: Long path names generates duplicata on folder creation.
+
+The final tree must be:
+.
+└── llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
+    └── llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
+        └── llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll
+            ├── Par îçi
+            │   └── alive.png
+            └── stone.png
+        """
+
+        local = self.local_1
+        remote = self.remote_document_client_1
+        folder = "l" * 90
+        folders = [self.workspace_1]
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Remotely create 3 levels of folders, path will be > 270 chars
+        for depth in range(3):
+            folders.append(remote.make_folder(folders[-1], folder))
+
+        # Create a file in it
+        remote.make_file(folders[-1], "stone.png", self.generate_random_png())
+        picture = "/" + "/".join([folder] * 3) + "/stone.png"
+        assert remote.exists(picture)
+
+        # Check the whole tree is OK
+        tree_needed = [1] * 4  # number of documents in each folder
+        tree_current = []
+        for fol in folders:
+            tree_current.append(len(remote.get_children_info(fol)))
+        assert tree_needed == tree_current
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        assert local.exists(picture)
+
+        # Locally create a new folder and file in it
+        path = "/" + "/".join([folder] * 3)
+        local.make_folder(path, "Par îçi")
+        path += "/Par îçi"
+        local.make_file(path, "alive.png", self.generate_random_png())
+        picture = path + "/alive.png"
+        assert local.exists(picture)
+
+        self.wait_sync()
+
+        # Check the whole tree is OK
+        tree_needed = [1, 1, 1, 2]  # number of documents in each folder
+        tree_current = []
+        for fol in folders:
+            tree_current.append(len(remote.get_children_info(fol)))
+        assert tree_needed == tree_current
+
+        # Finally, check the last long folder contains only one folder and one file
+        children = remote.get_children_info(folders[-1])
+        assert children[0].name == "Par îçi"
+        assert children[1].name == "stone.png"
+
+        # And ensure the deepest folder "Par îçi" contains the lone file "alive.png"
+        child = remote.get_children_info(children[0].uid)
+        assert len(child) == 1
+        assert child[0].name == "alive.png"
 
 
 class TestLocalClientNative(StubLocalClient, UnitTestCase):
