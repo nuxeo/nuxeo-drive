@@ -1,11 +1,11 @@
 # coding: utf-8
 import os
-import sys
 
 import pytest
 from mock import patch
 
 from nxdrive.client.proxy import *
+from nxdrive.constants import MAC, WINDOWS
 from nxdrive.engine.dao.sqlite import ConfigurationDAO
 from nxdrive.manager import Manager
 from nxdrive.options import Options
@@ -36,7 +36,7 @@ def pac_file():
         f.write(js)
 
     path = 'file://' + os.path.abspath(pac)
-    if sys.platform == 'win32':
+    if WINDOWS:
         # PyPAC does not accept "file://E:\\proxy.pac" but "file://E:/proxy.pac"
         path = path.replace('\\', '/')
 
@@ -87,7 +87,7 @@ def _patch_winreg_qve(**kwargs):
     return patch('pypac.os_settings.winreg.QueryValueEx', **kwargs)
 
 
-@pytest.mark.skipif(sys.platform != 'win32', reason='Only for Windows')
+@pytest.mark.skipif(not WINDOWS, reason='Only for Windows')
 def test_mock_autoconfigurl_windows(pac_file):
     with _patch_winreg_qve(return_value=(pac_file, 'foo')):
         proxy = get_proxy(category='Automatic')
@@ -104,7 +104,7 @@ def _patch_pyobjc_dscp(**kwargs):
     return patch('pypac.os_settings.SystemConfiguration.SCDynamicStoreCopyProxies', **kwargs)
 
 
-@pytest.mark.skipif(sys.platform != 'darwin', reason='Only for macOS')
+@pytest.mark.skipif(not MAC, reason='Only for macOS')
 def test_mock_autoconfigurl_mac(pac_file):
     with _patch_pyobjc_dscp(return_value={
         'ProxyAutoConfigEnable': 1,

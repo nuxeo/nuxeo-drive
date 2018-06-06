@@ -1,6 +1,7 @@
 # coding: utf-8
 import pytest
 
+from nxdrive.constants import MAC
 from nxdrive.osi import AbstractOSIntegration
 
 
@@ -9,7 +10,7 @@ def is_folder_registered(osi, name):
     return osi._find_item_in_list(lst, name) is not None
 
 
-@pytest.mark.skipif(not AbstractOSIntegration.is_mac(), reason='macOS only.')
+@pytest.mark.skipif(not MAC, reason='macOS only.')
 def test_folder_registration():
     name = 'TestCazz'
 

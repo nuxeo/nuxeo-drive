@@ -96,7 +96,7 @@ class TestSharedFolders(UnitTestCase):
         subfolder_1 = remote_2.make_folder(folder, 'SubFolder01')
         remote_2.make_file(subfolder_1, 'Image01.png',
                            self.generate_random_png())
-        file_id = remote_2.make_file(folder, 'File01.txt', 'plaintext')
+        file_id = remote_2.make_file(folder, 'File01.txt', content=b'plaintext')
 
         # Grant Read permission for user_1 on the test folder and register
         self.root_remote.operations.execute(

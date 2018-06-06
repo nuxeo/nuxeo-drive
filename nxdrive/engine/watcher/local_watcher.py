@@ -2,21 +2,21 @@
 import os
 import re
 import sqlite3
-import sys
-from Queue import Queue
 from logging import getLogger
 from os.path import basename, dirname, getctime
+from queue import Queue
 from threading import Lock
 from time import mktime, sleep, time
 
-from PyQt4.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
 
 from ..activity import tooltip
-from ..workers import EngineWorker, ThreadInterrupt
+from ..workers import EngineWorker
 from ...client.local_client import LocalClient
-from ...constants import DOWNLOAD_TMP_FILE_SUFFIX
+from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, WINDOWS
+from ...exceptions import ThreadInterrupt
 from ...options import Options
 from ...utils import (current_milli_time, force_decode, is_generated_tmp_file,
                       normalize_event_filename as normalize)
@@ -26,7 +26,7 @@ log = getLogger(__name__)
 # Windows 2s between resolution of delete event
 WIN_MOVE_RESOLUTION_PERIOD = 2000
 
-TEXT_EDIT_TMP_FILE_PATTERN = ur'.*\.rtf\.sb\-(\w)+\-(\w)+$'
+TEXT_EDIT_TMP_FILE_PATTERN = r'.*\.rtf\.sb\-(\w)+\-(\w)+$'
 
 
 def is_text_edit_tmp_file(name):
@@ -42,14 +42,13 @@ class LocalWatcher(EngineWorker):
     lock = Lock()
 
     def __init__(self, engine, dao):
-        super(LocalWatcher, self).__init__(engine, dao)
+        super().__init__(engine, dao)
         self._event_handler = None
         # Delay for the scheduled recursive scans of
         # a created / modified / moved folder under Windows
         self._windows_folder_scan_delay = 10000  # 10 seconds
         self._windows_watchdog_event_buffer = 8192
-        self._windows = sys.platform == 'win32'
-        if self._windows:
+        if WINDOWS:
             log.debug('Windows detected so delete event will be '
                       'delayed by %dms', WIN_MOVE_RESOLUTION_PERIOD)
         # TODO Review to delete
@@ -80,7 +79,7 @@ class LocalWatcher(EngineWorker):
             self._setup_watchdog()
             self._scan()
 
-            if self._windows:
+            if WINDOWS:
                 # Check dequeue and folder scan only every 100 loops (1s)
                 self._win_delete_interval = self._win_folder_scan_interval = \
                     int(round(time() * 1000))
@@ -92,11 +91,11 @@ class LocalWatcher(EngineWorker):
                 while not self.watchdog_queue.empty():
                     self.handle_watchdog_event(self.watchdog_queue.get())
 
-                    if self._windows:
+                    if WINDOWS:
                         self._win_delete_check()
                         self._win_folder_scan_check()
 
-                if self._windows:
+                if WINDOWS:
                     self._win_delete_check()
                     self._win_folder_scan_check()
 
@@ -123,8 +122,7 @@ class LocalWatcher(EngineWorker):
     @tooltip('Dequeue delete')
     def _win_dequeue_delete(self):
         try:
-            delete_events = self._delete_events
-            for evt in delete_events.values():
+            for evt in list(self._delete_events.values()):
                 evt_time, evt_pair = evt
                 if (current_milli_time() - evt_time
                         < WIN_MOVE_RESOLUTION_PERIOD):
@@ -169,9 +167,7 @@ class LocalWatcher(EngineWorker):
     @tooltip('Dequeue folder scan')
     def _win_dequeue_folder_scan(self):
         try:
-            folder_scan_events = self._folder_scan_events.values()
-            for evt in folder_scan_events:
-                evt_time, evt_pair = evt
+            for evt_time, evt_pair in  list(self._folder_scan_events.values()):
                 local_path = evt_pair.local_path
                 delay = current_milli_time() - evt_time
 
@@ -203,7 +199,7 @@ class LocalWatcher(EngineWorker):
                     # has been modified since last check
                     self._folder_scan_events[local_path] = (mtime, evt_pair)
                 else:
-                    log.debug('Win: dequeuing folder scan event: %r', evt)
+                    log.debug('Win: dequeuing folder scan event: %r', evt_pair)
                     del self._folder_scan_events[local_path]
         except ThreadInterrupt:
             raise
@@ -238,11 +234,10 @@ class LocalWatcher(EngineWorker):
         self._delete_files = dict()
 
     def get_metrics(self):
-        metrics = super(LocalWatcher, self).get_metrics()
+        metrics = super().get_metrics()
         if self._event_handler:
             metrics['fs_events'] = self._event_handler.counter
-        metrics.update(self._metrics)
-        return metrics
+        return {**metrics, **self._metrics}
 
     def _suspend_queue(self):
         queue = self.engine.get_queue_manager()
@@ -264,17 +259,19 @@ class LocalWatcher(EngineWorker):
             self.engine.get_queue_manager().resume()
 
     def empty_events(self):
-        return self.watchdog_queue.empty() and (
-            not sys.platform == 'win32' or self.win_queue_empty()
-            and self.win_folder_scan_empty())
+        ret = self.watchdog_queue.empty()
+        if WINDOWS:
+            ret &= self.win_queue_empty()
+            ret &= self.win_folder_scan_empty()
+        return ret
 
     def get_creation_time(self, child_full_path):
-        if self._windows:
+        if WINDOWS:
             return getctime(child_full_path)
 
         stat = os.stat(child_full_path)
         # Try inode number as on HFS seems to be increasing
-        if sys.platform == 'darwin' and hasattr(stat, 'st_ino'):
+        if MAC and hasattr(stat, 'st_ino'):
             return stat.st_ino
         if hasattr(stat, 'st_birthtime'):
             return stat.st_birthtime
@@ -441,13 +438,11 @@ class LocalWatcher(EngineWorker):
             else:
                 child_pair = children.pop(child_name)
                 try:
-                    last_mtime = unicode(
-                        child_info.last_modification_time.strftime(
-                            '%Y-%m-%d %H:%M:%S'))
+                    last_mtime = child_info.last_modification_time.strftime(
+                        '%Y-%m-%d %H:%M:%S')
                     if (child_pair.processor == 0
                             and child_pair.last_local_updated is not None
-                            and last_mtime
-                            != child_pair.last_local_updated.split('.')[0]):
+                            and last_mtime != child_pair.last_local_updated.split('.')[0]):
                         log.trace('Update file %r', child_info.path)
                         remote_ref = client.get_remote_id(
                             child_pair.local_path)
@@ -563,7 +558,7 @@ class LocalWatcher(EngineWorker):
         """
         base = self.local.base_folder
 
-        if self._windows:
+        if WINDOWS:
             try:
                 import watchdog.observers as ob
                 ob.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
@@ -592,33 +587,32 @@ class LocalWatcher(EngineWorker):
             log.info('Stopping FS Observer thread')
             try:
                 self._observer.stop()
-            except StandardError as e:
-                log.warning('Cannot stop FS observer : %r', e)
+            except:
+                log.exception('Cannot stop FS observer')
 
             # Wait for all observers to stop
             try:
                 self._observer.join()
-            except StandardError as e:
-                log.warning('Cannot join FS observer : %r', e)
+            except:
+                log.exception('Cannot join FS observer ')
 
-            # Delete all observers
-            self._observer = None
+            del self._observer
 
         if self._root_observer is not None:
             log.info('Stopping FS root Observer thread')
             try:
                 self._root_observer.stop()
-            except StandardError as e:
-                log.warning('Cannot stop FS root observer : %r', e)
+            except:
+                log.exception('Cannot stop FS root observer')
 
             # Wait for all observers to stop
             try:
                 self._root_observer.join()
-            except StandardError as e:
-                log.warning('Cannot join FS root observer : %r', e)
+            except:
+                log.exception('Cannot join FS root observer')
 
             # Delete all observers
-            self._root_observer = None
+            del self._root_observer
 
     def _handle_watchdog_delete(self, doc_pair):
         doc_pair.update_state('deleted', doc_pair.remote_state)
@@ -710,8 +704,7 @@ class LocalWatcher(EngineWorker):
 
             dao.update_local_state(doc_pair, local_info, versioned=versioned)
 
-            if (self._windows
-                    and old_local_path is not None
+            if (WINDOWS and old_local_path is not None
                     and self._windows_folder_scan_delay > 0):
                 with self.lock:
                     if old_local_path in self._folder_scan_events:
@@ -750,7 +743,7 @@ class LocalWatcher(EngineWorker):
         dao, client = self._dao, self.local
 
         if evt.event_type == 'deleted':
-            if self._windows:
+            if WINDOWS:
                 # Delay on Windows the delete event
                 log.debug('Add pair to delete events: %r', doc_pair)
                 with self.lock:
@@ -818,8 +811,7 @@ class LocalWatcher(EngineWorker):
                 if original_pair:
                     original_info = client.get_info(
                         original_pair.local_path, raise_if_missing=False)
-                if (sys.platform == 'darwin'
-                        and original_info
+                if (MAC and original_info
                         and original_info.remote_ref == local_info.remote_ref):
                     log.debug('MacOS has postponed overwriting of xattr, '
                               'need to reset remote_ref for %r', doc_pair)
@@ -958,7 +950,7 @@ class LocalWatcher(EngineWorker):
                     # watchdog will put listener after it
                     if local_info.folderish:
                         self.scan_pair(rel_path)
-                        if self._windows:
+                        if WINDOWS:
                             doc_pair = dao.get_state_from_local(rel_path)
                             if doc_pair:
                                 self._schedule_win_folder_scan(doc_pair)
@@ -1061,7 +1053,7 @@ class LocalWatcher(EngineWorker):
                             client.remove_remote_id(from_pair.local_path)
                             moved = True
 
-                if self._windows:
+                if WINDOWS:
                     with self.lock:
                         if local_info.remote_ref in self._delete_events:
                             log.debug('Found creation in delete event, '
@@ -1088,7 +1080,7 @@ class LocalWatcher(EngineWorker):
             # watchdog will put listener after it
             if local_info.folderish:
                 self.scan_pair(rel_path)
-                if self._windows:
+                if WINDOWS:
                     doc_pair = dao.get_state_from_local(rel_path)
                     if doc_pair:
                         self._schedule_win_folder_scan(doc_pair)
@@ -1115,7 +1107,7 @@ class LocalWatcher(EngineWorker):
 
 class DriveFSEventHandler(PatternMatchingEventHandler):
     def __init__(self, watcher, **kwargs):
-        super(DriveFSEventHandler, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.counter = 0
         self.watcher = watcher
 
@@ -1136,7 +1128,7 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
 
 class DriveFSRootEventHandler(PatternMatchingEventHandler):
     def __init__(self, watcher, name, **kwargs):
-        super(DriveFSRootEventHandler, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.name = name
         self.counter = 0
         self.watcher = watcher

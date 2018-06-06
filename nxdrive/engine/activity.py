@@ -5,7 +5,7 @@ from threading import current_thread
 from ..utils import current_milli_time
 
 
-class Action(object):
+class Action:
     progress = None
     type = None
     finished = False
@@ -67,7 +67,7 @@ class FileAction(Action):
     transfer_duration = None
 
     def __init__(self, action_type, filepath, filename=None, size=None):
-        super(FileAction, self).__init__(action_type, 0)
+        super().__init__(action_type, 0)
         self.filepath = filepath
         self.filename = filename or os.path.basename(filepath)
         if size is None:

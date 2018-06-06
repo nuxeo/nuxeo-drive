@@ -1,7 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 
-from PyQt4.QtCore import QObject, pyqtSlot
+from PyQt5.QtCore import QObject, pyqtSlot
 
 log = getLogger(__name__)
 
@@ -10,11 +10,11 @@ class DriveScript(QObject):
     def __init__(self, manager):
         self._manager = manager
         self.engine_uid = None
-        super(DriveScript, self).__init__()
+        super().__init__()
 
     @pyqtSlot(str)
     def log(self, line):
-        log.debug("DriveScript: %s", line)
+        log.debug('DriveScript: %r', line)
 
     def get_engine(self):
         if self.engine_uid is None:
@@ -29,7 +29,7 @@ class DriveScript(QObject):
 class DriveUiScript(DriveScript):
     def __init__(self, manager, application):
         self.application = application
-        super(DriveUiScript, self).__init__(manager)
+        super().__init__(manager)
 
     @pyqtSlot(str)
     def showSettings(self, section='Accounts'):
@@ -47,4 +47,4 @@ class DriveUiScript(DriveScript):
 
     @pyqtSlot(str)
     def openUrl(self, url):
-        self.application.show_dialog(str(url))
+        self.application.show_dialog(url)

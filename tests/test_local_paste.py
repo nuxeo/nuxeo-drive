@@ -13,10 +13,10 @@ TEST_TIMEOUT = 60
 class TestLocalPaste(UnitTestCase):
 
     NUMBER_OF_LOCAL_FILES = 25
-    TEMP_FOLDER = u'temp_folder'
-    FOLDER_A1 = u'a1'
-    FOLDER_A2 = u'a2'
-    FILENAME_PATTERN = u'file%03d.txt'
+    TEMP_FOLDER = 'temp_folder'
+    FOLDER_A1 = 'a1'
+    FOLDER_A2 = 'a2'
+    FILENAME_PATTERN = 'file%03d.txt'
 
     '''
         1. create folder 'temp/a1' with more than 20 files in it
@@ -29,7 +29,7 @@ class TestLocalPaste(UnitTestCase):
     '''
 
     def setUp(self):
-        super(TestLocalPaste, self).setUp()
+        super().setUp()
 
         log.debug('*** enter TestLocalPaste.setUp()')
         log.debug('*** engine1 starting')
@@ -37,7 +37,7 @@ class TestLocalPaste(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         log.debug('*** engine 1 synced')
         local = self.local_1
-        assert local.exists('/'), 'Test sync root should be sync'
+        assert local.exists('/')
         self.workspace_abspath = local.abspath('/')
 
         # create  folder a1 and a2 under a temp folder
@@ -49,7 +49,7 @@ class TestLocalPaste(UnitTestCase):
         # add files in folder 'temp/a1'
         for file_num in range(1, self.NUMBER_OF_LOCAL_FILES + 1):
             filename = self.FILENAME_PATTERN % file_num
-            with open(os.path.join(self.folder1, filename), 'w') as f:
+            with open(os.path.join(self.folder1, filename), 'wb') as f:
                 f.write(FILE_CONTENT)
 
         log.debug('*** exit TestLocalPaste.setUp()')
@@ -58,7 +58,7 @@ class TestLocalPaste(UnitTestCase):
         log.debug('*** enter TestLocalPaste.tearDown()')
         # delete temp folder
         shutil.rmtree(self.local_temp)
-        super(TestLocalPaste, self).tearDown()
+        super().tearDown()
         log.debug('*** exit TestLocalPaste.tearDown()')
 
     def test_copy_paste_empty_folder_first(self):
@@ -112,9 +112,7 @@ class TestLocalPaste(UnitTestCase):
         # check that '/Nuxeo Drive Test Workspace/a1/ has all the files
         children = os.listdir(os.path.join(self.workspace_abspath,
                                            self.FOLDER_A1))
-        assert len(children) == num, \
-            'folder /Nuxeo Drive Test Workspace/%s has %d files ' \
-            '(expected %d)' % (self.FOLDER_A1, len(children), num)
+        assert len(children) == num
         # check that remote (DM) 'Nuxeo Drive Test Workspace/a1' exists
         remote_ref_1 = local.get_remote_id(os.path.join('/', self.FOLDER_A1))
         assert remote.fs_exists(remote_ref_1)
@@ -125,9 +123,7 @@ class TestLocalPaste(UnitTestCase):
         # has all the files
         children = [remote_info.name for remote_info
                     in remote.get_fs_children(remote_ref_1)]
-        assert len(children) == num, \
-            'remote folder /Nuxeo Drive Test Workspace/%s has %d files ' \
-            '(expected %d)' % (self.FOLDER_A1, len(children), num)
+        assert len(children) == num
 
     def test_copy_paste_same_file(self):
         log.debug('*** enter TestLocalPaste.test_copy_paste_same_file()')

@@ -1,10 +1,10 @@
 # coding: utf-8
 import os
 import shutil
-import sys
 
 import pytest
 
+from nxdrive.constants import LINUX
 from .common import FILE_CONTENT, UnitTestCase
 
 
@@ -16,8 +16,8 @@ class TestLocalCopyPaste(UnitTestCase):
                                    NUMBER_OF_LOCAL_IMAGE_FILES)
     FILE_NAME_PATTERN = 'file%03d%s'
     TEST_DOC_RESOURCE = 'cat.jpg'
-    FOLDER_1 = u'A'
-    FOLDER_2 = u'B'
+    FOLDER_1 = 'A'
+    FOLDER_2 = 'B'
     SYNC_TIMEOUT = 100  # in seconds
 
     """
@@ -26,15 +26,14 @@ class TestLocalCopyPaste(UnitTestCase):
     """
 
     def setUp(self):
-        super(TestLocalCopyPaste, self).setUp()
+        super().setUp()
 
         remote = self.remote_1
         local_root = self.local_root_client_1
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
-        assert local_root.exists('/Nuxeo Drive Test Workspace'),\
-            'Nuxeo Drive Test Workspace should be sync'
+        assert local_root.exists('/Nuxeo Drive Test Workspace')
 
         # create  folder A
         local_root.make_folder('/Nuxeo Drive Test Workspace', self.FOLDER_1)
@@ -77,16 +76,13 @@ class TestLocalCopyPaste(UnitTestCase):
         assert self.remote_ref_1 is not None
         self.remote_ref_2 = local_root.get_remote_id(self.folder_path_2)
         assert self.remote_ref_2 is not None
-        assert remote.fs_exists(self.remote_ref_1),\
-            'remote folder for %s does not exist' % self.folder_path_1
-        assert remote.fs_exists(self.remote_ref_2),\
-            'remote folder for %s does not exist' % self.folder_path_2
+        assert remote.fs_exists(self.remote_ref_1)
+        assert remote.fs_exists(self.remote_ref_2)
 
         assert (len(remote.get_fs_children(self.remote_ref_1))
                 == self.NUMBER_OF_LOCAL_FILES_TOTAL)
 
-    @pytest.mark.randombug(
-        'NXDRIVE-815', condition=(sys.platform != 'linux2'), repeat=5)
+    @pytest.mark.randombug('NXDRIVE-815', condition=not LINUX, repeat=5)
     def test_local_copy_paste_files(self):
         self._local_copy_paste_files()
 

@@ -1,11 +1,11 @@
 # coding: utf-8
 import os
 import shutil
-import sys
 import time
 
 import pytest
 
+from nxdrive.constants import MAC, WINDOWS
 from .common import FILE_CONTENT, UnitTestCase
 
 
@@ -52,7 +52,7 @@ class TestLocalCreations(UnitTestCase):
         # Add text files into A
         for file_num in range(1, len_text_files + 1):
             filename = 'file_%02d.txt' % file_num
-            local.make_file('/' + folder_path_1, filename, FILE_CONTENT)
+            local.make_file('/' + folder_path_1, filename, content=FILE_CONTENT)
 
         # Add pictures into A
         test_doc_path = os.path.join(self.location, 'resources', 'cat.jpg')
@@ -217,8 +217,8 @@ class TestLocalCreations(UnitTestCase):
         assert local.exists(filename)
         local_mtime = os.stat(local.abspath(filename)).st_mtime
 
-        if sys.platform in ('darwin', 'win32'):
-            if sys.platform == 'darwin':
+        if MAC or WINDOWS:
+            if MAC:
                 local_ctime = os.stat(local.abspath(filename)).st_birthtime
             else:
                 local_ctime = os.stat(local.abspath(filename)).st_ctime

@@ -1,11 +1,13 @@
 # coding: utf-8
+from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
 
 import psutil
-from PyQt4.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import QTimer, pyqtSignal
 
-from .engine.workers import PollWorker, ThreadInterrupt
+from .engine.workers import PollWorker
+from .exceptions import ThreadInterrupt
 from .utils import force_decode
 
 log = getLogger(__name__)
@@ -18,7 +20,7 @@ class ProcessAutoLockerWorker(PollWorker):
     documentUnlocked = pyqtSignal(str)
 
     def __init__(self, check_interval, dao, folder):
-        super(ProcessAutoLockerWorker, self).__init__(check_interval)
+        super().__init__(check_interval)
         self._dao = dao
         self._folder = force_decode(folder)
 
@@ -108,8 +110,6 @@ def get_open_files():
     """
 
     for proc in psutil.process_iter():
-        try:
+        with suppress(psutil.Error):
             for handler in proc.open_files():
                 yield proc.pid, force_decode(handler.path)
-        except psutil.Error:
-            pass

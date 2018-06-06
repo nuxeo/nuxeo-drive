@@ -12,14 +12,14 @@ import Cocoa
 from nxdrive.client.local_client import LocalClient
 
 
-class MockFile(object):
+class MockFile:
     def __init__(self, path):
         self.path = path
 
 
 class MacLocalClient(LocalClient):
     def __init__(self, base_folder, **kwargs):
-        super(MacLocalClient, self).__init__(base_folder, **kwargs)
+        super().__init__(base_folder, **kwargs)
         self.fm = Cocoa.NSFileManager.defaultManager()
 
     def copy(self, srcref, dstref):
@@ -68,4 +68,4 @@ class MacLocalClient(LocalClient):
     def _process_result(result):
         ok, err = result
         if not ok:
-            raise IOError(err.utf8ValueSafe())
+            raise OSError(err.utf8ValueSafe())

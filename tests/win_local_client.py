@@ -20,21 +20,21 @@ from nxdrive.client.local_client import LocalClient
 from . import log
 
 
-class MockFile(object):
+class MockFile:
     def __init__(self, path):
         self.path = path.replace(os.path.sep, '/')
 
 
 class WindowsLocalClient(LocalClient):
     def __init__(self, base_folder, **kwargs):
-        super(WindowsLocalClient, self).__init__(base_folder, **kwargs)
+        super().__init__(base_folder, **kwargs)
 
     def delete_final(self, ref):
         path = self.abspath(ref)
         res = shell.SHFileOperation((0, shellcon.FO_DELETE, path, None,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
         if res[0] != 0:
-            raise IOError(res, locals())
+            raise OSError(res, locals())
 
     def move(self, ref, new_parent_ref, name=None):
         path = self.abspath(ref)
@@ -44,11 +44,11 @@ class WindowsLocalClient(LocalClient):
         res = shell.SHFileOperation((0, shellcon.FO_MOVE, path, new_path,
                                      shellcon.FOF_NOCONFIRMATION, None, None))
         if res[0] != 0:
-            raise IOError(res, locals())
+            raise OSError(res, locals())
 
     def abspath(self, ref):
         # Remove \\?\
-        abs_path = super(WindowsLocalClient, self).abspath(ref)
+        abs_path = super().abspath(ref)
         if len(abs_path) >= 255:
             log.warning(
                 'The path is longer than 255 characters and the '
@@ -64,7 +64,7 @@ class WindowsLocalClient(LocalClient):
                                      shellcon.FOF_NOCONFIRMATION, None, None))
         time.sleep(0.5)
         if res[0] != 0:
-            raise IOError(res, locals())
+            raise OSError(res, locals())
         return MockFile(os.path.join(parent, to_name))
 
     def delete(self, ref):
@@ -75,4 +75,4 @@ class WindowsLocalClient(LocalClient):
                                      | shellcon.FOF_ALLOWUNDO,
                                      None, None))
         if res[0] != 0:
-            raise IOError(res, locals())
+            raise OSError(res, locals())

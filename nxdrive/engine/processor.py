@@ -3,22 +3,23 @@ import os
 import shutil
 import socket
 import sqlite3
+from contextlib import suppress
 from logging import getLogger
 from threading import Lock
 from time import sleep
 
-from PyQt4.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal
 from nuxeo.exceptions import CorruptedFile, HTTPError
 from requests import ConnectionError
 
 from .activity import Action
-from .workers import EngineWorker, PairInterrupt, ThreadInterrupt
-from ..client.common import (DuplicationDisabledError, NotFound,
-                             UNACCESSIBLE_HASH, safe_filename)
-from ..constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
-from ..osi import AbstractOSIntegration
+from .workers import EngineWorker
+from ..constants import (DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX,
+                         MAC, UNACCESSIBLE_HASH, WINDOWS)
+from ..exceptions import (DuplicationDisabledError, NotFound, PairInterrupt,
+                          ParentNotSynced, ThreadInterrupt)
 from ..utils import (current_milli_time, is_generated_tmp_file, lock_path,
-                     unlock_path)
+                     safe_filename, unlock_path)
 
 log = getLogger(__name__)
 
@@ -31,7 +32,7 @@ class Processor(EngineWorker):
     readonly_locker = Lock()
 
     def __init__(self, engine, item_getter, **kwargs):
-        super(Processor, self).__init__(engine, engine.get_dao(), **kwargs)
+        super().__init__(engine, engine.get_dao(), **kwargs)
         self._current_doc_pair = None
         self._get_item = item_getter
         self.engine = engine
@@ -116,8 +117,7 @@ class Processor(EngineWorker):
             except sqlite3.OperationalError:
                 state = self._dao.get_state_from_id(item.id)
                 if state:
-                    if (AbstractOSIntegration.is_windows()
-                            and state.pair_state == 'locally_moved'
+                    if (WINDOWS and state.pair_state == 'locally_moved'
                             and not state.remote_can_rename):
                         log.debug('A local rename on a read-only folder is'
                                   ' allowed on Windows, but it should not.'
@@ -157,9 +157,8 @@ class Processor(EngineWorker):
                 self.engine.manager.osi.send_sync_status(
                     doc_pair, self.local.abspath(doc_pair.local_path))
 
-                if (AbstractOSIntegration.is_mac()
-                        and self.local.exists(doc_pair.local_path)):
-                    try:
+                if (MAC and self.local.exists(doc_pair.local_path)):
+                    with suppress(OSError):
                         finder_info = self.local.get_remote_id(
                             doc_pair.local_path, 'com.apple.FinderInfo')
                         if (finder_info is not None
@@ -169,8 +168,6 @@ class Processor(EngineWorker):
                             self._postpone_pair(doc_pair, 'Finder using file',
                                                 interval=3)
                             continue
-                    except IOError:
-                        pass
 
                 # TODO Update as the server dont take hash to avoid conflict yet
                 if (doc_pair.pair_state.startswith('locally')
@@ -257,22 +254,22 @@ class Processor(EngineWorker):
                     elif exc.status == 409:  # Conflict
                         # It could happen on multiple files drag'n drop
                         # starting with identical characters.
-                        log.debug('Delaying conflicted document: %r', doc_pair)
+                        log.error('Delaying conflicted document: %r', doc_pair)
                         self._postpone_pair(doc_pair, 'Conflict')
                     else:
                         self._handle_pair_handler_exception(
                             doc_pair, handler_name, exc)
                     continue
-                except (ConnectionError, socket.error, PairInterrupt) as exc:
+                except (ConnectionError, socket.error, PairInterrupt, ParentNotSynced) as exc:
                     # socket.error for SSLError
-                    log.debug('%s on %r, wait 1s and requeue',
+                    log.error('%s on %r, wait 1s and requeue',
                               type(exc).__name__, doc_pair)
                     sleep(1)
                     self.engine.get_queue_manager().push(doc_pair)
                     continue
                 except DuplicationDisabledError:
                     self.giveup_error(doc_pair, 'DEDUP')
-                    log.trace('Removing local_path on %r', doc_pair)
+                    log.debug('Removing local_path on %r', doc_pair)
                     self._dao.remove_local_path(doc_pair.id)
                     continue
                 except CorruptedFile as exc:
@@ -363,7 +360,7 @@ class Processor(EngineWorker):
             self._interact()
 
     def _handle_pair_handler_exception(self, doc_pair, handler_name, e):
-        if isinstance(e, IOError) and e.errno == 28:
+        if isinstance(e, OSError) and e.errno == 28:
             self.engine.noSpaceLeftOnDevice.emit()
             self.engine.suspend()
         log.exception('Unknown error')
@@ -552,9 +549,8 @@ class Processor(EngineWorker):
                 self._dao.unsynchronize_state(doc_pair, 'PARENT_UNSYNC')
                 self._handle_unsynchronized(doc_pair)
                 return
-            raise ValueError(
-                'Parent folder of %r, %r is not bound to a remote folder'
-                % (doc_pair.local_path, doc_pair.local_parent_path))
+            raise ParentNotSynced(doc_pair.local_path,
+                                  doc_pair.local_parent_path)
 
         uid = info = None
         if remote_ref and '#' in remote_ref:
@@ -674,11 +670,9 @@ class Processor(EngineWorker):
                 remote_id_done = False
                 # NXDRIVE-599: set as soon as possible the remote_id as
                 # update_remote_state can crash with InterfaceError
-                try:
+                with suppress(NotFound):
                     self.local.set_remote_id(doc_pair.local_path, remote_ref)
                     remote_id_done = True
-                except (NotFound, IOError, OSError):
-                    pass
                 self._dao.update_remote_state(
                     doc_pair, fs_item_info,
                     remote_parent_path=remote_parent_path,
@@ -687,7 +681,7 @@ class Processor(EngineWorker):
             try:
                 if not remote_id_done:
                     self.local.set_remote_id(doc_pair.local_path, remote_ref)
-            except (NotFound, IOError, OSError):
+            except NotFound:
                 new_pair = self._dao.get_state_from_id(doc_pair.id)
                 # File has been moved during creation
                 if new_pair.local_path != doc_pair.local_path:
@@ -771,7 +765,7 @@ class Processor(EngineWorker):
                 self._refresh_remote(
                     doc_pair, remote_info=remote_info)
             except Exception as e:
-                log.debug(repr(e))
+                log.debug(str(e))
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
                 return
 
@@ -816,7 +810,7 @@ class Processor(EngineWorker):
     def _synchronize_deleted_unknown(self, doc_pair, *_):
         """
         Somehow a pair can get to an inconsistent state:
-        <local_state=u'deleted',remote_state=u'unknown',pair_state=u'unknown'>
+        <local_state='deleted',remote_state='unknown',pair_state='unknown'>
         Even though we are not able to figure out how this can happen we
         need to handle this case to put the database back to a consistent
         state.
@@ -984,10 +978,8 @@ class Processor(EngineWorker):
 
         if not self.tmp_file:
             return
-        try:
+        with suppress(OSError):
             os.remove(self.tmp_file)
-        except OSError:
-            pass
 
     def _synchronize_remotely_created(self, doc_pair):
         name = doc_pair.remote_name
@@ -1010,9 +1002,7 @@ class Processor(EngineWorker):
 
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
-            raise ValueError(
-                'Parent folder of doc %r (%r) is not bound to a local'
-                ' folder' % (name, doc_pair.remote_ref))
+            raise ParentNotSynced(name, doc_pair.remote_ref)
 
         path = doc_pair.remote_parent_path + '/' + doc_pair.remote_ref
         if self.remote.is_filtered(path):
@@ -1109,10 +1099,8 @@ class Processor(EngineWorker):
             self._dao.update_last_transfer(doc_pair.id, 'download')
 
             # Clean-up the TMP file
-            try:
+            with suppress(OSError):
                 os.remove(tmp_file)
-            except OSError:
-                pass
 
             return path
         finally:
@@ -1145,8 +1133,8 @@ class Processor(EngineWorker):
 
     def _synchronize_unknown_deleted(self, doc_pair):
         # Somehow a pair can get to an inconsistent state:
-        # <local_state=u'unknown', remote_state=u'deleted',
-        # pair_state=u'unknown'>
+        # <local_state='unknown', remote_state='deleted',
+        # pair_state='unknown'>
         # Even though we are not able to figure out how this can happen we
         # need to handle this case to put the database back to a consistent
         # state.
@@ -1196,8 +1184,7 @@ class Processor(EngineWorker):
     def _handle_failed_remote_rename(self, source_pair, target_pair):
         """ An error occurs return False. """
 
-        force = AbstractOSIntegration.is_windows()
-        if not self.engine.local_rollback(force=force):
+        if not self.engine.local_rollback(force=WINDOWS):
             return False
 
         log.error('Renaming %r to %r canceled',
@@ -1231,7 +1218,7 @@ class Processor(EngineWorker):
 
     def _handle_readonly(self, doc_pair):
         # Don't use readonly on folder for win32 and on Locally Edited
-        if doc_pair.folderish and os.sys.platform == 'win32':
+        if doc_pair.folderish and WINDOWS:
             return
 
         if doc_pair.is_readonly():

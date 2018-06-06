@@ -2,7 +2,7 @@
 import time
 from logging import getLogger
 
-from PyQt4 import QtCore
+from PyQt5.QtCore import pyqtSlot
 
 from ...logging_config import MAX_LOG_DISPLAYED, get_handler
 from ...wui.dialog import WebDialog, WebDriveApi
@@ -72,7 +72,7 @@ class DebugDriveApi(WebDriveApi):
             result["metrics"]["action"] = self._export_action(result["metrics"]["action"])
         return result
 
-    @QtCore.pyqtSlot(str, str, str, str, str, int, str)
+    @pyqtSlot(str, str, str, str, str, int, str)
     def send_notification(
         self,
         notification_type,
@@ -87,12 +87,12 @@ class DebugDriveApi(WebDriveApi):
         try:
             notification = Notification(
                 uid=str(notification_type),
-                engine_uid=str(engine_uid) or None,
+                engine_uid=engine_uid or None,
                 flags=flags,
-                level=str(level),
-                action=str(action),
-                description=unicode(description),
-                title=unicode(title)
+                level=level,
+                action=action,
+                description=description,
+                title=title,
             )
         except RuntimeError:
             log.exception('Notification error')
@@ -100,65 +100,64 @@ class DebugDriveApi(WebDriveApi):
             center = self._manager.notification_service
             center.send_notification(notification)
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def get_engine(self, uid):
         result = []
-        engine = self._get_engine(str(uid))
+        engine = self._get_engine(uid)
         if engine:
             result = self._export_engine(engine)
         return self._json(result)
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def resume_remote_watcher(self, uid):
-        engine = self._get_engine(str(uid))
+        engine = self._get_engine(uid)
         if engine:
             engine._remote_watcher.resume()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def resume_local_watcher(self, uid):
-        engine = self._get_engine(str(uid))
+        engine = self._get_engine(uid)
         if engine:
             engine._local_watcher.resume()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def suspend_remote_watcher(self, uid):
         engine = self._get_engine(str(uid))
         if engine:
             engine._remote_watcher.suspend()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def suspend_local_watcher(self, uid):
-        engine = self._get_engine(str(uid))
+        engine = self._get_engine(uid)
         if engine:
             engine._local_watcher.suspend()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def resume_engine(self, uid):
-        engine = self._get_engine(str(uid))
+        engine = self._get_engine(uid)
         if engine:
             engine.resume()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def suspend_engine(self, uid):
-        engine = self._get_engine(str(uid))
+        engine = self._get_engine(uid)
         if engine:
             engine.suspend()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def direct_edit(self, url):
         try:
-            self._manager.direct_edit.handle_url(str(url))
-        except OSError as e:
-            log.exception(repr(e))
+            self._manager.direct_edit.handle_url(url)
+        except OSError:
+            log.exception('Direct Edit error')
 
-    @QtCore.pyqtSlot(str, str)
+    @pyqtSlot(str, str)
     def set_app_update(self, status, version):
-        self._manager.updater.force_status(str(status), str(version))
+        self._manager.updater.force_status(status, version)
 
-    @QtCore.pyqtSlot(str, str)
+    @pyqtSlot(str, str)
     def resume_queue(self, uid, queue):
-        engine = self._get_engine(str(uid))
-        queue = str(queue)
+        engine = self._get_engine(uid)
         if engine:
             if queue == 'local_file_queue':
                 engine.get_queue_manager().enable_local_file_queue(value=True)
@@ -169,10 +168,9 @@ class DebugDriveApi(WebDriveApi):
             elif queue == 'remote_file_queue':
                 engine.get_queue_manager().enable_remote_file_queue(value=True)
 
-    @QtCore.pyqtSlot(str, str)
+    @pyqtSlot(str, str)
     def suspend_queue(self, uid, queue):
-        engine = self._get_engine(str(uid))
-        queue = str(queue)
+        engine = self._get_engine(uid)
         if engine:
             if queue == 'local_file_queue':
                 engine.get_queue_manager().enable_local_file_queue(value=False)
@@ -182,25 +180,6 @@ class DebugDriveApi(WebDriveApi):
                 engine.get_queue_manager().enable_remote_folder_queue(value=False)
             elif queue == 'remote_file_queue':
                 engine.get_queue_manager().enable_remote_file_queue(value=False)
-
-    @QtCore.pyqtSlot(str, str)
-    def get_queue(self, uid, queue):
-        engine = self._get_engine(str(uid))
-        queue = str(queue)
-        if engine:
-            res = None
-            if queue == 'local_file_queue':
-                res = engine.get_queue_manager().get_local_file_queue()
-            elif queue == 'local_folder_queue':
-                res = engine.get_queue_manager().get_local_folder_queue()
-            elif queue == 'remote_folder_queue':
-                res = engine.get_queue_manager().get_remote_folder_queue()
-            elif queue == 'remote_file_queue':
-                res = engine.get_queue_manager().get_remote_file_queue()
-            if res:
-                queue = self._get_full_queue(res, engine.get_dao())
-                return self._json(queue)
-        return ''
 
 
 class EngineDialog(WebDialog):

@@ -3,14 +3,14 @@ import time
 from logging import getLogger
 from threading import Lock
 
-from PyQt4.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 
 from .wui.translator import Translator
 
 log = getLogger(__name__)
 
 
-class Notification(object):
+class Notification:
     LEVEL_INFO = 'info'
     LEVEL_WARNING = 'warning'
     LEVEL_ERROR = 'danger'
@@ -66,19 +66,13 @@ class Notification(object):
         self._time = None
         self._replacements = replacements or dict()
 
-        if uid is None and uuid is None:
-            raise RuntimeError
-
-        if engine_uid is not None and isinstance(engine_uid, str):
-            raise RuntimeError
-
         self.uid = uid
-        if uid is not None:
-            if engine_uid is not None:
+        if uid:
+            if engine_uid:
                 self.uid += '_' + engine_uid
             if not self.is_unique():
                 self.uid += '_' + str(int(time.time()))
-        else:
+        elif uuid:
             self.uid = uuid
 
     def is_remove_on_discard(self):
@@ -125,7 +119,7 @@ class NotificationService(QObject):
     discardNotification = pyqtSignal(object)
 
     def __init__(self, manager):
-        super(NotificationService, self).__init__()
+        super().__init__()
         self._lock = Lock()
         self._notifications = dict()
         self._manager = manager
@@ -195,7 +189,7 @@ class NotificationService(QObject):
 
 class DebugNotification(Notification):
     def __init__(self, engine_uid):
-        super(DebugNotification, self).__init__(
+        super().__init__(
             'DEBUG',
             engine_uid=engine_uid,
             level=Notification.LEVEL_ERROR,
@@ -213,7 +207,7 @@ class ErrorNotification(Notification):
             values['name'] = doc_pair.local_name
         elif doc_pair.remote_name is not None:
             values['name'] = doc_pair.remote_name
-        super(ErrorNotification, self).__init__(
+        super().__init__(
             'ERROR',
             title=Translator.get('ERROR', values),
             description=Translator.get('ERROR_ON_FILE', values),
@@ -232,7 +226,7 @@ class ErrorNotification(Notification):
 class LockNotification(Notification):
     def __init__(self, filename):
         values = dict(name=filename)
-        super(LockNotification, self).__init__(
+        super().__init__(
             'LOCK',
             title=Translator.get('LOCK_NOTIFICATION_TITLE', values),
             description=Translator.get('LOCK_NOTIFICATION_DESCRIPTION', values),
@@ -256,7 +250,7 @@ class DirectEditErrorLockNotification(Notification):
             raise ValueError('Invalid action: %r not in (lock, unlock)',
                              locals())
 
-        super(DirectEditErrorLockNotification, self).__init__(
+        super().__init__(
             'ERROR',
             title=Translator.get(title, values),
             description=Translator.get(description, values),
@@ -271,7 +265,7 @@ class DirectEditErrorLockNotification(Notification):
 class ConflictNotification(Notification):
     def __init__(self, engine_uid, doc_pair):
         values = dict(name=doc_pair.local_name)
-        super(ConflictNotification, self).__init__(
+        super().__init__(
             'CONFLICT_FILE',
             title=Translator.get('CONFLICT', values),
             description=Translator.get('CONFLICT_ON_FILE', values),
@@ -291,7 +285,7 @@ class ReadOnlyNotification(Notification):
     def __init__(self, engine_uid, filename, parent=None):
         values = dict(name=filename, folder=parent)
         description = 'READONLY_FILE' if parent is None else 'READONLY_FOLDER'
-        super(ReadOnlyNotification, self).__init__(
+        super().__init__(
             'READONLY',
             title=Translator.get('READONLY', values),
             description=Translator.get(description, values),
@@ -304,7 +298,7 @@ class ReadOnlyNotification(Notification):
 class DirectEditReadOnlyNotification(Notification):
     def __init__(self, filename):
         values = dict(name=filename)
-        super(DirectEditReadOnlyNotification, self).__init__(
+        super().__init__(
             'DIRECT_EDIT_READONLY',
             title=Translator.get('READONLY', values),
             description=Translator.get('DIRECT_EDIT_READONLY_FILE', values),
@@ -316,7 +310,7 @@ class DirectEditReadOnlyNotification(Notification):
 class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid, filename):
         values = dict(name=filename)
-        super(DeleteReadOnlyNotification, self).__init__(
+        super().__init__(
             'DELETE_READONLY',
             title=Translator.get('DELETE_READONLY', values),
             description=Translator.get('DELETE_READONLY_DOCUMENT', values),
@@ -333,7 +327,7 @@ class LockedNotification(Notification):
             'lock_owner': lock_owner,
             'lock_created': lock_created.strftime('%m/%d/%Y %H:%M:%S'),
         }
-        super(LockedNotification, self).__init__(
+        super().__init__(
             'LOCKED',
             title=Translator.get('LOCKED', values),
             description=Translator.get('LOCKED_FILE', values),
@@ -353,7 +347,7 @@ class DirectEditLockedNotification(Notification):
             'lock_owner': lock_owner,
             'lock_created': lock_created.strftime('%m/%d/%Y %H:%M:%S'),
         }
-        super(DirectEditLockedNotification, self).__init__(
+        super().__init__(
             'DIRECT_EDIT_LOCKED',
             title=Translator.get('LOCKED', values),
             description=Translator.get('DIRECT_EDIT_LOCKED_FILE', values),
@@ -370,7 +364,7 @@ class DirectEditUpdatedNotification(Notification):
         values = {
             'name': filename,
         }
-        super(DirectEditUpdatedNotification, self).__init__(
+        super().__init__(
             'DIRECT_EDIT_UPDATED',
             title=Translator.get('UPDATED', values),
             description=Translator.get('DIRECT_EDIT_UPDATED_FILE', values),
@@ -385,7 +379,7 @@ class ErrorOpenedFile(Notification):
     def __init__(self, path, is_folder):
         values = {'name': path}
         msg = ('FILE', 'FOLDER')[is_folder]
-        super(ErrorOpenedFile, self).__init__(
+        super().__init__(
             'WINDOWS_ERROR',
             title=Translator.get('WINDOWS_ERROR_TITLE'),
             description=Translator.get('WINDOWS_ERROR_OPENED_%s' % msg, values),
@@ -399,7 +393,7 @@ class ErrorOpenedFile(Notification):
 class FileDeletionError(Notification):
     def __init__(self, path):
         values = {'name': path}
-        super(FileDeletionError, self).__init__(
+        super().__init__(
             'DELETION_ERROR',
             title=Translator.get('DELETION_ERROR_TITLE'),
             description=Translator.get('DELETION_ERROR_MSG', values),
@@ -412,7 +406,7 @@ class FileDeletionError(Notification):
 
 class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid):
-        super(InvalidCredentialNotification, self).__init__(
+        super().__init__(
             'INVALID_CREDENTIALS',
             title=Translator.get('INVALID_CREDENTIALS'),
             engine_uid=engine_uid,
@@ -427,7 +421,7 @@ class InvalidCredentialNotification(Notification):
 
 class DefaultNotificationService(NotificationService):
     def __init__(self, manager):
-        super(DefaultNotificationService, self).__init__(manager)
+        super().__init__(manager)
         self._manager = manager
 
     def init_signals(self):
@@ -476,7 +470,7 @@ class DefaultNotificationService(NotificationService):
     def _newConflict(self, row_id):
         engine_uid = self.sender().uid
         doc_pair = self.sender().get_dao().get_state_from_id(row_id)
-        if doc_pair is None:
+        if not doc_pair:
             return
         self.send_notification(ConflictNotification(engine_uid, doc_pair))
 

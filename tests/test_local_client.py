@@ -7,16 +7,16 @@ See NXDRIVE-742.
 """
 import hashlib
 import os
-import sys
 from time import sleep
 
 import pytest
 
-from nxdrive.client import LocalClient, NotFound
-from nxdrive.client.common import DuplicationDisabledError
+from nxdrive.client import LocalClient
+from nxdrive.constants import LINUX, WINDOWS
+from nxdrive.exceptions import DuplicationDisabledError, NotFound
 from .common import UnitTestCase
 
-if sys.platform == 'win32':
+if WINDOWS:
     import win32api
 
 
@@ -25,7 +25,7 @@ SOME_TEXT_CONTENT = b'Some text content.'
 SOME_TEXT_DIGEST = hashlib.md5(SOME_TEXT_CONTENT).hexdigest()
 
 
-class StubLocalClient(object):
+class StubLocalClient:
     """
     All tests goes here. If you need to implement a special behavior for
     one OS, override the test method in the class TestLocalClientSimulation.
@@ -75,8 +75,8 @@ class StubLocalClient(object):
     def test_get_info_invalid_date(self):
         local = self.local_1
         doc_1 = local.make_file('/', 'Document 1.txt')
-        os.utime(local.abspath(
-                os.path.join('/', 'Document 1.txt')), (0, 999999999999999))
+        os.utime(local.abspath(os.path.join('/', 'Document 1.txt')),
+                 (0, 999999999999999))
         doc_1_info = local.get_info(doc_1)
         assert doc_1_info.name == 'Document 1.txt'
         assert doc_1_info.path == doc_1
@@ -86,7 +86,7 @@ class StubLocalClient(object):
     def test_complex_filenames(self):
         local = self.local_1
         # create another folder with the same title
-        title_with_accents = u"\xc7a c'est l'\xe9t\xe9 !"
+        title_with_accents = "\xc7a c'est l'\xe9t\xe9 !"
 
         folder_1 = local.make_folder('/', title_with_accents)
         folder_1_info = local.get_info(folder_1)
@@ -97,19 +97,19 @@ class StubLocalClient(object):
             local.make_folder('/', title_with_accents)
 
         # Create a long file name with weird chars
-        long_filename = u"\xe9" * 50 + u"%$#!()[]{}+_-=';&^" + u".doc"
+        long_filename = '\xe9' * 50 + "%$#!()[]{}+_-=';&^" + '.doc'
         file_1 = local.make_file(folder_1, long_filename)
         file_1 = local.get_info(file_1)
         assert file_1.name == long_filename
-        assert file_1.path == folder_1_info.path + u"/" + long_filename
+        assert file_1.path == folder_1_info.path + '/' + long_filename
 
         # Create a file with invalid chars
-        invalid_filename = u"a/b\\c*d:e<f>g?h\"i|j.doc"
-        escaped_filename = u"a-b-c-d-e-f-g-h-i-j.doc"
+        invalid_filename = 'a/b\\c*d:e<f>g?h"i|j.doc'
+        escaped_filename = 'a-b-c-d-e-f-g-h-i-j.doc'
         file_2 = local.make_file(folder_1, invalid_filename)
         file_2 = local.get_info(file_2)
         assert file_2.name == escaped_filename
-        assert file_2.path == folder_1_info.path + u'/' + escaped_filename
+        assert file_2.path == folder_1_info.path + '/' + escaped_filename
 
     @pytest.mark.xfail(True, raises=NotFound, reason='Must fail.')
     def test_missing_file(self):
@@ -129,7 +129,7 @@ class StubLocalClient(object):
                 local.make_file('/', 'ABC.txt')
         assert len(local.get_children_info('/')) == sensitive + 1
 
-    @pytest.mark.skipif(sys.platform != 'win32', reason='Windows only.')
+    @pytest.mark.skipif(not WINDOWS, reason='Windows only.')
     def test_windows_short_names(self):
         """
         Test 8.3 file name convention:
@@ -241,8 +241,7 @@ class StubLocalClient(object):
 
     def test_xattr(self):
         local = self.local_1
-        ref = local.make_file('/', 'File 2.txt',
-                                            content=b'baz\n')
+        ref = local.make_file('/', 'File 2.txt', content=b'baz\n')
         path = local.abspath(ref)
         mtime = int(os.path.getmtime(path))
         sleep(1)
@@ -265,8 +264,7 @@ class StubLocalClient(object):
     def test_is_equal_digests(self):
         local = self.local_1
         content = b'joe'
-        local_path = local.make_file('/', 'File.txt',
-                                                   content=content)
+        local_path = local.make_file('/', 'File.txt', content=content)
         local_digest = hashlib.md5(content).hexdigest()
         # Equal digests
         assert local.is_equal_digests(
@@ -307,7 +305,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
         return LocalClient(path)
 
     @pytest.mark.xfail(
-        sys.platform == 'win32', raises=OSError,
+        WINDOWS, raises=OSError,
         reason='Explorer cannot deal with very long paths')
     def test_deep_folders(self):
         """
@@ -315,8 +313,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
             WindowsError: [Error 206] The filename or extension is too long
         Explorer cannot deal with very long paths.
         """
-
-        super(TestLocalClientNative, self).test_deep_folders()
+        super().test_deep_folders()
 
     def test_remote_changing_case_accentued_folder(self):
         """
@@ -329,24 +326,23 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
         remote = self.remote_document_client_1
 
         # Step 1: remotely create an accentued folder
-        root = remote.make_folder('/', u'Projet Hémodialyse')
-        folder = remote.make_folder(root, u'Pièces graphiques')
+        root = remote.make_folder('/', 'Projet Hémodialyse')
+        folder = remote.make_folder(root, 'Pièces graphiques')
 
         self.wait_sync(wait_for_async=True)
-        assert local.exists(u'/Projet Hémodialyse')
-        assert local.exists(u'/Projet Hémodialyse/Pièces graphiques')
+        assert local.exists('/Projet Hémodialyse')
+        assert local.exists('/Projet Hémodialyse/Pièces graphiques')
 
         # Step 2: remotely change the case of the subfolder
-        remote.update(folder, properties={'dc:title': u'Pièces Graphiques'})
+        remote.update(folder, properties={'dc:title': 'Pièces Graphiques'})
 
         self.wait_sync(wait_for_async=True)
-        children = local.get_children_info(u'/Projet Hémodialyse')
+        children = local.get_children_info('/Projet Hémodialyse')
         assert len(children) == 1
-        assert children[0].name == u'Pièces Graphiques'
+        assert children[0].name == 'Pièces Graphiques'
 
 
-@pytest.mark.skipif(
-    sys.platform == 'linux2', reason='GNU/Linux uses native LocalClient.')
+@pytest.mark.skipif(LINUX, reason='GNU/Linux uses native LocalClient.')
 class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
     """
     Test LocalClient using OS-specific commands to make FS operations.
@@ -360,18 +356,17 @@ class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
         self.wait_sync()
 
     @pytest.mark.xfail(
-        sys.platform == 'win32', raises=IOError,
+        WINDOWS, raises=OSError,
         reason='Explorer cannot find the directory as the path is way to long')
     def test_complex_filenames(self):
         """
-        It should fail on Windows: IOError: [Errno 2] No such file or directory
+        It should fail on Windows: OSError: [Errno 2] No such file or directory
         Explorer cannot find the directory as the path is way to long.
         """
-
-        super(TestLocalClientSimulation, self).test_complex_filenames()
+        super().test_complex_filenames()
 
     @pytest.mark.xfail(
-        sys.platform == 'win32', raises=OSError,
+        WINDOWS, raises=OSError,
         reason='Explorer cannot deal with very long paths')
     def test_deep_folders(self):
         """
@@ -379,5 +374,4 @@ class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
             WindowsError: [Error 206] The filename or extension is too long
         Explorer cannot deal with very long paths.
         """
-
-        super(TestLocalClientSimulation, self).test_deep_folders()
+        super().test_deep_folders()

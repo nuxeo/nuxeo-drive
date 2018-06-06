@@ -4,11 +4,15 @@ Release date: `2018-??-??`
 Changes in command line arguments:
 
 - Removed `proxy-exceptions`
-- Removed `proxy-type`: Pass the scheme directly in the `proxy-server` url
+- Removed `proxy-type`
 
 ### Core
+- [NXDRIVE-691](https://jira.nuxeo.com/browse/NXDRIVE-691): Upgrade to Python 3.7 (**breaking change**)
+- [NXDRIVE-692](https://jira.nuxeo.com/browse/NXDRIVE-692): Upgrade from PyQt4 to PyQt5 (**breaking change**)
 - [NXDRIVE-825](https://jira.nuxeo.com/browse/NXDRIVE-825): Rely on the Python client for all Nuxeo API calls (**breaking change**)
-- [NXDRIVE-1068](https://jira.nuxeo.com/browse/NXDRIVE-1068): Move proxy support to a dedicated module
+- [NXDRIVE-876](https://jira.nuxeo.com/browse/NXDRIVE-876): Make NotFound exception inherits from OSError
+- [NXDRIVE-922](https://jira.nuxeo.com/browse/NXDRIVE-922): Move custom exceptions to exceptions.py
+- [NXDRIVE-1068](https://jira.nuxeo.com/browse/NXDRIVE-1068): Move proxy support to a dedicated module (**breaking change**)
 - [NXDRIVE-1201](https://jira.nuxeo.com/browse/NXDRIVE-1201): Adapt Drive for new Trash API behavior
 
 ### GUI
@@ -17,20 +21,28 @@ Changes in command line arguments:
 
 ### Packaging / Build
 - [NXDRIVE-1217](https://jira.nuxeo.com/browse/NXDRIVE-1217): Hide the Dock icon on macOS
+- [NXDRIVE-1223](https://jira.nuxeo.com/browse/NXDRIVE-1223): Use a fork of universal-analytics-python that supports Python 3
 - [NXDRIVE-1234](https://jira.nuxeo.com/browse/NXDRIVE-1234): Tweak pyup.io parameters
 
 ### Tests
 - [NXDRIVE-1212](https://jira.nuxeo.com/browse/NXDRIVE-1212): Disable all server converters, enabled on-demand
 
 #### Minor changes
+- Framework: Make NotFound exception inherits from OSError
 - Jenkins: Added the `PYTEST_ADDOPTS` parameter to the Drive-tests job
 - Jenkins: Removed the `ENABLE_PROFILER` parameter from the Drive-tests job
+- Packaging: Added `distro` 1.3.0
 - Packaging: Added `nuxeo` 2.0.1
 - Packaging: Updated `psutil` from 5.4.4 to 5.4.6
 - Packaging: Updated `pyobjc` from 4.1 to 4.2.2
 - Packaging: Updated `pypac` from 0.8.1 to 0.9.0
 - Packaging: Updated `pytest` from 3.5.1 to 3.6.1
 - Packaging: Updated `pytest-timeout` from 1.2.1 to 1.3.0
+- Packaging: Removed `SIP_VERSION` and `PYQT_VERSION` envars
+- Tests: Added `-b -Wall` arguments to the Python interpreter while testing
+- \[GNU/Linux\] Packaging: Removed `COMPILE_WITH_DEBUG` envar
+- \[Windows\] Packaging: Added the `PYTHON_DIR` envar
+- \[Windows\] Packaging: Removed `QT_PATH` and `MINGW_PATH` envars
 
 
 # 3.1.1

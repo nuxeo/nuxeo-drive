@@ -11,11 +11,11 @@ log = getLogger(__name__)
 
 class Processor(OldProcessor):
     def __init__(self, engine, item_getter, name=None):
-        super(Processor, self).__init__(engine, item_getter, name=name)
+        super().__init__(engine, item_getter, name=name)
 
     def acquire_state(self, row_id):
         log.warning('acquire...')
-        result = super(Processor, self).acquire_state(row_id)
+        result = super().acquire_state(row_id)
         if (result is not None
                 and self.engine.get_local_watcher().is_pending_scan(
                     result.local_parent_path)):

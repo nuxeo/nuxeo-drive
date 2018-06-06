@@ -2,16 +2,17 @@
 import logging
 import os
 
+import nuxeo.client
 import nuxeo.constants
 import nuxeo.operations
 from nuxeo.exceptions import HTTPError
 
-from nxdrive.client import LocalClient, NuxeoDocumentInfo, Remote, safe_filename
+from nxdrive.client import LocalClient, NuxeoDocumentInfo, Remote
+from nxdrive.constants import MAC
 from nxdrive.engine.engine import Engine
 from nxdrive.logging_config import configure
 from nxdrive.manager import Manager
-from nxdrive.osi.darwin.darwin import DarwinIntegration
-from nxdrive.utils import make_tmp_file
+from nxdrive.utils import make_tmp_file, safe_filename
 
 # Automatically check all operations done with the Python client
 nuxeo.constants.CHECK_PARAMS = True
@@ -19,16 +20,20 @@ nuxeo.constants.CHECK_PARAMS = True
 # Remove features for tests
 LocalClient.has_folder_icon = lambda *args: True
 Engine.add_to_favorites = lambda *args: None
-DarwinIntegration._cleanup = lambda *args: None
-DarwinIntegration._init = lambda *args: None
-DarwinIntegration.send_sync_status = lambda *args: None
-DarwinIntegration.watch_folder = lambda *args: None
-DarwinIntegration.unwatch_folder = lambda *args: None
 Manager._create_findersync_listener = lambda *args: None
 Manager._create_updater = lambda *args: None
 Manager._create_server_config_updater = lambda *args: None
 Manager._handle_os = lambda: None
 Manager.send_sync_status = lambda *args: None
+
+if MAC:
+    from nxdrive.osi.darwin.darwin import DarwinIntegration
+    DarwinIntegration._cleanup = lambda *args: None
+    DarwinIntegration._init = lambda *args: None
+    DarwinIntegration._send_notification = lambda *args: None
+    DarwinIntegration.send_sync_status = lambda *args: None
+    DarwinIntegration.watch_folder = lambda *args: None
+    DarwinIntegration.unwatch_folder = lambda *args: None
 
 
 def configure_logger():
@@ -46,17 +51,22 @@ log = logging.getLogger(__name__)
 
 # Operations cache
 OPS_CACHE = None
+SERVER_INFO = None
 
 
 class RemoteBase(Remote):
     def __init__(self, *args, **kwargs):
-        super(RemoteBase, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Save bandwith by caching operations details
         global OPS_CACHE
         if not OPS_CACHE:
             OPS_CACHE = self.operations.operations
             nuxeo.operations.API.ops = OPS_CACHE
+        global SERVER_INFO
+        if not SERVER_INFO:
+            SERVER_INFO = self.client.server_info()
+            nuxeo.client.NuxeoClient._server_info = SERVER_INFO
 
 
 class RemoteTest(RemoteBase):
@@ -67,17 +77,17 @@ class RemoteTest(RemoteBase):
     raise_on = None
 
     def __init__(self, *args, **kwargs):
-        super(RemoteTest, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.exec_fn = self.operations.execute
         self.operations.execute = self.execute
 
     def download(self, *args, **kwargs):
         self._raise(self._download_remote_error, *args, **kwargs)
-        return super(RemoteTest, self).download(*args, **kwargs)
+        return super().download(*args, **kwargs)
 
     def upload(self, *args, **kwargs):
         self._raise(self._upload_remote_error, *args, **kwargs)
-        return super(RemoteTest, self).upload(*args, **kwargs)
+        return super().upload(*args, **kwargs)
 
     def execute(self, *args, **kwargs):
         self._raise(self._server_error, *args, **kwargs)
@@ -173,8 +183,12 @@ class DocRemote(RemoteTest):
             command='Document.Create', input_obj='doc:' + ref,
             type=doc_type, name=name, properties=properties)
 
-    def make_folder(self, parent, name, doc_type='Folder'):
-        # type (str, str, str) -> str
+    def make_folder(
+        self,
+        parent: str,
+        name: str,
+        doc_type: str='Folder',
+    ) -> str:
         # TODO: make it possible to configure context dependent:
         # - SocialFolder under SocialFolder or SocialWorkspace
         # - Folder under Folder or Workspace
@@ -183,9 +197,15 @@ class DocRemote(RemoteTest):
         parent = self._check_ref(parent)
         doc = self.create(parent, doc_type, name=name,
                           properties={'dc:title': name})
-        return doc[u'uid']
+        return doc['uid']
 
-    def make_file(self, parent, name, content=None, doc_type='File'):
+    def make_file(
+        self,
+        parent: str,
+        name: str,
+        content: bytes=None,
+        doc_type: str='File',
+    ) -> str:
         """Create a document of the given type with the given name and content
 
         Creates a temporary file from the content then streams it.
@@ -195,7 +215,7 @@ class DocRemote(RemoteTest):
         if doc_type is 'Note' and content is not None:
             properties['note:note'] = content
         doc = self.create(parent, doc_type, name=name, properties=properties)
-        ref = doc[u'uid']
+        ref = doc['uid']
         if doc_type is not 'Note' and content is not None:
             self.attach_blob(ref, content, name)
         return ref
@@ -209,8 +229,15 @@ class DocRemote(RemoteTest):
         finally:
             os.remove(file_path)
 
-    def stream_file(self, parent, name, file_path, filename=None,
-                    mime_type=None, doc_type='File'):
+    def stream_file(
+        self,
+        parent: str,
+        name: str,
+        file_path: str,
+        filename: str=None,
+        mime_type: str=None,
+        doc_type: str='File',
+    ) -> str:
         """Create a document by streaming the file with the given path"""
         ref = self.make_file(parent, name, doc_type=doc_type)
         self.upload(
@@ -218,7 +245,7 @@ class DocRemote(RemoteTest):
             command='Blob.Attach', document=ref)
         return ref
 
-    def attach_blob(self, ref, blob, filename):
+    def attach_blob(self, ref: str, blob: bytes, filename: str):
         file_path = make_tmp_file(self.upload_tmp_dir, blob)
         try:
             return self.upload(
@@ -227,7 +254,7 @@ class DocRemote(RemoteTest):
         finally:
             os.remove(file_path)
 
-    def get_content(self, ref):
+    def get_content(self, ref: str) -> bytes:
         """
         Download and return the binary content of a document
         Beware that the content is loaded in memory.
@@ -237,7 +264,13 @@ class DocRemote(RemoteTest):
             ref = self._check_ref(ref)
         return self.get_blob(ref)
 
-    def update_content(self, ref, content, filename=None):
+    def update_content(
+        self,
+        ref: str,
+        content: bytes,
+        filename: str=None,
+        **kwargs,
+    ) -> None:
         """Update a document with the given content
 
         Creates a temporary file from the content then streams it.
@@ -246,22 +279,22 @@ class DocRemote(RemoteTest):
             filename = self.get_info(ref).name
         self.attach_blob(self._check_ref(ref), content, filename)
 
-    def move(self, ref, target, name=None):
+    def move(self, ref: str, target: str, name: str=None):
         return self.operations.execute(
             command='Document.Move', input_obj='doc:' + self._check_ref(ref),
             target=self._check_ref(target), name=name)
 
-    def update(self, ref, properties=None):
+    def update(self, ref: str, properties=None):
         return self.operations.execute(
             command='Document.Update', input_obj='doc:' + ref,
             properties=properties)
 
-    def copy(self, ref, target, name=None):
+    def copy(self, ref: str, target: str, name: str=None):
         return self.operations.execute(
             command='Document.Copy', input_obj='doc:' + self._check_ref(ref),
             target=self._check_ref(target), name=name)
 
-    def delete(self, ref, use_trash=True):
+    def delete(self, ref: str, use_trash: bool=True):
         input_obj = 'doc:' + self._check_ref(ref)
         if use_trash:
             try:
@@ -278,39 +311,39 @@ class DocRemote(RemoteTest):
         return self.operations.execute(command='Document.Delete',
                                        input_obj=input_obj)
 
-    def delete_content(self, ref, xpath=None):
+    def delete_content(self, ref: str, xpath: str=None):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)
 
-    def delete_blob(self, ref, xpath=None):
+    def delete_blob(self, ref: str, xpath: str=None):
         return self.operations.execute(
             command='Blob.Remove', input_obj='doc:' + ref, xpath=xpath)
 
-    def is_locked(self, ref):
+    def is_locked(self, ref: str) -> bool:
         data = self.fetch(ref, headers={'fetch-document': 'lock'})
         return 'lockCreated' in data
 
     def get_repository_names(self):
-        return self.operations.execute(command='GetRepositories')[u'value']
+        return self.operations.execute(command='GetRepositories')['value']
 
-    def get_versions(self, ref):
+    def get_versions(self, ref: str):
         headers = {'X-NXfetch.document': 'versionLabel'}
         versions = self.operations.execute(command='Document.GetVersions',
             input_obj='doc:' + self._check_ref(ref), headers=headers)
         return [(v['uid'], v['versionLabel']) for v in versions['entries']]
 
-    def create_version(self, ref, increment='None'):
+    def create_version(self, ref: str, increment: str='None'):
         doc = self.operations.execute(
             command='Document.CreateVersion',
             input_obj='doc:' + self._check_ref(ref), increment=increment)
         return doc['uid']
 
-    def restore_version(self, version):
+    def restore_version(self, version: str) -> str:
         doc = self.operations.execute(
             command='Document.RestoreVersion',
             input_obj='doc:' + self._check_ref(version))
         return doc['uid']
 
-    def block_inheritance(self, ref, overwrite=True):
+    def block_inheritance(self, ref: str, overwrite: bool=True):
         input_obj = 'doc:' + self._check_ref(ref)
 
         self.operations.execute(

@@ -1,7 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 
-from PyQt4 import QtCore
+from PyQt5.QtCore import pyqtSlot, QObject
 
 from .dialog import Promise, WebDriveApi
 from .translator import Translator
@@ -21,50 +21,50 @@ class WebConflictsApi(WebDriveApi):
     def set_engine(self, engine):
         self._engine = engine
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_ignoreds(self):
         self.retrieve_name = False
         return super(WebConflictsApi, self).get_unsynchronizeds(self._engine.uid)
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_errors(self):
         self.retrieve_name = False
         return super(WebConflictsApi, self).get_errors(self._engine.uid)
 
-    @QtCore.pyqtSlot(result=QtCore.QObject)
+    @pyqtSlot(result=QObject)
     def get_conflicts_with_fullname_async(self):
         self.retrieve_name = True
         return Promise(super(WebConflictsApi, self).get_conflicts, self._engine.uid)
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_conflicts(self):
         self.retrieve_name = False
         return super(WebConflictsApi, self).get_conflicts(self._engine.uid)
 
-    @QtCore.pyqtSlot(int)
+    @pyqtSlot(int)
     def resolve_with_local(self, state_id):
         self._engine.resolve_with_local(state_id)
 
-    @QtCore.pyqtSlot(int)
+    @pyqtSlot(int)
     def resolve_with_remote(self, state_id):
         self._engine.resolve_with_remote(state_id)
 
-    @QtCore.pyqtSlot(int)
+    @pyqtSlot(int)
     def retry_pair(self, state_id):
         self._engine.retry_pair(state_id)
 
-    @QtCore.pyqtSlot(int, str)
+    @pyqtSlot(int, str)
     def unsynchronize_pair(self, state_id, reason='UNKNOWN'):
         self._engine.unsynchronize_pair(state_id, reason=str(reason))
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def open_local(self, path):
         return super(WebConflictsApi, self).open_local(self._engine.uid, path)
 
-    @QtCore.pyqtSlot(str, str)
+    @pyqtSlot(str, str)
     def open_remote(self, remote_ref, remote_name):
         remote_ref = str(remote_ref)
-        remote_name = unicode(remote_name)
+        remote_name = str(remote_name)
         log.debug("Should open this : %s (%s)", remote_name, remote_ref)
         try:
             self._engine.open_edit(remote_ref, remote_name)

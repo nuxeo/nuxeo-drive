@@ -1,12 +1,13 @@
 # coding: utf-8
 import os
-import sys
 
-from PyQt4.QtCore import Qt, pyqtSlot
-from PyQt4.QtGui import QApplication, QCursor, QMenu, QStyle, QSystemTrayIcon
+from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QApplication, QMenu, QStyle, QSystemTrayIcon
 
 from .dialog import WebDialog, WebDriveApi
 from .translator import Translator
+from ..constants import MAC
 from ..options import Options
 
 
@@ -14,8 +15,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
     __menu_left = None
     __menu_right = None
-    use_old_menu = (sys.platform == 'darwin'
-                    or os.environ.get('USE_OLD_MENU') is not None)
+    use_old_menu = MAC or os.environ.get('USE_OLD_MENU', False)
 
     def __init__(self, application):
         super(DriveSystrayIcon, self).__init__(application)
@@ -155,9 +155,7 @@ class WebSystrayApi(WebDriveApi):
           - when the envar USE_OLD_MENU is set
             (for Unity that does not see right click into the systray)
         """
-        return (Options.debug
-                or sys.platform == 'darwin'
-                or os.environ.get('USE_OLD_MENU') is not None)
+        return Options.debug or MAC or os.environ.get('USE_OLD_MENU', False)
 
     @pyqtSlot(str, result=int)
     def get_syncing_items(self, uid):

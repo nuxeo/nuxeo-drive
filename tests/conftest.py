@@ -74,9 +74,3 @@ def root_remote():
         password=pytest.password,
         base_folder='/',
         timeout=60)
-
-
-@pytest.fixture(autouse=True)
-def announce(request, root_remote):
-    """ Log the current test on the server. """
-    root_remote.log_on_server('>>> testing: ' + request.node.nodeid)

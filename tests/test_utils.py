@@ -8,8 +8,8 @@ def test_encrypt_decrypt():
     enc = nxdrive.utils.encrypt
     dec = nxdrive.utils.decrypt
 
-    pwd = 'Administrator'
-    token = '12345678-acbd-1234-cdef-1234567890ab'
+    pwd = b'Administrator'
+    token = b'12345678-acbd-1234-cdef-1234567890ab'
     cipher = enc(pwd, token)
 
     assert dec(cipher, token) == pwd
@@ -144,6 +144,13 @@ def test_guess_server_url(url, result):
 ])
 def test_simplify_url(url, result):
     assert nxdrive.utils.simplify_url(url) == result
+
+
+@pytest.mark.parametrize('invalid, valid', [
+    ('a/b\\c*d:e<f>g?h"i|j.doc', 'a-b-c-d-e-f-g-h-i-j.doc'),
+])
+def test_safe_filename(invalid, valid):
+    assert nxdrive.utils.safe_filename(invalid) == valid
 
 
 @pytest.mark.parametrize('x, y, z', [

@@ -52,7 +52,7 @@ add_trace_level()
 
 class CustomMemoryHandler(BufferingHandler):
     def __init__(self, capacity=MAX_LOG_DISPLAYED):
-        super(CustomMemoryHandler, self).__init__(capacity)
+        super().__init__(capacity)
         self.old_buffer_ = None
 
     def flush(self):
@@ -91,7 +91,7 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         return os.path.join(dir_name, result[0])
 
     def doRollover(self):
-        super(TimedCompressedRotatingFileHandler, self).doRollover()
+        super().doRollover()
 
         dfn = self.find_last_rotated_file()
         dfn_zipped = '{}.zip'.format(dfn)
@@ -101,7 +101,7 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
 
 
 def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
-              console_level='INFO', filter_inotify=True, command_name=None,
+              console_level='INFO', command_name=None,
               log_rotate_keep=30, log_rotate_max_bytes=None,
               log_rotate_when=None, force_configure=False, formatter=None):
 
@@ -172,10 +172,6 @@ def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
         memory_handler.set_name('memory')
         memory_handler.setFormatter(formatter)
         root_logger.addHandler(memory_handler)
-        if filter_inotify:
-            root_logger.addFilter(
-                logging.Filter('watchdog.observers.inotify_buffer'))
-
 
 def get_handler(logger, name):
     for handler in logger.handlers:
@@ -186,7 +182,8 @@ def get_handler(logger, name):
 
 def update_logger_console(log_level):
     logging.getLogger().setLevel(
-        min(log_level, logging.getLogger().getEffectiveLevel()))
+        min(getattr(logging, log_level),
+            logging.getLogger().getEffectiveLevel()))
 
 
 def update_logger_file(log_level):

@@ -1,23 +1,23 @@
 # coding: utf-8
 """ Main Qt application handling OS events and system tray UI. """
-import json
 import os
 from logging import getLogger
-from urllib import unquote
+from urllib.parse import unquote
 
 import requests
-from PyQt4.QtCore import Qt, pyqtSlot
-from PyQt4.QtGui import (QAction, QApplication, QDialog, QDialogButtonBox,
-                         QIcon, QMenu, QMessageBox, QSystemTrayIcon,
-                         QTextEdit, QVBoxLayout)
+from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (QAction, QApplication, QDialog, QDialogButtonBox,
+                             QMenu, QMessageBox, QSystemTrayIcon,
+                             QTextEdit, QVBoxLayout)
 from markdown import markdown
 
 from .systray import DriveSystrayIcon
 from .translator import Translator
+from ..constants import LINUX, MAC, WINDOWS
 from ..engine.activity import Action, FileAction
 from ..notification import Notification
 from ..options import Options
-from ..osi import AbstractOSIntegration
 from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
                                  UPDATE_STATUS_UNAVAILABLE_SITE,
                                  UPDATE_STATUS_UP_TO_DATE)
@@ -111,7 +111,7 @@ class Application(SimpleApplication):
         self.init_checks()
 
         # Setup notification center for macOS
-        if AbstractOSIntegration.is_mac():
+        if MAC:
             self._setup_notification_center()
 
         # Application update
@@ -125,7 +125,7 @@ class Application(SimpleApplication):
     def _direct_edit_conflict(self, filename, ref, digest):
         log.trace('Entering _direct_edit_conflict for %r / %r', filename, ref)
         try:
-            filename = unicode(filename)
+            filename = str(filename)
             if filename in self._conflicts_modals:
                 log.trace('Filename already in _conflicts_modals: %r',
                           filename)
@@ -148,8 +148,8 @@ class Application(SimpleApplication):
             msg.exec_()
             res = msg.clickedButton()
             if res == overwrite:
-                self.manager.direct_edit.force_update(unicode(ref),
-                                                      unicode(digest))
+                self.manager.direct_edit.force_update(str(ref),
+                                                      str(digest))
             del self._conflicts_modals[filename]
         except:
             log.exception('Error while displaying Direct Edit'
@@ -164,7 +164,7 @@ class Application(SimpleApplication):
         msg.setWindowIcon(QIcon(self.get_window_icon()))
         msg.setIcon(QMessageBox.Warning)
         msg.setTextFormat(Qt.RichText)
-        msg.setText(self.translate(unicode(message), values))
+        msg.setText(self.translate(str(message), values))
         msg.exec_()
 
     @pyqtSlot()
@@ -228,7 +228,7 @@ class Application(SimpleApplication):
             engine.reinit()
             engine.start()
         elif res == move:
-            engine.set_local_folder(unicode(new_path))
+            engine.set_local_folder(str(new_path))
             engine.start()
 
     @pyqtSlot(object)
@@ -427,7 +427,7 @@ class Application(SimpleApplication):
                'AUTOUPDATE_DOWNGRADE')[status == UPDATE_STATUS_DOWNGRADE_NEEDED]
         description = Translator.get(msg, replacements)
         flags = Notification.FLAG_BUBBLE | Notification.FLAG_UNIQUE
-        if AbstractOSIntegration.is_linux():
+        if LINUX:
             description += ' ' + Translator.get('AUTOUPDATE_MANUAL')
             flags |= Notification.FLAG_SYSTRAY
 
@@ -618,10 +618,10 @@ class Application(SimpleApplication):
         for state in ('idle', 'disabled', 'conflict', 'error',
                       'notification', 'syncing', 'paused', 'update'):
             name = '{}{}.svg'.format(
-                state, '_light' if AbstractOSIntegration.is_windows() else '')
+                state, '_light' if WINDOWS else '')
             icon = QIcon()
             icon.addFile(find_icon(name), mode=QIcon.Normal)
-            if AbstractOSIntegration.is_mac():
+            if MAC:
                 icon.addFile(find_icon('active.svg'), mode=QIcon.Selected)
             icons[state] = icon
         setattr(self, 'icons', icons)

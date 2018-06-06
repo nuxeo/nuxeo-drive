@@ -1,4 +1,9 @@
 # coding: utf-8
+from sys import platform
+
+LINUX = platform == 'linux'
+MAC = platform == 'darwin'
+WINDOWS = platform == 'win32'
 
 BUNDLE_IDENTIFIER = 'org.nuxeo.drive'
 APP_NAME = 'Nuxeo Drive'
@@ -9,6 +14,8 @@ FILE_BUFFER_SIZE = 1024 ** 2
 
 DOWNLOAD_TMP_FILE_PREFIX = '.'
 DOWNLOAD_TMP_FILE_SUFFIX = '.nxpart'
+
+UNACCESSIBLE_HASH = 'TO_COMPUTE'
 
 TOKEN_PERMISSION = 'ReadWrite'
 DEFAULT_TYPES = ('File', 'Note', 'Workspace', 'Folder')

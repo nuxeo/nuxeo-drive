@@ -23,7 +23,7 @@ nxdrive = os.path.join(cwd, 'nxdrive')
 data = os.path.join(nxdrive, 'data')
 icon = {
     'darwin': os.path.join(tools, 'osx', 'app_icon.icns'),
-    'linux2': os.path.join(tools, 'linux', 'app_icon.png'),
+    'linux': os.path.join(tools, 'linux', 'app_icon.png'),
     'win32': os.path.join(tools, 'windows', 'app_icon.ico'),
     }[sys.platform]
 
@@ -40,10 +40,6 @@ version = get_version(os.path.join(nxdrive, '__init__.py'))
 properties_rc = None
 
 if sys.platform == 'win32':
-    # Missing OpenSSL DLLs
-    data.append((tools + '\windows\libeay32.dll', '.'))
-    data.append((tools + '\windows\ssleay32.dll', '.'))
-
     # Set executable properties
     properties_tpl = tools + '\windows\properties_tpl.rc'
     properties_rc = tools + '\windows\properties.rc'

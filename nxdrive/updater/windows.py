@@ -13,8 +13,7 @@ class Updater(BaseUpdater):
     ext = 'exe'
     release_file = 'nuxeo-drive-{version}.exe'
 
-    def install(self, filename):
-        # type: (unicode) -> None
+    def install(self, filename: str) -> None:
         """
         The installer will automagically:
             - stop Drive

@@ -4,11 +4,11 @@ from .common import UnitTestCase
 
 class TestRemoteChanges(UnitTestCase):
 
-    def setUpApp(self):
-        super(TestRemoteChanges, self).setUpApp(register_roots=False)
+    def setUpApp(self, *args):
+        super().setUpApp(register_roots=False)
 
     def setUp(self):
-        super(TestRemoteChanges, self).setUp()
+        super().setUp()
         self.last_sync_date = 0
         self.last_event_log_id = 0
         self.last_root_definitions = ''
@@ -167,7 +167,8 @@ class TestRemoteChanges(UnitTestCase):
     def test_lock_unlock_events(self):
         remote = self.remote_document_client_1
         remote.register_as_root(self.workspace_1)
-        doc_id = remote.make_file(self.workspace, 'TestLocking.txt', 'File content')
+        doc_id = remote.make_file(self.workspace, 'TestLocking.txt',
+                                  content=b'File content')
         self.get_changes()
 
         remote.lock(doc_id)

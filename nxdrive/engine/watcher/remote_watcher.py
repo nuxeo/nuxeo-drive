@@ -5,17 +5,19 @@ from datetime import datetime
 from logging import getLogger
 from time import sleep
 
-from PyQt4.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from nuxeo.exceptions import BadQuery, HTTPError
 from requests import ConnectionError
 
 from ..activity import Action, tooltip
-from ..workers import EngineWorker, ThreadInterrupt
-from ...client import NotFound, RemoteFileInfo
-from ...client.common import COLLECTION_SYNC_ROOT_FACTORY_NAME, safe_filename
-from ...utils import current_milli_time, path_join
+from ..workers import EngineWorker
+from ...client import RemoteFileInfo
+from ...constants import WINDOWS
+from ...exceptions import NotFound, ThreadInterrupt
+from ...utils import current_milli_time, path_join, safe_filename
 
 log = getLogger(__name__)
+COLLECTION_SYNC_ROOT_FACTORY_NAME = 'collectionSyncRootFolderItemFactory'
 
 
 class RemoteWatcher(EngineWorker):
@@ -27,7 +29,7 @@ class RemoteWatcher(EngineWorker):
     remoteWatcherStopped = pyqtSignal()
 
     def __init__(self, engine, dao, delay):
-        super(RemoteWatcher, self).__init__(engine, dao)
+        super().__init__(engine, dao)
         self.server_interval = delay
 
         self._next_check = 0
@@ -46,13 +48,13 @@ class RemoteWatcher(EngineWorker):
         }
 
     def get_metrics(self):
-        metrics = super(RemoteWatcher, self).get_metrics()
+        metrics = super().get_metrics()
         metrics['last_remote_sync_date'] = self._last_sync_date
         metrics['last_event_log_id'] = self._last_event_log_id
         metrics['last_root_definitions'] = self._last_root_definitions
         metrics['last_remote_full_scan'] = self._last_remote_full_scan
         metrics['next_polling'] = self._next_check
-        return dict(metrics.items() + self._metrics.items())
+        return {**metrics, **self._metrics}
 
     def _execute(self):
         first_pass = True
@@ -86,7 +88,6 @@ class RemoteWatcher(EngineWorker):
             log.debug('Marking %r as remotely deleted', from_state)
             # Should unbind ?
             # from_state.update_remote(None)
-            self._dao.commit()
             self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
             return
 
@@ -96,7 +97,6 @@ class RemoteWatcher(EngineWorker):
         self._last_remote_full_scan = datetime.utcnow()
         self._dao.update_config('remote_last_full_scan', self._last_remote_full_scan)
         self._dao.clean_scanned()
-        self._dao.commit()
         self._metrics['last_remote_scan_time'] = current_milli_time() - start_ms
         log.debug("Remote scan finished in %dms", self._metrics['last_remote_scan_time'])
         self.remoteScanFinished.emit()
@@ -435,7 +435,7 @@ class RemoteWatcher(EngineWorker):
 
     def _handle_readonly(self, doc_pair):
         # Don't use readonly on folder for win32 and on Locally Edited
-        if doc_pair.folderish and os.sys.platform == 'win32':
+        if doc_pair.folderish and WINDOWS:
             return
         if doc_pair.is_readonly():
             log.debug('Setting %r as readonly', doc_pair.local_path)
@@ -504,7 +504,7 @@ class RemoteWatcher(EngineWorker):
             # This should never happen: there is an error in the operation's
             # parameters sent to the server.  This exception is possible only
             # in debug mode or when running the test suite.
-            log.critical(exc, exc_info=True)
+            log.critical('Oops! Bad query parameter', exc_info=True)
             raise
         except ThreadInterrupt:
             raise
@@ -752,7 +752,7 @@ class RemoteWatcher(EngineWorker):
                             doc_pair = self._dao.get_state_from_id(doc_pair.id)
                             try:
                                 self._handle_readonly(doc_pair)
-                            except (OSError, IOError) as exc:
+                            except OSError as exc:
                                 log.trace('Cannot handle readonly for %r (%r)',
                                           doc_pair, exc)
 

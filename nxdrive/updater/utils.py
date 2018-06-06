@@ -30,7 +30,7 @@ def get_latest_compatible_version(versions, nature, server_ver):
         return latest, info
 
     # Skip outbound versions
-    for version, info in versions.items():
+    for version, info in list(versions.items()):
         server_ver_min = info.get('min', '0.0.0').upper()
         server_ver_max = info.get('max', '999.999.999').upper()
         if not version_between(server_ver_min, server_ver, server_ver_max):

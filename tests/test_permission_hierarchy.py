@@ -1,19 +1,18 @@
 # coding: utf-8
 import hashlib
-import sys
 
 import pytest
 from nuxeo.exceptions import HTTPError
 
 from nxdrive.client import LocalClient
+from nxdrive.constants import WINDOWS
 from .common import UnitTestCase
 
 
 class TestPermissionHierarchy(UnitTestCase):
 
     def setUpApp(self, **kwargs):
-        super(TestPermissionHierarchy, self).setUpApp(
-            server_profile='permission')
+        super().setUpApp(server_profile='permission')
 
     def setUp(self):
         self.admin = self.root_remote
@@ -36,7 +35,8 @@ class TestPermissionHierarchy(UnitTestCase):
         remote = self.remote_document_client_1
         test_folder_uid = remote.make_folder(self.workspace_uid, 'test_folder')
         # Create a document in the test folder
-        remote.make_file(test_folder_uid, 'test_file.txt', 'Some content.')
+        remote.make_file(test_folder_uid, 'test_file.txt',
+                         content=b'Some content.')
 
         # Register test folder as a sync root
         remote.register_as_root(test_folder_uid)
@@ -147,7 +147,7 @@ class TestPermissionHierarchy(UnitTestCase):
         assert not self.remote_2.get_fs_item(folder_b_fs)
 
     @pytest.mark.xfail(
-        sys.platform == 'win32',
+        WINDOWS,
         reason='Following the NXDRIVE-836 fix, this test always fails because '
                'when moving a file from a RO folder to a RW folder will end up'
                ' being a simple file creation. As we cannot know events order,'
@@ -193,7 +193,7 @@ class TestPermissionHierarchy(UnitTestCase):
         assert local.exists(root + 'ReadFolder/file_ro.txt')
         assert local.exists(root + 'WriteFolder')
         content = local.get_content(root + 'ReadFolder/file_ro.txt')
-        assert content == 'Read-only doc.'
+        assert content == b'Read-only doc.'
 
         # Move the read-only file
         local.move(root + 'ReadFolder/file_ro.txt', root + 'WriteFolder',
@@ -203,8 +203,8 @@ class TestPermissionHierarchy(UnitTestCase):
         self.set_readonly(self.user_2, readonly, grant=False)
 
         # Edit the new writable file
-        local.update_content(root + 'WriteFolder/file_rw.txt',
-                             b'Now a fresh read-write doc.')
+        new_data = b'Now a fresh read-write doc.'
+        local.update_content(root + 'WriteFolder/file_rw.txt', new_data)
 
         # Sync
         self.wait_sync(wait_for_async=True,
@@ -221,12 +221,11 @@ class TestPermissionHierarchy(UnitTestCase):
         assert not local.exists(root + 'WriteFolder/file_ro.txt')
         assert local.exists(root + 'WriteFolder/file_rw.txt')
         content = local.get_content(root + 'WriteFolder/file_rw.txt')
-        assert content == 'Now a fresh read-write doc.'
+        assert content == new_data
 
         # Remote checks
         assert not remote.get_children_info(readonly)
         children = remote.get_children_info(readwrite)
         assert len(children) == 1
         assert children[0].filename == 'file_rw.txt'
-        good_digest = hashlib.md5('Now a fresh read-write doc.').hexdigest()
-        assert children[0].digest == good_digest
+        assert children[0].digest == hashlib.md5(new_data).hexdigest()

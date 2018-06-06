@@ -28,7 +28,7 @@ Actual result:
 
 import time
 
-from common import *
+from .common import *
 
 
 @action

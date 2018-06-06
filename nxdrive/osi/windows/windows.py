@@ -1,11 +1,12 @@
 # coding: utf-8
 import os
+from contextlib import suppress
 from ctypes import windll
 from logging import getLogger
 
-import _winreg
 import win32api
 import win32file
+import winreg
 from win32com.client import Dispatch
 from win32con import LOGPIXELSX
 
@@ -47,15 +48,13 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def get_system_configuration(self):
         result = dict()
-        reg = _winreg.HKEY_CURRENT_USER
+        reg = winreg.HKEY_CURRENT_USER
         reg_key = 'Software\\Nuxeo\\Drive'
-        try:
-            with _winreg.OpenKey(reg, reg_key, 0, _winreg.KEY_READ) as key:
-                for i in range(_winreg.QueryInfoKey(key)[1]):
-                    k, v, _ = _winreg.EnumValue(key, i)
+        with suppress(WindowsError):
+            with winreg.OpenKey(reg, reg_key, 0, winreg.KEY_READ) as key:
+                for i in range(winreg.QueryInfoKey(key)[1]):
+                    k, v, _ = winreg.EnumValue(key, i)
                     result[k.replace('-', '_').lower()] = v
-        except WindowsError:
-            pass
         return result
 
     def register_folder_link(self, folder_path, name=None):
@@ -64,10 +63,8 @@ class WindowsIntegration(AbstractOSIntegration):
             self._create_shortcut(favorite, folder_path)
 
     def unregister_folder_link(self, name):
-        try:
+        with suppress(OSError):
             os.remove(self._get_folder_link(name))
-        except OSError:
-            pass
 
     def _create_shortcut(self, favorite, filepath):
         try:

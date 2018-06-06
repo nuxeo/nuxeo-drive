@@ -19,7 +19,7 @@ class ManagerDAOTest(unittest.TestCase):
         if not os.path.isdir(self.tmpdir):
             os.makedirs(self.tmpdir)
 
-        self.test_folder = tempfile.mkdtemp(u'-nxdrive-tests', dir=self.tmpdir)
+        self.test_folder = tempfile.mkdtemp('-nxdrive-tests', dir=self.tmpdir)
 
     def tearDown(self):
         Manager._singleton = None

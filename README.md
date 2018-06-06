@@ -60,28 +60,15 @@ On GNU/Linux, depending on the distribution, you may need a special mount option
 
 #### Python
 
-Nuxeo Drive is officially supported on **Python 2.7 only**.
+Nuxeo Drive is officially supported on **Python 3.6+**.
 
 #### Install Nuxeo Drive
 
-Let's say you have installed Qt4 (from official repository or compiled manually), then install Nuxeo Drive requirements and Nuxeo Drive itself.
+Install Nuxeo Drive requirements and Nuxeo Drive itself.
 These are common installation actions, not depending on the package manager:
 
-    # For Drive >= 3.1.0:
     DRIVE_VERSION=release-3.1.0
     pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
-    pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
-
-    # For 2.2.227 <= Drive < 3.1.0:
-    DRIVE_VERSION=release-2.2.323
-    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
-    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements-unix.txt
-    pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
-
-    # For Drive < 2.2.227:
-    DRIVE_VERSION=release-2.1.113
-    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
-    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/unix-requirements.txt
     pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
 
 
@@ -96,8 +83,6 @@ You can also fetch the latest development version from the [our Continous Integr
 All the necessary dependencies (such as the Python interpreter and the Qt / PyQt for the client side user interface) are included and will not impact any alternative version you may have already installed on your computer.
 
 ### Jenkins
-
-*Since Drive 2.2.227* 
 
 To easily manage all dependencies and packaging steps, we created several Jenkinsfiles you can reuse. They are located in the **tools/jenikins** folder. You may also want to read the [docs/deployment.md](https://github.com/nuxeo/nuxeo-drive/blob/master/docs/deployment.md).
 
@@ -137,7 +122,7 @@ The desktop synchronization client can also be operated from the command-line:
     ```
     ndrive
     ```
-    Under Windows you can launch `ndrivew.exe` instead to avoid keeping the cmd console open while Nuxeo Drive is running instead.
+    Under Windows you can launch `ndrive.exe` instead to avoid keeping the cmd console open while Nuxeo Drive is running instead.
 
 3. The first time you run this command a dialog window will open asking for the URL of the Nuxeo server and your user credentials.
 
@@ -163,20 +148,6 @@ For more options, type:
     ndrive --help
     ndrive subcommand --help
 
-### Building pip Package
-
-This is as simple as:
-
-    python setup.py sdist
-
-On macOS you can face an issue with your locale with a message like:
-
-    ValueError: unknown locale: UTF-8
-
-In that case you need to specify your locale as :
-
-    export LC_ALL=en_US.UTF-8
-    export LANG=en_US.UTF-8
 
 ## Localization
 
@@ -196,21 +167,15 @@ The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crow
 
 1. Generate a bug report in the **Advanced** tab of the **Settings** panel of the Nuxeo Drive client.
 
-    You can also log DEBUG information directly in the console by using the following command-line:
+    You can also log TRACE information directly in the console by using the following command-line:
 
     ```
-    ndrive --log-level-console=DEBUG
+    ndrive --log-level-console=TRACE
     ```
 
 2. Create a GitHub issue mentionning the version of the Nuxeo Platform, your operating system name and version (e.g. Windows 7), the steps to reproduce the error and a copy of the logs.
 
 3. For long running sessions, it is better to dump the debug information in a log file. This can be done with the following command:
-
-    ```
-    ndrive --log-level-file=DEBUG
-    ```
-
-    or even:
 
     ```
     ndrive --log-level-file=TRACE

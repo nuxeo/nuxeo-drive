@@ -1,5 +1,4 @@
 # coding: utf-8
-from .common import NotFound
-from .local_client import LocalClient, safe_filename
-from .remote_client import (Remote, FilteredRemote, NuxeoDocumentInfo,
+from .local_client import LocalClient
+from .remote_client import (FilteredRemote, NuxeoDocumentInfo, Remote,
                             RemoteFileInfo)

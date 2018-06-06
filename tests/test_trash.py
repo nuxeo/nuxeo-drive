@@ -1,15 +1,16 @@
 # coding: utf-8
 import os
 import os.path
-import sys
 from tempfile import gettempdir
 
 from send2trash import send2trash as trash
 
+from nxdrive.constants import WINDOWS
+
 
 def create_tree():
     filename = 'A' * 100
-    if sys.platform == 'win32':
+    if WINDOWS:
         parent = '\\\\?\\'
     else:
         parent = ''
@@ -24,8 +25,8 @@ def create_tree():
     dirname = os.path.dirname(path)
     if not os.path.isdir(dirname):
         os.makedirs(dirname)
-    with open(path, 'w') as writer:
-        writer.write('Looong filename!')
+    with open(path, 'wb') as writer:
+        writer.write(b'Looong filename!')
     return path
 
 

@@ -1,6 +1,4 @@
 # coding: utf-8
-from __future__ import unicode_literals
-
 import argparse
 
 import pytest
@@ -48,8 +46,8 @@ def test_batch_update_from_dict():
 @Options.mock()
 def test_batch_update_from_dict_with_unknown_option():
     options = {
-        'foo': 42,
         'debug': True,
+        'foo': 42,
     }
 
     with pytest.raises(KeyError):
@@ -61,7 +59,7 @@ def test_batch_update_from_dict_with_unknown_option():
 @Options.mock()
 def test_bytes_conversion():
     Options.update_site_url = b'http://example.org'
-    assert isinstance(Options.update_site_url, unicode)
+    assert isinstance(Options.update_site_url, str)
     assert Options.update_site_url == 'http://example.org'
 
 
@@ -71,8 +69,8 @@ def test_callback():
         global checkpoint
         checkpoint = new_value
 
-    checkpoint = 0
     global checkpoint
+    checkpoint = 0
 
     Options.callbacks['delay'] = _callback
     Options.delay = 42
@@ -179,7 +177,7 @@ def test_str():
 @Options.mock()
 def test_str_utf8():
     Options.startup_page = '\xeat\xea'
-    assert str(Options) == r"Options(startup_page[manual]=u'\xeat\xea')"
+    assert str(Options) == "Options(startup_page[manual]='\xeat\xea')"
 
     Options.startup_page = 'été'
-    assert str(Options) == r"Options(startup_page[manual]=u'\xe9t\xe9')"
+    assert str(Options) == "Options(startup_page[manual]='\xe9t\xe9')"

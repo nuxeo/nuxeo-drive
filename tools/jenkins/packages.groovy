@@ -1,10 +1,6 @@
 #!groovy
 // Script to build Nuxeo Drive packages on every supported platform.
 
-// Default values for required envars
-python_drive_version = '2.7.15'  // XXX: PYTHON_DRIVE_VERSION
-pyqt_version = '4.12.1'  // XXX: PYQT_VERSION
-
 // Pipeline properties
 properties([
     disableConcurrentBuilds(),
@@ -103,11 +99,9 @@ for (x in slaves) {
                             deleteDir()
                         }
 
-                        // Required envars
-                        env.PYTHON_DRIVE_VERSION = python_drive_version
-                        env.PYQT_VERSION = pyqt_version
-
                         try {
+                            env.PYTHON_DRIVE_VERSION = '3.7.0'
+
                             if (osi == 'GNU/Linux') {
                                 sh 'tools/linux/deploy_jenkins_slave.sh --build'
                                 archive 'dist/*.deb'

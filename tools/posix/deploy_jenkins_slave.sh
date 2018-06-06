@@ -15,7 +15,6 @@
 # Global variables
 PYTHON="python -E -s"
 PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
-SERVER="https://nuxeo-jenkins-public-resources.s3.eu-west-3.amazonaws.com/drive"
 
 build_installer() {
     echo ">>> Building the release package"
@@ -39,27 +38,10 @@ check_import() {
     echo "OK."
 }
 
-check_sum() {
-    # Calculate the MD5 sum of the file to check its integrity.
-    # Note 1: we have to use Python from the host since we have no dev env installed.
-    # Note 2: we use Python and not md5sum/md5 because we are not sure those tools are installed on the host.
-    local file="$1"
-    local filename="$(python -sBc "import os.path; print(os.path.basename('${file}'))")"
-    local checksums="${WORKSPACE_DRIVE}/tools/checksums.txt"
-    local md5="$(python -sBc "import hashlib; print(hashlib.md5(open('${file}', 'rb').read()).hexdigest())")"
-
-    if [ $(grep -c "${md5}  ${filename}" "${checksums}") -ne 1 ]; then
-        return 1
-    fi
-}
-
 check_vars() {
     # Check required variables
     if [ "${PYTHON_DRIVE_VERSION:=unset}" = "unset" ]; then
         echo "PYTHON_DRIVE_VERSION not defined. Aborting."
-        exit 1
-    elif [ "${PYQT_VERSION:=unset}" = "unset" ]; then
-        echo "PYQT_VERSION not defined. Aborting."
         exit 1
     elif [ "${WORKSPACE:=unset}" = "unset" ]; then
         echo "WORKSPACE not defined. Aborting."
@@ -78,21 +60,9 @@ check_vars() {
             export WORKSPACE_DRIVE="${WORKSPACE}"
         fi
     fi
-    export SIP_VERSION=${SIP_VERSION:=4.19.8}  # XXX: SIP_VERSION
     export STORAGE_DIR="${WORKSPACE}/deploy-dir"
 
-    if [ "${COMPILE_WITH_DEBUG:=unset}" != "unset" ]; then
-        echo "    COMPILE_WITH_DEBUG is set, be patient :)"
-        export COMPILE_WITH_DEBUG="--debug"
-        export OPT="-O0 -g -fno-inline -fno-strict-aliasing -Wnull-dereference"
-        export PYTHON_CONFIGURE_OPTS="--with-pydebug"
-    else
-        export COMPILE_WITH_DEBUG=""
-    fi
-
     echo "    PYTHON_DRIVE_VERSION = ${PYTHON_DRIVE_VERSION}"
-    echo "    PYQT_VERSION         = ${PYQT_VERSION}"
-    echo "    SIP_VERSION          = ${SIP_VERSION}"
     echo "    WORKSPACE            = ${WORKSPACE}"
     echo "    WORKSPACE_DRIVE      = ${WORKSPACE_DRIVE}"
     echo "    STORAGE_DIR          = ${STORAGE_DIR}"
@@ -107,41 +77,6 @@ check_vars() {
         echo "    SPECIFIC_TEST        = ${SPECIFIC_TEST}"
         export SPECIFIC_TEST="tests/${SPECIFIC_TEST}"
     fi
-}
-
-download() {
-    # Download one file and save its content to a given file name
-    local url="$1"
-    local output="$2"
-    local try=1
-
-    # 5 tries, because we are generous
-    until [ ${try} -ge 6 ]; do
-        if [ -f "${output}" ]; then
-            if check_sum "${output}"; then
-                return
-            fi
-            rm -rf "${output}"
-        fi
-        echo ">>> [$try/5] Downloading $url"
-        echo "                   to $output"
-        curl -L "$url" -o "$output" || true
-        try=$(( ${try} + 1 ))
-        sleep 5
-    done
-
-    echo ">>> Impossible to download and verify ${url}"
-    return 1
-}
-
-extract() {
-    # Extract a downloaded file
-    local file="$1"
-    local folder="$2"
-
-    echo ">>> Extracting ${file}"
-    echo "            to ${folder}"
-    [ -d "${folder}" ] || tar zxf "${file}" -C "${STORAGE_DIR}"
 }
 
 install_deps() {
@@ -173,47 +108,6 @@ install_pyenv() {
     eval "$(pyenv virtualenv-init -)"
 }
 
-install_pyqt() {
-    local version="$1"
-    local path="${STORAGE_DIR}"
-    case "${OSI}" in
-        "linux")
-            url="${SERVER}/PyQt4_gpl_x11-${version}.tar.gz"
-            path="${path}/PyQt4_gpl_x11-${version}"
-            ;;
-        "osx")
-            url="${SERVER}/PyQt4_gpl_mac-${version}.tar.gz"
-            path="${path}/PyQt4_gpl_mac-${version}"
-            ;;
-    esac
-    local output="${path}.tar.gz"
-
-    check_import "import PyQt4.QtWebKit" && return
-    echo ">>> Installing PyQt ${version}"
-
-    download "${url}" "${output}"
-    extract "${output}" "${path}"
-
-    cd "$path"
-
-    echo ">>> [PyQt ${version}] Configuring"
-    ${PYTHON} configure-ng.py "${COMPILE_WITH_DEBUG}" \
-        --confirm-license \
-        --no-designer-plugin \
-        --no-docstrings \
-        --no-python-dbus \
-        --no-qsci-api \
-        --no-tools
-
-    echo ">>> [PyQt ${version}] Compiling"
-    make -j 4
-
-    echo ">>> [PyQt ${version}] Installing"
-    make install
-
-    cd "${WORKSPACE_DRIVE}"
-}
-
 install_python() {
     local version="$1"
 
@@ -226,37 +120,11 @@ install_python() {
     pyenv global "${version}"
 }
 
-install_sip() {
-    local version="$1"
-    local url="${SERVER}/sip-${version}.tar.gz"
-    local path="${STORAGE_DIR}/sip-${version}"
-    local output="${path}.tar.gz"
-
-    check_import "import os, sip; os._exit(not sip.SIP_VERSION_STR == '${SIP_VERSION}')" && return
-    echo ">>> Installing SIP ${version}"
-
-    download "${url}" "${output}"
-    extract "${output}" "${path}"
-
-    cd "${path}"
-
-    echo ">>> [SIP ${version}] Configuring"
-    ${PYTHON} configure.py --no-stubs
-
-    echo ">>> [SIP ${version}] Compiling"
-    make -j 4
-
-    echo ">>> [SIP ${version}] Installing"
-    make install
-
-    cd "${WORKSPACE_DRIVE}"
-}
-
 launch_tests() {
     echo ">>> Launching the tests suite"
 
     ${PIP} -r requirements-tests.txt
-    ${PYTHON} -m pytest "${SPECIFIC_TEST}" \
+    ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}" \
         --cov-report= \
         --cov=nxdrive \
         --showlocals \
@@ -264,7 +132,6 @@ launch_tests() {
         --failed-first \
         --no-print-logs \
         -r fE \
-        -W error \
         -v
 }
 
@@ -322,12 +189,10 @@ main() {
         exit 1
     fi
 
-    install_sip "${SIP_VERSION}"
-    install_pyqt "${PYQT_VERSION}"
     install_deps
 
-    if ! check_import "import PyQt4.QtWebKit" >/dev/null; then
-        echo ">>> No WebKit. Installation failed."
+    if ! check_import "import PyQt5" >/dev/null; then
+        echo ">>> No PyQt5. Installation failed."
         exit 1
     fi
 

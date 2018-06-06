@@ -57,14 +57,14 @@ class TestSynchronizationDedupCaseSensitive(UnitTestCase):
         # Make documents in the 1st future root folder
         remote.make_folder('/', 'citrus')
         folder1 = remote.make_folder('/citrus', 'fruits')
-        remote.make_file(folder1, 'lemon.txt', content='lemon')
-        remote.make_file(folder1, 'orange.txt', content='orange')
+        remote.make_file(folder1, 'lemon.txt', content=b'lemon')
+        remote.make_file(folder1, 'orange.txt', content=b'orange')
 
         # Make documents in the 2nd future root folder
         folder2 = remote.make_folder('/', 'fruits')
-        remote.make_file(folder2, 'cherries.txt', content='cherries')
-        remote.make_file(folder2, 'mango.txt', content='mango')
-        remote.make_file(folder2, 'papaya.txt', content='papaya')
+        remote.make_file(folder2, 'cherries.txt', content=b'cherries')
+        remote.make_file(folder2, 'mango.txt', content=b'mango')
+        remote.make_file(folder2, 'papaya.txt', content=b'papaya')
 
         # Register new roots
         remote.unregister_as_root(self.workspace)
@@ -96,14 +96,14 @@ class TestSynchronizationDedupCaseSensitive(UnitTestCase):
         # Make documents in the 1st future root folder
         remote.make_folder('/', 'citrus')
         folder1 = remote.make_folder('/citrus', 'fruits')
-        remote.make_file(folder1, 'lemon.txt', content='lemon')
-        remote.make_file(folder1, 'orange.txt', content='orange')
+        remote.make_file(folder1, 'lemon.txt', content=b'lemon')
+        remote.make_file(folder1, 'orange.txt', content=b'orange')
 
         # Make documents in the 2nd future root folder
         folder2 = remote.make_folder('/', 'fruits')
-        remote.make_file(folder2, 'cherries.txt', content='cherries')
-        remote.make_file(folder2, 'mango.txt', content='mango')
-        remote.make_file(folder2, 'papaya.txt', content='papaya')
+        remote.make_file(folder2, 'cherries.txt', content=b'cherries')
+        remote.make_file(folder2, 'mango.txt', content=b'mango')
+        remote.make_file(folder2, 'papaya.txt', content=b'papaya')
 
         # Register new roots
         remote.unregister_as_root(self.workspace)
@@ -135,14 +135,14 @@ class TestSynchronizationDedupCaseSensitive(UnitTestCase):
         # Make documents in the 1st future root folder
         remote.make_folder('/', 'citrus')
         folder1 = remote.make_folder('/citrus', 'fruits')
-        remote.make_file(folder1, 'lemon.txt', content='lemon')
-        remote.make_file(folder1, 'orange.txt', content='orange')
+        remote.make_file(folder1, 'lemon.txt', content=b'lemon')
+        remote.make_file(folder1, 'orange.txt', content=b'orange')
 
         # Make documents in the 2nd future root folder
         folder2 = remote.make_folder('/', 'fruits')
-        remote.make_file(folder2, 'cherries.txt', content='cherries')
-        remote.make_file(folder2, 'mango.txt', content='mango')
-        remote.make_file(folder2, 'papaya.txt', content='papaya')
+        remote.make_file(folder2, 'cherries.txt', content=b'cherries')
+        remote.make_file(folder2, 'mango.txt', content=b'mango')
+        remote.make_file(folder2, 'papaya.txt', content=b'papaya')
 
         # Register new roots
         remote.unregister_as_root(self.workspace)
@@ -172,14 +172,14 @@ class TestSynchronizationDedupCaseSensitive(UnitTestCase):
         # Make documents in the 1st future root folder
         remote.make_folder('/', 'citrus')
         folder1 = remote.make_folder('/citrus', 'fruits')
-        remote.make_file(folder1, 'lemon.txt', content='lemon')
-        remote.make_file(folder1, 'orange.txt', content='orange')
+        remote.make_file(folder1, 'lemon.txt', content=b'lemon')
+        remote.make_file(folder1, 'orange.txt', content=b'orange')
 
         # Make documents in the 2nd future root folder
         folder2 = remote.make_folder('/', 'fruits')
-        remote.make_file(folder2, 'cherries.txt', content='cherries')
-        remote.make_file(folder2, 'mango.txt', content='mango')
-        remote.make_file(folder2, 'papaya.txt', content='papaya')
+        remote.make_file(folder2, 'cherries.txt', content=b'cherries')
+        remote.make_file(folder2, 'mango.txt', content=b'mango')
+        remote.make_file(folder2, 'papaya.txt', content=b'papaya')
 
         # Register new roots
         remote.unregister_as_root(self.workspace)
@@ -210,14 +210,14 @@ class TestSynchronizationDedupCaseSensitive(UnitTestCase):
         # Make documents in the 1st future root folder
         remote.make_folder('/', 'citrus')
         folder1 = remote.make_folder('/citrus', 'fruits')
-        remote.make_file(folder1, 'lemon.txt', content='lemon')
-        remote.make_file(folder1, 'orange.txt', content='orange')
+        remote.make_file(folder1, 'lemon.txt', content=b'lemon')
+        remote.make_file(folder1, 'orange.txt', content=b'orange')
 
         # Make documents in the 2nd future root folder
         folder2 = remote.make_folder('/', 'fruits')
-        remote.make_file(folder2, 'cherries.txt', content='cherries')
-        remote.make_file(folder2, 'mango.txt', content='mango')
-        remote.make_file(folder2, 'papaya.txt', content='papaya')
+        remote.make_file(folder2, 'cherries.txt', content=b'cherries')
+        remote.make_file(folder2, 'mango.txt', content=b'mango')
+        remote.make_file(folder2, 'papaya.txt', content=b'papaya')
 
         # Register new roots
         remote.unregister_as_root(self.workspace)
@@ -248,14 +248,14 @@ class TestSynchronizationDedupCaseSensitive(UnitTestCase):
         # Make documents in the 1st future root folder
         remote.make_folder('/', 'citrus')
         folder1 = remote.make_folder('/citrus', 'fruits')
-        remote.make_file(folder1, 'lemon.txt', content='lemon')
-        remote.make_file(folder1, 'orange.txt', content='orange')
+        remote.make_file(folder1, 'lemon.txt', content=b'lemon')
+        remote.make_file(folder1, 'orange.txt', content=b'orange')
 
         # Make documents in the 2nd future root folder
         folder2 = remote.make_folder('/', 'fruits')
-        remote.make_file(folder2, 'cherries.txt', content='cherries')
-        remote.make_file(folder2, 'mango.txt', content='mango')
-        remote.make_file(folder2, 'papaya.txt', content='papaya')
+        remote.make_file(folder2, 'cherries.txt', content=b'cherries')
+        remote.make_file(folder2, 'mango.txt', content=b'mango')
+        remote.make_file(folder2, 'papaya.txt', content=b'papaya')
 
         # Register new roots
         remote.unregister_as_root(self.workspace)

@@ -5,14 +5,10 @@ import unittest
 
 import pytest
 
-from nxdrive.manager import FolderAlreadyUsed, Manager
+from nxdrive.exceptions import FolderAlreadyUsed
+from nxdrive.manager import Manager
 from nxdrive.options import Options
-from nxdrive.osi.darwin.darwin import DarwinIntegration
 from .common import TEST_DEFAULT_DELAY, clean_dir
-
-DarwinIntegration._init = lambda *args: None
-DarwinIntegration._cleanup = lambda *args: None
-DarwinIntegration._send_notification = lambda *args: None
 
 
 class BindServerTest(unittest.TestCase):
@@ -22,10 +18,10 @@ class BindServerTest(unittest.TestCase):
         if not os.path.isdir(self.tmpdir):
             os.makedirs(self.tmpdir)
 
-        self.local_test_folder = tempfile.mkdtemp(u'-nxdrive-temp-config',
+        self.local_test_folder = tempfile.mkdtemp('-nxdrive-temp-config',
                                                   dir=self.tmpdir)
         self.nxdrive_conf_folder = os.path.join(self.local_test_folder,
-                                                u'nuxeo-drive-conf')
+                                                'nuxeo-drive-conf')
 
     def tearDown(self):
         Manager._singleton = None
