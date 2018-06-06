@@ -1,16 +1,15 @@
 # coding: utf-8
-import io
 import os
 import os.path
 import sqlite3
+from contextlib import suppress
 from logging import getLogger
 from shutil import copyfile
 
 log = getLogger(__name__)
 
 
-def is_healthy(database):
-    # type: (Text) -> bool
+def is_healthy(database: str) -> bool:
     """
     Integrity check of the entire database.
     http://www.sqlite.org/pragma.html#pragma_integrity_check
@@ -22,8 +21,7 @@ def is_healthy(database):
         return status[0] == 'ok'
 
 
-def dump(database, dump_file):
-    # type: (Text, Text) -> None
+def dump(database: str, dump_file: str) -> None:
     """
     Dump the entire database content into `dump_file`.
     This function provides the same capabilities as the .dump command
@@ -31,15 +29,13 @@ def dump(database, dump_file):
     """
 
     log.debug('Dumping the database %r into %r ...', database, dump_file)
-    with sqlite3.connect(database) as con:
-        with io.open(dump_file, 'w', encoding='utf-8') as f:
-            for line in con.iterdump():
-                f.write(u'%s\n' % line)
+    with sqlite3.connect(database) as con, open(dump_file, 'w') as f:
+        for line in con.iterdump():
+            f.write('%s\n' % line)
     log.debug('Dump finished with success.')
 
 
-def read(dump_file, database):
-    # type: (Text, Text) -> None
+def read(dump_file: str, database: str) -> None:
     """
     Load the `dump_file` content into the given database.
     This function provides the same capabilities as the .read command
@@ -47,14 +43,12 @@ def read(dump_file, database):
     """
 
     log.debug('Restoring %r into the database %r ...', dump_file, database)
-    with sqlite3.connect(database) as con:
-        with io.open(dump_file, encoding='utf-8') as f:
-            con.executescript(f.read())
+    with sqlite3.connect(database) as con, open(dump_file) as f:
+        con.executescript(f.read())
     log.debug('Restoration done with success.')
 
 
-def fix_db(database, dump_file='dump.sql'):
-    # type: (Text, Text) -> None
+def fix_db(database: str, dump_file: str='dump.sql') -> None:
     """
     Re-generate the whole database content to fix eventual FS corruptions.
     This will prevent `sqlite3.DatabaseError: database disk image is malformed`
@@ -89,7 +83,6 @@ def fix_db(database, dump_file='dump.sql'):
     # Restore
     try:
         read(dump_file, database)
-        os.remove(dump_file)
         os.remove(backup)
     except:
         log.exception('Restoration error')
@@ -97,6 +90,9 @@ def fix_db(database, dump_file='dump.sql'):
         if not os.path.isfile(database):
             os.rename(backup, database)
         return
+    finally:
+        with suppress(OSError):
+            os.remove(dump_file)
 
     new_size = os.stat(database).st_size
     log.debug('Re-generation completed, saved %d Kb.',

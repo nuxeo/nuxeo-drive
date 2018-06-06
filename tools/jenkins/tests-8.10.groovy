@@ -1,10 +1,6 @@
 #!groovy
 // Script to launch Nuxeo Drive tests on every supported platform.
 
-// Default values for required envars
-python_drive_version = '2.7.15'  // XXX: PYTHON_DRIVE_VERSION
-pyqt_version = '4.12.1'  // XXX: PYQT_VERSION
-
 // Pipeline properties
 properties([
     disableConcurrentBuilds(),
@@ -93,11 +89,6 @@ for (def x in slaves) {
                     deleteDir()
                 }
 
-                // Required envars
-                env.PYTHON_DRIVE_VERSION = params.PYTHON_DRIVE_VERSION ?: python_drive_version
-                env.PYQT_VERSION = params.PYQT_VERSION ?: pyqt_version
-                env.DRIVE_YAPPI = params.ENABLE_PROFILER ? env.WORKSPACE : ''
-
                 try {
                     stage(osi + ' Checkout') {
                         try {
@@ -118,6 +109,7 @@ for (def x in slaves) {
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"
+                        env.PYTHON_DRIVE_VERSION = '3.7.0'
 
                         dir('sources') {
                             // Set up the report name folder

@@ -13,7 +13,7 @@ class TestSyncRoots(UnitTestCase):
 
         # Create a child folder and register it as a synchronization root
         child = remote.make_folder(self.workspace, 'child')
-        remote.make_file(child, 'aFile.txt', u'My content')
+        remote.make_file(child, 'aFile.txt', 'My content')
         remote.register_as_root(child)
 
         # Start engine and wait for synchronization

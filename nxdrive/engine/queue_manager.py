@@ -1,11 +1,12 @@
 # coding: utf-8
 import time
-from Queue import Empty, Queue
+from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
+from queue import Empty, Queue
 from threading import Lock
 
-from PyQt4.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 
 from .processor import Processor
 
@@ -13,16 +14,15 @@ log = getLogger(__name__)
 WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
 
 
-class QueueItem(object):
+class QueueItem:
     def __init__(self, row_id, folderish, pair_state):
         self.id = row_id
         self.folderish = folderish
         self.pair_state = pair_state
 
     def __repr__(self):
-        return "%s[%s](Folderish:%s, State: %s)" % (
-                        self.__class__.__name__, self.id,
-                        self.folderish, self.pair_state)
+        return "%s[%s](folderish=%r, state=%r)" % (
+            type(self).__name__, self.id, self.folderish, self.pair_state)
 
 
 class QueueManager(QObject):
@@ -36,7 +36,7 @@ class QueueManager(QObject):
     _disable = False
 
     def __init__(self, engine, dao, max_file_processors=5):
-        super(QueueManager, self).__init__()
+        super().__init__()
         self._dao = dao
         self._engine = engine
         self._local_folder_queue = Queue()
@@ -89,11 +89,9 @@ class QueueManager(QObject):
 
     def shutdown_processors(self):
         log.trace("Shutdown processors")
-        try:
-            self.newItem.disconnect(self.launch_processors)
-        except TypeError:
+        with suppress(TypeError):
             # TypeError: disconnect() failed between 'newItem' and 'launch_processors'
-            pass
+            self.newItem.disconnect(self.launch_processors)
 
     @staticmethod
     def _copy_queue(queue):
@@ -115,10 +113,10 @@ class QueueManager(QObject):
         self.queueProcessing.emit()
 
     def is_paused(self):
-        return (not self._local_file_enable
-                or not self._local_folder_enable
-                or not self._remote_file_enable
-                or not self._remote_folder_enable)
+        return any({not self._local_file_enable,
+                    not self._local_folder_enable,
+                    not self._remote_file_enable,
+                    not self._remote_folder_enable})
 
     def suspend(self):
         log.debug("Suspending queue")
@@ -208,7 +206,7 @@ class QueueManager(QObject):
     def _on_error_timer(self):
         cur_time = int(time.time())
         with self._error_lock:
-            for doc_pair in self._on_error_queue.values():
+            for doc_pair in list(self._on_error_queue.values()):
                 if doc_pair.error_next_try < cur_time:
                     queue_item = QueueItem(doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
                     del self._on_error_queue[doc_pair.id]
@@ -343,17 +341,16 @@ class QueueManager(QObject):
         return self.is_active()
 
     def is_active(self):
-        return (self._local_folder_thread is not None
-                or self._local_file_thread is not None
-                or self._remote_file_thread is not None
-                or self._remote_folder_thread is not None
-                or len(self._processors_pool) > 0)
+        return any({self._local_folder_thread is not None,
+                    self._local_file_thread is not None,
+                    self._remote_file_thread is not None,
+                    self._remote_folder_thread is not None,
+                    len(self._processors_pool) > 0})
 
     def _create_thread(self, item_getter, **kwargs):
         processor = self._engine.create_processor(item_getter, **kwargs)
         thread = self._engine.create_thread(worker=processor)
         thread.finished.connect(self._thread_finished)
-        thread.terminated.connect(self._thread_finished)
         thread.start()
         return thread
 

@@ -1,24 +1,18 @@
 # coding: utf-8
+from contextlib import suppress
 from logging import getLogger
 from threading import current_thread
 from time import sleep, time
 
-from PyQt4.QtCore import (QCoreApplication, QObject, QThread, pyqtSlot)
+from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
 
 from .activity import Action, IdleAction
+from ..exceptions import ThreadInterrupt
 
 log = getLogger(__name__)
 
 
-class ThreadInterrupt(Exception):
-    pass
-
-
-class PairInterrupt(Exception):
-    pass
-
-
-class Worker(QObject, object):
+class Worker(QObject):
     """" Utility class that handle one thread. """
 
     _thread = None
@@ -30,7 +24,7 @@ class Worker(QObject, object):
     _pause = False
 
     def __init__(self, thread=None, **kwargs):
-        super(Worker, self).__init__()
+        super().__init__()
         if thread is None:
             thread = QThread()
         self.moveToThread(thread)
@@ -38,7 +32,7 @@ class Worker(QObject, object):
         self._thread = thread
         self._name = kwargs.get('name', type(self).__name__)
         self._running = False
-        self._thread.terminated.connect(self._terminated)
+        self._thread.finished.connect(self._finished)
 
     def __repr__(self):
         return '<{} ID={}>'.format(type(self).__name__, self._thread_id)
@@ -129,8 +123,8 @@ class Worker(QObject, object):
             self._interact()
             sleep(0.01)
 
-    def _terminated(self):
-        log.trace('Thread %s(%r) terminated', self._name, self._thread_id)
+    def _finished(self):
+        log.trace('Thread %s(%r) finished', self._name, self._thread_id)
 
     @property
     def action(self):
@@ -156,10 +150,8 @@ class Worker(QObject, object):
             'thread_id': self._thread_id,
             'action': self.action,
         }
-        try:
+        with suppress(AttributeError):
             metrics.update(self._metrics)
-        except AttributeError:
-            pass
         return metrics
 
     @pyqtSlot()
@@ -191,7 +183,7 @@ class Worker(QObject, object):
 
 class EngineWorker(Worker):
     def __init__(self, engine, dao, thread=None, **kwargs):
-        super(EngineWorker, self).__init__(thread=thread, **kwargs)
+        super().__init__(thread=thread, **kwargs)
         self.engine = engine
         self._dao = dao
 
@@ -211,7 +203,7 @@ class EngineWorker(Worker):
 
 class PollWorker(Worker):
     def __init__(self, check_interval, thread=None, **kwargs):
-        super(PollWorker, self).__init__(thread=thread, **kwargs)
+        super().__init__(thread=thread, **kwargs)
         # Be sure to run on start
         self._thread.started.connect(self.run)
         self._check_interval = check_interval
@@ -221,10 +213,10 @@ class PollWorker(Worker):
         self._metrics = {'last_poll': 0}
 
     def get_metrics(self):
-        metrics = super(PollWorker, self).get_metrics()
+        metrics = super().get_metrics()
         metrics['polling_interval'] = self._check_interval
         metrics['polling_next'] = self.get_next_poll()
-        return dict(metrics.items() + self._metrics.items())
+        return {**metrics, **self._metrics}
 
     def get_last_poll(self):
         if self._metrics['last_poll'] > 0:

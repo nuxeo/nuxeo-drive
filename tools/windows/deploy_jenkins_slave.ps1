@@ -20,7 +20,6 @@ $ErrorActionPreference = "Stop"
 # Global variables
 $global:PYTHON_OPT = "-E", "-s"
 $global:PIP_OPT = "-m", "pip", "install", "--upgrade", "--upgrade-strategy=only-if-needed"
-$global:SERVER = "https://nuxeo-jenkins-public-resources.s3.eu-west-3.amazonaws.com/drive"
 
 # Imports
 Import-Module BitsTransfer
@@ -30,13 +29,17 @@ function build_installer {
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace "'", "" -replace "__version__ = ", ""
 
 	Write-Output ">>> [$app_version] Freezing the application"
-	& $Env:PYTHON_DIR\Scripts\pyinstaller ndrive.spec --noconfirm
+	& $Env:STORAGE_DIR\Scripts\pyinstaller ndrive.spec --noconfirm
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
 	sign "dist\ndrive\ndrive.exe"
 
 	Write-Output ">>> [$app_version] Building the installer"
+	if (-Not (Test-Path "$Env:ISCC_PATH")) {
+		Write-Output ">>> ISCC does not exist: $Env:ISCC_PATH. Aborting."
+		ExitWithCode 1
+	}
 	& $Env:ISCC_PATH\iscc /DMyAppVersion="$app_version" "tools\windows\setup.iss"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
@@ -48,20 +51,8 @@ function check_import($import) {
 	# Check module import to know if it must be installed
 	# i.e: check_import "from PyQt4 import QtWebKit"
 	#  or: check_import "import cx_Freeze"
-	& $Env:PYTHON_DIR\python $global:PYTHON_OPT -c $import
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -c $import
 	if ($lastExitCode -eq 0) {
-		return 1
-	}
-	return 0
-}
-
-function check_sum($file) {
-	# Calculate the MD5 sum of the file to check its integrity
-	$filename = (Get-Item $file).Name
-	$checksums = "$Env:WORKSPACE_DRIVE\tools\checksums.txt"
-	$md5 = (Get-FileHash "$file" -Algorithm MD5).Hash.ToLower()
-
-	if ((Select-String "$md5  $filename" $checksums -ca).count -eq 1) {
 		return 1
 	}
 	return 0
@@ -71,9 +62,6 @@ function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
 		Write-Output ">>> PYTHON_DRIVE_VERSION not defined. Aborting."
-		ExitWithCode 1
-	} elseif (-Not ($Env:PYQT_VERSION)) {
-		Write-Output ">>> PYQT_VERSION not defined. Aborting."
 		ExitWithCode 1
 	} elseif (-Not ($Env:WORKSPACE)) {
 		Write-Output ">>> WORKSPACE not defined. Aborting."
@@ -88,47 +76,22 @@ function check_vars {
 			$Env:WORKSPACE_DRIVE = $Env:WORKSPACE
 		}
 	}
-	if (-Not ($Env:SIP_VERSION)) {
-		$Env:SIP_VERSION = "4.19.8"  # XXX: SIP_VERSION
-	}
-	if (-Not ($Env:QT_PATH)) {
-		$Env:QT_PATH = "C:\Qt\4.8.7"
-	}
-	if (-Not (Test-Path "$Env:QT_PATH")) {
-		Write-Output ">>> QT_PATH does not exist: $Env:QT_PATH. Aborting."
-		ExitWithCode 1
-	}
-	if (-Not ($Env:MINGW_PATH)) {
-		$Env:MINGW_PATH = "C:\mingw32"
-	}
-	if (-Not (Test-Path "$Env:MINGW_PATH")) {
-		Write-Output ">>> MINGW_PATH does not exist: $Env:MINGW_PATH. Aborting."
-		ExitWithCode 1
-	}
 	if (-Not ($Env:ISCC_PATH)) {
 		$Env:ISCC_PATH = "C:\Program Files (x86)\Inno Setup 5"
 	}
-	if (-Not (Test-Path "$Env:ISCC_PATH")) {
-		Write-Output ">>> ISCC does not exist: $Env:ISCC_PATH. Aborting."
-		ExitWithCode 1
+	if (-Not ($Env:PYTHON_DIR)) {
+		$ver_major, $ver_minor = $Env:PYTHON_DRIVE_VERSION.split('.')[0,1]
+		$Env:PYTHON_DIR = "C:\Python$ver_major$ver_minor-32"
 	}
 
 	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir").FullName
-	$Env:PYTHON_DIR = "$Env:STORAGE_DIR\drive-$Env:PYTHON_DRIVE_VERSION-python"
 
 	Write-Output "    PYTHON_DRIVE_VERSION = $Env:PYTHON_DRIVE_VERSION"
-	Write-Output "    PYQT_VERSION         = $Env:PYQT_VERSION"
-	Write-Output "    SIP_VERSION          = $Env:SIP_VERSION"
 	Write-Output "    WORKSPACE            = $Env:WORKSPACE"
 	Write-Output "    WORKSPACE_DRIVE      = $Env:WORKSPACE_DRIVE"
 	Write-Output "    STORAGE_DIR          = $Env:STORAGE_DIR"
 	Write-Output "    PYTHON_DIR           = $Env:PYTHON_DIR"
-	Write-Output "    QT_PATH              = $Env:QT_PATH"
-	Write-Output "    MINGW_PATH           = $Env:MINGW_PATH"
 	Write-Output "    ISCC_PATH            = $Env:ISCC_PATH"
-
-	# Adjust the PATH for compilation tools
-	$Env:Path = "$Env:QT_PATH\bin;$Env:MINGW_PATH\bin"
 
 	Set-Location "$Env:WORKSPACE_DRIVE"
 
@@ -140,18 +103,16 @@ function check_vars {
 	}
 }
 
-function download($url, $output, [bool]$check=$true) {
+function download($url, $output) {
 	# Download one file and save its content to a given file name
 	# $output must be an absolute path.
 	$try = 1
 	while ($try -lt 6) {
 		if (Test-Path "$output") {
-			if ($check -eq $false) {
-				return
-			} elseif (check_sum "$output") {
-				return
-			}
-			Remove-Item -Force "$output"
+			# Remove the confirmation due to "This came from another computer and migh
+			# be blocked to help protect this computer"
+			Unblock-File "$output"
+			return
 		}
 		Write-Output ">>> [$try/5] Downloading $url"
 		Write-Output "                   to $output"
@@ -162,7 +123,7 @@ function download($url, $output, [bool]$check=$true) {
 		Start-Sleep -s 5
 	}
 
-	Write-Output ">>> Impossible to download $url (MD5 verification set to $check)"
+	Write-Output ">>> Impossible to download $url"
 	ExitWithCode 1
 }
 
@@ -175,145 +136,66 @@ function install_deps {
 	if (-Not (check_import "import pip")) {
 		Write-Output ">>> Installing pip"
 		# https://github.com/python/cpython/blob/master/Tools/msi/pip/pip.wxs#L28
-		& $Env:PYTHON_DIR\python $global:PYTHON_OPT -m ensurepip -U --default-pip
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m ensurepip -U --default-pip
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
 	}
-	# TODO: Uncomment when https://github.com/pypa/pip/issues/3055 is resolved
-	# & $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT pip
 
 	Write-Output ">>> Installing requirements"
-	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements.txt
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-dev.txt
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-dev.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-}
-
-function install_openssl {
-	$src = "$Env:MINGW_PATH\opt\bin"
-
-	if (-Not (Test-Path "$Env:WORKSPACE_DRIVE\tools\windows\libeay32.dll")) {
-		echo ">>> Retrieving OpenSSL DLL: libeay32.dll"
-		Copy-Item "$src\libeay32.dll" "$Env:WORKSPACE_DRIVE\tools\windows"
-	}
-
-	if (-Not (Test-Path "$Env:WORKSPACE_DRIVE\tools\windows\ssleay32.dll")) {
-		echo ">>> Retrieving OpenSSL DLL: ssleay32.dll"
-		Copy-Item "$src\ssleay32.dll" "$Env:WORKSPACE_DRIVE\tools\windows"
-	}
-}
-
-function install_pyqt {
-	$fname = "PyQt4_gpl_win-$Env:PYQT_VERSION"
-	$url = "$global:SERVER/$fname.zip"
-	$output = "$Env:STORAGE_DIR\$fname.zip"
-
-	if (check_import "import PyQt4.QtWebKit") {
-		return
-	}
-
-	Write-Output ">>> Installing PyQt $Env:PYQT_VERSION"
-
-	download $url $output
-	unzip "$fname.zip" $Env:STORAGE_DIR
-	Set-Location "$Env:STORAGE_DIR\$fname"
-
-	Write-Output ">>> [PyQt $Env:PYQT_VERSION] Configuring"
-	& $Env:PYTHON_DIR\python $global:PYTHON_OPT configure-ng.py `
-		--confirm-license `
-		--no-designer-plugin `
-		--no-docstrings `
-		--no-python-dbus `
-		--no-qsci-api `
-		--no-tools `
-		--sip="$Env:PYTHON_DIR\sip.exe" `
-		--spec="win32-g++"
-
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-
-	Write-Output ">>> [PyQt $Env:PYQT_VERSION] Compiling"
-	& mingw32-make -j 2
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-
-	Write-Output ">>> [PyQt $Env:PYQT_VERSION] Installing"
-	& mingw32-make install
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-
-	Set-Location $Env:WORKSPACE_DRIVE
 }
 
 function install_python {
-	$output = "$Env:STORAGE_DIR\python-$Env:PYTHON_DRIVE_VERSION.msi"
-	$url = "https://www.python.org/ftp/python/$Env:PYTHON_DRIVE_VERSION/python-$Env:PYTHON_DRIVE_VERSION.msi"
-
-	if (Test-Path "$Env:PYTHON_DIR\python.exe") {
+	if (Test-Path "$Env:STORAGE_DIR\Scripts\activate.bat") {
+		& $Env:STORAGE_DIR\Scripts\activate.bat
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
 		return
 	}
 
-	Write-Output ">>> Installing Python"
-	download $url $output
-	Start-Process msiexec -ArgumentList "/a `"$output`" /passive TARGETDIR=`"$Env:PYTHON_DIR`"" -wait
-}
+	Write-Output ">>> Installing virtualenv"
 
-function install_sip {
-	$fname = "sip-$Env:SIP_VERSION"
-	$url = "$global:SERVER/$fname.zip"
-	$output = "$Env:STORAGE_DIR\$fname.zip"
-
-	if (check_import "import os, sip; os._exit(not sip.SIP_VERSION_STR == '$Env:SIP_VERSION')") {
-		return
+	& $Env:PYTHON_DIR\python.exe -m pip install virtualenv
+	if ($lastExitCode -ne 0)
+	{
+		ExitWithCode $lastExitCode
 	}
 
-	Write-Output ">>> Installing SIP $Env:SIP_VERSION"
+	# Fix a bloody issue with our slaves ... !
+	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory
+	Copy-Item $Env:PYTHON_DIR\vcruntime140.dll $Env:STORAGE_DIR\Scripts
 
-	download $url $output
-	unzip "$fname.zip" $Env:STORAGE_DIR
-	Set-Location "$Env:STORAGE_DIR\$fname"
+	Write-Output ">>> Setting-up the Python virtual environment"
 
-	Write-Output ">>> [SIP $Env:SIP_VERSION] Configuring"
-	& $Env:PYTHON_DIR\python $global:PYTHON_OPT configure.py `
-		--no-stubs `
-		--platform="win32-g++"
-
+	& $Env:PYTHON_DIR\python.exe -m virtualenv --always-copy "$Env:STORAGE_DIR"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
 
-	Write-Output ">>> [SIP $Env:SIP_VERSION] Compiling"
-	& mingw32-make -j 2
+	& $Env:STORAGE_DIR\Scripts\activate.bat
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-
-	Write-Output ">>> [SIP $Env:SIP_VERSION] Installing"
-	& mingw32-make install
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-
-	Set-Location $Env:WORKSPACE_DRIVE
 }
 
 function launch_tests {
 	# Launch the tests suite
 	if (!$direct) {
-		& $Env:PYTHON_DIR\python $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
 	}
-	& $Env:PYTHON_DIR\python $global:PYTHON_OPT -m pytest $Env:SPECIFIC_TEST `
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest $Env:SPECIFIC_TEST `
 		--cov-report= `
 		--cov=nxdrive `
 		--showlocals `
@@ -321,7 +203,6 @@ function launch_tests {
 		--failed-first `
 		--no-print-logs `
 		-r fE `
-		-W error `
 		-v
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
@@ -366,32 +247,20 @@ function sign($file) {
 function start_nxdrive {
 	# Start Nuxeo Drive
 	$Env:PYTHONPATH = "$Env:WORKSPACE_DRIVE"
-	& $Env:PYTHON_DIR\python -m nxdrive
-}
-
-function unzip($filename, $dest_dir) {
-	# Uncompress a Zip file into a given directory.
-	Write-Output ">>> Uncompressing $filename into $dest_dir"
-	$options = 0x14  # overwrite and hide the dialog
-	$shell = New-Object -com shell.application
-	$src = $shell.NameSpace((Join-Path $dest_dir $filename))
-	$dst = $shell.NameSpace((Join-Path $dest_dir ""))
-	$dst.CopyHere($src.items(), $options)
+	& $Env:STORAGE_DIR\Scripts\python.exe -m nxdrive
 }
 
 function main {
 	# Launch operations
 	check_vars
+	install_python
+
 	if (!$direct) {
-		install_python
 		install_deps
-		install_sip
-		install_pyqt
-		install_openssl
 	}
 
-	if ((check_import "import PyQt4.QtWebKit") -ne 1) {
-		Write-Output ">>> No WebKit. Installation failed."
+	if ((check_import "import PyQt5") -ne 1) {
+		Write-Output ">>> No PyQt5. Installation failed."
 		ExitWithCode 1
 	}
 

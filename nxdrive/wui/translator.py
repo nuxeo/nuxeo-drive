@@ -4,8 +4,10 @@ import json
 import os
 import re
 
+from ..utils import force_decode
 
-class Translator(object):
+
+class Translator:
 
     _singleton = None
 
@@ -73,10 +75,8 @@ class Translator(object):
             if attr in ('folder', 'name') and len(value) > 70:
                 original = value
                 try:
-                    if isinstance(value, unicode):
-                        value = value.encode('utf-8')
-                    value = value.decode('utf-8')
-                    value = u'{}…{}'.format(value[:30], value[-40:])
+                    value = force_decode(value)
+                    value = '{}…{}'.format(value[:30], value[-40:])
                 except:
                     # If we failed to manage the unicode mess, just ignore it
                     value = original

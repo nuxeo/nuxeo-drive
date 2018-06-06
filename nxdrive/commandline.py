@@ -2,6 +2,7 @@
 """ Utilities to operate Nuxeo Drive from the command line. """
 
 import argparse
+import faulthandler
 import os
 import sys
 import traceback
@@ -20,7 +21,7 @@ except ImportError:
     import pdb
 
 try:
-    from PyQt4.QtNetwork import QSslSocket
+    from PyQt5.QtNetwork import QSslSocket
 except ImportError:
     QSslSocket = None
 
@@ -49,11 +50,10 @@ To get options for a specific command:
 """
 
 
-class CliHandler(object):
+class CliHandler:
     """ Set default arguments. """
 
-    def get_version(self):
-        # type: () -> unicode
+    def get_version(self)-> str:
         return __version__
 
     def make_cli_parser(self, add_subparsers=True):
@@ -312,9 +312,9 @@ class CliHandler(object):
         return options
 
     def load_config(self, parser):
-        import ConfigParser
+        from configparser import ConfigParser, DEFAULTSECT
         config_name = 'config.ini'
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         configs = []
         path = os.path.join(os.path.dirname(sys.executable), config_name)
         if os.path.exists(path):
@@ -330,8 +330,8 @@ class CliHandler(object):
 
         from .osi import AbstractOSIntegration
         args = AbstractOSIntegration.get(None).get_system_configuration()
-        if config.has_option(ConfigParser.DEFAULTSECT, 'env'):
-            env = config.get(ConfigParser.DEFAULTSECT, 'env')
+        if config.has_option(DEFAULTSECT, 'env'):
+            env = config.get(DEFAULTSECT, 'env')
             for item in config.items(env):
                 if item[0] == 'env':
                     continue
@@ -354,8 +354,11 @@ class CliHandler(object):
             Options.update(args, setter='local')
             parser.set_defaults(**args)
 
-    def _configure_logger(self, command, options):
-        # type: (unicode, argparse.ArgumentParser) -> None
+    def _configure_logger(
+        self,
+        command: str,
+        options: argparse.ArgumentParser,
+    ) -> None:
         """ Configure the logging framework from the provided options. """
 
         # Ensure the log folder exists
@@ -459,7 +462,7 @@ class CliHandler(object):
             print('A folder must be specified')
             return 1
 
-        client = LocalClient(unicode(options.local_folder))
+        client = LocalClient(options.local_folder)
         client.clean_xattr_root()
         return 0
 
@@ -538,17 +541,13 @@ class CliHandler(object):
 
     def _install_faulthandler(self):
         """ Utility to help debug segfaults. """
-        try:
-            # Use faulthandler to print python tracebacks in case of segfaults
-            import faulthandler
-        except ImportError:
-            log.debug('faulthandler not available.')
-            return
-
         segfault_filename = os.path.expanduser(os.path.join(
             Options.nxdrive_home, 'logs', 'segfault.log'))
         log.debug('Enabling faulthandler in %r', segfault_filename)
 
         segfault_file = open(segfault_filename, 'a')
-        segfault_file.write('\n\n\n>>> {}\n'.format(datetime.now()))
-        faulthandler.enable(file=segfault_file)
+        try:
+            segfault_file.write('\n\n\n>>> {}\n'.format(datetime.now()))
+            faulthandler.enable(file=segfault_file)
+        finally:
+            segfault_file.close()

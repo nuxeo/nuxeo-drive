@@ -34,7 +34,7 @@ class TestSecurityUpdates(UnitTestCase):
         # Create documents in the remote root workspace
         # then synchronize
         remote.make_folder('/', 'Test folder')
-        remote.make_file('/Test folder', 'joe.txt', 'Some content')
+        remote.make_file('/Test folder', 'joe.txt', content=b'Some content')
 
         self.wait_sync(wait_for_async=True)
         assert local.exists('/Test folder')
@@ -111,11 +111,11 @@ class TestSecurityUpdates(UnitTestCase):
         # Create documents in the remote root workspace
         # then synchronize
         remote.make_folder('/', 'Test folder')
-        remote.make_file('/Test folder', 'joe.odt', 'Some content')
-        remote.make_file('/Test folder', 'jack.odt', 'Some content')
+        remote.make_file('/Test folder', 'joe.odt', content=b'Some content')
+        remote.make_file('/Test folder', 'jack.odt', content=b'Some content')
         remote.make_folder('/Test folder', 'Sub folder 1')
         remote.make_file('/Test folder/Sub folder 1', 'sub file 1.txt',
-                         'Content')
+                         content=b'Content')
 
         self.wait_sync(wait_for_async=True)
         assert local.exists('/Test folder')
@@ -132,25 +132,27 @@ class TestSecurityUpdates(UnitTestCase):
         # Local changes
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         # Create new file
-        local.make_file('/Test folder', 'local.odt', 'New local content')
+        local.make_file('/Test folder', 'local.odt',
+                        content=b'New local content')
         # Create new folder with files
         local.make_folder('/Test folder', 'Local sub folder 2')
         local.make_file('/Test folder/Local sub folder 2',
-                        'local sub file 2.txt', 'Other local content')
+                        'local sub file 2.txt', content=b'Other local content')
         # Update file
         local.update_content('/Test folder/joe.odt',
-                             'Some locally updated content')
+                             b'Some locally updated content')
         # Remote changes
         # Create new file
         root_remote.make_file(test_folder_path, 'remote.odt',
-                              'New remote content')
+                              content=b'New remote content')
         # Create new folder with files
         root_remote.make_folder(test_folder_path, 'Remote sub folder 2')
         root_remote.make_file(test_folder_path + '/Remote sub folder 2',
-                              'remote sub file 2.txt', 'Other remote content')
+                              'remote sub file 2.txt',
+                              content=b'Other remote content')
         # Update file
         root_remote.update_content(test_folder_path + '/joe.odt',
-                                   'Some remotely updated content')
+                                   b'Some remotely updated content')
 
         self.wait_sync(wait_for_async=True)
         # Only locally modified content should exist
@@ -163,7 +165,7 @@ class TestSecurityUpdates(UnitTestCase):
         assert len(local.get_children_info('/Test folder')) == 3
         assert local.exists('/Test folder/joe.odt')
         assert (local.get_content('/Test folder/joe.odt')
-                == 'Some locally updated content')
+                == b'Some locally updated content')
         assert local.exists('/Test folder/local.odt')
         assert local.exists('/Test folder/Local sub folder 2')
         assert local.exists(
@@ -192,7 +194,7 @@ class TestSecurityUpdates(UnitTestCase):
         assert len(root_remote.get_children_info(test_folder_uid)) == 5
         assert root_remote.exists(test_folder_path + '/joe.odt')
         assert (root_remote.get_content(test_folder_path + '/joe.odt')
-                == 'Some remotely updated content')
+                == b'Some remotely updated content')
         assert root_remote.exists(test_folder_path + '/jack.odt')
         assert root_remote.exists(test_folder_path + '/remote.odt')
         assert root_remote.exists(test_folder_path + '/Sub folder 1')
@@ -230,10 +232,10 @@ class TestSecurityUpdates(UnitTestCase):
         assert local_version is not None
         assert local.exists(remote_version.path)
         assert (local.get_content(remote_version.path)
-                == 'Some remotely updated content')
+                == b'Some remotely updated content')
         assert local.exists(local_version.path)
         assert (local.get_content(local_version.path)
-                == 'Some locally updated content')
+                == b'Some locally updated content')
         assert local.exists('/Test folder/jack.odt')
         assert local.exists('/Test folder/local.odt')
         assert local.exists('/Test folder/remote.odt')
@@ -272,13 +274,13 @@ class TestSecurityUpdates(UnitTestCase):
         remote_version_ref = remote_version.path[-remote_version_ref_length:]
         assert remote.exists(remote_version_ref)
         assert (remote.get_content(remote_version_ref)
-                == 'Some remotely updated content')
+                == b'Some remotely updated content')
         local_version_ref_length = (len(local_version.path)
                                      - len(TEST_WORKSPACE_PATH))
         local_version_ref = local_version.path[-local_version_ref_length:]
         assert remote.exists(local_version_ref)
         assert (remote.get_content(local_version_ref)
-                == 'Some locally updated content')
+                == b'Some locally updated content')
         assert remote.exists('/Test folder/jack.odt')
         assert remote.exists('/Test folder/local.odt')
         assert remote.exists('/Test folder/remote.odt')

@@ -47,18 +47,12 @@ We also provide the `server_updater()` helper.
 It creates the worker that will check for options update on the server.
 """
 
-from __future__ import unicode_literals
-
-import locale
 import logging
 import os.path
 import sys
+from contextlib import suppress
 from copy import deepcopy
-
-try:
-    from typing import Any, Dict, Tuple
-except ImportError:
-    pass
+from typing import Any, Callable, Dict, Tuple
 
 
 __all__ = ('Options', 'server_updater')
@@ -85,21 +79,21 @@ class MetaOptions(type):
     """
 
     # Ignored files, checked lowercase
-    __files = (
+    __files: Tuple[str] = (
         r'^atmp\d+$',  # AutoCAD tmp file
-    )  # type: Tuple[unicode]
+    )
 
     # Ignored prefixes, checked lowercase
-    __prefixes = (
+    __prefixes: Tuple[str] = (
         '.',
         'desktop.ini',
         'icon\r',
         'thumbs.db',
         '~$',
-    )  # type: Tuple[unicode]
+    )
 
     # Ignored suffixes, checked lowercase
-    __suffixes = (
+    __suffixes: Tuple[str] = (
         '.bak',
         '.crdownload',
         '.dwl',
@@ -112,19 +106,19 @@ class MetaOptions(type):
         '.swp',
         '.tmp',
         '~',
-    )  # type: Tuple[unicode]
+    )
 
     # Setters weight, higher is more powerfull
-    _setters = {
+    _setters: Dict[str, int] = {
         'default': 0,
         'server': 1,
         'local': 2,
         'cli': 3,
         'manual': 4,
-    }  # type: Dict[unicode, int]
+    }
 
     # Default options
-    options = {
+    options: Dict[str, Tuple[Any, str]] = {
         'beta_channel': (False, 'default'),
         'beta_update_site_url': (
             'https://community.nuxeo.com/static/drive-updates', 'default'),
@@ -145,10 +139,7 @@ class MetaOptions(type):
         'max_errors': (3, 'default'),
         'max_sync_step': (10, 'default'),
         'nxdrive_home': (
-            os.path.join(
-                unicode(os.path.expanduser('~').decode(
-                    locale.getpreferredencoding() or 'utf-8')),
-                '.nuxeo-drive'),
+            os.path.join(os.path.expanduser('~'), '.nuxeo-drive'),
             'default'),
         'nofscheck': (False, 'default'),
         'protocol_url': (None, 'default'),
@@ -164,42 +155,34 @@ class MetaOptions(type):
         'update_check_delay': (3600, 'default'),
         'update_site_url': (
             'https://community.nuxeo.com/static/drive-updates', 'default'),
-    }  # type: Dict[unicode, Tuple[Any, unicode]]
+    }
 
     default_options = deepcopy(options)
 
     # Callbacks for any option change.
     # Callable signature must be: (new_value: str) -> None
     # The return value is not checked.
-    callbacks = {}  # type: Dict[unicode, callable]
+    callbacks: Dict[str, Callable] = {}
 
-    def __getattr__(self, item):
-        # type (unicode) -> Any
+    def __getattr__(self, item: str) -> Any:
         """
         Override to allow retrieving an option as simply as `Options.delay`.
-
         If the option does not exist, returns `None`.
         """
-
         try:
             value, _ = MetaOptions.options[item]
         except KeyError:
             value = None
         return value
 
-    def __setattr__(self, item, value):
-        # type: (unicode, Any) -> None
+    def __setattr__(self, item: str, value: Any) -> None:
         """
         Override to allow setting an option as simply as `Options.delay = 42`.
         If the option does not exist, it does nothing.
-
         Use in tests only.
         """
-
-        try:
+        with suppress(KeyError):
             MetaOptions.set(item, value, setter='manual')
-        except KeyError:
-            pass
 
     def __repr__(self):
         """ Display all options. """
@@ -215,8 +198,12 @@ class MetaOptions(type):
         return 'Options({})'.format(', '.join(options))
 
     @staticmethod
-    def set(item, new_value, setter='default', fail_on_error=True):
-        # type: (unicode, Any, unicode, bool) -> None
+    def set(
+        item: str,
+        new_value: Any,
+        setter: str='default',
+        fail_on_error: bool=True,
+    ) -> None:
         """
         Set an option.
 
@@ -249,23 +236,17 @@ class MetaOptions(type):
                 new_value = tuple(sorted(new_value))
             elif isinstance(new_value, bytes):
                 # No option needs bytes
-                # TODO NXDRIVE-691: Remove that part?
-                new_value = new_value.decode(
-                    locale.getpreferredencoding() or 'utf-8')
+                new_value = new_value.decode()
 
             # Try implicit conversions. We do not use isinstance to prevent
             # checking against subtypes.
             type_orig = type(old_value)
             if type_orig is bool:
-                try:
+                with suppress(ValueError, TypeError):
                     new_value = bool(new_value)
-                except (ValueError, TypeError):
-                    pass
             elif type_orig is int:
-                try:
+                with suppress(ValueError, TypeError):
                     new_value = int(new_value)
-                except (ValueError, TypeError):
-                    pass
 
             if new_value == old_value:
                 return
@@ -297,8 +278,11 @@ class MetaOptions(type):
                     callback(new_value)
 
     @staticmethod
-    def update(items, setter='default', fail_on_error=False):
-        # type: (Any, unicode) -> None
+    def update(
+        items: Any,
+        setter: str='default',
+        fail_on_error: bool=False,
+    ) -> None:
         """
         Batch update options.
         If an option does not exist, it will be ignored.
@@ -316,8 +300,7 @@ class MetaOptions(type):
                 item, value, setter=setter, fail_on_error=fail_on_error)
 
     @staticmethod
-    def mock():
-        # type: () -> callable
+    def mock() -> Callable:
         """
         Decorator for tests.
         It saves initial states, launches the test and restores states then.
@@ -347,16 +330,14 @@ class MetaOptions(type):
         return decorator
 
 
-class Options(object):
-    __metaclass__ = MetaOptions
+class Options(metaclass=MetaOptions):
 
     def __init__(self):
         """ Prevent class instances. """
         raise RuntimeError('Cannot be instantiated.')
 
 
-def server_updater(*args):
-    # type: (*Any) -> ServerOptionsUpdater
+def server_updater(*args: Any) -> object:
     """
     Helper to create the worker that will check for option updates
     on the server.
@@ -364,22 +345,18 @@ def server_updater(*args):
     the possibility to import other classes without anything else needed.
     """
 
-    from PyQt4.QtCore import pyqtSlot
+    from PyQt5.QtCore import pyqtSlot
     from .engine.workers import PollWorker
 
     class ServerOptionsUpdater(PollWorker):
         """ Class for checking the server's config.json updates. """
 
         def __init__(self, manager):
-            # type: (Manager) -> None
-
-            super(ServerOptionsUpdater, self).__init__(
-                Options.update_check_delay)
+            super().__init__(Options.update_check_delay)
             self.manager = manager
 
-        @pyqtSlot()
-        def _poll(self):
-            # type: () -> bool
+        @pyqtSlot(result=bool)
+        def _poll(self) -> bool:
             """ Check for the configuration file and apply updates. """
 
             for _, engine in self.manager._engines.items():

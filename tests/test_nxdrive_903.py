@@ -27,8 +27,6 @@ This scenario also happens when turning off or exiting Nuxeo Drive client
 instead of disabling the network card.
 """
 
-from __future__ import unicode_literals
-
 import os.path
 
 from .common import UnitTestCase

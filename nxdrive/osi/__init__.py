@@ -1,12 +1,12 @@
 # coding: utf-8
-import sys
 from logging import getLogger
 
+from ..constants import MAC, WINDOWS
 
 log = getLogger(__name__)
 
 
-class AbstractOSIntegration(object):
+class AbstractOSIntegration:
 
     zoom_factor = 1.0
 
@@ -57,23 +57,11 @@ class AbstractOSIntegration(object):
         return dict()
 
     @staticmethod
-    def is_mac():
-        return sys.platform == 'darwin'
-
-    @staticmethod
-    def is_windows():
-        return sys.platform == 'win32'
-
-    @staticmethod
-    def is_linux():
-        return sys.platform == 'linux2'
-
-    @staticmethod
     def get(manager):
-        if AbstractOSIntegration.is_mac():
+        if MAC:
             from .darwin.darwin import DarwinIntegration
             integration, nature = DarwinIntegration, 'macOS'
-        elif AbstractOSIntegration.is_windows():
+        elif WINDOWS:
             from .windows.windows import WindowsIntegration
             integration, nature = WindowsIntegration, 'Windows'
         else:

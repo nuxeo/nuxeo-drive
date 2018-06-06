@@ -4,14 +4,15 @@ Query formatting in this file is based on http://www.sqlstyle.guide/
 """
 import os
 import sqlite3
-import sys
+from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from threading import RLock, current_thread, local
 
-from PyQt4.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 
 from .utils import fix_db
+from ...constants import WINDOWS
 
 log = getLogger(__name__)
 
@@ -65,7 +66,7 @@ class AutoRetryCursor(sqlite3.Cursor):
         while True:
             count += 1
             try:
-                return super(AutoRetryCursor, self).execute(*args, **kwargs)
+                return super().execute(*args, **kwargs)
             except sqlite3.OperationalError as exc:
                 log.debug('Retry locked database #%d, args=%r, kwargs=%r',
                           count, args, kwargs)
@@ -75,7 +76,7 @@ class AutoRetryCursor(sqlite3.Cursor):
 
 class AutoRetryConnection(sqlite3.Connection):
     def cursor(self):
-        return super(AutoRetryConnection, self).cursor(AutoRetryCursor)
+        return super().cursor(AutoRetryCursor)
 
 
 class StateRow(sqlite3.Row):
@@ -92,10 +93,8 @@ class StateRow(sqlite3.Row):
                 ).format(name=type(self).__name__, cls=self)
 
     def __getattr__(self, name):
-        try:
+        with suppress(IndexError):
             return self[name]
-        except IndexError:
-            return None
 
     def is_readonly(self):
         if self.folderish:
@@ -110,25 +109,13 @@ class StateRow(sqlite3.Row):
             self.remote_state = remote_state
 
 
-class FakeLock(object):
-    def acquire(self):
-        pass
-
-    __enter__ = acquire
-
-    def release(self):
-        pass
-
-    def __exit__(self, t, v, tb):
-        self.release()
-
-
 class ConfigurationDAO(QObject):
 
+    _conn = None
     _state_factory = StateRow
 
     def __init__(self, db):
-        super(ConfigurationDAO, self).__init__()
+        super().__init__()
         log.debug('Create DAO on %r', db)
         self._db = db
         exists = os.path.isfile(self._db)
@@ -145,19 +132,13 @@ class ConfigurationDAO(QObject):
                           self._db + '_' + str(int(datetime.now().timestamp())))
                 exists = False
 
-        # For testing purpose only should always be True
-        self.share_connection = True
-        self.auto_commit = True
         self.schema_version = self.get_schema_version()
         self.in_tx = None
         self._tx_lock = RLock()
-        # If we dont share connection no need to lock
-        self._lock = RLock() if self.share_connection else FakeLock()
-        # Use to clean
+        self._lock = RLock()
         self._connections = []
         self._conns = local()
         self._create_main_conn()
-        self._conn.row_factory = self._state_factory
         c = self._conn.cursor()
         self._init_db(c)
         if exists:
@@ -170,10 +151,6 @@ class ConfigurationDAO(QObject):
         else:
             c.execute('INSERT INTO Configuration (name, value) '
                       'VALUES (?, ?)', (SCHEMA_VERSION, self.schema_version))
-        self._conn.commit()
-        # FOR PYTHON 3.3...
-        # if log.getEffectiveLevel() < 6:
-        #    self._conn.set_trace_callback(self._log_trace)
 
     def get_schema_version(self):
         return 1
@@ -228,12 +205,10 @@ class ConfigurationDAO(QObject):
             'Create main connexion on %r (dir_exists=%r, file_exists=%r)',
             self._db, os.path.exists(os.path.dirname(self._db)),
             os.path.exists(self._db))
-        self._conn = AutoRetryConnection(self._db, check_same_thread=False)
+        self._conn = sqlite3.connect(self._db, check_same_thread=False,
+                                     factory=AutoRetryConnection, isolation_level=None)
         self._conn.row_factory = self._state_factory
         self._connections.append(self._conn)
-
-    def _log_trace(self, query):
-        log.trace(query)
 
     def dispose(self):
         log.debug('Disposing SQLite database %r', self.get_db())
@@ -243,7 +218,7 @@ class ConfigurationDAO(QObject):
         del self._conn
 
     def _get_write_connection(self):
-        if self.share_connection or self.in_tx:
+        if self.in_tx:
             if self._conn is None:
                 self._create_main_conn()
             return self._conn
@@ -263,21 +238,13 @@ class ConfigurationDAO(QObject):
 
         if getattr(self._conns, '_conn', None) is None:
             # Dont check same thread for closing purpose
-            self._conns._conn = AutoRetryConnection(
-                self._db, check_same_thread=False)
+            self._conns._conn = sqlite3.connect(
+                self._db, check_same_thread=False, factory=AutoRetryConnection,
+                isolation_level=None)
             self._conns._conn.row_factory = self._state_factory
             self._connections.append(self._conns._conn)
 
-        # Python3.3 feature
-        # if log.getEffectiveLevel() < 6:
-        #     self._conns._conn.set_trace_callback(self._log_trace)
         return self._conns._conn
-
-    def commit(self):
-        if self.auto_commit:
-            return
-        with self._lock:
-            self._get_write_connection().commit()
 
     def _delete_config(self, cursor, name):
         cursor.execute('DELETE FROM Configuration'
@@ -288,8 +255,6 @@ class ConfigurationDAO(QObject):
             con = self._get_write_connection()
             c = con.cursor()
             self._delete_config(c, name)
-            if self.auto_commit:
-                con.commit()
 
     def update_config(self, name, value):
         # We cannot use this anymore because it will end on a DatabaseError.
@@ -305,8 +270,6 @@ class ConfigurationDAO(QObject):
                       '           WHERE name = ?', (value, name))
             c.execute('INSERT OR IGNORE INTO Configuration (value, name) '
                       'VALUES (?, ?)', (value, name))
-            if self.auto_commit:
-                con.commit()
 
     def get_config(self, name, default=None):
         c = self._get_read_connection().cursor()
@@ -324,7 +287,7 @@ class ManagerDAO(ConfigurationDAO):
         return 2
 
     def _init_db(self, cursor):
-        super(ManagerDAO, self)._init_db(cursor)
+        super()._init_db(cursor)
         cursor.execute('CREATE TABLE if not exists Engines ('
                        '    uid          VARCHAR,'
                        '    engine       VARCHAR NOT NULL,'
@@ -361,16 +324,12 @@ class ManagerDAO(ConfigurationDAO):
                  notification.level, notification.title,
                  notification.description, notification.action,
                  notification.flags))
-            if self.auto_commit:
-                con.commit()
 
     def unlock_path(self, path):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute('DELETE FROM AutoLock WHERE path = ?', (path,))
-            if self.auto_commit:
-                con.commit()
 
     def get_locked_paths(self):
         con = self._get_read_connection()
@@ -384,16 +343,12 @@ class ManagerDAO(ConfigurationDAO):
             try:
                 c.execute('INSERT INTO AutoLock (path, process, remote_id) '
                           'VALUES (?, ?, ?)', (path, process, doc_id))
-                if self.auto_commit:
-                    con.commit()
             except sqlite3.IntegrityError:
                 # Already there just update the process
                 c.execute('UPDATE AutoLock'
                           '   SET process = ?,'
                           '       remote_id = ?'
                           ' WHERE path = ?', (process, doc_id, path))
-                if self.auto_commit:
-                    con.commit()
 
     def update_notification(self, notification):
         with self._lock:
@@ -406,8 +361,6 @@ class ManagerDAO(ConfigurationDAO):
                       ' WHERE uid = ?',
                       (notification.level, notification.title,
                        notification.description, notification.uid))
-            if self.auto_commit:
-                con.commit()
 
     def get_notifications(self, discarded=True):
         # Flags used:
@@ -432,16 +385,12 @@ class ManagerDAO(ConfigurationDAO):
                       '   SET flags = (flags | 1)'
                       ' WHERE uid = ?'
                       '   AND (flags & 4) = 4', (uid,))
-            if self.auto_commit:
-                con.commit()
 
     def remove_notification(self, uid):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute('DELETE FROM Notifications WHERE uid = ?', (uid,))
-            if self.auto_commit:
-                con.commit()
 
     def _migrate_db(self, cursor, version):
         if version < 2:
@@ -476,8 +425,6 @@ class ManagerDAO(ConfigurationDAO):
             c.execute('UPDATE Engines'
                       '   SET local_folder = ?'
                       ' WHERE uid = ?', (path, engine))
-            if self.auto_commit:
-                con.commit()
 
     def add_engine(self, engine, path, key, name):
         with self._lock:
@@ -485,8 +432,6 @@ class ManagerDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute('INSERT INTO Engines (local_folder, engine, uid, name) '
                       'VALUES (?, ?, ?, ?)', (path, engine, key, name))
-            if self.auto_commit:
-                con.commit()
             result = c.execute('SELECT *'
                                '  FROM Engines'
                                ' WHERE uid = ?', (key,)).fetchone()
@@ -497,8 +442,6 @@ class ManagerDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             c.execute('DELETE FROM Engines WHERE uid = ?', (uid,))
-            if self.auto_commit:
-                con.commit()
 
 
 class EngineDAO(ConfigurationDAO):
@@ -508,7 +451,7 @@ class EngineDAO(ConfigurationDAO):
         if state_factory:
             self._state_factory = state_factory
 
-        super(EngineDAO, self).__init__(db)
+        super().__init__(db)
 
         self._queue_manager = None
         self._items_count = 0
@@ -554,11 +497,10 @@ class EngineDAO(ConfigurationDAO):
                            '   SET creation_date = last_remote_updated')
             self.update_config(SCHEMA_VERSION, 4)
 
-
     def _create_table(self, cursor, name, force=False):
         if name == 'States':
             return self._create_state_table(cursor, force)
-        super(EngineDAO, self)._create_table(cursor, name, force)
+        super()._create_table(cursor, name, force)
 
     @staticmethod
     def _create_state_table(cursor, force=False):
@@ -604,7 +546,7 @@ class EngineDAO(ConfigurationDAO):
             "    UNIQUE(remote_ref, local_path))".format(statement))
 
     def _init_db(self, cursor):
-        super(EngineDAO, self)._init_db(cursor)
+        super()._init_db(cursor)
         for table in ('Filters', 'RemoteScan', 'ToRemoteScan'):
             cursor.execute('CREATE TABLE if not exists {} ('
                            '   path STRING NOT NULL,'
@@ -634,8 +576,6 @@ class EngineDAO(ConfigurationDAO):
                       '   SET processor = 0'
                       ' WHERE processor = ?',
                       (processor_id,))
-            if self.auto_commit:
-                con.commit()
         return c.rowcount > 0
 
     def acquire_processor(self, thread_id, row_id):
@@ -647,8 +587,6 @@ class EngineDAO(ConfigurationDAO):
                       ' WHERE id = ?'
                       '   AND processor IN (0, ?)',
                       (thread_id, row_id, thread_id))
-            if self.auto_commit:
-                con.commit()
         return c.rowcount == 1
 
     def _reinit_states(self, cursor):
@@ -664,7 +602,6 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             self._reinit_states(c)
-            con.commit()
             con.execute('VACUUM')
 
     def reinit_processors(self):
@@ -678,8 +615,6 @@ class EngineDAO(ConfigurationDAO):
                       "       last_sync_error_date = NULL,"
                       "       last_error = NULL"
                       " WHERE pair_state = 'synchronized'")
-            if self.auto_commit:
-                con.commit()
             con.execute('VACUUM')
 
     def delete_remote_state(self, doc_pair):
@@ -698,8 +633,6 @@ class EngineDAO(ConfigurationDAO):
             # Only queue parent
             self._queue_pair_state(
                 doc_pair.id, doc_pair.folderish, 'remotely_deleted')
-            if self.auto_commit:
-                con.commit()
 
     def delete_local_state(self, doc_pair):
         try:
@@ -715,8 +648,6 @@ class EngineDAO(ConfigurationDAO):
                     c.execute(update + ' '
                               + self._get_recursive_condition(doc_pair),
                               ('locally_deleted',))
-                if self.auto_commit:
-                    con.commit()
         finally:
             self._queue_manager.interrupt_processors_on(
                 doc_pair.local_path, exact_match=False)
@@ -748,8 +679,6 @@ class EngineDAO(ConfigurationDAO):
             if ((parent is None and parent_path == '')
                     or (parent and parent.pair_state != 'locally_created')):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
-            if self.auto_commit:
-                con.commit()
             self._items_count += 1
         return row_id
 
@@ -816,8 +745,6 @@ class EngineDAO(ConfigurationDAO):
                       '   SET last_transfer = ?'
                       ' WHERE id = ?',
                       (transfer, row_id))
-            if self.auto_commit:
-                con.commit()
 
     def get_dedupe_pair(self, name, parent, row_id):
         c = self._get_read_connection().cursor()
@@ -835,8 +762,6 @@ class EngineDAO(ConfigurationDAO):
             c.execute("UPDATE States"
                       "   SET local_path = ''"
                       " WHERE id = ?", (row_id,))
-            if self.auto_commit:
-                con.commit()
 
     def update_local_state(self, row, info, versioned=True, queue=True):
         row.pair_state = self._get_pair_state(row)
@@ -877,8 +802,6 @@ class EngineDAO(ConfigurationDAO):
                         or (parent and parent.local_state != 'created')):
                     self._queue_pair_state(
                         row.id, info.folderish, row.pair_state, pair=row)
-            if self.auto_commit:
-                con.commit()
 
     def update_local_modification_time(self, row, info):
         with self._lock:
@@ -888,8 +811,6 @@ class EngineDAO(ConfigurationDAO):
                       '   SET last_local_updated = ?'
                       ' WHERE id = ?',
                       (info.last_modification_time, row.id,))
-            if self.auto_commit:
-                con.commit()
 
     def get_valid_duplicate_file(self, digest):
         c = self._get_read_connection().cursor()
@@ -1038,8 +959,7 @@ class EngineDAO(ConfigurationDAO):
                          (ref,)).fetchall()
 
     def get_state_from_id(self, row_id, from_write=False):
-        # Dont need to read from write as auto_commit is True
-        if from_write and self.auto_commit:
+        if from_write:
             from_write = False
         try:
             if from_write:
@@ -1067,7 +987,7 @@ class EngineDAO(ConfigurationDAO):
         return res
 
     def _get_recursive_remote_condition(self, doc_pair):
-        path = self._escape(doc_pair.remote_parent_path.encode('utf-8')
+        path = self._escape(doc_pair.remote_parent_path
                             + '/' + doc_pair.remote_name)
         return (" WHERE remote_parent_path LIKE '" + path + "/%'"
                 "    OR remote_parent_path = '" + path + "'")
@@ -1091,8 +1011,6 @@ class EngineDAO(ConfigurationDAO):
                       '   SET remote_parent_path = ?'
                       ' WHERE id = ?',
                       (new_path, doc_pair.id))
-            if self.auto_commit:
-                con.commit()
 
     def update_local_parent_path(self, doc_pair, new_name, new_path):
         with self._lock:
@@ -1115,8 +1033,6 @@ class EngineDAO(ConfigurationDAO):
                       '   SET local_parent_path = ?'
                       ' WHERE id = ?',
                       (new_path, doc_pair.id))
-            if self.auto_commit:
-                con.commit()
 
     def mark_descendants_remotely_created(self, doc_pair):
         with self._lock:
@@ -1132,8 +1048,6 @@ class EngineDAO(ConfigurationDAO):
             if doc_pair.folderish:
                 c.execute('{} {}'.format(
                     update, self._get_recursive_condition(doc_pair)))
-            if self.auto_commit:
-                con.commit()
             self._queue_pair_state(
                 doc_pair.id, doc_pair.folderish, doc_pair.pair_state)
 
@@ -1149,8 +1063,6 @@ class EngineDAO(ConfigurationDAO):
                 else:
                     condition = self._get_recursive_condition(doc_pair)
                 c.execute('DELETE FROM States ' + condition)
-            if self.auto_commit:
-                con.commit()
 
     def get_state_from_local(self, path):
         c = self._get_read_connection().cursor()
@@ -1183,8 +1095,7 @@ class EngineDAO(ConfigurationDAO):
                        local_path, local_parent_path, pair_state, info.name,
                        info.creation_time))
             row_id = c.lastrowid
-            if self.auto_commit:
-                con.commit()
+
             # Check if parent is not in creation
             parent = c.execute('SELECT *'
                                '  FROM States'
@@ -1223,8 +1134,6 @@ class EngineDAO(ConfigurationDAO):
                       '       last_error_details = ?'
                       ' WHERE id = ?',
                       (error, error_date, incr, details, row.id))
-            if self.auto_commit:
-                con.commit()
         row.last_error = error
         row.error_count += incr
 
@@ -1239,8 +1148,6 @@ class EngineDAO(ConfigurationDAO):
                       '       error_count = 0'
                       ' WHERE id = ?',
                       (last_error, row.id))
-            if self.auto_commit:
-                con.commit()
             self._queue_pair_state(row.id, row.folderish, row.pair_state)
             self._items_count += 1
         row.last_error = None
@@ -1261,8 +1168,6 @@ class EngineDAO(ConfigurationDAO):
                       '   AND version = ?',
                       (local, remote, pair, row.id, row.version))
             self._queue_pair_state(row.id, row.folderish, pair)
-            if self.auto_commit:
-                con.commit()
         if c.rowcount == 1:
             self._items_count += 1
             return True
@@ -1285,8 +1190,6 @@ class EngineDAO(ConfigurationDAO):
                       ' WHERE id = ?',
                       ('conflicted', row.id))
             self.newConflict.emit(row.id)
-            if self.auto_commit:
-                con.commit()
         if c.rowcount == 1:
             self._items_count -= 1
             return True
@@ -1306,8 +1209,6 @@ class EngineDAO(ConfigurationDAO):
                       ' WHERE id = ?',
                       ('unsynchronized', datetime.utcnow(),
                        last_error, row.id))
-            if self.auto_commit:
-                con.commit()
 
     def synchronize_state(self, row, version=None, dynamic_states=False):
         if version is None:
@@ -1341,8 +1242,6 @@ class EngineDAO(ConfigurationDAO):
                       '   AND version = ?',
                       (row.local_state, row.remote_state, row.pair_state,
                        row.local_digest, datetime.utcnow(), row.id, version))
-            if self.auto_commit:
-                con.commit()
         result = c.rowcount == 1
 
         # Retry without version for folder
@@ -1368,8 +1267,6 @@ class EngineDAO(ConfigurationDAO):
                            datetime.utcnow(), row.id, row.local_path,
                            row.remote_name, row.remote_ref,
                            row.remote_parent_ref))
-                if self.auto_commit:
-                    con.commit()
             result = c.rowcount == 1
 
         if not result:
@@ -1407,8 +1304,7 @@ class EngineDAO(ConfigurationDAO):
                 and info.can_create_child == row.remote_can_create_child):
             bname = os.path.basename(row.local_path)
             if (bname == info.name
-                    or (sys.platform == 'win32'
-                        and bname.strip() == info.name.strip())):
+                    or (WINDOWS and bname.strip() == info.name.strip())):
                 # It looks similar
                 if info.digest in (row.local_digest, row.remote_digest):
                     row.remote_state = 'synchronized'
@@ -1466,8 +1362,6 @@ class EngineDAO(ConfigurationDAO):
                        info.can_create_child, info.last_contributor,
                        row.local_state, row.remote_state, row.pair_state,
                        row.id))
-            if self.auto_commit:
-                con.commit()
             if queue:
                 # Check if parent is not in creation
                 parent = c.execute('SELECT *'
@@ -1487,35 +1381,25 @@ class EngineDAO(ConfigurationDAO):
 
     def add_path_to_scan(self, path):
         path = self._clean_filter_path(path)
-        try:
-            with self._lock:
-                con = self._get_write_connection()
-                c = con.cursor()
-                # Remove any subchilds as it is gonna be scanned anyway
-                c.execute('DELETE FROM ToRemoteScan'
-                          ' WHERE path LIKE ?',
-                          (path + '%',))
-                # ADD IT
-                c.execute('INSERT INTO ToRemoteScan (path) '
-                          'VALUES (?)', (path,))
-                if self.auto_commit:
-                    con.commit()
-        except sqlite3.IntegrityError:
-            pass
+        with self._lock, suppress(sqlite3.IntegrityError):
+            con = self._get_write_connection()
+            c = con.cursor()
+            # Remove any subchilds as it is gonna be scanned anyway
+            c.execute('DELETE FROM ToRemoteScan'
+                      ' WHERE path LIKE ?',
+                      (path + '%',))
+            # ADD IT
+            c.execute('INSERT INTO ToRemoteScan (path) '
+                      'VALUES (?)', (path,))
 
     def delete_path_to_scan(self, path):
         path = self._clean_filter_path(path)
-        try:
-            with self._lock:
-                con = self._get_write_connection()
-                c = con.cursor()
-                # ADD IT
-                c.execute('DELETE FROM ToRemoteScan'
-                          ' WHERE path = ?', (path,))
-                if self.auto_commit:
-                    con.commit()
-        except sqlite3.IntegrityError:
-            pass
+        with self._lock, suppress(sqlite3.IntegrityError):
+            con = self._get_write_connection()
+            c = con.cursor()
+            # ADD IT
+            c.execute('DELETE FROM ToRemoteScan'
+                      ' WHERE path = ?', (path,))
 
     def get_paths_to_scan(self):
         c = self._get_read_connection().cursor()
@@ -1524,25 +1408,18 @@ class EngineDAO(ConfigurationDAO):
 
     def add_path_scanned(self, path):
         path = self._clean_filter_path(path)
-        try:
-            with self._lock:
-                con = self._get_write_connection()
-                c = con.cursor()
-                # ADD IT
-                c.execute('INSERT INTO RemoteScan (path) '
-                          'VALUES (?)', (path,))
-                if self.auto_commit:
-                    con.commit()
-        except sqlite3.IntegrityError:
-            pass
+        with self._lock, suppress(sqlite3.IntegrityError):
+            con = self._get_write_connection()
+            c = con.cursor()
+            # ADD IT
+            c.execute('INSERT INTO RemoteScan (path) '
+                      'VALUES (?)', (path,))
 
     def clean_scanned(self):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute('DELETE FROM RemoteScan')
-            if self.auto_commit:
-                con.commit()
 
     def is_path_scanned(self, path):
         path = self._clean_filter_path(path)
@@ -1633,9 +1510,6 @@ class EngineDAO(ConfigurationDAO):
 
             # TODO: Add this path as remotely_deleted?
 
-            if self.auto_commit:
-                con.commit()
-
             self._filters = self.get_filters()
             self._items_count = self.get_syncing_count()
 
@@ -1646,8 +1520,6 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute('DELETE FROM Filters'
                       ' WHERE path LIKE ?', (path + '%',))
-            if self.auto_commit:
-                con.commit()
             self._filters = self.get_filters()
             self._items_count = self.get_syncing_count()
 

@@ -5,6 +5,7 @@ import stat
 import sys
 from logging import getLogger
 
+import xattr
 from nuxeo.compat import quote
 
 from .. import AbstractOSIntegration
@@ -34,7 +35,7 @@ class DarwinIntegration(AbstractOSIntegration):
     )
 
     def __init__(self, manager):
-        super(DarwinIntegration, self).__init__(manager)
+        super().__init__(manager)
         self._init()
 
     def _init(self):
@@ -107,15 +108,13 @@ class DarwinIntegration(AbstractOSIntegration):
             if to_delete:
                 os.mkdir(folder)
             if not os.access(folder, os.W_OK):
-                import stat
                 os.chmod(folder, stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
                          | stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
-            import xattr
-            attr = 'drive-test'
-            xattr.setxattr(folder, attr, attr)
-            if xattr.getxattr(folder, attr) == attr:
+            key, value = 'drive-test', b'drive-test'
+            xattr.setxattr(folder, key, value)
+            if xattr.getxattr(folder, key) == value:
                 result = True
-            xattr.removexattr(folder, attr)
+            xattr.removexattr(folder, key)
         finally:
             if to_delete:
                 try:
@@ -259,7 +258,7 @@ class DarwinIntegration(AbstractOSIntegration):
 
 class FinderSyncListener(Worker):
     def __init__(self, manager):
-        super(FinderSyncListener, self).__init__()
+        super().__init__()
         self._manager = manager
         self.host = 'localhost'
         self.port = 50765
@@ -282,13 +281,13 @@ class FinderSyncListener(Worker):
                 client.start()
 
     def quit(self):
-        super(FinderSyncListener, self).quit()
+        super().quit()
         self._sock.close()
 
 
 class SocketThread(Worker):
     def __init__(self, socket, addr, manager):
-        super(SocketThread, self).__init__()
+        super().__init__()
         self._manager = manager
         self._sock = socket
         self.addr = addr

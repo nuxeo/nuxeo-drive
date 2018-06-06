@@ -9,7 +9,7 @@ from .logging_config import MAX_LOG_DISPLAYED, get_handler
 log = getLogger(__name__)
 
 
-class Report(object):
+class Report:
     """
     Class to create a complete report useful for bug reports.
 
@@ -97,9 +97,17 @@ class Report(object):
         log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
 
         for record in log_buffer:
-            line = handler.format(record)
+            try:
+                line = handler.format(record)
+            except:
+                try:
+                    log.error('Logging record error: %r', record)
+                except:
+                    pass
+                continue
+
             if not isinstance(line, bytes):
-                line = line.encode('utf-8', errors='replace')
+                line = line.encode(errors='replace')
             yield line
 
     def generate(self):

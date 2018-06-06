@@ -1,21 +1,24 @@
 # coding: utf-8
 from logging import getLogger
 
-from PyQt4 import QtCore, QtGui
+from PyQt5.QtCore import QVariant, Qt, pyqtSlot
+from PyQt5.QtGui import QStandardItem, QStandardItemModel
+from PyQt5.QtWidgets import (QDialog, QHeaderView, QMenu, QPushButton,
+                             QTreeView, QVBoxLayout)
 
 from .folders_treeview import Overlay
 
 log = getLogger(__name__)
 
 
-class StatusDialog(QtGui.QDialog):
+class StatusDialog(QDialog):
     """ Use to display the table of LastKnownState. """
 
     def __init__(self, dao):
-        super(StatusDialog, self).__init__()
+        super().__init__()
         self._dao = dao
         self.resize(500, 500)
-        layout = QtGui.QVBoxLayout()
+        layout = QVBoxLayout()
         self.setLayout(layout)
         self.tree_view = StatusTreeview(self, self._dao)
         self.tree_view.resizeColumnToContents(0)
@@ -23,25 +26,25 @@ class StatusDialog(QtGui.QDialog):
         layout.addWidget(self.tree_view)
 
 
-class RetryButton(QtGui.QPushButton):
+class RetryButton(QPushButton):
     def __init__(self, view, pair):
-        super(RetryButton, self).__init__('Retry')
+        super().__init__('Retry')
         self.pair = pair
         self.view = view
         self.clicked.connect(self.retry)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def retry(self):
         self.view._dao.reset_error(self.pair)
         self.view.refresh(self.pair)
 
 
-class ResolveButton(QtGui.QPushButton):
+class ResolveButton(QPushButton):
     def __init__(self, view, pair):
-        super(ResolveButton, self).__init__('Resolve')
+        super().__init__('Resolve')
         self.pair = pair
         self.view = view
-        menu = QtGui.QMenu()
+        menu = QMenu()
         menu.addAction('Use local file', self.pick_local)
         menu.addAction('Use remote file', self.pick_remote)
         self.setMenu(menu)
@@ -55,13 +58,13 @@ class ResolveButton(QtGui.QPushButton):
             self.view.refresh(self.pair)
 
 
-class StatusTreeview(QtGui.QTreeView):
+class StatusTreeview(QTreeView):
 
     def __init__(self, parent, dao):
-        super(StatusTreeview, self).__init__(parent)
+        super().__init__(parent)
         self._dao = dao
         self.cache = []
-        self.root_item = QtGui.QStandardItemModel()
+        self.root_item = QStandardItemModel()
         self.root_item.setHorizontalHeaderLabels(['Name', 'Status', 'Action'])
 
         self.setModel(self.root_item)
@@ -73,9 +76,9 @@ class StatusTreeview(QtGui.QTreeView):
         self.overlay.hide()
 
         self.header().setStretchLastSection(False)
-        self.header().setResizeMode(0, QtGui.QHeaderView.Stretch)
-        self.header().setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
-        self.header().setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
+        self.header().setResizeMode(0, QHeaderView.Stretch)
+        self.header().setResizeMode(1, QHeaderView.ResizeToContents)
+        self.header().setResizeMode(2, QHeaderView.ResizeToContents)
         self.load_children()
 
         self.expanded.connect(self.itemExpanded)
@@ -95,7 +98,7 @@ class StatusTreeview(QtGui.QTreeView):
             parent = self.model().invisibleRootItem()
             parent_item = None
         else:
-            parent_item = parent.data(QtCore.Qt.UserRole).toPyObject()
+            parent_item = parent.data(Qt.UserRole).toPyObject()
 
         if parent_item:
             path = parent_item.local_path
@@ -110,32 +113,32 @@ class StatusTreeview(QtGui.QTreeView):
             if name is None:
                 continue
 
-            subitem = QtGui.QStandardItem(name)
+            subitem = QStandardItem(name)
             on_error = child.error_count > 3
             on_conflicted = child.pair_state == 'conflicted'
 
             if on_error:
-                subitem_status = QtGui.QStandardItem('error')
+                subitem_status = QStandardItem('error')
             else:
-                subitem_status = QtGui.QStandardItem(child.pair_state)
+                subitem_status = QStandardItem(child.pair_state)
 
             if child.last_sync_date is None:
-                subitem_date = QtGui.QStandardItem('N/A')
+                subitem_date = QStandardItem('N/A')
             else:
-                subitem_date = QtGui.QStandardItem(child.last_sync_date)
+                subitem_date = QStandardItem(child.last_sync_date)
 
             if on_error or on_conflicted:
                 # Put empty item
-                subitem_date = QtGui.QStandardItem()
+                subitem_date = QStandardItem()
 
             subitem.setEnabled(True)
             subitem.setSelectable(True)
             subitem.setEditable(False)
-            subitem.setData(QtCore.QVariant(child), QtCore.Qt.UserRole)
+            subitem.setData(QVariant(child), Qt.UserRole)
 
             # Create a fake loading item for now
             if child.folderish:
-                loaditem = QtGui.QStandardItem('')
+                loaditem = QStandardItem('')
                 loaditem.setSelectable(False)
                 subitem.appendRow(loaditem)
             parent.appendRow([subitem, subitem_status, subitem_date])

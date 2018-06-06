@@ -1,8 +1,6 @@
 # coding: utf-8
 """ Common functions for manual testing. """
 
-from __future__ import print_function, unicode_literals
-
 import io
 import os
 import shutil
@@ -170,7 +168,7 @@ def debug(*args):
 def pause():
     """ Mark a pause. """
 
-    raw_input('Press a key to continue ... ')
+    input('Press a key to continue ... ')
 
 
 def start_drive(tag=None, reset=False, gdb=False, msg='', **kwargs):

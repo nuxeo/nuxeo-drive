@@ -3,7 +3,7 @@ import time
 from threading import Lock
 
 
-class BlacklistItem(object):
+class BlacklistItem:
 
     def __init__(self, item_id, item, next_try=30):
         self.uid = item_id
@@ -28,7 +28,7 @@ class BlacklistItem(object):
             self._next_try = self.count * self._interval + cur_time
 
 
-class BlacklistQueue(object):
+class BlacklistQueue:
 
     def __init__(self, delay=30):
         self._delay = delay

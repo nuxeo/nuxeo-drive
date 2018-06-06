@@ -13,16 +13,16 @@ VSVersionInfo(
     StringFileInfo(
       [
       StringTable(
-        u'040904B0',
-        [StringStruct(u'CompanyName', u'Nuxeo'),
-        StringStruct(u'FileDescription', u'Desktop synchronization client for Nuxeo'),
-        StringStruct(u'FileVersion', u'{version}'),
-        StringStruct(u'InternalName', u'ndrive'),
-        StringStruct(u'LegalCopyright', u'\xa9 Nuxeo. All rights reserved.'),
-        StringStruct(u'OriginalFilename', u'ndrive.exe'),
-        StringStruct(u'ProductName', u'Nuxeo Drive'),
-        StringStruct(u'ProductVersion', u'{version}')])
+        '040904B0',
+        [StringStruct('CompanyName', 'Nuxeo'),
+        StringStruct('FileDescription', 'Desktop synchronization client for Nuxeo'),
+        StringStruct('FileVersion', '{version}'),
+        StringStruct('InternalName', 'ndrive'),
+        StringStruct('LegalCopyright', '\xa9 Nuxeo. All rights reserved.'),
+        StringStruct('OriginalFilename', 'ndrive.exe'),
+        StringStruct('ProductName', 'Nuxeo Drive'),
+        StringStruct('ProductVersion', '{version}')])
       ]),
-    VarFileInfo([VarStruct(u'Translation', [0, 0])])
+    VarFileInfo([VarStruct('Translation', [0, 0])])
   ]
 )

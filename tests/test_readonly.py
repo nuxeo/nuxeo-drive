@@ -1,13 +1,13 @@
 # coding: utf-8
 import os
 import shutil
-import sys
 import time
 from logging import getLogger
 
 import pytest
 from nuxeo.exceptions import HTTPError
 
+from nxdrive.constants import WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from .common import TEST_WORKSPACE_PATH, UnitTestCase
 
@@ -23,12 +23,12 @@ class TestReadOnly(UnitTestCase):
     @staticmethod
     def touch(fname):
         dirname = os.path.dirname(fname)
-        if sys.platform == 'win32' and not os.path.isdir(dirname):
+        if WINDOWS and not os.path.isdir(dirname):
             os.mkdir(dirname)
         try:
-            with open(fname, 'w') as f:
-                f.write('Test')
-        except IOError:
+            with open(fname, 'wb') as f:
+                f.write(b'Test')
+        except OSError:
             log.exception('Enable to touch')
             return False
         return True
@@ -38,7 +38,7 @@ class TestReadOnly(UnitTestCase):
 
         remote = self.remote_document_client_1
         remote.make_folder('/', 'Test locking')
-        remote.make_file('/Test locking', 'myDoc.odt', 'Some content')
+        remote.make_file('/Test locking', 'myDoc.odt', content=b'Some content')
         self.wait_sync(wait_for_async=True)
 
         # Check readonly flag is not set for a document that isn't locked
@@ -78,7 +78,7 @@ class TestReadOnly(UnitTestCase):
         state = self.touch(os.path.join(self.local_nxdrive_folder_1,
                                         'test.txt'))
 
-        if sys.platform != 'win32':
+        if not WINDOWS:
             # The creation must have failed
             assert not state
         else:
@@ -109,16 +109,16 @@ class TestReadOnly(UnitTestCase):
         assert remote.exists('/folder/foo.txt')
 
         # Try to change the file content locally
-        with pytest.raises(IOError):
+        with pytest.raises(OSError):
             with open(local.abspath('/folder/foo.txt'), 'w') as handler:
                 handler.write(b'Change')
 
-        with pytest.raises(IOError):
+        with pytest.raises(OSError):
             local.update_content('/folder/foo.txt', b'Locally changed')
 
         # Try to change the file content remotely
         with pytest.raises(HTTPError):
-            remote.update_content('/folder/foo.txt', 'Remotely changed')
+            remote.update_content('/folder/foo.txt', b'Remotely changed')
 
     def test_file_delete(self):
         """ Local deletions are filtered. """
@@ -136,7 +136,7 @@ class TestReadOnly(UnitTestCase):
         # Delete the file and check if is re-downloaded
         local.unset_readonly('/test-ro')
         local.delete('/test-ro/test.txt')
-        if sys.platform == 'win32':
+        if WINDOWS:
             time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
         self.wait_sync()
         assert not local.exists('/test-ro/test.txt')
@@ -174,9 +174,9 @@ class TestReadOnly(UnitTestCase):
 
         doc_abs = os.path.join(local.abspath(src), 'here.txt')
         dst_abs = local.abspath(dst)
-        if sys.platform != 'win32':
+        if not WINDOWS:
             # The move should fail
-            with pytest.raises(IOError):
+            with pytest.raises(OSError):
                 shutil.move(doc_abs, dst_abs)
         else:
             # The move happens
@@ -224,7 +224,7 @@ class TestReadOnly(UnitTestCase):
 
         doc_abs = os.path.join(local.abspath(src), 'here.txt')
         dst_abs = local.abspath(dst)
-        if sys.platform != 'win32':
+        if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
                 shutil.move(doc_abs, dst_abs)
@@ -272,7 +272,7 @@ class TestReadOnly(UnitTestCase):
         # Locally rename the file
         doc = os.path.join(local.abspath(folder), 'foo.txt')
         dst = os.path.join(local.abspath(folder), 'bar.txt')
-        if sys.platform != 'win32':
+        if not WINDOWS:
             # The rename should fail
             with pytest.raises(OSError):
                 os.rename(doc, dst)
@@ -295,7 +295,7 @@ class TestReadOnly(UnitTestCase):
         remote = self.remote_document_client_1
         folder = os.path.join(self.local_nxdrive_folder_1, 'foo', 'test.txt')
 
-        if sys.platform != 'win32':
+        if not WINDOWS:
             # The creation must have failed
             assert not self.touch(folder)
         else:
@@ -327,7 +327,7 @@ class TestReadOnly(UnitTestCase):
         # Delete the file and check if is re-downloaded
         local.unset_readonly('/test-ro')
         local.delete('/test-ro/foo')
-        if sys.platform == 'win32':
+        if WINDOWS:
             time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
         self.wait_sync()
         assert not local.exists('/test-ro/foo')
@@ -364,7 +364,7 @@ class TestReadOnly(UnitTestCase):
 
         src = local.abspath('/folder-src')
         dst = local.abspath('/folder-dst')
-        if sys.platform != 'win32':
+        if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
                 shutil.move(src, dst)
@@ -413,7 +413,7 @@ class TestReadOnly(UnitTestCase):
 
         src = local.abspath('/folder-src')
         dst = local.abspath('/folder-dst')
-        if sys.platform != 'win32':
+        if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
                 shutil.move(src, dst)
@@ -474,7 +474,7 @@ class TestReadOnly(UnitTestCase):
         # Locally rename the folder
         src = local.abspath(folder)
         dst = os.path.join(os.path.dirname(src), 'bar')
-        if sys.platform != 'win32':
+        if not WINDOWS:
             # The rename should fail
             with pytest.raises(OSError):
                 os.rename(src, dst)
@@ -492,9 +492,7 @@ class TestReadOnly(UnitTestCase):
             # We should not have any error
             assert not self.engine_1.get_dao().get_errors(limit=0)
 
-    @pytest.mark.skipif(
-        sys.platform != 'win32',
-        reason='Windows only.')
+    @pytest.mark.skipif(not WINDOWS, reason='Windows only.')
     def test_nxdrive_836(self):
         """
         NXDRIVE-836: Bad behaviors with read-only documents on Windows.

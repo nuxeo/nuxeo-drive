@@ -43,8 +43,8 @@ class TestLocalShareMoveFolders(UnitTestCase):
 
         local = self.local_1
         # Create a1 and a2
-        self.folder_path_1 = local.make_folder(u'/', u'a1')
-        self.folder_path_2 = local.make_folder(u'/', u'a2')
+        self.folder_path_1 = local.make_folder('/', 'a1')
+        self.folder_path_2 = local.make_folder('/', 'a2')
 
         num = self.NUMBER_OF_LOCAL_IMAGE_FILES
 

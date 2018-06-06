@@ -1,7 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 
-from PyQt4 import QtCore
+from PyQt5.QtCore import pyqtSlot
 from requests import ConnectionError
 
 from .dialog import WebDialog, WebDriveApi
@@ -16,7 +16,7 @@ class WebAuthenticationApi(WebDriveApi):
         self._settings_api = settings_api
         self._callback_params = callback_params
 
-    @QtCore.pyqtSlot(str, str)
+    @pyqtSlot(str, str)
     def create_account(self, username, token):
         """
         This method is called by a JavaScript instruction on
@@ -47,7 +47,7 @@ class WebAuthenticationApi(WebDriveApi):
                 self._settings_api.set_account_creation_error(error)
             self._settings_api.dialog.view.reload()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def update_token(self, token):
         error = None
         engine = self._callback_params['engine']

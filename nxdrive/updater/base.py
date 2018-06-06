@@ -8,7 +8,7 @@ from tempfile import gettempdir
 
 import requests
 import yaml
-from PyQt4.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 from . import UpdateError, get_latest_compatible_version
 from .constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
@@ -40,7 +40,7 @@ class BaseUpdater(PollWorker):
     def __init__(self, manager):
         # type: (Manager) -> None
 
-        super(BaseUpdater, self).__init__(Options.update_check_delay)
+        super().__init__(Options.update_check_delay)
         self.manager = manager
 
         self.enable = getattr(self, '_can_update', Options.is_frozen)
@@ -262,7 +262,7 @@ class BaseUpdater(PollWorker):
                   algo.upper(), filename, checksum, computed)
         return computed == checksum
 
-    @pyqtSlot()
+    @pyqtSlot(result=bool)
     def _poll(self):
         ret = True
 

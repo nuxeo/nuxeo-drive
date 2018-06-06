@@ -17,7 +17,7 @@ class TestGroupChanges(UnitTestCase):
     """
 
     def setUp(self):
-        super(TestGroupChanges, self).setUp()
+        super().setUp()
         remote = self.root_remote
 
         # Create test workspace
@@ -59,7 +59,6 @@ class TestGroupChanges(UnitTestCase):
             base_folder=self.workspace_path)
 
     def tearDown(self):
-        super(TestGroupChanges, self).tearDown()
         remote = self.root_remote
 
         # Delete test workspace
@@ -76,6 +75,8 @@ class TestGroupChanges(UnitTestCase):
         assert 'group2' not in group_names
         assert 'parentGroup' not in group_names
         assert 'grandParentGroup' not in group_names
+
+        super().tearDown()
 
     def get_group_names(self):
         return [entry['groupname']

@@ -1,11 +1,11 @@
 # coding: utf-8
 import os
-import sys
 import time
 from shutil import copyfile
 
 from mock import Mock, patch
 
+from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
 from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
 
@@ -38,7 +38,8 @@ class TestRemoteDeletion(UnitTestCase):
         # Create documents in the remote root workspace
         # then synchronize
         folder_id = remote.make_folder('/', 'Test folder')
-        file_id = remote.make_file('/Test folder', 'joe.txt', 'Some content')
+        file_id = remote.make_file('/Test folder', 'joe.txt',
+                                   content=b'Some content')
 
         self.wait_sync(wait_for_async=True)
         assert local.exists('/Test folder')
@@ -102,7 +103,7 @@ class TestRemoteDeletion(UnitTestCase):
             assert not local.exists('/Test folder')
 
     def test_synchronize_remote_deletion_while_upload(self):
-        if sys.platform == 'win32':
+        if WINDOWS:
             self._remote_deletion_while_upload()
         else:
             with patch('nxdrive.client.remote_client.os.fstatvfs') as mock_os:
@@ -141,7 +142,7 @@ class TestRemoteDeletion(UnitTestCase):
             assert not local.exists('/Test folder/testFile.pdf')
 
     def test_synchronize_remote_deletion_while_download_file(self):
-        if sys.platform == 'win32':
+        if WINDOWS:
             self._remote_deletion_while_download_file()
         else:
             with patch('os.path.isdir', return_value=False) as mock_os:
@@ -180,7 +181,7 @@ class TestRemoteDeletion(UnitTestCase):
         # Create a folder with a child file in the remote root workspace
         # then synchronize
         test_folder_uid = remote.make_folder('/', 'Test folder')
-        remote.make_file(test_folder_uid, 'joe.odt', 'Some content')
+        remote.make_file(test_folder_uid, 'joe.odt', content=b'Some content')
 
         self.wait_sync(wait_for_async=True, wait_for_engine_1=False,
                        wait_for_engine_2=True)
@@ -205,7 +206,7 @@ class TestRemoteDeletion(UnitTestCase):
         # Create a folder with a child file in the remote root workspace
         # then synchronize
         test_folder_uid = remote.make_folder('/', 'Test folder')
-        remote.make_file(test_folder_uid, 'joe.odt', 'Some content')
+        remote.make_file(test_folder_uid, 'joe.odt', content=b'Some content')
 
         self.wait_sync(wait_for_async=True)
         assert local.exists('/Test folder')

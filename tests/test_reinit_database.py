@@ -14,7 +14,7 @@ class TestReinitDatabase(UnitTestCase):
         # Make a folder and a file
         self.remote.make_folder('/', 'Test folder')
         self.remote.make_file('/Test folder', 'Test.txt',
-                              'This is some content')
+                              content=b'This is some content')
 
         # Start engine and wait for synchronization
         self.engine_1.start()
@@ -47,7 +47,7 @@ class TestReinitDatabase(UnitTestCase):
     def test_synchronize_remote_change(self):
         # Modify the remote file
         self.remote.update_content('/Test folder/Test.txt',
-                                   'Content has changed')
+                                   b'Content has changed')
 
         # Start engine and wait for synchronization
         self.engine_1.start()
@@ -62,13 +62,13 @@ class TestReinitDatabase(UnitTestCase):
 
         # Assert content of the local file has not changed
         content = self.local.get_content('/Test folder/Test.txt')
-        assert content == 'This is some content'
+        assert content == b'This is some content'
 
     def test_synchronize_local_change(self):
         # Modify the local file
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         self.local.update_content('/Test folder/Test.txt',
-                                  'Content has changed')
+                                  b'Content has changed')
 
         # Start engine and wait for synchronization
         self.engine_1.start()
@@ -83,17 +83,17 @@ class TestReinitDatabase(UnitTestCase):
 
         # Assert content of the remote file has not changed
         content = self.remote.get_content('/Test folder/Test.txt')
-        assert content == 'This is some content'
+        assert content == b'This is some content'
 
     def test_synchronize_remote_and_local_change(self):
         # Modify the remote file
         self.remote.update_content('/Test folder/Test.txt',
-                                   'Content has remotely changed')
+                                   b'Content has remotely changed')
 
         # Modify the local file
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         self.local.update_content('/Test folder/Test.txt',
-                                  'Content has locally changed')
+                                  b'Content has locally changed')
 
         # Start engine and wait for synchronization
         self.engine_1.start()
@@ -108,6 +108,6 @@ class TestReinitDatabase(UnitTestCase):
 
         # Assert content of the local and remote files has not changed
         content = self.local.get_content('/Test folder/Test.txt')
-        assert content == 'Content has locally changed'
+        assert content == b'Content has locally changed'
         content = self.remote.get_content('/Test folder/Test.txt')
-        assert content == 'Content has remotely changed'
+        assert content == b'Content has remotely changed'

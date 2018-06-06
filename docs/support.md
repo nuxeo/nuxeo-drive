@@ -43,10 +43,11 @@ If you want to use the module version as a basic module for your own software, p
 
 It may evolve quickly without notification as we are following the Python development cycle for the current used branch.
  
-As of now, we are using the __Python 2.7__.
+As of now, we are using the __Python 3.7__ (but it is kept compatible with Python 3.6).
 
 History:
 
+- `2018-06-06`: dropped support for Python 2.7
 - `2014-??-??`: dropped support for Python 2.6
 
 

@@ -1,12 +1,10 @@
 # coding: utf-8
-from __future__ import print_function
-
 import os
 import sys
 
 import xattr
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     if len(sys.argv) > 1:
         folder = sys.argv[1]
         if not os.path.exists(folder) or not os.path.isdir(folder):

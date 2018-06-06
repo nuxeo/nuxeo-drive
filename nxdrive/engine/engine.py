@@ -5,7 +5,7 @@ from logging import getLogger
 from threading import Thread, current_thread
 from time import sleep
 
-from PyQt4.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
 
 from .activity import Action, FileAction
@@ -14,26 +14,16 @@ from .processor import Processor
 from .queue_manager import QueueManager
 from .watcher.local_watcher import LocalWatcher
 from .watcher.remote_watcher import RemoteWatcher
-from .workers import PairInterrupt, ThreadInterrupt, Worker
+from .workers import Worker
 from ..client import FilteredRemote, LocalClient, Remote
-from ..client.common import NotFound, safe_filename
+from ..constants import MAC, WINDOWS
+from ..exceptions import (InvalidDriveException, PairInterrupt,
+                          RootAlreadyBindWithDifferentAccount, ThreadInterrupt)
 from ..options import Options
-from ..osi import AbstractOSIntegration
-from ..utils import (find_icon, normalized_path, set_path_readonly,
-                     unset_path_readonly)
+from ..utils import (find_icon, normalized_path, safe_filename,
+                     set_path_readonly, unset_path_readonly)
 
 log = getLogger(__name__)
-
-
-class InvalidDriveException(Exception):
-    pass
-
-
-class RootAlreadyBindWithDifferentAccount(Exception):
-
-    def __init__(self, username, url):
-        self.username = username
-        self.url = url
 
 
 class FsMarkerException(Exception):
@@ -74,7 +64,7 @@ class Engine(QObject):
                  remote_cls=Remote,
                  filtered_remote_cls=FilteredRemote,
                  local_cls=LocalClient):
-        super(Engine, self).__init__()
+        super().__init__()
 
         self.version = manager.version
 
@@ -204,11 +194,13 @@ class Engine(QObject):
         log.debug('Local Folder lock setup completed on %r', path)
 
     def set_ui(self, value, overwrite=True):
-        name = ['ui', 'force_ui']
-        self._dao.update_config(name[overwrite], value)
-        setattr(self, '_' + name[overwrite], value)
+        name = ('ui', 'force_ui')[overwrite]
+        if getattr(self, '_' + name, '') == value:
+            return
 
-        log.debug('{} preferences set to {}'.format(name[overwrite], value))
+        self._dao.update_config(name, value)
+        setattr(self, '_' + name, value)
+        log.debug('{} preferences set to {}'.format(name, value))
 
     def release_folder_lock(self):
         log.debug('Local Folder unlocking')
@@ -365,19 +357,20 @@ class Engine(QObject):
         self.dispose_db()
         try:
             os.remove(self._get_db_file())
-        except (IOError, OSError) as exc:
+        except OSError as exc:
             if exc.errno != 2:  # File not found, already removed
                 log.exception('Database removal error')
 
     def check_fs_marker(self):
-        tag = 'drive-fs-test'
-        tag_value = 'NXDRIVE_VERIFICATION'
-        if not os.path.exists(self.local_folder):
+        tag, tag_value = 'drive-fs-test', b'NXDRIVE_VERIFICATION'
+        if not os.path.isdir(self.local_folder):
             self.rootDeleted.emit()
             return False
+
         self.local.set_remote_id('/', tag_value, tag)
-        if self.local.get_remote_id('/', tag) != tag_value:
+        if self.local.get_remote_id('/', tag) != tag_value.decode():
             return False
+
         self.local.remove_remote_id('/', tag)
         return self.local.get_remote_id('/', tag) is None
 
@@ -386,8 +379,8 @@ class Engine(QObject):
         """Ensure that user provided url always has a trailing '/'"""
         if not url:
             raise ValueError('Invalid url: %r' % url)
-        if not url.endswith(u'/'):
-            return url + u'/'
+        if not url.endswith('/'):
+            return url + '/'
         return url
 
     def _load_configuration(self):
@@ -519,7 +512,7 @@ class Engine(QObject):
         qm_size = self._queue_manager.get_overall_size()
         qm_active = self._queue_manager.active()
         empty_polls = self._remote_watcher.get_metrics()['empty_polls']
-        if not AbstractOSIntegration.is_windows():
+        if not WINDOWS:
             win_info = 'not Windows'
         else:
             win_info = ('Windows with win queue size = %d and win folder '
@@ -532,8 +525,7 @@ class Engine(QObject):
                   self.uid, 'active' if qm_active else 'inactive',
                   qm_size, empty_polls, empty_events, blacklist_size, win_info)
         local_metrics = self._local_watcher.get_metrics()
-        if (qm_size == 0 and not qm_active and empty_polls > 0
-                and empty_events):
+        if qm_size == 0 and not qm_active and empty_polls > 0 and empty_events:
             if blacklist_size != 0:
                 self.syncPartialCompleted.emit()
                 return
@@ -722,22 +714,17 @@ class Engine(QObject):
         self.init_remote()
 
         if check_fs:
-            created_folder = False
             try:
-                if not os.path.exists(os.path.dirname(self.local_folder)):
-                    raise NotFound()
-                if not os.path.exists(self.local_folder):
-                    os.mkdir(self.local_folder)
-                    created_folder = True
+                os.makedirs(self.local_folder, exist_ok=True)
                 self._check_fs(self.local_folder)
-            except Exception as e:
-                if created_folder:
-                    try:
-                        self.local.unset_readonly(self.local_folder)
-                        os.rmdir(self.local_folder)
-                    except:
-                        pass
-                raise e
+            except (InvalidDriveException, RootAlreadyBindWithDifferentAccount):
+                try:
+                    self.local.unset_readonly(self.local_folder)
+                    os.rmdir(self.local_folder)
+                except:
+                    pass
+            except OSError:
+                raise
 
         if check_credentials and self._remote_token is None:
             self._remote_token = self.remote.request_token()
@@ -759,23 +746,22 @@ class Engine(QObject):
         # create the local folder and the top level state.
         self._check_root()
 
-    def _check_fs(self, path):
+    def _check_fs(self, path: str):
         if not self.manager.osi.is_partition_supported(path):
             raise InvalidDriveException()
-        if os.path.exists(path):
+
+        if os.path.isdir(path):
             root_id = self.local.get_root_id()
             if root_id is not None:
                 # server_url|user|device_id|uid
-                token = root_id.split('|')
-                if (self._server_url != token[0]
-                        or self._remote_user != token[1]):
-                    raise RootAlreadyBindWithDifferentAccount(token[1],
-                                                              token[0])
+                server_url, user, *_ = root_id.split('|')
+                if (self._server_url, self._remote_user) != (server_url, user):
+                    raise RootAlreadyBindWithDifferentAccount(user, server_url)
 
     def _check_root(self):
-        root = self._dao.get_state_from_local("/")
+        root = self._dao.get_state_from_local('/')
         if root is None:
-            if os.path.exists(self.local_folder):
+            if os.path.isdir(self.local_folder):
                 unset_path_readonly(self.local_folder)
             self._make_local_folder(self.local_folder)
             self._add_top_level_state()
@@ -792,8 +778,7 @@ class Engine(QObject):
         self.manager.osi.register_folder_link(self.local_folder)
 
     def _make_local_folder(self, local_folder):
-        if not os.path.exists(local_folder):
-            os.makedirs(local_folder)
+        os.makedirs(local_folder, exist_ok=True)
         # Put the ROOT in readonly
 
     def cancel_action_on(self, pair_id):
@@ -808,9 +793,9 @@ class Engine(QObject):
         if not self.local.exists('/') or self.local.has_folder_icon('/'):
             return
 
-        if AbstractOSIntegration.is_mac():
+        if MAC:
             icon = find_icon('folder_mac.dat')
-        elif AbstractOSIntegration.is_windows():
+        elif WINDOWS:
             icon = find_icon('folder_windows.ico')
         else:
             # No implementation on Linux
@@ -826,7 +811,7 @@ class Engine(QObject):
             self.local.lock_ref('/', locker)
 
     def _add_top_level_state(self):
-        local_info = self.local.get_info(u'/')
+        local_info = self.local.get_info('/')
 
         if not self.remote:
             return
@@ -837,9 +822,9 @@ class Engine(QObject):
         row = self._dao.get_state_from_local('/')
         self._dao.update_remote_state(
             row, remote_info, remote_parent_path='', versioned=False)
-        self.local.set_root_id('{}|{}|{}|{}'.format(
-            self._server_url, self._remote_user,
-            self.manager.device_id, self.uid))
+        value = '|'.join((self._server_url, self._remote_user,
+                          self.manager.device_id, self.uid))
+        self.local.set_root_id(value.encode())
         self.local.set_remote_id('/', remote_info.uid)
         self._dao.synchronize_state(row)
         # The root should also be sync
@@ -901,7 +886,7 @@ class Engine(QObject):
         return full_name
 
 
-class ServerBindingSettings(object):
+class ServerBindingSettings:
     """ Summarize server binding settings. """
 
     def __init__(

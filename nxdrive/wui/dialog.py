@@ -7,14 +7,15 @@ import sys
 import time
 import uuid
 from logging import getLogger
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from urllib.parse import urlparse
 
-from PyQt4 import QtCore, QtGui, QtNetwork, QtWebKit
-from PyQt4.QtNetwork import (QNetworkProxy, QNetworkProxyFactory,
+from PyQt5 import QtNetwork
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngineSettings
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QUrl, QByteArray, Qt
+from PyQt5.QtNetwork import (QNetworkProxy, QNetworkProxyFactory,
                              QSslCertificate)
+from PyQt5.QtWidgets import QDialog, QFileDialog, QVBoxLayout
 from dateutil.tz import tzlocal
 from nuxeo.exceptions import Unauthorized
 from requests import ConnectionError
@@ -31,19 +32,19 @@ from ..options import Options
 log = getLogger(__name__)
 
 
-class PromiseWrapper(QtCore.QObject):
+class PromiseWrapper(QObject):
     def __init__(self, promise):
         super(PromiseWrapper, self).__init__()
         self._promise = promise
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def run(self):
         self._promise.run()
 
 
 class Promise(Worker):
-    _promise_success = QtCore.pyqtSignal(str, str)
-    _promise_error = QtCore.pyqtSignal(str, str)
+    _promise_success = pyqtSignal(str, str)
+    _promise_error = pyqtSignal(str, str)
 
     def __init__(self, runner, *args, **kwargs):
         self.uid = uuid.uuid1().hex
@@ -59,11 +60,11 @@ class Promise(Worker):
         # Prevent this object to be move to other threads
         pass
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def _promise_uid(self):
         return self.uid
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def start(self):
         self._thread.started.connect(self._wrapper.run)
         self._thread.start()
@@ -73,10 +74,10 @@ class Promise(Worker):
             result = self._runner(*self._args, **self._kwargs)
             self._promise_success.emit(self.uid, result)
         except Exception as e:
-            self._promise_error.emit(self.uid, repr(e))
+            self._promise_error.emit(self.uid, str(e))
 
 
-class WebDriveApi(QtCore.QObject):
+class WebDriveApi(QObject):
 
     def __init__(self, application, dlg=None):
         super(WebDriveApi, self).__init__()
@@ -133,7 +134,7 @@ class WebDriveApi(QtCore.QObject):
         format_date = '%Y-%m-%d %H:%M:%S'
         try:
             return datetime.datetime.strptime(str(d.split('.')[0]), format_date)
-        except StandardError:
+        except BaseException:
             return 0
 
     def get_timestamp_from_date(self, d):
@@ -210,11 +211,11 @@ class WebDriveApi(QtCore.QObject):
         engines = self._manager.get_engines()
         return engines.get(uid)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def retry(self):
         self.dialog.load(self.last_url, self)
 
-    @QtCore.pyqtSlot(str, int, str, result=str)
+    @pyqtSlot(str, int, str, result=str)
     def get_last_files(self, uid, number, direction):
         engine = self._get_engine(str(uid))
         result = []
@@ -223,7 +224,7 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_state(state))
         return self._json(result)
 
-    @QtCore.pyqtSlot(str, str, result=QtCore.QObject)
+    @pyqtSlot(str, str, result=QObject)
     def update_password_async(self, uid, password):
         return Promise(self._update_password, uid, password)
 
@@ -231,8 +232,6 @@ class WebDriveApi(QtCore.QObject):
         """
         Convert password from unicode to string to support utf-8 character
         """
-        if isinstance(password, QtCore.QString):
-            password = unicode(password).encode('utf-8')
         try:
             time.sleep(5.0)
             engine = self._get_engine(str(uid))
@@ -253,22 +252,22 @@ class WebDriveApi(QtCore.QObject):
             # Map error here
             return 'CONNECTION_UNKNOWN'
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_tracker_id(self):
         return self._manager.get_tracker_id()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def set_language(self, locale):
         try:
             Translator.set(str(locale))
-        except RuntimeError as e:
-            log.exception(repr(e))
+        except RuntimeError:
+            log.exception('Set language error')
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def trigger_notification(self, id_):
         self._manager.notification_service.trigger_notification(str(id_))
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def discard_notification(self, id_):
         self._manager.notification_service.discard_notification(str(id_))
 
@@ -288,50 +287,50 @@ class WebDriveApi(QtCore.QObject):
     def _export_notifications(self, notifs):
         return [self._export_notification(notif) for notif in notifs.values()]
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def get_notifications(self, engine_uid):
         engine_uid = str(engine_uid)
         center = self._manager.notification_service
         notif = self._export_notifications(center.get_notifications(engine_uid))
         return self._json(notif)
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_languages(self):
         try:
             return self._json(Translator.languages())
-        except RuntimeError as e:
-            log.exception(repr(e))
+        except RuntimeError:
+            log.exception('Get language error')
             return ''
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_translations(self):
         try:
             return self._json(Translator.translations())
-        except RuntimeError as e:
-            log.exception(repr(e))
+        except RuntimeError:
+            log.exception('Get translations error')
             return ''
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def locale(self):
         try:
             return Translator.locale()
         except RuntimeError as e:
-            log.exception(repr(e))
+            log.exception('Get locale error')
             return ''
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_update_status(self):
         return self._json(self._manager.updater.last_status)
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_os_version(self):
         return sys.platform
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def app_update(self, version):
         self._manager.updater.update(version)
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def get_actions(self, uid):
         engine = self._get_engine(str(uid))
         result = []
@@ -345,12 +344,12 @@ class WebDriveApi(QtCore.QObject):
                     break
         return self._json(result)
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def get_threads(self, uid):
         engine = self._get_engine(str(uid))
         return self._json(self._get_threads(engine) if engine else [])
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def get_errors(self, uid):
         result = []
         engine = self._get_engine(str(uid))
@@ -359,18 +358,18 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_state(conflict))
         return self._json(result)
 
-    @QtCore.pyqtSlot(result=bool)
+    @pyqtSlot(result=bool)
     def is_frozen(self):
         return Options.is_frozen
 
-    @QtCore.pyqtSlot(str, str)
+    @pyqtSlot(str, str)
     def show_metadata(self, uid, ref):
         engine = self._get_engine(str(uid))
         if engine:
-            path = engine.local.abspath(unicode(ref))
+            path = engine.local.abspath(str(ref))
             self.application.show_metadata(path)
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def get_unsynchronizeds(self, uid):
         result = []
         engine = self._get_engine(str(uid))
@@ -379,7 +378,7 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_state(conflict))
         return self._json(result)
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def get_conflicts(self, uid):
         result = []
         engine = self._get_engine(str(uid))
@@ -388,11 +387,11 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_state(conflict))
         return self._json(result)
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_infos(self):
         return self._json(self._manager.get_metrics())
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def is_syncing(self, uid):
         engine = self._get_engine(str(uid))
         if not engine:
@@ -401,68 +400,68 @@ class WebDriveApi(QtCore.QObject):
             return 'syncing'
         return 'synced'
 
-    @QtCore.pyqtSlot(bool)
+    @pyqtSlot(bool)
     def set_direct_edit_auto_lock(self, value):
         self._manager.set_direct_edit_auto_lock(value)
 
-    @QtCore.pyqtSlot(result=bool)
+    @pyqtSlot(result=bool)
     def get_direct_edit_auto_lock(self):
         return self._manager.get_direct_edit_auto_lock()
 
-    @QtCore.pyqtSlot(bool)
+    @pyqtSlot(bool)
     def set_auto_start(self, value):
         self._manager.set_auto_start(value)
 
-    @QtCore.pyqtSlot(result=bool)
+    @pyqtSlot(result=bool)
     def get_auto_start(self):
         return self._manager.get_auto_start()
 
-    @QtCore.pyqtSlot(bool)
+    @pyqtSlot(bool)
     def set_auto_update(self, value):
         self._manager.set_auto_update(value)
 
-    @QtCore.pyqtSlot(result=bool)
+    @pyqtSlot(result=bool)
     def get_auto_update(self):
         return self._manager.get_auto_update()
 
-    @QtCore.pyqtSlot(bool)
+    @pyqtSlot(bool)
     def set_beta_channel(self, value):
         self._manager.set_beta_channel(value)
 
-    @QtCore.pyqtSlot(result=bool)
+    @pyqtSlot(result=bool)
     def get_beta_channel(self):
         return self._manager.get_beta_channel()
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def generate_report(self):
         try:
             return self._manager.generate_report()
         except Exception as e:
             log.exception('Report error')
-            return '[ERROR] ' + repr(e)
+            return '[ERROR] ' + str(e)
 
-    @QtCore.pyqtSlot(bool)
+    @pyqtSlot(bool)
     def set_tracking(self, value):
         self._manager.set_tracking(value)
 
-    @QtCore.pyqtSlot(result=bool)
+    @pyqtSlot(result=bool)
     def get_tracking(self):
         return self._manager.get_tracking()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def open_remote(self, uid):
         engine = self._get_engine(str(uid))
         if engine:
             engine.open_remote()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def open_report(self, path):
         self._manager.open_local_file(str(path), select=True)
 
-    @QtCore.pyqtSlot(str, str)
+    @pyqtSlot(str, str)
     def open_local(self, uid, path):
         uid = str(uid)
-        path = unicode(path)
+        path = str(path)
         log.trace('Opening local file %r', path)
         if not uid:
             self._manager.open_local_file(path)
@@ -472,30 +471,30 @@ class WebDriveApi(QtCore.QObject):
                 filepath = engine.local.abspath(path)
                 self._manager.open_local_file(filepath)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def show_activities(self):
         self.application.show_activities()
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def show_conflicts_resolution(self, uid):
         engine = self._get_engine(str(uid))
         if engine:
             self.application.show_conflicts_resolution(engine)
 
-    @QtCore.pyqtSlot(str)
+    @pyqtSlot(str)
     def show_settings(self, page):
         page = str(page)
         log.debug('Show settings on page %s', page)
         self.application.show_settings(section=page or None)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def quit(self):
         try:
             self.application.quit()
         except:
             log.exception('Application exit error')
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_engines(self):
         result = []
         for engine in self._manager.get_engines().values():
@@ -503,34 +502,34 @@ class WebDriveApi(QtCore.QObject):
                 result.append(self._export_engine(engine))
         return self._json(result)
 
-    @QtCore.pyqtSlot(str, result=str)
+    @pyqtSlot(str, result=str)
     def browse_folder(self, base_folder):
         local_folder_path = str(base_folder)
         # TODO Might isolate to a specific api
-        dir_path = QtGui.QFileDialog.getExistingDirectory(
+        dir_path = QFileDialog.getExistingDirectory(
             caption=Translator.get('BROWSE_DIALOG_CAPTION'),
             directory=base_folder)
         if dir_path:
-            dir_path = unicode(dir_path)
+            dir_path = str(dir_path)
             log.debug('Selected %r as the Nuxeo Drive folder location', dir_path)
             local_folder_path = dir_path
         return local_folder_path
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def show_file_status(self):
         self.application.show_file_status()
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_version(self):
         return self._manager.version
 
-    @QtCore.pyqtSlot(result=str)
+    @pyqtSlot(result=str)
     def get_update_url(self):
         if self._manager.get_beta_channel():
             return Options.beta_update_site_url
         return Options.update_site_url
 
-    @QtCore.pyqtSlot(int, int)
+    @pyqtSlot(int, int)
     def resize(self, width, height):
         if self.dialog:
             self.dialog.resize(width, height)
@@ -549,29 +548,28 @@ class TokenNetworkAccessManager(QtNetwork.QNetworkAccessManager):
     def createRequest(self, operation, request, data):
         if self.token:
             request.setRawHeader(
-                'X-Authentication-Token', QtCore.QByteArray(self.token))
+                'X-Authentication-Token', QByteArray(self.token))
 
         return super(TokenNetworkAccessManager, self).createRequest(
             operation, request, data)
 
 
-class DriveWebPage(QtWebKit.QWebPage):
+class DriveWebPage(QWebEnginePage):
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def shouldInterruptJavaScript(self):
         return True
 
-    def javaScriptConsoleMessage(self, msg, lineno, source):
+    def javaScriptConsoleMessage(self, level, msg, lineno, source):
         # type: (str, int, str) -> None
         """ Prints client console message in current output stream. """
-        super(DriveWebPage, self).javaScriptConsoleMessage(msg, lineno, source)
+        super(DriveWebPage, self).javaScriptConsoleMessage(level, msg, lineno, source)
 
         filename = source.split(os.path.sep)[-1]
-        log_type = 'error' if 'Error' in msg else 'info'
-        getattr(log, log_type)('JS console(%s:%d): %s', filename, lineno, msg)
+        log.log(level, 'JS console(%s:%d): %s', filename, lineno, msg)
 
 
-class WebDialog(QtGui.QDialog):
+class WebDialog(QDialog):
 
     def __init__(
         self,
@@ -583,8 +581,8 @@ class WebDialog(QtGui.QDialog):
     ):
         super(WebDialog, self).__init__()
         self.setWindowTitle(title)
-        self.setWindowIcon(QtGui.QIcon(application.get_window_icon()))
-        self.view = QtWebKit.QWebView()
+        self.setWindowIcon(QIcon(application.get_window_icon()))
+        self.view = QWebEngineView()
         self.frame = None
         self.page = DriveWebPage()
         self.api = api
@@ -594,12 +592,12 @@ class WebDialog(QtGui.QDialog):
 
         if Options.debug:
             self.view.settings().setAttribute(
-                QtWebKit.QWebSettings.DeveloperExtrasEnabled, True)
+                QWebEngineSettings.DeveloperExtrasEnabled, True)
         else:
-            self.view.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+            self.view.setContextMenuPolicy(Qt.NoContextMenu)
 
-        self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
-        self.setLayout(QtGui.QVBoxLayout())
+        self.setWindowFlags(Qt.WindowCloseButtonHint)
+        self.setLayout(QVBoxLayout())
         self.layout().addWidget(self.view)
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.updateGeometry()
@@ -609,7 +607,7 @@ class WebDialog(QtGui.QDialog):
         if not Options.consider_ssl_errors:
             self.networkManager.sslErrors.connect(self._ssl_error_handler)
 
-        self.page.setNetworkAccessManager(self.networkManager)
+        # self.page.setNetworkAccessManager(self.networkManager)
         if page is not None:
             self.load(page, api, application)
 
@@ -628,22 +626,21 @@ class WebDialog(QtGui.QDialog):
         # If connect to a remote page add the X-Authentication-Token
         if filename.startswith('http'):
             log.trace('Load web page %r', filename)
-            self.request = url = QtNetwork.QNetworkRequest(QtCore.QUrl(filename))
+            self.request = url = QtNetwork.QNetworkRequest(QUrl(filename))
             if self.token is not None:
                 url.setRawHeader('X-Authentication-Token',
-                                 QtCore.QByteArray(self.token))
+                                 QByteArray(self.token))
             self._set_proxy(application.manager, server_url=page)
             self.api.last_url = filename
         else:
             self.request = None
             log.trace('Load web file %r', filename)
-            url = QtCore.QUrl.fromLocalFile(os.path.realpath(filename))
+            url = QUrl.fromLocalFile(os.path.realpath(filename))
             url.setScheme('file')
 
-        self.frame = self.page.mainFrame()
-        self.frame.load(url)
-        self.attachJsApi()
-        self.frame.javaScriptWindowObjectCleared.connect(self.attachJsApi)
+        self.page.load(url)
+        # self.attachJsApi()
+        # self.frame.javaScriptWindowObjectCleared.connect(self.attachJsApi)
         self.activateWindow()
 
     def resize(self, width, height):
@@ -692,7 +689,7 @@ class WebDialog(QtGui.QDialog):
 
         QNetworkProxy.setApplicationProxy(q_proxy)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def attachJsApi(self):
         if self.frame is None:
             return

@@ -4,15 +4,16 @@ import locale
 import os
 import platform
 import sys
-import urlparse
 from logging import getLogger
+from urllib.parse import urlsplit
 
-from PyQt4 import QtCore
+from PyQt5.QtCore import QTimer, pyqtSlot
 from UniversalAnalytics import Tracker as UATracker
 
 from .workers import Worker
+from ..constants import MAC, WINDOWS
 
-if sys.platform == 'darwin':
+if MAC:
     from Foundation import NSLocale
 
 log = getLogger(__name__)
@@ -23,7 +24,7 @@ class Tracker(Worker):
     fmt_event = 'Send {category}({action}) {label}: {value!r}'
 
     def __init__(self, manager, uid='UA-81135-23'):
-        super(Tracker, self).__init__()
+        super().__init__()
         self._manager = manager
         self._thread.started.connect(self.run)
         self.uid = uid
@@ -36,7 +37,7 @@ class Tracker(Worker):
         self._manager.started.connect(self._send_stats)
 
         # Send stat every hour
-        self._stat_timer = QtCore.QTimer()
+        self._stat_timer = QTimer()
         self._stat_timer.timeout.connect(self._send_stats)
 
         # Connect engines
@@ -49,7 +50,7 @@ class Tracker(Worker):
             self._manager.direct_edit.editDocument.connect(
                 self._send_directedit_edit)
 
-    @QtCore.pyqtSlot(object)
+    @pyqtSlot(object)
     def connect_engine(self, engine):
         engine.newSync.connect(self._send_sync_event)
 
@@ -58,10 +59,10 @@ class Tracker(Worker):
         """ Detect the OS default language. """
 
         encoding = locale.getdefaultlocale()[1]
-        if sys.platform == 'win32':
+        if WINDOWS:
             l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
             l10n = locale.windows_locale[l10n_code]
-        elif sys.platform == 'darwin':
+        elif MAC:
             l10n_code = NSLocale.currentLocale()
             l10n = NSLocale.localeIdentifier(l10n_code)
             encoding = 'UTF-8'
@@ -78,8 +79,8 @@ class Tracker(Worker):
         if system == 'Darwin':
             name, version = 'Macintosh Intel', platform.mac_ver()[0]
         elif system == 'Linux':
-            name = 'GNU/Linux'
-            version = ' '.join(platform.linux_distribution()).title().strip()
+            import distro
+            name, version = distro.linux_distribution()[:2]
         elif system == 'Windows':
             name, version = 'Microsoft Windows', platform.release()
         else:
@@ -99,7 +100,7 @@ class Tracker(Worker):
 
         if engine:
             self._tracker.set({
-                'dimension6': urlparse.urlsplit(engine.server_url).hostname,
+                'dimension6': urlsplit(engine.server_url).hostname,
                 'dimension7': engine.server_url,
                 'dimension8': engine.remote.client.server_version,
                 'dimension9': engine.remote_user,
@@ -111,7 +112,7 @@ class Tracker(Worker):
         except:
             log.exception('Error sending analytics')
 
-    @QtCore.pyqtSlot(object, object)
+    @pyqtSlot(object)
     def _send_directedit_open(self, remote_info):
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
@@ -123,7 +124,7 @@ class Tracker(Worker):
             label=extension.lower(),
             value=self._manager.direct_edit.get_metrics()['last_action_timing'])
 
-    @QtCore.pyqtSlot(object, object)
+    @pyqtSlot(object)
     def _send_directedit_edit(self, remote_info):
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
@@ -135,7 +136,7 @@ class Tracker(Worker):
             label=extension.lower(),
             value=self._manager.direct_edit.get_metrics()['last_action_timing'])
 
-    @QtCore.pyqtSlot(object, object)
+    @pyqtSlot(object)
     def _send_sync_event(self, metrics):
         timing = metrics.get('end_time', 0) - metrics['start_time']
         speed = metrics.get('speed', None)
@@ -154,7 +155,7 @@ class Tracker(Worker):
                 label='Speed',
                 value=speed)
 
-    @QtCore.pyqtSlot()
+    @pyqtSlot()
     def _send_stats(self):
         for _, engine in self._manager.get_engines().items():
             for key, value in engine.get_metrics().items():

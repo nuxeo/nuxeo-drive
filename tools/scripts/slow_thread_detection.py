@@ -1,8 +1,6 @@
 # coding: utf-8
 """ Detect slow threads. """
 
-from __future__ import print_function
-
 import re
 from datetime import datetime
 from os.path import isfile

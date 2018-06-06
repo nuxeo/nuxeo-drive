@@ -6,14 +6,14 @@ later when Drive becomes online.
 
 import shutil
 
-from nxdrive.osi import AbstractOSIntegration
+from nxdrive.constants import MAC, WINDOWS
 from .common import FILE_CONTENT, UnitTestCase
 
-if AbstractOSIntegration.is_windows():
+if WINDOWS:
     from win32com.shell import shell, shellcon
 else:
     import xattr
-    if AbstractOSIntegration.is_mac():
+    if MAC:
         import Cocoa
 
 
@@ -48,11 +48,11 @@ class TestOfflineChangesSync(UnitTestCase):
         shutil.copytree functionality.
         """
 
-        if AbstractOSIntegration.is_windows():
+        if WINDOWS:
             # Make a copy of file1 using shell (to copy including xattr)
             shell.SHFileOperation((0, shellcon.FO_COPY, src, dst,
                                    shellcon.FOF_NOCONFIRMATION, None, None))
-        elif AbstractOSIntegration.is_mac():
+        elif MAC:
             fm = Cocoa.NSFileManager.defaultManager()
             fm.copyItemAtPath_toPath_error_(src, dst, None)
         else:

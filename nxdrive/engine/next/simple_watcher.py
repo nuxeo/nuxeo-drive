@@ -1,15 +1,15 @@
 # coding: utf-8
 import copy
 import os
-from Queue import Queue
 from logging import getLogger
+from queue import Queue
 from time import sleep, time
 
 from watchdog.events import DirModifiedEvent
 
 from ...client.local_client import FileInfo
 from ...engine.watcher.local_watcher import LocalWatcher
-from ...engine.workers import ThreadInterrupt
+from ...exceptions import ThreadInterrupt
 from ...utils import current_milli_time, normalize_event_filename
 
 log = getLogger(__name__)
@@ -23,13 +23,13 @@ class SimpleWatcher(LocalWatcher):
     """
 
     def __init__(self, engine, dao):
-        super(SimpleWatcher, self).__init__(engine, dao)
+        super().__init__(engine, dao)
         self._scan_delay = 1
         self._to_scan = dict()
 
     def _push_to_scan(self, info):
         if isinstance(info, FileInfo):
-            super(SimpleWatcher, self)._scan_recursive(info)
+            super()._scan_recursive(info)
             return
 
         log.warning("should scan: %s", info)

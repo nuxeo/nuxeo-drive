@@ -1,19 +1,20 @@
 # coding: utf-8
 import os
 import subprocess
-import sys
 from glob import glob
 from logging import getLogger
 
 import pytest
 
-if sys.platform != 'win32':
+from nxdrive.constants import WINDOWS
+
+if not WINDOWS:
     pytestmark = pytest.mark.skip
 
 log = getLogger(__name__)
 
 
-class Installer(object):
+class Installer:
 
     launcher = ''
     uninstaller = ''

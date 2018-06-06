@@ -4,7 +4,7 @@ NXDRIVE-844: Crash when opening the conflicts window while
 syncing many documents.
 """
 
-from common import *
+from .common import *
 
 
 @action

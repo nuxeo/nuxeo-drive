@@ -1,23 +1,22 @@
 # coding: utf-8
 import shutil
-import sys
 import time
 
 import pytest
 
+from nxdrive.constants import LINUX
 from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
 
 
 class TestConflicts(UnitTestCase):
 
     def setUp(self):
-        super(TestConflicts, self).setUp()
+        super().setUp()
         self.workspace_id = ('defaultSyncRootFolderItemFactory#'
                              'default#{}'.format(self.workspace))
         self.file_id = self.remote_1.make_file(
-            self.workspace_id, 'test.txt', 'Some content').uid
-        self.get_remote_state = \
-            self.engine_1.get_dao().get_normal_state_from_remote
+            self.workspace_id, 'test.txt', content=b'Some content').uid
+        self.get_remote_state = self.engine_1.get_dao().get_normal_state_from_remote
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         assert self.local_1.exists('/test.txt')
@@ -26,40 +25,39 @@ class TestConflicts(UnitTestCase):
         remote = self.remote_1
         local = self.local_1
         # Update content on both sides by the same user, remote last
-        remote.update_content(self.file_id, 'Remote update')
-        local.update_content('/test.txt', 'Local update')
+        remote.update_content(self.file_id, b'Remote update')
+        local.update_content('/test.txt', b'Local update')
         self.wait_sync(wait_for_async=True)
 
         assert len(local.get_children_info('/')) == 1
         assert local.exists('/test.txt')
-        assert local.get_content('/test.txt') == 'Local update'
+        assert local.get_content('/test.txt') == b'Local update'
 
         remote_children = remote.get_fs_children(self.workspace_id)
         assert len(remote_children) == 1
         assert remote_children[0].uid == self.file_id
         assert remote_children[0].name == 'test.txt'
-        assert remote.get_content(remote_children[0].uid) == 'Remote update'
+        assert remote.get_content(remote_children[0].uid) == b'Remote update'
         assert self.get_remote_state(self.file_id).pair_state == 'conflicted'
 
         # Update content on both sides by the same user, local last
-        remote.update_content(self.file_id, 'Remote update 2')
+        remote.update_content(self.file_id, b'Remote update 2')
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        local.update_content('/test.txt', 'Local update 2')
+        local.update_content('/test.txt', b'Local update 2')
         self.wait_sync(wait_for_async=True)
 
         assert len(local.get_children_info('/')) == 1
         assert local.exists('/test.txt')
-        assert local.get_content('/test.txt') == 'Local update 2'
+        assert local.get_content('/test.txt') == b'Local update 2'
 
         remote_children = remote.get_fs_children(self.workspace_id)
         assert len(remote_children) == 1
         assert remote_children[0].uid == self.file_id
         assert remote_children[0].name == 'test.txt'
-        assert remote.get_content(remote_children[0].uid) == 'Remote update 2'
+        assert remote.get_content(remote_children[0].uid) == b'Remote update 2'
         assert self.get_remote_state(self.file_id).pair_state == 'conflicted'
 
-    @pytest.mark.randombug(
-        'NXDRIVE-771', condition=(sys.platform == 'linux2'), mode='BYPASS')
+    @pytest.mark.randombug('NXDRIVE-771', condition=LINUX, mode='BYPASS')
     def test_real_conflict(self):
         local = self.local_1
         remote = self.remote_2
@@ -67,22 +65,22 @@ class TestConflicts(UnitTestCase):
         # Update content on both sides by different users, remote last
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         # Race condition is still possible
-        remote.update_content(self.file_id, 'Remote update')
-        local.update_content('/test.txt', 'Local update')
+        remote.update_content(self.file_id, b'Remote update')
+        local.update_content('/test.txt', b'Local update')
         self.wait_sync(wait_for_async=True)
 
-        assert remote.get_content(self.file_id) == 'Remote update'
-        assert local.get_content('/test.txt') == 'Local update'
+        assert remote.get_content(self.file_id) == b'Remote update'
+        assert local.get_content('/test.txt') == b'Local update'
         assert self.get_remote_state(self.file_id).pair_state == 'conflicted'
 
         # Update content on both sides by different users, local last
-        remote.update_content(self.file_id, 'Remote update 2')
+        remote.update_content(self.file_id, b'Remote update 2')
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        local.update_content('/test.txt', 'Local update 2')
+        local.update_content('/test.txt', b'Local update 2')
         self.wait_sync(wait_for_async=True)
 
-        assert remote.get_content(self.file_id) == 'Remote update 2'
-        assert local.get_content('/test.txt') == 'Local update 2'
+        assert remote.get_content(self.file_id) == b'Remote update 2'
+        assert local.get_content('/test.txt') == b'Local update 2'
         assert self.get_remote_state(self.file_id).pair_state == 'conflicted'
 
     def test_resolve_local(self):
@@ -92,8 +90,7 @@ class TestConflicts(UnitTestCase):
         assert pair
         self.engine_1.resolve_with_local(pair.id)
         self.wait_sync(wait_for_async=True)
-        assert (self.remote_2.get_content(self.file_id)
-                == 'Local update 2')
+        assert self.remote_2.get_content(self.file_id) == b'Local update 2'
 
     def test_resolve_local_folder(self):
         local = self.local_1
@@ -139,39 +136,36 @@ class TestConflicts(UnitTestCase):
         assert pair
         self.engine_1.resolve_with_remote(pair.id)
         self.wait_sync(wait_for_async=True)
-        assert (self.local_1.get_content('/test.txt')
-                == 'Remote update 2')
+        assert self.local_1.get_content('/test.txt') == b'Remote update 2'
 
     def test_conflict_on_lock(self):
         doc_uid = self.file_id.split("#")[-1]
         local = self.local_1
         remote = self.remote_2
         self.remote_document_client_2.lock(doc_uid)
-        local.update_content('/test.txt', 'Local update')
+        local.update_content('/test.txt', b'Local update')
         self.wait_sync(wait_for_async=True)
-        assert local.get_content('/test.txt') == 'Local update'
-        assert remote.get_content(self.file_id) == 'Some content'
-        remote.update_content(self.file_id, 'Remote update')
+        assert local.get_content('/test.txt') == b'Local update'
+        assert remote.get_content(self.file_id) == b'Some content'
+        remote.update_content(self.file_id, b'Remote update')
         self.wait_sync(wait_for_async=True)
-        assert local.get_content('/test.txt') == 'Local update'
-        assert remote.get_content(self.file_id) == 'Remote update'
+        assert local.get_content('/test.txt') == b'Local update'
+        assert remote.get_content(self.file_id) == b'Remote update'
         assert self.get_remote_state(self.file_id).pair_state == 'conflicted'
         self.remote_document_client_2.unlock(doc_uid)
         self.wait_sync(wait_for_async=True)
-        assert local.get_content('/test.txt') == 'Local update'
-        assert remote.get_content(self.file_id) == 'Remote update'
+        assert local.get_content('/test.txt') == b'Local update'
+        assert remote.get_content(self.file_id) == b'Remote update'
         assert self.get_remote_state(self.file_id).pair_state == 'conflicted'
 
-    # @pytest.mark.skipif(not AbstractOSIntegration.is_windows(),
-    #                     reason='Windows Office only test')
+    # @pytest.mark.skipif(not WINDOWS, reason='Windows Office only test')
     @pytest.mark.randombug('NXDRIVE-776: Random bug but we cannot use '
                            'pytest.mark.random because this test would '
                            'take ~30 minutes to complete.', mode='BYPASS')
     def test_XLS_conflict_on_locked_document(self):
         self._XLS_local_update_on_locked_document(locked_from_start=False)
 
-    # @pytest.mark.skipif(not AbstractOSIntegration.is_windows(),
-    #                     reason='Windows Office only test')
+    # @pytest.mark.skipif(not WINDOWS, reason='Windows Office only test')
     @pytest.mark.randombug('NXDRIVE-776: Random bug but we cannot use '
                            'pytest.mark.random because this test would '
                            'take ~30 minutes to complete.', mode='BYPASS')
@@ -205,15 +199,13 @@ class TestConflicts(UnitTestCase):
         if locked_from_start:
             # remote content hasn't changed, pair state is conflicted
             # and remote_can_update flag is False
-            assert (remote.get_content(fs_item_id)
-                    == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00')
+            assert remote.get_content(fs_item_id) == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00'
             assert pair_state.pair_state == 'unsynchronized'
             assert not pair_state.remote_can_update
         else:
             # remote content has changed, pair state is synchronized
             # and remote_can_update flag is True
-            assert (remote.get_content(fs_item_id)
-                    == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x01')
+            assert remote.get_content(fs_item_id) == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x01'
             assert pair_state.pair_state == 'synchronized'
             assert pair_state.remote_can_update
 
@@ -255,16 +247,13 @@ class TestConflicts(UnitTestCase):
         local.delete_final('/1743B25F.tmp')
         self.wait_sync(wait_for_async=not locked_from_start)
         assert len(local.get_children_info('/')) == 2
-        assert (local.get_content('/Excel 97 file.xls')
-                == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03')
+        assert local.get_content('/Excel 97 file.xls') == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03'
         # remote content hasn't changed, pair state is conflicted
         # and remote_can_update flag is False
         if locked_from_start:
-            assert (remote.get_content(fs_item_id)
-                    == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00')
+            assert remote.get_content(fs_item_id) == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00'
         else:
-            assert (remote.get_content(fs_item_id)
-                    == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x01')
+            assert remote.get_content(fs_item_id) == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x01'
         pair_state = self.get_remote_state(fs_item_id)
         assert pair_state
         assert pair_state.pair_state == 'unsynchronized'
@@ -279,13 +268,11 @@ class TestConflicts(UnitTestCase):
 
         assert len(local.get_children_info('/')) == 2
         assert local.exists('/Excel 97 file.xls')
-        assert (local.get_content('/Excel 97 file.xls')
-                == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03')
+        assert local.get_content('/Excel 97 file.xls') == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03'
 
         assert len(remote.get_fs_children(self.workspace_id)) == 2
         assert remote.get_fs_info(fs_item_id).name == 'New Excel 97 file.xls'
-        assert (remote.get_content(fs_item_id)
-                == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x02')
+        assert remote.get_content(fs_item_id) == b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x02'
 
         pair_state = self.get_remote_state(fs_item_id)
         assert pair_state

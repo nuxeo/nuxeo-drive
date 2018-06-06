@@ -2,6 +2,7 @@
 import os
 import shutil
 import subprocess
+from contextlib import suppress
 from logging import getLogger
 
 from .base import BaseUpdater
@@ -15,8 +16,7 @@ class Updater(BaseUpdater):
     ext = 'dmg'
     release_file = 'nuxeo-drive-{version}.dmg'
 
-    def install(self, filename):
-        # type: (unicode) -> None
+    def install(self, filename: str) -> None:
         """
         Steps:
             - mount the.dmg
@@ -54,8 +54,7 @@ class Updater(BaseUpdater):
         self._restart()
         self.appUpdated.emit()
 
-    def _backup(self, restore=False):
-        # type: (Optional[bool]) -> None
+    def _backup(self, restore: bool=False) -> None:
         """ Backup or restore the current application. """
 
         src = '/Applications/{}.app'.format(self.manager.app_name)
@@ -70,27 +69,21 @@ class Updater(BaseUpdater):
         log.debug('Moving %r -> %r', src, dst)
         os.rename(src, dst)
 
-    def _cleanup(self, filename):
-        # type: (unicode) -> None
+    def _cleanup(self, filename: str) -> None:
         """ Remove some files. """
 
         # The backup
         path = '/Applications/{}.app.old'.format(self.manager.app_name)
-        try:
+        with suppress(OSError):
             shutil.rmtree(path)
             log.debug('Deleted %r', path)
-        except OSError:
-            pass
 
         # The temporary DMG
-        try:
+        with suppress(OSError):
             os.remove(filename)
             log.debug('Deleted %r', filename)
-        except OSError:
-            pass
 
-    def _copy(self, mount_dir):
-        # type: (unicode) -> None
+    def _copy(self, mount_dir: str) -> None:
         """ Copy the new application content to /Applications. """
 
         src = '{}/{}.app'.format(mount_dir, self.manager.app_name)
@@ -98,8 +91,7 @@ class Updater(BaseUpdater):
         log.debug('Copying %r -> %r', src, dst)
         shutil.copytree(src, dst)
 
-    def _restart(self):
-        # type: () -> None
+    def _restart(self) -> None:
         """
         Restart the current application to take into account the new version.
         """

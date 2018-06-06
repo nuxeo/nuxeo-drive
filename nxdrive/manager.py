@@ -2,53 +2,43 @@
 import os
 import platform
 import subprocess
-import sys
 import unicodedata
 import uuid
 from collections import namedtuple
 from logging import getLogger
-from urlparse import urlparse
+from sip import SIP_VERSION_STR
+from urllib.parse import urlparse
 
-import sip
-from PyQt4 import QtCore
-from PyQt4.QtGui import QApplication
-from PyQt4.QtScript import QScriptEngine
-from PyQt4.QtWebKit import qWebKitVersion
+from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal
+from PyQt5.QtWidgets import QApplication
 
 from . import __version__
 from .client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
-from .constants import APP_NAME
+from .constants import APP_NAME, MAC, WINDOWS
+from .exceptions import EngineTypeMissing, FolderAlreadyUsed
 from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
 from .options import Options, server_updater
 from .osi import AbstractOSIntegration
 from .updater import updater
-from .utils import (ENCODING, force_decode, normalized_path)
+from .utils import force_decode, normalized_path
 
-if AbstractOSIntegration.is_windows():
+if WINDOWS:
     import win32api
     import win32clipboard
 
 log = getLogger(__name__)
 
 
-class FolderAlreadyUsed(Exception):
-    pass
-
-
-class EngineTypeMissing(Exception):
-    pass
-
-
-class Manager(QtCore.QObject):
-    newEngine = QtCore.pyqtSignal(object)
-    dropEngine = QtCore.pyqtSignal(object)
-    initEngine = QtCore.pyqtSignal(object)
-    started = QtCore.pyqtSignal()
-    stopped = QtCore.pyqtSignal()
-    suspended = QtCore.pyqtSignal()
-    resumed = QtCore.pyqtSignal()
+class Manager(QObject):
+    newEngine = pyqtSignal(object)
+    dropEngine = pyqtSignal(object)
+    initEngine = pyqtSignal(object)
+    started = pyqtSignal()
+    stopped = pyqtSignal()
+    suspended = pyqtSignal()
+    resumed = pyqtSignal()
 
     app_name = APP_NAME
 
@@ -63,7 +53,7 @@ class Manager(QtCore.QObject):
         if Manager._singleton:
             raise RuntimeError('Only one instance of Manager can be created.')
 
-        super(Manager, self).__init__()
+        super().__init__()
         Manager._singleton = self
 
         # Primary attributes to allow initializing the notification center early
@@ -151,7 +141,7 @@ class Manager(QtCore.QObject):
         self._tracker = self._create_tracker()
 
         # Create the FinderSync listener thread
-        if sys.platform == 'darwin':
+        if MAC:
             self._create_findersync_listener()
 
     @staticmethod
@@ -185,10 +175,8 @@ class Manager(QtCore.QObject):
             'device_id': self.device_id,
             'tracker_id': self.get_tracker_id(),
             'tracking': self.get_tracking(),
-            'sip_version': sip.SIP_VERSION_STR,
-            'qt_version': QtCore.QT_VERSION_STR,
-            'webkit_version': str(qWebKitVersion()),
-            'pyqt_version': QtCore.PYQT_VERSION_STR,
+            'sip_version': SIP_VERSION_STR,
+            'qt_version': QT_VERSION_STR,
             'python_version': platform.python_version(),
             'platform': platform.system(),
             'appname': self.app_name,
@@ -291,7 +279,7 @@ class Manager(QtCore.QObject):
             if engine.is_started():
                 log.debug('Stop engine %s', uid)
                 engine.stop()
-        if AbstractOSIntegration.is_mac():
+        if MAC:
             self.osi._cleanup()
         self.stopped.emit()
 
@@ -337,16 +325,10 @@ class Manager(QtCore.QObject):
 
         Under Windows, try to locate My Documents as a home folder, using the
         win32com shell API if allowed, else falling back on a manual detection.
-
-        Note that we need to decode the path returned by os.path.expanduser with
-        the local encoding because the value of the HOME environment variable is
-        read as a byte string. Using os.path.expanduser(u'~') fails if the home
-        path contains non ASCII characters since Unicode coercion attempts to
-        decode the byte string as an ASCII string.
         """
 
         folder = ''
-        if sys.platform == 'win32':
+        if WINDOWS:
             from win32com.shell import shell, shellcon
             try:
                 folder = shell.SHGetFolderPath(
@@ -368,15 +350,14 @@ class Manager(QtCore.QObject):
                 """
                 log.error('Access denied to the API SHGetFolderPath,'
                           ' falling back on manual detection')
-                folder = os.path.expanduser(r'~\Documents')
-                folder = unicode(folder.decode(ENCODING))
+                folder = os.path.expanduser('~\\Documents')
 
         if not folder:
             # Fall back on home folder otherwise
             folder = os.path.expanduser('~')
-            folder = unicode(folder.decode(ENCODING))
 
         folder = self._increment_local_folder(folder, self.app_name)
+        folder = force_decode(folder)
         log.debug('Will use %r as default folder location', folder)
         return folder
 
@@ -398,15 +379,15 @@ class Manager(QtCore.QObject):
         :param select: Hightlight the given file_path. Useful when
                        opening a folder and to select a file.
         """
-        file_path = unicode(file_path)
-        log.debug('Launching editor on %s', file_path)
-        if sys.platform == 'win32':
+        file_path = force_decode(file_path)
+        log.debug('Launching editor on %r', file_path)
+        if WINDOWS:
             if select:
                 win32api.ShellExecute(None, 'open', 'explorer.exe',
                                       '/select,' + file_path, None, 1)
             else:
                 os.startfile(file_path)
-        elif sys.platform == 'darwin':
+        elif MAC:
             args = ['open']
             if select:
                 args += ['-R']
@@ -422,8 +403,7 @@ class Manager(QtCore.QObject):
                 log.error('Failed to find and editor for: %r', file_path)
 
     @property
-    def device_id(self):
-        # type: () -> unicode
+    def device_id(self) -> str:
         if not self.__device_id:
             self.__device_id = self._dao.get_config('device_id')
             if not self.__device_id:
@@ -484,8 +464,10 @@ class Manager(QtCore.QObject):
         """
         Avoid sending statistics when testing or if the user does not allow it.
         """
-        return (self._dao.get_config('tracking', '1') == '1'
-                and not os.environ.get('WORKSPACE'))
+        return all({
+            Options.is_frozen,
+            self._dao.get_config('tracking', '1') == '1',
+        })
 
     def set_tracking(self, value):
         self._dao.update_config('tracking', value)
@@ -515,8 +497,7 @@ class Manager(QtCore.QObject):
 
     def bind_server(self, local_folder, url, username, password, token=None,
                     name=None, start_engine=True, check_credentials=True):
-        if name is None:
-            name = self._get_engine_name(url)
+        name = name or self._get_engine_name(url)
         binder = namedtuple('binder', ['username', 'password', 'token', 'url',
                                        'no_check', 'no_fscheck'])
         binder.username = username
@@ -691,7 +672,7 @@ class Manager(QtCore.QObject):
 
         url = self.get_metadata_infos(file_path)
         log.info('Copied %r', url)
-        if sys.platform == 'win32':
+        if WINDOWS:
             win32clipboard.OpenClipboard()
             win32clipboard.EmptyClipboard()
             win32clipboard.SetClipboardText(url, win32clipboard.CF_UNICODETEXT)

@@ -110,13 +110,13 @@ to local PC.
         shared = remote.make_folder(self.workspace, 'shared')
 
         remote.make_file(folder1, 'file1.txt',
-                         content='This is a sample file1')
+                         content=b'This is a sample file1')
         remote.make_file(folder2, 'file2.txt',
-                         content='This is a sample file2')
+                         content=b'This is a sample file2')
         readme1 = remote.make_file(
-            shared, 'readme1.txt', content='This is a readme file')
+            shared, 'readme1.txt', content=b'This is a readme file')
         remote.make_file(shared, 'readme2.txt',
-                         content='This is a readme file')
+                         content=b'This is a readme file')
 
         self.wait_sync(wait_for_async=True)
 
@@ -133,7 +133,7 @@ to local PC.
         # failures of GetChildren API.
         network_error = 2
         remote.make_file(
-            folder1, 'sample1.txt', content='This is a another sample file1')
+            folder1, 'sample1.txt', content=b'This is a another sample file1')
         self.remote_2.register_as_root(shared)
 
         # Delete folder 'shared'
@@ -147,9 +147,9 @@ to local PC.
         self.wait_sync(wait_for_async=True)
 
         remote.make_file(
-            shared, 'readme3.txt', content='This is a another shared file')
+            shared, 'readme3.txt', content=b'This is a another shared file')
         remote.make_file(
-            folder2, 'sample2.txt', content='This is a another sample file2')
+            folder2, 'sample2.txt', content=b'This is a another sample file2')
 
         self.wait_sync(wait_for_async=True)
         assert local.exists('/folder2/sample2.txt')

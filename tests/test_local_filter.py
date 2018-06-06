@@ -1,8 +1,7 @@
 # coding: utf-8
-import sys
-
 import pytest
 
+from nxdrive.constants import LINUX
 from .common import UnitTestCase
 
 
@@ -36,7 +35,7 @@ class TestLocalFilter(UnitTestCase):
         # Create documents in the remote root workspace
         # then synchronize
         remote.make_folder('/', 'Test folder')
-        remote.make_file('/Test folder', 'joe.txt', 'Some content')
+        remote.make_file('/Test folder', 'joe.txt', content=b'Some content')
         self.wait_sync(wait_for_async=True)
         # Fake server binding with the unit test class
         assert local.exists('/Test folder')
@@ -84,7 +83,7 @@ class TestLocalFilter(UnitTestCase):
         self.engine_1.start()
         self.wait_sync()
         self.local_1.make_folder('/', hexaname)
-        self.local_1.make_file('/', hexafile, 'test')
+        self.local_1.make_file('/', hexafile, content=b'test')
         # Make sure that a folder is synchronized directly
         # no matter what and the file is postponed
         self.wait_sync(enforce_errors=False,fail_if_timeout=False)
@@ -101,8 +100,7 @@ class TestLocalFilter(UnitTestCase):
         assert len(children) == 2
         assert children[1].name == '2345BCDF'
 
-    @pytest.mark.randombug(
-        'NXDRIVE-808', condition=(sys.platform == 'linux2'), mode='BYPASS')
+    @pytest.mark.randombug('NXDRIVE-808', condition=LINUX, mode='BYPASS')
     def test_synchronize_local_filter_with_move(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -110,14 +108,17 @@ class TestLocalFilter(UnitTestCase):
         # Create documents in the remote root workspace
         # then synchronize
         remote.make_folder('/', 'Test')
-        remote.make_file('/Test', 'joe.txt', 'Some content')
+        remote.make_file('/Test', 'joe.txt', content=b'Some content')
         remote.make_folder('/Test', 'Subfolder')
         remote.make_folder('/Test', 'Filtered')
-        remote.make_file('/Test/Subfolder', 'joe2.txt', 'Some content')
-        remote.make_file('/Test/Subfolder', 'joe3.txt', 'Somecossntent')
+        remote.make_file('/Test/Subfolder', 'joe2.txt',
+                         content=b'Some content')
+        remote.make_file('/Test/Subfolder', 'joe3.txt',
+                         content=b'Somecossntent')
         remote.make_folder('/Test/Subfolder/', 'SubSubfolder')
         remote.make_file(
-            '/Test/Subfolder/SubSubfolder', 'joe4.txt', 'Some qwqwqontent')
+            '/Test/Subfolder/SubSubfolder', 'joe4.txt',
+            content=b'Some qwqwqontent')
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -182,7 +183,7 @@ class TestLocalFilter(UnitTestCase):
         # Create documents in the remote root workspace
         # then synchronize
         folder_id = remote.make_folder('/', 'Test')
-        remote.make_file('/Test', 'joe.txt', 'Some content')
+        remote.make_file('/Test', 'joe.txt', content=b'Some content')
 
         self.wait_sync(wait_for_async=True)
         assert local.exists('/Test')

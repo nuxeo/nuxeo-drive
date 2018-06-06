@@ -6,12 +6,11 @@ import pytest
 from nxdrive.wui.translator import Translator
 
 
-class MockManager(object):
+class MockManager:
     def __init__(self):
-        super(MockManager, self).__init__()
         self.called = False
 
-    def set_config(self, locale, lang):
+    def set_config(self, *args):
         self.called = True
 
 
@@ -81,7 +80,7 @@ def test_load_existing_language():
     
     # Test the key fallback
     assert Translator.get('FALLBACK') == 'Fallback'
-    assert Translator.get('LANGUAGE') == u'Fran\xe7ais'
+    assert Translator.get('LANGUAGE') == 'Fran\xe7ais'
     assert Translator.get('BOUZOUF') == 'BOUZOUF'
 
 
@@ -110,7 +109,7 @@ def test_truncated_paths(token):
     }
     Translator(MockManager(), get_folder('i18n'))
     text = Translator.get(token, values)
-    assert u'…' in text
+    assert '…' in text
     assert len(text) < 200
 
 

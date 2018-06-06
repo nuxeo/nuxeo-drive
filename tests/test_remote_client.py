@@ -7,7 +7,8 @@ from threading import current_thread
 
 import pytest
 
-from nxdrive.client import LocalClient, NotFound
+from nxdrive.client import LocalClient
+from nxdrive.exceptions import NotFound
 from nxdrive.utils import make_tmp_file
 from .common import FS_ITEM_ID_PREFIX, UnitTestCase
 
@@ -15,7 +16,7 @@ from .common import FS_ITEM_ID_PREFIX, UnitTestCase
 class TestRemoteFileSystemClient(UnitTestCase):
 
     def setUp(self):
-        super(TestRemoteFileSystemClient, self).setUp()
+        super().setUp()
         # Bind the test workspace as sync root for user 1
         remote_doc = self.remote_document_client_1
         remote = self.remote_1
@@ -34,7 +35,8 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Check file info
         fs_item_id = remote.make_file(
-            self.workspace_id, 'Document 1.txt', 'Content of doc 1.').uid
+            self.workspace_id, 'Document 1.txt',
+            content=b'Content of doc 1.').uid
         info = remote.get_fs_info(fs_item_id)
         assert info is not None
         assert info.name == 'Document 1.txt'
@@ -45,7 +47,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
             assert info.last_contributor == self.user_1
         digest_algorithm = info.digest_algorithm
         assert digest_algorithm == 'md5'
-        digest = self._get_digest(digest_algorithm, 'Content of doc 1.')
+        digest = self._get_digest(digest_algorithm, b'Content of doc 1.')
         assert info.digest == digest
         file_uid = fs_item_id.rsplit('#', 1)[1]
         # NXP-17827: nxbigile has been replace to nxfile, keep handling both
@@ -72,7 +74,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
         fs_item_id = FS_ITEM_ID_PREFIX + 'fakeId'
         with pytest.raises(NotFound):
             remote.get_fs_info(fs_item_id)
-        assert remote.get_fs_info(fs_item_id, raise_if_missing=False) is None
+        assert not remote.get_fs_info(fs_item_id, raise_if_missing=False)
 
     def test_get_content(self):
         remote = self.remote_1
@@ -80,8 +82,9 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Check file with content
         fs_item_id = remote.make_file(
-            self.workspace_id, 'Document 1.txt', 'Content of doc 1.').uid
-        assert remote.get_content(fs_item_id) == 'Content of doc 1.'
+            self.workspace_id, 'Document 1.txt',
+            content=b'Content of doc 1.').uid
+        assert remote.get_content(fs_item_id) == b'Content of doc 1.'
 
         # Check file without content
         doc_uid = remote_doc.make_file(self.workspace, 'Document 2.txt')
@@ -100,7 +103,8 @@ class TestRemoteFileSystemClient(UnitTestCase):
         assert os.path.basename(tmp_file) == ('.Document 1.txt'
                                               + str(current_thread().ident)
                                               + '.nxpart')
-        assert open(tmp_file, 'rb').read() == 'Content of doc 1.'
+        with open(tmp_file, 'rb') as f:
+            assert f.read() == b'Content of doc 1.'
 
     def test_get_fs_children(self):
         remote = self.remote_1
@@ -109,9 +113,9 @@ class TestRemoteFileSystemClient(UnitTestCase):
         folder_1_id = remote.make_folder(self.workspace_id, 'Folder 1').uid
         folder_2_id = remote.make_folder(self.workspace_id, 'Folder 2').uid
         file_1_id = remote.make_file(
-            self.workspace_id, 'File 1', 'Content of file 1.').uid
+            self.workspace_id, 'File 1', content=b'Content of file 1.').uid
         file_2_id = remote.make_file(
-            folder_1_id, 'File 2', 'Content of file 2.').uid
+            folder_1_id, 'File 2', content=b'Content of file 2.').uid
 
         # Check workspace children
         workspace_children = remote.get_fs_children(self.workspace_id)
@@ -141,9 +145,9 @@ class TestRemoteFileSystemClient(UnitTestCase):
         folder_1 = remote.make_folder(self.workspace_id, 'Folder 1').uid
         folder_2 = remote.make_folder(self.workspace_id, 'Folder 2').uid
         file_1 = remote.make_file(self.workspace_id, 'File 1.txt',
-                                  content='Content of file 1.').uid
+                                  content=b'Content of file 1.').uid
         file_2 = remote.make_file(folder_1, 'File 2.txt',
-                                  content='Content of file 2.').uid
+                                  content=b'Content of file 2.').uid
 
         # Wait for ES completion
         self.wait()
@@ -224,40 +228,42 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Check File document creation
         fs_item_info = remote.make_file(
-            self.workspace_id, 'My new file.odt', 'Content of my new file.')
+            self.workspace_id, 'My new file.odt',
+            content=b'Content of my new file.')
         assert fs_item_info is not None
         assert fs_item_info.name == 'My new file.odt'
         assert not fs_item_info.folderish
         digest_algorithm = fs_item_info.digest_algorithm
         assert digest_algorithm == 'md5'
-        digest = self._get_digest(digest_algorithm, 'Content of my new file.')
+        digest = self._get_digest(digest_algorithm, b'Content of my new file.')
         assert fs_item_info.digest == digest
 
         # Check Note document creation
         fs_item_info = remote.make_file(
-            self.workspace_id, 'My new note.txt', 'Content of my new note.')
+            self.workspace_id, 'My new note.txt',
+            content=b'Content of my new note.')
         assert fs_item_info is not None
         assert fs_item_info.name == 'My new note.txt'
         assert not fs_item_info.folderish
         digest_algorithm = fs_item_info.digest_algorithm
         assert digest_algorithm == 'md5'
-        digest = self._get_digest(digest_algorithm, 'Content of my new note.')
+        digest = self._get_digest(digest_algorithm, b'Content of my new note.')
         assert fs_item_info.digest == digest
 
     def test_make_file_custom_encoding(self):
         remote = self.remote_1
 
         # Create content encoded in utf-8 and cp1252
-        unicode_content = u'\xe9'  # e acute
-        utf8_encoded = unicode_content.encode('utf-8')
+        unicode_content = '\xe9'  # e acute
+        utf8_encoded = unicode_content.encode()
         utf8_digest = hashlib.md5(utf8_encoded).hexdigest()
         cp1252_encoded = unicode_content.encode('cp1252')
 
         # Make files with this content
         utf8_fs_id = remote.make_file(
-            self.workspace_id, 'My utf-8 file.txt', utf8_encoded).uid
+            self.workspace_id, 'My utf-8 file.txt', content=utf8_encoded).uid
         cp1252_fs_id = remote.make_file(
-            self.workspace_id, 'My cp1252 file.txt', cp1252_encoded).uid
+            self.workspace_id, 'My cp1252 file.txt', content=cp1252_encoded).uid
 
         # Check content
         utf8_content = remote.get_content(utf8_fs_id)
@@ -276,18 +282,20 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Create file
         fs_item_id = remote.make_file(
-            self.workspace_id, 'Document 1.txt', 'Content of doc 1.').uid
+            self.workspace_id, 'Document 1.txt',
+            content=b'Content of doc 1.').uid
 
         # Check file update
-        remote.update_content(fs_item_id, 'Updated content of doc 1.')
-        assert remote.get_content(fs_item_id) == 'Updated content of doc 1.'
+        remote.update_content(fs_item_id, b'Updated content of doc 1.')
+        assert remote.get_content(fs_item_id) == b'Updated content of doc 1.'
 
     def test_delete(self):
         remote = self.remote_1
 
         # Create file
         fs_item_id = remote.make_file(
-            self.workspace_id, 'Document 1.txt', 'Content of doc 1.').uid
+            self.workspace_id, 'Document 1.txt',
+            content=b'Content of doc 1.').uid
         assert remote.fs_exists(fs_item_id)
 
         # Delete file
@@ -300,7 +308,8 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Check existing file system item
         fs_item_id = remote.make_file(
-            self.workspace_id, 'Document 1.txt', 'Content of doc 1.').uid
+            self.workspace_id, 'Document 1.txt',
+            content=b'Content of doc 1.').uid
         assert remote.fs_exists(fs_item_id)
 
         # Check non existing file system item (non existing document)
@@ -321,7 +330,8 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Check file item
         fs_item_id = remote.make_file(
-            self.workspace_id, 'Document 1.txt', 'Content of doc 1.').uid
+            self.workspace_id, 'Document 1.txt',
+            content=b'Content of doc 1.').uid
         fs_item = remote.get_fs_item(fs_item_id)
         assert fs_item is not None
         assert fs_item['name'] == 'Document 1.txt'
@@ -390,7 +400,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
         remote = self.remote_1
 
         # Create a document by streaming a text file
-        file_path = make_tmp_file(remote.upload_tmp_dir, 'Some content.')
+        file_path = make_tmp_file(remote.upload_tmp_dir, b'Some content.')
         try:
             fs_item_info = remote.stream_file(
                 self.workspace_id, file_path, filename='My streamed file.txt')
@@ -398,10 +408,10 @@ class TestRemoteFileSystemClient(UnitTestCase):
             os.remove(file_path)
         fs_item_id = fs_item_info.uid
         assert fs_item_info.name == 'My streamed file.txt'
-        assert remote.get_content(fs_item_id) == 'Some content.'
+        assert remote.get_content(fs_item_id) == b'Some content.'
 
         # Update a document by streaming a new text file
-        file_path = make_tmp_file(remote.upload_tmp_dir, 'Other content.')
+        file_path = make_tmp_file(remote.upload_tmp_dir, b'Other content.')
         try:
             fs_item_info = remote.stream_update(
                 fs_item_id, file_path, filename='My updated file.txt')
@@ -409,7 +419,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
             os.remove(file_path)
         assert fs_item_info.uid == fs_item_id
         assert fs_item_info.name == 'My updated file.txt'
-        assert remote.get_content(fs_item_id) == 'Other content.'
+        assert remote.get_content(fs_item_id) == b'Other content.'
 
         # Create a document by streaming a binary file
         file_path = os.path.join(self.upload_tmp_dir, 'testFile.pdf')
@@ -458,7 +468,8 @@ class TestRemoteFileSystemClient(UnitTestCase):
     def test_modification_flags_locked_document(self):
         remote = self.remote_1
         fs_item_id = remote.make_file(
-            self.workspace_id, 'Document 1.txt', 'Content of doc 1.').uid
+            self.workspace_id, 'Document 1.txt',
+            content=b'Content of doc 1.').uid
 
         # Check flags for a document that isn't locked
         info = remote.get_fs_info(fs_item_id)
@@ -507,7 +518,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
         # inconsistencies
         remote = self.remote_document_client_1
         # Check that the list of repositories can be introspected
-        assert remote.get_repository_names(), ['default']
+        assert remote.get_repository_names() == ['default']
 
         # By default no root is synchronized
         remote.unregister_as_root(self.workspace)
@@ -536,7 +547,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
     def test_lock_unlock(self):
         remote = self.remote_document_client_1
         doc_id = remote.make_file(
-            self.workspace, 'TestLocking.txt', content='File content')
+            self.workspace, 'TestLocking.txt', content=b'File content')
 
         status = remote.is_locked(doc_id)
         assert not status
@@ -547,7 +558,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
         assert not remote.is_locked(doc_id)
 
     @staticmethod
-    def _get_digest(algorithm, content):
+    def _get_digest(algorithm: str, content: bytes) -> str:
         hasher = getattr(hashlib, algorithm)
         if hasher is None:
             raise RuntimeError('Unknown digest algorithm: %s' % algorithm)

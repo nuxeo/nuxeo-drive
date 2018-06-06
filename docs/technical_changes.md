@@ -3,6 +3,9 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+- Removed `AbstractOSIntegration.is_linux()`
+- Removed `AbstractOSIntegration.is_mac()`
+- Removed `AbstractOSIntegration.is_windows()`
 - Added `Engine.init_remote()`
 - Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, filtered_remote_cls, local_cls)`
 - Removed `Engine.get_abspath()`
@@ -14,7 +17,7 @@
 - Removed `Engine.invalidate_client_cache()`
 - Added `Manager.proxy`
 - Added `Manager.set_proxy()`
-- Moved `Manager.get_system_pac_url()` to `nxdrive/client/proxy.py`
+- Moved `Manager.get_system_pac_url()` to client/proxy.py
 - Removed `Manager.aboutToStart()`
 - Removed `Manager.clientUpdated()`
 - Removed `Manager.engineNotFound()`
@@ -37,18 +40,35 @@
 - Removed `WebDialog.loadError()`
 - Removed `WebDialog.requestFinished()`
 - Removed `Worker.actionUpdate()`
-- Added `nxdrive/client/remote.py`
-- Added `exceptions.py`
-- Renamed `nxdrive/client/local_client.py` to `nxdrive/client/local.py`
-- Removed `nxdrive/client/base_automation_client.py`
-- Removed `nxdrive/client/common.py`
-- Added `nxdrive/client/proxy.py`
-- Removed `nxdrive/client/remote_document_client.py`
-- Removed `nxdrive/client/remote_file_system_client.py`
-- Removed `nxdrive/client/remote_filtered_file_system_client.py`
-- Removed `nxdrive/client/rest_api_client.py`
-- Moved nxdrive/manager.py::`MissingToken` to `nxdrive/client/proxy.py`
-- Removed nxdrive/manager.py::`ProxySettings`
+- Added exceptions.py
+- Removed `filter_inotify` argument logging_config.py::`configure()`
+- Added client/proxy.py
+- Added client/remote_client.py
+- Moved client/common.py::`DuplicationDisabledError` exception to exceptions.py
+- Moved client/common.py::`COLLECTION_SYNC_ROOT_FACTORY_NAME` constant to engine/watcher/remote_watcher.py
+- Moved client/common.py::`NotFound` exception to exceptions.py
+- Moved client/common.py::`UNACCESSIBLE_HASH` constant constants.py
+- Moved client/common.py::`safe_filename()` utils.py
+- Removed client/base_automation_client.py
+- Removed client/common.py
+- Removed client/remote_document_client.py
+- Removed client/remote_file_system_client.py
+- Removed client/remote_filtered_file_system_client.py
+- Removed client/rest_api_client.py
+- Added constants.py::`LINUX`
+- Added constants.py::`MAC`
+- Added constants.py::`WINDOWS`
+- Removed engine/dao/sqlite.py::`FakeLock`
+- Moved engine/engine.py::`InvalidDriveException` exception exceptions.py
+- Moved engine/engine.py::`RootAlreadyBindWithDifferentAccount` exception to exceptions.py
+- Moved engine/workers.py::`PairInterrupt` exception to exceptions.py
+- Moved engine/workers.py::`ThreadInterrupt` exception to exceptions.py
+- Moved manager.py::`EngineTypeMissing` exception to exceptions.py
+- Moved manager.py::`FolderAlreadyUsed` exception to exceptions.py
+- Moved manager.py::`MissingToken` to client/proxy.py
+- Removed manager.py::`ProxySettings`
+- Added utils.py::`force_encode()`
+- Removed `codecs` argument from utils.py::`force_decode()`
 
 # 3.1.0
 - Removed `AbstractOSIntegration.get_os_version()`

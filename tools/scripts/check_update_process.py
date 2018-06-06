@@ -14,10 +14,8 @@ check that the Drive version is 1.2.3
 It __must__ be launched before any new release to validate the update process.
 """
 
-from __future__ import print_function, unicode_literals
-
-import SimpleHTTPServer
-import SocketServer
+import http.server
+import socketserver
 import distutils.dir_util
 import distutils.version
 import hashlib
@@ -36,7 +34,7 @@ __version__ = '0.2.0'
 
 
 EXT = {'darwin': 'dmg', 'win32': 'exe'}.get(sys.platform)
-Server = SimpleHTTPServer.SimpleHTTPRequestHandler
+Server = http.server.BaseHTTPRequestHandler
 
 
 def create_versions(dst, version):
@@ -210,7 +208,7 @@ def webserver(folder, port=8000):
     """ Start a local web server. """
 
     os.chdir(folder)
-    httpd = SocketServer.TCPServer(('', port), Server)
+    httpd = socketserver.TCPServer(('', port), Server)
     print('>>> Serving', folder, 'at http://localhost:8000')
     print('>>> CTRL+C to terminate')
     try:
@@ -222,7 +220,7 @@ def webserver(folder, port=8000):
 def main():
     """ Main logic. """
 
-    if sys.platform == 'linux2':
+    if sys.platform.startswith('linux'):
         print('>>> macOS and Windows only.')
         return 1
 

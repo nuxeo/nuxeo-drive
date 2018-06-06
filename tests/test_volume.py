@@ -78,16 +78,13 @@ class VolumeTestCase(UnitTestCase):
                 log.debug('*** engine1 starting')
                 self.engine_1.start()
             if wait_for_sync:
-                self.wait_sync(timeout=self.items*10)
+                self.wait_sync(timeout=self.items * 10)
                 log.debug('*** engine 1 synced')
 
-    def get_name(self, folder, depth, number):
+    def get_name(self, folder: bool, depth: int, number: int):
         if folder:
-            return unicode(('folder_'+self.fmt[2]+'_'+self.fmt[0])
-                           % (depth, number))
-        else:
-            return unicode(('file_'+self.fmt[2]+'_'+self.fmt[1] + '.png')
-                           % (depth, number))
+            return 'folder_' + self.fmt[2] + '_' + self.fmt[0] % (depth, number)
+        return 'file_'+self.fmt[2] + '_' + self.fmt[1] + '.png' % (depth, number)
 
     def get_path(self, folder, depth, number):
         child = ''
@@ -103,7 +100,7 @@ class VolumeTestCase(UnitTestCase):
             path = path[0:-1]
         # First get the remote id
         remote_id = self.local_1.get_remote_id(path)
-        assert remote_id is not None, 'Should have a remote id'
+        assert remote_id
 
         # get depth
         depth = int(os.path.basename(path).split('_')[1])
@@ -112,9 +109,9 @@ class VolumeTestCase(UnitTestCase):
         children = dict()
         if depth != self.depth:
             for i in range(1, self.num_folders+1):
-                children[self.get_name(True, depth+1, i)]=True
+                children[self.get_name(True, depth+1, i)] = True
         for i in range(1, self.num_files+1):
-            children[self.get_name(False, depth, i)]=True
+            children[self.get_name(False, depth, i)] = True
         for name in removed:
             if name in children:
                 del children[name]
@@ -130,18 +127,13 @@ class VolumeTestCase(UnitTestCase):
             if name not in cmp_children:
                 self.fail('Not expected local child "' + name + '" in ' + path)
             remote_ref = self.local_1.get_remote_id(os.path.join(path, name))
-            assert remote_ref is not None, ('Sync is done should '
-                                            'not be None remote_ref')
+            assert remote_ref
             remote_refs[remote_ref]=name
             del cmp_children[name]
-        # compare each name
-        assert not cmp_children, ('Expected local child in '
-                                  + path + ': not present are '
-                                  + ', '.join(cmp_children.values()))
+        assert not cmp_children
 
         # check remotely
-        remote_children = self.remote_1.get_fs_children(
-            remote_id)
+        remote_children = self.remote_1.get_fs_children(remote_id)
         assert len(remote_children) == len(children)
         for child in remote_children:
             if child.uid not in remote_refs:
@@ -292,6 +284,6 @@ class VolumeTestCase(UnitTestCase):
             "   AND ecm:currentLifeCycleState != 'deleted'"
             "   AND ecm:mixinType != 'HiddenInNavigation'"
             % self.workspace)['resultsCount']
-        local_folders, local_file = self.get_local_child_count(
+        local_file, local_folders = self.get_local_child_count(
             self.local_nxdrive_folder_1 + '/' + self.workspace_title)
         assert local_folders + local_file == doc_count

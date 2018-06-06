@@ -24,7 +24,17 @@ changelog() {
     local changelog
 
     drive_version="$1"
-    changelog="$(python tools/changelog.py --format=md)"
+    changelog="$(cat <<EOF
+$(python tools/changelog.py --format=md)
+
+---
+
+Download links:
+
+- [macOS installer](https://community.nuxeo.com/static/drive-updates/release/nuxeo-drive-${drive_version}.dmg)
+- [Windows installer](https://community.nuxeo.com/static/drive-updates/release/nuxeo-drive-${drive_version}.exe)
+EOF
+)"
 
     # Escape lines feed and double quotes for JSON
     changelog="$(echo "${changelog}" | sed 's|$|\\n|g ; s|\"|\\\"|g')"

@@ -1,9 +1,9 @@
 # coding: utf-8
-import sys
 import time
 
 import pytest
 
+from nxdrive.constants import LINUX, MAC
 from .common import (OS_STAT_MTIME_RESOLUTION,
                      REMOTE_MODIFICATION_TIME_RESOLUTION, TEST_DEFAULT_DELAY,
                      UnitTestCase)
@@ -16,8 +16,7 @@ class TestConcurrentSynchronization(UnitTestCase):
             input_obj='doc:' + parent, namePattern=name_pattern,
             number=number, delay=int(delay * 1000))
 
-    @pytest.mark.randombug(
-        'NXDRIVE-808', condition=(sys.platform == 'linux2'), repeat=2)
+    @pytest.mark.randombug('NXDRIVE-808', condition=LINUX, repeat=2)
     def test_find_changes_with_many_doc_creations(self):
         local = self.local_1
 
@@ -25,7 +24,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         assert local.exists('/')
-        assert not local.get_children_info(u'/')
+        assert not local.get_children_info('/')
 
         # List of children names to create
         n_children = 5
@@ -43,7 +42,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Check that all the children creations where detected despite the
         # creation transaction spanning longer than the individual audit
         # query time ranges.
-        local_children_names = [c.name for c in local.get_children_info(u'/')]
+        local_children_names = [c.name for c in local.get_children_info('/')]
         local_children_names.sort()
         assert local_children_names == children_names
 
@@ -72,7 +71,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # test workspace and a file inside this folder,
         # then synchronize both devices
         test_folder = remote.make_folder(self.workspace, 'Test folder')
-        remote.make_file(test_folder, 'test.odt', 'Some content.')
+        remote.make_file(test_folder, 'test.odt', content=b'Some content.')
 
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
 
@@ -111,7 +110,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Create a local folder in the test workspace and a file inside
         # this folder, then synchronize
         folder = local.make_folder('/', 'Test folder')
-        local.make_file(folder, 'test.odt', 'Some content.')
+        local.make_file(folder, 'test.odt', content=b'Some content.')
 
         self.wait_sync()
 
@@ -177,7 +176,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Create a local folder in the test workspace and a file inside
         # this folder, then synchronize
         folder = local.make_folder('/', 'Test folder')
-        local.make_file(folder, 'test.odt', 'Some content.')
+        local.make_file(folder, 'test.odt', content=b'Some content.')
 
         self.wait_sync()
 
@@ -197,8 +196,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         remote.update(test_folder_ref, properties={
             'dc:description': 'Some description.'})
         test_folder = remote.fetch(test_folder_ref)
-        assert (test_folder['properties']['dc:description']
-                == 'Some description.')
+        assert test_folder['properties']['dc:description'] == 'Some description.'
         self.engine_1.resume()
 
         self.wait_sync(wait_for_async=True)
@@ -209,9 +207,8 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Check Test folder has not been re-created locally
         assert not local.exists('/Test folder')
 
-    @pytest.mark.randombug('NXDRIVE-718', condition=(sys.platform == 'linux2'))
-    @pytest.mark.randombug(
-        'NXDRIVE-718', condition=(sys.platform == 'darwin'), repeat=2)
+    @pytest.mark.randombug('NXDRIVE-718', condition=LINUX)
+    @pytest.mark.randombug('NXDRIVE-718', condition=MAC, repeat=2)
     def test_update_local_file_content_update_remote_file_property(self):
         # Get local and remote clients
         local = self.local_1
@@ -225,7 +222,7 @@ class TestConcurrentSynchronization(UnitTestCase):
         assert local.exists('/')
 
         # Create a local file in the test workspace then synchronize
-        local.make_file('/', 'test.odt', 'Some content.')
+        local.make_file('/', 'test.odt', content=b'Some content.')
 
         self.wait_sync()
 
@@ -236,8 +233,8 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Locally update the file content and remotely update one of its
         # properties concurrently, then synchronize
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        local.update_content('/test.odt', 'Updated content.')
-        assert local.get_content('/test.odt') == 'Updated content.'
+        local.update_content('/test.odt', b'Updated content.')
+        assert local.get_content('/test.odt') == b'Updated content.'
         test_file_ref = remote._check_ref('/test.odt')
         # Wait for 1 second to make sure the file's last modification time
         # will be different from the pair state's last remote update time
@@ -262,12 +259,12 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Thus the pair state will be ('modified', 'synchronized'), resolved as
         # 'locally_modified'.
         assert remote.exists('/test.odt')
-        assert remote.get_content('/test.odt') == 'Updated content.'
+        assert remote.get_content('/test.odt') == b'Updated content.'
         test_file = remote.fetch(test_file_ref)
         assert test_file['properties']['dc:description'] == 'Some description.'
         assert len(remote.get_children_info(self.workspace)) == 1
 
         # Check that the content of the test file has not changed
         assert local.exists('/test.odt')
-        assert local.get_content('/test.odt') == 'Updated content.'
+        assert local.get_content('/test.odt') == b'Updated content.'
         assert len(local.get_children_info('/')) == 1

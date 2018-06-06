@@ -2,14 +2,16 @@
 from logging import getLogger
 from threading import Thread
 
-from PyQt4 import QtCore, QtGui
+from PyQt5.QtCore import QVariant, Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QMovie, QPalette, QStandardItem, QStandardItemModel
+from PyQt5.QtWidgets import QLabel, QTreeView, QWidget
 
 from ..utils import find_icon
 
 log = getLogger(__name__)
 
 
-class FileInfo(object):
+class FileInfo:
     def __init__(self, parent=None, state=None):
         self.parent = parent
         self.children = []
@@ -22,7 +24,7 @@ class FileInfo(object):
             self.old_state = state
             return
         elif state is None:
-            state = QtCore.Qt.Checked
+            state = Qt.Checked
         self.old_state = self.state = state
 
     def __repr__(self):
@@ -74,7 +76,7 @@ class FileInfo(object):
 
 class FsRootFileInfo(FileInfo):
     def __init__(self, fs_info, state=None):
-        super(FsRootFileInfo, self).__init__(parent=None, state=state)
+        super().__init__(parent=None, state=state)
         self.fs_info = fs_info
 
     def get_label(self):
@@ -92,7 +94,7 @@ class FsRootFileInfo(FileInfo):
 
 class FsFileInfo(FileInfo):
     def __init__(self, fs_info, parent=None, state=None):
-        super(FsFileInfo, self).__init__(parent=parent, state=state)
+        super().__init__(parent=parent, state=state)
         self.fs_info = fs_info
 
     def get_label(self):
@@ -110,7 +112,7 @@ class FsFileInfo(FileInfo):
 
 class DocFileInfo(FileInfo):
     def __init__(self, doc, parent=None):
-        super(DocFileInfo, self).__init__(parent=parent)
+        super().__init__(parent=parent)
         self.doc = doc
 
     def get_label(self):
@@ -128,7 +130,7 @@ class DocFileInfo(FileInfo):
 
 class DocRootFileInfo(FileInfo):
     def __init__(self, doc):
-        super(DocRootFileInfo, self).__init__()
+        super().__init__()
         self.doc = doc
 
     def get_label(self):
@@ -141,7 +143,7 @@ class DocRootFileInfo(FileInfo):
         return self.doc.folderish
 
 
-class Client(object):
+class Client:
     def get_children(self, parent=None):
         return None
 
@@ -157,13 +159,13 @@ class FilteredFsClient(Client):
             path += '/'
 
         if any(path.startswith(filter_path) for filter_path in self.filters):
-            return QtCore.Qt.Unchecked
+            return Qt.Unchecked
 
         # Find partial checked
         if any(filter_path.startswith(path) for filter_path in self.filters):
-            return QtCore.Qt.PartiallyChecked
+            return Qt.PartiallyChecked
 
-        return QtCore.Qt.Checked
+        return Qt.Checked
 
     def get_children(self, parent=None):
         if parent:
@@ -175,14 +177,14 @@ class FilteredFsClient(Client):
             yield FsRootFileInfo(root, self.get_item_state(root.get('path')))
 
 
-class Overlay(QtGui.QWidget):
+class Overlay(QWidget):
 
     def __init__(self, parent=None):
-        QtGui.QLabel.__init__(self, parent)
-        palette = QtGui.QPalette(self.palette())
-        palette.setColor(palette.Background, QtCore.Qt.transparent)
+        QLabel.__init__(self, parent)
+        palette = QPalette(self.palette())
+        palette.setColor(palette.Background, Qt.transparent)
         self.setPalette(palette)
-        self.movie = QtGui.QMovie(find_icon('loader.gif'))
+        self.movie = QMovie(find_icon('loader.gif'))
         self.movie.frameChanged.connect(self.redraw)
         self.movie.start()
 
@@ -190,15 +192,15 @@ class Overlay(QtGui.QWidget):
         self.repaint()
 
 
-class FolderTreeview(QtGui.QTreeView):
+class FolderTreeview(QTreeView):
 
-    showHideLoadingOverlay = QtCore.pyqtSignal(bool)
+    showHideLoadingOverlay = pyqtSignal(bool)
 
     def __init__(self, parent, client):
-        super(FolderTreeview, self).__init__(parent)
+        super().__init__(parent)
         self.client = client
         self.cache = []
-        self.root_item = QtGui.QStandardItemModel()
+        self.root_item = QStandardItemModel()
         self.root_item.itemChanged.connect(self.itemChanged)
         self.showHideLoadingOverlay.connect(self.setLoad)
         self.setModel(self.root_item)
@@ -216,12 +218,12 @@ class FolderTreeview(QtGui.QTreeView):
         self.expanded.connect(self.itemExpanded)
 
     def item_check_parent(self, item):
-        sum_states = sum(item.child(idx).checkState() == QtCore.Qt.Checked
+        sum_states = sum(item.child(idx).checkState() == Qt.Checked
                          for idx in range(item.rowCount()))
         if sum_states == item.rowCount():
-            item.setCheckState(QtCore.Qt.Checked)
+            item.setCheckState(Qt.Checked)
         else:
-            item.setCheckState(QtCore.Qt.PartiallyChecked)
+            item.setCheckState(Qt.PartiallyChecked)
         self.resolve_item_up_changed(item)
 
     def resolve_item_up_changed(self, item):
@@ -231,12 +233,12 @@ class FolderTreeview(QtGui.QTreeView):
         if not parent or not parent.isCheckable():
             return
 
-        parent.setCheckState(QtCore.Qt.PartiallyChecked)
+        parent.setCheckState(Qt.PartiallyChecked)
         self.update_item_changed(parent)
         self.item_check_parent(parent)
 
     def update_item_changed(self, item):
-        fs_info = item.data(QtCore.Qt.UserRole).toPyObject()
+        fs_info = item.data(Qt.UserRole).toPyObject()
 
         # Fake children have no data attached
         if not fs_info:
@@ -298,7 +300,7 @@ class FolderTreeview(QtGui.QTreeView):
             parent = self.model().invisibleRootItem()
             parent_item = None
         else:
-            parent_item = parent.data(QtCore.Qt.UserRole).toPyObject()
+            parent_item = parent.data(Qt.UserRole).toPyObject()
 
         if parent_item:
             if parent_item.get_id() in self.cache:
@@ -312,7 +314,7 @@ class FolderTreeview(QtGui.QTreeView):
 
         parent.removeRows(0, parent.rowCount())
         for child in self.sort_children(children):
-            subitem = QtGui.QStandardItem(child.get_label())
+            subitem = QStandardItem(child.get_label())
             if child.checkable():
                 subitem.setCheckable(True)
                 subitem.setCheckState(True)
@@ -321,18 +323,18 @@ class FolderTreeview(QtGui.QTreeView):
             subitem.setEnabled(child.enable())
             subitem.setSelectable(child.selectable())
             subitem.setEditable(False)
-            subitem.setData(QtCore.QVariant(child), QtCore.Qt.UserRole)
+            subitem.setData(QVariant(child), Qt.UserRole)
 
             # Create a fake loading item for now
             if child.has_children():
-                loaditem = QtGui.QStandardItem('')
+                loaditem = QStandardItem('')
                 loaditem.setSelectable(False)
                 subitem.appendRow(loaditem)
             parent.appendRow(subitem)
 
         self.showHideLoadingOverlay.emit(False)
 
-    @QtCore.pyqtSlot(bool)
+    @pyqtSlot(bool)
     def setLoad(self, value):
         (self.overlay.hide, self.overlay.show)[value]()
 
