@@ -1,6 +1,9 @@
 # 3.1.1
 Release date: `2018-06-xx`
 
+### Core
+- [NXDRIVE-1230](https://jira.nuxeo.com/browse/NXDRIVE-1230): Fix the ability to disable a Worker
+
 ### Packaging / Build
 - [NXDRIVE-1229](https://jira.nuxeo.com/browse/NXDRIVE-1229): Do not install Drive in %APPDATA% but %LOCALAPPDATA% folder on Windows
 
