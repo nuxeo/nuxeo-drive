@@ -2,6 +2,7 @@
 Release date: `2018-06-xx`
 
 ### Core
+- [NXDRIVE-605](https://jira.nuxeo.com/browse/NXDRIVE-605): Handle corrupted SQLite database
 - [NXDRIVE-1230](https://jira.nuxeo.com/browse/NXDRIVE-1230): Fix the ability to disable a Worker
 
 ### Packaging / Build
