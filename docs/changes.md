@@ -25,6 +25,11 @@ Changes in command line arguments:
 - Packaging: Updated `pytest` from 3.5.1 to 3.6.0
 
 
+# 3.1.1
+Release date: `2018-06-xx`
+
+
+
 # 3.1.0
 Release date: `2018-05-23`
 
