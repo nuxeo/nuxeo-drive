@@ -11,6 +11,8 @@ from threading import RLock, current_thread, local
 
 from PyQt4.QtCore import QObject, pyqtSignal
 
+from .utils import fix_db
+
 log = getLogger(__name__)
 
 SCHEMA_VERSION = 'schema_version'
@@ -129,7 +131,20 @@ class ConfigurationDAO(QObject):
         super(ConfigurationDAO, self).__init__()
         log.debug('Create DAO on %r', db)
         self._db = db
-        migrate = os.path.exists(self._db)
+        exists = os.path.isfile(self._db)
+
+        if exists:
+            # Fix potential file corruption
+            try:
+                fix_db(self._db)
+            except sqlite3.DatabaseError:
+                # The file is too damaged, just recreate it from scratch.
+                # Sync data will not be re-downloaded nor deleted, but a full
+                # scan will be done.
+                os.rename(self._db,
+                          self._db + '_' + str(int(datetime.now().timestamp())))
+                exists = False
+
         # For testing purpose only should always be True
         self.share_connection = True
         self.auto_commit = True
@@ -145,7 +160,7 @@ class ConfigurationDAO(QObject):
         self._conn.row_factory = self._state_factory
         c = self._conn.cursor()
         self._init_db(c)
-        if migrate:
+        if exists:
             res = c.execute('SELECT value '
                             '  FROM Configuration '
                             ' WHERE name = ?', (SCHEMA_VERSION,)).fetchone()
@@ -169,16 +184,19 @@ class ConfigurationDAO(QObject):
     def _migrate_table(self, cursor, name):
         # Add the last_transfer
         tmpname = '{}Migration'.format(name)
+
+        # In case of a bad/unfinished migration
+        cursor.execute('DROP TABLE IF EXISTS {}'.format(tmpname))
+
         cursor.execute('ALTER TABLE {} RENAME TO {}'.format(name, tmpname))
-        # Because Windows dont release the table, force the creation
+        # Because Windows don't release the table, force the creation
         self._create_table(cursor, name, force=True)
         target_cols = self._get_columns(cursor, name)
         source_cols = self._get_columns(cursor, tmpname)
         cols = ', '.join(set(target_cols).intersection(source_cols))
         cursor.execute('INSERT INTO {} ({}) '
                        'SELECT {}'
-                       '  FROM {}'.format(
-            name, cols, cols, tmpname))
+                       '  FROM {}'.format(name, cols, cols, tmpname))
         cursor.execute('DROP TABLE {}'.format(tmpname))
 
     def _create_table(self, cursor, name, force=False):
@@ -274,8 +292,10 @@ class ConfigurationDAO(QObject):
                 con.commit()
 
     def update_config(self, name, value):
-        if self.get_config(name) == value:
-            return
+        # We cannot use this anymore because it will end on a DatabaseError.
+        # Will re-activate with NXDRIVE-1205
+        # if self.get_config(name) == value:
+        #     return
 
         with self._lock:
             con = self._get_write_connection()
