@@ -1,7 +1,6 @@
 # coding: utf-8
 import os
 import platform
-import sip
 import subprocess
 import sys
 import unicodedata
@@ -10,6 +9,7 @@ from collections import namedtuple
 from logging import getLogger
 from urlparse import urlparse
 
+import sip
 from PyQt4 import QtCore
 from PyQt4.QtGui import QApplication
 from PyQt4.QtScript import QScriptEngine
@@ -71,6 +71,7 @@ class Manager(QtCore.QObject):
             os.path.expanduser(Options.nxdrive_home))
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
+
         self._create_dao()
 
         self.notification_service = DefaultNotificationService(self)
