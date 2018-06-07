@@ -39,13 +39,14 @@ DisableProgramGroupPage=yes
 ; Do not require admin rights, no UAC
 PrivilegesRequired=lowest
 
-; Set the output directory to user's AppData by default.
+; Set the output directory to user's AppData\Local by default.
 ; You can override by setting the "/TARGETDIR="C:\folder" argument.
-; NOTE: the installer will not ask for admin rights, so check
+; NOTE 1: the installer will not ask for admin rights, so check
 ; the current user can install in that directory.
 ; If not, comment the previous line "PrivilegesRequired=...".
+; NOTE 2: we do not support this argument as it will break the auto-updater.
 DisableDirPage=yes
-DefaultDirName={param:targetdir|{userappdata}\{#MyAppName}}
+DefaultDirName={param:targetdir|{localappdata}\{#MyAppName}}
 
 ; License file
 LicenseFile=..\..\LICENSE.txt
