@@ -96,7 +96,7 @@
     "IGNORE_REASON_UNKNOWN": "Este archivo se ha ignorado por un motivo desconocido",
     "INVALID_CREDENTIALS": "Credenciales no válidas",
     "INVALID_PARTITION": "Este tipo de partición no es compatible",
-    "LANGUAGE": "Inglés",
+    "LANGUAGE": "Español",
     "LANGUAGE_SELECT": "Idioma",
     "LAST_CONTRIBUTOR": "Último colaborador: {{ contributor }}",
     "LAST_SYNCHRONIZED": "Última sincronización: {{ date }}",

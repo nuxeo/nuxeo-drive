@@ -96,7 +96,7 @@
     "IGNORE_REASON_UNKNOWN": "Dit bestand wordt genegeerd om een onbekende reden",
     "INVALID_CREDENTIALS": "Ongeldige aanmeldgegevens",
     "INVALID_PARTITION": "Dit type partitie wordt niet ondersteund",
-    "LANGUAGE": "Hollands",
+    "LANGUAGE": "Nederlands",
     "LANGUAGE_SELECT": "Taal",
     "LAST_CONTRIBUTOR": "Laatste medewerker: {{ contributor }}",
     "LAST_SYNCHRONIZED": "Laatste keer gesynchroniseerd: {{ date }}",

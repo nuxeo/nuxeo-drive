@@ -96,7 +96,7 @@
     "IGNORE_REASON_UNKNOWN": "このファイルは理由不明で無視されています",
     "INVALID_CREDENTIALS": "無効のクレデンシャル情報",
     "INVALID_PARTITION": "このタイプのパーティションはサポートされていません",
-    "LANGUAGE": "英語",
+    "LANGUAGE": "日本語",
     "LANGUAGE_SELECT": "言語",
     "LAST_CONTRIBUTOR": "最終投稿者： {{ contributor }}",
     "LAST_SYNCHRONIZED": "最後の同期： {{ date }}",

@@ -96,7 +96,7 @@
     "IGNORE_REASON_UNKNOWN": "Den här filen ignoreras av okänd orsak",
     "INVALID_CREDENTIALS": "Ogiltiga inloggningsuppgifter",
     "INVALID_PARTITION": "Den här typen av partition stöds inte",
-    "LANGUAGE": "Engelska",
+    "LANGUAGE": "Svenska",
     "LANGUAGE_SELECT": "Språk",
     "LAST_CONTRIBUTOR": "Senaste bidragare: {{ contributor }}",
     "LAST_SYNCHRONIZED": "Senaste synkronisering: {{ date }}",

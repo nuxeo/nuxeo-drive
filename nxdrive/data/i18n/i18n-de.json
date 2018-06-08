@@ -7,7 +7,7 @@
     "AUTOSTART": "Beim Hochfahren starten",
     "AUTOUPDATE": "Drive automatisch aktualisieren",
     "AUTOUPDATE_DOWNGRADE": "Downgrade auf {{ version }} ist erforderlich",
-    "AUTOUPDATE_MANUAL": "Please download and install it manually from the updates website.",
+    "AUTOUPDATE_MANUAL": "Bitte von der Update Webseite downloaden und installieren.",
     "AUTOUPDATE_UPGRADE": "Eine neue Version {{ version }} ist verfügbar",
     "BETACHANNEL": "Mithilfe von Nuxeo Drive Betakanal aktualisieren",
     "BROWSE_DIALOG_CAPTION": "Speicherort des Nuxeo Drive-Ordners auswählen",
