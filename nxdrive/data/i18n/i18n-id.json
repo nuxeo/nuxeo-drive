@@ -96,7 +96,7 @@
     "IGNORE_REASON_UNKNOWN": "Berkas ini diabaikan untuk alasan yang tidak diketahui",
     "INVALID_CREDENTIALS": "Kredensial tidak sah",
     "INVALID_PARTITION": "Jenis partisi ini tidak didukung",
-    "LANGUAGE": "Bahasa Inggris",
+    "LANGUAGE": "Bahasa Indonesia",
     "LANGUAGE_SELECT": "Bahasa",
     "LAST_CONTRIBUTOR": "Kontributor terakhir: {{ contributor }}",
     "LAST_SYNCHRONIZED": "Sinkronisasi terakhir: {{ date }}",
