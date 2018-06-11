@@ -6,6 +6,7 @@ Release date: `2018-06-xx`
 - [NXDRIVE-1230](https://jira.nuxeo.com/browse/NXDRIVE-1230): Fix the ability to disable a Worker
 
 ### Packaging / Build
+- [NXDRIVE-1226](https://jira.nuxeo.com/browse/NXDRIVE-1226): Deprecate macOS 10.10 (Yosemite)
 - [NXDRIVE-1229](https://jira.nuxeo.com/browse/NXDRIVE-1229): Do not install Drive in %APPDATA% but %LOCALAPPDATA% folder on Windows
 
 

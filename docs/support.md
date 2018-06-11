@@ -6,7 +6,7 @@ Here is a page where you can see the OS vendors and versions as well as the brow
 
 List of officially supported platform vendors and versions:
 
-- macOS >= 10.10, 64 bits
+- macOS >= 10.11, 64 bits
 - Windows 7, both 32 and 64 bits
 - Windows 8, both 32 and 64 bits
 - Windows 8.1, both 32 and 64 bits
@@ -14,6 +14,7 @@ List of officially supported platform vendors and versions:
 
 History:
 
+- `2018-06-11`: dropped support for macOS 10.10
 - `2018-02-23`: dropped support for macOS 10.4 - 10.9
 - `2017-04-11`: dropped support for Windows Vista
 - `2014-04-08`: dropped support for Windows XP
