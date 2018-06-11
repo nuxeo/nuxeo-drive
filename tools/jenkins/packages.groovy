@@ -26,17 +26,17 @@ properties([
 
 // Jenkins slaves we will build on
 //
-//   Until NXDRIVE-864 is done, we need to use OSXSLAVE-DRIVE
-//   instead of OSXSLAVE because it contains the manual
-//   installation of Qt4 & the macOS code-signing certificate.
-//
 //   Until NXDRIVE-351 is done, the SLAVE slave is not needed.
 //
-//slaves = ['OSXSLAVE-DRIVE', 'SLAVE', 'WINSLAVE']
-slaves = ['OSXSLAVE-DRIVE', 'WINSLAVE']
+//   We are using TWANG because it is the oldest macOS version we support (10.11).
+//   The macOS installer needs to be built on that version to support 10.11+ because
+//   PyInstaller is not retro-compatible: if we would build on 10.13, the minimum
+//   supported macOS version would become 10.13.
+//
+slaves = ['TWANG', 'WINSLAVE']
 labels = [
-    'OSXSLAVE-DRIVE': 'macOS',
     'SLAVE': 'GNU/Linux',
+    'TWANG': 'macOS',
     'WINSLAVE': 'Windows'
 ]
 builders = [:]
