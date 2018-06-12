@@ -26,7 +26,7 @@ Changes in command line arguments:
 
 
 # 3.1.1
-Release date: `2018-06-xx`
+Release date: `2018-06-12`
 
 ### Core
 - [NXDRIVE-605](https://jira.nuxeo.com/browse/NXDRIVE-605): Handle corrupted SQLite database
