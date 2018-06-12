@@ -17,6 +17,7 @@ Where `$OSI` is one of: `linux`, `osx`.
 Possible `ARG`:
 
     --build: freeze the client into self-hosted binary package
+    --build-ext: build the FinderSync extension (macOS only)
     --start: start Nuxeo Drive
     --tests: launch the tests suite
 

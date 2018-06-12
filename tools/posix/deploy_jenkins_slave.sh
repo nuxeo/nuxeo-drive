@@ -5,6 +5,7 @@
 #
 # Possible ARG:
 #     --build: build the package
+#     --build-ext: build the FinderSync extension (macOS only)
 #     --start: start Nuxeo Drive
 #     --tests: launch the tests suite
 #
@@ -299,8 +300,19 @@ main() {
     # Adjust PATH for Mac
     [ "${OSI}" = "osx" ] && export PATH="$PATH:/usr/local/bin"
 
-    # Launch operations
     check_vars
+
+    # The FinderSync extension build does not require extra setup
+    if [ $# -eq 1 ]; then
+        case "$1" in
+            "--build-ext")
+                build_extension
+                exit 0
+            ;;
+        esac
+    fi
+
+    # Launch operations
     install_pyenv
     install_python "${PYTHON_DRIVE_VERSION}"
     verify_python "${PYTHON_DRIVE_VERSION}"
