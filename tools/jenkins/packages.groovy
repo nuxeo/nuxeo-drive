@@ -80,6 +80,20 @@ for (x in slaves) {
                     }
                 }
 
+                stage(osi + ' Extension') {
+                    // Trigger the Drive extensions job to build extensions and have artifacts
+                    if (osi == 'macOS') {
+                        build job: 'Drive-extensions', parameters: [
+                            [$class: 'StringParameterValue',
+                                name: 'BRANCH_NAME',
+                                value: params.BRANCH_NAME]]
+
+                        dir('sources') {
+                            step([$class: 'CopyArtifact', filter: 'extension.zip', projectName: 'Drive-extensions'])
+                        }
+                    }
+                }
+
                 stage(osi + ' Build') {
                     dir('sources') {
                         dir('build') {
@@ -100,7 +114,7 @@ for (x in slaves) {
                             } else if (osi == 'macOS') {
                                 def env_vars = [
                                     'SIGNING_ID=NUXEO CORP',
-                                    'LOGIN_KEYCHAIN_PATH=/Users/jenkins/Library/Keychains/login.keychain-db',
+                                    "LOGIN_KEYCHAIN_PATH=${env.HOME}/Library/Keychains/login.keychain",
                                 ]
                                 withEnv(env_vars) {
                                     withCredentials([string(credentialsId: 'MOBILE_LOGIN_KEYCHAIN_PASSWORD',

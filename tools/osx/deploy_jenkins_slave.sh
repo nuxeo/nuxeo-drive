@@ -19,8 +19,27 @@ prepare_signing() {
 
     echo ">>> [sign] Unlocking the Nuxeo keychain"
     security unlock-keychain -p "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}"
-    security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}"
+    # set-key-partition-list was added in Sierra (macOS 10.12)
+    security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}" || true
     security set-keychain-settings "${LOGIN_KEYCHAIN_PATH}"
+}
+
+build_extension() {
+    # Create the FinderSync extension, if not already done
+    local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
+
+    if test -f "${WORKSPACE_DRIVE}/extension.zip"; then
+        # The extension has been unstashed from a specific job, just decompress it
+        echo ">>> [package] Decompressing the FinderSync extension"
+        unzip -o -d "${WORKSPACE_DRIVE}" "${WORKSPACE_DRIVE}/extension.zip"
+        rm -fv "${WORKSPACE_DRIVE}/extension.zip"
+        return
+    fi
+
+    echo ">>> [package] Building the FinderSync extension"
+    xcodebuild -project "${extension_path}/drive.xcodeproj" -target "NuxeoFinderSync" -configuration Release build
+    mv -fv "${extension_path}/build/Release/NuxeoFinderSync.appex" "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex"
+    rm -rf "${extension_path}/build"
 }
 
 create_package() {
@@ -40,13 +59,10 @@ create_package() {
     echo ">>> [package] Updating Info.plist"
     sed "s/\$version/${app_version}/" "${plist}" > "${pkg_path}/Contents/Info.plist"
 
-    echo ">>> [package] Building the FinderSync extension"
-    xcodebuild -project "${extension_path}/drive.xcodeproj" -target "NuxeoFinderSync" -configuration Release build
-
+    build_extension
     echo ">>> [package] Adding the extension to the package"
     mkdir "${pkg_path}/Contents/PlugIns"
-    cp -a  "${extension_path}/build/Release/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/."
-    rm -rf "${extension_path}/build"
+    mv -fv "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/."
 
     echo ">>> [package] Creating the DMG file"
     rm -fv ${output_dir}/*.dmg
@@ -93,7 +109,6 @@ create_package() {
 
     # Clean tmp directories
     rm -rf "${src_folder_tmp}" "${dmg_tmp}"
-
 
     if [ "${SIGNING_ID:=unset}" != "unset" ]; then
         codesign -vs "${SIGNING_ID}" "dist/nuxeo-drive-${app_version}.dmg"

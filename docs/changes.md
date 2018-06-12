@@ -35,6 +35,7 @@ Release date: `2018-06-xx`
 ### Packaging / Build
 - [NXDRIVE-1226](https://jira.nuxeo.com/browse/NXDRIVE-1226): Deprecate macOS 10.10 (Yosemite)
 - [NXDRIVE-1229](https://jira.nuxeo.com/browse/NXDRIVE-1229): Do not install Drive in %APPDATA% but %LOCALAPPDATA% folder on Windows
+- [NXDRIVE-1232](https://jira.nuxeo.com/browse/NXDRIVE-1232): Split the macOS installer build to support macOS 10.11
 
 
 # 3.1.0
