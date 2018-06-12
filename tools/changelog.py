@@ -14,7 +14,7 @@ import sys
 
 import requests
 
-__version__ = '1.2.5'
+__version__ = '1.2.6'
 
 
 # Available formatters
@@ -122,12 +122,13 @@ def get_latest_tag():
 
     debug('>>> Retrieving latest created tag')
     cmd = 'git rev-list --tags --remove-empty --branches=master --max-count=10'
+    latest = ''
     for sha1 in backtick(cmd.split()).splitlines():
         cmd = 'git describe --abbrev=0 --tags ' + sha1
         tag = backtick(cmd.split())
-        if tag.startswith('release-'):
-            return tag
-    return ''
+        if tag.startswith('release-') and tag > latest:
+            latest = tag
+    return latest
 
 
 def get_issues(args):
