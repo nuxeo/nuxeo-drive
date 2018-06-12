@@ -37,6 +37,9 @@ Release date: `2018-06-xx`
 - [NXDRIVE-1229](https://jira.nuxeo.com/browse/NXDRIVE-1229): Do not install Drive in %APPDATA% but %LOCALAPPDATA% folder on Windows
 - [NXDRIVE-1232](https://jira.nuxeo.com/browse/NXDRIVE-1232): Split the macOS installer build to support macOS 10.11
 
+#### Minor changes
+- Tools: Fixed the changelog latest release tag guess
+
 
 # 3.1.0
 Release date: `2018-05-23`
