@@ -19,6 +19,9 @@ class Translator(object):
             filepath = os.path.join(path, filename)
             with codecs.open(filepath, encoding='utf-8') as fp:
                 label = self.guess_label(filename)
+                # Hebrew is not translated, skip it
+                if label == 'he':
+                    continue
                 self._labels[label] = json.loads(fp.read())
 
         # List language

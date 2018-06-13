@@ -13,6 +13,7 @@ Changes in command line arguments:
 
 ### GUI
 - [NXDRIVE-1183](https://jira.nuxeo.com/browse/NXDRIVE-1183): Make server UI selection smarter
+- [NXDRIVE-1235](https://jira.nuxeo.com/browse/NXDRIVE-1235): Disable Hebrew language as it is not translated
 
 ### Packaging / Build
 - [NXDRIVE-1234](https://jira.nuxeo.com/browse/NXDRIVE-1234): Tweak pyup.io parameters
