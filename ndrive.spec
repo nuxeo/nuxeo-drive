@@ -36,6 +36,7 @@ excludes = [
 ]
 
 data = [(data, 'data')]
+version = get_version(os.path.join(nxdrive, '__init__.py'))
 properties_rc = None
 
 if sys.platform == 'win32':
@@ -49,7 +50,6 @@ if sys.platform == 'win32':
     if os.path.isfile(properties_rc):
         os.remove(properties_rc)
 
-    version = get_version(nxdrive + '\__init__.py')
     version_tuple = tuple(map(int, version.split('.') + [0]))
 
     tpl = io.open(properties_tpl, encoding='utf-8')
@@ -85,7 +85,20 @@ coll = COLLECT(exe,
                a.datas,
                name='ndrive')
 
+info_plist = {
+    'CFBundleName': 'NuxeoDrive',
+    'CFBundleShortVersionString': version,
+    'CFBundleURLTypes': {
+        'CFBundleURLName': 'org.nuxeo.nxdrive.direct-edit',
+        'CFBundleTypeRole': 'Editor',
+        'CFBundleURLSchemes': ['nxdrive'],
+    },
+    'LSUIElement': True,  # Implies LSBackgroundOnly, no icon in the Dock
+    'NSHighResolutionCapable': True,
+}
+
 app = BUNDLE(coll,
              name='Nuxeo Drive.app',
              icon=icon,
+             info_plist=info_plist,
              bundle_identifier='org.nuxeo.drive')

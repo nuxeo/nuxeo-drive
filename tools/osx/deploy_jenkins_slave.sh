@@ -51,13 +51,9 @@ create_package() {
     local src_folder_tmp="${WORKSPACE}/dmg_src_folder.tmp"
     local dmg_tmp="${WORKSPACE}/nuxeo-drive.tmp.dmg"
     local background_file="${WORKSPACE_DRIVE}/tools/osx/dmgbackground.png"
-    local plist="${WORKSPACE_DRIVE}/tools/osx/Info.plist"
     local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
     local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store"
     local app_version="$(python "${WORKSPACE_DRIVE}/tools/changelog.py" --drive-version)"
-
-    echo ">>> [package] Updating Info.plist"
-    sed "s/\$version/${app_version}/" "${plist}" > "${pkg_path}/Contents/Info.plist"
 
     build_extension
     echo ">>> [package] Adding the extension to the package"

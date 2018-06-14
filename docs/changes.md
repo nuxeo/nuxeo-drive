@@ -16,6 +16,7 @@ Changes in command line arguments:
 - [NXDRIVE-1235](https://jira.nuxeo.com/browse/NXDRIVE-1235): Disable Hebrew language as it is not translated
 
 ### Packaging / Build
+- [NXDRIVE-1217](https://jira.nuxeo.com/browse/NXDRIVE-1217): Hide the Dock icon on macOS
 - [NXDRIVE-1234](https://jira.nuxeo.com/browse/NXDRIVE-1234): Tweak pyup.io parameters
 
 ### Tests
