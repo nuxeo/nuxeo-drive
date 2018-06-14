@@ -222,7 +222,7 @@ class WebDriveApi(QObject):
         if engine is not None:
             for state in engine.get_last_files(number, str(direction)):
                 result.append(self._export_state(state))
-        return self._json(result)
+        return result
 
     @pyqtSlot(str, str, result=QObject)
     def update_password_async(self, uid, password):
@@ -356,7 +356,7 @@ class WebDriveApi(QObject):
         if engine:
             for conflict in engine.get_errors():
                 result.append(self._export_state(conflict))
-        return self._json(result)
+        return result
 
     @pyqtSlot(result=bool)
     def is_frozen(self):
@@ -385,7 +385,7 @@ class WebDriveApi(QObject):
         if engine:
             for conflict in engine.get_conflicts():
                 result.append(self._export_state(conflict))
-        return self._json(result)
+        return result
 
     @pyqtSlot(result=str)
     def get_infos(self):
