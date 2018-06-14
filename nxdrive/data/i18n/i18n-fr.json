@@ -177,7 +177,7 @@
     "SECTION_ACCOUNTS": "Comptes",
     "SECTION_ADVANCED": "Avancé",
     "SECTION_GENERAL": "Général",
-    "SELECT_SYNC_FOLDERS": "Filtres",
+    "SELECT_SYNC_FOLDERS": "Sélectionner les dossiers à synchroniser",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Sélection des dossiers à synchroniser localement. Vous devez être connecté.",
     "SERVER_DEFAULT": "Server par défaut",
     "SERVER_UI": "Server UI",
