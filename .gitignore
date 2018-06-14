@@ -18,6 +18,7 @@ ENV
 htmlcov
 .idea
 *.iml
+*.jsc
 lextab.py
 MANIFEST
 .mypy_cache
@@ -27,11 +28,13 @@ pypi*
 .pydevproject
 .pyre*
 .pytest_cache
+*.qmlc
 .ropeproject
 .settings
 *.swp
 target*
 tools/windows/properties.rc
 venv
+.vscode
 xcuserdata
 yacctab.py
