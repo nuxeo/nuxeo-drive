@@ -27,8 +27,10 @@ Changes in command line arguments:
 - Jenkins: Removed the `ENABLE_PROFILER` parameter from the Drive-tests job
 - Packaging: Added `nuxeo` 2.0.1
 - Packaging: Updated `psutil` from 5.4.4 to 5.4.6
+- Packaging: Updated `pyobjc` from 4.1 to 4.2.2
 - Packaging: Updated `pypac` from 0.8.1 to 0.9.0
 - Packaging: Updated `pytest` from 3.5.1 to 3.6.1
+- Packaging: Updated `pytest-timeout` from 1.2.1 to 1.3.0
 
 
 # 3.1.1
