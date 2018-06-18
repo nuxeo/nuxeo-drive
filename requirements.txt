@@ -17,7 +17,7 @@ watchdog==0.8.3
 xattr==0.9.3; sys_platform != 'win32'
 
 # macOS specific
-pyobjc==4.1; sys_platform == 'darwin'
+pyobjc==4.2.2; sys_platform == 'darwin'
 
 # Windows specific
 pypiwin32==219; python_version == '2.7' and sys_platform == 'win32'  # pyup: ignore
