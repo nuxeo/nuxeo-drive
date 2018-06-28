@@ -49,7 +49,7 @@ def create_versions(dst, version):
     print(">>> Crafting versions.yml")
     yml = b"""
 {version}:
-    min: '7.10'
+    min: '7.10-HF11'
     type: release
     checksum:
         algo: sha256

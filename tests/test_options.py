@@ -95,7 +95,7 @@ def test_defaults():
     assert not Options.debug
     assert Options.delay == 30
     assert not Options.force_locale
-    assert Options.startup_page == "drive_login.jsp"
+    assert Options.startup_page == "acquire_token.jsp"
     assert not Options.callbacks
 
 
