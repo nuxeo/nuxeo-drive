@@ -7,6 +7,8 @@ Rectangle {
     property string currentColor
     property string hoveredColor
     property string unhoveredColor
+    
+    property bool hovered: mouseArea.containsMouse
 
     currentColor: mouseArea.containsMouse ? hoveredColor : unhoveredColor
 
@@ -14,7 +16,7 @@ Rectangle {
 
     MouseArea {
         id: mouseArea
-        z: 20
+        z: parent.z + 20
         cursorShape: Qt.PointingHandCursor
         anchors.fill: parent
         anchors.margins: -3

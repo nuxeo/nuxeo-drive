@@ -6,7 +6,7 @@ from urllib.parse import unquote
 
 import requests
 from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtWidgets import (QAction, QApplication, QDialog, QDialogButtonBox,
                              QMenu, QMessageBox, QSystemTrayIcon,
                              QTextEdit, QVBoxLayout)
@@ -63,6 +63,7 @@ class SimpleApplication(QApplication):
             find_resource('i18n'),
             self.manager.get_config('locale', locale),
         )
+        self.installTranslator(Translator._singleton)
 
     @staticmethod
     def get_htmlpage(page):
@@ -92,6 +93,8 @@ class Application(SimpleApplication):
         self._conflicts_modals = dict()
         self.current_notification = None
         self.default_tooltip = self.manager.app_name
+        self.setFont(QFont(
+            'Neue Haas Grotesk Display Std, Helvetica, Arial, sans-serif'))
 
         self.aboutToQuit.connect(self.manager.stop)
         self.manager.dropEngine.connect(self.dropped_engine)
@@ -298,9 +301,9 @@ class Application(SimpleApplication):
     def show_settings(self, section='Accounts'):
         settings = self.dialogs.get('settings')
         if not settings:
-            from .settings import WebSettingsDialog
-            settings = WebSettingsDialog(self, section)
-            self._create_unique_dialog('settings', settings)
+            from .settings import SettingsView
+            settings = SettingsView(self, section)
+            self.dialogs['settings'] = settings
 
         settings.set_section(section)
         self._show_window(settings)

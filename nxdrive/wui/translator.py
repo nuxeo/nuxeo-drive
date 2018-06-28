@@ -4,16 +4,20 @@ import json
 import os
 import re
 
+from PyQt5.QtCore import pyqtProperty, pyqtSignal, pyqtSlot, QObject, QTranslator
 from ..utils import force_decode
 
 
-class Translator:
+class Translator(QTranslator):
 
+    languageChanged = pyqtSignal()
     _singleton = None
 
     def __init__(self, manager, path, lang=None):
+        super(Translator, self).__init__()
         self._labels = None
         self._manager = manager
+        self._current_lang = None
 
         # Load from JSON
         self._labels = {}
@@ -42,6 +46,14 @@ class Translator:
         self._fallback = self._labels['en']
 
         Translator._singleton = self
+
+    def translate(self, context, text, disambiguation='', n=-1):
+        return self._get(text)
+
+    @pyqtProperty(str, notify=languageChanged)
+    def tr(self):
+        return ''
+
 
     @staticmethod
     def guess_label(filename):
@@ -91,14 +103,17 @@ class Translator:
             return self._tokenize(self._fallback[label], values)
         return self._tokenize(self._current[label], values)
 
+    @pyqtSlot(str)
     def _set(self, lang):
         try:
             self._current = self._labels[lang]
         except KeyError:
             raise ValueError('Unknown language {!r}'.format(lang))
         else:
-            self._current_lang = lang
-            self._manager.set_config('locale', lang)
+            if self._current_lang != lang:
+                self._current_lang = lang
+                self._manager.set_config('locale', lang)
+                self.languageChanged.emit()
 
     def _locale(self):
         return self._current_lang

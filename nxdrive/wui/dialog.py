@@ -9,18 +9,18 @@ import uuid
 from logging import getLogger
 from urllib.parse import urlparse
 
-from PyQt5 import QtNetwork
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngineSettings
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QUrl, QByteArray, Qt
-from PyQt5.QtNetwork import (QNetworkProxy, QNetworkProxyFactory,
-                             QSslCertificate)
-from PyQt5.QtWidgets import QDialog, QFileDialog, QVBoxLayout
 from dateutil.tz import tzlocal
 from nuxeo.exceptions import Unauthorized
+from PyQt5 import QtNetwork
+from PyQt5.QtCore import QByteArray, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QIcon
+from PyQt5.QtNetwork import (QNetworkProxy, QNetworkProxyFactory,
+                             QSslCertificate)
+from PyQt5.QtWebEngineWidgets import (QWebEnginePage, QWebEngineSettings,
+                                      QWebEngineView)
+from PyQt5.QtWidgets import QDialog, QFileDialog, QVBoxLayout
 from requests import ConnectionError
 
-from .translator import Translator
 from ..engine.activity import Action, FileAction
 from ..engine.dao.sqlite import StateRow
 from ..engine.engine import Engine
@@ -28,6 +28,7 @@ from ..engine.workers import Worker
 from ..manager import FolderAlreadyUsed
 from ..notification import Notification
 from ..options import Options
+from .translator import Translator
 
 log = getLogger(__name__)
 
@@ -154,7 +155,7 @@ class WebDriveApi(QObject):
         current_time = int(time.time())
         date_time = self.get_date_from_sqlite(state.last_sync_date)
         sync_time = self.get_timestamp_from_date(date_time)
-        if state.last_local_updated > state.last_remote_updated:
+        if state.last_local_updated or '' > state.last_remote_updated or '':
             result['last_sync_direction'] = 'download'
         result['last_sync'] = current_time - sync_time
         if date_time != 0:
@@ -626,7 +627,7 @@ class WebDialog(QDialog):
         # If connect to a remote page add the X-Authentication-Token
         if filename.startswith('http'):
             log.trace('Load web page %r', filename)
-            self.request = url = QtNetwork.QNetworkRequest(QUrl(filename))
+            self.request = url = QUrl(filename)
             if self.token is not None:
                 url.setRawHeader('X-Authentication-Token',
                                  QByteArray(self.token))

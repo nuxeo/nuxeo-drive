@@ -7,12 +7,12 @@ Item {
     id: systray
     width: Screen.width; height: Screen.height
 
+    signal hide()
+
     MouseArea {
         width: parent.width; height: parent.height
         anchors.centerIn: parent
-        onClicked: {
-            systray.hide()
-        }
+        onClicked: systray.hide()
     }
 
     FontLoader {
@@ -21,57 +21,26 @@ Item {
     }
 
     signal appUpdate()
-    signal getConflicts(string uid)
-    signal getLastFiles(string uid)
-    signal hide()
-    signal openMenu()
-    signal openMetadata(string uid, string ref)
-    signal openLocal(string uid, string path)
-    signal openRemote(string uid)
     signal pickEngine(var engine)
-    signal quit()
     signal refresh(string uid)
     signal setAutoUpdate(bool auto)
-    signal setConflicts(string conflicts)
-    signal setErrors(string errors)
     signal setEngine(string uid)
     signal setTrayPosition(int x, int y)
-    signal showConflicts(string uid)
-    signal showSettings(string page)
-    signal showHelp()
-    signal suspend(bool start)
-    signal syncingItems(string itemsLeft)
     signal updateInfo(string message, string confirm, string type, string version)
 
     property var currentEngine
-    property var syncCount: ""
 
     onPickEngine: {
         currentEngine = engine
         engineText.text = engine.server
         systray.setEngine(engine.uid)
-        systray.refresh(engine.uid)
     }
-    onSetConflicts: {
-        conflictButton.text = conflicts
-        conflictButton.visible = (conflicts != "")
-    }
-    onSetErrors: {
-        errorButton.text = errors
-        errorButton.visible = (errors != "")
-    }
+
     onSetTrayPosition: {
         systrayContainer.x = x
         systrayContainer.y = y
     }
-    onSyncingItems: {
-        itemsLeftText.text = itemsLeft
-        if (itemsLeft == "") {
-            activity.status = "ok"
-        } else {
-            activity.status = "sync"
-        }
-    }
+
     onUpdateInfo: {
         systrayInfo.text = message
         if (type == "downgrade") {
@@ -82,12 +51,20 @@ Item {
         systrayInfo.visible = (message != "")
     }
     
-
     Timer {
-        interval: 2000; running: true; repeat: true
+        id: refreshTimer
+        interval: 100; running: true; repeat: false
         onTriggered: {
-            systray.refresh(currentEngine.uid)
+            itemsLeftText.count = api.get_syncing_count(currentEngine.uid)
+            conflictButton.count = api.get_conflicts_count(currentEngine.uid)
+            errorButton.count = api.get_errors_count(currentEngine.uid)
         }
+    }
+
+    Component.onCompleted: {
+        refreshTimer.interval = 1000
+        refreshTimer.repeat = true
+        refreshTimer.running = true
     }
 
     Rectangle {
@@ -118,11 +95,7 @@ Item {
                         leftMargin: 10
                         topMargin: 10
                     }
-                    font {
-                        family: "Neue Haas Grotesk Display Std"
-                        weight: Font.Bold
-                        pointSize: 14
-                    }
+                    font { weight: Font.Bold; pointSize: 14 }
                     smooth: true
                 }
             }
@@ -200,31 +173,19 @@ Item {
                     id: contextMenu
 
                     MenuItem {
-                        text: settingsText
-                        font {
-                            family: "Neue Haas Grotesk Display Std"
-                            weight: Font.Bold
-                            pointSize: 14
-                        }
-                        onTriggered: { systray.showSettings("Accounts") }
+                        text: qsTr("SETTINGS") + tl.tr
+                        font { weight: Font.Bold; pointSize: 14 }
+                        onTriggered: api.show_settings("General")
                     }
                     MenuItem {
-                        text: helpText
-                        font {
-                            family: "Neue Haas Grotesk Display Std"
-                            weight: Font.Bold
-                            pointSize: 14
-                        }
-                        onTriggered: { systray.showHelp() }
+                        text: qsTr("HELP") + tl.tr
+                        font { weight: Font.Bold; pointSize: 14 }
+                        onTriggered: api.open_help()
                     }
                     MenuItem {
-                        text: quitText
-                        font {
-                            family: "Neue Haas Grotesk Display Std"
-                            weight: Font.Bold
-                            pointSize: 14
-                        }
-                        onTriggered: { systray.quit() }
+                        text: qsTr("QUIT") + tl.tr
+                        font { weight: Font.Bold; pointSize: 14 }
+                        onTriggered: application.quit()
                     }
                 }
             }
@@ -261,12 +222,9 @@ Item {
                         topMargin: 8
                         leftMargin: 10
                     }
-                    font {
-                        family: "Neue Haas Grotesk Display Std"
-                        pointSize: 14
-                    }
+                    font.pointSize: 14
                     smooth: true
-                    text: recentlyUpdated
+                    text: qsTr("RECENTLY_UPDATED") + tl.tr
                 }
             }
 
@@ -285,9 +243,7 @@ Item {
 
                     IconLabel { icon: MdiFont.Icon.folder }
 
-                    onClicked: {
-                        systray.openLocal(systray.currentEngine.uid, '/')
-                    }
+                    onClicked: api.open_local(systray.currentEngine.uid, '/')
                 }
 
                 HoverRectangle {
@@ -301,15 +257,13 @@ Item {
 
                     IconLabel { icon: MdiFont.Icon.earth }
 
-                    onClicked: {
-                        systray.openRemote(systray.currentEngine.uid)
-                    }
+                    onClicked: api.open_remote(systray.currentEngine.uid)
                 }
 
                 PauseButton {
                     id: suspend
                     width: 30; height: parent.height
-                    onToggled: { systray.suspend(running) }
+                    onToggled: api.suspend(running)
 
                     anchors {
                         top: parent.top
@@ -333,7 +287,6 @@ Item {
         ListView {
             id: recentFiles
             width: systrayContainer.width - 2; height: 250
-            z: 5
 
             delegate: recentFilesDelegate
             model: FileModel
@@ -365,10 +318,7 @@ Item {
                             leftMargin: 10
                         }
 
-                        font {
-                            family: "Neue Haas Grotesk Display Std"
-                            pointSize: 14
-                        }
+                        font.pointSize: 14
                     }
 
                     Rectangle {
@@ -397,10 +347,7 @@ Item {
                             }
                             color: "#999"
 
-                            font {
-                                family: "Neue Haas Grotesk Display Std"
-                                pointSize: 12
-                            }
+                            font.pointSize: 12
                             text: time
                         }
                     }
@@ -409,9 +356,7 @@ Item {
                         id: local
                         width: 30; height: parent.height - 1
                         z: 20
-                        onClicked: {
-                            systray.openLocal(currentEngine.uid, path)
-                        }
+                        onClicked: api.open_local(currentEngine.uid, path)
 
                         anchors {
                             right: parent.right
@@ -428,9 +373,7 @@ Item {
                         id: metadata
                         width: 30; height: parent.height - 1
                         z: 20
-                        onClicked: {
-                            systray.openMetadata(currentEngine.uid, path)
-                        }
+                        onClicked: api.show_metadata(currentEngine.uid, path)
 
                         anchors {
                             right: local.left
@@ -478,16 +421,13 @@ Item {
                     topMargin: 30
                 }
 
-                font {
-                    family: "Neue Haas Grotesk Display Std"
-                    pointSize: 18
-                }
+                font.pointSize: 18
             }
 
             NuxeoCheckBox {
                 id: autoUpdate
 
-                text: autoUpdateMessage
+                text: qsTr("AUTOUPDATE") + tl.tr
                 checked: autoUpdateValue
 
                 anchors {
@@ -496,10 +436,7 @@ Item {
                     bottomMargin: 50
                 }
 
-                font {
-                    family: "Neue Haas Grotesk Display Std"
-                    pointSize: 16
-                }
+                font.pointSize: 16
                 onClicked: {
                     systray.setAutoUpdate(checked)
                 }
@@ -513,9 +450,6 @@ Item {
                 }
 
                 NuxeoButton {
-                    darkColor: darkBlue
-                    lightColor: nuxeoBlue
-
                     onClicked: { updatePopup.close() }
 
                     anchors {
@@ -524,12 +458,10 @@ Item {
                         leftMargin: 10
                         topMargin: 10
                     }
-                    text: cancelText
+                    text: qsTr("DIRECT_EDIT_CONFLICT_CANCEL") + tl.tr
                 }
 
                 NuxeoButton {
-                    darkColor: darkBlue
-                    lightColor: nuxeoBlue
                     inverted: true
 
                     onClicked: { systray.appUpdate() }
@@ -540,14 +472,14 @@ Item {
                         leftMargin: 10
                         topMargin: 10
                     }
-                    text: updateText
+                    text: qsTr("UPDATE") + tl.tr
                 }
             }
         }
 
         HoverRectangle {
             id: systrayInfo
-            width: systrayContainer.width - 2; height: 30; z: 30
+            width: systrayContainer.width - 2; height: 30
             visible: updateMessage != ""
             opacity: 1
             color: lightGray
@@ -566,11 +498,7 @@ Item {
 
                 text: systrayInfo.text
 
-                font {
-                    family: "Neue Haas Grotesk Display Std"
-                    weight: Font.Bold
-                    pointSize: 12
-                }
+                font { weight: Font.Bold; pointSize: 12 }
             }
 
             onClicked: {
@@ -582,7 +510,6 @@ Item {
         Rectangle {
             id: systrayBottom
             width: systrayContainer.width - 2; height: 49
-            z: 10
 
             anchors {
                 horizontalCenter: parent.horizontalCenter
@@ -618,17 +545,17 @@ Item {
 
                 Text {
                     id: itemsLeftText
+                    property int count: 0
+
+                    visible: count > 0
+                    text: qsTr("SYNCHRONIZATION_ITEMS_LEFT").arg(count) + tl.tr
 
                     anchors {
                         verticalCenter: parent.verticalCenter
                         right: parent.right
                     }
 
-                    font {
-                        family: "Neue Haas Grotesk Display Std"
-                        weight: Font.Bold
-                        pointSize: 14
-                    }
+                    font { weight: Font.Bold; pointSize: 14 }
                     smooth: true
                 }
             }
@@ -646,13 +573,16 @@ Item {
                     id: conflictButton
                     height: 15
 
-                    visible: false
+                    property int count: 0
+                    visible: count > 0
+                    text: qsTr("CONFLICTS_SYSTRAY").arg(count) + tl.tr
+
                     darkColor: orange
                     lightColor: orange
                     inverted: true
                     font.pointSize: 10
 
-                    onClicked: { systray.showConflicts(currentEngine.uid) }
+                    onClicked: api.show_conflicts_resolution(currentEngine.uid)
 
                     anchors {
                         left: parent.left
@@ -666,13 +596,16 @@ Item {
                     id: errorButton
                     width: parent.width; height: 15
 
-                    visible: false
+                    property int count: 0
+                    visible: count > 0
+                    text: qsTr("ERRORS_SYSTRAY").arg(count) + tl.tr
+
                     darkColor: red
                     lightColor: red
                     inverted: true
                     font.pointSize: 10
 
-                    onClicked: { systray.showConflicts(currentEngine.uid) }
+                    onClicked: api.show_conflicts_resolution(currentEngine.uid)
 
                     anchors {
                         left: parent.left

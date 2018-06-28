@@ -1,17 +1,18 @@
 # coding: utf-8
 import os
+import sys
 
-from PyQt5.QtCore import QAbstractListModel, QModelIndex, Qt, QUrl, pyqtSlot
+from PyQt5.QtCore import Qt, QUrl, pyqtSlot
 from PyQt5.QtGui import QColor, QCursor
-from PyQt5.QtQuick import QQuickView
 from PyQt5.QtWidgets import QApplication, QMenu, QStyle, QSystemTrayIcon
 
 from ..constants import MAC
 from ..options import Options
 from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
                                  UPDATE_STATUS_UPDATE_AVAILABLE)
-from .dialog import WebDialog, WebDriveApi
+from .dialog import WebDriveApi
 from .translator import Translator
+from .view import FileModel, NuxeoView
 
 
 class DriveSystrayIcon(QSystemTrayIcon):
@@ -158,12 +159,20 @@ class WebSystrayApi(WebDriveApi):
         return Options.debug or MAC or os.environ.get('USE_OLD_MENU', False)
 
     @pyqtSlot(str, result=int)
-    def get_syncing_items(self, uid):
+    def get_syncing_count(self, uid):
         count = 0
         engine = self._get_engine(str(uid))
         if engine:
             count = engine.get_dao().get_syncing_count()
         return count
+
+    @pyqtSlot(str, result=int)
+    def get_conflicts_count(self, uid):
+        return len(self.get_conflicts(uid))
+
+    @pyqtSlot(str, result=int)
+    def get_errors_count(self, uid):
+        return len(self.get_errors(uid))
 
     @pyqtSlot()
     def advanced_systray(self):
@@ -219,189 +228,25 @@ class WebSystray(QMenu):
         self.dialog.raise_()
 
 
-class EngineModel(QAbstractListModel):
-    UID_ROLE = Qt.UserRole + 1
-    TYPE_ROLE = Qt.UserRole + 2
-    SERVER_ROLE = Qt.UserRole + 3
-
-    def __init__(self, parent=None):
-        super(EngineModel, self).__init__(parent)
-        self.engines = []
-
-    def roleNames(self):
-        return {
-            self.UID_ROLE: b'uid',
-            self.TYPE_ROLE: b'type',
-            self.SERVER_ROLE: b'server'
-        }
-
-    def addEngines(self, engines, parent=QModelIndex()):
-        count = self.rowCount()
-        self.beginInsertRows(parent, count, count + len(engines) - 1)
-        self.engines.extend(engines)
-        self.endInsertRows()
-
-    def removeEngine(self, uid):
-        for idx, engine in enumerate(self.engines):
-            if engine.uid == uid:
-                self.removeRows(idx, 1)
-                break
-
-    def data(self, index, role=TYPE_ROLE):
-        row = self.engines[index.row()]
-        if role == self.UID_ROLE:
-            return row['uid']
-        if role == self.TYPE_ROLE:
-            return row['type']
-        if role == self.SERVER_ROLE:
-            return row['server']
-        return None
-
-    def removeRows(self, row, count, parent=QModelIndex()):
-        self.beginRemoveRows(parent, row, row + count - 1)
-        for i in range(count):
-            self.engines.pop(row)
-        self.endRemoveRows()
-
-    def empty(self):
-        count = self.rowCount()
-        self.removeRows(0, count)
-
-    def rowCount(self, parent=QModelIndex()):
-        return len(self.engines)
-
-
-class FileModel(QAbstractListModel):
-    NAME_ROLE = Qt.UserRole + 1
-    TIME_ROLE = Qt.UserRole + 2
-    TRANSFER_ROLE = Qt.UserRole + 3
-    PATH_ROLE = Qt.UserRole + 4
-
-    def __init__(self, parent=None):
-        super(FileModel, self).__init__(parent)
-        self.files = []
-
-    def roleNames(self):
-        return {
-            self.NAME_ROLE: b'name',
-            self.TIME_ROLE: b'time',
-            self.TRANSFER_ROLE: b'transfer',
-            self.PATH_ROLE: b'path'
-        }
-
-    def addFiles(self, files, parent=QModelIndex()):
-        count = self.rowCount()
-        self.beginInsertRows(parent, count, count + len(files) - 1)
-        self.files.extend(files)
-        self.endInsertRows()
-
-    def data(self, index, role=NAME_ROLE):
-        row = self.files[index.row()]
-        if role == self.NAME_ROLE:
-            data = row['name']
-        if role == self.TIME_ROLE:
-            data = row['last_sync_date']
-        if role == self.TRANSFER_ROLE:
-            data = row['last_transfer'].replace('load', '')
-        if role == self.PATH_ROLE:
-            data = row['local_path']
-        return data
-
-    def removeRows(self, row, count, parent=QModelIndex()):
-        self.beginRemoveRows(parent, row, row + count - 1)
-        for i in range(count):
-            self.files.pop(row)
-        self.endRemoveRows()
-
-    def empty(self):
-        count = self.rowCount()
-        self.removeRows(0, count)
-
-    def rowCount(self, parent=QModelIndex()):
-        return len(self.files)
-
-
-class SystrayView(QQuickView):
+class SystrayView(NuxeoView):
 
     def __init__(self, application, icon):
-        super(SystrayView, self).__init__()
+        super(SystrayView, self).__init__(
+            application, WebSystrayApi(application, self))
 
-        self.application = application
         self.icon = icon
-        self.api = WebSystrayApi(application, self)
         self.setColor(QColor.fromRgba64(0, 0, 0, 0))
 
-        self.engine_model = EngineModel()
-        self.add_engines(
-            list(self.application.manager._engines.values()), init=True)
         self.file_model = FileModel()
         self.setFlags(Qt.FramelessWindowHint | Qt.Popup)
 
         context = self.rootContext()
         context.setContextProperty('Systray', self)
-        context.setContextProperty('EngineModel', self.engine_model)
         context.setContextProperty('FileModel', self.file_model)
-        self.load_text()
-        self.load_colors()
 
-        self.application.manager.newEngine.connect(self.add_engines)
-        self.application.manager.initEngine.connect(self.add_engines)
-        self.application.manager.dropEngine.connect(self.remove_engine)
         self.application.manager.updater.updateAvailable.connect(
             self.update_info)
-
-    def add_engines(self, engines, init=False):
-        if not engines:
-            return
-
-        need_reload = not self.engine_model.rowCount() and not init
-        engines = engines if isinstance(engines, list) else [engines]
-
-        self.engine_model.addEngines([{
-            'uid': e.uid,
-            'type': e.type,
-            'server': e.name
-        } for e in engines])
-
-        if need_reload:
-            self.reload()
-
-    def remove_engine(self, engine):
-        self.engine_model.removeEngine(engine.uid)
-        if not self.engine_model.rowCount():
-            self.reload()
-
-    def load_colors(self):
-        colors = {
-            'darkBlue': '#1F28BF',
-            'nuxeoBlue': '#0066FF',
-            'lightBlue': '#00ADED',
-            'teal': '#73D2CF',
-            'purple': '#8400FF',
-            'red': '#D20038',
-            'orange': '#FF9E00',
-            'mediumGray': '#7F8284',
-            'lightGray': '#F5F5F5',
-        }
-
-        context = self.rootContext()
-        for name, value in colors.items():
-            context.setContextProperty(name, value)
-
-    def load_text(self):
-        messages = {
-            'settingsText': 'SETTINGS',
-            'helpText': 'HELP',
-            'quitText': 'QUIT',
-            'recentlyUpdated': 'RECENTLY_UPDATED',
-            'autoUpdateMessage': 'AUTOUPDATE',
-            'updateText': 'UPDATE',
-            'cancelText': 'DIRECT_EDIT_CONFLICT_CANCEL',
-        }
-
-        context = self.rootContext()
-        for name, value in messages.items():
-            context.setContextProperty(name, Translator.get(value))
+        self.init()
 
     def get_last_files(self, uid):
         files = self.api.get_last_files(uid, 10, '')
@@ -439,68 +284,31 @@ class SystrayView(QQuickView):
             self.rootObject().updateInfo.emit(
                 update_message, update_confirm, update_type, update_version)
 
-    def refresh(self, uid):
-        items_count = self.api.get_syncing_items(uid)
-        conflicts_count = len(self.api.get_conflicts(uid))
-        errors_count = len(self.api.get_errors(uid))
-
-        items_left = ("" if not items_count
-                      else Translator.get('SYNCHRONIZATION_ITEMS_LEFT',
-                                          {'number': str(items_count)}))
-        conflicts = ("" if not conflicts_count
-                     else Translator.get(
-                         'CONFLICTS_SYSTRAY',
-                         {'conflicted_files': str(conflicts_count)}))
-        errors = ("" if not errors_count
-                  else Translator.get(
-                      'ERRORS_SYSTRAY',
-                      {'error_files': str(errors_count)}))
-        root = self.rootObject()
-        root.syncingItems.emit(items_left)
-        root.setConflicts.emit(conflicts)
-        root.setErrors.emit(errors)
-
     def set_engine(self, uid):
         self.get_last_files(uid)
 
     def set_tray_position(self, x, y):
         self.rootObject().setTrayPosition.emit(x, y)
 
-    def reload(self):
+    def init(self):
         """
         Resize and move the system tray menu accordingly to
         the system tray icon position.
         """
-
+        super(SystrayView, self).init()
         if not self.icon.application.manager.get_engines():
             height = 280
             self.setSource(QUrl('nxdrive/data/qml/NoEngineSystray.qml'))
-            root = self.rootObject()
         else:
             height = 370
             self.update_info(in_context=True)
             self.setSource(QUrl('nxdrive/data/qml/Systray.qml'))
-            root = self.rootObject()
             # Connect signals for systray
-            root.getLastFiles.connect(self.get_last_files)
-            root.openLocal.connect(self.api.open_local)
-            root.openMenu.connect(self.api.advanced_systray)
-            root.openMetadata.connect(self.api.show_metadata)
-            root.openRemote.connect(self.api.open_remote)
-            root.showConflicts.connect(self.api.show_conflicts_resolution)
-            root.showHelp.connect(self.api.open_help)
-            root.refresh.connect(self.refresh)
-            root.setEngine.connect(self.set_engine)
-            root.suspend.connect(self.api.suspend)
+            self.rootObject().setEngine.connect(self.set_engine)
             self.application.manager.updater.updateAvailable.connect(
                 self.update_info)
-            # When the ListView loads, the engine is not yet set
-            # so we fill it "manually"
-            self.get_last_files(self.engine_model.engines[0]['uid'])
-        # Signals valid for both
-        root.hide.connect(self.hide)
-        root.quit.connect(self.application.quit)
-        root.showSettings.connect(self.api.show_settings)
+            self.get_last_files(self.engine_model.engines[0].uid)
+        self.rootObject().hide.connect(self.hide)
 
         geometry = self.geometry()
         icon = self.icon.geometry()

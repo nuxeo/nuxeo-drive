@@ -9,7 +9,7 @@ from sip import SIP_VERSION_STR
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QT_VERSION_STR, PYQT_VERSION_STR
 from PyQt5.QtWidgets import QApplication
 
 from . import __version__
@@ -380,6 +380,7 @@ class Manager(QObject):
                 return ""
         return folder
 
+    @pyqtSlot(str)
     def open_local_file(self, file_path: str, select: bool = False) -> None:
         # TODO: Move to utils.py
         """
@@ -429,6 +430,7 @@ class Manager(QObject):
         Options.set(key, value, setter="manual", fail_on_error=False)
         self._dao.update_config(key, value)
 
+    @pyqtSlot(result=bool)
     def get_direct_edit_auto_lock(self) -> bool:
         # Enabled by default, if app is frozen
         return (
@@ -436,16 +438,20 @@ class Manager(QObject):
             == "1"
         )
 
+    @pyqtSlot(bool)
     def set_direct_edit_auto_lock(self, value: bool) -> None:
         self._dao.update_config("direct_edit_auto_lock", value)
 
+    @pyqtSlot(result=bool)
     def get_auto_update(self) -> bool:
         # Enabled by default, if app is frozen
         return self._dao.get_config("auto_update", str(int(Options.is_frozen))) == "1"
 
+    @pyqtSlot(bool)
     def set_auto_update(self, value: bool) -> None:
         self._dao.update_config("auto_update", value)
 
+    @pyqtSlot(result=bool)
     def get_auto_start(self) -> bool:
         # Enabled by default, if app is frozen
         return self._dao.get_config("auto_start", str(int(Options.is_frozen))) == "1"
@@ -457,6 +463,7 @@ class Manager(QObject):
         report.generate()
         return report.get_path()
 
+    @pyqtSlot(bool)
     def set_auto_start(self, value: bool) -> None:
         self._dao.update_config("auto_start", value)
         if value:
@@ -464,20 +471,24 @@ class Manager(QObject):
         else:
             self.osi.unregister_startup()
 
+    @pyqtSlot(result=bool)
     def get_beta_channel(self) -> bool:
         return self._dao.get_config("beta_channel", "0") == "1"
 
+    @pyqtSlot(bool)
     def set_beta_channel(self, value: bool) -> None:
         self.set_config("beta_channel", value)
         # Trigger update status refresh
         self.refresh_update_status()
 
+    @pyqtSlot(result=bool)
     def get_tracking(self) -> bool:
         """
         Avoid sending statistics when testing or if the user does not allow it.
         """
         return all({Options.is_frozen, self._dao.get_config("tracking", "1") == "1"})
 
+    @pyqtSlot(bool)
     def set_tracking(self, value: bool) -> None:
         self._dao.update_config("tracking", value)
         if value:

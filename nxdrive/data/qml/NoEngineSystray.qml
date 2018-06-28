@@ -5,18 +5,15 @@ Item {
     id: systray
     width: Screen.width; height: Screen.height
 
+    signal hide()
+    
     MouseArea {
         width: parent.width; height: parent.height
         anchors.centerIn: parent
-        onClicked: {
-            systray.hide()
-        }
+        onClicked: systray.hide()
     }
 
-    signal hide()
-    signal showSettings(string page)
     signal setTrayPosition(int x, int y)
-    signal quit()
 
     onSetTrayPosition: {
         systrayContainer.x = x
@@ -53,13 +50,9 @@ Item {
                 top: logo.bottom
                 topMargin: 45
             }
-            font {
-                family: "Neue Haas Grotesk Display Std"
-                weight: Font.Bold
-                pointSize: 16
-            }
+            font { weight: Font.Bold; pointSize: 16 }
             color: darkBlue
-            text: "Set your account and synchronize your files with the Nuxeo Platform."
+            text: qsTr("WELCOME_MESSAGE") + tl.tr
             wrapMode: Text.WordWrap
         }
 
@@ -74,13 +67,9 @@ Item {
 
             NuxeoButton {
                 id: quitButton
+                text: qsTr("QUIT") + tl.tr
 
-                darkColor: darkBlue
-                lightColor: lightBlue
-
-                text: "Quit"
-
-                onClicked: { systray.quit() }
+                onClicked: application.quit()
 
                 anchors {
                     left: parent.left
@@ -90,14 +79,10 @@ Item {
 
             NuxeoButton {
                 id: accountButton
-
-                darkColor: darkBlue
-                lightColor: lightBlue
                 inverted: true
+                text: qsTr("SET_ACCOUNT") + tl.tr
 
-                text: "Set Account"
-
-                onClicked: { systray.showSettings("Accounts") }
+                onClicked: api.show_settings("Accounts")
 
                 anchors {
                     right: parent.right
