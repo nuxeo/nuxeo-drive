@@ -35,7 +35,7 @@ def create(version):
     # Create the version file
     output = "{}.yml".format(version)
     yml = """{}:
-    min: '7.10'
+    min: '7.10-HF11'
     type: {}
     checksum:
         algo: sha256
