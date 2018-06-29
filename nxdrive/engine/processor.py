@@ -21,6 +21,8 @@ from ..exceptions import (DuplicationDisabledError, NotFound, PairInterrupt,
 from ..utils import (current_milli_time, is_generated_tmp_file, lock_path,
                      safe_filename, unlock_path)
 
+__all__ = ('Processor',)
+
 log = getLogger(__name__)
 
 

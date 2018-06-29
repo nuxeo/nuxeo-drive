@@ -21,6 +21,8 @@ from ...options import Options
 from ...utils import (current_milli_time, force_decode, is_generated_tmp_file,
                       normalize_event_filename as normalize)
 
+__all__ = ('DriveFSEventHandler', 'LocalWatcher', 'WIN_MOVE_RESOLUTION_PERIOD')
+
 log = getLogger(__name__)
 
 # Windows 2s between resolution of delete event

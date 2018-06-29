@@ -16,6 +16,8 @@ from ..constants import MAC, WINDOWS
 if MAC:
     from Foundation import NSLocale
 
+__all__ = ('Tracker',)
+
 log = getLogger(__name__)
 
 

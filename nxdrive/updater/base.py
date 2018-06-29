@@ -20,6 +20,8 @@ from ..engine.workers import PollWorker
 from ..options import Options
 from ..utils import version_le
 
+__all__ = ('BaseUpdater',)
+
 log = getLogger(__name__)
 
 

@@ -6,6 +6,8 @@ from logging import getLogger
 from ..processor import Processor as OldProcessor
 from ...constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
 
+__all__ = ('Processor',)
+
 log = getLogger(__name__)
 
 

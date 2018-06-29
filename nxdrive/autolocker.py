@@ -10,6 +10,8 @@ from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
 from .utils import force_decode
 
+__all__ = ('ProcessAutoLockerWorker',)
+
 log = getLogger(__name__)
 
 

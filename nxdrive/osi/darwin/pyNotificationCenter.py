@@ -5,6 +5,8 @@ from Foundation import (NSBundle, NSMutableDictionary, NSObject,
 
 from ...constants import BUNDLE_IDENTIFIER
 
+__all__ = ('NotificationDelegator', 'notify', 'setup_delegator')
+
 
 class NotificationDelegator(NSObject):
 

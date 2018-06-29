@@ -5,6 +5,8 @@ from logging import getLogger
 
 from PyQt5.QtCore import QCoreApplication
 
+__all__ = ('ConsoleApplication',)
+
 log = getLogger(__name__)
 
 

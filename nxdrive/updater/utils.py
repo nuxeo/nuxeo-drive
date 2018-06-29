@@ -3,6 +3,8 @@ from logging import getLogger
 
 from ..utils import version_between
 
+__all__ = ('get_latest_compatible_version',)
+
 log = getLogger(__name__)
 
 

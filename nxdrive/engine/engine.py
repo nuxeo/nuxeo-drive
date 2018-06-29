@@ -12,8 +12,7 @@ from .activity import Action, FileAction
 from .dao.sqlite import EngineDAO
 from .processor import Processor
 from .queue_manager import QueueManager
-from .watcher.local_watcher import LocalWatcher
-from .watcher.remote_watcher import RemoteWatcher
+from .watcher import LocalWatcher, RemoteWatcher
 from .workers import Worker
 from ..client import FilteredRemote, LocalClient, Remote
 from ..constants import MAC, WINDOWS
@@ -22,6 +21,8 @@ from ..exceptions import (InvalidDriveException, PairInterrupt,
 from ..options import Options
 from ..utils import (find_icon, normalized_path, safe_filename,
                      set_path_readonly, unset_path_readonly)
+
+__all__ = ('Engine', 'ServerBindingSettings')
 
 log = getLogger(__name__)
 

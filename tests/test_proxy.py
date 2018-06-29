@@ -4,7 +4,8 @@ import os
 import pytest
 from mock import patch
 
-from nxdrive.client.proxy import *
+from nxdrive.client.proxy import (AutomaticProxy, ManualProxy, get_proxy,
+                                  load_proxy, save_proxy)
 from nxdrive.constants import MAC, WINDOWS
 from nxdrive.engine.dao.sqlite import ConfigurationDAO
 from nxdrive.manager import Manager

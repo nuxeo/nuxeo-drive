@@ -25,6 +25,8 @@ try:
 except ImportError:
     QSslSocket = None
 
+__all__ = ('CliHandler',)
+
 log = getLogger(__name__)
 
 USAGE = """ndrive [command]

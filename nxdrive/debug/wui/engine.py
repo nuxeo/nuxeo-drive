@@ -7,6 +7,8 @@ from PyQt5.QtCore import pyqtSlot
 from ...logging_config import MAX_LOG_DISPLAYED, get_handler
 from ...wui.dialog import WebDialog, WebDriveApi
 
+__all__ = ('EngineDialog',)
+
 log = getLogger(__name__)
 
 

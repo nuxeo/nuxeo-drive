@@ -29,6 +29,8 @@ from ..options import Options
 from ..utils import (get_device, lock_path, make_tmp_file,
                      unlock_path, version_le)
 
+__all__ = ('FilteredRemote', 'NuxeoDocumentInfo', 'Remote', 'RemoteFileInfo')
+
 log = getLogger(__name__)
 
 socket.setdefaulttimeout(TX_TIMEOUT)

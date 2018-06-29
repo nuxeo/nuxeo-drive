@@ -6,6 +6,8 @@ from contextlib import suppress
 from logging import getLogger
 from shutil import copyfile
 
+__all__ = ('fix_db',)
+
 log = getLogger(__name__)
 
 

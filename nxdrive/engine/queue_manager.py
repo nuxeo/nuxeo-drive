@@ -10,6 +10,8 @@ from PyQt5.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 
 from .processor import Processor
 
+__all__ = ('QueueManager',)
+
 log = getLogger(__name__)
 WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
 

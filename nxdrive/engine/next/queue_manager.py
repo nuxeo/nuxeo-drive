@@ -4,6 +4,8 @@ from logging import getLogger
 
 from ..queue_manager import QueueManager as OldQueueManager
 
+__all__ = ('QueueManager',)
+
 log = getLogger(__name__)
 
 
