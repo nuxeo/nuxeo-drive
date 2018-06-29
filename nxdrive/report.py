@@ -6,6 +6,8 @@ from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 from .logging_config import MAX_LOG_DISPLAYED, get_handler
 
+__all__ = ('Report',)
+
 log = getLogger(__name__)
 
 

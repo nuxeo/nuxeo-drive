@@ -4,7 +4,7 @@ import shutil
 
 from mock import patch
 
-from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
+from nxdrive.engine.watcher import RemoteWatcher
 from .common import UnitTestCase
 
 wait_for_security_update = False

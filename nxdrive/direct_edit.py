@@ -14,12 +14,14 @@ from .constants import (DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX,
                         WINDOWS)
 from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
-from .engine.watcher.local_watcher import DriveFSEventHandler
+from .engine.watcher import DriveFSEventHandler
 from .engine.workers import Worker
 from .exceptions import NotFound, ThreadInterrupt
 from .utils import (current_milli_time, force_decode, guess_digest_algorithm,
                     normalize_event_filename, parse_protocol_url, simplify_url,
                     unset_path_readonly)
+
+__all__ = ('DirectEdit',)
 
 log = getLogger(__name__)
 

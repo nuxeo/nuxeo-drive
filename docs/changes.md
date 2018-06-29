@@ -14,6 +14,7 @@ Changes in command line arguments:
 - [NXDRIVE-922](https://jira.nuxeo.com/browse/NXDRIVE-922): Move custom exceptions to exceptions.py
 - [NXDRIVE-1068](https://jira.nuxeo.com/browse/NXDRIVE-1068): Move proxy support to a dedicated module (**breaking change**)
 - [NXDRIVE-1201](https://jira.nuxeo.com/browse/NXDRIVE-1201): Adapt Drive for new Trash API behavior
+- [NXDRIVE-1210](https://jira.nuxeo.com/browse/NXDRIVE-1210): Sanitize exported objects
 
 ### GUI
 - [NXDRIVE-1183](https://jira.nuxeo.com/browse/NXDRIVE-1183): Make server UI selection smarter

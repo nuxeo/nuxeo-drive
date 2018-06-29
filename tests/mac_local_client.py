@@ -9,7 +9,7 @@ import time
 
 import Cocoa
 
-from nxdrive.client.local_client import LocalClient
+from nxdrive.client import LocalClient
 
 
 class MockFile:

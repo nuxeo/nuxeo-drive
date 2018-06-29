@@ -2,6 +2,8 @@
 import time
 from threading import Lock
 
+__all__ = ('BlacklistQueue',)
+
 
 class BlacklistItem:
 

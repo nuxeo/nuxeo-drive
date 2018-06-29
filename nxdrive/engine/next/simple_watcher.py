@@ -8,9 +8,11 @@ from time import sleep, time
 from watchdog.events import DirModifiedEvent
 
 from ...client.local_client import FileInfo
-from ...engine.watcher.local_watcher import LocalWatcher
+from ...engine.watcher import LocalWatcher
 from ...exceptions import ThreadInterrupt
 from ...utils import current_milli_time, normalize_event_filename
+
+__all__ = ('SimpleWatcher',)
 
 log = getLogger(__name__)
 

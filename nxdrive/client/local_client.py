@@ -12,7 +12,7 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from time import mktime, strptime
-from typing import Callable, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from send2trash import send2trash
 
@@ -33,6 +33,8 @@ if WINDOWS:
 else:
     import stat
     import xattr
+
+__all__ = ('FileInfo', 'LocalClient')
 
 log = getLogger(__name__)
 

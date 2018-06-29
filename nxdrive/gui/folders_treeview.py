@@ -8,6 +8,8 @@ from PyQt5.QtWidgets import QLabel, QTreeView, QWidget
 
 from ..utils import find_icon
 
+__all__ = ('FilteredFsClient', 'FolderTreeview', 'Overlay')
+
 log = getLogger(__name__)
 
 

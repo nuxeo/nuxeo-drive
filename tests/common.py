@@ -22,7 +22,7 @@ from requests import ConnectionError
 
 from nxdrive.client import LocalClient
 from nxdrive.constants import MAC, WINDOWS
-from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
+from nxdrive.engine.watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.utils import safe_long_path, unset_path_readonly

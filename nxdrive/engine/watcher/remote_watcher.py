@@ -16,6 +16,8 @@ from ...constants import WINDOWS
 from ...exceptions import NotFound, ThreadInterrupt
 from ...utils import current_milli_time, path_join, safe_filename
 
+__all__ = ('RemoteWatcher',)
+
 log = getLogger(__name__)
 COLLECTION_SYNC_ROOT_FACTORY_NAME = 'collectionSyncRootFolderItemFactory'
 

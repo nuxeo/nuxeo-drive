@@ -12,6 +12,8 @@ from win32con import LOGPIXELSX
 
 from .. import AbstractOSIntegration
 
+__all__ = ('WindowsIntegration',)
+
 log = getLogger(__name__)
 
 

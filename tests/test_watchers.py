@@ -7,6 +7,7 @@ from mock import patch
 
 from nxdrive.client import LocalClient
 from nxdrive.constants import LINUX, MAC, WINDOWS
+from nxdrive.engine.watcher import WIN_MOVE_RESOLUTION_PERIOD
 from .common import UnitTestCase
 
 
@@ -94,12 +95,9 @@ class TestWatchers(UnitTestCase):
         assert len(res) == folders + files + 1
 
     def _delete_folder_1(self):
-        from time import sleep
         path = '/Folder 1'
         self.local_1.delete_final(path)
         if WINDOWS:
-            from nxdrive.engine.watcher.local_watcher import \
-                WIN_MOVE_RESOLUTION_PERIOD
             sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000 + 1)
         self.wait_sync(timeout=1, fail_if_timeout=False)
 

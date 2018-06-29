@@ -9,6 +9,9 @@ from pypac.resolver import ProxyResolver
 
 from ..utils import decrypt, encrypt
 
+__all__ = ('AutomaticProxy', 'ManualProxy', 'Proxy', 'get_proxy', 'load_proxy',
+           'save_proxy', 'validate_proxy')
+
 log = getLogger(__name__)
 
 

@@ -4,6 +4,8 @@ from logging import getLogger
 
 from .base import BaseUpdater
 
+__all__ = ('Updater',)
+
 log = getLogger(__name__)
 
 

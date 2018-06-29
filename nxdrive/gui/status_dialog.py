@@ -8,6 +8,8 @@ from PyQt5.QtWidgets import (QDialog, QHeaderView, QMenu, QPushButton,
 
 from .folders_treeview import Overlay
 
+__all__ = ('StatusDialog',)
+
 log = getLogger(__name__)
 
 

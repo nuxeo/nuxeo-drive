@@ -9,6 +9,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from .options import Options
 
+__all__ = ('MAX_LOG_DISPLAYED', 'configure', 'get_handler')
+
 FILE_HANDLER = None
 TRACE = 5
 TRACE_ADDED = False
@@ -172,6 +174,7 @@ def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
         memory_handler.set_name('memory')
         memory_handler.setFormatter(formatter)
         root_logger.addHandler(memory_handler)
+
 
 def get_handler(logger, name):
     for handler in logger.handlers:

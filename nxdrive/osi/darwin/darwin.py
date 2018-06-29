@@ -13,6 +13,8 @@ from ...constants import BUNDLE_IDENTIFIER
 from ...engine.workers import Worker
 from ...utils import force_decode, normalized_path
 
+__all__ = ('DarwinIntegration', 'FinderSyncListener')
+
 log = getLogger(__name__)
 
 

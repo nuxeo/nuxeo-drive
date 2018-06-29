@@ -9,6 +9,8 @@ from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
 from .activity import Action, IdleAction
 from ..exceptions import ThreadInterrupt
 
+__all__ = ('EngineWorker', 'PollWorker', 'Worker')
+
 log = getLogger(__name__)
 
 

@@ -28,6 +28,8 @@ if WINDOWS:
     import win32api
     import win32clipboard
 
+__all__ = ('Manager',)
+
 log = getLogger(__name__)
 
 
