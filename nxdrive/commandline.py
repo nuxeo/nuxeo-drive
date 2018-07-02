@@ -403,7 +403,10 @@ class CliHandler:
 
         log.debug('Command line: argv=%r, options=%r', argv, options)
         if QSslSocket:
-            log.info('SSL support = %r', QSslSocket.supportsSsl())
+            has_ssl_support = QSslSocket.supportsSsl()
+            log.info('SSL support: %r', has_ssl_support)
+            if not has_ssl_support:
+                options.consider_ssl_errors = False
 
         # Update default options
         Options.update(options, setter='cli')
