@@ -84,7 +84,7 @@ function check_vars {
 		$Env:PYTHON_DIR = "C:\Python$ver_major$ver_minor-32"
 	}
 
-	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir").FullName
+	$Env:STORAGE_DIR = (New-Item -ItemType Directory -Force -Path "$($Env:WORKSPACE)\deploy-dir\$Env:PYTHON_DRIVE_VERSION").FullName
 
 	Write-Output "    PYTHON_DRIVE_VERSION = $Env:PYTHON_DRIVE_VERSION"
 	Write-Output "    WORKSPACE            = $Env:WORKSPACE"
