@@ -158,15 +158,10 @@ class Manager(QObject):
 
         log.warning('--consider-ssl-errors option is False, '
                     'will not verify HTTPS certificates')
-        try:
-            _context = ssl._create_unverified_context
-        except AttributeError:
-            log.info('Legacy Python that does not verify HTTPS certificates')
-        else:
-            log.info('Handle target environment that does not support HTTPS '
-                     'verification: globally disable verification by '
-                     'monkeypatching the ssl module though highly discouraged')
-            ssl._create_default_https_context = _context
+        log.info('Handle target environment that does not support HTTPS '
+                 'verification: globally disable verification by '
+                 'monkeypatching the ssl module though highly discouraged')
+        ssl._create_default_https_context = ssl._create_unverified_context
 
     def get_metrics(self):
         return {

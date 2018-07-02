@@ -122,7 +122,7 @@ class MetaOptions(type):
         'beta_channel': (False, 'default'),
         'beta_update_site_url': (
             'https://community.nuxeo.com/static/drive-updates', 'default'),
-        'consider_ssl_errors': (False, 'default'),
+        'consider_ssl_errors': (True, 'default'),
         'debug': (False, 'default'),
         'debug_pydev': (False, 'default'),
         'delay': (30, 'default'),
