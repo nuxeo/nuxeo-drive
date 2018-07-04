@@ -38,15 +38,16 @@ def main(workspace, wspace_path, *args, **kwargs):
     num_fol = 10
     num_fil = 100
 
-    start_drive(reset=True, msg='sync remote workspace and quit')
+    start_drive(reset=True, msg="sync remote workspace and quit")
     folders = create_folders_locally(wspace_path, folders=range(num_fol))
-    start_drive(msg='sync local folders and quit')
+    start_drive(msg="sync local folders and quit")
     children = get_children(workspace.title)
 
     create_files_remotely(workspace, files=range(num_fil), folders=folders)
     time.sleep(5)
-    start_drive(msg='files remotely created and folders remotely renamed',
-                background=True)
+    start_drive(
+        msg="files remotely created and folders remotely renamed", background=True
+    )
     for folder in children:
         rename_remote(folder)
     pause()

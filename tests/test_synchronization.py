@@ -9,14 +9,17 @@ from requests import ConnectionError
 from nxdrive.client import LocalClient
 from nxdrive.constants import MAC, WINDOWS
 from . import RemoteTest
-from .common import (DEFAULT_WAIT_SYNC_TIMEOUT, OS_STAT_MTIME_RESOLUTION,
-                     TEST_WORKSPACE_PATH, UnitTestCase)
+from .common import (
+    DEFAULT_WAIT_SYNC_TIMEOUT,
+    OS_STAT_MTIME_RESOLUTION,
+    TEST_WORKSPACE_PATH,
+    UnitTestCase,
+)
 
 
 class TestSynchronization(UnitTestCase):
-
     def get_local_client(self, path):
-        if self._testMethodName == 'test_synchronize_deep_folders':
+        if self._testMethodName == "test_synchronize_deep_folders":
             return LocalClient(path)
         return super().get_local_client(path)
 
@@ -29,24 +32,24 @@ class TestSynchronization(UnitTestCase):
         self.make_server_tree()
 
         # The root binding operation does not create the local folder yet.
-        assert not local.exists('/')
+        assert not local.exists("/")
 
         # Launch ndrive and check synchronization
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/')
-        assert local.exists('/Folder 1')
-        assert local.get_content('/Folder 1/File 1.txt') == b'aaa'
-        assert local.exists('/Folder 1/Folder 1.1')
-        assert local.get_content('/Folder 1/Folder 1.1/File 2.txt') == b'bbb'
-        assert local.exists('/Folder 1/Folder 1.2')
-        assert local.get_content('/Folder 1/Folder 1.2/File 3.txt') == b'ccc'
-        assert local.exists('/Folder 2')
+        assert local.exists("/")
+        assert local.exists("/Folder 1")
+        assert local.get_content("/Folder 1/File 1.txt") == b"aaa"
+        assert local.exists("/Folder 1/Folder 1.1")
+        assert local.get_content("/Folder 1/Folder 1.1/File 2.txt") == b"bbb"
+        assert local.exists("/Folder 1/Folder 1.2")
+        assert local.get_content("/Folder 1/Folder 1.2/File 3.txt") == b"ccc"
+        assert local.exists("/Folder 2")
         # Cannot predict the resolution in advance
-        assert remote.get_content(self._duplicate_file_1) == b'Some content.'
-        assert remote.get_content(self._duplicate_file_2) == b'Other content.'
-        assert local.get_content('/Folder 2/File 4.txt') == b'ddd'
-        assert local.get_content('/File 5.txt') == b'eee'
+        assert remote.get_content(self._duplicate_file_1) == b"Some content."
+        assert remote.get_content(self._duplicate_file_2) == b"Other content."
+        assert local.get_content("/Folder 2/File 4.txt") == b"ddd"
+        assert local.get_content("/File 5.txt") == b"eee"
 
         # Unbind root and resynchronize
         remote.unregister_as_root(self.workspace)
@@ -59,9 +62,10 @@ class TestSynchronization(UnitTestCase):
         else:
             timeout = DEFAULT_WAIT_SYNC_TIMEOUT
             enforce_errors = True
-        self.wait_sync(wait_for_async=True, timeout=timeout,
-                       enforce_errors=enforce_errors)
-        assert not local.exists('/')
+        self.wait_sync(
+            wait_for_async=True, timeout=timeout, enforce_errors=enforce_errors
+        )
+        assert not local.exists("/")
 
     def test_binding_synchronization_empty_start(self):
         local = self.local_1
@@ -75,7 +79,8 @@ class TestSynchronization(UnitTestCase):
 
         # We should now be fully synchronized
         file_count, folder_count = self.get_local_child_count(
-            self.local_nxdrive_folder_1)
+            self.local_nxdrive_folder_1
+        )
         assert folder_count == 5
         assert file_count == 6
 
@@ -84,44 +89,44 @@ class TestSynchronization(UnitTestCase):
         time.sleep(OS_STAT_MTIME_RESOLUTION)
 
         # Let do some local and remote changes concurrently
-        local.delete('/File 5.txt')
-        local.update_content('/Folder 1/File 1.txt', b'aaaa')
-        local.make_folder('/', 'Folder 4')
+        local.delete("/File 5.txt")
+        local.update_content("/Folder 1/File 1.txt", b"aaaa")
+        local.make_folder("/", "Folder 4")
 
         # The remote client used in this test is handling paths relative to
         # the 'Nuxeo Drive Test Workspace'
-        remote.update_content('/Folder 1/Folder 1.1/File 2.txt', b'bbbb')
-        remote.delete('/Folder 2')
-        f3 = remote.make_folder(self.workspace, 'Folder 3')
-        remote.make_file(f3, 'File 6.txt', content=b'ffff')
+        remote.update_content("/Folder 1/Folder 1.1/File 2.txt", b"bbbb")
+        remote.delete("/Folder 2")
+        f3 = remote.make_folder(self.workspace, "Folder 3")
+        remote.make_file(f3, "File 6.txt", content=b"ffff")
 
         # Launch synchronization
         self.wait_sync(wait_for_async=True)
 
         # We should now be fully synchronized again
-        assert not remote.exists('/File 5.txt')
-        assert remote.get_content('/Folder 1/File 1.txt') == b'aaaa'
-        assert remote.exists('/Folder 4')
+        assert not remote.exists("/File 5.txt")
+        assert remote.get_content("/Folder 1/File 1.txt") == b"aaaa"
+        assert remote.exists("/Folder 4")
 
-        assert local.get_content('/Folder 1/Folder 1.1/File 2.txt') == b'bbbb'
+        assert local.get_content("/Folder 1/Folder 1.1/File 2.txt") == b"bbbb"
         # Let's just check remote document hasn't changed
-        assert remote.get_content('/Folder 1/Folder 1.1/File 2.txt') == b'bbbb'
-        assert not local.exists('/Folder 2')
-        assert local.exists('/Folder 3')
-        assert local.get_content('/Folder 3/File 6.txt') == b'ffff'
+        assert remote.get_content("/Folder 1/Folder 1.1/File 2.txt") == b"bbbb"
+        assert not local.exists("/Folder 2")
+        assert local.exists("/Folder 3")
+        assert local.get_content("/Folder 3/File 6.txt") == b"ffff"
 
         # Send some binary data that is not valid in utf-8 or ascii
         # (to test the HTTP transform layer).
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        local.update_content('/Folder 1/File 1.txt', b'\x80')
-        remote.update_content('/Folder 1/Folder 1.1/File 2.txt', b'\x80')
+        local.update_content("/Folder 1/File 1.txt", b"\x80")
+        remote.update_content("/Folder 1/Folder 1.1/File 2.txt", b"\x80")
 
         self.wait_sync(wait_for_async=True)
 
-        assert remote.get_content('/Folder 1/File 1.txt') == b'\x80'
-        assert local.get_content('/Folder 1/Folder 1.1/File 2.txt') == b'\x80'
+        assert remote.get_content("/Folder 1/File 1.txt") == b"\x80"
+        assert local.get_content("/Folder 1/Folder 1.1/File 2.txt") == b"\x80"
         # Let's just check remote document hasn't changed
-        assert remote.get_content('/Folder 1/Folder 1.1/File 2.txt') == b'\x80'
+        assert remote.get_content("/Folder 1/Folder 1.1/File 2.txt") == b"\x80"
 
     def test_single_quote_escaping(self):
         remote = self.remote_document_client_1
@@ -129,7 +134,7 @@ class TestSynchronization(UnitTestCase):
 
         remote.unregister_as_root(self.workspace)
         self.engine_1.start()
-        remote.make_folder('/', "APPEL D'OFFRES")
+        remote.make_folder("/", "APPEL D'OFFRES")
         remote.register_as_root("/APPEL D'OFFRES")
         self.wait_sync(wait_for_async=True)
         assert local.exists("/APPEL D'OFFRES")
@@ -146,11 +151,16 @@ class TestSynchronization(UnitTestCase):
         # Simulate bad responses
         remote_orig = self.engine_1.remote
         self.engine_1.remote = RemoteTest(
-            pytest.nuxeo_url, self.user_1,
-            'nxdrive-test-administrator-device', pytest.version,
-            password=self.password_1)
-        errors = [HTTPError(status=401, message='Mock'),
-                  HTTPError(status=403, message='Mock')]
+            pytest.nuxeo_url,
+            self.user_1,
+            "nxdrive-test-administrator-device",
+            pytest.version,
+            password=self.password_1,
+        )
+        errors = [
+            HTTPError(status=401, message="Mock"),
+            HTTPError(status=403, message="Mock"),
+        ]
         remote = self.engine_1.remote
         remote.request_token()
         for error in errors:
@@ -170,16 +180,16 @@ class TestSynchronization(UnitTestCase):
         # Regression test: a file is created locally, then modification is
         # detected before first upload
         local = self.local_1
-        assert not local.exists('/')
+        assert not local.exists("/")
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/')
+        assert local.exists("/")
         self.engine_1.stop()
 
         # Let's create some documents on the client
-        local.make_folder('/', 'Folder')
-        local.make_file('/Folder', 'File.txt', content=b'Some content.')
+        local.make_folder("/", "Folder")
+        local.make_file("/Folder", "File.txt", content=b"Some content.")
 
         # First local scan (assuming the network is offline):
         self.queue_manager_1.suspend()
@@ -187,26 +197,29 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(timeout=5, fail_if_timeout=False)
         workspace_children = self.engine_1.get_dao().get_local_children(
-            '/' + self.workspace_title)
+            "/" + self.workspace_title
+        )
         assert len(workspace_children) == 1
-        assert workspace_children[0].pair_state == 'locally_created'
+        assert workspace_children[0].pair_state == "locally_created"
         folder_children = self.engine_1.get_dao().get_local_children(
-            '/' + self.workspace_title + '/Folder')
+            "/" + self.workspace_title + "/Folder"
+        )
         assert len(folder_children) == 1
-        assert folder_children[0].pair_state == 'locally_created'
+        assert folder_children[0].pair_state == "locally_created"
 
         # Wait a bit for file time stamps to increase enough: on most OS
         # the file modification time resolution is 1s
         time.sleep(OS_STAT_MTIME_RESOLUTION)
 
         # Let's modify it offline and wait for a bit
-        local.update_content('/Folder/File.txt', content=b'Some content.')
+        local.update_content("/Folder/File.txt", content=b"Some content.")
         self.wait_sync(timeout=5, fail_if_timeout=False)
         # File has not been synchronized, it is still
         # in the locally_created state
         file_state = self.engine_1.get_dao().get_state_from_local(
-            '/' + self.workspace_title + '/Folder/File.txt')
-        assert file_state.pair_state == 'locally_created'
+            "/" + self.workspace_title + "/Folder/File.txt"
+        )
+        assert file_state.pair_state == "locally_created"
 
         # Assume the computer is back online, the synchronization should occur
         # as if the document was just created and not trigger an update
@@ -214,11 +227,13 @@ class TestSynchronization(UnitTestCase):
         self.queue_manager_1.resume()
         self.wait_sync(wait_for_async=True)
         folder_state = self.engine_1.get_dao().get_state_from_local(
-            '/' + self.workspace_title + '/Folder')
-        assert folder_state.pair_state == 'synchronized'
+            "/" + self.workspace_title + "/Folder"
+        )
+        assert folder_state.pair_state == "synchronized"
         file_state = self.engine_1.get_dao().get_state_from_local(
-            '/' + self.workspace_title + '/Folder/File.txt')
-        assert file_state.pair_state == 'synchronized'
+            "/" + self.workspace_title + "/Folder/File.txt"
+        )
+        assert file_state.pair_state == "synchronized"
 
     def test_basic_synchronization(self):
         local = self.local_1
@@ -227,28 +242,28 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Let's create some document on the client and the server
-        local.make_folder('/', 'Folder 3')
+        local.make_folder("/", "Folder 3")
         self.make_server_tree()
 
         # Launch ndrive and check synchronization
         self.wait_sync(wait_for_async=True)
-        assert remote.exists('/Folder 3')
-        assert local.exists('/Folder 1')
-        assert local.exists('/Folder 2')
-        assert local.exists('/File 5.txt')
+        assert remote.exists("/Folder 3")
+        assert local.exists("/Folder 1")
+        assert local.exists("/Folder 2")
+        assert local.exists("/File 5.txt")
 
     def test_synchronization_skip_errors(self):
         local = self.local_1
-        assert not local.exists('/')
+        assert not local.exists("/")
 
         # Perform first scan and sync
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/')
+        assert local.exists("/")
         self.engine_1.stop()
 
         # Let's create some documents on the client and the server
-        local.make_folder('/', 'Folder 3')
+        local.make_folder("/", "Folder 3")
         self.make_server_tree()
 
         # Detect the files to synchronize but do not perform the
@@ -259,26 +274,28 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True, timeout=10, fail_if_timeout=False)
 
         workspace_children = self.engine_1.get_dao().get_local_children(
-            '/' + self.workspace_title)
+            "/" + self.workspace_title
+        )
         assert len(workspace_children) == 4
-        sorted_children = sorted(workspace_children,
-                                 key=lambda x: x.local_path)
-        assert sorted_children[0].remote_name == 'File 5.txt'
-        assert sorted_children[0].pair_state == 'remotely_created'
-        assert sorted_children[1].remote_name == 'Folder 1'
-        assert sorted_children[1].pair_state == 'remotely_created'
-        assert sorted_children[2].remote_name == 'Folder 2'
-        assert sorted_children[2].pair_state == 'remotely_created'
-        assert sorted_children[3].local_name == 'Folder 3'
-        assert sorted_children[3].pair_state == 'locally_created'
+        sorted_children = sorted(workspace_children, key=lambda x: x.local_path)
+        assert sorted_children[0].remote_name == "File 5.txt"
+        assert sorted_children[0].pair_state == "remotely_created"
+        assert sorted_children[1].remote_name == "Folder 1"
+        assert sorted_children[1].pair_state == "remotely_created"
+        assert sorted_children[2].remote_name == "Folder 2"
+        assert sorted_children[2].pair_state == "remotely_created"
+        assert sorted_children[3].local_name == "Folder 3"
+        assert sorted_children[3].pair_state == "locally_created"
 
         # Simulate synchronization errors
         file_5_state = sorted_children[0]
         folder_3_state = sorted_children[3]
-        self.engine_1.get_local_watcher().increase_error(file_5_state,
-                                                         'TEST_FILE_ERROR')
-        self.engine_1.get_local_watcher().increase_error(folder_3_state,
-                                                         'TEST_FILE_ERROR')
+        self.engine_1.get_local_watcher().increase_error(
+            file_5_state, "TEST_FILE_ERROR"
+        )
+        self.engine_1.get_local_watcher().increase_error(
+            folder_3_state, "TEST_FILE_ERROR"
+        )
 
         # Run synchronization
         self.queue_manager_1._disable = False
@@ -290,26 +307,32 @@ class TestSynchronization(UnitTestCase):
         # All errors have been skipped, while the remaining docs have
         # been synchronized
         file_5_state = self.engine_1.get_dao().get_normal_state_from_remote(
-            file_5_state.remote_ref)
-        assert file_5_state.pair_state == 'remotely_created'
+            file_5_state.remote_ref
+        )
+        assert file_5_state.pair_state == "remotely_created"
         folder_3_state = self.engine_1.get_dao().get_state_from_local(
-            folder_3_state.local_path)
-        assert folder_3_state.pair_state == 'locally_created'
+            folder_3_state.local_path
+        )
+        assert folder_3_state.pair_state == "locally_created"
         folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(
-            sorted_children[1].remote_ref)
-        assert folder_1_state.pair_state == 'synchronized'
+            sorted_children[1].remote_ref
+        )
+        assert folder_1_state.pair_state == "synchronized"
         folder_2_state = self.engine_1.get_dao().get_normal_state_from_remote(
-            sorted_children[2].remote_ref)
-        assert folder_2_state.pair_state == 'synchronized'
+            sorted_children[2].remote_ref
+        )
+        assert folder_2_state.pair_state == "synchronized"
 
         # Retry synchronization of pairs in error
         self.wait_sync()
         file_5_state = self.engine_1.get_dao().get_normal_state_from_remote(
-            file_5_state.remote_ref)
-        assert file_5_state.pair_state == 'synchronized'
+            file_5_state.remote_ref
+        )
+        assert file_5_state.pair_state == "synchronized"
         folder_3_state = self.engine_1.get_dao().get_state_from_local(
-            folder_3_state.local_path)
-        assert folder_3_state.pair_state == 'synchronized'
+            folder_3_state.local_path
+        )
+        assert folder_3_state.pair_state == "synchronized"
 
     def test_synchronization_give_up(self):
         # Override error threshold to 1 instead of 3
@@ -318,41 +341,44 @@ class TestSynchronization(UnitTestCase):
 
         # Bound root but nothing is synchronized yet
         local = self.local_1
-        assert not local.exists('/')
+        assert not local.exists("/")
 
         # Perform first scan and sync
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/')
+        assert local.exists("/")
         self.engine_1.stop()
 
         # Let's create some documents on the client and the server
-        local.make_folder('/', 'Folder 3')
+        local.make_folder("/", "Folder 3")
         self.make_server_tree(deep=False)
 
         # Simulate a server failure on file download
         self.engine_1.remote = RemoteTest(
-            pytest.nuxeo_url, self.user_1,
-            'nxdrive-test-administrator-device', pytest.version,
-            password=self.password_1)
-        error = HTTPError(status=500, message='Mock download error')
+            pytest.nuxeo_url,
+            self.user_1,
+            "nxdrive-test-administrator-device",
+            pytest.version,
+            password=self.password_1,
+        )
+        error = HTTPError(status=500, message="Mock download error")
         self.engine_1.remote.make_download_raise(error)
 
         # File is not synchronized but synchronization does not fail either,
         # errors are handled and queue manager has given up on them
         self.engine_1.start()
         self.wait_sync(wait_for_async=True, timeout=60)
-        states_in_error = self.engine_1.get_dao().get_errors(
-            limit=test_error_threshold)
+        states_in_error = self.engine_1.get_dao().get_errors(limit=test_error_threshold)
         assert len(states_in_error) == 1
-        workspace_children = self.engine_1.get_dao()\
-            .get_states_from_partial_local('/' + self.workspace_title + '/')
+        workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
+            "/" + self.workspace_title + "/"
+        )
         assert len(workspace_children) == 4
         for state in workspace_children:
             if state.folderish:
-                assert state.pair_state == 'synchronized'
+                assert state.pair_state == "synchronized"
             else:
-                assert state.pair_state != 'synchronized'
+                assert state.pair_state != "synchronized"
 
         # Remove faulty client and reset errors
         self.engine_1.remote.make_download_raise(None)
@@ -361,38 +387,43 @@ class TestSynchronization(UnitTestCase):
 
         # Verify that everything now gets synchronized
         self.wait_sync()
-        states_in_error = self.engine_1.get_dao().get_errors(
-            limit=test_error_threshold)
+        states_in_error = self.engine_1.get_dao().get_errors(limit=test_error_threshold)
         assert not states_in_error
-        workspace_children = self.engine_1.get_dao()\
-            .get_states_from_partial_local('/' + self.workspace_title + '/')
+        workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
+            "/" + self.workspace_title + "/"
+        )
         assert len(workspace_children) == 4
         for state in workspace_children:
-            assert state.pair_state == 'synchronized'
+            assert state.pair_state == "synchronized"
 
     def test_synchronization_offline(self):
         # Bound root but nothing is synchronized yet
         local = self.local_1
-        assert not local.exists('/')
+        assert not local.exists("/")
 
         # Perform first scan and sync
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/')
+        assert local.exists("/")
         self.engine_1.stop()
 
         # Let's create some documents on the client and the server
-        local.make_folder('/', 'Folder 3')
+        local.make_folder("/", "Folder 3")
         self.make_server_tree(deep=False)
 
         # Find various ways to simulate a network failure
         self.engine_1.remote = RemoteTest(
-            pytest.nuxeo_url, self.user_1,
-            'nxdrive-test-administrator-device', pytest.version,
-            password=self.password_1)
-        errors = [ConnectionError('Mock connection error'),
-                  socket.error('Mock socket error'),
-                  HTTPError(status=503, message='Mock')]
+            pytest.nuxeo_url,
+            self.user_1,
+            "nxdrive-test-administrator-device",
+            pytest.version,
+            password=self.password_1,
+        )
+        errors = [
+            ConnectionError("Mock connection error"),
+            socket.error("Mock socket error"),
+            HTTPError(status=503, message="Mock"),
+        ]
         engine_started = False
         for error in errors:
             self.engine_1.remote.make_server_call_raise(error)
@@ -404,11 +435,11 @@ class TestSynchronization(UnitTestCase):
             # - one 'locally_created' error is registered for Folder 3
             # - no states are inserted for the remote documents
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-            workspace_children = self.engine_1.get_dao()\
-                .get_states_from_partial_local(
-                '/' + self.workspace_title + '/')
+            workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
+                "/" + self.workspace_title + "/"
+            )
             assert len(workspace_children) == 1
-            assert workspace_children[0].pair_state != 'synchronized'
+            assert workspace_children[0].pair_state != "synchronized"
             assert not self.engine_1.is_offline()
 
         # Re-enable network
@@ -418,77 +449,79 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         assert not self.engine_1.is_offline()
         assert not self.engine_1.get_dao().get_errors(limit=0)
-        workspace_children = self.engine_1.get_dao()\
-            .get_states_from_partial_local('/' + self.workspace_title + '/')
+        workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
+            "/" + self.workspace_title + "/"
+        )
         assert len(workspace_children) == 4
         for state in workspace_children:
-            assert state.pair_state == 'synchronized'
+            assert state.pair_state == "synchronized"
 
     def test_conflict_detection(self):
         # Fetch the workspace sync root
         local = self.local_1
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/')
+        assert local.exists("/")
 
         # Let's create a file on the client and synchronize it.
-        local_path = local.make_file('/', 'Some File.doc',
-                                     content=b'Original content.')
+        local_path = local.make_file("/", "Some File.doc", content=b"Original content.")
         self.wait_sync()
 
         # Let's modify it concurrently but with the same content (digest)
         self.engine_1.suspend()
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        local.update_content(local_path, b'Same new content.')
+        local.update_content(local_path, b"Same new content.")
 
         remote_2 = self.remote_document_client_2
-        remote_2.update_content('/Some File.doc', b'Same new content.')
+        remote_2.update_content("/Some File.doc", b"Same new content.")
         self.engine_1.resume()
 
         # Let's synchronize and check the conflict handling: automatic
         # resolution will work for this case
         self.wait_sync(wait_for_async=True)
         assert not self.engine_1.get_conflicts()
-        workspace_children = self.engine_1.get_dao()\
-            .get_states_from_partial_local('/' + self.workspace_title + '/')
+        workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
+            "/" + self.workspace_title + "/"
+        )
         assert len(workspace_children) == 1
-        assert workspace_children[0].pair_state == 'synchronized'
+        assert workspace_children[0].pair_state == "synchronized"
 
-        local_children = local.get_children_info('/')
+        local_children = local.get_children_info("/")
         assert len(local_children) == 1
-        assert local_children[0].name == 'Some File.doc'
-        assert local.get_content(local_path) == b'Same new content.'
+        assert local_children[0].name == "Some File.doc"
+        assert local.get_content(local_path) == b"Same new content."
         remote_1 = self.remote_document_client_1
         remote_children = remote_1.get_children_info(self.workspace)
         assert len(remote_children) == 1
-        assert remote_children[0].filename == 'Some File.doc'
-        assert remote_1.get_content('/Some File.doc') == b'Same new content.'
+        assert remote_children[0].filename == "Some File.doc"
+        assert remote_1.get_content("/Some File.doc") == b"Same new content."
 
         # Let's trigger another conflict that cannot be resolved
         # automatically:
         self.engine_1.suspend()
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        local.update_content(local_path, b'Local new content.')
+        local.update_content(local_path, b"Local new content.")
 
-        remote_2.update_content('/Some File.doc', b'Remote new content.')
+        remote_2.update_content("/Some File.doc", b"Remote new content.")
         self.engine_1.resume()
 
         # Let's synchronize and check the conflict handling
         self.wait_sync(wait_for_async=True)
         assert len(self.engine_1.get_conflicts()) == 1
-        workspace_children = self.engine_1.get_dao()\
-            .get_states_from_partial_local('/' + self.workspace_title + '/')
+        workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
+            "/" + self.workspace_title + "/"
+        )
         assert len(workspace_children) == 1
-        assert workspace_children[0].pair_state == 'conflicted'
+        assert workspace_children[0].pair_state == "conflicted"
 
-        local_children = local.get_children_info('/')
+        local_children = local.get_children_info("/")
         assert len(local_children) == 1
-        assert local_children[0].name == 'Some File.doc'
-        assert local.get_content(local_path) == b'Local new content.'
+        assert local_children[0].name == "Some File.doc"
+        assert local.get_content(local_path) == b"Local new content."
         remote_children = remote_1.get_children_info(self.workspace)
         assert len(remote_children) == 1
-        assert remote_children[0].filename == 'Some File.doc'
-        assert remote_1.get_content('/Some File.doc') == b'Remote new content.'
+        assert remote_children[0].filename == "Some File.doc"
+        assert remote_1.get_content("/Some File.doc") == b"Remote new content."
 
     def test_create_content_in_readonly_area(self):
         self.engine_1.start()
@@ -496,56 +529,56 @@ class TestSynchronization(UnitTestCase):
 
         # Let's create a subfolder of the main readonly folder
         local = LocalClient(self.local_nxdrive_folder_1)
-        local.make_folder('/', 'Folder 3')
-        local.make_file('/Folder 3', 'File 1.txt', content=b'Some content.')
-        local.make_folder('/Folder 3', 'Sub Folder 1')
-        local.make_file('/Folder 3/Sub Folder 1', 'File 2.txt',
-                        content=b'Some other content.')
+        local.make_folder("/", "Folder 3")
+        local.make_file("/Folder 3", "File 1.txt", content=b"Some content.")
+        local.make_folder("/Folder 3", "Sub Folder 1")
+        local.make_file(
+            "/Folder 3/Sub Folder 1", "File 2.txt", content=b"Some other content."
+        )
         self.wait_sync()
 
         # States have been created for the subfolder and its content,
         # subfolder is marked as unsynchronized
-        good_states = ('locally_created', 'unsynchronized')
-        states = self.engine_1.get_dao().get_states_from_partial_local('/')
+        good_states = ("locally_created", "unsynchronized")
+        states = self.engine_1.get_dao().get_states_from_partial_local("/")
         assert len(states) == 6
         sorted_states = sorted(states, key=lambda x: x.local_path)
-        assert sorted_states[0].local_name == ''
-        assert sorted_states[0].pair_state == 'synchronized'
-        assert sorted_states[1].local_name == 'Folder 3'
-        assert sorted_states[1].pair_state == 'unsynchronized'
-        assert sorted_states[2].local_name == 'File 1.txt'
+        assert sorted_states[0].local_name == ""
+        assert sorted_states[0].pair_state == "synchronized"
+        assert sorted_states[1].local_name == "Folder 3"
+        assert sorted_states[1].pair_state == "unsynchronized"
+        assert sorted_states[2].local_name == "File 1.txt"
         assert sorted_states[2].pair_state in good_states
-        assert sorted_states[3].local_name == 'Sub Folder 1'
+        assert sorted_states[3].local_name == "Sub Folder 1"
         assert sorted_states[3].pair_state in good_states
-        assert sorted_states[4].local_name == 'File 2.txt'
+        assert sorted_states[4].local_name == "File 2.txt"
         assert sorted_states[4].pair_state in good_states
         assert sorted_states[5].local_name == self.workspace_title
-        assert sorted_states[5].pair_state == 'synchronized'
+        assert sorted_states[5].pair_state == "synchronized"
 
         # Let's create a file in the main readonly folder
-        local.make_file('/', 'A file in a readonly folder.txt',
-                        content=b'Some Content')
+        local.make_file("/", "A file in a readonly folder.txt", content=b"Some Content")
         self.wait_sync()
 
         # A state has been created, marked as unsynchronized
         # Other states are unchanged
-        states = self.engine_1.get_dao().get_states_from_partial_local('/')
+        states = self.engine_1.get_dao().get_states_from_partial_local("/")
         assert len(states) == 7
         sorted_states = sorted(states, key=lambda x: x.local_path)
-        assert sorted_states[0].local_name == ''
-        assert sorted_states[0].pair_state == 'synchronized'
-        assert sorted_states[1].local_name == 'A file in a readonly folder.txt'
-        assert sorted_states[1].pair_state == 'unsynchronized'
-        assert sorted_states[2].local_name == 'Folder 3'
-        assert sorted_states[2].pair_state == 'unsynchronized'
-        assert sorted_states[3].local_name == 'File 1.txt'
+        assert sorted_states[0].local_name == ""
+        assert sorted_states[0].pair_state == "synchronized"
+        assert sorted_states[1].local_name == "A file in a readonly folder.txt"
+        assert sorted_states[1].pair_state == "unsynchronized"
+        assert sorted_states[2].local_name == "Folder 3"
+        assert sorted_states[2].pair_state == "unsynchronized"
+        assert sorted_states[3].local_name == "File 1.txt"
         assert sorted_states[3].pair_state in good_states
-        assert sorted_states[4].local_name == 'Sub Folder 1'
+        assert sorted_states[4].local_name == "Sub Folder 1"
         assert sorted_states[4].pair_state in good_states
-        assert sorted_states[5].local_name == 'File 2.txt'
+        assert sorted_states[5].local_name == "File 2.txt"
         assert sorted_states[5].pair_state in good_states
         assert sorted_states[6].local_name == self.workspace_title
-        assert sorted_states[6].pair_state == 'synchronized'
+        assert sorted_states[6].pair_state == "synchronized"
 
         # Let's create a file and a folder in a folder on which the Write
         # permission has been removed. Thanks to NXP-13119, this permission
@@ -558,15 +591,16 @@ class TestSynchronization(UnitTestCase):
 
         # Create local folder and synchronize it remotely
         local = self.local_1
-        local.make_folder('/', 'Readonly folder')
+        local.make_folder("/", "Readonly folder")
         self.wait_sync()
 
         remote = self.remote_document_client_1
-        assert remote.exists('/Readonly folder')
+        assert remote.exists("/Readonly folder")
 
         # Check remote_can_create_child flag in pair state
         readonly_folder_state = self.engine_1.get_dao().get_state_from_local(
-            '/' + self.workspace_title + '/Readonly folder')
+            "/" + self.workspace_title + "/Readonly folder"
+        )
         assert readonly_folder_state.remote_can_create_child
 
         # Wait again for synchronization to detect remote folder creation
@@ -574,45 +608,51 @@ class TestSynchronization(UnitTestCase):
         # state at next change summary
         self.wait_sync(wait_for_async=True)
         readonly_folder_state = self.engine_1.get_dao().get_state_from_local(
-            '/' + self.workspace_title + '/Readonly folder')
+            "/" + self.workspace_title + "/Readonly folder"
+        )
         assert readonly_folder_state.remote_can_create_child
 
         # Set remote folder as readonly for test user
-        readonly_folder_path = TEST_WORKSPACE_PATH + '/Readonly folder'
-        input_obj = 'doc:' + readonly_folder_path
+        readonly_folder_path = TEST_WORKSPACE_PATH + "/Readonly folder"
+        input_obj = "doc:" + readonly_folder_path
         self.root_remote.operations.execute(
-            command='Document.SetACE', input_obj=input_obj,
-            user=self.user_1, permission='Read')
-        self.root_remote.block_inheritance(readonly_folder_path,
-                                           overwrite=False)
+            command="Document.SetACE",
+            input_obj=input_obj,
+            user=self.user_1,
+            permission="Read",
+        )
+        self.root_remote.block_inheritance(readonly_folder_path, overwrite=False)
 
         # Wait to make sure permission change is detected.
         self.wait_sync(wait_for_async=True)
         # Re-fetch folder state and check remote_can_create_child
         # flag has been updated
         readonly_folder_state = self.engine_1.get_dao().get_state_from_local(
-            '/' + self.workspace_title + '/Readonly folder')
+            "/" + self.workspace_title + "/Readonly folder"
+        )
         assert not readonly_folder_state.remote_can_create_child
 
         # Try to create a local file and folder in the readonly folder,
         # they should not be created remotely and be marked as unsynchronized.
-        local.make_file('/Readonly folder', 'File in readonly folder',
-                        content=b'File content')
-        local.make_folder('/Readonly folder', 'Folder in readonly folder')
+        local.make_file(
+            "/Readonly folder", "File in readonly folder", content=b"File content"
+        )
+        local.make_folder("/Readonly folder", "Folder in readonly folder")
         self.wait_sync()
-        assert not remote.exists('/Readonly folder/File in readonly folder')
-        assert not remote.exists('/Readonly folder/Folder in readonly folder')
+        assert not remote.exists("/Readonly folder/File in readonly folder")
+        assert not remote.exists("/Readonly folder/Folder in readonly folder")
 
         states = self.engine_1.get_dao().get_states_from_partial_local(
-            '/' + self.workspace_title + '/Readonly folder')
+            "/" + self.workspace_title + "/Readonly folder"
+        )
         assert len(states) == 3
         sorted_states = sorted(states, key=lambda x: x.local_path)
-        assert sorted_states[0].local_name == 'Readonly folder'
-        assert sorted_states[0].pair_state == 'synchronized'
-        assert sorted_states[1].local_name == 'File in readonly folder'
-        assert sorted_states[1].pair_state == 'unsynchronized'
-        assert sorted_states[2].local_name == 'Folder in readonly folder'
-        assert sorted_states[2].pair_state == 'unsynchronized'
+        assert sorted_states[0].local_name == "Readonly folder"
+        assert sorted_states[0].pair_state == "synchronized"
+        assert sorted_states[1].local_name == "File in readonly folder"
+        assert sorted_states[1].pair_state == "unsynchronized"
+        assert sorted_states[2].local_name == "Folder in readonly folder"
+        assert sorted_states[2].pair_state == "unsynchronized"
 
     def test_synchronize_special_filenames(self):
         local = self.local_1
@@ -620,79 +660,96 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.start()
 
         # Create a remote folder with a weird name
-        folder = remote.make_folder(self.workspace,
-                                    'Folder with chars: / \\ * < > ? "')
+        folder = remote.make_folder(self.workspace, 'Folder with chars: / \\ * < > ? "')
 
         self.wait_sync(wait_for_async=True)
-        folder_names = [i.name for i in local.get_children_info('/')]
-        assert folder_names == ['Folder with chars- - - - - - - -']
+        folder_names = [i.name for i in local.get_children_info("/")]
+        assert folder_names == ["Folder with chars- - - - - - - -"]
 
         # Create a remote file with a weird name
-        file_ = remote.make_file(folder, 'File with chars: / \\ * < > ? "',
-                                 content=b'some content', doc_type='Note')
+        file_ = remote.make_file(
+            folder,
+            'File with chars: / \\ * < > ? "',
+            content=b"some content",
+            doc_type="Note",
+        )
 
         self.wait_sync(wait_for_async=True)
-        file_names = [i.name for i in local.get_children_info(
-            local.get_children_info('/')[0].path)]
-        assert file_names == ['File with chars- - - - - - - -.txt']
+        file_names = [
+            i.name
+            for i in local.get_children_info(local.get_children_info("/")[0].path)
+        ]
+        assert file_names == ["File with chars- - - - - - - -.txt"]
 
         # Update a remote file with a weird name (NXDRIVE-286)
-        remote.update(file_, properties={'note:note': 'new content'})
+        remote.update(file_, properties={"note:note": "new content"})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
-        assert local.get_content(
-            '/Folder with chars- - - - - - - -'
-            '/File with chars- - - - - - - -.txt') == b'new content'
+        assert (
+            local.get_content(
+                "/Folder with chars- - - - - - - -"
+                "/File with chars- - - - - - - -.txt"
+            )
+            == b"new content"
+        )
         file_state = self.get_dao_state_from_engine_1(
-            '/Folder with chars- - - - - - - -'
-            '/File with chars- - - - - - - -.txt')
-        assert file_state.pair_state == 'synchronized'
+            "/Folder with chars- - - - - - - -" "/File with chars- - - - - - - -.txt"
+        )
+        assert file_state.pair_state == "synchronized"
         assert file_state.local_digest == file_state.remote_digest
 
         # Update note title with a weird name
-        remote.update(file_, properties={
-            'dc:title': 'File with chars: / \\ * < > ? " - 2'})
+        remote.update(
+            file_, properties={"dc:title": 'File with chars: / \\ * < > ? " - 2'}
+        )
         self.wait_sync(wait_for_async=True, enforce_errors=False)
-        file_names = [i.name for i in local.get_children_info(
-            local.get_children_info('/')[0].path)]
-        assert file_names == ['File with chars- - - - - - - - - 2.txt']
+        file_names = [
+            i.name
+            for i in local.get_children_info(local.get_children_info("/")[0].path)
+        ]
+        assert file_names == ["File with chars- - - - - - - - - 2.txt"]
 
         # Update note title changing the case (NXRIVE-532)
-        remote.update(file_, properties={
-            'dc:title': 'file with chars: / \\ * < > ? " - 2'})
+        remote.update(
+            file_, properties={"dc:title": 'file with chars: / \\ * < > ? " - 2'}
+        )
         self.wait_sync(wait_for_async=True, enforce_errors=False)
-        file_names = [i.name for i in local.get_children_info(
-            local.get_children_info('/')[0].path)]
-        assert file_names == ['file with chars- - - - - - - - - 2.txt']
+        file_names = [
+            i.name
+            for i in local.get_children_info(local.get_children_info("/")[0].path)
+        ]
+        assert file_names == ["file with chars- - - - - - - - - 2.txt"]
 
     def test_synchronize_error_remote(self):
-        path = '/' + self.workspace_title + '/test.odt'
+        path = "/" + self.workspace_title + "/test.odt"
         remote = self.remote_document_client_1
 
         self.engine_1.remote = RemoteTest(
-            pytest.nuxeo_url, self.user_1,
-            'nxdrive-test-administrator-device', pytest.version,
-            password=self.password_1)
-        self.engine_1.remote.make_download_raise(
-            HTTPError(status=400, message='Mock'))
-        remote.make_file('/', 'test.odt', content=b'Some content.')
+            pytest.nuxeo_url,
+            self.user_1,
+            "nxdrive-test-administrator-device",
+            pytest.version,
+            password=self.password_1,
+        )
+        self.engine_1.remote.make_download_raise(HTTPError(status=400, message="Mock"))
+        remote.make_file("/", "test.odt", content=b"Some content.")
         self.engine_1.start()
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
         self.engine_1.stop()
         pair = self.engine_1.get_dao().get_state_from_local(path)
         assert pair.error_count == 4
-        assert pair.pair_state == 'remotely_created'
+        assert pair.pair_state == "remotely_created"
         self.engine_1.start()
         self.wait_sync(fail_if_timeout=False)
         pair = self.engine_1.get_dao().get_state_from_local(path)
         assert pair.error_count == 4
-        assert pair.pair_state == 'remotely_created'
+        assert pair.pair_state == "remotely_created"
         self.engine_1.remote.make_download_raise(None)
         # Requeue errors
         self.engine_1.retry_pair(pair.id)
         self.wait_sync(fail_if_timeout=False)
         pair = self.engine_1.get_dao().get_state_from_local(path)
         assert not pair.error_count
-        assert pair.pair_state == 'synchronized'
+        assert pair.pair_state == "synchronized"
 
     def test_synchronize_deleted_blob(self):
         local = self.local_1
@@ -701,59 +758,58 @@ class TestSynchronization(UnitTestCase):
 
         # Create a doc with a blob in the remote root workspace
         # then synchronize
-        remote.make_file('/', 'test.odt', content=b'Some content.')
+        remote.make_file("/", "test.odt", content=b"Some content.")
 
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/test.odt')
+        assert local.exists("/test.odt")
 
         # Delete the blob from the remote doc then synchronize
-        remote.delete_content('/test.odt')
+        remote.delete_content("/test.odt")
 
         self.wait_sync(wait_for_async=True)
-        assert not local.exists('/test.odt')
+        assert not local.exists("/test.odt")
 
-    @pytest.mark.randombug(
-        'NXDRIVE-808', condition=MAC, repeat=2)
+    @pytest.mark.randombug("NXDRIVE-808", condition=MAC, repeat=2)
     def test_synchronize_deletion(self):
         local = self.local_1
         remote = self.remote_document_client_1
         self.engine_1.start()
 
         # Create a remote folder with 2 children then synchronize
-        remote.make_folder('/', 'Remote folder')
-        remote.make_file('/Remote folder', 'Remote file 1.odt',
-                         content=b'Some content.')
-        remote.make_file('/Remote folder', 'Remote file 2.odt',
-                         content=b'Other content.')
+        remote.make_folder("/", "Remote folder")
+        remote.make_file(
+            "/Remote folder", "Remote file 1.odt", content=b"Some content."
+        )
+        remote.make_file(
+            "/Remote folder", "Remote file 2.odt", content=b"Other content."
+        )
 
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/Remote folder')
-        assert local.exists('/Remote folder/Remote file 1.odt')
-        assert local.exists('/Remote folder/Remote file 2.odt')
+        assert local.exists("/Remote folder")
+        assert local.exists("/Remote folder/Remote file 1.odt")
+        assert local.exists("/Remote folder/Remote file 2.odt")
 
         # Delete remote folder then synchronize
-        remote.delete('/Remote folder')
+        remote.delete("/Remote folder")
 
         self.wait_sync(wait_for_async=True)
-        assert not local.exists('/Remote folder')
-        assert not local.exists('/Remote folder/Remote file 1.odt')
-        assert not local.exists('/Remote folder/Remote file 2.odt')
+        assert not local.exists("/Remote folder")
+        assert not local.exists("/Remote folder/Remote file 1.odt")
+        assert not local.exists("/Remote folder/Remote file 2.odt")
 
         # Create a local folder with 2 children then synchronize
-        local.make_folder('/', 'Local folder')
-        local.make_file('/Local folder', 'Local file 1.odt',
-                        content=b'Some content.')
-        local.make_file('/Local folder', 'Local file 2.odt',
-                        content=b'Other content.')
+        local.make_folder("/", "Local folder")
+        local.make_file("/Local folder", "Local file 1.odt", content=b"Some content.")
+        local.make_file("/Local folder", "Local file 2.odt", content=b"Other content.")
 
         self.wait_sync()
-        assert remote.exists('/Local folder')
-        assert remote.exists('/Local folder/Local file 1.odt')
-        assert remote.exists('/Local folder/Local file 2.odt')
+        assert remote.exists("/Local folder")
+        assert remote.exists("/Local folder/Local file 1.odt")
+        assert remote.exists("/Local folder/Local file 2.odt")
 
         # Delete local folder then synchronize
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        local.delete('/Local folder')
+        local.delete("/Local folder")
 
         # Since errors are generated by the deletion events sent by Watchdog
         # for the folder children under UNIX, don't enforce errors and
@@ -765,12 +821,12 @@ class TestSynchronization(UnitTestCase):
             timeout = DEFAULT_WAIT_SYNC_TIMEOUT
             enforce_errors = True
         self.wait_sync(timeout=timeout, enforce_errors=enforce_errors)
-        assert not remote.exists('/Local folder')
+        assert not remote.exists("/Local folder")
         # Wait for async completion as recursive deletion of children is done
         # by the BulkLifeCycleChangeListener which is asynchronous
         self.wait()
-        assert not remote.exists('/Local folder/Local file 1.odt')
-        assert not remote.exists('/Local folder/Local file 2.odt')
+        assert not remote.exists("/Local folder/Local file 1.odt")
+        assert not remote.exists("/Local folder/Local file 2.odt")
 
     def test_synchronize_windows_foldername_endswith_space(self):
         """
@@ -779,24 +835,21 @@ class TestSynchronization(UnitTestCase):
         the folder and trims the space at the end
         """
         top_level_children = self.remote_1.get_top_level_children()
-        target = self.remote_1.make_folder(top_level_children[0]['id'],
-                                           'trial ')
+        target = self.remote_1.make_folder(top_level_children[0]["id"], "trial ")
         local = self.local_root_client_1
-        self.remote_1.make_file(target.uid, 'aFile.txt',
-                                content=b'File A Content')
-        self.remote_1.make_file(target.uid, 'bFile.txt',
-                                content=b'File B Content')
+        self.remote_1.make_file(target.uid, "aFile.txt", content=b"File A Content")
+        self.remote_1.make_file(target.uid, "bFile.txt", content=b"File B Content")
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/Nuxeo Drive Test Workspace')
+        assert local.exists("/Nuxeo Drive Test Workspace")
         if WINDOWS:
-            assert local.exists('/Nuxeo Drive Test Workspace/trial/')
-            assert local.exists('/Nuxeo Drive Test Workspace/trial/aFile.txt')
-            assert local.exists('/Nuxeo Drive Test Workspace/trial/bFile.txt')
+            assert local.exists("/Nuxeo Drive Test Workspace/trial/")
+            assert local.exists("/Nuxeo Drive Test Workspace/trial/aFile.txt")
+            assert local.exists("/Nuxeo Drive Test Workspace/trial/bFile.txt")
         else:
-            assert local.exists('/Nuxeo Drive Test Workspace/trial /')
-            assert local.exists('/Nuxeo Drive Test Workspace/trial /aFile.txt')
-            assert local.exists('/Nuxeo Drive Test Workspace/trial /bFile.txt')
+            assert local.exists("/Nuxeo Drive Test Workspace/trial /")
+            assert local.exists("/Nuxeo Drive Test Workspace/trial /aFile.txt")
+            assert local.exists("/Nuxeo Drive Test Workspace/trial /bFile.txt")
 
     def test_rename_and_create_same_folder_not_running(self):
         """
@@ -815,51 +868,49 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
 
         # First, create initial folders and files
-        folder = remote.make_folder('/', 'Folder01')
-        remote.make_folder('/Folder01', 'subfolder01')
-        remote.make_file('/Folder01/subfolder01', 'File01.txt', content=b'42')
+        folder = remote.make_folder("/", "Folder01")
+        remote.make_folder("/Folder01", "subfolder01")
+        remote.make_file("/Folder01/subfolder01", "File01.txt", content=b"42")
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
-        assert remote.exists('/Folder01/subfolder01')
-        assert remote.exists('/Folder01/subfolder01/File01.txt')
-        assert local_1.exists('/Folder01/subfolder01')
-        assert local_1.exists('/Folder01/subfolder01/File01.txt')
-        assert local_2.exists('/Folder01/subfolder01')
-        assert local_2.exists('/Folder01/subfolder01/File01.txt')
+        assert remote.exists("/Folder01/subfolder01")
+        assert remote.exists("/Folder01/subfolder01/File01.txt")
+        assert local_1.exists("/Folder01/subfolder01")
+        assert local_1.exists("/Folder01/subfolder01/File01.txt")
+        assert local_2.exists("/Folder01/subfolder01")
+        assert local_2.exists("/Folder01/subfolder01/File01.txt")
 
         # Stop clients and make the local changes on a folder
         self.engine_1.stop()
         self.engine_2.stop()
-        local_2.rename('/Folder01/subfolder01', 'subfolder02')
-        local_2.make_folder('/Folder01', 'subfolder01')
-        local_2.make_file('/Folder01/subfolder01', 'File02.txt',
-                          content=b'42.42')
+        local_2.rename("/Folder01/subfolder01", "subfolder02")
+        local_2.make_folder("/Folder01", "subfolder01")
+        local_2.make_file("/Folder01/subfolder01", "File02.txt", content=b"42.42")
         self.engine_1.start()
         self.engine_2.start()
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
 
         # Check client 2
-        assert local_2.exists('/Folder01/subfolder02')
-        assert local_2.exists('/Folder01/subfolder02/File01.txt')
-        assert local_2.get_content('/Folder01/subfolder02/File01.txt') == b'42'
-        assert local_2.exists('/Folder01/subfolder01')
-        assert local_2.exists('/Folder01/subfolder01/File02.txt')
-        assert local_2.get_content(
-            '/Folder01/subfolder01/File02.txt') == b'42.42'
+        assert local_2.exists("/Folder01/subfolder02")
+        assert local_2.exists("/Folder01/subfolder02/File01.txt")
+        assert local_2.get_content("/Folder01/subfolder02/File01.txt") == b"42"
+        assert local_2.exists("/Folder01/subfolder01")
+        assert local_2.exists("/Folder01/subfolder01/File02.txt")
+        assert local_2.get_content("/Folder01/subfolder01/File02.txt") == b"42.42"
 
         # Check server
         children = remote.get_children_info(folder)
         assert len(children) == 2
-        assert children[0].name == 'subfolder01'
+        assert children[0].name == "subfolder01"
         child = remote.get_children_info(children[0].uid)
-        assert child[0].name == 'File02.txt'
-        assert remote.get_content(child[0]) == b'42.42'
-        assert children[1].name == 'subfolder02'
+        assert child[0].name == "File02.txt"
+        assert remote.get_content(child[0]) == b"42.42"
+        assert children[1].name == "subfolder02"
         child = remote.get_children_info(children[1].uid)
-        assert child[0].name == 'File01.txt'
-        assert remote.get_content(child[0]) == b'42'
+        assert child[0].name == "File01.txt"
+        assert remote.get_content(child[0]) == b"42"
 
         # Check client 1
-        assert local_1.exists('/Folder01/subfolder02')
+        assert local_1.exists("/Folder01/subfolder02")
         """
         # TODO NXDRIVE-777: uncomment when issue is fixed
         assert local_1.exists('/Folder01/subfolder02/File01.txt')
@@ -885,41 +936,41 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
 
         # First, create initial folders and files
-        folder = remote.make_folder('/', 'Folder01')
-        remote.make_file('/Folder01', 'File01.txt', content=b'42')
+        folder = remote.make_folder("/", "Folder01")
+        remote.make_file("/Folder01", "File01.txt", content=b"42")
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
-        assert remote.exists('/Folder01/File01.txt')
-        assert local_1.exists('/Folder01/File01.txt')
-        assert local_2.exists('/Folder01/File01.txt')
+        assert remote.exists("/Folder01/File01.txt")
+        assert local_1.exists("/Folder01/File01.txt")
+        assert local_2.exists("/Folder01/File01.txt")
 
         # Stop clients and make the local changes on a file
         self.engine_1.stop()
         self.engine_2.stop()
-        local_2.rename('/Folder01/File01.txt', 'File02.txt')
+        local_2.rename("/Folder01/File01.txt", "File02.txt")
         # Create a new file with the same name and content as
         # the previously renamed file
-        local_2.make_file('/Folder01', 'File01.txt', content=b'42')
+        local_2.make_file("/Folder01", "File01.txt", content=b"42")
         self.engine_1.start()
         self.engine_2.start()
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
 
         # Check client 2
-        assert local_2.exists('/Folder01/File02.txt')
-        assert local_2.get_content('/Folder01/File02.txt') == b'42'
-        assert local_2.exists('/Folder01/File01.txt')
-        assert local_2.get_content('/Folder01/File01.txt') == b'42'
+        assert local_2.exists("/Folder01/File02.txt")
+        assert local_2.get_content("/Folder01/File02.txt") == b"42"
+        assert local_2.exists("/Folder01/File01.txt")
+        assert local_2.get_content("/Folder01/File01.txt") == b"42"
 
         # Check server
         children = remote.get_children_info(folder)
         assert len(children) == 2
-        assert children[0].name == 'File01.txt'
-        assert remote.get_content(children[0]) == b'42'
-        assert children[1].name == 'File02.txt'
-        assert remote.get_content(children[1]) == b'42'
+        assert children[0].name == "File01.txt"
+        assert remote.get_content(children[0]) == b"42"
+        assert children[1].name == "File02.txt"
+        assert remote.get_content(children[1]) == b"42"
 
         # Check client 1
-        assert local_1.exists('/Folder01/File02.txt')
-        assert local_1.get_content('/Folder01/File02.txt') == b'42'
+        assert local_1.exists("/Folder01/File02.txt")
+        assert local_1.get_content("/Folder01/File02.txt") == b"42"
         # TODO NXDRIVE-769: uncomment when deduplication issue is fixed
         # assert local_1.exists('/Folder01/File01.txt')
         # assert local_1.get_content('/Folder01/File01.txt') == b'42'
@@ -927,39 +978,39 @@ class TestSynchronization(UnitTestCase):
         # Stop clients and make the local changes on a file
         self.engine_1.stop()
         self.engine_2.stop()
-        local_2.rename('/Folder01/File01.txt', 'File03.txt')
+        local_2.rename("/Folder01/File01.txt", "File03.txt")
         # Create a new file with the same name as the previously renamed
         # file but a different content
-        local_2.make_file('/Folder01', 'File01.txt', content=b'42.42')
+        local_2.make_file("/Folder01", "File01.txt", content=b"42.42")
         self.engine_1.start()
         self.engine_2.start()
         self.wait_sync(wait_for_async=True)
 
         # Check client 2
-        assert local_2.exists('/Folder01/File03.txt')
-        assert local_2.get_content('/Folder01/File03.txt') == b'42'
-        assert local_2.exists('/Folder01/File02.txt')
-        assert local_2.get_content('/Folder01/File02.txt') == b'42'
-        assert local_2.exists('/Folder01/File01.txt')
-        assert local_2.get_content('/Folder01/File01.txt') == b'42.42'
+        assert local_2.exists("/Folder01/File03.txt")
+        assert local_2.get_content("/Folder01/File03.txt") == b"42"
+        assert local_2.exists("/Folder01/File02.txt")
+        assert local_2.get_content("/Folder01/File02.txt") == b"42"
+        assert local_2.exists("/Folder01/File01.txt")
+        assert local_2.get_content("/Folder01/File01.txt") == b"42.42"
 
         # Check server
         children = remote.get_children_info(folder)
         assert len(children) == 3
-        assert children[0].name == 'File01.txt'
-        assert remote.get_content(children[0]) == b'42.42'
-        assert children[1].name == 'File02.txt'
-        assert remote.get_content(children[1]) == b'42'
-        assert children[2].name == 'File03.txt'
-        assert remote.get_content(children[2]) == b'42'
+        assert children[0].name == "File01.txt"
+        assert remote.get_content(children[0]) == b"42.42"
+        assert children[1].name == "File02.txt"
+        assert remote.get_content(children[1]) == b"42"
+        assert children[2].name == "File03.txt"
+        assert remote.get_content(children[2]) == b"42"
 
         # Check client 1
-        assert local_1.exists('/Folder01/File03.txt')
-        assert local_1.get_content('/Folder01/File03.txt') == b'42'
-        assert local_1.exists('/Folder01/File02.txt')
-        assert local_1.get_content('/Folder01/File02.txt') == b'42'
-        assert local_1.exists('/Folder01/File01.txt')
-        assert local_1.get_content('/Folder01/File01.txt') == b'42.42'
+        assert local_1.exists("/Folder01/File03.txt")
+        assert local_1.get_content("/Folder01/File03.txt") == b"42"
+        assert local_1.exists("/Folder01/File02.txt")
+        assert local_1.get_content("/Folder01/File02.txt") == b"42"
+        assert local_1.exists("/Folder01/File01.txt")
+        assert local_1.get_content("/Folder01/File01.txt") == b"42.42"
 
     def test_409_conflict(self):
         """
@@ -974,22 +1025,26 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         def _raise_for_second_file_only(*args, **kwargs):
-            return kwargs.get('filename').endswith('2.txt')
+            return kwargs.get("filename").endswith("2.txt")
 
         # Simulate a server conflict on file upload
-        engine.remote = RemoteTest(pytest.nuxeo_url, self.user_1,
-                                   'nxdrive-test-administrator-device',
-                                   pytest.version, password=self.password_1)
-        error = HTTPError(status=409, message='Mock Conflict')
+        engine.remote = RemoteTest(
+            pytest.nuxeo_url,
+            self.user_1,
+            "nxdrive-test-administrator-device",
+            pytest.version,
+            password=self.password_1,
+        )
+        error = HTTPError(status=409, message="Mock Conflict")
         engine.remote.make_upload_raise(error)
         engine.remote.raise_on = _raise_for_second_file_only
 
         # Create 2 files locally
-        base = 'A' * 40
-        file1 = base + '1.txt'
-        file2 = base + '2.txt'
-        local.make_file('/', file1, content=b'foo')
-        local.make_file('/', file2, content=b'bar')
+        base = "A" * 40
+        file1 = base + "1.txt"
+        file2 = base + "2.txt"
+        local.make_file("/", file1, content=b"foo")
+        local.make_file("/", file2, content=b"bar")
 
         self.wait_sync(fail_if_timeout=False)
 
@@ -1017,12 +1072,12 @@ class TestSynchronization(UnitTestCase):
         engine.start()
         self.wait_sync(wait_for_async=True)
 
-        local.make_folder('/', 'Test')
-        local.make_file('/Test', 'Test.txt', content=b'Some content')
+        local.make_folder("/", "Test")
+        local.make_file("/Test", "Test.txt", content=b"Some content")
         self.wait_sync()
 
         engine.stop()
-        local.update_content('/Test/Test.txt', b'Another content')
+        local.update_content("/Test/Test.txt", b"Another content")
 
         engine.start()
         self.wait_sync()
@@ -1035,12 +1090,12 @@ class TestSynchronization(UnitTestCase):
         engine.start()
 
         # Create the folder
-        root_name = 'Été indien'
+        root_name = "Été indien"
         root = remote.make_folder(self.workspace, root_name)
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/' + root_name)
+        assert local.exists("/" + root_name)
 
         # Remove the folder
         remote.delete(root)
         self.wait_sync(wait_for_async=True)
-        assert not local.exists('/' + root_name)
+        assert not local.exists("/" + root_name)

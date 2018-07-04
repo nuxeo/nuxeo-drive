@@ -5,7 +5,7 @@ import pytest
 
 import nxdrive
 
-pytest_plugins = 'tests.pytest_random'
+pytest_plugins = "tests.pytest_random"
 
 
 def pytest_namespace():
@@ -15,11 +15,12 @@ def pytest_namespace():
     e.g. `pytest.nuxeo_url`
     """
     return {
-        'nuxeo_url': os.getenv('NXDRIVE_TEST_NUXEO_URL',
-                               'http://localhost:8080/nuxeo').split('#')[0],
-        'user': os.getenv('NXDRIVE_TEST_USER', 'Administrator'),
-        'password': os.getenv('NXDRIVE_TEST_PASSWORD', 'Administrator'),
-        'version': nxdrive.__version__,
+        "nuxeo_url": os.getenv(
+            "NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo"
+        ).split("#")[0],
+        "user": os.getenv("NXDRIVE_TEST_USER", "Administrator"),
+        "password": os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator"),
+        "version": nxdrive.__version__,
     }
 
 
@@ -54,14 +55,14 @@ def cleanup_attrs(request):
         attr_orig = set(request.instance.__dict__.keys())
         yield
         for attr in set(request.instance.__dict__.keys()) - attr_orig:
-            if attr.startswith('engine_'):
+            if attr.startswith("engine_"):
                 engine = getattr(request.instance, attr)
                 if engine.remote:
                     engine.remote.client._session.close()
             delattr(request.instance, attr)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def root_remote():
     """ The root remote client (administrator). """
     from . import DocRemote
@@ -69,8 +70,9 @@ def root_remote():
     return DocRemote(
         pytest.nuxeo_url,
         pytest.user,
-        'nxdrive-test-administrator-device',
+        "nxdrive-test-administrator-device",
         pytest.version,
         password=pytest.password,
-        base_folder='/',
-        timeout=60)
+        base_folder="/",
+        timeout=60,
+    )

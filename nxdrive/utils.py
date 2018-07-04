@@ -16,51 +16,46 @@ from .constants import MAC, WINDOWS
 from .options import Options
 
 __all__ = (
-    'PidLockFile',
-    'current_milli_time',
-    'decrypt',
-    'encrypt',
-    'find_icon',
-    'find_resource',
-    'force_decode',
-    'force_encode',
-    'guess_digest_algorithm',
-    'guess_server_url',
-    'get_device',
-    'is_generated_tmp_file',
-    'lock_path',
-    'make_tmp_file',
-    'normalize_event_filename',
-    'normalized_path',
-    'parse_edit_protocol',
-    'parse_protocol_url',
-    'path_join',
-    'safe_filename',
-    'safe_long_path',
-    'set_path_readonly',
-    'simplify_url',
-    'unlock_path',
-    'unset_path_readonly',
-    'version_between',
-    'version_le',
+    "PidLockFile",
+    "current_milli_time",
+    "decrypt",
+    "encrypt",
+    "find_icon",
+    "find_resource",
+    "force_decode",
+    "force_encode",
+    "guess_digest_algorithm",
+    "guess_server_url",
+    "get_device",
+    "is_generated_tmp_file",
+    "lock_path",
+    "make_tmp_file",
+    "normalize_event_filename",
+    "normalized_path",
+    "parse_edit_protocol",
+    "parse_protocol_url",
+    "path_join",
+    "safe_filename",
+    "safe_long_path",
+    "set_path_readonly",
+    "simplify_url",
+    "unlock_path",
+    "unset_path_readonly",
+    "version_between",
+    "version_le",
 )
 
-DEVICE_DESCRIPTIONS = {
-    'darwin': 'macOS',
-    'linux': 'GNU/Linux',
-    'win32': 'Windows',
-}
+DEVICE_DESCRIPTIONS = {"darwin": "macOS", "linux": "GNU/Linux", "win32": "Windows"}
 WIN32_PATCHED_MIME_TYPES = {
-    'image/pjpeg': 'image/jpeg',
-    'image/x-png': 'image/png',
-    'image/bmp': 'image/x-ms-bmp',
-    'audio/x-mpg': 'audio/mpeg',
-    'video/x-mpeg2a': 'video/mpeg',
-    'application/x-javascript': 'application/javascript',
-    'application/x-msexcel': 'application/vnd.ms-excel',
-    'application/x-mspowerpoint': 'application/vnd.ms-powerpoint',
-    'application/x-mspowerpoint.12':
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    "image/pjpeg": "image/jpeg",
+    "image/x-png": "image/png",
+    "image/bmp": "image/x-ms-bmp",
+    "audio/x-mpg": "audio/mpeg",
+    "video/x-mpeg2a": "video/mpeg",
+    "application/x-javascript": "application/javascript",
+    "application/x-msexcel": "application/vnd.ms-excel",
+    "application/x-mspowerpoint": "application/vnd.ms-powerpoint",
+    "application/x-mspowerpoint.12": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 }
 
 log = getLogger(__name__)
@@ -91,7 +86,7 @@ def get_device() -> str:
 
     device = DEVICE_DESCRIPTIONS.get(platform)
     if not device:
-        device = platform.replace(' ', '')
+        device = platform.replace(" ", "")
     return device
 
 
@@ -130,11 +125,11 @@ def is_generated_tmp_file(name: str) -> Tuple[bool, Optional[bool]]:
 
     # Emacs auto save file
     # http://www.emacswiki.org/emacs/AutoSave
-    if name.startswith('#') and name.endswith('#'):
+    if name.startswith("#") and name.endswith("#"):
         return ignore, do_not_delay
 
     # See https://stackoverflow.com/a/10591106/1117028 for benchmark
-    reg = re.compile(r'|'.join('(?:%s)' % p for p in Options.ignored_files))
+    reg = re.compile(r"|".join("(?:%s)" % p for p in Options.ignored_files))
     if reg.match(name.lower()):
         return ignore, do_not_delay
 
@@ -178,38 +173,38 @@ def version_compare(x: str, y: str) -> int:
 
     ret = (-1, 1)
 
-    x_numbers = x.split('.')
-    y_numbers = y.split('.')
+    x_numbers = x.split(".")
+    y_numbers = y.split(".")
     while x_numbers and y_numbers:
         x_number = x_numbers.pop(0)
         y_number = y_numbers.pop(0)
 
         # Handle hotfixes
-        if 'HF' in x_number:
-            hf = x_number.replace('-HF', '.').split('.', 1)
+        if "HF" in x_number:
+            hf = x_number.replace("-HF", ".").split(".", 1)
             x_number = hf[0]
             x_numbers.append(hf[1])
-        if 'HF' in y_number:
-            hf = y_number.replace('-HF', '.').split('.', 1)
+        if "HF" in y_number:
+            hf = y_number.replace("-HF", ".").split(".", 1)
             y_number = hf[0]
             y_numbers.append(hf[1])
 
         # Handle snapshots
-        x_snapshot = 'SNAPSHOT' in x_number
-        y_snapshot = 'SNAPSHOT' in y_number
+        x_snapshot = "SNAPSHOT" in x_number
+        y_snapshot = "SNAPSHOT" in y_number
         if not x_snapshot and y_snapshot:
             # y is snapshot, x is not
             x_number = int(x_number)
-            y_number = int(y_number.replace('-SNAPSHOT', ''))
+            y_number = int(y_number.replace("-SNAPSHOT", ""))
             return ret[y_number <= x_number]
         elif not y_snapshot and x_snapshot:
             # x is snapshot, y is not
-            x_number = int(x_number.replace('-SNAPSHOT', ''))
+            x_number = int(x_number.replace("-SNAPSHOT", ""))
             y_number = int(y_number)
             return ret[x_number > y_number]
 
-        x_number = int(x_number.replace('-SNAPSHOT', ''))
-        y_number = int(y_number.replace('-SNAPSHOT', ''))
+        x_number = int(x_number.replace("-SNAPSHOT", ""))
+        y_number = int(y_number.replace("-SNAPSHOT", ""))
         if x_number != y_number:
             return ret[x_number - y_number > 0]
 
@@ -252,11 +247,10 @@ def normalized_path(path: str) -> str:
     if isinstance(path, bytes):
         path = path.decode()
 
-    return os.path.realpath(
-        os.path.normpath(os.path.abspath(os.path.expanduser(path))))
+    return os.path.realpath(os.path.normpath(os.path.abspath(os.path.expanduser(path))))
 
 
-def normalize_event_filename(filename: str, action: bool=True) -> str:
+def normalize_event_filename(filename: str, action: bool = True) -> str:
     """
     Normalize a file name.
 
@@ -272,17 +266,19 @@ def normalize_event_filename(filename: str, action: bool=True) -> str:
     if WINDOWS:
         # Windows does not allow files/folders ending with space(s)
         filename = stripped
-    elif (action
-          and filename != stripped
-          and os.path.exists(filename)
-          and not os.path.isdir(filename)):
+    elif (
+        action
+        and filename != stripped
+        and os.path.exists(filename)
+        and not os.path.isdir(filename)
+    ):
         # We can have folders ending with spaces
-        log.debug('Forcing space normalization: %r -> %r', filename, stripped)
+        log.debug("Forcing space normalization: %r -> %r", filename, stripped)
         os.rename(filename, stripped)
         filename = stripped
 
     # NXDRIVE-188: Normalize name on the file system, if needed
-    normalized = unicodedata.normalize('NFC', str(filename))
+    normalized = unicodedata.normalize("NFC", str(filename))
 
     if MAC:
         return normalized
@@ -305,21 +301,19 @@ def normalize_event_filename(filename: str, action: bool=True) -> str:
         and restore it in the full path.
         """
         import win32api
+
         long_path = win32api.GetLongPathNameW(filename)
-        filename = os.path.join(os.path.dirname(long_path),
-                                os.path.basename(filename))
+        filename = os.path.join(os.path.dirname(long_path), os.path.basename(filename))
 
     if action and filename != normalized and os.path.exists(filename):
-        log.debug('Forcing normalization: %r -> %r', filename, normalized)
+        log.debug("Forcing normalization: %r -> %r", filename, normalized)
         os.rename(filename, normalized)
 
     return normalized
 
 
 def safe_filename(
-    name: str,
-    replacement: str='-',
-    pattern: Pattern=re.compile(r'(["|*/:<>?\\]+)'),
+    name: str, replacement: str = "-", pattern: Pattern = re.compile(r'(["|*/:<>?\\]+)')
 ) -> str:
     """ Replace invalid character in candidate filename. """
     return re.sub(pattern, replacement, name)
@@ -336,25 +330,25 @@ def safe_long_path(path: str) -> str:
     if isinstance(path, bytes):
         path = path.decode()
 
-    if WINDOWS and not path.startswith('\\\\?\\'):
-        path = '\\\\?\\' + normalized_path(path)
+    if WINDOWS and not path.startswith("\\\\?\\"):
+        path = "\\\\?\\" + normalized_path(path)
 
     return path
 
 
 def path_join(parent: str, child: str) -> str:
-    if parent == '/':
-        return '/' + child
-    return parent + '/' + child
+    if parent == "/":
+        return "/" + child
+    return parent + "/" + child
 
 
-def find_resource(folder: str, filename: str='') -> str:
+def find_resource(folder: str, filename: str = "") -> str:
     """ Find the FS path of a directory in various OS binary packages. """
     return os.path.join(Options.res_dir, folder, filename)
 
 
 def find_icon(icon: str) -> str:
-    return find_resource('icons', icon)
+    return find_resource("icons", icon)
 
 
 def force_decode(string: Union[bytes, str]) -> str:
@@ -369,7 +363,7 @@ def force_encode(data: Union[bytes, str]) -> bytes:
     return data
 
 
-def encrypt(plaintext: bytes, secret: bytes, lazy: bool=True) -> bytes:
+def encrypt(plaintext: bytes, secret: bytes, lazy: bool = True) -> bytes:
     """ Symetric encryption using AES. """
 
     import base64
@@ -385,9 +379,7 @@ def encrypt(plaintext: bytes, secret: bytes, lazy: bool=True) -> bytes:
 
 
 def decrypt(
-    ciphertext: Union[bytes, str],
-    secret: Union[bytes, str],
-    lazy: bool=True,
+    ciphertext: Union[bytes, str], secret: Union[bytes, str], lazy: bool = True
 ) -> Optional[bytes]:
     """ Symetric decryption using AES. """
 
@@ -398,8 +390,8 @@ def decrypt(
     secret = force_encode(secret)
     secret = _lazysecret(secret) if lazy else secret
     ciphertext = base64.b64decode(ciphertext)
-    iv = ciphertext[:AES.block_size]
-    ciphertext = ciphertext[AES.block_size:]
+    iv = ciphertext[: AES.block_size]
+    ciphertext = ciphertext[AES.block_size :]
 
     # Don't fail on decrypt
     try:
@@ -409,10 +401,10 @@ def decrypt(
         return None
 
 
-def _lazysecret(secret: bytes, blocksize: int=32, padding: bytes=b'}') -> bytes:
+def _lazysecret(secret: bytes, blocksize: int = 32, padding: bytes = b"}") -> bytes:
     """Pad secret if not legal AES block size (16, 24, 32)"""
     if len(secret) > blocksize:
-        return secret[:-(len(secret) - blocksize)]
+        return secret[: -(len(secret) - blocksize)]
     if not len(secret) in (16, 24, 32):
         return secret + (blocksize - len(secret)) * padding
     return secret
@@ -428,27 +420,27 @@ def guess_mime_type(filename: str) -> str:
             # See https://jira.nuxeo.com/browse/NXP-11660
             # and http://bugs.python.org/issue15207
             mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type, mime_type)
-        log.trace('Guessed mime type %r for %r', mime_type, filename)
+        log.trace("Guessed mime type %r for %r", mime_type, filename)
         return mime_type
 
-    log.trace('Could not guess mime type for %r,'
-              ' returing application/octet-stream', filename)
-    return 'application/octet-stream'
+    log.trace(
+        "Could not guess mime type for %r," " returing application/octet-stream",
+        filename,
+    )
+    return "application/octet-stream"
 
 
 def guess_digest_algorithm(digest: str) -> str:
     # For now only md5 and sha1 are supported
     if digest is None or len(digest) == 32:
-        return 'md5'
+        return "md5"
     elif len(digest) == 40:
-        return 'sha1'
-    raise ValueError('Unknown digest algorithm for %s' % digest)
+        return "sha1"
+    raise ValueError("Unknown digest algorithm for %s" % digest)
 
 
 def guess_server_url(
-    url: str,
-    login_page: str=Options.startup_page,
-    timeout: int=5,
+    url: str, login_page: str = Options.startup_page, timeout: int = 5
 ) -> Optional[str]:
     """
     Guess the complete server URL given an URL (either an IP address,
@@ -473,42 +465,50 @@ def guess_server_url(
         >>> urlsplit('192.168.0.42:8080/nuxeo')
         SplitResult(scheme='192.168.0.42', netloc='', path='8080/nuxeo', ...)
         """
-        domain = ':'.join([parts.scheme, parts.path.strip('/')])
+        domain = ":".join([parts.scheme, parts.path.strip("/")])
     else:
-        domain = parts.path.strip('/')
+        domain = parts.path.strip("/")
 
     # URLs to test
     urls = [
         # First, test the given URL
         parts,
         # URL/nuxeo
-        (parts.scheme, parts.netloc, parts.path + '/nuxeo',
-         parts.query, parts.fragment),
+        (
+            parts.scheme,
+            parts.netloc,
+            parts.path + "/nuxeo",
+            parts.query,
+            parts.fragment,
+        ),
         # URL:8080/nuxeo
-        (parts.scheme, parts.netloc + ':8080', parts.path + '/nuxeo',
-         parts.query, parts.fragment),
-
+        (
+            parts.scheme,
+            parts.netloc + ":8080",
+            parts.path + "/nuxeo",
+            parts.query,
+            parts.fragment,
+        ),
         # https://domain.com/nuxeo
-        ('https', domain, 'nuxeo', '', ''),
-        ('https', domain + ':8080', 'nuxeo', '', ''),
+        ("https", domain, "nuxeo", "", ""),
+        ("https", domain + ":8080", "nuxeo", "", ""),
         # https://domain.com
-        ('https', domain, '', '', ''),
+        ("https", domain, "", "", ""),
         # https://domain.com:8080/nuxeo
-
         # http://domain.com/nuxeo
-        ('http', domain, 'nuxeo', '', ''),
+        ("http", domain, "nuxeo", "", ""),
         # http://domain.com:8080/nuxeo
-        ('http', domain + ':8080', 'nuxeo', '', ''),
+        ("http", domain + ":8080", "nuxeo", "", ""),
         # http://domain.com
-        ('http', domain, '', '', ''),
+        ("http", domain, "", "", ""),
     ]
 
     for new_url_parts in urls:
-        new_url = urlunsplit(new_url_parts).rstrip('/')
+        new_url = urlunsplit(new_url_parts).rstrip("/")
         try:
-            rfc3987.parse(new_url, rule='URI')
-            log.trace('Testing URL %r', new_url)
-            full_url = new_url + '/' + login_page
+            rfc3987.parse(new_url, rule="URI")
+            log.trace("Testing URL %r", new_url)
+            full_url = new_url + "/" + login_page
             with requests.get(full_url, timeout=timeout) as resp:
                 resp.raise_for_status()
                 if resp.status_code == 200:
@@ -520,7 +520,7 @@ def guess_server_url(
         except (ValueError, requests.ConnectionError):
             pass
 
-    if not url.lower().startswith('http'):
+    if not url.lower().startswith("http"):
         return None
     return url
 
@@ -529,18 +529,14 @@ def simplify_url(url: str) -> str:
     """ Simplify port if possible and trim trailing slashes. """
 
     parts = urlsplit(url)
-    new_parts = [parts.scheme,
-                 parts.netloc,
-                 parts.path,
-                 parts.query,
-                 parts.fragment]
+    new_parts = [parts.scheme, parts.netloc, parts.path, parts.query, parts.fragment]
 
-    if parts.scheme == 'http' and parts.netloc.endswith(':80'):
+    if parts.scheme == "http" and parts.netloc.endswith(":80"):
         new_parts[1] = parts.netloc[:-3]
-    elif parts.scheme == 'https' and parts.netloc.endswith(':443'):
+    elif parts.scheme == "https" and parts.netloc.endswith(":443"):
         new_parts[1] = parts.netloc[:-4]
 
-    return urlunsplit(new_parts).rstrip('/')
+    return urlunsplit(new_parts).rstrip("/")
 
 
 def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
@@ -551,30 +547,28 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
     ValueError is the URL structure is invalid.
     """
 
-    if not url_string.startswith('nxdrive://'):
+    if not url_string.startswith("nxdrive://"):
         return None
 
     # Commands that need a path to work with
-    path_cmds = ('access-online',
-                 'copy-share-link',
-                 'edit-metadata')
+    path_cmds = ("access-online", "copy-share-link", "edit-metadata")
 
     protocol_regex = (
         # Direct Edit stuff
-        (r'nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/'
-         r'user/(?P<username>.*)/repo/(?P<repo>.*)/'
-         r'nxdocid/(?P<docid>(\d|[a-f]|-)*)/filename/(?P<filename>[^/]*)'
-         r'(/downloadUrl/(?P<download>.*)|)'),
-
+        (
+            r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
+            r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
+            r"nxdocid/(?P<docid>(\d|[a-f]|-)*)/filename/(?P<filename>[^/]*)"
+            r"(/downloadUrl/(?P<download>.*)|)"
+        ),
         # Events from context menu:
         #     - Access online
         #     - Copy share-link
         #     - Edit metadata
         # And event from macOS to sync the document status (FinderSync)
-        r'nxdrive://(?P<cmd>({}))/(?P<path>.*)'.format('|'.join(path_cmds)),
-
+        r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
         # Event from macOS to (un)watch a folder (FinderSync)
-        r'nxdrive://(?P<cmd>trigger-watch)',
+        r"nxdrive://(?P<cmd>trigger-watch)",
     )
 
     parsed_url = None
@@ -585,48 +579,49 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
 
     if not parsed_url:
         raise ValueError(
-            'Unsupported command {!r} in protocol handler'.format(url_string))
+            "Unsupported command {!r} in protocol handler".format(url_string)
+        )
 
     parsed_url = parsed_url.groupdict()
-    cmd = parsed_url.get('cmd')
-    if cmd == 'edit':
+    cmd = parsed_url.get("cmd")
+    if cmd == "edit":
         return parse_edit_protocol(parsed_url, url_string)
     elif cmd in path_cmds:
-        return dict(command=cmd, filepath=parsed_url.get('path'))
+        return dict(command=cmd, filepath=parsed_url.get("path"))
     return dict(command=cmd)
 
 
-def parse_edit_protocol(
-    parsed_url: Dict[str, str],
-    url_string: str,
-) -> Dict[str, str]:
+def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str, str]:
     """ Parse a `nxdrive://edit` URL for quick editing of Nuxeo documents. """
-    scheme = parsed_url.get('scheme')
-    if scheme not in ('http', 'https'):
+    scheme = parsed_url.get("scheme")
+    if scheme not in ("http", "https"):
         raise ValueError(
-            'Invalid command {}: scheme should be http or https'.format(
-                url_string))
+            "Invalid command {}: scheme should be http or https".format(url_string)
+        )
 
-    server_url = '{}://{}'.format(scheme, parsed_url.get('server'))
+    server_url = "{}://{}".format(scheme, parsed_url.get("server"))
 
-    return dict(command='download_edit', server_url=server_url,
-                user=parsed_url.get('username'),
-                repo=parsed_url.get('repo'),
-                doc_id=parsed_url.get('docid'),
-                filename=parsed_url.get('filename'),
-                download_url=parsed_url.get('download'))
+    return dict(
+        command="download_edit",
+        server_url=server_url,
+        user=parsed_url.get("username"),
+        repo=parsed_url.get("repo"),
+        doc_id=parsed_url.get("docid"),
+        filename=parsed_url.get("filename"),
+        download_url=parsed_url.get("download"),
+    )
 
 
 def set_path_readonly(path: str) -> None:
     current = os.stat(path).st_mode
     if os.path.isdir(path):
         # Need to add
-        right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IRUSR)
+        right = stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IRUSR
         if current & ~right != 0:
             os.chmod(path, right)
     else:
         # Already in read only
-        right = (stat.S_IRGRP | stat.S_IRUSR)
+        right = stat.S_IRGRP | stat.S_IRUSR
         if current & ~right != 0:
             os.chmod(path, right)
 
@@ -634,23 +629,27 @@ def set_path_readonly(path: str) -> None:
 def unset_path_readonly(path: str) -> None:
     current = os.stat(path).st_mode
     if os.path.isdir(path):
-        right = (stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
-                 | stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
+        right = (
+            stat.S_IXUSR
+            | stat.S_IRGRP
+            | stat.S_IXGRP
+            | stat.S_IRUSR
+            | stat.S_IWGRP
+            | stat.S_IWUSR
+        )
         if current & right != right:
             os.chmod(path, right)
     else:
-        right = (stat.S_IRGRP | stat.S_IRUSR
-                 | stat.S_IWGRP | stat.S_IWUSR)
+        right = stat.S_IRGRP | stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR
         if current & right != right:
             os.chmod(path, right)
 
 
-def unlock_path(path: str, unlock_parent: bool=True) -> int:
+def unlock_path(path: str, unlock_parent: bool = True) -> int:
     result = 0
     if unlock_parent:
         parent_path = os.path.dirname(path)
-        if (os.path.exists(parent_path)
-                and not os.access(parent_path, os.W_OK)):
+        if os.path.exists(parent_path) and not os.access(parent_path, os.W_OK):
             unset_path_readonly(parent_path)
             result |= 2
     if os.path.exists(path) and not os.access(path, os.W_OK):
@@ -678,9 +677,9 @@ def make_tmp_file(folder: str, content: bytes) -> str:
     """
     import tempfile
 
-    fd, path = tempfile.mkstemp(suffix='-nxdrive-file-to-upload', dir=folder)
+    fd, path = tempfile.mkstemp(suffix="-nxdrive-file-to-upload", dir=folder)
     try:
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             f.write(force_encode(content))
     finally:
         os.close(fd)
@@ -689,15 +688,16 @@ def make_tmp_file(folder: str, content: bytes) -> str:
 
 class PidLockFile:
     """ This class handle the pid lock file"""
+
     def __init__(self, folder: str, key: str) -> None:
         self.folder = folder
         self.key = key
         self.locked = False
 
-    def _get_sync_pid_filepath(self, process_name: Optional[str]=None) -> str:
+    def _get_sync_pid_filepath(self, process_name: Optional[str] = None) -> str:
         if process_name is None:
             process_name = self.key
-        return os.path.join(self.folder, 'nxdrive_%s.pid' % process_name)
+        return os.path.join(self.folder, "nxdrive_%s.pid" % process_name)
 
     def unlock(self) -> None:
         if not self.locked:
@@ -707,9 +707,12 @@ class PidLockFile:
         try:
             os.unlink(pid_filepath)
         except Exception as e:
-            log.warning('Failed to remove stalled PID file: %r'
-                        ' for stopped process %d: %r',
-                        pid_filepath, os.getpid(), e)
+            log.warning(
+                "Failed to remove stalled PID file: %r" " for stopped process %d: %r",
+                pid_filepath,
+                os.getpid(),
+                e,
+            )
 
     def check_running(self, process_name: Optional[str]) -> Optional[int]:
         """Check whether another sync process is already runnning
@@ -725,7 +728,7 @@ class PidLockFile:
             process_name = self.key
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
         if os.path.exists(pid_filepath):
-            with open(safe_long_path(pid_filepath), 'rb') as f:
+            with open(safe_long_path(pid_filepath), "rb") as f:
                 with suppress(ValueError, psutil.NoSuchProcess):
                     pid = int(f.read().strip())
                     p = psutil.Process(pid)
@@ -742,31 +745,36 @@ class PidLockFile:
             try:
                 os.unlink(pid_filepath)
                 if pid is None:
-                    msg = 'Removed old empty PID file %r' % pid_filepath
+                    msg = "Removed old empty PID file %r" % pid_filepath
                 else:
-                    msg = 'Removed old PID file %r for stopped process %d' % (
-                        pid_filepath, pid)
+                    msg = "Removed old PID file %r for stopped process %d" % (
+                        pid_filepath,
+                        pid,
+                    )
                 log.info(msg)
             except Exception as e:
                 if pid is not None:
-                    msg = ('Failed to remove stalled PID file: %r for'
-                           ' stopped process %d: %r'
-                           % (pid_filepath, pid, e))
+                    msg = (
+                        "Failed to remove stalled PID file: %r for"
+                        " stopped process %d: %r" % (pid_filepath, pid, e)
+                    )
                     log.warning(msg)
                     return pid
-                msg = 'Failed to remove empty stalled PID file %r: %r' % (
-                    pid_filepath, e)
+                msg = "Failed to remove empty stalled PID file %r: %r" % (
+                    pid_filepath,
+                    e,
+                )
                 log.warning(msg)
         self.locked = True
 
-    def lock(self) ->Optional[int]:
+    def lock(self) -> Optional[int]:
         pid = self.check_running(process_name=self.key)
         if pid is not None:
-            log.warning('%s process with PID %d already running', self.key, pid)
+            log.warning("%s process with PID %d already running", self.key, pid)
             return pid
 
         # Write the pid of this process
         pid_filepath = self._get_sync_pid_filepath(process_name=self.key)
         pid = os.getpid()
-        with open(safe_long_path(pid_filepath), 'w') as f:
+        with open(safe_long_path(pid_filepath), "w") as f:
             f.write(str(pid))

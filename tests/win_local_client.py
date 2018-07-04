@@ -22,7 +22,7 @@ from . import log
 
 class MockFile:
     def __init__(self, path):
-        self.path = path.replace(os.path.sep, '/')
+        self.path = path.replace(os.path.sep, "/")
 
 
 class WindowsLocalClient(LocalClient):
@@ -31,8 +31,9 @@ class WindowsLocalClient(LocalClient):
 
     def delete_final(self, ref):
         path = self.abspath(ref)
-        res = shell.SHFileOperation((0, shellcon.FO_DELETE, path, None,
-                                     shellcon.FOF_NOCONFIRMATION, None, None))
+        res = shell.SHFileOperation(
+            (0, shellcon.FO_DELETE, path, None, shellcon.FOF_NOCONFIRMATION, None, None)
+        )
         if res[0] != 0:
             raise OSError(res, locals())
 
@@ -41,8 +42,17 @@ class WindowsLocalClient(LocalClient):
         if name is None:
             name = os.path.basename(path)
         new_path = os.path.join(self.abspath(new_parent_ref), name)
-        res = shell.SHFileOperation((0, shellcon.FO_MOVE, path, new_path,
-                                     shellcon.FOF_NOCONFIRMATION, None, None))
+        res = shell.SHFileOperation(
+            (
+                0,
+                shellcon.FO_MOVE,
+                path,
+                new_path,
+                shellcon.FOF_NOCONFIRMATION,
+                None,
+                None,
+            )
+        )
         if res[0] != 0:
             raise OSError(res, locals())
 
@@ -51,17 +61,27 @@ class WindowsLocalClient(LocalClient):
         abs_path = super().abspath(ref)
         if len(abs_path) >= 255:
             log.warning(
-                'The path is longer than 255 characters and the '
-                'WindowsLocalClient is about the remove the long path '
-                'prefix. So the test is likely to fail.')
+                "The path is longer than 255 characters and the "
+                "WindowsLocalClient is about the remove the long path "
+                "prefix. So the test is likely to fail."
+            )
         return abs_path[4:]
 
     def rename(self, srcref, to_name):
         parent = os.path.dirname(srcref)
         path = self.abspath(srcref)
         new_path = os.path.join(os.path.dirname(path), to_name)
-        res = shell.SHFileOperation((0, shellcon.FO_RENAME, path, new_path,
-                                     shellcon.FOF_NOCONFIRMATION, None, None))
+        res = shell.SHFileOperation(
+            (
+                0,
+                shellcon.FO_RENAME,
+                path,
+                new_path,
+                shellcon.FOF_NOCONFIRMATION,
+                None,
+                None,
+            )
+        )
         time.sleep(0.5)
         if res[0] != 0:
             raise OSError(res, locals())
@@ -70,9 +90,16 @@ class WindowsLocalClient(LocalClient):
     def delete(self, ref):
         path = self.abspath(ref)
         # FOF_ALLOWUNDO send to Trash
-        res = shell.SHFileOperation((0, shellcon.FO_DELETE, path, None,
-                                     shellcon.FOF_NOCONFIRMATION
-                                     | shellcon.FOF_ALLOWUNDO,
-                                     None, None))
+        res = shell.SHFileOperation(
+            (
+                0,
+                shellcon.FO_DELETE,
+                path,
+                None,
+                shellcon.FOF_NOCONFIRMATION | shellcon.FOF_ALLOWUNDO,
+                None,
+                None,
+            )
+        )
         if res[0] != 0:
             raise OSError(res, locals())

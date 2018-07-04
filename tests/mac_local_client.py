@@ -27,10 +27,11 @@ class MacLocalClient(LocalClient):
         dst = self.abspath(dstref)
         path, name = os.path.split(src)
         if not os.path.exists(dst) and not os.path.exists(os.path.dirname(dst)):
-            raise ValueError('parent destination directory %s does not exist',
-                             os.path.dirname(dst))
+            raise ValueError(
+                "parent destination directory %s does not exist", os.path.dirname(dst)
+            )
         if os.path.isdir(src) and os.path.exists(dst) and os.path.isfile(dst):
-            raise ValueError('cannnot copy directory %s to a file %s', src, dst)
+            raise ValueError("cannnot copy directory %s to a file %s", src, dst)
         if os.path.exists(dst) and os.path.isdir(dst):
             dst = os.path.join(dst, name)
 

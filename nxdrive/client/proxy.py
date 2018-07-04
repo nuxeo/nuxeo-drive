@@ -9,8 +9,15 @@ from pypac.resolver import ProxyResolver
 
 from ..utils import decrypt, encrypt
 
-__all__ = ('AutomaticProxy', 'ManualProxy', 'Proxy', 'get_proxy', 'load_proxy',
-           'save_proxy', 'validate_proxy')
+__all__ = (
+    "AutomaticProxy",
+    "ManualProxy",
+    "Proxy",
+    "get_proxy",
+    "load_proxy",
+    "save_proxy",
+    "validate_proxy",
+)
 
 log = getLogger(__name__)
 
@@ -30,10 +37,12 @@ class Proxy:
         pass
 
     def __repr__(self) -> str:
-        attrs = ', '.join('{}={!r}'.format(attr, getattr(self, attr, None))
-                          for attr in sorted(vars(self))
-                          if not attr.startswith('_'))
-        return '{}<{}>'.format(type(self).__name__, attrs)
+        attrs = ", ".join(
+            "{}={!r}".format(attr, getattr(self, attr, None))
+            for attr in sorted(vars(self))
+            if not attr.startswith("_")
+        )
+        return "{}<{}>".format(type(self).__name__, attrs)
 
 
 class NoProxy(Proxy):
@@ -44,10 +53,11 @@ class NoProxy(Proxy):
     used by the requests module. But since the proxy address is None,
     requests is not going to use any proxy to perform the request.
     """
-    category = 'None'
+
+    category = "None"
 
     def settings(self, **kwargs: Any) -> Dict[str, Any]:
-        return {'http': None, 'https': None}
+        return {"http": None, "https": None}
 
 
 class SystemProxy(Proxy):
@@ -59,7 +69,8 @@ class SystemProxy(Proxy):
     the proxy used by the requests module. The requests module thus uses
     the system proxy configuration by default.
     """
-    category = 'System'
+
+    category = "System"
 
     def settings(self, **kwargs: Any) -> None:
         return None
@@ -69,23 +80,24 @@ class ManualProxy(Proxy):
     """
     The ManualProxy class allows for manual setting of the proxy.
     """
-    category = 'Manual'
+
+    category = "Manual"
 
     def __init__(
         self,
-        url: str=None,
-        scheme: str=None,
-        host: str=None,
-        port: int=None,
-        authenticated: bool=False,
-        username: str=None,
-        password: str=None,
+        url: str = None,
+        scheme: str = None,
+        host: str = None,
+        port: int = None,
+        authenticated: bool = False,
+        username: str = None,
+        password: str = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         if url:
-            if '://' not in url:
-                url = 'http://' + url
+            if "://" not in url:
+                url = "http://" + url
             url = urlparse(url)
             self.scheme = url.scheme
             self.host = url.hostname
@@ -103,15 +115,24 @@ class ManualProxy(Proxy):
 
     @property
     def url(self) -> str:
-        return self.scheme + '://' + self.host + ':' + str(self.port)
+        return self.scheme + "://" + self.host + ":" + str(self.port)
 
     def settings(self, **kwargs: Any) -> Dict[str, Any]:
         if self.authenticated:
-            url = (self.scheme + '://' + self.username + ':'
-                   + self.password + '@' + self.host + ':' + str(self.port))
+            url = (
+                self.scheme
+                + "://"
+                + self.username
+                + ":"
+                + self.password
+                + "@"
+                + self.host
+                + ":"
+                + str(self.port)
+            )
         else:
             url = self.url
-        return {'http': url, 'https': url}
+        return {"http": url, "https": url}
 
 
 class AutomaticProxy(Proxy):
@@ -127,87 +148,88 @@ class AutomaticProxy(Proxy):
        - Windows: pypac will automatically try to retrieve
                   the default PAC file address in the registry
     """
-    category = 'Automatic'
 
-    def __init__(
-        self,
-        pac_url: str=None,
-        js: str=None,
-        **kwargs: Any,
-    ) -> None:
+    category = "Automatic"
+
+    def __init__(self, pac_url: str = None, js: str = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        if pac_url and '://' not in pac_url:
-            pac_url = 'http://' + pac_url
+        if pac_url and "://" not in pac_url:
+            pac_url = "http://" + pac_url
         self.pac_url = pac_url
         self._js = js
         self._pac_file = get_pac(
-            url=pac_url, js=js, allowed_content_types=[
-                'application/octet-stream',
-                'application/x-ns-proxy-autoconfig',
-                'application/x-javascript-config'])
+            url=pac_url,
+            js=js,
+            allowed_content_types=[
+                "application/octet-stream",
+                "application/x-ns-proxy-autoconfig",
+                "application/x-javascript-config",
+            ],
+        )
         self._resolver = ProxyResolver(self._pac_file)
 
-    def settings(self, url: str=None, **kwargs: Any) -> Dict[str, Any]:
+    def settings(self, url: str = None, **kwargs: Any) -> Dict[str, Any]:
         return self._resolver.get_proxy_for_requests(url)
 
 
 def get_proxy(**kwargs: Any) -> Proxy:
-    return _get_cls(kwargs.pop('category'))(**kwargs)
+    return _get_cls(kwargs.pop("category"))(**kwargs)
 
 
-def load_proxy(dao: 'EngineDAO', token: str=None) -> Proxy:
-    category = dao.get_config('proxy_config', 'System')
+def load_proxy(dao: "EngineDAO", token: str = None) -> Proxy:
+    category = dao.get_config("proxy_config", "System")
     kwargs = {}
 
-    if category == 'Automatic':
-        kwargs['pac_url'] = dao.get_config('proxy_pac_url')
+    if category == "Automatic":
+        kwargs["pac_url"] = dao.get_config("proxy_pac_url")
 
-    elif category == 'Manual':
-        kwargs['scheme'] = dao.get_config('proxy_type')
-        kwargs['port'] = int(dao.get_config('proxy_port'))
-        kwargs['host'] = dao.get_config('proxy_server')
-        kwargs['authenticated'] = (dao.get_config('proxy_authenticated', '0') == '1')
-        if kwargs['authenticated']:
-            kwargs['username'] = dao.get_config('proxy_username')
-            password = dao.get_config('proxy_password')
+    elif category == "Manual":
+        kwargs["scheme"] = dao.get_config("proxy_type")
+        kwargs["port"] = int(dao.get_config("proxy_port"))
+        kwargs["host"] = dao.get_config("proxy_server")
+        kwargs["authenticated"] = dao.get_config("proxy_authenticated", "0") == "1"
+        if kwargs["authenticated"]:
+            kwargs["username"] = dao.get_config("proxy_username")
+            password = dao.get_config("proxy_password")
             if token is None:
-                token = dao.get_config('device_id')
+                token = dao.get_config("device_id")
             if password is not None and token is not None:
-                token += '_proxy'
+                token += "_proxy"
                 password = decrypt(password, token)
             else:
                 # If no server binding or no token available
                 # (possibly after token revocation) reset password
-                password = ''
-            kwargs['password'] = password
+                password = ""
+            kwargs["password"] = password
 
     return _get_cls(category)(**kwargs)
 
 
-def save_proxy(proxy: Proxy, dao: 'EngineDAO', token: str=None) -> None:
-    dao.update_config('proxy_config', proxy.category)
+def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
+    dao.update_config("proxy_config", proxy.category)
 
-    if proxy.category == 'Automatic':
-        dao.update_config('proxy_pac_url', proxy.pac_url)
+    if proxy.category == "Automatic":
+        dao.update_config("proxy_pac_url", proxy.pac_url)
 
-    elif proxy.category == 'Manual':
-        dao.update_config('proxy_port', proxy.port)
-        dao.update_config('proxy_type', proxy.scheme)
-        dao.update_config('proxy_server', proxy.host)
-        dao.update_config('proxy_authenticated', proxy.authenticated)
+    elif proxy.category == "Manual":
+        dao.update_config("proxy_port", proxy.port)
+        dao.update_config("proxy_type", proxy.scheme)
+        dao.update_config("proxy_server", proxy.host)
+        dao.update_config("proxy_authenticated", proxy.authenticated)
 
         if proxy.authenticated:
-            dao.update_config('proxy_username', proxy.username)
+            dao.update_config("proxy_username", proxy.username)
             # Encrypt password with token as the secret
             if token is None:
-                token = dao.get_config('device_id')
+                token = dao.get_config("device_id")
             if token is None:
                 raise MissingToken(
-                    'Your token has been revoked, please update '
-                    'your password to acquire a new one.')
-            token += '_proxy'
+                    "Your token has been revoked, please update "
+                    "your password to acquire a new one."
+                )
+            token += "_proxy"
             password = encrypt(proxy.password, token)
-            dao.update_config('proxy_password', password)
+            dao.update_config("proxy_password", password)
 
 
 def validate_proxy(proxy: Proxy, url: str) -> bool:
@@ -215,17 +237,17 @@ def validate_proxy(proxy: Proxy, url: str) -> bool:
         requests.get(url, proxies=proxy.settings(url=url))
         return True
     except:
-        log.exception('Invalid proxy.')
+        log.exception("Invalid proxy.")
         return False
 
 
 def _get_cls(category: str) -> Type[Proxy]:
     proxy_cls = {
-        'None': NoProxy,
-        'System': SystemProxy,
-        'Manual': ManualProxy,
-        'Automatic': AutomaticProxy,
+        "None": NoProxy,
+        "System": SystemProxy,
+        "Manual": ManualProxy,
+        "Automatic": AutomaticProxy,
     }
     if category not in proxy_cls:
-        raise ValueError('No proxy associated to category %s' % category)
+        raise ValueError("No proxy associated to category %s" % category)
     return proxy_cls[category]

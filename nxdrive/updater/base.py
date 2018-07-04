@@ -12,16 +12,18 @@ import yaml
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 from . import UpdateError, get_latest_compatible_version
-from .constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
-                        UPDATE_STATUS_UNAVAILABLE_SITE,
-                        UPDATE_STATUS_UPDATE_AVAILABLE,
-                        UPDATE_STATUS_UPDATING,
-                        UPDATE_STATUS_UP_TO_DATE)
+from .constants import (
+    UPDATE_STATUS_DOWNGRADE_NEEDED,
+    UPDATE_STATUS_UNAVAILABLE_SITE,
+    UPDATE_STATUS_UPDATE_AVAILABLE,
+    UPDATE_STATUS_UPDATING,
+    UPDATE_STATUS_UP_TO_DATE,
+)
 from ..engine.workers import PollWorker
 from ..options import Options
 from ..utils import version_le
 
-__all__ = ('BaseUpdater',)
+__all__ = ("BaseUpdater",)
 
 log = getLogger(__name__)
 
@@ -36,19 +38,19 @@ class BaseUpdater(PollWorker):
     updateAvailable = pyqtSignal()
 
     versions = {}
-    nature = 'release'
+    nature = "release"
 
     __update_site = None
 
-    def __init__(self, manager: 'Manager') -> None:
+    def __init__(self, manager: "Manager") -> None:
         super().__init__(Options.update_check_delay)
         self.manager = manager
 
-        self.enable = getattr(self, '_can_update', Options.is_frozen)
+        self.enable = getattr(self, "_can_update", Options.is_frozen)
         self.last_status = (UPDATE_STATUS_UP_TO_DATE, None)
 
         if not self.enable:
-            log.info('Auto-update disabled (frozen=%r)', Options.is_frozen)
+            log.info("Auto-update disabled (frozen=%r)", Options.is_frozen)
 
     #
     # Read-only properties
@@ -74,11 +76,11 @@ class BaseUpdater(PollWorker):
         if not self.__update_site:
 
             if self.manager.get_beta_channel():
-                log.debug('Update beta channel activated')
-                url, self.nature = Options.beta_update_site_url, 'beta'
+                log.debug("Update beta channel activated")
+                url, self.nature = Options.beta_update_site_url, "beta"
             else:
-                url, self.nature = Options.update_site_url, 'release'
-            self.__update_site = url.rstrip('/')
+                url, self.nature = Options.update_site_url, "release"
+            self.__update_site = url.rstrip("/")
 
         return self.__update_site
 
@@ -122,7 +124,7 @@ class BaseUpdater(PollWorker):
             return
 
         version = str(version)
-        log.info('Starting application update process to version %s', version)
+        log.info("Starting application update process to version %s", version)
         self.last_status = (UPDATE_STATUS_UPDATING, version, 50)
         self._install(version, self._download(version))
 
@@ -134,38 +136,42 @@ class BaseUpdater(PollWorker):
         """ Download a given version to a temporary file. """
 
         name = self.release_file.format(version=version)
-        url = '/'.join([self.update_site, self.nature, name])
-        path = os.path.join(gettempdir(), uuid.uuid4().hex + '_' + name)
+        url = "/".join([self.update_site, self.nature, name])
+        path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
 
-        log.info('Fetching version %r from update site %r into %r',
-                 version, self.update_site, path)
+        log.info(
+            "Fetching version %r from update site %r into %r",
+            version,
+            self.update_site,
+            path,
+        )
         try:
-            with requests.get(url, stream=True) as req, open(path, 'wb') as tmp:
+            with requests.get(url, stream=True) as req, open(path, "wb") as tmp:
                 req.raw.decode_content = True  # Handle gzipped data
                 shutil.copyfileobj(req.raw, tmp)
         except Exception as exc:
-            raise UpdateError('Impossible to get %r: %s' % (url, exc))
+            raise UpdateError("Impossible to get %r: %s" % (url, exc))
 
         if not self._is_valid(version, path):
-            raise UpdateError('Installer integrity check failed for %r' % name)
+            raise UpdateError("Installer integrity check failed for %r" % name)
 
         return path
 
     def _fetch_versions(self) -> None:
         """ Fetch available versions. It sets `self.versions` on success. """
 
-        url = self.update_site + '/versions.yml'
+        url = self.update_site + "/versions.yml"
         try:
             with requests.get(url) as resp:
                 resp.raise_for_status()
                 content = resp.text
         except Exception as exc:
-            raise UpdateError('Impossible to get %r: %s' % (url, exc))
+            raise UpdateError("Impossible to get %r: %s" % (url, exc))
 
         try:
             versions = yaml.safe_load(content)
         except yaml.YAMLError as exc:
-            raise UpdateError('Parsing error: %s' % exc)
+            raise UpdateError("Parsing error: %s" % exc)
         else:
             self.versions = versions
 
@@ -180,7 +186,8 @@ class BaseUpdater(PollWorker):
         else:
             # Find the latest available version
             latest, info = get_latest_compatible_version(
-                self.versions, self.nature, self.server_ver)
+                self.versions, self.nature, self.server_ver
+            )
 
             current = self.manager.version
             if not latest or current == latest:
@@ -198,13 +205,17 @@ class BaseUpdater(PollWorker):
         status, version = self.last_status[:2]
 
         if status == UPDATE_STATUS_UNAVAILABLE_SITE:
-            log.warning('Update site is unavailable, as a consequence'
-                        ' update features won\'t be available.')
+            log.warning(
+                "Update site is unavailable, as a consequence"
+                " update features won't be available."
+            )
             return
 
-        if status not in (UPDATE_STATUS_DOWNGRADE_NEEDED,
-                          UPDATE_STATUS_UPDATE_AVAILABLE):
-            log.debug('You are up-to-date!')
+        if status not in (
+            UPDATE_STATUS_DOWNGRADE_NEEDED,
+            UPDATE_STATUS_UPDATE_AVAILABLE,
+        ):
+            log.debug("You are up-to-date!")
             return
 
         self.updateAvailable.emit()
@@ -220,7 +231,7 @@ class BaseUpdater(PollWorker):
             try:
                 self.update(version)
             except UpdateError:
-                log.exception('Auto-update error')
+                log.exception("Auto-update error")
 
     def _install(self, version: str, filename: str) -> None:
         """
@@ -228,28 +239,33 @@ class BaseUpdater(PollWorker):
         It must take care of uninstalling the current one.
         """
 
-        log.info('Installing %s %s', self.manager.app_name, version)
+        log.info("Installing %s %s", self.manager.app_name, version)
         self.install(filename)
 
     def _is_valid(self, version: str, filename: str) -> bool:
         """ Check the downloaded file integrity. Use SHA256 by default. """
 
         info = self.versions.get(version, {})
-        checksums = info.get('checksum', {})
-        algo = checksums.get('algo', 'sha256').lower()
-        checksum = checksums.get(self.ext, '').lower()
+        checksums = info.get("checksum", {})
+        algo = checksums.get("algo", "sha256").lower()
+        checksum = checksums.get(self.ext, "").lower()
         if not checksum:
-            log.error('Invalid version info %r (version=%r)', info, version)
+            log.error("Invalid version info %r (version=%r)", info, version)
             return False
 
-        func = getattr(hashlib, algo, 'sha256')()
-        with open(filename, 'rb') as installer:
-            for chunk in iter(lambda: installer.read(16384), ''):
+        func = getattr(hashlib, algo, "sha256")()
+        with open(filename, "rb") as installer:
+            for chunk in iter(lambda: installer.read(16384), ""):
                 func.update(chunk)
         computed = func.hexdigest()
 
-        log.trace('Integrity check [%s] for %r: good=%r, found=%r',
-                  algo.upper(), filename, checksum, computed)
+        log.trace(
+            "Integrity check [%s] for %r: good=%r, found=%r",
+            algo.upper(),
+            filename,
+            checksum,
+            computed,
+        )
         return computed == checksum
 
     @pyqtSlot(result=bool)
@@ -257,8 +273,11 @@ class BaseUpdater(PollWorker):
         ret = True
 
         if self.last_status != UPDATE_STATUS_UPDATING:
-            log.debug('Polling %r for update, the current version is %r',
-                      self.update_site, self.manager.version)
+            log.debug(
+                "Polling %r for update, the current version is %r",
+                self.update_site,
+                self.manager.version,
+            )
             try:
                 status = self._get_update_status()
                 if status != self.last_status:

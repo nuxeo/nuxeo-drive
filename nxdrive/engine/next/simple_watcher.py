@@ -13,7 +13,7 @@ from ...engine.watcher import LocalWatcher
 from ...exceptions import ThreadInterrupt
 from ...utils import current_milli_time, normalize_event_filename
 
-__all__ = ('SimpleWatcher',)
+__all__ = ("SimpleWatcher",)
 
 log = getLogger(__name__)
 
@@ -25,7 +25,7 @@ class SimpleWatcher(LocalWatcher):
     with a folder check should do the trick.
     """
 
-    def __init__(self, engine: 'Engine', dao: 'EngineDAO') -> None:
+    def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao)
         self._scan_delay = 1
         self._to_scan = dict()
@@ -50,12 +50,7 @@ class SimpleWatcher(LocalWatcher):
     def is_pending_scan(self, ref: str) -> bool:
         return ref in self._to_scan
 
-    def handle_watchdog_move(
-        self,
-        evt: FileSystemEvent,
-        _,
-        rel_path: str,
-    ) -> None:
+    def handle_watchdog_move(self, evt: FileSystemEvent, _, rel_path: str) -> None:
         # Dest
         dst_path = normalize_event_filename(evt.dest_path)
         if self.local.is_temp_file(os.path.basename(dst_path)):
@@ -73,8 +68,8 @@ class SimpleWatcher(LocalWatcher):
             log.warning("NO PAIR")
             return
         # It is not yet created no need to move it
-        if doc_pair.local_state != 'created':
-            doc_pair.local_state = 'moved'
+        if doc_pair.local_state != "created":
+            doc_pair.local_state = "moved"
         local_info = self.local.get_info(dst_rel_path, raise_if_missing=False)
         if local_info is None:
             log.warning("Should not disapear")
@@ -83,35 +78,37 @@ class SimpleWatcher(LocalWatcher):
         log.warning("has update with moved status")
 
     def handle_watchdog_event(self, evt: FileSystemEvent) -> None:
-        self._metrics['last_event'] = current_milli_time()
+        self._metrics["last_event"] = current_milli_time()
         # For creation and deletion just update the parent folder
         src_path = normalize_event_filename(evt.src_path)
         rel_path = self.local.get_path(src_path)
         file_name = os.path.basename(src_path)
-        if self.local.is_temp_file(file_name) or rel_path == '/.partials':
+        if self.local.is_temp_file(file_name) or rel_path == "/.partials":
             return
-        if evt.event_type == 'moved':
+        if evt.event_type == "moved":
             self.handle_watchdog_move(evt, src_path, rel_path)
             return
         # Dont care about ignored file, unless it is moved
         if self.local.is_ignored(os.path.dirname(rel_path), file_name):
             return
         log.warning("Got evt: %r", evt)
-        if len(rel_path) == 0 or rel_path == '/':
-            self._push_to_scan('/')
+        if len(rel_path) == 0 or rel_path == "/":
+            self._push_to_scan("/")
             return
         # If not modified then we will scan the parent folder later
-        if evt.event_type != 'modified':
+        if evt.event_type != "modified":
             log.warning(rel_path)
             parent_rel_path = os.path.dirname(rel_path)
             if parent_rel_path == "":
-                parent_rel_path = '/'
+                parent_rel_path = "/"
             self._push_to_scan(parent_rel_path)
             return
         file_name = os.path.basename(src_path)
         doc_pair = self._dao.get_state_from_local(rel_path)
         if not os.path.exists(src_path):
-            log.warning("Event on a disappeared file: %r %s %s", evt, rel_path, file_name)
+            log.warning(
+                "Event on a disappeared file: %r %s %s", evt, rel_path, file_name
+            )
             return
         if doc_pair is not None and doc_pair.processor > 0:
             log.warning("Don't update as in process %r", doc_pair)
@@ -124,9 +121,9 @@ class SimpleWatcher(LocalWatcher):
                 # Suspicious
                 return
             digest = local_info.get_digest()
-            if doc_pair.local_state != 'created':
+            if doc_pair.local_state != "created":
                 if doc_pair.local_digest != digest:
-                    doc_pair.local_state = 'modified'
+                    doc_pair.local_state = "modified"
             doc_pair.local_digest = digest
             log.warning("file is updated: %r", doc_pair)
             self._dao.update_local_state(doc_pair, local_info, versioned=True)
@@ -134,7 +131,7 @@ class SimpleWatcher(LocalWatcher):
     def _execute(self) -> None:
         try:
             self._init()
-            if not self.local.exists('/'):
+            if not self.local.exists("/"):
                 self.rootDeleted.emit()
                 return
             self.watchdog_queue = Queue()
@@ -201,8 +198,11 @@ class SimpleWatcher(LocalWatcher):
 
     def _scan_path(self, path: str) -> None:
         if self.local.exists(path):
-            log.warning("Scan delayed folder: %s:%d",
-                        path, len(self.local.get_children_info(path)))
+            log.warning(
+                "Scan delayed folder: %s:%d",
+                path,
+                len(self.local.get_children_info(path)),
+            )
             local_info = self.local.get_info(path, raise_if_missing=False)
             if local_info is not None:
                 self._scan_recursive(local_info, False)

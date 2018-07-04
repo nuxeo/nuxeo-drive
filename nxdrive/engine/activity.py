@@ -5,7 +5,7 @@ from typing import Dict, Optional
 
 from ..utils import current_milli_time
 
-__all__ = ('Action', 'FileAction', 'IdleAction', 'tooltip')
+__all__ = ("Action", "FileAction", "IdleAction", "tooltip")
 
 
 class Action:
@@ -16,9 +16,9 @@ class Action:
 
     def __init__(
         self,
-        action_type: Optional[str]=None,
-        progress: Optional[int]=None,
-        thread_id: Optional[int]= None,
+        action_type: Optional[str] = None,
+        progress: Optional[int] = None,
+        thread_id: Optional[int] = None,
     ) -> None:
         self.progress = progress
         self.type = action_type
@@ -28,7 +28,7 @@ class Action:
         return self.progress
 
     @staticmethod
-    def get_actions() -> Dict[int, 'Action']:
+    def get_actions() -> Dict[int, "Action"]:
         return Action.actions.copy()
 
     @staticmethod
@@ -57,11 +57,11 @@ class Action:
     def __repr__(self) -> str:
         if self.progress is None:
             return str(self.type)
-        return '%s(%s%%)' % (self.type, self.progress)
+        return "%s(%s%%)" % (self.type, self.progress)
 
 
 class IdleAction(Action):
-    type = 'Idle'
+    type = "Idle"
 
 
 class FileAction(Action):
@@ -97,11 +97,11 @@ class FileAction(Action):
     def __repr__(self) -> str:
         # Size can be None if the file disapeared right on creation
         if self.size is None:
-            return '%s(%r)' % (self.type, self.filename)
+            return "%s(%r)" % (self.type, self.filename)
         percent = self.get_percent()
         if percent is None:
-            return '%s(%r[%d])' % (self.type, self.filename, self.size)
-        return '%s(%r[%d]-%f%%)' % (self.type, self.filename, self.size, percent)
+            return "%s(%r[%d])" % (self.type, self.filename, self.size)
+        return "%s(%r[%d]-%f%%)" % (self.type, self.filename, self.size, percent)
 
 
 Action.actions = dict()
@@ -116,5 +116,7 @@ def tooltip(doing: str):
                 func(*args, **kwargs)
             finally:
                 Action.finish_action()
+
         return func_wrapper
+
     return action_decorator

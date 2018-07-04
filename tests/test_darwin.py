@@ -10,16 +10,16 @@ def is_folder_registered(osi, name):
     return osi._find_item_in_list(lst, name) is not None
 
 
-@pytest.mark.skipif(not MAC, reason='macOS only.')
+@pytest.mark.skipif(not MAC, reason="macOS only.")
 def test_folder_registration():
-    name = 'TestCazz'
+    name = "TestCazz"
 
     # Unregister first; to ensure favorite bar is cleaned.
     osi = AbstractOSIntegration.get(None)
     osi.unregister_folder_link(name)
     assert not is_folder_registered(osi, name)
 
-    osi.register_folder_link('.', name)
+    osi.register_folder_link(".", name)
     assert is_folder_registered(osi, name)
 
     osi.unregister_folder_link(name)

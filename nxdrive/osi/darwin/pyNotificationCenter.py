@@ -2,40 +2,42 @@
 """ Python integration macOS notification center. """
 from typing import Dict, Optional
 
-from Foundation import (NSBundle, NSMutableDictionary, NSObject,
-                        NSUserNotification, NSUserNotificationCenter)
+from Foundation import (
+    NSBundle,
+    NSMutableDictionary,
+    NSObject,
+    NSUserNotification,
+    NSUserNotificationCenter,
+)
 
 from ...constants import BUNDLE_IDENTIFIER
 
-__all__ = ('NotificationDelegator', 'notify', 'setup_delegator')
+__all__ = ("NotificationDelegator", "notify", "setup_delegator")
 
 
 class NotificationDelegator(NSObject):
-
     def __init__(self) -> None:
         self._manager = None
         info_dict = NSBundle.mainBundle().infoDictionary()
-        if not 'CFBundleIdentifier' in info_dict:
-            info_dict['CFBundleIdentifier'] = BUNDLE_IDENTIFIER
+        if not "CFBundleIdentifier" in info_dict:
+            info_dict["CFBundleIdentifier"] = BUNDLE_IDENTIFIER
 
     def userNotificationCenter_didActivateNotification_(
-        self,
-        center: object,
-        notification: object,
+        self, center: object, notification: object
     ) -> None:
         info = notification.userInfo()
-        if 'uuid' not in info or self._manager is None:
+        if "uuid" not in info or self._manager is None:
             return
         notifications = self._manager.notification_service.get_notifications()
-        if (info['uuid'] not in notifications
-                or notifications[info['uuid']].is_discard_on_trigger()):
+        if (
+            info["uuid"] not in notifications
+            or notifications[info["uuid"]].is_discard_on_trigger()
+        ):
             center.removeDeliveredNotification_(notification)
-        self._manager.notification_service.trigger_notification(info['uuid'])
+        self._manager.notification_service.trigger_notification(info["uuid"])
 
     def userNotificationCenter_shouldPresentNotification_(
-        self,
-        center: object,
-        notification: object,
+        self, center: object, notification: object
     ) -> bool:
         return True
 
@@ -50,9 +52,9 @@ def notify(
     title: str,
     subtitle: str,
     info_text: str,
-    delay: int=0,
-    sound: bool=False,
-    user_info: Optional[Dict[str, str]]=None,
+    delay: int = 0,
+    sound: bool = False,
+    user_info: Optional[Dict[str, str]] = None,
 ) -> None:
     """ Python method to show a desktop notification on Mountain Lion. Where:
         title: Title of notification
@@ -71,7 +73,7 @@ def notify(
     user_info = NSMutableDictionary.alloc().init().setDictionary_(user_info)
     notification.setUserInfo_(user_info)
     if sound:
-        notification.setSoundName_('NSUserNotificationDefaultSoundName')
+        notification.setSoundName_("NSUserNotificationDefaultSoundName")
     center = NSUserNotificationCenter.defaultUserNotificationCenter()
     if center is not None:
         center.deliverNotification_(notification)

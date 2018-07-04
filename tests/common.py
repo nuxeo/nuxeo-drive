@@ -33,9 +33,8 @@ from .conftest import root_remote
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
 
-TEST_WORKSPACE_PATH = (
-    '/default-domain/workspaces/nuxeo-drive-test-workspace')
-FS_ITEM_ID_PREFIX = 'defaultFileSystemItemFactory#default#'
+TEST_WORKSPACE_PATH = "/default-domain/workspaces/nuxeo-drive-test-workspace"
+FS_ITEM_ID_PREFIX = "defaultFileSystemItemFactory#default#"
 
 # 1s time resolution as we truncate remote last modification time to the
 # seconds in RemoteFileSystemClient.file_to_info() because of the datetime
@@ -49,8 +48,8 @@ OS_STAT_MTIME_RESOLUTION = 1.0
 
 log = getLogger(__name__)
 
-DEFAULT_WAIT_SYNC_TIMEOUT: int= 30
-FILE_CONTENT: bytes= """
+DEFAULT_WAIT_SYNC_TIMEOUT: int = 30
+FILE_CONTENT: bytes = """
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut egestas 
     condimentum egestas.
     Vestibulum ut facilisis neque, eu finibus mi. Proin ac massa sapien. Sed 
@@ -118,8 +117,8 @@ class StubQApplication(QCoreApplication):
 
     @pyqtSlot()
     def sync_completed(self):
-        uid = getattr(self.sender(), 'uid', None)
-        log.debug('Sync Completed slot for: %s', uid)
+        uid = getattr(self.sender(), "uid", None)
+        log.debug("Sync Completed slot for: %s", uid)
         if uid:
             self._test._wait_sync[uid] = False
         else:
@@ -129,7 +128,7 @@ class StubQApplication(QCoreApplication):
     @pyqtSlot()
     def remote_scan_completed(self):
         uid = self.sender().engine.uid
-        log.debug('Remote scan completed for engine %s', uid)
+        log.debug("Remote scan completed for engine %s", uid)
         self._test._wait_remote_scan[uid] = False
         self._test._wait_sync[uid] = False
 
@@ -142,7 +141,7 @@ class StubQApplication(QCoreApplication):
     @pyqtSlot()
     def no_remote_changes_found(self):
         uid = self.sender().engine.uid
-        log.trace('No remote changes slot for %s', uid)
+        log.trace("No remote changes slot for %s", uid)
         self._test._no_remote_changes[uid] = True
 
     @pyqtSlot(int, bool)
@@ -172,21 +171,22 @@ class UnitTestCase(TestCase):
 
         # Call the Nuxeo operation to setup the integration test environment
         credentials = self.root_remote.operations.execute(
-                command='NuxeoDrive.SetupIntegrationTests',
-                userNames='user_1, user_2', permission='ReadWrite')
+            command="NuxeoDrive.SetupIntegrationTests",
+            userNames="user_1, user_2",
+            permission="ReadWrite",
+        )
 
-        credentials = [c.strip().split(':')
-                       for c in credentials.decode().split(',')]
+        credentials = [c.strip().split(":") for c in credentials.decode().split(",")]
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
-        ws_info = self.root_remote.fetch('/default-domain/workspaces/')
-        children = self.root_remote.get_children(ws_info['uid'])
-        log.debug('SuperWorkspace info: %r', ws_info)
-        log.debug('SuperWorkspace children: %r', children)
+        ws_info = self.root_remote.fetch("/default-domain/workspaces/")
+        children = self.root_remote.get_children(ws_info["uid"])
+        log.debug("SuperWorkspace info: %r", ws_info)
+        log.debug("SuperWorkspace children: %r", children)
         ws_info = self.root_remote.fetch(TEST_WORKSPACE_PATH)
-        log.debug('Workspace info: %r', ws_info)
-        self.workspace = ws_info['uid']
-        self.workspace_title = ws_info['title']
+        log.debug("Workspace info: %r", ws_info)
+        self.workspace = ws_info["uid"]
+        self.workspace_title = ws_info["title"]
         self.workspace_1 = self.workspace
         self.workspace_2 = self.workspace
         self.workspace_title_1 = self.workspace_title
@@ -196,7 +196,8 @@ class UnitTestCase(TestCase):
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
         self.root_remote.operations.execute(
-                command='NuxeoDrive.TearDownIntegrationTests')
+            command="NuxeoDrive.TearDownIntegrationTests"
+        )
 
         # Deactivate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
@@ -209,49 +210,53 @@ class UnitTestCase(TestCase):
         # Install callback early to be called the last
         self.addCleanup(self._check_cleanup)
 
-        self.report_path = os.environ.get('REPORT_PATH')
+        self.report_path = os.environ.get("REPORT_PATH")
 
-        self.tmpdir = os.path.join(os.environ.get('WORKSPACE', ''), 'tmp')
+        self.tmpdir = os.path.join(os.environ.get("WORKSPACE", ""), "tmp")
         self.addCleanup(clean_dir, self.tmpdir)
         if not os.path.isdir(self.tmpdir):
             os.makedirs(self.tmpdir)
 
-        self.upload_tmp_dir = tempfile.mkdtemp('-nxdrive-uploads',
-                                               dir=self.tmpdir)
+        self.upload_tmp_dir = tempfile.mkdtemp("-nxdrive-uploads", dir=self.tmpdir)
 
         # Check the local filesystem test environment
-        self.local_test_folder_1 = tempfile.mkdtemp('drive-1',
-                                                    dir=self.tmpdir)
-        self.local_test_folder_2 = tempfile.mkdtemp('drive-2',
-                                                    dir=self.tmpdir)
+        self.local_test_folder_1 = tempfile.mkdtemp("drive-1", dir=self.tmpdir)
+        self.local_test_folder_2 = tempfile.mkdtemp("drive-2", dir=self.tmpdir)
 
         # Correct the casing of the temp folders for windows
         if WINDOWS:
             import win32api
+
             self.local_test_folder_1 = win32api.GetLongPathNameW(
-                    self.local_test_folder_1)
+                self.local_test_folder_1
+            )
             self.local_test_folder_2 = win32api.GetLongPathNameW(
-                    self.local_test_folder_2)
+                self.local_test_folder_2
+            )
 
         self.local_nxdrive_folder_1 = os.path.join(
-                self.local_test_folder_1, 'Nuxeo Drive')
+            self.local_test_folder_1, "Nuxeo Drive"
+        )
         os.mkdir(self.local_nxdrive_folder_1)
         self.local_nxdrive_folder_2 = os.path.join(
-                self.local_test_folder_2, 'Nuxeo Drive')
+            self.local_test_folder_2, "Nuxeo Drive"
+        )
         os.mkdir(self.local_nxdrive_folder_2)
 
         self.nxdrive_conf_folder_1 = os.path.join(
-                self.local_test_folder_1, 'nuxeo-drive-conf')
+            self.local_test_folder_1, "nuxeo-drive-conf"
+        )
         os.mkdir(self.nxdrive_conf_folder_1)
         self.nxdrive_conf_folder_2 = os.path.join(
-                self.local_test_folder_2, 'nuxeo-drive-conf')
+            self.local_test_folder_2, "nuxeo-drive-conf"
+        )
         os.mkdir(self.nxdrive_conf_folder_2)
 
         Options.delay = TEST_DEFAULT_DELAY
         Options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager()
         self.connected = False
-        i18n_path = self.location + '/resources/i18n'
+        i18n_path = self.location + "/resources/i18n"
         Translator(self.manager_1, i18n_path)
         Options.nxdrive_home = self.nxdrive_conf_folder_2
         Manager._singleton = None
@@ -273,9 +278,11 @@ class UnitTestCase(TestCase):
         self.bind_engine(2, start_engine=False)
 
         self.sync_root_folder_1 = os.path.join(
-                self.local_nxdrive_folder_1, self.workspace_title_1)
+            self.local_nxdrive_folder_1, self.workspace_title_1
+        )
         self.sync_root_folder_2 = os.path.join(
-                self.local_nxdrive_folder_2, self.workspace_title_2)
+            self.local_nxdrive_folder_2, self.workspace_title_2
+        )
 
         self.local_root_client_1 = self.engine_1.local
 
@@ -285,30 +292,46 @@ class UnitTestCase(TestCase):
         # Document client to be used to create remote test documents
         # and folders
         self.remote_document_client_1 = DocRemote(
-                pytest.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
-                pytest.version, password=self.password_1,
-                base_folder=self.workspace_1,
-                upload_tmp_dir=self.upload_tmp_dir)
+            pytest.nuxeo_url,
+            self.user_1,
+            "nxdrive-test-device-1",
+            pytest.version,
+            password=self.password_1,
+            base_folder=self.workspace_1,
+            upload_tmp_dir=self.upload_tmp_dir,
+        )
 
         self.remote_document_client_2 = DocRemote(
-                pytest.nuxeo_url, self.user_2, 'nxdrive-test-device-2',
-                pytest.version, password=self.password_2,
-                base_folder=self.workspace_2,
-                upload_tmp_dir=self.upload_tmp_dir)
+            pytest.nuxeo_url,
+            self.user_2,
+            "nxdrive-test-device-2",
+            pytest.version,
+            password=self.password_2,
+            base_folder=self.workspace_2,
+            upload_tmp_dir=self.upload_tmp_dir,
+        )
 
         # File system client to be used to create remote test documents
         # and folders
         self.remote_1 = RemoteBase(
-                pytest.nuxeo_url, self.user_1, 'nxdrive-test-device-1',
-                pytest.version, password=self.password_1,
-                base_folder=self.workspace_1,
-                upload_tmp_dir=self.upload_tmp_dir)
+            pytest.nuxeo_url,
+            self.user_1,
+            "nxdrive-test-device-1",
+            pytest.version,
+            password=self.password_1,
+            base_folder=self.workspace_1,
+            upload_tmp_dir=self.upload_tmp_dir,
+        )
 
         self.remote_2 = RemoteBase(
-                pytest.nuxeo_url, self.user_2, 'nxdrive-test-device-2',
-                pytest.version, password=self.password_2,
-                base_folder=self.workspace_2,
-                upload_tmp_dir=self.upload_tmp_dir)
+            pytest.nuxeo_url,
+            self.user_2,
+            "nxdrive-test-device-2",
+            pytest.version,
+            password=self.password_2,
+            base_folder=self.workspace_2,
+            upload_tmp_dir=self.upload_tmp_dir,
+        )
 
         # Register sync roots
         if register_roots:
@@ -329,16 +352,16 @@ class UnitTestCase(TestCase):
             pass
 
         attrs = (
-            'engine_1',
-            'engine_2',
-            'local_client_1',
-            'local_client_2',
-            'remote_1',
-            'remote_2',
-            'remote_document_client_1',
-            'remote_document_client_2',
-            'remote_file_system_client_1',
-            'remote_file_system_client_2',
+            "engine_1",
+            "engine_2",
+            "local_client_1",
+            "local_client_2",
+            "remote_1",
+            "remote_2",
+            "remote_document_client_1",
+            "remote_document_client_2",
+            "remote_file_system_client_1",
+            "remote_file_system_client_2",
         )
         for attr in attrs:
             try:
@@ -349,9 +372,11 @@ class UnitTestCase(TestCase):
     def get_local_client(self, path):
         if WINDOWS:
             from tests.win_local_client import WindowsLocalClient
+
             return WindowsLocalClient(path)
         if MAC:
             from tests.mac_local_client import MacLocalClient
+
             return MacLocalClient(path)
         return LocalClient(path)
 
@@ -362,22 +387,24 @@ class UnitTestCase(TestCase):
         except (HTTPError, ConnectionError):
             pass
 
-    def bind_engine(self, number: int, start_engine: bool=True) -> None:
+    def bind_engine(self, number: int, start_engine: bool = True) -> None:
         number_str = str(number)
-        manager = getattr(self, 'manager_' + number_str)
-        local_folder = getattr(self, 'local_nxdrive_folder_' + number_str)
-        user = getattr(self, 'user_' + number_str)
-        password = getattr(self, 'password_' + number_str)
-        engine = manager.bind_server(local_folder, pytest.nuxeo_url, user,
-                                     password, start_engine=start_engine)
+        manager = getattr(self, "manager_" + number_str)
+        local_folder = getattr(self, "local_nxdrive_folder_" + number_str)
+        user = getattr(self, "user_" + number_str)
+        password = getattr(self, "password_" + number_str)
+        engine = manager.bind_server(
+            local_folder, pytest.nuxeo_url, user, password, start_engine=start_engine
+        )
 
         engine.syncCompleted.connect(self.app.sync_completed)
         engine.get_remote_watcher().remoteScanFinished.connect(
-                self.app.remote_scan_completed)
-        engine.get_remote_watcher().changesFound.connect(
-                self.app.remote_changes_found)
+            self.app.remote_scan_completed
+        )
+        engine.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
         engine.get_remote_watcher().noChangesFound.connect(
-                self.app.no_remote_changes_found)
+            self.app.no_remote_changes_found
+        )
 
         engine_uid = engine.uid
         self._wait_sync[engine_uid] = True
@@ -385,88 +412,89 @@ class UnitTestCase(TestCase):
         self._remote_changes_count[engine_uid] = 0
         self._no_remote_changes[engine_uid] = False
 
-        setattr(self, 'engine_' + number_str, engine)
+        setattr(self, "engine_" + number_str, engine)
 
     def unbind_engine(self, number: int) -> None:
         number_str = str(number)
-        engine = getattr(self, 'engine_' + number_str)
-        manager = getattr(self, 'manager_' + number_str)
+        engine = getattr(self, "engine_" + number_str)
+        manager = getattr(self, "manager_" + number_str)
         manager.unbind_engine(engine.uid)
-        delattr(self, 'engine_' + number_str)
+        delattr(self, "engine_" + number_str)
 
-    def send_bind_engine(self, number: int, start_engine: bool=True) -> None:
+    def send_bind_engine(self, number: int, start_engine: bool = True) -> None:
         self.app.bindEngine.emit(number, start_engine)
 
     def send_unbind_engine(self, number: int) -> None:
         self.app.unbindEngine.emit(number)
 
     def wait_bind_engine(
-        self,
-        number: int,
-        timeout: int=DEFAULT_WAIT_SYNC_TIMEOUT,
+        self, number: int, timeout: int = DEFAULT_WAIT_SYNC_TIMEOUT
     ) -> None:
-        engine = 'engine_' + str(number)
+        engine = "engine_" + str(number)
         while timeout > 0:
             sleep(1)
             timeout -= 1
             if getattr(self, engine, False):
                 return
-        self.fail('Wait for bind engine expired')
+        self.fail("Wait for bind engine expired")
 
     def wait_unbind_engine(
-        self,
-        number: int,
-        timeout: int=DEFAULT_WAIT_SYNC_TIMEOUT,
+        self, number: int, timeout: int = DEFAULT_WAIT_SYNC_TIMEOUT
     ) -> None:
-        engine = 'engine_' + str(number)
+        engine = "engine_" + str(number)
         while timeout > 0:
             sleep(1)
             timeout -= 1
             if not getattr(self, engine, False):
                 return
-        self.fail('Wait for unbind engine expired')
+        self.fail("Wait for unbind engine expired")
 
     def wait_sync(
-            self,
-            wait_for_async=False,
-            timeout=DEFAULT_WAIT_SYNC_TIMEOUT,
-            fail_if_timeout=True,
-            wait_for_engine_1=True,
-            wait_for_engine_2=False,
-            wait_win=False,
-            enforce_errors=True,
-            fatal=False,
+        self,
+        wait_for_async=False,
+        timeout=DEFAULT_WAIT_SYNC_TIMEOUT,
+        fail_if_timeout=True,
+        wait_for_engine_1=True,
+        wait_for_engine_2=False,
+        wait_win=False,
+        enforce_errors=True,
+        fatal=False,
     ):
-        log.debug('Wait for sync')
+        log.debug("Wait for sync")
 
         # First wait for server if needed
         if wait_for_async:
             self.wait()
 
         if wait_win:
-            log.trace('Need to wait for Windows delete resolution')
+            log.trace("Need to wait for Windows delete resolution")
             sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000)
 
         self._wait_sync = {
             self.engine_1.uid: wait_for_engine_1,
-            self.engine_2.uid: wait_for_engine_2
+            self.engine_2.uid: wait_for_engine_2,
         }
         self._no_remote_changes = {
             self.engine_1.uid: not wait_for_engine_1,
-            self.engine_2.uid: not wait_for_engine_2}
+            self.engine_2.uid: not wait_for_engine_2,
+        }
 
         if enforce_errors:
             if not self.connected:
                 self.engine_1.syncPartialCompleted.connect(
-                        self.engine_1.get_queue_manager().requeue_errors)
+                    self.engine_1.get_queue_manager().requeue_errors
+                )
                 self.engine_2.syncPartialCompleted.connect(
-                        self.engine_1.get_queue_manager().requeue_errors)
+                    self.engine_1.get_queue_manager().requeue_errors
+                )
                 self.connected = True
         elif self.connected:
             self.engine_1.syncPartialCompleted.disconnect(
-                    self.engine_1.get_queue_manager().requeue_errors)
+                self.engine_1.get_queue_manager().requeue_errors
+            )
             self.engine_2.syncPartialCompleted.disconnect(
-                    self.engine_1.get_queue_manager().requeue_errors)
+                self.engine_1.get_queue_manager().requeue_errors
+            )
             self.connected = False
 
         while timeout > 0:
@@ -474,86 +502,99 @@ class UnitTestCase(TestCase):
             timeout -= 1
             if sum(self._wait_sync.values()) == 0:
                 if wait_for_async:
-                    log.debug('Sync completed, '
-                              '_wait_remote_scan = %r, '
-                              'remote changes count = %r, '
-                              'no remote changes = %r',
-                              self._wait_remote_scan,
-                              self._remote_changes_count,
-                              self._no_remote_changes)
+                    log.debug(
+                        "Sync completed, "
+                        "_wait_remote_scan = %r, "
+                        "remote changes count = %r, "
+                        "no remote changes = %r",
+                        self._wait_remote_scan,
+                        self._remote_changes_count,
+                        self._no_remote_changes,
+                    )
 
                     wait_remote_scan = False
                     if wait_for_engine_1:
-                        wait_remote_scan = self._wait_remote_scan[
-                            self.engine_1.uid]
+                        wait_remote_scan = self._wait_remote_scan[self.engine_1.uid]
                     if wait_for_engine_2:
-                        wait_remote_scan = (wait_remote_scan or
-                                            self._wait_remote_scan[
-                                                self.engine_2.uid])
+                        wait_remote_scan = (
+                            wait_remote_scan
+                            or self._wait_remote_scan[self.engine_2.uid]
+                        )
 
                     is_remote_changes = True
                     is_change_summary_over = True
 
                     if wait_for_engine_1:
-                        is_remote_changes = (self._remote_changes_count[
-                                                 self.engine_1.uid] > 0)
+                        is_remote_changes = (
+                            self._remote_changes_count[self.engine_1.uid] > 0
+                        )
                         is_change_summary_over = self._no_remote_changes[
-                            self.engine_1.uid]
+                            self.engine_1.uid
+                        ]
 
                     if wait_for_engine_2:
                         is_remote_changes = (
-                                is_remote_changes
-                                and self._remote_changes_count[
-                                    self.engine_2.uid] > 0)
+                            is_remote_changes
+                            and self._remote_changes_count[self.engine_2.uid] > 0
+                        )
                         is_change_summary_over = (
-                                is_change_summary_over
-                                and self._no_remote_changes[self.engine_2.uid])
+                            is_change_summary_over
+                            and self._no_remote_changes[self.engine_2.uid]
+                        )
 
-                    if (not wait_remote_scan
-                            or is_remote_changes
-                            and is_change_summary_over):
+                    if (
+                        not wait_remote_scan
+                        or is_remote_changes
+                        and is_change_summary_over
+                    ):
                         self._wait_remote_scan = {
                             self.engine_1.uid: wait_for_engine_1,
-                            self.engine_2.uid: wait_for_engine_2}
+                            self.engine_2.uid: wait_for_engine_2,
+                        }
                         self._remote_changes_count = {
                             self.engine_1.uid: 0,
-                            self.engine_2.uid: 0}
+                            self.engine_2.uid: 0,
+                        }
                         self._no_remote_changes = {
                             self.engine_1.uid: False,
-                            self.engine_2.uid: False}
-                        log.debug('Ended wait for sync, setting '
-                                  '_wait_remote_scan values to True, '
-                                  '_remote_changes_count values to 0 and '
-                                  '_no_remote_changes values to False')
+                            self.engine_2.uid: False,
+                        }
+                        log.debug(
+                            "Ended wait for sync, setting "
+                            "_wait_remote_scan values to True, "
+                            "_remote_changes_count values to 0 and "
+                            "_no_remote_changes values to False"
+                        )
                         return
                 else:
-                    log.debug('Sync completed, ended wait for sync')
+                    log.debug("Sync completed, ended wait for sync")
                     return
 
         if fail_if_timeout:
             count1 = self.engine_1.get_dao().get_syncing_count()
             count2 = self.engine_2.get_dao().get_syncing_count()
             if wait_for_engine_1 and count1:
-                err = ('Wait for sync timeout expired for engine 1 (%d)' %
-                       count1)
+                err = "Wait for sync timeout expired for engine 1 (%d)" % count1
             elif wait_for_engine_2 and count2:
-                err = ('Wait for sync timeout expired for engine 2 (%d)' %
-                       count2)
+                err = "Wait for sync timeout expired for engine 2 (%d)" % count2
             else:
-                err = 'Wait for sync timeout has expired'
+                err = "Wait for sync timeout has expired"
 
             if fatal:
                 self.fail(err)
             else:
                 log.warning(err)
         else:
-            log.debug('Wait for sync timeout')
+            log.debug("Wait for sync timeout")
 
-    def wait_remote_scan(self, timeout=10,
-                         wait_for_engine_1=True, wait_for_engine_2=False):
-        log.debug('Wait for remote scan')
-        self._wait_remote_scan = {self.engine_1.uid: wait_for_engine_1,
-                                  self.engine_2.uid: wait_for_engine_2}
+    def wait_remote_scan(
+        self, timeout=10, wait_for_engine_1=True, wait_for_engine_2=False
+    ):
+        log.debug("Wait for remote scan")
+        self._wait_remote_scan = {
+            self.engine_1.uid: wait_for_engine_1,
+            self.engine_2.uid: wait_for_engine_2,
+        }
         while timeout > 0:
             sleep(1)
             if sum(self._wait_remote_scan.values()) == 0:
@@ -567,12 +608,12 @@ class UnitTestCase(TestCase):
         self.setUpApp()
 
         def launch_test():
-            log.debug('UnitTest thread started')
-            self.root_remote.log_on_server('>>> testing: ' + self.id())
+            log.debug("UnitTest thread started")
+            self.root_remote.log_on_server(">>> testing: " + self.id())
             # Note: we cannot use super().run(result) here
             super(UnitTestCase, self).run(result)
             self.app.quit()
-            log.debug('UnitTest thread finished')
+            log.debug("UnitTest thread finished")
 
         sync_thread = Thread(target=launch_test)
         sync_thread.start()
@@ -580,19 +621,20 @@ class UnitTestCase(TestCase):
         sync_thread.join(30)
         self.tearDownApp()
         del self.app
-        log.debug('UnitTest run finished')
+        log.debug("UnitTest run finished")
 
     def _stop_managers(self):
         """ Called by self.addCleanup() to stop all managers. """
 
         try:
             methods = itertools.product(
-                    ((self.manager_1, 1), (self.manager_2, 2)),
-                    ('unbind_all', 'dispose_all'))
+                ((self.manager_1, 1), (self.manager_2, 2)),
+                ("unbind_all", "dispose_all"),
+            )
             for (manager, idx), method in methods:
                 func = getattr(manager, method, None)
                 if func:
-                    log.debug('Calling self.manager_%d.%s()', idx, method)
+                    log.debug("Calling self.manager_%d.%s()", idx, method)
                     try:
                         func()
                     except:
@@ -605,7 +647,7 @@ class UnitTestCase(TestCase):
         try:
             for root, _, files in os.walk(self.tmpdir):
                 if files:
-                    log.error('tempdir not cleaned-up: %r', root)
+                    log.error("tempdir not cleaned-up: %r", root)
         except OSError:
             pass
 
@@ -626,48 +668,51 @@ class UnitTestCase(TestCase):
                 local_client.make_folder(u"/", self.workspace_title)
                 nb_folders += 1
         # create some folders
-        folder_1 = local_client.make_folder(root, 'Folder 1')
-        folder_1_1 = local_client.make_folder(folder_1, 'Folder 1.1')
-        folder_1_2 = local_client.make_folder(folder_1, 'Folder 1.2')
-        folder_2 = local_client.make_folder(root, 'Folder 2')
+        folder_1 = local_client.make_folder(root, "Folder 1")
+        folder_1_1 = local_client.make_folder(folder_1, "Folder 1.1")
+        folder_1_2 = local_client.make_folder(folder_1, "Folder 1.2")
+        folder_2 = local_client.make_folder(root, "Folder 2")
 
         # create some files
-        local_client.make_file(folder_2, 'Duplicated File.txt',
-                               content=b'Some content.')
+        local_client.make_file(
+            folder_2, "Duplicated File.txt", content=b"Some content."
+        )
 
-        local_client.make_file(folder_1, 'File 1.txt', content=b'aaa')
-        local_client.make_file(folder_1_1, 'File 2.txt', content=b'bbb')
-        local_client.make_file(folder_1_2, 'File 3.txt', content=b'ccc')
-        local_client.make_file(folder_2, 'File 4.txt', content=b'ddd')
-        local_client.make_file(root, 'File 5.txt', content=b'eee')
+        local_client.make_file(folder_1, "File 1.txt", content=b"aaa")
+        local_client.make_file(folder_1_1, "File 2.txt", content=b"bbb")
+        local_client.make_file(folder_1_2, "File 3.txt", content=b"ccc")
+        local_client.make_file(folder_2, "File 4.txt", content=b"ddd")
+        local_client.make_file(root, "File 5.txt", content=b"eee")
         return nb_files, nb_folders
 
-    def make_server_tree(self, deep: bool=True) -> Tuple[int, int]:
+    def make_server_tree(self, deep: bool = True) -> Tuple[int, int]:
         """
         Create some folders on the server.
         Returns a tuple (files_count, folders_count).
         """
 
         remote = self.remote_document_client_1
-        folder_1 = remote.make_folder(self.workspace, 'Folder 1')
-        folder_2 = remote.make_folder(self.workspace, 'Folder 2')
+        folder_1 = remote.make_folder(self.workspace, "Folder 1")
+        folder_2 = remote.make_folder(self.workspace, "Folder 2")
 
         if deep:
-            folder_1_1 = remote.make_folder(folder_1, 'Folder 1.1')
-            folder_1_2 = remote.make_folder(folder_1, 'Folder 1.2')
+            folder_1_1 = remote.make_folder(folder_1, "Folder 1.1")
+            folder_1_2 = remote.make_folder(folder_1, "Folder 1.2")
 
             # Those 2 attrs are used in test_synchronization.py
             self._duplicate_file_1 = remote.make_file(
-                folder_2, 'Duplicated File.txt', content=b'Some content.')
+                folder_2, "Duplicated File.txt", content=b"Some content."
+            )
             self._duplicate_file_2 = remote.make_file(
-                folder_2, 'Duplicated File.txt', content=b'Other content.')
+                folder_2, "Duplicated File.txt", content=b"Other content."
+            )
 
-            remote.make_file(folder_1, 'File 1.txt', content=b'aaa')
-            remote.make_file(folder_1_1, 'File 2.txt', content=b'bbb')
-            remote.make_file(folder_1_2, 'File 3.txt', content=b'ccc')
-            remote.make_file(folder_2, 'File 4.txt', content=b'ddd')
+            remote.make_file(folder_1, "File 1.txt", content=b"aaa")
+            remote.make_file(folder_1_1, "File 2.txt", content=b"bbb")
+            remote.make_file(folder_1_2, "File 3.txt", content=b"ccc")
+            remote.make_file(folder_2, "File 4.txt", content=b"ddd")
 
-        remote.make_file(self.workspace, 'File 5.txt', content=b'eee')
+        remote.make_file(self.workspace, "File 5.txt", content=b"eee")
         return (7, 4) if deep else (1, 2)
 
     def get_local_child_count(self, path: str) -> Tuple[int, int]:
@@ -679,7 +724,7 @@ class UnitTestCase(TestCase):
         for _, dirnames, filenames in os.walk(path):
             dir_count += len(dirnames)
             file_count += len(filenames)
-        if os.path.exists(os.path.join(path, '.partials')):
+        if os.path.exists(os.path.join(path, ".partials")):
             dir_count -= 1
         return file_count, dir_count
 
@@ -695,10 +740,10 @@ class UnitTestCase(TestCase):
         try:
             self.root_remote.wait()
         except Exception as e:
-            log.debug('Exception while waiting for server : %r', e)
+            log.debug("Exception while waiting for server : %r", e)
             # Not the nicest
             if retry > 0:
-                log.debug('Retry to wait')
+                log.debug("Retry to wait")
                 self.wait(retry - 1)
 
     def generate_report(self):
@@ -709,35 +754,36 @@ class UnitTestCase(TestCase):
 
         # Track any exception that could happen, specially those we would not
         # see if the test succeed.
-        for _, error in vars(self._outcome).get('errors'):
+        for _, error in vars(self._outcome).get("errors"):
             exception = str(error[1]).lower()
             message = str(error[2]).lower()
-            if 'mock' not in exception and 'mock' not in message:
+            if "mock" not in exception and "mock" not in message:
                 break
         else:
             # No break => no unexpected exceptions
             return
 
-        path = os.path.join(self.report_path, self.id() + '-' + sys.platform)
+        path = os.path.join(self.report_path, self.id() + "-" + sys.platform)
         if WINDOWS:
-            path = '\\\\?\\' + path.replace('/', os.path.sep)
+            path = "\\\\?\\" + path.replace("/", os.path.sep)
         self.manager_1.generate_report(path)
 
     def _set_read_permission(self, user, doc_path, grant):
-        input_obj = 'doc:' + doc_path
+        input_obj = "doc:" + doc_path
         remote = self.root_remote
         if grant:
             remote.operations.execute(
-                    command='Document.SetACE', input_obj=input_obj, user=user,
-                    permission='Read', grant=True)
+                command="Document.SetACE",
+                input_obj=input_obj,
+                user=user,
+                permission="Read",
+                grant=True,
+            )
         else:
             remote.block_inheritance(doc_path)
 
     @staticmethod
-    def generate_random_png(
-        filename: str=None,
-        size: int=0,
-    ) -> Union[None, bytes]:
+    def generate_random_png(filename: str = None, size: int = 0) -> Union[None, bytes]:
         """ Generate a random PNG file.
 
         :param filename: The output file name. If None, returns
@@ -754,22 +800,28 @@ class UnitTestCase(TestCase):
         pack = struct.pack
 
         def chunk(header, data):
-            return (pack('>I', len(data)) + header + data
-                    + pack('>I', zlib.crc32(header + data) & 0xffffffff))
+            return (
+                pack(">I", len(data))
+                + header
+                + data
+                + pack(">I", zlib.crc32(header + data) & 0xffffffff)
+            )
 
-        magic = pack('>8B', 137, 80, 78, 71, 13, 10, 26, 10)
-        png_filter = pack('>B', 0)
-        scanline = pack('>{}B'.format(size * 3), *[0] * (size * 3))
+        magic = pack(">8B", 137, 80, 78, 71, 13, 10, 26, 10)
+        png_filter = pack(">B", 0)
+        scanline = pack(">{}B".format(size * 3), *[0] * (size * 3))
         content = [png_filter + scanline for _ in range(size)]
-        png = (magic
-               + chunk(b'IHDR', pack('>2I5B', size, size, 8, 2, 0, 0, 0))
-               + chunk(b'IDAT', zlib.compress(b''.join(content)))
-               + chunk(b'IEND', b''))
+        png = (
+            magic
+            + chunk(b"IHDR", pack(">2I5B", size, size, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(b"".join(content)))
+            + chunk(b"IEND", b"")
+        )
 
         if not filename:
             return png
 
-        with open(filename, 'wb') as fileo:
+        with open(filename, "wb") as fileo:
             fileo.write(png)
 
     def assertNxPart(self, path: str, name: str):
@@ -778,10 +830,12 @@ class UnitTestCase(TestCase):
                 continue
             if name is not None and len(child) < len(name) + 8:
                 continue
-            if (child[0] == '.'
-                    and child.endswith('.nxpart')
-                    and (name is None or child[1:len(name) + 1] == name)):
-                self.fail('nxpart found in %r' % path)
+            if (
+                child[0] == "."
+                and child.endswith(".nxpart")
+                and (name is None or child[1 : len(name) + 1] == name)
+            ):
+                self.fail("nxpart found in %r" % path)
 
     def get_dao_state_from_engine_1(self, path: str):
         """
@@ -791,10 +845,10 @@ class UnitTestCase(TestCase):
                ex: /Folder is converted to /{{workspace_title_1}}/Folder).
         :return: The pair from dao of engine 1 according to the path.
         """
-        abs_path = '/' + self.workspace_title_1 + path
+        abs_path = "/" + self.workspace_title_1 + path
         return self.engine_1.get_dao().get_state_from_local(abs_path)
 
-    def set_readonly(self, user: str, doc_path: str, grant: bool=True):
+    def set_readonly(self, user: str, doc_path: str, grant: bool = True):
         """
         Mark a document as RO or RW.
 
@@ -803,24 +857,31 @@ class UnitTestCase(TestCase):
         :param grant: Set RO if True else RW.
         """
         remote = self.root_remote
-        input_obj = 'doc:' + doc_path
+        input_obj = "doc:" + doc_path
         if grant:
             remote.operations.execute(
-                    command='Document.SetACE', input_obj=input_obj, user=user,
-                    permission='Read')
+                command="Document.SetACE",
+                input_obj=input_obj,
+                user=user,
+                permission="Read",
+            )
             remote.block_inheritance(doc_path, overwrite=False)
         else:
             remote.operations.execute(
-                    command='Document.SetACE', input_obj=input_obj, user=user,
-                    permission='ReadWrite', grant=True)
+                command="Document.SetACE",
+                input_obj=input_obj,
+                user=user,
+                permission="ReadWrite",
+                grant=True,
+            )
 
 
-def clean_dir(_dir: str, retry: int=1, max_retries: int=5) -> None:
+def clean_dir(_dir: str, retry: int = 1, max_retries: int = 5) -> None:
     if not os.path.exists(_dir):
         return
 
     to_remove = safe_long_path(_dir)
-    test_data = os.environ.get('TEST_SAVE_DATA')
+    test_data = os.environ.get("TEST_SAVE_DATA")
     if test_data:
         shutil.move(to_remove, test_data)
         return

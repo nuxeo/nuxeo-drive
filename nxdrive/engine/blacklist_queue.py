@@ -3,12 +3,11 @@ import time
 from threading import Lock
 from typing import Generator, Optional
 
-__all__ = ('BlacklistQueue',)
+__all__ = ("BlacklistQueue",)
 
 
 class BlacklistItem:
-
-    def __init__(self, item_id: str, item: str, next_try: int=30) -> None:
+    def __init__(self, item_id: str, item: str, next_try: int = 30) -> None:
         self.uid = item_id
         self._item = item
         self._interval = next_try
@@ -22,7 +21,7 @@ class BlacklistItem:
     def get(self):
         return self._item
 
-    def increase(self, next_try: Optional[int]=None) -> None:
+    def increase(self, next_try: Optional[int] = None) -> None:
         self.count += 1
         cur_time = int(time.time())
         if next_try is not None:
@@ -32,8 +31,7 @@ class BlacklistItem:
 
 
 class BlacklistQueue:
-
-    def __init__(self, delay: int=30) -> None:
+    def __init__(self, delay: int = 30) -> None:
         self._delay = delay
 
         self._queue = dict()
@@ -44,7 +42,7 @@ class BlacklistQueue:
         with self._lock:
             self._queue[item.uid] = item
 
-    def repush(self, item: BlacklistItem, increase_wait: bool=True) -> None:
+    def repush(self, item: BlacklistItem, increase_wait: bool = True) -> None:
         if increase_wait:
             item.increase()
         else:

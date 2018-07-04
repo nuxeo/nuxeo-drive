@@ -21,16 +21,16 @@ import csv
 import os
 import sys
 
-__version__ = '0.1.0'
+__version__ = "0.1.0"
 
 
 # Error messages that are not revelant
 TO_IGNORE = [
-    '',
-    'General timeout',
-    'Not related to Drive',
-    'Slave error or misconfiguration',
-    'General timeout',
+    "",
+    "General timeout",
+    "Not related to Drive",
+    "Slave error or misconfiguration",
+    "General timeout",
 ]
 
 
@@ -44,33 +44,32 @@ def show_recurrent_randoms(file_, build_min=0):
     """ . """
 
     counters = collections.OrderedDict()
-    counters['GNU/Linux'] = collections.Counter()
-    counters['Mac'] = collections.Counter()
-    counters['Windows'] = collections.Counter()
-    counters['All'] = collections.Counter()
-    fmt = '{count:4}: {failure}'
+    counters["GNU/Linux"] = collections.Counter()
+    counters["Mac"] = collections.Counter()
+    counters["Windows"] = collections.Counter()
+    counters["All"] = collections.Counter()
+    fmt = "{count:4}: {failure}"
 
     with open(file_) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            if int(row['Build']) > build_min:
-                if is_valid(row, 'GNU/Linux'):
-                    counters['GNU/Linux'].update([row['GNU/Linux']])
-                if is_valid(row, 'Mac'):
-                    counters['Mac'].update([row['Mac']])
-                if is_valid(row, 'Windows'):
-                    counters['Windows'].update([row['Windows']])
+            if int(row["Build"]) > build_min:
+                if is_valid(row, "GNU/Linux"):
+                    counters["GNU/Linux"].update([row["GNU/Linux"]])
+                if is_valid(row, "Mac"):
+                    counters["Mac"].update([row["Mac"]])
+                if is_valid(row, "Windows"):
+                    counters["Windows"].update([row["Windows"]])
 
     for system, counter in counters.items():
-        counter_ = collections.Counter({k: c for k, c in counter.items()
-                                             if c > 1})
+        counter_ = collections.Counter({k: c for k, c in counter.items() if c > 1})
         if not counter_:
             continue
 
         print(system)
         for failure, count in counter_.most_common(5):
             print(fmt.format(failure=failure, count=count))
-            counters['All'].update([failure] * count)
+            counters["All"].update([failure] * count)
 
 
 def main():
@@ -81,10 +80,10 @@ def main():
     except (IndexError, ValueError):
         build_min = 0
 
-    default = 'Drive Jenkins master PPL - results.csv'
-    input_file = os.environ.get('DRIVE_CSV', default)
+    default = "Drive Jenkins master PPL - results.csv"
+    input_file = os.environ.get("DRIVE_CSV", default)
     show_recurrent_randoms(input_file, build_min=build_min)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(main())

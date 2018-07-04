@@ -11,37 +11,40 @@ from _pytest.runner import runtestprotocol
 
 
 def get_random(item):
-    random = item.get_marker('randombug')
+    random = item.get_marker("randombug")
     if random:
         for mark in random._marks:
-            if mark.kwargs.get('condition', True):
+            if mark.kwargs.get("condition", True):
                 return mark
     return None
 
 
 def get_repeat(item):
     random = get_random(item)
-    return random.kwargs.get('repeat', 10) if random else None
+    return random.kwargs.get("repeat", 10) if random else None
 
 
 def get_mode(item):
     random = get_random(item)
-    mode = (item.config.default_mode
-            or random.kwargs.get('mode', 'RELAX')) if random else None
-    if mode not in ['RELAX', 'STRICT', 'BYPASS']:
-        mode = 'RELAX'
+    mode = (
+        (item.config.default_mode or random.kwargs.get("mode", "RELAX"))
+        if random
+        else None
+    )
+    if mode not in ["RELAX", "STRICT", "BYPASS"]:
+        mode = "RELAX"
     return mode
 
 
 def get_condition(item):
     random = get_random(item)
-    return random.kwargs.get('condition', True) if random else False
+    return random.kwargs.get("condition", True) if random else False
 
 
 def pytest_configure(config):
     """ Set the default mode upon pytest loading. """
-    config.default_mode = os.environ.get('RANDOM_BUG_MODE', None)
-    if config.default_mode not in ['RELAX', 'STRICT', 'BYPASS']:
+    config.default_mode = os.environ.get("RANDOM_BUG_MODE", None)
+    if config.default_mode not in ["RELAX", "STRICT", "BYPASS"]:
         config.default_mode = None
     config.addinivalue_line(
         "markers",
@@ -51,7 +54,8 @@ def pytest_configure(config):
         "If mode is RELAX, run test until it succeeds or "
         "has ran <repeat> times. "
         "If mode is STRICT, run test until it fails or "
-        "has ran <repeat> times. ")
+        "has ran <repeat> times. ",
+    )
 
 
 def pytest_collection_modifyitems(items):
@@ -61,8 +65,8 @@ def pytest_collection_modifyitems(items):
         if not marker:
             continue
         mode = get_mode(item)
-        if mode == 'BYPASS':
-            reason = marker.args[0] if marker.args else ''
+        if mode == "BYPASS":
+            reason = marker.args[0] if marker.args else ""
             item.add_marker(pytest.mark.skip(reason=reason))
 
 
@@ -78,25 +82,24 @@ def pytest_runtest_protocol(item, nextitem):
     mode = get_mode(item)
 
     for i in range(repeat):
-        item.ihook.pytest_runtest_logstart(nodeid=item.nodeid,
-                                           location=item.location)
+        item.ihook.pytest_runtest_logstart(nodeid=item.nodeid, location=item.location)
         reports = runtestprotocol(item, nextitem=nextitem, log=False)
 
         for report in reports:  # 3 reports: setup, call, teardown
             report.repeat = i
 
-            if mode == 'RELAX':
-                condition = not report.failed or hasattr(report, 'wasxfail')
-            elif mode == 'STRICT':
+            if mode == "RELAX":
+                condition = not report.failed or hasattr(report, "wasxfail")
+            elif mode == "STRICT":
                 condition = report.failed or report.skipped
 
             # we only mess with the report if it's a call report
-            if i == repeat - 1 or condition or not report.when == 'call':
+            if i == repeat - 1 or condition or not report.when == "call":
                 # last run or no failure detected, log normally
                 item.ihook.pytest_runtest_logreport(report=report)
             else:
                 # failure detected and repeat not exhausted, since i < repeat
-                report.outcome = 'repeat'
+                report.outcome = "repeat"
                 item.ihook.pytest_runtest_logreport(report=report)
 
                 break  # trigger repeat
@@ -106,5 +109,5 @@ def pytest_runtest_protocol(item, nextitem):
 
 
 def pytest_report_teststatus(report):
-    if report.outcome == 'repeat':
-        return 'repeated', 'R', ('REPEATED', {'yellow': True})
+    if report.outcome == "repeat":
+        return "repeated", "R", ("REPEATED", {"yellow": True})

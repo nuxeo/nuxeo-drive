@@ -12,7 +12,7 @@ class AbstractOSIntegration:
 
     zoom_factor = 1.0
 
-    def __init__(self, manager: 'Manager') -> None:
+    def __init__(self, manager: "Manager") -> None:
         self._manager = manager
 
     def register_startup(self) -> None:
@@ -49,11 +49,7 @@ class AbstractOSIntegration:
     def send_sync_status(self, state: NuxeoDocumentInfo, path: str) -> None:
         pass
 
-    def register_folder_link(
-        self,
-        folder_path: str,
-        name: Optional[str],
-    ) -> None:
+    def register_folder_link(self, folder_path: str, name: Optional[str]) -> None:
         pass
 
     def unregister_folder_link(self, name: Optional[str]) -> None:
@@ -63,15 +59,17 @@ class AbstractOSIntegration:
         return dict()
 
     @staticmethod
-    def get(manager: object) -> 'AbstractOSIntegration':
+    def get(manager: object) -> "AbstractOSIntegration":
         if MAC:
             from .darwin.darwin import DarwinIntegration
-            integration, nature = DarwinIntegration, 'macOS'
+
+            integration, nature = DarwinIntegration, "macOS"
         elif WINDOWS:
             from .windows.windows import WindowsIntegration
-            integration, nature = WindowsIntegration, 'Windows'
-        else:
-            integration, nature = AbstractOSIntegration, 'None'
 
-        log.debug('OS integration type: %s', nature)
+            integration, nature = WindowsIntegration, "Windows"
+        else:
+            integration, nature = AbstractOSIntegration, "None"
+
+        log.debug("OS integration type: %s", nature)
         return integration(manager)

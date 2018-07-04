@@ -7,7 +7,7 @@ from PyQt5.QtCore import pyqtSlot
 from ...logging_config import MAX_LOG_DISPLAYED, get_handler
 from ...wui.dialog import WebDialog, WebDriveApi
 
-__all__ = ('EngineDialog',)
+__all__ = ("EngineDialog",)
 
 log = getLogger(__name__)
 
@@ -25,18 +25,30 @@ class DebugDriveApi(WebDriveApi):
     def _export_engine(self, engine):
         result = super(DebugDriveApi, self)._export_engine(engine)
         result["queue"]["metrics"] = engine.get_queue_manager().get_metrics()
-        result["queue"]["local_folder_enable"] = engine.get_queue_manager()._local_folder_enable
-        result["queue"]["local_file_enable"] = engine.get_queue_manager()._local_file_enable
-        result["queue"]["remote_folder_enable"] = engine.get_queue_manager()._remote_folder_enable
-        result["queue"]["remote_file_enable"] = engine.get_queue_manager()._remote_file_enable
+        result["queue"][
+            "local_folder_enable"
+        ] = engine.get_queue_manager()._local_folder_enable
+        result["queue"][
+            "local_file_enable"
+        ] = engine.get_queue_manager()._local_file_enable
+        result["queue"][
+            "remote_folder_enable"
+        ] = engine.get_queue_manager()._remote_folder_enable
+        result["queue"][
+            "remote_file_enable"
+        ] = engine.get_queue_manager()._remote_file_enable
         result["queue"]["remote_file"] = self._get_full_queue(
-                        engine.get_queue_manager().get_remote_file_queue(), engine.get_dao())
+            engine.get_queue_manager().get_remote_file_queue(), engine.get_dao()
+        )
         result["queue"]["remote_folder"] = self._get_full_queue(
-                        engine.get_queue_manager().get_remote_folder_queue(), engine.get_dao())
+            engine.get_queue_manager().get_remote_folder_queue(), engine.get_dao()
+        )
         result["queue"]["local_folder"] = self._get_full_queue(
-                        engine.get_queue_manager().get_local_folder_queue(), engine.get_dao())
+            engine.get_queue_manager().get_local_folder_queue(), engine.get_dao()
+        )
         result["queue"]["local_file"] = self._get_full_queue(
-                        engine.get_queue_manager().get_local_file_queue(), engine.get_dao())
+            engine.get_queue_manager().get_local_file_queue(), engine.get_dao()
+        )
         result["local_watcher"] = self._export_worker(engine._local_watcher)
         result["remote_watcher"] = self._export_worker(engine._remote_watcher)
         try:
@@ -53,12 +65,14 @@ class DebugDriveApi(WebDriveApi):
         rec["thread"] = record.thread
         rec["name"] = record.name
         rec["funcName"] = record.funcName
-        rec["time"] = time.strftime("%H:%M:%S,",time.localtime(record.created)) + str(round(record.msecs))
+        rec["time"] = time.strftime("%H:%M:%S,", time.localtime(record.created)) + str(
+            round(record.msecs)
+        )
         return rec
 
     def _get_logs(self, limit=MAX_LOG_DISPLAYED):
         logs = []
-        handler = get_handler(getLogger(), 'memory')
+        handler = get_handler(getLogger(), "memory")
         log_buffer = handler.get_buffer(limit)
         for record in log_buffer:
             logs.append(self._export_log_record(record))
@@ -71,21 +85,17 @@ class DebugDriveApi(WebDriveApi):
         result = super(DebugDriveApi, self)._export_worker(worker)
         result["metrics"] = worker.get_metrics()
         if "action" in result["metrics"]:
-            result["metrics"]["action"] = self._export_action(result["metrics"]["action"])
+            result["metrics"]["action"] = self._export_action(
+                result["metrics"]["action"]
+            )
         return result
 
     @pyqtSlot(str, str, str, str, str, int, str)
     def send_notification(
-        self,
-        notification_type,
-        engine_uid,
-        level,
-        title,
-        description,
-        flags,
-        action
+        self, notification_type, engine_uid, level, title, description, flags, action
     ):
         from ...notification import Notification
+
         try:
             notification = Notification(
                 uid=str(notification_type),
@@ -97,7 +107,7 @@ class DebugDriveApi(WebDriveApi):
                 title=title,
             )
         except RuntimeError:
-            log.exception('Notification error')
+            log.exception("Notification error")
         else:
             center = self._manager.notification_service
             center.send_notification(notification)
@@ -151,7 +161,7 @@ class DebugDriveApi(WebDriveApi):
         try:
             self._manager.direct_edit.handle_url(url)
         except OSError:
-            log.exception('Direct Edit error')
+            log.exception("Direct Edit error")
 
     @pyqtSlot(str, str)
     def set_app_update(self, status, version):
@@ -161,32 +171,32 @@ class DebugDriveApi(WebDriveApi):
     def resume_queue(self, uid, queue):
         engine = self._get_engine(uid)
         if engine:
-            if queue == 'local_file_queue':
+            if queue == "local_file_queue":
                 engine.get_queue_manager().enable_local_file_queue(value=True)
-            elif queue == 'local_folder_queue':
+            elif queue == "local_folder_queue":
                 engine.get_queue_manager().enable_local_folder_queue(value=True)
-            elif queue == 'remote_folder_queue':
+            elif queue == "remote_folder_queue":
                 engine.get_queue_manager().enable_remote_folder_queue(value=True)
-            elif queue == 'remote_file_queue':
+            elif queue == "remote_file_queue":
                 engine.get_queue_manager().enable_remote_file_queue(value=True)
 
     @pyqtSlot(str, str)
     def suspend_queue(self, uid, queue):
         engine = self._get_engine(uid)
         if engine:
-            if queue == 'local_file_queue':
+            if queue == "local_file_queue":
                 engine.get_queue_manager().enable_local_file_queue(value=False)
-            elif queue == 'local_folder_queue':
+            elif queue == "local_folder_queue":
                 engine.get_queue_manager().enable_local_folder_queue(value=False)
-            elif queue == 'remote_folder_queue':
+            elif queue == "remote_folder_queue":
                 engine.get_queue_manager().enable_remote_folder_queue(value=False)
-            elif queue == 'remote_file_queue':
+            elif queue == "remote_file_queue":
                 engine.get_queue_manager().enable_remote_file_queue(value=False)
 
 
 class EngineDialog(WebDialog):
-
     def __init__(self, application):
         api = DebugDriveApi(application, self)
-        super(EngineDialog, self).__init__(application, 'debug.html', api=api,
-                                           title='Nuxeo Drive - Engines')
+        super(EngineDialog, self).__init__(
+            application, "debug.html", api=api, title="Nuxeo Drive - Engines"
+        )

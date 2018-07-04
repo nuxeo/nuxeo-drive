@@ -8,20 +8,16 @@ from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 from .folders_treeview import FilteredFsClient, FolderTreeview
 from ..wui.translator import Translator
 
-__all__ = ('FiltersDialog',)
+__all__ = ("FiltersDialog",)
 
 
 class FiltersDialog(QDialog):
-
     def __init__(
-        self,
-        application: 'Application',
-        engine: 'Engine',
-        parent: Optional[QObject],
+        self, application: "Application", engine: "Engine", parent: Optional[QObject]
     ) -> None:
         super().__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setWindowTitle(Translator.get('FILTERS_WINDOW_TITLE'))
+        self.setWindowTitle(Translator.get("FILTERS_WINDOW_TITLE"))
 
         self.vertical_layout = QVBoxLayout(self)
         self.vertical_layout.setContentsMargins(0, 0, 0, 0)
@@ -49,7 +45,7 @@ class FiltersDialog(QDialog):
     def get_tree_view(self) -> Union[QLabel, FolderTreeview]:
         if self.syncing:
             # Prevent filter modifications while syncing
-            label = QLabel(Translator.get('FILTERS_DISABLED'))
+            label = QLabel(Translator.get("FILTERS_DISABLED"))
             label.setMargin(15)
             label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
             return label

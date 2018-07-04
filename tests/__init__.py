@@ -29,6 +29,7 @@ Manager.send_sync_status = lambda *args: None
 
 if MAC:
     from nxdrive.osi.darwin.darwin import DarwinIntegration
+
     DarwinIntegration._cleanup = lambda *args: None
     DarwinIntegration._init = lambda *args: None
     DarwinIntegration._send_notification = lambda *args: None
@@ -39,11 +40,14 @@ if MAC:
 
 def configure_logger():
     formatter = logging.Formatter(
-        '%(thread)-4d %(module)-14s %(levelname).1s %(message)s')
-    configure(console_level='TRACE',
-              command_name='test',
-              force_configure=True,
-              formatter=formatter)
+        "%(thread)-4d %(module)-14s %(levelname).1s %(message)s"
+    )
+    configure(
+        console_level="TRACE",
+        command_name="test",
+        force_configure=True,
+        formatter=formatter,
+    )
 
 
 # Configure test logger
@@ -125,99 +129,101 @@ class RemoteTest(RemoteBase):
 
     def activate_profile(self, profile):
         self.operations.execute(
-            command='NuxeoDrive.SetActiveFactories', profile=profile)
+            command="NuxeoDrive.SetActiveFactories", profile=profile
+        )
 
     def deactivate_profile(self, profile):
         self.operations.execute(
-            command='NuxeoDrive.SetActiveFactories', profile=profile,
-            enable=False)
+            command="NuxeoDrive.SetActiveFactories", profile=profile, enable=False
+        )
 
     def mass_import(self, target_path, nb_nodes, nb_threads=12):
         tx_timeout = 3600
-        url = 'site/randomImporter/run'
+        url = "site/randomImporter/run"
         params = {
-            'targetPath': target_path,
-            'batchSize': 50,
-            'nbThreads': nb_threads,
-            'interactive': 'true',
-            'fileSizeKB': 1,
-            'nbNodes': nb_nodes,
-            'nonUniform': 'true',
-            'transactionTimeout': tx_timeout
+            "targetPath": target_path,
+            "batchSize": 50,
+            "nbThreads": nb_threads,
+            "interactive": "true",
+            "fileSizeKB": 1,
+            "nbNodes": nb_nodes,
+            "nonUniform": "true",
+            "transactionTimeout": tx_timeout,
         }
-        headers = {'Nuxeo-Transaction-Timeout': str(tx_timeout)}
+        headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
 
-        log.info('Calling random mass importer on %s with %d threads '
-                 'and %d nodes', target_path, nb_threads, nb_nodes)
+        log.info(
+            "Calling random mass importer on %s with %d threads " "and %d nodes",
+            target_path,
+            nb_threads,
+            nb_nodes,
+        )
 
-        self.client.request('GET', url, params=params, headers=headers,
-                            timeout=tx_timeout)
+        self.client.request(
+            "GET", url, params=params, headers=headers, timeout=tx_timeout
+        )
 
     def wait_for_async_and_es_indexing(self):
         """ Use for test_volume only. """
 
         tx_timeout = 3600
-        headers = {'Nuxeo-Transaction-Timeout': str(tx_timeout)}
+        headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
         self.operations.execute(
-            command='Elasticsearch.WaitForIndexing', timeout=tx_timeout,
-            headers=headers, timeoutSecond=tx_timeout, refresh=True)
+            command="Elasticsearch.WaitForIndexing",
+            timeout=tx_timeout,
+            headers=headers,
+            timeoutSecond=tx_timeout,
+            refresh=True,
+        )
 
     def result_set_query(self, query):
-        return self.operations.execute(
-            command='Repository.ResultSetQuery', query=query)
+        return self.operations.execute(command="Repository.ResultSetQuery", query=query)
 
-    def log_on_server(self, message, level='WARN'):
+    def log_on_server(self, message, level="WARN"):
         """ Log the current test server side.  Helpful for debugging. """
         return self.operations.execute(
-            command='Log', message=message, level=level.lower())
+            command="Log", message=message, level=level.lower()
+        )
 
     def wait(self):
-        self.operations.execute(
-            command='NuxeoDrive.WaitForElasticsearchCompletion')
+        self.operations.execute(command="NuxeoDrive.WaitForElasticsearchCompletion")
 
 
 class DocRemote(RemoteTest):
-
     def create(self, ref, doc_type, name=None, properties=None):
         name = safe_filename(name)
         return self.operations.execute(
-            command='Document.Create', input_obj='doc:' + ref,
-            type=doc_type, name=name, properties=properties)
+            command="Document.Create",
+            input_obj="doc:" + ref,
+            type=doc_type,
+            name=name,
+            properties=properties,
+        )
 
-    def make_folder(
-        self,
-        parent: str,
-        name: str,
-        doc_type: str='Folder',
-    ) -> str:
+    def make_folder(self, parent: str, name: str, doc_type: str = "Folder") -> str:
         # TODO: make it possible to configure context dependent:
         # - SocialFolder under SocialFolder or SocialWorkspace
         # - Folder under Folder or Workspace
         # This configuration should be provided by a special operation on the
         # server.
         parent = self._check_ref(parent)
-        doc = self.create(parent, doc_type, name=name,
-                          properties={'dc:title': name})
-        return doc['uid']
+        doc = self.create(parent, doc_type, name=name, properties={"dc:title": name})
+        return doc["uid"]
 
     def make_file(
-        self,
-        parent: str,
-        name: str,
-        content: bytes=None,
-        doc_type: str='File',
+        self, parent: str, name: str, content: bytes = None, doc_type: str = "File"
     ) -> str:
         """Create a document of the given type with the given name and content
 
         Creates a temporary file from the content then streams it.
         """
         parent = self._check_ref(parent)
-        properties = {'dc:title': name}
-        if doc_type is 'Note' and content is not None:
-            properties['note:note'] = content
+        properties = {"dc:title": name}
+        if doc_type is "Note" and content is not None:
+            properties["note:note"] = content
         doc = self.create(parent, doc_type, name=name, properties=properties)
-        ref = doc['uid']
-        if doc_type is not 'Note' and content is not None:
+        ref = doc["uid"]
+        if doc_type is not "Note" and content is not None:
             self.attach_blob(ref, content, name)
         return ref
 
@@ -225,8 +231,11 @@ class DocRemote(RemoteTest):
         """Stream the given content as a document in the user workspace"""
         file_path = make_tmp_file(self.upload_tmp_dir, content)
         try:
-            return self.upload(file_path, filename=filename,
-                               command='UserWorkspace.CreateDocumentFromBlob')
+            return self.upload(
+                file_path,
+                filename=filename,
+                command="UserWorkspace.CreateDocumentFromBlob",
+            )
         finally:
             os.remove(file_path)
 
@@ -235,23 +244,27 @@ class DocRemote(RemoteTest):
         parent: str,
         name: str,
         file_path: str,
-        filename: str=None,
-        mime_type: str=None,
-        doc_type: str='File',
+        filename: str = None,
+        mime_type: str = None,
+        doc_type: str = "File",
     ) -> str:
         """Create a document by streaming the file with the given path"""
         ref = self.make_file(parent, name, doc_type=doc_type)
         self.upload(
-            file_path, filename=filename, mime_type=mime_type,
-            command='Blob.Attach', document=ref)
+            file_path,
+            filename=filename,
+            mime_type=mime_type,
+            command="Blob.Attach",
+            document=ref,
+        )
         return ref
 
     def attach_blob(self, ref: str, blob: bytes, filename: str):
         file_path = make_tmp_file(self.upload_tmp_dir, blob)
         try:
             return self.upload(
-                file_path, filename=filename, command='Blob.Attach',
-                document=ref)
+                file_path, filename=filename, command="Blob.Attach", document=ref
+            )
         finally:
             os.remove(file_path)
 
@@ -266,11 +279,7 @@ class DocRemote(RemoteTest):
         return self.get_blob(ref)
 
     def update_content(
-        self,
-        ref: str,
-        content: bytes,
-        filename: str=None,
-        **kwargs,
+        self, ref: str, content: bytes, filename: str = None, **kwargs
     ) -> None:
         """Update a document with the given content
 
@@ -280,84 +289,101 @@ class DocRemote(RemoteTest):
             filename = self.get_info(ref).name
         self.attach_blob(self._check_ref(ref), content, filename)
 
-    def move(self, ref: str, target: str, name: str=None):
+    def move(self, ref: str, target: str, name: str = None):
         return self.operations.execute(
-            command='Document.Move', input_obj='doc:' + self._check_ref(ref),
-            target=self._check_ref(target), name=name)
+            command="Document.Move",
+            input_obj="doc:" + self._check_ref(ref),
+            target=self._check_ref(target),
+            name=name,
+        )
 
     def update(self, ref: str, properties=None):
         return self.operations.execute(
-            command='Document.Update', input_obj='doc:' + ref,
-            properties=properties)
+            command="Document.Update", input_obj="doc:" + ref, properties=properties
+        )
 
-    def copy(self, ref: str, target: str, name: str=None):
+    def copy(self, ref: str, target: str, name: str = None):
         return self.operations.execute(
-            command='Document.Copy', input_obj='doc:' + self._check_ref(ref),
-            target=self._check_ref(target), name=name)
+            command="Document.Copy",
+            input_obj="doc:" + self._check_ref(ref),
+            target=self._check_ref(target),
+            name=name,
+        )
 
-    def delete(self, ref: str, use_trash: bool=True):
-        input_obj = 'doc:' + self._check_ref(ref)
+    def delete(self, ref: str, use_trash: bool = True):
+        input_obj = "doc:" + self._check_ref(ref)
         if use_trash:
             try:
                 if not self._has_new_trash_service:
                     return self.operations.execute(
-                        command='Document.SetLifeCycle',
-                        input_obj=input_obj, value='delete')
+                        command="Document.SetLifeCycle",
+                        input_obj=input_obj,
+                        value="delete",
+                    )
                 else:
-                    return self.operations.execute(command='Document.Trash',
-                                                   input_obj=input_obj)
+                    return self.operations.execute(
+                        command="Document.Trash", input_obj=input_obj
+                    )
             except HTTPError as e:
                 if e.status != 500:
                     raise
-        return self.operations.execute(command='Document.Delete',
-                                       input_obj=input_obj)
+        return self.operations.execute(command="Document.Delete", input_obj=input_obj)
 
-    def delete_content(self, ref: str, xpath: str=None):
+    def delete_content(self, ref: str, xpath: str = None):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)
 
-    def delete_blob(self, ref: str, xpath: str=None):
+    def delete_blob(self, ref: str, xpath: str = None):
         return self.operations.execute(
-            command='Blob.Remove', input_obj='doc:' + ref, xpath=xpath)
+            command="Blob.Remove", input_obj="doc:" + ref, xpath=xpath
+        )
 
     def is_locked(self, ref: str) -> bool:
-        data = self.fetch(ref, headers={'fetch-document': 'lock'})
-        return 'lockCreated' in data
+        data = self.fetch(ref, headers={"fetch-document": "lock"})
+        return "lockCreated" in data
 
     def get_repository_names(self):
-        return self.operations.execute(command='GetRepositories')['value']
+        return self.operations.execute(command="GetRepositories")["value"]
 
     def get_versions(self, ref: str):
-        headers = {'X-NXfetch.document': 'versionLabel'}
-        versions = self.operations.execute(command='Document.GetVersions',
-            input_obj='doc:' + self._check_ref(ref), headers=headers)
-        return [(v['uid'], v['versionLabel']) for v in versions['entries']]
+        headers = {"X-NXfetch.document": "versionLabel"}
+        versions = self.operations.execute(
+            command="Document.GetVersions",
+            input_obj="doc:" + self._check_ref(ref),
+            headers=headers,
+        )
+        return [(v["uid"], v["versionLabel"]) for v in versions["entries"]]
 
-    def create_version(self, ref: str, increment: str='None'):
+    def create_version(self, ref: str, increment: str = "None"):
         doc = self.operations.execute(
-            command='Document.CreateVersion',
-            input_obj='doc:' + self._check_ref(ref), increment=increment)
-        return doc['uid']
+            command="Document.CreateVersion",
+            input_obj="doc:" + self._check_ref(ref),
+            increment=increment,
+        )
+        return doc["uid"]
 
     def restore_version(self, version: str) -> str:
         doc = self.operations.execute(
-            command='Document.RestoreVersion',
-            input_obj='doc:' + self._check_ref(version))
-        return doc['uid']
+            command="Document.RestoreVersion",
+            input_obj="doc:" + self._check_ref(version),
+        )
+        return doc["uid"]
 
-    def block_inheritance(self, ref: str, overwrite: bool=True):
-        input_obj = 'doc:' + self._check_ref(ref)
-
-        self.operations.execute(
-            command='Document.SetACE',
-            input_obj=input_obj,
-            user='Administrator',
-            permission='Everything',
-            overwrite=overwrite)
+    def block_inheritance(self, ref: str, overwrite: bool = True):
+        input_obj = "doc:" + self._check_ref(ref)
 
         self.operations.execute(
-            command='Document.SetACE',
+            command="Document.SetACE",
             input_obj=input_obj,
-            user='Everyone',
-            permission='Everything',
+            user="Administrator",
+            permission="Everything",
+            overwrite=overwrite,
+        )
+
+        self.operations.execute(
+            command="Document.SetACE",
+            input_obj=input_obj,
+            user="Everyone",
+            permission="Everything",
             grant=False,
-            overwrite=False)
+            overwrite=False,
+        )

@@ -9,24 +9,25 @@ from nxdrive.constants import WINDOWS
 
 
 def create_tree():
-    filename = 'A' * 100
+    filename = "A" * 100
     if WINDOWS:
-        parent = '\\\\?\\'
+        parent = "\\\\?\\"
     else:
-        parent = ''
+        parent = ""
     parent += os.path.join(gettempdir(), filename)
     path = os.path.join(
         parent,
         filename,
         filename,  # From there, the path is not trashable from Explorer
         filename,
-        filename + '.txt')
+        filename + ".txt",
+    )
 
     dirname = os.path.dirname(path)
     if not os.path.isdir(dirname):
         os.makedirs(dirname)
-    with open(path, 'wb') as writer:
-        writer.write(b'Looong filename!')
+    with open(path, "wb") as writer:
+        writer.write(b"Looong filename!")
     return path
 
 

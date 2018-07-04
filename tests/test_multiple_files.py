@@ -25,36 +25,37 @@ class MultipleFilesTestCase(UnitTestCase):
         self.wait_sync()
         local = self.local_1
         # create  folder a1
-        local.make_folder('/', 'a1')
-        self.folder_path_1 = os.path.join('/', 'a1')
+        local.make_folder("/", "a1")
+        self.folder_path_1 = os.path.join("/", "a1")
         # add 100 files in folder 'Nuxeo Drive Test Workspace/a1'
         for file_num in range(1, self.NUMBER_OF_LOCAL_FILES + 1):
-            local.make_file(self.folder_path_1, 'local%04d.txt' % file_num,
-                            content=b'content')
+            local.make_file(
+                self.folder_path_1, "local%04d.txt" % file_num, content=b"content"
+            )
         # create  folder a2
-        local.make_folder('/', 'a2')
-        self.folder_path_2 = os.path.join('/', 'a2')
-        self.folder_path_3 = os.path.join('/', 'a3')
+        local.make_folder("/", "a2")
+        self.folder_path_2 = os.path.join("/", "a2")
+        self.folder_path_3 = os.path.join("/", "a3")
         self.wait_sync(wait_for_async=True, timeout=self.SYNC_TIMEOUT)
 
     def test_move_and_copy_paste_folder_original_location_from_child_stopped(self):
         self._move_and_copy_paste_folder_original_location_from_child()
 
-    @pytest.mark.randombug('NXDRIVE-808', condition=MAC)
+    @pytest.mark.randombug("NXDRIVE-808", condition=MAC)
     def test_move_and_copy_paste_folder_original_location_from_child(self):
         self._move_and_copy_paste_folder_original_location_from_child(False)
 
-    def _move_and_copy_paste_folder_original_location_from_child(
-            self, stopped=True):
+    def _move_and_copy_paste_folder_original_location_from_child(self, stopped=True):
         local = self.local_1
         src = local.abspath(self.folder_path_1)
         dst = local.abspath(self.folder_path_2)
         shutil.move(src, dst)
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
-        self._move_and_copy_paste_folder('/a2/a1', '/', '/a2', stopped=stopped)
+        self._move_and_copy_paste_folder("/a2/a1", "/", "/a2", stopped=stopped)
 
-    def _move_and_copy_paste_folder(self, folder_1, folder_2, target_folder,
-                                    stopped=True):
+    def _move_and_copy_paste_folder(
+        self, folder_1, folder_2, target_folder, stopped=True
+    ):
         """
         /folder_1
         /folder_2
@@ -87,7 +88,7 @@ class MultipleFilesTestCase(UnitTestCase):
         # expect '/a2/a1' to contain the files
         # expect 'Nuxeo Drive Test Workspace/a1' to also contain the files
         num = self.NUMBER_OF_LOCAL_FILES
-        names = set(['local%04d.txt' % n for n in range(1, num + 1)])
+        names = set(["local%04d.txt" % n for n in range(1, num + 1)])
 
         for path in {new_path, copy_path}:
             # Local
@@ -106,21 +107,27 @@ class MultipleFilesTestCase(UnitTestCase):
             children_names = set([child.name for child in children])
             assert children_names == names
 
-    @pytest.mark.randombug('NXDRIVE-720', condition=LINUX)
-    @pytest.mark.randombug('NXDRIVE-813', condition=MAC)
+    @pytest.mark.randombug("NXDRIVE-720", condition=LINUX)
+    @pytest.mark.randombug("NXDRIVE-813", condition=MAC)
     def test_move_and_copy_paste_folder_original_location(self):
-        self._move_and_copy_paste_folder(self.folder_path_1, self.folder_path_2,
-                                         os.path.dirname(self.folder_path_1),
-                                         stopped=False)
+        self._move_and_copy_paste_folder(
+            self.folder_path_1,
+            self.folder_path_2,
+            os.path.dirname(self.folder_path_1),
+            stopped=False,
+        )
 
-    @pytest.mark.skipif(LINUX,
-                        reason='NXDRIVE-471: Not handled under GNU/Linux as '
-                        'creation time is not stored')
+    @pytest.mark.skipif(
+        LINUX,
+        reason="NXDRIVE-471: Not handled under GNU/Linux as "
+        "creation time is not stored",
+    )
     def test_move_and_copy_paste_folder_original_location_stopped(self):
         self._move_and_copy_paste_folder(
-            self.folder_path_1, self.folder_path_2,
-            os.path.dirname(self.folder_path_1))
+            self.folder_path_1, self.folder_path_2, os.path.dirname(self.folder_path_1)
+        )
 
     def test_move_and_copy_paste_folder_new_location(self):
         self._move_and_copy_paste_folder(
-            self.folder_path_1, self.folder_path_2, self.folder_path_3)
+            self.folder_path_1, self.folder_path_2, self.folder_path_3
+        )

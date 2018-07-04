@@ -12,10 +12,11 @@ from .common import UnitTestCase
 
 
 class TestWatchers(UnitTestCase):
-
     def get_local_client(self, path):
-        if self._testMethodName in ('test_local_scan_encoding',
-                                    'test_watchdog_encoding'):
+        if self._testMethodName in (
+            "test_local_scan_encoding",
+            "test_watchdog_encoding",
+        ):
             return LocalClient(path)
         return super().get_local_client(path)
 
@@ -27,12 +28,12 @@ class TestWatchers(UnitTestCase):
         self.wait_remote_scan()
 
         # Workspace should have been reconcile
-        res = self.engine_1.get_dao().get_states_from_partial_local('/')
+        res = self.engine_1.get_dao().get_states_from_partial_local("/")
         # With root
         count = folders + files + 1
         assert len(res) == count
 
-    @pytest.mark.randombug('NXDRIVE-808', condition=WINDOWS, repeat=2)
+    @pytest.mark.randombug("NXDRIVE-808", condition=WINDOWS, repeat=2)
     def test_reconcile_scan(self):
         files, folders = self.make_local_tree()
         self.make_server_tree()
@@ -51,13 +52,13 @@ class TestWatchers(UnitTestCase):
         # Verify it has been reconciled and all items in queue are synchronized
         queue = self.get_full_queue(manager.get_local_file_queue())
         for item in queue:
-            if item.remote_name == 'Duplicated File.txt':
-                assert item.pair_state in ['synchronized', 'conflicted']
+            if item.remote_name == "Duplicated File.txt":
+                assert item.pair_state in ["synchronized", "conflicted"]
             else:
-                assert item.pair_state == 'synchronized'
+                assert item.pair_state == "synchronized"
         queue = self.get_full_queue(manager.get_local_folder_queue())
         for item in queue:
-            assert item.pair_state == 'synchronized'
+            assert item.pair_state == "synchronized"
 
     def test_remote_scan(self):
         files, folders = self.make_server_tree()
@@ -69,13 +70,13 @@ class TestWatchers(UnitTestCase):
         self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_remote_scan()
-        res = self.engine_1.get_dao().get_states_from_partial_local('/')
+        res = self.engine_1.get_dao().get_states_from_partial_local("/")
         # With root
         count = folders + files + 1
         assert len(res) == count
 
-    @pytest.mark.randombug('NXDRIVE-806', condition=LINUX, mode='BYPASS')
-    @pytest.mark.randombug('NXDRIVE-806', condition=WINDOWS, repeat=2)
+    @pytest.mark.randombug("NXDRIVE-806", condition=LINUX, mode="BYPASS")
+    @pytest.mark.randombug("NXDRIVE-806", condition=WINDOWS, repeat=2)
     def test_local_watchdog_creation(self):
         # Test the creation after first local scan
         self.queue_manager_1.suspend()
@@ -83,19 +84,19 @@ class TestWatchers(UnitTestCase):
         self.engine_1.start()
         self.wait_remote_scan()
         metrics = self.queue_manager_1.get_metrics()
-        assert not metrics['local_folder_queue']
-        assert not metrics['local_file_queue']
+        assert not metrics["local_folder_queue"]
+        assert not metrics["local_file_queue"]
         files, folders = self.make_local_tree()
         self.wait_sync(timeout=3, fail_if_timeout=False)
         metrics = self.queue_manager_1.get_metrics()
-        assert metrics['local_folder_queue']
-        assert metrics['local_file_queue']
-        res = self.engine_1.get_dao().get_states_from_partial_local('/')
+        assert metrics["local_folder_queue"]
+        assert metrics["local_file_queue"]
+        res = self.engine_1.get_dao().get_states_from_partial_local("/")
         # With root
         assert len(res) == folders + files + 1
 
     def _delete_folder_1(self):
-        path = '/Folder 1'
+        path = "/Folder 1"
         self.local_1.delete_final(path)
         if WINDOWS:
             sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000 + 1)
@@ -107,7 +108,7 @@ class TestWatchers(UnitTestCase):
             timeout -= 1
             if timeout < 0:
                 break
-        return '/' + self.workspace_title + path + '/'
+        return "/" + self.workspace_title + path + "/"
 
     def test_local_watchdog_delete_non_synced(self):
         # Test the deletion after first local scan
@@ -131,11 +132,11 @@ class TestWatchers(UnitTestCase):
         self.test_reconcile_scan()
         path = self._delete_folder_1()
         child = self.engine_1.get_dao().get_state_from_local(path[:-1])
-        assert child.pair_state == 'locally_deleted'
+        assert child.pair_state == "locally_deleted"
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
         assert len(children) == 5
         for child in children:
-            assert child.pair_state == 'locally_deleted'
+            assert child.pair_state == "locally_deleted"
 
     def test_local_scan_delete_synced(self):
         # Test the deletion after first local scan
@@ -145,11 +146,11 @@ class TestWatchers(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(timeout=5, fail_if_timeout=False)
         child = self.engine_1.get_dao().get_state_from_local(path[:-1])
-        assert child.pair_state == 'locally_deleted'
+        assert child.pair_state == "locally_deleted"
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
         assert len(children) == 5
         for child in children:
-            assert child.pair_state == 'locally_deleted'
+            assert child.pair_state == "locally_deleted"
 
     def test_local_scan_error(self):
         local = self.local_1
@@ -161,18 +162,17 @@ class TestWatchers(UnitTestCase):
         # Create a local file and use an invalid digest function
         # in local watcher file system client to trigger an error
         # during local scan
-        local.make_file('/', 'Test file.odt', content=b'Content')
+        local.make_file("/", "Test file.odt", content=b"Content")
 
-        with patch.object(self.engine_1.local, '_digest_func',
-                          return_value='invalid'):
+        with patch.object(self.engine_1.local, "_digest_func", return_value="invalid"):
             self.engine_1.start()
             self.wait_sync()
             self.engine_1.stop()
-            assert not remote.exists('/Test file.odt')
+            assert not remote.exists("/Test file.odt")
 
         self.engine_1.start()
         self.wait_sync()
-        assert remote.exists('/Test file.odt')
+        assert remote.exists("/Test file.odt")
 
     def test_local_scan_encoding(self):
         local = self.local_1
@@ -183,71 +183,79 @@ class TestWatchers(UnitTestCase):
         self.engine_1.stop()
         # Create files with Unicode combining accents,
         # Unicode latin characters and no special characters
-        local.make_file('/', 'Accentue\u0301.odt', content=b'Content')
-        local.make_folder('/', 'P\xf4le applicatif')
-        local.make_file('/P\xf4le applicatif',
-                        'e\u0302tre ou ne pas \xeatre.odt', content=b'Content')
-        local.make_file('/', 'No special character.odt', content=b'Content')
+        local.make_file("/", "Accentue\u0301.odt", content=b"Content")
+        local.make_folder("/", "P\xf4le applicatif")
+        local.make_file(
+            "/P\xf4le applicatif",
+            "e\u0302tre ou ne pas \xeatre.odt",
+            content=b"Content",
+        )
+        local.make_file("/", "No special character.odt", content=b"Content")
         # Launch local scan and check upstream synchronization
         self.engine_1.start()
         self.wait_sync()
         self.engine_1.stop()
-        assert remote.exists('/Accentue\u0301.odt')
-        assert remote.exists('/P\xf4le applicatif')
-        assert remote.exists(
-            '/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt')
-        assert remote.exists('/No special character.odt')
+        assert remote.exists("/Accentue\u0301.odt")
+        assert remote.exists("/P\xf4le applicatif")
+        assert remote.exists("/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt")
+        assert remote.exists("/No special character.odt")
 
         # Check rename using normalized names as previous local scan
         # has normalized them on the file system
-        local.rename('/Accentu\xe9.odt',
-                     'Accentue\u0301 avec un e\u0302 et un \xe9.odt')
-        local.rename('/P\xf4le applicatif', 'P\xf4le applique\u0301')
+        local.rename(
+            "/Accentu\xe9.odt", "Accentue\u0301 avec un e\u0302 et un \xe9.odt"
+        )
+        local.rename("/P\xf4le applicatif", "P\xf4le applique\u0301")
         # LocalClient.rename calls LocalClient.get_info then
         # the FileInfo constructor which normalizes names
         # on the file system, thus we need to use
         # the normalized name for the parent folder
-        local.rename('/P\xf4le appliqu\xe9/\xeatre ou ne pas \xeatre.odt',
-                     'avoir et e\u0302tre.odt')
+        local.rename(
+            "/P\xf4le appliqu\xe9/\xeatre ou ne pas \xeatre.odt",
+            "avoir et e\u0302tre.odt",
+        )
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
-        assert (remote.get_info('/Accentue\u0301.odt').name
-                == 'Accentu\xe9 avec un \xea et un \xe9.odt')
-        assert (remote.get_info('/P\xf4le applicatif').name
-                == 'P\xf4le appliqu\xe9')
-        assert (remote.get_info(
-            '/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt').name
-                == 'avoir et \xeatre.odt')
+        assert (
+            remote.get_info("/Accentue\u0301.odt").name
+            == "Accentu\xe9 avec un \xea et un \xe9.odt"
+        )
+        assert remote.get_info("/P\xf4le applicatif").name == "P\xf4le appliqu\xe9"
+        assert (
+            remote.get_info("/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt").name
+            == "avoir et \xeatre.odt"
+        )
         # Check content update
         # NXDRIVE-389: Reload the engine to be sure that
         # the pairs are all synchronized
-        local.update_content('/Accentu\xe9 avec un \xea et un \xe9.odt',
-                             b'Updated content')
-        local.update_content('/P\xf4le appliqu\xe9/avoir et \xeatre.odt',
-                             b'Updated content')
+        local.update_content(
+            "/Accentu\xe9 avec un \xea et un \xe9.odt", b"Updated content"
+        )
+        local.update_content(
+            "/P\xf4le appliqu\xe9/avoir et \xeatre.odt", b"Updated content"
+        )
         self.engine_1.start()
         self.wait_sync()
         self.engine_1.stop()
-        assert remote.get_content('/Accentue\u0301.odt') == b'Updated content'
+        assert remote.get_content("/Accentue\u0301.odt") == b"Updated content"
         # NXDRIVE-389: Will be Content and not Updated content
         # it is not consider as synced, so conflict is generated
-        assert (remote.get_content(
-            '/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt')
-                == b'Updated content')
+        assert (
+            remote.get_content("/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt")
+            == b"Updated content"
+        )
 
         # Check delete
-        local.delete_final('/Accentu\xe9 avec un \xea et un \xe9.odt')
-        local.delete_final('/P\xf4le appliqu\xe9/avoir et \xeatre.odt')
+        local.delete_final("/Accentu\xe9 avec un \xea et un \xe9.odt")
+        local.delete_final("/P\xf4le appliqu\xe9/avoir et \xeatre.odt")
         self.engine_1.start()
         self.wait_sync()
         self.engine_1.stop()
-        assert not remote.exists('/Accentue\u0301.odt')
-        assert not remote.exists(
-            '/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt')
+        assert not remote.exists("/Accentue\u0301.odt")
+        assert not remote.exists("/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt")
 
-    @pytest.mark.skipif(WINDOWS,
-                        reason='Windows cannot have file ending with a space.')
+    @pytest.mark.skipif(WINDOWS, reason="Windows cannot have file ending with a space.")
     def test_watchdog_space_remover(self):
         """
         Test files and folders ending with space.
@@ -259,18 +267,19 @@ class TestWatchers(UnitTestCase):
         self.engine_1.start()
         self.wait_sync()
 
-        local.make_file('/', 'Accentue\u0301.odt ', content=b'Content')
+        local.make_file("/", "Accentue\u0301.odt ", content=b"Content")
         self.wait_sync()
-        assert remote.exists('/Accentue\u0301.odt')
-        assert not remote.exists('/Accentue\u0301.odt ')
+        assert remote.exists("/Accentue\u0301.odt")
+        assert not remote.exists("/Accentue\u0301.odt ")
 
-        local.rename('/Accentu\xe9.odt',
-                     'Accentu\xe9 avec un \xea et un \xe9.odt ')
+        local.rename("/Accentu\xe9.odt", "Accentu\xe9 avec un \xea et un \xe9.odt ")
         self.wait_sync()
-        assert (remote.get_info('/Accentue\u0301.odt').name
-                == 'Accentu\xe9 avec un \xea et un \xe9.odt')
+        assert (
+            remote.get_info("/Accentue\u0301.odt").name
+            == "Accentu\xe9 avec un \xea et un \xe9.odt"
+        )
 
-    @pytest.mark.randombug('NXDRIVE-808', condition=MAC, repeat=5)
+    @pytest.mark.randombug("NXDRIVE-808", condition=MAC, repeat=5)
     def test_watchdog_encoding(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -280,54 +289,56 @@ class TestWatchers(UnitTestCase):
 
         # Create files with Unicode combining accents, Unicode latin characters
         # and no special characters
-        local.make_file('/', 'Accentue\u0301.odt', content=b'Content')
-        local.make_folder('/', 'P\xf4le applicatif')
-        local.make_folder('/', 'Sub folder')
+        local.make_file("/", "Accentue\u0301.odt", content=b"Content")
+        local.make_folder("/", "P\xf4le applicatif")
+        local.make_folder("/", "Sub folder")
         local.make_file(
-            '/Sub folder', 'e\u0302tre ou ne pas \xeatre.odt',
-                content=b'Content')
-        local.make_file('/', 'No special character.odt', content=b'Content')
+            "/Sub folder", "e\u0302tre ou ne pas \xeatre.odt", content=b"Content"
+        )
+        local.make_file("/", "No special character.odt", content=b"Content")
         self.wait_sync()
-        assert remote.exists('/Accentue\u0301.odt')
-        assert remote.exists('/P\xf4le applicatif')
-        assert remote.exists('/Sub folder')
-        assert remote.exists('/Sub folder/e\u0302tre ou ne pas \xeatre.odt')
-        assert remote.exists('/No special character.odt')
+        assert remote.exists("/Accentue\u0301.odt")
+        assert remote.exists("/P\xf4le applicatif")
+        assert remote.exists("/Sub folder")
+        assert remote.exists("/Sub folder/e\u0302tre ou ne pas \xeatre.odt")
+        assert remote.exists("/No special character.odt")
 
         # Check rename using normalized names as previous watchdog handling has
         # normalized them on the file system
-        local.rename('/Accentu\xe9.odt',
-                     'Accentue\u0301 avec un e\u0302 et un \xe9.odt')
-        local.rename('/P\xf4le applicatif', 'P\xf4le applique\u0301')
-        local.rename('/Sub folder/\xeatre ou ne pas \xeatre.odt',
-                     'avoir et e\u0302tre.odt')
+        local.rename(
+            "/Accentu\xe9.odt", "Accentue\u0301 avec un e\u0302 et un \xe9.odt"
+        )
+        local.rename("/P\xf4le applicatif", "P\xf4le applique\u0301")
+        local.rename(
+            "/Sub folder/\xeatre ou ne pas \xeatre.odt", "avoir et e\u0302tre.odt"
+        )
         self.wait_sync()
-        assert (remote.get_info('/Accentue\u0301.odt').name
-                == 'Accentu\xe9 avec un \xea et un \xe9.odt')
-        assert (remote.get_info('/P\xf4le applicatif').name
-                == 'P\xf4le appliqu\xe9')
-        info = remote.get_info('/Sub folder/e\u0302tre ou ne pas \xeatre.odt')
-        assert info.name == 'avoir et \xeatre.odt'
+        assert (
+            remote.get_info("/Accentue\u0301.odt").name
+            == "Accentu\xe9 avec un \xea et un \xe9.odt"
+        )
+        assert remote.get_info("/P\xf4le applicatif").name == "P\xf4le appliqu\xe9"
+        info = remote.get_info("/Sub folder/e\u0302tre ou ne pas \xeatre.odt")
+        assert info.name == "avoir et \xeatre.odt"
 
         # Check content update
-        local.update_content('/Accentu\xe9 avec un \xea et un \xe9.odt',
-                             b'Updated content')
-        local.update_content('/Sub folder/avoir et \xeatre.odt',
-                             b'Updated content')
+        local.update_content(
+            "/Accentu\xe9 avec un \xea et un \xe9.odt", b"Updated content"
+        )
+        local.update_content("/Sub folder/avoir et \xeatre.odt", b"Updated content")
         self.wait_sync()
-        assert remote.get_content('/Accentue\u0301.odt') == b'Updated content'
-        content = remote.get_content('/Sub folder/e\u0302tre ou ne pas \xeatre.odt')
-        assert content == b'Updated content'
+        assert remote.get_content("/Accentue\u0301.odt") == b"Updated content"
+        content = remote.get_content("/Sub folder/e\u0302tre ou ne pas \xeatre.odt")
+        assert content == b"Updated content"
 
         # Check delete
-        local.delete_final('/Accentu\xe9 avec un \xea et un \xe9.odt')
-        local.delete_final('/Sub folder/avoir et \xeatre.odt')
+        local.delete_final("/Accentu\xe9 avec un \xea et un \xe9.odt")
+        local.delete_final("/Sub folder/avoir et \xeatre.odt")
         self.wait_sync()
-        assert not remote.exists('/Accentue\u0301.odt')
-        assert not remote.exists(
-            '/Sub folder/e\u0302tre ou ne pas \xeatre.odt')
+        assert not remote.exists("/Accentue\u0301.odt")
+        assert not remote.exists("/Sub folder/e\u0302tre ou ne pas \xeatre.odt")
 
-    @pytest.mark.randombug('NXDRIVE-808', condition=WINDOWS, repeat=2)
+    @pytest.mark.randombug("NXDRIVE-808", condition=WINDOWS, repeat=2)
     def test_watcher_remote_id_setter(self):
         local = self.local_1
         # As some user can rewrite same file for no reason
@@ -337,14 +348,14 @@ class TestWatchers(UnitTestCase):
         self.wait_sync()
         # Create files with Unicode combining accents,
         # Unicode latin characters and no special characters
-        file_path = local.abspath('/Test.pdf')
-        copyfile(self.location + '/resources/testFile.pdf', file_path)
+        file_path = local.abspath("/Test.pdf")
+        copyfile(self.location + "/resources/testFile.pdf", file_path)
         # Wait for test workspace synchronization
         self.wait_sync()
-        remote_id = local.get_remote_id('/Test.pdf')
-        copyfile(self.location + '/resources/testFile.pdf', file_path)
+        remote_id = local.get_remote_id("/Test.pdf")
+        copyfile(self.location + "/resources/testFile.pdf", file_path)
         self.wait_sync()
-        assert remote_id == local.get_remote_id('/Test.pdf')
+        assert remote_id == local.get_remote_id("/Test.pdf")
 
     def test_watcher_remote_id_setter_stopped(self):
         # Some user can rewrite the same file for no reason
@@ -352,14 +363,14 @@ class TestWatchers(UnitTestCase):
         self.engine_1.start()
         self.wait_sync()
 
-        file_path = self.local_1.abspath('/Test.pdf')
-        copyfile(self.location + '/resources/testFile.pdf', file_path)
+        file_path = self.local_1.abspath("/Test.pdf")
+        copyfile(self.location + "/resources/testFile.pdf", file_path)
         # Give some time for the local watcher to handle the copy
         sleep(5)
 
         self.engine_1.stop()
-        remote_id = self.local_1.get_remote_id('/Test.pdf')
-        copyfile(self.location + '/resources/testFile.pdf', file_path)
+        remote_id = self.local_1.get_remote_id("/Test.pdf")
+        copyfile(self.location + "/resources/testFile.pdf", file_path)
         self.engine_1.start()
         self.wait_sync()
-        assert remote_id == self.local_1.get_remote_id('/Test.pdf')
+        assert remote_id == self.local_1.get_remote_id("/Test.pdf")

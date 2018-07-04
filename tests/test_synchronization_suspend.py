@@ -7,8 +7,7 @@ from .common import UnitTestCase
 
 
 class TestSynchronizationSuspend(UnitTestCase):
-
-    @pytest.mark.randombug('NXDRIVE-805', condition=WINDOWS, repeat=2)
+    @pytest.mark.randombug("NXDRIVE-805", condition=WINDOWS, repeat=2)
     def test_basic_synchronization_suspend(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -16,18 +15,18 @@ class TestSynchronizationSuspend(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Let's create some document on the client and the server
-        local.make_folder('/', 'Folder 3')
+        local.make_folder("/", "Folder 3")
         self.make_server_tree()
 
         # Launch ndrive and check synchronization
         self.wait_sync(wait_for_async=True)
-        assert remote.exists('/Folder 3')
-        assert local.exists('/Folder 1')
-        assert local.exists('/Folder 2')
-        assert local.exists('/File 5.txt')
+        assert remote.exists("/Folder 3")
+        assert local.exists("/Folder 1")
+        assert local.exists("/Folder 2")
+        assert local.exists("/File 5.txt")
         self.engine_1.get_queue_manager().suspend()
-        local.make_folder('/', 'Folder 4')
-        local.make_file('/Folder 4', 'Test.txt', content=b'Plop')
+        local.make_folder("/", "Folder 4")
+        local.make_file("/Folder 4", "Test.txt", content=b"Plop")
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
         assert len(remote.get_children_info(self.workspace_1)) == 4
         assert self.engine_1.get_queue_manager().is_paused()
@@ -42,21 +41,24 @@ class TestSynchronizationSuspend(UnitTestCase):
         # Create one file locally and wait for sync
         engine.start()
         self.wait_sync(wait_for_async=True)
-        local.make_file('/', 'file1.txt', content=b'42')
+        local.make_file("/", "file1.txt", content=b"42")
         self.wait_sync()
 
         # Checks
-        assert remote.exists('/file1.txt')
-        assert local.exists('/file1.txt')
+        assert remote.exists("/file1.txt")
+        assert local.exists("/file1.txt")
 
         # Simulate offline mode (no more network for instance)
         engine.get_queue_manager().suspend()
 
         # Create a bunch of files locally
-        local.make_folder('/', 'files')
+        local.make_folder("/", "files")
         for num in range(60 if WINDOWS else 20):
-            local.make_file('/files', 'file-' + str(num) + '.txt',
-                            content=b'Content of file-' + bytes(num))
+            local.make_file(
+                "/files",
+                "file-" + str(num) + ".txt",
+                content=b"Content of file-" + bytes(num),
+            )
         self.wait_sync(fail_if_timeout=False)
 
         # Checks
@@ -71,7 +73,7 @@ class TestSynchronizationSuspend(UnitTestCase):
         assert len(remote.get_children_info(self.workspace_1)) == 2
         assert not engine.get_queue_manager().is_paused()
 
-    @pytest.mark.randombug('NXDRIVE-812', condition=LINUX, mode='BYPASS')
+    @pytest.mark.randombug("NXDRIVE-812", condition=LINUX, mode="BYPASS")
     def test_synchronization_end_with_children_ignore_parent(self):
         """ NXDRIVE-655: children of ignored folder are not ignored. """
 
@@ -81,19 +83,19 @@ class TestSynchronizationSuspend(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Let's create some document on the client and the server
-        local.make_folder('/', 'Folder 3')
+        local.make_folder("/", "Folder 3")
         self.make_server_tree()
 
         # Launch ndrive and check synchronization
         self.wait_sync(wait_for_async=True)
-        assert remote.exists('/Folder 3')
-        assert local.exists('/Folder 1')
-        assert local.exists('/Folder 2')
-        assert local.exists('/File 5.txt')
-        local.make_folder('/', '.hidden')
-        local.make_file('/.hidden', 'Test.txt', content=b'Plop')
-        local.make_folder('/.hidden', 'normal')
-        local.make_file('/.hidden/normal', 'Test.txt', content=b'Plop')
+        assert remote.exists("/Folder 3")
+        assert local.exists("/Folder 1")
+        assert local.exists("/Folder 2")
+        assert local.exists("/File 5.txt")
+        local.make_folder("/", ".hidden")
+        local.make_file("/.hidden", "Test.txt", content=b"Plop")
+        local.make_folder("/.hidden", "normal")
+        local.make_file("/.hidden/normal", "Test.txt", content=b"Plop")
         # Should not try to sync therefor it should not timeout
         self.wait_sync(wait_for_async=True)
         assert len(remote.get_children_info(self.workspace_1)) == 4

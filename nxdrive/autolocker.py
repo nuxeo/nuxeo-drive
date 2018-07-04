@@ -11,7 +11,7 @@ from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
 from .utils import force_decode
 
-__all__ = ('ProcessAutoLockerWorker',)
+__all__ = ("ProcessAutoLockerWorker",)
 
 log = getLogger(__name__)
 Item = Dict[int, str]
@@ -24,12 +24,7 @@ class ProcessAutoLockerWorker(PollWorker):
     documentLocked = pyqtSignal(str)
     documentUnlocked = pyqtSignal(str)
 
-    def __init__(
-        self,
-        check_interval: int,
-        dao: 'ManagerDAO',
-        folder: str,
-    ) -> None:
+    def __init__(self, check_interval: int, dao: "ManagerDAO", folder: str) -> None:
         super().__init__(check_interval)
         self._dao = dao
         self._folder = force_decode(folder)
@@ -39,7 +34,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self._to_lock = []
         self._first = True
 
-    def set_autolock(self, filepath: str, locker: 'DirectEdit') -> None:
+    def set_autolock(self, filepath: str, locker: "DirectEdit") -> None:
         if self._autolocked.get(filepath):
             # Already locked
             return
@@ -59,7 +54,7 @@ class ProcessAutoLockerWorker(PollWorker):
         except ThreadInterrupt:
             raise
         except:
-            log.exception('Unhandled error')
+            log.exception("Unhandled error")
 
     def orphan_unlocked(self, path: str) -> None:
         self._dao.unlock_path(path)
@@ -68,9 +63,9 @@ class ProcessAutoLockerWorker(PollWorker):
         to_unlock = deepcopy(self._autolocked)
         for pid, path in get_open_files():
             if path.startswith(self._folder):
-                log.debug('Found in watched folder: %r (PID=%r)', path, pid)
+                log.debug("Found in watched folder: %r (PID=%r)", path, pid)
             elif path in self._autolocked:
-                log.debug('Found in auto-locked: %r (PID=%r)', path, pid)
+                log.debug("Found in auto-locked: %r (PID=%r)", path, pid)
             else:
                 continue
 
@@ -94,15 +89,15 @@ class ProcessAutoLockerWorker(PollWorker):
 
     def _lock_file(self, item: Item) -> None:
         pid, path = item
-        log.debug('Locking file %r (PID=%r)', path, pid)
+        log.debug("Locking file %r (PID=%r)", path, pid)
         if path in self._lockers:
             locker = self._lockers[path]
             locker.autolock_lock(path)
-        self._dao.lock_path(path, pid, '')
+        self._dao.lock_path(path, pid, "")
         self._to_lock.remove(item)
 
     def _unlock_file(self, path: str) -> None:
-        log.debug('Unlocking file %r', path)
+        log.debug("Unlocking file %r", path)
         if path in self._lockers:
             locker = self._lockers[path]
             locker.autolock_unlock(path)

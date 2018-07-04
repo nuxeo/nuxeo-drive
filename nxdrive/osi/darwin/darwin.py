@@ -8,15 +8,17 @@ from typing import Dict, List, Optional
 
 import xattr
 from Foundation import NSBundle, NSDistributedNotificationCenter
-from LaunchServices import (CFURLCreateWithString,
-                            LSSetDefaultHandlerForURLScheme,
-                            LSSharedFileListCopySnapshot,
-                            LSSharedFileListCreate,
-                            LSSharedFileListInsertItemURL,
-                            LSSharedFileListItemCopyDisplayName,
-                            LSSharedFileListItemRemove,
-                            kLSSharedFileListFavoriteItems,
-                            kLSSharedFileListItemBeforeFirst)
+from LaunchServices import (
+    CFURLCreateWithString,
+    LSSetDefaultHandlerForURLScheme,
+    LSSharedFileListCopySnapshot,
+    LSSharedFileListCreate,
+    LSSharedFileListInsertItemURL,
+    LSSharedFileListItemCopyDisplayName,
+    LSSharedFileListItemRemove,
+    kLSSharedFileListFavoriteItems,
+    kLSSharedFileListItemBeforeFirst,
+)
 from nuxeo.compat import quote
 
 from .. import AbstractOSIntegration
@@ -25,48 +27,47 @@ from ...engine.workers import Worker
 from ...objects import NuxeoDocumentInfo
 from ...utils import force_decode, normalized_path
 
-__all__ = ('DarwinIntegration', 'FinderSyncListener')
+__all__ = ("DarwinIntegration", "FinderSyncListener")
 
 log = getLogger(__name__)
 
 
 class DarwinIntegration(AbstractOSIntegration):
 
-    NXDRIVE_SCHEME = 'nxdrive'
+    NXDRIVE_SCHEME = "nxdrive"
     NDRIVE_AGENT_TEMPLATE = (
         '<?xml version="1.0" encoding="UTF-8"?>'
         '<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN"'
         '"http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
         '<plist version="1.0">'
-        '<dict>'
-        '<key>Label</key>'
-        '<string>org.nuxeo.drive.agentlauncher</string>'
-        '<key>RunAtLoad</key>'
-        '<true/>'
-        '<key>Program</key>'
-        '<string>%s</string>'
-        '</dict>'
-        '</plist>'
+        "<dict>"
+        "<key>Label</key>"
+        "<string>org.nuxeo.drive.agentlauncher</string>"
+        "<key>RunAtLoad</key>"
+        "<true/>"
+        "<key>Program</key>"
+        "<string>%s</string>"
+        "</dict>"
+        "</plist>"
     )
 
-    def __init__(self, manager: 'Manager') -> None:
+    def __init__(self, manager: "Manager") -> None:
         super().__init__(manager)
         self._init()
 
     def _init(self) -> None:
-        log.debug('Telling plugInKit to use the FinderSync')
-        os.system('pluginkit -e use -i {}.NuxeoFinderSync'.format(
-            BUNDLE_IDENTIFIER))
+        log.debug("Telling plugInKit to use the FinderSync")
+        os.system("pluginkit -e use -i {}.NuxeoFinderSync".format(BUNDLE_IDENTIFIER))
 
     def _cleanup(self) -> None:
-        log.debug('Telling plugInKit to ignore the FinderSync')
-        os.system('pluginkit -e ignore -i {}.NuxeoFinderSync'.format(
-            BUNDLE_IDENTIFIER))
+        log.debug("Telling plugInKit to ignore the FinderSync")
+        os.system("pluginkit -e ignore -i {}.NuxeoFinderSync".format(BUNDLE_IDENTIFIER))
 
     def _get_agent_file(self) -> str:
         return os.path.join(
-            os.path.expanduser('~/Library/LaunchAgents'),
-            '{}.plist'.format(BUNDLE_IDENTIFIER))
+            os.path.expanduser("~/Library/LaunchAgents"),
+            "{}.plist".format(BUNDLE_IDENTIFIER),
+        )
 
     def register_startup(self) -> None:
         """
@@ -74,37 +75,41 @@ class DarwinIntegration(AbstractOSIntegration):
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
         """
         agent = os.path.join(
-            os.path.expanduser('~/Library/LaunchAgents'),
-            '{}.plist'.format(BUNDLE_IDENTIFIER))
+            os.path.expanduser("~/Library/LaunchAgents"),
+            "{}.plist".format(BUNDLE_IDENTIFIER),
+        )
         if os.path.isfile(agent):
             return
 
         agents_folder = os.path.dirname(agent)
         if not os.path.exists(agents_folder):
-            log.debug('Making launch agent folder %r', agents_folder)
+            log.debug("Making launch agent folder %r", agents_folder)
             os.makedirs(agents_folder)
 
         exe = os.path.realpath(sys.executable)
-        log.debug('Registering %r for startup in %r', exe, agent)
-        with open(agent, 'w') as f:
+        log.debug("Registering %r for startup in %r", exe, agent)
+        with open(agent, "w") as f:
             f.write(self.NDRIVE_AGENT_TEMPLATE % exe)
 
     def unregister_startup(self) -> None:
         agent = self._get_agent_file()
         if os.path.isfile(agent):
-            log.debug('Unregistering startup agent %r', agent)
+            log.debug("Unregistering startup agent %r", agent)
             os.remove(agent)
 
     def register_protocol_handlers(self) -> None:
         """Register the URL scheme listener using PyObjC"""
         bundle_id = NSBundle.mainBundle().bundleIdentifier()
-        if bundle_id == 'org.python.python':
-            log.debug('Skipping URL scheme registration as this program '
-                      ' was launched from the Python OSX app bundle')
+        if bundle_id == "org.python.python":
+            log.debug(
+                "Skipping URL scheme registration as this program "
+                " was launched from the Python OSX app bundle"
+            )
             return
         LSSetDefaultHandlerForURLScheme(self.NXDRIVE_SCHEME, bundle_id)
-        log.debug('Registered bundle %r for URL scheme %r', bundle_id,
-                  self.NXDRIVE_SCHEME)
+        log.debug(
+            "Registered bundle %r for URL scheme %r", bundle_id, self.NXDRIVE_SCHEME
+        )
 
     def unregister_protocol_handlers(self) -> None:
         # Don't unregister, should be removed when Bundle removed
@@ -120,9 +125,16 @@ class DarwinIntegration(AbstractOSIntegration):
             if to_delete:
                 os.mkdir(folder)
             if not os.access(folder, os.W_OK):
-                os.chmod(folder, stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP
-                         | stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR)
-            key, value = 'drive-test', b'drive-test'
+                os.chmod(
+                    folder,
+                    stat.S_IXUSR
+                    | stat.S_IRGRP
+                    | stat.S_IXGRP
+                    | stat.S_IRUSR
+                    | stat.S_IWGRP
+                    | stat.S_IWUSR,
+                )
+            key, value = "drive-test", b"drive-test"
             xattr.setxattr(folder, key, value)
             if xattr.getxattr(folder, key) == value:
                 result = True
@@ -153,16 +165,16 @@ class DarwinIntegration(AbstractOSIntegration):
         :param operation: 'watch' or 'unwatch'
         :param path: path to the folder
         """
-        name = '{}.watchFolder'.format(BUNDLE_IDENTIFIER)
-        self._send_notification(name, {'operation': operation, 'path': path})
+        name = "{}.watchFolder".format(BUNDLE_IDENTIFIER)
+        self._send_notification(name, {"operation": operation, "path": path})
 
     def watch_folder(self, folder: str) -> None:
-        log.debug('FinderSync now watching %r', folder)
-        self._set_monitoring('watch', folder)
+        log.debug("FinderSync now watching %r", folder)
+        self._set_monitoring("watch", folder)
 
     def unwatch_folder(self, folder: str) -> None:
-        log.debug('FinderSync now ignoring %r', folder)
-        self._set_monitoring('unwatch', folder)
+        log.debug("FinderSync now ignoring %r", folder)
+        self._set_monitoring("unwatch", folder)
 
     def send_sync_status(self, state: NuxeoDocumentInfo, path: str) -> None:
         """
@@ -176,39 +188,33 @@ class DarwinIntegration(AbstractOSIntegration):
             if not os.path.exists(path):
                 return
 
-            name = '{}.syncStatus'.format(BUNDLE_IDENTIFIER)
-            status = 'unsynced'
+            name = "{}.syncStatus".format(BUNDLE_IDENTIFIER)
+            status = "unsynced"
 
-            readonly = (os.stat(path).st_mode
-                        & (stat.S_IWUSR | stat.S_IWGRP)) == 0
+            readonly = (os.stat(path).st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
             if readonly:
-                status = 'locked'
+                status = "locked"
             elif state:
                 if state.error_count > 0:
-                    status = 'error'
-                elif state.pair_state == 'conflicted':
-                    status = 'conflicted'
-                elif state.local_state == 'synchronized':
-                    status = 'synced'
-                elif state.pair_state == 'unsynchronized':
-                    status = 'unsynced'
+                    status = "error"
+                elif state.pair_state == "conflicted":
+                    status = "conflicted"
+                elif state.local_state == "synchronized":
+                    status = "synced"
+                elif state.pair_state == "unsynchronized":
+                    status = "unsynced"
                 elif state.processor != 0:
-                    status = 'syncing'
+                    status = "syncing"
 
-            log.trace('Sending status %r for file %r to FinderSync',
-                      status, path)
-            self._send_notification(name, {'status': status, 'path': path})
+            log.trace("Sending status %r for file %r to FinderSync", status, path)
+            self._send_notification(name, {"status": status, "path": path})
         except:
-            log.exception('Error while trying to send status to FinderSync')
+            log.exception("Error while trying to send status to FinderSync")
 
-    def register_folder_link(
-        self,
-        folder_path: str,
-        name: Optional[str],
-    ) -> None:
+    def register_folder_link(self, folder_path: str, name: Optional[str]) -> None:
         favorites = self._get_favorite_list() or []
         if not favorites:
-            log.warning('Could not fetch the Finder favorite list.')
+            log.warning("Could not fetch the Finder favorite list.")
             return
 
         folder_path = normalized_path(folder_path)
@@ -217,24 +223,22 @@ class DarwinIntegration(AbstractOSIntegration):
         if self._find_item_in_list(favorites, name):
             return
 
-        url = CFURLCreateWithString(
-            None, 'file://{}'.format(quote(folder_path)), None)
+        url = CFURLCreateWithString(None, "file://{}".format(quote(folder_path)), None)
         if not url:
-            log.warning(
-                'Could not generate valid favorite URL for: %r', folder_path)
+            log.warning("Could not generate valid favorite URL for: %r", folder_path)
             return
 
         # Register the folder as favorite if not already there
         item = LSSharedFileListInsertItemURL(
-            favorites, kLSSharedFileListItemBeforeFirst,
-            name, None, url, {}, [])
+            favorites, kLSSharedFileListItemBeforeFirst, name, None, url, {}, []
+        )
         if item:
-            log.debug('Registered new favorite in Finder for: %r', folder_path)
+            log.debug("Registered new favorite in Finder for: %r", folder_path)
 
     def unregister_folder_link(self, name: Optional[str]) -> None:
         favorites = self._get_favorite_list()
         if not favorites:
-            log.warning('Could not fetch the Finder favorite list.')
+            log.warning("Could not fetch the Finder favorite list.")
             return
 
         name = os.path.basename(name) if name else self._manager.app_name
@@ -247,8 +251,7 @@ class DarwinIntegration(AbstractOSIntegration):
 
     @staticmethod
     def _get_favorite_list() -> List[str]:
-        return LSSharedFileListCreate(
-            None, kLSSharedFileListFavoriteItems, None)
+        return LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems, None)
 
     @staticmethod
     def _find_item_in_list(lst: List[str], name: str) -> Optional[str]:
@@ -260,11 +263,10 @@ class DarwinIntegration(AbstractOSIntegration):
 
 
 class FinderSyncListener(Worker):
-
-    def __init__(self, manager: 'Manager') -> None:
+    def __init__(self, manager: "Manager") -> None:
         super().__init__()
         self._manager = manager
-        self.host = 'localhost'
+        self.host = "localhost"
         self.port = 50765
         self._sock = socket.socket()
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -273,7 +275,7 @@ class FinderSyncListener(Worker):
     def _execute(self) -> None:
         self._sock.bind((self.host, self.port))
         self._sock.listen(5)
-        log.debug('FinderSync listening on %s:%d', self.host, self.port)
+        log.debug("FinderSync listening on %s:%d", self.host, self.port)
         while True:
             self._interact()
             try:
@@ -290,12 +292,8 @@ class FinderSyncListener(Worker):
 
 
 class SocketThread(Worker):
-
     def __init__(
-        self,
-        sock: socket.SocketType,
-        addr: socket.SocketType,
-        manager: 'Manager',
+        self, sock: socket.SocketType, addr: socket.SocketType, manager: "Manager"
     ) -> None:
         super().__init__()
         self._manager = manager
@@ -304,12 +302,12 @@ class SocketThread(Worker):
         self.get_thread().started.connect(self.run)
 
     def _execute(self) -> None:
-        content = ''
+        content = ""
         while True:
             data = self._sock.recv(1024)
             if not data:
                 break
             content += data
-        log.trace('SocketThread for %s: received %s', self.addr, content)
+        log.trace("SocketThread for %s: received %s", self.addr, content)
         self._sock.close()
         self._manager.send_sync_status(content)

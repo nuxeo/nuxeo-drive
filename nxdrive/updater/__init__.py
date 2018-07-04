@@ -14,7 +14,7 @@ class UpdateError(Exception):
     """ Error handling class. """
 
 
-def updater(*args: Any, **kwargs: Any) -> 'Updater':
+def updater(*args: Any, **kwargs: Any) -> "Updater":
     """
     Factory returning a proper Updater class instance.
     It detects the platform we are running on and chooses the most suited
@@ -25,21 +25,24 @@ def updater(*args: Any, **kwargs: Any) -> 'Updater':
     if not Options.update_check_delay:
         # The user manually disabled the auto-update
         from .base import BaseUpdater as Updater
-        setattr(Updater, '_can_update', False)
-        log.info('Update check delay is set to 0, disabling auto-update')
+
+        setattr(Updater, "_can_update", False)
+        log.info("Update check delay is set to 0, disabling auto-update")
     else:
         import platform
+
         operating_system = platform.system().lower()
 
-        if operating_system == 'darwin':
+        if operating_system == "darwin":
             from .darwin import Updater
-        elif operating_system == 'windows':
+        elif operating_system == "windows":
             from .windows import Updater
         else:
             from .base import BaseUpdater as Updater
-            setattr(Updater, '_can_update', False)
+
+            setattr(Updater, "_can_update", False)
 
     return Updater(*args, **kwargs)
 
 
-__all__ = ('UpdateError', 'get_latest_compatible_version', 'updater')
+__all__ = ("UpdateError", "get_latest_compatible_version", "updater")

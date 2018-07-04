@@ -7,6 +7,6 @@ from nxdrive.commandline import CliHandler
 
 
 if sys.version_info < (3, 6):
-    raise RuntimeError('Nuxeo Drive requires Python 3.6+')
+    raise RuntimeError("Nuxeo Drive requires Python 3.6+")
 
 sys.exit(CliHandler().handle(sys.argv))

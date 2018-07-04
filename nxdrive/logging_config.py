@@ -9,16 +9,17 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from .options import Options
 
-__all__ = ('MAX_LOG_DISPLAYED', 'configure', 'get_handler')
+__all__ = ("MAX_LOG_DISPLAYED", "configure", "get_handler")
 
 FILE_HANDLER = None
 TRACE = 5
 TRACE_ADDED = False
 
 # Default formatter
-FORMAT = logging.Formatter('%(asctime)s %(process)d %(thread)d '
-                           '%(levelname)-8s %(name)-18s %(message)s',
-                           datefmt='%Y-%m-%d %H:%M:%S')
+FORMAT = logging.Formatter(
+    "%(asctime)s %(process)d %(thread)d " "%(levelname)-8s %(name)-18s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 # Singleton logging context for each process.
 # Alternatively we could use the setproctitle to handle the command name
@@ -38,7 +39,7 @@ def add_trace_level() -> None:
     if TRACE_ADDED:
         return
 
-    logging.addLevelName(TRACE, 'TRACE')
+    logging.addLevelName(TRACE, "TRACE")
     logging.TRACE = TRACE
 
     def trace(self, message, *args, **kws):
@@ -53,7 +54,7 @@ add_trace_level()
 
 
 class CustomMemoryHandler(BufferingHandler):
-    def __init__(self, capacity: int=MAX_LOG_DISPLAYED) -> None:
+    def __init__(self, capacity: int = MAX_LOG_DISPLAYED) -> None:
         super().__init__(capacity)
         self.old_buffer_ = None
 
@@ -69,7 +70,7 @@ class CustomMemoryHandler(BufferingHandler):
         try:
             result = self.buffer[:]
             if len(result) < size and self.old_buffer_:
-                result += self.old_buffer_[size - len(result) - 1:]
+                result += self.old_buffer_[size - len(result) - 1 :]
         finally:
             self.release()
         return result
@@ -85,9 +86,9 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         file_names = os.listdir(dir_name)
         result = []
         # We want to find a rotated file with eg filename.2017-04-26... name
-        prefix = '{}.20'.format(base_name)
+        prefix = "{}.20".format(base_name)
         for file_name in file_names:
-            if file_name.startswith(prefix) and not file_name.endswith('.zip'):
+            if file_name.startswith(prefix) and not file_name.endswith(".zip"):
                 result.append(file_name)
         result.sort()
         return os.path.join(dir_name, result[0])
@@ -96,19 +97,19 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         super().doRollover()
 
         dfn = self.find_last_rotated_file()
-        dfn_zipped = '{}.zip'.format(dfn)
-        with open(dfn, 'rb') as reader, ZipFile(dfn_zipped, mode='w') as zip_:
+        dfn_zipped = "{}.zip".format(dfn)
+        with open(dfn, "rb") as reader, ZipFile(dfn_zipped, mode="w") as zip_:
             zip_.writestr(os.path.basename(dfn), reader.read(), ZIP_DEFLATED)
         os.remove(dfn)
 
 
 def configure(
-    log_filename: Optional[str]=None,
-    file_level: str='TRACE',
-    console_level: str='INFO',
-    command_name: Optional[str]=None,
-    force_configure: bool=False,
-    formatter: Optional[logging.Formatter]=None,
+    log_filename: Optional[str] = None,
+    file_level: str = "TRACE",
+    console_level: str = "INFO",
+    command_name: Optional[str] = None,
+    force_configure: bool = False,
+    formatter: Optional[logging.Formatter] = None,
 ) -> None:
 
     global is_logging_configured
@@ -117,10 +118,10 @@ def configure(
     if not is_logging_configured or force_configure:
         is_logging_configured = True
 
-        _logging_context['command'] = command_name
+        _logging_context["command"] = command_name
 
         if not file_level:
-            file_level = 'TRACE'
+            file_level = "TRACE"
         file_level = getattr(logging, file_level.upper())
         console_level = getattr(logging, console_level.upper())
 
@@ -134,7 +135,7 @@ def configure(
 
         # Define a Handler which writes INFO messages or higher to the
         # sys.stderr
-        console_handler_name = 'console'
+        console_handler_name = "console"
         console_handler = get_handler(root_logger, console_handler_name)
         if not console_handler:
             console_handler = logging.StreamHandler()
@@ -151,8 +152,9 @@ def configure(
             log_folder = os.path.dirname(log_filename)
             os.makedirs(log_folder, exist_ok=True)
             file_handler = TimedCompressedRotatingFileHandler(
-                log_filename, when='midnight', backupCount=30)
-            file_handler.set_name('file')
+                log_filename, when="midnight", backupCount=30
+            )
+            file_handler.set_name("file")
             file_handler.setLevel(file_level)
             file_handler.setFormatter(formatter)
             FILE_HANDLER = file_handler
@@ -161,7 +163,7 @@ def configure(
         # Add memory logger to allow instant report
         memory_handler = CustomMemoryHandler()
         memory_handler.setLevel(TRACE)
-        memory_handler.set_name('memory')
+        memory_handler.set_name("memory")
         memory_handler.setFormatter(formatter)
         root_logger.addHandler(memory_handler)
 
@@ -175,8 +177,8 @@ def get_handler(logger: logging.Logger, name: str):
 
 def update_logger_console(log_level: str) -> None:
     logging.getLogger().setLevel(
-        min(getattr(logging, log_level),
-            logging.getLogger().getEffectiveLevel()))
+        min(getattr(logging, log_level), logging.getLogger().getEffectiveLevel())
+    )
 
 
 def update_logger_file(log_level: str) -> None:
@@ -185,5 +187,5 @@ def update_logger_file(log_level: str) -> None:
 
 
 # Install logs callbacks
-Options.callbacks['log_level_console'] = update_logger_console
-Options.callbacks['log_level_file'] = update_logger_file
+Options.callbacks["log_level_console"] = update_logger_console
+Options.callbacks["log_level_file"] = update_logger_file

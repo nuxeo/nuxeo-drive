@@ -43,13 +43,12 @@ def mock_get_children_info(self, *args, **kwargs):
     if network_error > 0:
         network_error -= 1
         # Simulate a network error during the call to NuxeoDrive.GetChildren
-        raise ConnectionError('Network error simulated '
-                              'for NuxeoDrive.GetChildren')
+        raise ConnectionError("Network error simulated " "for NuxeoDrive.GetChildren")
     return original_get_children_info(self, *args, **kwargs)
 
 
 def mock_file_to_info(self, fs_item):
-    fs_item['canScrollDescendants'] = False
+    fs_item["canScrollDescendants"] = False
     return original_file_to_info(fs_item)
 
 
@@ -64,13 +63,12 @@ class TestBulkRemoteChanges(UnitTestCase):
     def setUp(self):
         self.last_sync_date = 0
         self.last_event_log_id = 0
-        self.last_root_definitions = ''
+        self.last_root_definitions = ""
         # Initialize last event log id (lower bound)
         self.wait()
 
-    @patch.object(Remote, 'get_fs_children',
-                  mock_get_children_info)
-    @patch.object(Remote, 'file_to_info', mock_file_to_info)
+    @patch.object(Remote, "get_fs_children", mock_get_children_info)
+    @patch.object(Remote, "file_to_info", mock_file_to_info)
     def test_many_changes(self):
         """
 Objective: The objective is to make a lot of remote changes (including a folder
@@ -105,35 +103,34 @@ to local PC.
         self.wait_sync(wait_for_async=True)
 
         # create some folders on the server
-        folder1 = remote.make_folder(self.workspace, 'folder1')
-        folder2 = remote.make_folder(self.workspace, 'folder2')
-        shared = remote.make_folder(self.workspace, 'shared')
+        folder1 = remote.make_folder(self.workspace, "folder1")
+        folder2 = remote.make_folder(self.workspace, "folder2")
+        shared = remote.make_folder(self.workspace, "shared")
 
-        remote.make_file(folder1, 'file1.txt',
-                         content=b'This is a sample file1')
-        remote.make_file(folder2, 'file2.txt',
-                         content=b'This is a sample file2')
+        remote.make_file(folder1, "file1.txt", content=b"This is a sample file1")
+        remote.make_file(folder2, "file2.txt", content=b"This is a sample file2")
         readme1 = remote.make_file(
-            shared, 'readme1.txt', content=b'This is a readme file')
-        remote.make_file(shared, 'readme2.txt',
-                         content=b'This is a readme file')
+            shared, "readme1.txt", content=b"This is a readme file"
+        )
+        remote.make_file(shared, "readme2.txt", content=b"This is a readme file")
 
         self.wait_sync(wait_for_async=True)
 
-        assert local.exists('/folder1')
-        assert local.exists('/folder2')
-        assert local.exists('/shared')
-        assert local.exists('/folder1/file1.txt')
-        assert local.exists('/folder2/file2.txt')
-        assert local.exists('/shared/readme1.txt')
-        assert local.exists('/shared/readme2.txt')
+        assert local.exists("/folder1")
+        assert local.exists("/folder2")
+        assert local.exists("/shared")
+        assert local.exists("/folder1/file1.txt")
+        assert local.exists("/folder2/file2.txt")
+        assert local.exists("/shared/readme1.txt")
+        assert local.exists("/shared/readme2.txt")
 
         # Simulate network error for GetChildren API twice
         # This is to ensure Drive will eventually recover even after multiple
         # failures of GetChildren API.
         network_error = 2
         remote.make_file(
-            folder1, 'sample1.txt', content=b'This is a another sample file1')
+            folder1, "sample1.txt", content=b"This is a another sample file1"
+        )
         self.remote_2.register_as_root(shared)
 
         # Delete folder 'shared'
@@ -147,17 +144,19 @@ to local PC.
         self.wait_sync(wait_for_async=True)
 
         remote.make_file(
-            shared, 'readme3.txt', content=b'This is a another shared file')
+            shared, "readme3.txt", content=b"This is a another shared file"
+        )
         remote.make_file(
-            folder2, 'sample2.txt', content=b'This is a another sample file2')
+            folder2, "sample2.txt", content=b"This is a another sample file2"
+        )
 
         self.wait_sync(wait_for_async=True)
-        assert local.exists('/folder2/sample2.txt')
-        assert local.exists('/folder1/sample1.txt')
+        assert local.exists("/folder2/sample2.txt")
+        assert local.exists("/folder1/sample1.txt")
 
         # Although sync failed for one folder, GetChangeSummary will return
         # zero event in successive calls.  We need to wait two remote scans,
         # so sleep for TEST_DEFAULT_DELAY * 2
         sleep(TEST_DEFAULT_DELAY * 2)
-        assert local.exists('/shared/readme1.txt')
-        assert local.exists('/shared/readme3.txt')
+        assert local.exists("/shared/readme1.txt")
+        assert local.exists("/shared/readme3.txt")
