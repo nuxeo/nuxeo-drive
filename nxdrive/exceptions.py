@@ -45,8 +45,10 @@ class ParentNotSynced(ValueError):
         self.local_parent_path = local_parent_path
 
     def __repr__(self) -> str:
-        return 'Parent folder of %r, %r is not bound to a remote folder' % (
-            self.local_path, self.local_parent_path)
+        return "Parent folder of %r, %r is not bound to a remote folder" % (
+            self.local_path,
+            self.local_parent_path,
+        )
 
     def __str__(self) -> str:
         return repr(self)

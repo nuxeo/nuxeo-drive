@@ -3,25 +3,30 @@ from logging import getLogger
 
 from PyQt5.QtCore import QObject, QVariant, Qt, pyqtSlot
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
-from PyQt5.QtWidgets import (QDialog, QHeaderView, QMenu, QPushButton,
-                             QTreeView, QVBoxLayout)
+from PyQt5.QtWidgets import (
+    QDialog,
+    QHeaderView,
+    QMenu,
+    QPushButton,
+    QTreeView,
+    QVBoxLayout,
+)
 
 from .folders_treeview import Overlay
 from ..objects import NuxeoDocumentInfo
 
-__all__ = ('StatusDialog',)
+__all__ = ("StatusDialog",)
 
 log = getLogger(__name__)
 
 
 class StatusTreeview(QTreeView):
-
-    def __init__(self, parent: QObject, dao: 'EngineDAO') -> None:
+    def __init__(self, parent: QObject, dao: "EngineDAO") -> None:
         super().__init__(parent)
         self._dao = dao
         self.cache = []
         self.root_item = QStandardItemModel()
-        self.root_item.setHorizontalHeaderLabels(['Name', 'Status', 'Action'])
+        self.root_item.setHorizontalHeaderLabels(["Name", "Status", "Action"])
 
         self.setModel(self.root_item)
         self.setHeaderHidden(False)
@@ -49,7 +54,7 @@ class StatusTreeview(QTreeView):
             self.setLoad(False)
             return
         self.setLoad(True)
-        path = '/'
+        path = "/"
         if not parent:
             parent = self.model().invisibleRootItem()
             parent_item = None
@@ -71,15 +76,15 @@ class StatusTreeview(QTreeView):
 
             subitem = QStandardItem(name)
             on_error = child.error_count > 3
-            on_conflicted = child.pair_state == 'conflicted'
+            on_conflicted = child.pair_state == "conflicted"
 
             if on_error:
-                subitem_status = QStandardItem('error')
+                subitem_status = QStandardItem("error")
             else:
                 subitem_status = QStandardItem(child.pair_state)
 
             if child.last_sync_date is None:
-                subitem_date = QStandardItem('N/A')
+                subitem_date = QStandardItem("N/A")
             else:
                 subitem_date = QStandardItem(child.last_sync_date)
 
@@ -94,7 +99,7 @@ class StatusTreeview(QTreeView):
 
             # Create a fake loading item for now
             if child.folderish:
-                loaditem = QStandardItem('')
+                loaditem = QStandardItem("")
                 loaditem.setSelectable(False)
                 subitem.appendRow(loaditem)
             parent.appendRow([subitem, subitem_status, subitem_date])
@@ -102,11 +107,9 @@ class StatusTreeview(QTreeView):
             # Used later for update
             child.parent = parent
             if on_conflicted:
-                self.setIndexWidget(subitem_date.index(),
-                                    ResolveButton(self, child))
+                self.setIndexWidget(subitem_date.index(), ResolveButton(self, child))
             if on_error:
-                self.setIndexWidget(subitem_date.index(),
-                                    RetryButton(self, child))
+                self.setIndexWidget(subitem_date.index(), RetryButton(self, child))
 
         self.setLoad(False)
 
@@ -127,7 +130,7 @@ class StatusTreeview(QTreeView):
 class StatusDialog(QDialog):
     """ Use to display the table of LastKnownState. """
 
-    def __init__(self, dao: 'EngineDao') -> None:
+    def __init__(self, dao: "EngineDao") -> None:
         super().__init__()
         self._dao = dao
         self.resize(500, 500)
@@ -135,13 +138,13 @@ class StatusDialog(QDialog):
         self.setLayout(layout)
         self.tree_view = StatusTreeview(self, self._dao)
         self.tree_view.resizeColumnToContents(0)
-        self.setWindowTitle('Nuxeo Drive File Status')
+        self.setWindowTitle("Nuxeo Drive File Status")
         layout.addWidget(self.tree_view)
 
 
 class RetryButton(QPushButton):
     def __init__(self, view: StatusTreeview, pair: NuxeoDocumentInfo) -> None:
-        super().__init__('Retry')
+        super().__init__("Retry")
         self.pair = pair
         self.view = view
         self.clicked.connect(self.retry)
@@ -154,12 +157,12 @@ class RetryButton(QPushButton):
 
 class ResolveButton(QPushButton):
     def __init__(self, view: StatusTreeview, pair: NuxeoDocumentInfo) -> None:
-        super().__init__('Resolve')
+        super().__init__("Resolve")
         self.pair = pair
         self.view = view
         menu = QMenu()
-        menu.addAction('Use local file', self.pick_local)
-        menu.addAction('Use remote file', self.pick_remote)
+        menu.addAction("Use local file", self.pick_local)
+        menu.addAction("Use remote file", self.pick_remote)
         self.setMenu(menu)
 
     def pick_local(self) -> None:

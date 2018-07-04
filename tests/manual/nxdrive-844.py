@@ -13,16 +13,16 @@ def main(workspace, wspace_path, *args, **kwargs):
 
     files = range(101)
 
-    start_drive(reset=True, msg='sync remote workspace and quit')
+    start_drive(reset=True, msg="sync remote workspace and quit")
 
     create_files_remotely(workspace, files=files, random=False)
-    start_drive(msg='sync remote files and quit')
+    start_drive(msg="sync remote files and quit")
 
     files = get_children(workspace.title)
     for doc in files:
         rename_remote(doc)
         rename_local(wspace_path, doc)
-    start_drive(gdb=True, msg='open the conflicts window and see the CRASH!')
+    start_drive(gdb=True, msg="open the conflicts window and see the CRASH!")
 
 
 main()

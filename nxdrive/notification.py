@@ -10,15 +10,15 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from .wui.translator import Translator
 from .objects import NuxeoDocumentInfo
 
-__all__ = ('DefaultNotificationService', 'Notification')
+__all__ = ("DefaultNotificationService", "Notification")
 
 log = getLogger(__name__)
 
 
 class Notification:
-    LEVEL_INFO = 'info'
-    LEVEL_WARNING = 'warning'
-    LEVEL_ERROR = 'danger'
+    LEVEL_INFO = "info"
+    LEVEL_WARNING = "warning"
+    LEVEL_ERROR = "danger"
 
     # Discard notification
     FLAG_DISCARD = 1
@@ -52,15 +52,15 @@ class Notification:
 
     def __init__(
         self,
-        uid: Optional[str]=None,
-        uuid: Optional[str]=None,
-        engine_uid: Optional[str]=None,
-        level: str=LEVEL_INFO,
-        flags: int=0,
-        title: str='',
-        description: str='',
-        replacements: Dict[str, str]=None,
-        action: str=''
+        uid: Optional[str] = None,
+        uuid: Optional[str] = None,
+        engine_uid: Optional[str] = None,
+        level: str = LEVEL_INFO,
+        flags: int = 0,
+        title: str = "",
+        description: str = "",
+        replacements: Dict[str, str] = None,
+        action: str = "",
     ) -> None:
         self.flags = flags
         self.level = level
@@ -74,9 +74,9 @@ class Notification:
         self.uid = uid
         if uid:
             if engine_uid:
-                self.uid += '_' + engine_uid
+                self.uid += "_" + engine_uid
             if not self.is_unique():
-                self.uid += '_' + str(int(time.time()))
+                self.uid += "_" + str(int(time.time()))
         elif uuid:
             self.uid = uuid
 
@@ -111,11 +111,15 @@ class Notification:
         return self._replacements
 
     def get_content(self) -> str:
-        return ''
+        return ""
 
     def __repr__(self) -> str:
-        return 'Notification(level=%r title=%r uid=%r unique=%r)' % (
-            self.level, self.title, self.uid, self.is_unique())
+        return "Notification(level=%r title=%r uid=%r unique=%r)" % (
+            self.level,
+            self.title,
+            self.uid,
+            self.is_unique(),
+        )
 
 
 class NotificationService(QObject):
@@ -123,7 +127,7 @@ class NotificationService(QObject):
     newNotification = pyqtSignal(object)
     discardNotification = pyqtSignal(object)
 
-    def __init__(self, manager: 'Manager') -> None:
+    def __init__(self, manager: "Manager") -> None:
         super().__init__()
         self._lock = Lock()
         self._notifications = dict()
@@ -144,9 +148,7 @@ class NotificationService(QObject):
             )
 
     def get_notifications(
-        self,
-        engine: Optional['Engine']=None,
-        include_generic: bool=True,
+        self, engine: Optional["Engine"] = None, include_generic: bool = True
     ) -> Dict[str, str]:
         # Might need to use lock and duplicate
         with self._lock:
@@ -161,7 +163,7 @@ class NotificationService(QObject):
             return result
 
     def send_notification(self, notification: Notification) -> None:
-        log.debug('Sending %r', notification)
+        log.debug("Sending %r", notification)
         notification._time = int(time.time())
         with self._lock:
             if notification.is_persistent():
@@ -178,8 +180,7 @@ class NotificationService(QObject):
             return
         notification = self._notifications[uid]
         if notification.is_actionable():
-            self._manager.execute_script(notification.action,
-                                         notification.engine_uid)
+            self._manager.execute_script(notification.action, notification.engine_uid)
         if notification.is_discard_on_trigger():
             self.discard_notification(uid)
 
@@ -199,36 +200,38 @@ class NotificationService(QObject):
 class DebugNotification(Notification):
     def __init__(self, engine_uid: str) -> None:
         super().__init__(
-            'DEBUG',
+            "DEBUG",
             engine_uid=engine_uid,
             level=Notification.LEVEL_ERROR,
             flags=Notification.FLAG_UNIQUE | Notification.FLAG_PERSISTENT,
         )
-        self.title = 'Debug notification'
-        self.description = 'Small description for this debug notification'
-        self.action = ''
+        self.title = "Debug notification"
+        self.description = "Small description for this debug notification"
+        self.action = ""
 
 
 class ErrorNotification(Notification):
     def __init__(self, engine_uid: str, doc_pair: NuxeoDocumentInfo) -> None:
-        values = dict(name='')
+        values = dict(name="")
         if doc_pair.local_name is not None:
-            values['name'] = doc_pair.local_name
+            values["name"] = doc_pair.local_name
         elif doc_pair.remote_name is not None:
-            values['name'] = doc_pair.remote_name
+            values["name"] = doc_pair.remote_name
         super().__init__(
-            'ERROR',
-            title=Translator.get('ERROR', values),
-            description=Translator.get('ERROR_ON_FILE', values),
+            "ERROR",
+            title=Translator.get("ERROR", values),
+            description=Translator.get("ERROR_ON_FILE", values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_ERROR,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_ACTIONABLE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_PERSISTENT
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
-            action='drive.showConflicts();',
+            flags=(
+                Notification.FLAG_VOLATILE
+                | Notification.FLAG_ACTIONABLE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_PERSISTENT
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
+            action="drive.showConflicts();",
         )
 
 
@@ -236,38 +239,41 @@ class LockNotification(Notification):
     def __init__(self, filename: str) -> None:
         values = dict(name=filename)
         super().__init__(
-            'LOCK',
-            title=Translator.get('LOCK_NOTIFICATION_TITLE', values),
-            description=Translator.get('LOCK_NOTIFICATION_DESCRIPTION', values),
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            "LOCK",
+            title=Translator.get("LOCK_NOTIFICATION_TITLE", values),
+            description=Translator.get("LOCK_NOTIFICATION_DESCRIPTION", values),
+            flags=(
+                Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
         )
 
 
 class DirectEditErrorLockNotification(Notification):
     def __init__(self, action: str, filename: str, ref: str) -> None:
         values = dict(name=filename, ref=ref)
-        if action == 'lock':
-            title = 'DIRECT_EDIT_LOCK_ERROR'
-            description = 'DIRECT_EDIT_LOCK_ERROR_DESCRIPTION'
-        elif action == 'unlock':
-            title = 'DIRECT_EDIT_UNLOCK_ERROR'
-            description = 'DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION'
+        if action == "lock":
+            title = "DIRECT_EDIT_LOCK_ERROR"
+            description = "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION"
+        elif action == "unlock":
+            title = "DIRECT_EDIT_UNLOCK_ERROR"
+            description = "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION"
         else:
-            raise ValueError('Invalid action: %r not in (lock, unlock)',
-                             locals())
+            raise ValueError("Invalid action: %r not in (lock, unlock)", locals())
 
         super().__init__(
-            'ERROR',
+            "ERROR",
             title=Translator.get(title, values),
             description=Translator.get(description, values),
             level=Notification.LEVEL_ERROR,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            flags=(
+                Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
         )
 
 
@@ -275,33 +281,30 @@ class ConflictNotification(Notification):
     def __init__(self, engine_uid: str, doc_pair: NuxeoDocumentInfo) -> None:
         values = dict(name=doc_pair.local_name)
         super().__init__(
-            'CONFLICT_FILE',
-            title=Translator.get('CONFLICT', values),
-            description=Translator.get('CONFLICT_ON_FILE', values),
+            "CONFLICT_FILE",
+            title=Translator.get("CONFLICT", values),
+            description=Translator.get("CONFLICT_ON_FILE", values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_WARNING,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_ACTIONABLE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_PERSISTENT
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
-            action='drive.showConflicts();',
+            flags=(
+                Notification.FLAG_VOLATILE
+                | Notification.FLAG_ACTIONABLE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_PERSISTENT
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
+            action="drive.showConflicts();",
         )
 
 
 class ReadOnlyNotification(Notification):
-    def __init__(
-        self,
-        engine_uid: str,
-        filename: str,
-        parent: Optional[str],
-    ) -> None:
+    def __init__(self, engine_uid: str, filename: str, parent: Optional[str]) -> None:
         values = dict(name=filename, folder=parent)
-        description = 'READONLY_FILE' if parent is None else 'READONLY_FOLDER'
+        description = "READONLY_FILE" if parent is None else "READONLY_FOLDER"
         super().__init__(
-            'READONLY',
-            title=Translator.get('READONLY', values),
+            "READONLY",
+            title=Translator.get("READONLY", values),
             description=Translator.get(description, values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_WARNING,
@@ -313,9 +316,9 @@ class DirectEditReadOnlyNotification(Notification):
     def __init__(self, filename: str) -> None:
         values = dict(name=filename)
         super().__init__(
-            'DIRECT_EDIT_READONLY',
-            title=Translator.get('READONLY', values),
-            description=Translator.get('DIRECT_EDIT_READONLY_FILE', values),
+            "DIRECT_EDIT_READONLY",
+            title=Translator.get("READONLY", values),
+            description=Translator.get("DIRECT_EDIT_READONLY_FILE", values),
             level=Notification.LEVEL_WARNING,
             flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
         )
@@ -325,9 +328,9 @@ class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid: str, filename: str) -> None:
         values = dict(name=filename)
         super().__init__(
-            'DELETE_READONLY',
-            title=Translator.get('DELETE_READONLY', values),
-            description=Translator.get('DELETE_READONLY_DOCUMENT', values),
+            "DELETE_READONLY",
+            title=Translator.get("DELETE_READONLY", values),
+            description=Translator.get("DELETE_READONLY_DOCUMENT", values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_WARNING,
             flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
@@ -336,116 +339,118 @@ class DeleteReadOnlyNotification(Notification):
 
 class LockedNotification(Notification):
     def __init__(
-        self,
-        engine_uid: str,
-        filename: str,
-        lock_owner: str,
-        lock_created: datetime,
+        self, engine_uid: str, filename: str, lock_owner: str, lock_created: datetime
     ) -> None:
         values = {
-            'name': filename,
-            'lock_owner': lock_owner,
-            'lock_created': lock_created.strftime('%m/%d/%Y %H:%M:%S'),
+            "name": filename,
+            "lock_owner": lock_owner,
+            "lock_created": lock_created.strftime("%m/%d/%Y %H:%M:%S"),
         }
         super().__init__(
-            'LOCKED',
-            title=Translator.get('LOCKED', values),
-            description=Translator.get('LOCKED_FILE', values),
+            "LOCKED",
+            title=Translator.get("LOCKED", values),
+            description=Translator.get("LOCKED_FILE", values),
             engine_uid=engine_uid,
             level=Notification.LEVEL_WARNING,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            flags=(
+                Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
         )
 
 
 class DirectEditLockedNotification(Notification):
-    def __init__(
-        self,
-        filename: str,
-        lock_owner: str,
-        lock_created: datetime,
-    ) -> None:
+    def __init__(self, filename: str, lock_owner: str, lock_created: datetime) -> None:
         values = {
-            'name': filename,
-            'lock_owner': lock_owner,
-            'lock_created': lock_created.strftime('%m/%d/%Y %H:%M:%S'),
+            "name": filename,
+            "lock_owner": lock_owner,
+            "lock_created": lock_created.strftime("%m/%d/%Y %H:%M:%S"),
         }
         super().__init__(
-            'DIRECT_EDIT_LOCKED',
-            title=Translator.get('LOCKED', values),
-            description=Translator.get('DIRECT_EDIT_LOCKED_FILE', values),
+            "DIRECT_EDIT_LOCKED",
+            title=Translator.get("LOCKED", values),
+            description=Translator.get("DIRECT_EDIT_LOCKED_FILE", values),
             level=Notification.LEVEL_WARNING,
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            flags=(
+                Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
         )
 
 
 class DirectEditUpdatedNotification(Notification):
     def __init__(self, filename: str) -> None:
-        values = {
-            'name': filename,
-        }
+        values = {"name": filename}
         super().__init__(
-            'DIRECT_EDIT_UPDATED',
-            title=Translator.get('UPDATED', values),
-            description=Translator.get('DIRECT_EDIT_UPDATED_FILE', values),
-            flags=(Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_DISCARD_ON_TRIGGER
-                   | Notification.FLAG_REMOVE_ON_DISCARD),
+            "DIRECT_EDIT_UPDATED",
+            title=Translator.get("UPDATED", values),
+            description=Translator.get("DIRECT_EDIT_UPDATED_FILE", values),
+            flags=(
+                Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_DISCARD_ON_TRIGGER
+                | Notification.FLAG_REMOVE_ON_DISCARD
+            ),
         )
 
 
 class ErrorOpenedFile(Notification):
     def __init__(self, path: str, is_folder: bool) -> None:
-        values = {'name': path}
-        msg = ('FILE', 'FOLDER')[is_folder]
+        values = {"name": path}
+        msg = ("FILE", "FOLDER")[is_folder]
         super().__init__(
-            'WINDOWS_ERROR',
-            title=Translator.get('WINDOWS_ERROR_TITLE'),
-            description=Translator.get('WINDOWS_ERROR_OPENED_%s' % msg, values),
+            "WINDOWS_ERROR",
+            title=Translator.get("WINDOWS_ERROR_TITLE"),
+            description=Translator.get("WINDOWS_ERROR_OPENED_%s" % msg, values),
             level=Notification.LEVEL_ERROR,
-            flags=(Notification.FLAG_UNIQUE
-                   | Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE),
+            flags=(
+                Notification.FLAG_UNIQUE
+                | Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+            ),
         )
 
 
 class FileDeletionError(Notification):
     def __init__(self, path: str) -> None:
-        values = {'name': path}
+        values = {"name": path}
         super().__init__(
-            'DELETION_ERROR',
-            title=Translator.get('DELETION_ERROR_TITLE'),
-            description=Translator.get('DELETION_ERROR_MSG', values),
+            "DELETION_ERROR",
+            title=Translator.get("DELETION_ERROR_TITLE"),
+            description=Translator.get("DELETION_ERROR_MSG", values),
             level=Notification.LEVEL_ERROR,
-            flags=(Notification.FLAG_UNIQUE
-                   | Notification.FLAG_PERSISTENT
-                   | Notification.FLAG_BUBBLE),
+            flags=(
+                Notification.FLAG_UNIQUE
+                | Notification.FLAG_PERSISTENT
+                | Notification.FLAG_BUBBLE
+            ),
         )
 
 
 class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid: str) -> None:
         super().__init__(
-            'INVALID_CREDENTIALS',
-            title=Translator.get('INVALID_CREDENTIALS'),
+            "INVALID_CREDENTIALS",
+            title=Translator.get("INVALID_CREDENTIALS"),
             engine_uid=engine_uid,
             level=Notification.LEVEL_ERROR,
-            flags=(Notification.FLAG_UNIQUE
-                   | Notification.FLAG_VOLATILE
-                   | Notification.FLAG_BUBBLE
-                   | Notification.FLAG_ACTIONABLE
-                   | Notification.FLAG_SYSTRAY),
-            action='drive.showSettings("Accounts_{}");'.format(engine_uid))
+            flags=(
+                Notification.FLAG_UNIQUE
+                | Notification.FLAG_VOLATILE
+                | Notification.FLAG_BUBBLE
+                | Notification.FLAG_ACTIONABLE
+                | Notification.FLAG_SYSTRAY
+            ),
+            action='drive.showSettings("Accounts_{}");'.format(engine_uid),
+        )
 
 
 class DefaultNotificationService(NotificationService):
-    def __init__(self, manager: 'Manager') -> None:
+    def __init__(self, manager: "Manager") -> None:
         super().__init__(manager)
         self._manager = manager
 
@@ -455,10 +460,12 @@ class DefaultNotificationService(NotificationService):
         self._manager.direct_edit.directEditLockError.connect(self._directEditLockError)
         self._manager.direct_edit.directEditReadonly.connect(self._directEditReadonly)
         self._manager.direct_edit.directEditLocked.connect(self._directEditLocked)
-        self._manager.direct_edit.directEditUploadCompleted.connect(self._directEditUpdated)
+        self._manager.direct_edit.directEditUploadCompleted.connect(
+            self._directEditUpdated
+        )
         self._manager.autolock_service.documentLocked.connect(self._lockDocument)
 
-    def _connect_engine(self, engine: 'Engine') -> None:
+    def _connect_engine(self, engine: "Engine") -> None:
         engine.newConflict.connect(self._newConflict)
         engine.newError.connect(self._newError)
         engine.newReadonly.connect(self._newReadonly)
@@ -470,8 +477,7 @@ class DefaultNotificationService(NotificationService):
         engine.fileDeletionErrorTooLong.connect(self._fileDeletionErrorTooLong)
 
     def _errorOpenedFile(self, doc: NuxeoDocumentInfo) -> None:
-        self.send_notification(ErrorOpenedFile(
-            doc.local_path, doc.folderish))
+        self.send_notification(ErrorOpenedFile(doc.local_path, doc.folderish))
 
     def _fileDeletionErrorTooLong(self, doc: NuxeoDocumentInfo) -> None:
         self.send_notification(FileDeletionError(doc.local_path))
@@ -480,7 +486,7 @@ class DefaultNotificationService(NotificationService):
         self.send_notification(LockNotification(filename))
 
     def _directEditLockError(self, lock: str, filename: str, ref: str) -> None:
-        if lock not in ('lock', 'unlock'):
+        if lock not in ("lock", "unlock"):
             log.debug("DirectEdit LockError not handled: %s", lock)
             return
         self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
@@ -511,28 +517,26 @@ class DefaultNotificationService(NotificationService):
         self.send_notification(DeleteReadOnlyNotification(engine_uid, filename))
 
     def _newLocked(
-        self,
-        filename: str,
-        lock_owner: str,
-        lock_created: datetime,
+        self, filename: str, lock_owner: str, lock_created: datetime
     ) -> None:
         engine_uid = self.sender().uid
-        self.send_notification(LockedNotification(engine_uid, filename, lock_owner, lock_created))
+        self.send_notification(
+            LockedNotification(engine_uid, filename, lock_owner, lock_created)
+        )
 
     def _directEditLocked(
-        self,
-        filename: str,
-        lock_owner: str,
-        lock_created: datetime,
+        self, filename: str, lock_owner: str, lock_created: datetime
     ) -> None:
-        self.send_notification(DirectEditLockedNotification(filename, lock_owner, lock_created))
+        self.send_notification(
+            DirectEditLockedNotification(filename, lock_owner, lock_created)
+        )
 
     def _directEditUpdated(self, filename: str) -> None:
         self.send_notification(DirectEditUpdatedNotification(filename))
 
     def _validAuthentication(self) -> None:
         engine_uid = self.sender().uid
-        self.discard_notification('INVALID_CREDENTIALS_' + engine_uid)
+        self.discard_notification("INVALID_CREDENTIALS_" + engine_uid)
 
     def _invalidAuthentication(self) -> None:
         engine_uid = self.sender().uid

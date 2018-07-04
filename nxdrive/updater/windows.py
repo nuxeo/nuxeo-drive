@@ -4,7 +4,7 @@ from logging import getLogger
 
 from .base import BaseUpdater
 
-__all__ = ('Updater',)
+__all__ = ("Updater",)
 
 log = getLogger(__name__)
 
@@ -12,8 +12,8 @@ log = getLogger(__name__)
 class Updater(BaseUpdater):
     """ Windows updater. """
 
-    ext = 'exe'
-    release_file = 'nuxeo-drive-{version}.exe'
+    ext = "exe"
+    release_file = "nuxeo-drive-{version}.exe"
 
     def install(self, filename: str) -> None:
         """
@@ -25,6 +25,5 @@ class Updater(BaseUpdater):
         So, a big thank you to Inno Setup!
         """
 
-        log.debug('Calling %r /verysilent /start=auto', filename)
-        subprocess.Popen([filename, '/verysilent', '/start=auto'],
-                         close_fds=True)
+        log.debug("Calling %r /verysilent /start=auto", filename)
+        subprocess.Popen([filename, "/verysilent", "/start=auto"], close_fds=True)

@@ -5,7 +5,7 @@ from logging import getLogger
 
 from PyQt5.QtCore import QCoreApplication
 
-__all__ = ('ConsoleApplication',)
+__all__ = ("ConsoleApplication",)
 
 log = getLogger(__name__)
 
@@ -20,5 +20,5 @@ class ConsoleApplication(QCoreApplication):
         # Make sure manager is stopped before quitting
         self.aboutToQuit.connect(self.manager.stop)
 
-        log.info('Starting console mode application')
+        log.info("Starting console mode application")
         self.manager.start()

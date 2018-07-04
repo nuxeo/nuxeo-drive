@@ -11,7 +11,7 @@ from .activity import Action, IdleAction
 from ..exceptions import ThreadInterrupt
 from ..objects import Metrics, NuxeoDocumentInfo
 
-__all__ = ('EngineWorker', 'PollWorker', 'Worker')
+__all__ = ("EngineWorker", "PollWorker", "Worker")
 
 log = getLogger(__name__)
 
@@ -27,19 +27,19 @@ class Worker(QObject):
     engine = None
     _pause = False
 
-    def __init__(self, thread: Optional[QThread]=None, **kwargs: Any) -> None:
+    def __init__(self, thread: Optional[QThread] = None, **kwargs: Any) -> None:
         super().__init__()
         if thread is None:
             thread = QThread()
         self.moveToThread(thread)
         thread.worker = self
         self._thread = thread
-        self._name = kwargs.get('name', type(self).__name__)
+        self._name = kwargs.get("name", type(self).__name__)
         self._running = False
         self._thread.finished.connect(self._finished)
 
     def __repr__(self) -> str:
-        return '<{} ID={}>'.format(type(self).__name__, self._thread_id)
+        return "<{} ID={}>".format(type(self).__name__, self._thread_id)
 
     def is_started(self) -> bool:
         return self._continue
@@ -62,8 +62,7 @@ class Worker(QObject):
 
         self._continue = False
         if not self._thread.wait(5000):
-            log.exception('Thread %d is not responding - terminate it',
-                          self._thread_id)
+            log.exception("Thread %d is not responding - terminate it", self._thread_id)
             self._thread.terminate()
         if self._thread.isRunning():
             self._thread.wait(5000)
@@ -128,7 +127,7 @@ class Worker(QObject):
             sleep(0.01)
 
     def _finished(self) -> None:
-        log.trace('Thread %s(%r) finished', self._name, self._thread_id)
+        log.trace("Thread %s(%r) finished", self._name, self._thread_id)
 
     @property
     def action(self) -> Action:
@@ -150,9 +149,9 @@ class Worker(QObject):
         """
 
         metrics = {
-            'name': self._name,
-            'thread_id': self._thread_id,
-            'action': self.action,
+            "name": self._name,
+            "thread_id": self._thread_id,
+            "action": self.action,
         }
         with suppress(AttributeError):
             metrics.update(self._metrics)
@@ -175,11 +174,9 @@ class Worker(QObject):
             try:
                 self._execute()
             except ThreadInterrupt:
-                log.debug('Thread %s(%d) interrupted',
-                          self._name, self._thread_id)
+                log.debug("Thread %s(%d) interrupted", self._name, self._thread_id)
             except:
-                log.exception('Thread %s(%d) exception',
-                              self._name, self._thread_id)
+                log.exception("Thread %s(%d) exception", self._name, self._thread_id)
         finally:
             self._thread.exit(0)
             self._running = False
@@ -188,9 +185,9 @@ class Worker(QObject):
 class EngineWorker(Worker):
     def __init__(
         self,
-        engine: 'Engine',
-        dao: 'EngineDAO',
-        thread: Optional[QThread]=None,
+        engine: "Engine",
+        dao: "EngineDAO",
+        thread: Optional[QThread] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(thread=thread, **kwargs)
@@ -198,35 +195,31 @@ class EngineWorker(Worker):
         self._dao = dao
 
     def giveup_error(
-        self,
-        doc_pair: NuxeoDocumentInfo,
-        error: str,
-        exception: Optional[Exception],
+        self, doc_pair: NuxeoDocumentInfo, error: str, exception: Optional[Exception]
     ) -> None:
         details = str(exception) if exception else None
-        log.debug('Give up for error [%s] (%r) for %r', error, details, doc_pair)
-        self._dao.increase_error(doc_pair, error, details=details, incr=self.engine.get_queue_manager().get_error_threshold() + 1)
+        log.debug("Give up for error [%s] (%r) for %r", error, details, doc_pair)
+        self._dao.increase_error(
+            doc_pair,
+            error,
+            details=details,
+            incr=self.engine.get_queue_manager().get_error_threshold() + 1,
+        )
         # Push it to generate the error notification
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
     def increase_error(
-        self,
-        doc_pair: NuxeoDocumentInfo,
-        error: str,
-        exception: Optional[Exception],
+        self, doc_pair: NuxeoDocumentInfo, error: str, exception: Optional[Exception]
     ) -> None:
         details = str(exception) if exception else None
-        log.debug('Increasing error [%s] (%r) for %r', error, details, doc_pair)
+        log.debug("Increasing error [%s] (%r) for %r", error, details, doc_pair)
         self._dao.increase_error(doc_pair, error, details=details)
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
 
 class PollWorker(Worker):
     def __init__(
-        self,
-        check_interval: int,
-        thread: Optional[QThread]=None,
-        **kwargs: Any,
+        self, check_interval: int, thread: Optional[QThread] = None, **kwargs: Any
     ) -> None:
         super().__init__(thread=thread, **kwargs)
         # Be sure to run on start
@@ -235,17 +228,17 @@ class PollWorker(Worker):
         # Check at start
         self._next_check = 0
         self.enable = True
-        self._metrics = {'last_poll': 0}
+        self._metrics = {"last_poll": 0}
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
-        metrics['polling_interval'] = self._check_interval
-        metrics['polling_next'] = self.get_next_poll()
+        metrics["polling_interval"] = self._check_interval
+        metrics["polling_next"] = self.get_next_poll()
         return {**metrics, **self._metrics}
 
     def get_last_poll(self) -> int:
-        if self._metrics['last_poll'] > 0:
-            return int(time()) - self._metrics['last_poll']
+        if self._metrics["last_poll"] > 0:
+            return int(time()) - self._metrics["last_poll"]
         return -1
 
     def get_next_poll(self) -> int:
@@ -260,7 +253,7 @@ class PollWorker(Worker):
             self._interact()
             if self.get_next_poll() <= 0:
                 if self._poll():
-                    self._metrics['last_poll'] = int(time())
+                    self._metrics["last_poll"] = int(time())
                 self._next_check = int(time()) + self._check_interval
             sleep(0.01)
 

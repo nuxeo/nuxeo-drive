@@ -16,14 +16,28 @@ from typing import Any, List, Optional, Tuple, Union
 
 from send2trash import send2trash
 
-from ..constants import (DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX,
-                         FILE_BUFFER_SIZE, LINUX, MAC, UNACCESSIBLE_HASH,
-                         WINDOWS)
+from ..constants import (
+    DOWNLOAD_TMP_FILE_PREFIX,
+    DOWNLOAD_TMP_FILE_SUFFIX,
+    FILE_BUFFER_SIZE,
+    LINUX,
+    MAC,
+    UNACCESSIBLE_HASH,
+    WINDOWS,
+)
 from ..exceptions import DuplicationDisabledError, NotFound
 from ..options import Options
-from ..utils import (force_decode, guess_digest_algorithm, lock_path,
-                     normalized_path, safe_filename, safe_long_path,
-                     set_path_readonly, unlock_path, unset_path_readonly)
+from ..utils import (
+    force_decode,
+    guess_digest_algorithm,
+    lock_path,
+    normalized_path,
+    safe_filename,
+    safe_long_path,
+    set_path_readonly,
+    unlock_path,
+    unset_path_readonly,
+)
 
 if WINDOWS:
     import ctypes
@@ -34,7 +48,7 @@ else:
     import stat
     import xattr
 
-__all__ = ('FileInfo', 'LocalClient')
+__all__ = ("FileInfo", "LocalClient")
 
 log = getLogger(__name__)
 
@@ -52,43 +66,39 @@ class FileInfo:
     ) -> None:
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.check_suspended = kwargs.pop('check_suspended', None)
-        self.size = kwargs.pop('size', 0)
-        filepath = os.path.join(root, path[1:].replace('/', os.path.sep))
-        root = unicodedata.normalize('NFC', root)
-        path = unicodedata.normalize('NFC', path)
-        normalized_filepath = os.path.join(
-            root, path[1:].replace('/', os.path.sep))
+        self.check_suspended = kwargs.pop("check_suspended", None)
+        self.size = kwargs.pop("size", 0)
+        filepath = os.path.join(root, path[1:].replace("/", os.path.sep))
+        root = unicodedata.normalize("NFC", root)
+        path = unicodedata.normalize("NFC", path)
+        normalized_filepath = os.path.join(root, path[1:].replace("/", os.path.sep))
         self.filepath = normalized_filepath
 
         # NXDRIVE-188: normalize name on the file system if not normalized
-        if (not MAC and os.path.exists(filepath)
-                and normalized_filepath != filepath):
-            log.debug('Forcing normalization of %r to %r',
-                      filepath, normalized_filepath)
+        if not MAC and os.path.exists(filepath) and normalized_filepath != filepath:
+            log.debug(
+                "Forcing normalization of %r to %r", filepath, normalized_filepath
+            )
             os.rename(filepath, normalized_filepath)
 
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
-        self.remote_ref = kwargs.pop('remote_ref', None)
+        self.remote_ref = kwargs.pop("remote_ref", None)
 
         # Last OS modification date of the file
         self.last_modification_time = last_modification_time
 
         # Function to use
-        self._digest_func = kwargs.pop('digest_func', 'MD5').lower()
+        self._digest_func = kwargs.pop("digest_func", "MD5").lower()
 
         # Precompute base name once and for all are it's often useful in
         # practice
         self.name = os.path.basename(path)
 
     def __repr__(self) -> str:
-        return 'FileInfo<path=%r, remote_ref=%r>' % (self.filepath, self.remote_ref)
+        return "FileInfo<path=%r, remote_ref=%r>" % (self.filepath, self.remote_ref)
 
-    def get_digest(
-        self,
-        digest_func: str=None,
-    ) -> Optional[str]:
+    def get_digest(self, digest_func: str = None) -> Optional[str]:
         """ Lazy computation of the digest. """
 
         if self.folderish:
@@ -97,16 +107,15 @@ class FileInfo:
         digest_func = digest_func or self._digest_func
         digester = getattr(hashlib, digest_func, None)
         if digester is None:
-            raise ValueError('Unknown digest method: ' + digest_func)
+            raise ValueError("Unknown digest method: " + digest_func)
 
         h = digester()
         try:
-            with open(safe_long_path(self.filepath), 'rb') as f:
+            with open(safe_long_path(self.filepath), "rb") as f:
                 while True:
                     # Check if synchronization thread was suspended
                     if self.check_suspended is not None:
-                        self.check_suspended('Digest computation: %s'
-                                             % self.filepath)
+                        self.check_suspended("Digest computation: %s" % self.filepath)
                     buf = f.read(FILE_BUFFER_SIZE)
                     if not buf:
                         break
@@ -119,14 +128,14 @@ class FileInfo:
 class LocalClient:
     """ Client API implementation for the local file system. """
 
-    CASE_RENAME_PREFIX = 'driveCaseRename_'
+    CASE_RENAME_PREFIX = "driveCaseRename_"
     _case_sensitive = None
 
     def __init__(self, base_folder: str, **kwargs: Any) -> None:
-        self._digest_func = kwargs.pop('digest_func', 'md5')
+        self._digest_func = kwargs.pop("digest_func", "md5")
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.check_suspended = kwargs.pop('check_suspended', None)
+        self.check_suspended = kwargs.pop("check_suspended", None)
 
         while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
             base_folder = base_folder[:-1]
@@ -135,23 +144,25 @@ class LocalClient:
         self.is_case_sensitive()
 
     def __repr__(self) -> str:
-        return ('<{name}'
-                ' base_folder={cls.base_folder!r},'
-                ' is_case_sensitive={cls._case_sensitive!r}'
-                '>'
-                ).format(name=type(self).__name__, cls=self)
+        return (
+            "<{name}"
+            " base_folder={cls.base_folder!r},"
+            " is_case_sensitive={cls._case_sensitive!r}"
+            ">"
+        ).format(name=type(self).__name__, cls=self)
 
     def is_case_sensitive(self) -> bool:
         if self._case_sensitive is None:
-            path = tempfile.mkdtemp(prefix='.caseTest_')
+            path = tempfile.mkdtemp(prefix=".caseTest_")
             self._case_sensitive = not os.path.isdir(path.upper())
             os.rmdir(path)
         return self._case_sensitive
 
     @staticmethod
     def is_temp_file(filename: str) -> bool:
-        return (filename.startswith(DOWNLOAD_TMP_FILE_PREFIX) and
-                filename.endswith(DOWNLOAD_TMP_FILE_SUFFIX))
+        return filename.startswith(DOWNLOAD_TMP_FILE_PREFIX) and filename.endswith(
+            DOWNLOAD_TMP_FILE_SUFFIX
+        )
 
     def set_readonly(self, ref: str) -> None:
         path = self.abspath(ref)
@@ -163,10 +174,10 @@ class LocalClient:
             unset_path_readonly(path)
 
     def clean_xattr_root(self) -> None:
-        self.unlock_ref('/', unlock_parent=False)
+        self.unlock_ref("/", unlock_parent=False)
         with suppress(OSError):
             self.remove_root_id()
-        self.clean_xattr_folder_recursive('/')
+        self.clean_xattr_folder_recursive("/")
 
     def clean_xattr_folder_recursive(self, path: str) -> None:
         for child in self.get_children_info(path):
@@ -178,16 +189,16 @@ class LocalClient:
                 self.clean_xattr_folder_recursive(child.path)
 
     def remove_root_id(self) -> None:
-        self.remove_remote_id('/', name='ndriveroot')
+        self.remove_remote_id("/", name="ndriveroot")
 
     def set_root_id(self, value: bytes) -> None:
-        self.set_remote_id('/', value, name='ndriveroot')
+        self.set_remote_id("/", value, name="ndriveroot")
 
     def get_root_id(self) -> Optional[str]:
-        return self.get_remote_id('/', name='ndriveroot')
+        return self.get_remote_id("/", name="ndriveroot")
 
-    def _remove_remote_id_windows(self, path: str, name: str='ndrive') -> None:
-        path_alt = path + ':' + name
+    def _remove_remote_id_windows(self, path: str, name: str = "ndrive") -> None:
+        path_alt = path + ":" + name
         try:
             os.remove(path_alt)
         except OSError as e:
@@ -200,9 +211,9 @@ class LocalClient:
                 set_path_readonly(path)
 
     @staticmethod
-    def _remove_remote_id_unix(path: str, name: str='ndrive') -> None:
+    def _remove_remote_id_unix(path: str, name: str = "ndrive") -> None:
         if LINUX:
-            name = 'user.' + name
+            name = "user." + name
         try:
             xattr.removexattr(path, name)
         except OSError as exc:
@@ -211,13 +222,13 @@ class LocalClient:
             if exc.errno not in {errno.ENODATA, errno.EPROTONOSUPPORT}:
                 raise exc
 
-    def remove_remote_id(self, ref: str, name: str='ndrive') -> None:
+    def remove_remote_id(self, ref: str, name: str = "ndrive") -> None:
         path = self.abspath(ref)
-        log.trace('Removing xattr %r from %r', name, path)
+        log.trace("Removing xattr %r from %r", name, path)
         locker = unlock_path(path, False)
-        func = (self._remove_remote_id_windows
-                if WINDOWS
-                else self._remove_remote_id_unix)
+        func = (
+            self._remove_remote_id_windows if WINDOWS else self._remove_remote_id_unix
+        )
         try:
             func(path, name=name)
         except OSError as exc:
@@ -232,15 +243,15 @@ class LocalClient:
         """ Check if the folder icon is set. """
 
         if MAC:
-            meta_file = os.path.join(self.abspath(ref), 'Icon\r')
+            meta_file = os.path.join(self.abspath(ref), "Icon\r")
         elif WINDOWS:
-            meta_file = os.path.join(self.abspath(ref), 'desktop.ini')
+            meta_file = os.path.join(self.abspath(ref), "desktop.ini")
         else:
             return False
 
         return os.path.isfile(meta_file)
 
-    def set_folder_icon(self, ref: str, icon: str='') -> None:
+    def set_folder_icon(self, ref: str, icon: str = "") -> None:
         if not icon:
             return
 
@@ -265,22 +276,26 @@ FolderType=Generic
 
         # Create the desktop.ini file inside the ReadOnly shared folder.
         os_path = self.abspath(ref)
-        created_ini_file_path = os.path.join(os_path, 'desktop.ini')
+        created_ini_file_path = os.path.join(os_path, "desktop.ini")
         if not os.path.isfile(created_ini_file_path):
             try:
-                with open(created_ini_file_path, 'w') as create_file:
+                with open(created_ini_file_path, "w") as create_file:
                     create_file.write(desktop_ini_content)
-                win32api.SetFileAttributes(created_ini_file_path,
-                                           win32con.FILE_ATTRIBUTE_SYSTEM)
-                win32api.SetFileAttributes(created_ini_file_path,
-                                           win32con.FILE_ATTRIBUTE_HIDDEN)
+                win32api.SetFileAttributes(
+                    created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM
+                )
+                win32api.SetFileAttributes(
+                    created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN
+                )
             except:
-                log.exception('Icon folder cannot be set')
+                log.exception("Icon folder cannot be set")
         else:
-            win32api.SetFileAttributes(created_ini_file_path,
-                                       win32con.FILE_ATTRIBUTE_SYSTEM)
-            win32api.SetFileAttributes(created_ini_file_path,
-                                       win32con.FILE_ATTRIBUTE_HIDDEN)
+            win32api.SetFileAttributes(
+                created_ini_file_path, win32con.FILE_ATTRIBUTE_SYSTEM
+            )
+            win32api.SetFileAttributes(
+                created_ini_file_path, win32con.FILE_ATTRIBUTE_HIDDEN
+            )
 
         # Windows folder use READ_ONLY flag as a customization flag ...
         # https://support.microsoft.com/en-us/kb/326549
@@ -290,7 +305,7 @@ FolderType=Generic
     def _read_data(file_path: str) -> bytes:
         """ The data file contains macOS icons. """
 
-        with open(file_path, 'rb') as dat:
+        with open(file_path, "rb") as dat:
             return dat.read()
 
     @staticmethod
@@ -319,7 +334,7 @@ FolderType=Generic
             # Configure 'com.apple.FinderInfo' for the folder
             xattr.setxattr(target_folder, xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
             # Create the 'Icon\r' file
-            meta_file = os.path.join(target_folder, 'Icon\r')
+            meta_file = os.path.join(target_folder, "Icon\r")
             if os.path.isfile(meta_file):
                 os.remove(meta_file)
             open(meta_file, "w").close()
@@ -330,29 +345,24 @@ FolderType=Generic
             xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, info)
             os.chflags(meta_file, stat.UF_HIDDEN)
         except:
-            log.exception('Impossible to set the folder icon')
+            log.exception("Impossible to set the folder icon")
 
-    def set_remote_id(
-        self,
-        ref: str,
-        remote_id: bytes,
-        name: str='ndrive',
-    ) -> None:
+    def set_remote_id(self, ref: str, remote_id: bytes, name: str = "ndrive") -> None:
         path = self.abspath(ref)
 
         if not isinstance(remote_id, bytes):
-            remote_id = unicodedata.normalize('NFC', remote_id).encode()
+            remote_id = unicodedata.normalize("NFC", remote_id).encode()
 
-        log.trace('Setting xattr %r with value %r on %r', name, remote_id, path)
+        log.trace("Setting xattr %r with value %r on %r", name, remote_id, path)
         locker = unlock_path(path, False)
         if WINDOWS:
-            path_alt = path + ':' + name
+            path_alt = path + ":" + name
             try:
                 if not os.path.exists(path):
                     raise NotFound()
 
                 stat_ = os.stat(path)
-                with open(path_alt, 'wb') as f:
+                with open(path_alt, "wb") as f:
                     f.write(remote_id)
 
                 # Avoid time modified change
@@ -364,7 +374,7 @@ FolderType=Generic
                 if e.errno != errno.EACCES:
                     raise e
                 unset_path_readonly(path)
-                with open(path_alt, 'wb') as f:
+                with open(path_alt, "wb") as f:
                     f.write(remote_id)
                 set_path_readonly(path)
             finally:
@@ -372,7 +382,7 @@ FolderType=Generic
             return
 
         if LINUX:
-            name = 'user.' + name
+            name = "user." + name
 
         try:
             stat_ = os.stat(path)
@@ -383,49 +393,38 @@ FolderType=Generic
         finally:
             lock_path(path, locker)
 
-    def get_remote_id(
-        self,
-        ref: str,
-        name: str='ndrive',
-    ) -> Optional[str]:
+    def get_remote_id(self, ref: str, name: str = "ndrive") -> Optional[str]:
         path = self.abspath(ref)
         value = self.get_path_remote_id(path, name)
-        log.trace('Getting xattr %r from %r: %r', name, path, value)
+        log.trace("Getting xattr %r from %r: %r", name, path, value)
         return value
 
     @staticmethod
-    def get_path_remote_id(
-        path: str,
-        name: str='ndrive',
-    ) -> Optional[str]:
+    def get_path_remote_id(path: str, name: str = "ndrive") -> Optional[str]:
         if WINDOWS:
-            path += ':' + name
+            path += ":" + name
             try:
-                with open(path, 'rb') as f:
+                with open(path, "rb") as f:
                     return f.read().decode()
             except OSError:
                 return None
 
         if LINUX:
-            name = 'user.' + name
+            name = "user." + name
 
         try:
             return xattr.getxattr(path, name).decode()
         except OSError:
             return None
 
-    def get_info(
-        self,
-        ref: str,
-        raise_if_missing: bool=True,
-    ) -> Optional[FileInfo]:
+    def get_info(self, ref: str, raise_if_missing: bool = True) -> Optional[FileInfo]:
         if isinstance(ref, bytes):
             ref = ref.decode()
 
         os_path = self.abspath(ref)
         if not os.path.exists(os_path):
             if raise_if_missing:
-                err = 'Could not find doc into {!r}: ref={!r}, os_path={!r}'
+                err = "Could not find doc into {!r}: ref={!r}, os_path={!r}"
                 raise NotFound(err.format(self.base_folder, ref, os_path))
             return None
 
@@ -435,8 +434,10 @@ FolderType=Generic
         try:
             mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
         except (ValueError, OverflowError, OSError) as e:
-            log.error(str(e) + 'file path: %s. st_mtime value: %s' % (
-                os_path, stat_info.st_mtime))
+            log.error(
+                str(e)
+                + "file path: %s. st_mtime value: %s" % (os_path, stat_info.st_mtime)
+            )
             if WINDOWS:
                 # TODO: NXDRIVE-1236 Remove those ugly fixes
                 # TODO: when https://bugs.python.org/issue29097 is fixed
@@ -450,17 +451,23 @@ FolderType=Generic
         # work on Windows. To reduce complexity of the code and the possibility
         # to have Windows specific bugs, let's not use the unix inode at all.
         # uid = str(stat_info.st_ino)
-        return FileInfo(self.base_folder, ref, folderish, mtime,
-                        digest_func=self._digest_func,
-                        check_suspended=self.check_suspended,
-                        remote_ref=remote_ref, size=size)
+        return FileInfo(
+            self.base_folder,
+            ref,
+            folderish,
+            mtime,
+            digest_func=self._digest_func,
+            check_suspended=self.check_suspended,
+            remote_ref=remote_ref,
+            size=size,
+        )
 
     def is_equal_digests(
         self,
         local_digest: str,
         remote_digest: str,
         local_path: str,
-        remote_digest_algorithm: str=None,
+        remote_digest_algorithm: str = None,
     ) -> bool:
         """
         Compare 2 document's digests.
@@ -486,7 +493,7 @@ FolderType=Generic
         return digest == remote_digest
 
     def get_content(self, ref: str) -> bytes:
-        with open(self.abspath(ref), 'rb') as f:
+        with open(self.abspath(ref), "rb") as f:
             return f.read()
 
     def is_ignored(self, parent_ref: str, file_name: str) -> bool:
@@ -494,8 +501,9 @@ FolderType=Generic
 
         file_name = force_decode(file_name.lower())
 
-        if (file_name.endswith(Options.ignored_suffixes)
-                or file_name.startswith(Options.ignored_prefixes)):
+        if file_name.endswith(Options.ignored_suffixes) or file_name.startswith(
+            Options.ignored_prefixes
+        ):
             return True
 
         if WINDOWS:
@@ -515,7 +523,7 @@ FolderType=Generic
 
         # NXDRIVE-655: need to check every parent if they are ignored
         result = False
-        if parent_ref != '/':
+        if parent_ref != "/":
             file_name = os.path.basename(parent_ref)
             parent_ref = os.path.dirname(parent_ref)
             result = self.is_ignored(parent_ref, file_name)
@@ -524,9 +532,9 @@ FolderType=Generic
 
     @staticmethod
     def get_children_ref(parent_ref: str, name: str) -> str:
-        if parent_ref == '/':
+        if parent_ref == "/":
             return parent_ref + name
-        return parent_ref + '/' + name
+        return parent_ref + "/" + name
 
     def get_children_info(self, ref: str) -> List[FileInfo]:
         os_path = self.abspath(ref)
@@ -534,32 +542,30 @@ FolderType=Generic
         children = os.listdir(os_path)
 
         for child_name in sorted(children):
-            if (self.is_ignored(ref, child_name)
-                    or self.is_temp_file(child_name)):
-                log.debug('Ignoring banned file %r in %r', child_name, os_path)
+            if self.is_ignored(ref, child_name) or self.is_temp_file(child_name):
+                log.debug("Ignoring banned file %r in %r", child_name, os_path)
                 continue
 
             child_ref = self.get_children_ref(ref, child_name)
             try:
                 info = self.get_info(child_ref)
             except NotFound:
-                log.exception('The child file has been deleted in the mean time'
-                              ' or while reading some of its attributes')
+                log.exception(
+                    "The child file has been deleted in the mean time"
+                    " or while reading some of its attributes"
+                )
                 continue
             result.append(info)
 
         return result
 
     def unlock_ref(
-        self,
-        ref: str,
-        unlock_parent: bool=True,
-        is_abs: bool=False,
+        self, ref: str, unlock_parent: bool = True, is_abs: bool = False
     ) -> int:
         path = ref if is_abs else self.abspath(ref)
         return unlock_path(path, unlock_parent)
 
-    def lock_ref(self, ref: str, locker: int, is_abs: bool=False) -> None:
+    def lock_ref(self, ref: str, locker: int, is_abs: bool = False) -> None:
         path = ref if is_abs else self.abspath(ref)
         lock_path(path, locker)
 
@@ -573,41 +579,37 @@ FolderType=Generic
 
         # Name should be the actual name of the folder created locally
         name = os.path.basename(os_path)
-        if parent == '/':
-            return '/' + name
-        return parent + '/' + name
+        if parent == "/":
+            return "/" + name
+        return parent + "/" + name
 
-    def make_file(self, parent: str, name: str, content: bytes=None) -> str:
+    def make_file(self, parent: str, name: str, content: bytes = None) -> str:
         os_path, name = self._abspath_deduped(parent, name)
         locker = self.unlock_ref(parent, unlock_parent=False)
         try:
-            with open(os_path, 'wb') as f:
+            with open(os_path, "wb") as f:
                 if content:
                     f.write(content)
-            if parent == '/':
-                return '/' + name
-            return parent + '/' + name
+            if parent == "/":
+                return "/" + name
+            return parent + "/" + name
         finally:
             self.lock_ref(parent, locker)
 
     def get_new_file(self, parent: str, name: str) -> Tuple[str, str, str]:
         os_path, name = self._abspath_deduped(parent, name)
-        if parent == '/':
-            path = '/' + name
+        if parent == "/":
+            path = "/" + name
         else:
-            path = parent + '/' + name
+            path = parent + "/" + name
         return path, os_path, name
 
     def update_content(
-        self,
-        ref: str,
-        content: bytes,
-        xattr_names: Tuple[str, ...]=('ndrive',),
+        self, ref: str, content: bytes, xattr_names: Tuple[str, ...] = ("ndrive",)
     ) -> None:
-        xattrs = {name: self.get_remote_id(ref, name=name)
-                  for name in xattr_names}
+        xattrs = {name: self.get_remote_id(ref, name=name) for name in xattr_names}
 
-        with open(self.abspath(ref), 'wb') as f:
+        with open(self.abspath(ref), "wb") as f:
             f.write(content)
 
         for name, value in xattrs.items():
@@ -619,12 +621,12 @@ FolderType=Generic
         if not os.path.exists(os_path):
             return
 
-        log.trace('Trashing %r', os_path)
+        log.trace("Trashing %r", os_path)
         locker = self.unlock_ref(os_path, is_abs=True)
         try:
             send2trash(os_path)
         except OSError as exc:
-            log.error('Cannot trash %r', os_path)
+            log.error("Cannot trash %r", os_path)
             try:
                 # WindowsError(None, None, path, retcode)
                 _, _, _, retcode = exc.args
@@ -651,7 +653,7 @@ FolderType=Generic
         locker = 0
         parent_ref = None
         try:
-            if ref != '/':
+            if ref != "/":
                 parent_ref = os.path.dirname(ref)
                 locker = self.unlock_ref(parent_ref, unlock_parent=False)
             self.unset_readonly(ref)
@@ -676,43 +678,44 @@ FolderType=Generic
 
         new_name = safe_filename(to_name)
         source_os_path = self.abspath(ref)
-        parent = ref.rsplit('/', 1)[0]
-        old_name = ref.rsplit('/', 1)[1]
-        parent = parent or '/'
+        parent = ref.rsplit("/", 1)[0]
+        old_name = ref.rsplit("/", 1)[1]
+        parent = parent or "/"
         locker = self.unlock_ref(source_os_path, is_abs=True)
         try:
             # Check if only case renaming
-            if (old_name != new_name
-                    and old_name.lower() == new_name.lower()
-                    and not self.is_case_sensitive()):
+            if (
+                old_name != new_name
+                and old_name.lower() == new_name.lower()
+                and not self.is_case_sensitive()
+            ):
                 # Must use a temp rename as FS is not case sensitive
-                temp_path = os.path.join(tempfile.gettempdir(),
-                                         str(uuid.uuid4()))
+                temp_path = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
                 os.rename(source_os_path, temp_path)
                 source_os_path = temp_path
                 # Try the os rename part
                 target_os_path = self.abspath(os.path.join(parent, new_name))
             else:
                 target_os_path, new_name = self._abspath_deduped(
-                    parent, new_name, old_name)
+                    parent, new_name, old_name
+                )
             if old_name != new_name:
                 os.rename(source_os_path, target_os_path)
             if WINDOWS:
                 # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
-                ctypes.windll.kernel32.SetFileAttributesW(
-                    str(target_os_path), 128)
+                ctypes.windll.kernel32.SetFileAttributesW(str(target_os_path), 128)
             new_ref = self.get_children_ref(parent, new_name)
             return self.get_info(new_ref)
         finally:
             self.lock_ref(source_os_path, locker & 2, is_abs=True)
 
-    def move(self, ref: str, new_parent_ref: str, name: str=None) -> FileInfo:
+    def move(self, ref: str, new_parent_ref: str, name: str = None) -> FileInfo:
         """ Move a local file or folder into another folder. """
 
-        if ref == '/':
-            raise ValueError('Cannot move the toplevel folder.')
+        if ref == "/":
+            raise ValueError("Cannot move the toplevel folder.")
 
-        name = name or ref.rsplit('/', 1)[1]
+        name = name or ref.rsplit("/", 1)[1]
         filename = self.abspath(ref)
         target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
         locker = self.unlock_ref(filename, is_abs=True)
@@ -727,10 +730,7 @@ FolderType=Generic
             self.lock_ref(parent, locker & 1 | new_locker, is_abs=True)
 
     def change_file_date(
-        self,
-        filename: str,
-        mtime: str=None,
-        ctime: str=None,
+        self, filename: str, mtime: str = None, ctime: str = None
     ) -> None:
         """
         Change the FS modification and creation dates of a file.
@@ -743,37 +743,44 @@ FolderType=Generic
         :param ctime: The creation time
         """
 
-        log.trace('Setting file dates for %r (ctime=%r, mtime=%r)',
-                  filename, ctime, mtime)
+        log.trace(
+            "Setting file dates for %r (ctime=%r, mtime=%r)", filename, ctime, mtime
+        )
         if mtime:
             try:
                 mtime = int(mtime)
             except ValueError:
-                mtime = mktime(strptime(mtime, '%Y-%m-%d %H:%M:%S'))
+                mtime = mktime(strptime(mtime, "%Y-%m-%d %H:%M:%S"))
             os.utime(filename, (mtime, mtime))
 
         if ctime:
             try:
                 ctime = datetime.fromtimestamp(ctime)
             except TypeError:
-                ctime = datetime.strptime(ctime, '%Y-%m-%d %H:%M:%S')
+                ctime = datetime.strptime(ctime, "%Y-%m-%d %H:%M:%S")
 
             if MAC:
                 if isinstance(filename, bytes):
                     filename = filename.decode()
-                os.system('SetFile -d "{}" "{}"'.format(
-                    ctime.strftime('%m/%d/%Y %H:%M:%S'), filename))
+                os.system(
+                    'SetFile -d "{}" "{}"'.format(
+                        ctime.strftime("%m/%d/%Y %H:%M:%S"), filename
+                    )
+                )
             elif WINDOWS:
                 winfile = win32file.CreateFile(
                     filename,
                     win32con.GENERIC_WRITE,
-                    (win32con.FILE_SHARE_READ
-                     | win32con.FILE_SHARE_WRITE
-                     | win32con.FILE_SHARE_DELETE),
+                    (
+                        win32con.FILE_SHARE_READ
+                        | win32con.FILE_SHARE_WRITE
+                        | win32con.FILE_SHARE_DELETE
+                    ),
                     None,
                     win32con.OPEN_EXISTING,
                     win32con.FILE_ATTRIBUTE_NORMAL,
-                    None)
+                    None,
+                )
                 win32file.SetFileTime(winfile, ctime)
 
     def get_path(self, abspath: str) -> str:
@@ -784,25 +791,21 @@ FolderType=Generic
 
         _, _, path = abspath.partition(self.base_folder)
         if not path:
-            return '/'
-        return path.replace(os.path.sep, '/')
+            return "/"
+        return path.replace(os.path.sep, "/")
 
     def abspath(self, ref: str) -> str:
         """ Absolute path on the operating system. """
 
-        if not ref.startswith('/'):
-            raise ValueError(
-                'LocalClient expects ref starting with "/"', locals())
+        if not ref.startswith("/"):
+            raise ValueError('LocalClient expects ref starting with "/"', locals())
 
-        path_suffix = ref[1:].replace('/', os.path.sep)
+        path_suffix = ref[1:].replace("/", os.path.sep)
         path = normalized_path(os.path.join(self.base_folder, path_suffix))
         return safe_long_path(path)
 
     def _abspath_deduped(
-        self,
-        parent: str,
-        orig_name: str,
-        old_name: str=None,
+        self, parent: str, orig_name: str, old_name: str = None
     ) -> Tuple[str, str]:
         """ Absolute path on the operating system with deduplicated names. """
 
@@ -817,4 +820,4 @@ FolderType=Generic
             return os_path, name + suffix
         if not os.path.exists(os_path):
             return os_path, name + suffix
-        raise DuplicationDisabledError('De-duplication is disabled')
+        raise DuplicationDisabledError("De-duplication is disabled")

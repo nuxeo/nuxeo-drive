@@ -15,6 +15,7 @@ Changes in command line arguments:
 - [NXDRIVE-1068](https://jira.nuxeo.com/browse/NXDRIVE-1068): Move proxy support to a dedicated module (**breaking change**)
 - [NXDRIVE-1201](https://jira.nuxeo.com/browse/NXDRIVE-1201): Adapt Drive for new Trash API behavior
 - [NXDRIVE-1210](https://jira.nuxeo.com/browse/NXDRIVE-1210): Sanitize exported objects
+- [NXDRIVE-1240](https://jira.nuxeo.com/browse/NXDRIVE-1240): Use black for a big code clean-up
 - [NXDRIVE-1241](https://jira.nuxeo.com/browse/NXDRIVE-1241): Set the --consider-ssl-errors argument default value to True
 - [NXDRIVE-1242](https://jira.nuxeo.com/browse/NXDRIVE-1242): Use type annotations everywhere
 

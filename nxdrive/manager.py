@@ -29,7 +29,7 @@ if WINDOWS:
     import win32api
     import win32clipboard
 
-__all__ = ('Manager',)
+__all__ = ("Manager",)
 
 log = getLogger(__name__)
 
@@ -49,19 +49,18 @@ class Manager(QObject):
     __device_id = None
 
     @staticmethod
-    def get() -> 'Manager':
+    def get() -> "Manager":
         return Manager._singleton
 
     def __init__(self) -> None:
         if Manager._singleton:
-            raise RuntimeError('Only one instance of Manager can be created.')
+            raise RuntimeError("Only one instance of Manager can be created.")
 
         super().__init__()
         Manager._singleton = self
 
         # Primary attributes to allow initializing the notification center early
-        self.nxdrive_home = os.path.realpath(
-            os.path.expanduser(Options.nxdrive_home))
+        self.nxdrive_home = os.path.realpath(os.path.expanduser(Options.nxdrive_home))
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
 
@@ -74,24 +73,25 @@ class Manager(QObject):
             self._bypass_https_verification()
 
         self.direct_edit_folder = os.path.join(
-            normalized_path(self.nxdrive_home),
-            'edit')
+            normalized_path(self.nxdrive_home), "edit"
+        )
 
         self._engine_definitions = None
 
         from .engine.engine import Engine
         from .engine.next.engine_next import EngineNext
-        self._engine_types = {'NXDRIVE': Engine, 'NXDRIVENEXT': EngineNext}
+
+        self._engine_types = {"NXDRIVE": Engine, "NXDRIVENEXT": EngineNext}
         self._engines = {}
         self.updater = None
         self.server_config_updater = None
 
         if Options.proxy_server is not None:
-            self.proxy = get_proxy(category='Manual', url=Options.proxy_server)
+            self.proxy = get_proxy(category="Manual", url=Options.proxy_server)
             save_proxy(self.proxy, self._dao, token=self.device_id)
         else:
             self.proxy = load_proxy(self._dao)
-        log.info('Proxy configuration is %r', self.proxy)
+        log.info("Proxy configuration is %r", self.proxy)
 
         # Set the logs levels option
         if FILE_HANDLER:
@@ -99,24 +99,24 @@ class Manager(QObject):
 
         # Force language
         if Options.force_locale is not None:
-            self.set_config('locale', Options.force_locale)
+            self.set_config("locale", Options.force_locale)
 
         # Persist beta channel check
-        Options.set('beta_channel', self.get_beta_channel(), setter='manual')
+        Options.set("beta_channel", self.get_beta_channel(), setter="manual")
 
         # Keep a trace of installed versions
-        if not self.get_config('original_version'):
-            self.set_config('original_version', self.version)
+        if not self.get_config("original_version"):
+            self.set_config("original_version", self.version)
 
         # Store the old version to be able to show release notes
-        self.old_version = self.get_config('client_version')
+        self.old_version = self.get_config("client_version")
         if self.old_version != self.version:
-            self.set_config('client_version', self.version)
+            self.set_config("client_version", self.version)
 
         # Add auto-lock on edit
-        res = self._dao.get_config('direct_edit_auto_lock')
+        res = self._dao.get_config("direct_edit_auto_lock")
         if res is None:
-            self._dao.update_config('direct_edit_auto_lock', '1')
+            self._dao.update_config("direct_edit_auto_lock", "1")
 
         # Create DirectEdit
         self._create_autolock_service()
@@ -157,31 +157,35 @@ class Manager(QObject):
 
         import ssl
 
-        log.warning('--consider-ssl-errors option is False, '
-                    'will not verify HTTPS certificates')
-        log.info('Handle target environment that does not support HTTPS '
-                 'verification: globally disable verification by '
-                 'monkeypatching the ssl module though highly discouraged')
+        log.warning(
+            "--consider-ssl-errors option is False, "
+            "will not verify HTTPS certificates"
+        )
+        log.info(
+            "Handle target environment that does not support HTTPS "
+            "verification: globally disable verification by "
+            "monkeypatching the ssl module though highly discouraged"
+        )
         ssl._create_default_https_context = ssl._create_unverified_context
 
     def get_metrics(self) -> Metrics:
         return {
-            'version': self.version,
-            'auto_start': self.get_auto_start(),
-            'auto_update': self.get_auto_update(),
-            'beta_channel': self.get_beta_channel(),
-            'device_id': self.device_id,
-            'tracker_id': self.get_tracker_id(),
-            'tracking': self.get_tracking(),
-            'sip_version': SIP_VERSION_STR,
-            'qt_version': QT_VERSION_STR,
-            'python_version': platform.python_version(),
-            'platform': platform.system(),
-            'appname': self.app_name,
+            "version": self.version,
+            "auto_start": self.get_auto_start(),
+            "auto_update": self.get_auto_update(),
+            "beta_channel": self.get_beta_channel(),
+            "device_id": self.device_id,
+            "tracker_id": self.get_tracker_id(),
+            "tracking": self.get_tracking(),
+            "sip_version": SIP_VERSION_STR,
+            "qt_version": QT_VERSION_STR,
+            "python_version": platform.python_version(),
+            "platform": platform.system(),
+            "appname": self.app_name,
         }
 
     def open_help(self) -> None:
-        self.open_local_file('https://doc.nuxeo.com/nxdoc/nuxeo-drive/')
+        self.open_local_file("https://doc.nuxeo.com/nxdoc/nuxeo-drive/")
 
     def _handle_os(self) -> None:
         # Be sure to register os
@@ -189,31 +193,35 @@ class Manager(QObject):
         if self.get_auto_start():
             self.osi.register_startup()
 
-    def _create_autolock_service(self) -> 'ProcessAutoLockerWorker':
+    def _create_autolock_service(self) -> "ProcessAutoLockerWorker":
         from .autolocker import ProcessAutoLockerWorker
+
         self.autolock_service = ProcessAutoLockerWorker(
-            30, self._dao, folder=self.direct_edit_folder)
+            30, self._dao, folder=self.direct_edit_folder
+        )
         self.started.connect(self.autolock_service._thread.start)
         return self.autolock_service
 
-    def _create_tracker(self) -> Optional['Tracker']:
+    def _create_tracker(self) -> Optional["Tracker"]:
         if not self.get_tracking():
             return None
 
         from .engine.tracker import Tracker
+
         tracker = Tracker(self)
         # Start the tracker when we launch
         self.started.connect(tracker._thread.start)
         return tracker
 
     def _get_db(self) -> str:
-        return os.path.join(normalized_path(self.nxdrive_home), 'manager.db')
+        return os.path.join(normalized_path(self.nxdrive_home), "manager.db")
 
-    def get_dao(self) -> 'ManagerDAO':  # TODO: Remove
+    def get_dao(self) -> "ManagerDAO":  # TODO: Remove
         return self._dao
 
     def _create_dao(self) -> None:
         from .engine.dao.sqlite import ManagerDAO
+
         self._dao = ManagerDAO(self._get_db())
 
     def _create_server_config_updater(self) -> None:
@@ -223,13 +231,14 @@ class Manager(QObject):
         self.server_config_updater = server_updater(self)
         self.started.connect(self.server_config_updater._thread.start)
 
-    def _create_updater(self) -> 'Updater':
+    def _create_updater(self) -> "Updater":
         updater_ = updater(self)
         self.started.connect(updater_._thread.start)
         return updater_
 
-    def _create_findersync_listener(self) -> 'FinderSyncListener':
+    def _create_findersync_listener(self) -> "FinderSyncListener":
         from .osi.darwin.darwin import FinderSyncListener
+
         self._findersync_listener = FinderSyncListener(self)
         self.started.connect(self._findersync_listener._thread.start)
         return self._findersync_listener
@@ -238,8 +247,9 @@ class Manager(QObject):
         if self.updater:
             self.updater.refresh_status()
 
-    def _create_direct_edit(self, url: str) -> 'DirectEdit':
+    def _create_direct_edit(self, url: str) -> "DirectEdit":
         from .direct_edit import DirectEdit
+
         self.direct_edit = DirectEdit(self, self.direct_edit_folder, url)
         self.started.connect(self.direct_edit._thread.start)
         return self.direct_edit
@@ -254,7 +264,7 @@ class Manager(QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug('Resume engine %s', uid)
+            log.debug("Resume engine %s", uid)
             engine.resume()
         self.resumed.emit()
 
@@ -265,7 +275,7 @@ class Manager(QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug('Suspend engine %s', uid)
+            log.debug("Suspend engine %s", uid)
             engine.suspend()
         self.suspended.emit()
 
@@ -274,7 +284,7 @@ class Manager(QObject):
             if euid is not None and euid != uid:
                 continue
             if engine.is_started():
-                log.debug('Stop engine %s', uid)
+                log.debug("Stop engine %s", uid)
                 engine.stop()
         if MAC:
             self.osi._cleanup()
@@ -286,11 +296,11 @@ class Manager(QObject):
             if euid is not None and euid != uid:
                 continue
             if not self._pause:
-                log.debug('Launch engine %s', uid)
+                log.debug("Launch engine %s", uid)
                 try:
                     engine.start()
                 except:
-                    log.exception('Could not start the engine %s', uid)
+                    log.exception("Could not start the engine %s", uid)
 
         # Check only if manager is started
         self._handle_os()
@@ -303,7 +313,7 @@ class Manager(QObject):
         self._engines = dict()
         for engine in self._engine_definitions:
             if engine.engine not in self._engine_types:
-                log.warning('Cannot find engine %s anymore', engine.engine)
+                log.warning("Cannot find engine %s anymore", engine.engine)
                 if engine.engine not in in_error:
                     in_error[engine.engine] = True
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
@@ -324,12 +334,12 @@ class Manager(QObject):
         win32com shell API if allowed, else falling back on a manual detection.
         """
 
-        folder = ''
+        folder = ""
         if WINDOWS:
             from win32com.shell import shell, shellcon
+
             try:
-                folder = shell.SHGetFolderPath(
-                    0, shellcon.CSIDL_PERSONAL, None, 0)
+                folder = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, None, 0)
             except:
                 """
                 In some cases (not really sure how this happens) the current user
@@ -345,30 +355,32 @@ class Manager(QObject):
                 the Explorer and cmd / powershell but visible from Python.
                 First try regular location for documents under Windows 7 and up
                 """
-                log.error('Access denied to the API SHGetFolderPath,'
-                          ' falling back on manual detection')
-                folder = os.path.expanduser('~\\Documents')
+                log.error(
+                    "Access denied to the API SHGetFolderPath,"
+                    " falling back on manual detection"
+                )
+                folder = os.path.expanduser("~\\Documents")
 
         if not folder:
             # Fall back on home folder otherwise
-            folder = os.path.expanduser('~')
+            folder = os.path.expanduser("~")
 
         folder = self._increment_local_folder(folder, self.app_name)
         folder = force_decode(folder)
-        log.debug('Will use %r as default folder location', folder)
+        log.debug("Will use %r as default folder location", folder)
         return folder
 
     def _increment_local_folder(self, basefolder: str, name: str) -> str:
         folder = os.path.join(basefolder, name)
         num = 2
         while not self.check_local_folder_available(folder):
-            folder = os.path.join(basefolder, name + ' ' + str(num))
+            folder = os.path.join(basefolder, name + " " + str(num))
             num += 1
             if num > 42:
-                return ''
+                return ""
         return folder
 
-    def open_local_file(self, file_path: str, select: bool=False) -> None:
+    def open_local_file(self, file_path: str, select: bool = False) -> None:
         # TODO: Move to utils.py
         """
         Launch the local OS program on the given file / folder.
@@ -378,67 +390,69 @@ class Manager(QObject):
                        opening a folder and to select a file.
         """
         file_path = force_decode(file_path)
-        log.debug('Launching editor on %r', file_path)
+        log.debug("Launching editor on %r", file_path)
         if WINDOWS:
             if select:
-                win32api.ShellExecute(None, 'open', 'explorer.exe',
-                                      '/select,' + file_path, None, 1)
+                win32api.ShellExecute(
+                    None, "open", "explorer.exe", "/select," + file_path, None, 1
+                )
             else:
                 os.startfile(file_path)
         elif MAC:
-            args = ['open']
+            args = ["open"]
             if select:
-                args += ['-R']
+                args += ["-R"]
             args += [file_path]
             subprocess.Popen(args)
         else:
             # TODO NXDRIVE-848: Select feature not yet implemented
             # TODO See https://bugs.freedesktop.org/show_bug.cgi?id=49552
             try:
-                subprocess.Popen(['xdg-open', file_path])
+                subprocess.Popen(["xdg-open", file_path])
             except OSError:
                 # xdg-open should be supported by recent Gnome, KDE, Xfce
-                log.error('Failed to find and editor for: %r', file_path)
+                log.error("Failed to find and editor for: %r", file_path)
 
     @property
     def device_id(self) -> str:
         if not self.__device_id:
-            self.__device_id = self._dao.get_config('device_id')
+            self.__device_id = self._dao.get_config("device_id")
             if not self.__device_id:
                 self.__device_id = uuid.uuid1().hex
-                self._dao.update_config('device_id', self.__device_id)
+                self._dao.update_config("device_id", self.__device_id)
         return self.__device_id
 
-    def get_config(self, value: str, default: Optional[Any]=None) -> Any:
+    def get_config(self, value: str, default: Optional[Any] = None) -> Any:
         return self._dao.get_config(value, default)
 
     def set_config(self, key: str, value: Any) -> None:
-        Options.set(key, value, setter='manual', fail_on_error=False)
+        Options.set(key, value, setter="manual", fail_on_error=False)
         self._dao.update_config(key, value)
 
     def get_direct_edit_auto_lock(self) -> bool:
         # Enabled by default, if app is frozen
-        return self._dao.get_config(
-            'direct_edit_auto_lock', str(int(Options.is_frozen))) == '1'
+        return (
+            self._dao.get_config("direct_edit_auto_lock", str(int(Options.is_frozen)))
+            == "1"
+        )
 
     def set_direct_edit_auto_lock(self, value: bool) -> None:
-        self._dao.update_config('direct_edit_auto_lock', value)
+        self._dao.update_config("direct_edit_auto_lock", value)
 
     def get_auto_update(self) -> bool:
         # Enabled by default, if app is frozen
-        return self._dao.get_config(
-            'auto_update', str(int(Options.is_frozen))) == '1'
+        return self._dao.get_config("auto_update", str(int(Options.is_frozen))) == "1"
 
     def set_auto_update(self, value: bool) -> None:
-        self._dao.update_config('auto_update', value)
+        self._dao.update_config("auto_update", value)
 
     def get_auto_start(self) -> bool:
         # Enabled by default, if app is frozen
-        return self._dao.get_config(
-            'auto_start', str(int(Options.is_frozen))) == '1'
+        return self._dao.get_config("auto_start", str(int(Options.is_frozen))) == "1"
 
     def generate_report(self, path: Optional[str]) -> str:
         from .report import Report
+
         report = Report(self, path)
         report.generate()
         return report.get_path()
@@ -451,10 +465,10 @@ class Manager(QObject):
             self.osi.unregister_startup()
 
     def get_beta_channel(self) -> bool:
-        return self._dao.get_config('beta_channel', '0') == '1'
+        return self._dao.get_config("beta_channel", "0") == "1"
 
     def set_beta_channel(self, value: bool) -> None:
-        self.set_config('beta_channel', value)
+        self.set_config("beta_channel", value)
         # Trigger update status refresh
         self.refresh_update_status()
 
@@ -462,13 +476,10 @@ class Manager(QObject):
         """
         Avoid sending statistics when testing or if the user does not allow it.
         """
-        return all({
-            Options.is_frozen,
-            self._dao.get_config('tracking', '1') == '1',
-        })
+        return all({Options.is_frozen, self._dao.get_config("tracking", "1") == "1"})
 
     def set_tracking(self, value: bool) -> None:
-        self._dao.update_config('tracking', value)
+        self._dao.update_config("tracking", value)
         if value:
             self._create_tracker()
         elif self._tracker:
@@ -476,19 +487,19 @@ class Manager(QObject):
             self._tracker = None
 
     def get_tracker_id(self) -> str:
-        return self._tracker.uid if self._tracker else ''
+        return self._tracker.uid if self._tracker else ""
 
-    def set_proxy(self, proxy: 'Proxy') -> str:
+    def set_proxy(self, proxy: "Proxy") -> str:
         for engine in self._engines.values():
             url = engine._server_url
             if not validate_proxy(proxy, url):
-                return 'PROXY_INVALID'
+                return "PROXY_INVALID"
             engine.remote.set_proxy(proxy)
 
         save_proxy(proxy, self._dao)
         self.proxy = proxy
-        log.trace('Effective proxy: %r', proxy)
-        return ''
+        log.trace("Effective proxy: %r", proxy)
+        return ""
 
     def _get_default_server_type(self) -> str:  # TODO: Move to constants.py
         return "NXDRIVE"
@@ -499,11 +510,11 @@ class Manager(QObject):
         url: str,
         username: str,
         password: str,
-        token: Optional[str]=None,
-        name: Optional[str]=None,
-        start_engine: bool=True,
-        check_credentials: bool=True,
-    ) -> 'Engine':
+        token: Optional[str] = None,
+        name: Optional[str] = None,
+        start_engine: bool = True,
+        check_credentials: bool = True,
+    ) -> "Engine":
         name = name or self._get_engine_name(url)
         binder = Binder(
             username=username,
@@ -513,8 +524,13 @@ class Manager(QObject):
             no_fscheck=False,
             url=url,
         )
-        return self.bind_engine(self._get_default_server_type(), local_folder,
-                                name, binder, starts=start_engine)
+        return self.bind_engine(
+            self._get_default_server_type(),
+            local_folder,
+            name,
+            binder,
+            starts=start_engine,
+        )
 
     def _get_engine_name(self, server_url: str) -> str:
         urlp = urlparse(server_url)
@@ -523,12 +539,12 @@ class Manager(QObject):
     def check_local_folder_available(self, local_folder: str) -> bool:
         if self._engine_definitions is None:
             return True
-        if not local_folder.endswith('/'):
-            local_folder += '/'
+        if not local_folder.endswith("/"):
+            local_folder += "/"
         for engine in self._engine_definitions:
             other = engine.local_folder
-            if not other.endswith('/'):
-                other += '/'
+            if not other.endswith("/"):
+                other += "/"
             if other.startswith(local_folder) or local_folder.startswith(other):
                 return False
         return True
@@ -550,19 +566,21 @@ class Manager(QObject):
         local_folder: str,
         name: str,
         binder: Binder,
-        starts: bool=True,
-    ) -> 'Engine':
+        starts: bool = True,
+    ) -> "Engine":
         """Bind a local folder to a remote nuxeo server"""
-        if name is None and hasattr(binder, 'url'):
+        if name is None and hasattr(binder, "url"):
             name = self._get_engine_name(binder.url)
-        if hasattr(binder, 'url'):
+        if hasattr(binder, "url"):
             url = binder.url
-            if '#' in url:
+            if "#" in url:
                 # Last part of the url is the engine type
-                engine_type = url.split('#')[1]
-                binder.url = url.split('#')[0]
-                log.debug('Engine type has been specified in the'
-                          ' url: %s will be used', engine_type)
+                engine_type = url.split("#")[1]
+                binder.url = url.split("#")[0]
+                log.debug(
+                    "Engine type has been specified in the" " url: %s will be used",
+                    engine_type,
+                )
 
         if not self.check_local_folder_available(local_folder):
             raise FolderAlreadyUsed()
@@ -588,9 +606,10 @@ class Manager(QObject):
         engine_def = self._dao.add_engine(engine_type, local_folder, uid, name)
         try:
             self._engines[uid] = self._engine_types[engine_type](
-                self, engine_def, binder=binder)
+                self, engine_def, binder=binder
+            )
         except Exception as exc:
-            log.exception('Engine error')
+            log.exception("Engine error")
             self._engines.pop(uid, None)
             self._dao.delete_engine(uid)
             # TODO Remove the DB?
@@ -637,7 +656,7 @@ class Manager(QObject):
             engine.dispose_db()
         self.dispose_db()
 
-    def get_engines(self) -> Dict[str, 'Engine']:  # TODO: Remove
+    def get_engines(self) -> Dict[str, "Engine"]:  # TODO: Remove
         return self._engines
 
     @property
@@ -653,14 +672,13 @@ class Manager(QObject):
             if engine.is_syncing():
                 syncing_engines.append(uid)
         if syncing_engines:
-            log.debug('Some engines are currently synchronizing: %s',
-                      syncing_engines)
+            log.debug("Some engines are currently synchronizing: %s", syncing_engines)
             return True
-        log.debug('No engine currently synchronizing')
+        log.debug("No engine currently synchronizing")
         return False
 
     def get_root_id(self, file_path: str) -> Optional[str]:
-        ref = LocalClient.get_path_remote_id(file_path, 'ndriveroot')
+        ref = LocalClient.get_path_remote_id(file_path, "ndriveroot")
         if ref is None:
             parent = os.path.dirname(file_path)
             # We can't find in any parent
@@ -672,12 +690,15 @@ class Manager(QObject):
     def ctx_access_online(self, file_path: str) -> None:
         """ Open the user's browser to a remote document. """
 
-        log.debug('Opening metadata window for %r', file_path)
+        log.debug("Opening metadata window for %r", file_path)
         try:
             url = self.get_metadata_infos(file_path)
         except ValueError:
-            log.warning('The document %r is not handled by the Nuxeo server'
-                        ' or is not synchronized yet.', file_path)
+            log.warning(
+                "The document %r is not handled by the Nuxeo server"
+                " or is not synchronized yet.",
+                file_path,
+            )
         else:
             self.open_local_file(url)
 
@@ -685,7 +706,7 @@ class Manager(QObject):
         """ Copy the document's share-link to the clipboard. """
 
         url = self.get_metadata_infos(file_path)
-        log.info('Copied %r', url)
+        log.info("Copied %r", url)
         if WINDOWS:
             win32clipboard.OpenClipboard()
             win32clipboard.EmptyClipboard()
@@ -699,28 +720,31 @@ class Manager(QObject):
     def ctx_edit_metadata(self, file_path: str) -> None:
         """ Open the user's browser to a remote document's metadata. """
 
-        log.debug('Opening metadata window for %r', file_path)
+        log.debug("Opening metadata window for %r", file_path)
         try:
             url = self.get_metadata_infos(file_path, edit=True)
         except ValueError:
-            log.warning('The document %r is not handled by the Nuxeo server'
-                        ' or is not synchronized yet.', file_path)
+            log.warning(
+                "The document %r is not handled by the Nuxeo server"
+                " or is not synchronized yet.",
+                file_path,
+            )
         else:
             self.open_local_file(url)
 
-    def get_metadata_infos(self, file_path: str, edit: bool=False) -> str:
+    def get_metadata_infos(self, file_path: str, edit: bool = False) -> str:
         remote_ref = LocalClient.get_path_remote_id(file_path)
         if remote_ref is None:
             raise ValueError(
-                'Could not find file %r as Nuxeo Drive managed' % file_path)
+                "Could not find file %r as Nuxeo Drive managed" % file_path
+            )
 
         root_id = self.get_root_id(file_path)
-        root_values = root_id.split('|')
+        root_values = root_id.split("|")
         try:
             engine = self.get_engines()[root_values[3]]
         except:
-            raise ValueError(
-                'Unknown engine %s for %r' % (root_values[3], file_path))
+            raise ValueError("Unknown engine %s for %r" % (root_values[3], file_path))
 
         return engine.get_metadata_url(remote_ref, edit=edit)
 
@@ -728,10 +752,11 @@ class Manager(QObject):
         for engine in self._engines.values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
-            path = unicodedata.normalize('NFC', force_decode(path))
-            if (path.startswith(engine.local_folder_bs)
-                    and not os.path.samefile(path, engine.local_folder)):
-                r_path = path.replace(engine.local_folder, '')
+            path = unicodedata.normalize("NFC", force_decode(path))
+            if path.startswith(engine.local_folder_bs) and not os.path.samefile(
+                path, engine.local_folder
+            ):
+                r_path = path.replace(engine.local_folder, "")
                 dao = engine._dao
                 state = dao.get_state_from_local(r_path)
                 self.osi.send_sync_status(state, path)

@@ -1,22 +1,22 @@
 # coding: utf-8
 from sys import platform
 
-LINUX = platform == 'linux'
-MAC = platform == 'darwin'
-WINDOWS = platform == 'win32'
+LINUX = platform == "linux"
+MAC = platform == "darwin"
+WINDOWS = platform == "win32"
 
-BUNDLE_IDENTIFIER = 'org.nuxeo.drive'
-APP_NAME = 'Nuxeo Drive'
+BUNDLE_IDENTIFIER = "org.nuxeo.drive"
+APP_NAME = "Nuxeo Drive"
 
 TIMEOUT = 20
 TX_TIMEOUT = 300
 FILE_BUFFER_SIZE = 1024 ** 2
 
-DOWNLOAD_TMP_FILE_PREFIX = '.'
-DOWNLOAD_TMP_FILE_SUFFIX = '.nxpart'
+DOWNLOAD_TMP_FILE_PREFIX = "."
+DOWNLOAD_TMP_FILE_SUFFIX = ".nxpart"
 
-UNACCESSIBLE_HASH = 'TO_COMPUTE'
+UNACCESSIBLE_HASH = "TO_COMPUTE"
 
-TOKEN_PERMISSION = 'ReadWrite'
+TOKEN_PERMISSION = "ReadWrite"
 
 MAX_CHILDREN = 1000

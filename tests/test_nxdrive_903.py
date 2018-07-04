@@ -33,7 +33,6 @@ from .common import UnitTestCase
 
 
 class Test(UnitTestCase):
-
     def test_nxdrive_903(self):
         remote = self.remote_document_client_1
         local_1, local_2 = self.local_1, self.local_2
@@ -44,13 +43,18 @@ class Test(UnitTestCase):
         engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        folders = [local_1.make_folder('/', 'folder_' + str(idx))
-                   for idx in range(nb_folders)]
-        files = {folder: [local_1.make_file(folder,
-                                            'file_%s_%s.txt' % (num, idx),
-                                            content=bytes(idx))
-                          for idx in range(nb_files)]
-                 for num, folder in enumerate(folders)}
+        folders = [
+            local_1.make_folder("/", "folder_" + str(idx)) for idx in range(nb_folders)
+        ]
+        files = {
+            folder: [
+                local_1.make_file(
+                    folder, "file_%s_%s.txt" % (num, idx), content=bytes(idx)
+                )
+                for idx in range(nb_files)
+            ]
+            for num, folder in enumerate(folders)
+        }
         self.wait_sync()
 
         for folder in folders:
@@ -61,9 +65,9 @@ class Test(UnitTestCase):
                 assert remote.exists(file_)
 
         engine_2.start()
-        self.wait_sync(wait_for_async=True,
-                       wait_for_engine_1=False,
-                       wait_for_engine_2=True)
+        self.wait_sync(
+            wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True
+        )
         for folder in folders:
             assert local_2.exists(folder)
             for file_ in files[folder]:
@@ -77,13 +81,13 @@ class Test(UnitTestCase):
         new_files = {}
         for folder in folders:
             name = os.path.basename(folder)
-            new_folder = local_1.rename(folder, name + '-renamed').path
+            new_folder = local_1.rename(folder, name + "-renamed").path
             new_folders.append(new_folder)
             new_files[new_folder] = []
             for file_ in files[folder]:
                 name = os.path.basename(file_)
-                new_name = os.path.splitext(name)[0] + '-renamed.txt'
-                new_file = local_1.rename(new_folder + '/' + name, new_name)
+                new_name = os.path.splitext(name)[0] + "-renamed.txt"
+                new_file = local_1.rename(new_folder + "/" + name, new_name)
                 new_files[new_folder].append(new_file.path)
         self.wait_sync()
 
@@ -109,8 +113,9 @@ class Test(UnitTestCase):
 
         # Get a dict of all synchronized files sorted by folders
         # to have a better view of what is synced as expected
-        states = {folder: [local_2.exists(file_)
-                           for file_ in new_files[folder]]
-                  for folder in new_folders}
+        states = {
+            folder: [local_2.exists(file_) for file_ in new_files[folder]]
+            for folder in new_folders
+        }
         needed = {folder: [True] * nb_files for folder in new_folders}
         assert states == needed

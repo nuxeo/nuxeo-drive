@@ -30,23 +30,23 @@ import threading
 import time
 from os.path import expanduser
 
-__version__ = '0.2.0'
+__version__ = "0.2.0"
 
 
-EXT = {'darwin': 'dmg', 'win32': 'exe'}.get(sys.platform)
+EXT = {"darwin": "dmg", "win32": "exe"}.get(sys.platform)
 Server = http.server.BaseHTTPRequestHandler
 
 
 def create_versions(dst, version):
     """ Create the versions.yml file. """
 
-    name = 'nuxeo-drive-{version}.{ext}'.format(version=version, ext=EXT)
-    path = os.path.join(dst, 'release', name)
-    with open(path, 'rb') as installer:
+    name = "nuxeo-drive-{version}.{ext}".format(version=version, ext=EXT)
+    path = os.path.join(dst, "release", name)
+    with open(path, "rb") as installer:
         checksum = hashlib.sha256(installer.read()).hexdigest()
-    print('>>> Computed the checksum:', checksum)
+    print(">>> Computed the checksum:", checksum)
 
-    print('>>> Crafting versions.yml')
+    print(">>> Crafting versions.yml")
     yml = b"""
 {version}:
     min: '7.10'
@@ -55,8 +55,10 @@ def create_versions(dst, version):
         algo: sha256
         dmg: {checksum}
         exe: {checksum}
-    """.format(version=version, checksum=checksum)
-    with open(os.path.join(dst, 'versions.yml'), 'w') as versions:
+    """.format(
+        version=version, checksum=checksum
+    )
+    with open(os.path.join(dst, "versions.yml"), "w") as versions:
         versions.write(yml)
 
 
@@ -65,41 +67,43 @@ def gen_exe():
 
     cmd = []
 
-    if sys.platform == 'darwin':
-        cmd = 'sh tools/osx/deploy_jenkins_slave.sh --build'
-    elif sys.platform == 'win32':
-        cmd = ('powershell -ExecutionPolicy Unrestricted'
-               ' . ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build')
+    if sys.platform == "darwin":
+        cmd = "sh tools/osx/deploy_jenkins_slave.sh --build"
+    elif sys.platform == "win32":
+        cmd = (
+            "powershell -ExecutionPolicy Unrestricted"
+            ' . ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
+        )
 
-    print('>>> Command:', cmd)
+    print(">>> Command:", cmd)
     output = subprocess.check_output(cmd.split())
-    return output.decode('utf-8').strip()
+    return output.decode("utf-8").strip()
 
 
 def install_drive(installer):
     """ Install Drive onto the system to simulate a real case. """
 
-    if sys.platform == 'darwin':
+    if sys.platform == "darwin":
         # Simulate what nxdrive.updater.darwin.intall() does
-        cmd = ['hdiutil', 'mount', installer]
-        print('>>> Command:', cmd)
+        cmd = ["hdiutil", "mount", installer]
+        print(">>> Command:", cmd)
         mount_info = subprocess.check_output(cmd)
-        mount_dir = mount_info.splitlines()[-1].split('\t')[-1]
+        mount_dir = mount_info.splitlines()[-1].split("\t")[-1]
 
-        src = '{}/Nuxeo Drive.app'.format(mount_dir)
-        dst = '/Applications/Nuxeo Drive.app'
+        src = "{}/Nuxeo Drive.app".format(mount_dir)
+        dst = "/Applications/Nuxeo Drive.app"
         if os.path.isdir(dst):
-            print('>>> Deleting', dst)
+            print(">>> Deleting", dst)
             shutil.rmtree(dst)
-        print('>>> Copying', src, '->', dst)
+        print(">>> Copying", src, "->", dst)
         shutil.copytree(src, dst)
 
-        cmd = ['hdiutil', 'unmount', mount_dir]
-        print('>>> Command:', cmd)
+        cmd = ["hdiutil", "unmount", mount_dir]
+        print(">>> Command:", cmd)
         subprocess.check_call(cmd)
-    elif sys.platform == 'win32':
-        cmd = [installer, '/verysilent']
-        print('>>> Command:', cmd)
+    elif sys.platform == "win32":
+        cmd = [installer, "/verysilent"]
+        print(">>> Command:", cmd)
         subprocess.check_call(cmd)
 
 
@@ -111,49 +115,51 @@ def launch_drive():
 
     cmd = []
 
-    if sys.platform == 'darwin':
-        cmd = ['open', '/Applications/Nuxeo Drive.app', '--args']
-    elif sys.platform == 'win32':
-        cmd = [expanduser('~\\AppData\\Roaming\\Nuxeo Drive\\ndrive.exe')]
+    if sys.platform == "darwin":
+        cmd = ["open", "/Applications/Nuxeo Drive.app", "--args"]
+    elif sys.platform == "win32":
+        cmd = [expanduser("~\\AppData\\Roaming\\Nuxeo Drive\\ndrive.exe")]
 
     cmd += [
-        '--log-level-console=TRACE',
-        '--update-site-url=http://localhost:8000',
-        '--beta-update-site-url=http://localhost:8000',
+        "--log-level-console=TRACE",
+        "--update-site-url=http://localhost:8000",
+        "--beta-update-site-url=http://localhost:8000",
     ]
-    print('>>> Command:', cmd)
-    return subprocess.check_output(cmd).decode('utf-8').strip()
+    print(">>> Command:", cmd)
+    return subprocess.check_output(cmd).decode("utf-8").strip()
 
 
 def tests():
     """ Simple tests before doing anything. """
 
     version_checker = distutils.version.StrictVersion
-    assert version_decrement('1.0.0') == '0.9.9'
-    assert version_decrement('2.5.0') == '2.4.9'
-    assert version_decrement('1.2.3') == '1.2.2'
-    assert version_decrement('1.2.333') == '1.2.332'
-    assert version_checker(version_decrement('1.0.0'))
-    assert version_checker(version_decrement('2.5.0'))
-    assert version_checker(version_decrement('1.2.3'))
-    assert version_checker(version_decrement('1.2.333'))
+    assert version_decrement("1.0.0") == "0.9.9"
+    assert version_decrement("2.5.0") == "2.4.9"
+    assert version_decrement("1.2.3") == "1.2.2"
+    assert version_decrement("1.2.333") == "1.2.332"
+    assert version_checker(version_decrement("1.0.0"))
+    assert version_checker(version_decrement("2.5.0"))
+    assert version_checker(version_decrement("1.2.3"))
+    assert version_checker(version_decrement("1.2.333"))
     return 1
 
 
 def uninstall_drive():
     """ Remove Drive from the computer. """
 
-    if sys.platform == 'darwin':
-        path = '/Applications/Nuxeo Drive.app'
-        print('>>> Deleting', path)
+    if sys.platform == "darwin":
+        path = "/Applications/Nuxeo Drive.app"
+        print(">>> Deleting", path)
         try:
             shutil.rmtree(path)
         except OSError:
             pass
-    elif sys.platform == 'win32':
-        cmd = [expanduser('~\\AppData\\Roaming\\Nuxeo Drive\\unins000.exe'),
-               '/verysilent']
-        print('>>> Command:', cmd)
+    elif sys.platform == "win32":
+        cmd = [
+            expanduser("~\\AppData\\Roaming\\Nuxeo Drive\\unins000.exe"),
+            "/verysilent",
+        ]
+        print(">>> Command:", cmd)
         try:
             subprocess.check_call(cmd)
         except (WindowsError, subprocess.CalledProcessError):
@@ -163,7 +169,7 @@ def uninstall_drive():
 def version_decrement(version):
     """ Guess the lower version of the one given. """
 
-    major, minor, patch = map(int, version.split('.'))
+    major, minor, patch = map(int, version.split("."))
 
     patch -= 1
     if patch < 0:
@@ -173,7 +179,7 @@ def version_decrement(version):
         minor = 9
         major -= 1
 
-    return '.'.join(map(str, [major, minor, patch]))
+    return ".".join(map(str, [major, minor, patch]))
 
 
 def version_find():
@@ -183,34 +189,34 @@ def version_find():
     :return tuple: The version and line number where it is defined.
     """
 
-    path = os.path.join('nxdrive', '__init__.py')
-    with io.open(path, encoding='utf-8') as handler:
+    path = os.path.join("nxdrive", "__init__.py")
+    with io.open(path, encoding="utf-8") as handler:
         for lineno, line in enumerate(handler.readlines()):
-            if line.startswith('__version__'):
+            if line.startswith("__version__"):
                 return re.findall(r"'(.+)'", line)[0], lineno
 
 
 def version_update(version, lineno):
     """ Update Drive version. """
 
-    path = os.path.join('nxdrive', '__init__.py')
+    path = os.path.join("nxdrive", "__init__.py")
 
-    with io.open(path, encoding='utf-8') as handler:
+    with io.open(path, encoding="utf-8") as handler:
         content = handler.readlines()
 
     content[lineno] = "__version__ = '{}'\n".format(version)
 
-    with io.open(path, 'w', encoding='utf-8', newline='\n') as handler:
-        handler.write(''.join(content))
+    with io.open(path, "w", encoding="utf-8", newline="\n") as handler:
+        handler.write("".join(content))
 
 
 def webserver(folder, port=8000):
     """ Start a local web server. """
 
     os.chdir(folder)
-    httpd = socketserver.TCPServer(('', port), Server)
-    print('>>> Serving', folder, 'at http://localhost:8000')
-    print('>>> CTRL+C to terminate')
+    httpd = socketserver.TCPServer(("", port), Server)
+    print(">>> Serving", folder, "at http://localhost:8000")
+    print(">>> CTRL+C to terminate")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -220,13 +226,13 @@ def webserver(folder, port=8000):
 def main():
     """ Main logic. """
 
-    if sys.platform.startswith('linux'):
-        print('>>> macOS and Windows only.')
+    if sys.platform.startswith("linux"):
+        print(">>> macOS and Windows only.")
         return 1
 
     # Cleanup
     try:
-        shutil.rmtree('dist')
+        shutil.rmtree("dist")
     except OSError:
         pass
 
@@ -238,19 +244,19 @@ def main():
 
     # Server tree
     root = tempfile.mkdtemp()
-    path = os.path.join(root, 'release')
+    path = os.path.join(root, "release")
     os.makedirs(path)
 
     # Generate the current version executable
     version, lineno = version_find()
-    print('>>> Current version is', version, 'at line', lineno)
+    print(">>> Current version is", version, "at line", lineno)
     assert version_checker(version)
     gen_exe()
 
     # Move the file to the webserver
-    file_ = 'dist/nuxeo-drive-{}.{}'.format(version, EXT)
+    file_ = "dist/nuxeo-drive-{}.{}".format(version, EXT)
     dst_file = os.path.join(path, os.path.basename(file_))
-    print('>>> Moving', file_, '->', path)
+    print(">>> Moving", file_, "->", path)
     os.rename(file_, dst_file)
 
     # Create the versions.yml file
@@ -258,7 +264,7 @@ def main():
 
     # Guess the anterior version
     previous = version_decrement(version)
-    print('>>> Testing upgrade', previous, '->', version)
+    print(">>> Testing upgrade", previous, "->", version)
     assert version_checker(previous)
 
     try:
@@ -270,10 +276,10 @@ def main():
         gen_exe()
 
         # Move the file to test to the webserver
-        src_file = 'dist/nuxeo-drive-{}.{}'.format(previous, EXT)
+        src_file = "dist/nuxeo-drive-{}.{}".format(previous, EXT)
         installer = os.path.basename(src_file)
         dst_file = os.path.join(path, installer)
-        print('>>> Moving', src_file, '->', path)
+        print(">>> Moving", src_file, "->", path)
         os.rename(src_file, dst_file)
 
         # Install Drive on the computer
@@ -299,5 +305,5 @@ def main():
         uninstall_drive()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(tests() and main())

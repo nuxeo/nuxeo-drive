@@ -22,12 +22,11 @@ class TestLocalMoveFolders(UnitTestCase):
         local = self.local_1
         remote = self.remote_1
         # Create a1 and a2
-        self.folder_path_1 = local.make_folder('/', 'a1')
-        self.folder_path_2 = local.make_folder('/', 'a2')
+        self.folder_path_1 = local.make_folder("/", "a1")
+        self.folder_path_2 = local.make_folder("/", "a2")
 
         num = self.NUMBER_OF_LOCAL_IMAGE_FILES
-        names = set(['file%03d.png' % file_num
-                     for file_num in range(1, num + 1)])
+        names = set(["file%03d.png" % file_num for file_num in range(1, num + 1)])
 
         for path in [self.folder_path_1, self.folder_path_2]:
             for name in names:
@@ -38,11 +37,10 @@ class TestLocalMoveFolders(UnitTestCase):
         self.wait_sync(timeout=60, wait_win=True)
 
         # Check /a1 and /a2
-        for folder in ['/a1', '/a2']:
+        for folder in ["/a1", "/a2"]:
             # Check local files
             assert local.exists(folder)
-            children = [child.name for child
-                        in local.get_children_info(folder)]
+            children = [child.name for child in local.get_children_info(folder)]
             assert len(children) == num
             assert set(children) == names
 
@@ -64,26 +62,31 @@ class TestLocalMoveFolders(UnitTestCase):
         shutil.move(src, dst)
         self.wait_sync()
         num = self.NUMBER_OF_LOCAL_IMAGE_FILES
-        names = set(['file%03d.png' % file_num
-                     for file_num in range(1, num + 1)])
+        names = set(["file%03d.png" % file_num for file_num in range(1, num + 1)])
 
         # Check that a1 doesn't exist anymore locally and remotely
-        assert not local.exists('/a1')
+        assert not local.exists("/a1")
         assert len(remote_doc.get_children_info(self.workspace)) == 1
 
         # Check /a2 and /a2/a1
-        for folder in ['/a2', '/a2/a1']:
+        for folder in ["/a2", "/a2/a1"]:
             assert local.exists(folder)
-            children = [child.name for child in local.get_children_info(folder)
-                        if not child.folderish]
+            children = [
+                child.name
+                for child in local.get_children_info(folder)
+                if not child.folderish
+            ]
             assert len(children) == num
             assert set(children) == names
 
             uid = local.get_remote_id(folder)
             assert uid is not None
             assert remote.fs_exists(uid)
-            children = [child.name for child in remote.get_fs_children(uid)
-                        if not child.folderish]
+            children = [
+                child.name
+                for child in remote.get_fs_children(uid)
+                if not child.folderish
+            ]
             assert len(children) == num
             assert set(children) == names
 
@@ -102,15 +105,16 @@ class TestLocalMoveFolders(UnitTestCase):
         remote = self.remote_document_client_1
 
         # Create initial folder and file
-        folder = remote.make_folder('/', 'Folder1')
+        folder = remote.make_folder("/", "Folder1")
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
         # First checks, everything should be online for every one
-        assert remote.exists('/Folder1')
-        assert local.exists('/Folder1')
+        assert remote.exists("/Folder1")
+        assert local.exists("/Folder1")
         folder_pair_state = self.engine_1.get_dao().get_state_from_local(
-            '/' + self.workspace_title + '/Folder1')
+            "/" + self.workspace_title + "/Folder1"
+        )
         assert folder_pair_state is not None
         folder_remote_ref = folder_pair_state.remote_ref
 
@@ -122,8 +126,8 @@ class TestLocalMoveFolders(UnitTestCase):
             self.engine_1.stop()
 
         # Make changes
-        remote.update(folder, properties={'dc:title': 'Folder1_ServerName'})
-        local.rename('/Folder1', 'Folder1_LocalRename')
+        remote.update(folder, properties={"dc:title": "Folder1_ServerName"})
+        local.rename("/Folder1", "Folder1_LocalRename")
 
         # Bind or start engine and wait for sync
         if unbind:
@@ -136,11 +140,12 @@ class TestLocalMoveFolders(UnitTestCase):
         # Check that nothing has changed
         assert len(remote.get_children_info(self.workspace)) == 1
         assert remote.exists(folder)
-        assert remote.get_info(folder).name == 'Folder1_ServerName'
-        assert len(local.get_children_info('/')) == 1
-        assert local.exists('/Folder1_LocalRename')
+        assert remote.get_info(folder).name == "Folder1_ServerName"
+        assert len(local.get_children_info("/")) == 1
+        assert local.exists("/Folder1_LocalRename")
 
         # Check folder status
-        folder_pair_state = (self.engine_1.get_dao()
-                             .get_normal_state_from_remote(folder_remote_ref))
-        assert folder_pair_state.pair_state == 'conflicted'
+        folder_pair_state = self.engine_1.get_dao().get_normal_state_from_remote(
+            folder_remote_ref
+        )
+        assert folder_pair_state.pair_state == "conflicted"

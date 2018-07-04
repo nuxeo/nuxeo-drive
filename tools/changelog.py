@@ -14,23 +14,29 @@ import sys
 
 import requests
 
-__version__ = '1.2.6'
+__version__ = "1.2.6"
 
 
 # Available formatters
 FORMAT_ISSUE = {
-    'md': {'header': '# {title}',
-           'subheader': '### {title}',
-           'regular': '- [{name}]({url}): {title}',
-           'important': '- **[{name}]({url})**: {title}'},
-    'rst': {'header': '{title}\n{separator:{separator}>{length}}',
-            'subheader': '{title}\n{separator:{separator}>{length}}',
-            'regular': '- `{name} <{url}>`_: {title}',
-            'important': '- **[SupCom]** `{name} <{url}>`_: {title}'},
-    'txt': {'header': '{title}',
-            'subheader': '{title}:',
-            'regular': '- {name}: {title}',
-            'important': '- [SupCom] {name}: {title}'}
+    "md": {
+        "header": "# {title}",
+        "subheader": "### {title}",
+        "regular": "- [{name}]({url}): {title}",
+        "important": "- **[{name}]({url})**: {title}",
+    },
+    "rst": {
+        "header": "{title}\n{separator:{separator}>{length}}",
+        "subheader": "{title}\n{separator:{separator}>{length}}",
+        "regular": "- `{name} <{url}>`_: {title}",
+        "important": "- **[SupCom]** `{name} <{url}>`_: {title}",
+    },
+    "txt": {
+        "header": "{title}",
+        "subheader": "{title}:",
+        "regular": "- {name}: {title}",
+        "important": "- [SupCom] {name}: {title}",
+    },
 }
 
 
@@ -38,24 +44,22 @@ def backtick(cmd):
     """ Get command output as stripped string. """
 
     output = subprocess.check_output(cmd)
-    return output.decode('utf-8').strip()
+    return output.decode("utf-8").strip()
 
 
-def changelog(issues, formatter='txt', func=None):
+def changelog(issues, formatter="txt", func=None):
     """ Generate the changelog. """
 
     fmt = FORMAT_ISSUE[formatter]
 
     # Important issues first, then regular ones sorted by type, priority, name
-    sorter = operator.itemgetter('sla', 'type', 'priority', 'name')
+    sorter = operator.itemgetter("sla", "type", "priority", "name")
     issues = sorted(issues, key=sorter)
 
     # Print the header
     version = get_version()
-    header = {'title': version,
-              'separator': '=',
-              'length': len(version)}
-    print(fmt['header'].format(**header))
+    header = {"title": version, "separator": "=", "length": len(version)}
+    print(fmt["header"].format(**header))
 
     # Print the report
     if not callable(func):
@@ -72,7 +76,8 @@ def debug(*args, **kwargs):
 def examples():
     """ Print several examples. """
 
-    print("""
+    print(
+        """
 Example {}: changelog.py
 
     Print changelog of commits from HEAD to the latest release tag.
@@ -114,19 +119,22 @@ Example {}: changelog.py -- --since=2017-03-16 --until=2017-03-28 --author="Mick
 
     Print changelog of commits between the dates on the master branch for a given author.
     Useful for sprint reports.
-""".format(*range(1, 42)).strip())  # noqa
+""".format(
+            *range(1, 42)
+        ).strip()
+    )  # noqa
 
 
 def get_latest_tag():
     """ Retrieve the latest release tag. """
 
-    debug('>>> Retrieving latest created tag')
-    cmd = 'git rev-list --tags --remove-empty --branches=master --max-count=10'
-    latest = ''
+    debug(">>> Retrieving latest created tag")
+    cmd = "git rev-list --tags --remove-empty --branches=master --max-count=10"
+    latest = ""
     for sha1 in backtick(cmd.split()).splitlines():
-        cmd = 'git describe --abbrev=0 --tags ' + sha1
+        cmd = "git describe --abbrev=0 --tags " + sha1
         tag = backtick(cmd.split())
-        if tag.startswith('release-') and tag > latest:
+        if tag.startswith("release-") and tag > latest:
             latest = tag
     return latest
 
@@ -136,22 +144,24 @@ def get_issues(args):
 
     if not args.GIT_OPTIONS:
         # No commit ID, so we just need to find commits after the latest tag
-        args.GIT_OPTIONS = ['HEAD...' + get_latest_tag()]
+        args.GIT_OPTIONS = ["HEAD..." + get_latest_tag()]
 
-    debug('>>> Retrieving commits')
-    cmd = ['git', 'log', '--pretty=format:%B'] + args.GIT_OPTIONS
+    debug(">>> Retrieving commits")
+    cmd = ["git", "log", "--pretty=format:%B"] + args.GIT_OPTIONS
     all_commits = backtick(cmd)
 
     # Match any categorie (issue type) with inconsistent use of spaces
-    regexp = re.compile('^((?:{categories})\s*-\s*\d+\s*):.*'.format(
-        categories='|'.join(args.types)), re.IGNORECASE)
+    regexp = re.compile(
+        "^((?:{categories})\s*-\s*\d+\s*):.*".format(categories="|".join(args.types)),
+        re.IGNORECASE,
+    )
 
-    debug('>>> Retrieving issues')
+    debug(">>> Retrieving issues")
     commits = []
     for commit in all_commits.splitlines():
         for issue in regexp.findall(commit):
             # Sanitization
-            issue = re.sub('\s+', '', issue).upper()
+            issue = re.sub("\s+", "", issue).upper()
             commits.append(issue)
 
     for commit in set(commits):
@@ -163,9 +173,9 @@ def get_issues(args):
 def get_issue_infos(issue, raw=False):
     """ Retrieve issue informations. """
 
-    debug('>>> Fetching informations of {}'.format(issue))
-    base_url = 'https://jira.nuxeo.com'
-    url = base_url + '/rest/api/2/issue/{}'.format(issue)
+    debug(">>> Fetching informations of {}".format(issue))
+    base_url = "https://jira.nuxeo.com"
+    url = base_url + "/rest/api/2/issue/{}".format(issue)
 
     for _ in range(5):
         try:
@@ -176,33 +186,36 @@ def get_issue_infos(issue, raw=False):
         finally:
             data = content.json()
     else:
-        debug('>>> Impossible to to retrieve informations, passing')
+        debug(">>> Impossible to to retrieve informations, passing")
         return
 
     # Skip unfinished work
-    if data['fields']['status']['name'] != 'Resolved':
+    if data["fields"]["status"]["name"] != "Resolved":
         return
 
     if raw:
         return data
 
-    infos = {'name': data['key'],
-             'url': base_url + '/browse/' + data['key'],
-             'title': data['fields']['summary'],
-             'priority': data['fields']['priority']['id'],
-             'type': data['fields']['issuetype']['name'],
-             'sla': 'regular', 'components': []}
+    infos = {
+        "name": data["key"],
+        "url": base_url + "/browse/" + data["key"],
+        "title": data["fields"]["summary"],
+        "priority": data["fields"]["priority"]["id"],
+        "type": data["fields"]["issuetype"]["name"],
+        "sla": "regular",
+        "components": [],
+    }
 
     # Fill components
-    for component in data['fields']['components']:
-        infos['components'].append(component['name'])
+    for component in data["fields"]["components"]:
+        infos["components"].append(component["name"])
 
     try:
         # We are not authentificated, so we cannot know the SUPNXP issue but
         # we can know that there is a related SUPNXP and set the issue as
         # high prioriy.
-        if 'SupCom' in data['fields']['customfield_10080']:
-            infos['sla'] = 'important'
+        if "SupCom" in data["fields"]["customfield_10080"]:
+            infos["sla"] = "important"
     except (KeyError, TypeError):
         pass
 
@@ -212,58 +225,69 @@ def get_issue_infos(issue, raw=False):
 def get_version():
     """ Find the current version. """
 
-    init_file = 'nxdrive/__init__.py'
-    with codecs.open(init_file, encoding='utf-8') as handler:
+    init_file = "nxdrive/__init__.py"
+    with codecs.open(init_file, encoding="utf-8") as handler:
         for line in handler.readlines():
-            if line.startswith('__version__'):
+            if line.startswith("__version__"):
                 return re.findall(r"'(.+)'", line)[0]
 
 
 def report_categorized(issues_list, fmt):
     """ A report using primary components. """
 
-    components = {'Core': [], 'GUI': [], 'Packaging / Build': [],
-                  'Tests': [], 'Doc': [], 'Release': []}
+    components = {
+        "Core": [],
+        "GUI": [],
+        "Packaging / Build": [],
+        "Tests": [],
+        "Doc": [],
+        "Release": [],
+    }
 
     for issue in issues_list:
         for component in components:
-            if component in issue['components']:
-                components[component].append(
-                        fmt[issue['sla']].format(**issue))
+            if component in issue["components"]:
+                components[component].append(fmt[issue["sla"]].format(**issue))
                 break
         else:
-            components['Core'].append(fmt[issue['sla']].format(**issue))
+            components["Core"].append(fmt[issue["sla"]].format(**issue))
 
     for component in components:
-        if component == 'Release':
+        if component == "Release":
             # Release issues are not revelant as they are used
             # to plan new beta or official release
             continue
 
         if components[component]:
-            subheader = {'title': component,
-                         'separator': '-',
-                         'length': len(component)}
-            print(fmt['subheader'].format(**subheader))
-            print('\n'.join(components[component]))
+            subheader = {"title": component, "separator": "-", "length": len(component)}
+            print(fmt["subheader"].format(**subheader))
+            print("\n".join(components[component]))
 
 
 def main():
     """ Main logic. """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument('--examples', action='store_true',
-                        help='show usage examples')
-    parser.add_argument('--drive-version', action='store_true',
-                        help='show Nuxeo Drive version')
-    parser.add_argument('--format', default='txt',
-                        choices=('md', 'rst', 'txt'),
-                        help='report output format (default: %(default)s)')
-    parser.add_argument('--types', nargs='*', default=('NXDRIVE', 'NXP'),
-                        help='issues types (default: NXDRIVE NXP)')
-    parser.add_argument('GIT_OPTIONS', nargs='*',
-                        help='git options forwarded to `git log`')
+    parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("--examples", action="store_true", help="show usage examples")
+    parser.add_argument(
+        "--drive-version", action="store_true", help="show Nuxeo Drive version"
+    )
+    parser.add_argument(
+        "--format",
+        default="txt",
+        choices=("md", "rst", "txt"),
+        help="report output format (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--types",
+        nargs="*",
+        default=("NXDRIVE", "NXP"),
+        help="issues types (default: NXDRIVE NXP)",
+    )
+    parser.add_argument(
+        "GIT_OPTIONS", nargs="*", help="git options forwarded to `git log`"
+    )
     args = parser.parse_args()
 
     if args.examples:
@@ -274,9 +298,9 @@ def main():
         return
 
     # Get commits and print out formatted interesting informations
-    debug('>>> Changelog.py v{}'.format(__version__))
+    debug(">>> Changelog.py v{}".format(__version__))
     changelog([issue for issue in get_issues(args)], formatter=args.format)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(main())

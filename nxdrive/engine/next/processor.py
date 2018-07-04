@@ -8,55 +8,51 @@ from ..processor import Processor as OldProcessor
 from ...constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
 from ...objects import NuxeoDocumentInfo
 
-__all__ = ('Processor',)
+__all__ = ("Processor",)
 
 log = getLogger(__name__)
 
 
 class Processor(OldProcessor):
     def __init__(
-        self,
-        engine: 'Engine',
-        item_getter: Callable,
-        name: Optional[str],
+        self, engine: "Engine", item_getter: Callable, name: Optional[str]
     ) -> None:
         super().__init__(engine, item_getter, name=name)
 
     def _get_partial_folders(self) -> str:
         local = self.engine.local
-        if not local.exists('/.partials'):
-            local.make_folder('/', '.partials')
-        return local.abspath('/.partials')
+        if not local.exists("/.partials"):
+            local.make_folder("/", ".partials")
+        return local.abspath("/.partials")
 
-    def _download_content(
-        self,
-        doc_pair: NuxeoDocumentInfo,
-        file_path: str,
-    ) -> None:
+    def _download_content(self, doc_pair: NuxeoDocumentInfo, file_path: str) -> None:
 
         # TODO Should share between threads
         file_out = os.path.join(
-            self._get_partial_folders(), (DOWNLOAD_TMP_FILE_PREFIX
-                                          + doc_pair.remote_digest
-                                          + str(self._thread_id)
-                                          + DOWNLOAD_TMP_FILE_SUFFIX))
+            self._get_partial_folders(),
+            (
+                DOWNLOAD_TMP_FILE_PREFIX
+                + doc_pair.remote_digest
+                + str(self._thread_id)
+                + DOWNLOAD_TMP_FILE_SUFFIX
+            ),
+        )
         # Check if the file is already on the HD
         pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
         if pair:
             shutil.copy(self.local.abspath(pair.local_path), file_out)
             return file_out
         tmp_file = self.remote.stream_content(
-            doc_pair.remote_ref, file_path,
-            parent_fs_item_id=doc_pair.remote_parent_ref, file_out=file_out)
+            doc_pair.remote_ref,
+            file_path,
+            parent_fs_item_id=doc_pair.remote_parent_ref,
+            file_out=file_out,
+        )
         self._update_speed_metrics()
         return tmp_file
 
-    def _update_remotely(
-        self,
-        doc_pair: NuxeoDocumentInfo,
-        is_renaming: bool,
-    ) -> None:
-        log.warning('_update_remotely')
+    def _update_remotely(self, doc_pair: NuxeoDocumentInfo, is_renaming: bool) -> None:
+        log.warning("_update_remotely")
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os.path.join(os.path.dirname(os_path), doc_pair.remote_name)
@@ -70,17 +66,15 @@ class Processor(OldProcessor):
         rel_path = self.local.get_path(tmp_file)
         self.local.set_remote_id(rel_path, doc_pair.remote_ref)
         # Move rename
-        updated_info = self.local.move(rel_path, doc_pair.local_parent_path,
-                                       doc_pair.remote_name)
+        updated_info = self.local.move(
+            rel_path, doc_pair.local_parent_path, doc_pair.remote_name
+        )
         doc_pair.local_digest = updated_info.get_digest()
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
 
     def _create_remotely(
-        self,
-        doc_pair: NuxeoDocumentInfo,
-        parent_pair: NuxeoDocumentInfo,
-        name: str,
+        self, doc_pair: NuxeoDocumentInfo, parent_pair: NuxeoDocumentInfo, name: str
     ) -> None:
         local_parent_path = parent_pair.local_path
         # TODO Shared this locking system / Can have concurrent lock
@@ -88,21 +82,25 @@ class Processor(OldProcessor):
         tmp_file = None
         try:
             if doc_pair.folderish:
-                log.debug("Creating local folder '%s' in '%s'", name,
-                          self.local.abspath(parent_pair.local_path))
+                log.debug(
+                    "Creating local folder '%s' in '%s'",
+                    name,
+                    self.local.abspath(parent_pair.local_path),
+                )
                 # Might want do temp name to original
                 path = self.local.make_folder(local_parent_path, name)
 
             else:
-                path, os_path, name = self.local.get_new_file(
-                    local_parent_path, name)
+                path, os_path, name = self.local.get_new_file(local_parent_path, name)
                 tmp_file = self._download_content(doc_pair, os_path)
-                log.debug("Creating local file '%s' in '%s'", name,
-                          self.local.abspath(parent_pair.local_path))
+                log.debug(
+                    "Creating local file '%s' in '%s'",
+                    name,
+                    self.local.abspath(parent_pair.local_path),
+                )
                 # Move file to its folder - might want to split it in two for events
-                self.local.move(self.local.get_path(tmp_file),
-                                local_parent_path, name)
-                self._dao.update_last_transfer(doc_pair.id, 'download')
+                self.local.move(self.local.get_path(tmp_file), local_parent_path, name)
+                self._dao.update_last_transfer(doc_pair.id, "download")
         finally:
             self._lock_readonly(local_parent_path)
             # Clean .nxpart if needed
