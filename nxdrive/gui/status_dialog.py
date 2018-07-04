@@ -1,68 +1,22 @@
 # coding: utf-8
 from logging import getLogger
 
-from PyQt5.QtCore import QVariant, Qt, pyqtSlot
+from PyQt5.QtCore import QObject, QVariant, Qt, pyqtSlot
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (QDialog, QHeaderView, QMenu, QPushButton,
                              QTreeView, QVBoxLayout)
 
 from .folders_treeview import Overlay
+from ..objects import NuxeoDocumentInfo
 
 __all__ = ('StatusDialog',)
 
 log = getLogger(__name__)
 
 
-class StatusDialog(QDialog):
-    """ Use to display the table of LastKnownState. """
-
-    def __init__(self, dao):
-        super().__init__()
-        self._dao = dao
-        self.resize(500, 500)
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-        self.tree_view = StatusTreeview(self, self._dao)
-        self.tree_view.resizeColumnToContents(0)
-        self.setWindowTitle('Nuxeo Drive File Status')
-        layout.addWidget(self.tree_view)
-
-
-class RetryButton(QPushButton):
-    def __init__(self, view, pair):
-        super().__init__('Retry')
-        self.pair = pair
-        self.view = view
-        self.clicked.connect(self.retry)
-
-    @pyqtSlot()
-    def retry(self):
-        self.view._dao.reset_error(self.pair)
-        self.view.refresh(self.pair)
-
-
-class ResolveButton(QPushButton):
-    def __init__(self, view, pair):
-        super().__init__('Resolve')
-        self.pair = pair
-        self.view = view
-        menu = QMenu()
-        menu.addAction('Use local file', self.pick_local)
-        menu.addAction('Use remote file', self.pick_remote)
-        self.setMenu(menu)
-
-    def pick_local(self):
-        if self.view._dao.force_local(self.pair):
-            self.view.refresh(self.pair)
-
-    def pick_remote(self):
-        if self.view._dao.force_remote(self.pair):
-            self.view.refresh(self.pair)
-
-
 class StatusTreeview(QTreeView):
 
-    def __init__(self, parent, dao):
+    def __init__(self, parent: QObject, dao: 'EngineDAO') -> None:
         super().__init__(parent)
         self._dao = dao
         self.cache = []
@@ -168,3 +122,50 @@ class StatusTreeview(QTreeView):
     def resizeEvent(self, event):
         self.overlay.resize(event.size())
         event.accept()
+
+
+class StatusDialog(QDialog):
+    """ Use to display the table of LastKnownState. """
+
+    def __init__(self, dao: 'EngineDao') -> None:
+        super().__init__()
+        self._dao = dao
+        self.resize(500, 500)
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        self.tree_view = StatusTreeview(self, self._dao)
+        self.tree_view.resizeColumnToContents(0)
+        self.setWindowTitle('Nuxeo Drive File Status')
+        layout.addWidget(self.tree_view)
+
+
+class RetryButton(QPushButton):
+    def __init__(self, view: StatusTreeview, pair: NuxeoDocumentInfo) -> None:
+        super().__init__('Retry')
+        self.pair = pair
+        self.view = view
+        self.clicked.connect(self.retry)
+
+    @pyqtSlot()
+    def retry(self) -> None:
+        self.view._dao.reset_error(self.pair)
+        self.view.refresh(self.pair)
+
+
+class ResolveButton(QPushButton):
+    def __init__(self, view: StatusTreeview, pair: NuxeoDocumentInfo) -> None:
+        super().__init__('Resolve')
+        self.pair = pair
+        self.view = view
+        menu = QMenu()
+        menu.addAction('Use local file', self.pick_local)
+        menu.addAction('Use remote file', self.pick_remote)
+        self.setMenu(menu)
+
+    def pick_local(self) -> None:
+        if self.view._dao.force_local(self.pair):
+            self.view.refresh(self.pair)
+
+    def pick_remote(self) -> None:
+        if self.view._dao.force_remote(self.pair):
+            self.view.refresh(self.pair)

@@ -3,6 +3,7 @@ import os
 from contextlib import suppress
 from ctypes import windll
 from logging import getLogger
+from typing import Any, Dict, Optional
 
 import win32api
 import win32file
@@ -22,7 +23,7 @@ class WindowsIntegration(AbstractOSIntegration):
     __zoom_factor = None
 
     @property
-    def zoom_factor(self):
+    def zoom_factor(self) -> float:
         if not self.__zoom_factor:
             try:
                 # Enable DPI detection
@@ -39,7 +40,7 @@ class WindowsIntegration(AbstractOSIntegration):
         return self.__zoom_factor
 
     @staticmethod
-    def is_partition_supported(folder):
+    def is_partition_supported(folder: str) -> bool:
         if folder[-1] != os.path.sep:
             folder = folder + os.path.sep
         if win32file.GetDriveType(folder) != win32file.DRIVE_FIXED:
@@ -48,7 +49,7 @@ class WindowsIntegration(AbstractOSIntegration):
         t = win32api.GetVolumeInformation(volume)
         return t[-1] == 'NTFS'
 
-    def get_system_configuration(self):
+    def get_system_configuration(self) -> Dict[str, Any]:
         result = dict()
         reg = winreg.HKEY_CURRENT_USER
         reg_key = 'Software\\Nuxeo\\Drive'
@@ -59,16 +60,20 @@ class WindowsIntegration(AbstractOSIntegration):
                     result[k.replace('-', '_').lower()] = v
         return result
 
-    def register_folder_link(self, folder_path, name=None):
+    def register_folder_link(
+        self,
+        folder_path: str,
+        name: Optional[str],
+    ) -> None:
         favorite = self._get_folder_link(name)
         if not os.path.isfile(favorite):
             self._create_shortcut(favorite, folder_path)
 
-    def unregister_folder_link(self, name):
+    def unregister_folder_link(self, name: Optional[str]) -> None:
         with suppress(OSError):
             os.remove(self._get_folder_link(name))
 
-    def _create_shortcut(self, favorite, filepath):
+    def _create_shortcut(self, favorite: str, filepath: str) -> None:
         try:
             shell = Dispatch('WScript.Shell')
             shortcut = shell.CreateShortCut(favorite)
@@ -81,7 +86,7 @@ class WindowsIntegration(AbstractOSIntegration):
         else:
             log.debug('Registered new favorite in Explorer for %r', filepath)
 
-    def _get_folder_link(self, name=None):
+    def _get_folder_link(self, name: Optional[str]) -> str:
         return os.path.join(
             os.path.expanduser('~'),
             'Links',

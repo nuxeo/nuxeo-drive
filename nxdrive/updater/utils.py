@@ -1,15 +1,20 @@
 # coding: utf-8
 from logging import getLogger
+from typing import Any, Dict, Tuple
 
 from ..utils import version_between
 
 __all__ = ('get_latest_compatible_version',)
 
 log = getLogger(__name__)
+Versions = Dict[str, Any]
 
 
-def get_latest_compatible_version(versions, nature, server_ver):
-    # type: (Dict, unicode, unicode) -> Tuple[unicode, Dict]
+def get_latest_compatible_version(
+    versions: Versions,
+    nature: str,
+    server_ver: str,
+) -> Tuple[str, Versions]:
     """
     Find the latest version sorted by type and the current Nuxeo version.
     """

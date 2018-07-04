@@ -561,7 +561,7 @@ class DriveWebPage(QWebEnginePage):
         return True
 
     def javaScriptConsoleMessage(self, level, msg, lineno, source):
-        # type: (str, int, str) -> None
+        # type: (str, str, int, str) -> None
         """ Prints client console message in current output stream. """
         super(DriveWebPage, self).javaScriptConsoleMessage(level, msg, lineno, source)
 

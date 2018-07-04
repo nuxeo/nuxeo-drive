@@ -18,6 +18,5 @@ DOWNLOAD_TMP_FILE_SUFFIX = '.nxpart'
 UNACCESSIBLE_HASH = 'TO_COMPUTE'
 
 TOKEN_PERMISSION = 'ReadWrite'
-DEFAULT_TYPES = ('File', 'Note', 'Workspace', 'Folder')
 
 MAX_CHILDREN = 1000

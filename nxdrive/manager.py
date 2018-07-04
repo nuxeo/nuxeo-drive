@@ -4,9 +4,9 @@ import platform
 import subprocess
 import unicodedata
 import uuid
-from collections import namedtuple
 from logging import getLogger
 from sip import SIP_VERSION_STR
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal
@@ -19,6 +19,7 @@ from .constants import APP_NAME, MAC, WINDOWS
 from .exceptions import EngineTypeMissing, FolderAlreadyUsed
 from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
+from .objects import Binder, Metrics
 from .options import Options, server_updater
 from .osi import AbstractOSIntegration
 from .updater import updater
@@ -48,10 +49,10 @@ class Manager(QObject):
     __device_id = None
 
     @staticmethod
-    def get():
+    def get() -> 'Manager':
         return Manager._singleton
 
-    def __init__(self):
+    def __init__(self) -> None:
         if Manager._singleton:
             raise RuntimeError('Only one instance of Manager can be created.')
 
@@ -147,7 +148,7 @@ class Manager(QObject):
             self._create_findersync_listener()
 
     @staticmethod
-    def _bypass_https_verification():
+    def _bypass_https_verification() -> None:
         """
         Let's bypass HTTPS verification since many servers
         unfortunately have invalid certificates.
@@ -163,7 +164,7 @@ class Manager(QObject):
                  'monkeypatching the ssl module though highly discouraged')
         ssl._create_default_https_context = ssl._create_unverified_context
 
-    def get_metrics(self):
+    def get_metrics(self) -> Metrics:
         return {
             'version': self.version,
             'auto_start': self.get_auto_start(),
@@ -179,23 +180,23 @@ class Manager(QObject):
             'appname': self.app_name,
         }
 
-    def open_help(self):
+    def open_help(self) -> None:
         self.open_local_file('https://doc.nuxeo.com/nxdoc/nuxeo-drive/')
 
-    def _handle_os(self):
+    def _handle_os(self) -> None:
         # Be sure to register os
         self.osi.register_protocol_handlers()
         if self.get_auto_start():
             self.osi.register_startup()
 
-    def _create_autolock_service(self):
+    def _create_autolock_service(self) -> 'ProcessAutoLockerWorker':
         from .autolocker import ProcessAutoLockerWorker
         self.autolock_service = ProcessAutoLockerWorker(
             30, self._dao, folder=self.direct_edit_folder)
         self.started.connect(self.autolock_service._thread.start)
         return self.autolock_service
 
-    def _create_tracker(self):
+    def _create_tracker(self) -> Optional['Tracker']:
         if not self.get_tracking():
             return None
 
@@ -205,49 +206,48 @@ class Manager(QObject):
         self.started.connect(tracker._thread.start)
         return tracker
 
-    def _get_db(self):
+    def _get_db(self) -> str:
         return os.path.join(normalized_path(self.nxdrive_home), 'manager.db')
 
-    def get_dao(self):  # TODO: Remove
+    def get_dao(self) -> 'ManagerDAO':  # TODO: Remove
         return self._dao
 
-    def _create_dao(self):
+    def _create_dao(self) -> None:
         from .engine.dao.sqlite import ManagerDAO
         self._dao = ManagerDAO(self._get_db())
 
-    def _create_server_config_updater(self):
-        # type: () -> None
+    def _create_server_config_updater(self) -> None:
         if not Options.update_check_delay:
             return
 
         self.server_config_updater = server_updater(self)
         self.started.connect(self.server_config_updater._thread.start)
 
-    def _create_updater(self):
+    def _create_updater(self) -> 'Updater':
         updater_ = updater(self)
         self.started.connect(updater_._thread.start)
         return updater_
 
-    def _create_findersync_listener(self):
+    def _create_findersync_listener(self) -> 'FinderSyncListener':
         from .osi.darwin.darwin import FinderSyncListener
         self._findersync_listener = FinderSyncListener(self)
         self.started.connect(self._findersync_listener._thread.start)
         return self._findersync_listener
 
-    def refresh_update_status(self):
+    def refresh_update_status(self) -> None:
         if self.updater:
             self.updater.refresh_status()
 
-    def _create_direct_edit(self, url):
+    def _create_direct_edit(self, url: str) -> 'DirectEdit':
         from .direct_edit import DirectEdit
         self.direct_edit = DirectEdit(self, self.direct_edit_folder, url)
         self.started.connect(self.direct_edit._thread.start)
         return self.direct_edit
 
-    def is_paused(self):  # TODO: Remove
+    def is_paused(self) -> bool:  # TODO: Remove
         return self._pause
 
-    def resume(self, euid=None):
+    def resume(self, euid: Optional[str]) -> None:
         if not self._pause:
             return
         self._pause = False
@@ -258,7 +258,7 @@ class Manager(QObject):
             engine.resume()
         self.resumed.emit()
 
-    def suspend(self, euid=None):
+    def suspend(self, euid: Optional[str]) -> None:
         if self._pause:
             return
         self._pause = True
@@ -269,7 +269,7 @@ class Manager(QObject):
             engine.suspend()
         self.suspended.emit()
 
-    def stop(self, euid=None):
+    def stop(self, euid: Optional[str]) -> None:
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
@@ -280,7 +280,7 @@ class Manager(QObject):
             self.osi._cleanup()
         self.stopped.emit()
 
-    def start(self, euid=None):
+    def start(self, euid: Optional[str]) -> None:
         self._started = True
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
@@ -296,7 +296,7 @@ class Manager(QObject):
         self._handle_os()
         self.started.emit()
 
-    def load(self):
+    def load(self) -> None:
         if self._engine_definitions is None:
             self._engine_definitions = self._dao.get_engines()
         in_error = dict()
@@ -310,11 +310,11 @@ class Manager(QObject):
             self._engines[engine.uid].online.connect(self._force_autoupdate)
             self.initEngine.emit(self._engines[engine.uid])
 
-    def _force_autoupdate(self):
+    def _force_autoupdate(self) -> None:
         if self.updater.get_next_poll() > 60 and self.updater.get_last_poll() > 1800:
             self.updater.force_poll()
 
-    def get_default_nuxeo_drive_folder(self):
+    def get_default_nuxeo_drive_folder(self) -> str:
         """
         Find a reasonable location for the root Nuxeo Drive folder
 
@@ -358,7 +358,7 @@ class Manager(QObject):
         log.debug('Will use %r as default folder location', folder)
         return folder
 
-    def _increment_local_folder(self, basefolder, name):
+    def _increment_local_folder(self, basefolder: str, name: str) -> str:
         folder = os.path.join(basefolder, name)
         num = 2
         while not self.check_local_folder_available(folder):
@@ -368,7 +368,8 @@ class Manager(QObject):
                 return ''
         return folder
 
-    def open_local_file(self, file_path, select=False):  # TODO: Move to utils.py
+    def open_local_file(self, file_path: str, select: bool=False) -> None:
+        # TODO: Move to utils.py
         """
         Launch the local OS program on the given file / folder.
 
@@ -408,56 +409,56 @@ class Manager(QObject):
                 self._dao.update_config('device_id', self.__device_id)
         return self.__device_id
 
-    def get_config(self, value, default=None):
+    def get_config(self, value: str, default: Optional[Any]=None) -> Any:
         return self._dao.get_config(value, default)
 
-    def set_config(self, key, value):
+    def set_config(self, key: str, value: Any) -> None:
         Options.set(key, value, setter='manual', fail_on_error=False)
-        return self._dao.update_config(key, value)
+        self._dao.update_config(key, value)
 
-    def get_direct_edit_auto_lock(self):
+    def get_direct_edit_auto_lock(self) -> bool:
         # Enabled by default, if app is frozen
         return self._dao.get_config(
             'direct_edit_auto_lock', str(int(Options.is_frozen))) == '1'
 
-    def set_direct_edit_auto_lock(self, value):
+    def set_direct_edit_auto_lock(self, value: bool) -> None:
         self._dao.update_config('direct_edit_auto_lock', value)
 
-    def get_auto_update(self):
+    def get_auto_update(self) -> bool:
         # Enabled by default, if app is frozen
         return self._dao.get_config(
             'auto_update', str(int(Options.is_frozen))) == '1'
 
-    def set_auto_update(self, value):
+    def set_auto_update(self, value: bool) -> None:
         self._dao.update_config('auto_update', value)
 
-    def get_auto_start(self):
+    def get_auto_start(self) -> bool:
         # Enabled by default, if app is frozen
         return self._dao.get_config(
             'auto_start', str(int(Options.is_frozen))) == '1'
 
-    def generate_report(self, path=None):
+    def generate_report(self, path: Optional[str]) -> str:
         from .report import Report
         report = Report(self, path)
         report.generate()
         return report.get_path()
 
-    def set_auto_start(self, value):
+    def set_auto_start(self, value: bool) -> None:
         self._dao.update_config("auto_start", value)
         if value:
             self.osi.register_startup()
         else:
             self.osi.unregister_startup()
 
-    def get_beta_channel(self):
+    def get_beta_channel(self) -> bool:
         return self._dao.get_config('beta_channel', '0') == '1'
 
-    def set_beta_channel(self, value):
+    def set_beta_channel(self, value: bool) -> None:
         self.set_config('beta_channel', value)
         # Trigger update status refresh
         self.refresh_update_status()
 
-    def get_tracking(self):
+    def get_tracking(self) -> bool:
         """
         Avoid sending statistics when testing or if the user does not allow it.
         """
@@ -466,7 +467,7 @@ class Manager(QObject):
             self._dao.get_config('tracking', '1') == '1',
         })
 
-    def set_tracking(self, value):
+    def set_tracking(self, value: bool) -> None:
         self._dao.update_config('tracking', value)
         if value:
             self._create_tracker()
@@ -474,10 +475,10 @@ class Manager(QObject):
             self._tracker._thread.quit()
             self._tracker = None
 
-    def get_tracker_id(self):
+    def get_tracker_id(self) -> str:
         return self._tracker.uid if self._tracker else ''
 
-    def set_proxy(self, proxy):
+    def set_proxy(self, proxy: 'Proxy') -> str:
         for engine in self._engines.values():
             url = engine._server_url
             if not validate_proxy(proxy, url):
@@ -489,28 +490,37 @@ class Manager(QObject):
         log.trace('Effective proxy: %r', proxy)
         return ''
 
-    def _get_default_server_type(self):  # TODO: Move to constants.py
+    def _get_default_server_type(self) -> str:  # TODO: Move to constants.py
         return "NXDRIVE"
 
-    def bind_server(self, local_folder, url, username, password, token=None,
-                    name=None, start_engine=True, check_credentials=True):
+    def bind_server(
+        self,
+        local_folder: str,
+        url: str,
+        username: str,
+        password: str,
+        token: Optional[str]=None,
+        name: Optional[str]=None,
+        start_engine: bool=True,
+        check_credentials: bool=True,
+    ) -> 'Engine':
         name = name or self._get_engine_name(url)
-        binder = namedtuple('binder', ['username', 'password', 'token', 'url',
-                                       'no_check', 'no_fscheck'])
-        binder.username = username
-        binder.password = password
-        binder.token = token
-        binder.no_check = not check_credentials
-        binder.no_fscheck = False
-        binder.url = url
+        binder = Binder(
+            username=username,
+            password=password,
+            token=token,
+            no_check=not check_credentials,
+            no_fscheck=False,
+            url=url,
+        )
         return self.bind_engine(self._get_default_server_type(), local_folder,
                                 name, binder, starts=start_engine)
 
-    def _get_engine_name(self, server_url):
+    def _get_engine_name(self, server_url: str) -> str:
         urlp = urlparse(server_url)
         return urlp.hostname
 
-    def check_local_folder_available(self, local_folder):
+    def check_local_folder_available(self, local_folder: str) -> bool:
         if self._engine_definitions is None:
             return True
         if not local_folder.endswith('/'):
@@ -523,7 +533,7 @@ class Manager(QObject):
                 return False
         return True
 
-    def update_engine_path(self, uid, local_folder):
+    def update_engine_path(self, uid: str, local_folder: str) -> None:
         # Dont update the engine by itself,
         # should be only used by engine.update_engine_path
         if uid in self._engine_definitions:
@@ -534,7 +544,14 @@ class Manager(QObject):
         self.osi.watch_folder(local_folder)
         self._dao.update_engine_path(uid, local_folder)
 
-    def bind_engine(self, engine_type, local_folder, name, binder, starts=True):
+    def bind_engine(
+        self,
+        engine_type: str,
+        local_folder: str,
+        name: str,
+        binder: Binder,
+        starts: bool=True,
+    ) -> 'Engine':
         """Bind a local folder to a remote nuxeo server"""
         if name is None and hasattr(binder, 'url'):
             name = self._get_engine_name(binder.url)
@@ -592,7 +609,7 @@ class Manager(QObject):
 
         return self._engines[uid]
 
-    def unbind_engine(self, uid):
+    def unbind_engine(self, uid: str) -> None:
         if not self._engines:
             self.load()
         # Unwatch folder
@@ -605,32 +622,32 @@ class Manager(QObject):
         self.dropEngine.emit(uid)
         self._engine_definitions = self._dao.get_engines()
 
-    def unbind_all(self):
+    def unbind_all(self) -> None:
         if not self._engines:
             self.load()
         for engine in self._engine_definitions:
             self.unbind_engine(engine.uid)
 
-    def dispose_db(self):
+    def dispose_db(self) -> None:
         if self._dao is not None:
             self._dao.dispose()
 
-    def dispose_all(self):
+    def dispose_all(self) -> None:
         for engine in self.get_engines().values():
             engine.dispose_db()
         self.dispose_db()
 
-    def get_engines(self):  # TODO: Remove
+    def get_engines(self) -> Dict[str, 'Engine']:  # TODO: Remove
         return self._engines
 
     @property
-    def version(self):
+    def version(self) -> str:
         return __version__
 
-    def is_started(self):  # TODO: Remove
+    def is_started(self) -> bool:  # TODO: Remove
         return self._started
 
-    def is_syncing(self):
+    def is_syncing(self) -> bool:
         syncing_engines = []
         for uid, engine in self._engines.items():
             if engine.is_syncing():
@@ -642,7 +659,7 @@ class Manager(QObject):
         log.debug('No engine currently synchronizing')
         return False
 
-    def get_root_id(self, file_path):
+    def get_root_id(self, file_path: str) -> Optional[str]:
         ref = LocalClient.get_path_remote_id(file_path, 'ndriveroot')
         if ref is None:
             parent = os.path.dirname(file_path)
@@ -652,7 +669,7 @@ class Manager(QObject):
             return self.get_root_id(parent)
         return ref
 
-    def ctx_access_online(self, file_path):
+    def ctx_access_online(self, file_path: str) -> None:
         """ Open the user's browser to a remote document. """
 
         log.debug('Opening metadata window for %r', file_path)
@@ -664,7 +681,7 @@ class Manager(QObject):
         else:
             self.open_local_file(url)
 
-    def ctx_copy_share_link(self, file_path):
+    def ctx_copy_share_link(self, file_path: str) -> None:
         """ Copy the document's share-link to the clipboard. """
 
         url = self.get_metadata_infos(file_path)
@@ -679,7 +696,7 @@ class Manager(QObject):
             cb.clear(mode=cb.Clipboard)
             cb.setText(url, mode=cb.Clipboard)
 
-    def ctx_edit_metadata(self, file_path):
+    def ctx_edit_metadata(self, file_path: str) -> None:
         """ Open the user's browser to a remote document's metadata. """
 
         log.debug('Opening metadata window for %r', file_path)
@@ -691,7 +708,7 @@ class Manager(QObject):
         else:
             self.open_local_file(url)
 
-    def get_metadata_infos(self, file_path, edit=False):
+    def get_metadata_infos(self, file_path: str, edit: bool=False) -> str:
         remote_ref = LocalClient.get_path_remote_id(file_path)
         if remote_ref is None:
             raise ValueError(
@@ -707,7 +724,7 @@ class Manager(QObject):
 
         return engine.get_metadata_url(remote_ref, edit=edit)
 
-    def send_sync_status(self, path):
+    def send_sync_status(self, path: str) -> None:
         for engine in self._engines.values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
@@ -718,26 +735,4 @@ class Manager(QObject):
                 dao = engine._dao
                 state = dao.get_state_from_local(r_path)
                 self.osi.send_sync_status(state, path)
-                break
-
-    def set_script_object(self, obj):  # TODO: Remove
-        # Used to enhance scripting with UI
-        self._script_object = obj
-
-    def _create_script_engine(self):
-        from .scripting import DriveScript
-        self._script_engine = QScriptEngine()
-        if self._script_object is None:
-            self._script_object = DriveScript(self)
-        self._script_engine.globalObject().setProperty("drive", self._script_engine.newQObject(self._script_object))
-
-    def execute_script(self, script, engine_uid=None):
-        if self._script_engine is None:
-            self._create_script_engine()
-            if self._script_engine is None:
                 return
-        self._script_object.engine_uid = engine_uid
-        log.debug("Will execute '%s'", script)
-        result = self._script_engine.evaluate(script)
-        if self._script_engine.hasUncaughtException():
-            log.debug("Execution exception: %r", result.toString())

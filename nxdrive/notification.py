@@ -1,11 +1,14 @@
 # coding: utf-8
 import time
+from datetime import datetime
 from logging import getLogger
 from threading import Lock
+from typing import Dict, Optional
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from .wui.translator import Translator
+from .objects import NuxeoDocumentInfo
 
 __all__ = ('DefaultNotificationService', 'Notification')
 
@@ -49,16 +52,16 @@ class Notification:
 
     def __init__(
         self,
-        uid=None,
-        uuid=None,
-        engine_uid=None,
-        level=LEVEL_INFO,
-        flags=0,
-        title='',
-        description='',
-        replacements=None,
-        action=''
-    ):
+        uid: Optional[str]=None,
+        uuid: Optional[str]=None,
+        engine_uid: Optional[str]=None,
+        level: str=LEVEL_INFO,
+        flags: int=0,
+        title: str='',
+        description: str='',
+        replacements: Dict[str, str]=None,
+        action: str=''
+    ) -> None:
         self.flags = flags
         self.level = level
         self.title = title
@@ -77,40 +80,40 @@ class Notification:
         elif uuid:
             self.uid = uuid
 
-    def is_remove_on_discard(self):
+    def is_remove_on_discard(self) -> int:
         return self.flags & Notification.FLAG_REMOVE_ON_DISCARD
 
-    def is_persistent(self):
+    def is_persistent(self) -> int:
         return self.flags & Notification.FLAG_PERSISTENT
 
-    def is_unique(self):
+    def is_unique(self) -> int:
         return self.flags & Notification.FLAG_UNIQUE
 
-    def is_discard(self):
+    def is_discard(self) -> int:
         return self.flags & Notification.FLAG_DISCARD
 
-    def is_discardable(self):
+    def is_discardable(self) -> int:
         return self.flags & Notification.FLAG_DISCARDABLE
 
-    def is_systray(self):
+    def is_systray(self) -> int:
         return self.flags & Notification.FLAG_SYSTRAY
 
-    def is_bubble(self):
+    def is_bubble(self) -> int:
         return self.flags & Notification.FLAG_BUBBLE
 
-    def is_actionable(self):
+    def is_actionable(self) -> int:
         return self.flags & Notification.FLAG_ACTIONABLE
 
-    def is_discard_on_trigger(self):
+    def is_discard_on_trigger(self) -> int:
         return self.flags & Notification.FLAG_DISCARD_ON_TRIGGER
 
-    def get_replacements(self):
+    def get_replacements(self) -> Dict[str, str]:
         return self._replacements
 
-    def get_content(self):
+    def get_content(self) -> str:
         return ''
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Notification(level=%r title=%r uid=%r unique=%r)' % (
             self.level, self.title, self.uid, self.is_unique())
 
@@ -120,7 +123,7 @@ class NotificationService(QObject):
     newNotification = pyqtSignal(object)
     discardNotification = pyqtSignal(object)
 
-    def __init__(self, manager):
+    def __init__(self, manager: 'Manager') -> None:
         super().__init__()
         self._lock = Lock()
         self._notifications = dict()
@@ -128,7 +131,7 @@ class NotificationService(QObject):
         self._dao = manager.get_dao()
         self.load_notifications()
 
-    def load_notifications(self):
+    def load_notifications(self) -> None:
         notifications = self._dao.get_notifications()
         for notif in notifications:
             self._notifications[notif.uid] = Notification(
@@ -140,7 +143,11 @@ class NotificationService(QObject):
                 description=notif.description,
             )
 
-    def get_notifications(self, engine=None, include_generic=True):
+    def get_notifications(
+        self,
+        engine: Optional['Engine']=None,
+        include_generic: bool=True,
+    ) -> Dict[str, str]:
         # Might need to use lock and duplicate
         with self._lock:
             if engine is None:
@@ -153,7 +160,7 @@ class NotificationService(QObject):
                     result[notif.uid] = notif
             return result
 
-    def send_notification(self, notification):
+    def send_notification(self, notification: Notification) -> None:
         log.debug('Sending %r', notification)
         notification._time = int(time.time())
         with self._lock:
@@ -166,7 +173,7 @@ class NotificationService(QObject):
 
         self.newNotification.emit(notification)
 
-    def trigger_notification(self, uid):
+    def trigger_notification(self, uid: str) -> None:
         if uid not in self._notifications:
             return
         notification = self._notifications[uid]
@@ -176,7 +183,7 @@ class NotificationService(QObject):
         if notification.is_discard_on_trigger():
             self.discard_notification(uid)
 
-    def discard_notification(self, uid):
+    def discard_notification(self, uid: str) -> None:
         with self._lock:
             remove = False
             if uid in self._notifications:
@@ -190,7 +197,7 @@ class NotificationService(QObject):
 
 
 class DebugNotification(Notification):
-    def __init__(self, engine_uid):
+    def __init__(self, engine_uid: str) -> None:
         super().__init__(
             'DEBUG',
             engine_uid=engine_uid,
@@ -203,7 +210,7 @@ class DebugNotification(Notification):
 
 
 class ErrorNotification(Notification):
-    def __init__(self, engine_uid, doc_pair):
+    def __init__(self, engine_uid: str, doc_pair: NuxeoDocumentInfo) -> None:
         values = dict(name='')
         if doc_pair.local_name is not None:
             values['name'] = doc_pair.local_name
@@ -226,7 +233,7 @@ class ErrorNotification(Notification):
 
 
 class LockNotification(Notification):
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         values = dict(name=filename)
         super().__init__(
             'LOCK',
@@ -240,7 +247,7 @@ class LockNotification(Notification):
 
 
 class DirectEditErrorLockNotification(Notification):
-    def __init__(self, action, filename, ref):
+    def __init__(self, action: str, filename: str, ref: str) -> None:
         values = dict(name=filename, ref=ref)
         if action == 'lock':
             title = 'DIRECT_EDIT_LOCK_ERROR'
@@ -265,7 +272,7 @@ class DirectEditErrorLockNotification(Notification):
 
 
 class ConflictNotification(Notification):
-    def __init__(self, engine_uid, doc_pair):
+    def __init__(self, engine_uid: str, doc_pair: NuxeoDocumentInfo) -> None:
         values = dict(name=doc_pair.local_name)
         super().__init__(
             'CONFLICT_FILE',
@@ -284,7 +291,12 @@ class ConflictNotification(Notification):
 
 
 class ReadOnlyNotification(Notification):
-    def __init__(self, engine_uid, filename, parent=None):
+    def __init__(
+        self,
+        engine_uid: str,
+        filename: str,
+        parent: Optional[str],
+    ) -> None:
         values = dict(name=filename, folder=parent)
         description = 'READONLY_FILE' if parent is None else 'READONLY_FOLDER'
         super().__init__(
@@ -298,7 +310,7 @@ class ReadOnlyNotification(Notification):
 
 
 class DirectEditReadOnlyNotification(Notification):
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         values = dict(name=filename)
         super().__init__(
             'DIRECT_EDIT_READONLY',
@@ -310,7 +322,7 @@ class DirectEditReadOnlyNotification(Notification):
 
 
 class DeleteReadOnlyNotification(Notification):
-    def __init__(self, engine_uid, filename):
+    def __init__(self, engine_uid: str, filename: str) -> None:
         values = dict(name=filename)
         super().__init__(
             'DELETE_READONLY',
@@ -323,7 +335,13 @@ class DeleteReadOnlyNotification(Notification):
 
 
 class LockedNotification(Notification):
-    def __init__(self, engine_uid, filename, lock_owner, lock_created):
+    def __init__(
+        self,
+        engine_uid: str,
+        filename: str,
+        lock_owner: str,
+        lock_created: datetime,
+    ) -> None:
         values = {
             'name': filename,
             'lock_owner': lock_owner,
@@ -343,7 +361,12 @@ class LockedNotification(Notification):
 
 
 class DirectEditLockedNotification(Notification):
-    def __init__(self, filename, lock_owner, lock_created):
+    def __init__(
+        self,
+        filename: str,
+        lock_owner: str,
+        lock_created: datetime,
+    ) -> None:
         values = {
             'name': filename,
             'lock_owner': lock_owner,
@@ -362,7 +385,7 @@ class DirectEditLockedNotification(Notification):
 
 
 class DirectEditUpdatedNotification(Notification):
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         values = {
             'name': filename,
         }
@@ -378,7 +401,7 @@ class DirectEditUpdatedNotification(Notification):
 
 
 class ErrorOpenedFile(Notification):
-    def __init__(self, path, is_folder):
+    def __init__(self, path: str, is_folder: bool) -> None:
         values = {'name': path}
         msg = ('FILE', 'FOLDER')[is_folder]
         super().__init__(
@@ -393,7 +416,7 @@ class ErrorOpenedFile(Notification):
 
 
 class FileDeletionError(Notification):
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         values = {'name': path}
         super().__init__(
             'DELETION_ERROR',
@@ -407,7 +430,7 @@ class FileDeletionError(Notification):
 
 
 class InvalidCredentialNotification(Notification):
-    def __init__(self, engine_uid):
+    def __init__(self, engine_uid: str) -> None:
         super().__init__(
             'INVALID_CREDENTIALS',
             title=Translator.get('INVALID_CREDENTIALS'),
@@ -422,11 +445,11 @@ class InvalidCredentialNotification(Notification):
 
 
 class DefaultNotificationService(NotificationService):
-    def __init__(self, manager):
+    def __init__(self, manager: 'Manager') -> None:
         super().__init__(manager)
         self._manager = manager
 
-    def init_signals(self):
+    def init_signals(self) -> None:
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
         self._manager.direct_edit.directEditLockError.connect(self._directEditLockError)
@@ -435,7 +458,7 @@ class DefaultNotificationService(NotificationService):
         self._manager.direct_edit.directEditUploadCompleted.connect(self._directEditUpdated)
         self._manager.autolock_service.documentLocked.connect(self._lockDocument)
 
-    def _connect_engine(self, engine):
+    def _connect_engine(self, engine: 'Engine') -> None:
         engine.newConflict.connect(self._newConflict)
         engine.newError.connect(self._newError)
         engine.newReadonly.connect(self._newReadonly)
@@ -446,62 +469,72 @@ class DefaultNotificationService(NotificationService):
         engine.errorOpenedFile.connect(self._errorOpenedFile)
         engine.fileDeletionErrorTooLong.connect(self._fileDeletionErrorTooLong)
 
-    def _errorOpenedFile(self, doc):
+    def _errorOpenedFile(self, doc: NuxeoDocumentInfo) -> None:
         self.send_notification(ErrorOpenedFile(
             doc.local_path, doc.folderish))
 
-    def _fileDeletionErrorTooLong(self, doc):
+    def _fileDeletionErrorTooLong(self, doc: NuxeoDocumentInfo) -> None:
         self.send_notification(FileDeletionError(doc.local_path))
 
-    def _lockDocument(self, filename):
+    def _lockDocument(self, filename: str) -> None:
         self.send_notification(LockNotification(filename))
 
-    def _directEditLockError(self, lock, filename, ref):
+    def _directEditLockError(self, lock: str, filename: str, ref: str) -> None:
         if lock not in ('lock', 'unlock'):
             log.debug("DirectEdit LockError not handled: %s", lock)
             return
         self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
 
-    def _newError(self, row_id):
+    def _newError(self, row_id: int) -> None:
         engine_uid = self.sender().uid
         doc_pair = self.sender().get_dao().get_state_from_id(row_id)
         if doc_pair is None:
             return
         self.send_notification(ErrorNotification(engine_uid, doc_pair))
 
-    def _newConflict(self, row_id):
+    def _newConflict(self, row_id: int) -> None:
         engine_uid = self.sender().uid
         doc_pair = self.sender().get_dao().get_state_from_id(row_id)
         if not doc_pair:
             return
         self.send_notification(ConflictNotification(engine_uid, doc_pair))
 
-    def _newReadonly(self, filename, parent):
+    def _newReadonly(self, filename: str, parent: str) -> None:
         engine_uid = self.sender().uid
         self.send_notification(ReadOnlyNotification(engine_uid, filename, parent))
 
-    def _directEditReadonly(self, filename):
+    def _directEditReadonly(self, filename: str) -> None:
         self.send_notification(DirectEditReadOnlyNotification(filename))
 
-    def _deleteReadonly(self, filename):
+    def _deleteReadonly(self, filename: str) -> None:
         engine_uid = self.sender().uid
         self.send_notification(DeleteReadOnlyNotification(engine_uid, filename))
 
-    def _newLocked(self, filename, lock_owner, lock_created):
+    def _newLocked(
+        self,
+        filename: str,
+        lock_owner: str,
+        lock_created: datetime,
+    ) -> None:
         engine_uid = self.sender().uid
         self.send_notification(LockedNotification(engine_uid, filename, lock_owner, lock_created))
 
-    def _directEditLocked(self, filename, lock_owner, lock_created):
+    def _directEditLocked(
+        self,
+        filename: str,
+        lock_owner: str,
+        lock_created: datetime,
+    ) -> None:
         self.send_notification(DirectEditLockedNotification(filename, lock_owner, lock_created))
 
-    def _directEditUpdated(self, filename):
+    def _directEditUpdated(self, filename: str) -> None:
         self.send_notification(DirectEditUpdatedNotification(filename))
 
-    def _validAuthentication(self):
+    def _validAuthentication(self) -> None:
         engine_uid = self.sender().uid
         self.discard_notification('INVALID_CREDENTIALS_' + engine_uid)
 
-    def _invalidAuthentication(self):
+    def _invalidAuthentication(self) -> None:
         engine_uid = self.sender().uid
         notif = InvalidCredentialNotification(engine_uid)
         self.send_notification(notif)

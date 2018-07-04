@@ -5,11 +5,10 @@ import socket
 import tempfile
 import time
 import unicodedata
-from collections import namedtuple
 from datetime import datetime
 from logging import getLogger
 from threading import Lock, current_thread
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from urllib.parse import unquote
 
 from dateutil import parser
@@ -20,72 +19,26 @@ from nuxeo.exceptions import HTTPError
 from nuxeo.models import FileBlob
 
 from .proxy import Proxy
-from ..constants import (APP_NAME, DEFAULT_TYPES, DOWNLOAD_TMP_FILE_PREFIX,
+from ..constants import (APP_NAME, DOWNLOAD_TMP_FILE_PREFIX,
                          DOWNLOAD_TMP_FILE_SUFFIX, FILE_BUFFER_SIZE,
                          MAX_CHILDREN, TIMEOUT, TOKEN_PERMISSION, TX_TIMEOUT)
 from ..engine.activity import Action, FileAction
 from ..exceptions import NotFound
+from ..objects import NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..utils import (get_device, lock_path, make_tmp_file,
                      unlock_path, version_le)
 
-__all__ = ('FilteredRemote', 'NuxeoDocumentInfo', 'Remote', 'RemoteFileInfo')
+__all__ = ('FilteredRemote', 'Remote')
 
 log = getLogger(__name__)
 
 socket.setdefaulttimeout(TX_TIMEOUT)
 
 
-# Data Transfer Object for remote file info
-RemoteFileInfo = namedtuple('RemoteFileInfo', [
-    'name',  # title of the file (not guaranteed to be locally unique)
-    'uid',  # id of the file
-    'parent_uid',  # id of the parent file
-    'path',  # abstract file system path: useful for ordering folder trees
-    'folderish',  # True is can host children
-    'last_modification_time',  # last update time
-    'creation_time',  # creation time
-    'last_contributor',  # last contributor
-    'digest',  # digest of the file
-    'digest_algorithm',  # digest algorithm of the file
-    'download_url',  # download URL of the file
-    'can_rename',  # True is can rename
-    'can_delete',  # True is can delete
-    'can_update',  # True is can update content
-    'can_create_child',  # True is can create child
-    'lock_owner',  # lock owner
-    'lock_created',  # lock creation time
-    'can_scroll_descendants'  # True if the API to scroll through
-                              # the descendants can be used
-])
-
-
-# Data Transfer Object for doc info on the Remote Nuxeo repository
-NuxeoDocumentInfo = namedtuple('NuxeoDocumentInfo', [
-    'root',  # ref of the document that serves as sync root
-    'name',  # title of the document (not guaranteed to be locally unique)
-    'uid',   # ref of the document
-    'parent_uid',  # ref of the parent document
-    'path',  # remote path (useful for ordering)
-    'folderish',  # True is can host child documents
-    'last_modification_time',  # last update time
-    'last_contributor',  # last contributor
-    'digest_algorithm',  # digest algorithm of the document's blob
-    'digest',  # digest of the document's blob
-    'repository',  # server repository name
-    'doc_type',  # Nuxeo document type
-    'version',  # Nuxeo version
-    'state',  # Nuxeo lifecycle state
-    'is_trashed',  # Nuxeo trashed status
-    'has_blob',  # If this doc has blob
-    'filename',  # Filename of document
-    'lock_owner',  # lock owner
-    'lock_created',  # lock creation time
-    'permissions',  # permissions
-])
-
-
 class Remote(Nuxeo):
+
+    types = {'File', 'Note', 'Workspace', 'Folder'}
 
     def __init__(
         self,
@@ -103,7 +56,7 @@ class Remote(Nuxeo):
         repository: str=Options.remote_repo,
         timeout: int=TIMEOUT,
         **kwargs: Any,
-    ):
+    ) -> None:
         auth = TokenAuth(token) if token else (user_id, password)
         self.kwargs = kwargs
 
@@ -147,7 +100,7 @@ class Remote(Nuxeo):
         else:
             self._base_folder_ref, self._base_folder_path = None, None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         attrs = sorted(self.__init__.__code__.co_varnames[1:])
         attrs = ', '.join('{}={!r}'.format(attr, getattr(self, attr, None))
                           for attr in attrs)
@@ -259,7 +212,7 @@ class Remote(Nuxeo):
         fs_item_id: str,
         parent_fs_item_id: str=None,
         raise_if_missing: bool=True,
-    ) -> Union[RemoteFileInfo, None]:
+    ) -> Optional[RemoteFileInfo]:
         fs_item = self.get_fs_item(fs_item_id,
                                    parent_fs_item_id=parent_fs_item_id)
         if fs_item is None:
@@ -558,7 +511,7 @@ class Remote(Nuxeo):
             command='NuxeoDrive.GetFileSystemItem', id=fs_item_id,
             parentId=parent_fs_item_id)
 
-    def get_top_level_children(self) -> Dict[str, Any]:
+    def get_top_level_children(self) -> List[RemoteFileInfo]:
         return self.operations.execute(
             command='NuxeoDrive.GetTopLevelChildren')
 
@@ -778,7 +731,6 @@ class Remote(Nuxeo):
     def get_children_info(
         self,
         ref: str,
-        types:  Tuple[str]=DEFAULT_TYPES,
         limit: int=MAX_CHILDREN,
     ) -> List[NuxeoDocumentInfo]:
         ref = self._check_ref(ref)
@@ -791,7 +743,7 @@ class Remote(Nuxeo):
             "       AND ecm:isVersion = 0"
             "       ORDER BY dc:title, dc:created LIMIT %d"
         ) % (ref,
-             "', '".join(types),
+             "', '".join(self.types),
              self._get_trash_condition(),
              limit)
 

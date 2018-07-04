@@ -184,13 +184,13 @@ class MetaOptions(type):
         with suppress(KeyError):
             MetaOptions.set(item, value, setter='manual')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """ Display all options. """
         options = ['{}[{}]={!r}'.format(name, setter, value)
                    for name, (value, setter) in MetaOptions.options.items()]
         return 'Options({})'.format(', '.join(options))
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Display non default options. """
         options = ['{}[{}]={!r}'.format(name, setter, value)
                    for name, (value, setter) in MetaOptions.options.items()
@@ -332,12 +332,12 @@ class MetaOptions(type):
 
 class Options(metaclass=MetaOptions):
 
-    def __init__(self):
+    def __init__(self) -> None:
         """ Prevent class instances. """
         raise RuntimeError('Cannot be instantiated.')
 
 
-def server_updater(*args: Any) -> object:
+def server_updater(*args: Any) -> 'ServerOptionsUpdater':
     """
     Helper to create the worker that will check for option updates
     on the server.

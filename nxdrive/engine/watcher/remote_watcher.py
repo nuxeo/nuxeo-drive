@@ -3,7 +3,9 @@ import os
 import socket
 from datetime import datetime
 from logging import getLogger
+from sqlite3 import Cursor
 from time import sleep
+from typing import Any, Dict, Optional, Tuple
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from nuxeo.exceptions import BadQuery, HTTPError
@@ -11,9 +13,9 @@ from requests import ConnectionError
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
-from ...client import RemoteFileInfo
 from ...constants import WINDOWS
 from ...exceptions import NotFound, ThreadInterrupt
+from ...objects import Metrics, NuxeoDocumentInfo, RemoteFileInfo
 from ...utils import current_milli_time, path_join, safe_filename
 
 __all__ = ('RemoteWatcher',)
@@ -30,7 +32,7 @@ class RemoteWatcher(EngineWorker):
     noChangesFound = pyqtSignal()
     remoteWatcherStopped = pyqtSignal()
 
-    def __init__(self, engine, dao, delay):
+    def __init__(self, engine: 'Engine', dao: 'EngineDAO', delay: int) -> None:
         super().__init__(engine, dao)
         self.server_interval = delay
 
@@ -49,7 +51,7 @@ class RemoteWatcher(EngineWorker):
             'empty_polls': 0,
         }
 
-    def get_metrics(self):
+    def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
         metrics['last_remote_sync_date'] = self._last_sync_date
         metrics['last_event_log_id'] = self._last_event_log_id
@@ -58,7 +60,7 @@ class RemoteWatcher(EngineWorker):
         metrics['next_polling'] = self._next_check
         return {**metrics, **self._metrics}
 
-    def _execute(self):
+    def _execute(self) -> None:
         first_pass = True
         try:
             while True:
@@ -74,7 +76,7 @@ class RemoteWatcher(EngineWorker):
             raise
 
     @tooltip('Remote scanning')
-    def _scan_remote(self, from_state=None):
+    def _scan_remote(self, from_state: Optional[NuxeoDocumentInfo]):
         """Recursively scan the bound remote folder looking for updates"""
         log.trace('Remote full scan')
         start_ms = current_milli_time()
@@ -104,11 +106,11 @@ class RemoteWatcher(EngineWorker):
         self.remoteScanFinished.emit()
 
     @pyqtSlot(str)
-    def scan_pair(self, remote_path):
+    def scan_pair(self, remote_path: str) -> None:
         self._dao.add_path_to_scan(str(remote_path))
         self._next_check = 0
 
-    def _scan_pair(self, remote_path):
+    def _scan_pair(self, remote_path: str) -> None:
         if remote_path is None:
             return
         remote_path = str(remote_path)
@@ -151,8 +153,11 @@ class RemoteWatcher(EngineWorker):
             self._scan_remote()
 
     @staticmethod
-    def _check_modified(pair, info):
-        return any((
+    def _check_modified(
+        pair: NuxeoDocumentInfo,
+        info: NuxeoDocumentInfo,
+    ) -> bool:
+        return any({
             pair.remote_can_delete != info.can_delete,
             pair.remote_can_rename != info.can_rename,
             pair.remote_can_update != info.can_update,
@@ -160,9 +165,15 @@ class RemoteWatcher(EngineWorker):
             pair.remote_name != info.name,
             pair.remote_digest != info.digest,
             pair.remote_parent_ref != info.parent_uid,
-        ))
+        })
 
-    def _do_scan_remote(self, doc_pair, remote_info, force_recursion=True, moved=False):
+    def _do_scan_remote(
+        self,
+        doc_pair: NuxeoDocumentInfo,
+        remote_info: NuxeoDocumentInfo,
+        force_recursion: bool=True,
+        moved: bool=False,
+    ) -> None:
         if remote_info.can_scroll_descendants:
             log.debug('Performing scroll remote scan for %r (%r)',
                       remote_info.name, remote_info)
@@ -173,7 +184,12 @@ class RemoteWatcher(EngineWorker):
             self._scan_remote_recursive(
                 doc_pair, remote_info, force_recursion=force_recursion)
 
-    def _scan_remote_scroll(self, doc_pair, remote_info, moved=False):
+    def _scan_remote_scroll(
+        self,
+        doc_pair: NuxeoDocumentInfo,
+        remote_info: NuxeoDocumentInfo,
+        moved: bool=False,
+    ) -> None:
         """
         Perform a scroll scan of the bound remote folder looking for updates.
         """
@@ -283,12 +299,16 @@ class RemoteWatcher(EngineWorker):
             self._dao.delete_remote_state(deleted)
 
     @staticmethod
-    def _get_elapsed_time_milliseconds(t0, t1):
+    def _get_elapsed_time_milliseconds(t0: datetime, t1: datetime) -> float:
         delta = t1 - t0
         return delta.seconds * 1000 + delta.microseconds / 1000
 
-    def _scan_remote_recursive(self, doc_pair, remote_info,
-                               force_recursion=True):
+    def _scan_remote_recursive(
+        self,
+        doc_pair: NuxeoDocumentInfo,
+        remote_info: NuxeoDocumentInfo,
+        force_recursion: bool=True,
+    ) -> None:
         """
         Recursively scan the bound remote folder looking for updates
 
@@ -340,7 +360,11 @@ class RemoteWatcher(EngineWorker):
                                  force_recursion=force_recursion)
         self._dao.add_path_scanned(remote_parent_path)
 
-    def _init_scan_remote(self, doc_pair, remote_info):
+    def _init_scan_remote(
+        self,
+        doc_pair: NuxeoDocumentInfo,
+        remote_info: NuxeoDocumentInfo,
+    ) -> Optional[str]:
         if remote_info is None:
             raise ValueError('Cannot bind %r to missing remote info' %
                              doc_pair)
@@ -357,7 +381,11 @@ class RemoteWatcher(EngineWorker):
             log.debug('Remote scanning: %r', doc_pair.local_path)
         return remote_parent_path
 
-    def _find_remote_child_match_or_create(self, parent_pair, child_info):
+    def _find_remote_child_match_or_create(
+        self,
+        parent_pair: NuxeoDocumentInfo,
+        child_info: NuxeoDocumentInfo,
+    ) -> Tuple[Optional[Cursor], Optional[Cursor]]:
         if not parent_pair.local_path:
             # The parent folder has an empty local_path,
             # it probably means that it has been put in error as a duplicate
@@ -435,7 +463,7 @@ class RemoteWatcher(EngineWorker):
         child_pair = self._dao.get_state_from_id(row_id, from_write=True)
         return child_pair, True
 
-    def _handle_readonly(self, doc_pair):
+    def _handle_readonly(self, doc_pair: NuxeoDocumentInfo) -> None:
         # Don't use readonly on folder for win32 and on Locally Edited
         if doc_pair.folderish and WINDOWS:
             return
@@ -446,7 +474,7 @@ class RemoteWatcher(EngineWorker):
             log.debug('Unsetting %r as readonly', doc_pair.local_path)
             self.engine.local.unset_readonly(doc_pair.local_path)
 
-    def _partial_full_scan(self, path):
+    def _partial_full_scan(self, path: str) -> None:
         log.debug('Continue full scan of %r', path)
         if path == '/':
             self._scan_remote()
@@ -456,7 +484,7 @@ class RemoteWatcher(EngineWorker):
         self._dao.delete_config('remote_need_full_scan')
         self._dao.clean_scanned()
 
-    def _check_offline(self):
+    def _check_offline(self) -> bool:
         if not self.engine.is_offline():
             return False
 
@@ -466,7 +494,7 @@ class RemoteWatcher(EngineWorker):
 
         return not online
 
-    def _handle_changes(self, first_pass=False):
+    def _handle_changes(self, first_pass: bool=False) -> bool:
         log.trace('Handle remote changes, first_pass=%r', first_pass)
         self._check_offline()
         try:
@@ -481,7 +509,7 @@ class RemoteWatcher(EngineWorker):
             full_scan = self._dao.get_config('remote_need_full_scan', None)
             if full_scan is not None:
                 self._partial_full_scan(full_scan)
-                return None
+                return False
 
             paths = self._dao.get_paths_to_scan()
             while paths:
@@ -518,7 +546,7 @@ class RemoteWatcher(EngineWorker):
             Action.finish_action()
         return False
 
-    def _get_changes(self):
+    def _get_changes(self) -> Dict[str, Any]:
         """Fetch incremental change summary from the server"""
         summary = self.engine.remote.get_changes(
             self._last_root_definitions,
@@ -541,8 +569,14 @@ class RemoteWatcher(EngineWorker):
 
         return summary
 
-    def _force_remote_scan(self, doc_pair, remote_info, remote_path=None,
-                           force_recursion=True, moved=False):
+    def _force_remote_scan(
+        self,
+        doc_pair: NuxeoDocumentInfo,
+        remote_info: NuxeoDocumentInfo,
+        remote_path: Optional[str]=None,
+        force_recursion: bool=True,
+        moved: bool=False,
+    ) -> None:
         if remote_path is None:
             remote_path = remote_info.path
         if force_recursion:
@@ -552,7 +586,7 @@ class RemoteWatcher(EngineWorker):
                                  force_recursion=force_recursion, moved=moved)
 
     @tooltip('Handle remote changes')
-    def _update_remote_states(self):
+    def _update_remote_states(self) -> None:
         """Incrementally update the state of documents from a change summary"""
         summary = self._get_changes()
         if summary['hasTooManyChanges']:
@@ -820,7 +854,7 @@ class RemoteWatcher(EngineWorker):
             log.debug('Marking doc_pair %r as deleted', delete_pair)
             self._dao.delete_remote_state(delete_pair)
 
-    def filtered(self, info):
+    def filtered(self, info: NuxeoDocumentInfo) -> bool:
         """ Check if a remote document is locally ignored. """
         return (info is not None
                 and not info.folderish

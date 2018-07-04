@@ -2,6 +2,7 @@
 """ Auto-update framework. """
 
 from logging import getLogger
+from typing import Any
 
 from .utils import get_latest_compatible_version
 from ..options import Options
@@ -13,8 +14,7 @@ class UpdateError(Exception):
     """ Error handling class. """
 
 
-def updater(*args, **kwargs):
-    # type: (*Any, **Any) -> Updater
+def updater(*args: Any, **kwargs: Any) -> 'Updater':
     """
     Factory returning a proper Updater class instance.
     It detects the platform we are running on and chooses the most suited

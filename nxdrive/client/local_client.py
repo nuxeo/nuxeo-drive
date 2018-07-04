@@ -12,7 +12,7 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from time import mktime, strptime
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from send2trash import send2trash
 
@@ -39,8 +39,6 @@ __all__ = ('FileInfo', 'LocalClient')
 log = getLogger(__name__)
 
 
-# Data transfer objects
-
 class FileInfo:
     """ Data Transfer Object for file info on the Local FS. """
 
@@ -50,8 +48,8 @@ class FileInfo:
         path: str,
         folderish: bool,
         last_modification_time: Union[datetime, int],
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = kwargs.pop('check_suspended', None)
@@ -84,13 +82,13 @@ class FileInfo:
         # practice
         self.name = os.path.basename(path)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'FileInfo<path=%r, remote_ref=%r>' % (self.filepath, self.remote_ref)
 
     def get_digest(
         self,
         digest_func: str=None,
-    ) -> Union[str, None]:
+    ) -> Optional[str]:
         """ Lazy computation of the digest. """
 
         if self.folderish:
@@ -124,7 +122,7 @@ class LocalClient:
     CASE_RENAME_PREFIX = 'driveCaseRename_'
     _case_sensitive = None
 
-    def __init__(self, base_folder: str, **kwargs):
+    def __init__(self, base_folder: str, **kwargs: Any) -> None:
         self._digest_func = kwargs.pop('digest_func', 'md5')
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
@@ -136,7 +134,7 @@ class LocalClient:
 
         self.is_case_sensitive()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return ('<{name}'
                 ' base_folder={cls.base_folder!r},'
                 ' is_case_sensitive={cls._case_sensitive!r}'
@@ -151,7 +149,7 @@ class LocalClient:
         return self._case_sensitive
 
     @staticmethod
-    def is_temp_file(filename) -> bool:
+    def is_temp_file(filename: str) -> bool:
         return (filename.startswith(DOWNLOAD_TMP_FILE_PREFIX) and
                 filename.endswith(DOWNLOAD_TMP_FILE_SUFFIX))
 
@@ -185,7 +183,7 @@ class LocalClient:
     def set_root_id(self, value: bytes) -> None:
         self.set_remote_id('/', value, name='ndriveroot')
 
-    def get_root_id(self) -> Union[str, None]:
+    def get_root_id(self) -> Optional[str]:
         return self.get_remote_id('/', name='ndriveroot')
 
     def _remove_remote_id_windows(self, path: str, name: str='ndrive') -> None:
@@ -389,7 +387,7 @@ FolderType=Generic
         self,
         ref: str,
         name: str='ndrive',
-    ) -> Union[str, None]:
+    ) -> Optional[str]:
         path = self.abspath(ref)
         value = self.get_path_remote_id(path, name)
         log.trace('Getting xattr %r from %r: %r', name, path, value)
@@ -399,7 +397,7 @@ FolderType=Generic
     def get_path_remote_id(
         path: str,
         name: str='ndrive',
-    ) -> Union[str, None]:
+    ) -> Optional[str]:
         if WINDOWS:
             path += ':' + name
             try:
@@ -420,7 +418,7 @@ FolderType=Generic
         self,
         ref: str,
         raise_if_missing: bool=True,
-    ) -> Union[FileInfo, None]:
+    ) -> Optional[FileInfo]:
         if isinstance(ref, bytes):
             ref = ref.decode()
 
