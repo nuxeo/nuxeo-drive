@@ -5,6 +5,7 @@ import shutil
 import uuid
 from logging import getLogger
 from tempfile import gettempdir
+from typing import Optional, Tuple
 
 import requests
 import yaml
@@ -39,9 +40,7 @@ class BaseUpdater(PollWorker):
 
     __update_site = None
 
-    def __init__(self, manager):
-        # type: (Manager) -> None
-
+    def __init__(self, manager: 'Manager') -> None:
         super().__init__(Options.update_check_delay)
         self.manager = manager
 
@@ -56,8 +55,7 @@ class BaseUpdater(PollWorker):
     #
 
     @property
-    def server_ver(self):
-        # type: () -> Union[None, unicode]
+    def server_ver(self) -> Optional[str]:
         """
         Get the current Nuxeo version.
         It will take the server version of the first found engine.
@@ -70,8 +68,7 @@ class BaseUpdater(PollWorker):
         return None
 
     @property
-    def update_site(self):
-        # type: () -> unicode
+    def update_site(self) -> str:
         """ The update site URL without trailing slash. """
 
         if not self.__update_site:
@@ -89,8 +86,7 @@ class BaseUpdater(PollWorker):
     # Public methods that can be overrided
     #
 
-    def force_status(self, status, version):
-        # type: (unicode, unicode) -> None
+    def force_status(self, status: str, version: str) -> None:
         """
         Trigger the auto-update notification with given status and version.
         Used for debugging purposes only.
@@ -105,8 +101,7 @@ class BaseUpdater(PollWorker):
         if status == UPDATE_STATUS_UPDATE_AVAILABLE:
             self.updateAvailable.emit()
 
-    def install(self, filename):
-        # type: (unicode) -> None
+    def install(self, filename: str) -> None:
         """
         Install the new version.
         Uninstallation of the old one or any actions needed to install
@@ -114,8 +109,7 @@ class BaseUpdater(PollWorker):
         """
         raise NotImplementedError()
 
-    def refresh_status(self):
-        # type: () -> None
+    def refresh_status(self) -> None:
         """
         Check for an update.
         Used when changing the beta channel option or when binding a new engine.
@@ -123,7 +117,7 @@ class BaseUpdater(PollWorker):
         self._poll()
 
     @pyqtSlot(str)
-    def update(self, version):
+    def update(self, version: str) -> None:
         if not self.enable:
             return
 
@@ -136,8 +130,7 @@ class BaseUpdater(PollWorker):
     # Private methods, should not try to override
     #
 
-    def _download(self, version):
-        # type: (unicode) -> unicode
+    def _download(self, version: str) -> str:
         """ Download a given version to a temporary file. """
 
         name = self.release_file.format(version=version)
@@ -158,8 +151,7 @@ class BaseUpdater(PollWorker):
 
         return path
 
-    def _fetch_versions(self):
-        # type: () -> None
+    def _fetch_versions(self) -> None:
         """ Fetch available versions. It sets `self.versions` on success. """
 
         url = self.update_site + '/versions.yml'
@@ -177,8 +169,7 @@ class BaseUpdater(PollWorker):
         else:
             self.versions = versions
 
-    def _get_update_status(self):
-        # type: () -> Tuple[unicode, Union[None, bool]]
+    def _get_update_status(self) -> Tuple[str, Optional[bool]]:
         """ Retrieve available versions and find a possible candidate. """
 
         try:
@@ -201,8 +192,7 @@ class BaseUpdater(PollWorker):
 
         return status
 
-    def _handle_status(self):
-        # type: () -> None
+    def _handle_status(self) -> None:
         """ Handle update check status. """
 
         status, version = self.last_status[:2]
@@ -232,8 +222,7 @@ class BaseUpdater(PollWorker):
             except UpdateError:
                 log.exception('Auto-update error')
 
-    def _install(self, version, filename):
-        # type: (unicode, unicode) -> None
+    def _install(self, version: str, filename: str) -> None:
         """
         OS-specific method to install the new version.
         It must take care of uninstalling the current one.
@@ -242,8 +231,7 @@ class BaseUpdater(PollWorker):
         log.info('Installing %s %s', self.manager.app_name, version)
         self.install(filename)
 
-    def _is_valid(self, version, filename):
-        # type: (unicode, unicode) -> bool
+    def _is_valid(self, version: str, filename: str) -> bool:
         """ Check the downloaded file integrity. Use SHA256 by default. """
 
         info = self.versions.get(version, {})
@@ -265,7 +253,7 @@ class BaseUpdater(PollWorker):
         return computed == checksum
 
     @pyqtSlot(result=bool)
-    def _poll(self):
+    def _poll(self) -> bool:
         ret = True
 
         if self.last_status != UPDATE_STATUS_UPDATING:

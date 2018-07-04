@@ -3,8 +3,8 @@
 
 import logging
 import os
-from logging.handlers import (BufferingHandler, RotatingFileHandler,
-                              TimedRotatingFileHandler)
+from logging.handlers import BufferingHandler, TimedRotatingFileHandler
+from typing import Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from .options import Options
@@ -31,7 +31,7 @@ is_logging_configured = False
 MAX_LOG_DISPLAYED = 50000
 
 
-def add_trace_level():
+def add_trace_level() -> None:
     """ Add 'trace' level to all loggers. """
 
     global TRACE_ADDED
@@ -53,18 +53,18 @@ add_trace_level()
 
 
 class CustomMemoryHandler(BufferingHandler):
-    def __init__(self, capacity=MAX_LOG_DISPLAYED):
+    def __init__(self, capacity: int=MAX_LOG_DISPLAYED) -> None:
         super().__init__(capacity)
         self.old_buffer_ = None
 
-    def flush(self):
+    def flush(self) -> None:
         self.acquire()
         try:
             self.old_buffer_, self.buffer = self.buffer[:], []
         finally:
             self.release()
 
-    def get_buffer(self, size):
+    def get_buffer(self, size: int) -> None:
         self.acquire()
         try:
             result = self.buffer[:]
@@ -80,7 +80,7 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
     Extended version of TimedRotatingFileHandler that compress logs on rollover.
     """
 
-    def find_last_rotated_file(self):
+    def find_last_rotated_file(self) -> str:
         dir_name, base_name = os.path.split(self.baseFilename)
         file_names = os.listdir(dir_name)
         result = []
@@ -92,7 +92,7 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         result.sort()
         return os.path.join(dir_name, result[0])
 
-    def doRollover(self):
+    def doRollover(self) -> None:
         super().doRollover()
 
         dfn = self.find_last_rotated_file()
@@ -102,10 +102,14 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         os.remove(dfn)
 
 
-def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
-              console_level='INFO', command_name=None,
-              log_rotate_keep=30, log_rotate_max_bytes=None,
-              log_rotate_when=None, force_configure=False, formatter=None):
+def configure(
+    log_filename: Optional[str]=None,
+    file_level: str='TRACE',
+    console_level: str='INFO',
+    command_name: Optional[str]=None,
+    force_configure: bool=False,
+    formatter: Optional[logging.Formatter]=None,
+) -> None:
 
     global is_logging_configured
     global FILE_HANDLER
@@ -117,12 +121,8 @@ def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
 
         if not file_level:
             file_level = 'TRACE'
-
-        # Convert string levels
-        if hasattr(file_level, 'upper'):
-            file_level = getattr(logging, file_level.upper())
-        if hasattr(console_level, 'upper'):
-            console_level = getattr(logging, console_level.upper())
+        file_level = getattr(logging, file_level.upper())
+        console_level = getattr(logging, console_level.upper())
 
         # Find the minimum level to avoid filtering by the root logger itself
         root_logger = logging.getLogger()
@@ -139,7 +139,6 @@ def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
         if not console_handler:
             console_handler = logging.StreamHandler()
             console_handler.set_name(console_handler_name)
-            # tell the console handler to use this format
             console_handler.setFormatter(formatter)
         console_handler.setLevel(console_level)
 
@@ -147,21 +146,12 @@ def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
         root_logger.addHandler(console_handler)
 
         # Define a Handler for file based log with rotation if needed
-        if use_file_handler and log_filename:
+        if log_filename:
             log_filename = os.path.expanduser(log_filename)
             log_folder = os.path.dirname(log_filename)
-            if not os.path.exists(log_folder):
-                os.makedirs(log_folder)
-            if not log_rotate_when and not log_rotate_max_bytes:
-                log_rotate_when = 'midnight'
-            if log_rotate_when:
-                file_handler = TimedCompressedRotatingFileHandler(
-                    log_filename, when=log_rotate_when,
-                    backupCount=log_rotate_keep)
-            else:
-                file_handler = RotatingFileHandler(
-                    log_filename, maxBytes=log_rotate_max_bytes,
-                    backupCount=log_rotate_keep)
+            os.makedirs(log_folder, exist_ok=True)
+            file_handler = TimedCompressedRotatingFileHandler(
+                log_filename, when='midnight', backupCount=30)
             file_handler.set_name('file')
             file_handler.setLevel(file_level)
             file_handler.setFormatter(formatter)
@@ -176,20 +166,20 @@ def configure(use_file_handler=False, log_filename=None, file_level='TRACE',
         root_logger.addHandler(memory_handler)
 
 
-def get_handler(logger, name):
+def get_handler(logger: logging.Logger, name: str):
     for handler in logger.handlers:
         if name == handler.get_name():
             return handler
     return None
 
 
-def update_logger_console(log_level):
+def update_logger_console(log_level: str) -> None:
     logging.getLogger().setLevel(
         min(getattr(logging, log_level),
             logging.getLogger().getEffectiveLevel()))
 
 
-def update_logger_file(log_level):
+def update_logger_file(log_level: str) -> None:
     if FILE_HANDLER:
         FILE_HANDLER.setLevel(log_level)
 

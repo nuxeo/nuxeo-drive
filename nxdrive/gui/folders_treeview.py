@@ -1,11 +1,15 @@
 # coding: utf-8
 from logging import getLogger
 from threading import Thread
+from typing import Generator, List, Optional, Union
 
-from PyQt5.QtCore import QVariant, Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import (QModelIndex, QObject, QVariant, Qt, pyqtSignal,
+                          pyqtSlot)
 from PyQt5.QtGui import QMovie, QPalette, QStandardItem, QStandardItemModel
-from PyQt5.QtWidgets import QLabel, QTreeView, QWidget
+from PyQt5.QtWidgets import QDialog, QLabel, QTreeView, QWidget
 
+from ..client import FilteredRemote
+from ..objects import Filters, RemoteFileInfo
 from ..utils import find_icon
 
 __all__ = ('FilteredFsClient', 'FolderTreeview', 'Overlay')
@@ -14,7 +18,7 @@ log = getLogger(__name__)
 
 
 class FileInfo:
-    def __init__(self, parent=None, state=None):
+    def __init__(self, parent: Optional[QObject], state: Optional[int]) -> None:
         self.parent = parent
         self.children = []
         if parent:
@@ -29,7 +33,7 @@ class FileInfo:
             state = Qt.Checked
         self.old_state = self.state = state
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'FileInfo<state=%r, id=%r, label=%r, parent=%r>' % (
             self.state,
             self.get_id(),
@@ -37,38 +41,38 @@ class FileInfo:
             self.get_path(),
         )
 
-    def add_child(self, child):
+    def add_child(self, child: 'FileInfo') -> None:
         self.children.append(child)
 
-    def get_children(self):
+    def get_children(self) -> Generator['FileInfo', None, None]:
         for child in self.children:
             yield child
 
-    def enable(self):
+    def enable(self) -> bool:
         return True
 
-    def selectable(self):
+    def selectable(self) -> bool:
         return True
 
-    def checkable(self):
+    def checkable(self) -> bool:
         return True
 
-    def is_dirty(self):
+    def is_dirty(self) -> bool:
         return self.old_state != self.state
 
-    def get_label(self):
+    def get_label(self) -> str:
         return ''
 
-    def get_id(self):
+    def get_id(self) -> str:
         return ''
 
-    def has_children(self):
+    def has_children(self) -> bool:
         return False
 
-    def is_hidden(self):
+    def is_hidden(self) -> bool:
         return False
 
-    def get_path(self):
+    def get_path(self) -> str:
         path = ''
         if self.parent is not None:
             path += self.parent.get_path()
@@ -77,86 +81,62 @@ class FileInfo:
 
 
 class FsRootFileInfo(FileInfo):
-    def __init__(self, fs_info, state=None):
+    def __init__(self, fs_info: RemoteFileInfo, state: Optional[int]) -> None:
         super().__init__(parent=None, state=state)
         self.fs_info = fs_info
 
-    def get_label(self):
-        return self.fs_info.get('name')
+    def get_label(self) -> str:
+        return self.fs_info.name
 
-    def get_path(self):
-        return self.fs_info.get('path')
+    def get_path(self) -> str:
+        return self.fs_info.path
 
-    def get_id(self):
-        return self.fs_info.get('id')
+    def get_id(self) -> str:
+        return self.fs_info.id
 
-    def has_children(self):
-        return self.fs_info.get('folder')
+    def has_children(self) -> bool:
+        return len(self.fs_info.folder) > 0
 
 
 class FsFileInfo(FileInfo):
-    def __init__(self, fs_info, parent=None, state=None):
+    def __init__(
+        self,
+        fs_info: RemoteFileInfo,
+        parent: Optional[FileInfo],
+        state: Optional[int],
+    ) -> None:
         super().__init__(parent=parent, state=state)
         self.fs_info = fs_info
 
-    def get_label(self):
+    def get_label(self) -> str:
         return self.fs_info.name
 
-    def get_path(self):
+    def get_path(self) -> str:
         return self.fs_info.path
 
-    def get_id(self):
+    def get_id(self) -> str:
         return self.fs_info.uid
 
-    def has_children(self):
+    def has_children(self) -> bool:
         return self.fs_info.folderish
 
 
-class DocFileInfo(FileInfo):
-    def __init__(self, doc, parent=None):
-        super().__init__(parent=parent)
-        self.doc = doc
-
-    def get_label(self):
-        return self.doc.get('title')
-
-    def get_id(self):
-        return self.doc.get('uid')
-
-    def has_children(self):
-        return 'Folderish' in self.doc.get('facets')
-
-    def is_hidden(self):
-        return 'HiddenInNavigation' in self.doc.get('facets')
-
-
-class DocRootFileInfo(FileInfo):
-    def __init__(self, doc):
-        super().__init__()
-        self.doc = doc
-
-    def get_label(self):
-        return self.doc.name
-
-    def get_id(self):
-        return self.doc.uid
-
-    def has_children(self):
-        return self.doc.folderish
-
-
 class Client:
-    def get_children(self, parent=None):
+    def get_children(self, parent: Optional[FileInfo]) -> None:
         return None
 
 
 class FilteredFsClient(Client):
-    def __init__(self, fs_client, filters=None):
+    def __init__(
+        self,
+        fs_client: FilteredRemote,
+        filters: Optional[Filters],
+    ) -> None:
         self.fs_client = fs_client
         filters = filters or []
         self.filters = [filter_obj.path for filter_obj in filters]
 
-    def get_item_state(self, path):
+    def get_item_state(self, path: str) -> int:
         if not path.endswith('/'):
             path += '/'
 
@@ -169,36 +149,25 @@ class FilteredFsClient(Client):
 
         return Qt.Checked
 
-    def get_children(self, parent=None):
+    def get_children(
+        self,
+        parent: Optional[FileInfo],
+    ) -> Generator[Union[FsFileInfo, FsRootFileInfo], None, None]:
         if parent:
             for info in self.fs_client.get_fs_children(parent.get_id()):
                 yield FsFileInfo(info, parent, self.get_item_state(info.path))
             return
 
         for root in self.fs_client.get_top_level_children():
-            yield FsRootFileInfo(root, self.get_item_state(root.get('path')))
-
-
-class Overlay(QWidget):
-
-    def __init__(self, parent=None):
-        QLabel.__init__(self, parent)
-        palette = QPalette(self.palette())
-        palette.setColor(palette.Background, Qt.transparent)
-        self.setPalette(palette)
-        self.movie = QMovie(find_icon('loader.gif'))
-        self.movie.frameChanged.connect(self.redraw)
-        self.movie.start()
-
-    def redraw(self, _):
-        self.repaint()
+            yield FsRootFileInfo(root, self.get_item_state(root.path))
 
 
 class FolderTreeview(QTreeView):
 
     showHideLoadingOverlay = pyqtSignal(bool)
 
-    def __init__(self, parent, client):
+    def __init__(self, parent: QDialog, client: FilteredFsClient) -> None:
+        # parent is FiltersDialog
         super().__init__(parent)
         self.client = client
         self.cache = []
@@ -219,7 +188,7 @@ class FolderTreeview(QTreeView):
 
         self.expanded.connect(self.itemExpanded)
 
-    def item_check_parent(self, item):
+    def item_check_parent(self, item: QObject) -> None:
         sum_states = sum(item.child(idx).checkState() == Qt.Checked
                          for idx in range(item.rowCount()))
         if sum_states == item.rowCount():
@@ -228,7 +197,7 @@ class FolderTreeview(QTreeView):
             item.setCheckState(Qt.PartiallyChecked)
         self.resolve_item_up_changed(item)
 
-    def resolve_item_up_changed(self, item):
+    def resolve_item_up_changed(self, item: QObject) -> None:
         self.update_item_changed(item)
 
         parent = item.parent()
@@ -239,7 +208,7 @@ class FolderTreeview(QTreeView):
         self.update_item_changed(parent)
         self.item_check_parent(parent)
 
-    def update_item_changed(self, item):
+    def update_item_changed(self, item: QObject) -> None:
         fs_info = item.data(Qt.UserRole).toPyObject()
 
         # Fake children have no data attached
@@ -255,7 +224,7 @@ class FolderTreeview(QTreeView):
         elif not is_dirty and is_in_dirty:
             self.dirty_items.remove(fs_info)
 
-    def resolve_item_down_changed(self, item):
+    def resolve_item_down_changed(self, item: QObject) -> None:
         """ Put the same state for every child. """
         self.update_item_changed(item)
         state = item.checkState()
@@ -264,7 +233,7 @@ class FolderTreeview(QTreeView):
             child.setCheckState(state)
             self.resolve_item_down_changed(child)
 
-    def itemChanged(self, item):
+    def itemChanged(self, item: QObject) -> None:
         # Disconnect from signal to update the tree has we want
         self.setEnabled(False)
         self.root_item.itemChanged.disconnect(self.itemChanged)
@@ -278,12 +247,12 @@ class FolderTreeview(QTreeView):
         self.root_item.itemChanged.connect(self.itemChanged)
         self.setEnabled(True)
 
-    def itemExpanded(self, index):
+    def itemExpanded(self, index: QModelIndex) -> None:
         index = self.model().index(index.row(), 0, index.parent())
         item = self.model().itemFromIndex(index)
         self.load_children(item)
 
-    def load_children(self, item=None):
+    def load_children(self, item: Optional[QStandardItemModel]) -> None:
         if self.client is None:
             self.setLoad(False)
             return
@@ -292,12 +261,15 @@ class FolderTreeview(QTreeView):
         load_thread = Thread(target=self.load_children_thread, args=(item,))
         load_thread.start()
 
-    def sort_children(self, children):
+    def sort_children(self, children: List[FileInfo]) -> List[FileInfo]:
         # Put in a specific method to be able to override if needed
         # NXDRIVE-12: Sort child alphabetically
         return sorted(children, key=lambda x: x.get_label().lower())
 
-    def load_children_thread(self, parent=None):
+    def load_children_thread(
+        self,
+        parent: Optional[QStandardItemModel],
+    ) -> None:
         if not parent:
             parent = self.model().invisibleRootItem()
             parent_item = None
@@ -312,7 +284,7 @@ class FolderTreeview(QTreeView):
             self.cache.append(parent_item.get_id())
 
         # Clear previous items
-        children = self.client.get_children(parent_item)
+        children = list(self.client.get_children(parent_item))
 
         parent.removeRows(0, parent.rowCount())
         for child in self.sort_children(children):
@@ -337,10 +309,25 @@ class FolderTreeview(QTreeView):
         self.showHideLoadingOverlay.emit(False)
 
     @pyqtSlot(bool)
-    def setLoad(self, value):
+    def setLoad(self, value: bool) -> None:
         (self.overlay.hide, self.overlay.show)[value]()
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event: QObject) -> None:
         self.overlay.resize(event.size())
         event.accept()
         self.setColumnWidth(0, self.width())
+
+
+class Overlay(QWidget):
+
+    def __init__(self, parent: Optional[QTreeView]) -> None:
+        QLabel.__init__(self, parent)
+        palette = QPalette(self.palette())
+        palette.setColor(palette.Background, Qt.transparent)
+        self.setPalette(palette)
+        self.movie = QMovie(find_icon('loader.gif'))
+        self.movie.frameChanged.connect(self.redraw)
+        self.movie.start()
+
+    def redraw(self, _) -> None:
+        self.repaint()

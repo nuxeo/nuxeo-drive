@@ -1,5 +1,7 @@
 # coding: utf-8
 """ Python integration macOS notification center. """
+from typing import Dict, Optional
+
 from Foundation import (NSBundle, NSMutableDictionary, NSObject,
                         NSUserNotification, NSUserNotificationCenter)
 
@@ -10,14 +12,17 @@ __all__ = ('NotificationDelegator', 'notify', 'setup_delegator')
 
 class NotificationDelegator(NSObject):
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._manager = None
         info_dict = NSBundle.mainBundle().infoDictionary()
         if not 'CFBundleIdentifier' in info_dict:
             info_dict['CFBundleIdentifier'] = BUNDLE_IDENTIFIER
 
-    def userNotificationCenter_didActivateNotification_(self, center,
-                                                        notification):
+    def userNotificationCenter_didActivateNotification_(
+        self,
+        center: object,
+        notification: object,
+    ) -> None:
         info = notification.userInfo()
         if 'uuid' not in info or self._manager is None:
             return
@@ -27,18 +32,28 @@ class NotificationDelegator(NSObject):
             center.removeDeliveredNotification_(notification)
         self._manager.notification_service.trigger_notification(info['uuid'])
 
-    def userNotificationCenter_shouldPresentNotification_(self, center,
-                                                          notification):
+    def userNotificationCenter_shouldPresentNotification_(
+        self,
+        center: object,
+        notification: object,
+    ) -> bool:
         return True
 
 
-def setup_delegator(delegator=None):
+def setup_delegator(delegator: Optional[NotificationDelegator]) -> None:
     center = NSUserNotificationCenter.defaultUserNotificationCenter()
     if delegator is not None and center is not None:
         center.setDelegate_(delegator)
 
 
-def notify(title, subtitle, info_text, delay=0, sound=False, user_info=None):
+def notify(
+    title: str,
+    subtitle: str,
+    info_text: str,
+    delay: int=0,
+    sound: bool=False,
+    user_info: Optional[Dict[str, str]]=None,
+) -> None:
     """ Python method to show a desktop notification on Mountain Lion. Where:
         title: Title of notification
         subtitle: Subtitle of notification

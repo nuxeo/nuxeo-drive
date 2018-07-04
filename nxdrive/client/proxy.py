@@ -1,6 +1,6 @@
 # coding: utf-8
 from logging import getLogger
-from typing import Any, Dict
+from typing import Any, Dict, Type
 from urllib.parse import urlparse
 
 import requests
@@ -22,14 +22,14 @@ class MissingToken(Exception):
 class Proxy:
     category = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: str) -> None:
         """
         Empty init so any subclass of Proxy can receive any kwargs
         and not raise an error.
         """
         pass
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         attrs = ', '.join('{}={!r}'.format(attr, getattr(self, attr, None))
                           for attr in sorted(vars(self))
                           if not attr.startswith('_'))
@@ -102,7 +102,7 @@ class ManualProxy(Proxy):
             self.authenticated = authenticated
 
     @property
-    def url(self):
+    def url(self) -> str:
         return self.scheme + '://' + self.host + ':' + str(self.port)
 
     def settings(self, **kwargs: Any) -> Dict[str, Any]:
@@ -129,7 +129,12 @@ class AutomaticProxy(Proxy):
     """
     category = 'Automatic'
 
-    def __init__(self, pac_url: str=None, js: str=None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        pac_url: str=None,
+        js: str=None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         if pac_url and '://' not in pac_url:
             pac_url = 'http://' + pac_url
@@ -150,7 +155,7 @@ def get_proxy(**kwargs: Any) -> Proxy:
     return _get_cls(kwargs.pop('category'))(**kwargs)
 
 
-def load_proxy(dao: object, token: str=None) -> Proxy:
+def load_proxy(dao: 'EngineDAO', token: str=None) -> Proxy:
     category = dao.get_config('proxy_config', 'System')
     kwargs = {}
 
@@ -179,7 +184,7 @@ def load_proxy(dao: object, token: str=None) -> Proxy:
     return _get_cls(category)(**kwargs)
 
 
-def save_proxy(proxy: Proxy, dao: object, token: str=None) -> None:
+def save_proxy(proxy: Proxy, dao: 'EngineDAO', token: str=None) -> None:
     dao.update_config('proxy_config', proxy.category)
 
     if proxy.category == 'Automatic':
@@ -214,7 +219,7 @@ def validate_proxy(proxy: Proxy, url: str) -> bool:
         return False
 
 
-def _get_cls(category: str) -> bool:
+def _get_cls(category: str) -> Type[Proxy]:
     proxy_cls = {
         'None': NoProxy,
         'System': SystemProxy,

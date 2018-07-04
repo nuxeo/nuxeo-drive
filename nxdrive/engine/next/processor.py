@@ -2,9 +2,11 @@
 import os
 import shutil
 from logging import getLogger
+from typing import Callable, Optional
 
 from ..processor import Processor as OldProcessor
 from ...constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
+from ...objects import NuxeoDocumentInfo
 
 __all__ = ('Processor',)
 
@@ -12,30 +14,25 @@ log = getLogger(__name__)
 
 
 class Processor(OldProcessor):
-    def __init__(self, engine, item_getter, name=None):
+    def __init__(
+        self,
+        engine: 'Engine',
+        item_getter: Callable,
+        name: Optional[str],
+    ) -> None:
         super().__init__(engine, item_getter, name=name)
 
-    def acquire_state(self, row_id):
-        log.warning('acquire...')
-        result = super().acquire_state(row_id)
-        if (result is not None
-                and self.engine.get_local_watcher().is_pending_scan(
-                    result.local_parent_path)):
-            self._dao.release_processor(self._thread_id)
-            # Postpone pair for watcher delay
-            self.engine.get_queue_manager().postpone_pair(
-                result, self.engine.get_local_watcher().get_scan_delay())
-            return None
-        log.warning('Acquired: %r', result)
-        return result
-
-    def _get_partial_folders(self):
+    def _get_partial_folders(self) -> str:
         local = self.engine.local
         if not local.exists('/.partials'):
             local.make_folder('/', '.partials')
         return local.abspath('/.partials')
 
-    def _download_content(self, doc_pair, file_path):
+    def _download_content(
+        self,
+        doc_pair: NuxeoDocumentInfo,
+        file_path: str,
+    ) -> None:
 
         # TODO Should share between threads
         file_out = os.path.join(
@@ -54,7 +51,11 @@ class Processor(OldProcessor):
         self._update_speed_metrics()
         return tmp_file
 
-    def _update_remotely(self, doc_pair, is_renaming):
+    def _update_remotely(
+        self,
+        doc_pair: NuxeoDocumentInfo,
+        is_renaming: bool,
+    ) -> None:
         log.warning('_update_remotely')
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
@@ -75,7 +76,12 @@ class Processor(OldProcessor):
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
 
-    def _create_remotely(self, doc_pair, parent_pair, name):
+    def _create_remotely(
+        self,
+        doc_pair: NuxeoDocumentInfo,
+        parent_pair: NuxeoDocumentInfo,
+        name: str,
+    ) -> None:
         local_parent_path = parent_pair.local_path
         # TODO Shared this locking system / Can have concurrent lock
         self._unlock_readonly(local_parent_path)
@@ -100,6 +106,6 @@ class Processor(OldProcessor):
         finally:
             self._lock_readonly(local_parent_path)
             # Clean .nxpart if needed
-            if tmp_file is not None and os.path.exists(tmp_file):
+            if tmp_file and os.path.isfile(tmp_file):
                 os.remove(tmp_file)
         return path

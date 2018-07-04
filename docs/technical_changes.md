@@ -36,12 +36,17 @@
 - Removed `Options.proxy_type`
 - Removed `QueueManager.queueEmpty()`
 - Added `Remote.set_proxy()`
+- Removed `types` argument from `Remote.get_children_info()`. Use `types` attribute instead.
 - Removed `RemoteWatcher.get_engine()`. Use `engine` attribute instead.
 - Removed `WebDialog.loadError()`
 - Removed `WebDialog.requestFinished()`
 - Removed `Worker.actionUpdate()`
 - Added exceptions.py
 - Removed `filter_inotify` argument logging_config.py::`configure()`
+- Removed `log_rotate_keep` argument logging_config.py::`configure()`
+- Removed `log_rotate_max_bytes` argument logging_config.py::`configure()`
+- Removed `log_rotate_when` argument logging_config.py::`configure()`
+- Removed `use_file_handler` argument logging_config.py::`configure()`
 - Added client/proxy.py
 - Added client/remote_client.py
 - Moved client/common.py::`DuplicationDisabledError` exception to exceptions.py
@@ -58,11 +63,14 @@
 - Added constants.py::`LINUX`
 - Added constants.py::`MAC`
 - Added constants.py::`WINDOWS`
+- Removed constants.py::`DEFAULT_TYPES`
 - Removed engine/dao/sqlite.py::`FakeLock`
 - Moved engine/engine.py::`InvalidDriveException` exception exceptions.py
 - Moved engine/engine.py::`RootAlreadyBindWithDifferentAccount` exception to exceptions.py
 - Moved engine/workers.py::`PairInterrupt` exception to exceptions.py
 - Moved engine/workers.py::`ThreadInterrupt` exception to exceptions.py
+- Removed gui/folders_treeview.py::`DocFileInfo`
+- Removed gui/folders_treeview.py::`DocRootFileInfo`
 - Moved manager.py::`EngineTypeMissing` exception to exceptions.py
 - Moved manager.py::`FolderAlreadyUsed` exception to exceptions.py
 - Moved manager.py::`MissingToken` to client/proxy.py

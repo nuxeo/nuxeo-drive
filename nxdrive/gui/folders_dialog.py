@@ -1,5 +1,7 @@
 # coding: utf-8
-from PyQt5.QtCore import Qt
+from typing import Optional, Union
+
+from PyQt5.QtCore import QCoreApplication, QObject, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 
@@ -11,7 +13,12 @@ __all__ = ('FiltersDialog',)
 
 class FiltersDialog(QDialog):
 
-    def __init__(self, application, engine, parent=None):
+    def __init__(
+        self,
+        application: 'Application',
+        engine: 'Engine',
+        parent: Optional[QObject],
+    ) -> None:
         super().__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowTitle(Translator.get('FILTERS_WINDOW_TITLE'))
@@ -39,7 +46,7 @@ class FiltersDialog(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
-    def get_tree_view(self):
+    def get_tree_view(self) -> Union[QLabel, FolderTreeview]:
         if self.syncing:
             # Prevent filter modifications while syncing
             label = QLabel(Translator.get('FILTERS_DISABLED'))
@@ -53,7 +60,7 @@ class FiltersDialog(QDialog):
         client = FilteredFsClient(fs_client, filters)
         return FolderTreeview(self, client)
 
-    def accept(self):
+    def accept(self) -> None:
         """ When you click on the OK button. """
 
         if not self.syncing:
@@ -62,7 +69,7 @@ class FiltersDialog(QDialog):
 
         super().accept()
 
-    def apply_filters(self):
+    def apply_filters(self) -> None:
         items = sorted(self.tree_view.dirty_items, key=lambda x: x.get_path())
         for item in items:
             path = item.get_path()

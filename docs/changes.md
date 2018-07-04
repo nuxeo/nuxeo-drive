@@ -16,6 +16,7 @@ Changes in command line arguments:
 - [NXDRIVE-1201](https://jira.nuxeo.com/browse/NXDRIVE-1201): Adapt Drive for new Trash API behavior
 - [NXDRIVE-1210](https://jira.nuxeo.com/browse/NXDRIVE-1210): Sanitize exported objects
 - [NXDRIVE-1241](https://jira.nuxeo.com/browse/NXDRIVE-1241): Set the --consider-ssl-errors argument default value to True
+- [NXDRIVE-1242](https://jira.nuxeo.com/browse/NXDRIVE-1242): Use type annotations everywhere
 
 ### GUI
 - [NXDRIVE-1183](https://jira.nuxeo.com/browse/NXDRIVE-1183): Make server UI selection smarter

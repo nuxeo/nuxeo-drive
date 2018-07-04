@@ -1,13 +1,14 @@
 # coding: utf-8
 import time
 from threading import Lock
+from typing import Generator, Optional
 
 __all__ = ('BlacklistQueue',)
 
 
 class BlacklistItem:
 
-    def __init__(self, item_id, item, next_try=30):
+    def __init__(self, item_id: str, item: str, next_try: int=30) -> None:
         self.uid = item_id
         self._item = item
         self._interval = next_try
@@ -15,13 +16,13 @@ class BlacklistItem:
         self._next_try = self._interval + int(time.time())
         self.count = 1
 
-    def check(self, cur_time):
+    def check(self, cur_time: int) -> bool:
         return cur_time > self._next_try
 
     def get(self):
         return self._item
 
-    def increase(self, next_try=None):
+    def increase(self, next_try: Optional[int]=None) -> None:
         self.count += 1
         cur_time = int(time.time())
         if next_try is not None:
@@ -32,18 +33,18 @@ class BlacklistItem:
 
 class BlacklistQueue:
 
-    def __init__(self, delay=30):
+    def __init__(self, delay: int=30) -> None:
         self._delay = delay
 
         self._queue = dict()
         self._lock = Lock()
 
-    def push(self, id_obj, obj):
+    def push(self, id_obj: str, obj: str) -> None:
         item = BlacklistItem(item_id=id_obj, item=obj, next_try=self._delay)
         with self._lock:
             self._queue[item.uid] = item
 
-    def repush(self, item, increase_wait=True):
+    def repush(self, item: BlacklistItem, increase_wait: bool=True) -> None:
         if increase_wait:
             item.increase()
         else:
@@ -52,10 +53,10 @@ class BlacklistQueue:
         with self._lock:
             self._queue[item.uid] = item
 
-    def get(self):
+    def get(self) -> Generator[BlacklistItem, None, None]:
         cur_time = int(time.time())
         with self._lock:
-            for item in self._queue.values():
+            for item in list(self._queue.values()):
                 if item.check(cur_time):
                     del self._queue[item.uid]
                     yield item

@@ -20,10 +20,12 @@ htmlcov
 *.iml
 lextab.py
 MANIFEST
+.mypy_cache
 pypi*
 .project
 *.pyc
 .pydevproject
+.pyre*
 .pytest_cache
 .ropeproject
 .settings

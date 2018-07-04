@@ -40,15 +40,15 @@ class NotFound(OSError):
 class ParentNotSynced(ValueError):
     """ Fired when the parent folder of a document is not yet synchronized. """
 
-    def __init__(self, local_path: str, local_parent_path: str):
+    def __init__(self, local_path: str, local_parent_path: str) -> None:
         self.local_path = local_path
         self.local_parent_path = local_parent_path
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Parent folder of %r, %r is not bound to a remote folder' % (
             self.local_path, self.local_parent_path)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self)
 
 
@@ -59,7 +59,7 @@ class PairInterrupt(DriveError):
 class RootAlreadyBindWithDifferentAccount(DriveError):
     """ The bound folder is already used by another account. """
 
-    def __init__(self, username, url):
+    def __init__(self, username: str, url: str) -> None:
         self.username = username
         self.url = url
 

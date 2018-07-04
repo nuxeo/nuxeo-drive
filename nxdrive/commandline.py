@@ -1,14 +1,15 @@
 # coding: utf-8
 """ Utilities to operate Nuxeo Drive from the command line. """
 
-import argparse
 import faulthandler
 import os
 import sys
 import traceback
+from argparse import ArgumentParser, Namespace
+from configparser import ConfigParser, DEFAULTSECT
 from datetime import datetime
-from getpass import getpass
 from logging import getLogger
+from typing import List, Optional, Union
 
 from . import __version__
 from .logging_config import configure
@@ -58,13 +59,12 @@ class CliHandler:
     def get_version(self)-> str:
         return __version__
 
-    def make_cli_parser(self, add_subparsers=True):
-        # type (bool) -> argparse.ArgumentParser
+    def make_cli_parser(self, add_subparsers: bool=True) -> ArgumentParser:
         """
         Parse commandline arguments using a git-like subcommands scheme.
         """
 
-        common_parser = argparse.ArgumentParser(add_help=False)
+        common_parser = ArgumentParser(add_help=False)
         common_parser.add_argument(
             '--nxdrive-home', default=Options.nxdrive_home,
             help='Folder to store the Nuxeo Drive configuration')
@@ -148,7 +148,7 @@ class CliHandler:
             '-v', '--version', action='version', version=self.get_version(),
             help='Print the current version of the Nuxeo Drive client')
 
-        parser = argparse.ArgumentParser(
+        parser = ArgumentParser(
             parents=[common_parser],
             description='Command line interface for Nuxeo Drive operations.',
             usage=USAGE)
@@ -272,7 +272,7 @@ class CliHandler:
         return parser
     """Command Line Interface handler: parse options and execute operation"""
 
-    def parse_cli(self, argv):
+    def parse_cli(self, argv: List[str]) -> Namespace:
         """Parse the command line argument using argparse and protocol URL"""
         # Filter psn argument provided by OSX .app service launcher
         # https://developer.apple.com/library/mac/documentation/Carbon/Reference/LaunchServicesReference/LaunchServicesReference.pdf
@@ -313,8 +313,7 @@ class CliHandler:
 
         return options
 
-    def load_config(self, parser):
-        from configparser import ConfigParser, DEFAULTSECT
+    def load_config(self, parser: ArgumentParser) -> None:
         config_name = 'config.ini'
         config = ConfigParser()
         configs = []
@@ -356,11 +355,7 @@ class CliHandler:
             Options.update(args, setter='local')
             parser.set_defaults(**args)
 
-    def _configure_logger(
-        self,
-        command: str,
-        options: argparse.ArgumentParser,
-    ) -> None:
+    def _configure_logger(self, command: str, options: Namespace) -> None:
         """ Configure the logging framework from the provided options. """
 
         # Ensure the log folder exists
@@ -375,17 +370,16 @@ class CliHandler:
                 options.nxdrive_home, 'logs', 'nxdrive.log')
 
         configure(
-            use_file_handler=True,
             log_filename=filename,
             file_level=options.log_level_file,
             console_level=options.log_level_console,
             command_name=command,
         )
 
-    def uninstall(self):
+    def uninstall(self) -> None:
         self.manager.osi.uninstall()
 
-    def handle(self, argv):
+    def handle(self, argv: List[str]) -> None:
         """ Parse options, setup logs and manager and dispatch execution. """
         options = self.parse_cli(argv)
 
@@ -432,18 +426,25 @@ class CliHandler:
                 # Make it possible to use the postmortem debugger
                 raise
 
-    def get_manager(self):
+    def get_manager(self) -> 'Manager':
         from .manager import Manager
         return Manager()
 
-    def _get_application(self, console=False):
+    def _get_application(
+        self,
+        console: bool=False,
+    ) -> Union['Application', 'ConsoleApplication']:
         if console:
             from .console import ConsoleApplication
             return ConsoleApplication(self.manager)
         from .wui.application import Application
         return Application(self.manager)
 
-    def launch(self, options=None, console=False):
+    def launch(
+        self,
+        options: Optional[Namespace]=None,
+        console: bool=False,
+    ) -> int:
         """Launch the Qt app in the main thread and sync in another thread."""
         from .utils import PidLockFile
 
@@ -453,7 +454,7 @@ class CliHandler:
                 self.manager.direct_edit.handle_url()
             else:
                 log.warning('Qt application already running: exiting')
-            return
+            return 0
 
         app = self._get_application(console=console)
         exit_code = app.exec_()
@@ -461,7 +462,7 @@ class CliHandler:
         log.debug('Qt application exited with code %r', exit_code)
         return exit_code
 
-    def clean_folder(self, options):
+    def clean_folder(self, options: Namespace) -> int:
         from .client.local_client import LocalClient
         if not options.local_folder:
             print('A folder must be specified')
@@ -471,40 +472,37 @@ class CliHandler:
         client.clean_xattr_root()
         return 0
 
-    def console(self, options):
+    def console(self, options: Namespace) -> int:
         if options.debug_pydev:
             from pydev import pydevd
             pydevd.settrace()
         return self.launch(options=options, console=True)
 
-    def ctx_access_online(self, options):
+    def ctx_access_online(self, options: Namespace) -> None:
         """ Event fired by "Access online" menu entry. """
         file_path = normalized_path(options.file)
         self.manager.ctx_access_online(file_path)
 
-    def ctx_copy_share_link(self, options):
+    def ctx_copy_share_link(self, options: Namespace) -> None:
         """ Event fired by "Copy share-link" menu entry. """
         file_path = normalized_path(options.file)
         self.manager.ctx_copy_share_link(file_path)
 
-    def ctx_edit_metadata(self, options):
+    def ctx_edit_metadata(self, options: Namespace) -> None:
         """ Event fired by "Edit metadata" menu entry. """
         file_path = normalized_path(options.file)
         self.manager.ctx_edit_metadata(file_path)
 
-    def download_edit(self, options):
+    def download_edit(self, options: Namespace) -> int:
         self.launch(options=options)
         return 0
 
-    def bind_server(self, options):
-        check_credentials = True
-        if options.password is None:
-            password = getpass()
+    def bind_server(self, options: Namespace) -> int:
+        password, check_credentials = None, True
+        if not options.password:
+            check_credentials = False
         else:
             password = options.password
-            if not password:
-                password = None
-                check_credentials = False
 
         self.manager.bind_server(
             options.local_folder,
@@ -515,7 +513,7 @@ class CliHandler:
             check_credentials=check_credentials)
         return 0
 
-    def unbind_server(self, options):
+    def unbind_server(self, options: Namespace) -> int:
         for uid, engine in self.manager.get_engines().items():
             if engine.local_folder == options.local_folder:
                 self.manager.unbind_engine(uid)
@@ -524,7 +522,7 @@ class CliHandler:
                   options.local_folder)
         return 1
 
-    def bind_root(self, options):
+    def bind_root(self, options: Namespace) -> int:
         for engine in self.manager.get_engines().values():
             log.trace('Comparing: %r to %r',
                       engine.local_folder, options.local_folder)
@@ -535,7 +533,7 @@ class CliHandler:
                   options.local_folder)
         return 1
 
-    def unbind_root(self, options):
+    def unbind_root(self, options: Namespace) -> int:
         for engine in self.manager.get_engines().values():
             if engine.local_folder == options.local_folder:
                 engine.remote.unregister_as_root(options.remote_root)
@@ -544,7 +542,8 @@ class CliHandler:
                   options.local_folder)
         return 1
 
-    def _install_faulthandler(self):
+    @staticmethod
+    def _install_faulthandler() -> None:
         """ Utility to help debug segfaults. """
         segfault_filename = os.path.expanduser(os.path.join(
             Options.nxdrive_home, 'logs', 'segfault.log'))

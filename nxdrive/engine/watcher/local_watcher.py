@@ -7,16 +7,18 @@ from os.path import basename, dirname, getctime
 from queue import Queue
 from threading import Lock
 from time import mktime, sleep, time
+from typing import Any, Dict
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
-from watchdog.events import PatternMatchingEventHandler
+from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
 
 from ..activity import tooltip
-from ..workers import EngineWorker
-from ...client.local_client import LocalClient
+from ..workers import EngineWorker, Worker
+from ...client import LocalClient
 from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, WINDOWS
 from ...exceptions import ThreadInterrupt
+from ...objects import Metrics, NuxeoDocumentInfo
 from ...options import Options
 from ...utils import (current_milli_time, force_decode, is_generated_tmp_file,
                       normalize_event_filename as normalize)
@@ -31,7 +33,7 @@ WIN_MOVE_RESOLUTION_PERIOD = 2000
 TEXT_EDIT_TMP_FILE_PATTERN = r'.*\.rtf\.sb\-(\w)+\-(\w)+$'
 
 
-def is_text_edit_tmp_file(name):
+def is_text_edit_tmp_file(name: str) -> bool:
     return re.match(TEXT_EDIT_TMP_FILE_PATTERN, name)
 
 
@@ -43,7 +45,7 @@ class LocalWatcher(EngineWorker):
     # Windows lock
     lock = Lock()
 
-    def __init__(self, engine, dao):
+    def __init__(self, engine: 'Engine', dao: 'EngineDAO') -> None:
         super().__init__(engine, dao)
         self._event_handler = None
         # Delay for the scheduled recursive scans of
@@ -56,7 +58,7 @@ class LocalWatcher(EngineWorker):
         # TODO Review to delete
         self._init()
 
-    def _init(self):
+    def _init(self) -> None:
         self.local = self.engine.local
         self._metrics = {
             'last_local_scan_time': -1,
@@ -70,7 +72,7 @@ class LocalWatcher(EngineWorker):
         self._delete_events = dict()
         self._folder_scan_events = dict()
 
-    def _execute(self):
+    def _execute(self) -> None:
         try:
             self._init()
             if not self.local.exists('/'):
@@ -106,13 +108,13 @@ class LocalWatcher(EngineWorker):
         finally:
             self._stop_watchdog()
 
-    def win_queue_empty(self):
+    def win_queue_empty(self) -> bool:
         return not self._delete_events
 
-    def get_win_queue_size(self):
+    def get_win_queue_size(self) -> int:
         return len(self._delete_events)
 
-    def _win_delete_check(self):
+    def _win_delete_check(self) -> None:
         elapsed = int(round(time() * 1000)) - WIN_MOVE_RESOLUTION_PERIOD
         if self._win_delete_interval >= elapsed:
             return
@@ -122,7 +124,7 @@ class LocalWatcher(EngineWorker):
         self._win_delete_interval = int(round(time() * 1000))
 
     @tooltip('Dequeue delete')
-    def _win_dequeue_delete(self):
+    def _win_dequeue_delete(self) -> None:
         try:
             for evt in list(self._delete_events.values()):
                 evt_time, evt_pair = evt
@@ -151,13 +153,13 @@ class LocalWatcher(EngineWorker):
         except:
             log.exception('Win: dequeuing deletion error')
 
-    def win_folder_scan_empty(self):
+    def win_folder_scan_empty(self) -> bool:
         return not self._folder_scan_events
 
-    def get_win_folder_scan_size(self):
+    def get_win_folder_scan_size(self) -> int:
         return len(self._folder_scan_events)
 
-    def _win_folder_scan_check(self):
+    def _win_folder_scan_check(self) -> None:
         elapsed = int(round(time() * 1000)) - self._windows_folder_scan_delay
         if self._win_folder_scan_interval >= elapsed:
             return
@@ -167,7 +169,7 @@ class LocalWatcher(EngineWorker):
         self._win_folder_scan_interval = int(round(time() * 1000))
 
     @tooltip('Dequeue folder scan')
-    def _win_dequeue_folder_scan(self):
+    def _win_dequeue_folder_scan(self) -> None:
         try:
             for evt_time, evt_pair in  list(self._folder_scan_events.values()):
                 local_path = evt_pair.local_path
@@ -209,7 +211,7 @@ class LocalWatcher(EngineWorker):
             log.exception('Win: dequeuing folder scan error')
 
     @tooltip('Full local scan')
-    def _scan(self):
+    def _scan(self) -> None:
         log.debug('Full scan started')
         start_ms = current_milli_time()
         to_pause = not self.engine.get_queue_manager().is_paused()
@@ -228,27 +230,27 @@ class LocalWatcher(EngineWorker):
             self.engine.get_queue_manager().resume()
         self.localScanFinished.emit()
 
-    def _scan_handle_deleted_files(self):
+    def _scan_handle_deleted_files(self) -> None:
         for deleted in self._delete_files:
             if deleted in self._protected_files:
                 continue
             self._dao.delete_local_state(self._delete_files[deleted])
         self._delete_files = dict()
 
-    def get_metrics(self):
+    def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
         if self._event_handler:
             metrics['fs_events'] = self._event_handler.counter
         return {**metrics, **self._metrics}
 
-    def _suspend_queue(self):
+    def _suspend_queue(self) -> None:
         queue = self.engine.get_queue_manager()
         queue.suspend()
         for processor in queue.get_processors_on('/', exact_match=False):
             processor.stop()
 
     @pyqtSlot(str)
-    def scan_pair(self, local_path):
+    def scan_pair(self, local_path: str) -> None:
         to_pause = not self.engine.get_queue_manager().is_paused()
         if to_pause:
             self._suspend_queue()
@@ -260,14 +262,14 @@ class LocalWatcher(EngineWorker):
         if to_pause:
             self.engine.get_queue_manager().resume()
 
-    def empty_events(self):
+    def empty_events(self) -> bool:
         ret = self.watchdog_queue.empty()
         if WINDOWS:
             ret &= self.win_queue_empty()
             ret &= self.win_folder_scan_empty()
         return ret
 
-    def get_creation_time(self, child_full_path):
+    def get_creation_time(self, child_full_path: str) -> int:
         if WINDOWS:
             return getctime(child_full_path)
 
@@ -279,7 +281,11 @@ class LocalWatcher(EngineWorker):
             return stat.st_birthtime
         return 0
 
-    def _scan_recursive(self, info, recursive=True):
+    def _scan_recursive(
+        self,
+        info: NuxeoDocumentInfo,
+        recursive: bool=True,
+    ) -> None:
         if recursive:
             # Don't interact if only one level
             self._interact()
@@ -551,7 +557,7 @@ class LocalWatcher(EngineWorker):
             self._scan_recursive(child_info)
 
     @tooltip('Setup watchdog')
-    def _setup_watchdog(self):
+    def _setup_watchdog(self) -> None:
         """
         Monkey-patch Watchdog to:
             - Set the Windows hack delay to 0 in WindowsApiEmitter,
@@ -584,7 +590,7 @@ class LocalWatcher(EngineWorker):
         self._root_observer.schedule(self._root_event_handler, dirname(base))
         self._root_observer.start()
 
-    def _stop_watchdog(self):
+    def _stop_watchdog(self) -> None:
         if self._observer is not None:
             log.info('Stopping FS Observer thread')
             try:
@@ -616,14 +622,19 @@ class LocalWatcher(EngineWorker):
             # Delete all observers
             del self._root_observer
 
-    def _handle_watchdog_delete(self, doc_pair):
+    def _handle_watchdog_delete(self, doc_pair: NuxeoDocumentInfo) -> None:
         doc_pair.update_state('deleted', doc_pair.remote_state)
         if doc_pair.remote_state == 'unknown':
             self._dao.remove_state(doc_pair)
         else:
             self._dao.delete_local_state(doc_pair)
 
-    def _handle_watchdog_event_on_known_pair(self, doc_pair, evt, rel_path):
+    def _handle_watchdog_event_on_known_pair(
+        self,
+        doc_pair: NuxeoDocumentInfo,
+        evt: FileSystemEvent,
+        rel_path: str,
+    ) -> None:
         log.trace('Watchdog event %r on known pair %r', evt, doc_pair)
         dao, client = self._dao, self.local
 
@@ -740,8 +751,12 @@ class LocalWatcher(EngineWorker):
                                           refreshed_pair.pair_state,
                                           pair=refreshed_pair)
 
-    def _handle_watchdog_event_on_known_acquired_pair(self, doc_pair, evt,
-                                                      rel_path):
+    def _handle_watchdog_event_on_known_acquired_pair(
+        self,
+        doc_pair: NuxeoDocumentInfo,
+        evt: FileSystemEvent,
+        rel_path: str,
+    ) -> None:
         dao, client = self._dao, self.local
 
         if evt.event_type == 'deleted':
@@ -827,7 +842,7 @@ class LocalWatcher(EngineWorker):
                                          doc_pair.remote_ref)
             dao.update_local_state(doc_pair, local_info)
 
-    def handle_watchdog_root_event(self, evt):
+    def handle_watchdog_root_event(self, evt: FileSystemEvent) -> None:
         if evt.event_type == 'moved':
             log.warning('Root has been moved to %r', evt.dest_path)
             self.rootMoved.emit(evt.dest_path)
@@ -836,7 +851,7 @@ class LocalWatcher(EngineWorker):
             self.rootDeleted.emit()
 
     @tooltip('Handle watchdog event')
-    def handle_watchdog_event(self, evt):
+    def handle_watchdog_event(self, evt: FileSystemEvent) -> None:
         dao, client = self._dao, self.local
 
         # Ignore *.nxpart
@@ -1092,7 +1107,7 @@ class LocalWatcher(EngineWorker):
         except:
             log.exception('Watchdog exception')
 
-    def _schedule_win_folder_scan(self, doc_pair):
+    def _schedule_win_folder_scan(self, doc_pair: NuxeoDocumentInfo) -> None:
         # On Windows schedule another recursive scan to make sure I/Os finished
         # ex: copy/paste, move
         if (self._win_folder_scan_interval > 0
@@ -1108,12 +1123,12 @@ class LocalWatcher(EngineWorker):
 
 
 class DriveFSEventHandler(PatternMatchingEventHandler):
-    def __init__(self, watcher, **kwargs):
+    def __init__(self, watcher: Worker, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.counter = 0
         self.watcher = watcher
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return ('<{name}'
                 ' patterns={cls.patterns!r},'
                 ' ignore_patterns={cls.ignore_patterns!r},'
@@ -1122,20 +1137,20 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
                 '>'
                 ).format(name=type(self).__name__, cls=self)
 
-    def on_any_event(self, event):
+    def on_any_event(self, event: FileSystemEvent) -> None:
         self.counter += 1
         log.trace('Queueing watchdog: %r', event)
         self.watcher.watchdog_queue.put(event)
 
 
 class DriveFSRootEventHandler(PatternMatchingEventHandler):
-    def __init__(self, watcher, name, **kwargs):
+    def __init__(self, watcher: Worker, name: str, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.name = name
         self.counter = 0
         self.watcher = watcher
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return ('<{name}'
                 ' patterns={cls.patterns!r},'
                 ' ignore_patterns={cls.ignore_patterns!r},'
@@ -1144,7 +1159,7 @@ class DriveFSRootEventHandler(PatternMatchingEventHandler):
                 '>'
                 ).format(name=type(self).__name__, cls=self)
 
-    def on_any_event(self, event):
+    def on_any_event(self, event: FileSystemEvent) -> None:
         if basename(event.src_path) != self.name:
             return
         self.counter += 1

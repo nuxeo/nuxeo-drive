@@ -4,8 +4,9 @@ import os
 from logging import getLogger
 from queue import Queue
 from time import sleep, time
+from typing import Union
 
-from watchdog.events import DirModifiedEvent
+from watchdog.events import DirModifiedEvent, FileSystemEvent
 
 from ...client.local_client import FileInfo
 from ...engine.watcher import LocalWatcher
@@ -24,12 +25,12 @@ class SimpleWatcher(LocalWatcher):
     with a folder check should do the trick.
     """
 
-    def __init__(self, engine, dao):
+    def __init__(self, engine: 'Engine', dao: 'EngineDAO') -> None:
         super().__init__(engine, dao)
         self._scan_delay = 1
         self._to_scan = dict()
 
-    def _push_to_scan(self, info):
+    def _push_to_scan(self, info: Union[FileInfo, str]) -> None:
         if isinstance(info, FileInfo):
             super()._scan_recursive(info)
             return
@@ -37,20 +38,24 @@ class SimpleWatcher(LocalWatcher):
         log.warning("should scan: %s", info)
         self._to_scan[info] = current_milli_time()
 
-    def empty_events(self):
+    def empty_events(self) -> bool:
         return self.watchdog_queue.empty() and len(self._to_scan) == 0
 
-    def get_scan_delay(self):
+    def get_scan_delay(self) -> int:
         return self._scan_delay
 
-    def is_inside(self, abspath):
-        # type: (Text) -> bool
+    def is_inside(self, abspath: str) -> bool:
         return abspath.startswith(self.local.base_folder)
 
-    def is_pending_scan(self, ref):
+    def is_pending_scan(self, ref: str) -> bool:
         return ref in self._to_scan
 
-    def handle_watchdog_move(self, evt, _, rel_path):
+    def handle_watchdog_move(
+        self,
+        evt: FileSystemEvent,
+        _,
+        rel_path: str,
+    ) -> None:
         # Dest
         dst_path = normalize_event_filename(evt.dest_path)
         if self.local.is_temp_file(os.path.basename(dst_path)):
@@ -77,7 +82,7 @@ class SimpleWatcher(LocalWatcher):
         self._dao.update_local_state(doc_pair, local_info, versioned=True)
         log.warning("has update with moved status")
 
-    def handle_watchdog_event(self, evt):
+    def handle_watchdog_event(self, evt: FileSystemEvent) -> None:
         self._metrics['last_event'] = current_milli_time()
         # For creation and deletion just update the parent folder
         src_path = normalize_event_filename(evt.src_path)
@@ -126,7 +131,7 @@ class SimpleWatcher(LocalWatcher):
             log.warning("file is updated: %r", doc_pair)
             self._dao.update_local_state(doc_pair, local_info, versioned=True)
 
-    def _execute(self):
+    def _execute(self) -> None:
         try:
             self._init()
             if not self.local.exists('/'):
@@ -176,7 +181,7 @@ class SimpleWatcher(LocalWatcher):
         finally:
             self._stop_watchdog()
 
-    def _scan_handle_deleted_files(self):
+    def _scan_handle_deleted_files(self) -> None:
         log.warning("delete files are: %r", self._delete_files)
         # Need to check for the current file
         to_deletes = copy.copy(self._delete_files)
@@ -194,7 +199,7 @@ class SimpleWatcher(LocalWatcher):
             # Really delete file then
             del self._delete_files[deleted]
 
-    def _scan_path(self, path):
+    def _scan_path(self, path: str) -> None:
         if self.local.exists(path):
             log.warning("Scan delayed folder: %s:%d",
                         path, len(self.local.get_children_info(path)))

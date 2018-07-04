@@ -5,6 +5,7 @@ import os
 import platform
 import sys
 from logging import getLogger
+from typing import Any, Dict
 from urllib.parse import urlsplit
 
 from PyQt5.QtCore import QTimer, pyqtSlot
@@ -12,6 +13,7 @@ from UniversalAnalytics import Tracker as UATracker
 
 from .workers import Worker
 from ..constants import MAC, WINDOWS
+from ..objects import NuxeoDocumentInfo
 
 if MAC:
     from Foundation import NSLocale
@@ -25,7 +27,7 @@ class Tracker(Worker):
 
     fmt_event = 'Send {category}({action}) {label}: {value!r}'
 
-    def __init__(self, manager, uid='UA-81135-23'):
+    def __init__(self, manager: 'Manager', uid: str='UA-81135-23') -> None:
         super().__init__()
         self._manager = manager
         self._thread.started.connect(self.run)
@@ -53,11 +55,11 @@ class Tracker(Worker):
                 self._send_directedit_edit)
 
     @pyqtSlot(object)
-    def connect_engine(self, engine):
+    def connect_engine(self, engine: 'Engine') -> None:
         engine.newSync.connect(self._send_sync_event)
 
     @property
-    def current_locale(self):
+    def current_locale(self) -> str:
         """ Detect the OS default language. """
 
         encoding = locale.getdefaultlocale()[1]
@@ -74,7 +76,7 @@ class Tracker(Worker):
         return '.'.join([l10n, encoding])
 
     @property
-    def current_os(self):
+    def current_os(self) -> str:
         """ Detect the OS. """
 
         system = platform.system()
@@ -91,13 +93,13 @@ class Tracker(Worker):
         return '{} {}'.format(name, version.strip())
 
     @property
-    def user_agent(self):
+    def user_agent(self) -> str:
         """ Format a custom user agent. """
 
         return 'NuxeoDrive/{} ({})'.format(self._manager.version,
                                            self.current_os)
 
-    def send_event(self, **kwargs):
+    def send_event(self, **kwargs: Any) -> None:
         engine = self._manager.get_engines().values()[0]
 
         if engine:
@@ -115,7 +117,7 @@ class Tracker(Worker):
             log.exception('Error sending analytics')
 
     @pyqtSlot(object)
-    def _send_directedit_open(self, remote_info):
+    def _send_directedit_open(self, remote_info: NuxeoDocumentInfo) -> None:
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
             extension = 'unknown'
@@ -127,7 +129,7 @@ class Tracker(Worker):
             value=self._manager.direct_edit.get_metrics()['last_action_timing'])
 
     @pyqtSlot(object)
-    def _send_directedit_edit(self, remote_info):
+    def _send_directedit_edit(self, remote_info: NuxeoDocumentInfo) -> None:
         _, extension = os.path.splitext(remote_info.filename)
         if extension is None:
             extension = 'unknown'
@@ -139,7 +141,7 @@ class Tracker(Worker):
             value=self._manager.direct_edit.get_metrics()['last_action_timing'])
 
     @pyqtSlot(object)
-    def _send_sync_event(self, metrics):
+    def _send_sync_event(self, metrics: Dict[str, Any]) -> None:
         timing = metrics.get('end_time', 0) - metrics['start_time']
         speed = metrics.get('speed', None)
 
@@ -158,7 +160,7 @@ class Tracker(Worker):
                 value=speed)
 
     @pyqtSlot()
-    def _send_stats(self):
+    def _send_stats(self) -> None:
         for _, engine in self._manager.get_engines().items():
             for key, value in engine.get_metrics().items():
                 if not isinstance(value, int):

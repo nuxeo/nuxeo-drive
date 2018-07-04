@@ -7,11 +7,12 @@ import nuxeo.constants
 import nuxeo.operations
 from nuxeo.exceptions import HTTPError
 
-from nxdrive.client import LocalClient, NuxeoDocumentInfo, Remote
+from nxdrive.client import LocalClient, Remote
 from nxdrive.constants import MAC
 from nxdrive.engine.engine import Engine
 from nxdrive.logging_config import configure
 from nxdrive.manager import Manager
+from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import make_tmp_file, safe_filename
 
 # Automatically check all operations done with the Python client

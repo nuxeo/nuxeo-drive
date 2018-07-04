@@ -2,6 +2,7 @@
 import os
 from datetime import datetime
 from logging import getLogger
+from typing import Generator, Optional
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 from .logging_config import MAX_LOG_DISPLAYED, get_handler
@@ -28,7 +29,7 @@ class Report:
             final_path = report.path
     """
 
-    def __init__(self, manager, report_path=None):
+    def __init__(self, manager: 'Manager', report_path: Optional[str]) -> None:
         self._manager = manager
         if not report_path:
             self._report_name = ('report_'
@@ -43,7 +44,7 @@ class Report:
             self._report_name += '.zip'
         self._zipfile = os.path.join(folder, self._report_name)
 
-    def copy_logs(self, myzip):
+    def copy_logs(self, myzip: ZipFile) -> None:
         """
         Copy all log files to the ZIP report.
         If one log file fails, we just try the next one.
@@ -69,7 +70,7 @@ class Report:
                 log.exception('Impossible to copy the log %r', rel_path)
 
     @staticmethod
-    def copy_db(myzip, dao):
+    def copy_db(myzip: ZipFile, dao: 'EngineDAO') -> None:
         """
         Copy a databse file to the ZIP report.
         If it fails, we just try ignore the file.
@@ -84,11 +85,11 @@ class Report:
                 log.exception('Impossible to copy the database %r',
                               os.path.basename(dao._db))
 
-    def get_path(self):
+    def get_path(self) -> str:
         return self._zipfile
 
     @staticmethod
-    def _export_logs():
+    def _export_logs() -> Generator[str, None, None]:
         """
         Export all lines from the memory logger.
 
@@ -112,7 +113,7 @@ class Report:
                 line = line.encode(errors='replace')
             yield line
 
-    def generate(self):
+    def generate(self) -> None:
         """ Create the ZIP report with all interesting files. """
 
         log.debug('Create report %r', self._zipfile)
