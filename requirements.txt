@@ -2,7 +2,7 @@ appdirs==1.4.3
 markdown==2.6.11
 nuxeo==2.0.2
 psutil==5.4.6
-PyQt5==5.10.1
+PyQt5==5.11.2
 pyaml==17.12.1
 pycryptodomex==3.6.3
 pypac==0.9.0
