@@ -1,7 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 from threading import Thread
-from typing import Generator, List, Optional, Union
+from typing import Generator, List, Union
 
 from PyQt5.QtCore import QModelIndex, QObject, QVariant, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QMovie, QPalette, QStandardItem, QStandardItemModel
@@ -17,7 +17,7 @@ log = getLogger(__name__)
 
 
 class FileInfo:
-    def __init__(self, parent: Optional[QObject], state: Optional[int]) -> None:
+    def __init__(self, parent: QObject = None, state: int = None) -> None:
         self.parent = parent
         self.children = []
         if parent:
@@ -80,7 +80,7 @@ class FileInfo:
 
 
 class FsRootFileInfo(FileInfo):
-    def __init__(self, fs_info: RemoteFileInfo, state: Optional[int]) -> None:
+    def __init__(self, fs_info: RemoteFileInfo, state: int = None) -> None:
         super().__init__(parent=None, state=state)
         self.fs_info = fs_info
 
@@ -99,7 +99,7 @@ class FsRootFileInfo(FileInfo):
 
 class FsFileInfo(FileInfo):
     def __init__(
-        self, fs_info: RemoteFileInfo, parent: Optional[FileInfo], state: Optional[int]
+        self, fs_info: RemoteFileInfo, parent: FileInfo = None, state: int = None
     ) -> None:
         super().__init__(parent=parent, state=state)
         self.fs_info = fs_info
@@ -118,12 +118,12 @@ class FsFileInfo(FileInfo):
 
 
 class Client:
-    def get_children(self, parent: Optional[FileInfo]) -> None:
+    def get_children(self, parent: FileInfo = None) -> None:
         return None
 
 
 class FilteredFsClient(Client):
-    def __init__(self, fs_client: FilteredRemote, filters: Optional[Filters]) -> None:
+    def __init__(self, fs_client: FilteredRemote, filters: Filters = None) -> None:
         self.fs_client = fs_client
         filters = filters or []
         self.filters = [filter_obj.path for filter_obj in filters]
@@ -142,7 +142,7 @@ class FilteredFsClient(Client):
         return Qt.Checked
 
     def get_children(
-        self, parent: Optional[FileInfo]
+        self, parent: FileInfo = None
     ) -> Generator[Union[FsFileInfo, FsRootFileInfo], None, None]:
         if parent:
             for info in self.fs_client.get_fs_children(parent.get_id()):
@@ -244,7 +244,7 @@ class FolderTreeview(QTreeView):
         item = self.model().itemFromIndex(index)
         self.load_children(item)
 
-    def load_children(self, item: Optional[QStandardItemModel]) -> None:
+    def load_children(self, item: QStandardItemModel = None) -> None:
         if self.client is None:
             self.setLoad(False)
             return
@@ -258,7 +258,7 @@ class FolderTreeview(QTreeView):
         # NXDRIVE-12: Sort child alphabetically
         return sorted(children, key=lambda x: x.get_label().lower())
 
-    def load_children_thread(self, parent: Optional[QStandardItemModel]) -> None:
+    def load_children_thread(self, parent: QStandardItemModel = None) -> None:
         if not parent:
             parent = self.model().invisibleRootItem()
             parent_item = None
@@ -308,7 +308,7 @@ class FolderTreeview(QTreeView):
 
 
 class Overlay(QWidget):
-    def __init__(self, parent: Optional[QTreeView]) -> None:
+    def __init__(self, parent: QTreeView = None) -> None:
         QLabel.__init__(self, parent)
         palette = QPalette(self.palette())
         palette.setColor(palette.Background, Qt.transparent)

@@ -76,7 +76,7 @@ class RemoteWatcher(EngineWorker):
             raise
 
     @tooltip("Remote scanning")
-    def _scan_remote(self, from_state: Optional[NuxeoDocumentInfo]):
+    def _scan_remote(self, from_state: NuxeoDocumentInfo = None):
         """Recursively scan the bound remote folder looking for updates"""
         log.trace("Remote full scan")
         start_ms = current_milli_time()
@@ -659,7 +659,7 @@ class RemoteWatcher(EngineWorker):
         self,
         doc_pair: NuxeoDocumentInfo,
         remote_info: NuxeoDocumentInfo,
-        remote_path: Optional[str] = None,
+        remote_path: str = None,
         force_recursion: bool = True,
         moved: bool = False,
     ) -> None:

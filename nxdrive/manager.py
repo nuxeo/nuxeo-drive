@@ -257,7 +257,7 @@ class Manager(QObject):
     def is_paused(self) -> bool:  # TODO: Remove
         return self._pause
 
-    def resume(self, euid: Optional[str]) -> None:
+    def resume(self, euid: str = None) -> None:
         if not self._pause:
             return
         self._pause = False
@@ -268,7 +268,7 @@ class Manager(QObject):
             engine.resume()
         self.resumed.emit()
 
-    def suspend(self, euid: Optional[str]) -> None:
+    def suspend(self, euid: str = None) -> None:
         if self._pause:
             return
         self._pause = True
@@ -279,7 +279,7 @@ class Manager(QObject):
             engine.suspend()
         self.suspended.emit()
 
-    def stop(self, euid: Optional[str]) -> None:
+    def stop(self, euid: str = None) -> None:
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
@@ -290,7 +290,7 @@ class Manager(QObject):
             self.osi._cleanup()
         self.stopped.emit()
 
-    def start(self, euid: Optional[str]) -> None:
+    def start(self, euid: str = None) -> None:
         self._started = True
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
@@ -422,7 +422,7 @@ class Manager(QObject):
                 self._dao.update_config("device_id", self.__device_id)
         return self.__device_id
 
-    def get_config(self, value: str, default: Optional[Any] = None) -> Any:
+    def get_config(self, value: str, default: Any = None) -> Any:
         return self._dao.get_config(value, default)
 
     def set_config(self, key: str, value: Any) -> None:
@@ -450,7 +450,7 @@ class Manager(QObject):
         # Enabled by default, if app is frozen
         return self._dao.get_config("auto_start", str(int(Options.is_frozen))) == "1"
 
-    def generate_report(self, path: Optional[str]) -> str:
+    def generate_report(self, path: str = None) -> str:
         from .report import Report
 
         report = Report(self, path)
@@ -510,8 +510,8 @@ class Manager(QObject):
         url: str,
         username: str,
         password: str,
-        token: Optional[str] = None,
-        name: Optional[str] = None,
+        token: str = None,
+        name: str = None,
         start_engine: bool = True,
         check_credentials: bool = True,
     ) -> "Engine":

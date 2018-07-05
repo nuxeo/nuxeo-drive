@@ -58,7 +58,7 @@ class Remote(Nuxeo):
         upload_tmp_dir: str = None,
         check_suspended: Callable = None,
         base_folder: str = None,
-        dao: Optional[Any] = None,
+        dao: "EngineDAO" = None,
         repository: str = Options.remote_repo,
         timeout: int = TIMEOUT,
         **kwargs: Any,
@@ -861,7 +861,7 @@ class Remote(Nuxeo):
             command="NuxeoDrive.GenerateConflictedItemName", name=original_name
         )
 
-    def set_proxy(self, proxy: Optional[Proxy]) -> None:
+    def set_proxy(self, proxy: Proxy = None) -> None:
         if proxy:
             settings = proxy.settings(url=self.client.host)
             self.client.client_kwargs["proxies"] = settings

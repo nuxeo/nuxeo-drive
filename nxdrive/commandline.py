@@ -9,7 +9,7 @@ from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser, DEFAULTSECT
 from datetime import datetime
 from logging import getLogger
-from typing import List, Optional, Union
+from typing import List, Union
 
 from . import __version__
 from .logging_config import configure
@@ -511,7 +511,7 @@ class CliHandler:
 
         return Application(self.manager)
 
-    def launch(self, options: Optional[Namespace] = None, console: bool = False) -> int:
+    def launch(self, options: Namespace = None, console: bool = False) -> int:
         """Launch the Qt app in the main thread and sync in another thread."""
         from .utils import PidLockFile
 

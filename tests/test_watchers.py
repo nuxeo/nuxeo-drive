@@ -25,7 +25,7 @@ class TestWatchers(UnitTestCase):
         self.queue_manager_1.suspend()
         self.queue_manager_1._disable = True
         self.engine_1.start()
-        self.wait_remote_scan()
+        self.wait_sync()
 
         # Workspace should have been reconcile
         res = self.engine_1.get_dao().get_states_from_partial_local("/")
@@ -43,7 +43,7 @@ class TestWatchers(UnitTestCase):
         manager.suspend()
         manager._disable = True
         self.engine_1.start()
-        self.wait_remote_scan()
+        self.wait_sync()
         # Depending on remote scan results order, the remote
         # duplicated file with the same digest as the local file
         # might come first, in which case we get an extra synchronized file,
@@ -69,20 +69,18 @@ class TestWatchers(UnitTestCase):
         self.queue_manager_1.suspend()
         self.queue_manager_1._disable = True
         self.engine_1.start()
-        self.wait_remote_scan()
+        self.wait_sync()
         res = self.engine_1.get_dao().get_states_from_partial_local("/")
         # With root
         count = folders + files + 1
         assert len(res) == count
 
-    @pytest.mark.randombug("NXDRIVE-806", condition=LINUX, mode="BYPASS")
-    @pytest.mark.randombug("NXDRIVE-806", condition=WINDOWS, repeat=2)
     def test_local_watchdog_creation(self):
         # Test the creation after first local scan
         self.queue_manager_1.suspend()
         self.queue_manager_1._disable = True
         self.engine_1.start()
-        self.wait_remote_scan()
+        self.wait_sync()
         metrics = self.queue_manager_1.get_metrics()
         assert not metrics["local_folder_queue"]
         assert not metrics["local_file_queue"]

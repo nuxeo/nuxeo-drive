@@ -4,7 +4,7 @@ import os
 from logging import getLogger
 from threading import Thread, current_thread
 from time import sleep
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, List, Optional, Type
 
 from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
@@ -76,7 +76,7 @@ class Engine(QObject):
         self,
         manager: "Manager",
         definition: object,
-        binder: Optional[Binder] = None,
+        binder: Binder = None,
         processors: int = 5,
         remote_cls: Type[Remote] = Remote,
         filtered_remote_cls: Type[FileAction] = FilteredRemote,
@@ -174,7 +174,7 @@ class Engine(QObject):
         return fmt.format(name=type(self).__name__, cls=self)
 
     @pyqtSlot(object)
-    def _check_sync_start(self, row_id: Optional[str] = None) -> None:
+    def _check_sync_start(self, row_id: str = None) -> None:
         if not self._sync_started:
             queue_size = self._queue_manager.get_overall_size()
             if queue_size > 0:
@@ -225,7 +225,7 @@ class Engine(QObject):
         log.debug("Local Folder unlocking")
         self._folder_lock = None
 
-    def get_last_files(self, number: int, direction: Optional[str]) -> DocPairs:
+    def get_last_files(self, number: int, direction: str = "") -> DocPairs:
         return self._dao.get_last_files(number, direction)
 
     def set_offline(self, value: bool = True) -> None:
@@ -331,7 +331,7 @@ class Engine(QObject):
         self._edit_thread = Thread(target=run)
         self._edit_thread.start()
 
-    def open_remote(self, url: Optional[str]) -> None:
+    def open_remote(self, url: str = None) -> None:
         if url is None:
             url = self.get_remote_url()
         self.manager.open_local_file(url)
@@ -455,9 +455,7 @@ class Engine(QObject):
             pwd_update_required=self.has_invalid_credentials(),
         )
 
-    def set_invalid_credentials(
-        self, value: bool = True, reason: Optional[str] = None
-    ) -> None:
+    def set_invalid_credentials(self, value: bool = True, reason: str = None) -> None:
         changed = self._invalid_credentials is not value
         self._invalid_credentials = value
         if value and changed:
@@ -493,10 +491,7 @@ class Engine(QObject):
         return False
 
     def create_thread(
-        self,
-        worker: Optional[Worker] = None,
-        name: Optional[str] = None,
-        start_connect: bool = True,
+        self, worker: Worker = None, name: str = None, start_connect: bool = True
     ) -> QThread:
         if worker is None:
             worker = Worker(self, name=name)
@@ -518,7 +513,7 @@ class Engine(QObject):
             return
         self._dao.reset_error(state)
 
-    def unsynchronize_pair(self, row_id: int, reason: Optional[str] = None) -> None:
+    def unsynchronize_pair(self, row_id: int, reason: str = None) -> None:
         state = self._dao.get_state_from_id(row_id)
         if state is None:
             return
@@ -869,7 +864,7 @@ class Engine(QObject):
         self._dao.synchronize_state(row)
         # The root should also be sync
 
-    def suspend_client(self) -> None:
+    def suspend_client(self, message: str = None) -> None:
         if self.is_paused() or self._stopped:
             raise ThreadInterrupt
 
@@ -882,7 +877,7 @@ class Engine(QObject):
                 and thread.worker.get_thread_id() == thread_id
                 and not thread.worker.is_started()
             ):
-                raise ThreadInterrupt
+                raise ThreadInterrupt()
 
         # Get action
         current_file = None
@@ -937,11 +932,11 @@ class ServerBindingSettings:
 
     def __init__(
         self,
-        server_version: Optional[str],
-        password: str,
+        server_version: str = None,
+        password: str = None,
         pwd_update_required: bool = False,
         **kwargs,
-    ):
+    ) -> None:
         self.server_version = server_version
         self.password = password
         self.pwd_update_required = pwd_update_required

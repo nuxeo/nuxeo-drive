@@ -15,10 +15,7 @@ class Action:
     suspend = False
 
     def __init__(
-        self,
-        action_type: Optional[str] = None,
-        progress: Optional[int] = None,
-        thread_id: Optional[int] = None,
+        self, action_type: str = None, progress: int = None, thread_id: int = None
     ) -> None:
         self.progress = progress
         self.type = action_type
@@ -32,7 +29,7 @@ class Action:
         return Action.actions.copy()
 
     @staticmethod
-    def get_current_action(thread_id: Optional[int]):
+    def get_current_action(thread_id: int = None):
         return Action.actions.get(thread_id or current_thread().ident)
 
     @staticmethod
@@ -71,11 +68,7 @@ class FileAction(Action):
     transfer_duration = None
 
     def __init__(
-        self,
-        action_type: str,
-        filepath: str,
-        filename: Optional[str],
-        size: Optional[int],
+        self, action_type: str, filepath: str, filename: str = None, size: int = None
     ) -> None:
         super().__init__(action_type, 0)
         self.filepath = filepath

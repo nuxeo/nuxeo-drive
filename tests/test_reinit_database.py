@@ -39,7 +39,7 @@ class TestReinitDatabase(UnitTestCase):
     def test_synchronize_folderish_and_same_digest(self):
         # Start engine and wait for synchronization
         self.engine_1.start()
-        self.wait_remote_scan()
+        self.wait_sync(wait_for_async=True)
 
         # Check everything is synchronized
         self._check_states()

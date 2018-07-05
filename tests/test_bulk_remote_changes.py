@@ -33,42 +33,16 @@ from nxdrive.client import Remote
 from .common import TEST_DEFAULT_DELAY, UnitTestCase
 
 log = getLogger(__name__)
-network_error = 0
-original_get_children_info = Remote.get_fs_children
-original_file_to_info = Remote.file_to_info
-
-
-def mock_get_children_info(self, *args, **kwargs):
-    global network_error
-    if network_error > 0:
-        network_error -= 1
-        # Simulate a network error during the call to NuxeoDrive.GetChildren
-        raise ConnectionError("Network error simulated " "for NuxeoDrive.GetChildren")
-    return original_get_children_info(self, *args, **kwargs)
-
-
-def mock_file_to_info(self, fs_item):
-    fs_item["canScrollDescendants"] = False
-    return original_file_to_info(fs_item)
 
 
 class TestBulkRemoteChanges(UnitTestCase):
     """
-    Test Bulk Remote Changes when network error happenmock_get_children_info
+    Test Bulk Remote Changes when network error happen in get_children_info()
     will simulate network error when required.  test_many_changes method will
     make server side changes, simulate error for GetChildren API and still
     verify if all remote changes are successfully synced.
     """
 
-    def setUp(self):
-        self.last_sync_date = 0
-        self.last_event_log_id = 0
-        self.last_root_definitions = ""
-        # Initialize last event log id (lower bound)
-        self.wait()
-
-    @patch.object(Remote, "get_fs_children", mock_get_children_info)
-    @patch.object(Remote, "file_to_info", mock_file_to_info)
     def test_many_changes(self):
         """
 Objective: The objective is to make a lot of remote changes (including a folder
@@ -79,7 +53,7 @@ happens.
 2. Create 3 folders folder1, folder2 and shared
 3. Create files inside the 3 folders: folder1/file1.txt, folder2/file2.txt, 
     shared/readme1.txt, shared/readme2.txt
-4. Wait for 3 folders, 4 folder to sync to local PC
+4. Wait for 3 folders, 4 files to sync to local PC
 5. Check the 3 folders and 4 files are synced to local PC
 6. Trigger simulation of network error for GetChildren API using the mock
    (2 successive failures)
@@ -95,9 +69,9 @@ happens.
 11. Check if two files 'shared/readme1.txt' and 'shared/readme3.txt' are synced
 to local PC.
         """
-        global network_error
-        remote = self.remote_document_client_1
         local = self.local_1
+        remote = self.remote_document_client_1
+        network_error = 2
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -124,39 +98,55 @@ to local PC.
         assert local.exists("/shared/readme1.txt")
         assert local.exists("/shared/readme2.txt")
 
-        # Simulate network error for GetChildren API twice
-        # This is to ensure Drive will eventually recover even after multiple
-        # failures of GetChildren API.
-        network_error = 2
-        remote.make_file(
-            folder1, "sample1.txt", content=b"This is a another sample file1"
-        )
-        self.remote_2.register_as_root(shared)
+        def get_children_info(self, *args, **kwargs):
+            nonlocal network_error
+            if network_error > 0:
+                network_error -= 1
+                # Simulate a network error during the call to NuxeoDrive.GetChildren
+                raise ConnectionError(
+                    "Network error simulated for NuxeoDrive.GetChildren"
+                )
+            return Remote.get_fs_children(self.engine_1.remote, *args, **kwargs)
 
-        # Delete folder 'shared'
-        remote.delete(shared)
-        self.wait_sync(wait_for_async=True)
+        def file_to_info(fs_item):
+            fs_item["canScrollDescendants"] = False
+            return Remote.file_to_info(fs_item)
 
-        # Restore folder 'shared' from trash
-        remote.undelete(shared)
-        if not remote._has_new_trash_service:
-            remote.undelete(readme1)
-        self.wait_sync(wait_for_async=True)
+        with patch.object(
+            self.engine_1.remote, "get_children_info", new=get_children_info
+        ), patch.object(self.engine_1.remote, "file_to_info", new=file_to_info):
+            # Simulate network error for GetChildren API twice
+            # This is to ensure Drive will eventually recover even after multiple
+            # failures of GetChildren API.
+            remote.make_file(
+                folder1, "sample1.txt", content=b"This is a another sample file1"
+            )
+            self.remote_2.register_as_root(shared)
 
-        remote.make_file(
-            shared, "readme3.txt", content=b"This is a another shared file"
-        )
-        remote.make_file(
-            folder2, "sample2.txt", content=b"This is a another sample file2"
-        )
+            # Delete folder 'shared'
+            remote.delete(shared)
+            self.wait_sync(wait_for_async=True)
 
-        self.wait_sync(wait_for_async=True)
-        assert local.exists("/folder2/sample2.txt")
-        assert local.exists("/folder1/sample1.txt")
+            # Restore folder 'shared' from trash
+            remote.undelete(shared)
+            if not remote._has_new_trash_service:
+                remote.undelete(readme1)
+            self.wait_sync(wait_for_async=True)
 
-        # Although sync failed for one folder, GetChangeSummary will return
-        # zero event in successive calls.  We need to wait two remote scans,
-        # so sleep for TEST_DEFAULT_DELAY * 2
-        sleep(TEST_DEFAULT_DELAY * 2)
-        assert local.exists("/shared/readme1.txt")
-        assert local.exists("/shared/readme3.txt")
+            remote.make_file(
+                shared, "readme3.txt", content=b"This is a another shared file"
+            )
+            remote.make_file(
+                folder2, "sample2.txt", content=b"This is a another sample file2"
+            )
+
+            self.wait_sync(wait_for_async=True)
+            assert local.exists("/folder2/sample2.txt")
+            assert local.exists("/folder1/sample1.txt")
+
+            # Although sync failed for one folder, GetChangeSummary will return
+            # zero event in successive calls.  We need to wait two remote scans,
+            # so sleep for TEST_DEFAULT_DELAY * 2
+            sleep(TEST_DEFAULT_DELAY * 2)
+            assert local.exists("/shared/readme1.txt")
+            assert local.exists("/shared/readme3.txt")

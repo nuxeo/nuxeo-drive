@@ -3,7 +3,7 @@ import os
 from contextlib import suppress
 from ctypes import windll
 from logging import getLogger
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import win32api
 import win32file
@@ -59,12 +59,12 @@ class WindowsIntegration(AbstractOSIntegration):
                     result[k.replace("-", "_").lower()] = v
         return result
 
-    def register_folder_link(self, folder_path: str, name: Optional[str]) -> None:
+    def register_folder_link(self, folder_path: str, name: str = None) -> None:
         favorite = self._get_folder_link(name)
         if not os.path.isfile(favorite):
             self._create_shortcut(favorite, folder_path)
 
-    def unregister_folder_link(self, name: Optional[str]) -> None:
+    def unregister_folder_link(self, name: str = None) -> None:
         with suppress(OSError):
             os.remove(self._get_folder_link(name))
 
@@ -81,7 +81,7 @@ class WindowsIntegration(AbstractOSIntegration):
         else:
             log.debug("Registered new favorite in Explorer for %r", filepath)
 
-    def _get_folder_link(self, name: Optional[str]) -> str:
+    def _get_folder_link(self, name: str = None) -> str:
         return os.path.join(
             os.path.expanduser("~"), "Links", (name or self._manager.app_name) + ".lnk"
         )

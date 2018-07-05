@@ -63,6 +63,7 @@ class TestWindows(UnitTestCase):
         """
         # Bind the server and root workspace
         self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
 
         # Get local and remote clients
         local = self.local_1

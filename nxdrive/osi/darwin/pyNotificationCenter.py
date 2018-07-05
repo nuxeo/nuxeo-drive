@@ -1,6 +1,6 @@
 # coding: utf-8
 """ Python integration macOS notification center. """
-from typing import Dict, Optional
+from typing import Dict
 
 from Foundation import (
     NSBundle,
@@ -42,7 +42,7 @@ class NotificationDelegator(NSObject):
         return True
 
 
-def setup_delegator(delegator: Optional[NotificationDelegator]) -> None:
+def setup_delegator(delegator: NotificationDelegator = None) -> None:
     center = NSUserNotificationCenter.defaultUserNotificationCenter()
     if delegator is not None and center is not None:
         center.setDelegate_(delegator)
@@ -54,7 +54,7 @@ def notify(
     info_text: str,
     delay: int = 0,
     sound: bool = False,
-    user_info: Optional[Dict[str, str]] = None,
+    user_info: Dict[str, str] = None,
 ) -> None:
     """ Python method to show a desktop notification on Mountain Lion. Where:
         title: Title of notification

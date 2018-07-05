@@ -13,7 +13,7 @@ class TestLocalDeletion(UnitTestCase):
     def setUp(self):
         super().setUp()
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
     def test_untrash_file(self):
         local = self.local_1
@@ -84,15 +84,15 @@ class TestLocalDeletion(UnitTestCase):
         abs_path = local.abspath(file_path)
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
         local.delete("/ToDelete")
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
         assert not remote.exists(file_path)
         assert not local.exists(file_path)
 
         # See if it untrash or recreate
         shutil.move(os.path.join(self.local_test_folder_1, file1), local.abspath("/"))
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
         new_info = remote.get_info(old_info.uid, use_trash=True)
         assert new_info.state == "project"
         assert local.exists("/" + file1)
@@ -116,7 +116,7 @@ class TestLocalDeletion(UnitTestCase):
         abs_path = local.abspath(file_path)
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
 
         # Remove rights
         folder_path = (
@@ -138,7 +138,7 @@ class TestLocalDeletion(UnitTestCase):
         # See if it untrash or recreate
         shutil.move(os.path.join(self.local_test_folder_1, file1), local.abspath("/"))
         assert local.get_remote_id("/" + file1) is not None
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
         assert local.exists("/" + file1)
         new_uid = local.get_remote_id("/" + file1)
         # Because remote_document_client_1 was used
@@ -166,7 +166,7 @@ class TestLocalDeletion(UnitTestCase):
 
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
 
         # Remove rights
         folder_path = "/default-domain/workspaces" "/nuxeo-drive-test-workspace/ToCopy"
@@ -207,9 +207,9 @@ class TestLocalDeletion(UnitTestCase):
 
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
         local.delete("/ToDelete")
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
         assert not remote.exists(file_path)
         assert not local.exists(file_path)
 
@@ -218,7 +218,7 @@ class TestLocalDeletion(UnitTestCase):
         shutil.move(
             os.path.join(self.local_test_folder_1, file1), local.abspath("/ToDelete/")
         )
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
         assert remote.exists(old_info.uid)
         new_info = remote.get_info(old_info.uid, use_trash=True)
         assert remote.exists(new_info.parent_uid)
@@ -239,7 +239,7 @@ class TestLocalDeletion(UnitTestCase):
         # Pretend we had trash the file
         shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
         local.delete("/ToDelete")
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
         assert not remote.exists(file_path)
         assert not local.exists(file_path)
         # See if it untrash or recreate
@@ -247,6 +247,6 @@ class TestLocalDeletion(UnitTestCase):
         shutil.move(
             os.path.join(self.local_test_folder_1, file1), local.abspath("/ToDelete/")
         )
-        self.wait_sync(wait_for_async=True)
+        self.wait_sync()
         assert remote.exists(old_info.uid)
         assert local.exists(file_path)

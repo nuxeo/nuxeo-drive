@@ -1,6 +1,6 @@
 # coding: utf-8
 from logging import getLogger
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from ..constants import MAC, WINDOWS
 from ..objects import NuxeoDocumentInfo
@@ -49,10 +49,10 @@ class AbstractOSIntegration:
     def send_sync_status(self, state: NuxeoDocumentInfo, path: str) -> None:
         pass
 
-    def register_folder_link(self, folder_path: str, name: Optional[str]) -> None:
+    def register_folder_link(self, folder_path: str, name: str = None) -> None:
         pass
 
-    def unregister_folder_link(self, name: Optional[str]) -> None:
+    def unregister_folder_link(self, name: str = None) -> None:
         pass
 
     def get_system_configuration(self) -> Dict[str, Any]:

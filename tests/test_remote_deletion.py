@@ -148,19 +148,20 @@ class TestRemoteDeletion(UnitTestCase):
 
     def test_synchronize_remote_deletion_with_close_name(self):
         self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
         local = self.local_1
         remote = self.remote_document_client_1
         remote.make_folder("/", "Folder 1")
         remote.make_folder("/", "Folder 1b")
         remote.make_folder("/", "Folder 1c")
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         assert local.exists("/Folder 1")
         assert local.exists("/Folder 1b")
         assert local.exists("/Folder 1c")
         remote.delete("/Folder 1")
         remote.delete("/Folder 1b")
         remote.delete("/Folder 1c")
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         assert not local.exists("/Folder 1")
         assert not local.exists("/Folder 1b")
         assert not local.exists("/Folder 1c")

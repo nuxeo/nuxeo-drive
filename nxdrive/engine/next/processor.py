@@ -2,7 +2,7 @@
 import os
 import shutil
 from logging import getLogger
-from typing import Callable, Optional
+from typing import Callable
 
 from ..processor import Processor as OldProcessor
 from ...constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
@@ -15,7 +15,7 @@ log = getLogger(__name__)
 
 class Processor(OldProcessor):
     def __init__(
-        self, engine: "Engine", item_getter: Callable, name: Optional[str]
+        self, engine: "Engine", item_getter: Callable, name: str = None
     ) -> None:
         super().__init__(engine, item_getter, name=name)
 

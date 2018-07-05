@@ -48,7 +48,7 @@ OS_STAT_MTIME_RESOLUTION = 1.0
 
 log = getLogger(__name__)
 
-DEFAULT_WAIT_SYNC_TIMEOUT: int = 30
+DEFAULT_WAIT_SYNC_TIMEOUT: int = 10
 FILE_CONTENT: bytes = """
     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut egestas 
     condimentum egestas.
@@ -458,7 +458,6 @@ class UnitTestCase(TestCase):
         wait_for_engine_2=False,
         wait_win=False,
         enforce_errors=True,
-        fatal=False,
     ):
         log.debug("Wait for sync")
 
@@ -504,9 +503,9 @@ class UnitTestCase(TestCase):
                 if wait_for_async:
                     log.debug(
                         "Sync completed, "
-                        "_wait_remote_scan = %r, "
-                        "remote changes count = %r, "
-                        "no remote changes = %r",
+                        "wait_remote_scan=%r, "
+                        "remote_changes_count=%r, "
+                        "no_remote_changes=%r",
                         self._wait_remote_scan,
                         self._remote_changes_count,
                         self._no_remote_changes,
@@ -514,38 +513,33 @@ class UnitTestCase(TestCase):
 
                     wait_remote_scan = False
                     if wait_for_engine_1:
-                        wait_remote_scan = self._wait_remote_scan[self.engine_1.uid]
+                        wait_remote_scan |= self._wait_remote_scan[self.engine_1.uid]
                     if wait_for_engine_2:
-                        wait_remote_scan = (
-                            wait_remote_scan
-                            or self._wait_remote_scan[self.engine_2.uid]
-                        )
+                        wait_remote_scan |= self._wait_remote_scan[self.engine_2.uid]
 
                     is_remote_changes = True
                     is_change_summary_over = True
-
                     if wait_for_engine_1:
-                        is_remote_changes = (
+                        is_remote_changes &= (
                             self._remote_changes_count[self.engine_1.uid] > 0
                         )
-                        is_change_summary_over = self._no_remote_changes[
+                        is_change_summary_over &= self._no_remote_changes[
                             self.engine_1.uid
                         ]
-
                     if wait_for_engine_2:
-                        is_remote_changes = (
-                            is_remote_changes
-                            and self._remote_changes_count[self.engine_2.uid] > 0
+                        is_remote_changes &= (
+                            self._remote_changes_count[self.engine_2.uid] > 0
                         )
-                        is_change_summary_over = (
-                            is_change_summary_over
-                            and self._no_remote_changes[self.engine_2.uid]
-                        )
+                        is_change_summary_over &= self._no_remote_changes[
+                            self.engine_2.uid
+                        ]
 
-                    if (
-                        not wait_remote_scan
-                        or is_remote_changes
-                        and is_change_summary_over
+                    if all(
+                        {
+                            not wait_remote_scan,
+                            not is_remote_changes,
+                            is_change_summary_over,
+                        }
                     ):
                         self._wait_remote_scan = {
                             self.engine_1.uid: wait_for_engine_1,
@@ -561,9 +555,9 @@ class UnitTestCase(TestCase):
                         }
                         log.debug(
                             "Ended wait for sync, setting "
-                            "_wait_remote_scan values to True, "
-                            "_remote_changes_count values to 0 and "
-                            "_no_remote_changes values to False"
+                            "wait_remote_scan values to True, "
+                            "remote_changes_count values to 0 and "
+                            "no_remote_changes values to False"
                         )
                         return
                 else:
@@ -579,29 +573,9 @@ class UnitTestCase(TestCase):
                 err = "Wait for sync timeout expired for engine 2 (%d)" % count2
             else:
                 err = "Wait for sync timeout has expired"
-
-            if fatal:
-                self.fail(err)
-            else:
-                log.warning(err)
+            log.warning(err)
         else:
             log.debug("Wait for sync timeout")
-
-    def wait_remote_scan(
-        self, timeout=10, wait_for_engine_1=True, wait_for_engine_2=False
-    ):
-        log.debug("Wait for remote scan")
-        self._wait_remote_scan = {
-            self.engine_1.uid: wait_for_engine_1,
-            self.engine_2.uid: wait_for_engine_2,
-        }
-        while timeout > 0:
-            sleep(1)
-            if sum(self._wait_remote_scan.values()) == 0:
-                log.debug("Ended wait for remote scan")
-                return
-            timeout -= 1
-        self.fail("Wait for remote scan timeout expired")
 
     def run(self, result=None):
         self.app = StubQApplication([], self)
