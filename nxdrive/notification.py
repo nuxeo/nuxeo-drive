@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from logging import getLogger
 from threading import Lock
-from typing import Dict, Optional
+from typing import Dict
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -52,9 +52,9 @@ class Notification:
 
     def __init__(
         self,
-        uid: Optional[str] = None,
-        uuid: Optional[str] = None,
-        engine_uid: Optional[str] = None,
+        uid: str = None,
+        uuid: str = None,
+        engine_uid: str = None,
         level: str = LEVEL_INFO,
         flags: int = 0,
         title: str = "",
@@ -148,7 +148,7 @@ class NotificationService(QObject):
             )
 
     def get_notifications(
-        self, engine: Optional["Engine"] = None, include_generic: bool = True
+        self, engine: "Engine" = None, include_generic: bool = True
     ) -> Dict[str, str]:
         # Might need to use lock and duplicate
         with self._lock:
@@ -299,7 +299,7 @@ class ConflictNotification(Notification):
 
 
 class ReadOnlyNotification(Notification):
-    def __init__(self, engine_uid: str, filename: str, parent: Optional[str]) -> None:
+    def __init__(self, engine_uid: str, filename: str, parent: str = None) -> None:
         values = dict(name=filename, folder=parent)
         description = "READONLY_FILE" if parent is None else "READONLY_FOLDER"
         super().__init__(

@@ -104,9 +104,7 @@ class StateRow(sqlite3.Row):
             self.remote_can_delete & self.remote_can_rename & self.remote_can_update
         ) == 0
 
-    def update_state(
-        self, local_state: Optional[str], remote_state: Optional[str]
-    ) -> None:
+    def update_state(self, local_state: str = None, remote_state: str = None) -> None:
         if local_state is not None:
             self.local_state = local_state
         if remote_state is not None:
@@ -302,7 +300,7 @@ class ConfigurationDAO(QObject):
                 (value, name),
             )
 
-    def get_config(self, name: str, default: Optional[Any] = None) -> Any:
+    def get_config(self, name: str, default: Any = None) -> Any:
         c = self._get_read_connection().cursor()
         obj = c.execute(
             "SELECT value" "  FROM Configuration" " WHERE name = ?", (name,)
@@ -512,7 +510,7 @@ class ManagerDAO(ConfigurationDAO):
 class EngineDAO(ConfigurationDAO):
     newConflict = pyqtSignal(object)
 
-    def __init__(self, db: str, state_factory: Optional[StateRow]) -> None:
+    def __init__(self, db: str, state_factory: sqlite3.Row = None) -> None:
         if state_factory:
             self._state_factory = state_factory
 
@@ -831,7 +829,7 @@ class EngineDAO(ConfigurationDAO):
         row_id: int,
         folderish: bool,
         pair_state: str,
-        pair: Optional[NuxeoDocumentInfo],
+        pair: NuxeoDocumentInfo = None,
     ) -> None:
         if self._queue_manager and pair_state not in ("synchronized", "unsynchronized"):
             if pair_state == "conflicted":
@@ -1012,7 +1010,7 @@ class EngineDAO(ConfigurationDAO):
         condition = conditions.get(filetype, "")
         return self.get_count("pair_state = 'synchronized' {}".format(condition))
 
-    def get_count(self, condition: Optional[str]) -> int:
+    def get_count(self, condition: str = None) -> int:
         query = "SELECT COUNT(*) as count" "  FROM States"
         if condition:
             query = "{} WHERE {}".format(query, condition)
@@ -1303,7 +1301,7 @@ class EngineDAO(ConfigurationDAO):
                 self._queue_pair_state(child.id, child.folderish, child.pair_state)
 
     def increase_error(
-        self, row: NuxeoDocumentInfo, error: str, details: Optional[None], incr: int = 1
+        self, row: NuxeoDocumentInfo, error: str, details: str = None, incr: int = 1
     ) -> None:
         error_date = datetime.utcnow()
         with self._lock:
@@ -1321,7 +1319,7 @@ class EngineDAO(ConfigurationDAO):
         row.last_error = error
         row.error_count += incr
 
-    def reset_error(self, row: NuxeoDocumentInfo, last_error: Optional[str]) -> None:
+    def reset_error(self, row: NuxeoDocumentInfo, last_error: str = None) -> None:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -1384,7 +1382,7 @@ class EngineDAO(ConfigurationDAO):
         return False
 
     def unsynchronize_state(
-        self, row: NuxeoDocumentInfo, last_error: Optional[str]
+        self, row: NuxeoDocumentInfo, last_error: str = None
     ) -> None:
         with self._lock:
             con = self._get_write_connection()
@@ -1402,10 +1400,7 @@ class EngineDAO(ConfigurationDAO):
             )
 
     def synchronize_state(
-        self,
-        row: NuxeoDocumentInfo,
-        version: Optional[int],
-        dynamic_states: bool = False,
+        self, row: NuxeoDocumentInfo, version: int = None, dynamic_states: bool = False
     ) -> bool:
         if version is None:
             version = row.version
@@ -1508,7 +1503,7 @@ class EngineDAO(ConfigurationDAO):
         self,
         row: NuxeoDocumentInfo,
         info: NuxeoDocumentInfo,
-        remote_parent_path: Optional[str],
+        remote_parent_path: str = None,
         versioned: bool = True,
         queue: bool = True,
         force_update: bool = False,
@@ -1679,7 +1674,7 @@ class EngineDAO(ConfigurationDAO):
         )
 
     def _get_adjacent_sync_file(
-        self, ref: str, comp: str, order: str, sync_mode: Optional[str]
+        self, ref: str, comp: str, order: str, sync_mode: str = None
     ) -> Optional[DocPair]:
         state = self.get_normal_state_from_remote(ref)
         if state is None:
@@ -1698,13 +1693,11 @@ class EngineDAO(ConfigurationDAO):
         ).fetchone()
 
     def get_previous_sync_file(
-        self, ref: str, sync_mode: Optional[str]
+        self, ref: str, sync_mode: str = None
     ) -> Optional[DocPair]:
         return self._get_adjacent_sync_file(ref, ">", "ASC", sync_mode)
 
-    def get_next_sync_file(
-        self, ref: str, sync_mode: Optional[str]
-    ) -> Optional[DocPair]:
+    def get_next_sync_file(self, ref: str, sync_mode: str = None) -> Optional[DocPair]:
         return self._get_adjacent_sync_file(ref, "<", "DESC", sync_mode)
 
     def _get_adjacent_folder_file(

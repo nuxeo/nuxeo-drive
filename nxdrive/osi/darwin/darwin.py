@@ -211,7 +211,7 @@ class DarwinIntegration(AbstractOSIntegration):
         except:
             log.exception("Error while trying to send status to FinderSync")
 
-    def register_folder_link(self, folder_path: str, name: Optional[str]) -> None:
+    def register_folder_link(self, folder_path: str, name: str = None) -> None:
         favorites = self._get_favorite_list() or []
         if not favorites:
             log.warning("Could not fetch the Finder favorite list.")
@@ -235,7 +235,7 @@ class DarwinIntegration(AbstractOSIntegration):
         if item:
             log.debug("Registered new favorite in Finder for: %r", folder_path)
 
-    def unregister_folder_link(self, name: Optional[str]) -> None:
+    def unregister_folder_link(self, name: str = None) -> None:
         favorites = self._get_favorite_list()
         if not favorites:
             log.warning("Could not fetch the Finder favorite list.")

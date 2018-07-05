@@ -447,7 +447,7 @@ class Processor(EngineWorker):
             self._current_metrics["speed"] = speed
 
     def _synchronize_if_not_remotely_dirty(
-        self, doc_pair: NuxeoDocumentInfo, remote_info: Optional[NuxeoDocumentInfo]
+        self, doc_pair: NuxeoDocumentInfo, remote_info: NuxeoDocumentInfo = None
     ) -> None:
         if remote_info is not None and (
             remote_info.name != doc_pair.local_name
@@ -547,10 +547,7 @@ class Processor(EngineWorker):
         return self._dao.get_normal_state_from_remote(ref)
 
     def _postpone_pair(
-        self,
-        doc_pair: NuxeoDocumentInfo,
-        reason: str = "",
-        interval: Optional[int] = None,
+        self, doc_pair: NuxeoDocumentInfo, reason: str = "", interval: int = None
     ) -> None:
         """ Wait 60 sec for it. """
 
@@ -1002,9 +999,7 @@ class Processor(EngineWorker):
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
 
-    def _search_for_dedup(
-        self, doc_pair: NuxeoDocumentInfo, name: Optional[str] = None
-    ) -> None:
+    def _search_for_dedup(self, doc_pair: NuxeoDocumentInfo, name: str = None) -> None:
         if name is None:
             name = doc_pair.local_name
         # Auto resolve duplicate
@@ -1316,9 +1311,7 @@ class Processor(EngineWorker):
             )
 
     def _refresh_remote(
-        self,
-        doc_pair: NuxeoDocumentInfo,
-        remote_info: Optional[NuxeoDocumentInfo] = None,
+        self, doc_pair: NuxeoDocumentInfo, remote_info: NuxeoDocumentInfo = None
     ) -> None:
         if remote_info is None:
             remote_info = self.remote.get_fs_info(doc_pair.remote_ref)

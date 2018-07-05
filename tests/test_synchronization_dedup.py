@@ -6,6 +6,7 @@ from .common import UnitTestCase
 
 
 class TestSynchronizationDedup(UnitTestCase):
+
     def test_children_of_folder_in_dedup_error(self):
         """
         NXDRIVE-1037: Children of a folder that is in DEDUP error should be
@@ -18,12 +19,12 @@ class TestSynchronizationDedup(UnitTestCase):
         engine.start()
 
         # Step 1: create Unisys folder (1st)
-        remote.make_folder("/", "Unisys")
+        remote.make_folder(self.workspace_1, "Unisys")
         self.wait_sync(wait_for_async=True)
         assert local.exists("/Unisys")
 
         # Step 2: create Unisys folder (2nd)
-        unisys2 = remote.make_folder("/", "Unisys")
+        unisys2 = remote.make_folder(self.workspace_1, "Unisys")
         self.wait_sync(wait_for_async=True)
 
         # Check DEDUP error
@@ -34,7 +35,7 @@ class TestSynchronizationDedup(UnitTestCase):
 
         # Step 3: create a child in the 2nd Unisys folder
         foo = remote.make_file(unisys2, "foo.txt", content=b"42")
-        self.wait_sync(wait_for_async=True, fatal=True)
+        self.wait_sync(wait_for_async=True)
 
         # Check the file is not created and not present in the database
         assert not local.exists("/Unisys/foo.txt")
@@ -42,11 +43,11 @@ class TestSynchronizationDedup(UnitTestCase):
             "defaultFileSystemItemFactory#default#" + unisys2 + "/" + foo
         )
 
+        # Check there is nothing syncing
+        assert not engine.get_dao().get_syncing_count()
+
 
 class TestSynchronizationDedupCaseSensitive(UnitTestCase):
-    def _setup(self):
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True, enforce_errors=False)
 
     def test_file_sync_under_dedup_shared_folders_rename_dupe_remotely(self):
         """ NXDRIVE-842: do not sync duplicate conflicted folder content. """

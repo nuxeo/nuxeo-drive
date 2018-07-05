@@ -2,7 +2,7 @@
 import os
 from datetime import datetime
 from logging import getLogger
-from typing import Generator, Optional
+from typing import Generator
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 from .logging_config import MAX_LOG_DISPLAYED, get_handler
@@ -29,7 +29,7 @@ class Report:
             final_path = report.path
     """
 
-    def __init__(self, manager: "Manager", report_path: Optional[str]) -> None:
+    def __init__(self, manager: "Manager", report_path: str = None) -> None:
         self._manager = manager
         if not report_path:
             self._report_name = "report_" + datetime.now().strftime("%y%m%d_%H%M%S")

@@ -288,7 +288,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
 
     def setUp(self):
         self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
     def get_local_client(self, path):
         return LocalClient(path)
@@ -315,7 +315,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
         remote = self.remote_document_client_1
 
         # Step 1: remotely create an accentued folder
-        root = remote.make_folder("/", "Projet Hémodialyse")
+        root = remote.make_folder(self.workspace_1, "Projet Hémodialyse")
         folder = remote.make_folder(root, "Pièces graphiques")
 
         self.wait_sync(wait_for_async=True)

@@ -5,7 +5,7 @@ from copy import deepcopy
 from logging import getLogger
 from queue import Empty, Queue
 from threading import Lock
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 
@@ -258,8 +258,8 @@ class QueueManager(QObject):
     def push_error(
         self,
         doc_pair: NuxeoDocumentInfo,
-        exception: Optional[Exception] = None,
-        interval: Optional[int] = None,
+        exception: Exception = None,
+        interval: int = None,
     ) -> None:
         error_count = doc_pair.error_count
         if (

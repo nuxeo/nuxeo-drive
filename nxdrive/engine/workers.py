@@ -3,7 +3,7 @@ from contextlib import suppress
 from logging import getLogger
 from threading import current_thread
 from time import sleep, time
-from typing import Any, Dict, Optional
+from typing import Any
 
 from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
 
@@ -27,7 +27,7 @@ class Worker(QObject):
     engine = None
     _pause = False
 
-    def __init__(self, thread: Optional[QThread] = None, **kwargs: Any) -> None:
+    def __init__(self, thread: QThread = None, **kwargs: Any) -> None:
         super().__init__()
         if thread is None:
             thread = QThread()
@@ -184,18 +184,14 @@ class Worker(QObject):
 
 class EngineWorker(Worker):
     def __init__(
-        self,
-        engine: "Engine",
-        dao: "EngineDAO",
-        thread: Optional[QThread] = None,
-        **kwargs: Any,
+        self, engine: "Engine", dao: "EngineDAO", thread: QThread = None, **kwargs: Any
     ) -> None:
         super().__init__(thread=thread, **kwargs)
         self.engine = engine
         self._dao = dao
 
     def giveup_error(
-        self, doc_pair: NuxeoDocumentInfo, error: str, exception: Optional[Exception]
+        self, doc_pair: NuxeoDocumentInfo, error: str, exception: Exception = None
     ) -> None:
         details = str(exception) if exception else None
         log.debug("Give up for error [%s] (%r) for %r", error, details, doc_pair)
@@ -209,7 +205,7 @@ class EngineWorker(Worker):
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
     def increase_error(
-        self, doc_pair: NuxeoDocumentInfo, error: str, exception: Optional[Exception]
+        self, doc_pair: NuxeoDocumentInfo, error: str, exception: Exception = None
     ) -> None:
         details = str(exception) if exception else None
         log.debug("Increasing error [%s] (%r) for %r", error, details, doc_pair)
@@ -219,7 +215,7 @@ class EngineWorker(Worker):
 
 class PollWorker(Worker):
     def __init__(
-        self, check_interval: int, thread: Optional[QThread] = None, **kwargs: Any
+        self, check_interval: int, thread: QThread = None, **kwargs: Any
     ) -> None:
         super().__init__(thread=thread, **kwargs)
         # Be sure to run on start

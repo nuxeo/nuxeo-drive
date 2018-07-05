@@ -694,7 +694,7 @@ class PidLockFile:
         self.key = key
         self.locked = False
 
-    def _get_sync_pid_filepath(self, process_name: Optional[str] = None) -> str:
+    def _get_sync_pid_filepath(self, process_name: str = None) -> str:
         if process_name is None:
             process_name = self.key
         return os.path.join(self.folder, "nxdrive_%s.pid" % process_name)
@@ -714,7 +714,7 @@ class PidLockFile:
                 e,
             )
 
-    def check_running(self, process_name: Optional[str]) -> Optional[int]:
+    def check_running(self, process_name: str = None) -> Optional[int]:
         """Check whether another sync process is already runnning
 
         If nxdrive.pid file already exists and the pid points to a running

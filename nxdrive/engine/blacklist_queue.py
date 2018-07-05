@@ -1,7 +1,7 @@
 # coding: utf-8
 import time
 from threading import Lock
-from typing import Generator, Optional
+from typing import Generator
 
 __all__ = ("BlacklistQueue",)
 
@@ -21,7 +21,7 @@ class BlacklistItem:
     def get(self):
         return self._item
 
-    def increase(self, next_try: Optional[int] = None) -> None:
+    def increase(self, next_try: int = None) -> None:
         self.count += 1
         cur_time = int(time.time())
         if next_try is not None:

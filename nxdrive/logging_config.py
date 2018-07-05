@@ -4,7 +4,6 @@
 import logging
 import os
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
-from typing import Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from .options import Options
@@ -104,12 +103,12 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
 
 
 def configure(
-    log_filename: Optional[str] = None,
+    log_filename: str = None,
     file_level: str = "TRACE",
     console_level: str = "INFO",
-    command_name: Optional[str] = None,
+    command_name: str = None,
     force_configure: bool = False,
-    formatter: Optional[logging.Formatter] = None,
+    formatter: logging.Formatter = None,
 ) -> None:
 
     global is_logging_configured

@@ -1,6 +1,7 @@
 # coding: utf-8
 import logging
 import os
+from typing import Dict
 
 import nuxeo.client
 import nuxeo.constants
@@ -190,7 +191,13 @@ class RemoteTest(RemoteBase):
 
 
 class DocRemote(RemoteTest):
-    def create(self, ref, doc_type, name=None, properties=None):
+    def create(
+        self,
+        ref: str,
+        doc_type: str,
+        name: str = None,
+        properties: Dict[str, str] = None,
+    ):
         name = safe_filename(name)
         return self.operations.execute(
             command="Document.Create",

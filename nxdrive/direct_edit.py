@@ -97,11 +97,11 @@ class DirectEdit(Worker):
         super().stop()
         self._stop = True
 
-    def stop_client(self, _) -> None:
+    def stop_client(self, message: str = None) -> None:
         if self._stop:
             raise ThreadInterrupt
 
-    def handle_url(self, url: Optional[str]) -> None:
+    def handle_url(self, url: str = None) -> None:
         url = url or self.url
         if not url:
             return
@@ -169,7 +169,7 @@ class DirectEdit(Worker):
             # Place for handle reopened of interrupted Edit
             purge(child.path)
 
-    def __get_engine(self, url: str, user: Optional[str]) -> Optional["Engine"]:
+    def __get_engine(self, url: str, user: str = None) -> Optional["Engine"]:
         if not url:
             return None
 
@@ -194,7 +194,7 @@ class DirectEdit(Worker):
         return None
 
     def _get_engine(
-        self, server_url: str, doc_id: Optional[str], user: Optional[str]
+        self, server_url: str, doc_id: str = None, user: str = None
     ) -> Optional["Engine"]:
         engine = self.__get_engine(server_url, user=user)
 
@@ -223,11 +223,7 @@ class DirectEdit(Worker):
         return engine
 
     def _download(
-        self,
-        engine: "Engine",
-        info: NuxeoDocumentInfo,
-        file_path: str,
-        url: Optional[str],
+        self, engine: "Engine", info: NuxeoDocumentInfo, file_path: str, url: str = None
     ) -> str:
         file_dir = os.path.dirname(file_path)
         file_name = os.path.basename(file_path)
@@ -290,11 +286,7 @@ class DirectEdit(Worker):
         return info
 
     def _prepare_edit(
-        self,
-        server_url: str,
-        doc_id: str,
-        user: Optional[str],
-        download_url: Optional[str],
+        self, server_url: str, doc_id: str, user: str = None, download_url: str = None
     ) -> Optional[str]:
         start_time = current_milli_time()
         engine = self._get_engine(server_url, doc_id=doc_id, user=user)
@@ -364,11 +356,7 @@ class DirectEdit(Worker):
         return file_path
 
     def edit(
-        self,
-        server_url: str,
-        doc_id: str,
-        user: Optional[str],
-        download_url: Optional[str],
+        self, server_url: str, doc_id: str, user: str = None, download_url: str = None
     ) -> None:
         log.debug("Editing doc %r on %r", doc_id, server_url)
         try:

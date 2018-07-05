@@ -1,7 +1,7 @@
 # coding: utf-8
-from typing import Optional, Union
+from typing import Union
 
-from PyQt5.QtCore import QCoreApplication, QObject, Qt
+from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 
@@ -13,7 +13,7 @@ __all__ = ("FiltersDialog",)
 
 class FiltersDialog(QDialog):
     def __init__(
-        self, application: "Application", engine: "Engine", parent: Optional[QObject]
+        self, application: "Application", engine: "Engine", parent: QObject = None
     ) -> None:
         super().__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
