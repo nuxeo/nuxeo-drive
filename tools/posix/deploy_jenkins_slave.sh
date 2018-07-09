@@ -4,6 +4,7 @@
 # Usage: sh tools/$OSI/deploy_jenkins_slave.sh [ARG]
 #
 # Possible ARG:
+#     --black: launch Black code cleanup on the whole source code
 #     --build: build the package
 #     --build-ext: build the FinderSync extension (macOS only)
 #     --start: start Nuxeo Drive
@@ -77,6 +78,10 @@ check_vars() {
         echo "    SPECIFIC_TEST        = ${SPECIFIC_TEST}"
         export SPECIFIC_TEST="tests/${SPECIFIC_TEST}"
     fi
+}
+
+code_cleanup() {
+    ${PYTHON} -m black .
 }
 
 install_deps() {
@@ -187,6 +192,16 @@ main() {
     if ! check_import "import sqlite3" >/dev/null; then
         echo ">>> Python installation failed, check compilation process."
         exit 1
+    fi
+
+    # To speedup the Black use, let's say all is installed as needed
+    if [ $# -eq 1 ]; then
+        case "$1" in
+            "--black")
+                code_cleanup
+                exit 0
+            ;;
+        esac
     fi
 
     install_deps
