@@ -110,9 +110,6 @@ class Notification:
     def get_replacements(self) -> Dict[str, str]:
         return self._replacements
 
-    def get_content(self) -> str:
-        return ""
-
     def __repr__(self) -> str:
         return "Notification(level=%r title=%r uid=%r unique=%r)" % (
             self.level,

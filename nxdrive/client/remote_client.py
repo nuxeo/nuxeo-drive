@@ -32,7 +32,7 @@ from ..engine.activity import Action, FileAction
 from ..exceptions import NotFound
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
-from ..utils import get_device, lock_path, make_tmp_file, unlock_path, version_le
+from ..utils import get_device, lock_path, unlock_path, version_le
 
 __all__ = ("FilteredRemote", "Remote")
 
@@ -112,6 +112,33 @@ class Remote(Nuxeo):
             "{}={!r}".format(attr, getattr(self, attr, None)) for attr in attrs
         )
         return "<{} {}>".format(self.__class__.__name__, attrs)
+
+    def exists(
+            self, ref: str, use_trash: bool = True,
+            include_versions: bool = False
+    ) -> bool:
+        """
+        Check if a document exists on the server.
+
+        :param ref: Document reference (UID).
+        :param use_trash: Filter documents inside the trash.
+        :param include_versions:
+        :rtype: bool
+        """
+        ref = self._check_ref(ref)
+        id_prop = "ecm:path" if ref.startswith("/") else "ecm:uuid"
+
+        trash = self._get_trash_condition() if use_trash else ""
+        version = "" if include_versions else "AND ecm:isVersion = 0"
+
+        query = "SELECT * FROM Document WHERE %s = '%s' %s %s" " LIMIT 1" % (
+            id_prop,
+            ref,
+            trash,
+            version,
+        )
+        results = self.query(query)
+        return len(results["entries"]) == 1
 
     def request_token(self, revoke: bool = False) -> str:
         """Request and return a new token for the user"""
@@ -245,21 +272,6 @@ class Remote(Nuxeo):
         )
         return self.file_to_info(toplevel_folder)
 
-    def get_content(self, fs_item_id: str, **kwargs: Any) -> str:
-        """Download and return the binary content of a file system item
-
-        Beware that the content is loaded in memory.
-
-        Raises NotFound if file system item with id fs_item_id
-        cannot be found
-        """
-        fs_item_info = self.get_fs_info(fs_item_id)
-        download_url = self.client.host + fs_item_info.download_url
-        FileAction("Download", None, fs_item_info.name, 0)
-        content = self.download(download_url, digest=fs_item_info.digest, **kwargs)
-        FileAction.finish_action()
-        return content
-
     def stream_content(
         self,
         fs_item_id: str,
@@ -306,28 +318,6 @@ class Remote(Nuxeo):
             FileAction.finish_action()
         return tmp_file
 
-    def update_content(
-        self, ref: str, content: bytes, filename: str = None, mime_type: str = None
-    ) -> RemoteFileInfo:
-        """Update a document with the given content
-
-        Creates a temporary file from the content then streams it.
-        """
-        file_path = make_tmp_file(self.upload_tmp_dir, content)
-        try:
-            if filename is None:
-                filename = self.get_fs_info(ref).name
-            fs_item = self.upload(
-                file_path,
-                filename=filename,
-                mime_type=mime_type,
-                command="NuxeoDrive.UpdateFile",
-                id=ref,
-            )
-            return self.file_to_info(fs_item)
-        finally:
-            os.remove(file_path)
-
     def fs_exists(self, fs_item_id: str) -> bool:
         return self.operations.execute(
             command="NuxeoDrive.FileSystemItemExists", id=fs_item_id
@@ -368,23 +358,6 @@ class Remote(Nuxeo):
             overwrite=overwrite,
         )
         return self.file_to_info(fs_item)
-
-    def make_file(self, parent_id: str, name: str, content: bytes) -> RemoteFileInfo:
-        """Create a document with the given name and content
-
-        Creates a temporary file from the content then streams it.
-        """
-        file_path = make_tmp_file(self.upload_tmp_dir, content)
-        try:
-            fs_item = self.upload(
-                file_path,
-                filename=name,
-                command="NuxeoDrive.CreateFile",
-                parentId=parent_id,
-            )
-            return self.file_to_info(fs_item)
-        finally:
-            os.remove(file_path)
 
     def stream_file(
         self,
@@ -702,13 +675,10 @@ class Remote(Nuxeo):
         # Filter out filenames that would be ignored by the file system client
         # so as to be consistent.
         filtered = []
-        for info in [
-            self.doc_to_info(
-                d, fetch_parent_uid=fetch_parent_uid, parent_uid=parent_uid
+        for entry in entries:
+            info = self.doc_to_info(
+                entry, fetch_parent_uid=fetch_parent_uid, parent_uid=parent_uid
             )
-            for d in entries
-        ]:
-
             name = info.name.lower()
             if name.endswith(Options.ignored_suffixes) or name.startswith(
                 Options.ignored_prefixes
@@ -719,34 +689,8 @@ class Remote(Nuxeo):
 
         return filtered
 
-    def query(self, query: str) -> Dict[str, Any]:
+    def query(self, query: str) -> Dict[str, Any]:  # TODO: use Nuxeo.client.query()
         return self.operations.execute(command="Document.Query", query=query)
-
-    def exists(
-        self, ref: str, use_trash: bool = True, include_versions: bool = False
-    ) -> bool:
-        """
-        Check if a document exists on the server.
-
-        :param ref: Document reference (UID).
-        :param use_trash: Filter documents inside the trash.
-        :param include_versions:
-        :rtype: bool
-        """
-        ref = self._check_ref(ref)
-        id_prop = "ecm:path" if ref.startswith("/") else "ecm:uuid"
-
-        trash = self._get_trash_condition() if use_trash else ""
-        version = "" if include_versions else "AND ecm:isVersion = 0"
-
-        query = ("SELECT * FROM Document WHERE %s = '%s' %s %s" " LIMIT 1") % (
-            id_prop,
-            ref,
-            trash,
-            version,
-        )
-        results = self.query(query)
-        return len(results["entries"]) == 1
 
     def get_info(
         self,
@@ -765,11 +709,6 @@ class Remote(Nuxeo):
             return None
         return self.doc_to_info(
             self.fetch(self._check_ref(ref)), fetch_parent_uid=fetch_parent_uid
-        )
-
-    def get_children(self, ref: str) -> Dict[str, Any]:
-        return self.operations.execute(
-            command="Document.GetChildren", input_obj="doc:" + ref
         )
 
     def get_blob(
@@ -807,10 +746,6 @@ class Remote(Nuxeo):
             command="Document.Unlock", input_obj="doc:" + self._check_ref(ref)
         )
 
-    def get_roots(self) -> List[NuxeoDocumentInfo]:
-        res = self.operations.execute(command="NuxeoDrive.GetRoots")
-        return self._filtered_results(res["entries"], fetch_parent_uid=False)
-
     def register_as_root(self, ref: str) -> bool:
         self.operations.execute(
             command="NuxeoDrive.SetSynchronization",
@@ -826,12 +761,6 @@ class Remote(Nuxeo):
             enable=False,
         )
         return True
-
-    def conflicted_name(self, original_name: str) -> str:
-        """Generate a new name suitable for conflict deduplication."""
-        return self.operations.execute(
-            command="NuxeoDrive.GenerateConflictedItemName", name=original_name
-        )
 
     def set_proxy(self, proxy: Proxy = None) -> None:
         if proxy:

@@ -1,7 +1,7 @@
 # coding: utf-8
 import logging
 import os
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import nuxeo.client
 import nuxeo.constants
@@ -13,7 +13,7 @@ from nxdrive.constants import MAC
 from nxdrive.engine.engine import Engine
 from nxdrive.logging_config import configure
 from nxdrive.manager import Manager
-from nxdrive.objects import NuxeoDocumentInfo
+from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
 from nxdrive.utils import make_tmp_file, safe_filename
 
 # Automatically check all operations done with the Python client
@@ -74,18 +74,16 @@ class RemoteBase(Remote):
             SERVER_INFO = self.client.server_info()
             nuxeo.client.NuxeoClient._server_info = SERVER_INFO
 
+    def conflicted_name(self, original_name: str) -> str:
+        """Generate a new name suitable for conflict deduplication."""
+        return self.operations.execute(
+            command="NuxeoDrive.GenerateConflictedItemName", name=original_name
+        )
 
-class RemoteTest(RemoteBase):
-
-    _download_remote_error = None
-    _upload_remote_error = None
-    _server_error = None
-    raise_on = None
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.exec_fn = self.operations.execute
-        self.operations.execute = self.execute
+    def get_children(self, ref: str) -> Dict[str, Any]:
+        return self.operations.execute(
+            command="Document.GetChildren", input_obj="doc:" + ref
+        )
 
     def get_children_info(self, ref: str, limit: int = 1000) -> List[NuxeoDocumentInfo]:
         ref = self._check_ref(ref)
@@ -101,6 +99,74 @@ class RemoteTest(RemoteBase):
         ) % (ref, "', '".join(types), self._get_trash_condition(), limit)
         entries = self.query(query)["entries"]
         return self._filtered_results(entries)
+
+    def get_content(self, fs_item_id: str, **kwargs: Any) -> str:
+        """Download and return the binary content of a file system item
+
+        Beware that the content is loaded in memory.
+
+        Raises NotFound if file system item with id fs_item_id
+        cannot be found
+        """
+        fs_item_info = self.get_fs_info(fs_item_id)
+        download_url = self.client.host + fs_item_info.download_url
+        return self.download(download_url, digest=fs_item_info.digest, **kwargs)
+
+    def get_roots(self) -> List[NuxeoDocumentInfo]:
+        res = self.operations.execute(command="NuxeoDrive.GetRoots")
+        return self._filtered_results(res["entries"], fetch_parent_uid=False)
+
+    def make_file(self, parent_id: str, name: str, content: bytes) -> RemoteFileInfo:
+        """Create a document with the given name and content
+
+        Creates a temporary file from the content then streams it.
+        """
+        file_path = make_tmp_file(self.upload_tmp_dir, content)
+        try:
+            fs_item = self.upload(
+                file_path,
+                filename=name,
+                command="NuxeoDrive.CreateFile",
+                parentId=parent_id,
+            )
+            return self.file_to_info(fs_item)
+        finally:
+            os.remove(file_path)
+
+    def update_content(
+        self, ref: str, content: bytes, filename: str = None, mime_type: str = None
+    ) -> RemoteFileInfo:
+        """Update a document with the given content
+
+        Creates a temporary file from the content then streams it.
+        """
+        file_path = make_tmp_file(self.upload_tmp_dir, content)
+        try:
+            if filename is None:
+                filename = self.get_fs_info(ref).name
+            fs_item = self.upload(
+                file_path,
+                filename=filename,
+                mime_type=mime_type,
+                command="NuxeoDrive.UpdateFile",
+                id=ref,
+            )
+            return self.file_to_info(fs_item)
+        finally:
+            os.remove(file_path)
+
+
+class RemoteTest(RemoteBase):
+
+    _download_remote_error = None
+    _upload_remote_error = None
+    _server_error = None
+    raise_on = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.exec_fn = self.operations.execute
+        self.operations.execute = self.execute
 
     def download(self, *args, **kwargs):
         self._raise(self._download_remote_error, *args, **kwargs)

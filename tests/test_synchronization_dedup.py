@@ -6,7 +6,6 @@ from .common import UnitTestCase
 
 
 class TestSynchronizationDedup(UnitTestCase):
-
     def test_children_of_folder_in_dedup_error(self):
         """
         NXDRIVE-1037: Children of a folder that is in DEDUP error should be
@@ -48,7 +47,6 @@ class TestSynchronizationDedup(UnitTestCase):
 
 
 class TestSynchronizationDedupCaseSensitive(UnitTestCase):
-
     def test_file_sync_under_dedup_shared_folders_rename_dupe_remotely(self):
         """ NXDRIVE-842: do not sync duplicate conflicted folder content. """
 

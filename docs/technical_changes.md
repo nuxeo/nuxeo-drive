@@ -31,11 +31,19 @@
 - Removed `Manager.set_proxy_settings()`
 - Removed `Manager.proxyUpdated()`
 - Removed `Manager.validate_proxy_settings()`
+- Removed `Notification.get_content()`
 - Removed `Options.server_version`. Use `Engine.remote.client.server_version` attribute instead.
 - Removed `Options.proxy_exceptions`
 - Removed `Options.proxy_type`
 - Removed `QueueManager.queueEmpty()`
 - Added `Remote.set_proxy()`
+- Moved `Remote.conflicted_name()` to `RemoteBase`
+- Moved `Remote.get_children()` to `RemoteBase`
+- Moved `Remote.get_children_info()` to `RemoteBase`
+- Moved `Remote.get_content()` to `RemoteBase`
+- Moved `Remote.get_roots()` to `RemoteBase`
+- Moved `Remote.make_file()` to `RemoteBase`
+- Moved `Remote.update_content()` to `RemoteBase`
 - Removed `types` argument from `Remote.get_children_info()`. Use `types` attribute instead.
 - Removed `RemoteWatcher.get_engine()`. Use `engine` attribute instead.
 - Removed `WebDialog.loadError()`
