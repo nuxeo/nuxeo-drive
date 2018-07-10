@@ -4,8 +4,8 @@ import hashlib
 import pytest
 from nuxeo.exceptions import HTTPError
 
-from nxdrive.client import LocalClient
 from nxdrive.constants import WINDOWS
+from . import LocalTest
 from .common import UnitTestCase
 
 
@@ -15,8 +15,8 @@ class TestPermissionHierarchy(UnitTestCase):
 
     def setUp(self):
         self.admin = self.root_remote
-        self.local_1 = LocalClient(self.local_nxdrive_folder_1)
-        self.local_2 = LocalClient(self.local_nxdrive_folder_2)
+        self.local_1 = LocalTest(self.local_nxdrive_folder_1)
+        self.local_2 = LocalTest(self.local_nxdrive_folder_2)
 
         # Make sure user workspace is created and fetch its UID
         res = self.remote_document_client_1.make_file_in_user_workspace(

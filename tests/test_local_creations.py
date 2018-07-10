@@ -35,7 +35,7 @@ class TestLocalCreations(UnitTestCase):
         2. create folder 'Nuxeo Drive Test Workspace/B'
         """
 
-        local = self.local_root_client_1
+        local = self.local_1
         remote = self.remote_1
         len_text_files = 10
         len_pictures = 10
@@ -45,32 +45,30 @@ class TestLocalCreations(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Create the folder A
-        local.make_folder("/" + self.workspace_title, "A")
-        folder_path_1 = self.workspace_title + "/A"
+        local.make_folder("/", "A")
 
         # Add text files into A
         for file_num in range(1, len_text_files + 1):
             filename = "file_%02d.txt" % file_num
-            local.make_file("/" + folder_path_1, filename, content=FILE_CONTENT)
+            local.make_file("/A", filename, content=FILE_CONTENT)
 
         # Add pictures into A
         test_doc_path = os.path.join(self.location, "resources", "cat.jpg")
-        abs_folder_path_1 = local.abspath("/" + folder_path_1)
+        abs_folder_path_1 = local.abspath("/A")
         for file_num in range(len_text_files + 1, total_files + 1):
             filename = "file_%02d.jpg" % file_num
             dst_path = os.path.join(abs_folder_path_1, filename)
             shutil.copyfile(test_doc_path, dst_path)
 
         # Create the folder B, and sync
-        local.make_folder("/" + self.workspace_title, "B")
-        folder_path_2 = self.workspace_title + "/B"
-        self.wait_sync(timeout=100)
+        local.make_folder("/", "B")
+        self.wait_sync()
 
         # Get remote folders reference IDs
-        remote_ref_1 = local.get_remote_id("/" + folder_path_1)
+        remote_ref_1 = local.get_remote_id("/A")
         assert remote_ref_1 is not None
         assert remote.fs_exists(remote_ref_1)
-        remote_ref_2 = local.get_remote_id("/" + folder_path_2)
+        remote_ref_2 = local.get_remote_id("/B")
         assert remote_ref_2 is not None
         assert remote.fs_exists(remote_ref_2)
 

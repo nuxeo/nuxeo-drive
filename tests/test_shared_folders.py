@@ -1,5 +1,5 @@
 # coding: utf-8
-from nxdrive.client import LocalClient
+from . import LocalTest
 from .common import TEST_WORKSPACE_PATH, UnitTestCase
 
 
@@ -13,7 +13,7 @@ class TestSharedFolders(UnitTestCase):
             remote_1 = self.remote_document_client_1
             remote_2 = self.remote_document_client_2
 
-            local_user2 = LocalClient(self.local_nxdrive_folder_2)
+            local_user2 = LocalTest(self.local_nxdrive_folder_2)
 
             # Make sure personal workspace is created for user1
             # and fetch its uid

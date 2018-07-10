@@ -7,8 +7,8 @@ from mock import patch
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import User
 
-from nxdrive.client import LocalClient
 from nxdrive.engine.engine import Engine, ServerBindingSettings
+from . import LocalTest
 from .common import UnitTestCase
 
 
@@ -35,7 +35,7 @@ class TestDirectEdit(UnitTestCase):
         self.direct_edit.start()
 
         self.remote = self.remote_document_client_1
-        self.local = LocalClient(os.path.join(self.nxdrive_conf_folder_1, "edit"))
+        self.local = LocalTest(os.path.join(self.nxdrive_conf_folder_1, "edit"))
 
     def tearDownApp(self):
         self.direct_edit.stop()

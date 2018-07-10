@@ -1,7 +1,7 @@
 # coding: utf-8
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import nuxeo.client
 import nuxeo.constants
@@ -20,7 +20,6 @@ from nxdrive.utils import make_tmp_file, safe_filename
 nuxeo.constants.CHECK_PARAMS = True
 
 # Remove features for tests
-LocalClient.has_folder_icon = lambda *args: True
 Engine.add_to_favorites = lambda *args: None
 Manager._create_findersync_listener = lambda *args: None
 Manager._create_updater = lambda *args: None
@@ -58,6 +57,33 @@ log = logging.getLogger(__name__)
 # Operations cache
 OPS_CACHE = None
 SERVER_INFO = None
+
+
+class LocalTest(LocalClient):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get_content(self, ref: str) -> bytes:
+        with open(self.abspath(ref), "rb") as f:
+            return f.read()
+
+    def has_folder_icon(self, *args: Any, **kwargs: Any) -> bool:
+        return True
+
+    def set_folder_icon(self, *args: Any, **kwargs: Any) -> None:
+        return
+
+    def update_content(
+        self, ref: str, content: bytes, xattr_names: Tuple[str, ...] = ("ndrive",)
+    ) -> None:
+        xattrs = {name: self.get_remote_id(ref, name=name) for name in xattr_names}
+
+        with open(self.abspath(ref), "wb") as f:
+            f.write(content)
+
+        for name, value in xattrs.items():
+            if value is not None:
+                self.set_remote_id(ref, value, name=name)
 
 
 class RemoteBase(Remote):

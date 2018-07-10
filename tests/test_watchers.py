@@ -5,19 +5,19 @@ from time import sleep
 import pytest
 from mock import patch
 
-from nxdrive.client import LocalClient
-from nxdrive.constants import LINUX, MAC, WINDOWS
+from nxdrive.constants import MAC, WINDOWS
 from nxdrive.engine.watcher import WIN_MOVE_RESOLUTION_PERIOD
+from . import LocalTest
 from .common import UnitTestCase
 
 
 class TestWatchers(UnitTestCase):
     def get_local_client(self, path):
-        if self._testMethodName in (
+        if self._testMethodName in {
             "test_local_scan_encoding",
             "test_watchdog_encoding",
-        ):
-            return LocalClient(path)
+        }:
+            return LocalTest(path)
         return super().get_local_client(path)
 
     def test_local_scan(self):

@@ -6,15 +6,14 @@ See win_local_client.py and mac_local_client.py for more informations.
 See NXDRIVE-742.
 """
 import hashlib
-import operator
 import os
 from time import sleep
 
 import pytest
 
-from nxdrive.client import LocalClient
 from nxdrive.constants import LINUX, WINDOWS
 from nxdrive.exceptions import DuplicationDisabledError, NotFound
+from . import LocalTest
 from .common import UnitTestCase
 
 if WINDOWS:
@@ -360,7 +359,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
     def get_local_client(self, path):
-        return LocalClient(path)
+        return LocalTest(path)
 
     @pytest.mark.xfail(
         WINDOWS, raises=OSError, reason="Explorer cannot deal with very long paths"

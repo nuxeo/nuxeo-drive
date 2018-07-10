@@ -5,8 +5,8 @@ import time
 
 import pytest
 
-from nxdrive.client import LocalClient
 from nxdrive.constants import LINUX, WINDOWS
+from . import LocalTest
 from .common import (
     OS_STAT_MTIME_RESOLUTION,
     REMOTE_MODIFICATION_TIME_RESOLUTION,
@@ -17,7 +17,7 @@ from .common import (
 class TestWindows(UnitTestCase):
     @pytest.mark.randombug("NXDRIVE-719", condition=LINUX, mode="BYPASS")
     def test_local_replace(self):
-        local = LocalClient(self.local_test_folder_1)
+        local = LocalTest(self.local_test_folder_1)
         remote = self.remote_document_client_1
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)

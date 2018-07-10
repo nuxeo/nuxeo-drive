@@ -42,7 +42,6 @@ socket.setdefaulttimeout(TX_TIMEOUT)
 
 
 class Remote(Nuxeo):
-
     def __init__(
         self,
         url: str,
@@ -114,8 +113,7 @@ class Remote(Nuxeo):
         return "<{} {}>".format(self.__class__.__name__, attrs)
 
     def exists(
-            self, ref: str, use_trash: bool = True,
-            include_versions: bool = False
+        self, ref: str, use_trash: bool = True, include_versions: bool = False
     ) -> bool:
         """
         Check if a document exists on the server.
