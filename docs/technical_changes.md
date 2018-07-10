@@ -64,6 +64,7 @@
 - Added constants.py::`MAC`
 - Added constants.py::`WINDOWS`
 - Removed constants.py::`DEFAULT_TYPES`
+- Removed constants.py::`MAX_CHILDREN`
 - Removed engine/dao/sqlite.py::`FakeLock`
 - Moved engine/engine.py::`InvalidDriveException` exception exceptions.py
 - Moved engine/engine.py::`RootAlreadyBindWithDifferentAccount` exception to exceptions.py

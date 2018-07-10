@@ -113,7 +113,7 @@ to local PC.
             return Remote.file_to_info(fs_item)
 
         with patch.object(
-            self.engine_1.remote, "get_children_info", new=get_children_info
+            remote, "get_children_info", new=get_children_info
         ), patch.object(self.engine_1.remote, "file_to_info", new=file_to_info):
             # Simulate network error for GetChildren API twice
             # This is to ensure Drive will eventually recover even after multiple

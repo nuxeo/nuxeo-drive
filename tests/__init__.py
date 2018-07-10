@@ -1,7 +1,7 @@
 # coding: utf-8
 import logging
 import os
-from typing import Dict
+from typing import Dict, List
 
 import nuxeo.client
 import nuxeo.constants
@@ -86,6 +86,21 @@ class RemoteTest(RemoteBase):
         super().__init__(*args, **kwargs)
         self.exec_fn = self.operations.execute
         self.operations.execute = self.execute
+
+    def get_children_info(self, ref: str, limit: int = 1000) -> List[NuxeoDocumentInfo]:
+        ref = self._check_ref(ref)
+        types = {"File", "Note", "Workspace", "Folder", "Picture"}
+
+        query = (
+            "SELECT * FROM Document"
+            "       WHERE ecm:parentId = '%s'"
+            "       AND ecm:primaryType IN ('%s')"
+            "       %s"
+            "       AND ecm:isVersion = 0"
+            "       ORDER BY dc:title, dc:created LIMIT %d"
+        ) % (ref, "', '".join(types), self._get_trash_condition(), limit)
+        entries = self.query(query)["entries"]
+        return self._filtered_results(entries)
 
     def download(self, *args, **kwargs):
         self._raise(self._download_remote_error, *args, **kwargs)
