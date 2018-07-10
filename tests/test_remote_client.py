@@ -7,9 +7,9 @@ from threading import current_thread
 
 import pytest
 
-from nxdrive.client import LocalClient
 from nxdrive.exceptions import NotFound
 from nxdrive.utils import make_tmp_file
+from . import LocalTest
 from .common import FS_ITEM_ID_PREFIX, UnitTestCase
 
 
@@ -434,7 +434,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
         file_path = os.path.join(self.upload_tmp_dir, "testFile.pdf")
         copyfile(self.location + "/resources/testFile.pdf", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path)
-        local_client = LocalClient(self.upload_tmp_dir)
+        local_client = LocalTest(self.upload_tmp_dir)
         assert fs_item_info.name == "testFile.pdf"
         assert (
             fs_item_info.digest == local_client.get_info("/testFile.pdf").get_digest()
@@ -447,7 +447,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
         file_path = os.path.join(self.upload_tmp_dir, "testFile.pdf")
         copyfile(self.location + "/resources/testFile.pdf", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path, mime_type="pdf")
-        local_client = LocalClient(self.upload_tmp_dir)
+        local_client = LocalTest(self.upload_tmp_dir)
         assert fs_item_info.name == "testFile.pdf"
         assert (
             fs_item_info.digest == local_client.get_info("/testFile.pdf").get_digest()

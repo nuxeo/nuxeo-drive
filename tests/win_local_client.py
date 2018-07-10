@@ -16,8 +16,7 @@ import time
 
 from win32com.shell import shell, shellcon
 
-from nxdrive.client.local_client import LocalClient
-from . import log
+from . import LocalTest, log
 
 
 class MockFile:
@@ -25,7 +24,7 @@ class MockFile:
         self.path = path.replace(os.path.sep, "/")
 
 
-class WindowsLocalClient(LocalClient):
+class WindowsLocalClient(LocalTest):
     def __init__(self, base_folder, **kwargs):
         super().__init__(base_folder, **kwargs)
 

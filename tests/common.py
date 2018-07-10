@@ -20,14 +20,13 @@ from PyQt5.QtCore import QCoreApplication, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
-from nxdrive.client import LocalClient
 from nxdrive.constants import MAC, WINDOWS
 from nxdrive.engine.watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.utils import safe_long_path, unset_path_readonly
 from nxdrive.wui.translator import Translator
-from . import DocRemote, RemoteBase
+from . import DocRemote, LocalTest, RemoteBase
 from .conftest import root_remote
 
 # Default remote watcher delay used for tests
@@ -369,16 +368,17 @@ class UnitTestCase(TestCase):
             except AttributeError:
                 pass
 
-    def get_local_client(self, path):
-        if WINDOWS:
-            from tests.win_local_client import WindowsLocalClient
-
-            return WindowsLocalClient(path)
+    def get_local_client(self, path: str):
+        client = LocalTest
         if MAC:
-            from tests.mac_local_client import MacLocalClient
+            from .mac_local_client import MacLocalClient
 
-            return MacLocalClient(path)
-        return LocalClient(path)
+            client = MacLocalClient
+        if WINDOWS:
+            from .win_local_client import WindowsLocalClient
+
+            client = WindowsLocalClient
+        return client(path)
 
     def _unregister(self, workspace):
         """ Skip HTTP errors when cleaning up the test. """
@@ -637,9 +637,9 @@ class UnitTestCase(TestCase):
         if not local_client:
             local_client = self.local_root_client_1
         if not root:
-            root = u"/" + self.workspace_title
+            root = "/" + self.workspace_title
             if not local_client.exists(root):
-                local_client.make_folder(u"/", self.workspace_title)
+                local_client.make_folder("/", self.workspace_title)
                 nb_folders += 1
         # create some folders
         folder_1 = local_client.make_folder(root, "Folder 1")

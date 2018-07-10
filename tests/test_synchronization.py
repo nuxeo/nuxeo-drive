@@ -6,9 +6,8 @@ import pytest
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
-from nxdrive.client import LocalClient
 from nxdrive.constants import MAC, WINDOWS
-from . import RemoteTest
+from . import LocalTest, RemoteTest
 from .common import (
     DEFAULT_WAIT_SYNC_TIMEOUT,
     OS_STAT_MTIME_RESOLUTION,
@@ -20,7 +19,7 @@ from .common import (
 class TestSynchronization(UnitTestCase):
     def get_local_client(self, path):
         if self._testMethodName == "test_synchronize_deep_folders":
-            return LocalClient(path)
+            return LocalTest(path)
         return super().get_local_client(path)
 
     def test_binding_initialization_and_first_sync(self):
@@ -130,7 +129,7 @@ class TestSynchronization(UnitTestCase):
 
     def test_single_quote_escaping(self):
         remote = self.remote_document_client_1
-        local = LocalClient(self.local_nxdrive_folder_1)
+        local = LocalTest(self.local_nxdrive_folder_1)
 
         remote.unregister_as_root(self.workspace)
         self.engine_1.start()
@@ -528,7 +527,7 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Let's create a subfolder of the main readonly folder
-        local = LocalClient(self.local_nxdrive_folder_1)
+        local = LocalTest(self.local_nxdrive_folder_1)
         local.make_folder("/", "Folder 3")
         local.make_file("/Folder 3", "File 1.txt", content=b"Some content.")
         local.make_folder("/Folder 3", "Sub Folder 1")

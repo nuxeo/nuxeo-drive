@@ -6,10 +6,10 @@ from shutil import copyfile
 import pytest
 from mock import Mock, patch
 
-from nxdrive.client import LocalClient
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
 from tests import DocRemote
+from . import LocalTest
 from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, UnitTestCase
 
 
@@ -440,7 +440,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
     def test_remote_rename_sync_root_folder(self):
         remote = self.remote_1
-        local = LocalClient(self.local_nxdrive_folder_1)
+        local = LocalTest(self.local_nxdrive_folder_1)
 
         # Rename a sync root folder
         remote.rename(self.workspace_id, "Renamed Nuxeo Drive Test Workspace")

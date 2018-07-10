@@ -492,10 +492,6 @@ FolderType=Generic
         digest = file_info.get_digest(digest_func=remote_digest_algorithm)
         return digest == remote_digest
 
-    def get_content(self, ref: str) -> bytes:
-        with open(self.abspath(ref), "rb") as f:
-            return f.read()
-
     def is_ignored(self, parent_ref: str, file_name: str) -> bool:
         """ Note: added parent_ref to be able to filter on size if needed. """
 
@@ -569,6 +565,19 @@ FolderType=Generic
         path = ref if is_abs else self.abspath(ref)
         lock_path(path, locker)
 
+    def make_file(self, parent: str, name: str, content: bytes = None) -> str:
+        os_path, name = self._abspath_deduped(parent, name)
+        locker = self.unlock_ref(parent, unlock_parent=False)
+        try:
+            with open(os_path, "wb") as f:
+                if content:
+                    f.write(content)
+            if parent == "/":
+                return "/" + name
+            return parent + "/" + name
+        finally:
+            self.lock_ref(parent, locker)
+
     def make_folder(self, parent: str, name: str) -> str:
         os_path, name = self._abspath_deduped(parent, name)
         locker = self.unlock_ref(parent, unlock_parent=False)
@@ -583,19 +592,6 @@ FolderType=Generic
             return "/" + name
         return parent + "/" + name
 
-    def make_file(self, parent: str, name: str, content: bytes = None) -> str:
-        os_path, name = self._abspath_deduped(parent, name)
-        locker = self.unlock_ref(parent, unlock_parent=False)
-        try:
-            with open(os_path, "wb") as f:
-                if content:
-                    f.write(content)
-            if parent == "/":
-                return "/" + name
-            return parent + "/" + name
-        finally:
-            self.lock_ref(parent, locker)
-
     def get_new_file(self, parent: str, name: str) -> Tuple[str, str, str]:
         os_path, name = self._abspath_deduped(parent, name)
         if parent == "/":
@@ -603,18 +599,6 @@ FolderType=Generic
         else:
             path = parent + "/" + name
         return path, os_path, name
-
-    def update_content(
-        self, ref: str, content: bytes, xattr_names: Tuple[str, ...] = ("ndrive",)
-    ) -> None:
-        xattrs = {name: self.get_remote_id(ref, name=name) for name in xattr_names}
-
-        with open(self.abspath(ref), "wb") as f:
-            f.write(content)
-
-        for name, value in xattrs.items():
-            if value is not None:
-                self.set_remote_id(ref, value, name=name)
 
     def delete(self, ref: str) -> None:
         os_path = self.abspath(ref)

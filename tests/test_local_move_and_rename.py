@@ -6,10 +6,8 @@ import pytest
 from mock import patch
 from nuxeo.exceptions import HTTPError
 
-from nxdrive.client import LocalClient
-from nxdrive.constants import WINDOWS
 from nxdrive.engine.dao.sqlite import EngineDAO
-from . import DocRemote, RemoteTest
+from . import DocRemote, LocalTest, RemoteTest
 from .common import UnitTestCase
 
 
@@ -47,8 +45,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         local.make_file(
             "/Original Folder 2", "Original File 3.txt", content=b"Some Content 3"
         )
-        # Increase timeout as it was sometimes insufficient in Jenkins build
-        self.wait_sync(timeout=30)
+        self.wait_sync()
 
     def test_local_rename_folder_while_creating(self):
         local = self.local_1
@@ -86,7 +83,7 @@ class TestLocalMoveAndRename(UnitTestCase):
 
         def set_remote_id(ref: str, remote_id: bytes, name: str = "ndrive"):
             nonlocal local, marker
-            LocalClient.set_remote_id(local, ref, remote_id, name)
+            LocalTest.set_remote_id(local, ref, remote_id, name)
             if not marker and ref.endswith("/File.txt"):
                 root_local.rename(ref, "Renamed File.txt")
                 marker = True
@@ -116,7 +113,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             if not marker and ref.endswith("/File.txt"):
                 root_local.rename(ref, "Renamed File.txt")
                 marker = True
-            LocalClient.set_remote_id(local, ref, remote_id, name)
+            LocalTest.set_remote_id(local, ref, remote_id, name)
 
         with patch.object(self.engine_1.local, "set_remote_id", new=set_remote_id):
             self.local_1.make_file("/", "File.txt", content=b"Some Content 2")
@@ -548,7 +545,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         folder_1_uid = remote.get_info("/Original Folder 1").uid
 
         # Create new clients to be able to introspect the test sync root
-        toplevel_local_client = LocalClient(self.local_nxdrive_folder_1)
+        toplevel_local_client = LocalTest(self.local_nxdrive_folder_1)
 
         toplevel_local_client.rename(
             "/" + self.workspace_title, "Renamed Nuxeo Drive Test Workspace"

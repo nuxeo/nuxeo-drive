@@ -9,7 +9,7 @@ import time
 
 import Cocoa
 
-from nxdrive.client import LocalClient
+from . import LocalTest
 
 
 class MockFile:
@@ -17,7 +17,7 @@ class MockFile:
         self.path = path
 
 
-class MacLocalClient(LocalClient):
+class MacLocalClient(LocalTest):
     def __init__(self, base_folder, **kwargs):
         super().__init__(base_folder, **kwargs)
         self.fm = Cocoa.NSFileManager.defaultManager()

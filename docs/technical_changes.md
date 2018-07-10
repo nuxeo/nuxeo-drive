@@ -15,6 +15,8 @@
 - Removed `Engine.get_server_version()`. Use `remote.client.server_version` attribute instead.
 - Removed `Engine.get_update_infos()`
 - Removed `Engine.invalidate_client_cache()`
+- Moved `LocalClient.get_content()` to `LocalTest`
+- Moved `LocalClient.update_content()` to `LocalTest`
 - Added `Manager.proxy`
 - Added `Manager.set_proxy()`
 - Moved `Manager.get_system_pac_url()` to client/proxy.py
