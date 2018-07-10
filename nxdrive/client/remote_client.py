@@ -24,7 +24,6 @@ from ..constants import (
     DOWNLOAD_TMP_FILE_PREFIX,
     DOWNLOAD_TMP_FILE_SUFFIX,
     FILE_BUFFER_SIZE,
-    MAX_CHILDREN,
     TIMEOUT,
     TOKEN_PERMISSION,
     TX_TIMEOUT,
@@ -43,8 +42,6 @@ socket.setdefaulttimeout(TX_TIMEOUT)
 
 
 class Remote(Nuxeo):
-
-    types = {"File", "Note", "Workspace", "Folder"}
 
     def __init__(
         self,
@@ -769,31 +766,6 @@ class Remote(Nuxeo):
         return self.doc_to_info(
             self.fetch(self._check_ref(ref)), fetch_parent_uid=fetch_parent_uid
         )
-
-    def get_children_info(
-        self, ref: str, limit: int = MAX_CHILDREN
-    ) -> List[NuxeoDocumentInfo]:
-        ref = self._check_ref(ref)
-
-        query = (
-            "SELECT * FROM Document"
-            "       WHERE ecm:parentId = '%s'"
-            "       AND ecm:primaryType IN ('%s')"
-            "       %s"
-            "       AND ecm:isVersion = 0"
-            "       ORDER BY dc:title, dc:created LIMIT %d"
-        ) % (ref, "', '".join(self.types), self._get_trash_condition(), limit)
-
-        entries = self.query(query)["entries"]
-        if len(entries) == MAX_CHILDREN:
-            # TODO: how to best handle this case? A warning and return an empty
-            # list, a dedicated exception?
-            raise RuntimeError(
-                "Folder %r on server %r has more than the"
-                "maximum number of children: %d" % (ref, self.client.host, MAX_CHILDREN)
-            )
-
-        return self._filtered_results(entries)
 
     def get_children(self, ref: str) -> Dict[str, Any]:
         return self.operations.execute(
