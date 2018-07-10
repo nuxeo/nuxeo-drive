@@ -1,8 +1,10 @@
 # coding: utf-8
 import os
 import os.path
+from contextlib import suppress
 from tempfile import gettempdir
 
+import pytest
 from send2trash import send2trash as trash
 
 from nxdrive.constants import WINDOWS
@@ -37,11 +39,11 @@ def test_trash_long_file():
     try:
         trash(path)
         assert not os.path.exists(path)
+    except PermissionError:
+        pytest.skip("Cannot trash from different partition.")
     finally:
-        try:
+        with suppress(OSError):
             os.remove(parent)
-        except OSError:
-            pass
 
 
 def test_trash_long_folder():
@@ -50,8 +52,8 @@ def test_trash_long_folder():
     try:
         trash(path)
         assert not os.path.exists(path)
+    except PermissionError:
+        pytest.skip("Cannot trash from different partition.")
     finally:
-        try:
+        with suppress(OSError):
             os.remove(parent)
-        except OSError:
-            pass
