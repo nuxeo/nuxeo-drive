@@ -89,7 +89,7 @@ class Test(UnitTestCase):
                 new_name = os.path.splitext(name)[0] + "-renamed.txt"
                 new_file = local_1.rename(new_folder + "/" + name, new_name)
                 new_files[new_folder].append(new_file.path)
-        self.wait_sync(timeout=30)
+        self.wait_sync()
 
         for folder, new_folder in zip(folders, new_folders):
             assert local_1.exists(new_folder)

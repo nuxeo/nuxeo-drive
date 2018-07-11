@@ -30,12 +30,12 @@ class TestMacSpecific(UnitTestCase):
         )
 
         # The file should not be synced and there have no remote id
-        self.wait_sync(wait_for_async=True, fail_if_timeout=False, timeout=10)
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
         assert not self.local_1.get_remote_id("/File.txt")
 
         # Remove the Finder flag
         self.local_1.remove_remote_id("/File.txt", xattr.XATTR_FINDERINFO_NAME)
 
         # The sync process should now handle the file and sync it
-        self.wait_sync(wait_for_async=True, fail_if_timeout=False, timeout=10)
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
         assert self.local_1.get_remote_id("/File.txt")
