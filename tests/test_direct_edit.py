@@ -1,5 +1,7 @@
 # coding: utf-8
 import os
+import time
+from urllib.error import URLError
 
 import pytest
 from mock import patch
@@ -8,7 +10,7 @@ from nuxeo.exceptions import HTTPError
 from nuxeo.models import User
 
 from nxdrive.engine.engine import Engine, ServerBindingSettings
-from . import LocalTest
+from . import LocalTest, RemoteTest
 from .common import UnitTestCase
 
 
@@ -133,6 +135,49 @@ class TestDirectEdit(UnitTestCase):
         self.direct_edit.directEditLocked.connect(locked_file_signal)
         self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
         assert received
+
+    def test_network_loss(self):
+        """ Updates should be sent when the network is up again. """
+        filename = "networkless file.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
+
+        # Download file
+        local_path = "/%s/%s" % (doc_id, filename)
+
+        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
+            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            self.wait_sync(timeout=2, fail_if_timeout=False)
+
+            # Simulate server error
+            self.engine_1.remote = RemoteTest(
+                pytest.nuxeo_url,
+                self.user_1,
+                "nxdrive-test-administrator-device",
+                pytest.version,
+                password=self.password_1,
+            )
+            error = URLError(
+                "[Errno 10051] A mocked socket operation was attempted to an unreachable network"
+            )
+            self.engine_1.remote.make_upload_raise(error)
+            try:
+                # Update file content
+                self.local.update_content(local_path, b"Updated")
+                time.sleep(5)
+                self.local.update_content(local_path, b"Updated twice")
+                time.sleep(5)
+                # The file should not be updated on the server
+                assert (
+                    self.remote.get_blob(self.remote.get_info(doc_id))
+                    == b"Initial content."
+                )
+            finally:
+                self.engine_1.remote.make_upload_raise(None)
+
+            # Check the file is reuploaded when the network come again
+            # timout=30 to ensure the file is removed from the blacklist (which have a 30 sec delay)
+            self.wait_sync(timeout=30, fail_if_timeout=False)
+            assert self.remote.get_blob(self.remote.get_info(doc_id)) == b"Updated twice"
 
     def test_note_edit(self):
         remote = self.remote_1
