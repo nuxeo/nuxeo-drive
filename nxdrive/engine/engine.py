@@ -212,7 +212,7 @@ class Engine(QObject):
             sleep(1)
         log.debug("Local Folder lock setup completed on %r", path)
 
-    def set_ui(self, value: bool, overwrite: bool = True) -> None:
+    def set_ui(self, value: str, overwrite: bool = True) -> None:
         name = ("ui", "force_ui")[overwrite]
         if getattr(self, "_" + name, "") == value:
             return
@@ -715,6 +715,7 @@ class Engine(QObject):
     def update_token(self, token: str) -> None:
         self._load_configuration()
         self._remote_token = token
+        self.remote.update_token(token)
         self._dao.update_config("remote_token", self._remote_token)
         self.set_invalid_credentials(value=False)
         self.start()
@@ -866,7 +867,7 @@ class Engine(QObject):
 
     def suspend_client(self, message: str = None) -> None:
         if self.is_paused() or self._stopped:
-            raise ThreadInterrupt
+            raise ThreadInterrupt()
 
         # Verify thread status
         thread_id = current_thread().ident

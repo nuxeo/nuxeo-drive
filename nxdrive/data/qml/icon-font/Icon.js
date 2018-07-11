@@ -1535,6 +1535,7 @@ var Icon = {
     "unfoldMore": "\uf54F",
     "ungroup": "\uf550",
     "untappd": "\uf551",
+    "update": "\uf6af",
     "upload": "\uf552",
     "usb": "\uf553",
     "vectorArrangeAbove": "\uf554",

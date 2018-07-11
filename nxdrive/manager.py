@@ -9,7 +9,7 @@ from sip import SIP_VERSION_STR
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QT_VERSION_STR, PYQT_VERSION_STR
+from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
 from . import __version__
@@ -123,8 +123,6 @@ class Manager(QObject):
         self._create_direct_edit(Options.protocol_url)
 
         # Create notification service
-        self._script_engine = None
-        self._script_object = None
         self._started = False
 
         # Pause if in debug
@@ -585,11 +583,11 @@ class Manager(QObject):
         if hasattr(binder, "url"):
             url = binder.url
             if "#" in url:
-                # Last part of the url is the engine type
+                # Last part of the URL is the engine type
                 engine_type = url.split("#")[1]
-                binder.url = url.split("#")[0]
+                binder = binder._replace(url=url.split("#")[0])
                 log.debug(
-                    "Engine type has been specified in the" " url: %s will be used",
+                    "Engine type has been specified in the URL: %s will be used",
                     engine_type,
                 )
 

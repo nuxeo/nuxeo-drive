@@ -2,7 +2,7 @@
 """ Evolution to try new engine solution. """
 
 from logging import getLogger
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from ..engine import Engine
 

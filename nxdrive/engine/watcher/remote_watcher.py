@@ -720,7 +720,7 @@ class RemoteWatcher(EngineWorker):
                 # A more recent version was already processed
                 continue
             fs_item = change.get("fileSystemItem")
-            new_info = self.engine.remote.file_to_info(fs_item) if fs_item else None
+            new_info = RemoteFileInfo.from_dict(fs_item) if fs_item else None
 
             if self.filtered(new_info):
                 log.debug("Ignoring banned file: %r", new_info)

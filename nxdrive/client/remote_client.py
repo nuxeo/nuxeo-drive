@@ -1,17 +1,13 @@
 # coding: utf-8
-import hashlib
 import os
 import socket
 import tempfile
 import time
-import unicodedata
-from datetime import datetime
 from logging import getLogger
 from threading import Lock, current_thread
 from typing import Any, Callable, Dict, List, Optional, Union
 from urllib.parse import unquote
 
-from dateutil import parser
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
@@ -151,6 +147,10 @@ class Remote(Nuxeo):
     def revoke_token(self) -> str:
         return self.request_token(revoke=True)
 
+    def update_token(self, token: str) -> None:
+        self.auth = TokenAuth(token)
+        self.client.auth = self.auth
+
     def download(
         self, url: str, file_out: str = None, digest: str = None, **kwargs: Any
     ) -> str:
@@ -262,13 +262,13 @@ class Remote(Nuxeo):
                     "Could not find %r on %r" % (fs_item_id, self.client.host)
                 )
             return None
-        return self.file_to_info(fs_item)
+        return RemoteFileInfo.from_dict(fs_item)
 
     def get_filesystem_root_info(self) -> RemoteFileInfo:
         toplevel_folder = self.operations.execute(
             command="NuxeoDrive.GetTopLevelFolder"
         )
-        return self.file_to_info(toplevel_folder)
+        return RemoteFileInfo.from_dict(toplevel_folder)
 
     def stream_content(
         self,
@@ -325,7 +325,7 @@ class Remote(Nuxeo):
         children = self.operations.execute(
             command="NuxeoDrive.GetChildren", id=fs_item_id
         )
-        return [self.file_to_info(fs_item) for fs_item in children]
+        return [RemoteFileInfo.from_dict(fs_item) for fs_item in children]
 
     def scroll_descendants(
         self, fs_item_id: str, scroll_id: str, batch_size: int = 100
@@ -339,7 +339,7 @@ class Remote(Nuxeo):
         return {
             "scroll_id": res["scrollId"],
             "descendants": [
-                self.file_to_info(fs_item) for fs_item in res["fileSystemItems"]
+                RemoteFileInfo.from_dict(fs_item) for fs_item in res["fileSystemItems"]
             ],
         }
 
@@ -355,7 +355,7 @@ class Remote(Nuxeo):
             name=name,
             overwrite=overwrite,
         )
-        return self.file_to_info(fs_item)
+        return RemoteFileInfo.from_dict(fs_item)
 
     def stream_file(
         self,
@@ -378,7 +378,7 @@ class Remote(Nuxeo):
             parentId=parent_id,
             overwrite=overwrite,
         )
-        return self.file_to_info(fs_item)
+        return RemoteFileInfo.from_dict(fs_item)
 
     def stream_update(
         self,
@@ -399,7 +399,7 @@ class Remote(Nuxeo):
                 id=fs_item_id,
                 parentId=parent_fs_item_id,
             )
-            return self.file_to_info(fs_item)
+            return RemoteFileInfo.from_dict(fs_item)
 
         self.upload(
             file_path,
@@ -425,87 +425,17 @@ class Remote(Nuxeo):
             return self.documents.untrash(uid)
 
     def rename(self, fs_item_id: str, new_name: str) -> RemoteFileInfo:
-        return self.file_to_info(
+        return RemoteFileInfo.from_dict(
             self.operations.execute(
                 command="NuxeoDrive.Rename", id=fs_item_id, name=new_name
             )
         )
 
     def move(self, fs_item_id: str, new_parent_id: str) -> RemoteFileInfo:
-        return self.file_to_info(
+        return RemoteFileInfo.from_dict(
             self.operations.execute(
                 command="NuxeoDrive.Move", srcId=fs_item_id, destId=new_parent_id
             )
-        )
-
-    @staticmethod
-    def file_to_info(fs_item: Dict[str, Any]) -> RemoteFileInfo:
-        """Convert Automation file system item description to RemoteFileInfo"""
-        folderish = fs_item["folder"]
-
-        # TODO: NXDRIVE-1236 Remove those ugly fixes
-        # TODO: when https://bugs.python.org/issue29097 is fixed
-        last_update = fs_item["lastModificationDate"] // 1000
-        last_update = max(86400, last_update)
-        last_update = datetime.fromtimestamp(last_update)
-        creation = fs_item["creationDate"] // 1000
-        creation = max(86400, creation)
-        creation = datetime.fromtimestamp(creation)
-
-        last_contributor = fs_item.get("lastContributor")
-
-        if folderish:
-            digest = None
-            digest_algorithm = None
-            download_url = None
-            can_update = False
-            can_create_child = fs_item["canCreateChild"]
-            # Scroll API availability
-            can_scroll = fs_item.get("canScrollDescendants", False)
-            can_scroll_descendants = can_scroll
-        else:
-            digest = fs_item["digest"]
-            digest_algorithm = fs_item["digestAlgorithm"] or None
-            if digest_algorithm:
-                digest_algorithm = digest_algorithm.lower().replace("-", "")
-            download_url = fs_item["downloadURL"]
-            can_update = fs_item["canUpdate"]
-            can_create_child = False
-            can_scroll_descendants = False
-
-        # Lock info
-        lock_info = fs_item.get("lockInfo")
-        lock_owner = lock_created = None
-        if lock_info:
-            lock_owner = lock_info.get("owner")
-            lock_created_millis = lock_info.get("created")
-            if lock_created_millis:
-                lock_created = datetime.fromtimestamp(lock_created_millis // 1000)
-
-        # Normalize using NFC to make the tests more intuitive
-        name = fs_item["name"]
-        if name:
-            name = unicodedata.normalize("NFC", name)
-
-        return RemoteFileInfo(
-            name=name,
-            uid=fs_item["id"],
-            parent_uid=fs_item["parentId"],
-            path=fs_item["path"],
-            folderish=folderish,
-            last_modification_time=last_update,
-            creation_time=creation,
-            last_contributor=last_contributor,
-            digest=digest,
-            digest_algorithm=digest_algorithm,
-            download_url=download_url,
-            can_rename=fs_item["canRename"],
-            can_delete=fs_item["canDelete"],
-            can_update=can_update,
-            can_create_child=can_create_child,
-            lock_owner=lock_owner,
-            lock_created=lock_created,
-            can_scroll_descendants=can_scroll_descendants,
         )
 
     def get_fs_item(
@@ -520,7 +450,7 @@ class Remote(Nuxeo):
             parentId=parent_fs_item_id,
         )
 
-    def get_top_level_children(self) -> List[RemoteFileInfo]:
+    def get_top_level_children(self) -> List[Dict[Any, str]]:
         return self.operations.execute(command="NuxeoDrive.GetTopLevelChildren")
 
     def get_changes(
@@ -566,107 +496,6 @@ class Remote(Nuxeo):
                 ref = self._base_folder_path + ref
         return ref
 
-    def doc_to_info(
-        self, doc: Dict[str, Any], parent_uid: str = None, fetch_parent_uid: bool = True
-    ) -> NuxeoDocumentInfo:
-        """Convert Automation document description to NuxeoDocumentInfo"""
-        props = doc["properties"]
-        name = props["dc:title"]
-        filename = None
-        folderish = "Folderish" in doc["facets"]
-        try:
-            last_update = datetime.strptime(
-                doc["lastModified"], "%Y-%m-%dT%H:%M:%S.%fZ"
-            )
-        except ValueError:
-            # no millisecond?
-            last_update = datetime.strptime(doc["lastModified"], "%Y-%m-%dT%H:%M:%SZ")
-
-        # TODO: support other main files
-        has_blob = False
-        if folderish:
-            digest_algorithm = None
-            digest = None
-        else:
-            blob = props.get("file:content")
-            if blob is None:
-                note = props.get("note:note")
-                if note is None:
-                    digest_algorithm = None
-                    digest = None
-                else:
-                    m = hashlib.md5()
-                    m.update(note.encode())
-                    digest = m.hexdigest()
-                    digest_algorithm = "md5"
-                    ext = ".txt"
-                    mime_type = props.get("note:mime_type")
-                    if mime_type == "text/html":
-                        ext = ".html"
-                    elif mime_type == "text/xml":
-                        ext = ".xml"
-                    elif mime_type == "text/x-web-markdown":
-                        ext = ".md"
-                    if not name.endswith(ext):
-                        filename = name + ext
-                    else:
-                        filename = name
-            else:
-                has_blob = True
-                digest_algorithm = blob.get("digestAlgorithm")
-                if digest_algorithm is not None:
-                    digest_algorithm = digest_algorithm.lower().replace("-", "")
-                digest = blob.get("digest")
-                filename = blob.get("name")
-
-        # Lock info
-        lock_owner = doc.get("lockOwner")
-        lock_created = doc.get("lockCreated")
-        if lock_created is not None:
-            lock_created = parser.parse(lock_created)
-
-        # Permissions
-        permissions = doc.get("contextParameters", {}).get("permissions", None)
-
-        # Trashed
-        is_trashed = doc.get("isTrashed", doc["state"] == "deleted")
-
-        # XXX: we need another roundtrip just to fetch the parent uid...
-        if parent_uid is None and fetch_parent_uid:
-            parent_uid = self.fetch(os.path.dirname(doc["path"]))["uid"]
-
-        # Normalize using NFC to make the tests more intuitive
-        if "uid:major_version" in props and "uid:minor_version" in props:
-            version = (
-                str(props["uid:major_version"]) + "." + str(props["uid:minor_version"])
-            )
-        else:
-            version = None
-        if name is not None:
-            name = unicodedata.normalize("NFC", name)
-        return NuxeoDocumentInfo(
-            root=self._base_folder_ref,
-            name=name,
-            uid=doc["uid"],
-            parent_uid=parent_uid,
-            path=doc["path"],
-            folderish=folderish,
-            last_modification_time=last_update,
-            last_contributor=props["dc:lastContributor"],
-            digest_algorithm=digest_algorithm,
-            digest=digest,
-            repository=self.client.repository,
-            doc_type=doc["type"],
-            version=version,
-            state=doc["state"],
-            is_trashed=is_trashed,
-            has_blob=has_blob,
-            filename=filename,
-            lock_owner=lock_owner,
-            lock_created=lock_created,
-            permissions=permissions,
-        )
-
     def _filtered_results(
         self, entries: List[Dict], parent_uid: str = None, fetch_parent_uid: bool = True
     ) -> List[NuxeoDocumentInfo]:
@@ -674,9 +503,13 @@ class Remote(Nuxeo):
         # so as to be consistent.
         filtered = []
         for entry in entries:
-            info = self.doc_to_info(
-                entry, fetch_parent_uid=fetch_parent_uid, parent_uid=parent_uid
+            entry.update(
+                {"root": self._base_folder_ref, "repository": self.client.repository}
             )
+            if parent_uid is None and fetch_parent_uid:
+                parent_uid = self.fetch(os.path.dirname(entry["path"]))["uid"]
+
+            info = NuxeoDocumentInfo.from_dict(entry, parent_uid=parent_uid)
             name = info.name.lower()
             if name.endswith(Options.ignored_suffixes) or name.startswith(
                 Options.ignored_prefixes
@@ -705,9 +538,15 @@ class Remote(Nuxeo):
                     % (self._check_ref(ref), self.client.host)
                 )
             return None
-        return self.doc_to_info(
-            self.fetch(self._check_ref(ref)), fetch_parent_uid=fetch_parent_uid
+
+        doc = self.fetch(self._check_ref(ref))
+        parent_uid = None
+        if fetch_parent_uid:
+            parent_uid = self.fetch(os.path.dirname(doc["path"]))["uid"]
+        doc.update(
+            {"root": self._base_folder_ref, "repository": self.client.repository}
         )
+        return NuxeoDocumentInfo.from_dict(doc, parent_uid=parent_uid)
 
     def get_blob(
         self, ref: Union[NuxeoDocumentInfo, str], file_out: str = None, **kwargs: Any

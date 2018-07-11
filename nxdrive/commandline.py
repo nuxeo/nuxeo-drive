@@ -507,7 +507,7 @@ class CliHandler:
             from .console import ConsoleApplication
 
             return ConsoleApplication(self.manager)
-        from .wui.application import Application
+        from .gui.application import Application
 
         return Application(self.manager)
 

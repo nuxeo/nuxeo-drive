@@ -1,297 +1,164 @@
 import QtQuick 2.10
 import QtQuick.Controls 2.3
-import QtQuick.Dialogs 1.3
 import QtQuick.Layouts 1.3
-import QtQuick.Window 2.2
-import QtWebEngine 1.0
 import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
     id: control
 
-    property var currentAccount //: accountListView.currentItem.accountData
-    property bool invalidCredentials: false
-    signal pickAccount(var account)
+    property bool hasAccounts: accountSelect.model.count > 0
 
-    onPickAccount: {
-        if (currentAccount == undefined) {
-            // trick to display the selected UI value right away
-            var idx = 0
-            while (idx < uiSelect.model.count) {
-                var ui = account.forceUi || account.ui
-                if (uiSelect.model.get(idx).value == ui) {
-                    uiSelect.currentIndex = idx
-                    break
-                }
-                idx++
-            }
+    GridLayout {
+        visible: hasAccounts
+
+        anchors {
+            top: parent.top
+            left: parent.left
+            topMargin: 40
+            leftMargin: 30
         }
-        currentAccount = account
-        if (api.has_invalid_credentials(currentAccount.uid)) {
-            control.invalidCredentials = true
-        } else {
-            control.invalidCredentials = false
+        columns: 2
+        columnSpacing: 50
+        rowSpacing: 20
+
+        ScaledText { text: qsTr("ACCOUNT_NAME") + tl.tr; color: mediumGray }
+
+        NuxeoComboBox {
+            id: accountSelect
+            model: EngineModel
+            textRole: "username"
+
+            onModelChanged: currentIndex = model.count - 1
+            Component.onCompleted: {
+                if (model.count > 0) { currentIndex = 0 }
+            }
+
+            function getRole(role) { return model.get(currentIndex, role) }
         }
-    }
 
-    FontLoader {
-        id: iconFont
-        source: "icon-font/materialdesignicons-webfont.ttf"
-    }
+        ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
+        ScaledText { text: accountSelect.getRole("url") }
 
-    Rectangle {
-        id: content
-        anchors.fill: parent
+        ScaledText {
+            text: qsTr("SERVER_UI") + tl.tr
+            color: mediumGray
+            Layout.alignment: Qt.AlignTop
+        }
 
-        Rectangle {
-            // Left panel for account list
-            id: accountList
-            width: 150; height: parent.height
-            color: lightGray
-            anchors {
-                left: parent.left
-                top: parent.top
+        ColumnLayout {
+            id: uiSelect
+
+            property string suffix: " (" + qsTr("SERVER_DEFAULT") + ")"
+            spacing: 0
+            NuxeoRadioButton {
+                checked: accountSelect.getRole("forceUi") == "web"
+                text: "Web UI" + (accountSelect.getRole("ui") == "web" ? uiSelect.suffix : "")
+                onClicked: api.set_server_ui(accountSelect.getRole("uid"), "web")
+                Layout.alignment: Qt.AlignTop
+                Layout.leftMargin: -8
+                Layout.topMargin: -10
             }
-            InfoLabel { 
-                text: qsTr("SECTION_ACCOUNTS") + tl.tr
-                anchors {
-                    left: accountListView.left
-                    top: parent.top
-                    topMargin: 20
-                } 
-            }
-            ListView {
-                id: accountListView
-                width: parent.width * 3/4; height: parent.height - 100
-                anchors.centerIn: parent
-                spacing: 10
-                model: EngineModel
-
-                Component.onCompleted: control.pickAccount(currentItem.accountData)
-
-                delegate: HoverRectangle {
-                    id: wrapper
-
-                    property variant accountData: model
-                    color: "transparent"
-                    width: parent.width; height: 30
-
-                    onClicked: {
-                        accountListView.currentIndex = index
-                        control.pickAccount(accountData)
-                    }
-
-                    NuxeoToolTip {
-                        visible: accountName.truncated && hovered
-                        text: server
-                    }
-                    
-                    Text {
-                        id: accountName
-                        width: parent.width
-                        elide: Text.ElideRight
-                        text: server
-                        font.pointSize: 16
-                        anchors.centerIn: parent
-                        horizontalAlignment: Text.AlignLeft
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    Rectangle {
-                        width: accountName.contentWidth; height: 2
-                        color: nuxeoBlue
-                        visible: wrapper.ListView.isCurrentItem
-                        anchors {
-                            top: accountName.bottom
-                            left: accountName.left
-                        }
-                    }
-                }
-            }
-
-            HoverRectangle {
-                // Add a new account
-                width: accountListView.width * 3/4; height: 20
-                color: "transparent"
-
-                Text {
-                    text: "+ " + qsTr("NEW_ENGINE") + tl.tr
-                    color: mediumGray
-                    font {
-                        weight: Font.Normal
-                        pointSize: 16
-                    }
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                anchors {
-                    top: accountListView.top
-                    topMargin: Math.min(accountListView.contentHeight, accountListView.height) + 10
-                    left: accountListView.left
-                }
-                onClicked: newAccountPopup.open()
+            NuxeoRadioButton {
+                checked: accountSelect.getRole("forceUi") == "jsf"
+                text: "JSF UI" + (accountSelect.getRole("ui") == "jsf" ? uiSelect.suffix : "")
+                onClicked: api.set_server_ui(accountSelect.getRole("uid"), "jsf")
+                Layout.alignment: Qt.AlignTop
+                Layout.leftMargin: -8
+                Layout.topMargin: -5
             }
         }
 
-        Rectangle {
-            // Right panel that shows the account info:
-            // server url, username, path to local folder, UI
-            width: parent.width - 150; height: parent.height
-            anchors.left: accountList.right
+        ScaledText { text: qsTr("ENGINE_FOLDER") + tl.tr; color: mediumGray }
+        ScaledText { text: accountSelect.getRole("folder") }
 
-            Column {
-                id: accountInfo
-                width: parent.width - 100; height: parent.height - 100
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                    top: parent.top
-                    topMargin: 20
-                }
-                spacing: 15
+        ScaledText {
+            text: qsTr("SELECTIVE_SYNC") + tl.tr
+            color: mediumGray
+            Layout.alignment: Qt.AlignTop
+        }
 
-                InfoLabel { text: qsTr("URL") + tl.tr }
-                Text { text: currentAccount.url }
-
-                HorizontalSeparator {}
-                
-                InfoLabel { text: qsTr("USERNAME") + tl.tr }
-                Text { text: currentAccount.username }
-
-                HorizontalSeparator {}
-
-                InfoLabel { text: qsTr("ENGINE_FOLDER") + tl.tr }
-                Text { text: currentAccount.folder }
-                
-                HorizontalSeparator {}
-
-                InfoLabel { text: qsTr("SERVER_UI") + tl.tr }
-
-                NuxeoComboBox {
-                    id: uiSelect
-                    property string suffix: " (" + qsTr("SERVER_DEFAULT") + ")"
-
-                    width: 200
-                    textRole: "type"
-                    
-                    displayText: currentText + (model.get(currentIndex).value == currentAccount.ui ? suffix : "")
-
-                    model: ListModel {
-                        ListElement { type: "JSF UI"; value: "jsf" }
-                        ListElement { type: "Web UI"; value: "web" }
-                    }
-                    
-                    delegate: ItemDelegate {
-                        width: uiSelect.width
-                        contentItem: Text {
-                            text: type + (currentAccount.ui == value ? uiSelect.suffix : "")
-                            elide: Text.ElideRight
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        highlighted: uiSelect.currentIndex === index
-                    }
-                    Component.onCompleted: console.log(currentAccount.ui)
-                    onActivated: {
-                        console.log(uiSelect.currentIndex)
-                        var ui = uiSelect.model.get(uiSelect.currentIndex).value
-                        api.set_server_ui(currentAccount.uid, ui)
-                    }
-                }
+        ColumnLayout {
+            ScaledText {
+                text: qsTr("SELECTIVE_SYNC_DESCR") + tl.tr
+                Layout.maximumWidth: 400
+                wrapMode: Text.WordWrap
+                color: mediumGray
             }
-
-            Rectangle {
-                id: reconnectContainer
-                width: reconnectLabel.width + reconnectButton.width + 40
-                height: 40
-                visible: control.invalidCredentials
-                anchors {
-                    left: accountInfo.left
-                    bottom: accountInfo.bottom
-                }
-
-                Text {
-                    id: reconnectLabel
-                    text: qsTr("UNAUTHORIZED") + tl.tr
-                    color: red
-                    font.pointSize: 16
-                    anchors {
-                        left: parent.left
-                        verticalCenter: parent.verticalCenter
-                        leftMargin: 10
-                    }
-                }
-                NuxeoButton {
-                    // reconnect when credentials are invalid
-                    id: reconnectButton
-                    text: qsTr("CONNECT") + tl.tr
-                    lightColor: red; darkColor: red
-                    size: 14
-
-                    anchors {
-                        left: reconnectLabel.right
-                        verticalCenter: parent.verticalCenter
-                        leftMargin: 20
-                    }
-                    onClicked: api.web_update_token(currentAccount.uid)
-                }
-            }
-
-            NuxeoButton {
-                // show and select sync folders
-                id: selectFolders
-
+            Link {
                 text: qsTr("SELECT_SYNC_FOLDERS") + tl.tr
-                size: 14
-                inverted: true
-
-                anchors {
-                    left: accountInfo.left
-                    top: reconnectContainer.bottom
-                }
-                onClicked: api.filters_dialog(currentAccount.uid)
-            }
-
-            NuxeoButton {
-                // Remove the account
-                id: removeAccountButton
-
-                text: qsTr("DISCONNECT") + tl.tr
-                lightColor: mediumGray
-                darkColor: red
-                size: 14
-
-                anchors {
-                    left: selectFolders.right
-                    top: reconnectContainer.bottom
-                    leftMargin: 40
-                }
-                onClicked: accountDeletion.open()
-            }
-
-            Rectangle {
-                // When there's no account, show a message
-                id: noAccount
-                anchors.fill: parent
-                visible: EngineModel.count == 0
-
-                Text {
-                    width: parent.width * 3/5
-                    text: "No account yet, add one by clicking on the +"
-                    color: mediumGray
-                    wrapMode: Text.WordWrap
-                    horizontalAlignment:  Text.AlignHCenter
-                    font.pointSize: 30
-
-                    anchors.centerIn: parent
-                }
+                onClicked: api.filters_dialog(accountSelect.getRole("uid"))
             }
         }
     }
-    
+
+    ColumnLayout {
+        id: noAccountPanel
+        visible: !hasAccounts
+
+        width: parent.width * 3/4
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            top: parent.top
+            topMargin: 100
+        }
+
+        IconLabel {
+            icon: MdiFont.Icon.accountPlus
+            size: 128 / ratio; Layout.alignment: Qt.AlignHCenter
+        }
+
+        ScaledText {
+            text: qsTr("NO_ACCOUNT") + tl.tr
+            font { weight: Font.Bold; pointSize: 14 / ratio }
+            Layout.alignment: Qt.AlignHCenter
+            wrapMode: Text.WordWrap
+        }
+
+        ScaledText {
+            text: qsTr("NO_ACCOUNT_DESCR").arg(qsTr("NEW_ENGINE")) + tl.tr
+            color: mediumGray
+            Layout.maximumWidth: parent.width
+            Layout.alignment: Qt.AlignHCenter
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    RowLayout {
+        width: parent.width - 60
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            bottom: parent.bottom
+            bottomMargin: 30
+        }
+
+        NuxeoButton {
+            // Remove the account
+            visible: hasAccounts
+            text: qsTr("DISCONNECT") + tl.tr
+            color: red
+            onClicked: accountDeletion.open()
+        }
+
+        NuxeoButton {
+            // Add a new account
+            Layout.alignment: Qt.AlignRight
+            text: qsTr("NEW_ENGINE") + tl.tr
+            color: hasAccounts ? mediumGray : nuxeoBlue
+            inverted: !hasAccounts
+            onClicked: newAccountPopup.open()
+        }
+    }
+
     NewAccountPopup { id: newAccountPopup }
 
     ConfirmPopup {
         id: accountDeletion
         message: qsTr("CONFIRM_DISCONNECT") + tl.tr
-        onOk: api.unbind_server(currentAccount.uid)
+        okColor: red
+        onOk: {
+            api.unbind_server(accountSelect.getRole("uid"))
+            accountSelect.currentIndex = 0
+        }
     }
 }

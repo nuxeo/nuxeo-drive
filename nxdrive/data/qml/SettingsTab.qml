@@ -7,33 +7,30 @@ TabButton {
     property int index
     property string color
     property string underlineColor
-    
+    property bool activated: barIndex == index
+
     height: 50
 
-    font { weight: Font.Bold; pointSize: 14 }
-    
-    contentItem: Text {
+    font { weight: Font.Bold; pointSize: 14 / ratio }
+
+    contentItem:  ScaledText {
         text: control.text
         font: control.font
         opacity: enabled ? 1.0 : 0.3
-        color: barIndex == index ? control.underlineColor : control.color
+        color: activated ? control.underlineColor : control.color
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
 
-    background: Rectangle {
+    background: Item {
         opacity: enabled ? 1 : 0.3
         height: control.height
 
-        Rectangle {
-            width: parent.width * 3 / 4; height: 2; radius: 1
-            anchors {
-                bottom: parent.bottom
-                horizontalCenter: parent.horizontalCenter
-            }
-            visible: barIndex == index
-            color: control.underlineColor
+        HorizontalSeparator {
+            height: activated ? 2 : 1; radius: 1
+            anchors.bottom: parent.bottom
+            color: activated ? control.underlineColor : lightGray
         }
     }
 
