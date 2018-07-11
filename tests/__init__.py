@@ -341,7 +341,9 @@ class DocRemote(RemoteTest):
             self.attach_blob(ref, content, name)
         return ref
 
-    def make_file_in_user_workspace(self, content, filename):
+    def make_file_in_user_workspace(
+        self, content: bytes, filename: str
+    ) -> RemoteFileInfo:
         """Stream the given content as a document in the user workspace"""
         file_path = make_tmp_file(self.upload_tmp_dir, content)
         try:

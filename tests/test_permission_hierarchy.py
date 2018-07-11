@@ -14,21 +14,20 @@ class TestPermissionHierarchy(UnitTestCase):
         super().setUpApp(server_profile="permission")
 
     def setUp(self):
-        self.admin = self.root_remote
         self.local_1 = LocalTest(self.local_nxdrive_folder_1)
         self.local_2 = LocalTest(self.local_nxdrive_folder_2)
 
         # Make sure user workspace is created and fetch its UID
         res = self.remote_document_client_1.make_file_in_user_workspace(
-            "File in user workspace", filename="USFile.txt"
+            b"File in user workspace", "USFile.txt"
         )
         self.workspace_uid = res["parentRef"]
         self.addCleanup(self.delete_wspace)
 
     def delete_wspace(self):
         # Cleanup user workspace
-        if self.workspace_uid and self.admin.exists(self.workspace_uid):
-            self.admin.delete(self.workspace_uid, use_trash=False)
+        if self.workspace_uid and self.root_remote.exists(self.workspace_uid):
+            self.root_remote.delete(self.workspace_uid, use_trash=False)
 
     def test_sync_delete_root(self):
         # Create test folder in user workspace as test user
@@ -131,7 +130,7 @@ class TestPermissionHierarchy(UnitTestCase):
         folder_b_fs = self.local_2.get_remote_id("/Other Docs/Folder A/Folder B")
         folder_a_fs = self.local_2.get_remote_id("/Other Docs/Folder A")
         # Unshare Folder A and share Folder C
-        self.admin.operations.execute(
+        self.root_remote.operations.execute(
             command="Document.RemoveACL",
             input_obj="doc:" + test_folder_uid,
             acl="local",

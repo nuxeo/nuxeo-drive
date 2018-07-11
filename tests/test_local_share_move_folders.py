@@ -3,33 +3,13 @@ import os
 import shutil
 
 from mock import patch
-
 from nxdrive.engine.watcher import RemoteWatcher
 from .common import UnitTestCase
-
-wait_for_security_update = False
-src = None
-dst = None
-original_get_changes = RemoteWatcher._get_changes
-
-
-def mock_get_changes(self, *args, **kwargs):
-    global wait_for_security_update
-    global src
-    global dst
-    if wait_for_security_update:
-        summary = original_get_changes(self, *args, **kwargs)
-        for event in summary["fileSystemChanges"]:
-            if event["eventId"] == "securityUpdated":
-                shutil.move(src, dst)
-        return summary
-    return original_get_changes(self, *args, **kwargs)
 
 
 class TestLocalShareMoveFolders(UnitTestCase):
 
     NUMBER_OF_LOCAL_IMAGE_FILES = 10
-    FILE_NAME_PATTERN = "file%03d.%s"
 
     def setUp(self):
         """
@@ -47,11 +27,12 @@ class TestLocalShareMoveFolders(UnitTestCase):
         self.folder_path_2 = local.make_folder("/", "a2")
 
         num = self.NUMBER_OF_LOCAL_IMAGE_FILES
+        self.names = set(["file%03d.png" % file_num for file_num in range(1, num + 1)])
 
         # Add image files to a1
         abs_folder_path_1 = local.abspath(self.folder_path_1)
         for file_num in range(1, num + 1):
-            file_name = self.FILE_NAME_PATTERN % (file_num, "png")
+            file_name = "file%03d.png" % file_num
             file_path = os.path.join(abs_folder_path_1, file_name)
             self.generate_random_png(file_path)
 
@@ -66,39 +47,31 @@ class TestLocalShareMoveFolders(UnitTestCase):
 
     def _check_local(self, folder):
         local = self.local_1
-        num = self.NUMBER_OF_LOCAL_IMAGE_FILES
-        names = set(["file%03d.png" % file_num for file_num in range(1, num + 1)])
-
         assert local.exists(folder)
+
         children = [child.name for child in local.get_children_info(folder)]
-        assert len(children) == num
-        assert set(children) == names
+        assert len(children) == self.NUMBER_OF_LOCAL_IMAGE_FILES
+        assert set(children) == self.names
 
     def _check_remote(self, folder):
         local = self.local_1
         remote = self.remote_1
-        num = self.NUMBER_OF_LOCAL_IMAGE_FILES
-        names = set(["file%03d.png" % file_num for file_num in range(1, num + 1)])
 
         uid = local.get_remote_id(folder)
         assert uid is not None
         assert remote.fs_exists(uid)
 
         children = [child.name for child in remote.get_fs_children(uid)]
-        assert len(children) == num
-        assert set(children) == names
+        assert len(children) == self.NUMBER_OF_LOCAL_IMAGE_FILES
+        assert set(children) == self.names
 
-    @patch.object(RemoteWatcher, "_get_changes", mock_get_changes)
     def test_local_share_move_folder_with_files(self):
-        global wait_for_security_update, src, dst
-
         remote = self.root_remote
         local = self.local_1
 
         src = local.abspath(self.folder_path_1)
         dst = local.abspath(self.folder_path_2)
 
-        wait_for_security_update = True
         input_obj = local.get_remote_id("/a1").split("#")[-1]
         remote.operations.execute(
             command="Document.AddPermission",
@@ -107,9 +80,19 @@ class TestLocalShareMoveFolders(UnitTestCase):
             permission="Everything",
         )
 
-        self.wait_sync()
+        original_get_changes = RemoteWatcher._get_changes
 
-        wait_for_security_update = False
+        def get_changes(self):
+            summary = original_get_changes(self)
+            for event in summary["fileSystemChanges"]:
+                if event["eventId"] == "securityUpdated":
+                    nonlocal src
+                    nonlocal dst
+                    shutil.move(src, dst)
+            return summary
+
+        with patch.object(RemoteWatcher, "_get_changes", new=get_changes):
+            self.wait_sync()
 
         # Sync after move operation
         self.wait_sync()

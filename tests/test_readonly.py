@@ -109,7 +109,7 @@ class TestReadOnly(UnitTestCase):
 
         # Try to change the file content locally
         with pytest.raises(OSError):
-            with open(local.abspath("/folder/foo.txt"), "w") as handler:
+            with open(local.abspath("/folder/foo.txt"), "wb") as handler:
                 handler.write(b"Change")
 
         with pytest.raises(OSError):

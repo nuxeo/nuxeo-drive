@@ -18,7 +18,7 @@ class TestSharedFolders(UnitTestCase):
             # Make sure personal workspace is created for user1
             # and fetch its uid
             uid = remote_1.make_file_in_user_workspace(
-                "File in user workspace", filename="UWFile.txt"
+                b"File in user workspace", "UWFile.txt"
             )["parentRef"]
 
             # As user1 register personal workspace as a sync root
