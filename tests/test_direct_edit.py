@@ -177,7 +177,9 @@ class TestDirectEdit(UnitTestCase):
             # Check the file is reuploaded when the network come again
             # timout=30 to ensure the file is removed from the blacklist (which have a 30 sec delay)
             self.wait_sync(timeout=30, fail_if_timeout=False)
-            assert self.remote.get_blob(self.remote.get_info(doc_id)) == b"Updated twice"
+            assert (
+                self.remote.get_blob(self.remote.get_info(doc_id)) == b"Updated twice"
+            )
 
     def test_note_edit(self):
         remote = self.remote_1

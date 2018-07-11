@@ -49,9 +49,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         self.engine_1.start()
         # By default engine will not consider being syncCompleted
         # because of the blacklist
-        self.wait_sync(
-            wait_for_async=True, fail_if_timeout=False, enforce_errors=False
-        )
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False, enforce_errors=False)
         # Temporary download file (.nxpart) should be created locally
         # but not renamed then removed
         # Synchronization should not fail: doc pair should be
@@ -67,9 +65,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
 
         # Synchronize without simulating any error
         self.engine_1.remote.make_download_raise(None)
-        self.wait_sync(
-            wait_for_async=True, fail_if_timeout=False, enforce_errors=False
-        )
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False, enforce_errors=False)
         # Remote file should be created locally
         assert local.exists("/test_OK.odt")
         # Blacklisted file should be ignored as delay (60 seconds by default)

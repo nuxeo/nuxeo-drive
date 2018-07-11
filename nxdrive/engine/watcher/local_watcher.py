@@ -264,7 +264,6 @@ class LocalWatcher(EngineWorker):
         for processor in queue.get_processors_on("/", exact_match=False):
             processor.stop()
 
-    @pyqtSlot(str)
     def scan_pair(self, local_path: str) -> None:
         to_pause = not self.engine.get_queue_manager().is_paused()
         if to_pause:

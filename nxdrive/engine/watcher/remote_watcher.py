@@ -430,7 +430,7 @@ class RemoteWatcher(EngineWorker):
 
     def _find_remote_child_match_or_create(
         self, parent_pair: NuxeoDocumentInfo, child_info: NuxeoDocumentInfo
-    ) -> Tuple[Optional[Cursor], Optional[Cursor]]:
+    ) -> Tuple[Optional[RemoteFileInfo], Optional[bool]]:
         if not parent_pair.local_path:
             # The parent folder has an empty local_path,
             # it probably means that it has been put in error as a duplicate
@@ -551,7 +551,7 @@ class RemoteWatcher(EngineWorker):
         child_pair = self._dao.get_state_from_id(row_id, from_write=True)
         return child_pair, True
 
-    def _handle_readonly(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _handle_readonly(self, doc_pair: RemoteFileInfo) -> None:
         # Don't use readonly on folder for win32 and on Locally Edited
         if doc_pair.folderish and WINDOWS:
             return
@@ -842,7 +842,7 @@ class RemoteWatcher(EngineWorker):
                         # Force remote state update in case of a
                         # locked / unlocked event since lock info is not
                         # persisted, so not part of the dirty check
-                        lock_update = event_id in ("documentLocked", "documentUnlocked")
+                        lock_update = event_id in {"documentLocked", "documentUnlocked"}
 
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved
@@ -879,7 +879,7 @@ class RemoteWatcher(EngineWorker):
 
                         if doc_pair.folderish:
                             log.trace(
-                                "Force scan recursive on %r: %r",
+                                "Force scan recursive on %r, permissions change=%r",
                                 doc_pair,
                                 event_id == "securityUpdated",
                             )

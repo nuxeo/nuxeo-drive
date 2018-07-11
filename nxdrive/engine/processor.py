@@ -29,7 +29,7 @@ from ..exceptions import (
     ParentNotSynced,
     ThreadInterrupt,
 )
-from ..objects import DocPair, NuxeoDocumentInfo
+from ..objects import DocPair, NuxeoDocumentInfo, RemoteFileInfo
 from ..utils import (
     current_milli_time,
     is_generated_tmp_file,
@@ -542,7 +542,7 @@ class Processor(EngineWorker):
             self._dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
         self._synchronize_if_not_remotely_dirty(doc_pair, remote_info=fs_item_info)
 
-    def _get_normal_state_from_remote_ref(self, ref: str) -> Optional[DocPair]:
+    def _get_normal_state_from_remote_ref(self, ref: str) -> Optional[RemoteFileInfo]:
         # TODO Select the only states that is not a collection
         return self._dao.get_normal_state_from_remote(ref)
 
@@ -1011,15 +1011,12 @@ class Processor(EngineWorker):
             log.debug("Dupe pair found %r", dupe_pair)
             self._dao.reset_error(dupe_pair)
 
-    def _synchronize_remotely_modified(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _synchronize_remotely_modified(self, doc_pair: RemoteFileInfo) -> None:
         self.tmp_file = None
         is_renaming = safe_filename(doc_pair.remote_name) != doc_pair.local_name
         try:
-            if (
-                not self.local.is_equal_digests(
-                    doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
-                )
-                and doc_pair.local_digest is not None
+            if doc_pair.local_digest is not None and not self.local.is_equal_digests(
+                doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
             ):
                 self._update_remotely(doc_pair, is_renaming)
             else:
@@ -1038,7 +1035,7 @@ class Processor(EngineWorker):
 
                 if not is_move and not is_renaming:
                     log.debug(
-                        "No local impact of metadata update on" " document %r.",
+                        "No local impact of metadata update on document %r",
                         doc_pair.remote_name,
                     )
                 else:
