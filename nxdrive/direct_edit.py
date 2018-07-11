@@ -293,9 +293,6 @@ class DirectEdit(Worker):
         if not engine:
             return None
 
-        # Get document info, used in self._handle_*_queue()
-        self.remote = engine.remote
-
         # Avoid any link with the engine, remote_doc are not cached so we
         # can do that
         info = self._get_info(engine, doc_id, user)
@@ -411,7 +408,7 @@ class DirectEdit(Worker):
             try:
                 uid, _, _, _ = self._extract_edit_info(ref)
                 if action == "lock":
-                    self.remote.lock(uid)
+                    engine.remote.lock(uid)
                     self.local.set_remote_id(dir_path, b"1", name="nxdirecteditlock")
                     # Emit the lock signal only when the lock is really set
                     self._send_lock_status(ref)
@@ -419,7 +416,7 @@ class DirectEdit(Worker):
                     continue
 
                 try:
-                    self.remote.unlock(uid)
+                    engine.remote.unlock(uid)
                 except NotFound:
                     purge = True
                 else:
@@ -482,7 +479,7 @@ class DirectEdit(Worker):
                 # TO_REVIEW Should check if server-side blob has changed ?
                 # Update the document, should verify
                 # the remote hash NXDRIVE-187
-                remote_info = self.remote.get_info(uid)
+                remote_info = engine.remote.get_info(uid)
                 if remote_info.digest != digest:
                     # Conflict detect
                     log.trace(
@@ -500,7 +497,7 @@ class DirectEdit(Worker):
 
                 os_path = self.local.abspath(ref)
                 log.debug("Uploading file %r", os_path)
-                self.remote.stream_update(
+                engine.remote.stream_update(
                     uid, os_path, fs=False, apply_versioning_policy=True
                 )
 
