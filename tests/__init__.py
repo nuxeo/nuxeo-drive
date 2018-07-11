@@ -155,7 +155,7 @@ class RemoteBase(Remote):
                 command="NuxeoDrive.CreateFile",
                 parentId=parent_id,
             )
-            return self.file_to_info(fs_item)
+            return RemoteFileInfo.from_dict(fs_item)
         finally:
             os.remove(file_path)
 
@@ -177,7 +177,7 @@ class RemoteBase(Remote):
                 command="NuxeoDrive.UpdateFile",
                 id=ref,
             )
-            return self.file_to_info(fs_item)
+            return RemoteFileInfo.from_dict(fs_item)
         finally:
             os.remove(file_path)
 

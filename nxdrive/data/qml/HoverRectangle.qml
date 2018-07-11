@@ -1,4 +1,4 @@
-import QtQuick 2.0
+import QtQuick 2.10
 
 Rectangle {
     id: control
@@ -7,7 +7,7 @@ Rectangle {
     property string currentColor
     property string hoveredColor
     property string unhoveredColor
-    
+
     property bool hovered: mouseArea.containsMouse
 
     currentColor: mouseArea.containsMouse ? hoveredColor : unhoveredColor
@@ -16,11 +16,11 @@ Rectangle {
 
     MouseArea {
         id: mouseArea
-        z: parent.z + 20
+        z: parent.z + 10
         cursorShape: Qt.PointingHandCursor
         anchors.fill: parent
         anchors.margins: -3
         hoverEnabled: true  // this line will enable mouseArea.containsMouse
-        onClicked: { control.clicked() }
+        onClicked: control.clicked()
     }
 }

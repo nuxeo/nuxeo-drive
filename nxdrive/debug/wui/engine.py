@@ -4,15 +4,15 @@ from logging import getLogger
 
 from PyQt5.QtCore import pyqtSlot
 
+from ...gui.dialog import QMLDriveApi
 from ...logging_config import MAX_LOG_DISPLAYED, get_handler
-from ...wui.dialog import WebDialog, WebDriveApi
 
 __all__ = ("EngineDialog",)
 
 log = getLogger(__name__)
 
 
-class DebugDriveApi(WebDriveApi):
+class DebugDriveApi(QMLDriveApi):
     def __init__(self, application, dlg):
         super(DebugDriveApi, self).__init__(application, dlg)
 
@@ -192,11 +192,3 @@ class DebugDriveApi(WebDriveApi):
                 engine.get_queue_manager().enable_remote_folder_queue(value=False)
             elif queue == "remote_file_queue":
                 engine.get_queue_manager().enable_remote_file_queue(value=False)
-
-
-class EngineDialog(WebDialog):
-    def __init__(self, application):
-        api = DebugDriveApi(application, self)
-        super(EngineDialog, self).__init__(
-            application, "debug.html", api=api, title="Nuxeo Drive - Engines"
-        )

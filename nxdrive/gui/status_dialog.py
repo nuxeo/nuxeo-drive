@@ -59,7 +59,7 @@ class StatusTreeview(QTreeView):
             parent = self.model().invisibleRootItem()
             parent_item = None
         else:
-            parent_item = parent.data(Qt.UserRole).toPyObject()
+            parent_item = parent.data(Qt.UserRole)
 
         if parent_item:
             path = parent_item.local_path

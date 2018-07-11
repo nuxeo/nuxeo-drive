@@ -99,7 +99,7 @@ class DirectEdit(Worker):
 
     def stop_client(self, message: str = None) -> None:
         if self._stop:
-            raise ThreadInterrupt
+            raise ThreadInterrupt()
 
     def handle_url(self, url: str = None) -> None:
         url = url or self.url
@@ -199,10 +199,7 @@ class DirectEdit(Worker):
         engine = self.__get_engine(server_url, user=user)
 
         if not engine:
-            values = {
-                "user": force_decode(user) if user else "Unknown",
-                "server": server_url,
-            }
+            values = [force_decode(user) if user else "Unknown", server_url]
             log.warning(
                 "No engine found for user %r on server %r, doc_id=%r",
                 user,
@@ -211,7 +208,7 @@ class DirectEdit(Worker):
             )
             self.directEditError.emit("DIRECT_EDIT_CANT_FIND_ENGINE", values)
         elif engine.has_invalid_credentials():
-            values = {"user": engine.remote_user, "server": engine.server_url}
+            values = [engine.remote_user, engine.server_url]
             log.warning(
                 "Invalid credentials for user %r on server %r",
                 engine.remote_user,
@@ -263,7 +260,13 @@ class DirectEdit(Worker):
         doc = engine.remote.fetch(
             doc_id, headers={"fetch-document": "lock"}, enrichers=["permissions"]
         )
-        info = engine.remote.doc_to_info(doc, fetch_parent_uid=False)
+        doc.update(
+            {
+                "root": engine.remote._base_folder_ref,
+                "repository": engine.remote.client.repository,
+            }
+        )
+        info = NuxeoDocumentInfo.from_dict(doc)
 
         if info.lock_owner and info.lock_owner != engine.remote_user:
             # Retrieve the user full name, will be cached

@@ -6,7 +6,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 
 from .folders_treeview import FilteredFsClient, FolderTreeview
-from ..wui.translator import Translator
+from .translator import Translator
 
 __all__ = ("FiltersDialog",)
 

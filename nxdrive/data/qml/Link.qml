@@ -1,32 +1,22 @@
 import QtQuick 2.10
 
-HoverRectangle {
+ ScaledText {
     id: control
-    color: "transparent"
-    width: linkText.contentWidth; height: linkText.contentHeight
-    
-    property string text
-    property string lineColor: nuxeoBlue
-    property bool lineVisible: true
-    property int size: 14
 
-    Text {
-        id: linkText
-        elide: Text.ElideRight
-        text: control.text
-        font.pointSize: control.size
+    signal clicked()
+
+    color: nuxeoBlue
+
+    elide: Text.ElideRight
+    horizontalAlignment: Text.AlignLeft
+    verticalAlignment: Text.AlignVCenter
+
+    MouseArea {
+        id: linkArea
+        width: parent.width * 3/2
+        height: parent.height * 3/2
         anchors.centerIn: parent
-        horizontalAlignment: Text.AlignLeft
-        verticalAlignment: Text.AlignVCenter
-    }
-
-    Rectangle {
-        width: linkText.contentWidth; height: 2
-        color: control.lineColor
-        visible: control.lineVisible
-        anchors {
-            top: linkText.bottom
-            left: linkText.left
-        }
+        onClicked: control.clicked()
+        cursorShape: Qt.PointingHandCursor
     }
 }

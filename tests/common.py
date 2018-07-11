@@ -25,7 +25,7 @@ from nxdrive.engine.watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.utils import safe_long_path, unset_path_readonly
-from nxdrive.wui.translator import Translator
+from nxdrive.gui.translator import Translator
 from . import DocRemote, LocalTest, RemoteBase
 from .conftest import root_remote
 
@@ -36,7 +36,7 @@ TEST_WORKSPACE_PATH = "/default-domain/workspaces/nuxeo-drive-test-workspace"
 FS_ITEM_ID_PREFIX = "defaultFileSystemItemFactory#default#"
 
 # 1s time resolution as we truncate remote last modification time to the
-# seconds in RemoteFileSystemClient.file_to_info() because of the datetime
+# seconds in RemoteFileInfo.from_dict() because of the datetime
 # resolution of some databases (MySQL...)
 REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
 

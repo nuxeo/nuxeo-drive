@@ -1,13 +1,33 @@
 import QtQuick 2.10
 import QtQuick.Controls 2.3
+import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
 import "icon-font/Icon.js" as MdiFont
 
 Item {
     id: systray
     width: Screen.width; height: Screen.height
+    state: ""
 
+    property bool hasAccounts: accountSelect.model.count > 0
+    property string stateMessage
+    property string stateSubMessage
+
+    signal getLastFiles(string uid)
     signal hide()
+    signal setStatus(string state, string message, string submessage)
+    signal setTrayPosition(int x, int y)
+
+    onSetStatus:  {
+        systray.state = state
+        systray.stateMessage = message
+        systray.stateSubMessage = submessage
+    }
+
+    onSetTrayPosition: {
+        systrayContainer.x = x
+        systrayContainer.y = y
+    }
 
     MouseArea {
         width: parent.width; height: parent.height
@@ -20,601 +40,373 @@ Item {
         source: "icon-font/materialdesignicons-webfont.ttf"
     }
 
-    signal appUpdate()
-    signal pickEngine(var engine)
-    signal refresh(string uid)
-    signal setAutoUpdate(bool auto)
-    signal setEngine(string uid)
-    signal setTrayPosition(int x, int y)
-    signal updateInfo(string message, string confirm, string type, string version)
-
-    property var currentEngine
-
-    onPickEngine: {
-        currentEngine = engine
-        engineText.text = engine.server
-        systray.setEngine(engine.uid)
-    }
-
-    onSetTrayPosition: {
-        systrayContainer.x = x
-        systrayContainer.y = y
-    }
-
-    onUpdateInfo: {
-        systrayInfo.text = message
-        if (type == "downgrade") {
-            systrayInfo.Text.color = red
-        } else {
-            systrayInfo.Text.color = lightBlue
-        }
-        systrayInfo.visible = (message != "")
-    }
-    
-    Timer {
-        id: refreshTimer
-        interval: 100; running: true; repeat: false
-        onTriggered: {
-            itemsLeftText.count = api.get_syncing_count(currentEngine.uid)
-            conflictButton.count = api.get_conflicts_count(currentEngine.uid)
-            errorButton.count = api.get_errors_count(currentEngine.uid)
-        }
-    }
-
-    Component.onCompleted: {
-        refreshTimer.interval = 1000
-        refreshTimer.repeat = true
-        refreshTimer.running = true
-    }
-
-    Rectangle {
+    ColumnLayout {
         id: systrayContainer
+        visible: hasAccounts
+
         width: 300; height: 370
+        z: 5; spacing: 0
 
         Rectangle {
-            id: topBar
-            width: systrayContainer.width - 2; height: 34
-            z: 10
+            Layout.fillWidth: true
+            color: lighterGray
+            height: 50; z: 10
 
-            anchors {
-                horizontalCenter: parent.horizontalCenter
-                top: parent.top
-                topMargin: 1
-            }
+            RowLayout {
+                anchors.fill: parent
 
-            Rectangle {
-                width: engineText.width + 10; height: parent.height
-                anchors.left: parent.left
-
-                Text {
-                    id: engineText
-
-                    anchors {
-                        top: parent.top
-                        left: parent.left
-                        leftMargin: 10
-                        topMargin: 10
-                    }
-                    font { weight: Font.Bold; pointSize: 14 }
-                    smooth: true
+                IconLabel {
+                    Layout.alignment: Qt.AlignRight
+                    icon: MdiFont.Icon.accountOutline
                 }
+
+                ColumnLayout {
+                    Layout.alignment: Qt.AlignLeft
+                    NuxeoComboBox {
+                        id: accountSelect
+                        Layout.fillWidth: true
+                        Layout.maximumWidth: 150
+                        model: EngineModel
+                        textRole: "username"
+
+                        onModelChanged: currentIndex = model.count - 1
+                        Component.onCompleted: {
+                            if (model.count > 0) { currentIndex = 0 }
+                        }
+
+                        // When picking an account, run the refresh timer (without repeat)
+                        // to update the last files list.
+                        onActivated: refreshTimer.running = true
+
+                        function getRole(role) { return model.get(currentIndex, role) }
+                    }
+
+                    ScaledText {
+                        text: accountSelect.getRole("url")
+                        font.pointSize: 10 / ratio
+                        color: mediumGray
+                    }
+                }
+
+                IconLabel {
+                    icon: MdiFont.Icon.openInNew
+                    Layout.alignment: Qt.AlignRight; Layout.rightMargin: 4
+                    onClicked: api.open_remote(accountSelect.getRole("uid"))
+
+                }
+
+                IconLabel {
+                    icon: MdiFont.Icon.folder; size: 24 / ratio
+                    Layout.alignment: Qt.AlignLeft
+                    onClicked: api.open_local(accountSelect.getRole("uid"), "/")
+                }
+
+                IconLabel {
+                    id: settingsContainer
+                    icon: MdiFont.Icon.dotsVertical
+                    Layout.alignment: Qt.AlignLeft
+
+                    onClicked: contextMenu.open()
+
+                    SystrayMenu {
+                        id: contextMenu
+                        x: settingsContainer.width - width
+                        y: settingsContainer.height
+                    }
+                }
+
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true; Layout.fillHeight: true
+
+            Timer {
+                id: refreshTimer
+                interval: 1000; running: false; repeat: false
+                onTriggered: systray.getLastFiles(accountSelect.getRole("uid"))
             }
 
             ListView {
-                id: engineTabs
-
-                width: 125; height: parent.height
-                anchors.right: settingsContainer.left
-
-                delegate: engineTabDelegate
-                model: EngineModel
-
-                orientation: ListView.Horizontal
-                layoutDirection: Qt.RightToLeft
-                highlight: Rectangle {
-                    color: teal
-                }
-
-                Component.onCompleted: {
-                    systray.pickEngine(currentItem.engineData)
-                }
-                
-                Component {
-                    id: engineTabDelegate
-
-                    HoverRectangle {
-                        id: engine
-                        property variant engineData: model
-                        width: 35; height: 35
-
-                        Rectangle { // separator
-                            width: 1; height: parent.height
-                            color: lightGray
-                            anchors {
-                                left: engineTab.left
-                                leftMargin: -4
-                            }
-                        }
-
-                        Image {
-                            id: engineTab
-                            width: 30; height: 30
-
-                            anchors.centerIn: parent
-
-                            source: "../icons/app_icon.svg"
-                            smooth: true; fillMode: Image.PreserveAspectFit
-                        }
-
-                        onClicked: {
-                            engine.ListView.view.currentIndex = index;
-                            systray.pickEngine(engineData);
-                        }
-                    }
-                }
-            }
-
-            Rectangle { // separator
-                width: 1; height: parent.height
-                color: lightGray
-                anchors.right: settingsContainer.left
-            }
-
-            HoverRectangle {
-                id: settingsContainer
-                width: 40; height: parent.height
-                anchors.right: parent.right
-
-                onClicked: { contextMenu.open() }
-
-                IconLabel { icon: MdiFont.Icon.dotsVertical }
-
-                Menu {
-                    id: contextMenu
-
-                    MenuItem {
-                        text: qsTr("SETTINGS") + tl.tr
-                        font { weight: Font.Bold; pointSize: 14 }
-                        onTriggered: api.show_settings("General")
-                    }
-                    MenuItem {
-                        text: qsTr("HELP") + tl.tr
-                        font { weight: Font.Bold; pointSize: 14 }
-                        onTriggered: api.open_help()
-                    }
-                    MenuItem {
-                        text: qsTr("QUIT") + tl.tr
-                        font { weight: Font.Bold; pointSize: 14 }
-                        onTriggered: application.quit()
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            width: systrayContainer.width - 2; height: 1
-            z: 10
-            color: lightGray
-            anchors {
-                horizontalCenter: parent.horizontalCenter
-                top: topBar.bottom
-            }
-        }
-
-        Rectangle {
-            id: submenu
-            width: systrayContainer.width - 2; height: 30
-            z: 10
-
-            anchors {
-                top: topBar.bottom
-                topMargin: 1
-                horizontalCenter: parent.horizontalCenter
-            }
-
-            Rectangle {
-                width: 203; height: parent.height
-
-                Text {
-                    anchors {
-                        left: parent.left
-                        top: parent.top
-                        topMargin: 8
-                        leftMargin: 10
-                    }
-                    font.pointSize: 14
-                    smooth: true
-                    text: qsTr("RECENTLY_UPDATED") + tl.tr
-                }
-            }
-
-            Rectangle {
-                width: 95; height: parent.height
-                anchors.right: parent.right
-
-                HoverRectangle {
-                    id: openLocal
-                    width: 30; height: parent.height
-
-                    anchors {
-                        right: parent.right
-                        rightMargin: 5
-                    }
-
-                    IconLabel { icon: MdiFont.Icon.folder }
-
-                    onClicked: api.open_local(systray.currentEngine.uid, '/')
-                }
-
-                HoverRectangle {
-                    id: openRemote
-                    width: 30; height: parent.height
-
-                    anchors {
-                        top: parent.top
-                        right: openLocal.left
-                    }
-
-                    IconLabel { icon: MdiFont.Icon.earth }
-
-                    onClicked: api.open_remote(systray.currentEngine.uid)
-                }
-
-                PauseButton {
-                    id: suspend
-                    width: 30; height: parent.height
-                    onToggled: api.suspend(running)
-
-                    anchors {
-                        top: parent.top
-                        right: openRemote.left
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            width: systrayContainer.width - 2; height: 1
-            z: 10
-            color: lightGray
-            anchors {
-                top: submenu.bottom
-                horizontalCenter: parent.horizontalCenter
-            }
-        }
-
-
-        ListView {
-            id: recentFiles
-            width: systrayContainer.width - 2; height: 250
-
-            delegate: recentFilesDelegate
-            model: FileModel
-            highlight: Rectangle { color: lightGray }
-            anchors {
-                top: submenu.bottom
-                topMargin: 1
-                horizontalCenter: parent.horizontalCenter
-            }
-
-            ScrollBar.vertical: ScrollBar {}
-            
-            Component {
-            id: recentFilesDelegate
-
-                Rectangle {
-                    id: file
-                    property variant fileData: model
-                    width: parent.width; height: 40
-
-                    Text {
-                        id: fileName
-                        text: name
-
-                        anchors {
-                            left: parent.left
-                            top: parent.top
-                            topMargin: 5
-                            leftMargin: 10
-                        }
-
-                        font.pointSize: 14
-                    }
-
-                    Rectangle {
-                        height: 10
-                        anchors {
-                            top: fileName.bottom
-                            left: parent.left
-                            leftMargin: 10
-                        }
-
-                        Rectangle {
-                            id: transferDirection
-                            width: 10; height: 10
-                            anchors.left: parent.left
-
-                            IconLabel {
-                                size: 10
-                                icon: transfer == "upload" ? MdiFont.Icon.upload : MdiFont.Icon.download
-                            }
-                        }
-
-                        Text {
-                            anchors {
-                                left: transferDirection.right
-                                verticalCenter: parent.verticalCenter
-                            }
-                            color: "#999"
-
-                            font.pointSize: 12
-                            text: time
-                        }
-                    }
-
-                    HoverRectangle {
-                        id: local
-                        width: 30; height: parent.height - 1
-                        z: 20
-                        onClicked: api.open_local(currentEngine.uid, path)
-
-                        anchors {
-                            right: parent.right
-                            rightMargin: 5
-                        }
-                        
-                        IconLabel {
-                            size: 16
-                            icon: MdiFont.Icon.folder
-                        }
-                    }
-
-                    HoverRectangle {
-                        id: metadata
-                        width: 30; height: parent.height - 1
-                        z: 20
-                        onClicked: api.show_metadata(currentEngine.uid, path)
-
-                        anchors {
-                            right: local.left
-                        }
-                        
-                        IconLabel {
-                            size: 16
-                            icon: MdiFont.Icon.openInNew
-                        }
-                    }
-
-                    Rectangle { // separator
-                        width: parent.width; height: 1
-                        color: lightGray
-                        anchors.bottom: parent.bottom
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            width: systrayContainer.width - 2; height: 1
-            z: 10
-            color: lightGray
-            anchors {
-                bottom: systrayBottom.top
-                horizontalCenter: parent.horizontalCenter
-            }
-        }
-
-        Popup {
-            id: updatePopup
-            y: (Screen.height - 200) / 2
-            width: 300
-            height: 200
-            focus: true
-            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
-
-            Text {
-                text: updateConfirm
-
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                    top: parent.top
-                    topMargin: 30
-                }
-
-                font.pointSize: 18
-            }
-
-            NuxeoCheckBox {
-                id: autoUpdate
-
-                text: qsTr("AUTOUPDATE") + tl.tr
-                checked: autoUpdateValue
-
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                    bottom: parent.bottom
-                    bottomMargin: 50
-                }
-
-                font.pointSize: 16
-                onClicked: {
-                    systray.setAutoUpdate(checked)
-                }
-            }
-
-            Rectangle {
-                width: 200; height: 50
-                anchors {
-                    bottom: parent.bottom
-                    horizontalCenter: parent.horizontalCenter
-                }
-
-                NuxeoButton {
-                    onClicked: { updatePopup.close() }
-
-                    anchors {
-                        left: parent.left
-                        top: parent.top
-                        leftMargin: 10
-                        topMargin: 10
-                    }
-                    text: qsTr("DIRECT_EDIT_CONFLICT_CANCEL") + tl.tr
-                }
-
-                NuxeoButton {
-                    inverted: true
-
-                    onClicked: { systray.appUpdate() }
-
-                    anchors {
-                        right: parent.right
-                        top: parent.top
-                        leftMargin: 10
-                        topMargin: 10
-                    }
-                    text: qsTr("UPDATE") + tl.tr
-                }
+                id: recentFiles
+                anchors.fill: parent
+
+                clip: true
+                delegate: SystrayFile {}
+                model: FileModel
+                highlight: Rectangle { color: lighterGray }
+
+                ScrollBar.vertical: ScrollBar {}
             }
         }
 
         HoverRectangle {
-            id: systrayInfo
-            width: systrayContainer.width - 2; height: 30
-            visible: updateMessage != ""
-            opacity: 1
-            color: lightGray
-
-            property string text: updateMessage
-            
-            anchors {
-                horizontalCenter: parent.horizontalCenter
-                bottom: systrayBottom.top
-            }
-
-            Text {
-                color: updateType == 'downgrade' ? red : lightBlue
-
-                anchors.centerIn: parent
-
-                text: systrayInfo.text
-
-                font { weight: Font.Bold; pointSize: 12 }
-            }
-
-            onClicked: {
-                updatePopup.open()
-                visible = false
-            }
-        }
-
-        Rectangle {
             id: systrayBottom
-            width: systrayContainer.width - 2; height: 49
+            color: lighterGray
+            Layout.fillWidth: true; height: 40
+            opacity: 1
 
-            anchors {
-                horizontalCenter: parent.horizontalCenter
-                bottom: parent.bottom
-                bottomMargin: 1
-            }
+            RowLayout {
+                anchors.fill: parent
 
-            Rectangle {
-                id: systrayBottomRight
-                width: 40; height: parent.height
+                ColumnLayout {
+                    id: notificationButtons
 
-                anchors {
-                    top: parent.top
-                    right: parent.right
+                    NuxeoButton {
+                        id: conflictButton
+                        height: 15
+
+                        property int count: 0
+                        visible: count > 0
+                        text: qsTr("CONFLICTS_SYSTRAY").arg(count) + tl.tr
+
+                        darkColor: orange
+                        lightColor: orange
+                        inverted: true
+                        font.pointSize: 10 / ratio
+
+                        onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
+                    }
+
+                    NuxeoButton {
+                        id: errorButton
+                        height: 15
+
+                        property int count: 0
+                        visible: count > 0
+                        text: qsTr("ERRORS_SYSTRAY").arg(count) + tl.tr
+
+                        darkColor: red
+                        lightColor: red
+                        inverted: true
+                        font.pointSize: 10 / ratio
+
+                        onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
+                    }
+                }
+
+                ColumnLayout {
+                    spacing: 0
+
+                    ScaledText {
+                        id: statusText
+                        text: qsTr("SYNCHRONIZATION_COMPLETED") + tl.tr
+                        color: mediumGray
+                        Layout.alignment: Qt.AlignRight
+                    }
+
+                    ScaledText {
+                        id: statusSubText
+                        visible: text
+                        color: statusText.color
+                        font.pointSize: 10 / ratio
+                        opacity: 0.8
+                        Layout.alignment: Qt.AlignRight
+                    }
                 }
 
                 IconLabel {
-                    id: activity
-                    property string status: "ok"
-
-                    icon: status == "ok" ? MdiFont.Icon.check : MdiFont.Icon.sync
+                    id: statusIcon
+                    icon: MdiFont.Icon.check
+                    Layout.alignment: Qt.AlignRight
+                    Layout.rightMargin: 10
                 }
             }
-
-            Rectangle {
-                id: systrayBottomMiddle
-                width: 193; height: parent.height
-
-                anchors {
-                    top: parent.top
-                    right: systrayBottomRight.left
-                }
-
-                Text {
-                    id: itemsLeftText
-                    property int count: 0
-
-                    visible: count > 0
-                    text: qsTr("SYNCHRONIZATION_ITEMS_LEFT").arg(count) + tl.tr
-
-                    anchors {
-                        verticalCenter: parent.verticalCenter
-                        right: parent.right
-                    }
-
-                    font { weight: Font.Bold; pointSize: 14 }
-                    smooth: true
-                }
-            }
-
-            Rectangle {
-                id: systrayBottomLeft
-                width: 65; height: parent.height
-
-                anchors {
-                    top: parent.top
-                    right: systrayBottomMiddle.left
-                }
-
-                NuxeoButton {
-                    id: conflictButton
-                    height: 15
-
-                    property int count: 0
-                    visible: count > 0
-                    text: qsTr("CONFLICTS_SYSTRAY").arg(count) + tl.tr
-
-                    darkColor: orange
-                    lightColor: orange
-                    inverted: true
-                    font.pointSize: 10
-
-                    onClicked: api.show_conflicts_resolution(currentEngine.uid)
-
-                    anchors {
-                        left: parent.left
-                        top: parent.top
-                        leftMargin: 10
-                        topMargin: 8
-                    }
-                }
-
-                NuxeoButton {
-                    id: errorButton
-                    width: parent.width; height: 15
-
-                    property int count: 0
-                    visible: count > 0
-                    text: qsTr("ERRORS_SYSTRAY").arg(count) + tl.tr
-
-                    darkColor: red
-                    lightColor: red
-                    inverted: true
-                    font.pointSize: 10
-
-                    onClicked: api.show_conflicts_resolution(currentEngine.uid)
-
-                    anchors {
-                        left: parent.left
-                        bottom: parent.bottom
-                        leftMargin: 10
-                        bottomMargin: 8
-                    }
-                }
+            ProgressBar {
+                id: updateProgress
+                width: parent.width
+                anchors.bottom: parent.bottom
+                visible: false
+                indeterminate: value == 0
+                from: 0; to: 100
             }
         }
+    }
+
+    Rectangle {
+        visible: !hasAccounts
+        width: systrayContainer.width
+        height: systrayContainer.height
+        x: systrayContainer.x
+        y: systrayContainer.y
+        z: 5
+        color: "white"
+
+        ColumnLayout {
+            width: parent.width * 3/4
+            anchors.centerIn: parent
+
+            IconLabel {
+                icon: MdiFont.Icon.accountPlus
+                size: 96 / ratio; Layout.alignment: Qt.AlignHCenter
+            }
+
+            ScaledText {
+                text: qsTr("NO_ACCOUNT") + tl.tr
+                font { weight: Font.Bold; pointSize: 14 / ratio }
+                Layout.maximumWidth: parent.width
+                Layout.alignment: Qt.AlignHCenter
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+            }
+
+            Link {
+                text: qsTr("OPEN_SETTINGS") + tl.tr
+                font.pointSize: 14 / ratio
+                Layout.maximumWidth: parent.width
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 50
+                onClicked: api.show_settings("Accounts")
+            }
+        }
+    }
+
+    states: [
+        State {
+            name: "suspended"
+            PropertyChanges { target: statusIcon; icon: MdiFont.Icon.pause }
+            PropertyChanges { target: statusText; text: qsTr("ENGINE_PAUSED") + tl.tr }
+        },
+        State {
+            name: "syncing"
+            PropertyChanges { target: statusIcon; icon: MdiFont.Icon.sync }
+            PropertyChanges { target: statusText; text: qsTr("SYNCHRONIZATION_ITEMS_LEFT").arg(FileModel.count) + tl.tr }
+            PropertyChanges { target: refreshTimer; repeat: true; running: true }
+        },
+        State {
+            name: "update"
+            PropertyChanges {
+                target: updatePopup
+                version: stateMessage
+                channel: stateSubMessage
+            }
+            PropertyChanges {
+                target: systrayBottom
+                color: lightBlue
+                onClicked: updatePopup.open()
+            }
+            PropertyChanges {
+                target: statusIcon
+                icon: MdiFont.Icon.update
+                color: "white"
+            }
+            PropertyChanges {
+                target: statusText
+                text: qsTr("NOTIF_UPDATE_TITLE") + tl.tr
+                color: "white"
+            }
+        },
+        State {
+            name: "updating"
+            PropertyChanges {
+                target: systrayBottom
+                color: lightBlue
+            }
+            PropertyChanges {
+                target: statusIcon
+                icon: MdiFont.Icon.update
+                color: "white"
+            }
+            PropertyChanges {
+                target: statusText
+                text: qsTr("UPDATING_VERSION").arg(stateMessage) + tl.tr
+                color: "white"
+            }
+            PropertyChanges {
+                target: updateProgress
+                visible: true
+                value: parseInt(stateSubMessage)
+            }
+        },
+        State {
+            name: "conflicted"
+            PropertyChanges {
+                target: systrayBottom
+                color: orange
+                onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
+            }
+            PropertyChanges {
+                target: statusIcon
+                icon: MdiFont.Icon.alert
+                color: "white"
+            }
+            PropertyChanges {
+                target: statusText
+                text: qsTr("CONFLICTS_SYSTRAY").arg(stateMessage) + tl.tr
+                color: "white"
+            }
+        },
+        State {
+            name: "auth_expired"
+            PropertyChanges {
+                target: systrayBottom
+                color: red
+                onClicked: api.web_update_token(accountSelect.getRole("uid"))
+            }
+            PropertyChanges {
+                target: statusIcon
+                icon: MdiFont.Icon.alert
+                color: "white"
+            }
+            PropertyChanges {
+                target: statusText
+                text: qsTr("AUTH_EXPIRED") + tl.tr
+                color: "white"
+            }
+            PropertyChanges {
+                target: statusSubText
+                text: qsTr("AUTH_UPDATE_ACTION") + tl.tr
+            }
+        },
+        State {
+            name: "downgrade"
+            PropertyChanges {
+                target: updatePopup
+                version: stateMessage
+                channel: stateSubMessage
+            }
+            PropertyChanges {
+                target: systrayBottom
+                color: red
+                onClicked: updatePopup.open()
+            }
+            PropertyChanges {
+                target: statusIcon
+                icon: MdiFont.Icon.alert
+                color: "white"
+            }
+            PropertyChanges {
+                target: statusText
+                text: qsTr("NOTIF_UPDATE_DOWNGRADE").arg(stateMessage) + tl.tr
+                color: "white"
+            }
+        },
+        State {
+            name: "error"
+            PropertyChanges {
+                target: systrayBottom
+                color: red
+                onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
+            }
+            PropertyChanges {
+                target: statusIcon
+                icon: MdiFont.Icon.alert
+                color: "white"
+            }
+            PropertyChanges {
+                target: statusText
+                text: qsTr("ERRORS_SYSTRAY").arg(stateMessage) + tl.tr
+                color: "white"
+            }
+        }
+    ]
+
+    ConfirmPopup {
+        id: updatePopup
+        property string version
+        property string channel
+
+        message: qsTr("CONFIRM_UPDATE_MESSAGE").arg(channel).arg(version) + tl.tr
+        onOk: api.app_update(version)
     }
 }

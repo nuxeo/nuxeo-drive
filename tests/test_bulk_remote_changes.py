@@ -30,6 +30,7 @@ from requests import ConnectionError
 from mock import patch
 
 from nxdrive.client import Remote
+from nxdrive.objects import RemoteFileInfo
 from .common import TEST_DEFAULT_DELAY, UnitTestCase
 
 log = getLogger(__name__)
@@ -108,13 +109,13 @@ to local PC.
                 )
             return Remote.get_fs_children(self.engine_1.remote, *args, **kwargs)
 
-        def file_to_info(fs_item):
+        def from_dict(fs_item):
             fs_item["canScrollDescendants"] = False
-            return Remote.file_to_info(fs_item)
+            return RemoteFileInfo.from_dict(fs_item)
 
         with patch.object(
             remote, "get_children_info", new=get_children_info
-        ), patch.object(self.engine_1.remote, "file_to_info", new=file_to_info):
+        ), patch.object(RemoteFileInfo, "from_dict", new=from_dict):
             # Simulate network error for GetChildren API twice
             # This is to ensure Drive will eventually recover even after multiple
             # failures of GetChildren API.

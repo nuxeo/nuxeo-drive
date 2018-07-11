@@ -150,7 +150,9 @@ class FilteredFsClient(Client):
             return
 
         for root in self.fs_client.get_top_level_children():
-            yield FsRootFileInfo(root, self.get_item_state(root.path))
+            yield FsFileInfo(
+                RemoteFileInfo.from_dict(root), state=self.get_item_state(root["path"])
+            )
 
 
 class FolderTreeview(QTreeView):
@@ -201,7 +203,7 @@ class FolderTreeview(QTreeView):
         self.item_check_parent(parent)
 
     def update_item_changed(self, item: QObject) -> None:
-        fs_info = item.data(Qt.UserRole).toPyObject()
+        fs_info = item.data(Qt.UserRole)
 
         # Fake children have no data attached
         if not fs_info:
@@ -263,7 +265,7 @@ class FolderTreeview(QTreeView):
             parent = self.model().invisibleRootItem()
             parent_item = None
         else:
-            parent_item = parent.data(Qt.UserRole).toPyObject()
+            parent_item = parent.data(Qt.UserRole)
 
         if parent_item:
             if parent_item.get_id() in self.cache:

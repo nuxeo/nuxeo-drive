@@ -7,6 +7,11 @@ Item {
     width: 640
     height: 480
 
+    FontLoader {
+        id: iconFont
+        source: "icon-font/materialdesignicons-webfont.ttf"
+    }
+
     signal setMessage(string msg, string type)
     signal setSection(int index)
 
@@ -15,7 +20,7 @@ Item {
 
     TabBar {
         id: bar
-        width: parent.width; height: 50; z: 20
+        width: parent.width; height: 50
         spacing: 0
 
         anchors.top: parent.top
@@ -40,20 +45,26 @@ Item {
         }
     }
 
-    Rectangle { // separator
-        width: parent.width; height: 2; z: 5
-        color: "#ddd"; anchors.top: bar.bottom
-    }
-
     StackLayout {
-        id: stack
         currentIndex: bar.currentIndex
         width: parent.width; height: parent.height - bar.height - 2
         anchors.bottom: parent.bottom
 
-        GeneralTab { id: generalTab; anchors.fill: parent }
-        AccountsTab { id: accountsTab; anchors.fill: parent }
-        AboutTab { id: aboutTab; anchors.fill: parent }
+        GeneralTab {
+            id: generalTab
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
+        AccountsTab {
+            id: accountsTab
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
+        AboutTab {
+            id: aboutTab
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
     }
 
     Alert {

@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from nxdrive.wui.translator import Translator
+from nxdrive.gui.translator import Translator
 
 
 class MockManager:
@@ -89,23 +89,22 @@ def test_load_existing_language():
     [
         ("TOKEN_NORMAL", "Language First Token"),
         ("TOKEN_DOUBLE", "First Token Language Another One"),
-        ("TOKEN_UNKNOWN", " TOKEN"),
         ("TOKEN_WITH_NO_SPACE", "First Token TOKEN"),
         ("TOKEN_REPEAT", "First Token TOKEN First Token"),
     ],
 )
 def test_token(token, result):
-    options = {"token_1": "First Token", "token_2": "Another One"}
+    options = ["First Token", "Another One"]
     Translator(MockManager(), get_folder("i18n"))
     assert Translator.get(token, options) == result
 
 
 @pytest.mark.parametrize("token", ["ERROR_ON_FILE", "ERROR_ON_FOLDER", "ERROR_ON_BOTH"])
 def test_truncated_paths(token):
-    values = {
-        "name": os.path.sep.join(["A" * 12, "b" * 321, "C" * 22]),
-        "folder": os.path.sep.join(["A" * 12, "b" * 13, "ç" * 20, "à" * 71]),
-    }
+    values = [
+        os.path.sep.join(["A" * 12, "b" * 321, "C" * 22]),
+        os.path.sep.join(["A" * 12, "b" * 13, "ç" * 20, "à" * 71]),
+    ]
     Translator(MockManager(), get_folder("i18n"))
     text = Translator.get(token, values)
     assert "…" in text

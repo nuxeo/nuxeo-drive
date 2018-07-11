@@ -6,7 +6,10 @@ Switch {
 
     property string lightColor: nuxeoBlue
     property string darkColor: darkBlue
+    property string textColor: darkGray
     property int size: 8
+
+    font.pointSize: 12 / ratio
 
     indicator: Rectangle {
         implicitWidth: size * 4
@@ -14,24 +17,38 @@ Switch {
         x: control.leftPadding
         y: parent.height / 2 - height / 2
         radius: size
-        color: control.checked ? lightColor : "#ffffff"
-        border.color: control.checked ? lightColor : "#cccccc"
+        color: control.checked ? lightColor : "white"
+        border {
+            color: control.checked ? lightColor : mediumGray
+            width: 2
+        }
 
         Rectangle {
-            x: control.checked ? parent.width - width : 0
-            width: size * 2
-            height: size * 2
+            property int roundSize: Math.round(size * 1.2)
+            property int roundMargin: Math.round(size * 0.4)
+
+            x: control.checked ? parent.width - width - roundMargin : roundMargin
+            y: parent.height / 2 - height / 2
+            width: roundSize
+            height: roundSize
             radius: size
-            color: control.down ? "#cccccc" : "#ffffff"
-            border.color: control.checked ? (control.down ? darkColor : lightColor) : "#999999"
+            color: control.checked ? (control.down ? lighterGray : "white") : mediumGray
+            border.width: 0
         }
     }
 
-    contentItem: Text {
+    contentItem: ScaledText {
+        color: control.textColor
         text: control.text
         font: control.font
         opacity: enabled ? 1.0 : 0.3
         verticalAlignment: Text.AlignVCenter
         leftPadding: control.indicator.width + control.spacing
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+        onPressed: mouse.accepted = false
     }
 }

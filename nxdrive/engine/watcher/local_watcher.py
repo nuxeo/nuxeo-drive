@@ -7,7 +7,7 @@ from os.path import basename, dirname, getctime
 from queue import Queue
 from threading import Lock
 from time import mktime, sleep, time
-from typing import Any, Dict
+from typing import Any
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler

@@ -1,61 +1,53 @@
 import QtQuick 2.10
-import QtQuick.Controls 2.3
-import QtQuick.Dialogs 1.3
-import QtQuick.Window 2.2
-import "icon-font/Icon.js" as MdiFont
+import QtQuick.Layouts 1.3
 
-Popup {
+NuxeoPopup {
     id: control
     property string message
+    property string okColor: nuxeoBlue
 
     signal ok()
     signal cancel()
 
-    width: 300
-    height: 200
-    x: (parent.width - width) / 2
-    y: (parent.height - height) / 2
-    focus: true
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    
-    background: ShadowRectangle { border.width: 0 }
+    width: 250
+    height: 150
 
-    Text {
-        text: message
-        anchors {
-            horizontalCenter: parent.horizontalCenter
-            top: parent.top
-            topMargin: 20
-        }
-    }
+    contentItem: Item {
+        width: control.width; height: control.height
 
-    NuxeoButton {
-        id: cancelButton
-        text: qsTr("ROOT_USED_CANCEL")
-        lightColor: mediumGray
-        darkColor: "#333"
-        inverted: true
-        size: 14
-        anchors {
-            left: parent.left
-            bottom: parent.bottom
-            leftMargin: 30
-            bottomMargin: 30
-        }
-        onClicked: { control.cancel(); control.close() }
-    }
+        ColumnLayout {
+            width: parent.width - 30
+            height: parent.height - 30
+            anchors.centerIn: parent
+            spacing: 20
+            ScaledText {
+                text: message
+                wrapMode: Text.WordWrap
+                Layout.maximumWidth: parent.width
+                Layout.alignment: Qt.AlignHCenter
+            }
 
-    NuxeoButton {
-        id: okButton
-        text: qsTr("ROOT_USED_CONTINUE")
-        inverted: true
-        size: 14
-        anchors {
-            right: parent.right
-            bottom: parent.bottom
-            rightMargin: 30
-            bottomMargin: 30
+            RowLayout {
+                Layout.fillWidth: true
+                NuxeoButton {
+                    id: cancelButton
+                    text: qsTr("CANCEL") + tl.tr
+                    lightColor: mediumGray
+                    darkColor: darkGray
+                    inverted: true
+                    Layout.alignment: Qt.AlignLeft
+                    onClicked: { control.cancel(); control.close() }
+                }
+
+                NuxeoButton {
+                    id: okButton
+                    text: qsTr("CONTINUE") + tl.tr
+                    inverted: true
+                    color: control.okColor
+                    Layout.alignment: Qt.AlignRight
+                    onClicked: { control.ok(); control.close() }
+                }
+            }
         }
-        onClicked: { control.ok(); control.close() }
     }
 }

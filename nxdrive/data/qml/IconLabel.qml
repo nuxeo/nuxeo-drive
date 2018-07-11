@@ -1,15 +1,21 @@
 import QtQuick 2.10
 
-Text {
-    property int size: 20
+ ScaledText {
+    id: control
+    property int size: 20 / ratio
     property string icon
 
-    text: icon
-    font {
-        family: "Material Design Icons"
-        pixelSize: size
-    }
+    signal clicked()
 
-    color: "#444"
-    anchors.centerIn: parent
+    text: icon
+    font { family: "Material Design Icons"; pointSize: size }
+
+    color: mediumGray
+
+    MouseArea {
+        id: mouseArea
+        cursorShape: Qt.PointingHandCursor
+        anchors.fill: parent
+        onClicked: control.clicked()
+    }
 }

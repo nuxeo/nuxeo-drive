@@ -1,10 +1,10 @@
-import QtQuick 2.6
+import QtQuick 2.10
 import QtQuick.Controls 2.1
 
 ToolTip {
     id: control
     delay: 600
-    contentItem: Text {
+    contentItem: ScaledText {
         text: control.text
         font: control.font
         color: "#333"

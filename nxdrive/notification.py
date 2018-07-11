@@ -7,7 +7,7 @@ from typing import Dict
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from .wui.translator import Translator
+from .gui.translator import Translator
 from .objects import NuxeoDocumentInfo
 
 __all__ = ("DefaultNotificationService", "Notification")
@@ -209,11 +209,8 @@ class DebugNotification(Notification):
 
 class ErrorNotification(Notification):
     def __init__(self, engine_uid: str, doc_pair: NuxeoDocumentInfo) -> None:
-        values = dict(name="")
-        if doc_pair.local_name is not None:
-            values["name"] = doc_pair.local_name
-        elif doc_pair.remote_name is not None:
-            values["name"] = doc_pair.remote_name
+        name = doc_pair.local_name or doc_pair.remote_name or ""
+        values = [name]
         super().__init__(
             "ERROR",
             title=Translator.get("ERROR", values),
@@ -234,7 +231,7 @@ class ErrorNotification(Notification):
 
 class LockNotification(Notification):
     def __init__(self, filename: str) -> None:
-        values = dict(name=filename)
+        values = [filename]
         super().__init__(
             "LOCK",
             title=Translator.get("LOCK_NOTIFICATION_TITLE", values),
@@ -250,15 +247,15 @@ class LockNotification(Notification):
 
 class DirectEditErrorLockNotification(Notification):
     def __init__(self, action: str, filename: str, ref: str) -> None:
-        values = dict(name=filename, ref=ref)
+        values = [filename]
         if action == "lock":
-            title = "DIRECT_EDIT_LOCK_ERROR"
-            description = "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION"
+            action = "LOCK"
         elif action == "unlock":
-            title = "DIRECT_EDIT_UNLOCK_ERROR"
-            description = "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION"
+            action = "UNLOCK"
         else:
             raise ValueError("Invalid action: %r not in (lock, unlock)", locals())
+        title = f"DIRECT_EDIT_{action}_ERROR"
+        description = f"{title}_DESCRIPTION"
 
         super().__init__(
             "ERROR",
@@ -276,7 +273,7 @@ class DirectEditErrorLockNotification(Notification):
 
 class ConflictNotification(Notification):
     def __init__(self, engine_uid: str, doc_pair: NuxeoDocumentInfo) -> None:
-        values = dict(name=doc_pair.local_name)
+        values = [doc_pair.local_name]
         super().__init__(
             "CONFLICT_FILE",
             title=Translator.get("CONFLICT", values),
@@ -297,7 +294,7 @@ class ConflictNotification(Notification):
 
 class ReadOnlyNotification(Notification):
     def __init__(self, engine_uid: str, filename: str, parent: str = None) -> None:
-        values = dict(name=filename, folder=parent)
+        values = [filename, parent]
         description = "READONLY_FILE" if parent is None else "READONLY_FOLDER"
         super().__init__(
             "READONLY",
@@ -311,7 +308,7 @@ class ReadOnlyNotification(Notification):
 
 class DirectEditReadOnlyNotification(Notification):
     def __init__(self, filename: str) -> None:
-        values = dict(name=filename)
+        values = [filename]
         super().__init__(
             "DIRECT_EDIT_READONLY",
             title=Translator.get("READONLY", values),
@@ -323,7 +320,7 @@ class DirectEditReadOnlyNotification(Notification):
 
 class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid: str, filename: str) -> None:
-        values = dict(name=filename)
+        values = [filename]
         super().__init__(
             "DELETE_READONLY",
             title=Translator.get("DELETE_READONLY", values),
@@ -338,11 +335,7 @@ class LockedNotification(Notification):
     def __init__(
         self, engine_uid: str, filename: str, lock_owner: str, lock_created: datetime
     ) -> None:
-        values = {
-            "name": filename,
-            "lock_owner": lock_owner,
-            "lock_created": lock_created.strftime("%m/%d/%Y %H:%M:%S"),
-        }
+        values = [filename, lock_owner, lock_created.strftime("%m/%d/%Y %H:%M:%S")]
         super().__init__(
             "LOCKED",
             title=Translator.get("LOCKED", values),
@@ -360,11 +353,7 @@ class LockedNotification(Notification):
 
 class DirectEditLockedNotification(Notification):
     def __init__(self, filename: str, lock_owner: str, lock_created: datetime) -> None:
-        values = {
-            "name": filename,
-            "lock_owner": lock_owner,
-            "lock_created": lock_created.strftime("%m/%d/%Y %H:%M:%S"),
-        }
+        values = [filename, lock_owner, lock_created.strftime("%m/%d/%Y %H:%M:%S")]
         super().__init__(
             "DIRECT_EDIT_LOCKED",
             title=Translator.get("LOCKED", values),
@@ -381,7 +370,7 @@ class DirectEditLockedNotification(Notification):
 
 class DirectEditUpdatedNotification(Notification):
     def __init__(self, filename: str) -> None:
-        values = {"name": filename}
+        values = [filename]
         super().__init__(
             "DIRECT_EDIT_UPDATED",
             title=Translator.get("UPDATED", values),
@@ -397,7 +386,7 @@ class DirectEditUpdatedNotification(Notification):
 
 class ErrorOpenedFile(Notification):
     def __init__(self, path: str, is_folder: bool) -> None:
-        values = {"name": path}
+        values = [path]
         msg = ("FILE", "FOLDER")[is_folder]
         super().__init__(
             "WINDOWS_ERROR",
@@ -414,7 +403,7 @@ class ErrorOpenedFile(Notification):
 
 class FileDeletionError(Notification):
     def __init__(self, path: str) -> None:
-        values = {"name": path}
+        values = [path]
         super().__init__(
             "DELETION_ERROR",
             title=Translator.get("DELETION_ERROR_TITLE"),

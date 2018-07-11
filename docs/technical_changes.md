@@ -6,6 +6,8 @@
 - Removed `AbstractOSIntegration.is_linux()`
 - Removed `AbstractOSIntegration.is_mac()`
 - Removed `AbstractOSIntegration.is_windows()`
+- Removed `Application.get_htmlpage()`
+- Removed `Application.get_cache_folder()`
 - Added `Engine.init_remote()`
 - Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, filtered_remote_cls, local_cls)`
 - Removed `Engine.get_abspath()`
@@ -40,16 +42,27 @@
 - Removed `QueueManager.queueEmpty()`
 - Added `Remote.set_proxy()`
 - Moved `Remote.conflicted_name()` to `RemoteBase`
+- Moved `Remote.doc_to_info()` to `NuxeoDocumentInfo.from_dict()`
+- Moved `Remote.file_to_info()` to `RemoteFileInfo.from_dict()`
 - Moved `Remote.get_children()` to `RemoteBase`
 - Moved `Remote.get_children_info()` to `RemoteBase`
 - Moved `Remote.get_content()` to `RemoteBase`
 - Moved `Remote.get_roots()` to `RemoteBase`
 - Moved `Remote.make_file()` to `RemoteBase`
 - Moved `Remote.update_content()` to `RemoteBase`
+- Changed `Translator(object)` to `Translator(QTranslator)``
+- Added `Translator.translate()`
+- Added `Translator.tr()`
 - Removed `types` argument from `Remote.get_children_info()`. Use `types` attribute instead.
 - Removed `RemoteWatcher.get_engine()`. Use `engine` attribute instead.
+- Renamed `WebAuthenticationApi` to `QMLAuthenticationApi`
+- Renamed `WebConflictsApi` to `QMLConflictsApi`
 - Removed `WebDialog.loadError()`
 - Removed `WebDialog.requestFinished()`
+- Renamed `WebDriveApi` to `QMLDriveApi`
+- Renamed `WebSettingsApi` to `QMLSettingsApi`
+- Renamed `WebSystrayApi` to `QMLSystrayApi`
+- Moved `WebSettingsApi._open_authentication_dialog()` to `Application`
 - Removed `Worker.actionUpdate()`
 - Added exceptions.py
 - Removed `filter_inotify` argument logging_config.py::`configure()`
@@ -57,6 +70,7 @@
 - Removed `log_rotate_max_bytes` argument logging_config.py::`configure()`
 - Removed `log_rotate_when` argument logging_config.py::`configure()`
 - Removed `use_file_handler` argument logging_config.py::`configure()`
+- Removed application.py::`SimpleApplication`
 - Added client/proxy.py
 - Added client/remote_client.py
 - Moved client/common.py::`DuplicationDisabledError` exception to exceptions.py
@@ -75,19 +89,29 @@
 - Added constants.py::`WINDOWS`
 - Removed constants.py::`DEFAULT_TYPES`
 - Removed constants.py::`MAX_CHILDREN`
+- Added data/qml
+- Removed data/ui5
 - Removed engine/dao/sqlite.py::`FakeLock`
-- Moved engine/engine.py::`InvalidDriveException` exception exceptions.py
+- Moved engine/engine.py::`InvalidDriveException` exception to exceptions.py
 - Moved engine/engine.py::`RootAlreadyBindWithDifferentAccount` exception to exceptions.py
+- Removed engine/engine.py::`EngineDialog`
 - Moved engine/workers.py::`PairInterrupt` exception to exceptions.py
 - Moved engine/workers.py::`ThreadInterrupt` exception to exceptions.py
+- Added gui/conflicts.py::`ConflictsView`
+- Removed gui/dialog.py::`TokenNetworkAccessManager`
+- Added gui/dialog.py::`TokenRequestInterceptor`
 - Removed gui/folders_treeview.py::`DocFileInfo`
 - Removed gui/folders_treeview.py::`DocRootFileInfo`
+- Added gui/settings.py::`SettingsView`
+- Added gui/systray.py::`SystrayView`
+- Added gui/view.py
 - Moved manager.py::`EngineTypeMissing` exception to exceptions.py
 - Moved manager.py::`FolderAlreadyUsed` exception to exceptions.py
 - Moved manager.py::`MissingToken` to client/proxy.py
 - Removed manager.py::`ProxySettings`
 - Added utils.py::`force_encode()`
 - Removed `codecs` argument from utils.py::`force_decode()`
+- Moved wui/* to gui/*
 
 # 3.1.0
 - Removed `AbstractOSIntegration.get_os_version()`
