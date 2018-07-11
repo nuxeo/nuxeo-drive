@@ -58,7 +58,7 @@ class TestLongPath(UnitTestCase):
         with open(new_file, "wb") as f:
             f.write(b"Hello world")
 
-        self.wait_sync(wait_for_async=True, timeout=45, fail_if_timeout=False)
+        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
         remote_children_of_c = self.remote_1.get_children_info(self.folder_c)
         children_names = [item.name for item in remote_children_of_c]
         log.warning("Verify if FOLDER_D is uploaded to server")

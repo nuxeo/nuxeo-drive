@@ -34,10 +34,10 @@ class TestLocalMoveFolders(UnitTestCase):
                 self.generate_random_png(file_path)
 
         self.engine_1.start()
-        self.wait_sync(timeout=60, wait_win=True)
+        self.wait_sync(timeout=30, wait_win=True)
 
         # Check /a1 and /a2
-        for folder in ["/a1", "/a2"]:
+        for folder in {"/a1", "/a2"}:
             # Check local files
             assert local.exists(folder)
             children = [child.name for child in local.get_children_info(folder)]
@@ -69,7 +69,7 @@ class TestLocalMoveFolders(UnitTestCase):
         assert len(remote_doc.get_children_info(self.workspace)) == 1
 
         # Check /a2 and /a2/a1
-        for folder in ["/a2", "/a2/a1"]:
+        for folder in {"/a2", "/a2/a1"}:
             assert local.exists(folder)
             children = [
                 child.name
