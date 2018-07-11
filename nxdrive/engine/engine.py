@@ -297,7 +297,7 @@ class Engine(QObject):
 
         urls = {
             "jsf": (
-                "{server}nxhome/{repo}/default-domain@view_home?"
+                "{server}nxhome/{repo}/@view_home?"
                 "tabIds=USER_CENTER%3AuserCenterNuxeoDrive"
             ),
             "web": "{server}ui?token={token}#!/drive",
