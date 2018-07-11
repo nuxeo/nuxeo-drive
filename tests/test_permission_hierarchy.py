@@ -1,5 +1,7 @@
 # coding: utf-8
 import hashlib
+import os
+import os.path
 
 import pytest
 from nuxeo.exceptions import HTTPError
@@ -28,6 +30,70 @@ class TestPermissionHierarchy(UnitTestCase):
         # Cleanup user workspace
         if self.workspace_uid and self.root_remote.exists(self.workspace_uid):
             self.root_remote.delete(self.workspace_uid, use_trash=False)
+
+    @pytest.mark.skipif(not WINDOWS, reason="Only Windows ignores file permissions.")
+    def test_permission_awareness_after_resume(self):
+        remote = self.remote_document_client_1
+        remote2 = self.remote_document_client_2
+        local = self.local_2
+
+        root = remote.make_folder(self.workspace_uid, "testing")
+        folder = remote.make_folder(root, "FolderA")
+
+        # Register user workspace as a sync root for user1
+        remote.register_as_root(self.workspace_uid)
+
+        # Register root folder as a sync root for user2
+        self.set_readonly(self.user_2, root, grant=False)
+        remote2.register_as_root(root)
+
+        # Read only folder for user 2
+        self.set_readonly(self.user_2, folder)
+
+        # Start'n sync
+        self.engine_2.start()
+        self.wait_sync(
+            wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True
+        )
+        self.engine_2.stop()
+
+        # Checks
+        root = "/Other Docs/testing/FolderA"
+        assert local.exists(root)
+
+        # Create documents
+        abspath = local.abspath(root)
+        new_folder = os.path.join(abspath, "FolderCreated")
+        os.mkdir(new_folder)
+        with open(os.path.join(new_folder, "file.txt"), "wb") as handler:
+            handler.write(b"content")
+
+        # Change from RO to RW for the shared folder
+        self.set_readonly(self.user_2, folder, grant=False)
+
+        # Sync
+        self.engine_2.start()
+        self.wait_sync(
+            wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True
+        )
+
+        # Status check
+        dao = self.engine_2.get_dao()
+        assert not dao.get_errors(limit=0)
+        assert not dao.get_filters()
+        assert not dao.get_unsynchronizeds()
+
+        # Local check
+        assert local.exists(root + "/FolderCreated/file.txt")
+
+        # Remote checks
+        children = remote.get_children_info(folder)
+        assert len(children) == 1
+        assert children[0].name == "FolderCreated"
+
+        children = remote.get_children_info(children[0].uid)
+        assert len(children) == 1
+        assert children[0].name == "file.txt"
 
     def test_sync_delete_root(self):
         # Create test folder in user workspace as test user
