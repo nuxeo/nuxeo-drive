@@ -18,12 +18,18 @@ class Updater(BaseUpdater):
     def install(self, filename: str) -> None:
         """
         The installer will automagically:
-            - stop Drive
+            - try to stop Drive, if not already done
             - install the new version
             - start Drive
 
         So, a big thank you to Inno Setup!
         """
 
-        log.debug("Calling %r /verysilent /start=auto", filename)
-        subprocess.Popen([filename, "/verysilent", "/start=auto"], close_fds=True)
+        cmd = 'timeout /t 5 /nobreak > nul && "{}" /verysilent /start=auto'.format(
+            filename
+        )
+        log.debug("Launching the auto-updater in 5 seconds ...")
+        subprocess.Popen(cmd, shell=True, close_fds=True)
+
+        # Trigger the application exit
+        self.appUpdated.emit()

@@ -70,6 +70,9 @@ MinVersion=6.1.7600
 Compression=lzma
 SolidCompression=yes
 
+; Controls which files Setup will check for being in use before upgrading
+CloseApplicationsFilter=*.*
+
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
