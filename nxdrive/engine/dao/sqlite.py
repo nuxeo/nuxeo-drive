@@ -1386,6 +1386,34 @@ class EngineDAO(ConfigurationDAO):
                 ("unsynchronized", datetime.utcnow(), last_error, row.id),
             )
 
+    def unset_unsychronised(self, row: NuxeoDocumentInfo) -> None:
+        """Used to unfilter documents that were flagged read-only in a previous sync.
+        All children will be locally rescanned to keep synced with the server."""
+        row.local_state = "created"
+        row.remote_state = "unknown"
+        row.pair_state = self._get_pair_state(row)
+        with self._lock:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute(
+                "UPDATE States"
+                "   SET local_state = ?,"
+                "       remote_state = ?,"
+                "       pair_state = ?,"
+                "       last_sync_date = ?,"
+                "       error_count = 0,"
+                "       last_sync_error_date = NULL,"
+                "       last_error = NULL"
+                " WHERE local_path LIKE ?",
+                (
+                    row.local_state,
+                    row.remote_state,
+                    row.pair_state,
+                    datetime.utcnow(),
+                    row.local_path + "%",
+                ),
+            )
+
     def synchronize_state(
         self, row: NuxeoDocumentInfo, version: int = None, dynamic_states: bool = False
     ) -> bool:

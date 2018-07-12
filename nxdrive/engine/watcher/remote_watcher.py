@@ -878,6 +878,14 @@ class RemoteWatcher(EngineWorker):
                         )
 
                         if doc_pair.folderish:
+                            if (
+                                event_id == "securityUpdated"
+                                and not doc_pair.remote_can_create_child
+                                and new_info.can_create_child
+                            ):
+                                log.debug("Force local scan after permissions change")
+                                self._dao.unset_unsychronised(doc_pair)
+
                             log.trace(
                                 "Force scan recursive on %r, permissions change=%r",
                                 doc_pair,
