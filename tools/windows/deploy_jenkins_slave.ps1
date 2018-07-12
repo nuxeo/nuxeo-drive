@@ -26,7 +26,7 @@ Import-Module BitsTransfer
 
 function build_installer {
 	# Build the installer
-	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace "'", "" -replace "__version__ = ", ""
+	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
 	Write-Output ">>> [$app_version] Freezing the application"
 	& $Env:STORAGE_DIR\Scripts\pyinstaller ndrive.spec --noconfirm
