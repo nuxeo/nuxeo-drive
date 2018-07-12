@@ -30,6 +30,7 @@ Changes in command line arguments:
 - [NXDRIVE-1223](https://jira.nuxeo.com/browse/NXDRIVE-1223): Use a fork of universal-analytics-python that supports Python 3
 - [NXDRIVE-1225](https://jira.nuxeo.com/browse/NXDRIVE-1225): Be specific about pyobjc requirements
 - [NXDRIVE-1234](https://jira.nuxeo.com/browse/NXDRIVE-1234): Tweak pyup.io parameters
+- [NXDRIVE-1244](https://jira.nuxeo.com/browse/NXDRIVE-1244): Ensure Drive is closed before auto-upgrading on Windows
 
 ### Tests
 - [NXDRIVE-1212](https://jira.nuxeo.com/browse/NXDRIVE-1212): Disable all server converters, enabled on-demand

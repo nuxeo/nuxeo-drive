@@ -31,7 +31,7 @@ log = getLogger(__name__)
 class BaseUpdater(PollWorker):
     """ Updater class for frozen application. """
 
-    # Used on macOS to trigger the application exit on sucessful update
+    # Used to trigger the application exit on sucessful update
     appUpdated = pyqtSignal()
 
     # Used to display a notification when a new version is available
