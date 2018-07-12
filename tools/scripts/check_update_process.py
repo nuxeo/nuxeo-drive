@@ -19,8 +19,8 @@ import socketserver
 import distutils.dir_util
 import distutils.version
 import hashlib
-import io
 import os
+import os.path
 import re
 import shutil
 import subprocess
@@ -30,7 +30,7 @@ import threading
 import time
 from os.path import expanduser
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 
 EXT = {"darwin": "dmg", "win32": "exe"}.get(sys.platform)
@@ -47,7 +47,7 @@ def create_versions(dst, version):
     print(">>> Computed the checksum:", checksum)
 
     print(">>> Crafting versions.yml")
-    yml = b"""
+    yml = """
 {version}:
     min: '7.10'
     type: release
@@ -118,7 +118,7 @@ def launch_drive():
     if sys.platform == "darwin":
         cmd = ["open", "/Applications/Nuxeo Drive.app", "--args"]
     elif sys.platform == "win32":
-        cmd = [expanduser("~\\AppData\\Roaming\\Nuxeo Drive\\ndrive.exe")]
+        cmd = [expanduser("~\\AppData\\Local\\Nuxeo Drive\\ndrive.exe")]
 
     cmd += [
         "--log-level-console=TRACE",
@@ -156,7 +156,7 @@ def uninstall_drive():
             pass
     elif sys.platform == "win32":
         cmd = [
-            expanduser("~\\AppData\\Roaming\\Nuxeo Drive\\unins000.exe"),
+            expanduser("~\\AppData\\Local\\Nuxeo Drive\\unins000.exe"),
             "/verysilent",
         ]
         print(">>> Command:", cmd)
@@ -190,10 +190,10 @@ def version_find():
     """
 
     path = os.path.join("nxdrive", "__init__.py")
-    with io.open(path, encoding="utf-8") as handler:
+    with open(path) as handler:
         for lineno, line in enumerate(handler.readlines()):
             if line.startswith("__version__"):
-                return re.findall(r"'(.+)'", line)[0], lineno
+                return re.findall(r"\"(.+)\"", line)[0], lineno
 
 
 def version_update(version, lineno):
@@ -201,12 +201,12 @@ def version_update(version, lineno):
 
     path = os.path.join("nxdrive", "__init__.py")
 
-    with io.open(path, encoding="utf-8") as handler:
+    with open(path) as handler:
         content = handler.readlines()
 
-    content[lineno] = "__version__ = '{}'\n".format(version)
+    content[lineno] = "__version__ = \"{}\"\n".format(version)
 
-    with io.open(path, "w", encoding="utf-8", newline="\n") as handler:
+    with open(path, "w", newline="\n") as handler:
         handler.write("".join(content))
 
 
@@ -257,7 +257,7 @@ def main():
     file_ = "dist/nuxeo-drive-{}.{}".format(version, EXT)
     dst_file = os.path.join(path, os.path.basename(file_))
     print(">>> Moving", file_, "->", path)
-    os.rename(file_, dst_file)
+    shutil.move(file_, dst_file)
 
     # Create the versions.yml file
     create_versions(root, version)
@@ -280,7 +280,7 @@ def main():
         installer = os.path.basename(src_file)
         dst_file = os.path.join(path, installer)
         print(">>> Moving", src_file, "->", path)
-        os.rename(src_file, dst_file)
+        shutil.move(src_file, dst_file)
 
         # Install Drive on the computer
         install_drive(dst_file)
