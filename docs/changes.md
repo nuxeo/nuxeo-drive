@@ -7,6 +7,7 @@ Changes in command line arguments:
 - Removed `proxy-type`
 
 ### Core
+- [NXDRIVE-659](https://jira.nuxeo.com/browse/NXDRIVE-659): Fix permissions awareness when resuming synchronization
 - [NXDRIVE-691](https://jira.nuxeo.com/browse/NXDRIVE-691): Upgrade to Python 3.7 (**breaking change**)
 - [NXDRIVE-692](https://jira.nuxeo.com/browse/NXDRIVE-692): Upgrade from PyQt4 to PyQt5 (**breaking change**)
 - [NXDRIVE-825](https://jira.nuxeo.com/browse/NXDRIVE-825): Rely on the Python client for all Nuxeo API calls (**breaking change**)
