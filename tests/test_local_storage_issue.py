@@ -1,4 +1,5 @@
 # coding: utf-8
+import errno
 import os
 
 import pytest
@@ -44,7 +45,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
             pytest.version,
             password=self.password_1,
         )
-        error = OSError("No space left on device")
+        error = OSError(errno.ENOSPC, "No space left on device")
         self.engine_1.remote.make_download_raise(error)
         self.engine_1.start()
         # By default engine will not consider being syncCompleted

@@ -15,7 +15,6 @@ from .common import (
 
 
 class TestWindows(UnitTestCase):
-    @pytest.mark.randombug("NXDRIVE-719", condition=LINUX, mode="BYPASS")
     def test_local_replace(self):
         local = LocalTest(self.local_test_folder_1)
         remote = self.remote_document_client_1

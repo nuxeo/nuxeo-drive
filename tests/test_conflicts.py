@@ -4,7 +4,6 @@ import time
 
 import pytest
 
-from nxdrive.constants import LINUX
 from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
 
 
@@ -58,7 +57,6 @@ class TestConflicts(UnitTestCase):
         assert remote.get_content(remote_children[0].uid) == b"Remote update 2"
         assert self.get_remote_state(self.file_id).pair_state == "conflicted"
 
-    @pytest.mark.randombug("NXDRIVE-771", condition=LINUX, mode="BYPASS")
     def test_real_conflict(self):
         local = self.local_1
         remote = self.remote_2
@@ -158,7 +156,6 @@ class TestConflicts(UnitTestCase):
         assert remote.get_content(self.file_id) == b"Remote update"
         assert self.get_remote_state(self.file_id).pair_state == "conflicted"
 
-    # @pytest.mark.skipif(not WINDOWS, reason='Windows Office only test')
     @pytest.mark.randombug(
         "NXDRIVE-776: Random bug but we cannot use "
         "pytest.mark.random because this test would "
@@ -168,7 +165,6 @@ class TestConflicts(UnitTestCase):
     def test_XLS_conflict_on_locked_document(self):
         self._XLS_local_update_on_locked_document(locked_from_start=False)
 
-    # @pytest.mark.skipif(not WINDOWS, reason='Windows Office only test')
     @pytest.mark.randombug(
         "NXDRIVE-776: Random bug but we cannot use "
         "pytest.mark.random because this test would "

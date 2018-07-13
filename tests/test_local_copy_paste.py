@@ -2,9 +2,6 @@
 import os
 import shutil
 
-import pytest
-
-from nxdrive.constants import LINUX
 from .common import FILE_CONTENT, UnitTestCase
 
 
@@ -79,7 +76,6 @@ class TestLocalCopyPaste(UnitTestCase):
             == self.NUMBER_OF_LOCAL_FILES_TOTAL
         )
 
-    @pytest.mark.randombug("NXDRIVE-815", condition=not LINUX, repeat=5)
     def test_local_copy_paste_files(self):
         self._local_copy_paste_files()
 

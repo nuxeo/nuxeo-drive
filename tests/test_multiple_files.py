@@ -8,10 +8,10 @@ from nxdrive.constants import LINUX, MAC
 from .common import UnitTestCase
 
 
-class MultipleFilesTestCase(UnitTestCase):
+class TestMultipleFiles(UnitTestCase):
 
     NUMBER_OF_LOCAL_FILES = 10
-    SYNC_TIMEOUT = 200  # in seconds
+    SYNC_TIMEOUT = 20  # in seconds
 
     def setUp(self):
         """
@@ -41,7 +41,6 @@ class MultipleFilesTestCase(UnitTestCase):
     def test_move_and_copy_paste_folder_original_location_from_child_stopped(self):
         self._move_and_copy_paste_folder_original_location_from_child()
 
-    @pytest.mark.randombug("NXDRIVE-808", condition=MAC)
     def test_move_and_copy_paste_folder_original_location_from_child(self):
         self._move_and_copy_paste_folder_original_location_from_child(False)
 

@@ -1,9 +1,6 @@
 # coding: utf-8
 import time
 
-import pytest
-
-from nxdrive.constants import LINUX, MAC
 from .common import (
     OS_STAT_MTIME_RESOLUTION,
     REMOTE_MODIFICATION_TIME_RESOLUTION,
@@ -22,7 +19,6 @@ class TestConcurrentSynchronization(UnitTestCase):
             delay=int(delay * 1000),
         )
 
-    @pytest.mark.randombug("NXDRIVE-808", condition=LINUX, repeat=2)
     def test_find_changes_with_many_doc_creations(self):
         local = self.local_1
 
@@ -214,8 +210,6 @@ class TestConcurrentSynchronization(UnitTestCase):
         # Check Test folder has not been re-created locally
         assert not local.exists("/Test folder")
 
-    @pytest.mark.randombug("NXDRIVE-718", condition=LINUX)
-    @pytest.mark.randombug("NXDRIVE-718", condition=MAC, repeat=2)
     def test_update_local_file_content_update_remote_file_property(self):
         # Get local and remote clients
         local = self.local_1

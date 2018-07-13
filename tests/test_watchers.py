@@ -33,7 +33,6 @@ class TestWatchers(UnitTestCase):
         count = folders + files + 1
         assert len(res) == count
 
-    @pytest.mark.randombug("NXDRIVE-808", condition=WINDOWS, repeat=2)
     def test_reconcile_scan(self):
         files, folders = self.make_local_tree()
         self.make_server_tree()
@@ -277,7 +276,6 @@ class TestWatchers(UnitTestCase):
             == "Accentu\xe9 avec un \xea et un \xe9.odt"
         )
 
-    @pytest.mark.randombug("NXDRIVE-808", condition=MAC, repeat=5)
     def test_watchdog_encoding(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -336,7 +334,7 @@ class TestWatchers(UnitTestCase):
         assert not remote.exists("/Accentue\u0301.odt")
         assert not remote.exists("/Sub folder/e\u0302tre ou ne pas \xeatre.odt")
 
-    @pytest.mark.randombug("NXDRIVE-808", condition=WINDOWS, repeat=2)
+    @pytest.mark.randombug("NXDRIVE-1264", condition=WINDOWS, mode="STRICT")
     def test_watcher_remote_id_setter(self):
         local = self.local_1
         # As some user can rewrite same file for no reason

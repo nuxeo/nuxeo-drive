@@ -1,13 +1,10 @@
 # coding: utf-8
 
-import pytest
-
-from nxdrive.constants import LINUX, WINDOWS
+from nxdrive.constants import WINDOWS
 from .common import UnitTestCase
 
 
 class TestSynchronizationSuspend(UnitTestCase):
-    @pytest.mark.randombug("NXDRIVE-805", condition=WINDOWS, repeat=2)
     def test_basic_synchronization_suspend(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -73,7 +70,6 @@ class TestSynchronizationSuspend(UnitTestCase):
         assert len(remote.get_children_info(self.workspace_1)) == 2
         assert not engine.get_queue_manager().is_paused()
 
-    @pytest.mark.randombug("NXDRIVE-812", condition=LINUX, mode="BYPASS")
     def test_synchronization_end_with_children_ignore_parent(self):
         """ NXDRIVE-655: children of ignored folder are not ignored. """
 
