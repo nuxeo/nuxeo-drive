@@ -107,7 +107,6 @@ class Tracker(Worker):
                     "dimension6": urlsplit(engine.server_url).hostname,
                     "dimension7": engine.server_url,
                     "dimension8": engine.remote.client.server_version,
-                    "dimension9": engine.remote_user,
                 }
             )
 
