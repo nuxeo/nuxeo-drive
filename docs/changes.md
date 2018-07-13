@@ -35,6 +35,7 @@ Changes in command line arguments:
 
 ### Tests
 - [NXDRIVE-1212](https://jira.nuxeo.com/browse/NXDRIVE-1212): Disable all server converters, enabled on-demand
+- [NXDRIVE-1246](https://jira.nuxeo.com/browse/NXDRIVE-1246): Fix pytest randombug plugin STRICT mode
 
 #### Minor changes
 - Framework: Make NotFound exception inherits from OSError
