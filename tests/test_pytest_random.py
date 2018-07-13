@@ -10,11 +10,7 @@ pytest_plugins = "pytester"
 
 @pytest.fixture(autouse=True)
 def plugin(testdir):
-    testdir.makeconftest(
-        """
-        pytest_plugins = 'tests.pytest_random'
-    """
-    )
+    testdir.makeconftest("pytest_plugins = 'tests.pytest_random'")
 
 
 def temporary_failure(count=1, reverse=False):
@@ -158,6 +154,7 @@ def test_strict_on_failing_test(testdir):
 
 
 def test_strict_on_passing_test(testdir):
+    """In STRICT mode, if the test never fails, the result _must_ be a failure."""
     testdir.makepyfile(
         """
         import pytest
@@ -166,7 +163,7 @@ def test_strict_on_passing_test(testdir):
     """
     )
     result = testdir.runpytest()
-    assert_outcomes(result, repeated=9)
+    assert_outcomes(result, passed=0, failed=1, repeated=9)
 
 
 def test_strict_and_false_condition_on_passing_test(testdir):
@@ -203,7 +200,7 @@ def test_strict_and_lower_repeat_number_on_passing_test(testdir):
     """
     )
     result = testdir.runpytest()
-    assert_outcomes(result, repeated=4)
+    assert_outcomes(result, passed=0, failed=1, repeated=4)
 
 
 def test_bypass_on_passing_test(testdir):

@@ -31,7 +31,7 @@ def get_mode(item):
         if random
         else None
     )
-    if mode not in ["RELAX", "STRICT", "BYPASS"]:
+    if mode not in {"RELAX", "STRICT", "BYPASS"}:
         mode = "RELAX"
     return mode
 
@@ -44,17 +44,17 @@ def get_condition(item):
 def pytest_configure(config):
     """ Set the default mode upon pytest loading. """
     config.default_mode = os.environ.get("RANDOM_BUG_MODE", None)
-    if config.default_mode not in ["RELAX", "STRICT", "BYPASS"]:
+    if config.default_mode not in {"RELAX", "STRICT", "BYPASS"}:
         config.default_mode = None
     config.addinivalue_line(
         "markers",
-        "randombug(reason, condition=True, mode='RELAX', repeat=10): "
-        "if condition is False, test runs normally, else: "
-        "if mode is BYPASS, skip test. "
-        "If mode is RELAX, run test until it succeeds or "
-        "has ran <repeat> times. "
-        "If mode is STRICT, run test until it fails or "
-        "has ran <repeat> times. ",
+        'randombug(reason, condition=True, mode="RELAX", repeat=10): Random failures management.'
+        "\nIf the *condition* is False, the test runs normally. Else the behavior is driven by the *mode*:"
+        "\n  - BYPASS: Skip the test."
+        "\n  - RELAX: Run the test until it succeeds or "
+        "has ran <repeat> times."
+        "\n  - STRICT: Run the test until it fails or "
+        "has ran <repeat> times. Will fail in case of no failure.",
     )
 
 
@@ -95,7 +95,13 @@ def pytest_runtest_protocol(item, nextitem):
 
             # we only mess with the report if it's a call report
             if i == repeat - 1 or condition or not report.when == "call":
-                # last run or no failure detected, log normally
+                # last run or no failure detected
+                if mode == "STRICT" and i == repeat - 1 and report.when == "call":
+                    # in STRICT mode, if the it never fails, then fail completely
+                    report.outcome = "failed"
+                    report.sections.append(("", "The test is no more instable."))
+
+                # log normally
                 item.ihook.pytest_runtest_logreport(report=report)
             else:
                 # failure detected and repeat not exhausted, since i < repeat
