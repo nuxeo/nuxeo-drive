@@ -98,7 +98,6 @@ class TestLocalFilter(UnitTestCase):
         assert len(children) == 2
         assert children[1].name == "2345BCDF"
 
-    @pytest.mark.randombug("NXDRIVE-808", condition=LINUX, mode="BYPASS")
     def test_synchronize_local_filter_with_move(self):
         local = self.local_1
         remote = self.remote_document_client_1

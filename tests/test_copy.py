@@ -1,13 +1,8 @@
 # coding: utf-8
-
-import pytest
-
-from nxdrive.constants import LINUX
 from .common import UnitTestCase
 
 
 class TestCopy(UnitTestCase):
-    @pytest.mark.randombug("NXDRIVE-808", condition=LINUX, repeat=5)
     def test_synchronize_remote_copy(self):
         local = self.local_1
         remote = self.remote_document_client_1
