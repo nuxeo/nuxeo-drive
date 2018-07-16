@@ -44,7 +44,7 @@ Changes in command line arguments:
 - Packaging: Added `distro` 1.3.0
 - Packaging: Added `nuxeo` 2.0.1
 - Packaging: Updated `psutil` from 5.4.4 to 5.4.6
-- Packaging: Updated `pycryptodomex` from 3.6.1 to 3.6.3
+- Packaging: Updated `pycryptodomex` from 3.6.1 to 3.6.4
 - Packaging: Updated `pypac` from 0.8.1 to 0.9.0
 - Packaging: Updated `pytest` from 3.5.1 to 3.6.3
 - Packaging: Updated `pytest-timeout` from 1.2.1 to 1.3.0
