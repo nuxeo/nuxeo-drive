@@ -826,7 +826,12 @@ class Engine(QObject):
                     thread.worker.quit()
 
     def _set_root_icon(self) -> None:
-        if not self.local.exists("/") or self.local.has_folder_icon("/"):
+        state = self.local.has_folder_icon("/")
+        if isinstance(state, str):
+            # Save the original version in the database for later stats
+            # and proceed to the new icon installation.
+            self.manager.set_config("original_version", state)
+        elif state:
             return
 
         if MAC:
@@ -834,7 +839,7 @@ class Engine(QObject):
         elif WINDOWS:
             icon = find_icon("folder_windows.ico")
         else:
-            # No implementation on Linux
+            # No implementation on GNU/Linux
             return
 
         if not icon:
@@ -843,6 +848,8 @@ class Engine(QObject):
         locker = self.local.unlock_ref("/", unlock_parent=False)
         try:
             self.local.set_folder_icon("/", icon)
+        except:
+            log.exception("Icon folder cannot be set")
         finally:
             self.local.lock_ref("/", locker)
 
