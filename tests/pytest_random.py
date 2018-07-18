@@ -99,7 +99,7 @@ def pytest_runtest_protocol(item, nextitem):
                 if mode == "STRICT" and i == repeat - 1 and report.when == "call":
                     # in STRICT mode, if the it never fails, then fail completely
                     report.outcome = "failed"
-                    report.sections.append(("", "The test is no more instable."))
+                    report.sections.append(("", f"The test {item.nodeid!r} is no more instable."))
 
                 # log normally
                 item.ihook.pytest_runtest_logreport(report=report)
