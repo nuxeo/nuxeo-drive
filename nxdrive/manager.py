@@ -290,7 +290,7 @@ class Manager(QObject):
 
     def start(self, euid: str = None) -> None:
         self._started = True
-        for uid, engine in self._engines.items():
+        for uid, engine in list(self._engines.items()):
             if euid is not None and euid != uid:
                 continue
             if not self._pause:
