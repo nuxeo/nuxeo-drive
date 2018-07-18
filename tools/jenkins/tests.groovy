@@ -122,7 +122,6 @@ for (def x in slaves) {
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"
-                        env.PYTHON_DRIVE_VERSION = '3.7.0'
 
                         dir('sources') {
                             // Set up the report name folder

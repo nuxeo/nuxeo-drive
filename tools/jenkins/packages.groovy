@@ -100,8 +100,6 @@ for (x in slaves) {
                         }
 
                         try {
-                            env.PYTHON_DRIVE_VERSION = '3.7.0'
-
                             if (osi == 'GNU/Linux') {
                                 sh 'tools/linux/deploy_jenkins_slave.sh --build'
                                 archive 'dist/*.deb'

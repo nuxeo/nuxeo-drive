@@ -42,8 +42,7 @@ check_import() {
 check_vars() {
     # Check required variables
     if [ "${PYTHON_DRIVE_VERSION:=unset}" = "unset" ]; then
-        echo "PYTHON_DRIVE_VERSION not defined. Aborting."
-        exit 1
+        export PYTHON_DRIVE_VERSION="3.6.6"  # XXX_PYTHON
     elif [ "${WORKSPACE:=unset}" = "unset" ]; then
         echo "WORKSPACE not defined. Aborting."
         exit 1
@@ -149,7 +148,7 @@ start_nxdrive() {
 
 verify_python() {
     local version="$1"
-    local cur_version=$(python --version 2>&1 | awk '{print $2}')
+    local cur_version=$(python --version 2>&1 | head -n 1 | awk '{print $2}')
 
     echo ">>> Verifying Python version in use"
 

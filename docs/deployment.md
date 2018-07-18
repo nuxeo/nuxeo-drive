@@ -47,7 +47,7 @@ Executing the script without argument will setup.update the isolated environment
 
 ### Dependencies:
 
-- [Python 3.7.0](https://www.python.org/ftp/python/3.7.0/python-3.7.0.exe) or newer.
+- [Python 3.6.6](https://www.python.org/ftp/python/3.6.6/python-3.6.6.exe) or newer.
 - [Inno Setup 5.5.9 (u)](http://www.jrsoftware.org/download.php/is-unicode.exe) to create the installer.
 
 ### Troubleshooting
@@ -60,12 +60,12 @@ If you get an error message complaining about the lack of signature for this scr
 
 ### Required Envars
 
-- `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `3.7.0`.
 - `WORKSPACE` is the **absolute path to the WORKSPACE**, i.e. `/opt/jenkins/workspace/xxx`.
 - `WORKSPACE_DRIVE` is the **absolute path to Drive sources**, i.e. `$WORKSPACE/sources`. If not defined, it will be set to `$WORKSPACE/sources` or `$WORKSPACE/nuxeo-drive` if folder exists else `$WORKSPACE`.
 
 ### Optional Envars
 
+- `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `3.6.6`.
 - `SIGNING_ID` is the certificate **authority name**.
 - `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
 - `ENABLE_CONVERTERS` to enable all **server converters**. Effective only when tests are ran using Maven.
