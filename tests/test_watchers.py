@@ -5,7 +5,7 @@ from time import sleep
 import pytest
 from mock import patch
 
-from nxdrive.constants import MAC, WINDOWS
+from nxdrive.constants import WINDOWS
 from nxdrive.engine.watcher import WIN_MOVE_RESOLUTION_PERIOD
 from . import LocalTest
 from .common import UnitTestCase
@@ -334,7 +334,6 @@ class TestWatchers(UnitTestCase):
         assert not remote.exists("/Accentue\u0301.odt")
         assert not remote.exists("/Sub folder/e\u0302tre ou ne pas \xeatre.odt")
 
-    @pytest.mark.randombug("NXDRIVE-1264", condition=WINDOWS, mode="STRICT")
     def test_watcher_remote_id_setter(self):
         local = self.local_1
         # As some user can rewrite same file for no reason
