@@ -1,7 +1,5 @@
 # coding: utf-8
-import pytest
 
-from nxdrive.constants import LINUX
 from .common import UnitTestCase
 
 

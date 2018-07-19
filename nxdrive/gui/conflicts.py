@@ -1,6 +1,6 @@
 # coding: utf-8
 from logging import getLogger
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from PyQt5.QtCore import QSize, QUrl, pyqtSlot
 

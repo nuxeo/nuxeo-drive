@@ -25,9 +25,9 @@ Note: searching for the following regular expression in log file
 
 from logging import getLogger
 from time import sleep
-from requests import ConnectionError
 
 from mock import patch
+from requests import ConnectionError
 
 from nxdrive.client import Remote
 from nxdrive.objects import RemoteFileInfo
@@ -113,11 +113,16 @@ to local PC.
             def wrapped_method(data):
                 data["canScrollDescendants"] = True
                 return original(data)
+
             return wrapped_method
 
         with patch.object(
             remote, "get_children_info", new=get_children_info
-        ), patch.object(RemoteFileInfo, "from_dict",  wraps=mock_method_factory(RemoteFileInfo.from_dict)):
+        ), patch.object(
+            RemoteFileInfo,
+            "from_dict",
+            wraps=mock_method_factory(RemoteFileInfo.from_dict),
+        ):
             # Simulate network error for GetChildren API twice
             # This is to ensure Drive will eventually recover even after multiple
             # failures of GetChildren API.

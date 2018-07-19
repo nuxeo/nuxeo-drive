@@ -3,7 +3,6 @@ import os
 import socket
 from datetime import datetime
 from logging import getLogger
-from sqlite3 import Cursor
 from time import sleep
 from typing import Any, Dict, Optional, Tuple
 

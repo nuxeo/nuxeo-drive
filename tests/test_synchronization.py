@@ -8,11 +8,7 @@ from requests import ConnectionError
 
 from nxdrive.constants import WINDOWS
 from . import LocalTest, RemoteTest
-from .common import (
-    OS_STAT_MTIME_RESOLUTION,
-    TEST_WORKSPACE_PATH,
-    UnitTestCase,
-)
+from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH, UnitTestCase
 
 
 class TestSynchronization(UnitTestCase):

@@ -12,9 +12,12 @@ from PyQt5.QtCore import QObject, QUrl, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QIcon
 from PyQt5.QtNetwork import QNetworkProxy, QNetworkProxyFactory
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor
-from PyQt5.QtWebEngineWidgets import (QWebEnginePage, QWebEngineSettings,
-                                      QWebEngineView,
-                                      QWebEngineCertificateError)
+from PyQt5.QtWebEngineWidgets import (
+    QWebEnginePage,
+    QWebEngineSettings,
+    QWebEngineView,
+    QWebEngineCertificateError,
+)
 from PyQt5.QtWidgets import QDialog, QVBoxLayout
 from dateutil.tz import tzlocal
 

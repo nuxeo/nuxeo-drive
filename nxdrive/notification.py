@@ -336,7 +336,11 @@ class LockedNotification(Notification):
     def __init__(
         self, engine_uid: str, filename: str, lock_owner: str, lock_created: datetime
     ) -> None:
-        values = [short_name(filename), lock_owner, lock_created.strftime("%m/%d/%Y %H:%M:%S")]
+        values = [
+            short_name(filename),
+            lock_owner,
+            lock_created.strftime("%m/%d/%Y %H:%M:%S"),
+        ]
         super().__init__(
             "LOCKED",
             title=Translator.get("LOCKED", values),
@@ -354,7 +358,11 @@ class LockedNotification(Notification):
 
 class DirectEditLockedNotification(Notification):
     def __init__(self, filename: str, lock_owner: str, lock_created: datetime) -> None:
-        values = [short_name(filename), lock_owner, lock_created.strftime("%m/%d/%Y %H:%M:%S")]
+        values = [
+            short_name(filename),
+            lock_owner,
+            lock_created.strftime("%m/%d/%Y %H:%M:%S"),
+        ]
         super().__init__(
             "DIRECT_EDIT_LOCKED",
             title=Translator.get("LOCKED", values),

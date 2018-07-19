@@ -5,7 +5,6 @@ from urllib.error import URLError
 
 import pytest
 from mock import patch
-
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import User
 

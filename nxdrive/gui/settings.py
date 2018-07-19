@@ -89,7 +89,7 @@ class QMLSettingsApi(QMLDriveApi):
 
     openAuthenticationDialog = pyqtSignal(str, object)
 
-    def __init__(self, application: "Application", dlg: SettingsView=None) -> None:
+    def __init__(self, application: "Application", dlg: SettingsView = None) -> None:
         super().__init__(application, dlg)
         # Attributes for the web authentication feedback
         self.openAuthenticationDialog.connect(

@@ -3,8 +3,6 @@ import os
 import tempfile
 from logging import getLogger
 
-import pytest
-
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.report import Report

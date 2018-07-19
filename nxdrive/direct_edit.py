@@ -409,7 +409,7 @@ class DirectEdit(Worker):
             dir_path = os.path.dirname(ref)
 
             try:
-                uid, _, _, _ = self._extract_edit_info(ref)
+                uid, engine, _, _ = self._extract_edit_info(ref)
                 if action == "lock":
                     engine.remote.lock(uid)
                     self.local.set_remote_id(dir_path, b"1", name="nxdirecteditlock")
