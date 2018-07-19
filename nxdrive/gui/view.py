@@ -312,11 +312,11 @@ class LanguageModel(QAbstractListModel):
         return ""
 
     @pyqtSlot(int, result=str)
-    def getTag(self, index: int):
+    def getTag(self, index: int) -> str:
         return self.languages[index][0]
 
     @pyqtSlot(int, result=str)
-    def getName(self, index: int):
+    def getName(self, index: int) -> str:
         return self.languages[index][1]
 
     def removeRows(

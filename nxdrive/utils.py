@@ -687,6 +687,11 @@ def make_tmp_file(folder: str, content: bytes) -> str:
 
 
 def short_name(name: Union[bytes, str]) -> str:
+    """
+    Shortening a given `name` for notifications, as the text is limited to 200 characters on Windows:
+    https://msdn.microsoft.com/en-us/library/windows/desktop/ee330740(v=vs.85).aspx
+    This is related to Windows, but we apply the truncation everywhere.
+    """
     name = force_decode(name)
     if len(name) > 70:
         name = f"{name[:30]}…{name[-40:]}"

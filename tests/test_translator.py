@@ -100,17 +100,5 @@ def test_token(token, result):
     assert Translator.get(token, options) == result
 
 
-@pytest.mark.parametrize("token", ["ERROR_ON_FILE", "ERROR_ON_FOLDER", "ERROR_ON_BOTH"])
-def test_truncated_paths(token):
-    values = [
-        short_name(os.path.sep.join(["A" * 12, "b" * 321, "C" * 22])),
-        short_name(os.path.sep.join(["A" * 12, "b" * 13, "ç" * 20, "à" * 71])),
-    ]
-    Translator(MockManager(), get_folder("i18n"))
-    text = Translator.get(token, values)
-    assert "…" in text
-    assert len(text) < 200
-
-
 def get_folder(folder):
     return os.path.join(os.path.dirname(__file__), "resources", folder)

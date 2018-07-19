@@ -185,6 +185,30 @@ def test_safe_filename(invalid, valid):
 
 
 @pytest.mark.parametrize(
+    "data, too_long",
+    [
+        (["A" * 12, "b" * 321, "C" * 22], True),
+        (["A" * 12, "b" * 13, "ç" * 20, "à" * 71], True),
+        (["A" * 10, "b" * 10, "ç" * 10, "à" * 10], False),
+    ],
+)
+def test_short_name(data, too_long):
+    import os
+
+    short_name = nxdrive.utils.short_name
+    force_decode = nxdrive.utils.force_decode
+
+    filename = os.path.sep.join(data)
+
+    name = short_name(filename)
+    if too_long:
+        assert "…" in name
+        assert len(name) < 72
+    else:
+        assert name == force_decode(filename)
+
+
+@pytest.mark.parametrize(
     "x, y, z",
     [
         ("7.10", "10.1-SNAPSHOT", "10.1-HF10"),
