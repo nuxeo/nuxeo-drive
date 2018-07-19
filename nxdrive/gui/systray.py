@@ -4,7 +4,7 @@ from logging import getLogger
 
 from PyQt5.QtCore import QSize, QUrl, Qt, pyqtSlot
 from PyQt5.QtGui import QColor, QCursor
-from PyQt5.QtWidgets import QApplication, QMenu, QSystemTrayIcon
+from PyQt5.QtWidgets import QApplication, QMenu, QStyle, QSystemTrayIcon
 
 from .dialog import QMLDriveApi
 from .view import FileModel, NuxeoView
@@ -174,11 +174,23 @@ class DriveSystrayIcon(QSystemTrayIcon):
         if not self.__menu_right:
             style = QApplication.style()
             menu = QMenu()
-            menu.addAction(Translator.get("SETTINGS"), self.application.show_settings)
+            menu.addAction(
+                style.standardIcon(QStyle.SP_FileDialogInfoView),
+                Translator.get("SETTINGS"),
+                self.application.show_settings,
+            )
             menu.addSeparator()
-            menu.addAction(Translator.get("HELP"), self.application.open_help)
+            menu.addAction(
+                style.standardIcon(QStyle.SP_MessageBoxQuestion),
+                Translator.get("HELP"),
+                self.application.open_help,
+            )
             menu.addSeparator()
-            menu.addAction(Translator.get("QUIT"), self.application.quit)
+            menu.addAction(
+                style.standardIcon(QStyle.SP_DialogCloseButton),
+                Translator.get("QUIT"),
+                self.application.quit,
+            )
             self.__menu_right = menu
 
         return self.__menu_right
