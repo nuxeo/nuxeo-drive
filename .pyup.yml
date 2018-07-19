@@ -1,5 +1,4 @@
 # https://pyup.io/docs/bot/config/
 schedule: every week
-pr_prefix: "NXDRIVE-1142:"
 label_prs: dependencies
 branch_prefix: wip-
