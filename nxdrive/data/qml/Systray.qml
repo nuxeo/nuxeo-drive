@@ -9,7 +9,7 @@ Item {
     width: Screen.width; height: Screen.height
     state: ""
 
-    property bool hasAccounts: accountSelect.model.count > 0
+    property bool hasAccounts: EngineModel.count > 0
     property string stateMessage
     property string stateSubMessage
 
@@ -17,6 +17,11 @@ Item {
     signal hide()
     signal setStatus(string state, string message, string submessage)
     signal setTrayPosition(int x, int y)
+
+    Connections {
+        target: EngineModel
+        onEngineChanged: accountSelect.currentIndex = EngineModel.count - 1
+    }
 
     onSetStatus:  {
         systray.state = state
@@ -62,28 +67,17 @@ Item {
 
                 ColumnLayout {
                     Layout.alignment: Qt.AlignLeft
-                    NuxeoComboBox {
+
+                    AccountsComboBox {
                         id: accountSelect
-                        Layout.fillWidth: true
-                        Layout.maximumWidth: 150
-                        model: EngineModel
-                        textRole: "username"
-
-                        onModelChanged: currentIndex = model.count - 1
-                        Component.onCompleted: {
-                            if (model.count > 0) { currentIndex = 0 }
-                        }
-
                         // When picking an account, run the refresh timer (without repeat)
                         // to update the last files list.
                         onActivated: refreshTimer.running = true
-
-                        function getRole(role) { return model.get(currentIndex, role) }
                     }
 
                     ScaledText {
                         text: accountSelect.getRole("url")
-                        font.pointSize: 10 / ratio
+                        pointSize: 10
                         color: mediumGray
                     }
                 }
@@ -96,7 +90,7 @@ Item {
                 }
 
                 IconLabel {
-                    icon: MdiFont.Icon.folder; size: 24 / ratio
+                    icon: MdiFont.Icon.folder; size: 24
                     Layout.alignment: Qt.AlignLeft
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                 }
@@ -149,41 +143,7 @@ Item {
             RowLayout {
                 anchors.fill: parent
 
-                ColumnLayout {
-                    id: notificationButtons
-
-                    NuxeoButton {
-                        id: conflictButton
-                        height: 15
-
-                        property int count: 0
-                        visible: count > 0
-                        text: qsTr("CONFLICTS_SYSTRAY").arg(count) + tl.tr
-
-                        darkColor: orange
-                        lightColor: orange
-                        inverted: true
-                        font.pointSize: 10 / ratio
-
-                        onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
-                    }
-
-                    NuxeoButton {
-                        id: errorButton
-                        height: 15
-
-                        property int count: 0
-                        visible: count > 0
-                        text: qsTr("ERRORS_SYSTRAY").arg(count) + tl.tr
-
-                        darkColor: red
-                        lightColor: red
-                        inverted: true
-                        font.pointSize: 10 / ratio
-
-                        onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
-                    }
-                }
+                Item { Layout.fillWidth: true }
 
                 ColumnLayout {
                     spacing: 0
@@ -199,7 +159,7 @@ Item {
                         id: statusSubText
                         visible: text
                         color: statusText.color
-                        font.pointSize: 10 / ratio
+                        pointSize: 10
                         opacity: 0.8
                         Layout.alignment: Qt.AlignRight
                     }
@@ -238,12 +198,13 @@ Item {
 
             IconLabel {
                 icon: MdiFont.Icon.accountPlus
-                size: 96 / ratio; Layout.alignment: Qt.AlignHCenter
+                size: 96; Layout.alignment: Qt.AlignHCenter
             }
 
             ScaledText {
                 text: qsTr("NO_ACCOUNT") + tl.tr
-                font { weight: Font.Bold; pointSize: 14 / ratio }
+                font.weight: Font.Bold
+                pointSize: 14
                 Layout.maximumWidth: parent.width
                 Layout.alignment: Qt.AlignHCenter
                 horizontalAlignment: Text.AlignHCenter
@@ -252,11 +213,23 @@ Item {
 
             Link {
                 text: qsTr("OPEN_SETTINGS") + tl.tr
-                font.pointSize: 14 / ratio
+                pointSize: 14
                 Layout.maximumWidth: parent.width
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 50
                 onClicked: api.show_settings("Accounts")
+            }
+
+            Link {
+                text: qsTr("QUIT") + tl.tr
+                pointSize: 14
+                Layout.maximumWidth: parent.width
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 10
+                onClicked: {
+                    systray.hide()
+                    application.quit()
+                }
             }
         }
     }

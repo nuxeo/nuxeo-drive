@@ -7,8 +7,6 @@ CheckBox {
     property string borderColor: "#333"
     property string checkColor: "#333"
 
-    font.pointSize: 12 / ratio
-
     indicator: Rectangle {
         implicitWidth: 14
         implicitHeight: 14
@@ -30,7 +28,6 @@ CheckBox {
 
     contentItem: ScaledText {
         text: control.text
-        font: control.font
         opacity: enabled ? 1.0 : 0.3
         color: control.color
         verticalAlignment: Text.AlignVCenter

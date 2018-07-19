@@ -19,18 +19,18 @@ Rectangle {
             ScaledText {
                 text: name
                 Layout.fillWidth: true
-                font.pointSize: 14 / ratio
+                pointSize: 14
                 elide: Text.ElideRight
             }
 
             RowLayout {
                 IconLabel {
-                    size: 16 / ratio
+                    size: 16
                     icon: last_transfer == "upload" ? MdiFont.Icon.upload : MdiFont.Icon.download
                 }
                 ScaledText {
                     text: last_sync_date
-                    font.pointSize: 10 / ratio
+                    pointSize: 10
                     color: mediumGray
                 }
             }
@@ -43,7 +43,7 @@ Rectangle {
         }
 
         IconLabel {
-            z: 20; size: 24 / ratio
+            z: 20; size: 24
             Layout.alignment: Qt.AlignLeft; Layout.rightMargin: 10
             icon: MdiFont.Icon.folder
             onClicked: api.open_local(accountSelect.getRole("uid"), local_path)

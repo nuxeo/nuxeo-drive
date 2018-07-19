@@ -6,7 +6,15 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: control
 
-    property bool hasAccounts: accountSelect.model.count > 0
+    property bool hasAccounts: EngineModel.count > 0
+
+    Connections {
+        target: EngineModel
+        onEngineChanged: {
+            accountSelect.currentIndex = EngineModel.count - 1
+            accountSelect.adaptWidth()
+        }
+    }
 
     GridLayout {
         visible: hasAccounts
@@ -23,18 +31,7 @@ Rectangle {
 
         ScaledText { text: qsTr("ACCOUNT_NAME") + tl.tr; color: mediumGray }
 
-        NuxeoComboBox {
-            id: accountSelect
-            model: EngineModel
-            textRole: "username"
-
-            onModelChanged: currentIndex = model.count - 1
-            Component.onCompleted: {
-                if (model.count > 0) { currentIndex = 0 }
-            }
-
-            function getRole(role) { return model.get(currentIndex, role) }
-        }
+        AccountsComboBox { id: accountSelect }
 
         ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
         ScaledText { text: accountSelect.getRole("url") }
@@ -104,12 +101,12 @@ Rectangle {
 
         IconLabel {
             icon: MdiFont.Icon.accountPlus
-            size: 128 / ratio; Layout.alignment: Qt.AlignHCenter
+            size: 128; Layout.alignment: Qt.AlignHCenter
         }
 
         ScaledText {
             text: qsTr("NO_ACCOUNT") + tl.tr
-            font { weight: Font.Bold; pointSize: 14 / ratio }
+            pointSize: 14; font.weight: Font.Bold
             Layout.alignment: Qt.AlignHCenter
             wrapMode: Text.WordWrap
         }

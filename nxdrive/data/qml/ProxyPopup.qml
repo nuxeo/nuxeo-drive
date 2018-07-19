@@ -10,7 +10,7 @@ NuxeoPopup {
     property bool isAuto: proxyType.currentIndex == 3
 
     title: qsTr("PROXY_CHANGE_SETTINGS") + tl.tr
-    width: 400
+    width: 480
     topPadding: 60
     leftPadding: 50
     rightPadding: 50

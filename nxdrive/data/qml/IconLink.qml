@@ -6,7 +6,7 @@ RowLayout {
     property string url
     property string icon
     property string text
-    property int size: 20 / ratio
+    property int size: 20
 
     IconLabel { icon: control.icon; size: control.size }
     Link {

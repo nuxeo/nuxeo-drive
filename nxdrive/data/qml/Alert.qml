@@ -4,7 +4,7 @@ ShadowRectangle {
     id: control
 
     property string text
-    property int size: 14 / ratio
+    property int size: 12
     property int padding: 10
     height: content.contentHeight + (padding * 2)
 
@@ -26,7 +26,7 @@ ShadowRectangle {
     ScaledText {
         id: content
         anchors.fill: parent
-        font.pointSize: control.size
+        pointSize: control.size
         padding: control.padding
         color: "white"
 

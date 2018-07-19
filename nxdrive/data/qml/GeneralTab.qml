@@ -54,18 +54,17 @@ Rectangle {
                 id: languageBox
                 model: languageModel
                 textRole: "name"
-                width: 200
 
-                delegate: ItemDelegate {
-                    text: name
-                    property string abbr: tag
-                    width: languageBox.width
-                    highlighted: languageBox.highlightedIndex === index
+                TextMetrics { id: textMetrics; font: languageBox.font }
+                Component.onCompleted: {
+                    for(var i = 0; i < languageModel.rowCount(); i++){
+                        textMetrics.text = qsTr(languageModel.getName(i))
+                        modelWidth = Math.max(textMetrics.width, modelWidth)
+                    }
+                    currentIndex = find(currentLanguage)
                 }
-
-                Component.onCompleted: currentIndex = find(currentLanguage)
                 onActivated: {
-                    tl._set(languageBox.model.getTag(languageBox.currentIndex))
+                    tl._set(languageModel.getTag(languageBox.currentIndex))
                 }
             }
         }
@@ -78,7 +77,7 @@ Rectangle {
 
         ScaledText {
             text: qsTr("ADVANCED_SETTINGS") + tl.tr
-            font.pointSize: 16 / ratio
+            pointSize: 16
         }
 
         NuxeoSwitch {

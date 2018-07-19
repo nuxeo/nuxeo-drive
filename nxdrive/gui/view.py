@@ -315,6 +315,10 @@ class LanguageModel(QAbstractListModel):
     def getTag(self, index: int):
         return self.languages[index][0]
 
+    @pyqtSlot(int, result=str)
+    def getName(self, index: int):
+        return self.languages[index][1]
+
     def removeRows(
         self, row: int, count: int, parent: QModelIndex = QModelIndex()
     ) -> bool:
@@ -381,6 +385,7 @@ class NuxeoView(QQuickView):
     def add_engines(self, engines: Union["Engine", List["Engine"]]) -> None:
         if not engines:
             return
+
         engines = engines if isinstance(engines, list) else [engines]
         for engine in engines:
             self.engine_model.addEngine(engine)

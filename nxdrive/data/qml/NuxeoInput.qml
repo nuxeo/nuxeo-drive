@@ -6,6 +6,7 @@ TextInput {
     property string lineColor: nuxeoBlue
 
     font.pointSize: 12 / ratio
+    wrapMode: TextInput.Wrap
     selectionColor: teal
     horizontalAlignment: TextInput.AlignLeft
     verticalAlignment: TextInput.AlignVCenter
@@ -18,7 +19,6 @@ TextInput {
 
     ScaledText {
         text: control.placeholderText
-        font: control.font
         color: lightGray
         visible: !control.text
         anchors {

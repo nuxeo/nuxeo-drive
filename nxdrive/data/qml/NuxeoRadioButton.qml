@@ -6,8 +6,6 @@ RadioButton {
     property string color: nuxeoBlue
     property int size: 4
 
-    font.pointSize: 12 / ratio
-
     indicator: Rectangle {
         implicitWidth: control.size * 4
         implicitHeight: control.size * 4
@@ -32,7 +30,6 @@ RadioButton {
 
     contentItem: ScaledText {
         text: control.text
-        font: control.font
         opacity: enabled ? 1.0 : 0.3
         verticalAlignment: Text.AlignVCenter
         leftPadding: control.indicator.width + control.spacing
