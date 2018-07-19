@@ -8,7 +8,8 @@ import nuxeo.constants
 import nuxeo.operations
 from nuxeo.exceptions import HTTPError
 
-from nxdrive.client import LocalClient, Remote
+from nxdrive.client.local_client import LocalClient
+from nxdrive.client.remote_client import Remote
 from nxdrive.constants import MAC
 from nxdrive.engine.engine import Engine
 from nxdrive.logging_config import configure

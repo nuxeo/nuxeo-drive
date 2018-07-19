@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import QApplication
 from sip import SIP_VERSION_STR
 
 from . import __version__
-from .client import LocalClient
+from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
 from .constants import APP_NAME, MAC, WINDOWS
 from .exceptions import EngineTypeMissing, FolderAlreadyUsed

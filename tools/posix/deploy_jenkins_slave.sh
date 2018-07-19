@@ -128,15 +128,8 @@ launch_tests() {
     echo ">>> Launching the tests suite"
 
     ${PIP} -r requirements-tests.txt
-    ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}" \
-        --cov-report= \
-        --cov=nxdrive \
-        --showlocals \
-        --strict \
-        --failed-first \
-        --no-print-logs \
-        -r fE \
-        -v
+    ${PYTHON} -m flake8 .
+    ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}"
 }
 
 start_nxdrive() {

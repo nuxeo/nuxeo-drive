@@ -123,7 +123,7 @@ class TestDirectEdit(UnitTestCase):
         self._direct_edit_update(doc_id, filename, b"Test")
 
     def test_locked_file(self):
-        def locked_file_signal(self):
+        def locked_file_signal(self, *args, **kwargs):
             nonlocal received
             received = True
 

@@ -9,7 +9,7 @@ from typing import Union
 from watchdog.events import DirModifiedEvent, FileSystemEvent
 
 from ...client.local_client import FileInfo
-from ...engine.watcher import LocalWatcher
+from ...engine.watcher.local_watcher import LocalWatcher
 from ...exceptions import ThreadInterrupt
 from ...utils import current_milli_time, normalize_event_filename
 

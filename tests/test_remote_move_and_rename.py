@@ -626,7 +626,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         assert file_id
 
         # Create a document by streaming a binary file ( open it as append )
-        with open(file_path, "a") as f:
+        with open(file_path, "a"):
             # Rename remote folder then synchronize
             remote.move(file_id, self.workspace_id)
             self.wait_sync(wait_for_async=True)
@@ -687,7 +687,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         assert file_id
 
         # Create a document by streaming a binary file
-        with open(file_path, "a") as f:
+        with open(file_path, "a"):
             # Rename remote folder then synchronize
             remote.rename(file_id, "testFile2.pdf")
             self.wait_sync(wait_for_async=True)

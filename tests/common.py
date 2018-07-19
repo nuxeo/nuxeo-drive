@@ -21,7 +21,7 @@ from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
 from nxdrive.constants import MAC, WINDOWS
-from nxdrive.engine.watcher import WIN_MOVE_RESOLUTION_PERIOD
+from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.translator import Translator
@@ -48,60 +48,7 @@ OS_STAT_MTIME_RESOLUTION = 1.0
 log = getLogger(__name__)
 
 DEFAULT_WAIT_SYNC_TIMEOUT: int = 10
-FILE_CONTENT: bytes = """
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut egestas 
-    condimentum egestas.
-    Vestibulum ut facilisis neque, eu finibus mi. Proin ac massa sapien. Sed 
-    mollis posuere erat vel malesuada.
-    Nulla non dictum nulla. Quisque eu porttitor leo. Nunc auctor vitae risus 
-    non dapibus. Integer rhoncus laoreet varius.
-    Donec pulvinar dapibus finibus. Suspendisse vitae diam quam. Morbi 
-    tincidunt arcu nec ultrices consequat.
-    Nunc ornare turpis pellentesque augue laoreet, non sollicitudin lectus 
-    aliquam.
-    Sed posuere vel arcu ut elementum. In dictum commodo nibh et blandit. 
-    Vivamus sed enim sem.
-    Nunc interdum rhoncus eros gravida vestibulum. Suspendisse sit amet 
-    feugiat mauris, eget tristique est.
-    Ut efficitur mauris quis tortor laoreet semper. Pellentesque eu tincidunt 
-    tortor, malesuada rutrum massa.
-    Class aptent taciti sociosqu ad litora torquent per conubia nostra, 
-    per inceptos himenaeos.
-    Duis gravida, turpis at pulvinar dictum, arcu lacus dapibus nisl, 
-    eget luctus metus sapien id turpis.
-    Donec consequat gravida diam at bibendum. Vivamus tincidunt congue nisi, 
-    quis finibus eros tincidunt nec.
-    Aenean ut leo non nulla sodales dapibus. Quisque sit amet vestibulum urna.
-    Vivamus imperdiet sed elit eu aliquam. Maecenas a ultrices diam. Praesent 
-    dapibus interdum orci pellentesque tempor.
-    Morbi a luctus dui. Integer nec risus sit amet turpis varius lobortis. 
-    Vestibulum at ligula ut purus vestibulum pharetra.
-    Fusce est libero, tristique in magna sed, ullamcorper consectetur justo. 
-    Aliquam erat volutpat.
-    Mauris sollicitudin neque sit amet augue congue, a ornare mi iaculis. 
-    Praesent vestibulum laoreet urna, at sodales
-    velit cursus iaculis.
-    Sed quis enim hendrerit, viverra leo placerat, vestibulum nulla. 
-    Vestibulum ligula nisi, semper et cursus eu, gravida at enim.
-    Vestibulum vel auctor augue. Aliquam pulvinar diam at nunc efficitur 
-    accumsan. Proin eu sodales quam.
-    Quisque consectetur euismod mauris, vel efficitur lorem placerat ac. 
-    Integer facilisis non felis ut posuere.
-    Vestibulum vitae nisi vel odio vehicula luctus. Nunc sagittis eu risus 
-    sed feugiat.
-    Nunc magna dui, auctor id luctus vel, gravida eget sapien. Donec commodo, 
-    risus et tristique hendrerit, est tortor
-    molestie ex, in tristique dui augue vel mauris. Nam sagittis diam sit 
-    amet sapien fermentum, quis congue tellus venenatis.
-    Donec facilisis diam eget elit tempus, ut tristique mi congue. Ut ut 
-    consectetur ex. Ut non tortor eleifend,
-    feugiat felis et, pretium quam. Pellentesque at orci in lorem placerat 
-    tincidunt eget quis purus.
-    Donec orci odio, luctus ut sagittis nec, congue sit amet ex. Donec arcu 
-    diam, fermentum ac porttitor consectetur,
-    blandit et diam. Vivamus efficitur erat nec justo vestibulum fringilla. 
-    Mauris quis dictum elit, eget tempus ex.
-    """.encode()
+FILE_CONTENT: bytes = b"Lorem ipsum dolor sit amet ..."
 
 
 class StubQApplication(QCoreApplication):

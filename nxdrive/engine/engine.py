@@ -13,9 +13,11 @@ from .activity import Action, FileAction
 from .dao.sqlite import EngineDAO
 from .processor import Processor
 from .queue_manager import QueueManager
-from .watcher import LocalWatcher, RemoteWatcher
+from .watcher.local_watcher import LocalWatcher
+from .watcher.remote_watcher import RemoteWatcher
 from .workers import Worker
-from ..client import FilteredRemote, LocalClient, Remote
+from ..client.local_client import LocalClient
+from ..client.remote_client import FilteredRemote, Remote
 from ..constants import MAC, WINDOWS
 from ..exceptions import (
     InvalidDriveException,

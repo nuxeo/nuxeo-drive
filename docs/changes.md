@@ -21,6 +21,7 @@ Changes in command line arguments:
 - [NXDRIVE-1240](https://jira.nuxeo.com/browse/NXDRIVE-1240): Use black for a big code clean-up
 - [NXDRIVE-1241](https://jira.nuxeo.com/browse/NXDRIVE-1241): Set the --consider-ssl-errors argument default value to True
 - [NXDRIVE-1242](https://jira.nuxeo.com/browse/NXDRIVE-1242): Use type annotations everywhere
+- [NXDRIVE-1279](https://jira.nuxeo.com/browse/NXDRIVE-1279): Use flake8 for another clean-up round
 
 ### GUI
 - [NXDRIVE-600](https://jira.nuxeo.com/browse/NXDRIVE-600): Use the generic JSP to acquire a token
@@ -44,6 +45,7 @@ Changes in command line arguments:
 - Jenkins: Added the `PYTEST_ADDOPTS` parameter to the Drive-tests job
 - Jenkins: Removed the `ENABLE_PROFILER` parameter from the Drive-tests job
 - Packaging: Added `distro` 1.3.0
+- Packaging: Added `flake8` 3.5.0
 - Packaging: Added `nuxeo` 2.0.1
 - Packaging: Updated `psutil` from 5.4.4 to 5.4.6
 - Packaging: Updated `pycryptodomex` from 3.6.1 to 3.6.4
