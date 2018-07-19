@@ -5,7 +5,7 @@ import "icon-font/Icon.js" as MdiFont
 
 NuxeoPopup {
     id: control
-    width: 400
+    width: 400 * ratio
     height: 250
     padding: 20
 
@@ -34,8 +34,16 @@ NuxeoPopup {
                 font.family: 'monospace'
             }
 
-            ScaledText { text: qsTr("ENGINE_FOLDER") + tl.tr; color: mediumGray }
+            ScaledText {
+                text: qsTr("ENGINE_FOLDER") + tl.tr
+                wrapMode: Text.WordWrap
+                Layout.maximumWidth: control.width / 3
+                Layout.preferredWidth: contentWidth
+                color: mediumGray
+            }
+
             RowLayout {
+                Layout.fillWidth: true
                 NuxeoInput {
                     id: folderInput
                     Layout.fillWidth: true

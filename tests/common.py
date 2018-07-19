@@ -24,8 +24,8 @@ from nxdrive.constants import MAC, WINDOWS
 from nxdrive.engine.watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
+from nxdrive.translator import Translator
 from nxdrive.utils import safe_long_path, unset_path_readonly
-from nxdrive.gui.translator import Translator
 from . import DocRemote, LocalTest, RemoteBase
 from .conftest import root_remote
 

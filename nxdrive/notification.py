@@ -7,8 +7,9 @@ from typing import Dict
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from .gui.translator import Translator
 from .objects import NuxeoDocumentInfo
+from .translator import Translator
+from .utils import short_name
 
 __all__ = ("DefaultNotificationService", "Notification")
 
@@ -210,7 +211,7 @@ class DebugNotification(Notification):
 class ErrorNotification(Notification):
     def __init__(self, engine_uid: str, doc_pair: NuxeoDocumentInfo) -> None:
         name = doc_pair.local_name or doc_pair.remote_name or ""
-        values = [name]
+        values = [short_name(name)]
         super().__init__(
             "ERROR",
             title=Translator.get("ERROR", values),
@@ -231,7 +232,7 @@ class ErrorNotification(Notification):
 
 class LockNotification(Notification):
     def __init__(self, filename: str) -> None:
-        values = [filename]
+        values = [short_name(filename)]
         super().__init__(
             "LOCK",
             title=Translator.get("LOCK_NOTIFICATION_TITLE", values),
@@ -273,7 +274,7 @@ class DirectEditErrorLockNotification(Notification):
 
 class ConflictNotification(Notification):
     def __init__(self, engine_uid: str, doc_pair: NuxeoDocumentInfo) -> None:
-        values = [doc_pair.local_name]
+        values = [short_name(doc_pair.local_name)]
         super().__init__(
             "CONFLICT_FILE",
             title=Translator.get("CONFLICT", values),
@@ -294,7 +295,7 @@ class ConflictNotification(Notification):
 
 class ReadOnlyNotification(Notification):
     def __init__(self, engine_uid: str, filename: str, parent: str = None) -> None:
-        values = [filename, parent]
+        values = [short_name(filename), short_name(parent)]
         description = "READONLY_FILE" if parent is None else "READONLY_FOLDER"
         super().__init__(
             "READONLY",
@@ -308,7 +309,7 @@ class ReadOnlyNotification(Notification):
 
 class DirectEditReadOnlyNotification(Notification):
     def __init__(self, filename: str) -> None:
-        values = [filename]
+        values = [short_name(filename)]
         super().__init__(
             "DIRECT_EDIT_READONLY",
             title=Translator.get("READONLY", values),
@@ -320,7 +321,7 @@ class DirectEditReadOnlyNotification(Notification):
 
 class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid: str, filename: str) -> None:
-        values = [filename]
+        values = [short_name(filename)]
         super().__init__(
             "DELETE_READONLY",
             title=Translator.get("DELETE_READONLY", values),
@@ -335,7 +336,11 @@ class LockedNotification(Notification):
     def __init__(
         self, engine_uid: str, filename: str, lock_owner: str, lock_created: datetime
     ) -> None:
-        values = [filename, lock_owner, lock_created.strftime("%m/%d/%Y %H:%M:%S")]
+        values = [
+            short_name(filename),
+            lock_owner,
+            lock_created.strftime("%m/%d/%Y %H:%M:%S"),
+        ]
         super().__init__(
             "LOCKED",
             title=Translator.get("LOCKED", values),
@@ -353,7 +358,11 @@ class LockedNotification(Notification):
 
 class DirectEditLockedNotification(Notification):
     def __init__(self, filename: str, lock_owner: str, lock_created: datetime) -> None:
-        values = [filename, lock_owner, lock_created.strftime("%m/%d/%Y %H:%M:%S")]
+        values = [
+            short_name(filename),
+            lock_owner,
+            lock_created.strftime("%m/%d/%Y %H:%M:%S"),
+        ]
         super().__init__(
             "DIRECT_EDIT_LOCKED",
             title=Translator.get("LOCKED", values),
@@ -370,7 +379,7 @@ class DirectEditLockedNotification(Notification):
 
 class DirectEditUpdatedNotification(Notification):
     def __init__(self, filename: str) -> None:
-        values = [filename]
+        values = [short_name(filename)]
         super().__init__(
             "DIRECT_EDIT_UPDATED",
             title=Translator.get("UPDATED", values),
@@ -403,7 +412,7 @@ class ErrorOpenedFile(Notification):
 
 class FileDeletionError(Notification):
     def __init__(self, path: str) -> None:
-        values = [path]
+        values = [short_name(path)]
         super().__init__(
             "DELETION_ERROR",
             title=Translator.get("DELETION_ERROR_TITLE"),

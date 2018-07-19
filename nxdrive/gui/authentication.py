@@ -9,7 +9,7 @@ from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 
 from .dialog import QMLDriveApi, WebDialog
-from .translator import Translator
+from ..translator import Translator
 
 __all__ = ("QMLAuthenticationApi", "WebAuthenticationDialog")
 
@@ -42,7 +42,8 @@ class QMLAuthenticationApi(QMLDriveApi):
             server = Nuxeo(
                 host=server_url,
                 auth=TokenAuth(token),
-                proxies=self.application.manager.proxy.settings())
+                proxies=self.application.manager.proxy.settings(),
+            )
             user = server.operations.execute(command="User.Get")
             username = user["uid"]
 

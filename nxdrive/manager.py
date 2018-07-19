@@ -5,12 +5,12 @@ import subprocess
 import unicodedata
 import uuid
 from logging import getLogger
-from sip import SIP_VERSION_STR
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication
+from sip import SIP_VERSION_STR
 
 from . import __version__
 from .client import LocalClient

@@ -2,14 +2,14 @@ import QtQuick 2.10
 
  ScaledText {
     id: control
-    property int size: 20 / ratio
+    property int size: 20
     property string icon
 
     signal clicked()
 
     text: icon
-    font { family: "Material Design Icons"; pointSize: size }
-
+    font.family: "Material Design Icons"
+    pointSize: size
     color: mediumGray
 
     MouseArea {

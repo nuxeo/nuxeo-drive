@@ -1,12 +1,12 @@
 # coding: utf-8
 from logging import getLogger
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from PyQt5.QtCore import QSize, QUrl, pyqtSlot
 
 from .dialog import QMLDriveApi
-from .translator import Translator
 from .view import FileModel, NuxeoView
+from ..translator import Translator
 from ..utils import find_resource
 
 __all__ = ("ConflictsView",)

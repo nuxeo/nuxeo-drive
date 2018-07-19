@@ -7,18 +7,18 @@ Button {
     property string darkColor : darkBlue
     property int radius: 4
     property int borderWidth: 1
-    property int size: 12 / ratio
+    property int size: 12
     property bool inverted: false
 
     property string color
     color: control.hovered ? control.darkColor : control.lightColor
 
-    font.pointSize: size
 
     contentItem: ScaledText {
         id: buttonText
         text: control.text
-        font: control.font
+        pointSize: control.size
+
         opacity: enabled ? 1.0 : 0.3
         anchors {
             centerIn: buttonBackground

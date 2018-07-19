@@ -33,7 +33,7 @@ ShadowRectangle {
             ScaledText {
                 id: fileName
                 text: fileData.name + (fileData.folderish ? "/" : "")
-                font { pointSize: 16 / ratio; weight: Font.Bold }
+                pointSize: 16; font.weight: Font.Bold
             }
 
             ScaledText {
@@ -109,7 +109,6 @@ ShadowRectangle {
                     id: resolveAction
                     displayText: qsTr("RESOLVE") + tl.tr
                     visible: type == "conflict"
-                    font.pointSize: 14 / ratio
 
                     model: ["CONFLICT_USE_LOCAL", "CONFLICT_USE_REMOTE"]
 

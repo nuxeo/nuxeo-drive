@@ -26,21 +26,21 @@ Rectangle {
             ScaledText {
                 text: qsTr("CONFLICTS_AND_ERRORS") + tl.tr
                 visible: ConflictsModel.count > 0
-                font { pointSize: 16 / ratio; weight: Font.Bold }
+                pointSize: 16; font.weight: Font.Bold
                 Layout.bottomMargin: 10
             }
 
             ScaledText {
                 text: qsTr("NO_CONFLICTS_TITLE") + tl.tr
                 visible: ConflictsModel.count == 0
-                font { pointSize: 16 / ratio; weight: Font.Bold }
+                pointSize: 16; font.weight: Font.Bold
                 Layout.bottomMargin: 10
             }
 
             ScaledText {
                 text: qsTr("NO_CONFLICTS_BODY") + tl.tr
                 visible: ConflictsModel.count == 0
-                font.pointSize: 14 / ratio
+                pointSize: 14
             }
 
             ListView {
@@ -64,7 +64,7 @@ Rectangle {
             ScaledText {
                 text: qsTr("IGNORES_SYSTRAY").arg(IgnoredsModel.count) + tl.tr
                 visible: IgnoredsModel.count > 0
-                font { pointSize: 16 / ratio; weight: Font.Bold }
+                pointSize: 16; font.weight: Font.Bold
                 Layout.bottomMargin: 10
             }
 

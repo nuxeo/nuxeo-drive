@@ -14,7 +14,7 @@ from PyQt5.QtCore import (
 from PyQt5.QtGui import QIcon
 from PyQt5.QtQuick import QQuickView
 
-from .translator import Translator
+from ..translator import Translator
 
 __all__ = ("FileModel", "LanguageModel", "NuxeoView")
 
@@ -312,8 +312,12 @@ class LanguageModel(QAbstractListModel):
         return ""
 
     @pyqtSlot(int, result=str)
-    def getTag(self, index: int):
+    def getTag(self, index: int) -> str:
         return self.languages[index][0]
+
+    @pyqtSlot(int, result=str)
+    def getName(self, index: int) -> str:
+        return self.languages[index][1]
 
     def removeRows(
         self, row: int, count: int, parent: QModelIndex = QModelIndex()
@@ -381,6 +385,7 @@ class NuxeoView(QQuickView):
     def add_engines(self, engines: Union["Engine", List["Engine"]]) -> None:
         if not engines:
             return
+
         engines = engines if isinstance(engines, list) else [engines]
         for engine in engines:
             self.engine_model.addEngine(engine)

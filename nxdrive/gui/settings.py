@@ -10,7 +10,6 @@ from nuxeo.exceptions import HTTPError, Unauthorized
 from requests import ConnectionError
 
 from .dialog import QMLDriveApi
-from .translator import Translator
 from .view import LanguageModel, NuxeoView
 from ..client.proxy import get_proxy
 from ..exceptions import (
@@ -21,6 +20,7 @@ from ..exceptions import (
 )
 from ..objects import Binder
 from ..options import Options
+from ..translator import Translator
 from ..utils import find_resource, guess_server_url
 
 __all__ = ("QMLSettingsApi", "SettingsView")
@@ -89,7 +89,7 @@ class QMLSettingsApi(QMLDriveApi):
 
     openAuthenticationDialog = pyqtSignal(str, object)
 
-    def __init__(self, application: "Application", dlg: SettingsView=None) -> None:
+    def __init__(self, application: "Application", dlg: SettingsView = None) -> None:
         super().__init__(application, dlg)
         # Attributes for the web authentication feedback
         self.openAuthenticationDialog.connect(

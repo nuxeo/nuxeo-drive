@@ -9,7 +9,7 @@ from threading import Lock
 from time import mktime, sleep, time
 from typing import Any
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtCore import pyqtSignal
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
 

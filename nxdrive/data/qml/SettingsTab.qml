@@ -11,11 +11,11 @@ TabButton {
 
     height: 50
 
-    font { weight: Font.Bold; pointSize: 14 / ratio }
 
     contentItem:  ScaledText {
         text: control.text
-        font: control.font
+        font.weight: Font.Bold
+        pointSize: 14
         opacity: enabled ? 1.0 : 0.3
         color: activated ? control.underlineColor : control.color
         horizontalAlignment: Text.AlignHCenter

@@ -9,8 +9,6 @@ Switch {
     property string textColor: darkGray
     property int size: 8
 
-    font.pointSize: 12 / ratio
-
     indicator: Rectangle {
         implicitWidth: size * 4
         implicitHeight: size * 2
@@ -40,7 +38,6 @@ Switch {
     contentItem: ScaledText {
         color: control.textColor
         text: control.text
-        font: control.font
         opacity: enabled ? 1.0 : 0.3
         verticalAlignment: Text.AlignVCenter
         leftPadding: control.indicator.width + control.spacing

@@ -6,7 +6,6 @@ ToolTip {
     delay: 600
     contentItem: ScaledText {
         text: control.text
-        font: control.font
         color: "#333"
     }
 

@@ -29,7 +29,7 @@ Rectangle {
             ColumnLayout {
                 ScaledText {
                     text: nuxeoVersionText
-                    font { weight: Font.Bold; pointSize: 20 / ratio }
+                    pointSize: 20; font.weight: Font.Bold
                 }
                 ScaledText { text: modulesVersionText; color: mediumGray }
             }
@@ -64,7 +64,7 @@ Rectangle {
             width: parent.width
             wrapMode: Text.WordWrap
             font.family: 'monospace'
-            font.pointSize: 12 / ratio
+            pointSize: 12
 
             Component.onCompleted: {
                 var request = new XMLHttpRequest();

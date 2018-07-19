@@ -5,25 +5,23 @@ import "icon-font/Icon.js" as MdiFont
 ComboBox {
     id: control
     property string color: nuxeoBlue
+    property int modelWidth
+    width: modelWidth + 2 * contentItem.leftPadding + 2 * contentItem.rightPadding
     spacing: 10
 
-    font.pointSize: 12 / ratio
-
     background: Item {
-        width: contentItem.contentWidth + 25
+        implicitWidth: control.width
         height: contentItem.contentHeight
     }
 
-    indicator: Item {
-        width: 16
-        height: contentItem.contentHeight
-        anchors.right: background.right
-        anchors.top: background.top
-        IconLabel {
-            id: boxIcon
-            icon: MdiFont.Icon.chevronDown
-            color: control.color; size: 16
-            anchors.centerIn: parent
+    indicator: IconLabel {
+        id: boxIcon
+        icon: MdiFont.Icon.chevronDown
+        color: control.color; size: 16
+        anchors {
+            verticalCenter: control.verticalCenter
+            left: control.left
+            leftMargin: contentItem.contentWidth
         }
     }
 
@@ -31,20 +29,11 @@ ComboBox {
         id: boxText
         leftPadding: 0
         rightPadding: control.indicator.width + control.spacing
+        width: control.width
 
         text: control.displayText
-        font: control.font
         color: control.color
         verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
-
-        MouseArea {
-            width: parent.width * 3/2
-            height: parent.height * 3/2
-            anchors.centerIn: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: control.popup.open()
-        }
     }
 
     popup: Popup {
@@ -56,6 +45,7 @@ ComboBox {
         contentItem: ListView {
             clip: true
             implicitHeight: contentHeight
+            width: control.width
             model: control.popup.visible ? control.delegateModel : null
             currentIndex: control.highlightedIndex
         }
@@ -64,5 +54,17 @@ ComboBox {
             border.color: nuxeoBlue
             radius: 2
         }
+    }
+
+    MouseArea {
+        width: contentItem.contentWidth * ratio + contentItem.rightPadding + 10
+        height: parent.height * 3/2
+        anchors {
+            verticalCenter: parent.verticalCenter
+            left: parent.left
+            leftMargin: -5
+        }
+        cursorShape: Qt.PointingHandCursor
+        onClicked: control.popup.open()
     }
 }

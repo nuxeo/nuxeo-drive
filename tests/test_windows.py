@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-from nxdrive.constants import LINUX, WINDOWS
+from nxdrive.constants import WINDOWS
 from . import LocalTest
 from .common import (
     OS_STAT_MTIME_RESOLUTION,

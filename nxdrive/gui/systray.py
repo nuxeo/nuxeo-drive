@@ -1,23 +1,22 @@
 # coding: utf-8
 import os
+from logging import getLogger
 
 from PyQt5.QtCore import QSize, QUrl, Qt, pyqtSlot
 from PyQt5.QtGui import QColor, QCursor
 from PyQt5.QtWidgets import QApplication, QMenu, QStyle, QSystemTrayIcon
 
 from .dialog import QMLDriveApi
-from .translator import Translator
 from .view import FileModel, NuxeoView
 from ..constants import MAC
 from ..options import Options
+from ..translator import Translator
 from ..updater.constants import (
     UPDATE_STATUS_DOWNGRADE_NEEDED,
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UPDATING,
 )
 from ..utils import find_resource
-
-from logging import getLogger
 
 log = getLogger(__name__)
 
@@ -176,16 +175,19 @@ class DriveSystrayIcon(QSystemTrayIcon):
             style = QApplication.style()
             menu = QMenu()
             menu.addAction(
+                style.standardIcon(QStyle.SP_FileDialogInfoView),
                 Translator.get("SETTINGS"),
                 self.application.show_settings,
             )
             menu.addSeparator()
             menu.addAction(
+                style.standardIcon(QStyle.SP_MessageBoxQuestion),
                 Translator.get("HELP"),
                 self.application.open_help,
             )
             menu.addSeparator()
             menu.addAction(
+                style.standardIcon(QStyle.SP_DialogCloseButton),
                 Translator.get("QUIT"),
                 self.application.quit,
             )

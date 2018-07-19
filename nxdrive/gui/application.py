@@ -1,7 +1,7 @@
 # coding: utf-8
 """ Main Qt application handling OS events and system tray UI. """
-from math import sqrt
 from logging import getLogger
+from math import sqrt
 from typing import Any, Dict
 from urllib.parse import unquote
 
@@ -24,11 +24,11 @@ from markdown import markdown
 from .authentication import QMLAuthenticationApi, WebAuthenticationDialog
 from .settings import QMLSettingsApi
 from .systray import DriveSystrayIcon
-from .translator import Translator
 from ..constants import LINUX, MAC, WINDOWS
 from ..engine.activity import Action, FileAction
 from ..notification import Notification
 from ..options import Options
+from ..translator import Translator
 from ..updater.constants import (
     UPDATE_STATUS_DOWNGRADE_NEEDED,
     UPDATE_STATUS_UNAVAILABLE_SITE,
@@ -93,7 +93,7 @@ class Application(QApplication):
         if self.manager.old_version != self.manager.version:
             self.show_release_notes(self.manager.version)
 
-    def translate(self, message: str, values: dict=None) -> str:
+    def translate(self, message: str, values: dict = None) -> str:
         return Translator.get(message, values)
 
     def _show_window(self, window: "QWindow") -> None:
@@ -136,7 +136,9 @@ class Application(QApplication):
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowIcon(QIcon(self.get_window_icon()))
-            msg.setText(Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", [filename]))
+            msg.setText(
+                Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", [shortname(filename)])
+            )
             overwrite = msg.addButton(
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), QMessageBox.AcceptRole
             )
@@ -292,7 +294,7 @@ class Application(QApplication):
         self._show_window(conflicts)
 
     @pyqtSlot()
-    def show_settings(self, section: str="General") -> None:
+    def show_settings(self, section: str = "General") -> None:
         settings = self.dialogs.get("settings")
         if not settings:
             from .settings import SettingsView
