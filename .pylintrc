@@ -1,11 +1,12 @@
 [MASTER]
-jobs=4
-persistent=no
+jobs = 4
+persistent = no
 
 [MESSAGES CONTROL]
-disable=locally-disabled,locally-enabled,missing-docstring,line-too-long
+disable = all
+enable = no-name-in-module
 
 [REPORTS]
-msg-template={path}:{line}: [{msg_id}({symbol}), {obj}] {msg}
-reports=no
-score=no
+msg-template = {path}:{line}: [{msg_id}({symbol}), {obj}] {msg}
+reports = no
+score = no

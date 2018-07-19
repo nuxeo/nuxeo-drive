@@ -194,15 +194,11 @@ function launch_tests {
 			ExitWithCode $lastExitCode
 		}
 	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest $Env:SPECIFIC_TEST `
-		--cov-report= `
-		--cov=nxdrive `
-		--showlocals `
-		--strict `
-		--failed-first `
-		--no-print-logs `
-		-r fE `
-		-v
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest $Env:SPECIFIC_TEST
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}

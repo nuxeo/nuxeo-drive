@@ -6,7 +6,7 @@ import pytest
 from mock import patch
 
 from nxdrive.constants import WINDOWS
-from nxdrive.engine.watcher import WIN_MOVE_RESOLUTION_PERIOD
+from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from . import LocalTest
 from .common import UnitTestCase
 

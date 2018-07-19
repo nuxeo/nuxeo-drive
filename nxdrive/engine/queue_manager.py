@@ -69,7 +69,8 @@ class QueueManager(QObject):
         self._get_file_lock = Lock()
         # Should not operate on thread while we are inspecting them
         """
-        This error required to add a lock for inspecting threads, as the below Traceback shows the processor thread was ended while the method was running
+        This error required to add a lock for inspecting threads,
+        as the below Traceback shows the processor thread was ended while the method was running:
         Traceback (most recent call last):
            File "engine/watcher/local_watcher.py", line 845, in handle_watchdog_event
              self.scan_pair(rel_path)

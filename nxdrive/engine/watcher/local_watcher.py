@@ -15,7 +15,7 @@ from watchdog.observers import Observer
 
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
-from ...client import LocalClient
+from ...client.local_client import LocalClient
 from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import Metrics, NuxeoDocumentInfo

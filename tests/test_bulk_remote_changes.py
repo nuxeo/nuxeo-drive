@@ -29,7 +29,7 @@ from time import sleep
 from mock import patch
 from requests import ConnectionError
 
-from nxdrive.client import Remote
+from nxdrive.client.remote_client import Remote
 from nxdrive.objects import RemoteFileInfo
 from .common import TEST_DEFAULT_DELAY, UnitTestCase
 
@@ -52,7 +52,7 @@ happens.
 
 1. Configure drive and wait for sync
 2. Create 3 folders folder1, folder2 and shared
-3. Create files inside the 3 folders: folder1/file1.txt, folder2/file2.txt, 
+3. Create files inside the 3 folders: folder1/file1.txt, folder2/file2.txt,
     shared/readme1.txt, shared/readme2.txt
 4. Wait for 3 folders, 4 files to sync to local PC
 5. Check the 3 folders and 4 files are synced to local PC

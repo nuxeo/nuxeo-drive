@@ -19,7 +19,7 @@ class NotificationDelegator(NSObject):
     def __init__(self) -> None:
         self._manager = None
         info_dict = NSBundle.mainBundle().infoDictionary()
-        if not "CFBundleIdentifier" in info_dict:
+        if "CFBundleIdentifier" not in info_dict:
             info_dict["CFBundleIdentifier"] = BUNDLE_IDENTIFIER
 
     def userNotificationCenter_didActivateNotification_(

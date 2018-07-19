@@ -7,7 +7,7 @@ from PyQt5.QtCore import QModelIndex, QObject, QVariant, Qt, pyqtSignal, pyqtSlo
 from PyQt5.QtGui import QMovie, QPalette, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import QDialog, QLabel, QTreeView, QWidget
 
-from ..client import FilteredRemote
+from ..client.remote_client import FilteredRemote
 from ..objects import Filters, RemoteFileInfo
 from ..utils import find_icon
 

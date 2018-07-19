@@ -2,7 +2,7 @@
 """ Main Qt application handling OS events and system tray UI. """
 from logging import getLogger
 from math import sqrt
-from typing import Any, Dict
+from typing import Any, Dict, List
 from urllib.parse import unquote
 
 import requests
@@ -142,7 +142,7 @@ class Application(QApplication):
             overwrite = msg.addButton(
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), QMessageBox.AcceptRole
             )
-            cancel = msg.addButton(
+            msg.addButton(
                 Translator.get("DIRECT_EDIT_CONFLICT_CANCEL"), QMessageBox.RejectRole
             )
 
@@ -157,8 +157,8 @@ class Application(QApplication):
                 filename,
             )
 
-    @pyqtSlot(str, dict)
-    def _direct_edit_error(self, message: str, values: dict) -> None:
+    @pyqtSlot(str, list)
+    def _direct_edit_error(self, message: str, values: List[str]) -> None:
         """ Display a simple Direct Edit error message. """
 
         msg = QMessageBox()

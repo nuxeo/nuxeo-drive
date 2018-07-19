@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import shutil
+from datetime import datetime
 from logging import getLogger
 from queue import Empty, Queue
 from time import sleep
@@ -15,7 +16,7 @@ from .client.local_client import LocalClient
 from .constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX, WINDOWS
 from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
-from .engine.watcher import DriveFSEventHandler
+from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
 from .exceptions import NotFound, ThreadInterrupt
 from .objects import Metrics, NuxeoDocumentInfo
@@ -41,9 +42,9 @@ class DirectEdit(Worker):
     editDocument = pyqtSignal(object)
     directEditLockError = pyqtSignal(str, str, str)
     directEditConflict = pyqtSignal(str, str, str)
-    directEditError = pyqtSignal(str, dict)
-    directEditReadonly = pyqtSignal(object)
-    directEditLocked = pyqtSignal(object, object, object)
+    directEditError = pyqtSignal(str, list)
+    directEditReadonly = pyqtSignal(str)
+    directEditLocked = pyqtSignal(str, str, datetime)
 
     def __init__(self, manager: "Manager", folder: str, url: str) -> None:
         super().__init__()
@@ -376,7 +377,7 @@ class DirectEdit(Worker):
             else:
                 raise e
 
-    def _extract_edit_info(self, ref: str) -> Tuple[str, str, str, str]:
+    def _extract_edit_info(self, ref: str) -> Tuple[str, "Engine", str, str]:
         dir_path = os.path.dirname(ref)
         server_url = self.local.get_remote_id(dir_path, name="nxdirectedit")
         user = self.local.get_remote_id(dir_path, name="nxdirectedituser")
