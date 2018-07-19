@@ -4,7 +4,6 @@ import os
 import pytest
 
 from nxdrive.translator import Translator
-from nxdrive.utils import short_name
 
 
 class MockManager:

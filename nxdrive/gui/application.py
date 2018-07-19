@@ -34,7 +34,7 @@ from ..updater.constants import (
     UPDATE_STATUS_UNAVAILABLE_SITE,
     UPDATE_STATUS_UP_TO_DATE,
 )
-from ..utils import find_icon, find_resource, parse_protocol_url
+from ..utils import find_icon, find_resource, parse_protocol_url, short_name
 
 __all__ = ("Application",)
 
@@ -137,7 +137,7 @@ class Application(QApplication):
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowIcon(QIcon(self.get_window_icon()))
             msg.setText(
-                Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", [shortname(filename)])
+                Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", [short_name(filename)])
             )
             overwrite = msg.addButton(
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), QMessageBox.AcceptRole
