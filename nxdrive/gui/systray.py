@@ -6,10 +6,10 @@ from PyQt5.QtGui import QColor, QCursor
 from PyQt5.QtWidgets import QApplication, QMenu, QStyle, QSystemTrayIcon
 
 from .dialog import QMLDriveApi
-from .translator import Translator
 from .view import FileModel, NuxeoView
 from ..constants import MAC
 from ..options import Options
+from ..translator import Translator
 from ..updater.constants import (
     UPDATE_STATUS_DOWNGRADE_NEEDED,
     UPDATE_STATUS_UPDATE_AVAILABLE,

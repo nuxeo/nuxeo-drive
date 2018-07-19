@@ -3,7 +3,8 @@ import os
 
 import pytest
 
-from nxdrive.gui.translator import Translator
+from nxdrive.translator import Translator
+from nxdrive.utils import short_name
 
 
 class MockManager:
@@ -102,8 +103,8 @@ def test_token(token, result):
 @pytest.mark.parametrize("token", ["ERROR_ON_FILE", "ERROR_ON_FOLDER", "ERROR_ON_BOTH"])
 def test_truncated_paths(token):
     values = [
-        os.path.sep.join(["A" * 12, "b" * 321, "C" * 22]),
-        os.path.sep.join(["A" * 12, "b" * 13, "ç" * 20, "à" * 71]),
+        short_name(os.path.sep.join(["A" * 12, "b" * 321, "C" * 22])),
+        short_name(os.path.sep.join(["A" * 12, "b" * 13, "ç" * 20, "à" * 71])),
     ]
     Translator(MockManager(), get_folder("i18n"))
     text = Translator.get(token, values)

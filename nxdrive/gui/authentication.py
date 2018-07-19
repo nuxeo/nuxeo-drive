@@ -9,7 +9,7 @@ from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 
 from .dialog import QMLDriveApi, WebDialog
-from .translator import Translator
+from ..translator import Translator
 
 __all__ = ("QMLAuthenticationApi", "WebAuthenticationDialog")
 

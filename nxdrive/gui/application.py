@@ -24,11 +24,11 @@ from markdown import markdown
 from .authentication import QMLAuthenticationApi, WebAuthenticationDialog
 from .settings import QMLSettingsApi
 from .systray import DriveSystrayIcon
-from .translator import Translator
 from ..constants import LINUX, MAC, WINDOWS
 from ..engine.activity import Action, FileAction
 from ..notification import Notification
 from ..options import Options
+from ..translator import Translator
 from ..updater.constants import (
     UPDATE_STATUS_DOWNGRADE_NEEDED,
     UPDATE_STATUS_UNAVAILABLE_SITE,
@@ -136,7 +136,7 @@ class Application(QApplication):
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowIcon(QIcon(self.get_window_icon()))
-            msg.setText(Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", [filename]))
+            msg.setText(Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", [shortname(filename)]))
             overwrite = msg.addButton(
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), QMessageBox.AcceptRole
             )

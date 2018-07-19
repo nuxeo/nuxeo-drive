@@ -686,6 +686,13 @@ def make_tmp_file(folder: str, content: bytes) -> str:
     return path
 
 
+def short_name(name: Union[bytes, str]) -> str:
+    name = force_decode(name)
+    if len(name) > 70:
+        name = f"{name[:30]}…{name[-40:]}"
+    return name
+
+
 class PidLockFile:
     """ This class handle the pid lock file"""
 

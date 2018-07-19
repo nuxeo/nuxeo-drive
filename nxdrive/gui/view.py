@@ -14,7 +14,7 @@ from PyQt5.QtCore import (
 from PyQt5.QtGui import QIcon
 from PyQt5.QtQuick import QQuickView
 
-from .translator import Translator
+from ..translator import Translator
 
 __all__ = ("FileModel", "LanguageModel", "NuxeoView")
 

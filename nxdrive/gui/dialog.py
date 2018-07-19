@@ -18,7 +18,6 @@ from PyQt5.QtWebEngineWidgets import (QWebEnginePage, QWebEngineSettings,
 from PyQt5.QtWidgets import QDialog, QVBoxLayout
 from dateutil.tz import tzlocal
 
-from .translator import Translator
 from ..constants import TOKEN_PERMISSION
 from ..engine.activity import Action, FileAction
 from ..engine.dao.sqlite import StateRow
@@ -26,6 +25,7 @@ from ..engine.engine import Engine
 from ..engine.workers import Worker
 from ..notification import Notification
 from ..options import Options
+from ..translator import Translator
 from ..utils import find_resource, get_device, guess_server_url
 
 __all__ = ("QMLDriveApi", "WebDialog")
