@@ -109,13 +109,15 @@ to local PC.
                 )
             return Remote.get_fs_children(self.engine_1.remote, *args, **kwargs)
 
-        def from_dict(fs_item):
-            fs_item["canScrollDescendants"] = False
-            return RemoteFileInfo.from_dict(fs_item)
+        def mock_method_factory(original):
+            def wrapped_method(data):
+                data["canScrollDescendants"] = True
+                return original(data)
+            return wrapped_method
 
         with patch.object(
             remote, "get_children_info", new=get_children_info
-        ), patch.object(RemoteFileInfo, "from_dict", new=from_dict):
+        ), patch.object(RemoteFileInfo, "from_dict",  wraps=mock_method_factory(RemoteFileInfo.from_dict)):
             # Simulate network error for GetChildren API twice
             # This is to ensure Drive will eventually recover even after multiple
             # failures of GetChildren API.
