@@ -58,7 +58,7 @@ class LocalWatcher(EngineWorker):
         self._windows_watchdog_event_buffer = 8192
         if WINDOWS:
             log.debug(
-                "Windows detected so delete event will be " "delayed by %dms",
+                "Windows detected so delete event will be delayed by %dms",
                 WIN_MOVE_RESOLUTION_PERIOD,
             )
         # TODO Review to delete
@@ -143,17 +143,17 @@ class LocalWatcher(EngineWorker):
                     )
                     continue
                 if not self.local.exists(evt_pair.local_path):
-                    log.debug("Win: handling watchdog delete " "for event: %r", evt)
+                    log.debug("Win: handling watchdog delete for event: %r", evt)
                     self._handle_watchdog_delete(evt_pair)
                 else:
                     remote_id = self.local.get_remote_id(evt_pair.local_path)
                     if remote_id == evt_pair.remote_ref or remote_id is None:
                         log.debug(
-                            "Win: ignoring delete event as " "file still exists: %r",
+                            "Win: ignoring delete event as file still exists: %r",
                             evt,
                         )
                     else:
-                        log.debug("Win: handling watchdog delete " "for event: %r", evt)
+                        log.debug("Win: handling watchdog delete for event: %r", evt)
                         self._handle_watchdog_delete(evt_pair)
                 log.debug("Win: dequeuing delete event: %r", evt)
                 del self._delete_events[evt_pair.remote_ref]
@@ -510,7 +510,7 @@ class LocalWatcher(EngineWorker):
                             # Load correct doc_pair | Put the others one back
                             # to children
                             log.warning(
-                                "Detected file substitution: %r " "(%s/%s)",
+                                "Detected file substitution: %r (%s/%s)",
                                 child_pair.local_path,
                                 remote_ref,
                                 child_pair.remote_ref,
@@ -720,7 +720,7 @@ class LocalWatcher(EngineWorker):
                     dao.update_local_state(pair, local_info)
                     dao.remove_state(doc_pair)
                     log.debug(
-                        "Substitution file: remove pair(%r) mark(%r) " "as modified",
+                        "Substitution file: remove pair(%r) mark(%r) as modified",
                         doc_pair,
                         pair,
                     )
@@ -773,7 +773,7 @@ class LocalWatcher(EngineWorker):
                 with self.lock:
                     if old_local_path in self._folder_scan_events:
                         log.debug(
-                            "Update folders to scan queue: move " "from %r to %r",
+                            "Update folders to scan queue: move from %r to %r",
                             old_local_path,
                             rel_path,
                         )
@@ -799,7 +799,7 @@ class LocalWatcher(EngineWorker):
                 refreshed_pair = dao.get_state_from_id(acquired_pair.id)
                 if refreshed_pair is not None:
                     log.trace(
-                        "Re-queuing acquired, released and " "refreshed state %r",
+                        "Re-queuing acquired, released and refreshed state %r",
                         refreshed_pair,
                     )
                     dao._queue_pair_state(
@@ -856,7 +856,7 @@ class LocalWatcher(EngineWorker):
             else:
                 # NXDRIVE-509
                 log.debug(
-                    "Created event on a known pair with " "a remote_ref: %r", doc_pair
+                    "Created event on a known pair with a remote_ref: %r", doc_pair
                 )
 
         if local_info:
@@ -1118,7 +1118,7 @@ class LocalWatcher(EngineWorker):
                                 from_pair.local_name, dst_parent.remote_name
                             )
                             log.debug(
-                                "Converting the move to a create " "for %r -> %r",
+                                "Converting the move to a create for %r -> %r",
                                 from_pair,
                                 src_path,
                             )
@@ -1156,7 +1156,7 @@ class LocalWatcher(EngineWorker):
                             and from_pair_ctime > doc_pair_ctime
                         ):
                             log.trace(
-                                "Found moved file %r (times: from=%f, " "to=%f)",
+                                "Found moved file %r (times: from=%f, to=%f)",
                                 doc_pair_full_path,
                                 from_pair_ctime,
                                 doc_pair_ctime,
@@ -1174,7 +1174,7 @@ class LocalWatcher(EngineWorker):
                     with self.lock:
                         if local_info.remote_ref in self._delete_events:
                             log.debug(
-                                "Found creation in delete event, " "handle move instead"
+                                "Found creation in delete event, handle move instead"
                             )
                             # Should be cleaned
                             if not moved:

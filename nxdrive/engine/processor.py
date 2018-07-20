@@ -324,7 +324,7 @@ class Processor(EngineWorker):
                     continue
                 except NotFound as exc:
                     log.debug(
-                        "The document or its parent does " "not exist anymore: %r",
+                        "The document or its parent does not exist anymore: %r",
                         doc_pair,
                     )
                     self.giveup_error(doc_pair, "NOT_FOUND", exception=exc)
@@ -516,7 +516,7 @@ class Processor(EngineWorker):
                 # TODO refresh_client
             else:
                 log.debug(
-                    "Skip update of remote document %r as " "it is read-only.",
+                    "Skip update of remote document %r as it is read-only.",
                     doc_pair.local_name,
                 )
                 if self.engine.local_rollback():

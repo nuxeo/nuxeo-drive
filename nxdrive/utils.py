@@ -424,7 +424,7 @@ def guess_mime_type(filename: str) -> str:
         return mime_type
 
     log.trace(
-        "Could not guess mime type for %r," " returing application/octet-stream",
+        "Could not guess mime type for %r, returing application/octet-stream",
         filename,
     )
     return "application/octet-stream"
@@ -720,7 +720,7 @@ class PidLockFile:
             os.unlink(pid_filepath)
         except Exception as e:
             log.warning(
-                "Failed to remove stalled PID file: %r" " for stopped process %d: %r",
+                "Failed to remove stalled PID file: %r for stopped process %d: %r",
                 pid_filepath,
                 os.getpid(),
                 e,

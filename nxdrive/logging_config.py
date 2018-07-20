@@ -16,7 +16,7 @@ TRACE_ADDED = False
 
 # Default formatter
 FORMAT = logging.Formatter(
-    "%(asctime)s %(process)d %(thread)d " "%(levelname)-8s %(name)-18s %(message)s",
+    "%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 

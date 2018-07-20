@@ -274,7 +274,7 @@ class QMLSettingsApi(QMLDriveApi):
             error = "CONNECTION_ERROR"
         except:
             log.exception(
-                "Unexpected error while trying to open" " web authentication window"
+                "Unexpected error while trying to open web authentication window"
             )
             error = "CONNECTION_UNKNOWN"
         self.setMessage.emit(error, "error")

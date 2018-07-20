@@ -125,7 +125,7 @@ class Remote(Nuxeo):
         trash = self._get_trash_condition() if use_trash else ""
         version = "" if include_versions else "AND ecm:isVersion = 0"
 
-        query = "SELECT * FROM Document WHERE %s = '%s' %s %s" " LIMIT 1" % (
+        query = "SELECT * FROM Document WHERE %s = '%s' %s %s LIMIT 1" % (
             id_prop,
             ref,
             trash,

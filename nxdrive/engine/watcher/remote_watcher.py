@@ -756,7 +756,7 @@ class RemoteWatcher(EngineWorker):
                         delete_queue.append(doc_pair)
                     else:
                         log.debug(
-                            "Ignore delete on doc_pair %r as " "a fsItem is attached",
+                            "Ignore delete on doc_pair %r as a fsItem is attached",
                             doc_pair_repr,
                         )
                         # To ignore completely put updated to true
