@@ -447,7 +447,7 @@ class CliHandler:
     def uninstall(self) -> None:
         self.manager.osi.uninstall()
 
-    def handle(self, argv: List[str]) -> None:
+    def handle(self, argv: List[str]) -> int:
         """ Parse options, setup logs and manager and dispatch execution. """
         options = self.parse_cli(argv)
 
