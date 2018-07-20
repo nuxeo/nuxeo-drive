@@ -67,7 +67,7 @@ class SettingsView(NuxeoView):
         context.setContextProperty("languageModel", self.language_model)
         context.setContextProperty("currentLanguage", self.current_language())
 
-        self.setSource(QUrl(find_resource("qml", "Settings.qml")))
+        self.setSource(QUrl.fromLocalFile(find_resource("qml", "Settings.qml")))
 
         root = self.rootObject()
         self.api.setMessage.connect(root.setMessage)

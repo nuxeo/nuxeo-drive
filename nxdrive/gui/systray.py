@@ -49,7 +49,7 @@ class SystrayView(NuxeoView):
         the system tray icon position.
         """
         super().init()
-        self.setSource(QUrl(find_resource("qml", "Systray.qml")))
+        self.setSource(QUrl.fromLocalFile(find_resource("qml", "Systray.qml")))
         self.rootObject().getLastFiles.connect(self.get_last_files)
         self.rootObject().hide.connect(self.hide)
 

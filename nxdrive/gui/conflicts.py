@@ -109,7 +109,7 @@ class ConflictsView(NuxeoView):
     def init(self) -> None:
         super().init()
 
-        self.setSource(QUrl(find_resource("qml", "Conflicts.qml")))
+        self.setSource(QUrl.fromLocalFile(find_resource("qml", "Conflicts.qml")))
         self.rootObject().changed.connect(self.refresh_models)
 
     def refresh_models(self) -> None:
