@@ -28,6 +28,7 @@ Changes in command line arguments:
 - [NXDRIVE-600](https://jira.nuxeo.com/browse/NXDRIVE-600): Use the generic JSP to acquire a token
 - [NXDRIVE-969](https://jira.nuxeo.com/browse/NXDRIVE-969): Switch to QML for UI
 - [NXDRIVE-1183](https://jira.nuxeo.com/browse/NXDRIVE-1183): Make server UI selection smarter
+- [NXDRIVE-1231](https://jira.nuxeo.com/browse/NXDRIVE-1231): Add a message box to display fatal errors
 - [NXDRIVE-1235](https://jira.nuxeo.com/browse/NXDRIVE-1235): Disable Hebrew language as it is not translated
 
 ### Packaging / Build
