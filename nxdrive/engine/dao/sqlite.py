@@ -1643,8 +1643,8 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             # Remove any subchilds as it is gonna be scanned anyway
-            c.execute("DELETE FROM ToRemoteScan" " WHERE path LIKE ?", (path + "%",))
-            c.execute("INSERT INTO ToRemoteScan (path) " "VALUES (?)", (path,))
+            c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (path + "%",))
+            c.execute("INSERT INTO ToRemoteScan (path) VALUES (?)", (path,))
 
     def delete_path_to_scan(self, path: str) -> None:
         path = self._clean_filter_path(path)

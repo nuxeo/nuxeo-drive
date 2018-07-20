@@ -143,7 +143,7 @@ class Application(QApplication):
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), QMessageBox.AcceptRole
             )
             msg.addButton(
-                Translator.get("DIRECT_EDIT_CONFLICT_CANCEL"), QMessageBox.RejectRole
+                Translator.get("CANCEL"), QMessageBox.RejectRole
             )
 
             msg.exec_()
@@ -153,7 +153,7 @@ class Application(QApplication):
             del self._conflicts_modals[filename]
         except:
             log.exception(
-                "Error while displaying Direct Edit" " conflict modal dialog for %r",
+                "Error while displaying Direct Edit conflict modal dialog for %r",
                 filename,
             )
 
@@ -602,7 +602,7 @@ class Application(QApplication):
         dialog.resize(600, 400)
 
         notes = QTextEdit()
-        notes.setStyleSheet("background-color: #eee;" "border: none;")
+        notes.setStyleSheet("background-color: #eee; border: none;")
         notes.setReadOnly(True)
         notes.setHtml(html)
 

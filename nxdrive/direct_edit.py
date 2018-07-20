@@ -234,7 +234,7 @@ class DirectEdit(Worker):
         if pair:
             existing_file_path = engine.local.abspath(pair.local_path)
             log.debug(
-                "Local file matches remote digest %r, " "copying it from %r",
+                "Local file matches remote digest %r, copying it from %r",
                 info.digest,
                 existing_file_path,
             )
