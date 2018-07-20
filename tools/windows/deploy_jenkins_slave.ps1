@@ -150,6 +150,7 @@ function install_deps {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+	& $Env:STORAGE_DIR\Scripts\pre-commit.exe install
 }
 
 function install_python {

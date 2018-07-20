@@ -1,2 +1,2 @@
-black==18.6b4
+pre-commit==1.10.3
 pyinstaller==3.3.1

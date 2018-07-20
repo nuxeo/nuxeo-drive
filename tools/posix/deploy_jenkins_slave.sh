@@ -91,6 +91,7 @@ install_deps() {
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-dev.txt
     pyenv rehash
+    pre-commit install
 }
 
 install_pyenv() {
