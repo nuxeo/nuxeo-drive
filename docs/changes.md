@@ -41,6 +41,7 @@ Changes in command line arguments:
 - [NXDRIVE-1246](https://jira.nuxeo.com/browse/NXDRIVE-1246): Fix pytest randombug plugin STRICT mode
 
 #### Minor changes
+- Development: Use the pre-commit tool to ensure a good quality code before committing
 - Framework: Make NotFound exception inherits from OSError
 - Jenkins: Added the `PYTEST_ADDOPTS` parameter to the Drive-tests job
 - Jenkins: Removed the `ENABLE_PROFILER` parameter from the Drive-tests job

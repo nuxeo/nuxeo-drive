@@ -1,3 +1,17 @@
+# Coding Style Guide
+
+We tend to follow the [PEP8](http://pep8.org), that's all.
+
+To help with this requirement, you can automate checks and formatting using [pre-commit](https://pre-commit.com/):
+it will call predefined hooks and [black](https://github.com/ambv/black) for you to ensure there is no regression and to keep the code clean.
+
+For core developers, the whole mecanism is installed with the [developer environment](docs/deployment.md). But if you are a contributor, you can easily use it:
+
+    pip install pre-commit
+    pre-commit install
+
+Note: on Windows you will need to have [Git](https://www.gitforwindows.org) installed.
+
 # Nuxeo Drive Contributor Guide
 
 This guide is for developers willing to work on the Nuxeo Drive codebase itself.
@@ -97,7 +111,7 @@ Load labels translation and offer the translation service as static method
 
 Base of all Nuxeo Drive window, it is basically a WebKit view with a Drive JavaScript object mapped by the JavaScript API
 
-QT is heavily used in the new client. Here is a diagram of the signals/slots connections: 
+QT is heavily used in the new client. Here is a diagram of the signals/slots connections:
 
 ![Signals/slots connections][signals-slots-connections]
 
