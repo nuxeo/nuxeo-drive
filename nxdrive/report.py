@@ -2,10 +2,11 @@
 import os
 from datetime import datetime
 from logging import getLogger
-from typing import Generator
+from typing import Iterator
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
-from .logging_config import MAX_LOG_DISPLAYED, get_handler
+from . import constants
+from .logging_config import get_handler
 
 __all__ = ("Report",)
 
@@ -91,7 +92,7 @@ class Report:
         return self._zipfile
 
     @staticmethod
-    def _export_logs() -> Generator[str, None, None]:
+    def export_logs(lines: int = constants.MAX_LOG_DISPLAYED) -> Iterator[bytes]:
         """
         Export all lines from the memory logger.
 
@@ -99,21 +100,20 @@ class Report:
         """
 
         handler = get_handler(getLogger(), "memory")
-        log_buffer = handler.get_buffer(MAX_LOG_DISPLAYED)
+        log_buffer = handler.get_buffer(lines)
 
         for record in log_buffer:
             try:
                 line = handler.format(record)
             except:
                 try:
-                    log.error("Logging record error: %r", record)
+                    yield "Logging record error: {record!r}"
                 except:
                     pass
-                continue
-
-            if not isinstance(line, bytes):
-                line = line.encode(errors="replace")
-            yield line
+            else:
+                if not isinstance(line, bytes):
+                    line = line.encode(errors="replace")
+                yield line
 
     def generate(self) -> None:
         """ Create the ZIP report with all interesting files. """
@@ -133,7 +133,7 @@ class Report:
 
             # Memory logger -> debug.log
             try:
-                lines = b"\n".join(list(self._export_logs()))
+                lines = b"\n".join(self.export_logs())
                 zip_.writestr("debug.log", lines, compress_type=ZIP_DEFLATED)
             except:
                 log.exception("Impossible to get lines from the memory logger")

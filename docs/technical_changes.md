@@ -8,6 +8,7 @@
 - Removed `AbstractOSIntegration.is_windows()`
 - Removed `Application.get_htmlpage()`
 - Removed `Application.get_cache_folder()`
+- Removed `CustomMemoryHandler.flush()`
 - Added `Engine.init_remote()`
 - Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, filtered_remote_cls, local_cls)`
 - Removed `Engine.get_abspath()`
@@ -105,6 +106,7 @@
 - Added gui/settings.py::`SettingsView`
 - Added gui/systray.py::`SystrayView`
 - Added gui/view.py
+- Moved logging_config.py::`MAX_LOG_DISPLAYED` constants.py
 - Moved manager.py::`EngineTypeMissing` exception to exceptions.py
 - Moved manager.py::`FolderAlreadyUsed` exception to exceptions.py
 - Moved manager.py::`MissingToken` to client/proxy.py

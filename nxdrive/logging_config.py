@@ -4,11 +4,13 @@
 import logging
 import os
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
+from typing import List
 from zipfile import ZIP_DEFLATED, ZipFile
 
+from . import constants
 from .options import Options
 
-__all__ = ("MAX_LOG_DISPLAYED", "configure", "get_handler")
+__all__ = ("configure", "get_handler")
 
 FILE_HANDLER = None
 TRACE = 5
@@ -28,7 +30,6 @@ FORMAT = logging.Formatter(
 _logging_context = dict()
 
 is_logging_configured = False
-MAX_LOG_DISPLAYED = 50000
 
 
 def add_trace_level() -> None:
@@ -53,26 +54,20 @@ add_trace_level()
 
 
 class CustomMemoryHandler(BufferingHandler):
-    def __init__(self, capacity: int = MAX_LOG_DISPLAYED) -> None:
+    def __init__(self, capacity: int = constants.MAX_LOG_DISPLAYED) -> None:
         super().__init__(capacity)
-        self.old_buffer_ = None
 
-    def flush(self) -> None:
+    def get_buffer(self, size: int) -> List[str]:
+        """
+        If `size` is positive, returns the first `size` lines from the memory buffer.
+        If `size` is negative, returns the last `size` lines from the memory buffer.
+        By default, `size` is equal to the buffer length, so the entire buffer is returned.
+        """
         self.acquire()
         try:
-            self.old_buffer_, self.buffer = self.buffer[:], []
+            return self.buffer[:size] if size > 0 else self.buffer[size:]
         finally:
             self.release()
-
-    def get_buffer(self, size: int) -> None:
-        self.acquire()
-        try:
-            result = self.buffer[:]
-            if len(result) < size and self.old_buffer_:
-                result += self.old_buffer_[size - len(result) - 1 :]
-        finally:
-            self.release()
-        return result
 
 
 class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
