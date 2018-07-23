@@ -487,13 +487,7 @@ class CliHandler:
                 "No handler implemented for command {}".format(command)
             )
 
-        try:
-            return handler(options)
-        except:
-            log.exception("Error executing %r", command)
-            if Options.debug:
-                # Make it possible to use the postmortem debugger
-                raise
+        return handler(options)
 
     def get_manager(self) -> "Manager":
         from .manager import Manager
