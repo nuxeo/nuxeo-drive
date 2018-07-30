@@ -2,21 +2,18 @@ import QtQuick 2.10
 import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
+import SystrayWindow 1.0
 import "icon-font/Icon.js" as MdiFont
 
-Item {
+SystrayWindow {
     id: systray
-    width: Screen.width; height: Screen.height
-    state: ""
+    width: 300; height: 370
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Popup
 
     property bool hasAccounts: EngineModel.count > 0
-    property string stateMessage
-    property string stateSubMessage
 
     signal getLastFiles(string uid)
-    signal hide()
     signal setStatus(string state, string message, string submessage)
-    signal setTrayPosition(int x, int y)
 
     Connections {
         target: EngineModel
@@ -24,20 +21,9 @@ Item {
     }
 
     onSetStatus:  {
-        systray.state = state
-        systray.stateMessage = message
-        systray.stateSubMessage = submessage
-    }
-
-    onSetTrayPosition: {
-        systrayContainer.x = x
-        systrayContainer.y = y
-    }
-
-    MouseArea {
-        width: parent.width; height: parent.height
-        anchors.centerIn: parent
-        onClicked: systray.hide()
+        systrayContainer.state = state
+        systrayContainer.stateMessage = message
+        systrayContainer.stateSubMessage = submessage
     }
 
     FontLoader {
@@ -49,13 +35,29 @@ Item {
         id: systrayContainer
         visible: hasAccounts
 
-        width: 300; height: 370
+        state: ""
+        property string stateMessage
+        property string stateSubMessage
+
+        anchors.fill: parent
         z: 5; spacing: 0
 
         Rectangle {
             Layout.fillWidth: true
             color: lighterGray
             height: 50; z: 10
+
+            MouseArea {
+                width: systray.width; height: systray.height
+                propagateComposedEvents: true
+                visible: contextMenu.visible
+
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                }
+                onClicked: contextMenu.visible = false
+            }
 
             RowLayout {
                 anchors.fill: parent
@@ -85,7 +87,7 @@ Item {
                 IconLabel {
                     icon: MdiFont.Icon.openInNew
                     Layout.alignment: Qt.AlignRight; Layout.rightMargin: 4
-                    onClicked: api.open_remote(accountSelect.getRole("uid"))
+                    onClicked: api.open_remote_server(accountSelect.getRole("uid"))
 
                 }
 
@@ -100,15 +102,16 @@ Item {
                     icon: MdiFont.Icon.dotsVertical
                     Layout.alignment: Qt.AlignLeft
 
-                    onClicked: contextMenu.open()
-
-                    SystrayMenu {
-                        id: contextMenu
-                        x: settingsContainer.width - width
-                        y: settingsContainer.height
-                    }
+                    onClicked: contextMenu.visible = !contextMenu.visible
                 }
+            }
 
+            SystrayMenu {
+                id: contextMenu
+                anchors {
+                    right: parent.right
+                    top: parent.bottom
+                }
             }
         }
 
@@ -189,14 +192,152 @@ Item {
                 from: 0; to: 100
             }
         }
+
+        states: [
+            State {
+                name: "suspended"
+                PropertyChanges { target: statusIcon; icon: MdiFont.Icon.pause }
+                PropertyChanges { target: statusText; text: qsTr("ENGINE_PAUSED") + tl.tr }
+            },
+            State {
+                name: "syncing"
+                PropertyChanges { target: statusIcon; icon: MdiFont.Icon.sync }
+                PropertyChanges { target: statusText; text: qsTr("SYNCHRONIZATION_ITEMS_LEFT").arg(FileModel.count) + tl.tr }
+                PropertyChanges { target: refreshTimer; repeat: true; running: true }
+                PropertyChanges { target: syncAnim; running: true }
+            },
+            State {
+                name: "update"
+                PropertyChanges {
+                    target: updatePopup
+                    version: stateMessage
+                    channel: stateSubMessage
+                }
+                PropertyChanges {
+                    target: systrayBottom
+                    color: lightBlue
+                    onClicked: updatePopup.open()
+                }
+                PropertyChanges {
+                    target: statusIcon
+                    icon: MdiFont.Icon.update
+                    color: "white"
+                }
+                PropertyChanges {
+                    target: statusText
+                    text: qsTr("NOTIF_UPDATE_TITLE") + tl.tr
+                    color: "white"
+                }
+            },
+            State {
+                name: "updating"
+                PropertyChanges {
+                    target: systrayBottom
+                    color: lightBlue
+                }
+                PropertyChanges {
+                    target: statusIcon
+                    icon: MdiFont.Icon.update
+                    color: "white"
+                }
+                PropertyChanges {
+                    target: statusText
+                    text: qsTr("UPDATING_VERSION").arg(stateMessage) + tl.tr
+                    color: "white"
+                }
+                PropertyChanges {
+                    target: updateProgress
+                    visible: true
+                    value: parseInt(stateSubMessage)
+                }
+            },
+            State {
+                name: "conflicted"
+                PropertyChanges {
+                    target: systrayBottom
+                    color: orange
+                    onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
+                }
+                PropertyChanges {
+                    target: statusIcon
+                    icon: MdiFont.Icon.alert
+                    color: "white"
+                }
+                PropertyChanges {
+                    target: statusText
+                    text: qsTr("CONFLICTS_SYSTRAY").arg(stateMessage) + tl.tr
+                    color: "white"
+                }
+            },
+            State {
+                name: "auth_expired"
+                PropertyChanges {
+                    target: systrayBottom
+                    color: red
+                    onClicked: api.web_update_token(accountSelect.getRole("uid"))
+                }
+                PropertyChanges {
+                    target: statusIcon
+                    icon: MdiFont.Icon.alert
+                    color: "white"
+                }
+                PropertyChanges {
+                    target: statusText
+                    text: qsTr("AUTH_EXPIRED") + tl.tr
+                    color: "white"
+                }
+                PropertyChanges {
+                    target: statusSubText
+                    text: qsTr("AUTH_UPDATE_ACTION") + tl.tr
+                }
+            },
+            State {
+                name: "downgrade"
+                PropertyChanges {
+                    target: updatePopup
+                    version: stateMessage
+                    channel: stateSubMessage
+                }
+                PropertyChanges {
+                    target: systrayBottom
+                    color: red
+                    onClicked: updatePopup.open()
+                }
+                PropertyChanges {
+                    target: statusIcon
+                    icon: MdiFont.Icon.alert
+                    color: "white"
+                }
+                PropertyChanges {
+                    target: statusText
+                    text: qsTr("NOTIF_UPDATE_DOWNGRADE").arg(stateMessage) + tl.tr
+                    color: "white"
+                }
+            },
+            State {
+                name: "error"
+                PropertyChanges {
+                    target: systrayBottom
+                    color: red
+                    onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
+                }
+                PropertyChanges {
+                    target: statusIcon
+                    icon: MdiFont.Icon.alert
+                    color: "white"
+                }
+                PropertyChanges {
+                    target: statusText
+                    text: qsTr("ERRORS_SYSTRAY").arg(stateMessage) + tl.tr
+                    color: "white"
+                }
+            }
+        ]
     }
 
     Rectangle {
         visible: !hasAccounts
-        width: systrayContainer.width
-        height: systrayContainer.height
-        x: systrayContainer.x
-        y: systrayContainer.y
+        anchors.fill: parent
         z: 5
         color: "white"
 
@@ -241,147 +382,6 @@ Item {
             }
         }
     }
-
-    states: [
-        State {
-            name: "suspended"
-            PropertyChanges { target: statusIcon; icon: MdiFont.Icon.pause }
-            PropertyChanges { target: statusText; text: qsTr("ENGINE_PAUSED") + tl.tr }
-        },
-        State {
-            name: "syncing"
-            PropertyChanges { target: statusIcon; icon: MdiFont.Icon.sync }
-            PropertyChanges { target: statusText; text: qsTr("SYNCHRONIZATION_ITEMS_LEFT").arg(FileModel.count) + tl.tr }
-            PropertyChanges { target: refreshTimer; repeat: true; running: true }
-            PropertyChanges { target: syncAnim; running: true }
-        },
-        State {
-            name: "update"
-            PropertyChanges {
-                target: updatePopup
-                version: stateMessage
-                channel: stateSubMessage
-            }
-            PropertyChanges {
-                target: systrayBottom
-                color: lightBlue
-                onClicked: updatePopup.open()
-            }
-            PropertyChanges {
-                target: statusIcon
-                icon: MdiFont.Icon.update
-                color: "white"
-            }
-            PropertyChanges {
-                target: statusText
-                text: qsTr("NOTIF_UPDATE_TITLE") + tl.tr
-                color: "white"
-            }
-        },
-        State {
-            name: "updating"
-            PropertyChanges {
-                target: systrayBottom
-                color: lightBlue
-            }
-            PropertyChanges {
-                target: statusIcon
-                icon: MdiFont.Icon.update
-                color: "white"
-            }
-            PropertyChanges {
-                target: statusText
-                text: qsTr("UPDATING_VERSION").arg(stateMessage) + tl.tr
-                color: "white"
-            }
-            PropertyChanges {
-                target: updateProgress
-                visible: true
-                value: parseInt(stateSubMessage)
-            }
-        },
-        State {
-            name: "conflicted"
-            PropertyChanges {
-                target: systrayBottom
-                color: orange
-                onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
-            }
-            PropertyChanges {
-                target: statusIcon
-                icon: MdiFont.Icon.alert
-                color: "white"
-            }
-            PropertyChanges {
-                target: statusText
-                text: qsTr("CONFLICTS_SYSTRAY").arg(stateMessage) + tl.tr
-                color: "white"
-            }
-        },
-        State {
-            name: "auth_expired"
-            PropertyChanges {
-                target: systrayBottom
-                color: red
-                onClicked: api.web_update_token(accountSelect.getRole("uid"))
-            }
-            PropertyChanges {
-                target: statusIcon
-                icon: MdiFont.Icon.alert
-                color: "white"
-            }
-            PropertyChanges {
-                target: statusText
-                text: qsTr("AUTH_EXPIRED") + tl.tr
-                color: "white"
-            }
-            PropertyChanges {
-                target: statusSubText
-                text: qsTr("AUTH_UPDATE_ACTION") + tl.tr
-            }
-        },
-        State {
-            name: "downgrade"
-            PropertyChanges {
-                target: updatePopup
-                version: stateMessage
-                channel: stateSubMessage
-            }
-            PropertyChanges {
-                target: systrayBottom
-                color: red
-                onClicked: updatePopup.open()
-            }
-            PropertyChanges {
-                target: statusIcon
-                icon: MdiFont.Icon.alert
-                color: "white"
-            }
-            PropertyChanges {
-                target: statusText
-                text: qsTr("NOTIF_UPDATE_DOWNGRADE").arg(stateMessage) + tl.tr
-                color: "white"
-            }
-        },
-        State {
-            name: "error"
-            PropertyChanges {
-                target: systrayBottom
-                color: red
-                onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
-            }
-            PropertyChanges {
-                target: statusIcon
-                icon: MdiFont.Icon.alert
-                color: "white"
-            }
-            PropertyChanges {
-                target: statusText
-                text: qsTr("ERRORS_SYSTRAY").arg(stateMessage) + tl.tr
-                color: "white"
-            }
-        }
-    ]
 
     ConfirmPopup {
         id: updatePopup

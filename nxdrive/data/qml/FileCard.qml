@@ -68,7 +68,7 @@ ShadowRectangle {
                 color: mediumGray
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: api.open_local(fileData.local_parent_path)
+                    onClicked: api.open_local(engineUid, fileData.local_parent_path)
                 }
             }
 
@@ -94,14 +94,14 @@ ShadowRectangle {
                     id: openLocalLink
                     text: qsTr("OPEN_LOCAL") + tl.tr
                     visible: type == "conflict"
-                    onClicked: api.open_local(fileData.local_path)
+                    onClicked: api.open_local(engineUid, fileData.local_path)
                 }
 
                 Link {
                     id: openRemoteLink
                     text: qsTr("OPEN_REMOTE") + tl.tr
                     visible: type == "conflict"
-                    onClicked: api.open_remote(fileData.remote_ref, fileData.remote_name)
+                    onClicked: api.open_remote(engineUid, fileData.remote_ref, fileData.remote_name)
                 }
 
                 NuxeoComboBox {
@@ -131,9 +131,9 @@ ShadowRectangle {
                     }
                     onActivated: {
                         if (resolveAction.currentIndex == 0) {
-                            api.resolve_with_local(fileData.id)
+                            api.resolve_with_local(engineUid, fileData.id)
                         } else {
-                            api.resolve_with_remote(fileData.id)
+                            api.resolve_with_remote(engineUid, fileData.id)
                         }
                         control.resolved()
                     }
@@ -143,14 +143,14 @@ ShadowRectangle {
                     id: retry
                     text: qsTr("CONFLICT_RETRY") + tl.tr
                     visible: type == "error"
-                    onClicked: api.retry_pair(fileData.id)
+                    onClicked: api.retry_pair(engineUid, fileData.id)
                 }
 
                 Link {
                     text: qsTr("IGNORE_PAIR") + tl.tr
                     visible: type == "error"
                     onClicked: {
-                        api.unsynchronize_pair(fileData.id, fileData.last_error)
+                        api.unsynchronize_pair(engineUid, fileData.id, fileData.last_error)
                         control.ignored()
                     }
                 }

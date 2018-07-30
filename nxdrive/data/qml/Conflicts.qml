@@ -1,14 +1,20 @@
 import QtQuick 2.10
 import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
+import QtQuick.Window 2.2
 
-Rectangle {
+Window {
     id: conflicts
     width: 550
     height: 600
     color: lighterGray
 
+    property string engineUid
+
     signal changed()
+    signal setEngine(string uid)
+
+    onSetEngine: engineUid = uid
 
     Flickable {
         anchors.fill: parent

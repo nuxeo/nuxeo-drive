@@ -2,39 +2,34 @@
 """ Main Qt application handling OS events and system tray UI. """
 from logging import getLogger
 from math import sqrt
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import unquote
 
 import requests
-from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtGui import QFont, QFontMetricsF, QIcon
-from PyQt5.QtWidgets import (
-    QAction,
-    QApplication,
-    QDialog,
-    QDialogButtonBox,
-    QMenu,
-    QMessageBox,
-    QSystemTrayIcon,
-    QTextEdit,
-    QVBoxLayout,
-)
 from markdown import markdown
+from PyQt5.QtCore import Qt, QUrl, pyqtSlot, QEvent
+from PyQt5.QtGui import QFont, QFontMetricsF, QIcon
+from PyQt5.QtQml import QQmlApplicationEngine
+from PyQt5.QtQuick import QQuickWindow
+from PyQt5.QtWidgets import (QAction, QApplication, QDialog, QDialogButtonBox,
+                             QMenu, QMessageBox, QSystemTrayIcon, QTextEdit,
+                             QVBoxLayout)
 
-from .authentication import QMLAuthenticationApi, WebAuthenticationDialog
-from .settings import QMLSettingsApi
-from .systray import DriveSystrayIcon
 from ..constants import LINUX, MAC, WINDOWS
 from ..engine.activity import Action, FileAction
 from ..notification import Notification
 from ..options import Options
 from ..translator import Translator
-from ..updater.constants import (
-    UPDATE_STATUS_DOWNGRADE_NEEDED,
-    UPDATE_STATUS_UNAVAILABLE_SITE,
-    UPDATE_STATUS_UP_TO_DATE,
-)
+from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
+                                 UPDATE_STATUS_UNAVAILABLE_SITE,
+                                 UPDATE_STATUS_UP_TO_DATE,
+                                 UPDATE_STATUS_UPDATE_AVAILABLE,
+                                 UPDATE_STATUS_UPDATING)
 from ..utils import find_icon, find_resource, parse_protocol_url, short_name
+from .authentication import WebAuthenticationDialog
+from .dialog import QMLDriveApi
+from .systray import DriveSystrayIcon, SystrayWindow
+from .view import EngineModel, FileModel, LanguageModel
 
 __all__ = ("Application",)
 
@@ -63,9 +58,12 @@ class Application(QApplication):
         self._conflicts_modals = dict()
         self.current_notification = None
         self.default_tooltip = self.manager.app_name
+
         font = QFont("Neue Haas Grotesk Display Std, Helvetica, Arial, sans-serif", 12)
         self.setFont(font)
         self.ratio = sqrt(QFontMetricsF(font).height() / 12)
+
+        self.init_gui()
 
         self.aboutToQuit.connect(self.manager.stop)
         self.manager.dropEngine.connect(self.dropped_engine)
@@ -92,7 +90,95 @@ class Application(QApplication):
         # Display release notes on new version
         if self.manager.old_version != self.manager.version:
             self.show_release_notes(self.manager.version)
+    
+    def init_gui(self) -> None:
+        self.app_engine = QQmlApplicationEngine()
 
+        self.api = QMLDriveApi(self)
+        self.conflicts_model = FileModel()
+        self.engine_model = EngineModel()
+        self.file_model = FileModel()
+        self.ignoreds_model = FileModel()
+        self.language_model = LanguageModel()
+
+        self.add_engines(list(self.manager._engines.values()))
+        self.engine_model.statusChanged.connect(self.update_status)
+        self.language_model.addLanguages(Translator.languages())
+
+        context = self.app_engine.rootContext()
+        context.setContextProperty("ConflictsModel", self.conflicts_model)
+        context.setContextProperty("EngineModel", self.engine_model)
+        context.setContextProperty("FileModel", self.file_model)
+        context.setContextProperty("IgnoredsModel", self.ignoreds_model)
+        context.setContextProperty("languageModel", self.language_model)
+        context.setContextProperty("api", self.api)
+        context.setContextProperty("application", self)
+        context.setContextProperty("currentLanguage", self.current_language())
+        context.setContextProperty("manager", self.manager)
+        context.setContextProperty("ratio", self.ratio)
+        context.setContextProperty("tl", Translator._singleton)
+        context.setContextProperty(
+            "nuxeoVersionText", "Nuxeo Drive " + self.manager.version
+        )
+        metrics = self.manager.get_metrics()
+        context.setContextProperty(
+            "modulesVersionText",
+            (
+                f'Python {metrics["python_version"]}, '
+                f'Qt {metrics["qt_version"]}, '
+                f'SIP {metrics["sip_version"]}'
+            ),
+        )
+        self.load_colors()
+
+        self.app_engine.load(QUrl.fromLocalFile(find_resource("qml", "Main.qml")))
+
+        self.manager.newEngine.connect(self.add_engines)
+        self.manager.initEngine.connect(self.add_engines)
+        self.manager.dropEngine.connect(self.remove_engine)
+        root = self.app_engine.rootObjects()[0]
+        self.conflicts_window = root.findChild(QQuickWindow, "conflictsWindow")
+        self.settings_window = root.findChild(QQuickWindow, "settingsWindow")
+        self.systray_window = root.findChild(SystrayWindow, "systrayWindow")
+        
+        self.systray_window.getLastFiles.connect(self.get_last_files)
+        self.api.setMessage.connect(self.settings_window.setMessage)
+
+        if self.manager.get_engines():
+            current_uid = self.engine_model.engines_uid[0]
+            self.get_last_files(current_uid)
+            self.update_status(self.engine_model.engines[current_uid])
+
+    def add_engines(self, engines: Union["Engine", List["Engine"]]) -> None:
+        if not engines:
+            return
+
+        engines = engines if isinstance(engines, list) else [engines]
+        for engine in engines:
+            self.engine_model.addEngine(engine)
+
+    def remove_engine(self, uid: str) -> None:
+        self.engine_model.removeEngine(uid)
+
+    def load_colors(self) -> None:
+        colors = {
+            "darkBlue": "#1F28BF",
+            "nuxeoBlue": "#0066FF",
+            "lightBlue": "#00ADED",
+            "teal": "#73D2CF",
+            "purple": "#8400FF",
+            "red": "#C02828",
+            "orange": "#FF9E00",
+            "darkGray": "#495055",
+            "mediumGray": "#7F8284",
+            "lightGray": "#BCBFBF",
+            "lighterGray": "#F5F5F5",
+        }
+
+        context = self.app_engine.rootContext()
+        for name, value in colors.items():
+            context.setContextProperty(name, value)
+        
     def translate(self, message: str, values: dict = None) -> str:
         return Translator.get(message, values)
 
@@ -283,27 +369,39 @@ class Application(QApplication):
 
     @pyqtSlot()
     def show_conflicts_resolution(self, engine: "Engine") -> None:
-        conflicts = self.dialogs.get("conflicts")
-        if not conflicts:
-            from .conflicts import ConflictsView
+        self.conflicts_model.empty()
+        self.ignoreds_model.empty()
 
-            conflicts = ConflictsView(self, engine)
-            self._create_unique_dialog("conflicts", conflicts)
+        self.conflicts_model.addFiles(self.api.get_conflicts(engine.uid))
+        self.conflicts_model.addFiles(self.api.get_errors(engine.uid))
+        self.ignoreds_model.addFiles(self.api.get_unsynchronizeds(engine.uid))
 
-        conflicts.set_engine(engine)
-        self._show_window(conflicts)
+        self.conflicts_window.setEngine.emit(engine.uid)
+        self.conflicts_window.show()
+
 
     @pyqtSlot()
     def show_settings(self, section: str = "General") -> None:
-        settings = self.dialogs.get("settings")
-        if not settings:
-            from .settings import SettingsView
+        sections = {"General": 0, "Accounts": 1, "About": 2}
+        self.settings_window.setSection.emit(sections[section])
+        self.settings_window.show()
 
-            settings = SettingsView(self, section)
-            self._create_unique_dialog("settings", settings)
+    @pyqtSlot()
+    def show_systray(self) -> None:
+        icon = self.tray_icon.geometry()
+        pos_x = max(0, icon.x() + icon.width() - self.systray_window.width())
+        pos_y = icon.y() - self.systray_window.height()
+        if pos_y < 0:
+            pos_y = icon.y() + icon.height()
+        self.systray_window.setX(pos_x)
+        self.systray_window.setY(pos_y)
 
-        settings.set_section(section)
-        self._show_window(settings)
+        self.systray_window.show()
+        self.systray_window.raise_()
+
+    @pyqtSlot()
+    def hide_systray(self):
+        self.systray_window.hide()
 
     @pyqtSlot()
     def open_help(self) -> None:
@@ -342,10 +440,8 @@ class Application(QApplication):
     def _open_authentication_dialog(
         self, url: str, callback_params: Dict[str, str]
     ) -> None:
-        settings = self.dialogs.get("settings")
-        api = settings.api if settings else QMLSettingsApi(self)
-        api = QMLAuthenticationApi(api, callback_params)
-        dialog = WebAuthenticationDialog(self, url, api)
+        self.api._callback_params = callback_params
+        dialog = WebAuthenticationDialog(self, url, self.api)
         dialog.setWindowModality(Qt.NonModal)
         dialog.show()
 
@@ -647,14 +743,13 @@ class Application(QApplication):
             self.set_icon_state("disabled")
             self.tray_icon.show()
 
-    def event(self, event: "QEvent") -> bool:
+    def event(self, event: QEvent) -> bool:
         """ Handle URL scheme events under macOS. """
 
         url = getattr(event, "url", None)
         if not url:
             # This is not an event for us!
             return super().event(event)
-
         try:
             final_url = unquote(event.url().toString())
             return self._handle_macos_event(final_url)
@@ -697,3 +792,49 @@ class Application(QApplication):
             log.warning("Unknown event URL=%r, info=%r", url, info)
             return False
         return True
+
+    def update_status(self, engine: "Engine") -> None:
+        state = message = submessage = ""
+
+        update_status = self.manager.updater.last_status
+        conflicts = engine.get_conflicts()
+        errors = engine.get_errors()
+
+        if engine.has_invalid_credentials():
+            state = "auth_expired"
+        elif update_status[0] == UPDATE_STATUS_DOWNGRADE_NEEDED:
+            state = "downgrade"
+            message = update_status[1]
+            submessage = self.manager.updater.nature
+        elif update_status[0] == UPDATE_STATUS_UPDATE_AVAILABLE:
+            state = "update"
+            message = update_status[1]
+            submessage = self.manager.updater.nature
+        elif update_status[0] == UPDATE_STATUS_UPDATING:
+            state = "updating"
+            message = update_status[1]
+            submessage = update_status[2]
+        elif engine.is_paused():
+            state = "suspended"
+        elif engine.is_syncing():
+            state = "syncing"
+        elif conflicts:
+            state = "conflicted"
+            message = str(len(conflicts))
+        elif errors:
+            state = "error"
+            message = str(len(errors))
+        self.systray_window.setStatus.emit(state, message, submessage)
+
+    @pyqtSlot(str)
+    def get_last_files(self, uid: str) -> None:
+        files = self.api.get_last_files(uid, 10, "")
+        self.file_model.empty()
+        self.file_model.addFiles(files)
+
+    def current_language(self) -> Optional[str]:
+        lang = Translator.locale()
+        for tag, name in self.language_model.languages:
+            if tag == lang:
+                return name
+        return None
