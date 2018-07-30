@@ -498,10 +498,9 @@ class CliHandler:
         self, console: bool = False
     ) -> Union["Application", "ConsoleApplication"]:
         if console:
-            from .console import ConsoleApplication
-
-            return ConsoleApplication(self.manager)
-        from .gui.application import Application
+            from .console import ConsoleApplication as Application
+        else:
+            from .gui.application import Application
 
         return Application(self.manager)
 
@@ -514,13 +513,13 @@ class CliHandler:
             if self.manager.direct_edit.url:
                 self.manager.direct_edit.handle_url()
             else:
-                log.warning("Qt application already running: exiting")
+                log.warning("%s is already running: exiting.", self.manager.app_name)
             return 0
 
         app = self._get_application(console=console)
         exit_code = app.exec_()
         lock.unlock()
-        log.debug("Qt application exited with code %r", exit_code)
+        log.debug("%s exited with code %d", self.manager.app_name, exit_code)
         return exit_code
 
     def clean_folder(self, options: Namespace) -> int:

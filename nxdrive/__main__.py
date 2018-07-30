@@ -29,6 +29,9 @@ def show_critical_error() -> None:
     dialog = QDialog()
     dialog.setWindowTitle("Nuxeo Drive - Fatal error")
     dialog.resize(600, 400)
+    layout = QVBoxLayout()
+    css = "font-family: monospace; font-size: 12px;"
+    details = ["Exception:"]
 
     with suppress(Exception):
         from nxdrive.utils import find_icon
@@ -36,35 +39,66 @@ def show_critical_error() -> None:
         dialog.setWindowIcon(QIcon(find_icon("app_icon.svg")))
 
     # Display a little message to apologize
-    text = """Ooops! Sadly a fatal error occurred and Nuxeo Drive cannot work.
-This is unfortunate and we want to apologize for the inconvenience.
+    text = f"""Ooops! Unfortunately, a fatal error occurred and Nuxeo Drive has stopped.
+Please share the following informations with Nuxeo support : we’ll do our best to fix it!
 """
     info = QLabel(text)
     info.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+    layout.addWidget(info)
 
     # Display the the exception
     label_exc = QLabel("Exception:")
     label_exc.setAlignment(Qt.AlignVCenter)
     exception = QTextEdit()
-    exception.setStyleSheet("font-family: monospace;")
+    exception.setStyleSheet(css)
     exception.setReadOnly(True)
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    exc_formatted = traceback.format_exception(exc_type, exc_value, exc_traceback)
+    exc_formatted = traceback.format_exception(*sys.exc_info())
+    details += exc_formatted
     exception.setText("".join(exc_formatted))
-
-    # OK button
-    buttons = QDialogButtonBox()
-    buttons.setStandardButtons(QDialogButtonBox.Ok)
-    buttons.clicked.connect(dialog.close)
-
-    layout = QVBoxLayout()
-    layout.addWidget(info)
     layout.addWidget(label_exc)
     layout.addWidget(exception)
+
+    # Display last lines from the memory log
+    with suppress(Exception):
+        from nxdrive.report import Report
+
+        # Last 20th lines
+        lines = Report.export_logs(-20)
+        lines = b"\n".join(lines).decode(errors="replace")
+
+        details += ["Logs before the crash:", lines]
+        label_log = QLabel("Logs before the crash:")
+        label_log.setAlignment(Qt.AlignVCenter)
+        layout.addWidget(label_log)
+
+        logs = QTextEdit()
+        logs.setStyleSheet(css)
+        logs.setReadOnly(True)
+        logs.setLineWrapColumnOrWidth(4096)
+        logs.setLineWrapMode(QTextEdit.FixedPixelWidth)
+        logs.setText(lines)
+        layout.addWidget(logs)
+
+    # Buttons
+    buttons = QDialogButtonBox()
+    buttons.setStandardButtons(QDialogButtonBox.Ok)
+    buttons.accepted.connect(dialog.close)
     layout.addWidget(buttons)
+
+    def copy() -> None:
+        """Copy details to the clipboard and change the text of the button. """
+        copy_to_clipboard("\n".join(details))
+        copy_paste.setText("Details copied!")
+
+    # "Copy details" button
+    with suppress(Exception):
+        from nxdrive.utils import copy_to_clipboard
+
+        copy_paste = buttons.addButton("Copy details", QDialogButtonBox.ActionRole)
+        copy_paste.clicked.connect(copy)
+
     dialog.setLayout(layout)
     dialog.show()
-
     app.exec_()
 
 
