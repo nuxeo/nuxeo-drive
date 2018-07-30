@@ -9,7 +9,6 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QApplication
 from sip import SIP_VERSION_STR
 
 from . import __version__
@@ -23,11 +22,10 @@ from .objects import Binder, Metrics
 from .options import Options, server_updater
 from .osi import AbstractOSIntegration
 from .updater import updater
-from .utils import force_decode, normalized_path
+from .utils import copy_to_clipboard, force_decode, normalized_path
 
 if WINDOWS:
     import win32api
-    import win32clipboard
 
 __all__ = ("Manager",)
 
@@ -715,16 +713,8 @@ class Manager(QObject):
         """ Copy the document's share-link to the clipboard. """
 
         url = self.get_metadata_infos(file_path)
+        copy_to_clipboard(url)
         log.info("Copied %r", url)
-        if WINDOWS:
-            win32clipboard.OpenClipboard()
-            win32clipboard.EmptyClipboard()
-            win32clipboard.SetClipboardText(url, win32clipboard.CF_UNICODETEXT)
-            win32clipboard.CloseClipboard()
-        else:
-            cb = QApplication.clipboard()
-            cb.clear(mode=cb.Clipboard)
-            cb.setText(url, mode=cb.Clipboard)
 
     def ctx_edit_metadata(self, file_path: str) -> None:
         """ Open the user's browser to a remote document's metadata. """

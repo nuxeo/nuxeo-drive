@@ -3,7 +3,6 @@
 We are using lazy imports (understand imports in functions) specifically here
 to speed-up command line calls without loading everything at startup.
 """
-
 import os
 import re
 import stat
@@ -18,6 +17,7 @@ from .options import Options
 __all__ = (
     "PidLockFile",
     "current_milli_time",
+    "copy_to_clipboard",
     "decrypt",
     "encrypt",
     "find_icon",
@@ -73,6 +73,24 @@ def cmp(a: Any, b: Any) -> int:
     if b is None:
         return 1
     return (a > b) - (a < b)
+
+
+def copy_to_clipboard(text: str) -> None:
+    """ Copy the given text to the clipboard. """
+
+    if WINDOWS:
+        import win32clipboard
+
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
+        win32clipboard.CloseClipboard()
+    else:
+        from PyQt5.QtWidgets import QApplication
+
+        cb = QApplication.clipboard()
+        cb.clear(mode=cb.Clipboard)
+        cb.setText(text, mode=cb.Clipboard)
 
 
 def current_milli_time() -> int:
@@ -424,8 +442,7 @@ def guess_mime_type(filename: str) -> str:
         return mime_type
 
     log.trace(
-        "Could not guess mime type for %r, returing application/octet-stream",
-        filename,
+        "Could not guess mime type for %r, returning application/octet-stream", filename
     )
     return "application/octet-stream"
 

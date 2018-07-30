@@ -111,6 +111,7 @@
 - Moved manager.py::`FolderAlreadyUsed` exception to exceptions.py
 - Moved manager.py::`MissingToken` to client/proxy.py
 - Removed manager.py::`ProxySettings`
+- Added utils.py::`copy_to_clipboard()`
 - Added utils.py::`force_encode()`
 - Removed `codecs` argument from utils.py::`force_decode()`
 - Moved wui/* to gui/*
