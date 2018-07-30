@@ -389,10 +389,19 @@ class Application(QApplication):
     @pyqtSlot()
     def show_systray(self) -> None:
         icon = self.tray_icon.geometry()
-        pos_x = max(0, icon.x() + icon.width() - self.systray_window.width())
-        pos_y = icon.y() - self.systray_window.height()
-        if pos_y < 0:
-            pos_y = icon.y() + icon.height()
+
+        if not icon or icon.isEmpty():
+            # On Ubuntu it's likely we can't retrieve the geometry.
+            # We're simply displaying the systray in the top right corner.
+            screen = self.desktop().screenGeometry()
+            pos_x = screen.right() - self.systray_window.width() - 20
+            pos_y = 30
+        else:
+            pos_x = max(0, icon.x() + icon.width() - self.systray_window.width())
+            pos_y = icon.y() - self.systray_window.height()
+            if pos_y < 0:
+                pos_y = icon.y() + icon.height()
+
         self.systray_window.setX(pos_x)
         self.systray_window.setY(pos_y)
 

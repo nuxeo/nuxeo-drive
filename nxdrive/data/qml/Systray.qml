@@ -26,6 +26,8 @@ SystrayWindow {
         systrayContainer.stateSubMessage = submessage
     }
 
+    onVisibleChanged: contextMenu.visible = false
+
     FontLoader {
         id: iconFont
         source: "icon-font/materialdesignicons-webfont.ttf"

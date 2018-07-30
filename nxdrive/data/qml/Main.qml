@@ -18,6 +18,6 @@ QtObject {
     property var conflictsWindow: Conflicts {
         id: conflicts
         objectName: "conflictsWindow"
-        visible: true
+        visible: false
     }
 }
