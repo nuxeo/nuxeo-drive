@@ -251,7 +251,9 @@ class LocalClient:
             fname = os.path.join(self.abspath(ref), "desktop.ini")
             with suppress(FileNotFoundError):
                 with open(fname) as handler:
-                    version = re.findall(r"nuxeo-drive-([0-9.]+).win32\\", handler.read())
+                    version = re.findall(
+                        r"nuxeo-drive-([0-9.]+).win32\\", handler.read()
+                    )
                     if version:
                         return version[0]
                 return True

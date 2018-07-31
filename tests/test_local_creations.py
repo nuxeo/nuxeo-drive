@@ -185,7 +185,7 @@ class TestLocalCreations(UnitTestCase):
         engine.start()
         self.wait_sync(wait_for_async=True)
 
-        filename = "/{}".format(filename)
+        filename = f"/{filename}"
         assert local.exists(filename)
         assert os.stat(local.abspath(filename)).st_mtime < remote_mtime
 
@@ -194,33 +194,32 @@ class TestLocalCreations(UnitTestCase):
         remote = self.remote_1
         local = self.local_1
         engine = self.engine_1
+        sleep_time = 3
 
-        workspace_id = "defaultSyncRootFolderItemFactory#default#{}".format(
-            self.workspace
-        )
-
+        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
         filename = "abc.txt"
         file_id = remote.make_file(workspace_id, filename, content=b"1234").uid
         after_ctime = time.time()
 
-        time.sleep(3)
-        filename = "a" + filename
+        time.sleep(sleep_time)
+        filename = f"a{filename}"
         remote.rename(file_id, filename)
         after_mtime = time.time()
 
         engine.start()
         self.wait_sync(wait_for_async=True)
 
-        filename = "/{}".format(filename)
+        filename = f"/{filename}"
         assert local.exists(filename)
         local_mtime = os.stat(local.abspath(filename)).st_mtime
 
+        # Note: GNU/Linux does not have a creation time
         if MAC or WINDOWS:
             if MAC:
                 local_ctime = os.stat(local.abspath(filename)).st_birthtime
             else:
                 local_ctime = os.stat(local.abspath(filename)).st_ctime
             assert local_ctime < after_ctime
-            assert local_ctime + 3 <= local_mtime
+            assert local_ctime + sleep_time <= local_mtime
 
         assert local_mtime < after_mtime
