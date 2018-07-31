@@ -22,6 +22,7 @@ Changes in command line arguments:
 - [NXDRIVE-1241](https://jira.nuxeo.com/browse/NXDRIVE-1241): Set the --consider-ssl-errors argument default value to True
 - [NXDRIVE-1242](https://jira.nuxeo.com/browse/NXDRIVE-1242): Use type annotations everywhere
 - [NXDRIVE-1256](https://jira.nuxeo.com/browse/NXDRIVE-1256): Fix the missing synchronization folder icon on Windows
+- [NXDRIVE-1262](https://jira.nuxeo.com/browse/NXDRIVE-1262): Do not rely on XCode on macOS
 - [NXDRIVE-1279](https://jira.nuxeo.com/browse/NXDRIVE-1279): Use flake8 for another clean-up round
 
 ### GUI
