@@ -6,6 +6,7 @@ import hashlib
 import os
 import re
 import shutil
+import subprocess
 import tempfile
 import unicodedata
 import uuid
@@ -724,13 +725,9 @@ FolderType=Generic
         log.trace(
             "Setting file dates for %r (ctime=%r, mtime=%r)", filename, ctime, mtime
         )
-        if mtime:
-            try:
-                mtime = int(mtime)
-            except ValueError:
-                mtime = mktime(strptime(mtime, "%Y-%m-%d %H:%M:%S"))
-            os.utime(filename, (mtime, mtime))
 
+        # Set the creation time first as on macOS using touch will change ctime and mtime.
+        # The modification time will be updated just after, if needed.
         if ctime:
             try:
                 ctime = datetime.fromtimestamp(ctime)
@@ -740,11 +737,8 @@ FolderType=Generic
             if MAC:
                 if isinstance(filename, bytes):
                     filename = filename.decode()
-                os.system(
-                    'SetFile -d "{}" "{}"'.format(
-                        ctime.strftime("%m/%d/%Y %H:%M:%S"), filename
-                    )
-                )
+                cmd = ["touch", "-mt", ctime.strftime("%Y%m%d%H%M.%S"), filename]
+                subprocess.check_call(cmd)
             elif WINDOWS:
                 winfile = win32file.CreateFile(
                     filename,
@@ -760,6 +754,13 @@ FolderType=Generic
                     None,
                 )
                 win32file.SetFileTime(winfile, ctime)
+
+        if mtime:
+            try:
+                mtime = int(mtime)
+            except ValueError:
+                mtime = mktime(strptime(mtime, "%Y-%m-%d %H:%M:%S"))
+            os.utime(filename, (mtime, mtime))
 
     def get_path(self, abspath: str) -> str:
         """ Relative path to the local client from an absolute OS path. """
