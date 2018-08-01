@@ -38,6 +38,9 @@ from ..utils import find_icon, find_resource, parse_protocol_url, short_name
 
 __all__ = ("Application",)
 
+# Enable High-DPI
+QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+
 log = getLogger(__name__)
 
 
@@ -142,9 +145,7 @@ class Application(QApplication):
             overwrite = msg.addButton(
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), QMessageBox.AcceptRole
             )
-            msg.addButton(
-                Translator.get("CANCEL"), QMessageBox.RejectRole
-            )
+            msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
 
             msg.exec_()
             res = msg.clickedButton()

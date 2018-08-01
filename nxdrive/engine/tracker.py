@@ -98,7 +98,7 @@ class Tracker(Worker):
         return "NuxeoDrive/{} ({})".format(self._manager.version, self.current_os)
 
     def send_event(self, **kwargs: Any) -> None:
-        engine = self._manager.get_engines().values()[0]
+        engine = list(self._manager.get_engines().values())[0]
 
         if engine:
             self._tracker.set(
