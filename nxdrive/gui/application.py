@@ -43,6 +43,9 @@ from .view import EngineModel, FileModel, LanguageModel
 
 __all__ = ("Application",)
 
+# Enable High-DPI
+QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+
 log = getLogger(__name__)
 
 

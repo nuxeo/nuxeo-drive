@@ -248,7 +248,7 @@ class LockNotification(Notification):
 
 class DirectEditErrorLockNotification(Notification):
     def __init__(self, action: str, filename: str, ref: str) -> None:
-        values = [filename]
+        values = [short_name(filename)]
         if action == "lock":
             action = "LOCK"
         elif action == "unlock":
@@ -408,7 +408,7 @@ class DirectEditUpdatedNotification(Notification):
 
 class ErrorOpenedFile(Notification):
     def __init__(self, path: str, is_folder: bool) -> None:
-        values = [path]
+        values = [short_name(path)]
         msg = ("FILE", "FOLDER")[is_folder]
         super().__init__(
             "WINDOWS_ERROR",

@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import time
+from logging import getLogger
 from urllib.error import URLError
 
 import pytest
@@ -12,9 +13,15 @@ from nxdrive.engine.engine import Engine, ServerBindingSettings
 from . import LocalTest, RemoteTest
 from .common import UnitTestCase
 
+log = getLogger(__name__)
+
+
+def direct_edit_is_starting(*args, **kwargs):
+    log.info("DirectEdit is starting: args=%r, kwargs=%r", args, kwargs)
+
 
 def open_local_file(*args, **kwargs):
-    pass
+    log.info("Opening local file: args=%r, kwargs=%r", args, kwargs)
 
 
 class MockUrlTestEngine(Engine):
@@ -37,6 +44,7 @@ class TestDirectEdit(UnitTestCase):
         super().setUpApp()
         self.direct_edit = self.manager_1.direct_edit
         self.direct_edit.directEditUploadCompleted.connect(self.app.sync_completed)
+        self.direct_edit.directEditStarting.connect(direct_edit_is_starting)
         self.direct_edit.start()
 
         self.remote = self.remote_document_client_1
@@ -50,13 +58,12 @@ class TestDirectEdit(UnitTestCase):
         self, doc_id: str, filename: str, content: bytes, url: str = None
     ):
         # Download file
-        local_path = "/%s/%s" % (doc_id, filename)
-
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             if url is None:
                 self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
             else:
                 self.direct_edit.handle_url(url)
+            local_path = f"/{doc_id}/{filename}"
             assert self.local.exists(local_path)
             self.wait_sync(fail_if_timeout=False)
             self.local.delete_final(local_path)
@@ -87,9 +94,9 @@ class TestDirectEdit(UnitTestCase):
     def test_cleanup(self):
         filename = "Mode op\xe9ratoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
-        # Download file
-        local_path = "/%s/%s" % (doc_id, filename)
+        local_path = f"/{doc_id}/{filename}"
 
+        # Download file
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
             assert self.local.exists(local_path)
@@ -141,7 +148,7 @@ class TestDirectEdit(UnitTestCase):
         doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
 
         # Download file
-        local_path = "/%s/%s" % (doc_id, filename)
+        local_path = f"/{doc_id}/{filename}"
 
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
@@ -237,15 +244,13 @@ class TestDirectEdit(UnitTestCase):
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
 
         url = (
-            "nxdrive://edit/{scheme}/{host}"
-            "/user/{user}"
+            f"nxdrive://edit/{scheme}/{host}"
+            f"/user/{self.user_1}"
             "/repo/default"
-            "/nxdocid/{doc_id}"
-            "/filename/{filename}"
-            "/downloadUrl/nxfile/default/{doc_id}"
-            "/file:content/{filename}"
-        ).format(
-            scheme=scheme, host=host, user=self.user_1, doc_id=doc_id, filename=filename
+            f"/nxdocid/{doc_id}"
+            f"/filename/{filename}"
+            f"/downloadUrl/nxfile/default/{doc_id}"
+            f"/file:content/{filename}"
         )
 
         self._direct_edit_update(doc_id, filename, b"Test", url)
@@ -256,15 +261,13 @@ class TestDirectEdit(UnitTestCase):
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
 
         url = (
-            "nxdrive://edit/{scheme}/{host}"
-            "/user/{user}"
+            f"nxdrive://edit/{scheme}/{host}"
+            f"/user/{self.user_1}"
             "/repo/default"
-            "/nxdocid/{doc_id}"
-            "/filename/{filename}"
-            "/downloadUrl/nxfile/default/{doc_id}"
-            "/file:content/{filename}"
-        ).format(
-            scheme=scheme, host=host, user=self.user_1, doc_id=doc_id, filename=filename
+            f"/nxdocid/{doc_id}"
+            f"/filename/{filename}"
+            f"/downloadUrl/nxfile/default/{doc_id}"
+            f"/file:content/{filename}"
         )
 
         self._direct_edit_update(doc_id, filename, b"Test", url)
