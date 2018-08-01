@@ -44,6 +44,7 @@ class DirectEdit(Worker):
     directEditConflict = pyqtSignal(str, str, str)
     directEditError = pyqtSignal(str, list)
     directEditReadonly = pyqtSignal(str)
+    directEditStarting = pyqtSignal(str, str)
     directEditLocked = pyqtSignal(str, str, datetime)
 
     def __init__(self, manager: "Manager", folder: str, url: str) -> None:
@@ -304,6 +305,7 @@ class DirectEdit(Worker):
             return None
 
         filename = info.filename
+        self.directEditStarting.emit(engine.hostname, filename)
 
         # Create local structure
         dir_path = os.path.join(self._folder, doc_id)
