@@ -94,13 +94,13 @@ class EngineModel(QAbstractListModel):
         if role == self.FOLDER_ROLE:
             return row.local_folder
         if role == self.USERNAME_ROLE:
-            return row._remote_user
+            return row.remote_user
         if role == self.URL_ROLE:
-            return row._server_url
+            return row.server_url
         if role == self.UI_ROLE:
-            return row._ui
+            return row.wui
         if role == self.FORCE_UI_ROLE:
-            return row._force_ui or row._ui
+            return row.force_ui or row.wui
         return None
 
     @pyqtSlot(int, str, result=str)
@@ -118,13 +118,13 @@ class EngineModel(QAbstractListModel):
         if role == "folder":
             return row.local_folder
         if role == "username":
-            return row._remote_user
+            return row.remote_user
         if role == "url":
-            return row._server_url
+            return row.server_url
         if role == "ui":
-            return row._ui
+            return row.wui
         if role == "forceUi":
-            return row._force_ui or row._ui
+            return row.force_ui or row.wui
         return ""
 
     def removeRows(

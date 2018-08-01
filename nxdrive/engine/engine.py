@@ -216,8 +216,8 @@ class Engine(QObject):
         log.debug("Local Folder lock setup completed on %r", path)
 
     def set_ui(self, value: str, overwrite: bool = True) -> None:
-        name = ("ui", "force_ui")[overwrite]
-        if getattr(self, "_" + name, "") == value:
+        name = ("wui", "force_ui")[overwrite]
+        if getattr(self, name, "") == value:
             return
 
         self._dao.update_config(name, value)
@@ -288,7 +288,7 @@ class Engine(QObject):
             "edit": ("view_documents", "view_drive_metadata")[edit],
             "token": self.get_remote_token(),
         }
-        return urls.get(self._force_ui or self._ui).format(**infos)
+        return urls.get(self.force_ui or self.wui).format(**infos)
 
     def get_remote_url(self) -> str:
         """
@@ -311,7 +311,7 @@ class Engine(QObject):
             "repo": Options.remote_repo,
             "token": self.get_remote_token(),
         }
-        return urls.get(self._force_ui or self._ui).format(**infos)
+        return urls.get(self.force_ui or self.wui).format(**infos)
 
     def is_syncing(self) -> bool:
         return self._sync_started
@@ -328,7 +328,7 @@ class Engine(QObject):
 
         def run():
             self.manager.direct_edit.edit(
-                self._server_url, doc_ref, user=self._remote_user
+                self.server_url, doc_ref, user=self.remote_user
             )
 
         self._edit_thread = Thread(target=run)
@@ -408,25 +408,17 @@ class Engine(QObject):
         self._web_authentication = (
             self._dao.get_config("web_authentication", "0") == "1"
         )
-        self._server_url = self._dao.get_config("server_url")
-        self.hostname = urlsplit(self._server_url).hostname
-        self._remote_user = self._dao.get_config("remote_user")
+        self.server_url = self._dao.get_config("server_url")
+        self.hostname = urlsplit(self.server_url).hostname
+        self.wui = self._dao.get_config("ui", default="jsf")
+        self.force_ui = self._dao.get_config("force_ui")
+        self.remote_user = self._dao.get_config("remote_user")
         self._remote_password = self._dao.get_config("remote_password")
         self._remote_token = self._dao.get_config("remote_token")
-        self._ui = self._dao.get_config("ui", default="jsf")
-        self._force_ui = self._dao.get_config("force_ui")
         if self._remote_password is None and self._remote_token is None:
             self.set_invalid_credentials(
                 reason="found no password nor token in engine configuration"
             )
-
-    @property
-    def server_url(self) -> Optional[str]:
-        return self._dao.get_config("server_url")
-
-    @property
-    def remote_user(self) -> Optional[str]:
-        return self._dao.get_config("remote_user")
 
     def get_remote_token(self) -> Optional[str]:
         return self._dao.get_config("remote_token")
@@ -451,9 +443,9 @@ class Engine(QObject):
 
     def get_binder(self) -> "ServerBindingSettings":
         return ServerBindingSettings(
-            server_url=self._server_url,
+            server_url=self.server_url,
             web_authentication=self._web_authentication,
-            username=self._remote_user,
+            username=self.remote_user,
             local_folder=self.local_folder,
             initialized=True,
             pwd_update_required=self.has_invalid_credentials(),
@@ -726,12 +718,7 @@ class Engine(QObject):
 
     def init_remote(self) -> None:
         # Used for FS synchronization operations
-        args = (
-            self._server_url,
-            self._remote_user,
-            self.manager.device_id,
-            self.version,
-        )
+        args = (self.server_url, self.remote_user, self.manager.device_id, self.version)
         kwargs = {
             "password": self._remote_password,
             "timeout": self.timeout,
@@ -745,8 +732,8 @@ class Engine(QObject):
     def bind(self, binder: Binder) -> None:
         check_credentials = not binder.no_check
         check_fs = not (Options.nofscheck or binder.no_fscheck)
-        self._server_url = self._normalize_url(binder.url)
-        self._remote_user = binder.username
+        self.server_url = self._normalize_url(binder.url)
+        self.remote_user = binder.username
         self._remote_password = binder.password
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
@@ -776,8 +763,8 @@ class Engine(QObject):
 
         # Save the configuration
         self._dao.update_config("web_authentication", self._web_authentication)
-        self._dao.update_config("server_url", self._server_url)
-        self._dao.update_config("remote_user", self._remote_user)
+        self._dao.update_config("server_url", self.server_url)
+        self._dao.update_config("remote_user", self.remote_user)
         self._dao.update_config("remote_password", self._remote_password)
         self._dao.update_config("remote_token", self._remote_token)
 
@@ -795,7 +782,7 @@ class Engine(QObject):
             if root_id is not None:
                 # server_url|user|device_id|uid
                 server_url, user, *_ = root_id.split("|")
-                if (self._server_url, self._remote_user) != (server_url, user):
+                if (self.server_url, self.remote_user) != (server_url, user):
                     raise RootAlreadyBindWithDifferentAccount(user, server_url)
 
     def _check_root(self) -> None:
@@ -869,7 +856,7 @@ class Engine(QObject):
             row, remote_info, remote_parent_path="", versioned=False
         )
         value = "|".join(
-            (self._server_url, self._remote_user, self.manager.device_id, self.uid)
+            (self.server_url, self.remote_user, self.manager.device_id, self.uid)
         )
         self.local.set_root_id(value.encode())
         self.local.set_remote_id("/", remote_info.uid)
