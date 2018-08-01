@@ -333,9 +333,10 @@ class Processor(EngineWorker):
                     # Try to handle different kind of Windows error
                     error = getattr(exc, "winerror", exc.errno)
 
-                    if error == 2:
+                    if error in {2, 3}:
                         """
                         WindowsError: [Error 2] The specified file is not found
+                        WindowsError: [Error 3] The system cannot find the file specified
                         """
                         log.debug("The document does not exist anymore: %r", doc_pair)
                         self._dao.remove_state(doc_pair)
