@@ -24,6 +24,7 @@ Changes in command line arguments:
 - [NXDRIVE-1256](https://jira.nuxeo.com/browse/NXDRIVE-1256): Fix the missing synchronization folder icon on Windows
 - [NXDRIVE-1262](https://jira.nuxeo.com/browse/NXDRIVE-1262): Do not rely on XCode on macOS
 - [NXDRIVE-1279](https://jira.nuxeo.com/browse/NXDRIVE-1279): Use flake8 for another clean-up round
+- [NXDRIVE-1286](https://jira.nuxeo.com/browse/NXDRIVE-1286): Ignore documents when the system cannot find the file
 
 ### GUI
 - [NXDRIVE-600](https://jira.nuxeo.com/browse/NXDRIVE-600): Use the generic JSP to acquire a token
