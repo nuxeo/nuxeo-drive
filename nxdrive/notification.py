@@ -319,6 +319,19 @@ class DirectEditReadOnlyNotification(Notification):
         )
 
 
+class DirectEditStartingNotification(Notification):
+    def __init__(self, hostname: str, filename: str) -> None:
+        values_title = [hostname]
+        values_msg = [short_name(filename)]
+        super().__init__(
+            "DIRECT_EDIT_SARTING",
+            title=Translator.get("DIRECT_EDIT_STARTING_TITLE", values_title),
+            description=Translator.get("DIRECT_EDIT_STARTING_MSG", values_msg),
+            level=Notification.LEVEL_INFO,
+            flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
+        )
+
+
 class DeleteReadOnlyNotification(Notification):
     def __init__(self, engine_uid: str, filename: str) -> None:
         values = [short_name(filename)]
@@ -453,6 +466,7 @@ class DefaultNotificationService(NotificationService):
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
         self._manager.direct_edit.directEditLockError.connect(self._directEditLockError)
+        self._manager.direct_edit.directEditStarting.connect(self._directEditStarting)
         self._manager.direct_edit.directEditReadonly.connect(self._directEditReadonly)
         self._manager.direct_edit.directEditLocked.connect(self._directEditLocked)
         self._manager.direct_edit.directEditUploadCompleted.connect(
@@ -525,6 +539,9 @@ class DefaultNotificationService(NotificationService):
         self.send_notification(
             DirectEditLockedNotification(filename, lock_owner, lock_created)
         )
+
+    def _directEditStarting(self, hostname: str, filename: str) -> None:
+        self.send_notification(DirectEditStartingNotification(hostname, filename))
 
     def _directEditUpdated(self, filename: str) -> None:
         self.send_notification(DirectEditUpdatedNotification(filename))

@@ -6,7 +6,6 @@ import platform
 import sys
 from logging import getLogger
 from typing import Any, Dict
-from urllib.parse import urlsplit
 
 from PyQt5.QtCore import QTimer, pyqtSlot
 from UniversalAnalytics import Tracker as UATracker
@@ -104,7 +103,7 @@ class Tracker(Worker):
         if engine:
             self._tracker.set(
                 {
-                    "dimension6": urlsplit(engine.server_url).hostname,
+                    "dimension6": engine.hostname,
                     "dimension7": engine.server_url,
                     "dimension8": engine.remote.client.server_version,
                 }

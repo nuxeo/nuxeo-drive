@@ -5,6 +5,7 @@ from logging import getLogger
 from threading import Thread, current_thread
 from time import sleep
 from typing import Any, Callable, List, Optional, Type
+from urllib.parse import urlsplit
 
 from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
@@ -408,6 +409,7 @@ class Engine(QObject):
             self._dao.get_config("web_authentication", "0") == "1"
         )
         self._server_url = self._dao.get_config("server_url")
+        self.hostname = urlsplit(self._server_url).hostname
         self._remote_user = self._dao.get_config("remote_user")
         self._remote_password = self._dao.get_config("remote_password")
         self._remote_token = self._dao.get_config("remote_token")
