@@ -10,21 +10,31 @@ from markdown import markdown
 from PyQt5.QtCore import Qt, QUrl, pyqtSlot, QEvent
 from PyQt5.QtGui import QFont, QFontMetricsF, QIcon
 from PyQt5.QtQml import QQmlApplicationEngine
-from PyQt5.QtQuick import QQuickWindow
-from PyQt5.QtWidgets import (QAction, QApplication, QDialog, QDialogButtonBox,
-                             QMenu, QMessageBox, QSystemTrayIcon, QTextEdit,
-                             QVBoxLayout)
+from PyQt5.QtQuick import QQuickView, QQuickWindow
+from PyQt5.QtWidgets import (
+    QAction,
+    QApplication,
+    QDialog,
+    QDialogButtonBox,
+    QMenu,
+    QMessageBox,
+    QSystemTrayIcon,
+    QTextEdit,
+    QVBoxLayout,
+)
 
 from ..constants import LINUX, MAC, WINDOWS
 from ..engine.activity import Action, FileAction
 from ..notification import Notification
 from ..options import Options
 from ..translator import Translator
-from ..updater.constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
-                                 UPDATE_STATUS_UNAVAILABLE_SITE,
-                                 UPDATE_STATUS_UP_TO_DATE,
-                                 UPDATE_STATUS_UPDATE_AVAILABLE,
-                                 UPDATE_STATUS_UPDATING)
+from ..updater.constants import (
+    UPDATE_STATUS_DOWNGRADE_NEEDED,
+    UPDATE_STATUS_UNAVAILABLE_SITE,
+    UPDATE_STATUS_UP_TO_DATE,
+    UPDATE_STATUS_UPDATE_AVAILABLE,
+    UPDATE_STATUS_UPDATING,
+)
 from ..utils import find_icon, find_resource, parse_protocol_url, short_name
 from .authentication import WebAuthenticationDialog
 from .dialog import QMLDriveApi
@@ -90,9 +100,8 @@ class Application(QApplication):
         # Display release notes on new version
         if self.manager.old_version != self.manager.version:
             self.show_release_notes(self.manager.version)
-    
+
     def init_gui(self) -> None:
-        self.app_engine = QQmlApplicationEngine()
 
         self.api = QMLDriveApi(self)
         self.conflicts_model = FileModel()
@@ -105,7 +114,60 @@ class Application(QApplication):
         self.engine_model.statusChanged.connect(self.update_status)
         self.language_model.addLanguages(Translator.languages())
 
-        context = self.app_engine.rootContext()
+        if WINDOWS:
+            self.conflicts_window = QQuickView()
+            self.settings_window = QQuickView()
+            self.systray_window = QQuickView()
+
+            self._fill_qml_context(self.conflicts_window.rootContext())
+            self._fill_qml_context(self.settings_window.rootContext())
+            self._fill_qml_context(self.systray_window.rootContext())
+
+            self.conflicts_window.setSource(
+                QUrl.fromLocalFile(find_resource("qml", "Conflicts.qml"))
+            )
+            self.settings_window.setSource(
+                QUrl.fromLocalFile(find_resource("qml", "Settings.qml"))
+            )
+            self.systray_window.setSource(
+                QUrl.fromLocalFile(find_resource("qml", "Systray.qml"))
+            )
+            self.systray_window.setFlags(
+                Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Popup
+            )
+        else:
+            self.app_engine = QQmlApplicationEngine()
+            self._fill_qml_context(self.app_engine.rootContext())
+            self.app_engine.load(QUrl.fromLocalFile(find_resource("qml", "Main.qml")))
+            root = self.app_engine.rootObjects()[0]
+            self.conflicts_window = root.findChild(QQuickWindow, "conflictsWindow")
+            self.settings_window = root.findChild(QQuickWindow, "settingsWindow")
+            self.systray_window = root.findChild(SystrayWindow, "systrayWindow")
+
+        self.manager.newEngine.connect(self.add_engines)
+        self.manager.initEngine.connect(self.add_engines)
+        self.manager.dropEngine.connect(self.remove_engine)
+        self._window_root(self.systray_window).getLastFiles.connect(self.get_last_files)
+        self.api.setMessage.connect(self._window_root(self.settings_window).setMessage)
+
+        if self.manager.get_engines():
+            current_uid = self.engine_model.engines_uid[0]
+            self.get_last_files(current_uid)
+            self.update_status(self.engine_model.engines[current_uid])
+
+    def add_engines(self, engines: Union["Engine", List["Engine"]]) -> None:
+        if not engines:
+            return
+
+        engines = engines if isinstance(engines, list) else [engines]
+        for engine in engines:
+            self.engine_model.addEngine(engine)
+
+    def remove_engine(self, uid: str) -> None:
+        self.engine_model.removeEngine(uid)
+
+    def _fill_qml_context(self, context: "QQmlContext") -> None:
+
         context.setContextProperty("ConflictsModel", self.conflicts_model)
         context.setContextProperty("EngineModel", self.engine_model)
         context.setContextProperty("FileModel", self.file_model)
@@ -129,38 +191,7 @@ class Application(QApplication):
                 f'SIP {metrics["sip_version"]}'
             ),
         )
-        self.load_colors()
 
-        self.app_engine.load(QUrl.fromLocalFile(find_resource("qml", "Main.qml")))
-
-        self.manager.newEngine.connect(self.add_engines)
-        self.manager.initEngine.connect(self.add_engines)
-        self.manager.dropEngine.connect(self.remove_engine)
-        root = self.app_engine.rootObjects()[0]
-        self.conflicts_window = root.findChild(QQuickWindow, "conflictsWindow")
-        self.settings_window = root.findChild(QQuickWindow, "settingsWindow")
-        self.systray_window = root.findChild(SystrayWindow, "systrayWindow")
-        
-        self.systray_window.getLastFiles.connect(self.get_last_files)
-        self.api.setMessage.connect(self.settings_window.setMessage)
-
-        if self.manager.get_engines():
-            current_uid = self.engine_model.engines_uid[0]
-            self.get_last_files(current_uid)
-            self.update_status(self.engine_model.engines[current_uid])
-
-    def add_engines(self, engines: Union["Engine", List["Engine"]]) -> None:
-        if not engines:
-            return
-
-        engines = engines if isinstance(engines, list) else [engines]
-        for engine in engines:
-            self.engine_model.addEngine(engine)
-
-    def remove_engine(self, uid: str) -> None:
-        self.engine_model.removeEngine(uid)
-
-    def load_colors(self) -> None:
         colors = {
             "darkBlue": "#1F28BF",
             "nuxeoBlue": "#0066FF",
@@ -175,10 +206,14 @@ class Application(QApplication):
             "lighterGray": "#F5F5F5",
         }
 
-        context = self.app_engine.rootContext()
         for name, value in colors.items():
             context.setContextProperty(name, value)
-        
+
+    def _window_root(self, window):
+        if WINDOWS:
+            return window.rootObject()
+        return window
+
     def translate(self, message: str, values: dict = None) -> str:
         return Translator.get(message, values)
 
@@ -228,9 +263,7 @@ class Application(QApplication):
             overwrite = msg.addButton(
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), QMessageBox.AcceptRole
             )
-            msg.addButton(
-                Translator.get("CANCEL"), QMessageBox.RejectRole
-            )
+            msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
 
             msg.exec_()
             res = msg.clickedButton()
@@ -376,14 +409,13 @@ class Application(QApplication):
         self.conflicts_model.addFiles(self.api.get_errors(engine.uid))
         self.ignoreds_model.addFiles(self.api.get_unsynchronizeds(engine.uid))
 
-        self.conflicts_window.setEngine.emit(engine.uid)
+        self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
         self.conflicts_window.show()
-
 
     @pyqtSlot()
     def show_settings(self, section: str = "General") -> None:
         sections = {"General": 0, "Accounts": 1, "About": 2}
-        self.settings_window.setSection.emit(sections[section])
+        self._window_root(self.settings_window).setSection.emit(sections[section])
         self.settings_window.show()
 
     @pyqtSlot()
@@ -833,7 +865,9 @@ class Application(QApplication):
         elif errors:
             state = "error"
             message = str(len(errors))
-        self.systray_window.setStatus.emit(state, message, submessage)
+        self._window_root(self.systray_window).setStatus.emit(
+            state, message, submessage
+        )
 
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:

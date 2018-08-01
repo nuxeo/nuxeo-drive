@@ -2,13 +2,11 @@ import QtQuick 2.10
 import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
-import SystrayWindow 1.0
 import "icon-font/Icon.js" as MdiFont
 
-SystrayWindow {
+Item {
     id: systray
     width: 300; height: 370
-    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Popup
 
     property bool hasAccounts: EngineModel.count > 0
 
@@ -267,7 +265,7 @@ SystrayWindow {
                 }
                 PropertyChanges {
                     target: statusText
-                    text: qsTr("CONFLICTS_SYSTRAY").arg(stateMessage) + tl.tr
+                    text: qsTr("CONFLICTS_SYSTRAY").arg(systrayContainer.stateMessage) + tl.tr
                     color: "white"
                 }
             },

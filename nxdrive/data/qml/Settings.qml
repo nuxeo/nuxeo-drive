@@ -3,11 +3,10 @@ import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
 
-Window {
+Item {
     id: settings
     width: 640
     height: 480
-    title: qsTr("SETTINGS_WINDOW_TITLE") + tl.tr
 
     FontLoader {
         id: iconFont

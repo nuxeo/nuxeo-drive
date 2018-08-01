@@ -10,7 +10,7 @@ ShadowRectangle {
     color: lighterGray
     radius: 2
     spread: 0
-    
+
     ColumnLayout {
         id: menuContent
         spacing: 0
@@ -50,7 +50,7 @@ ShadowRectangle {
         SystrayMenuItem {
             text: qsTr("QUIT") + tl.tr
             onClicked: {
-                systray.hide()
+                application.hide_systray()
                 application.quit()
             }
         }
