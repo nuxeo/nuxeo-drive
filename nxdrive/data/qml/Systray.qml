@@ -170,6 +170,14 @@ Item {
                     icon: MdiFont.Icon.check
                     Layout.alignment: Qt.AlignRight
                     Layout.rightMargin: 10
+
+                    SequentialAnimation on rotation {
+                        id: syncAnim
+                        running: false
+                        loops: Animation.Infinite; alwaysRunToEnd: true
+                        NumberAnimation { from: 360; to: 0; duration: 1000; easing.type: Easing.InOutQuad }
+                        PauseAnimation { duration: 250 }
+                    }
                 }
             }
             ProgressBar {
@@ -245,6 +253,7 @@ Item {
             PropertyChanges { target: statusIcon; icon: MdiFont.Icon.sync }
             PropertyChanges { target: statusText; text: qsTr("SYNCHRONIZATION_ITEMS_LEFT").arg(FileModel.count) + tl.tr }
             PropertyChanges { target: refreshTimer; repeat: true; running: true }
+            PropertyChanges { target: syncAnim; running: true }
         },
         State {
             name: "update"

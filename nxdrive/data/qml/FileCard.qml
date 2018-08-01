@@ -12,7 +12,6 @@ ShadowRectangle {
     property string type: fileData.state == "conflicted" ? "conflict" : "error"
 
     width: parent.width; height: cardContent.height + 40
-    samples: 60; vOffset: 3
     anchors.horizontalCenter: parent.horizontalCenter
 
     RowLayout {

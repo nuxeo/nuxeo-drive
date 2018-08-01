@@ -55,8 +55,7 @@ Menu {
         implicitWidth: 100
         implicitHeight: contentHeight + 4
         color: lighterGray
-        samples: 80
         radius: 2
-        vOffset: 4
+        spread: 0
     }
 }
