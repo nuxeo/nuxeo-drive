@@ -11,8 +11,6 @@ Popup {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     background: ShadowRectangle {
-        border.width: 0
-
         Rectangle {
             id: titleContainer
             width: parent.width; height: 40

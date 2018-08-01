@@ -1,21 +1,27 @@
 import QtQuick 2.10
-import QtGraphicalEffects 1.0
 
 Rectangle {
     id: control
     radius: 8
+    property string shadowColor: "#16000000"
+    property real offset: Math.min(width*0.02, height*0.02)
+    property int spread: 4
 
-    property string shadowColor: "#40000000"
-    property int hOffset: 0
-    property int vOffset: 10
-    property int samples: 200
+    border.width: 0
 
-    layer.enabled: true
-    layer.effect: DropShadow {
-        cached: true
-        horizontalOffset: control.hOffset
-        verticalOffset: control.vOffset
-        samples: control.samples
-        color: control.shadowColor
+    Repeater {
+        model: control.offset
+        Rectangle {
+            color: shadowColor
+            width: control.width + control.spread
+            height: control.height + control.spread
+            z: -1
+            opacity: 1 / (index * 1.2)
+            radius: control.radius + 2
+            anchors.left: control.left
+            anchors.leftMargin: - index - 1 - control.spread / 2
+            anchors.top: control.top
+            anchors.topMargin: index + 1 - control.spread / 2
+        }
     }
 }
