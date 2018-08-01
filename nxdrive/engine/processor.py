@@ -256,7 +256,7 @@ class Processor(EngineWorker):
                     # in the current synchronization
                     doc_pair.local_parent_path = parent_pair.local_path
 
-                handler_name = "_synchronize_" + doc_pair.pair_state
+                handler_name = f"_synchronize_{doc_pair.pair_state}"
                 sync_handler = getattr(self, handler_name, None)
                 if not sync_handler:
                     log.debug(
@@ -303,11 +303,10 @@ class Processor(EngineWorker):
                     continue
                 except (
                     ConnectionError,
-                    socket.error,
+                    socket.error,  # SSLError
                     PairInterrupt,
                     ParentNotSynced,
                 ) as exc:
-                    # socket.error for SSLError
                     log.error(
                         "%s on %r, wait 1s and requeue", type(exc).__name__, doc_pair
                     )
@@ -354,7 +353,7 @@ class Processor(EngineWorker):
                         )
                         self.engine.errorOpenedFile.emit(doc_pair)
                         self._postpone_pair(doc_pair, "Used by another process")
-                    elif error in (111, 121, 124, 206, 1223):
+                    elif error in {111, 121, 124, 206, 1223}:
                         """
                         WindowsError: [Error 111] ??? (seems related to deep
                         tree)
