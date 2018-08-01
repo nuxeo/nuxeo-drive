@@ -69,7 +69,7 @@ class Application(QApplication):
         self.current_notification = None
         self.default_tooltip = self.manager.app_name
 
-        font = QFont("Neue Haas Grotesk Display Std, Helvetica, Arial, sans-serif", 12)
+        font = QFont("Helvetica, Arial, sans-serif", 12)
         self.setFont(font)
         self.ratio = sqrt(QFontMetricsF(font).height() / 12)
 
@@ -660,7 +660,7 @@ class Application(QApplication):
 
         # Display only the first action for now
         for action in actions.values():
-            if action and not action.type.startswith("_"):
+            if action and action.type and not action.type.startswith("_"):
                 break
         else:
             return self.default_tooltip

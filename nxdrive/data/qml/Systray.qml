@@ -210,8 +210,8 @@ Item {
                 name: "update"
                 PropertyChanges {
                     target: updatePopup
-                    version: stateMessage
-                    channel: stateSubMessage
+                    version: systrayContainer.stateMessage
+                    channel: systrayContainer.stateSubMessage
                 }
                 PropertyChanges {
                     target: systrayBottom
@@ -242,13 +242,13 @@ Item {
                 }
                 PropertyChanges {
                     target: statusText
-                    text: qsTr("UPDATING_VERSION").arg(stateMessage) + tl.tr
+                    text: qsTr("UPDATING_VERSION").arg(systrayContainer.stateMessage) + tl.tr
                     color: "white"
                 }
                 PropertyChanges {
                     target: updateProgress
                     visible: true
-                    value: parseInt(stateSubMessage)
+                    value: parseInt(systrayContainer.stateSubMessage)
                 }
             },
             State {
@@ -295,8 +295,8 @@ Item {
                 name: "downgrade"
                 PropertyChanges {
                     target: updatePopup
-                    version: stateMessage
-                    channel: stateSubMessage
+                    version: systrayContainer.stateMessage
+                    channel: systrayContainer.stateSubMessage
                 }
                 PropertyChanges {
                     target: systrayBottom
@@ -310,7 +310,7 @@ Item {
                 }
                 PropertyChanges {
                     target: statusText
-                    text: qsTr("NOTIF_UPDATE_DOWNGRADE").arg(stateMessage) + tl.tr
+                    text: qsTr("NOTIF_UPDATE_DOWNGRADE").arg(systrayContainer.stateMessage) + tl.tr
                     color: "white"
                 }
             },
@@ -328,7 +328,7 @@ Item {
                 }
                 PropertyChanges {
                     target: statusText
-                    text: qsTr("ERRORS_SYSTRAY").arg(stateMessage) + tl.tr
+                    text: qsTr("ERRORS_SYSTRAY").arg(systrayContainer.stateMessage) + tl.tr
                     color: "white"
                 }
             }
