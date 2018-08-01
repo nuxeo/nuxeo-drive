@@ -498,8 +498,7 @@ class Manager(QObject):
 
     def set_proxy(self, proxy: "Proxy") -> str:
         for engine in self._engines.values():
-            url = engine._server_url
-            if not validate_proxy(proxy, url):
+            if not validate_proxy(proxy, engine.server_url):
                 return "PROXY_INVALID"
             engine.remote.set_proxy(proxy)
 
