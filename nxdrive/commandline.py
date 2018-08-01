@@ -501,7 +501,16 @@ class CliHandler:
             from .console import ConsoleApplication as Application
         else:
             from .gui.application import Application
+            from .gui.systray import SystrayWindow
+            from PyQt5.QtQml import qmlRegisterType
 
+            qmlRegisterType(
+                SystrayWindow,
+                'SystrayWindow',
+                1,
+                0,
+                'SystrayWindow'
+            )
         return Application(self.manager)
 
     def launch(self, options: Namespace = None, console: bool = False) -> int:
