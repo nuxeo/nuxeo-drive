@@ -57,7 +57,7 @@ log = getLogger(__name__)
 
 
 class Application(QApplication):
-    """Main Nuxeo drive application controlled by a system tray icon + menu"""
+    """Main Nuxeo Drive application controlled by a system tray icon + menu"""
 
     tray_icon = None
     icon_state = None
