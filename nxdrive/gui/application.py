@@ -37,7 +37,7 @@ from ..updater.constants import (
     UPDATE_STATUS_UPDATING,
 )
 from ..utils import find_icon, find_resource, parse_protocol_url, short_name
-from .dialog import QMLDriveApi
+from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
 from .view import EngineModel, FileModel, LanguageModel
 

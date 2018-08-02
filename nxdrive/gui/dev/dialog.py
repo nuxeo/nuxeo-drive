@@ -15,7 +15,7 @@ from PyQt5.QtWebEngineWidgets import (
 )
 from PyQt5.QtWidgets import QDialog, QVBoxLayout
 
-from ..dialog import QMLDriveApi
+from ..api import QMLDriveApi
 from ...options import Options
 from ...utils import find_resource
 
