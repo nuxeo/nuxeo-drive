@@ -2,6 +2,22 @@
 
 Here is a page where you can see the OS vendors and versions as well as the browsers we are currently supporting; but also the Python version we are currently using.
 
+## Nuxeo Platform
+
+Nuxeo Drive supports all versions currently supported by Nuxeo.
+The **only requirement** is to always have the Nuxeo Drive addon up-to-date.
+
+The current Nuxeo Drive version supports:
+
+- Nuxeo Platform 7.10
+- Nuxeo Platform 8.10
+- Nuxeo Platform 9.10
+- Nuxeo Platform SNAPSHOT
+
+History:
+
+- `2018-01-29` (v3.0.4): dropped support for Nuxeo Platform 6.10
+
 ## OS
 
 List of officially supported platform vendors and versions:
@@ -14,20 +30,18 @@ List of officially supported platform vendors and versions:
 
 History:
 
-- `2018-06-11`: dropped support for macOS 10.10
-- `2018-02-23`: dropped support for macOS 10.4 - 10.9
-- `2017-04-11`: dropped support for Windows Vista
-- `2014-04-08`: dropped support for Windows XP
+- `2018-06-11` (v3.1.1): dropped support for macOS 10.10
+- `2018-02-23` (v3.0.5): dropped support for macOS 10.4 - 10.9
+- `2017-04-11` (v2.4.0): dropped support for Windows Vista
+- `2014-04-08` (v1.3.0806): dropped support for Windows XP
 
 ### GNU/Linux
 
 GNU/Linux support is a bit more complicated, but our developers are using Debian 8+ and Ubuntu 16.04+ on a daily basis.
-It will depends of the current distribution support of PyQt4 and its WebKit plugin.
 
-As those packages was removed on may 2015, you will have to compile yourself needed libraries.
-You can find how we are doing to do so by reading [deployment.md](https://github.com/nuxeo/nuxeo-drive/blob/master/docs/deployment.md) and the related Shell and PowerShell scripts.
+You can find out how we are doing it by reading [deployment.md](https://github.com/nuxeo/nuxeo-drive/blob/master/docs/deployment.md) and the related Shell script.
 
-_Note_: this is a temporary issue because when we will move to Python 3 and PyQt5, we will be able to create official packages for the most used distributions.
+_Note_: this is a temporary situation, official support with packages is on the way.
 
 ## Browsers
 
@@ -42,12 +56,12 @@ Nuxeo Drive is not a module but a whole package containing its own Python versio
 If you want to use the module version as a basic module for your own software, please keep in mind that we do not offer support for dropped Python versions.
 
 It may evolve quickly without notification as we are following the Python development cycle for the current used branch.
- 
+
 As of now, we are using the __Python 3.7__ (but it is kept compatible with Python 3.6).
 
 History:
 
-- `2018-06-06`: dropped support for Python 2.7
+- `2018-06-06` (v4.0.0): dropped support for Python 2.7
 - `2014-??-??`: dropped support for Python 2.6
 
 

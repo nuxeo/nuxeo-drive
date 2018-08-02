@@ -41,6 +41,9 @@ Changes in command line arguments:
 - [NXDRIVE-1234](https://jira.nuxeo.com/browse/NXDRIVE-1234): Tweak pyup.io parameters
 - [NXDRIVE-1244](https://jira.nuxeo.com/browse/NXDRIVE-1244): Ensure Drive is closed before auto-upgrading on Windows
 
+### Doc
+- [NXDRIVE-1276](https://jira.nuxeo.com/browse/NXDRIVE-1276): Add documentation about Nuxeo Platform support
+
 ### Tests
 - [NXDRIVE-1212](https://jira.nuxeo.com/browse/NXDRIVE-1212): Disable all server converters, enabled on-demand
 - [NXDRIVE-1246](https://jira.nuxeo.com/browse/NXDRIVE-1246): Fix pytest randombug plugin STRICT mode
@@ -219,6 +222,8 @@ Release date: `2018-02-23`
 
 # 3.0.4
 Release date: `2018-01-29`
+
+**Important**: Dropped support for Nuxeo Platform 6.10.
 
 ### Core
 - [NXDRIVE-836](https://jira.nuxeo.com/browse/NXDRIVE-836): Bad behaviors with read-only documents
