@@ -2,6 +2,7 @@
 """ Main Qt application handling OS events and system tray UI. """
 from logging import getLogger
 from math import sqrt
+from os import getenv
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import unquote
 
@@ -36,10 +37,16 @@ from ..updater.constants import (
     UPDATE_STATUS_UPDATING,
 )
 from ..utils import find_icon, find_resource, parse_protocol_url, short_name
-from .authentication import WebAuthenticationDialog
 from .dialog import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
 from .view import EngineModel, FileModel, LanguageModel
+
+
+if getenv("NXDRIVE_DEV") == "1":
+    from .dev.authentication import auth
+else:
+    from .authentication import auth
+
 
 __all__ = ("Application",)
 
@@ -485,9 +492,7 @@ class Application(QApplication):
         self, url: str, callback_params: Dict[str, str]
     ) -> None:
         self.api._callback_params = callback_params
-        dialog = WebAuthenticationDialog(self, url, self.api)
-        dialog.setWindowModality(Qt.NonModal)
-        dialog.show()
+        auth(self, url)
 
     @pyqtSlot(object)
     def _connect_engine(self, engine: "Engine") -> None:

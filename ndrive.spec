@@ -42,6 +42,9 @@ excludes = [
     "scipy",
     "yappi",
 ]
+if os.getenv("NXDRIVE_DEV", "0") != "1":
+    # Prevent Drive dev stuff to be packaged
+    excludes.append("nxdrive.gui.dev")
 
 data = [(data, "data")]
 version = get_version(os.path.join(nxdrive, "__init__.py"))

@@ -65,6 +65,7 @@ If you get an error message complaining about the lack of signature for this scr
 
 ### Optional Envars
 
+- `NXDRIVE_DEV` has to be set to `1` if you are a developer.
 - `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `3.6.6`.
 - `SIGNING_ID` is the certificate **authority name**.
 - `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
