@@ -149,7 +149,9 @@ class QMLDriveApi(QObject):
         result["id"] = state.id
         return result
 
-    def _export_formatted_state(self, uid: str, state: "DocPair" = None) -> Dict[str, Any]:
+    def _export_formatted_state(
+        self, uid: str, state: "DocPair" = None
+    ) -> Dict[str, Any]:
         engine = self._get_engine(uid)
         if not state or not engine:
             return {}
@@ -158,9 +160,7 @@ class QMLDriveApi(QObject):
         result["last_contributor"] = (
             ""
             if state.last_remote_modifier is None
-            else engine.get_user_full_name(
-                state.last_remote_modifier, cache_only=True
-            )
+            else engine.get_user_full_name(state.last_remote_modifier, cache_only=True)
         )
         date_time = self.get_date_from_sqlite(state.last_remote_updated)
         result["last_remote_update"] = (
@@ -878,7 +878,9 @@ class QMLDriveApi(QObject):
             engine.retry_pair(state_id)
 
     @pyqtSlot(str, int, str)
-    def unsynchronize_pair(self, uid: str, state_id: int, reason: str = "UNKNOWN") -> None:
+    def unsynchronize_pair(
+        self, uid: str, state_id: int, reason: str = "UNKNOWN"
+    ) -> None:
         engine = self._get_engine(uid)
         if engine:
             engine.unsynchronize_pair(state_id, reason=reason)
