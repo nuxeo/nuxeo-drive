@@ -4,8 +4,8 @@ from logging import getLogger
 
 from PyQt5.QtCore import Qt, QUrl
 
-from .api import WebDialog
-from ..dialog import QMLDriveApi
+from .dialog import WebDialog
+from ..api import QMLDriveApi
 from ...translator import Translator
 
 __all__ = ("auth",)
