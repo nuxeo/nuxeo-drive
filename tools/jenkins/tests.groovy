@@ -88,88 +88,90 @@ for (def x in slaves) {
     // Create a map to pass in to the 'parallel' step so we can fire all the builds at once
     builders[slave] = {
         node(slave) {
-            withEnv(["WORKSPACE=${pwd()}"]) {
-                // TODO: Remove the Windows part when https://github.com/pypa/pip/issues/3055 is resolved
-                if (params.CLEAN_WORKSPACE || osi == "Windows") {
-                    deleteDir()
-                }
-
-                try {
-                    stage(osi + ' Checkout') {
-                        try {
-                            dir('sources') {
-                                deleteDir()
-                            }
-                            github_status('PENDING')
-                            checkout_custom()
-                        } catch(e) {
-                            currentBuild.result = 'UNSTABLE'
-                            throw e
-                        }
+            timeout(120) {
+                withEnv(["WORKSPACE=${pwd()}"]) {
+                    // TODO: Remove the Windows part when https://github.com/pypa/pip/issues/3055 is resolved
+                    if (params.CLEAN_WORKSPACE || osi == "Windows") {
+                        deleteDir()
                     }
 
-                    stage(osi + ' Tests') {
-                        // Launch the tests suite
-                        if (currentBuild.result == 'UNSTABLE' || currentBuild.result == 'FAILURE') {
-                            echo 'Stopping early: apparently another slave did not try its best ...'
-                            return
-                        }
-
-                        def jdk = tool name: 'java-8-openjdk'
-                        if (osi == 'macOS') {
-                            jdk = tool name: 'java-8-oracle'
-                        }
-                        env.JAVA_HOME = "${jdk}"
-                        def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                        def platform_opt = "-Dplatform=${slave.toLowerCase()}"
-
-                        dir('sources') {
-                            // Set up the report name folder
-                            env.REPORT_PATH = env.WORKSPACE + '/sources'
-
+                    try {
+                        stage(osi + ' Checkout') {
                             try {
-                                if (osi == 'macOS') {
-                                    // Adjust the PATH
-                                    def env_vars = [
-                                        'PATH+LOCALBIN=/usr/local/bin',
-                                    ]
-                                    withEnv(env_vars) {
-                                        sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
-                                    }
-                                } else if (osi == 'GNU/Linux') {
-                                    sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
-                                } else {
-                                    bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
+                                dir('sources') {
+                                    deleteDir()
                                 }
+                                github_status('PENDING')
+                                checkout_custom()
                             } catch(e) {
-                                currentBuild.result = 'FAILURE'
-                                throw e
-                            }
-
-                            try {
-                                echo "Retrieve coverage statistics"
-                                stash includes: '.coverage', name: "coverage_${slave}"
-                            } catch(e) {
-                                echo e
                                 currentBuild.result = 'UNSTABLE'
                                 throw e
                             }
                         }
-                        currentBuild.result = 'SUCCESS'
-                    }
-                } finally {
-                    // We use catchError to not let notifiers and recorders change the current build status
-                    catchError {
-                        // Update GitHub status whatever the result
-                        github_status(currentBuild.result)
 
-                        archive 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt'
+                        stage(osi + ' Tests') {
+                            // Launch the tests suite
+                            if (currentBuild.result == 'UNSTABLE' || currentBuild.result == 'FAILURE') {
+                                echo 'Stopping early: apparently another slave did not try its best ...'
+                                return
+                            }
 
-                        // Update revelant Jira issues only if we are working on the master branch
-                        if (env.BRANCH_NAME == 'master') {
-                            step([$class: 'JiraIssueUpdater',
-                                issueSelector: [$class: 'DefaultIssueSelector'],
-                                scm: scm, comment: osi])
+                            def jdk = tool name: 'java-8-openjdk'
+                            if (osi == 'macOS') {
+                                jdk = tool name: 'java-8-oracle'
+                            }
+                            env.JAVA_HOME = "${jdk}"
+                            def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                            def platform_opt = "-Dplatform=${slave.toLowerCase()}"
+
+                            dir('sources') {
+                                // Set up the report name folder
+                                env.REPORT_PATH = env.WORKSPACE + '/sources'
+
+                                try {
+                                    if (osi == 'macOS') {
+                                        // Adjust the PATH
+                                        def env_vars = [
+                                            'PATH+LOCALBIN=/usr/local/bin',
+                                        ]
+                                        withEnv(env_vars) {
+                                            sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                        }
+                                    } else if (osi == 'GNU/Linux') {
+                                        sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                    } else {
+                                        bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
+                                    }
+                                } catch(e) {
+                                    currentBuild.result = 'FAILURE'
+                                    throw e
+                                }
+
+                                try {
+                                    echo "Retrieve coverage statistics"
+                                    stash includes: '.coverage', name: "coverage_${slave}"
+                                } catch(e) {
+                                    echo e
+                                    currentBuild.result = 'UNSTABLE'
+                                    throw e
+                                }
+                            }
+                            currentBuild.result = 'SUCCESS'
+                        }
+                    } finally {
+                        // We use catchError to not let notifiers and recorders change the current build status
+                        catchError {
+                            // Update GitHub status whatever the result
+                            github_status(currentBuild.result)
+
+                            archive 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt'
+
+                            // Update revelant Jira issues only if we are working on the master branch
+                            if (env.BRANCH_NAME == 'master') {
+                                step([$class: 'JiraIssueUpdater',
+                                    issueSelector: [$class: 'DefaultIssueSelector'],
+                                    scm: scm, comment: osi])
+                            }
                         }
                     }
                 }
