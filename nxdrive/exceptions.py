@@ -79,9 +79,12 @@ class RootAlreadyBindWithDifferentAccount(DriveError):
         self.username = username
         self.url = url
 
+
 class StartupPageConnectionError(DriveError):
     """ The web login page is not available. """
+
     pass
+
 
 class ThreadInterrupt(DriveError):
     """ The worker has been ordered to stop and quit."""
