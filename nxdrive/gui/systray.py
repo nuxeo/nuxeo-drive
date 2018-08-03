@@ -2,8 +2,8 @@
 import os
 from logging import getLogger
 
-from PyQt5.QtCore import pyqtSignal, QEvent
-from PyQt5.QtQuick import QQuickItem, QQuickWindow
+from PyQt5.QtCore import QEvent
+from PyQt5.QtQuick import QQuickWindow
 from PyQt5.QtWidgets import QApplication, QMenu, QStyle, QSystemTrayIcon
 
 from ..constants import MAC
@@ -86,10 +86,10 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
 
 class SystrayWindow(QQuickWindow):
-
     def event(self, event: QEvent) -> bool:
-        if (event.type() == QEvent.MouseButtonPress
-            and not self.geometry().contains(event.screenPos().toPoint())):
-                # The click was outside of the systray
-                self.hide()
+        if event.type() == QEvent.MouseButtonPress and not self.geometry().contains(
+            event.screenPos().toPoint()
+        ):
+            # The click was outside of the systray
+            self.hide()
         return super().event(event)
