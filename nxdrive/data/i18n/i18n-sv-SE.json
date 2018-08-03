@@ -54,6 +54,8 @@
     "DIRECT_EDIT_LOCK_ERROR": "Problem med låsning",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "Dokumentet ”{{ name }}” låstes inte",
     "DIRECT_EDIT_READONLY_FILE": "Kan inte redigera ”{{ name }}” eftersom det är skrivskyddat",
+    "DIRECT_EDIT_STARTING_TITLE": "Opening from %1",
+    "DIRECT_EDIT_STARTING_MSG": "„%1“ is being opened locally ...",
     "DIRECT_EDIT_UNLOCK_ERROR": "Problem med upplåsning",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Dokumentet ”{{ name }}” låstes inte upp",
     "DIRECT_EDIT_UPDATED_FILE": "Filen ”{{ name }}” har uppdaterats",

@@ -54,6 +54,8 @@
     "DIRECT_EDIT_LOCK_ERROR": "ロックの問題",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "文書「{{ name }}」はロックされませんでした",
     "DIRECT_EDIT_READONLY_FILE": "「{{ name }}」は読み取り専用なので、編集できません",
+    "DIRECT_EDIT_STARTING_TITLE": "Opening from %1",
+    "DIRECT_EDIT_STARTING_MSG": "„%1“ is being opened locally ...",
     "DIRECT_EDIT_UNLOCK_ERROR": "ロック解除の問題",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "文書「{{ name }}」はロック解除されませんでした",
     "DIRECT_EDIT_UPDATED_FILE": "ファイル「{{ name }}」が更新されました",
