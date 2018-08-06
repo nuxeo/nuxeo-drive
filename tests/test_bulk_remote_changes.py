@@ -26,7 +26,7 @@ Note: searching for the following regular expression in log file
 from logging import getLogger
 from time import sleep
 
-from mock import patch
+from unittest.mock import patch
 from requests import ConnectionError
 
 from nxdrive.client.remote_client import Remote

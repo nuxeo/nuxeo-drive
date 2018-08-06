@@ -4,7 +4,7 @@ import time
 from shutil import copyfile
 
 import pytest
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine

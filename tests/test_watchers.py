@@ -3,7 +3,7 @@ from shutil import copyfile
 from time import sleep
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD

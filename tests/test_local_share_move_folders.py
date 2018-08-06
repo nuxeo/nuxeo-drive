@@ -2,7 +2,7 @@
 import os
 import shutil
 
-from mock import patch
+from unittest.mock import patch
 
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 from .common import UnitTestCase

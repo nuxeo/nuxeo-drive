@@ -3,7 +3,7 @@ import os
 import time
 from shutil import copyfile
 
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
