@@ -345,6 +345,10 @@ def test_version_compare(x, y, result):
         (None, None, 0),
         ("8.10-HF37", None, 1),
         ("2.0.805", None, 1),
+        # Date based versions are treated as normal versions
+        ("10.3-I20180803_0125", "10.1", 1),
+        ("10.2-I20180703_0125", "10.3-I20180803_0125", -1),
+        ("10.3-I20180803_0125", "10.3-I20180803_0125", 0),
     ],
 )
 def test_version_compare_client(x, y, result):
