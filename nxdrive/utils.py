@@ -239,6 +239,12 @@ def version_compare_client(x: str, y: str) -> int:
 
     from distutils.version import StrictVersion
 
+    # Ignore date based versions, they will be treated as normal versions
+    if x and "-I" in x:
+        x = x.split("-")[0]
+    if y and "-I" in y:
+        y = y.split("-")[0]
+
     try:
         return cmp(StrictVersion(x), StrictVersion(y))
     except (AttributeError, ValueError):
