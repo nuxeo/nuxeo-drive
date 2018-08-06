@@ -3,7 +3,7 @@ from itertools import product
 from time import sleep
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 from nuxeo.exceptions import HTTPError
 
 from nxdrive.engine.dao.sqlite import EngineDAO

@@ -2,7 +2,7 @@
 import os
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 
 from nxdrive.client.proxy import (
     AutomaticProxy,
