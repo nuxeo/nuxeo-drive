@@ -27,7 +27,6 @@ from nxdrive.options import Options
 from nxdrive.translator import Translator
 from nxdrive.utils import safe_long_path, unset_path_readonly
 from . import DocRemote, LocalTest, RemoteBase
-from .conftest import root_remote
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
@@ -109,14 +108,13 @@ class UnitTestCase(TestCase):
         # server and might need to wait for a long time without failing for
         # Nuxeo to finish initialize the repo on the first request after
         # startup
-        self.root_remote = root_remote()
 
         # Activate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
-            self.root_remote.activate_profile(server_profile)
+            pytest.root_remote.activate_profile(server_profile)
 
         # Call the Nuxeo operation to setup the integration test environment
-        credentials = self.root_remote.operations.execute(
+        credentials = pytest.root_remote.operations.execute(
             command="NuxeoDrive.SetupIntegrationTests",
             userNames="user_1, user_2",
             permission="ReadWrite",
@@ -125,11 +123,11 @@ class UnitTestCase(TestCase):
         credentials = [c.strip().split(":") for c in credentials.decode().split(",")]
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
-        ws_info = self.root_remote.fetch("/default-domain/workspaces/")
-        children = self.root_remote.get_children(ws_info["uid"])
+        ws_info = pytest.root_remote.fetch("/default-domain/workspaces/")
+        children = pytest.root_remote.get_children(ws_info["uid"])
         log.debug("SuperWorkspace info: %r", ws_info)
         log.debug("SuperWorkspace children: %r", children)
-        ws_info = self.root_remote.fetch(TEST_WORKSPACE_PATH)
+        ws_info = pytest.root_remote.fetch(TEST_WORKSPACE_PATH)
         log.debug("Workspace info: %r", ws_info)
         self.workspace = ws_info["uid"]
         self.workspace_title = ws_info["title"]
@@ -141,13 +139,13 @@ class UnitTestCase(TestCase):
     def tearDownServer(self, server_profile=None):
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
-        self.root_remote.operations.execute(
+        pytest.root_remote.operations.execute(
             command="NuxeoDrive.TearDownIntegrationTests"
         )
 
         # Deactivate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
-            self.root_remote.deactivate_profile(server_profile)
+            pytest.root_remote.deactivate_profile(server_profile)
 
     def setUpApp(self, server_profile=None, register_roots=True):
         if Manager._singleton:
@@ -330,7 +328,7 @@ class UnitTestCase(TestCase):
     def _unregister(self, workspace):
         """ Skip HTTP errors when cleaning up the test. """
         try:
-            self.root_remote.unregister_as_root(workspace)
+            pytest.root_remote.unregister_as_root(workspace)
         except (HTTPError, ConnectionError):
             pass
 
@@ -530,7 +528,7 @@ class UnitTestCase(TestCase):
 
         def launch_test():
             log.debug("UnitTest thread started")
-            self.root_remote.log_on_server(">>> testing: " + self.id())
+            pytest.root_remote.log_on_server(">>> testing: " + self.id())
             # Note: we cannot use super().run(result) here
             super(UnitTestCase, self).run(result)
             self.app.quit()
@@ -659,7 +657,7 @@ class UnitTestCase(TestCase):
 
     def wait(self, retry=3):
         try:
-            self.root_remote.wait()
+            pytest.root_remote.wait()
         except Exception as e:
             log.debug("Exception while waiting for server : %r", e)
             # Not the nicest
@@ -691,7 +689,7 @@ class UnitTestCase(TestCase):
 
     def _set_read_permission(self, user, doc_path, grant):
         input_obj = "doc:" + doc_path
-        remote = self.root_remote
+        remote = pytest.root_remote
         if grant:
             remote.operations.execute(
                 command="Document.SetACE",
@@ -777,7 +775,7 @@ class UnitTestCase(TestCase):
         :param doc_path: The document, either a folder or a file.
         :param grant: Set RO if True else RW.
         """
-        remote = self.root_remote
+        remote = pytest.root_remote
         input_obj = "doc:" + doc_path
         if grant:
             remote.operations.execute(

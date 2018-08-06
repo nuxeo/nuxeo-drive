@@ -18,7 +18,7 @@ class TestGroupChanges(UnitTestCase):
 
     def setUp(self):
         super().setUp()
-        remote = self.root_remote
+        remote = pytest.root_remote
 
         # Create test workspace
         workspaces_path = "/default-domain/workspaces"
@@ -64,7 +64,7 @@ class TestGroupChanges(UnitTestCase):
         )
 
     def tearDown(self):
-        remote = self.root_remote
+        remote = pytest.root_remote
 
         # Delete test workspace
         self.workspace.delete()

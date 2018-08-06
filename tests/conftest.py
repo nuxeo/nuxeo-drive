@@ -5,6 +5,8 @@ import pytest
 
 import nxdrive
 
+from . import DocRemote
+
 pytest_plugins = "tests.pytest_random"
 
 
@@ -14,13 +16,30 @@ def pytest_namespace():
     tests. They can be accessed with `pytest.<variable_name>`
     e.g. `pytest.nuxeo_url`
     """
+
+    nuxeo_url = os.getenv(
+        "NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo"
+    ).split("#")[0]
+    password = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
+    user = os.getenv("NXDRIVE_TEST_USER", "Administrator")
+    version = nxdrive.__version__
+
+    root_remote = DocRemote(
+        nuxeo_url,
+        user,
+        "nxdrive-test-administrator-device",
+        version,
+        password=password,
+        base_folder="/",
+        timeout=60,
+    )
+
     return {
-        "nuxeo_url": os.getenv(
-            "NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo"
-        ).split("#")[0],
-        "user": os.getenv("NXDRIVE_TEST_USER", "Administrator"),
-        "password": os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator"),
-        "version": nxdrive.__version__,
+        "nuxeo_url": nuxeo_url,
+        "user": user,
+        "password": password,
+        "root_remote": root_remote,
+        "version": version,
     }
 
 
@@ -60,19 +79,3 @@ def cleanup_attrs(request):
                 if engine.remote:
                     engine.remote.client._session.close()
             delattr(request.instance, attr)
-
-
-@pytest.fixture(scope="session")
-def root_remote():
-    """ The root remote client (administrator). """
-    from . import DocRemote
-
-    return DocRemote(
-        pytest.nuxeo_url,
-        pytest.user,
-        "nxdrive-test-administrator-device",
-        pytest.version,
-        password=pytest.password,
-        base_folder="/",
-        timeout=60,
-    )

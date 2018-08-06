@@ -1,4 +1,6 @@
 # coding: utf-8
+import pytest
+
 from . import LocalTest
 from .common import TEST_WORKSPACE_PATH, UnitTestCase
 
@@ -6,7 +8,6 @@ from .common import TEST_WORKSPACE_PATH, UnitTestCase
 class TestSharedFolders(UnitTestCase):
     def test_move_sync_root_child_to_user_workspace(self):
         """See https://jira.nuxeo.com/browse/NXP-14870"""
-        admin_remote_client = self.root_remote
         uid = None
         try:
             # Get remote  and local clients
@@ -29,7 +30,7 @@ class TestSharedFolders(UnitTestCase):
 
             # As user1 grant Everything permission to user2 on parent folder
             input_obj = "doc:" + parent_uid
-            admin_remote_client.operations.execute(
+            pytest.root_remote.operations.execute(
                 command="Document.SetACE",
                 input_obj=input_obj,
                 user=self.user_2,
@@ -69,8 +70,8 @@ class TestSharedFolders(UnitTestCase):
 
         finally:
             # Cleanup user1 personal workspace
-            if uid is not None and admin_remote_client.exists(uid):
-                admin_remote_client.delete(uid, use_trash=False)
+            if uid is not None and pytest.root_remote.exists(uid):
+                pytest.root_remote.delete(uid, use_trash=False)
 
     def test_local_changes_while_stopped(self):
         self._test_local_changes_while_not_running(False)
@@ -89,7 +90,7 @@ class TestSharedFolders(UnitTestCase):
 
         # Remove ReadWrite permission for user_1 on the test workspace
         test_workspace = "doc:" + TEST_WORKSPACE_PATH
-        self.root_remote.operations.execute(
+        pytest.root_remote.operations.execute(
             command="Document.SetACE",
             input_obj=test_workspace,
             user=self.user_2,
@@ -104,7 +105,7 @@ class TestSharedFolders(UnitTestCase):
         file_id = remote_2.make_file(folder, "File01.txt", content=b"plaintext")
 
         # Grant Read permission for user_1 on the test folder and register
-        self.root_remote.operations.execute(
+        pytest.root_remote.operations.execute(
             command="Document.SetACE",
             input_obj="doc:" + folder,
             user=self.user_1,
@@ -139,7 +140,7 @@ class TestSharedFolders(UnitTestCase):
             self.engine_1.stop()
 
         # Restore write permission to user_1 (=> ReadWrite)
-        self.root_remote.operations.execute(
+        pytest.root_remote.operations.execute(
             command="Document.SetACE",
             input_obj="doc:" + folder,
             user=self.user_1,

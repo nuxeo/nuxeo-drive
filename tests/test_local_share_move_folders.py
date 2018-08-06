@@ -2,6 +2,7 @@
 import os
 import shutil
 
+import pytest
 from unittest.mock import patch
 
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
@@ -67,7 +68,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         assert set(children) == self.names
 
     def test_local_share_move_folder_with_files(self):
-        remote = self.root_remote
+        remote = pytest.root_remote
         local = self.local_1
 
         src = local.abspath(self.folder_path_1)

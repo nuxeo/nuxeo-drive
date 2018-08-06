@@ -291,7 +291,7 @@ class TestDirectEdit(UnitTestCase):
         assert user == self.user_1
 
         # Create a complete user
-        remote = self.root_remote
+        remote = pytest.root_remote
         try:
             user = remote.users.create(
                 User(
