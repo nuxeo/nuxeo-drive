@@ -602,13 +602,13 @@ class TestSynchronization(UnitTestCase):
         # Set remote folder as readonly for test user
         readonly_folder_path = TEST_WORKSPACE_PATH + "/Readonly folder"
         input_obj = "doc:" + readonly_folder_path
-        self.root_remote.operations.execute(
+        pytest.root_remote.operations.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user=self.user_1,
             permission="Read",
         )
-        self.root_remote.block_inheritance(readonly_folder_path, overwrite=False)
+        pytest.root_remote.block_inheritance(readonly_folder_path, overwrite=False)
 
         # Wait to make sure permission change is detected.
         self.wait_sync(wait_for_async=True)

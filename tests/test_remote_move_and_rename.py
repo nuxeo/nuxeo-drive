@@ -550,7 +550,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Grant ReadWrite permission on Workspaces for test user
         workspaces_path = "/default-domain/workspaces"
         input_obj = "doc:" + workspaces_path
-        self.root_remote.operations.execute(
+        pytest.root_remote.operations.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user=self.user_1,
@@ -558,7 +558,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
             grant=True,
         )
 
-        workspaces_info = self.root_remote.fetch(workspaces_path)
+        workspaces_info = pytest.root_remote.fetch(workspaces_path)
         workspaces = workspaces_info["uid"]
 
         # Get remote client with Workspaces as base folder and local client

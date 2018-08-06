@@ -101,7 +101,7 @@ class TestSecurityUpdates(UnitTestCase):
         # Get local and remote clients
         local = self.local_1
         remote = self.remote_document_client_1
-        root_remote = self.root_remote
+        root_remote = pytest.root_remote
 
         # Create documents in the remote root workspace
         # then synchronize
@@ -286,7 +286,7 @@ class TestSecurityUpdates(UnitTestCase):
     def _set_read_permission(self, user, doc_path, grant):
         input_obj = "doc:" + doc_path
         if grant:
-            self.root_remote.operations.execute(
+            pytest.root_remote.operations.execute(
                 command="Document.SetACE",
                 input_obj=input_obj,
                 user=user,
@@ -294,7 +294,7 @@ class TestSecurityUpdates(UnitTestCase):
                 grant=True,
             )
         else:
-            self.root_remote.block_inheritance(doc_path)
+            pytest.root_remote.block_inheritance(doc_path)
 
     def _check_pair_state(self, local_path, pair_state):
         local_path = "/" + self.workspace_title + local_path

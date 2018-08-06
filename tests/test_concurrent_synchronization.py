@@ -1,6 +1,8 @@
 # coding: utf-8
 import time
 
+import pytest
+
 from .common import (
     OS_STAT_MTIME_RESOLUTION,
     REMOTE_MODIFICATION_TIME_RESOLUTION,
@@ -11,7 +13,7 @@ from .common import (
 
 class TestConcurrentSynchronization(UnitTestCase):
     def create_docs(self, parent, number, name_pattern=None, delay=1.0):
-        return self.root_remote.operations.execute(
+        return pytest.root_remote.operations.execute(
             command="NuxeoDrive.CreateTestDocuments",
             input_obj="doc:" + parent,
             namePattern=name_pattern,
