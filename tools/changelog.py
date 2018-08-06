@@ -14,7 +14,7 @@ import sys
 
 import requests
 
-__version__ = "1.2.6"
+__version__ = "1.2.7"
 
 
 # Available formatters
@@ -152,7 +152,7 @@ def get_issues(args):
 
     # Match any categorie (issue type) with inconsistent use of spaces
     regexp = re.compile(
-        "^((?:{categories})\s*-\s*\d+\s*):.*".format(categories="|".join(args.types)),
+        r"^((?:{categories})\s*-\s*\d+\s*):.*".format(categories="|".join(args.types)),
         re.IGNORECASE,
     )
 
@@ -161,7 +161,7 @@ def get_issues(args):
     for commit in all_commits.splitlines():
         for issue in regexp.findall(commit):
             # Sanitization
-            issue = re.sub("\s+", "", issue).upper()
+            issue = re.sub(r"\s+", "", issue).upper()
             commits.append(issue)
 
     for commit in set(commits):
@@ -229,7 +229,7 @@ def get_version():
     with codecs.open(init_file, encoding="utf-8") as handler:
         for line in handler.readlines():
             if line.startswith("__version__"):
-                return re.findall(r"'(.+)'", line)[0]
+                return re.findall(r'"(.+)"', line)[0]
 
 
 def report_categorized(issues_list, fmt):
