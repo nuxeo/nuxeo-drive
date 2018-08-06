@@ -648,11 +648,16 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
         # Event from macOS to (un)watch a folder (FinderSync)
         r"nxdrive://(?P<cmd>trigger-watch)",
+        # Event to acquire the login token from the server
+        (
+            r"nxdrive://(?P<cmd>token)/"
+            r"(?P<token>[0-F]{8}-[0-F]{4}-[0-F]{4}-[0-F]{4}-[0-F]{12})"
+        ),
     )
 
     parsed_url = None
     for regex in protocol_regex:
-        parsed_url = re.match(regex, url_string)
+        parsed_url = re.match(regex, url_string, re.I)
         if parsed_url:
             break
 
@@ -665,6 +670,8 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
     cmd = parsed_url.get("cmd")
     if cmd == "edit":
         return parse_edit_protocol(parsed_url, url_string)
+    elif cmd == "token":
+        return dict(command=cmd, token=parsed_url.get("token"))
     elif cmd in path_cmds:
         return dict(command=cmd, filepath=parsed_url.get("path"))
     return dict(command=cmd)

@@ -10,6 +10,7 @@ import requests
 from markdown import markdown
 from PyQt5.QtCore import Qt, QUrl, pyqtSlot, QEvent
 from PyQt5.QtGui import QFont, QFontMetricsF, QIcon
+from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtQuick import QQuickView, QQuickWindow
 from PyQt5.QtWidgets import (
@@ -110,6 +111,9 @@ class Application(QApplication):
         # Display release notes on new version
         if self.manager.old_version != self.manager.version:
             self.show_release_notes(self.manager.version)
+
+        # Listen for nxdrive:// sent by a new instance
+        self.init_nxdrive_listener()
 
     def init_gui(self) -> None:
 
@@ -801,13 +805,13 @@ class Application(QApplication):
             return super().event(event)
         try:
             final_url = unquote(event.url().toString())
-            return self._handle_macos_event(final_url)
+            return self._handle_nxdrive_url(final_url)
         except:
             log.exception("Error handling URL event %r", url)
             return False
 
-    def _handle_macos_event(self, url: str) -> bool:
-        """ Handle a macOS event URL. """
+    def _handle_nxdrive_url(self, url: str) -> bool:
+        """ Handle an nxdrive protocol URL. """
 
         info = parse_protocol_url(url)
         if not info:
@@ -837,10 +841,38 @@ class Application(QApplication):
         elif cmd == "trigger-watch":
             for engine in manager._engine_definitions:
                 manager.osi.watch_folder(engine.local_folder)
+        elif cmd == "token":
+            self.api.handle_token(info["token"])
         else:
             log.warning("Unknown event URL=%r, info=%r", url, info)
             return False
         return True
+
+    def init_nxdrive_listener(self) -> None:
+        self._nxdrive_listener = QLocalServer()
+        self._nxdrive_listener.newConnection.connect(self._handle_connection)
+        self._nxdrive_listener.listen("com.nuxeo.drive.protocol")
+        self.aboutToQuit.connect(self._nxdrive_listener.close)
+
+    def _handle_connection(self) -> None:
+        con: QLocalSocket = self._nxdrive_listener.nextPendingConnection()
+        log.debug("Receiving socket connection for nxdrive protocol handling")
+        if not con or not con.waitForConnected():
+            log.debug("Unable to open server socket")
+            return
+
+        if con.waitForReadyRead():
+            payload = con.readAll()
+            url = str(payload.data(), encoding="utf-8")
+            self._handle_nxdrive_url(url)
+
+        con.disconnectFromServer()
+        con.waitForDisconnected()
+        del con
+        log.debug("Successfully closed server socket")
+
+        # Bring settings window to front
+        self.settings_window.show()
 
     def update_status(self, engine: "Engine") -> None:
         state = message = submessage = ""

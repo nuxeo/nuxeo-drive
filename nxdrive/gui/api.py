@@ -3,6 +3,7 @@ import calendar
 import json
 from datetime import datetime
 from logging import getLogger
+from os import getenv
 from time import struct_time, time
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode, urlsplit, urlunsplit
@@ -463,6 +464,7 @@ class QMLDriveApi(QObject):
             "permission": TOKEN_PERMISSION,
             "deviceDescription": get_device(),
             "forceAnonymousLogin": "true",
+            "useProtocol": getenv("NXDRIVE_DEV", "0") == "0",
         }
 
         # Handle URL parameters
