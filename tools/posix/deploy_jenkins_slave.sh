@@ -7,6 +7,7 @@
 #     --black: launch Black code cleanup on the whole source code
 #     --build: build the package
 #     --build-ext: build the FinderSync extension (macOS only)
+#     --install: install all dependencies
 #     --start: start Nuxeo Drive
 #     --tests: launch the tests suite
 #
@@ -19,7 +20,7 @@ PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 
 build_installer() {
     echo ">>> Building the release package"
-    pyinstaller ndrive.spec --noconfirm
+    pyinstaller ndrive.spec --clean --noconfirm
     create_package
 }
 
@@ -182,31 +183,20 @@ main() {
     install_python "${PYTHON_DRIVE_VERSION}"
     verify_python "${PYTHON_DRIVE_VERSION}"
 
-    if ! check_import "import sqlite3" >/dev/null; then
-        echo ">>> Python installation failed, check compilation process."
-        exit 1
-    fi
-
-    # To speedup the Black use, let's say all is installed as needed
     if [ $# -eq 1 ]; then
         case "$1" in
             "--black")
                 code_cleanup
                 exit 0
             ;;
-        esac
-    fi
-
-    install_deps
-
-    if ! check_import "import PyQt5" >/dev/null; then
-        echo ">>> No PyQt5. Installation failed."
-        exit 1
-    fi
-
-    if [ $# -eq 1 ]; then
-        case "$1" in
             "--build") build_installer ;;
+            "--install")
+                install_deps
+                if ! check_import "import PyQt5" >/dev/null; then
+                    echo ">>> No PyQt5. Installation failed."
+                    exit 1
+                fi
+                ;;
             "--start") start_nxdrive ;;
             "--tests") launch_tests ;;
         esac
