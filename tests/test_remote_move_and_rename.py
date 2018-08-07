@@ -280,6 +280,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Check child state
         folder_1_1_state = self.get_state(self.folder_1_1_id)
+        assert folder_1_1_state
         assert folder_1_1_state.local_path == (
             self.workspace_pair_local_path + "/Renamed Folder 1 \xe9" "/Sub-Folder 1.1"
         )

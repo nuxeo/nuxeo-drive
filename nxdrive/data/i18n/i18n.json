@@ -83,6 +83,7 @@
     "ERROR_REASON_DEDUP": "A remote document with the same name exists, but siblings are forbidden. Either contact the contributor to change the name of the document or change your local name and retry.",
     "ERROR_REASON_CORRUPT": "Failed to download the file because we cannot verify its integrity. Either the remote file has a bad check sum and a sysadmin must take care of it, either you should retry the download.",
     "ERROR_REASON_NOT_FOUND": "The document or its parent does not exist anymore on the server. This is an acknowledge message only because we cannot do anything about it.",
+    "ERROR_REASON_SERVER_ERROR": "The server has not been able to handle the request for this document. If the error persists, try contacting your sysadmin.",
     "ERROR_REASON_UNKNOWN": "This document is in error for unknown reason",
     "FILE_PATH": "Path: %1",
     "FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filters",
