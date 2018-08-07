@@ -101,6 +101,7 @@ for (x in slaves) {
 
                         try {
                             if (osi == 'GNU/Linux') {
+                                sh 'tools/linux/deploy_jenkins_slave.sh --install'
                                 sh 'tools/linux/deploy_jenkins_slave.sh --build'
                                 archive 'dist/*.deb'
                             } else if (osi == 'macOS') {
@@ -111,6 +112,7 @@ for (x in slaves) {
                                 withEnv(env_vars) {
                                     withCredentials([string(credentialsId: 'MOBILE_LOGIN_KEYCHAIN_PASSWORD',
                                                             variable: 'LOGIN_KEYCHAIN_PASSWORD')]) {
+                                        sh 'tools/osx/deploy_jenkins_slave.sh --install'
                                         sh 'tools/osx/deploy_jenkins_slave.sh --build'
                                         archive 'dist/*.dmg'
                                     }

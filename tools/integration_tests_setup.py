@@ -165,12 +165,19 @@ def clean_pyc(dir_):
 def run_tests_from_source():
     """ Launch the tests suite. """
 
-    cmd = "sh ../tools/linux/deploy_jenkins_slave.sh --tests"
-    if sys.platform == "darwin":
-        cmd = "sh ../tools/osx/deploy_jenkins_slave.sh --tests"
-    elif sys.platform == "win32":
-        cmd = r'powershell ".\..\tools\windows\deploy_jenkins_slave.ps1" -tests'
-    execute(cmd)
+    install = None
+    tests = r'powershell ".\..\tools\windows\deploy_jenkins_slave.ps1" -tests'
+
+    if sys.platform.startswith("linux"):
+        install = "sh ../tools/linux/deploy_jenkins_slave.sh --install"
+        tests = "sh ../tools/linux/deploy_jenkins_slave.sh --tests"
+    elif sys.platform == "darwin":
+        install = "sh ../tools/osx/deploy_jenkins_slave.sh --install"
+        tests = "sh ../tools/osx/deploy_jenkins_slave.sh --tests"
+
+    if install:
+        execute(install)
+    execute(tests)
 
 
 def download_package(url, pattern, target_folder, filename):
