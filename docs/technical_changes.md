@@ -37,6 +37,7 @@
 - Removed `Manager.proxyUpdated()`
 - Removed `Manager.validate_proxy_settings()`
 - Removed `Notification.get_content()`
+- Changed `fail_on_error` default value to True in `Options.update()`
 - Removed `Options.server_version`. Use `Engine.remote.client.server_version` attribute instead.
 - Removed `Options.proxy_exceptions`
 - Removed `Options.proxy_type`

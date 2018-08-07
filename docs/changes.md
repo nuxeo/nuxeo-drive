@@ -34,6 +34,7 @@ Changes in command line arguments:
 - [NXDRIVE-1231](https://jira.nuxeo.com/browse/NXDRIVE-1231): Add a message box to display fatal errors
 - [NXDRIVE-1235](https://jira.nuxeo.com/browse/NXDRIVE-1235): Disable Hebrew language as it is not translated
 - [NXDRIVE-1267](https://jira.nuxeo.com/browse/NXDRIVE-1267): Add a notification when DirectEdit starts the download of a file
+- [NXDRIVE-1300](https://jira.nuxeo.com/browse/NXDRIVE-1300): Display an error on bad configuration parameters
 
 ### Packaging / Build
 - [NXDRIVE-1217](https://jira.nuxeo.com/browse/NXDRIVE-1217): Hide the Dock icon on macOS
