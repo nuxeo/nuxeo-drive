@@ -181,7 +181,7 @@ def start_drive(tag=None, reset=False, gdb=False, msg="", **kwargs):
         debug("Resetting Drive ... ")
         shutil.rmtree(os.path.expanduser("~/.nuxeo-drive/logs"))
         """
-        system(('ndrive bind-server'
+        system(('python -m ndrive bind-server'
                 ' Administrator'
                 ' http://127.0.0.1:8080/nuxeo'
                 ' --password Administrator'))
@@ -194,11 +194,7 @@ def start_drive(tag=None, reset=False, gdb=False, msg="", **kwargs):
     if msg:
         msg = "[" + msg + "]"
 
-    cmd = (
-        "python scripts/ndrive.py"
-        " --log-level-console=ERROR"
-        " --log-level-file=TRACE"
-    )
+    cmd = "python -m nxdrive" " --log-level-console=ERROR" " --log-level-file=TRACE"
     if gdb:
         cmd = "gdb --quiet --eval-command=r --args " + cmd
 

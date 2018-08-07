@@ -20,7 +20,7 @@ from PyQt5.QtCore import QCoreApplication, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
-from nxdrive.constants import MAC, WINDOWS
+from nxdrive.constants import LINUX, MAC, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
@@ -316,15 +316,20 @@ class UnitTestCase(TestCase):
                 pass
 
     def get_local_client(self, path: str):
-        client = LocalTest
-        if MAC:
-            from .mac_local_client import MacLocalClient
+        """
+        Return an OS specific LocalClient class by default to simulate user actions on:
+            - Explorer (Windows)
+            - File Manager (macOS)
+        On GNU/Linux, there is not specific behavior so the original LocalClient will be used.
+        """
 
-            client = MacLocalClient
-        if WINDOWS:
-            from .win_local_client import WindowsLocalClient
+        if LINUX:
+            client = LocalTest
+        elif MAC:
+            from .mac_local_client import MacLocalClient as client
+        elif WINDOWS:
+            from .win_local_client import WindowsLocalClient as client
 
-            client = WindowsLocalClient
         return client(path)
 
     def _unregister(self, workspace):
