@@ -1,6 +1,7 @@
 # -*- mode: python -*-
 # coding: utf-8
 
+import io
 import os
 import os.path
 import re
@@ -10,7 +11,7 @@ import sys
 def get_version(init_file):
     """ Find the current version. """
 
-    with open(init_file) as handler:
+    with io.open(init_file, encoding="utf-8") as handler:
         for line in handler.readlines():
             if line.startswith("__version__"):
                 return re.findall(r"\"(.+)\"", line)[0]
