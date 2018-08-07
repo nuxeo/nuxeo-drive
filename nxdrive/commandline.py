@@ -471,7 +471,9 @@ class CliHandler:
                 options.consider_ssl_errors = False
 
         # Update default options
-        Options.update(options, setter="cli")
+        # We cannot use fail_on_error=True because options is a namespace
+        # and contains a lot of inexistant Options values.
+        Options.update(options, setter="cli", fail_on_error=False)
 
         if command != "uninstall":
             # Install utility to help debugging segmentation faults

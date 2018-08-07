@@ -44,8 +44,8 @@ def test_batch_update_from_dict():
 def test_batch_update_from_dict_with_unknown_option():
     options = {"debug": True, "foo": 42}
 
-    with pytest.raises(KeyError):
-        Options.update(options, setter="local", fail_on_error=True)
+    with pytest.raises(RuntimeError):
+        Options.update(options, setter="local")
     assert Options.debug
     assert not Options.foo
 
@@ -106,7 +106,7 @@ def test_getter():
 
 
 def test_error():
-    with pytest.raises(KeyError):
+    with pytest.raises(RuntimeError):
         Options.set("no key", 42)
 
     Options.set("no key", 42, fail_on_error=False)

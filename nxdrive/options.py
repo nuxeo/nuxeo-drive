@@ -206,7 +206,7 @@ class MetaOptions(type):
         Set an option.
 
         If the option does not exist, if will be ignored if `fail_on_error`
-        equals `False`, otherwise `KeyError` will be raised.
+        equals `False`, otherwise `RuntimeError` will be raised.
 
         If the `setter` has the right to override the option value, set
         `new_value`, else do nothing.
@@ -215,7 +215,7 @@ class MetaOptions(type):
         Any `bytes` value will be decoded.
 
         If the type of the new value differs from the original one,
-        raises `ValueError`.  It helps preventing assigning a `str` when
+        raises `TypeError`.  It helps preventing assigning a `str` when
         a `tuple` is required to keep the rest of the code consistent.
 
         Finally, if a callback is set for that option and if the `new_value`
@@ -227,7 +227,7 @@ class MetaOptions(type):
             old_value, old_setter = MetaOptions.options[item]
         except KeyError:
             if fail_on_error:
-                raise
+                raise RuntimeError(f"{item!r} is not a recognized parameter.") from None
         else:
             if isinstance(new_value, list):
                 # Need a tuple when JSON sends a simple list
@@ -282,9 +282,7 @@ class MetaOptions(type):
                     callback(new_value)
 
     @staticmethod
-    def update(
-        items: Any, setter: str = "default", fail_on_error: bool = False
-    ) -> None:
+    def update(items: Any, setter: str = "default", fail_on_error: bool = True) -> None:
         """
         Batch update options.
         If an option does not exist, it will be ignored.
