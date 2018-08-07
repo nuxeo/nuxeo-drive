@@ -661,7 +661,7 @@ are well taken into account.
         folder = local1.make_folder("/", srcname)
         srcname = "/" + srcname
         for filename in files:
-            local1.make_file(srcname, filename, content=filename.encode())
+            local1.make_file(srcname, filename, content=filename.encode("utf-8"))
 
         # Checks
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)

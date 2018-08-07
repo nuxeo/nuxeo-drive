@@ -557,7 +557,7 @@ class Remote(Nuxeo):
                 doc = self.fetch(doc_id)
                 content = doc["properties"].get("note:note")
                 if content:
-                    content = unquote(content).encode()
+                    content = unquote(content).encode("utf-8")
                     if file_out:
                         with open(file_out, "wb") as f:
                             f.write(content)

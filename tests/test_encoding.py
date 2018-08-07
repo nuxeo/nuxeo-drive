@@ -46,7 +46,7 @@ class TestEncoding(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        data = "Contenu avec caract\xe8res accentu\xe9s.".encode()
+        data = "Contenu avec caract\xe8res accentu\xe9s.".encode("utf-8")
         remote.make_file(self.workspace, "Nom sans accents.txt", content=data)
         self.wait_sync(wait_for_async=True)
 
@@ -74,7 +74,7 @@ class TestEncoding(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        data = "Contenu avec caract\xe8res accentu\xe9s.".encode()
+        data = "Contenu avec caract\xe8res accentu\xe9s.".encode("utf-8")
         local.make_file("/", "Nom sans accents", content=data)
         self.wait_sync(wait_for_async=True)
 
