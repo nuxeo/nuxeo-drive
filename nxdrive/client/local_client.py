@@ -722,6 +722,9 @@ FolderType=Generic
         :param ctime: The creation time
         """
 
+        if WINDOWS:
+            filename = safe_long_path(filename)
+
         log.trace(
             "Setting file dates for %r (ctime=%r, mtime=%r)", filename, ctime, mtime
         )
