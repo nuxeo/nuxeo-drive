@@ -120,7 +120,9 @@ class UnitTestCase(TestCase):
             permission="ReadWrite",
         )
 
-        credentials = [c.strip().split(":") for c in credentials.decode().split(",")]
+        credentials = [
+            c.strip().split(":") for c in credentials.decode("utf-8").split(",")
+        ]
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
         ws_info = pytest.root_remote.fetch("/default-domain/workspaces/")

@@ -234,7 +234,7 @@ class MetaOptions(type):
                 new_value = tuple(sorted(new_value))
             elif isinstance(new_value, bytes):
                 # No option needs bytes
-                new_value = new_value.decode()
+                new_value = new_value.decode("utf-8")
 
             # Try implicit conversions. We do not use isinstance to prevent
             # checking against subtypes.

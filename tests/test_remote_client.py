@@ -263,7 +263,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Create content encoded in utf-8 and cp1252
         unicode_content = "\xe9"  # e acute
-        utf8_encoded = unicode_content.encode()
+        utf8_encoded = unicode_content.encode("utf-8")
         utf8_digest = hashlib.md5(utf8_encoded).hexdigest()
         cp1252_encoded = unicode_content.encode("cp1252")
 

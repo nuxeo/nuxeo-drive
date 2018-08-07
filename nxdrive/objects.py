@@ -181,7 +181,7 @@ class NuxeoDocumentInfo(SlotInfo):
                     digest = None
                 else:
                     m = hashlib.md5()
-                    m.update(note.encode())
+                    m.update(note.encode("utf-8"))
                     digest = m.hexdigest()
                     digest_algorithm = "md5"
                     ext = ".txt"

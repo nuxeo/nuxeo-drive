@@ -389,7 +389,7 @@ class Engine(QObject):
             return False
 
         self.local.set_remote_id("/", tag_value, tag)
-        if self.local.get_remote_id("/", tag) != tag_value.decode():
+        if self.local.get_remote_id("/", tag) != tag_value.decode("utf-8"):
             return False
 
         self.local.remove_remote_id("/", tag)
@@ -858,7 +858,7 @@ class Engine(QObject):
         value = "|".join(
             (self.server_url, self.remote_user, self.manager.device_id, self.uid)
         )
-        self.local.set_root_id(value.encode())
+        self.local.set_root_id(value.encode("utf-8"))
         self.local.set_remote_id("/", remote_info.uid)
         self._dao.synchronize_state(row)
         # The root should also be sync

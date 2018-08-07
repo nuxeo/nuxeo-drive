@@ -780,7 +780,7 @@ class TestRemoteMove(UnitTestCase):
         a1 = remote.make_folder("/", "a1")
         for idx in range(5):
             fname = "file-{}.txt".format(idx)
-            remote.make_file(a1, fname, content=b"Content of " + fname.encode())
+            remote.make_file(a1, fname, content=b"Content of " + fname.encode("utf-8"))
         engine.start()
         self.wait_sync(wait_for_async=True)
 

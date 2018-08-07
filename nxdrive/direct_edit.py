@@ -343,7 +343,9 @@ class DirectEdit(Worker):
             if not digest_algorithm:
                 digest_algorithm = guess_digest_algorithm(info.digest)
             self.local.set_remote_id(
-                dir_path, digest_algorithm.encode(), name="nxdirecteditdigestalgorithm"
+                dir_path,
+                digest_algorithm.encode("utf-8"),
+                name="nxdirecteditdigestalgorithm",
             )
         self.local.set_remote_id(dir_path, filename, name="nxdirecteditname")
 
@@ -396,7 +398,9 @@ class DirectEdit(Worker):
 
     def force_update(self, ref: str, digest: str) -> None:
         dir_path = os.path.dirname(ref)
-        self.local.set_remote_id(dir_path, digest.encode(), name="nxdirecteditdigest")
+        self.local.set_remote_id(
+            dir_path, digest.encode("utf-8"), name="nxdirecteditdigest"
+        )
         self._upload_queue.put(ref)
 
     def _handle_lock_queue(self) -> None:

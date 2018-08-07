@@ -346,7 +346,7 @@ FolderType=Generic
         path = self.abspath(ref)
 
         if not isinstance(remote_id, bytes):
-            remote_id = unicodedata.normalize("NFC", remote_id).encode()
+            remote_id = unicodedata.normalize("NFC", remote_id).encode("utf-8")
 
         log.trace("Setting xattr %r with value %r on %r", name, remote_id, path)
         locker = unlock_path(path, False)
@@ -400,7 +400,7 @@ FolderType=Generic
             path += ":" + name
             try:
                 with open(path, "rb") as f:
-                    return f.read().decode()
+                    return f.read().decode("utf-8")
             except OSError:
                 return None
 
@@ -408,13 +408,13 @@ FolderType=Generic
             name = "user." + name
 
         try:
-            return xattr.getxattr(path, name).decode()
+            return xattr.getxattr(path, name).decode("utf-8")
         except OSError:
             return None
 
     def get_info(self, ref: str, raise_if_missing: bool = True) -> Optional[FileInfo]:
         if isinstance(ref, bytes):
-            ref = ref.decode()
+            ref = ref.decode("utf-8")
 
         os_path = self.abspath(ref)
         if not os.path.exists(os_path):
@@ -736,7 +736,7 @@ FolderType=Generic
 
             if MAC:
                 if isinstance(filename, bytes):
-                    filename = filename.decode()
+                    filename = filename.decode("utf-8")
                 cmd = ["touch", "-mt", ctime.strftime("%Y%m%d%H%M.%S"), filename]
                 subprocess.check_call(cmd)
             elif WINDOWS:
@@ -766,7 +766,7 @@ FolderType=Generic
         """ Relative path to the local client from an absolute OS path. """
 
         if isinstance(abspath, bytes):
-            abspath = abspath.decode()
+            abspath = abspath.decode("utf-8")
 
         _, _, path = abspath.partition(self.base_folder)
         if not path:

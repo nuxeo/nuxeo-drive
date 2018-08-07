@@ -128,8 +128,7 @@ def is_generated_tmp_file(name: str) -> Tuple[bool, Optional[bool]]:
     ignore, do_not_ignore = True, False
     delay, do_not_delay, no_delay_effect = True, False, None
 
-    if isinstance(name, bytes):
-        name = name.decode()
+    name = force_decode(name)
 
     # Default ignored suffixes already handle .bak, .tmp, etc..
     if name.endswith(Options.ignored_suffixes):
@@ -268,10 +267,9 @@ def version_lt(x: str, y: str) -> bool:
 
 def normalized_path(path: str) -> str:
     """ Return absolute, normalized file path. """
-    if isinstance(path, bytes):
-        path = path.decode()
-
-    return os.path.realpath(os.path.normpath(os.path.abspath(os.path.expanduser(path))))
+    return os.path.realpath(
+        os.path.normpath(os.path.abspath(os.path.expanduser(force_decode(path))))
+    )
 
 
 def normalize_event_filename(filename: str, action: bool = True) -> str:
@@ -351,8 +349,7 @@ def safe_long_path(path: str) -> str:
     We also need to normalize the path as described here:
         https://bugs.python.org/issue18199#msg260122
     """
-    if isinstance(path, bytes):
-        path = path.decode()
+    path = force_decode(path)
 
     if WINDOWS and not path.startswith("\\\\?\\"):
         path = "\\\\?\\" + normalized_path(path)
@@ -377,13 +374,13 @@ def find_icon(icon: str) -> str:
 
 def force_decode(string: Union[bytes, str]) -> str:
     if isinstance(string, bytes):
-        string = string.decode()
+        string = string.decode("utf-8")
     return string
 
 
 def force_encode(data: Union[bytes, str]) -> bytes:
     if isinstance(data, str):
-        data = data.encode()
+        data = data.encode("utf-8")
     return data
 
 

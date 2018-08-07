@@ -191,7 +191,7 @@ class TestDirectEdit(UnitTestCase):
         remote = self.remote_1
         info = remote.get_filesystem_root_info()
         workspace_id = remote.get_fs_children(info.uid)[0].uid
-        content = "Content of file 1 Avec des accents h\xe9h\xe9.".encode()
+        content = "Content of file 1 Avec des accents h\xe9h\xe9.".encode("utf-8")
         file_id = remote.make_file(
             workspace_id, "Mode op\xe9ratoire.txt", content=content
         ).uid
