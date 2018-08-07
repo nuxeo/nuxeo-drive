@@ -207,7 +207,12 @@ class EngineWorker(Worker):
     def increase_error(
         self, doc_pair: NuxeoDocumentInfo, error: str, exception: Exception = None
     ) -> None:
-        details = str(exception) if exception else None
+        details = None
+        if exception:
+            try:
+                details = exception.message
+            except AttributeError:
+                details = str(exception)
         log.debug("Increasing error [%s] (%r) for %r", error, details, doc_pair)
         self._dao.increase_error(doc_pair, error, details=details)
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)

@@ -1078,3 +1078,14 @@ class TestSynchronization(UnitTestCase):
         remote.delete(root)
         self.wait_sync(wait_for_async=True)
         assert not local.exists("/" + root_name)
+
+    def test_synchronize_document_with_pattern(self):
+        """
+        Simple test to ensure there is no issue with files like "$AAA000$.doc".
+        Related to NXDRIVE-1287.
+        """
+        name = "$NAB184$.doc"
+        self.remote_document_client_1.make_file("/", name, content=b"42")
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        assert self.local_1.exists(f"/{name}")

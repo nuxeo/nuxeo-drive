@@ -298,8 +298,11 @@ class Processor(EngineWorker):
                         # starting with identical characters.
                         log.error("Delaying conflicted document: %r", doc_pair)
                         self._postpone_pair(doc_pair, "Conflict")
+                    elif exc.status == 500:
+                        self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
                     else:
-                        self._handle_pair_handler_exception(doc_pair, handler_name, exc)
+                        error = f"{handler_name}_http_error_{exc.status}"
+                        self._handle_pair_handler_exception(doc_pair, error, exc)
                     continue
                 except (
                     ConnectionError,
