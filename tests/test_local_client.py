@@ -33,6 +33,10 @@ class StubLocalClient:
     world example.
     """
 
+    def setUp(self):
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
     def test_make_documents(self):
         local = self.local_1
         doc_1 = local.make_file("/", "Document 1.txt")
@@ -350,13 +354,9 @@ The final tree must be:
 
 class TestLocalClientNative(StubLocalClient, UnitTestCase):
     """
-    Test LocalClient using native python commands to make FS operations.
+    Test LocalClient using native Python commands to make FS operations.
     This will simulate Drive actions.
     """
-
-    def setUp(self):
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
 
     def get_local_client(self, path):
         return LocalTest(path)
@@ -408,29 +408,25 @@ class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
         - File Manager (macOS)
     """
 
-    def setUp(self):
-        self.engine_1.start()
-        self.wait_sync()
-
     @pytest.mark.xfail(
         WINDOWS,
         raises=OSError,
         reason="Explorer cannot find the directory as the path is way to long",
     )
     def test_complex_filenames(self):
-        """
-        It should fail on Windows: OSError: [Errno 2] No such file or directory
-        Explorer cannot find the directory as the path is way to long.
-        """
+        """OSError: [Errno 2] No such file or directory"""
         super().test_complex_filenames()
+
+    @pytest.mark.xfail(
+        WINDOWS, reason="Explorer cannot find the directory as the path is too long"
+    )
+    def test_long_path(self):
+        """WindowsError: [Errno 3] The system cannot find the specified file"""
+        super().test_long_path()
 
     @pytest.mark.xfail(
         WINDOWS, raises=OSError, reason="Explorer cannot deal with very long paths"
     )
     def test_deep_folders(self):
-        """
-        It should fail on Windows:
-            WindowsError: [Error 206] The filename or extension is too long
-        Explorer cannot deal with very long paths.
-        """
+        """WindowsError: [Error 206] The filename or extension is too long"""
         super().test_deep_folders()
