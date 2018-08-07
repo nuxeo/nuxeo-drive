@@ -543,7 +543,7 @@ class CliHandler:
         client.connectToServer("com.nuxeo.drive.protocol")
 
         if not client.waitForConnected():
-            log.debug("Unable to open client socket")
+            log.error(f"Unable to open client socket: {client.errorString()}")
             return 0
 
         client.write(QByteArray(payload))
@@ -551,7 +551,7 @@ class CliHandler:
         client.disconnectFromServer()
         client.waitForDisconnected()
         del client
-        log.debug("Succesfully closed client socket")
+        log.debug("Successfully closed client socket")
 
     def clean_folder(self, options: Namespace) -> int:
         from .client.local_client import LocalClient
