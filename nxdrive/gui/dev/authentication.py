@@ -1,5 +1,6 @@
 # coding: utf-8
-import re
+import json
+from contextlib import suppress
 from logging import getLogger
 
 from PyQt5.QtCore import Qt, QUrl
@@ -18,21 +19,16 @@ class WebAuthenticationDialog(WebDialog):
         title = Translator.get("WEB_AUTHENTICATION_WINDOW_TITLE")
         super().__init__(application, url, title=title, api=api)
         self.resize(1000, 800)
-        self.page.urlChanged.connect(self.handle_login)
+        self.page.urlChanged.connect(self._read_page)
 
-    def handle_login(self, url: QUrl) -> None:
-        m = re.search(
-            "#token=([0-F]{8}-[0-F]{4}-[0-F]{4}-[0-F]{4}-[0-F]{12})",
-            url.toString(),
-            re.I,
-        )
-        if m:
-            token = m.group(1)
-            error = self.api.handle_token(token)
-            if error:
-                # Handle error
-                pass
+    def handle_login(self, text: str) -> None:
+        with suppress(json.decoder.JSONDecodeError):
+            content = json.loads(text)
+            self.api.handle_token(content["token"], content["username"])
             self.close()
+
+    def _read_page(self, url: QUrl) -> None:
+        self.page.toPlainText(self.handle_login)
 
 
 def auth(cls: "Application", url: str) -> None:

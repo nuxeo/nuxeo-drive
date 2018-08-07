@@ -10,6 +10,7 @@ from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor
 from PyQt5.QtWebEngineWidgets import (
     QWebEngineCertificateError,
     QWebEnginePage,
+    QWebEngineProfile,
     QWebEngineSettings,
     QWebEngineView,
 )
@@ -72,7 +73,8 @@ class WebDialog(QDialog):
         self.setWindowTitle(title)
         self.setWindowIcon(QIcon(application.get_window_icon()))
         self.view = QWebEngineView()
-        self.page = DriveWebPage()
+        self.profile = QWebEngineProfile("web-engine-storage", self.view)
+        self.page = DriveWebPage(self.profile, self.view)
         self.api = api
         self.token = token
         self.request = None
@@ -84,6 +86,7 @@ class WebDialog(QDialog):
             )
         else:
             self.view.setContextMenuPolicy(Qt.NoContextMenu)
+            self.profile.setHttpCacheType(QWebEngineProfile.NoCache)
 
         self.setWindowFlags(Qt.WindowCloseButtonHint)
         self.setLayout(QVBoxLayout())

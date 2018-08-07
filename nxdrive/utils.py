@@ -651,7 +651,8 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         # Event to acquire the login token from the server
         (
             r"nxdrive://(?P<cmd>token)/"
-            r"(?P<token>[0-F]{8}-[0-F]{4}-[0-F]{4}-[0-F]{4}-[0-F]{12})"
+            r"(?P<token>[0-F]{8}-[0-F]{4}-[0-F]{4}-[0-F]{4}-[0-F]{12})/"
+            r"user/(?P<username>.*)"
         ),
     )
 
@@ -671,7 +672,11 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
     if cmd == "edit":
         return parse_edit_protocol(parsed_url, url_string)
     elif cmd == "token":
-        return dict(command=cmd, token=parsed_url.get("token"))
+        return dict(
+            command=cmd,
+            token=parsed_url.get("token"),
+            username=parsed_url.get("username"),
+        )
     elif cmd in path_cmds:
         return dict(command=cmd, filepath=parsed_url.get("path"))
     return dict(command=cmd)

@@ -6,18 +6,15 @@ import os
 import sys
 import traceback
 from argparse import ArgumentParser, Namespace
-from configparser import ConfigParser, DEFAULTSECT
+from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
 from typing import List, Union
 
-from PyQt5.QtCore import QByteArray
-from PyQt5.QtNetwork import QLocalSocket
-
 from . import __version__
 from .logging_config import configure
 from .options import Options
-from .utils import get_default_nuxeo_drive_folder, normalized_path
+from .utils import force_encode, get_default_nuxeo_drive_folder, normalized_path
 
 try:
     import ipdb as pdb
@@ -523,7 +520,7 @@ class CliHandler:
         lock = PidLockFile(self.manager.nxdrive_home, "qt")
         if lock.lock():
             if Options.protocol_url:
-                payload = bytes(Options.protocol_url, encoding="utf-8")
+                payload = force_encode(Options.protocol_url)
                 self._send_to_running_instance(payload)
             else:
                 log.warning("%s is already running: exiting.", self.manager.app_name)
@@ -536,6 +533,9 @@ class CliHandler:
         return exit_code
 
     def _send_to_running_instance(self, payload: bytes) -> bool:
+        from PyQt5.QtCore import QByteArray
+        from PyQt5.QtNetwork import QLocalSocket
+
         log.debug(
             f"Opening local socket to send to the running instance (payload={payload})"
         )
