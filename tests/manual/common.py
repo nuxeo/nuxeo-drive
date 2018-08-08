@@ -1,6 +1,7 @@
 # coding: utf-8
 """ Common functions for manual testing. """
 
+import contextlib
 import io
 import os
 import shutil
@@ -13,22 +14,22 @@ import uuid
 from nuxeo.client import Nuxeo
 from nuxeo.models import Document
 
-__all__ = [
+__all__ = (
+    "action",
     "create_files_locally",
     "create_files_remotely",
     "create_folders_locally",
-    "get_children",
-    "rename_remote",
-    "rename_local",
     "debug",
+    "get_children",
     "pause",
+    "rename_local",
+    "rename_remote",
     "start_drive",
-    "action",
-]
+)
 
 
 nuxeo = Nuxeo(
-    host=os.environ.get("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo"),
+    host=os.getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo"),
     auth=("Administrator", "Administrator"),
 )
 
@@ -41,13 +42,13 @@ def create_files_locally(path, files=None, folders=None, random=True):
 
     def create(doc, parent):
         if random:
-            doc = "doc_" + str(uuid.uuid1()).split("-")[0] + ".txt"
+            doc = f"doc_{uid()}.txt"
         elif isinstance(doc, int):
-            doc = "doc_" + str(doc) + ".txt"
+            doc = f"doc_{doc}.txt"
 
         with open(os.path.join(parent, doc), "w") as fileo:
-            fileo.write("Content " + doc)
-        debug("Created local file {!r}".format(parent + "/" + doc))
+            fileo.write(f"Content {doc}")
+        debug(f"Created local file {parent}/{doc}")
 
     if folders:
         for folder in folders:
@@ -66,19 +67,19 @@ def create_files_remotely(workspace, files=None, folders=None, random=True):
 
     def create(doc, parent):
         if random:
-            doc = "doc_" + str(uuid.uuid1()).split("-")[0] + ".txt"
+            doc = f"doc_{uid()}.txt"
         elif isinstance(doc, int):
-            doc = "doc_" + str(doc) + ".txt"
+            doc = f"doc_{doc}.txt"
 
         doc_info = Document(
             name=doc,
             type="Note",
-            properties={"dc:title": doc, "note:note": "Content " + doc},
+            properties={"dc:title": doc, "note:note": f"Content {doc}"},
         )
         nuxeo.documents.create(
-            doc_info, parent_path="/default-domain/workspaces/" + parent
+            doc_info, parent_path=f"/default-domain/workspaces/{parent}"
         )
-        debug("Created remote file {!r} in {!r}".format(doc, parent))
+        debug(f"Created remote file {doc!r} in {parent!r}")
         time.sleep(0.05)
 
     if folders:
@@ -112,7 +113,7 @@ def create_folders_locally(parent, folders=None):
 def create_workspace():
     """ Create a unique workspace. """
 
-    path = "tests-" + str(uuid.uuid1()).split("-")[0]
+    path = f"tests-{uid()}"
     ws = Document(name=path, type="Workspace", properties={"dc:title": path})
     workspace = nuxeo.documents.create(ws, parent_path="/default-domain/workspaces")
     workspace.save()
@@ -123,15 +124,15 @@ def create_workspace():
     operation.input_obj = workspace.path
     operation.execute()
 
-    debug("Created workspace " + path)
+    debug("Created workspace {path}")
     return workspace
 
 
-def get_children(path):
+def get_children(workspace):
+    """ Retrieve all children of a given workspace (can be a Document too). """
 
-    doc = nuxeo.documents.get(path="/default-domain/workspaces/" + path)
-    docs = nuxeo.client.query(
-        {"pageProvider": "CURRENT_DOC_CHILDREN", "queryParams": [doc.uid]}
+    docs = nuxeo.documents.query(
+        {"pageProvider": "CURRENT_DOC_CHILDREN", "queryParams": [workspace.uid]}
     )
     return docs["entries"]
 
@@ -139,12 +140,10 @@ def get_children(path):
 def rename_remote(document):
     """ Rename a document. """
 
-    new_name = document.title + "_renamed-dist.txt"
-    document.properties.update(
-        {"dc:title": new_name, "dc:description": "Document remotely renamed"}
-    )
-    nuxeo.documents.update(document)
-    debug("Remotely renamed {!r} -> {!r}".format(document.title, new_name))
+    new_name = f"{document.title}_renamed-dist.txt"
+    document.set({"dc:title": new_name, "dc:description": "Document remotely renamed"})
+    document.save()
+    debug(f"Remotely renamed {document.title!r} -> {new_name!r}")
     time.sleep(0.05)
 
 
@@ -152,11 +151,11 @@ def rename_local(parent, document):
     """ Rename a document locally. """
 
     doc = os.path.join(parent, document.title)
-    new_name = doc + "_renamed-local.txt"
+    new_name = f"{doc}_renamed-local.txt"
     os.rename(doc, new_name)
     with io.open(new_name, "w", encoding="utf-8") as handler:
         handler.write("Document remotely renamed")
-    debug("Locally renamed {!r} -> {!r}".format(document.title, new_name))
+    debug(f"Locally renamed {document.title!r} -> {new_name!r}")
 
 
 # ---
@@ -166,6 +165,12 @@ def debug(*args):
     """ Print a line on STDERR. """
 
     print(">>>", *args, file=sys.stderr)
+
+
+def uid():
+    """ Generate a uniq ID. """
+
+    return str(uuid.uuid1()).split("-")[0]
 
 
 def pause():
@@ -179,26 +184,26 @@ def start_drive(tag=None, reset=False, gdb=False, msg="", **kwargs):
 
     if reset:
         debug("Resetting Drive ... ")
-        shutil.rmtree(os.path.expanduser("~/.nuxeo-drive/logs"))
-        """
-        system(('python -m ndrive bind-server'
-                ' Administrator'
-                ' http://127.0.0.1:8080/nuxeo'
-                ' --password Administrator'))
-        """
+        with contextlib.suppress(FileNotFoundError):
+            shutil.rmtree(os.path.expanduser("~/.nuxeo-drive/logs"))
+        user, pwd = nuxeo.client.auth
+        cmd = (
+            "python -m nxdrive bind-server {user} {nuxeo.client.host} --password {pwd}"
+        )
+        system(cmd)
 
     if tag:
-        debug("Switching to git branch " + tag)
-        system("git checkout " + tag)
+        debug(f"Switching to git branch {tag}")
+        system(f"git checkout {tag}")
 
     if msg:
-        msg = "[" + msg + "]"
+        msg = f"[{msg}]"
 
-    cmd = "python -m nxdrive" " --log-level-console=ERROR" " --log-level-file=TRACE"
+    cmd = "python -m nxdrive --log-level-console=ERROR --log-level-file=TRACE"
     if gdb:
-        cmd = "gdb --quiet --eval-command=r --args " + cmd
+        cmd = f"gdb --quiet --eval-command=r --args {cmd}"
 
-    debug("Starting Drive ... " + msg)
+    debug(f"Starting Drive ... {msg}")
     system(cmd, **kwargs)
 
 
@@ -209,7 +214,7 @@ def system(cmd, **kwargs):
         subprocess.Popen(cmd.split(), stderr=open(os.devnull, "wb"))
         time.sleep(2)
     else:
-        subprocess.check_call(cmd.split(), stderr=open(os.devnull, "wb"))
+        os.system(cmd)
 
 
 def action(func):
