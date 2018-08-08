@@ -391,7 +391,7 @@ class Manager(QObject):
         if WINDOWS:
             if select:
                 win32api.ShellExecute(
-                    None, "open", "explorer.exe", "/select," + file_path, None, 1
+                    None, "open", "explorer.exe", f"/select,{file_path}", None, 1
                 )
             else:
                 os.startfile(file_path)
@@ -402,8 +402,13 @@ class Manager(QObject):
             args += [file_path]
             subprocess.Popen(args)
         else:
-            # TODO NXDRIVE-848: Select feature not yet implemented
-            # TODO See https://bugs.freedesktop.org/show_bug.cgi?id=49552
+            if select:
+                # TODO NXDRIVE-848: Select feature not yet implemented
+                # TODO See https://bugs.freedesktop.org/show_bug.cgi?id=49552
+                log.info(
+                    "The Select/Highlight feature is not yet implemented, please vote "
+                    "https://jira.nuxeo.com/browse/NXDRIVE-848 to show your interest"
+                )
             try:
                 subprocess.Popen(["xdg-open", file_path])
             except OSError:
