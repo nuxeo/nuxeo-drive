@@ -87,19 +87,19 @@ class EngineModel(QAbstractListModel):
         row = self.engines[uid]
         if role == self.UID_ROLE:
             return row.uid
-        if role == self.TYPE_ROLE:
+        elif role == self.TYPE_ROLE:
             return row.type
-        if role == self.SERVER_ROLE:
+        elif role == self.SERVER_ROLE:
             return row.name
-        if role == self.FOLDER_ROLE:
+        elif role == self.FOLDER_ROLE:
             return row.local_folder
-        if role == self.USERNAME_ROLE:
+        elif role == self.USERNAME_ROLE:
             return row.remote_user
-        if role == self.URL_ROLE:
+        elif role == self.URL_ROLE:
             return row.server_url
-        if role == self.UI_ROLE:
+        elif role == self.UI_ROLE:
             return row.wui
-        if role == self.FORCE_UI_ROLE:
+        elif role == self.FORCE_UI_ROLE:
             return row.force_ui or row.wui
         return None
 
@@ -111,19 +111,19 @@ class EngineModel(QAbstractListModel):
         row = self.engines[uid]
         if role == "uid":
             return row.uid
-        if role == "type":
+        elif role == "type":
             return row.type
-        if role == "server":
+        elif role == "server":
             return row.name
-        if role == "folder":
+        elif role == "folder":
             return row.local_folder
-        if role == "username":
+        elif role == "username":
             return row.remote_user
-        if role == "url":
+        elif role == "url":
             return row.server_url
-        if role == "ui":
+        elif role == "ui":
             return row.wui
-        if role == "forceUi":
+        elif role == "forceUi":
             return row.force_ui or row.wui
         return ""
 
@@ -193,7 +193,7 @@ class FileModel(QAbstractListModel):
     def roleNames(self) -> Dict[int, bytes]:
         return {
             self.ID: b"id",
-            self.DETAILS: b"details",
+            self.DETAILS: b"last_error_details",
             self.FOLDERISH: b"folderish",
             self.LAST_CONTRIBUTOR: b"last_contributor",
             self.LAST_ERROR: b"last_error",
@@ -224,37 +224,37 @@ class FileModel(QAbstractListModel):
         row = self.files[index.row()]
         if role == self.ID:
             return row["id"]
-        if role == self.DETAILS:
-            return row["details"]
-        if role == self.FOLDERISH:
+        elif role == self.DETAILS:
+            return row["last_error_details"]
+        elif role == self.FOLDERISH:
             return row["folderish"]
-        if role == self.LAST_CONTRIBUTOR:
+        elif role == self.LAST_CONTRIBUTOR:
             return row["last_contributor"]
-        if role == self.LAST_ERROR:
+        elif role == self.LAST_ERROR:
             return row["last_error"]
-        if role == self.LAST_LOCAL_UDPATE:
+        elif role == self.LAST_LOCAL_UDPATE:
             return row["last_local_update"]
-        if role == self.LAST_REMOTE_UDPATE:
+        elif role == self.LAST_REMOTE_UDPATE:
             return row["last_remote_update"]
-        if role == self.LAST_SYNC_DATE:
+        elif role == self.LAST_SYNC_DATE:
             return row["last_sync_date"]
-        if role == self.LAST_TRANSFER:
+        elif role == self.LAST_TRANSFER:
             return row["last_transfer"].replace("load", "")
-        if role == self.LOCAL_PARENT_PATH:
+        elif role == self.LOCAL_PARENT_PATH:
             return row["local_parent_path"]
-        if role == self.LOCAL_PATH:
+        elif role == self.LOCAL_PATH:
             return row["local_path"]
-        if role == self.NAME:
+        elif role == self.NAME:
             return row["name"]
-        if role == self.REMOTE_CAN_RENAME:
+        elif role == self.REMOTE_CAN_RENAME:
             return row["remote_can_rename"]
-        if role == self.REMOTE_CAN_UPDATE:
+        elif role == self.REMOTE_CAN_UPDATE:
             return row["remote_can_update"]
-        if role == self.REMOTE_NAME:
+        elif role == self.REMOTE_NAME:
             return row["remote_name"]
-        if role == self.REMOTE_REF:
+        elif role == self.REMOTE_REF:
             return row["remote_ref"]
-        if role == self.STATE:
+        elif role == self.STATE:
             return row["state"]
         return ""
 
@@ -307,7 +307,7 @@ class LanguageModel(QAbstractListModel):
         row = self.languages[index.row()]
         if role == self.NAME_ROLE:
             return row[1]
-        if role == self.TAG_ROLE:
+        elif role == self.TAG_ROLE:
             return row[0]
         return ""
 
