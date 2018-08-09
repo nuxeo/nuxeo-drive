@@ -8,16 +8,21 @@
 - Removed `AbstractOSIntegration.is_windows()`
 - Removed `Application.get_htmlpage()`
 - Removed `Application.get_cache_folder()`
+- Added `Application.refresh_conflicts()`
 - Removed `CustomMemoryHandler.flush()`
 - Added `Engine.init_remote()`
 - Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, filtered_remote_cls, local_cls)`
 - Removed `Engine.get_abspath()`
+- Added `duration` keyword argument to `Engine.get_last_files()`
+- Added `Engine.get_last_files_count()`
 - Removed `Engine.get_local_client()`. Use `local` attribute instead.
 - Removed `Engine.get_remote_client()`. Use `remote` attribute instead.
 - Removed `Engine.get_rest_api_client()`. Use `remote` attribute instead.
 - Removed `Engine.get_server_version()`. Use `remote.client.server_version` attribute instead.
 - Removed `Engine.get_update_infos()`
 - Removed `Engine.invalidate_client_cache()`
+- Added `duration` keyword argument to `EngineDAO.get_last_files()`
+- Added `EngineDAO.get_last_files_count()`
 - Moved `LocalClient.get_content()` to `LocalTest`
 - Moved `LocalClient.update_content()` to `LocalTest`
 - Added `Manager.proxy`
@@ -42,6 +47,8 @@
 - Removed `Options.server_version`. Use `Engine.remote.client.server_version` attribute instead.
 - Removed `Options.proxy_exceptions`
 - Removed `Options.proxy_type`
+- Added `duration` keyword argument to `QMLDriveApi.get_last_files()`
+- Added `QMLDriveApi.get_last_files_count()`
 - Removed `QueueManager.queueEmpty()`
 - Added `Remote.set_proxy()`
 - Moved `Remote.conflicted_name()` to `RemoteBase`
