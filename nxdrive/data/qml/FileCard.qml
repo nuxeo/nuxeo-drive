@@ -8,10 +8,10 @@ ShadowRectangle {
     signal resolved()
     signal ignored()
 
-    property var fileData
+    property variant fileData
     property string type: fileData.state == "conflicted" ? "conflict" : "error"
 
-    width: parent.width; height: cardContent.height + 40
+    width: parent.width - 20; height: cardContent.height + 40
     anchors.horizontalCenter: parent.horizontalCenter
 
     RowLayout {
@@ -56,7 +56,7 @@ ShadowRectangle {
 
             ScaledText {
                 id: errorDetails
-                text: fileData.details
+                text: fileData.last_error_details
                 visible: type != "conflict" && text
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap

@@ -44,14 +44,14 @@ QtObject {
         width: conflicts.width; height: conflicts.height
         visible: false
 
-        signal changed()
+        signal changed(string uid)
         signal setEngine(string uid)
 
         onSetEngine: conflicts.setEngine(uid)
 
         Conflicts {
             id: conflicts
-            onChanged: conflictsWindow.changed()
+            onChanged: conflictsWindow.changed(uid)
         }
     }
 }

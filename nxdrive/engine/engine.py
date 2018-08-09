@@ -221,15 +221,20 @@ class Engine(QObject):
             return
 
         self._dao.update_config(name, value)
-        setattr(self, "_" + name, value)
+        setattr(self, name, value)
         log.debug("{} preferences set to {}".format(name, value))
 
     def release_folder_lock(self) -> None:
         log.debug("Local Folder unlocking")
         self._folder_lock = None
 
-    def get_last_files(self, number: int, direction: str = "") -> DocPairs:
-        return self._dao.get_last_files(number, direction)
+    def get_last_files(
+        self, number: int, direction: str = "", duration: int = None
+    ) -> DocPairs:
+        return self._dao.get_last_files(number, direction, duration)
+
+    def get_last_files_count(self, direction: str = "", duration: int = None) -> int:
+        return self._dao.get_last_files_count(direction, duration)
 
     def set_offline(self, value: bool = True) -> None:
         if value == self._offline_state:

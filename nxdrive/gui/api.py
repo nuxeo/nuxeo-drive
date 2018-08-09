@@ -171,7 +171,7 @@ class QMLDriveApi(QObject):
         )
         result["remote_can_update"] = state.remote_can_update
         result["remote_can_rename"] = state.remote_can_rename
-        result["details"] = state.last_error_details or ""
+        result["last_error_details"] = state.last_error_details or ""
         return result
 
     def _export_action(self, action: Action) -> Dict[str, Any]:
@@ -210,14 +210,22 @@ class QMLDriveApi(QObject):
         return engines.get(uid)
 
     def get_last_files(
-        self, uid: str, number: int, direction: str
+        self, uid: str, number: int, direction: str, duration: int
     ) -> List[Dict[str, Any]]:
         engine = self._get_engine(uid)
         result = []
         if engine is not None:
-            for state in engine.get_last_files(number, direction):
+            for state in engine.get_last_files(number, direction, duration):
                 result.append(self._export_state(state))
         return result
+
+    @pyqtSlot(str, result=int)
+    def get_last_files_count(self, uid: str) -> int:
+        count = 0
+        engine = self._get_engine(uid)
+        if engine:
+            count = engine.get_dao().get_last_files_count(direction="", duration=60)
+        return count
 
     @pyqtSlot(result=str)
     def get_tracker_id(self) -> str:

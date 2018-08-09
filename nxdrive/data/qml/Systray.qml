@@ -18,13 +18,16 @@ Item {
         onEngineChanged: accountSelect.currentIndex = EngineModel.count - 1
     }
 
+    Connections {
+        target: systrayWindow
+        onVisibleChanged: contextMenu.visible = false
+    }
+
     onSetStatus:  {
         systrayContainer.state = state
         systrayContainer.stateMessage = message
         systrayContainer.stateSubMessage = submessage
     }
-
-    onVisibleChanged: contextMenu.visible = false
 
     FontLoader {
         id: iconFont
@@ -38,6 +41,8 @@ Item {
         state: ""
         property string stateMessage
         property string stateSubMessage
+        property int syncingCount: 0
+        property int extraCount: 0
 
         anchors.fill: parent
         z: 5; spacing: 0
@@ -120,8 +125,12 @@ Item {
 
             Timer {
                 id: refreshTimer
-                interval: 1000; running: false; repeat: false
-                onTriggered: systray.getLastFiles(accountSelect.getRole("uid"))
+                interval: 1000; running: true; repeat: false
+                onTriggered: {
+                    systray.getLastFiles(accountSelect.getRole("uid"))
+                    systrayContainer.syncingCount = api.get_syncing_count(accountSelect.getRole("uid"))
+                    systrayContainer.extraCount = api.get_last_files_count(accountSelect.getRole("uid")) - 10
+                }
             }
 
             ListView {
@@ -130,6 +139,18 @@ Item {
 
                 clip: true
                 delegate: SystrayFile {}
+                footer: Rectangle {
+                    id: recentFooter
+                    width: parent.width
+                    height: systrayContainer.extraCount > 0 ? 30 : 0
+                    visible: systrayContainer.extraCount > 0
+                    Text {
+                        text: qsTr("EXTRA_FILE_COUNT").arg(systrayContainer.extraCount) + tl.tr
+                        anchors.centerIn: parent
+                        color: mediumGray
+                    }
+                }
+
                 model: FileModel
                 highlight: Rectangle { color: lighterGray }
 
@@ -202,7 +223,7 @@ Item {
             State {
                 name: "syncing"
                 PropertyChanges { target: statusIcon; icon: MdiFont.Icon.sync }
-                PropertyChanges { target: statusText; text: qsTr("SYNCHRONIZATION_ITEMS_LEFT").arg(FileModel.count) + tl.tr }
+                PropertyChanges { target: statusText; text: qsTr("SYNCHRONIZATION_ITEMS_LEFT").arg(systrayContainer.syncingCount) + tl.tr }
                 PropertyChanges { target: refreshTimer; repeat: true; running: true }
                 PropertyChanges { target: syncAnim; running: true }
             },
@@ -376,7 +397,7 @@ Item {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 10
                 onClicked: {
-                    systray.hide()
+                    application.hide_systray()
                     application.quit()
                 }
             }

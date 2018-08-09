@@ -137,11 +137,14 @@ class Application(QApplication):
         if WINDOWS:
             self.conflicts_window = QQuickView()
             self.settings_window = QQuickView()
-            self.systray_window = QQuickView()
+            self.systray_window = SystrayWindow()
 
             self._fill_qml_context(self.conflicts_window.rootContext())
             self._fill_qml_context(self.settings_window.rootContext())
             self._fill_qml_context(self.systray_window.rootContext())
+            self.systray_window.rootContext().setContextProperty(
+                "systrayWindow", self.systray_window
+            )
 
             self.conflicts_window.setSource(
                 QUrl.fromLocalFile(find_resource("qml", "Conflicts.qml"))
@@ -167,6 +170,7 @@ class Application(QApplication):
         self.manager.newEngine.connect(self.add_engines)
         self.manager.initEngine.connect(self.add_engines)
         self.manager.dropEngine.connect(self.remove_engine)
+        self._window_root(self.conflicts_window).changed.connect(self.refresh_conflicts)
         self._window_root(self.systray_window).getLastFiles.connect(self.get_last_files)
         self.api.setMessage.connect(self._window_root(self.settings_window).setMessage)
 
@@ -420,15 +424,17 @@ class Application(QApplication):
 
         self.set_icon_state(new_state)
 
-    @pyqtSlot()
-    def show_conflicts_resolution(self, engine: "Engine") -> None:
+    def refresh_conflicts(self, uid: str) -> None:
         self.conflicts_model.empty()
         self.ignoreds_model.empty()
 
-        self.conflicts_model.addFiles(self.api.get_conflicts(engine.uid))
-        self.conflicts_model.addFiles(self.api.get_errors(engine.uid))
-        self.ignoreds_model.addFiles(self.api.get_unsynchronizeds(engine.uid))
+        self.conflicts_model.addFiles(self.api.get_conflicts(uid))
+        self.conflicts_model.addFiles(self.api.get_errors(uid))
+        self.ignoreds_model.addFiles(self.api.get_unsynchronizeds(uid))
 
+    @pyqtSlot()
+    def show_conflicts_resolution(self, engine: "Engine") -> None:
+        self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
         self.conflicts_window.show()
 
@@ -918,21 +924,21 @@ class Application(QApplication):
             submessage = update_status[2]
         elif engine.is_paused():
             state = "suspended"
-        elif engine.is_syncing():
-            state = "syncing"
         elif conflicts:
             state = "conflicted"
             message = str(len(conflicts))
         elif errors:
             state = "error"
             message = str(len(errors))
+        elif engine.is_syncing():
+            state = "syncing"
         self._window_root(self.systray_window).setStatus.emit(
             state, message, submessage
         )
 
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:
-        files = self.api.get_last_files(uid, 10, "")
+        files = self.api.get_last_files(uid, 10, "", None)
         self.file_model.empty()
         self.file_model.addFiles(files)
 

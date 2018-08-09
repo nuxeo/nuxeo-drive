@@ -30,19 +30,16 @@ Item {
             text: qsTr("SECTION_GENERAL") + tl.tr
             barIndex: bar.currentIndex; index: 0
             anchors.top: parent.top
-            underlineColor: nuxeoBlue
         }
         SettingsTab {
             text: qsTr("SECTION_ACCOUNTS") + tl.tr
             barIndex: bar.currentIndex; index: 1
             anchors.top: parent.top
-            underlineColor: nuxeoBlue
         }
         SettingsTab {
             text: qsTr("SECTION_ABOUT") + tl.tr
             barIndex: bar.currentIndex; index: 2
             anchors.top: parent.top
-            underlineColor: nuxeoBlue
         }
     }
 

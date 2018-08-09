@@ -239,7 +239,7 @@ class FileModel(QAbstractListModel):
         elif role == self.LAST_SYNC_DATE:
             return row["last_sync_date"]
         elif role == self.LAST_TRANSFER:
-            return row["last_transfer"].replace("load", "")
+            return row["last_transfer"]
         elif role == self.LOCAL_PARENT_PATH:
             return row["local_parent_path"]
         elif role == self.LOCAL_PATH:

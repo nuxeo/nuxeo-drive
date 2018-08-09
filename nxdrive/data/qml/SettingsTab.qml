@@ -6,7 +6,7 @@ TabButton {
     property int barIndex
     property int index
     property string color
-    property string underlineColor
+    property string underlineColor: nuxeoBlue
     property bool activated: barIndex == index
 
     height: 50
