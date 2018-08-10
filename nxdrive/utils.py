@@ -11,7 +11,7 @@ from sys import platform
 from typing import Any, Dict, Optional, Pattern, Tuple, Union
 from urllib.parse import urlsplit, urlunsplit
 
-from .constants import MAC, WINDOWS
+from .constants import APP_NAME, MAC, WINDOWS
 from .options import Options
 
 __all__ = (
@@ -24,9 +24,9 @@ __all__ = (
     "find_resource",
     "force_decode",
     "force_encode",
+    "get_device",
     "guess_digest_algorithm",
     "guess_server_url",
-    "get_device",
     "is_generated_tmp_file",
     "lock_path",
     "make_tmp_file",
@@ -106,6 +106,65 @@ def get_device() -> str:
     if not device:
         device = platform.replace(" ", "")
     return device
+
+
+def get_default_nuxeo_drive_folder() -> str:
+    """
+    Find a reasonable location for the root Nuxeo Drive folder
+
+    This folder is user specific, typically under the home folder.
+
+    Under Windows, try to locate My Documents as a home folder, using the
+    win32com shell API if allowed, else falling back on a manual detection.
+    """
+
+    folder = ""
+    if WINDOWS:
+        from win32com.shell import shell, shellcon
+
+        try:
+            folder = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, None, 0)
+        except:
+            """
+            In some cases (not really sure how this happens) the current user
+            is not allowed to access its 'My Documents' folder path through
+            the win32com shell API, which raises the following error:
+            com_error: (-2147024891, 'Access is denied.', None, None)
+            We noticed that in this case the 'Location' tab is missing in the
+            Properties window of 'My Documents' accessed through the
+            Explorer.
+            So let's fall back on a manual (and poor) detection.
+            WARNING: it's important to check 'Documents' first as under
+            Windows 7 there also exists a 'My Documents' folder invisible in
+            the Explorer and cmd / powershell but visible from Python.
+            First try regular location for documents under Windows 7 and up
+            """
+            log.error(
+                "Access denied to the API SHGetFolderPath,"
+                " falling back on manual detection"
+            )
+            folder = os.path.expanduser("~\\Documents")
+
+    if not folder:
+        # Fall back on home folder otherwise
+        folder = os.path.expanduser("~")
+
+    folder = increment_local_folder(folder, APP_NAME)
+    return force_decode(folder)
+
+
+def increment_local_folder(basefolder: str, name: str) -> str:
+    """Increment the number for a possible local folder.
+    Example: "Nuxeo Drive" > "Nuxeo Drive 2" > "Nuxeo Drive 3"
+    """
+    folder = os.path.join(basefolder, name)
+    for num in range(2, 42):
+        if not os.path.isdir(folder):
+            break
+        folder = os.path.join(basefolder, f"{name} {num}")
+    else:
+        folder = ""
+    return folder
 
 
 def is_hexastring(value: str) -> bool:
