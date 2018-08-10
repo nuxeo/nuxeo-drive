@@ -13,7 +13,7 @@ NuxeoPopup {
 
     onOpened: {
         urlInput.clear()
-        folderInput.text = api.get_default_nuxeo_drive_folder()
+        folderInput.text = api.default_nuxeo_drive_folder()
         urlInput.focus = true
     }
 

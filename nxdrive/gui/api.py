@@ -32,7 +32,7 @@ from ..notification import Notification
 from ..objects import Binder
 from ..options import Options
 from ..translator import Translator
-from ..utils import get_device, guess_server_url
+from ..utils import get_device, get_default_nuxeo_drive_folder, guess_server_url
 
 __all__ = ("QMLDriveApi",)
 
@@ -480,8 +480,8 @@ class QMLDriveApi(QObject):
     # Settings section
 
     @pyqtSlot(result=str)
-    def get_default_nuxeo_drive_folder(self) -> str:
-        return self._manager.get_default_nuxeo_drive_folder()
+    def default_nuxeo_drive_folder(self) -> str:
+        return get_default_nuxeo_drive_folder()
 
     @pyqtSlot(str)
     def unbind_server(self, uid: str) -> None:

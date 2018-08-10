@@ -22,7 +22,12 @@ from .objects import Binder, Metrics
 from .options import Options, server_updater
 from .osi import AbstractOSIntegration
 from .updater import updater
-from .utils import copy_to_clipboard, force_decode, normalized_path
+from .utils import (
+    copy_to_clipboard,
+    force_decode,
+    get_default_nuxeo_drive_folder,
+    normalized_path,
+)
 
 if WINDOWS:
     import win32api
@@ -320,62 +325,6 @@ class Manager(QObject):
         if self.updater.get_next_poll() > 60 and self.updater.get_last_poll() > 1800:
             self.updater.force_poll()
 
-    def get_default_nuxeo_drive_folder(self) -> str:
-        """
-        Find a reasonable location for the root Nuxeo Drive folder
-
-        This folder is user specific, typically under the home folder.
-
-        Under Windows, try to locate My Documents as a home folder, using the
-        win32com shell API if allowed, else falling back on a manual detection.
-        """
-
-        folder = ""
-        if WINDOWS:
-            from win32com.shell import shell, shellcon
-
-            try:
-                folder = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, None, 0)
-            except:
-                """
-                In some cases (not really sure how this happens) the current user
-                is not allowed to access its 'My Documents' folder path through
-                the win32com shell API, which raises the following error:
-                com_error: (-2147024891, 'Access is denied.', None, None)
-                We noticed that in this case the 'Location' tab is missing in the
-                Properties window of 'My Documents' accessed through the
-                Explorer.
-                So let's fall back on a manual (and poor) detection.
-                WARNING: it's important to check 'Documents' first as under
-                Windows 7 there also exists a 'My Documents' folder invisible in
-                the Explorer and cmd / powershell but visible from Python.
-                First try regular location for documents under Windows 7 and up
-                """
-                log.error(
-                    "Access denied to the API SHGetFolderPath,"
-                    " falling back on manual detection"
-                )
-                folder = os.path.expanduser("~\\Documents")
-
-        if not folder:
-            # Fall back on home folder otherwise
-            folder = os.path.expanduser("~")
-
-        folder = self._increment_local_folder(folder, self.app_name)
-        folder = force_decode(folder)
-        log.debug("Will use %r as default folder location", folder)
-        return folder
-
-    def _increment_local_folder(self, basefolder: str, name: str) -> str:
-        folder = os.path.join(basefolder, name)
-        num = 2
-        while not self.check_local_folder_available(folder):
-            folder = os.path.join(basefolder, name + " " + str(num))
-            num += 1
-            if num > 42:
-                return ""
-        return folder
-
     @pyqtSlot(str)
     def open_local_file(self, file_path: str, select: bool = False) -> None:
         # TODO: Move to utils.py
@@ -603,7 +552,7 @@ class Manager(QObject):
             self.load()
 
         if not local_folder:
-            local_folder = self.get_default_nuxeo_drive_folder()
+            local_folder = get_default_nuxeo_drive_folder()
         local_folder = normalized_path(local_folder)
         if local_folder == self.nxdrive_home:
             # Prevent from binding in the configuration folder

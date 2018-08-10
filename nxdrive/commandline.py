@@ -14,7 +14,7 @@ from typing import List, Union
 from . import __version__
 from .logging_config import configure
 from .options import Options
-from .utils import normalized_path
+from .utils import get_default_nuxeo_drive_folder, normalized_path
 
 try:
     import ipdb as pdb
@@ -213,6 +213,7 @@ class CliHandler:
             help="Local folder that will host the list of synchronized "
             "workspaces with a remote Nuxeo server.",
             type=str,
+            default=get_default_nuxeo_drive_folder(),
         )
         bind_server_parser.add_argument(
             "username", help="User account to connect to Nuxeo"
@@ -236,6 +237,7 @@ class CliHandler:
             help="Local folder that hosts the list of synchronized "
             "workspaces with a remote Nuxeo server.",
             type=str,
+            default=get_default_nuxeo_drive_folder(),
         )
 
         # Bind root folders
@@ -255,6 +257,7 @@ class CliHandler:
             "workspaces with a remote Nuxeo server. Must be bound with the "
             '"bind-server" command.',
             type=str,
+            default=get_default_nuxeo_drive_folder(),
         )
         bind_root_parser.add_argument(
             "--remote-repo",
@@ -280,6 +283,7 @@ class CliHandler:
             "workspaces with a remote Nuxeo server. Must be bound with the "
             '"bind-server" command.',
             type=str,
+            default=get_default_nuxeo_drive_folder(),
         )
         unbind_root_parser.add_argument(
             "--remote-repo",
@@ -506,13 +510,7 @@ class CliHandler:
             from .gui.systray import SystrayWindow
             from PyQt5.QtQml import qmlRegisterType
 
-            qmlRegisterType(
-                SystrayWindow,
-                'SystrayWindow',
-                1,
-                0,
-                'SystrayWindow'
-            )
+            qmlRegisterType(SystrayWindow, "SystrayWindow", 1, 0, "SystrayWindow")
         return Application(self.manager)
 
     def launch(self, options: Namespace = None, console: bool = False) -> int:
@@ -576,6 +574,8 @@ class CliHandler:
             check_credentials = False
         else:
             password = options.password
+        if not options.local_folder:
+            options.local_folder = get_default_nuxeo_drive_folder()
 
         self.manager.bind_server(
             options.local_folder,

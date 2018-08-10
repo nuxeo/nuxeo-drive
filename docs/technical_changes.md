@@ -23,6 +23,7 @@
 - Added `Manager.proxy`
 - Added `Manager.set_proxy()`
 - Moved `Manager.get_system_pac_url()` to client/proxy.py
+- Moved `Manager.get_default_nuxeo_drive_folder()` to utils.py
 - Removed `Manager.aboutToStart()`
 - Removed `Manager.clientUpdated()`
 - Removed `Manager.engineNotFound()`
@@ -64,7 +65,6 @@
 - Renamed `WebDriveApi` to `QMLDriveApi`
 - Renamed `WebSettingsApi` to `QMLSettingsApi`
 - Renamed `WebSystrayApi` to `QMLSystrayApi`
-- Moved `WebSettingsApi._open_authentication_dialog()` to `Application`
 - Removed `Worker.actionUpdate()`
 - Added exceptions.py
 - Removed `filter_inotify` argument logging_config.py::`configure()`
@@ -86,6 +86,7 @@
 - Removed client/remote_file_system_client.py
 - Removed client/remote_filtered_file_system_client.py
 - Removed client/rest_api_client.py
+- Added constants.py::`APP_NAME`
 - Added constants.py::`LINUX`
 - Added constants.py::`MAC`
 - Added constants.py::`WINDOWS`

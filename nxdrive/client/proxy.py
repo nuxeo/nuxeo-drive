@@ -119,17 +119,7 @@ class ManualProxy(Proxy):
 
     def settings(self, **kwargs: Any) -> Dict[str, Any]:
         if self.authenticated:
-            url = (
-                self.scheme
-                + "://"
-                + self.username
-                + ":"
-                + self.password
-                + "@"
-                + self.host
-                + ":"
-                + str(self.port)
-            )
+            url = f"{self.scheme}://{self.username}:{self.password}@{self.host}:{self.port}"
         else:
             url = self.url
         return {"http": url, "https": url}
