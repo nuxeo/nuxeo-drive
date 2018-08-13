@@ -8,7 +8,6 @@ repos:
     - id: flake8
     - id: end-of-file-fixer
     - id: check-docstring-first
-    - id: debug-statements
     - id: requirements-txt-fixer
     - id: check-ast
     - id: no-commit-to-branch

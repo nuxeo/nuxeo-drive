@@ -6,7 +6,7 @@ import os
 import sys
 import traceback
 from argparse import ArgumentParser, Namespace
-from configparser import ConfigParser, DEFAULTSECT
+from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
 from typing import List, Union
@@ -14,7 +14,7 @@ from typing import List, Union
 from . import __version__
 from .logging_config import configure
 from .options import Options
-from .utils import get_default_nuxeo_drive_folder, normalized_path
+from .utils import force_encode, get_default_nuxeo_drive_folder, normalized_path
 
 try:
     import ipdb as pdb
@@ -519,8 +519,9 @@ class CliHandler:
 
         lock = PidLockFile(self.manager.nxdrive_home, "qt")
         if lock.lock():
-            if self.manager.direct_edit.url:
-                self.manager.direct_edit.handle_url()
+            if Options.protocol_url:
+                payload = force_encode(Options.protocol_url)
+                self._send_to_running_instance(payload)
             else:
                 log.warning("%s is already running: exiting.", self.manager.app_name)
             return 0
@@ -530,6 +531,27 @@ class CliHandler:
         lock.unlock()
         log.debug("%s exited with code %d", self.manager.app_name, exit_code)
         return exit_code
+
+    def _send_to_running_instance(self, payload: bytes) -> bool:
+        from PyQt5.QtCore import QByteArray
+        from PyQt5.QtNetwork import QLocalSocket
+
+        log.debug(
+            f"Opening local socket to send to the running instance (payload={payload})"
+        )
+        client = QLocalSocket()
+        client.connectToServer("com.nuxeo.drive.protocol")
+
+        if not client.waitForConnected():
+            log.error(f"Unable to open client socket: {client.errorString()}")
+            return 0
+
+        client.write(QByteArray(payload))
+        client.waitForBytesWritten()
+        client.disconnectFromServer()
+        client.waitForDisconnected()
+        del client
+        log.debug("Successfully closed client socket")
 
     def clean_folder(self, options: Namespace) -> int:
         from .client.local_client import LocalClient

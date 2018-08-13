@@ -3,14 +3,13 @@ import calendar
 import json
 from datetime import datetime
 from logging import getLogger
+from os import getenv
 from time import struct_time, time
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
 import requests
 from dateutil.tz import tzlocal
-from nuxeo.auth import TokenAuth
-from nuxeo.client import Nuxeo
 from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
@@ -463,6 +462,7 @@ class QMLDriveApi(QObject):
             "permission": TOKEN_PERMISSION,
             "deviceDescription": get_device(),
             "forceAnonymousLogin": "true",
+            "useProtocol": getenv("NXDRIVE_DEV", "0") == "0",
         }
 
         # Handle URL parameters
@@ -747,30 +747,24 @@ class QMLDriveApi(QObject):
 
     # Authentication section
 
-    @pyqtSlot(str)
-    def handle_token(self, token: str) -> None:
+    @pyqtSlot(str, str)
+    def handle_token(self, token: str, username: str) -> None:
         if "engine" in self._callback_params:
             error = self.update_token(token)
         else:
-            error = self.create_account(token)
+            error = self.create_account(token, username)
         if error:
             self.setMessage.emit(error, "error")
 
-    def create_account(self, token: str) -> str:
+    def create_account(self, token: str, username: str) -> str:
         error = None
         try:
             local_folder = self._callback_params["local_folder"]
-            server_url = self._callback_params["server_url"]
-            engine_type = self._callback_params["engine_type"]
-            server = Nuxeo(
-                host=server_url,
-                auth=TokenAuth(token),
-                proxies=self.application.manager.proxy.settings(),
+            server_url = (
+                self._callback_params["server_url"]
+                + "#"
+                + self._callback_params["engine_type"]
             )
-            user = server.operations.execute(command="User.Get")
-            username = user["uid"]
-
-            server_url = server_url + "#" + engine_type
 
             log.debug(
                 "Creating new account [%s, %s, %s]", local_folder, server_url, username

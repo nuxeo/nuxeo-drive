@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
-from sip import SIP_VERSION_STR
+from PyQt5.sip import SIP_VERSION_STR
 
 from . import __version__
 from .client.local_client import LocalClient

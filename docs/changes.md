@@ -25,6 +25,7 @@ Changes in command line arguments:
 - [NXDRIVE-1262](https://jira.nuxeo.com/browse/NXDRIVE-1262): Do not rely on XCode on macOS
 - [NXDRIVE-1279](https://jira.nuxeo.com/browse/NXDRIVE-1279): Use flake8 for another clean-up round
 - [NXDRIVE-1286](https://jira.nuxeo.com/browse/NXDRIVE-1286): Ignore documents when the system cannot find the file
+- [NXDRIVE-1291](https://jira.nuxeo.com/browse/NXDRIVE-1291): Use the user's browser for authentication
 - [NXDRIVE-1292](https://jira.nuxeo.com/browse/NXDRIVE-1292): Make the authentication easier to customize
 - [NXDRIVE-1287](https://jira.nuxeo.com/browse/NXDRIVE-1287): Better server error 500 reporting
 - [NXDRIVE-1303](https://jira.nuxeo.com/browse/NXDRIVE-1303): Fix using the bind-server CLI argument without --local-folder

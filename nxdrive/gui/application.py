@@ -10,6 +10,7 @@ import requests
 from markdown import markdown
 from PyQt5.QtCore import Qt, QUrl, pyqtSlot, QEvent
 from PyQt5.QtGui import QFont, QFontMetricsF, QIcon
+from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtQuick import QQuickView, QQuickWindow
 from PyQt5.QtWidgets import (
@@ -36,7 +37,13 @@ from ..updater.constants import (
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UPDATING,
 )
-from ..utils import find_icon, find_resource, parse_protocol_url, short_name
+from ..utils import (
+    find_icon,
+    find_resource,
+    force_decode,
+    parse_protocol_url,
+    short_name,
+)
 from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
 from .view import EngineModel, FileModel, LanguageModel
@@ -110,6 +117,9 @@ class Application(QApplication):
         # Display release notes on new version
         if self.manager.old_version != self.manager.version:
             self.show_release_notes(self.manager.version)
+
+        # Listen for nxdrive:// sent by a new instance
+        self.init_nxdrive_listener()
 
     def init_gui(self) -> None:
 
@@ -801,13 +811,13 @@ class Application(QApplication):
             return super().event(event)
         try:
             final_url = unquote(event.url().toString())
-            return self._handle_macos_event(final_url)
+            return self._handle_nxdrive_url(final_url)
         except:
             log.exception("Error handling URL event %r", url)
             return False
 
-    def _handle_macos_event(self, url: str) -> bool:
-        """ Handle a macOS event URL. """
+    def _handle_nxdrive_url(self, url: str) -> bool:
+        """ Handle an nxdrive protocol URL. """
 
         info = parse_protocol_url(url)
         if not info:
@@ -837,10 +847,53 @@ class Application(QApplication):
         elif cmd == "trigger-watch":
             for engine in manager._engine_definitions:
                 manager.osi.watch_folder(engine.local_folder)
+        elif cmd == "token":
+            self.api.handle_token(info["token"], info["username"])
         else:
             log.warning("Unknown event URL=%r, info=%r", url, info)
             return False
         return True
+
+    def init_nxdrive_listener(self) -> None:
+        """
+        Set up a QLocalServer to listen to nxdrive protocol calls.
+
+        On Windows, when an nxdrive:// URL is opened, it creates a new
+        instance of Nuxeo Drive. As we want the already running instance to
+        receive this call (particularly during the login process), we set
+        up a QLocalServer in that instance to listen to the new ones who will
+        send their data.
+        The Qt implementation of QLocalSocket on Windows makes use of named
+        pipes. We just need to connect a handler to the newConnection signal
+        to process the URLs.
+        """
+
+        self._nxdrive_listener = QLocalServer()
+        self._nxdrive_listener.newConnection.connect(self._handle_connection)
+        self._nxdrive_listener.listen("com.nuxeo.drive.protocol")
+        self.aboutToQuit.connect(self._nxdrive_listener.close)
+
+    def _handle_connection(self) -> None:
+        """ Retrieve the connection with other instances and handle the incoming data. """
+
+        con: QLocalSocket = self._nxdrive_listener.nextPendingConnection()
+        log.debug("Receiving socket connection for nxdrive protocol handling")
+        if not con or not con.waitForConnected():
+            log.error(f"Unable to open server socket: {con.errorString()}")
+            return
+
+        if con.waitForReadyRead():
+            payload = con.readAll()
+            url = force_decode(payload.data())
+            self._handle_nxdrive_url(url)
+
+        con.disconnectFromServer()
+        con.waitForDisconnected()
+        del con
+        log.debug("Successfully closed server socket")
+
+        # Bring settings window to front
+        self.settings_window.show()
 
     def update_status(self, engine: "Engine") -> None:
         state = message = submessage = ""
