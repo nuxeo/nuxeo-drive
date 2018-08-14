@@ -212,6 +212,7 @@ class QMLDriveApi(QObject):
     def get_last_files(
         self, uid: str, number: int, direction: str, duration: int
     ) -> List[Dict[str, Any]]:
+        """ Return the last files transferred (see EngineDAO). """
         engine = self._get_engine(uid)
         result = []
         if engine is not None:
@@ -221,10 +222,11 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=int)
     def get_last_files_count(self, uid: str) -> int:
+        """ Return the count of the last files transferred (see EngineDAO). """
         count = 0
         engine = self._get_engine(uid)
         if engine:
-            count = engine.get_dao().get_last_files_count(direction="", duration=60)
+            count = engine.get_last_files_count(direction="", duration=60)
         return count
 
     @pyqtSlot(result=str)
@@ -274,24 +276,29 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=str)
     def get_update_channel(self) -> str:
+        """ Return the channel of the update: beta or release. """
         return self._manager.updater.nature
 
     @pyqtSlot(result=str)
     def get_update_status(self) -> str:
+        """ Return the status of the update. """
         return self._manager.updater.last_status[0]
 
     @pyqtSlot(result=str)
     def get_update_version(self) -> str:
+        """ Return the version of the update, if one is available. """
         return self._manager.updater.last_status[1]
 
     @pyqtSlot(result=int)
     def get_update_progress(self) -> int:
+        """ Return the progress of the update, if one is ingoing. """
         if len(self._manager.updater.last_status) > 2:
             return self._manager.updater.last_status[2]
         return 0
 
     @pyqtSlot(str)
     def app_update(self, version: str) -> None:
+        """ Start the udpate to the specified version. """
         self._manager.updater.update(version)
 
     @pyqtSlot(str, result=str)

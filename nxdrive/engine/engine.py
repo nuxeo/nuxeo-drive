@@ -231,9 +231,11 @@ class Engine(QObject):
     def get_last_files(
         self, number: int, direction: str = "", duration: int = None
     ) -> DocPairs:
+        """ Return the last files transferred (see EngineDAO). """
         return self._dao.get_last_files(number, direction, duration)
 
     def get_last_files_count(self, direction: str = "", duration: int = None) -> int:
+        """ Return the count of the last files transferred (see EngineDAO). """
         return self._dao.get_last_files_count(direction, duration)
 
     def set_offline(self, value: bool = True) -> None:

@@ -778,6 +778,15 @@ class EngineDAO(ConfigurationDAO):
     def get_last_files(
         self, number: int, direction: str = "", duration: int = None
     ) -> DocPairs:
+        """
+        Return the last files transferred.
+
+        The number is the limit number of files returned.
+        The direction is used to filter the results depending on
+        the nature of the transfer (upload or a download).
+        If the duration is not None, then the results only include
+        the files transferred between now and now - duration.
+        """
         c = self._get_read_connection().cursor()
         conditions = {
             "remote": "AND last_transfer = 'upload'",
@@ -799,6 +808,14 @@ class EngineDAO(ConfigurationDAO):
         ).fetchall()
 
     def get_last_files_count(self, direction: str = "", duration: int = None) -> int:
+        """
+        Return the count of the last files transferred.
+
+        The direction is used to filter the results depending on
+        the nature of the transfer (upload or a download).
+        If the duration is not None, then the results only include
+        the files transferred between now and now - duration.
+        """
         conditions = {
             "remote": "AND last_transfer = 'upload'",
             "local": "AND last_transfer = 'download'",

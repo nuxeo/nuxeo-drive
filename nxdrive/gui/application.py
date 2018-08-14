@@ -196,7 +196,7 @@ class Application(QApplication):
         self.engine_model.removeEngine(uid)
 
     def _fill_qml_context(self, context: "QQmlContext") -> None:
-
+        """ Fill the context of a QML element with the necessary resources. """
         context.setContextProperty("ConflictsModel", self.conflicts_model)
         context.setContextProperty("ErrorsModel", self.errors_model)
         context.setContextProperty("EngineModel", self.engine_model)
@@ -428,6 +428,7 @@ class Application(QApplication):
         self.set_icon_state(new_state)
 
     def refresh_conflicts(self, uid: str) -> None:
+        """ Update the content of the conflicts/errors window. """
         self.conflicts_model.empty()
         self.errors_model.empty()
         self.ignoreds_model.empty()
@@ -438,6 +439,7 @@ class Application(QApplication):
 
     @pyqtSlot()
     def show_conflicts_resolution(self, engine: "Engine") -> None:
+        """ Display the conflicts/errors window. """
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
         self.conflicts_window.show()
@@ -906,6 +908,10 @@ class Application(QApplication):
         self.settings_window.show()
 
     def update_status(self, engine: "Engine") -> None:
+        """
+        Update the systray status for synchronization,
+        conflicts/errors and software updates.
+        """
         sync_state = error_state = update_state = ""
 
         update_status = self.manager.updater.last_status
