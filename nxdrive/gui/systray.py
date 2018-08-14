@@ -3,7 +3,7 @@ import os
 from logging import getLogger
 
 from PyQt5.QtCore import QEvent
-from PyQt5.QtQuick import QQuickWindow
+from PyQt5.QtQuick import QQuickView
 from PyQt5.QtWidgets import QApplication, QMenu, QStyle, QSystemTrayIcon
 
 from ..constants import MAC
@@ -45,7 +45,11 @@ class DriveSystrayIcon(QSystemTrayIcon):
         """
         if reason == QSystemTrayIcon.Trigger:
             # On left click, open the usual menu with engines and sync files
-            self.application.show_systray()
+            # If it is already open, we close it
+            if self.application.systray_window.isVisible():
+                self.application.hide_systray()
+            else:
+                self.application.show_systray()
         elif reason == QSystemTrayIcon.MiddleClick:
             # On middle click, open settings.  Yeah, it rocks!
             self.application.show_settings()
@@ -85,7 +89,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
         return self.__context_menu
 
 
-class SystrayWindow(QQuickWindow):
+class SystrayWindow(QQuickView):
     def event(self, event: QEvent) -> bool:
         if event.type() == QEvent.MouseButtonPress and not self.geometry().contains(
             event.screenPos().toPoint()

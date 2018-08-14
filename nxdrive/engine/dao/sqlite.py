@@ -775,21 +775,60 @@ class EngineDAO(ConfigurationDAO):
             self._items_count += 1
         return row_id
 
-    def get_last_files(self, number: int, direction: str = "") -> DocPairs:
+    def get_last_files(
+        self, number: int, direction: str = "", duration: int = None
+    ) -> DocPairs:
+        """
+        Return the last files transferred.
+
+        The number is the limit number of files returned.
+        The direction is used to filter the results depending on
+        the nature of the transfer (upload or a download).
+        If the duration is not None, then the results only include
+        the files transferred between now and now - duration.
+        """
         c = self._get_read_connection().cursor()
         conditions = {
             "remote": "AND last_transfer = 'upload'",
             "local": "AND last_transfer = 'download'",
         }
-        condition = conditions.get(direction, "")
+        dir_condition = conditions.get(direction, "")
+        time_condition = (
+            f"AND datetime(last_sync_date, '+{duration} minutes') > datetime('now')"
+            if duration
+            else ""
+        )
         return c.execute(
             "SELECT *"
             "  FROM States"
             " WHERE pair_state = 'synchronized'"
-            "   AND folderish = 0 {} "
-            " ORDER BY last_sync_date DESC"
-            " LIMIT {}".format(condition, number)
+            f"  AND folderish = 0 {dir_condition} {time_condition}"
+            " ORDER BY last_sync_date DESC "
+            f"LIMIT {number}"
         ).fetchall()
+
+    def get_last_files_count(self, direction: str = "", duration: int = None) -> int:
+        """
+        Return the count of the last files transferred.
+
+        The direction is used to filter the results depending on
+        the nature of the transfer (upload or a download).
+        If the duration is not None, then the results only include
+        the files transferred between now and now - duration.
+        """
+        conditions = {
+            "remote": "AND last_transfer = 'upload'",
+            "local": "AND last_transfer = 'download'",
+        }
+        dir_condition = conditions.get(direction, "")
+        time_condition = (
+            f"AND datetime(last_sync_date, '+{duration} minutes') > datetime('now')"
+            if duration
+            else ""
+        )
+        return self.get_count(
+            f"pair_state = 'synchronized' AND folderish = 0 {dir_condition} {time_condition}"
+        )
 
     def _get_to_sync_condition(self) -> str:
         return "pair_state != 'synchronized' AND pair_state != 'unsynchronized'"

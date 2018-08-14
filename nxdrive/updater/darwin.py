@@ -6,6 +6,7 @@ from contextlib import suppress
 from logging import getLogger
 
 from .base import BaseUpdater
+from ..utils import force_decode
 
 __all__ = ("Updater",)
 
@@ -31,7 +32,8 @@ class Updater(BaseUpdater):
 
         log.debug("Mounting %r", filename)
         mount_info = subprocess.check_output(["hdiutil", "mount", filename])
-        mount_dir = mount_info.splitlines()[-1].split("\t")[-1]
+        lines = mount_info.splitlines()
+        mount_dir = force_decode(lines[-1].split(b"\t")[-1])
         log.debug("Mounted in %r", mount_dir)
 
         self._backup()
@@ -69,7 +71,7 @@ class Updater(BaseUpdater):
             return
 
         log.debug("Moving %r -> %r", src, dst)
-        os.rename(src, dst)
+        shutil.move(src, dst)
 
     def _cleanup(self, filename: str) -> None:
         """ Remove some files. """

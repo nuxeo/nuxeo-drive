@@ -85,6 +85,7 @@
     "ERROR_REASON_NOT_FOUND": "The document or its parent does not exist anymore on the server. This is an acknowledge message only because we cannot do anything about it.",
     "ERROR_REASON_SERVER_ERROR": "The server has not been able to handle the request for this document. If the error persists, try contacting your sysadmin.",
     "ERROR_REASON_UNKNOWN": "This document is in error for unknown reason",
+    "EXTRA_FILE_COUNT": "... and %1 more in the last hour",
     "FILE_PATH": "Path: %1",
     "FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filters",
     "FILTERS_DISABLED": "You must wait for current synchronisation actions to be done before filtering some folders.",

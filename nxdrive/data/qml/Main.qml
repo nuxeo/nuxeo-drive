@@ -27,13 +27,17 @@ QtObject {
         visible: false
         flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Popup
 
+        signal appUpdate(string version)
         signal getLastFiles(string uid)
-        signal setStatus(string state, string message, string submessage)
+        signal setStatus(string sync, string error, string update)
+        signal updateAvailable()
 
-        onSetStatus: systray.setStatus(state, message, submessage)
+        onSetStatus: systray.setStatus(sync, error, update)
+        onUpdateAvailable: systray.updateAvailable()
 
         Systray {
             id: systray
+            onAppUpdate: systrayWindow.appUpdate(version)
             onGetLastFiles: systrayWindow.getLastFiles(uid)
         }
     }
@@ -44,14 +48,14 @@ QtObject {
         width: conflicts.width; height: conflicts.height
         visible: false
 
-        signal changed()
+        signal changed(string uid)
         signal setEngine(string uid)
 
         onSetEngine: conflicts.setEngine(uid)
 
         Conflicts {
             id: conflicts
-            onChanged: conflictsWindow.changed()
+            onChanged: conflictsWindow.changed(uid)
         }
     }
 }

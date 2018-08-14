@@ -188,7 +188,7 @@ def start_drive(tag=None, reset=False, gdb=False, msg="", **kwargs):
             shutil.rmtree(os.path.expanduser("~/.nuxeo-drive/logs"))
         user, pwd = nuxeo.client.auth
         cmd = (
-            "python -m nxdrive bind-server {user} {nuxeo.client.host} --password {pwd}"
+            f"python -m nxdrive bind-server {user} {nuxeo.client.host} --password {pwd}"
         )
         system(cmd)
 
