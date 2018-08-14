@@ -2,7 +2,6 @@
 """ Main Qt application handling OS events and system tray UI. """
 from logging import getLogger
 from math import sqrt
-from os import getenv
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import unquote
 
@@ -49,8 +48,8 @@ from .systray import DriveSystrayIcon, SystrayWindow
 from .view import EngineModel, FileModel, LanguageModel
 
 
-if getenv("NXDRIVE_DEV") == "1":
-    from .dev.authentication import auth
+if not Options.use_protocol:  # NXDRIVE-1311
+    from .old.authentication import auth
 else:
     from .authentication import auth
 

@@ -52,6 +52,7 @@ import os.path
 import sys
 from contextlib import suppress
 from copy import deepcopy
+from os import getenv
 from typing import Any, Callable, Dict, Tuple
 
 
@@ -152,6 +153,10 @@ class MetaOptions(type):
             "https://community.nuxeo.com/static/drive-updates",
             "default",
         ),
+        "use_protocol": (
+            sys.platform != "win32" and getenv("NXDRIVE_NEW_AUTH", "0") == "1",
+            "default",
+        ),  # NXDRIVE-1311
     }
 
     default_options = deepcopy(options)

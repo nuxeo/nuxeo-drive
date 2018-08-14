@@ -65,7 +65,7 @@ If you get an error message complaining about the lack of signature for this scr
 
 ### Optional Envars
 
-- `NXDRIVE_DEV` has to be set to `1` if you are a developer.
+- `NXDRIVE_NEW_AUTH` has to be set to `1` to enable the new authentication process using the user's browser. To be removed with NXDRIVE-1311.
 - `PYTHON_DRIVE_VERSION` is the required **Python version** to use, i.e. `3.6.6`.
 - `SIGNING_ID` is the certificate **authority name**.
 - `REPORT_PATH` is the absolute path to a directory where to store the generated report in case of failure, i.e. `$WORKSPACE`.
