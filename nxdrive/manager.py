@@ -9,7 +9,11 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
-from PyQt5.sip import SIP_VERSION_STR
+
+try:
+    from PyQt5.sip import SIP_VERSION_STR  # PyQt 5.11+
+except ImportError:
+    from sip import SIP_VERSION_STR  # PyQt 5.10 (NXDRIVE-1311)
 
 from . import __version__
 from .client.local_client import LocalClient
