@@ -31,7 +31,8 @@ NuxeoPopup {
                 lineColor: nuxeoBlue
                 inputMethodHints: Qt.ImhUrlCharactersOnly
                 KeyNavigation.tab: folderInput
-                font.family: 'monospace'
+                placeholderText: "your.nuxeo.platform.com"
+                font.family: "monospace"
             }
 
             ScaledText {

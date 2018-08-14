@@ -21,6 +21,8 @@ TextInput {
         text: control.placeholderText
         color: lightGray
         visible: !control.text
+        font: control.font
+
         anchors {
             bottom: parent.bottom
             bottomMargin: 3
