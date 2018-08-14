@@ -18,7 +18,7 @@ class WebAuthenticationDialog(WebDialog):
     def __init__(self, application: "Application", url: str, api: QMLDriveApi) -> None:
         title = Translator.get("WEB_AUTHENTICATION_WINDOW_TITLE")
         super().__init__(application, url, title=title, api=api)
-        self.resize(1000, 800)
+        self.resize(600, 400)
         self.page.loadFinished.connect(self._read_page)
 
     def handle_login(self, text: str) -> None:
