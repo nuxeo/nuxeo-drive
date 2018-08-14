@@ -273,8 +273,22 @@ class QMLDriveApi(QObject):
         return self._json(notif)
 
     @pyqtSlot(result=str)
+    def get_update_channel(self) -> str:
+        return self._manager.updater.nature
+
+    @pyqtSlot(result=str)
     def get_update_status(self) -> str:
-        return self._json(self._manager.updater.last_status)
+        return self._manager.updater.last_status[0]
+
+    @pyqtSlot(result=str)
+    def get_update_version(self) -> str:
+        return self._manager.updater.last_status[1]
+
+    @pyqtSlot(result=int)
+    def get_update_progress(self) -> int:
+        if len(self._manager.updater.last_status) > 2:
+            return self._manager.updater.last_status[2]
+        return 0
 
     @pyqtSlot(str)
     def app_update(self, version: str) -> None:

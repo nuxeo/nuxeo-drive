@@ -10,8 +10,10 @@ Item {
 
     property bool hasAccounts: EngineModel.count > 0
 
+    signal appUpdate(string version)
     signal getLastFiles(string uid)
-    signal setStatus(string state, string message, string submessage)
+    signal setStatus(string sync, string error, string update)
+    signal updateAvailable()
 
     Connections {
         target: EngineModel
@@ -24,10 +26,12 @@ Item {
     }
 
     onSetStatus:  {
-        systrayContainer.state = state
-        systrayContainer.stateMessage = message
-        systrayContainer.stateSubMessage = submessage
+        syncState.state = sync
+        errorState.state = error
+        updateState.state = update
     }
+
+    onUpdateAvailable: updateState.state = "update"
 
     FontLoader {
         id: iconFont
@@ -38,9 +42,6 @@ Item {
         id: systrayContainer
         visible: hasAccounts
 
-        state: ""
-        property string stateMessage
-        property string stateSubMessage
         property int syncingCount: 0
         property int extraCount: 0
 
@@ -158,202 +159,106 @@ Item {
             }
         }
 
-        HoverRectangle {
-            id: systrayBottom
-            color: lighterGray
-            Layout.fillWidth: true; height: 40
-            opacity: 1
+        SystrayStatus {
+            id: syncState
+            state: ""  // Synced
+            visible: !(errorState.visible || updateState.visible)
+            text: qsTr("SYNCHRONIZATION_COMPLETED") + tl.tr
 
-            RowLayout {
-                anchors.fill: parent
-
-                Item { Layout.fillWidth: true }
-
-                ColumnLayout {
-                    spacing: 0
-
-                    ScaledText {
-                        id: statusText
-                        text: qsTr("SYNCHRONIZATION_COMPLETED") + tl.tr
-                        color: mediumGray
-                        Layout.alignment: Qt.AlignRight
+            states: [
+                State {
+                    name: "suspended"
+                    PropertyChanges {
+                        target: syncState
+                        icon: MdiFont.Icon.pause
+                        text: qsTr("ENGINE_PAUSED") + tl.tr
                     }
-
-                    ScaledText {
-                        id: statusSubText
-                        visible: text
-                        color: statusText.color
-                        pointSize: 10
-                        opacity: 0.8
-                        Layout.alignment: Qt.AlignRight
+                },
+                State {
+                    name: "syncing"
+                    PropertyChanges {
+                        target: syncState
+                        icon: MdiFont.Icon.sync
+                        text: qsTr("SYNCHRONIZATION_ITEMS_LEFT").arg(systrayContainer.syncingCount) + tl.tr
+                        textVisible: systrayContainer.syncingCount > 0
+                        anim: true
                     }
+                    PropertyChanges { target: refreshTimer; repeat: true; running: true }
                 }
-
-                IconLabel {
-                    id: statusIcon
-                    icon: MdiFont.Icon.check
-                    Layout.alignment: Qt.AlignRight
-                    Layout.rightMargin: 10
-
-                    SequentialAnimation on rotation {
-                        id: syncAnim
-                        running: false
-                        loops: Animation.Infinite; alwaysRunToEnd: true
-                        NumberAnimation { from: 360; to: 0; duration: 1000; easing.type: Easing.InOutQuad }
-                        PauseAnimation { duration: 250 }
-                    }
-                }
-            }
-            ProgressBar {
-                id: updateProgress
-                width: parent.width
-                anchors.bottom: parent.bottom
-                visible: false
-                indeterminate: value == 0
-                from: 0; to: 100
-            }
+            ]
         }
 
-        states: [
-            State {
-                name: "suspended"
-                PropertyChanges { target: statusIcon; icon: MdiFont.Icon.pause }
-                PropertyChanges { target: statusText; text: qsTr("ENGINE_PAUSED") + tl.tr }
-            },
-            State {
-                name: "syncing"
-                PropertyChanges { target: statusIcon; icon: MdiFont.Icon.sync }
-                PropertyChanges { target: statusText; text: qsTr("SYNCHRONIZATION_ITEMS_LEFT").arg(systrayContainer.syncingCount) + tl.tr }
-                PropertyChanges { target: refreshTimer; repeat: true; running: true }
-                PropertyChanges { target: syncAnim; running: true }
-            },
-            State {
-                name: "update"
-                PropertyChanges {
-                    target: updatePopup
-                    version: systrayContainer.stateMessage
-                    channel: systrayContainer.stateSubMessage
+        SystrayStatus {
+            id: errorState
+            state: ""  // no errors/conflicts
+            visible: state != ""
+            textColor: "white"
+            icon: MdiFont.Icon.alert
+
+            states: [
+                State {
+                    name: "conflicted"
+                    PropertyChanges {
+                        target: errorState
+                        color: orange
+                        text: qsTr("CONFLICTS_SYSTRAY").arg(ConflictsModel.count) + tl.tr
+                        onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
+                    }
+                },
+                State {
+                    name: "auth_expired"
+                    PropertyChanges {
+                        target: errorState
+                        color: red
+                        text: qsTr("AUTH_EXPIRED") + tl.tr
+                        subText: qsTr("AUTH_UPDATE_ACTION") + tl.tr
+                        onClicked: api.web_update_token(accountSelect.getRole("uid"))
+                    }
+                },
+                State {
+                    name: "error"
+                    PropertyChanges {
+                        target: errorState
+                        color: red
+                        text: qsTr("ERRORS_SYSTRAY").arg(ErrorsModel.count) + tl.tr
+                        onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
+                    }
                 }
-                PropertyChanges {
-                    target: systrayBottom
-                    color: lightBlue
-                    onClicked: updatePopup.open()
+            ]
+        }
+
+        SystrayStatus {
+            id: updateState
+            state: ""  // up-to-date
+            visible: state != ""
+            color: lightBlue
+            textColor: "white"
+            icon: MdiFont.Icon.update
+
+            states: [
+                State {
+                    name: "update"
+                    PropertyChanges {
+                        target: updatePopup
+                        version: api.get_update_version()
+                        channel: api.get_update_channel()
+                    }
+                    PropertyChanges {
+                        target: updateState
+                        text: qsTr("NOTIF_UPDATE_TITLE") + tl.tr
+                        onClicked: updatePopup.open()
+                    }
+                },
+                State {
+                    name: "updating"
+                    PropertyChanges {
+                        target: updateState
+                        text: qsTr("UPDATING_VERSION").arg(api.get_update_version()) + tl.tr
+                        progress: api.get_update_progress()
+                    }
                 }
-                PropertyChanges {
-                    target: statusIcon
-                    icon: MdiFont.Icon.update
-                    color: "white"
-                }
-                PropertyChanges {
-                    target: statusText
-                    text: qsTr("NOTIF_UPDATE_TITLE") + tl.tr
-                    color: "white"
-                }
-            },
-            State {
-                name: "updating"
-                PropertyChanges {
-                    target: systrayBottom
-                    color: lightBlue
-                }
-                PropertyChanges {
-                    target: statusIcon
-                    icon: MdiFont.Icon.update
-                    color: "white"
-                }
-                PropertyChanges {
-                    target: statusText
-                    text: qsTr("UPDATING_VERSION").arg(systrayContainer.stateMessage) + tl.tr
-                    color: "white"
-                }
-                PropertyChanges {
-                    target: updateProgress
-                    visible: true
-                    value: parseInt(systrayContainer.stateSubMessage)
-                }
-            },
-            State {
-                name: "conflicted"
-                PropertyChanges {
-                    target: systrayBottom
-                    color: orange
-                    onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
-                }
-                PropertyChanges {
-                    target: statusIcon
-                    icon: MdiFont.Icon.alert
-                    color: "white"
-                }
-                PropertyChanges {
-                    target: statusText
-                    text: qsTr("CONFLICTS_SYSTRAY").arg(systrayContainer.stateMessage) + tl.tr
-                    color: "white"
-                }
-            },
-            State {
-                name: "auth_expired"
-                PropertyChanges {
-                    target: systrayBottom
-                    color: red
-                    onClicked: api.web_update_token(accountSelect.getRole("uid"))
-                }
-                PropertyChanges {
-                    target: statusIcon
-                    icon: MdiFont.Icon.alert
-                    color: "white"
-                }
-                PropertyChanges {
-                    target: statusText
-                    text: qsTr("AUTH_EXPIRED") + tl.tr
-                    color: "white"
-                }
-                PropertyChanges {
-                    target: statusSubText
-                    text: qsTr("AUTH_UPDATE_ACTION") + tl.tr
-                }
-            },
-            State {
-                name: "downgrade"
-                PropertyChanges {
-                    target: updatePopup
-                    version: systrayContainer.stateMessage
-                    channel: systrayContainer.stateSubMessage
-                }
-                PropertyChanges {
-                    target: systrayBottom
-                    color: red
-                    onClicked: updatePopup.open()
-                }
-                PropertyChanges {
-                    target: statusIcon
-                    icon: MdiFont.Icon.alert
-                    color: "white"
-                }
-                PropertyChanges {
-                    target: statusText
-                    text: qsTr("NOTIF_UPDATE_DOWNGRADE").arg(systrayContainer.stateMessage) + tl.tr
-                    color: "white"
-                }
-            },
-            State {
-                name: "error"
-                PropertyChanges {
-                    target: systrayBottom
-                    color: red
-                    onClicked: api.show_conflicts_resolution(accountSelect.getRole("uid"))
-                }
-                PropertyChanges {
-                    target: statusIcon
-                    icon: MdiFont.Icon.alert
-                    color: "white"
-                }
-                PropertyChanges {
-                    target: statusText
-                    text: qsTr("ERRORS_SYSTRAY").arg(systrayContainer.stateMessage) + tl.tr
-                    color: "white"
-                }
-            }
-        ]
+            ]
+        }
     }
 
     Rectangle {
@@ -410,6 +315,6 @@ Item {
         property string channel
 
         message: qsTr("CONFIRM_UPDATE_MESSAGE").arg(channel).arg(version) + tl.tr
-        onOk: api.app_update(version)
+        onOk: systray.appUpdate(version)
     }
 }

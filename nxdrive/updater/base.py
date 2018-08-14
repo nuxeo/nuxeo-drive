@@ -1,7 +1,6 @@
 # coding: utf-8
 import hashlib
 import os
-import shutil
 import uuid
 from logging import getLogger
 from tempfile import gettempdir
@@ -146,9 +145,10 @@ class BaseUpdater(PollWorker):
             path,
         )
         try:
-            with requests.get(url, stream=True) as req, open(path, "wb") as tmp:
-                req.raw.decode_content = True  # Handle gzipped data
-                shutil.copyfileobj(req.raw, tmp)
+            req = requests.get(url, stream=True)
+            with open(path, "wb") as tmp:
+                for chunk in req.iter_content(4096):
+                    tmp.write(chunk)
         except Exception as exc:
             raise UpdateError("Impossible to get %r: %s" % (url, exc))
 
@@ -238,7 +238,6 @@ class BaseUpdater(PollWorker):
         OS-specific method to install the new version.
         It must take care of uninstalling the current one.
         """
-
         log.info("Installing %s %s", self.manager.app_name, version)
         self.install(filename)
 
@@ -255,7 +254,7 @@ class BaseUpdater(PollWorker):
 
         func = getattr(hashlib, algo, "sha256")()
         with open(filename, "rb") as installer:
-            for chunk in iter(lambda: installer.read(16384), ""):
+            for chunk in iter(lambda: installer.read(16384), b""):
                 func.update(chunk)
         computed = func.hexdigest()
 

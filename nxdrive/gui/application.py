@@ -125,6 +125,7 @@ class Application(QApplication):
 
         self.api = QMLDriveApi(self)
         self.conflicts_model = FileModel()
+        self.errors_model = FileModel()
         self.engine_model = EngineModel()
         self.file_model = FileModel()
         self.ignoreds_model = FileModel()
@@ -171,6 +172,7 @@ class Application(QApplication):
         self.manager.initEngine.connect(self.add_engines)
         self.manager.dropEngine.connect(self.remove_engine)
         self._window_root(self.conflicts_window).changed.connect(self.refresh_conflicts)
+        self._window_root(self.systray_window).appUpdate.connect(self.api.app_update)
         self._window_root(self.systray_window).getLastFiles.connect(self.get_last_files)
         self.api.setMessage.connect(self._window_root(self.settings_window).setMessage)
 
@@ -178,6 +180,9 @@ class Application(QApplication):
             current_uid = self.engine_model.engines_uid[0]
             self.get_last_files(current_uid)
             self.update_status(self.engine_model.engines[current_uid])
+        self.manager.updater.updateAvailable.connect(
+            self._window_root(self.systray_window).updateAvailable
+        )
 
     def add_engines(self, engines: Union["Engine", List["Engine"]]) -> None:
         if not engines:
@@ -193,6 +198,7 @@ class Application(QApplication):
     def _fill_qml_context(self, context: "QQmlContext") -> None:
 
         context.setContextProperty("ConflictsModel", self.conflicts_model)
+        context.setContextProperty("ErrorsModel", self.errors_model)
         context.setContextProperty("EngineModel", self.engine_model)
         context.setContextProperty("FileModel", self.file_model)
         context.setContextProperty("IgnoredsModel", self.ignoreds_model)
@@ -201,6 +207,7 @@ class Application(QApplication):
         context.setContextProperty("application", self)
         context.setContextProperty("currentLanguage", self.current_language())
         context.setContextProperty("manager", self.manager)
+        context.setContextProperty("updater", self.manager.updater)
         context.setContextProperty("ratio", self.ratio)
         context.setContextProperty("tl", Translator._singleton)
         context.setContextProperty(
@@ -279,19 +286,15 @@ class Application(QApplication):
             self._conflicts_modals[filename] = True
 
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Warning)
-            msg.setWindowIcon(QIcon(self.get_window_icon()))
-            msg.setText(
+            msg.setInformativeText(
                 Translator.get("DIRECT_EDIT_CONFLICT_MESSAGE", [short_name(filename)])
             )
             overwrite = msg.addButton(
                 Translator.get("DIRECT_EDIT_CONFLICT_OVERWRITE"), QMessageBox.AcceptRole
             )
             msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
-
-            msg.exec_()
-            res = msg.clickedButton()
-            if res == overwrite:
+            msg.setIcon(QMessageBox.Warning)
+            if msg.clickedButton() == overwrite:
                 self.manager.direct_edit.force_update(ref, digest)
             del self._conflicts_modals[filename]
         except:
@@ -426,10 +429,11 @@ class Application(QApplication):
 
     def refresh_conflicts(self, uid: str) -> None:
         self.conflicts_model.empty()
+        self.errors_model.empty()
         self.ignoreds_model.empty()
 
         self.conflicts_model.addFiles(self.api.get_conflicts(uid))
-        self.conflicts_model.addFiles(self.api.get_errors(uid))
+        self.errors_model.addFiles(self.api.get_errors(uid))
         self.ignoreds_model.addFiles(self.api.get_unsynchronizeds(uid))
 
     @pyqtSlot()
@@ -902,38 +906,35 @@ class Application(QApplication):
         self.settings_window.show()
 
     def update_status(self, engine: "Engine") -> None:
-        state = message = submessage = ""
+        sync_state = error_state = update_state = ""
 
         update_status = self.manager.updater.last_status
-        conflicts = engine.get_conflicts()
-        errors = engine.get_errors()
+        self.refresh_conflicts(engine.uid)
 
-        if engine.has_invalid_credentials():
-            state = "auth_expired"
-        elif update_status[0] == UPDATE_STATUS_DOWNGRADE_NEEDED:
-            state = "downgrade"
-            message = update_status[1]
-            submessage = self.manager.updater.nature
-        elif update_status[0] == UPDATE_STATUS_UPDATE_AVAILABLE:
-            state = "update"
-            message = update_status[1]
-            submessage = self.manager.updater.nature
-        elif update_status[0] == UPDATE_STATUS_UPDATING:
-            state = "updating"
-            message = update_status[1]
-            submessage = update_status[2]
-        elif engine.is_paused():
-            state = "suspended"
-        elif conflicts:
-            state = "conflicted"
-            message = str(len(conflicts))
-        elif errors:
-            state = "error"
-            message = str(len(errors))
+        # Check synchronization state
+        if engine.is_paused():
+            sync_state = "suspended"
         elif engine.is_syncing():
-            state = "syncing"
+            sync_state = "syncing"
+
+        # Check error state
+        if engine.has_invalid_credentials():
+            error_state = "auth_expired"
+        elif self.conflicts_model.count:
+            error_state = "conflicted"
+        elif self.errors_model.count:
+            error_state = "error"
+
+        # Check update state
+        if update_status[0] == UPDATE_STATUS_DOWNGRADE_NEEDED:
+            update_state = "downgrade"
+        elif update_status[0] == UPDATE_STATUS_UPDATE_AVAILABLE:
+            update_state = "update"
+        elif update_status[0] == UPDATE_STATUS_UPDATING:
+            update_state = "updating"
+
         self._window_root(self.systray_window).setStatus.emit(
-            state, message, submessage
+            sync_state, error_state, update_state
         )
 
     @pyqtSlot(str)

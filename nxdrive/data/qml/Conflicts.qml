@@ -53,7 +53,7 @@ Rectangle {
                 id: content
                 width: implicitWidth
                 anchors.centerIn: parent
-                visible: ConflictsModel.count == 0
+                visible: ConflictsModel.count == 0 && ErrorsModel.count == 0
                 spacing: 10
 
                 ScaledText {
@@ -70,21 +70,45 @@ Rectangle {
                 }
             }
 
-            ListView {
-                id: conflictsList
+            Flickable {
                 anchors.fill: parent
-                spacing: 15
-                visible: ConflictsModel.count > 0
                 clip: true
+                contentHeight: conflictsList.height + errorsList.height + 15
+                ScrollBar.vertical: ScrollBar {}
 
-                model: ConflictsModel
-                delegate: FileCard {
-                    fileData: model
-                    onResolved: conflicts.changed(engineUid)
-                    onIgnored: conflicts.changed(engineUid)
+                ListView {
+                    id: conflictsList
+                    width: parent.width; height: contentHeight
+                    spacing: 15
+                    visible: ConflictsModel.count > 0
+                    interactive: false
+
+                    model: ConflictsModel
+                    delegate: FileCard {
+                        fileData: model
+                        onResolved: conflicts.changed(engineUid)
+                        onIgnored: conflicts.changed(engineUid)
+                    }
                 }
 
-                ScrollBar.vertical: ScrollBar {}
+                ListView {
+                    id: errorsList
+                    width: parent.width; height: contentHeight
+                    anchors {
+                        top: parent.top
+                        topMargin: conflictsList.height + 15
+                    }
+                    spacing: 15
+                    visible: ErrorsModel.count > 0
+                    interactive: false
+
+                    model: ErrorsModel
+                    delegate: FileCard {
+                        fileData: model
+                        onResolved: conflicts.changed(engineUid)
+                        onIgnored: conflicts.changed(engineUid)
+                    }
+                }
             }
         }
 

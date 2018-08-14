@@ -790,12 +790,12 @@ class EngineDAO(ConfigurationDAO):
             else ""
         )
         return c.execute(
-            f"SELECT *"
-            f"  FROM States"
-            f" WHERE pair_state = 'synchronized'"
-            f"   AND folderish = 0 {dir_condition} {time_condition}"
-            f" ORDER BY last_sync_date DESC"
-            f" LIMIT {number}"
+            "SELECT *"
+            "  FROM States"
+            " WHERE pair_state = 'synchronized'"
+            f"  AND folderish = 0 {dir_condition} {time_condition}"
+            " ORDER BY last_sync_date DESC "
+            f"LIMIT {number}"
         ).fetchall()
 
     def get_last_files_count(self, direction: str = "", duration: int = None) -> int:
