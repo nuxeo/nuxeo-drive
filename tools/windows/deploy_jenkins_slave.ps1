@@ -29,11 +29,11 @@ function build_installer {
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
 	Write-Output ">>> [$app_version] Freezing the application"
-	& $Env:STORAGE_DIR\Scripts\pyinstaller ndrive.spec --noconfirm
+	& $Env:STORAGE_DIR\Scripts\pyinstaller ndrive.spec --clean --noconfirm
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	sign "dist\ndrive\ndrive.exe"
+	sign "dist\ndrive.exe"
 
 	Write-Output ">>> [$app_version] Building the installer"
 	if (-Not (Test-Path "$Env:ISCC_PATH")) {

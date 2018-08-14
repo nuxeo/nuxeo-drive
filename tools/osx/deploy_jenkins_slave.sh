@@ -63,21 +63,14 @@ create_package() {
     echo ">>> [package] Creating the DMG file"
     rm -fv ${output_dir}/*.dmg
 
-    # Fix an issue with send2trash (NXDRIVE-1294)
-    pushd "${pkg_path}/Contents/MacOS"
-    ln -sv Foundation/_Foundation.*.so Foundation.dylib
-    popd
-
     prepare_signing
     if [ "${SIGNING_ID:=unset}" != "unset" ]; then
         echo ">>> [sign] Signing the app extension"
         codesign -dfvs "${SIGNING_ID}" --entitlements "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements" "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
 
         echo ">>> [sign] Signing the app"
-        # We recursively sign all the files without --force so the app
+        # We sign the files without --force so the app
         # extension keeps its entitlements and its sandboxing
-        find "${pkg_path}/Contents/MacOS" -type f -exec codesign -ds "${SIGNING_ID}" {} \;
-        # Then we shallow sign the .app
         codesign -vs "${SIGNING_ID}" "${pkg_path}"
 
         echo ">>> [sign] Verifying code signature"

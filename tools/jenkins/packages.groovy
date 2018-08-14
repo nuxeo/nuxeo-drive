@@ -114,7 +114,7 @@ for (x in slaves) {
                                                             variable: 'LOGIN_KEYCHAIN_PASSWORD')]) {
                                         sh 'tools/osx/deploy_jenkins_slave.sh --install'
                                         sh 'tools/osx/deploy_jenkins_slave.sh --build'
-                                        archive 'dist/*.dmg'
+                                        archive 'dist/nuxeo-drive*.dmg'
                                     }
                                 }
                             } else {
@@ -124,7 +124,7 @@ for (x in slaves) {
                                 ]
                                 withEnv(env_vars) {
                                     bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
-                                    archive 'dist/*.exe'
+                                    archive 'dist/nuxeo-drive*.exe'
                                 }
                             }
                         } catch(e) {

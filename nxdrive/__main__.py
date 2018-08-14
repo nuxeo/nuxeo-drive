@@ -4,13 +4,34 @@ In this file we cannot use a relative import here, else Drive will not start whe
 See https://github.com/pyinstaller/pyinstaller/issues/2560
 """
 import sys
-from contextlib import suppress
+
+
+def fix() -> None:
+    """Several fixes to done at runtime."""
+
+    # When frozen, path will be the folder of the uncompressed
+    # data directory.
+    path = getattr(sys, "_MEIPASS", "")
+    if not path:
+        return
+
+    if sys.platform != "darwin":
+        # For now, there is only one fix for macOS
+        return
+
+    # Fix an issue with Send2Trash (NXDRIVE-1294)
+    import subprocess
+
+    src = f"{path}/Foundation/_Foundation.cpython-36m-darwin.so"  # XXX_PYTHON
+    dst = f"{path}/Foundation.dylib"
+    subprocess.check_call(f"ln -s {src!r} {dst!r}", shell=True)
 
 
 def show_critical_error() -> None:
     """ Display a "friendly" dialog box on fatal error. """
 
     import traceback
+    from contextlib import suppress
 
     from PyQt5.QtCore import Qt
     from PyQt5.QtGui import QIcon
@@ -109,6 +130,7 @@ def main() -> int:
         raise RuntimeError("Nuxeo Drive requires Python 3.6+")
 
     try:
+        fix()
         from nxdrive.commandline import CliHandler
 
         return CliHandler().handle(sys.argv)

@@ -67,7 +67,7 @@ if sys.platform == "win32":
 
 
 a = Analysis(
-    [os.path.join(nxdrive, "__main__.py")], pathex=[cwd], datas=data, excludes=excludes
+    [os.path.join(nxdrive, "__main__.py")], datas=data, excludes=excludes
 )
 
 pyz = PYZ(a.pure, a.zipped_data)
@@ -75,17 +75,18 @@ pyz = PYZ(a.pure, a.zipped_data)
 exe = EXE(
     pyz,
     a.scripts,
-    exclude_binaries=True,
-    name="ndrive",
+    a.binaries,
+    a.zipfiles,
+    a.datas,
     console=False,
     debug=False,
+    icon=icon,
+    name="ndrive",
+    runtime_tmpdir=None,
     strip=False,
     upx=False,
-    icon=icon,
     version=properties_rc,
 )
-
-coll = COLLECT(exe, a.binaries, a.zipfiles, a.datas, name="ndrive")
 
 info_plist = {
     "CFBundleName": "NuxeoDrive",
@@ -100,7 +101,7 @@ info_plist = {
 }
 
 app = BUNDLE(
-    coll,
+    exe,
     name="Nuxeo Drive.app",
     icon=icon,
     info_plist=info_plist,
