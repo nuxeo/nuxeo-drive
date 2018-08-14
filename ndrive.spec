@@ -27,6 +27,7 @@ icon = {
     "win32": os.path.join(tools, "windows", "app_icon.ico"),
 }[sys.platform]
 
+hiddenimports = []
 excludes = [
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-remove-tkinter-tcl
     "FixTk",
@@ -65,9 +66,15 @@ if sys.platform == "win32":
         print(content)
         out.write(content)
 
+    # Missing modules when packaged
+    hiddenimports.append("win32timezone")
+
 
 a = Analysis(
-    [os.path.join(nxdrive, "__main__.py")], pathex=[cwd], datas=data, excludes=excludes
+    [os.path.join(nxdrive, "__main__.py")],
+    datas=data,
+    excludes=excludes,
+    hiddenimports=hiddenimports,
 )
 
 pyz = PYZ(a.pure, a.zipped_data)
