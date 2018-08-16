@@ -24,6 +24,8 @@ NuxeoPopup {
             rowSpacing: 20
             columnSpacing: 10
 
+            Keys.onReturnPressed: connectButton.clicked()
+
             ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
             NuxeoInput {
                 id: urlInput
@@ -70,6 +72,7 @@ NuxeoPopup {
             }
 
             NuxeoButton {
+                id: connectButton
                 enabled: urlInput.text && folderInput.text
                 inverted: true
                 text: qsTr("CONNECT") + tl.tr

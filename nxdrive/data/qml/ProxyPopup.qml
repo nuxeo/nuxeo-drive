@@ -45,6 +45,8 @@ NuxeoPopup {
         rowSpacing: 20
         columnSpacing: 20
 
+        Keys.onReturnPressed: okButton.clicked()
+
         ScaledText { text: qsTr("TYPE") + tl.tr; color: mediumGray }
         NuxeoComboBox {
             id: proxyType
