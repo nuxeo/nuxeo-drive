@@ -417,13 +417,13 @@ class Manager(QObject):
         report.generate()
         return report.get_path()
 
-    @pyqtSlot(bool)
-    def set_auto_start(self, value: bool) -> None:
+    @pyqtSlot(bool, result=bool)
+    def set_auto_start(self, value: bool) -> bool:
         self._dao.update_config("auto_start", value)
         if value:
-            self.osi.register_startup()
+            return self.osi.register_startup()
         else:
-            self.osi.unregister_startup()
+            return self.osi.unregister_startup()
 
     @pyqtSlot(result=bool)
     def get_beta_channel(self) -> bool:

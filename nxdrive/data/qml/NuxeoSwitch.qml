@@ -4,9 +4,10 @@ import QtQuick.Controls 2.3
 Switch {
     id: control
 
-    property string lightColor: nuxeoBlue
-    property string darkColor: darkBlue
-    property string textColor: darkGray
+    property bool enabled: true
+    property string checkedColor: enabled ? nuxeoBlue : lightGray
+    property string uncheckedColor: enabled ? mediumGray : lightGray
+    property string textColor: enabled ? darkGray : lightGray
     property int size: 8
 
     indicator: Rectangle {
@@ -15,9 +16,9 @@ Switch {
         x: control.leftPadding
         y: parent.height / 2 - height / 2
         radius: size
-        color: control.checked ? lightColor : "white"
+        color: control.checked ? checkedColor : "white"
         border {
-            color: control.checked ? lightColor : mediumGray
+            color: control.checked ? checkedColor : uncheckedColor
             width: 2
         }
 
@@ -30,7 +31,7 @@ Switch {
             width: roundSize
             height: roundSize
             radius: size
-            color: control.checked ? (control.down ? lighterGray : "white") : mediumGray
+            color: control.checked ? (control.down ? lighterGray : "white") : uncheckedColor
             border.width: 0
         }
     }
@@ -45,7 +46,7 @@ Switch {
 
     MouseArea {
         anchors.fill: parent
-        cursorShape: Qt.PointingHandCursor
-        onPressed: mouse.accepted = false
+        cursorShape: control.enabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor
+        onPressed: mouse.accepted = !control.enabled
     }
 }

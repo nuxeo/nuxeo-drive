@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import sys
 from contextlib import suppress
 from ctypes import windll
 from logging import getLogger
@@ -12,6 +13,8 @@ from win32com.client import Dispatch
 from win32con import LOGPIXELSX
 
 from .. import AbstractOSIntegration
+from ...constants import APP_NAME
+from ...options import Options
 
 __all__ = ("WindowsIntegration",)
 
@@ -67,6 +70,34 @@ class WindowsIntegration(AbstractOSIntegration):
     def unregister_folder_link(self, name: str = None) -> None:
         with suppress(OSError):
             os.remove(self._get_folder_link(name))
+
+    def register_startup(self) -> bool:
+        if not Options.is_frozen:
+            return False
+        reg = winreg.HKEY_CURRENT_USER
+        reg_key = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+
+        try:
+            with winreg.CreateKey(reg, reg_key) as key:
+                winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, sys.executable)
+            return True
+        except WindowsError:
+            log.exception("Error while trying to modify registry.")
+            return False
+
+    def unregister_startup(self) -> bool:
+        if not Options.is_frozen:
+            return False
+        reg = winreg.HKEY_CURRENT_USER
+        reg_key = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+
+        try:
+            with winreg.OpenKey(reg, reg_key, 0, winreg.KEY_SET_VALUE) as key:
+                winreg.DeleteValue(key, APP_NAME)
+            return True
+        except WindowsError:
+            log.exception("Error while trying to modify registry.")
+            return False
 
     def _create_shortcut(self, favorite: str, filepath: str) -> None:
         try:

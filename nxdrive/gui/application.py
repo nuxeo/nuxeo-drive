@@ -208,6 +208,7 @@ class Application(QApplication):
         context.setContextProperty("manager", self.manager)
         context.setContextProperty("updater", self.manager.updater)
         context.setContextProperty("ratio", self.ratio)
+        context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("tl", Translator._singleton)
         context.setContextProperty(
             "nuxeoVersionText", "Nuxeo Drive " + self.manager.version
