@@ -70,15 +70,14 @@ create_package() {
 
     prepare_signing
     if [ "${SIGNING_ID:=unset}" != "unset" ]; then
-        echo ">>> [sign] Signing the app extension"
-        codesign -dfvs "${SIGNING_ID}" --entitlements "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements" "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
-
-        echo ">>> [sign] Signing the app"
-        # We recursively sign all the files without --force so the app
-        # extension keeps its entitlements and its sandboxing
-        find "${pkg_path}/Contents/MacOS" -type f -exec codesign -ds "${SIGNING_ID}" {} \;
-        # Then we shallow sign the .app
-        codesign -vs "${SIGNING_ID}" "${pkg_path}"
+        echo ">>> [sign] Signing the app and its extension"
+        # We recursively sign all the files first and the extension then
+        find "${pkg_path}/Contents/MacOS" -type f -exec codesign --deep --sign "${SIGNING_ID}" {} \;
+        codesign --sign "${SIGNING_ID}" \
+            --entitlements "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements" \
+            "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
+        # And we shallow sign the .app
+        codesign --sign "${SIGNING_ID}" "${pkg_path}"
 
         echo ">>> [sign] Verifying code signature"
         codesign -vv "${pkg_path}"
