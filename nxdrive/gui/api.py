@@ -366,9 +366,9 @@ class QMLDriveApi(QObject):
     def get_direct_edit_auto_lock(self) -> bool:
         return self._manager.get_direct_edit_auto_lock()
 
-    @pyqtSlot(bool)
-    def set_auto_start(self, value: bool) -> None:
-        self._manager.set_auto_start(value)
+    @pyqtSlot(bool, result=bool)
+    def set_auto_start(self, value: bool) -> bool:
+        return self._manager.set_auto_start(value)
 
     @pyqtSlot(result=bool)
     def get_auto_start(self) -> bool:

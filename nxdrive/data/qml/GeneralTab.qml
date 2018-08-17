@@ -17,13 +17,18 @@ Rectangle {
 
         NuxeoSwitch {
             text: qsTr("AUTOSTART") + tl.tr
+            enabled: isFrozen
             checked: manager.get_auto_start()
-            onClicked: manager.set_auto_start(checked)
+            onClicked: {
+                var success = manager.set_auto_start(checked)
+                if (!success) { checked = !checked }
+            }
             Layout.leftMargin: -5
         }
 
         NuxeoSwitch {
             text: qsTr("AUTOUPDATE") + tl.tr
+            enabled: isFrozen
             checked: manager.get_auto_update()
             onClicked: manager.set_auto_update(checked)
             Layout.leftMargin: -5
@@ -38,6 +43,7 @@ Rectangle {
 
         NuxeoSwitch {
             text: qsTr("TRACKER") + tl.tr
+            enabled: isFrozen
             checked: manager.get_tracking()
             onClicked: manager.set_tracking(checked)
             Layout.leftMargin: -5
@@ -82,6 +88,7 @@ Rectangle {
 
         NuxeoSwitch {
             text: qsTr("BETACHANNEL") + tl.tr
+            enabled: isFrozen
             checked: manager.get_beta_channel()
             onClicked: manager.set_beta_channel(checked)
             Layout.leftMargin: -5

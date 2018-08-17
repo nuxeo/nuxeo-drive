@@ -72,6 +72,8 @@
 - Renamed `WebDriveApi` to `QMLDriveApi`
 - Renamed `WebSettingsApi` to `QMLSettingsApi`
 - Renamed `WebSystrayApi` to `QMLSystrayApi`
+- Added `WindowsIntegration.register_startup()`
+- Added `WindowsIntegration.unregister_startup()`
 - Removed `Worker.actionUpdate()`
 - Added exceptions.py
 - Removed `filter_inotify` argument logging_config.py::`configure()`
