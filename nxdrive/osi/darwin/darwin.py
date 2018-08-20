@@ -307,7 +307,7 @@ class SocketThread(Worker):
             data = self._sock.recv(1024)
             if not data:
                 break
-            content += data
+            content += force_decode(data)
         log.trace("SocketThread for %s: received %s", self.addr, content)
         self._sock.close()
         self._manager.send_sync_status(content)

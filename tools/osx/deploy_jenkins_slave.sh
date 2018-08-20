@@ -71,9 +71,15 @@ create_package() {
     prepare_signing
     if [ "${SIGNING_ID:=unset}" != "unset" ]; then
         echo ">>> [sign] Signing the app and its extension"
-        # We recursively sign all the files first and the extension then
-        find "${pkg_path}/Contents/MacOS" -type f -exec codesign --deep --sign "${SIGNING_ID}" {} \;
-        codesign --sign "${SIGNING_ID}" \
+        # We recursively sign all the files
+        # A message indicating "code object is not signed at all" can appear:
+        # This is normal. The find command goes through the binaries in an
+        # arbitrary order. When the `codesign` runs, it will look at some
+        # dependancies of the current binary and see that they are not signed
+        # yet. But the find command will eventually reach it and sign it later.
+        find "${pkg_path}/Contents/MacOS" -type f -exec codesign --sign "${SIGNING_ID}" {} \;
+        # Then we sign the extension
+        codesign --force --sign "${SIGNING_ID}" \
             --entitlements "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements" \
             "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
         # And we shallow sign the .app
