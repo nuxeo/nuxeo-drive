@@ -6,6 +6,8 @@
 - Removed `AbstractOSIntegration.is_linux()`
 - Removed `AbstractOSIntegration.is_mac()`
 - Removed `AbstractOSIntegration.is_windows()`
+- Changed `AbstractOSIntegration.register_startup()` return type to `bool`
+- Changed `AbstractOSIntegration.unregister_startup()` return type to `bool`
 - Removed `Application.get_htmlpage()`
 - Removed `Application.get_cache_folder()`
 - Added `Application.refresh_conflicts()`
@@ -65,6 +67,11 @@
 - Added `Translator.tr()`
 - Removed `types` argument from `Remote.get_children_info()`. Use `types` attribute instead.
 - Removed `RemoteWatcher.get_engine()`. Use `engine` attribute instead.
+- Removed `Updater.last_status`
+- Added `Updater.status`
+- Added `Updater.version`
+- Added `Updater.progress`
+- Added `Updater.updateProgress`
 - Renamed `WebAuthenticationApi` to `QMLAuthenticationApi`
 - Renamed `WebConflictsApi` to `QMLConflictsApi`
 - Removed `WebDialog.loadError()`

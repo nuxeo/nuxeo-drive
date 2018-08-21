@@ -15,11 +15,11 @@ class AbstractOSIntegration:
     def __init__(self, manager: "Manager") -> None:
         self._manager = manager
 
-    def register_startup(self) -> None:
-        pass
+    def register_startup(self) -> bool:
+        return False
 
-    def unregister_startup(self) -> None:
-        pass
+    def unregister_startup(self) -> bool:
+        return False
 
     @staticmethod
     def is_partition_supported(folder: str) -> bool:
