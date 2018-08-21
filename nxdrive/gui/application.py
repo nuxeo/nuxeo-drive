@@ -182,6 +182,9 @@ class Application(QApplication):
         self.manager.updater.updateAvailable.connect(
             self._window_root(self.systray_window).updateAvailable
         )
+        self.manager.updater.updateProgress.connect(
+            self._window_root(self.systray_window).updateProgress
+        )
 
     def add_engines(self, engines: Union["Engine", List["Engine"]]) -> None:
         if not engines:
@@ -387,7 +390,7 @@ class Application(QApplication):
     @pyqtSlot()
     def change_systray_icon(self) -> None:
         # Update status has the precedence over other ones
-        if self.manager.updater.last_status[0] not in (
+        if self.manager.updater.status not in (
             UPDATE_STATUS_UNAVAILABLE_SITE,
             UPDATE_STATUS_UP_TO_DATE,
         ):
@@ -601,7 +604,7 @@ class Application(QApplication):
         self.change_systray_icon()
 
         # Display a notification
-        status, version = self.manager.updater.last_status[:2]
+        status, version = self.manager.updater.status, self.manager.updater.version
 
         msg = ("AUTOUPDATE_UPGRADE", "AUTOUPDATE_DOWNGRADE")[
             status == UPDATE_STATUS_DOWNGRADE_NEEDED
@@ -914,7 +917,7 @@ class Application(QApplication):
         """
         sync_state = error_state = update_state = ""
 
-        update_status = self.manager.updater.last_status
+        status = self.manager.updater.status
         self.refresh_conflicts(engine.uid)
 
         # Check synchronization state
@@ -932,11 +935,11 @@ class Application(QApplication):
             error_state = "error"
 
         # Check update state
-        if update_status[0] == UPDATE_STATUS_DOWNGRADE_NEEDED:
+        if status == UPDATE_STATUS_DOWNGRADE_NEEDED:
             update_state = "downgrade"
-        elif update_status[0] == UPDATE_STATUS_UPDATE_AVAILABLE:
+        elif status == UPDATE_STATUS_UPDATE_AVAILABLE:
             update_state = "update"
-        elif update_status[0] == UPDATE_STATUS_UPDATING:
+        elif status == UPDATE_STATUS_UPDATING:
             update_state = "updating"
 
         self._window_root(self.systray_window).setStatus.emit(

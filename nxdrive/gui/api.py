@@ -281,19 +281,17 @@ class QMLDriveApi(QObject):
     @pyqtSlot(result=str)
     def get_update_status(self) -> str:
         """ Return the status of the update. """
-        return self._manager.updater.last_status[0]
+        return self._manager.updater.status
 
     @pyqtSlot(result=str)
     def get_update_version(self) -> str:
         """ Return the version of the update, if one is available. """
-        return self._manager.updater.last_status[1]
+        return self._manager.updater.version
 
     @pyqtSlot(result=int)
     def get_update_progress(self) -> int:
         """ Return the progress of the update, if one is ingoing. """
-        if len(self._manager.updater.last_status) > 2:
-            return self._manager.updater.last_status[2]
-        return 0
+        return self._manager.updater.progress
 
     @pyqtSlot(str)
     def app_update(self, version: str) -> None:

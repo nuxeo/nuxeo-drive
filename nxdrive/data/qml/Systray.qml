@@ -14,6 +14,7 @@ Item {
     signal getLastFiles(string uid)
     signal setStatus(string sync, string error, string update)
     signal updateAvailable()
+    signal updateProgress(int progress)
 
     Connections {
         target: EngineModel
@@ -32,6 +33,10 @@ Item {
     }
 
     onUpdateAvailable: updateState.state = "update"
+    onUpdateProgress: {
+        updateState.state = "updating"
+        updateState.progress = progress
+    }
 
     FontLoader {
         id: iconFont
@@ -254,7 +259,6 @@ Item {
                     PropertyChanges {
                         target: updateState
                         text: qsTr("UPDATING_VERSION").arg(api.get_update_version()) + tl.tr
-                        progress: api.get_update_progress()
                     }
                 }
             ]
@@ -315,6 +319,9 @@ Item {
         property string channel
 
         message: qsTr("CONFIRM_UPDATE_MESSAGE").arg(channel).arg(version) + tl.tr
-        onOk: systray.appUpdate(version)
+        onOk: {
+            updatePopup.close()
+            systray.appUpdate(version)
+        }
     }
 }
