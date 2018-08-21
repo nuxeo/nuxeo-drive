@@ -76,9 +76,8 @@ class Translator(QTranslator):
         if not values:
             return label
 
-        values.insert(0, "")
         result = re.sub(r"%(\d+)", r"{\1}", label)
-        return result.format(*values)
+        return result.format(*([""] + values))
 
     def _get(self, label: str, values: List[Any] = None) -> str:
         if label not in self._current:
