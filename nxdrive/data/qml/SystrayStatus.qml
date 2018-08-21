@@ -60,12 +60,11 @@ HoverRectangle {
             }
         }
     }
-    ProgressBar {
-        id: updateProgress
-        width: parent.width
+
+    NuxeoProgressBar {
+        id: updateProgressBar
+        width: control.width; height: 5
         anchors.bottom: parent.bottom
-        visible: false
-        indeterminate: value == 0
-        from: 0; to: 100
+        value: control.progress
     }
 }

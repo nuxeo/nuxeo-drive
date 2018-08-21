@@ -4,11 +4,12 @@ import os
 import uuid
 from logging import getLogger
 from tempfile import gettempdir
-from typing import Optional, Tuple
+from typing import Optional
 
 import requests
 import yaml
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QApplication
 
 from . import UpdateError, get_latest_compatible_version
 from .constants import (
@@ -36,8 +37,13 @@ class BaseUpdater(PollWorker):
     # Used to display a notification when a new version is available
     updateAvailable = pyqtSignal()
 
+    # Used to refresh the update progress bar in the systray
+    updateProgress = pyqtSignal(int)
+
     versions = {}
     nature = "release"
+
+    chunk_size = 8192
 
     __update_site = None
 
@@ -46,7 +52,9 @@ class BaseUpdater(PollWorker):
         self.manager = manager
 
         self.enable = getattr(self, "_can_update", Options.is_frozen)
-        self.last_status = (UPDATE_STATUS_UP_TO_DATE, None)
+        self.status = UPDATE_STATUS_UP_TO_DATE
+        self.version = None
+        self.progress = 0
 
         if not self.enable:
             log.info("Auto-update disabled (frozen=%r)", Options.is_frozen)
@@ -93,11 +101,11 @@ class BaseUpdater(PollWorker):
         Used for debugging purposes only.
         """
 
+        self._set_status(status, version)
+
         if status == UPDATE_STATUS_UPDATING:
             # Put a percentage
-            self.last_status = (status, version, 40)
-        else:
-            self.last_status = (status, version)
+            self._set_progress(40)
 
         if status == UPDATE_STATUS_UPDATE_AVAILABLE:
             self.updateAvailable.emit()
@@ -122,9 +130,8 @@ class BaseUpdater(PollWorker):
         if not self.enable:
             return
 
-        version = str(version)
         log.info("Starting application update process to version %s", version)
-        self.last_status = (UPDATE_STATUS_UPDATING, version, 50)
+        self._set_status(UPDATE_STATUS_UPDATING, version, 10)
         self._install(version, self._download(version))
 
     #
@@ -146,9 +153,16 @@ class BaseUpdater(PollWorker):
         )
         try:
             req = requests.get(url, stream=True)
+            size = int(req.headers["content-length"])
+            incr = self.chunk_size * 100 / size
+            i = 0
+
             with open(path, "wb") as tmp:
-                for chunk in req.iter_content(4096):
+                for chunk in req.iter_content(self.chunk_size):
                     tmp.write(chunk)
+                    if i % 100 == 0:
+                        self._set_progress(self.progress + incr * 50)
+                    i += 1
         except Exception as exc:
             raise UpdateError("Impossible to get %r: %s" % (url, exc))
 
@@ -175,14 +189,14 @@ class BaseUpdater(PollWorker):
         else:
             self.versions = versions
 
-    def _get_update_status(self) -> Tuple[str, Optional[bool]]:
+    def _get_update_status(self) -> None:
         """ Retrieve available versions and find a possible candidate. """
 
         try:
             # Fetch all available versions
             self._fetch_versions()
         except UpdateError:
-            status = (UPDATE_STATUS_UNAVAILABLE_SITE, None)
+            self._set_status(UPDATE_STATUS_UNAVAILABLE_SITE)
         else:
             # Find the latest available version
             latest, info = get_latest_compatible_version(
@@ -191,27 +205,23 @@ class BaseUpdater(PollWorker):
 
             current = self.manager.version
             if not latest or current == latest:
-                status = (UPDATE_STATUS_UP_TO_DATE, None)
+                self._set_status(UPDATE_STATUS_UP_TO_DATE)
             elif not version_le(latest, current):
-                status = (UPDATE_STATUS_UPDATE_AVAILABLE, latest)
+                self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, latest)
             else:
-                status = (UPDATE_STATUS_DOWNGRADE_NEEDED, latest)
-
-        return status
+                self._set_status(UPDATE_STATUS_DOWNGRADE_NEEDED, latest)
 
     def _handle_status(self) -> None:
         """ Handle update check status. """
 
-        status, version = self.last_status[:2]
-
-        if status == UPDATE_STATUS_UNAVAILABLE_SITE:
+        if self.status == UPDATE_STATUS_UNAVAILABLE_SITE:
             log.warning(
                 "Update site is unavailable, as a consequence"
                 " update features won't be available."
             )
             return
 
-        if status not in (
+        if self.status not in (
             UPDATE_STATUS_DOWNGRADE_NEEDED,
             UPDATE_STATUS_UPDATE_AVAILABLE,
         ):
@@ -220,7 +230,7 @@ class BaseUpdater(PollWorker):
 
         self.updateAvailable.emit()
 
-        if status == UPDATE_STATUS_DOWNGRADE_NEEDED:
+        if self.status == UPDATE_STATUS_DOWNGRADE_NEEDED:
             self.manager.stop()
             return
 
@@ -229,9 +239,19 @@ class BaseUpdater(PollWorker):
             #  - the auto-update option is checked
             #  - there is no bound engine
             try:
-                self.update(version)
+                self.update(self.version)
             except UpdateError:
                 log.exception("Auto-update error")
+
+    def _set_progress(self, progress: int) -> None:
+        self.progress = progress
+        self.updateProgress.emit(self.progress)
+        QApplication.processEvents()
+
+    def _set_status(self, status: str, version: str = None, progress: int = 0) -> None:
+        self.status = status
+        self.version = version
+        self._set_progress(progress)
 
     def _install(self, version: str, filename: str) -> None:
         """
@@ -269,23 +289,19 @@ class BaseUpdater(PollWorker):
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
-        ret = True
 
-        if self.last_status != UPDATE_STATUS_UPDATING:
+        if self.status != UPDATE_STATUS_UPDATING:
             log.debug(
                 "Polling %r for update, the current version is %r",
                 self.update_site,
                 self.manager.version,
             )
             try:
-                status = self._get_update_status()
-                if status != self.last_status:
-                    self.last_status = status
+                self._get_update_status()
                 self._handle_status()
-                ret = status != UPDATE_STATUS_UNAVAILABLE_SITE
             finally:
                 # Reset the update site URL to force
                 # recomputation the next time
                 self.__update_site = None
 
-        return ret
+        return self.status != UPDATE_STATUS_UNAVAILABLE_SITE

@@ -69,7 +69,7 @@ class DarwinIntegration(AbstractOSIntegration):
             "{}.plist".format(BUNDLE_IDENTIFIER),
         )
 
-    def register_startup(self) -> None:
+    def register_startup(self) -> bool:
         """
         Register the Nuxeo Drive.app as a user Launch Agent.
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
@@ -79,7 +79,7 @@ class DarwinIntegration(AbstractOSIntegration):
             "{}.plist".format(BUNDLE_IDENTIFIER),
         )
         if os.path.isfile(agent):
-            return
+            return False
 
         agents_folder = os.path.dirname(agent)
         if not os.path.exists(agents_folder):
@@ -90,12 +90,15 @@ class DarwinIntegration(AbstractOSIntegration):
         log.debug("Registering %r for startup in %r", exe, agent)
         with open(agent, "w") as f:
             f.write(self.NDRIVE_AGENT_TEMPLATE % exe)
+        return True
 
-    def unregister_startup(self) -> None:
+    def unregister_startup(self) -> bool:
         agent = self._get_agent_file()
         if os.path.isfile(agent):
             log.debug("Unregistering startup agent %r", agent)
             os.remove(agent)
+            return True
+        return False
 
     def register_protocol_handlers(self) -> None:
         """Register the URL scheme listener using PyObjC"""

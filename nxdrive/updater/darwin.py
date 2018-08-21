@@ -37,14 +37,17 @@ class Updater(BaseUpdater):
         log.debug("Mounted in %r", mount_dir)
 
         self._backup()
+        self._set_progress(70)
 
         try:
             self._copy(mount_dir)
+            self._set_progress(80)
         except:
             log.exception("Content copy error")
             self._backup(restore=True)
         finally:
             self._cleanup(filename)
+            self._set_progress(90)
             log.debug("Unmounting %r", mount_dir)
             subprocess.check_call(["hdiutil", "unmount", mount_dir])
 
@@ -55,6 +58,7 @@ class Updater(BaseUpdater):
             return
 
         # Trigger the application exit + restart
+        self._set_progress(100)
         self._restart()
         self.appUpdated.emit()
 
