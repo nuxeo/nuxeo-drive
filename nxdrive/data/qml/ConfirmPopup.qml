@@ -28,7 +28,8 @@ NuxeoPopup {
             }
 
             RowLayout {
-                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+                spacing: 20
                 NuxeoButton {
                     id: cancelButton
                     text: qsTr("CANCEL") + tl.tr
