@@ -32,11 +32,9 @@ Item {
         updateState.state = update
     }
 
-    onUpdateAvailable: updateState.state = "update"
+    onUpdateAvailable: updateState.state = api.get_update_status()
     onUpdateProgress: {
-        if (progress > 0) {
-            updateState.state = "updating"
-        }
+        updateState.state = api.get_update_status()
         updateState.progress = progress
     }
 
@@ -236,15 +234,15 @@ Item {
 
         SystrayStatus {
             id: updateState
-            state: ""  // up-to-date
-            visible: state != ""
+            state: "up_to_date"
+            visible: state != "up_to_date" && state != "unavailable_site"
             color: lightBlue
             textColor: "white"
             icon: MdiFont.Icon.update
 
             states: [
                 State {
-                    name: "update"
+                    name: "update_available"
                     PropertyChanges {
                         target: updatePopup
                         version: api.get_update_version()
@@ -261,6 +259,20 @@ Item {
                     PropertyChanges {
                         target: updateState
                         text: qsTr("UPDATING_VERSION").arg(api.get_update_version()) + tl.tr
+                    }
+                },
+                State {
+                    name: "downgrade_needed"
+                    PropertyChanges {
+                        target: updatePopup
+                        version: api.get_update_version()
+                        channel: api.get_update_channel()
+                    }
+                    PropertyChanges {
+                        target: updateState
+                        color: red
+                        text: qsTr("NOTIF_UPDATE_DOWNGRADE").arg(api.get_update_version()) + tl.tr
+                        onClicked: updatePopup.open()
                     }
                 }
             ]

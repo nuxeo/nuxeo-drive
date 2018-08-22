@@ -33,8 +33,6 @@ from ..updater.constants import (
     UPDATE_STATUS_DOWNGRADE_NEEDED,
     UPDATE_STATUS_UNAVAILABLE_SITE,
     UPDATE_STATUS_UP_TO_DATE,
-    UPDATE_STATUS_UPDATE_AVAILABLE,
-    UPDATE_STATUS_UPDATING,
 )
 from ..utils import (
     find_icon,
@@ -134,6 +132,8 @@ class Application(QApplication):
         self.engine_model.statusChanged.connect(self.update_status)
         self.language_model.addLanguages(Translator.languages())
 
+        flags = Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+
         if WINDOWS:
             self.conflicts_window = QQuickView()
             self.settings_window = QQuickView()
@@ -155,9 +155,7 @@ class Application(QApplication):
             self.systray_window.setSource(
                 QUrl.fromLocalFile(find_resource("qml", "Systray.qml"))
             )
-            self.systray_window.setFlags(
-                Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Popup
-            )
+            flags |= Qt.Popup
         else:
             self.app_engine = QQmlApplicationEngine()
             self._fill_qml_context(self.app_engine.rootContext())
@@ -166,6 +164,10 @@ class Application(QApplication):
             self.conflicts_window = root.findChild(QQuickWindow, "conflictsWindow")
             self.settings_window = root.findChild(QQuickWindow, "settingsWindow")
             self.systray_window = root.findChild(SystrayWindow, "systrayWindow")
+            if LINUX:
+                flags |= Qt.Drawer
+
+        self.systray_window.setFlags(flags)
 
         self.manager.newEngine.connect(self.add_engines)
         self.manager.initEngine.connect(self.add_engines)
@@ -919,7 +921,7 @@ class Application(QApplication):
         """
         sync_state = error_state = update_state = ""
 
-        status = self.manager.updater.status
+        update_state = self.manager.updater.status
         self.refresh_conflicts(engine.uid)
 
         # Check synchronization state
@@ -935,14 +937,6 @@ class Application(QApplication):
             error_state = "conflicted"
         elif self.errors_model.count:
             error_state = "error"
-
-        # Check update state
-        if status == UPDATE_STATUS_DOWNGRADE_NEEDED:
-            update_state = "downgrade"
-        elif status == UPDATE_STATUS_UPDATE_AVAILABLE:
-            update_state = "update"
-        elif status == UPDATE_STATUS_UPDATING:
-            update_state = "updating"
 
         self._window_root(self.systray_window).setStatus.emit(
             sync_state, error_state, update_state

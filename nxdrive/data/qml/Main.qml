@@ -25,7 +25,6 @@ QtObject {
         objectName: "systrayWindow"
         width: systray.width; height: systray.height
         visible: false
-        flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
 
         signal appUpdate(string version)
         signal getLastFiles(string uid)
