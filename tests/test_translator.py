@@ -99,5 +99,16 @@ def test_token(token, result):
     assert Translator.get(token, options) == result
 
 
+def test_translate_twice():
+    """ Check that the values array is not mutated. """
+    Translator(MockManager(), get_folder("i18n"))
+    values = ["value"]
+    first = Translator.get("TOKEN_NORMAL", values)
+    second = Translator.get("TOKEN_NORMAL", values)
+
+    assert first == second
+    assert values == ["value"]
+
+
 def get_folder(folder):
     return os.path.join(os.path.dirname(__file__), "resources", folder)
