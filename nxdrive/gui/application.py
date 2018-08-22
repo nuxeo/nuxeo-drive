@@ -446,12 +446,14 @@ class Application(QApplication):
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
         self.conflicts_window.show()
+        self.conflicts_window.requestActivate()
 
     @pyqtSlot()
     def show_settings(self, section: str = "General") -> None:
         sections = {"General": 0, "Accounts": 1, "About": 2}
         self._window_root(self.settings_window).setSection.emit(sections[section])
         self.settings_window.show()
+        self.settings_window.requestActivate()
 
     @pyqtSlot()
     def show_systray(self) -> None:

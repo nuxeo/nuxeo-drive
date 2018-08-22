@@ -34,7 +34,9 @@ Item {
 
     onUpdateAvailable: updateState.state = "update"
     onUpdateProgress: {
-        updateState.state = "updating"
+        if (progress > 0) {
+            updateState.state = "updating"
+        }
         updateState.progress = progress
     }
 
@@ -276,7 +278,7 @@ Item {
             anchors.centerIn: parent
 
             IconLabel {
-                icon: MdiFont.Icon.accountPlus
+                icon: MdiFont.Icon.accountPlus; enabled: false
                 size: 96; Layout.alignment: Qt.AlignHCenter
             }
 

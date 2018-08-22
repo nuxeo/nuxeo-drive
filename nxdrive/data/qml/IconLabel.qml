@@ -4,6 +4,7 @@ import QtQuick 2.10
     id: control
     property int size: 20
     property string icon
+    property bool enabled: true
 
     signal clicked()
 
@@ -14,8 +15,8 @@ import QtQuick 2.10
 
     MouseArea {
         id: mouseArea
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: control.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         anchors.fill: parent
-        onClicked: control.clicked()
+        onClicked: control.enabled ? control.clicked() : {}
     }
 }

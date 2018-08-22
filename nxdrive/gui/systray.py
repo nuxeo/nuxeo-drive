@@ -91,8 +91,9 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
 class SystrayWindow(QQuickView):
     def event(self, event: QEvent) -> bool:
-        if event.type() == QEvent.MouseButtonPress and not self.geometry().contains(
-            event.screenPos().toPoint()
+        if event.type() == QEvent.FocusOut or (
+            event.type() == QEvent.MouseButtonPress
+            and not self.geometry().contains(event.screenPos().toPoint())
         ):
             # The click was outside of the systray
             self.hide()

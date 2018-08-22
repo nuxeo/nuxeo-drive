@@ -100,7 +100,7 @@ Rectangle {
         }
 
         IconLabel {
-            icon: MdiFont.Icon.accountPlus
+            icon: MdiFont.Icon.accountPlus; enabled: false
             size: 128; Layout.alignment: Qt.AlignHCenter
         }
 
