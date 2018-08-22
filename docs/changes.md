@@ -71,6 +71,7 @@ Changes in command line arguments:
 - Packaging: Updated `pytest-timeout` from 1.2.1 to 1.3.1
 - Packaging: Updated `rfc3987` from 1.3.7 to 1.3.8
 - Packaging: Updated `xattr` from 0.9.3 to 0.9.6
+- Packaging: Updated `watchdog3` from 0.8.4 to 0.8.5
 - Packaging: Removed `SIP_VERSION` and `PYQT_VERSION` envars
 - Tests: Added `-b -Wall` arguments to the Python interpreter while testing
 - \[GNU/Linux\] Packaging: Removed `COMPILE_WITH_DEBUG` envar
