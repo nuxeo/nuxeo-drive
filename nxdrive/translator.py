@@ -73,6 +73,15 @@ class Translator(QTranslator):
 
     @staticmethod
     def _tokenize(label: str, values: List[Any] = None) -> str:
+        """
+        Format the label with its arguments.
+
+        Qt strings differ from Python ones in two ways:
+        - They use "%x" instead of "{x}" to add arguments through formatting,
+        so we use a regex to substitute them.
+        - Their arguments indexes start at 1 instead of 0, so we pass the
+        values with an empty entry at the beginning.
+        """
         if not values:
             return label
 
