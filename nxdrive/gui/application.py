@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..constants import LINUX, MAC, WINDOWS
+from ..constants import APP_NAME, LINUX, MAC, TOKEN_PERMISSION, WINDOWS
 from ..engine.activity import Action, FileAction
 from ..notification import Notification
 from ..options import Options
@@ -38,11 +38,11 @@ from ..utils import (
     find_icon,
     find_resource,
     force_decode,
+    get_device,
     parse_protocol_url,
     short_name,
 )
 from .api import QMLDriveApi
-from .authentication import auth
 from .systray import DriveSystrayIcon, SystrayWindow
 from .view import EngineModel, FileModel, LanguageModel
 
@@ -516,7 +516,73 @@ class Application(QApplication):
         self, url: str, callback_params: Dict[str, str]
     ) -> None:
         self.api._callback_params = callback_params
-        auth(self, url)
+        if Options.is_frozen:
+            """
+            Authenticate through the browser.
+
+            This authentication requires the server's Nuxeo Drive addon to include
+            NXP-25519. Instead of opening the server's login page in a WebKit view
+            through the app, it opens in the browser and retrieves the login token
+            by opening an nxdrive:// URL.
+            """
+            self.manager.open_local_file(url)
+        else:
+            self._web_auth_not_frozen(url)
+
+    def _web_auth_not_frozen(self, url: str) -> None:
+        """
+        Open a dialog box to fill the credentials.
+        Then a request will be done using the Python client to
+        get a token.
+
+        This is used when the application is not frozen as there is no custom
+        protocol handler in this case.
+        """
+
+        from PyQt5.QtWidgets import QLineEdit
+        from nuxeo.client import Nuxeo
+
+        dialog = QDialog()
+        dialog.setWindowTitle(self.translate("WEB_AUTHENTICATION_WINDOW_TITLE"))
+        dialog.setWindowIcon(QIcon(self.get_window_icon()))
+        dialog.resize(250, 100)
+
+        layout = QVBoxLayout()
+
+        username = QLineEdit("Administrator", parent=dialog)
+        password = QLineEdit("Administrator", parent=dialog)
+        password.setEchoMode(QLineEdit.Password)
+        layout.addWidget(username)
+        layout.addWidget(password)
+
+        def auth() -> None:
+            """Retrieve a token and create the account."""
+            user = str(username.text())
+            pwd = str(password.text())
+            nuxeo = Nuxeo(host=url, auth=(user, pwd))
+            try:
+                token = nuxeo.client.request_auth_token(
+                    device_id=self.manager.device_id,
+                    app_name=APP_NAME,
+                    permission=TOKEN_PERMISSION,
+                    device=get_device(),
+                )
+            except Exception as exc:
+                log.error(f"Connection error: {exc}")
+                token = ""
+            finally:
+                del nuxeo
+            self.api.handle_token(token, user)
+            dialog.close()
+
+        buttons = QDialogButtonBox()
+        buttons.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        buttons.accepted.connect(auth)
+        buttons.rejected.connect(dialog.close)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+        dialog.exec_()
 
     @pyqtSlot(object)
     def _connect_engine(self, engine: "Engine") -> None:
