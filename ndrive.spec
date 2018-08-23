@@ -45,7 +45,6 @@ excludes = [
     "yappi",
 ]
 
-binaries = []
 data = [(data, "data")]
 version = get_version(os.path.join(nxdrive, "__init__.py"))
 properties_rc = None
@@ -67,17 +66,8 @@ if sys.platform == "win32":
     # Missing modules when packaged
     hiddenimports.append("win32timezone")
 
-    # Missing OpenGL DLLs (NXDRIVE-1311)
-    from PyInstaller.utils.hooks import pyqt5_library_info
-
-    dst_dll_path = os.path.join("PyQt5", "Qt", "bin")
-    for dll in {"libEGL.dll", "libGLESv2.dll"}:
-        dll_file_path = os.path.join(pyqt5_library_info.location["BinariesPath"], dll)
-        binaries.append((dll_file_path, dst_dll_path))
-
 a = Analysis(
     [os.path.join(nxdrive, "__main__.py")],
-    binaries=binaries,
     datas=data,
     excludes=excludes,
     hiddenimports=hiddenimports,
