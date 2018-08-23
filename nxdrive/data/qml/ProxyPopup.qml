@@ -46,6 +46,7 @@ NuxeoPopup {
         columnSpacing: 20
 
         Keys.onReturnPressed: okButton.clicked()
+        Keys.onEnterPressed: okButton.clicked()
 
         ScaledText { text: qsTr("TYPE") + tl.tr; color: mediumGray }
         NuxeoComboBox {
@@ -90,7 +91,11 @@ NuxeoPopup {
             text: qsTr("REQUIRES_AUTHENTICATION") + tl.tr
         }
 
-        ScaledText { text: qsTr("USERNAME") + tl.tr; color: mediumGray; visible: isManual && isAuth }
+        ScaledText {
+            text: qsTr("USERNAME") + tl.tr
+            color: mediumGray
+            visible: isManual && isAuth
+        }
         NuxeoInput {
             id: usernameInput
             visible: isManual && isAuth
@@ -98,7 +103,11 @@ NuxeoPopup {
             KeyNavigation.tab: passwordInput
         }
 
-        ScaledText { text: qsTr("PASSWORD") + tl.tr; color: mediumGray; visible: isManual && isAuth }
+        ScaledText {
+            text: qsTr("PASSWORD") + tl.tr;
+            color: mediumGray
+            visible: isManual && isAuth
+        }
         NuxeoInput {
             id: passwordInput
             visible: isManual && isAuth
@@ -106,7 +115,11 @@ NuxeoPopup {
             echoMode: TextInput.Password
         }
 
-        ScaledText { text: qsTr("SCRIPT_ADDR") + tl.tr; color: mediumGray; visible: isAuto }
+        ScaledText {
+            text: qsTr("SCRIPT_ADDR") + tl.tr
+            color: mediumGray
+            visible: isAuto
+        }
         NuxeoInput {
             id: pacUrlInput
             visible: isAuto
@@ -130,6 +143,11 @@ NuxeoPopup {
             NuxeoButton {
                 id: okButton
                 text: qsTr("APPLY") + tl.tr
+                enabled:
+                    proxyType.currentIndex < 2
+                    || (isManual && !isAuth && urlInput.text)
+                    || (isManual && isAuth && urlInput.text && passwordInput.text)
+                    || (isAuto && pacUrlInput.text)
                 inverted: true
                 onClicked: {
                     if (api.set_proxy_settings(

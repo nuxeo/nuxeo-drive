@@ -211,7 +211,7 @@ class Application(QApplication):
         context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("tl", Translator._singleton)
         context.setContextProperty(
-            "nuxeoVersionText", "Nuxeo Drive " + self.manager.version
+            "nuxeoVersionText", f"{self.manager.app_name} {self.manager.version}"
         )
         metrics = self.manager.get_metrics()
         context.setContextProperty(

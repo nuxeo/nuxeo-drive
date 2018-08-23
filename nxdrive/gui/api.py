@@ -3,6 +3,7 @@ import calendar
 import json
 from datetime import datetime
 from logging import getLogger
+from os import getenv
 from time import struct_time, time
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlencode, urlsplit, urlunsplit
@@ -317,10 +318,6 @@ class QMLDriveApi(QObject):
         engine = self._get_engine(uid)
         return self._json(self._get_threads(engine) if engine else [])
 
-    @pyqtSlot(result=bool)
-    def is_frozen(self) -> bool:
-        return Options.is_frozen
-
     @pyqtSlot(str, str)
     def show_metadata(self, uid: str, ref: str) -> None:
         self.application.hide_systray()
@@ -513,6 +510,13 @@ class QMLDriveApi(QObject):
     @pyqtSlot(result=str)
     def default_nuxeo_drive_folder(self) -> str:
         return get_default_nuxeo_drive_folder()
+
+    @pyqtSlot(result=str)
+    def default_server_url_value(self) -> str:
+        """Make daily job better for our developers :)"""
+        if not Options.is_frozen:
+            return getenv("NXDRIVE_TEST_NUXEO_URL", "")
+        return ""
 
     @pyqtSlot(str)
     def unbind_server(self, uid: str) -> None:
