@@ -470,9 +470,11 @@ class QMLDriveApi(QObject):
                 self.setMessage.emit("CONNECTION_UNKNOWN", "error")
                 return
             params = urlencode({"updateToken": True})
-            url = self._get_authentication_url(engine.server_url) + "&" + params
+            url = self._get_authentication_url(engine.server_url)
+            if Options.is_frozen:
+                url = f"{url}&{params}"
             callback_params = {"engine": engine}
-            log.debug("Opening login window for token update with URL %s", url)
+            log.debug(f"Opening login window for token update with URL {url}")
             self.application._open_authentication_dialog(url, callback_params)
         except:
             log.exception(
@@ -482,6 +484,9 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
 
     def _get_authentication_url(self, server_url: str) -> str:
+        if not Options.is_frozen:
+            return guess_server_url(server_url)
+
         token_params = {
             "deviceId": self._manager.device_id,
             "applicationName": self._manager.app_name,
@@ -775,7 +780,9 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str)
     def handle_token(self, token: str, username: str) -> None:
-        if "engine" in self._callback_params:
+        if not token:
+            error = "CONNECTION_REFUSED"
+        elif "engine" in self._callback_params:
             error = self.update_token(token)
         else:
             error = self.create_account(token, username)
