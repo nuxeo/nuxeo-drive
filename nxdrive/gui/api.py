@@ -488,7 +488,7 @@ class QMLDriveApi(QObject):
             "permission": TOKEN_PERMISSION,
             "deviceDescription": get_device(),
             "forceAnonymousLogin": "true",
-            "useProtocol": Options.use_protocol,  # NXDRIVE-1311
+            "useProtocol": "true",
         }
 
         # Handle URL parameters

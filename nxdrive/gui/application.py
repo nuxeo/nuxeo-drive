@@ -42,14 +42,9 @@ from ..utils import (
     short_name,
 )
 from .api import QMLDriveApi
+from .authentication import auth
 from .systray import DriveSystrayIcon, SystrayWindow
 from .view import EngineModel, FileModel, LanguageModel
-
-
-if not Options.use_protocol:  # NXDRIVE-1311
-    from .old.authentication import auth
-else:
-    from .authentication import auth
 
 
 __all__ = ("Application",)

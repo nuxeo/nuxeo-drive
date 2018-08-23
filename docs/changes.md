@@ -1,6 +1,8 @@
 # dev
 Release date: `2018-??-??`
 
+New authentication process using the **user's browser**.
+
 Changes in command line arguments:
 
 - Removed `proxy-exceptions`
