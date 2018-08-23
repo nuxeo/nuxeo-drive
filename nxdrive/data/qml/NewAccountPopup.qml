@@ -12,7 +12,6 @@ NuxeoPopup {
     title: qsTr("NEW_ENGINE") + tl.tr
 
     onOpened: {
-        urlInput.clear()
         folderInput.text = api.default_nuxeo_drive_folder()
         urlInput.focus = true
     }
@@ -25,6 +24,7 @@ NuxeoPopup {
             columnSpacing: 10
 
             Keys.onReturnPressed: connectButton.clicked()
+            Keys.onEnterPressed: connectButton.clicked()
 
             ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
             NuxeoInput {
@@ -34,6 +34,7 @@ NuxeoPopup {
                 inputMethodHints: Qt.ImhUrlCharactersOnly
                 KeyNavigation.tab: folderInput
                 placeholderText: "your.nuxeo.platform.com"
+                text: api.default_server_url_value()
                 font.family: "monospace"
             }
 
