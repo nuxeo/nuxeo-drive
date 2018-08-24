@@ -215,7 +215,7 @@
     "UPGRADE_AVAILABLE": "New upgrade %1 is available",
     "URL": "URL",
     "USERNAME": "Username",
-    "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Web Authentication",
+    "WEB_AUTHENTICATION_WINDOW_TITLE": "Web Authentication",
     "WELCOME_MESSAGE": "Set your account and synchronize your files with the Nuxeo Platform.",
     "WINDOWS_ERROR_TITLE": "Document error",
     "WINDOWS_ERROR_OPENED_FILE": "The file „%1“ is open by another software. Please close it before Nuxeo Drive can process the deletion from your local storage.",
