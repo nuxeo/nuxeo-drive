@@ -162,21 +162,13 @@ function install_python {
 		return
 	}
 
-	Write-Output ">>> Installing virtualenv"
-
-	& $Env:PYTHON_DIR\python.exe -m pip install virtualenv
-	if ($lastExitCode -ne 0)
-	{
-		ExitWithCode $lastExitCode
-	}
-
 	# Fix a bloody issue with our slaves ... !
 	New-Item -Path $Env:STORAGE_DIR -Name Scripts -ItemType directory
 	Copy-Item $Env:PYTHON_DIR\vcruntime140.dll $Env:STORAGE_DIR\Scripts
 
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-	& $Env:PYTHON_DIR\python.exe -m virtualenv --always-copy "$Env:STORAGE_DIR"
+	& $Env:PYTHON_DIR\python.exe -m venv --copies "$Env:STORAGE_DIR"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
