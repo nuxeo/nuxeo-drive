@@ -514,9 +514,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(result=str)
     def default_server_url_value(self) -> str:
         """Make daily job better for our developers :)"""
-        if not Options.is_frozen:
-            return getenv("NXDRIVE_TEST_NUXEO_URL", "")
-        return ""
+        return getenv("NXDRIVE_TEST_NUXEO_URL", "")
 
     @pyqtSlot(str)
     def unbind_server(self, uid: str) -> None:

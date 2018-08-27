@@ -36,6 +36,7 @@ Rectangle {
 
         NuxeoSwitch {
             text: qsTr("DIRECT_EDIT_AUTO_LOCK") + tl.tr
+            enabled: isFrozen
             checked: manager.get_direct_edit_auto_lock()
             onClicked: manager.set_direct_edit_auto_lock(checked)
             Layout.leftMargin: -5

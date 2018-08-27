@@ -26,6 +26,7 @@ from .utils import (
     copy_to_clipboard,
     force_decode,
     get_default_nuxeo_drive_folder,
+    if_frozen,
     normalized_path,
 )
 
@@ -104,22 +105,24 @@ class Manager(QObject):
         if Options.force_locale is not None:
             self.set_config("locale", Options.force_locale)
 
-        # Persist beta channel check
-        Options.set("beta_channel", self.get_beta_channel(), setter="manual")
+        self.old_version = None
+        if Options.is_frozen:
+            # Persist beta channel check
+            Options.set("beta_channel", self.get_beta_channel(), setter="manual")
 
-        # Keep a trace of installed versions
-        if not self.get_config("original_version"):
-            self.set_config("original_version", self.version)
+            # Keep a trace of installed versions
+            if not self.get_config("original_version"):
+                self.set_config("original_version", self.version)
 
-        # Store the old version to be able to show release notes
-        self.old_version = self.get_config("client_version")
-        if self.old_version != self.version:
-            self.set_config("client_version", self.version)
+            # Store the old version to be able to show release notes
+            self.old_version = self.get_config("client_version")
+            if self.old_version != self.version:
+                self.set_config("client_version", self.version)
 
-        # Add auto-lock on edit
-        res = self._dao.get_config("direct_edit_auto_lock")
-        if res is None:
-            self._dao.update_config("direct_edit_auto_lock", "1")
+            # Add auto-lock on edit
+            res = self._dao.get_config("direct_edit_auto_lock")
+            if res is None:
+                self._dao.update_config("direct_edit_auto_lock", "1")
 
         # Create DirectEdit
         self._create_autolock_service()
@@ -188,6 +191,7 @@ class Manager(QObject):
     def open_help(self) -> None:
         self.open_local_file("https://doc.nuxeo.com/nxdoc/nuxeo-drive/")
 
+    @if_frozen
     def _handle_os(self) -> None:
         # Be sure to register os
         self.osi.register_protocol_handlers()
@@ -237,6 +241,7 @@ class Manager(QObject):
         self.started.connect(updater_._thread.start)
         return updater_
 
+    @if_frozen
     def _create_findersync_listener(self) -> "FinderSyncListener":
         from .osi.darwin.darwin import FinderSyncListener
 
@@ -244,6 +249,7 @@ class Manager(QObject):
         self.started.connect(self._findersync_listener._thread.start)
         return self._findersync_listener
 
+    @if_frozen
     def refresh_update_status(self) -> None:
         if self.updater:
             self.updater.refresh_status()

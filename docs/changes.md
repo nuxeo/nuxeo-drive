@@ -120,6 +120,7 @@ Changes in command line arguments:
 - [NXDRIVE-1163](https://jira.nuxeo.com/browse/NXDRIVE-1163): Direct Edit does not work with filenames containing spaces
 - [NXDRIVE-1174](https://jira.nuxeo.com/browse/NXDRIVE-1174): Efficient `ConfigurationDAO.update_config()`
 - [NXDRIVE-1207](https://jira.nuxeo.com/browse/NXDRIVE-1207): Modifying a file overwrites event on its parent folder
+- [NXDRIVE-1327](https://jira.nuxeo.com/browse/NXDRIVE-1327): Add the is_frozen decorator
 
 ### GUI
 - [NXDRIVE-289](https://jira.nuxeo.com/browse/NXDRIVE-289): Use light icons on Windows

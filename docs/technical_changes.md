@@ -17,6 +17,7 @@
 - Removed `Engine.get_abspath()`
 - Added `duration` keyword argument to `Engine.get_last_files()`
 - Added `Engine.get_last_files_count()`
+- Removed `Engine.add_to_favorites()`
 - Removed `Engine.get_local_client()`. Use `local` attribute instead.
 - Removed `Engine.get_remote_client()`. Use `remote` attribute instead.
 - Removed `Engine.get_rest_api_client()`. Use `remote` attribute instead.
@@ -131,6 +132,7 @@
 - Removed manager.py::`ProxySettings`
 - Added utils.py::`copy_to_clipboard()`
 - Added utils.py::`force_encode()`
+- Added utils.py::`if_frozen()`
 - Removed `codecs` argument from utils.py::`force_decode()`
 - Moved wui/* to gui/*
 

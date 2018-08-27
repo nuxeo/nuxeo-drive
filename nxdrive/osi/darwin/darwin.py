@@ -25,7 +25,7 @@ from .. import AbstractOSIntegration
 from ...constants import BUNDLE_IDENTIFIER
 from ...engine.workers import Worker
 from ...objects import NuxeoDocumentInfo
-from ...utils import force_decode, normalized_path
+from ...utils import force_decode, if_frozen, normalized_path
 
 __all__ = ("DarwinIntegration", "FinderSyncListener")
 
@@ -55,10 +55,12 @@ class DarwinIntegration(AbstractOSIntegration):
         super().__init__(manager)
         self._init()
 
+    @if_frozen
     def _init(self) -> None:
         log.debug("Telling plugInKit to use the FinderSync")
         os.system("pluginkit -e use -i {}.NuxeoFinderSync".format(BUNDLE_IDENTIFIER))
 
+    @if_frozen
     def _cleanup(self) -> None:
         log.debug("Telling plugInKit to ignore the FinderSync")
         os.system("pluginkit -e ignore -i {}.NuxeoFinderSync".format(BUNDLE_IDENTIFIER))
@@ -69,6 +71,7 @@ class DarwinIntegration(AbstractOSIntegration):
             "{}.plist".format(BUNDLE_IDENTIFIER),
         )
 
+    @if_frozen
     def register_startup(self) -> bool:
         """
         Register the Nuxeo Drive.app as a user Launch Agent.
@@ -92,6 +95,7 @@ class DarwinIntegration(AbstractOSIntegration):
             f.write(self.NDRIVE_AGENT_TEMPLATE % exe)
         return True
 
+    @if_frozen
     def unregister_startup(self) -> bool:
         agent = self._get_agent_file()
         if os.path.isfile(agent):
@@ -100,6 +104,7 @@ class DarwinIntegration(AbstractOSIntegration):
             return True
         return False
 
+    @if_frozen
     def register_protocol_handlers(self) -> None:
         """Register the URL scheme listener using PyObjC"""
         bundle_id = NSBundle.mainBundle().bundleIdentifier()
@@ -114,6 +119,7 @@ class DarwinIntegration(AbstractOSIntegration):
             "Registered bundle %r for URL scheme %r", bundle_id, self.NXDRIVE_SCHEME
         )
 
+    @if_frozen
     def unregister_protocol_handlers(self) -> None:
         # Don't unregister, should be removed when Bundle removed
         pass
@@ -171,14 +177,17 @@ class DarwinIntegration(AbstractOSIntegration):
         name = "{}.watchFolder".format(BUNDLE_IDENTIFIER)
         self._send_notification(name, {"operation": operation, "path": path})
 
+    @if_frozen
     def watch_folder(self, folder: str) -> None:
         log.debug("FinderSync now watching %r", folder)
         self._set_monitoring("watch", folder)
 
+    @if_frozen
     def unwatch_folder(self, folder: str) -> None:
         log.debug("FinderSync now ignoring %r", folder)
         self._set_monitoring("unwatch", folder)
 
+    @if_frozen
     def send_sync_status(self, state: NuxeoDocumentInfo, path: str) -> None:
         """
         Send the sync status of a file to the FinderSync.
@@ -214,6 +223,7 @@ class DarwinIntegration(AbstractOSIntegration):
         except:
             log.exception("Error while trying to send status to FinderSync")
 
+    @if_frozen
     def register_folder_link(self, folder_path: str, name: str = None) -> None:
         favorites = self._get_favorite_list() or []
         if not favorites:
@@ -238,6 +248,7 @@ class DarwinIntegration(AbstractOSIntegration):
         if item:
             log.debug("Registered new favorite in Finder for: %r", folder_path)
 
+    @if_frozen
     def unregister_folder_link(self, name: str = None) -> None:
         favorites = self._get_favorite_list()
         if not favorites:

@@ -30,6 +30,7 @@ from ..objects import Binder, DocPairs, Metrics
 from ..options import Options
 from ..utils import (
     find_icon,
+    if_frozen,
     normalized_path,
     safe_filename,
     set_path_readonly,
@@ -800,15 +801,8 @@ class Engine(QObject):
             self._make_local_folder(self.local_folder)
             self._add_top_level_state()
             self._set_root_icon()
-            self.add_to_favorites()
+            self.manager.osi.register_folder_link(self.local_folder)
             set_path_readonly(self.local_folder)
-
-    def add_to_favorites(self) -> None:
-        """
-        Register the local folder as a favorite.
-        Let the possibility to override that method from tests.
-        """
-        self.manager.osi.register_folder_link(self.local_folder)
 
     def _make_local_folder(self, local_folder: str) -> None:
         os.makedirs(local_folder, exist_ok=True)
@@ -821,6 +815,7 @@ class Engine(QObject):
                 if pair is not None and pair.id == pair_id:
                     thread.worker.quit()
 
+    @if_frozen
     def _set_root_icon(self) -> None:
         state = self.local.has_folder_icon("/")
         if isinstance(state, str):

@@ -39,6 +39,7 @@ from ..utils import (
     find_resource,
     force_decode,
     get_device,
+    if_frozen,
     parse_protocol_url,
     short_name,
 )
@@ -176,6 +177,7 @@ class Application(QApplication):
             current_uid = self.engine_model.engines_uid[0]
             self.get_last_files(current_uid)
             self.update_status(self.engine_model.engines[current_uid])
+
         self.manager.updater.updateAvailable.connect(
             self._window_root(self.systray_window).updateAvailable
         )
@@ -647,13 +649,16 @@ class Application(QApplication):
     def init_checks(self) -> None:
         if Options.debug:
             self.show_debug_window()
+
         for _, engine in self.manager.get_engines().items():
             self._connect_engine(engine)
+
         self.manager.newEngine.connect(self._connect_engine)
         self.manager.notification_service.newNotification.connect(
             self._new_notification
         )
         self.manager.updater.updateAvailable.connect(self._update_notification)
+
         if not self.manager.get_engines():
             self.show_settings()
         else:
@@ -662,9 +667,11 @@ class Application(QApplication):
                 if engine.has_invalid_credentials():
                     self.show_settings("Accounts_" + engine.uid)
                     break
+
         self.manager.start()
 
     @pyqtSlot()
+    @if_frozen
     def _update_notification(self) -> None:
         self.change_systray_icon()
 
@@ -781,6 +788,7 @@ class Application(QApplication):
 
         return "%s - %s" % (self.default_tooltip, action.type)
 
+    @if_frozen
     def show_release_notes(self, version: str) -> None:
         """ Display release notes of a given version. """
 
@@ -934,6 +942,7 @@ class Application(QApplication):
             return False
         return True
 
+    @if_frozen
     def init_nxdrive_listener(self) -> None:
         """
         Set up a QLocalServer to listen to nxdrive protocol calls.
@@ -953,6 +962,7 @@ class Application(QApplication):
         self._nxdrive_listener.listen("com.nuxeo.drive.protocol")
         self.aboutToQuit.connect(self._nxdrive_listener.close)
 
+    @if_frozen
     def _handle_connection(self) -> None:
         """ Retrieve the connection with other instances and handle the incoming data. """
 
