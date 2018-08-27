@@ -14,7 +14,7 @@ from win32con import LOGPIXELSX
 
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME
-from ...options import Options
+from ...utils import if_frozen
 
 __all__ = ("WindowsIntegration",)
 
@@ -62,18 +62,19 @@ class WindowsIntegration(AbstractOSIntegration):
                     result[k.replace("-", "_").lower()] = v
         return result
 
+    @if_frozen
     def register_folder_link(self, folder_path: str, name: str = None) -> None:
         favorite = self._get_folder_link(name)
         if not os.path.isfile(favorite):
             self._create_shortcut(favorite, folder_path)
 
+    @if_frozen
     def unregister_folder_link(self, name: str = None) -> None:
         with suppress(OSError):
             os.remove(self._get_folder_link(name))
 
+    @if_frozen
     def register_startup(self) -> bool:
-        if not Options.is_frozen:
-            return False
         reg = winreg.HKEY_CURRENT_USER
         reg_key = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
 
@@ -85,9 +86,8 @@ class WindowsIntegration(AbstractOSIntegration):
             log.exception("Error while trying to modify registry.")
             return False
 
+    @if_frozen
     def unregister_startup(self) -> bool:
-        if not Options.is_frozen:
-            return False
         reg = winreg.HKEY_CURRENT_USER
         reg_key = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
 

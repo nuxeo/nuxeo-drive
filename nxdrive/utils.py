@@ -27,6 +27,7 @@ __all__ = (
     "get_device",
     "guess_digest_algorithm",
     "guess_server_url",
+    "if_frozen",
     "is_generated_tmp_file",
     "lock_path",
     "make_tmp_file",
@@ -391,6 +392,20 @@ def normalize_event_filename(filename: str, action: bool = True) -> str:
         os.rename(filename, normalized)
 
     return normalized
+
+
+def if_frozen(func) -> callable:
+    """Decorator to enable the call of a function/method
+    only if the application is frozen."""
+
+    def wrapper(*args: Any, **kwargs: Any) -> Union[bool, callable]:
+        """Inner function to do the check and abort the call
+        if the application not frozen."""
+        if not Options.is_frozen:
+            return False
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 def safe_filename(
