@@ -102,12 +102,9 @@ class TestLocalMoveAndRename(UnitTestCase):
             assert len(local.get_children_info("/")) == 5
             assert len(remote.get_children_info(self.workspace_1)) == 5
 
-<<<<<<< HEAD
-=======
-    @pytest.mark.randombug("NXDRIVE-0", condition=True, mode="REPEAT")
->>>>>>> 6f51c952... NXDRIVE-1330: Add repr(SlotInfo) to ease debugging
+    @pytest.mark.randombug("NXDRIVE-811", condition=True, mode="REPEAT")
     def test_local_rename_file_while_creating_before_marker(self):
-        local = self.engine_1.local
+        local = self.local_1
         remote = self.remote_document_client_1
         root_local = self.local_root_client_1
         marker = False
@@ -120,10 +117,9 @@ class TestLocalMoveAndRename(UnitTestCase):
             LocalTest.set_remote_id(local, ref, remote_id, name)
 
         with patch.object(self.engine_1.local, "set_remote_id", new=set_remote_id):
-            self.local_1.make_file("/", "File.txt", content=b"Some Content 2")
+            local.make_file("/", "File.txt", content=b"Some Content 2")
             self.wait_sync(fail_if_timeout=False)
 
-            local = self.local_1
             assert local.exists("/Renamed File.txt")
             assert not local.exists("/File.txt")
 
