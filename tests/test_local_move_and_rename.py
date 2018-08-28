@@ -102,6 +102,10 @@ class TestLocalMoveAndRename(UnitTestCase):
             assert len(local.get_children_info("/")) == 5
             assert len(remote.get_children_info(self.workspace_1)) == 5
 
+<<<<<<< HEAD
+=======
+    @pytest.mark.randombug("NXDRIVE-0", condition=True, mode="REPEAT")
+>>>>>>> 6f51c952... NXDRIVE-1330: Add repr(SlotInfo) to ease debugging
     def test_local_rename_file_while_creating_before_marker(self):
         local = self.engine_1.local
         remote = self.remote_document_client_1
