@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import time
+from logging import getLogger
 from shutil import copyfile
 
 import pytest
@@ -9,6 +10,9 @@ from unittest.mock import Mock, patch
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
 from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
+
+
+log = getLogger(__name__)
 
 
 class TestRemoteDeletion(UnitTestCase):
@@ -118,7 +122,7 @@ class TestRemoteDeletion(UnitTestCase):
                 try:
                     remote.delete("/Test folder/testFile.pdf")
                 except:
-                    pass
+                    log.exception("Deletion error")
                 else:
                     self.engine_1.has_delete = True
             time.sleep(1)
@@ -127,9 +131,7 @@ class TestRemoteDeletion(UnitTestCase):
         self.engine_1.start()
         self.engine_1.has_delete = False
 
-        with patch.object(
-            self.engine_1.remote, "check_suspended", new_callable=check_suspended
-        ):
+        with patch.object(self.engine_1.remote, "check_suspended", new=check_suspended):
             # Create documents in the remote root workspace
             remote.make_folder("/", "Test folder")
             with open(self.location + "/resources/testFile.pdf", "rb") as pdf:
@@ -138,6 +140,7 @@ class TestRemoteDeletion(UnitTestCase):
             self.wait_sync(wait_for_async=True)
             assert not local.exists("/Test folder/testFile.pdf")
 
+    @pytest.mark.randombug("NXDRIVE-1329", condition=True, mode="REPEAT")
     def test_synchronize_remote_deletion_while_download_file(self):
         if WINDOWS:
             self._remote_deletion_while_download_file()

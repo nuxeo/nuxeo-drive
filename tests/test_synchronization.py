@@ -706,6 +706,7 @@ class TestSynchronization(UnitTestCase):
         ]
         assert file_names == ["file with chars- - - - - - - - - 2.txt"]
 
+    @pytest.mark.randombug("NXDRIVE-1330", condition=True, mode="REPEAT")
     def test_synchronize_error_remote(self):
         path = "/" + self.workspace_title + "/test.odt"
         remote = self.remote_document_client_1
