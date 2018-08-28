@@ -31,6 +31,13 @@ class SlotInfo:
         for item in self.__slots__:
             setattr(self, item, kwargs.get(item, None))
 
+    def __repr__(self) -> str:
+        attrs = [f"{attr}={getattr(self, attr)!r}" for attr in sorted(self.__slots__)]
+        return f"<{type(self).__name__} {', '.join(attrs)}>"
+
+    def __str__(self) -> str:
+        return repr(self)
+
 
 # Data Transfer Object for remote file info
 class RemoteFileInfo(SlotInfo):
