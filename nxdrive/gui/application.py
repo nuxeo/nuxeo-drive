@@ -657,6 +657,9 @@ class Application(QApplication):
         self.manager.notification_service.newNotification.connect(
             self._new_notification
         )
+        self.manager.notification_service.triggerNotification.connect(
+            self._handle_notification_action
+        )
         self.manager.updater.updateAvailable.connect(self._update_notification)
 
         if not self.manager.get_engines():
@@ -735,6 +738,11 @@ class Application(QApplication):
 
         self.current_notification = notif
         self.tray_icon.showMessage(notif.title, notif.description, icon, 10000)
+
+    @pyqtSlot(str, str)
+    def _handle_notification_action(self, action: str, engine_uid: str) -> None:
+        func = getattr(self.api, action)
+        func(engine_uid)
 
     def set_icon_state(self, state: str) -> bool:
         """

@@ -124,6 +124,7 @@ class NotificationService(QObject):
 
     newNotification = pyqtSignal(object)
     discardNotification = pyqtSignal(object)
+    triggerNotification = pyqtSignal(str, str)
 
     def __init__(self, manager: "Manager") -> None:
         super().__init__()
@@ -178,7 +179,7 @@ class NotificationService(QObject):
             return
         notification = self._notifications[uid]
         if notification.is_actionable():
-            self._manager.execute_script(notification.action, notification.engine_uid)
+            self.triggerNotification.emit(notification.action, notification.engine_uid)
         if notification.is_discard_on_trigger():
             self.discard_notification(uid)
 
@@ -226,7 +227,7 @@ class ErrorNotification(Notification):
                 | Notification.FLAG_DISCARD_ON_TRIGGER
                 | Notification.FLAG_REMOVE_ON_DISCARD
             ),
-            action="drive.showConflicts();",
+            action="show_conflicts",
         )
 
 
@@ -289,7 +290,7 @@ class ConflictNotification(Notification):
                 | Notification.FLAG_DISCARD_ON_TRIGGER
                 | Notification.FLAG_REMOVE_ON_DISCARD
             ),
-            action="drive.showConflicts();",
+            action="show_conflicts",
         )
 
 
@@ -453,7 +454,7 @@ class InvalidCredentialNotification(Notification):
                 | Notification.FLAG_ACTIONABLE
                 | Notification.FLAG_SYSTRAY
             ),
-            action='drive.showSettings("Accounts_{}");'.format(engine_uid),
+            action="web_update_token",
         )
 
 
