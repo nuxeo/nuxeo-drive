@@ -465,10 +465,13 @@ class Application(QApplication):
             pos_x = screen.right() - self.systray_window.width() - 20
             pos_y = 30
         else:
-            pos_x = max(0, icon.x() + icon.width() - self.systray_window.width())
-            pos_y = icon.y() - self.systray_window.height()
+            dpi_ratio = self.devicePixelRatio() if WINDOWS else 1
+            pos_x = max(
+                0, (icon.x() + icon.width()) / dpi_ratio - self.systray_window.width()
+            )
+            pos_y = icon.y() / dpi_ratio - self.systray_window.height()
             if pos_y < 0:
-                pos_y = icon.y() + icon.height()
+                pos_y = (icon.y() + icon.height()) / dpi_ratio
 
         self.systray_window.setX(pos_x)
         self.systray_window.setY(pos_y)
