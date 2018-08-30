@@ -189,6 +189,68 @@ class TestLocalCreations(UnitTestCase):
         assert local.exists(filename)
         assert os.stat(local.abspath(filename)).st_mtime < remote_mtime
 
+    def test_local_modification_date_non_latin(self):
+        """ Check that non-latin files have the Platform modification date. """
+        remote = self.remote_document_client_1
+        local = self.local_1
+        engine = self.engine_1
+
+        filename = "abc こん ツリー.txt"
+        content = filename.encode("utf-8")
+        remote.make_file("/", filename, content=content)
+        remote_mtime = time.time()
+
+        time.sleep(3)
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        filename = f"/{filename}"
+        assert local.exists(filename)
+        assert os.stat(local.abspath(filename)).st_mtime < remote_mtime
+
+    def test_local_modification_date_kanjis_file(self):
+        """ Check that Kanjis files have the Platform modification date. """
+        remote = self.remote_1
+        local = self.local_1
+        engine = self.engine_1
+
+        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+        name = "東京スカイツリー.jpg"
+        filepath = os.path.join(self.location, "resources", name)
+        remote.make_file(workspace_id, filepath)
+        remote_mtime = time.time()
+
+        time.sleep(3)
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        filename = f"/{name}"
+        assert local.exists(filename)
+        assert os.stat(local.abspath(filename)).st_mtime < remote_mtime
+
+    def test_local_modification_date_hiraganas_file(self):
+        """ Check that Hiraganas files have the Platform modification date. """
+        remote = self.remote_1
+        local = self.local_1
+        engine = self.engine_1
+
+        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+        name = "こんにちは.jpg"
+        filepath = os.path.join(self.location, "resources", name)
+        remote.make_file(workspace_id, filepath)
+        remote_mtime = time.time()
+
+        time.sleep(3)
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        filename = f"/{name}"
+        assert local.exists(filename)
+        assert os.stat(local.abspath(filename)).st_mtime < remote_mtime
+
     def test_local_creation_date(self):
         """ Check that the files have the Platform modification date. """
         remote = self.remote_1
@@ -211,14 +273,91 @@ class TestLocalCreations(UnitTestCase):
 
         filename = f"/{filename}"
         assert local.exists(filename)
-        local_mtime = os.stat(local.abspath(filename)).st_mtime
+        stats = os.stat(local.abspath(filename))
+        local_mtime = stats.st_mtime
 
         # Note: GNU/Linux does not have a creation time
         if MAC or WINDOWS:
             if MAC:
-                local_ctime = os.stat(local.abspath(filename)).st_birthtime
+                local_ctime = stats.st_birthtime
             else:
-                local_ctime = os.stat(local.abspath(filename)).st_ctime
+                local_ctime = stats.st_ctime
+            assert local_ctime < after_ctime
+            assert local_ctime + sleep_time <= local_mtime
+
+        assert local_mtime < after_mtime
+
+    def test_local_creation_date_kanjis_file(self):
+        """ Check that Kanjis files have the Platform modification date. """
+        remote = self.remote_1
+        local = self.local_1
+        engine = self.engine_1
+        sleep_time = 3
+
+        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+        name = "東京スカイツリー.jpg"
+        filename = os.path.join(self.location, "resources", name)
+        file_id = remote.make_file(workspace_id, filename).uid
+        after_ctime = time.time()
+
+        time.sleep(sleep_time)
+        filename = f"a {name}"
+        remote.rename(file_id, filename)
+        after_mtime = time.time()
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        file = f"/a {name}"
+        assert local.exists(file)
+        file = local.abspath(file)
+        stats = os.stat(file)
+        local_mtime = stats.st_mtime
+
+        # Note: GNU/Linux does not have a creation time
+        if MAC or WINDOWS:
+            if MAC:
+                local_ctime = stats.st_birthtime
+            else:
+                local_ctime = stats.st_ctime
+            assert local_ctime < after_ctime
+            assert local_ctime + sleep_time <= local_mtime
+
+        assert local_mtime < after_mtime
+
+    def test_local_creation_date_hiraganas_file(self):
+        """ Check that Hiraganas files have the Platform modification date. """
+        remote = self.remote_1
+        local = self.local_1
+        engine = self.engine_1
+        sleep_time = 3
+
+        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+        name = "こんにちは.jpg"
+        filename = os.path.join(self.location, "resources", name)
+        file_id = remote.make_file(workspace_id, filename).uid
+        after_ctime = time.time()
+
+        time.sleep(sleep_time)
+        filename = f"a {name}"
+        remote.rename(file_id, filename)
+        after_mtime = time.time()
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        file = f"/a {name}"
+        assert local.exists(file)
+        file = local.abspath(file)
+        stats = os.stat(file)
+        local_mtime = stats.st_mtime
+
+        # Note: GNU/Linux does not have a creation time
+        if MAC or WINDOWS:
+            if MAC:
+                local_ctime = stats.st_birthtime
+            else:
+                local_ctime = stats.st_ctime
             assert local_ctime < after_ctime
             assert local_ctime + sleep_time <= local_mtime
 
