@@ -290,8 +290,9 @@ Item {
             anchors.centerIn: parent
 
             IconLabel {
-                icon: MdiFont.Icon.accountPlus; enabled: false
+                icon: MdiFont.Icon.accountPlus
                 size: 96; Layout.alignment: Qt.AlignHCenter
+                onClicked: api.show_settings("Accounts")
             }
 
             ScaledText {
