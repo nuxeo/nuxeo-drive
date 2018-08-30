@@ -36,15 +36,21 @@ Rectangle {
         }
 
         IconLink {
-            text: "See the source"
+            text: qsTr("SOURCE_LINK") + tl.tr
             icon: MdiFont.Icon.codeTags
             url: "https://github.com/nuxeo/nuxeo-drive"
         }
 
         IconLink {
-            text: "See updates"
+            text: qsTr("UPDATES_LINK") + tl.tr
             icon: MdiFont.Icon.update
             url: api.get_update_url()
+        }
+
+        IconLink {
+            text: qsTr("FEEDBACK_LINK") + tl.tr
+            icon: MdiFont.Icon.messageReplyText
+            url: "https://portal.prodpad.com/089ed2a6-c892-11e7-aea6-0288f735e5b9"
         }
     }
 
