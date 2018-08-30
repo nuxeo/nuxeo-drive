@@ -1,6 +1,7 @@
 # coding: utf-8
 import socket
 import time
+from unittest.mock import patch
 
 import pytest
 from nuxeo.exceptions import HTTPError
@@ -706,35 +707,40 @@ class TestSynchronization(UnitTestCase):
         ]
         assert file_names == ["file with chars- - - - - - - - - 2.txt"]
 
-    @pytest.mark.randombug("NXDRIVE-1330", condition=True, mode="REPEAT")
     def test_synchronize_error_remote(self):
-        path = "/" + self.workspace_title + "/test.odt"
+        path = f"/{self.workspace_title}/test.odt"
         remote = self.remote_document_client_1
-
-        self.engine_1.remote = RemoteTest(
+        error = HTTPError(status=400, message="Mock")
+        bad_remote = RemoteTest(
             pytest.nuxeo_url,
             self.user_1,
             "nxdrive-test-administrator-device",
             pytest.version,
             password=self.password_1,
         )
-        self.engine_1.remote.make_download_raise(HTTPError(status=400, message="Mock"))
-        remote.make_file("/", "test.odt", content=b"Some content.")
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-        self.engine_1.stop()
-        pair = self.engine_1.get_dao().get_state_from_local(path)
-        assert pair.error_count == 4
-        assert pair.pair_state == "remotely_created"
-        self.engine_1.start()
-        self.wait_sync(fail_if_timeout=False)
-        pair = self.engine_1.get_dao().get_state_from_local(path)
-        assert pair.error_count == 4
-        assert pair.pair_state == "remotely_created"
-        self.engine_1.remote.make_download_raise(None)
+
+        bad_remote.make_download_raise(error)
+
+        with patch.object(self.engine_1, "remote", new=bad_remote):
+            remote.make_file("/", "test.odt", content=b"Some content.")
+
+            self.engine_1.start()
+            self.wait_sync(wait_for_async=True)
+            self.engine_1.stop()
+
+            pair = self.engine_1.get_dao().get_state_from_local(path)
+            assert pair.error_count
+            assert pair.pair_state == "remotely_created"
+
+            self.engine_1.start()
+            self.wait_sync()
+            pair = self.engine_1.get_dao().get_state_from_local(path)
+            assert pair.error_count == 4
+            assert pair.pair_state == "remotely_created"
+
         # Requeue errors
         self.engine_1.retry_pair(pair.id)
-        self.wait_sync(fail_if_timeout=False)
+        self.wait_sync()
         pair = self.engine_1.get_dao().get_state_from_local(path)
         assert not pair.error_count
         assert pair.pair_state == "synchronized"
