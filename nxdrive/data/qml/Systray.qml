@@ -196,7 +196,7 @@ Item {
         SystrayStatus {
             id: errorState
             state: ""  // no errors/conflicts
-            visible: state != ""
+            visible: state != "" && (ConflictsModel.count + ErrorsModel.count) > 0
             textColor: "white"
             icon: MdiFont.Icon.alert
 
