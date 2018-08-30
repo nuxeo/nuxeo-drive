@@ -3,6 +3,7 @@ import os
 import socket
 import tempfile
 import time
+from contextlib import suppress
 from logging import getLogger
 from threading import Lock, current_thread
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -309,7 +310,7 @@ class Remote(Nuxeo):
                 download_url, file_out=file_out, digest=fs_item_info.digest, **kwargs
             )
         except Exception as e:
-            if os.path.exists(file_out):
+            with suppress(FileNotFoundError):
                 os.remove(file_out)
             raise e
         finally:
