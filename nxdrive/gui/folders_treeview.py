@@ -1,7 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 from threading import Thread
-from typing import Generator, List, Union
+from typing import Generator, List, Type, Union
 
 from PyQt5.QtCore import QModelIndex, QObject, QVariant, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QMovie, QPalette, QStandardItem, QStandardItemModel
@@ -158,6 +158,7 @@ class FilteredFsClient(Client):
 class FolderTreeview(QTreeView):
 
     showHideLoadingOverlay = pyqtSignal(bool)
+    noRoots = pyqtSignal(bool)
 
     def __init__(self, parent: QDialog, client: FilteredFsClient) -> None:
         # parent is FiltersDialog
@@ -255,7 +256,7 @@ class FolderTreeview(QTreeView):
         load_thread = Thread(target=self.load_children_thread, args=(item,))
         load_thread.start()
 
-    def sort_children(self, children: List[FileInfo]) -> List[FileInfo]:
+    def sort_children(self, children: List[Type[FileInfo]]) -> List[Type[FileInfo]]:
         # Put in a specific method to be able to override if needed
         # NXDRIVE-12: Sort child alphabetically
         return sorted(children, key=lambda x: x.get_label().lower())
@@ -276,6 +277,8 @@ class FolderTreeview(QTreeView):
 
         # Clear previous items
         children = list(self.client.get_children(parent_item))
+        if not (parent_item or len(children)):
+            self.noRoots.emit(True)
 
         parent.removeRows(0, parent.rowCount())
         for child in self.sort_children(children):

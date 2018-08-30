@@ -29,8 +29,10 @@ class FiltersDialog(QDialog):
         if icon is not None:
             self.setWindowIcon(QIcon(icon))
 
+        self.no_root_label = self.get_no_roots_label()
         self.tree_view = self.get_tree_view()
         self.vertical_layout.addWidget(self.tree_view)
+        self.vertical_layout.addWidget(self.no_root_label)
 
         self.button_box = QDialogButtonBox(self)
         self.button_box.setOrientation(Qt.Horizontal)
@@ -54,7 +56,33 @@ class FiltersDialog(QDialog):
         filters = self._engine.get_dao().get_filters()
         fs_client = self._engine.remote
         client = FilteredFsClient(fs_client, filters)
-        return FolderTreeview(self, client)
+        tree_view = FolderTreeview(self, client)
+        tree_view.noRoots.connect(self._handle_no_roots)
+        return tree_view
+
+    def get_no_roots_label(self) -> QLabel:
+        label = QLabel(parent=self)
+        text = Translator.get(
+            "NO_ROOTS",
+            [
+                self._engine.server_url,
+                "https://doc.nuxeo.com/nxdoc/nuxeo-drive/#synchronizing-a-folder",
+            ],
+        )
+        label.setText(text)
+        label.setMargin(15)
+        label.resize(400, 200)
+        label.setWordWrap(True)
+        label.setVisible(False)
+        label.setOpenExternalLinks(True)
+        label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        return label
+
+    def _handle_no_roots(self) -> None:
+        self.no_root_label.setVisible(True)
+        self.tree_view.setVisible(False)
+        self.tree_view.resize(0, 0)
+        self.setGeometry(self.x() + 50, self.y() + 150, 400, 200)
 
     def accept(self) -> None:
         """ When you click on the OK button. """

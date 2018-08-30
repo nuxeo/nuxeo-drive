@@ -159,6 +159,7 @@
     "NO_ACCOUNT_DESCR": "Use the %1 button to connect to a Nuxeo account and start synchronizing content on your computer.",
     "NO_CONFLICTS_BODY": "You have resolved all conflicts and errors",
     "NO_CONFLICTS_TITLE": "No conflicts or errors left",
+    "NO_ROOTS": "There is no synchronized folders associated with your account.<br/><br/> Please browse to <a href=\"%1\">your instance</a> and pick a folder to start synchronizing content.<br/><br/> Learn more about synchronization on <a href=\"%2\">the documentation website</a>.",
     "NO_SPACE_LEFT_ON_DEVICE": "No space left on device, please free some disk space.",
     "OPEN_LOCAL": "Open local",
     "OPEN_REMOTE": "Open remote",
