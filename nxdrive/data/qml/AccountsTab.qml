@@ -100,8 +100,9 @@ Rectangle {
         }
 
         IconLabel {
-            icon: MdiFont.Icon.accountPlus; enabled: false
+            icon: MdiFont.Icon.accountPlus
             size: 128; Layout.alignment: Qt.AlignHCenter
+            onClicked: newAccountPopup.open()
         }
 
         ScaledText {
