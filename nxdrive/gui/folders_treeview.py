@@ -277,7 +277,8 @@ class FolderTreeview(QTreeView):
 
         # Clear previous items
         children = list(self.client.get_children(parent_item))
-        if not (parent_item or len(children)):
+
+        if not parent_item and not children:
             self.noRoots.emit(True)
 
         parent.removeRows(0, parent.rowCount())
