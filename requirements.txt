@@ -8,7 +8,7 @@ pyaml==17.12.1
 pycryptodomex==3.6.6
 pyobjc-framework-Cocoa==4.2.2; sys_platform == 'darwin'
 pyobjc-framework-LaunchServices==4.2.2; sys_platform == 'darwin'
-pypac==0.9.0
+pypac==0.10.1
 pypiwin32==223; sys_platform == 'win32'
 PyQt5==5.11.2
 python-dateutil==2.7.3
