@@ -126,12 +126,17 @@ class RemoteBase(Remote):
         res = self.operations.execute(command="NuxeoDrive.GetRoots")
         return self._filtered_results(res["entries"], fetch_parent_uid=False)
 
-    def make_file(self, parent_id: str, name: str, content: bytes) -> RemoteFileInfo:
-        """Create a document with the given name and content
-
-        Creates a temporary file from the content then streams it.
+    def make_file(
+        self, parent_id: str, name: str, content: bytes = None
+    ) -> RemoteFileInfo:
         """
-        file_path = make_tmp_file(self.upload_tmp_dir, content)
+        Create a document with the given name and content.
+        if content is None, creates a temporary file from the content then streams it.
+        """
+        if content is not None:
+            file_path = make_tmp_file(self.upload_tmp_dir, content)
+        else:
+            file_path = name
         try:
             fs_item = self.upload(
                 file_path,
@@ -141,7 +146,8 @@ class RemoteBase(Remote):
             )
             return RemoteFileInfo.from_dict(fs_item)
         finally:
-            os.remove(file_path)
+            if content is not None:
+                os.remove(file_path)
 
     def update_content(
         self, ref: str, content: bytes, filename: str = None, mime_type: str = None
