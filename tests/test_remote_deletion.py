@@ -3,11 +3,10 @@ import os
 import time
 from logging import getLogger
 from shutil import copyfile
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import Mock, patch
 
-from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
 from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
 
@@ -76,7 +75,7 @@ class TestRemoteDeletion(UnitTestCase):
         assert local.exists("/Test folder")
         assert local.exists("/Test folder/joe.txt")
 
-    def _remote_deletion_while_upload(self):
+    def test_synchronize_remote_deletion_while_upload(self):
         local = self.local_1
         remote = self.remote_document_client_1
         self.engine_1.start()
@@ -102,16 +101,8 @@ class TestRemoteDeletion(UnitTestCase):
             self.wait_sync(wait_for_async=True)
             assert not local.exists("/Test folder")
 
-    def test_synchronize_remote_deletion_while_upload(self):
-        if WINDOWS:
-            self._remote_deletion_while_upload()
-        else:
-            with patch("nxdrive.client.remote_client.os.fstatvfs") as mock_os:
-                mock_os.return_value = Mock()
-                mock_os.return_value.f_bsize = 4096
-                self._remote_deletion_while_upload()
-
-    def _remote_deletion_while_download_file(self):
+    @pytest.mark.randombug("NXDRIVE-1329", repeat=4)
+    def test_synchronize_remote_deletion_while_download_file(self):
         local = self.local_1
         remote = self.remote_document_client_1
 
@@ -122,33 +113,26 @@ class TestRemoteDeletion(UnitTestCase):
                 try:
                     remote.delete("/Test folder/testFile.pdf")
                 except:
-                    log.exception("Deletion error")
+                    log.exception("Cannot trash")
                 else:
                     self.engine_1.has_delete = True
             time.sleep(1)
-            self.engine_1.suspend_client()
+            Engine.suspend_client(self.engine_1)
 
         self.engine_1.start()
         self.engine_1.has_delete = False
 
+        filepath = os.path.join(self.location, "resources", "testFile.pdf")
+
         with patch.object(self.engine_1.remote, "check_suspended", new=check_suspended):
-            # Create documents in the remote root workspace
             remote.make_folder("/", "Test folder")
-            with open(self.location + "/resources/testFile.pdf", "rb") as pdf:
+            with open(filepath, "rb") as pdf:
                 remote.make_file("/Test folder", "testFile.pdf", pdf.read())
 
             self.wait_sync(wait_for_async=True)
+            # Sometimes the server does not return the document trash action in summary changes.
+            # So it may fail on the next assertion.
             assert not local.exists("/Test folder/testFile.pdf")
-
-    @pytest.mark.randombug("NXDRIVE-1329", condition=True, mode="REPEAT")
-    def test_synchronize_remote_deletion_while_download_file(self):
-        if WINDOWS:
-            self._remote_deletion_while_download_file()
-        else:
-            with patch("os.path.isdir", return_value=False) as mock_os:
-                mock_os.return_value = Mock()
-                mock_os.return_value.f_bsize = 4096
-                self._remote_deletion_while_download_file()
 
     def test_synchronize_remote_deletion_with_close_name(self):
         self.engine_1.start()
@@ -231,8 +215,3 @@ class TestRemoteDeletion(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         assert not remote.exists("/Test folder renamed")
         assert not local.exists("/Test folder renamed")
-
-    def _check_pair_state(self, _, local_path, pair_state):
-        local_path = "/" + self.workspace_title + local_path
-        doc_pair = self.engine_1.get_dao().get_state_from_local(local_path)
-        assert doc_pair.pair_state == pair_state
