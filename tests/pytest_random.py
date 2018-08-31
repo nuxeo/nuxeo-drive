@@ -86,6 +86,7 @@ def pytest_runtest_protocol(item, nextitem):
         reports = runtestprotocol(item, nextitem=nextitem, log=False)
 
         for report in reports:  # 3 reports: setup, call, teardown
+            report.total_repeat = repeat
             report.repeat = i
 
             if mode == "RELAX":
@@ -118,4 +119,11 @@ def pytest_runtest_protocol(item, nextitem):
 
 def pytest_report_teststatus(report):
     if report.outcome == "repeat":
-        return "repeated", "R", ("REPEATED", {"yellow": True})
+        return (
+            "repeated",
+            "R",
+            (
+                f"REPEATED {report.repeat + 1:2d}/{report.total_repeat}",
+                {"yellow": True},
+            ),
+        )
