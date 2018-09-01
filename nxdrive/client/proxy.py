@@ -97,14 +97,14 @@ class ManualProxy(Proxy):
         super().__init__(**kwargs)
         if url:
             if "://" not in url:
-                url = "http://" + url
+                url = f"http://{url}"
             url = urlparse(url)
             self.scheme = url.scheme
             self.host = url.hostname
-            self.port = url.port
-            self.username = url.username
-            self.password = url.password
-            self.authenticated = bool(url.username)
+            self.port = url.port or port
+            self.username = url.username or username
+            self.password = url.password or password
+            self.authenticated = bool(self.username)
         else:
             self.scheme = scheme
             self.host = host

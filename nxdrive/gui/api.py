@@ -751,7 +751,7 @@ class QMLDriveApi(QObject):
     def set_proxy_settings(
         self,
         config: str,
-        host: str,
+        url: str,
         authenticated: bool,
         username: str,
         password: str,
@@ -759,7 +759,7 @@ class QMLDriveApi(QObject):
     ) -> bool:
         proxy = get_proxy(
             category=config,
-            url=host,
+            url=url,
             authenticated=authenticated,
             pac_url=pac_url,
             username=username,
