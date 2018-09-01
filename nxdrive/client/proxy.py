@@ -7,7 +7,7 @@ import requests
 from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
-from ..utils import decrypt, encrypt
+from ..utils import decrypt, encrypt, force_decode
 
 __all__ = (
     "AutomaticProxy",
@@ -190,7 +190,7 @@ def load_proxy(dao: "EngineDAO", token: str = None) -> Proxy:
                 # If no server binding or no token available
                 # (possibly after token revocation) reset password
                 password = ""
-            kwargs["password"] = password
+            kwargs["password"] = force_decode(password)
 
     return _get_cls(category)(**kwargs)
 
