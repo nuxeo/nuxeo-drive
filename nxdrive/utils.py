@@ -426,7 +426,7 @@ def safe_long_path(path: str) -> str:
     path = force_decode(path)
 
     if WINDOWS and not path.startswith("\\\\?\\"):
-        path = "\\\\?\\" + normalized_path(path)
+        path = f"\\\\?\\{normalized_path(path)}"
 
     return path
 
