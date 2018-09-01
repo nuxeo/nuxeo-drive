@@ -4,7 +4,7 @@
 import logging
 import os
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
-from typing import List
+from typing import Any, List
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import constants
@@ -75,12 +75,18 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
     Extended version of TimedRotatingFileHandler that compress logs on rollover.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Set UTF-8 as default encoding to prevent logging issues
+        on Windows with non-latin characters."""
+        kwargs["encoding"] = "utf-8"
+        super().__init__(*args, **kwargs)
+
     def find_last_rotated_file(self) -> str:
         dir_name, base_name = os.path.split(self.baseFilename)
         file_names = os.listdir(dir_name)
         result = []
         # We want to find a rotated file with eg filename.2017-04-26... name
-        prefix = "{}.20".format(base_name)
+        prefix = f"{base_name}.20"
         for file_name in file_names:
             if file_name.startswith(prefix) and not file_name.endswith(".zip"):
                 result.append(file_name)
@@ -91,7 +97,7 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         super().doRollover()
 
         dfn = self.find_last_rotated_file()
-        dfn_zipped = "{}.zip".format(dfn)
+        dfn_zipped = f"{dfn}.zip"
         with open(dfn, "rb") as reader, ZipFile(dfn_zipped, mode="w") as zip_:
             zip_.writestr(os.path.basename(dfn), reader.read(), ZIP_DEFLATED)
         os.remove(dfn)

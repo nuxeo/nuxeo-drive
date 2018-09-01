@@ -743,7 +743,7 @@ FolderType=Generic
                 cmd = ["touch", "-mt", ctime.strftime("%Y%m%d%H%M.%S"), filename]
                 subprocess.check_call(cmd)
             elif WINDOWS:
-                winfile = win32file.CreateFile(
+                winfile = win32file.CreateFileW(
                     filename,
                     win32con.GENERIC_WRITE,
                     (
@@ -780,7 +780,7 @@ FolderType=Generic
         """ Absolute path on the operating system. """
 
         if not ref.startswith("/"):
-            raise ValueError('LocalClient expects ref starting with "/"', locals())
+            raise ValueError("LocalClient expects ref starting with '/'")
 
         path_suffix = ref[1:].replace("/", os.path.sep)
         path = normalized_path(os.path.join(self.base_folder, path_suffix))
