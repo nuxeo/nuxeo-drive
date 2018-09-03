@@ -344,12 +344,15 @@ class Manager(QObject):
         file_path = force_decode(file_path)
         log.debug("Launching editor on %r", file_path)
         if WINDOWS:
-            if select:
-                win32api.ShellExecute(
-                    None, "open", "explorer.exe", f"/select,{file_path}", None, 1
-                )
-            else:
-                os.startfile(file_path)
+            try:
+                if select:
+                    win32api.ShellExecute(
+                        None, "open", "explorer.exe", f"/select,{file_path}", None, 1
+                    )
+                else:
+                    os.startfile(file_path)
+            except OSError as exc:
+                log.error(f"Failed to open {file_path}: {exc}")
         elif MAC:
             args = ["open"]
             if select:
