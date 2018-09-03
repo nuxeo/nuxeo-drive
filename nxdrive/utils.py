@@ -25,7 +25,6 @@ __all__ = (
     "force_decode",
     "force_encode",
     "get_device",
-    "guess_digest_algorithm",
     "guess_server_url",
     "if_frozen",
     "is_generated_tmp_file",
@@ -522,15 +521,6 @@ def guess_mime_type(filename: str) -> str:
         "Could not guess mime type for %r, returning application/octet-stream", filename
     )
     return "application/octet-stream"
-
-
-def guess_digest_algorithm(digest: str) -> str:
-    # For now only md5 and sha1 are supported
-    if digest is None or len(digest) == 32:
-        return "md5"
-    elif len(digest) == 40:
-        return "sha1"
-    raise ValueError("Unknown digest algorithm for %s" % digest)
 
 
 def guess_server_url(

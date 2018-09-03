@@ -2,7 +2,6 @@
 """ API to access local resources for synchronization. """
 
 import errno
-import hashlib
 import os
 import re
 import shutil
@@ -18,6 +17,8 @@ from typing import Any, List, Optional, Tuple, Union
 
 from send2trash import send2trash
 
+from nuxeo.utils import get_digest_algorithm, get_digest_hash
+
 from ..constants import (
     DOWNLOAD_TMP_FILE_PREFIX,
     DOWNLOAD_TMP_FILE_SUFFIX,
@@ -27,11 +28,10 @@ from ..constants import (
     UNACCESSIBLE_HASH,
     WINDOWS,
 )
-from ..exceptions import DuplicationDisabledError, NotFound
+from ..exceptions import DuplicationDisabledError, NotFound, UnknownDigest
 from ..options import Options
 from ..utils import (
     force_decode,
-    guess_digest_algorithm,
     lock_path,
     normalized_path,
     safe_filename,
@@ -107,17 +107,16 @@ class FileInfo:
             return None
 
         digest_func = digest_func or self._digest_func
-        digester = getattr(hashlib, digest_func, None)
-        if digester is None:
-            raise ValueError("Unknown digest method: " + digest_func)
+        h = get_digest_hash(digest_func)
+        if h is None:
+            raise UnknownDigest(digest_func)
 
-        h = digester()
         try:
             with open(safe_long_path(self.filepath), "rb") as f:
                 while True:
                     # Check if synchronization thread was suspended
                     if self.check_suspended is not None:
-                        self.check_suspended("Digest computation: %s" % self.filepath)
+                        self.check_suspended(f"Digest computation: {self.filepath}")
                     buf = f.read(FILE_BUFFER_SIZE)
                     if not buf:
                         break
@@ -479,7 +478,10 @@ FolderType=Generic
             return True
 
         if remote_digest_algorithm is None:
-            remote_digest_algorithm = guess_digest_algorithm(remote_digest)
+            remote_digest_algorithm = get_digest_algorithm(remote_digest)
+            if not remote_digest_algorithm:
+                raise UnknownDigest(remote_digest)
+
         if remote_digest_algorithm == self._digest_func:
             return False
 

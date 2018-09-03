@@ -117,6 +117,7 @@
 - Removed engine/engine.py::`EngineDialog`
 - Moved engine/workers.py::`PairInterrupt` exception to exceptions.py
 - Moved engine/workers.py::`ThreadInterrupt` exception to exceptions.py
+- Added exceptions.py::`UnknownDigest`
 - Added gui/conflicts.py::`ConflictsView`
 - Removed gui/dialog.py::`TokenNetworkAccessManager`
 - Added gui/dialog.py::`TokenRequestInterceptor`
@@ -134,6 +135,7 @@
 - Added utils.py::`force_encode()`
 - Added utils.py::`if_frozen()`
 - Removed `codecs` argument from utils.py::`force_decode()`
+- Removed utils.py::`guess_digest_algorithm()`
 - Moved wui/* to gui/*
 
 # 3.1.0

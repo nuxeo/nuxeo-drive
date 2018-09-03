@@ -86,6 +86,19 @@ class StartupPageConnectionError(DriveError):
     pass
 
 
+class UnknownDigest(ValueError):
+    """ The digest doesn't fit any known algorithms. """
+
+    def __init__(self, digest: str) -> None:
+        self.digest = digest
+
+    def __repr__(self) -> str:
+        return f"Unknown digest {self.digest!r}"
+
+    def __str__(self) -> str:
+        return repr(self)
+
+
 class ThreadInterrupt(DriveError):
     """ The worker has been ordered to stop and quit."""
 
