@@ -1,13 +1,12 @@
 # coding: utf-8
 from logging import getLogger
 from typing import Any, Dict, Type
-from urllib.parse import urlparse
 
 import requests
 from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
-from ..utils import decrypt, encrypt
+from ..utils import decrypt, encrypt, force_decode
 
 __all__ = (
     "AutomaticProxy",
@@ -20,10 +19,6 @@ __all__ = (
 )
 
 log = getLogger(__name__)
-
-
-class MissingToken(Exception):
-    pass
 
 
 class Proxy:
@@ -83,46 +78,15 @@ class ManualProxy(Proxy):
 
     category = "Manual"
 
-    def __init__(
-        self,
-        url: str = None,
-        scheme: str = None,
-        host: str = None,
-        port: int = None,
-        authenticated: bool = False,
-        username: str = None,
-        password: str = None,
-        **kwargs: Any,
-    ) -> None:
+    def __init__(self, url: str = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        if url:
-            if "://" not in url:
-                url = "http://" + url
-            url = urlparse(url)
-            self.scheme = url.scheme
-            self.host = url.hostname
-            self.port = url.port
-            self.username = url.username
-            self.password = url.password
-            self.authenticated = bool(url.username)
-        else:
-            self.scheme = scheme
-            self.host = host
-            self.port = port
-            self.username = username
-            self.password = password
-            self.authenticated = authenticated
 
-    @property
-    def url(self) -> str:
-        return self.scheme + "://" + self.host + ":" + str(self.port)
+        if "://" not in url:
+            url = f"http://{url}"
+        self.url = url
 
-    def settings(self, **kwargs: Any) -> Dict[str, Any]:
-        if self.authenticated:
-            url = f"{self.scheme}://{self.username}:{self.password}@{self.host}:{self.port}"
-        else:
-            url = self.url
-        return {"http": url, "https": url}
+    def settings(self, **kwargs: Any) -> Dict[str, str]:
+        return {"http": self.url, "https": self.url}
 
 
 class AutomaticProxy(Proxy):
@@ -172,25 +136,11 @@ def load_proxy(dao: "EngineDAO", token: str = None) -> Proxy:
 
     if category == "Automatic":
         kwargs["pac_url"] = dao.get_config("proxy_pac_url")
-
     elif category == "Manual":
-        kwargs["scheme"] = dao.get_config("proxy_type")
-        kwargs["port"] = int(dao.get_config("proxy_port"))
-        kwargs["host"] = dao.get_config("proxy_server")
-        kwargs["authenticated"] = dao.get_config("proxy_authenticated", "0") == "1"
-        if kwargs["authenticated"]:
-            kwargs["username"] = dao.get_config("proxy_username")
-            password = dao.get_config("proxy_password")
-            if token is None:
-                token = dao.get_config("device_id")
-            if password is not None and token is not None:
-                token += "_proxy"
-                password = decrypt(password, token)
-            else:
-                # If no server binding or no token available
-                # (possibly after token revocation) reset password
-                password = ""
-            kwargs["password"] = password
+        if not token:
+            token = dao.get_config("device_id")
+        token += "_proxy"
+        kwargs["url"] = force_decode(decrypt(dao.get_config("proxy_url"), token))
 
     return _get_cls(category)(**kwargs)
 
@@ -200,26 +150,12 @@ def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
 
     if proxy.category == "Automatic":
         dao.update_config("proxy_pac_url", proxy.pac_url)
-
     elif proxy.category == "Manual":
-        dao.update_config("proxy_port", proxy.port)
-        dao.update_config("proxy_type", proxy.scheme)
-        dao.update_config("proxy_server", proxy.host)
-        dao.update_config("proxy_authenticated", proxy.authenticated)
-
-        if proxy.authenticated:
-            dao.update_config("proxy_username", proxy.username)
-            # Encrypt password with token as the secret
-            if token is None:
-                token = dao.get_config("device_id")
-            if token is None:
-                raise MissingToken(
-                    "Your token has been revoked, please update "
-                    "your password to acquire a new one."
-                )
-            token += "_proxy"
-            password = encrypt(proxy.password, token)
-            dao.update_config("proxy_password", password)
+        # Encrypt password with token as the secret
+        if not token:
+            token = dao.get_config("device_id")
+        token += "_proxy"
+        dao.update_config("proxy_url", encrypt(proxy.url, token))
 
 
 def validate_proxy(proxy: Proxy, url: str) -> bool:
@@ -239,5 +175,5 @@ def _get_cls(category: str) -> Type[Proxy]:
         "Automatic": AutomaticProxy,
     }
     if category not in proxy_cls:
-        raise ValueError("No proxy associated to category %s" % category)
+        raise ValueError(f"No proxy associated to category {category}")
     return proxy_cls[category]
