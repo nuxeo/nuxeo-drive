@@ -6,11 +6,11 @@ NuxeoPopup {
     id: control
 
     property bool isManual: proxyType.currentIndex == 2
-    property bool isAuth: authenticatedCheckBox.checked
     property bool isAuto: proxyType.currentIndex == 3
 
     title: qsTr("PROXY_CHANGE_SETTINGS") + tl.tr
     width: 480
+    height: 200
     topPadding: 60
     leftPadding: 50
     rightPadding: 50
@@ -27,11 +27,6 @@ NuxeoPopup {
             case "Manual":
                 proxyType.currentIndex = 2
                 urlInput.text = proxy.url
-                authenticatedCheckBox.checked = proxy.authenticated
-                if (proxy.authenticated) {
-                    usernameInput.text = proxy.username
-                    passwordInput.text = proxy.password
-                }
                 break
             case "Automatic":
                 proxyType.currentIndex = 3
@@ -79,40 +74,8 @@ NuxeoPopup {
             visible: isManual
             Layout.fillWidth: true
             font.family: 'monospace'
+            placeholderText: 'https://username:password@proxy.tld:port'
             inputMethodHints: Qt.ImhUrlCharactersOnly
-            KeyNavigation.tab: authenticatedCheckBox
-        }
-
-        NuxeoCheckBox {
-            id: authenticatedCheckBox
-            Layout.columnSpan: 2
-            visible: proxyType.currentIndex == 2
-            KeyNavigation.tab: usernameInput
-            text: qsTr("REQUIRES_AUTHENTICATION") + tl.tr
-        }
-
-        ScaledText {
-            text: qsTr("USERNAME") + tl.tr
-            color: mediumGray
-            visible: isManual && isAuth
-        }
-        NuxeoInput {
-            id: usernameInput
-            visible: isManual && isAuth
-            Layout.fillWidth: true
-            KeyNavigation.tab: passwordInput
-        }
-
-        ScaledText {
-            text: qsTr("PASSWORD") + tl.tr;
-            color: mediumGray
-            visible: isManual && isAuth
-        }
-        NuxeoInput {
-            id: passwordInput
-            visible: isManual && isAuth
-            Layout.fillWidth: true
-            echoMode: TextInput.Password
         }
 
         ScaledText {
@@ -125,6 +88,7 @@ NuxeoPopup {
             visible: isAuto
             Layout.fillWidth: true
             font.family: 'monospace'
+            placeholderText: 'https://server.tld/proxy.pac\nfile://C:/proxy.pac'
             inputMethodHints: Qt.ImhUrlCharactersOnly
         }
 
@@ -145,17 +109,13 @@ NuxeoPopup {
                 text: qsTr("APPLY") + tl.tr
                 enabled:
                     proxyType.currentIndex < 2
-                    || (isManual && !isAuth && urlInput.text)
-                    || (isManual && isAuth && urlInput.text && passwordInput.text)
+                    || (isManual && urlInput.text)
                     || (isAuto && pacUrlInput.text)
                 inverted: true
                 onClicked: {
                     if (api.set_proxy_settings(
                         proxyType.model.get(proxyType.currentIndex).value,
                         urlInput.text,
-                        authenticatedCheckBox.checked,
-                        usernameInput.text,
-                        passwordInput.text,
                         pacUrlInput.text
                     )) {
                         control.close()

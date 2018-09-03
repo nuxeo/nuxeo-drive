@@ -128,7 +128,7 @@
 - Moved logging_config.py::`MAX_LOG_DISPLAYED` to constants.py
 - Moved manager.py::`EngineTypeMissing` exception to exceptions.py
 - Moved manager.py::`FolderAlreadyUsed` exception to exceptions.py
-- Moved manager.py::`MissingToken` to client/proxy.py
+- Removed manager.py::`MissingToken`
 - Removed manager.py::`ProxySettings`
 - Added utils.py::`copy_to_clipboard()`
 - Added utils.py::`force_encode()`

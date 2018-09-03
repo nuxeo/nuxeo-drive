@@ -737,34 +737,15 @@ class QMLDriveApi(QObject):
     def get_proxy_settings(self) -> str:
         proxy = self._manager.proxy
         result = {
-            "url": getattr(proxy, "url", None),
             "config": getattr(proxy, "category", None),
-            "username": getattr(proxy, "username", None),
-            "authenticated": getattr(proxy, "authenticated", 0) == 1,
-            "password": getattr(proxy, "password", None),
-            "port": getattr(proxy, "port", None),
             "pac_url": getattr(proxy, "pac_url", None),
+            "url": getattr(proxy, "url", None),
         }
         return self._json(result)
 
-    @pyqtSlot(str, str, bool, str, str, str, result=bool)
-    def set_proxy_settings(
-        self,
-        config: str,
-        url: str,
-        authenticated: bool,
-        username: str,
-        password: str,
-        pac_url: str,
-    ) -> bool:
-        proxy = get_proxy(
-            category=config,
-            url=url,
-            authenticated=authenticated,
-            pac_url=pac_url,
-            username=username,
-            password=password,
-        )
+    @pyqtSlot(str, str, str, result=bool)
+    def set_proxy_settings(self, config: str, url: str, pac_url: str) -> bool:
+        proxy = get_proxy(category=config, url=url, pac_url=pac_url)
         result = self._manager.set_proxy(proxy)
         if result:
             self.setMessage.emit(result, "error")

@@ -1,8 +1,8 @@
 # coding: utf-8
 import os
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 
 from nxdrive.client.proxy import (
     AutomaticProxy,
@@ -57,12 +57,8 @@ def pac_file():
 def test_manual_proxy():
     proxy = get_proxy(category="Manual", url="localhost:3128")
     assert isinstance(proxy, ManualProxy)
-    assert not proxy.authenticated
-    assert proxy.scheme == "http"
-    assert proxy.host == "localhost"
-    assert proxy.port == 3128
     settings = proxy.settings()
-    assert settings["http"] == settings["https"] == "http://localhost:3128"
+    assert settings["http"] == settings["https"] == proxy.url == "http://localhost:3128"
 
 
 def test_pac_proxy_js():
@@ -82,10 +78,6 @@ def test_load(config_dao):
     loaded_proxy = load_proxy(config_dao, "mock_token")
 
     assert isinstance(loaded_proxy, ManualProxy)
-    assert loaded_proxy.authenticated == proxy.authenticated
-    assert loaded_proxy.scheme == proxy.scheme
-    assert loaded_proxy.host == proxy.host
-    assert loaded_proxy.port == proxy.port
     assert proxy.settings() == loaded_proxy.settings()
 
 
@@ -133,14 +125,8 @@ def test_cli_args():
     Options.set("proxy_server", url, setter="cli")
     manager = Manager()
     proxy = manager.proxy
-    assert proxy
     assert isinstance(proxy, ManualProxy)
-    assert proxy.authenticated
-    assert proxy.scheme == "http"
-    assert proxy.host == "localhost"
-    assert proxy.port == 8899
-    assert proxy.username == "username"
-    assert proxy.password == "password"
+    assert proxy.url == url
     settings = proxy.settings()
     assert settings["http"] == settings["https"] == url
     manager.stop()
