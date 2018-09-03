@@ -412,8 +412,11 @@ class CliHandler:
                 value = item[1]
                 if value == "":
                     continue
-
-                if "\n" in value:
+                elif value in {"true", "True"}:
+                    value = True
+                elif value in {"false", "False"}:
+                    value = False
+                elif "\n" in value:
                     if "=" in value:
                         log.error(
                             "Malformatted parameter in config.ini: %r => %r",

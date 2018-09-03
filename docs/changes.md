@@ -31,6 +31,7 @@ Changes in command line arguments:
 - [NXDRIVE-1292](https://jira.nuxeo.com/browse/NXDRIVE-1292): Make the authentication easier to customize
 - [NXDRIVE-1287](https://jira.nuxeo.com/browse/NXDRIVE-1287): Better server error 500 reporting
 - [NXDRIVE-1303](https://jira.nuxeo.com/browse/NXDRIVE-1303): Fix using the bind-server CLI argument without --local-folder
+- [NXDRIVE-1339](https://jira.nuxeo.com/browse/NXDRIVE-1339): Handle boolean parameters
 
 ### GUI
 - [NXDRIVE-600](https://jira.nuxeo.com/browse/NXDRIVE-600): Use the generic JSP to acquire a token
