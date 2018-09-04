@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<component name="drive-disable-libreoffice">
-  <require>org.nuxeo.ecm.platform.convert.ooomanager.OOoManagerComponent</require>
-  <extension point="oooManagerConfig" target="org.nuxeo.ecm.platform.convert.ooomanager.OOoManagerComponent">
-    <OOoManager enabled="false"/>
-  </extension>
-</component>
