@@ -37,9 +37,15 @@ properties([
     ]]
 ])
 
+def skip_tests(reason) {
+    echo reason
+    currentBuild.description = "Skipped: " + reason
+    currentBuild.result = "ABORTED"
+}
+
 // Do not launch anything if we are on a Work In Progress branch
 if (env.BRANCH_NAME.startsWith('wip-')) {
-    echo 'Skipped due to WIP branch.'
+    skip_tests('WIP')
     return
 }
 
@@ -87,35 +93,31 @@ def get_changed_files() {
         // On the first build, there is no changelog in currentBuild.changeSets,
         // so we need to figure out the diff from master on our own
         node("SLAVE") {
-            stage("Code diff check") {
-                checkout_custom()
-                dir("sources") {
-                    sh "git config --add remote.origin.fetch +refs/heads/master:refs/remotes/origin/master"
-                    sh "git fetch --no-tags"
-                    return sh(returnStdout: true, script: "git diff --name-only origin/master..origin/${env.BRANCH_NAME}").split()
-                }
+            checkout_custom()
+            dir("sources") {
+                sh "git config --add remote.origin.fetch +refs/heads/master:refs/remotes/origin/master"
+                sh "git fetch --no-tags"
+                return sh(returnStdout: true, script: "git diff --name-only origin/master..origin/${env.BRANCH_NAME}").split()
             }
         }
     }
 
-    stage("Code diff check") {
-        def changeLogSets = currentBuild.changeSets
-        def allFiles = []
-        for (changeLog in changeLogSets) {
-            for (entry in changeLog.items) {
-                for (file in entry.affectedFiles) {
-                    allFiles.add(file.path)
-                }
+    def changeLogSets = currentBuild.changeSets
+    def allFiles = []
+    for (changeLog in changeLogSets) {
+        for (entry in changeLog.items) {
+            for (file in entry.affectedFiles) {
+                allFiles.add(file.path)
             }
         }
-        return allFiles
     }
+    return allFiles
 }
 
-def skip_tests() {
+def has_code_changes() {
     if (currentBuild.rawBuild.getCauses()[0].toString().contains('UserIdCause')) {
         // Build has been triggered manually, we must run the tests
-        return false
+        return true
     }
     def files = get_changed_files()
     def code_extensions = [".py", ".sh", ".ps1", ".groovy"]
@@ -123,17 +125,18 @@ def skip_tests() {
         for (ext in code_extensions) {
             if (file.trim().endsWith(ext)) {
                 // Changes in the code, we must run the tests
-                return false
+                return true
             }
         }
     }
-    return true
+    return false
 }
 
-if (skip_tests()) {
-    echo "No changes to the code, skipping tests."
-    currentBuild.result = "ABORTED"
-    return
+stage("Code diff check") {
+    if (!has_code_changes()) {
+        skip_tests("No code changes")
+        return
+    }
 }
 
 for (def x in slaves) {
