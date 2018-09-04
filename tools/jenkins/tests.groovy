@@ -43,40 +43,6 @@ if (env.BRANCH_NAME.startsWith('wip-')) {
     return
 }
 
-def get_changed_files() {
-    def changeLogSets = currentBuild.changeSets
-    def allFiles = []
-    for (changeLog in changeLogSets) {
-        for (entry in changeLog.items) {
-            allFiles.addAll(entry.affectedFiles)
-        }
-    }
-    return allFiles
-}
-
-def skip_tests() {
-    if (currentBuild.rawBuild.getCauses()[0].toString().contains('UserIdCause')) {
-        // Build has been triggered manually, we must run the tests
-        return false
-    }
-    def files = get_changed_files()
-    def code_extensions = [".py", ".sh", ".ps1", ".groovy"]
-    for (file in files) {
-        for (ext in code_extensions) {
-            if (file.path.trim().endsWith(ext)) {
-                // Changes in the code, we must run the tests
-                return false
-            }
-        }
-    }
-    return true
-}
-
-if (skip_tests()) {
-    echo "No changes to the code, skipping tests."
-    return
-}
-
 // Jenkins slaves we will build on
 slaves = ['OSXSLAVE-DRIVE', 'SLAVE', 'WINSLAVE']
 labels = [
@@ -112,6 +78,62 @@ def checkout_custom() {
         extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
         submoduleCfg: [],
         userRemoteConfigs: [[url: repos_git]]])
+}
+
+def get_changed_files() {
+    // Return a list of strings corresponding to the path of the changed files
+
+    if (env.BUILD_NUMBER == "1" && env.BRANCH_NAME != "master") {
+        // On the first build, there is no changelog in currentBuild.changeSets,
+        // so we need to figure out the diff from master on our own
+        node("SLAVE") {
+            stage("Code diff check") {
+                checkout_custom()
+                dir("sources") {
+                    sh "git config --add remote.origin.fetch +refs/heads/master:refs/remotes/origin/master"
+                    sh "git fetch --no-tags"
+                    return sh(returnStdout: true, script: "git diff --name-only origin/master..origin/${env.BRANCH_NAME}").split()
+                }
+            }
+        }
+    }
+
+    stage("Code diff check") {
+        def changeLogSets = currentBuild.changeSets
+        def allFiles = []
+        for (changeLog in changeLogSets) {
+            for (entry in changeLog.items) {
+                for (file in entry.affectedFiles) {
+                    allFiles.add(file.path)
+                }
+            }
+        }
+        return allFiles
+    }
+}
+
+def skip_tests() {
+    if (currentBuild.rawBuild.getCauses()[0].toString().contains('UserIdCause')) {
+        // Build has been triggered manually, we must run the tests
+        return false
+    }
+    def files = get_changed_files()
+    def code_extensions = [".py", ".sh", ".ps1", ".groovy"]
+    for (file in files) {
+        for (ext in code_extensions) {
+            if (file.trim().endsWith(ext)) {
+                // Changes in the code, we must run the tests
+                return false
+            }
+        }
+    }
+    return true
+}
+
+if (skip_tests()) {
+    echo "No changes to the code, skipping tests."
+    currentBuild.result = "ABORTED"
+    return
 }
 
 for (def x in slaves) {
