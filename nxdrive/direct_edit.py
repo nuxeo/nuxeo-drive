@@ -8,6 +8,7 @@ from time import sleep
 from typing import List, Optional, Tuple
 from urllib.parse import quote
 
+from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
@@ -18,12 +19,11 @@ from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
-from .exceptions import NotFound, ThreadInterrupt
+from .exceptions import NotFound, ThreadInterrupt, UnknownDigest
 from .objects import Metrics, NuxeoDocumentInfo
 from .utils import (
     current_milli_time,
     force_decode,
-    guess_digest_algorithm,
     normalize_event_filename,
     parse_protocol_url,
     simplify_url,
@@ -341,7 +341,9 @@ class DirectEdit(Worker):
             # Set digest algorithm if not sent by the server
             digest_algorithm = info.digest_algorithm
             if not digest_algorithm:
-                digest_algorithm = guess_digest_algorithm(info.digest)
+                digest_algorithm = get_digest_algorithm(info.digest)
+                if not digest_algorithm:
+                    raise UnknownDigest(info.digest)
             self.local.set_remote_id(
                 dir_path,
                 digest_algorithm.encode("utf-8"),

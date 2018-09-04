@@ -28,6 +28,7 @@ from ..exceptions import (
     PairInterrupt,
     ParentNotSynced,
     ThreadInterrupt,
+    UnknownDigest,
 )
 from ..objects import DocPair, NuxeoDocumentInfo, RemoteFileInfo
 from ..utils import (
@@ -291,12 +292,12 @@ class Processor(EngineWorker):
                         # We saw it happened once a migration is done.
                         # Nuxeo kept the document reference but it does
                         # not exist physically anywhere.
-                        log.debug("The document does not exist anymore: %r", doc_pair)
+                        log.debug(f"The document does not exist anymore: {doc_pair!r}")
                         self._dao.remove_state(doc_pair)
                     elif exc.status == 409:  # Conflict
                         # It could happen on multiple files drag'n drop
                         # starting with identical characters.
-                        log.error("Delaying conflicted document: %r", doc_pair)
+                        log.error(f"Delaying conflicted document: {doc_pair!r}")
                         self._postpone_pair(doc_pair, "Conflict")
                     elif exc.status == 500:
                         self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
@@ -311,14 +312,14 @@ class Processor(EngineWorker):
                     ParentNotSynced,
                 ) as exc:
                     log.error(
-                        "%s on %r, wait 1s and requeue", type(exc).__name__, doc_pair
+                        f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue"
                     )
                     sleep(1)
                     self.engine.get_queue_manager().push(doc_pair)
                     continue
                 except DuplicationDisabledError:
                     self.giveup_error(doc_pair, "DEDUP")
-                    log.debug("Removing local_path on %r", doc_pair)
+                    log.debug(f"Removing local_path on {doc_pair!r}")
                     self._dao.remove_local_path(doc_pair.id)
                     continue
                 except CorruptedFile as exc:
@@ -326,10 +327,15 @@ class Processor(EngineWorker):
                     continue
                 except NotFound as exc:
                     log.debug(
-                        "The document or its parent does not exist anymore: %r",
-                        doc_pair,
+                        f"The document or its parent does not exist anymore: {doc_pair!r}"
                     )
                     self.giveup_error(doc_pair, "NOT_FOUND", exception=exc)
+                    continue
+                except UnknownDigest as exc:
+                    log.debug(
+                        f"The document's digest has no corresponding algorithm: {doc_pair!r}"
+                    )
+                    self.giveup_error(doc_pair, "UNKNOWN_DIGEST", exception=exc)
                     continue
                 except OSError as exc:
                     # Try to handle different kind of Windows error
@@ -340,7 +346,7 @@ class Processor(EngineWorker):
                         WindowsError: [Error 2] The specified file is not found
                         WindowsError: [Error 3] The system cannot find the file specified
                         """
-                        log.debug("The document does not exist anymore: %r", doc_pair)
+                        log.debug(f"The document does not exist anymore:{doc_pair!r}")
                         self._dao.remove_state(doc_pair)
                     elif error == 32:
                         """
