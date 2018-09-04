@@ -39,13 +39,13 @@ properties([
 
 def skip_tests(reason) {
     echo reason
-    currentBuild.description = "Skipping tests: " + reason
+    currentBuild.description = "Skipped: " + reason
     currentBuild.result = "ABORTED"
 }
 
 // Do not launch anything if we are on a Work In Progress branch
 if (env.BRANCH_NAME.startsWith('wip-')) {
-    skip_tests('Work in progress branch.')
+    skip_tests('WIP')
     return
 }
 
@@ -134,7 +134,7 @@ def has_code_changes() {
 
 stage("Code diff check") {
     if (!has_code_changes()) {
-        skip_tests("No changes to the code files.")
+        skip_tests("No code changes")
         return
     }
 }
