@@ -67,7 +67,7 @@ Changes in command line arguments:
 - Jenkins: Removed the `ENABLE_PROFILER` parameter from the Drive-tests job
 - Packaging: Added `distro` 1.3.0
 - Packaging: Added `flake8` 3.5.0
-- Packaging: Added `nuxeo` 2.0.1
+- Packaging: Added `nuxeo` 2.0.3
 - Packaging: Added `pre-commit` 1.10.5
 - Packaging: Updated `psutil` from 5.4.4 to 5.4.7
 - Packaging: Updated `pycryptodomex` from 3.6.1 to 3.6.6
