@@ -87,25 +87,29 @@ def get_changed_files() {
         // On the first build, there is no changelog in currentBuild.changeSets,
         // so we need to figure out the diff from master on our own
         node("SLAVE") {
-            checkout_custom()
-            dir("sources") {
-                sh "git config --add remote.origin.fetch +refs/heads/master:refs/remotes/origin/master"
-                sh "git fetch --no-tags"
-                return sh(returnStdout: true, script: "git diff --name-only origin/master..origin/${env.BRANCH_NAME}").split()
+            stage("Code diff check") {
+                checkout_custom()
+                dir("sources") {
+                    sh "git config --add remote.origin.fetch +refs/heads/master:refs/remotes/origin/master"
+                    sh "git fetch --no-tags"
+                    return sh(returnStdout: true, script: "git diff --name-only origin/master..origin/${env.BRANCH_NAME}").split()
+                }
             }
         }
     }
 
-    def changeLogSets = currentBuild.changeSets
-    def allFiles = []
-    for (changeLog in changeLogSets) {
-        for (entry in changeLog.items) {
-            for (file in entry.affectedFiles) {
-                allFiles.add(file.path)
+    stage("Code diff check") {
+        def changeLogSets = currentBuild.changeSets
+        def allFiles = []
+        for (changeLog in changeLogSets) {
+            for (entry in changeLog.items) {
+                for (file in entry.affectedFiles) {
+                    allFiles.add(file.path)
+                }
             }
         }
+        return allFiles
     }
-    return allFiles
 }
 
 def skip_tests() {
