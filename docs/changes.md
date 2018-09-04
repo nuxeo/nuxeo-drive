@@ -59,6 +59,7 @@ Changes in command line arguments:
 - [NXDRIVE-1212](https://jira.nuxeo.com/browse/NXDRIVE-1212): Disable all server converters, enabled on-demand
 - [NXDRIVE-1246](https://jira.nuxeo.com/browse/NXDRIVE-1246): Fix pytest randombug plugin STRICT mode
 - [NXDRIVE-1293](https://jira.nuxeo.com/browse/NXDRIVE-1293): Tweak timeouts in testing jobs on Jenkins
+- [NXDRIVE-1316](https://jira.nuxeo.com/browse/NXDRIVE-1316): Only run tests when code files are modified or build is launched manually
 
 #### Minor changes
 - Development: Use the pre-commit tool to ensure a good quality code before committing
@@ -68,12 +69,12 @@ Changes in command line arguments:
 - Packaging: Added `distro` 1.3.0
 - Packaging: Added `flake8` 3.5.0
 - Packaging: Added `nuxeo` 2.0.3
-- Packaging: Added `pre-commit` 1.10.5
+- Packaging: Added `pre-commit` 1.11.0
 - Packaging: Updated `psutil` from 5.4.4 to 5.4.7
 - Packaging: Updated `pycryptodomex` from 3.6.1 to 3.6.6
 - Packaging: Updated `pypac` from 0.8.1 to 0.10.1
-- Packaging: Updated `pytest` from 3.5.1 to 3.7.3
-- Packaging: Updated `pytest-timeout` from 1.2.1 to 1.3.1
+- Packaging: Updated `pytest` from 3.5.1 to 3.7.4
+- Packaging: Updated `pytest-timeout` from 1.2.1 to 1.3.2
 - Packaging: Updated `rfc3987` from 1.3.7 to 1.3.8
 - Packaging: Updated `xattr` from 0.9.3 to 0.9.6
 - Packaging: Updated `watchdog3` from 0.8.4 to 0.8.5
