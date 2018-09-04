@@ -43,6 +43,40 @@ if (env.BRANCH_NAME.startsWith('wip-')) {
     return
 }
 
+def get_changed_files() {
+    def changeLogSets = currentBuild.changeSets
+    def allFiles = []
+    for (changeLog in changeLogSets) {
+        for (entry in changeLog.items) {
+            allFiles.addAll(entry.affectedFiles)
+        }
+    }
+    return allFiles
+}
+
+def skip_tests() {
+    if (currentBuild.rawBuild.getCauses()[0].toString().contains('UserIdCause')) {
+        // Build has been triggered manually, we must run the tests
+        return false
+    }
+    def files = get_changed_files()
+    def code_extensions = [".py", ".sh", ".ps1", ".groovy"]
+    for (file in files) {
+        for (ext in code_extensions) {
+            if (file.path.trim().endsWith(ext)) {
+                // Changes in the code, we must run the tests
+                return false
+            }
+        }
+    }
+    return true
+}
+
+if (skip_tests()) {
+    echo "No changes to the code, skipping tests."
+    return
+}
+
 // Jenkins slaves we will build on
 slaves = ['OSXSLAVE-DRIVE', 'SLAVE', 'WINSLAVE']
 labels = [

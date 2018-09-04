@@ -58,6 +58,7 @@ Changes in command line arguments:
 - [NXDRIVE-1212](https://jira.nuxeo.com/browse/NXDRIVE-1212): Disable all server converters, enabled on-demand
 - [NXDRIVE-1246](https://jira.nuxeo.com/browse/NXDRIVE-1246): Fix pytest randombug plugin STRICT mode
 - [NXDRIVE-1293](https://jira.nuxeo.com/browse/NXDRIVE-1293): Tweak timeouts in testing jobs on Jenkins
+- [NXDRIVE-1316](https://jira.nuxeo.com/browse/NXDRIVE-1316): Only run tests when code files are modified or build is launched manually
 
 #### Minor changes
 - Development: Use the pre-commit tool to ensure a good quality code before committing
