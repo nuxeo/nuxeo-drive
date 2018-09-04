@@ -51,6 +51,7 @@ def get_changed_files() {
             allFiles.addAll(entry.affectedFiles)
         }
     }
+    return allFiles
 }
 
 def skip_tests() {
@@ -59,10 +60,13 @@ def skip_tests() {
         return false
     }
     def files = get_changed_files()
+    def code_extensions = [".py", ".sh", ".ps1", ".groovy"]
     for (file in files) {
-        if (file.path.matches(".*(\.py$|\.sh$|\.ps1$|\.groovy$)")) {
-            // Changes in the code, we must run the tests
-            return false
+        for (ext in code_extensions) {
+            if (file.path.trim().endsWith(ext)) {
+                // Changes in the code, we must run the tests
+                return false
+            }
         }
     }
     return true
