@@ -74,6 +74,7 @@ def skip_tests() {
 
 if (skip_tests()) {
     echo "No changes to the code, skipping tests."
+    currentBuild.result = "ABORTED"
     return
 }
 
