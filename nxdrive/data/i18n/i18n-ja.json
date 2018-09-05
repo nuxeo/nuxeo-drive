@@ -85,6 +85,7 @@
     "ERROR_REASON_NOT_FOUND": "文書またはその親がサーバ上に存在しなくなりました。この問題の解決策はないため、これは確認専用のメッセージとなります。",
     "ERROR_REASON_SERVER_ERROR": "The server has not been able to handle the request for this document. If the error persists, try contacting your sysadmin.",
     "ERROR_REASON_UNKNOWN": "この文書は理由不明のエラー状態です",
+    "ERROR_REASON_UNKNOWN_DIGEST": "This document's digest doesn't fit any algorithm. Its integrity cannot be verified.",
     "EXTRA_FILE_COUNT": "... and %1 more in the last hour",
     "FEEDBACK_LINK": "Something is missing? Share your feedback here.",
     "FILE_PATH": "パス: %1",

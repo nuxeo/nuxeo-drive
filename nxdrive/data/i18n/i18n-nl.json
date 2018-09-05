@@ -85,6 +85,7 @@
     "ERROR_REASON_NOT_FOUND": "Het document of het ouderbestand is niet meer op de server aanwezig. Dit is uitsluitend een bevestigingsbericht omdat we er niets aan kunnen doen.",
     "ERROR_REASON_SERVER_ERROR": "The server has not been able to handle the request for this document. If the error persists, try contacting your sysadmin.",
     "ERROR_REASON_UNKNOWN": "Dit document heeft een foutconditie om een onbekende reden",
+    "ERROR_REASON_UNKNOWN_DIGEST": "This document's digest doesn't fit any algorithm. Its integrity cannot be verified.",
     "EXTRA_FILE_COUNT": "... and %1 more in the last hour",
     "FEEDBACK_LINK": "Something is missing? Share your feedback here.",
     "FILE_PATH": "Pad: {{ path }}",

@@ -85,6 +85,7 @@
     "ERROR_REASON_NOT_FOUND": "The document or its parent does not exist anymore on the server. This is an acknowledge message only because we cannot do anything about it.",
     "ERROR_REASON_SERVER_ERROR": "The server has not been able to handle the request for this document. If the error persists, try contacting your sysadmin.",
     "ERROR_REASON_UNKNOWN": "This document is in error for unknown reason",
+    "ERROR_REASON_UNKNOWN_DIGEST": "This document's digest doesn't fit any algorithm. Its integrity cannot be verified.",
     "EXTRA_FILE_COUNT": "... and %1 more in the last hour",
     "FEEDBACK_LINK": "Something is missing? Share your feedback here.",
     "FILE_PATH": "Path: %1",
