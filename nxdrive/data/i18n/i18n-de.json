@@ -85,6 +85,7 @@
     "ERROR_REASON_NOT_FOUND": "Das Dokument oder das übergeordnete Dokument existiert nichtmehr auf dem Server. Dies ist nur eine Rückmeldung, da wir nichts dagegen unternehmen können.",
     "ERROR_REASON_SERVER_ERROR": "Der Server konnte die Anfrage für dieses Dokument nicht verarbeiten. Sollte der Fehler bestehen bleiben, kontaktieren Sie bitte ihren Systemadministrator.",
     "ERROR_REASON_UNKNOWN": "Dieses Dokument ist aus unbekannten Gründen fehlerhaft",
+    "ERROR_REASON_UNKNOWN_DIGEST": "This document's digest doesn't fit any algorithm. Its integrity cannot be verified.",
     "EXTRA_FILE_COUNT": "... and %1 more in the last hour",
     "FEEDBACK_LINK": "Something is missing? Share your feedback here.",
     "FILE_PATH": "Pfad: %1",
