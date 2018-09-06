@@ -212,7 +212,6 @@ class CliHandler:
             "--local-folder",
             help="Local folder that will host the list of synchronized "
             "workspaces with a remote Nuxeo server.",
-            type=str,
             default=get_default_nuxeo_drive_folder(),
         )
         bind_server_parser.add_argument(
@@ -256,7 +255,6 @@ class CliHandler:
             help="Local folder that will host the list of synchronized "
             "workspaces with a remote Nuxeo server. Must be bound with the "
             '"bind-server" command.',
-            type=str,
             default=get_default_nuxeo_drive_folder(),
         )
         bind_root_parser.add_argument(
@@ -282,7 +280,6 @@ class CliHandler:
             help="Local folder that will host the list of synchronized "
             "workspaces with a remote Nuxeo server. Must be bound with the "
             '"bind-server" command.',
-            type=str,
             default=get_default_nuxeo_drive_folder(),
         )
         unbind_root_parser.add_argument(
@@ -394,7 +391,7 @@ class CliHandler:
             configs.append(path)
         if os.path.exists(config_name):
             configs.append(config_name)
-        user_ini = os.path.expanduser(os.path.join(Options.nxdrive_home, config_name))
+        user_ini = os.path.join(Options.nxdrive_home, config_name)
         if os.path.exists(user_ini):
             configs.append(user_ini)
         if configs:
@@ -436,13 +433,12 @@ class CliHandler:
         """ Configure the logging framework from the provided options. """
 
         # Ensure the log folder exists
-        folder_log = os.path.expanduser(os.path.join(options.nxdrive_home, "logs"))
-        if not os.path.exists(folder_log):
-            os.makedirs(folder_log)
+        folder_log = os.path.join(options.nxdrive_home, "logs")
+        os.makedirs(folder_log, exist_ok=True)
 
         filename = options.log_filename
-        if filename is None:
-            filename = os.path.join(options.nxdrive_home, "logs", "nxdrive.log")
+        if not filename:
+            filename = os.path.join(folder_log, "nxdrive.log")
 
         configure(
             log_filename=filename,

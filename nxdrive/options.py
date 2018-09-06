@@ -127,7 +127,6 @@ class MetaOptions(type):
         "ignored_suffixes": (__suffixes, "default"),
         "is_frozen": (getattr(sys, "frozen", False), "default"),
         "locale": ("en", "default"),
-        "log_filename": (None, "default"),
         "log_level_console": ("INFO", "default"),
         "log_level_file": ("DEBUG", "default"),
         "max_errors": (3, "default"),

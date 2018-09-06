@@ -148,9 +148,6 @@ def configure(
 
         # Define a Handler for file based log with rotation if needed
         if log_filename:
-            log_filename = os.path.expanduser(log_filename)
-            log_folder = os.path.dirname(log_filename)
-            os.makedirs(log_folder, exist_ok=True)
             file_handler = TimedCompressedRotatingFileHandler(
                 log_filename, when="midnight", backupCount=30
             )
