@@ -88,7 +88,7 @@ def checkout_custom() {
 
 def get_changed_files() {
     // Return a list of strings corresponding to the path of the changed files
-
+    def allFiles = []
     if (env.BUILD_NUMBER == "1" && env.BRANCH_NAME != "master") {
         // On the first build, there is no changelog in currentBuild.changeSets,
         // so we need to figure out the diff from master on our own
@@ -97,13 +97,13 @@ def get_changed_files() {
             dir("sources") {
                 sh "git config --add remote.origin.fetch +refs/heads/master:refs/remotes/origin/master"
                 sh "git fetch --no-tags"
-                return sh(returnStdout: true, script: "git diff --name-only origin/master..origin/${env.BRANCH_NAME}").split()
+                allFiles = sh(returnStdout: true, script: "git diff --name-only origin/master..origin/${env.BRANCH_NAME}").split()
             }
         }
+        return allFiles
     }
 
     def changeLogSets = currentBuild.changeSets
-    def allFiles = []
     for (changeLog in changeLogSets) {
         for (entry in changeLog.items) {
             for (file in entry.affectedFiles) {
@@ -123,6 +123,7 @@ def has_code_changes() {
     def files = get_changed_files()
     def code_extensions = [".py", ".sh", ".ps1", ".groovy"]
     for (file in files) {
+        echo file
         for (ext in code_extensions) {
             if (file.trim().endsWith(ext)) {
                 // Changes in the code, we must run the tests
