@@ -115,8 +115,9 @@ def get_changed_files() {
 }
 
 def has_code_changes() {
-    if (currentBuild.rawBuild.getCauses()[0].toString().contains('UserIdCause')) {
-        // Build has been triggered manually, we must run the tests
+    def cause = currentBuild.rawBuild.getCauses()[0].toString()
+    if (cause.contains('UserIdCause') || cause.contains("UpstreamCause")) {
+        // Build has been triggered manually or by an upstream job, we must run the tests
         return true
     }
     def files = get_changed_files()
@@ -135,8 +136,12 @@ def has_code_changes() {
 stage("Code diff check") {
     if (!has_code_changes()) {
         skip_tests("No code changes")
-        return
     }
+}
+
+if (currentBuild.result == "ABORTED") {
+    // We need a "return" outside of a stage to exit the pipeline
+    return
 }
 
 for (def x in slaves) {
