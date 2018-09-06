@@ -123,7 +123,7 @@ def has_code_changes() {
     def files = get_changed_files()
     def code_extensions = [".py", ".sh", ".ps1", ".groovy"]
     for (file in files) {
-        echo file
+        echo "[+] ${file}"
         for (ext in code_extensions) {
             if (file.trim().endsWith(ext)) {
                 // Changes in the code, we must run the tests
