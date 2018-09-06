@@ -943,9 +943,6 @@ class Application(QApplication):
                 user=info["user"],
                 download_url=info["download_url"],
             )
-        elif cmd == "trigger-watch":
-            for engine in manager._engine_definitions:
-                manager.osi.watch_folder(engine.local_folder)
         elif cmd == "token":
             self.api.handle_token(info["token"], info["username"])
         else:

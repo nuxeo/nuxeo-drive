@@ -12,6 +12,7 @@
 
 import Cocoa
 import FinderSync
+import Socket
 
 class FinderSync: FIFinderSync {
     var icon = NSImage(named: NSImage.Name(rawValue: "icon_64.png"))
@@ -19,7 +20,8 @@ class FinderSync: FIFinderSync {
     let triggerWatchNotif = NSNotification.Name("org.nuxeo.drive.triggerWatch")
     let syncStatusNotif = NSNotification.Name("org.nuxeo.drive.syncStatus")
     let fileStatus = FileStatus()
-    var socket: SocketCom?
+    let addr = "127.0.0.1"
+    let port: Int32 = 50675
 
     let badges: [(image: NSImage, label: String, identifier: String)] = [
         (image: #imageLiteral(resourceName: "badge_synced.png"), label: "Synchronized", identifier: "synced"),
@@ -32,7 +34,7 @@ class FinderSync: FIFinderSync {
     ]
 
     override init() {
-        //NSLog("FinderSync() launched from %@", Bundle.main.bundlePath as NSString)
+        //NSLog("FinderSync() launched from \(Bundle.main.bundlePath)")
         super.init()
 
         // Upon startup, we are not watching any directories
@@ -55,12 +57,7 @@ class FinderSync: FIFinderSync {
                                                           name: self.watchFolderNotif,
                                                           object: nil)
 
-        let addr = "127.0.0.1"
-        let port = 50765
-        self.socket = SocketCom(addr: addr, port: port)
-
-        let triggerURL = URL(string: "nxdrive://trigger-watch")
-        NSWorkspace.shared.open(triggerURL!)
+        triggerWatch()
     }
 
     deinit {
@@ -78,10 +75,10 @@ class FinderSync: FIFinderSync {
         if let operation = notification.userInfo!["operation"], let path = notification.userInfo!["path"] {
             let target = URL(fileURLWithPath: path as! String)
             if operation as! String == "watch" {
-                NSLog("Now watching: %@", target.path as NSString)
+                NSLog("Now watching: \(target.path)")
                 FIFinderSyncController.default().directoryURLs.insert(target)
             } else if operation as! String == "unwatch" {
-                NSLog("Now ignoring: %@", target.path as NSString)
+                NSLog("Now ignoring: \(target.path)")
                 FIFinderSyncController.default().directoryURLs.remove(target)
             }
         }
@@ -90,7 +87,7 @@ class FinderSync: FIFinderSync {
     @objc func receiveSyncStatus(notification: NSNotification) {
         // Retrieve the operation status and the path from the notification dictionary
         if let status = notification.userInfo!["status"], let path = notification.userInfo!["path"] {
-            //NSLog("Receiving sync status of %@ to %@", path as! NSString, status as! NSString)
+            //NSLog("Receiving sync status of \(path) to \(status)")
             fileStatus.insertStatus(status as! String, for: path as! String)
             setSyncStatus(path: path as! String, status: status as! String)
         }
@@ -98,7 +95,7 @@ class FinderSync: FIFinderSync {
 
     func setSyncStatus(path: String, status: String) {
         // Set the badge identifier for the target file
-        //NSLog("Setting sync status of %@ to %@", path, status)
+        //NSLog("Setting sync status of \(path) to \(status)")
         let target = URL(fileURLWithPath: path)
         FIFinderSyncController.default().setBadgeIdentifier(status, for: target)
     }
@@ -108,17 +105,17 @@ class FinderSync: FIFinderSync {
     override func beginObservingDirectory(at url: URL) {
         // The user is now seeing the container's contents.
         // If they see it in more than one view at a time, we're only told once.
-        //NSLog("beginObservingDirectoryAtURL: %@", url.path as NSString)
+        //NSLog("beginObservingDirectoryAtURL: \(url.path)")
     }
 
     override func endObservingDirectory(at url: URL) {
         // The user is no longer seeing the container's contents.
-        //NSLog("endObservingDirectoryAtURL: %@", url.path as NSString)
+        //NSLog("endObservingDirectoryAtURL: \(url.path)")
     }
 
     override func requestBadgeIdentifier(for url: URL) {
         // Badges on synced files and folders
-        //NSLog("requestBadgeIdentifierForURL: %@", url.path as NSString)
+        //NSLog("requestBadgeIdentifierForURL: \(url.path)")
         if let status = fileStatus.getStatus(for: url.path as String) {
             setSyncStatus(path: url.path as String, status: status)
         } else {
@@ -173,17 +170,53 @@ class FinderSync: FIFinderSync {
         return menu
     }
 
+    func preparePayload(_ dictionary: Dictionary<String, String>) -> Data? {
+        // Serialize a Dictionary into Data to send through the socket
+        do {
+            let payload = try JSONSerialization.data(withJSONObject: dictionary)
+            //NSLog("preparePayload: \(String(data: payload, encoding: .utf8)!)")
+            return payload
+        } catch {
+            //NSLog("Failed to serialize: \(dictionary)")
+            return nil
+        }
+    }
+
+    func sendToDrive(_ data: Data) {
+        do {
+            let sock = try Socket.create(family: .inet6)
+            try sock.connect(to: self.addr, port: self.port)
+            try sock.write(from: data)
+        } catch let error {
+            //NSLog("Failed to send: \(String(data: data, encoding: .utf8)!)")
+            guard let socketError = error as? Socket.Error else {
+                return
+            }
+            //NSLog("Socket error: \(socketError.description)")
+        }
+    }
+
     func getSyncStatus(target: URL?) {
         // Called by requestBadgeIdentifier to ask Drive for a status
-        //NSLog("getSyncStatus: target: %@", target!.path as NSString)
-        self.socket!.send(content: target!.path)
+        //NSLog("getSyncStatus: target: \(target!.path)")
+        if let payload = preparePayload(["cmd": "get-status", "path": target!.path]) {
+            sendToDrive(payload)
+        }
+    }
+
+    func triggerWatch() {
+        // Called on startup to ask Drive for the folders to watch
+        //NSLog("triggerWatch")
+        if let payload = preparePayload(["cmd": "trigger-watch"]) {
+            sendToDrive(payload)
+        }
     }
 
     @IBAction func accessOnline(_ sender: AnyObject?) {
         // Event fired by "Access online" menu entry
         let items = FIFinderSyncController.default().selectedItemURLs()
         for item in items! {
-            //NSLog("accessOnline: target: %@", item.path as NSString)
+            //NSLog("accessOnline: target: \(item.path)")
             openNXUrl(command: "access-online", target: item)
         }
     }
@@ -192,7 +225,7 @@ class FinderSync: FIFinderSync {
         // Event fired by "Copy share-link" menu entry
         let items = FIFinderSyncController.default().selectedItemURLs()
         for item in items! {
-            //NSLog("copyShareLink: target: %@", item.path as NSString)
+            //NSLog("copyShareLink: target: \(item.path)")
             openNXUrl(command: "copy-share-link", target: item)
         }
     }
@@ -201,7 +234,7 @@ class FinderSync: FIFinderSync {
         // Event fired by "Edit metadata" menu entry
         let items = FIFinderSyncController.default().selectedItemURLs()
         for item in items! {
-            //NSLog("editMetadata: target: %@", item.path as NSString)
+            //NSLog("editMetadata: target: \(item.path)")
             openNXUrl(command: "edit-metadata", target: item)
         }
     }
@@ -211,12 +244,12 @@ class FinderSync: FIFinderSync {
         guard let targetPath = target?.path else {
             return
         }
-        //NSLog("Target path is %@", targetPath)
+        //NSLog("Target path is \(targetPath)")
         let request = String(format: "nxdrive://%@/%@",
                              command,
                              targetPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)!)
         let url = URL(string: request)
-        //NSLog("Launching URL %@", request)
+        //NSLog("Launching URL \(request)")
         NSWorkspace.shared.open(url!)
     }
 

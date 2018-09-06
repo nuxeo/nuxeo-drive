@@ -1,10 +1,10 @@
 # coding: utf-8
+import json
 import os
-import socket
 import stat
 import sys
 from logging import getLogger
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import xattr
 from Foundation import NSBundle, NSDistributedNotificationCenter
@@ -20,14 +20,15 @@ from LaunchServices import (
     kLSSharedFileListItemBeforeFirst,
 )
 from nuxeo.compat import quote
+from PyQt5.Qt import pyqtSignal
+from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
 from .. import AbstractOSIntegration
 from ...constants import BUNDLE_IDENTIFIER
-from ...engine.workers import Worker
 from ...objects import NuxeoDocumentInfo
 from ...utils import force_decode, if_frozen, normalized_path
 
-__all__ = ("DarwinIntegration", "FinderSyncListener")
+__all__ = ("DarwinIntegration", "FinderSyncServer")
 
 log = getLogger(__name__)
 
@@ -53,7 +54,6 @@ class DarwinIntegration(AbstractOSIntegration):
 
     def __init__(self, manager: "Manager") -> None:
         super().__init__(manager)
-        self._init()
 
     @if_frozen
     def _init(self) -> None:
@@ -274,52 +274,47 @@ class DarwinIntegration(AbstractOSIntegration):
         return None
 
 
-class FinderSyncListener(Worker):
-    def __init__(self, manager: "Manager") -> None:
-        super().__init__()
-        self._manager = manager
+class FinderSyncServer(QTcpServer):
+
+    listening = pyqtSignal()
+
+    def __init__(self, manager: "Manager", *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.manager = manager
         self.host = "localhost"
-        self.port = 50765
-        self._sock = socket.socket()
-        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.get_thread().started.connect(self.run)
+        self.port = 50675
+        self.newConnection.connect(self.handle_connection)
 
-    def _execute(self) -> None:
-        self._sock.bind((self.host, self.port))
-        self._sock.listen(5)
-        log.debug("FinderSync listening on %s:%d", self.host, self.port)
-        while True:
-            self._interact()
-            try:
-                conn, addr = self._sock.accept()
-            except socket.timeout:
-                pass
-            else:
-                client = SocketThread(conn, addr, self._manager)
-                client.start()
+    def handle_connection(self) -> None:
+        con: QTcpSocket = self.nextPendingConnection()
+        log.debug("Receiving socket connection for FinderSync event handling")
+        if not con or not con.waitForConnected():
+            log.debug(f"Unable to open FinderSync server socket: {con.errorString()}")
+            return
 
-    def quit(self) -> None:
-        super().quit()
-        self._sock.close()
+        if con.waitForReadyRead():
+            content = con.readAll()
+            self._handle_content(force_decode(content.data()))
+            log.debug(content)
 
+            con.disconnectFromHost()
+            con.waitForDisconnected()
+            del con
+            log.debug("Successfully closed FinderSync server socket")
 
-class SocketThread(Worker):
-    def __init__(
-        self, sock: socket.SocketType, addr: socket.SocketType, manager: "Manager"
-    ) -> None:
-        super().__init__()
-        self._manager = manager
-        self._sock = sock
-        self.addr = addr
-        self.get_thread().started.connect(self.run)
+    def _listen(self) -> None:
+        self.listen(QHostAddress(self.host), self.port)
+        log.debug(f"Listening to FinderSync on {self.host}:{self.port}")
+        self.listening.emit()
 
-    def _execute(self) -> None:
-        content = ""
-        while True:
-            data = self._sock.recv(1024)
-            if not data:
-                break
-            content += force_decode(data)
-        log.trace("SocketThread for %s: received %s", self.addr, content)
-        self._sock.close()
-        self._manager.send_sync_status(content)
+    def _handle_content(self, content: str) -> None:
+        data = json.loads(content)
+        cmd = data.get("cmd", None)
+
+        if cmd == "get-status":
+            path = data["path"]
+            if path:
+                self.manager.send_sync_status(path)
+        elif cmd == "trigger-watch":
+            for engine in self.manager._engine_definitions:
+                self.manager.osi.watch_folder(engine.local_folder)
