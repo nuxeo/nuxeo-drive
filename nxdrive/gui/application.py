@@ -1,5 +1,6 @@
 # coding: utf-8
 """ Main Qt application handling OS events and system tray UI. """
+import sys
 from logging import getLogger
 from math import sqrt
 from typing import Any, Dict, List, Optional, Union
@@ -59,8 +60,10 @@ log = getLogger(__name__)
 class Application(QApplication):
     """Main Nuxeo Drive application controlled by a system tray icon + menu"""
 
-    tray_icon = None
+    icons = {}
     icon_state = None
+    tray_icon = None
+    use_light_icons = None
 
     def __init__(self, manager: "Manager", *args: Any) -> None:
         super().__init__(list(*args))
@@ -92,6 +95,7 @@ class Application(QApplication):
         self.setQuitOnLastWindowClosed(False)
 
         self.setup_systray()
+        self.manager.reloadIconsSet.connect(self.load_icons_set)
 
         # Direct Edit
         self.manager.direct_edit.directEditConflict.connect(self._direct_edit_conflict)
@@ -747,7 +751,7 @@ class Application(QApplication):
         func = getattr(self.api, action)
         func(engine_uid)
 
-    def set_icon_state(self, state: str) -> bool:
+    def set_icon_state(self, state: str, force: bool = False) -> bool:
         """
         Execute systray icon change operations triggered by state change.
 
@@ -757,10 +761,10 @@ class Application(QApplication):
         triggered by a signal to allow for message passing between the 2
         threads.
 
-        Return True of the icon has changed state.
+        Return True of the icon has changed state or if force is True.
         """
 
-        if self.icon_state == state:
+        if not force and self.icon_state == state:
             # Nothing to update
             return False
 
@@ -873,8 +877,14 @@ class Application(QApplication):
     def show_metadata(self, file_path: str) -> None:
         self.manager.ctx_edit_metadata(file_path)
 
-    def setup_systray(self) -> None:
-        icons = {}
+    @pyqtSlot(bool)
+    def load_icons_set(self, use_light_icons: bool = False) -> None:
+        """Load a given icons set (either the default one "dark", or the light one)."""
+        if self.use_light_icons is use_light_icons:
+            return
+
+        suffix = ("", "_light")[use_light_icons]
+        mask = find_icon("active.svg")  # Icon mask for macOS
         for state in {
             "conflict",
             "disabled",
@@ -885,13 +895,45 @@ class Application(QApplication):
             "syncing",
             "update",
         }:
-            name = "{}{}.svg".format(state, "_light" if WINDOWS else "")
             icon = QIcon()
-            icon.addFile(find_icon(name))
+            icon.addFile(find_icon(f"{state}{suffix}.svg"))
             if MAC:
-                icon.addFile(find_icon("active.svg"), mode=QIcon.Selected)
-            icons[state] = icon
-        setattr(self, "icons", icons)
+                icon.addFile(mask, mode=QIcon.Selected)
+            self.icons[state] = icon
+
+        self.use_light_icons = use_light_icons
+        self.manager.set_config("light_icons", use_light_icons)
+
+        # Reload the current showed icon
+        if self.icon_state:
+            self.set_icon_state(self.icon_state, force=True)
+
+    def initial_icons_set(self) -> bool:
+        """
+        Try to guess the most appropriate icons set at start.
+        The user will still have the possibility to change that in Settings.
+        """
+        use_light_icons = self.manager.get_config("light_icons", default=None)
+
+        if use_light_icons is None:
+            # Default value for GNU/Linux, macOS ans Windows 7
+            use_light_icons = False
+
+            if WINDOWS:
+                win_ver = sys.getwindowsversion()
+                version = (win_ver.major, win_ver.minor)
+                if version > (6, 1):  # Windows 7
+                    # Windows 8+ has a dark them by default
+                    use_light_icons = True
+        else:
+            # The value stored in DTB as a string '0' or '1', convert to boolean
+            use_light_icons = bool(int(use_light_icons))
+
+        return use_light_icons
+
+    def setup_systray(self) -> None:
+        """Setup the icon system tray and its associated menu."""
+        self.load_icons_set(use_light_icons=self.initial_icons_set())
 
         self.tray_icon = DriveSystrayIcon(self)
         if not self.tray_icon.isSystemTrayAvailable():

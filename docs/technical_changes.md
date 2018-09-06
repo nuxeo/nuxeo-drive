@@ -8,9 +8,12 @@
 - Removed `AbstractOSIntegration.is_windows()`
 - Changed `AbstractOSIntegration.register_startup()` return type to `bool`
 - Changed `AbstractOSIntegration.unregister_startup()` return type to `bool`
+- Added `Application.load_icons_set()`
+- Added `Application.initial_icons_set()`
+- Added `Application.refresh_conflicts()`
+- Added `force` keyword argument to `Application.set_icon_state()`
 - Removed `Application.get_htmlpage()`
 - Removed `Application.get_cache_folder()`
-- Added `Application.refresh_conflicts()`
 - Removed `CustomMemoryHandler.flush()`
 - Added `Engine.init_remote()`
 - Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, filtered_remote_cls, local_cls)`
@@ -29,7 +32,10 @@
 - Moved `LocalClient.get_content()` to `LocalTest`
 - Moved `LocalClient.update_content()` to `LocalTest`
 - Added `Manager.proxy`
+- Added `Manager.reloadIconsSet()`
+- Added `Manager.set_light_icons()`
 - Added `Manager.set_proxy()`
+- Added `Manager.use_light_icons()`
 - Moved `Manager.get_system_pac_url()` to client/proxy.py
 - Moved `Manager.get_default_nuxeo_drive_folder()` to utils.py
 - Removed `Manager.aboutToStart()`
