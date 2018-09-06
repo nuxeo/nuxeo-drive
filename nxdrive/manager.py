@@ -45,6 +45,7 @@ class Manager(QObject):
     started = pyqtSignal()
     stopped = pyqtSignal()
     suspended = pyqtSignal()
+    reloadIconsSet = pyqtSignal(bool)
     resumed = pyqtSignal()
 
     app_name = APP_NAME
@@ -429,6 +430,16 @@ class Manager(QObject):
             return self.osi.register_startup()
         else:
             return self.osi.unregister_startup()
+
+    @pyqtSlot(result=bool)
+    def use_light_icons(self) -> bool:
+        """Return True is the current icons set is the light one (default)."""
+        return self._dao.get_config("light_icons") == "1"
+
+    @pyqtSlot(bool)
+    def set_light_icons(self, value: bool) -> None:
+        self.set_config("light_icons", value)
+        self.reloadIconsSet.emit(value)
 
     @pyqtSlot(result=bool)
     def get_beta_channel(self) -> bool:
