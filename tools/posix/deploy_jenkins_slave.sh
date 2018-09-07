@@ -4,7 +4,6 @@
 # Usage: sh tools/$OSI/deploy_jenkins_slave.sh [ARG]
 #
 # Possible ARG:
-#     --black: launch Black code cleanup on the whole source code
 #     --build: build the package
 #     --build-ext: build the FinderSync extension (macOS only)
 #     --install: install all dependencies
@@ -21,6 +20,7 @@ PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 build_installer() {
     echo ">>> Building the release package"
     pyinstaller ndrive.spec --clean --noconfirm
+    cleanup_all
     cd dist ; zip -9 -r "nuxeo-drive-${OSI}.zip" "ndrive" ; cd ..
     if [ "${OSI}" = "osx" ]; then
         ${PYTHON} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
@@ -84,8 +84,27 @@ check_vars() {
     fi
 }
 
-code_cleanup() {
-    ${PYTHON} -m black .
+cleanup_all() {
+    # Remove files from the package that are not needed and too big
+    cleanup
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/Qt/labs
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtAudioEngine
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtBluetooth
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtCanvas3D
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtGraphicalEffects
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtMultimedia
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtLocation
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtNfc
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtPositioning
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtQuick/Extras
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtQuick/Particles.2
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtQuick/Scene2D
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtQuick/Scene3D
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtSensors
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtTest
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtWebChannel
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtWebEngine
+    rm -rfv dist/ndrive/PyQt5/Qt/qml/translations/qtdeclarative*
 }
 
 install_deps() {
@@ -189,10 +208,6 @@ main() {
 
     if [ $# -eq 1 ]; then
         case "$1" in
-            "--black")
-                code_cleanup
-                exit 0
-            ;;
             "--build") build_installer ;;
             "--install")
                 install_deps
