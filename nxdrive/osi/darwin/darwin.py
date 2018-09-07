@@ -52,9 +52,6 @@ class DarwinIntegration(AbstractOSIntegration):
         "</plist>"
     )
 
-    def __init__(self, manager: "Manager") -> None:
-        super().__init__(manager)
-
     @if_frozen
     def _init(self) -> None:
         log.debug("Telling plugInKit to use the FinderSync")
@@ -275,6 +272,25 @@ class DarwinIntegration(AbstractOSIntegration):
 
 
 class FinderSyncServer(QTcpServer):
+    """
+    Server listening to the FinderSync extension.
+
+    This TCP server is instantiated during the Manager.__init__(),
+    and starts listening once the signal Manager.started() is emitted.
+
+    It handles requests coming from any FinderSync instance.
+    These requests are JSON-formatted and follow this pattern:
+    {
+        "cmd": "<command>",
+        "<key>": "<value>",  # parameters
+        ...
+    }
+
+    Currently accepted commands are:
+    - "get-status" with the parameter "path" to specify which
+      file's status to retrieve,
+    - "trigger-watch" to get all the local folders to watch.
+    """
 
     listening = pyqtSignal()
 
@@ -286,28 +302,38 @@ class FinderSyncServer(QTcpServer):
         self.newConnection.connect(self.handle_connection)
 
     def handle_connection(self) -> None:
+        """ Called when a FinderSync instance is connecting. """
         con: QTcpSocket = self.nextPendingConnection()
-        log.debug("Receiving socket connection for FinderSync event handling")
+        log.trace("Receiving socket connection for FinderSync event handling")
         if not con or not con.waitForConnected():
-            log.debug(f"Unable to open FinderSync server socket: {con.errorString()}")
+            log.error(f"Unable to open FinderSync server socket: {con.errorString()}")
             return
 
         if con.waitForReadyRead():
             content = con.readAll()
             self._handle_content(force_decode(content.data()))
-            log.debug(content)
+            log.trace(f"FinderSync request: {content}")
 
             con.disconnectFromHost()
             con.waitForDisconnected()
             del con
-            log.debug("Successfully closed FinderSync server socket")
+            log.trace("Successfully closed FinderSync server socket")
 
     def _listen(self) -> None:
+        """
+        Called once the Manager.started() is emitted.
+
+        Starts listening and emits a signal so that the extension can be started.
+        """
         self.listen(QHostAddress(self.host), self.port)
         log.debug(f"Listening to FinderSync on {self.host}:{self.port}")
         self.listening.emit()
 
     def _handle_content(self, content: str) -> None:
+        """
+        If the incoming connection successfully transmitted data,
+        run the corresponding commands.
+        """
         data = json.loads(content)
         cmd = data.get("cmd", None)
 

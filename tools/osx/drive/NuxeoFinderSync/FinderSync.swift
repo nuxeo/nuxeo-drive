@@ -184,7 +184,7 @@ class FinderSync: FIFinderSync {
 
     func sendToDrive(_ data: Data) {
         do {
-            let sock = try Socket.create(family: .inet6)
+            let sock = try Socket.create(family: .inet)
             try sock.connect(to: self.addr, port: self.port)
             try sock.write(from: data)
         } catch let error {
