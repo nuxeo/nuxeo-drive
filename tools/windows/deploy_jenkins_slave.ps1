@@ -34,6 +34,7 @@ function build_installer {
 		ExitWithCode $lastExitCode
 	}
 	sign "dist\ndrive\ndrive.exe"
+	zip_files "dist\nuxeo-drive-windows.zip" "dist\ndrive"
 
 	Write-Output ">>> [$app_version] Building the installer"
 	if (-Not (Test-Path "$Env:ISCC_PATH")) {
@@ -236,6 +237,17 @@ function start_nxdrive {
 	# Start Nuxeo Drive
 	$Env:PYTHONPATH = "$Env:WORKSPACE_DRIVE"
 	& $Env:STORAGE_DIR\Scripts\python.exe -m nxdrive
+}
+
+function zip_files($filename, $src) {
+	# Create a ZIP archive
+	Add-Type -Assembly System.IO.Compression.FileSystem
+	$compression_level = [System.IO.Compression.CompressionLevel]::Optimal
+	[System.IO.Compression.ZipFile]::CreateFromDirectory(
+		$src, $filename, $compression_level, $false)
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
 }
 
 function main {

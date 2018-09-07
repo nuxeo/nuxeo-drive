@@ -53,6 +53,7 @@ Changes in command line arguments:
 - [NXDRIVE-1234](https://jira.nuxeo.com/browse/NXDRIVE-1234): Tweak pyup.io parameters
 - [NXDRIVE-1244](https://jira.nuxeo.com/browse/NXDRIVE-1244): Ensure Drive is closed before auto-upgrading on Windows
 - [NXDRIVE-1323](https://jira.nuxeo.com/browse/NXDRIVE-1323): Use venv instead of virtualenv on Windows
+- [NXDRIVE-1343](https://jira.nuxeo.com/browse/NXDRIVE-1343): Archive a zipped version of the package folder when building installers
 
 ### Doc
 - [NXDRIVE-1276](https://jira.nuxeo.com/browse/NXDRIVE-1276): Add documentation about Nuxeo Platform support

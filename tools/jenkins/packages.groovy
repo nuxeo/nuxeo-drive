@@ -127,6 +127,7 @@ for (x in slaves) {
                                     archive 'dist/*.exe'
                                 }
                             }
+                            archive 'dist/*.zip'
                         } catch(e) {
                             currentBuild.result = 'FAILURE'
                             throw e
