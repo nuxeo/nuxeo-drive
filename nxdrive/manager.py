@@ -243,11 +243,14 @@ class Manager(QObject):
         return updater_
 
     @if_frozen
-    def _create_findersync_listener(self) -> "FinderSyncListener":
-        from .osi.darwin.darwin import FinderSyncListener
+    def _create_findersync_listener(self) -> "FinderSyncServer":
+        from .osi.darwin.darwin import FinderSyncServer
 
-        self._findersync_listener = FinderSyncListener(self)
-        self.started.connect(self._findersync_listener._thread.start)
+        self._findersync_listener = FinderSyncServer(self)
+        self._findersync_listener.listening.connect(self.osi._init)
+        self.started.connect(self._findersync_listener._listen)
+        self.stopped.connect(self._findersync_listener.close)
+
         return self._findersync_listener
 
     @if_frozen

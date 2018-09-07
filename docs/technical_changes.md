@@ -138,6 +138,9 @@
 - Moved manager.py::`FolderAlreadyUsed` exception to exceptions.py
 - Removed manager.py::`MissingToken`
 - Removed manager.py::`ProxySettings`
+- Removed osi/darwin/darwin.py::`FinderSyncListener`
+- Added osi/darwin/darwin.py::`FinderSyncServer`
+- Removed osi/darwin/darwin.py::`SocketThread`
 - Added utils.py::`copy_to_clipboard()`
 - Added utils.py::`force_encode()`
 - Added utils.py::`if_frozen()`

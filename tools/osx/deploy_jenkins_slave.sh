@@ -79,7 +79,7 @@ create_package() {
         # yet. But the find command will eventually reach it and sign it later.
         find "${pkg_path}/Contents/MacOS" -type f -exec codesign --sign "${SIGNING_ID}" {} \;
         # Then we sign the extension
-        codesign --force --sign "${SIGNING_ID}" \
+        codesign --force --deep --sign "${SIGNING_ID}" \
             --entitlements "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements" \
             "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
         # And we shallow sign the .app

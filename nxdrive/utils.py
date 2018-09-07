@@ -651,8 +651,6 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         #     - Edit metadata
         # And event from macOS to sync the document status (FinderSync)
         r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
-        # Event from macOS to (un)watch a folder (FinderSync)
-        r"nxdrive://(?P<cmd>trigger-watch)",
         # Event to acquire the login token from the server
         (
             r"nxdrive://(?P<cmd>token)/"
