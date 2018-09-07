@@ -219,6 +219,7 @@
     "UPDATING_VERSION": "Bezig met bijwerken naar {{ version }}",
     "UPGRADE_AVAILABLE": "Er is een nieuwe upgrade {{ version }} beschikbaar",
     "URL": "URL",
+    "USE_LIGHT_ICONS": "Use the light icons set",
     "USERNAME": "Gebruikersnaam",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Webverificatie",
     "WELCOME_MESSAGE": "Stel uw account in en synchroniseer uw bestanden met het Nuxeo-platform.",
