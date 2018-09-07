@@ -21,6 +21,7 @@ PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 build_installer() {
     echo ">>> Building the release package"
     pyinstaller ndrive.spec --clean --noconfirm
+    cd dist ; zip -9 -r "nuxeo-drive-${OSI}.zip" "ndrive" ; cd ..
     if [ "${OSI}" = "osx" ]; then
         ${PYTHON} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
     fi
