@@ -16,7 +16,6 @@ Where `$OSI` is one of: `linux`, `osx`.
 
 Possible `ARG`:
 
-    --black: launch Black code cleanup on the whole source code
     --build: freeze the client into self-hosted binary package
     --build-ext: build the FinderSync extension (macOS only)
     --start: start Nuxeo Drive

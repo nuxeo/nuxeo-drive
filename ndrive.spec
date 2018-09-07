@@ -39,6 +39,7 @@ excludes = [
     # Misc
     "PIL",
     "ipdb",
+    "lib2to3",
     "numpy",
     "pydev",
     "scipy",
