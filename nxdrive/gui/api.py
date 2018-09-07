@@ -6,7 +6,7 @@ from logging import getLogger
 from os import getenv
 from time import struct_time, time
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlencode, urlsplit, urlunsplit
+from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 
 import requests
 from dateutil.tz import tzlocal
@@ -484,23 +484,23 @@ class QMLDriveApi(QObject):
         if not Options.is_frozen:
             return guess_server_url(server_url)
 
-        token_params = {
-            "deviceId": self._manager.device_id,
-            "applicationName": self._manager.app_name,
-            "permission": TOKEN_PERMISSION,
-            "deviceDescription": get_device(),
-            "forceAnonymousLogin": "true",
-            "useProtocol": "true",
-        }
+        params = urlencode(
+            {
+                "deviceId": self._manager.device_id,
+                "applicationName": self._manager.app_name,
+                "permission": TOKEN_PERMISSION,
+                "deviceDescription": get_device(),
+                "forceAnonymousLogin": "true",
+                "useProtocol": "true",
+            }
+        )
 
         # Handle URL parameters
         parts = urlsplit(guess_server_url(server_url))
-        path = (parts.path + "/" + Options.startup_page).replace("//", "/")
-        params = (
-            parts.query + "&" + urlencode(token_params)
-            if parts.query
-            else urlencode(token_params)
-        )
+        path = f"{parts.path}/logout?requestedUrl={Options.startup_page}"
+        path = path.replace("//", "/")
+
+        params = quote(f"{parts.query}&{params}" if parts.query else params)
         url = urlunsplit((parts.scheme, parts.netloc, path, params, parts.fragment))
 
         return url
