@@ -219,6 +219,7 @@
     "UPDATING_VERSION": "Memperbarui ke {{ version }}",
     "UPGRADE_AVAILABLE": "Pembaruan baru {{ version }} tersedia",
     "URL": "URL",
+    "USE_LIGHT_ICONS": "Use the light icons set",
     "USERNAME": "Nama Pengguna",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Drive Nuxeo - Otentikasi Web",
     "WELCOME_MESSAGE": "Tetapkan akun anda dan sinkronkan berkas anda dengan Platform Nuxeo.",

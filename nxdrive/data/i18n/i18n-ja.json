@@ -219,6 +219,7 @@
     "UPDATING_VERSION": "%1へアップグレード",
     "UPGRADE_AVAILABLE": "新しいアップグレード%1が利用できます",
     "URL": "URL",
+    "USE_LIGHT_ICONS": "Use the light icons set",
     "USERNAME": "ユーザ名",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Web認証",
     "WELCOME_MESSAGE": "アカウントを設定し、ファイルをNuxeo Platformと同期化します。",
