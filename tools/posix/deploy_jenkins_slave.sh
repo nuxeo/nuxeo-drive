@@ -87,7 +87,6 @@ check_vars() {
 cleanup_all() {
     # Remove files from the package that are not needed and too big
     cleanup
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/Qt/labs
     rm -rfv dist/ndrive/PyQt5/Qt/qml/QtAudioEngine
     rm -rfv dist/ndrive/PyQt5/Qt/qml/QtBluetooth
     rm -rfv dist/ndrive/PyQt5/Qt/qml/QtCanvas3D

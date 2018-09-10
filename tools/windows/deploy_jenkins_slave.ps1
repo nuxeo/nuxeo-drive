@@ -117,7 +117,6 @@ function cleanup {
 	Remove-Item -Force -Verbose "dist\ndrive\Qt5Test.dll"
 	Remove-Item -Force -Verbose "dist\ndrive\Qt5WebChannel.dll"
 	Remove-Item -Force -Verbose "dist\ndrive\Qt5XmlPatterns.dll"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\Qt\labs"
 	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtBluetooth"
 	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtCanvas3D"
 	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtGraphicalEffects"
