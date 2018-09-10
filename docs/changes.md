@@ -76,12 +76,13 @@ Changes in command line arguments:
 - Packaging: Added `pre-commit` 1.11.0
 - Packaging: Updated `psutil` from 5.4.4 to 5.4.7
 - Packaging: Updated `pycryptodomex` from 3.6.1 to 3.6.6
-- Packaging: Updated `pypac` from 0.8.1 to 0.10.1
-- Packaging: Updated `pytest` from 3.5.1 to 3.7.4
+- Packaging: Updated `pypac` from 0.8.1 to 0.11.0
+- Packaging: Updated `pytest` from 3.5.1 to 3.8.0
+- Packaging: Updated `pytest-cov` from 2.5.1 to 2.6.0
 - Packaging: Updated `pytest-timeout` from 1.2.1 to 1.3.2
 - Packaging: Updated `rfc3987` from 1.3.7 to 1.3.8
 - Packaging: Updated `xattr` from 0.9.3 to 0.9.6
-- Packaging: Updated `watchdog3` from 0.8.4 to 0.8.5
+- Packaging: Updated `watchdog` from 0.8.4 to 0.9.0
 - Packaging: Removed `SIP_VERSION` and `PYQT_VERSION` envars
 - Tests: Added `-b -Wall` arguments to the Python interpreter while testing
 - \[GNU/Linux\] Packaging: Removed `COMPILE_WITH_DEBUG` envar

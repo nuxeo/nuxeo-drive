@@ -8,11 +8,11 @@ pyaml==17.12.1
 pycryptodomex==3.6.6
 pyobjc-framework-Cocoa==4.2.2; sys_platform == 'darwin'
 pyobjc-framework-LaunchServices==4.2.2; sys_platform == 'darwin'
-pypac==0.10.1
+pypac==0.11.0
 pypiwin32==223; sys_platform == 'win32'
 PyQt5==5.11.2
 python-dateutil==2.7.3
 rfc3987==1.3.8
 Send2Trash==1.5.0
-watchdog3==0.8.5
+watchdog==0.9.0
 xattr==0.9.6; sys_platform != 'win32'
