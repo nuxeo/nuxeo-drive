@@ -24,6 +24,12 @@ $global:PIP_OPT = "-m", "pip", "install", "--upgrade", "--upgrade-strategy=only-
 # Imports
 Import-Module BitsTransfer
 
+function add_missing_ddls {
+	# Missing DLLS for Windows 7
+	$folder = "C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\x86\"
+	Get-ChildItem $folder | Copy -Verbose -Force -Destination "dist\ndrive"
+}
+
 function build_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
@@ -33,6 +39,7 @@ function build_installer {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+	add_missing_ddls
 	sign "dist\ndrive\ndrive.exe"
 	cleanup
 	zip_files "dist\nuxeo-drive-windows.zip" "dist\ndrive"
