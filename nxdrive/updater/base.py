@@ -206,6 +206,15 @@ class BaseUpdater(PollWorker):
             current = self.manager.version
             if not latest or current == latest:
                 self._set_status(UPDATE_STATUS_UP_TO_DATE)
+            elif current not in self.versions:
+                log.info(
+                    "Disabling the auto-update because of unknown version. "
+                    "This is the case when the current packaged application "
+                    "has a version unknown on the server, typically the "
+                    "development one."
+                )
+                self.enable = False
+                self._set_status(UPDATE_STATUS_UP_TO_DATE)
             elif not version_le(latest, current):
                 self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, latest)
             else:
