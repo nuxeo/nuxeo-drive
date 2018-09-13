@@ -65,7 +65,7 @@ class Manager(QObject):
         Manager._singleton = self
 
         # Primary attributes to allow initializing the notification center early
-        self.nxdrive_home = os.path.realpath(os.path.expanduser(Options.nxdrive_home))
+        self.nxdrive_home = os.path.realpath(Options.nxdrive_home)
         if not os.path.exists(self.nxdrive_home):
             os.mkdir(self.nxdrive_home)
 

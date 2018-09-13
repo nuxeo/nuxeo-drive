@@ -284,7 +284,7 @@ FolderType=Generic
         with suppress(FileNotFoundError):
             os.remove(filename)
 
-        with open(filename, "w") as handler:
+        with open(filename, "w", encoding="utf-8") as handler:
             handler.write(content)
         win32api.SetFileAttributes(filename, win32con.FILE_ATTRIBUTE_SYSTEM)
         win32api.SetFileAttributes(filename, win32con.FILE_ATTRIBUTE_HIDDEN)
