@@ -14,6 +14,7 @@ from win32con import LOGPIXELSX
 
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME
+from ...options import Options
 from ...utils import if_frozen
 
 __all__ = ("WindowsIntegration",)
@@ -114,5 +115,5 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def _get_folder_link(self, name: str = None) -> str:
         return os.path.join(
-            os.path.expanduser("~"), "Links", (name or self._manager.app_name) + ".lnk"
+            Options.home, "Links", (name or self._manager.app_name) + ".lnk"
         )

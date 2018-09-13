@@ -118,7 +118,7 @@ def get_default_nuxeo_drive_folder() -> str:
     win32com shell API if allowed, else falling back on a manual detection.
     """
 
-    folder = ""
+    folder = Options.home
     if WINDOWS:
         from win32com.shell import shell, shellcon
 
@@ -143,11 +143,7 @@ def get_default_nuxeo_drive_folder() -> str:
                 "Access denied to the API SHGetFolderPath,"
                 " falling back on manual detection"
             )
-            folder = os.path.expanduser("~\\Documents")
-
-    if not folder:
-        # Fall back on home folder otherwise
-        folder = os.path.expanduser("~")
+            folder = os.path.join(Options.home, "Documents")
 
     folder = increment_local_folder(folder, APP_NAME)
     return force_decode(folder)
@@ -326,9 +322,7 @@ def version_lt(x: str, y: str) -> bool:
 
 def normalized_path(path: str) -> str:
     """ Return absolute, normalized file path. """
-    return os.path.realpath(
-        os.path.normpath(os.path.abspath(os.path.expanduser(force_decode(path))))
-    )
+    return os.path.realpath(os.path.normpath(os.path.abspath(force_decode(path))))
 
 
 def normalize_event_filename(filename: str, action: bool = True) -> str:

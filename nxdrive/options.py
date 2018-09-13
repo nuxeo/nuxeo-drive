@@ -109,6 +109,35 @@ class MetaOptions(type):
         "manual": 4,
     }
 
+    def __get_home() -> str:
+        """
+        Get the user home directory.
+
+        Note about Windows:
+
+            os.path.expanduser("~") and os.getenv("USERPROFILE"|"USERNAME") are not
+            trustable when unicode is in the loop. For instance, if the Windows session
+            name (i.e. the username) is made of kandjis, everything relying on the
+            commands above will fail when packaged with PyInstaller.
+
+            The workaround is to use SHGetFolderPath(), it will return the good value
+            whatever characters the path may contain.
+
+            Another idea would be to use the short version of the path, but we will
+            try it only if we find bugs with the current implementation.
+        """
+        if sys.platform == "win32":
+            from contextlib import suppress
+            from win32com.shell import shell, shellcon
+
+            with suppress(Exception):
+                return shell.SHGetFolderPath(0, shellcon.CSIDL_PROFILE, None, 0)
+
+        return os.path.expanduser("~")
+
+    # Cache the home directory for later use
+    __home: str = __get_home()
+
     # Default options
     options: Dict[str, Tuple[Any, str]] = {
         "beta_channel": (False, "default"),
@@ -122,6 +151,7 @@ class MetaOptions(type):
         "delay": (30, "default"),
         "force_locale": (None, "default"),
         "handshake_timeout": (60, "default"),
+        "home": (__home, "default"),
         "ignored_files": (__files, "default"),
         "ignored_prefixes": (__prefixes, "default"),
         "ignored_suffixes": (__suffixes, "default"),
@@ -131,10 +161,7 @@ class MetaOptions(type):
         "log_level_file": ("DEBUG", "default"),
         "max_errors": (3, "default"),
         "max_sync_step": (10, "default"),
-        "nxdrive_home": (
-            os.path.join(os.path.expanduser("~"), ".nuxeo-drive"),
-            "default",
-        ),
+        "nxdrive_home": (os.path.join(__home, ".nuxeo-drive"), "default"),
         "nofscheck": (False, "default"),
         "protocol_url": (None, "default"),
         "proxy_server": (None, "default"),
