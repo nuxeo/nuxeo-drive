@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 from logging import getLogger
 
 from PyQt5.QtCore import QEvent
@@ -17,7 +16,6 @@ __all__ = ("DriveSystrayIcon",)
 class DriveSystrayIcon(QSystemTrayIcon):
 
     __context_menu = None
-    use_old_menu = MAC or os.environ.get("USE_OLD_MENU", False)
 
     def __init__(self, application: "Application"):
         super().__init__(application)
@@ -28,7 +26,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
         # Windows bug: the systray icon is still visible
         self.application.aboutToQuit.connect(self.hide)
 
-        if not self.use_old_menu:
+        if not MAC:
             # On macOS, only the left click is detected, so the context
             # menu is useless.  It is better to not define it else it
             # will show up every click on the systray icon.
