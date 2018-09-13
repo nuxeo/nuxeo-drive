@@ -15,6 +15,7 @@
 - Removed `Application.get_htmlpage()`
 - Removed `Application.get_cache_folder()`
 - Removed `CustomMemoryHandler.flush()`
+- Removed `DriveSystrayIcon.use_old_menu`
 - Added `Engine.init_remote()`
 - Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, filtered_remote_cls, local_cls)`
 - Removed `Engine.get_abspath()`
