@@ -12,7 +12,6 @@
 
 import Cocoa
 import FinderSync
-import Socket
 
 class FinderSync: FIFinderSync {
     var icon = NSImage(named: NSImage.Name(rawValue: "icon_64.png"))
@@ -21,7 +20,8 @@ class FinderSync: FIFinderSync {
     let syncStatusNotif = NSNotification.Name("org.nuxeo.drive.syncStatus")
     let fileStatus = FileStatus()
     let addr = "127.0.0.1"
-    let port: Int32 = 50675
+    let port: Int = 50675
+    var socket: SocketCom?
 
     let badges: [(image: NSImage, label: String, identifier: String)] = [
         (image: #imageLiteral(resourceName: "badge_synced.png"), label: "Synchronized", identifier: "synced"),
@@ -56,6 +56,7 @@ class FinderSync: FIFinderSync {
                                                           selector: #selector(setWatchedFolders),
                                                           name: self.watchFolderNotif,
                                                           object: nil)
+        self.socket = SocketCom(addr: addr, port: port)
 
         triggerWatch()
     }
@@ -182,25 +183,11 @@ class FinderSync: FIFinderSync {
         }
     }
 
-    func sendToDrive(_ data: Data) {
-        do {
-            let sock = try Socket.create(family: .inet)
-            try sock.connect(to: self.addr, port: self.port)
-            try sock.write(from: data)
-        } catch let error {
-            //NSLog("Failed to send: \(String(data: data, encoding: .utf8)!)")
-            guard let socketError = error as? Socket.Error else {
-                return
-            }
-            //NSLog("Socket error: \(socketError.description)")
-        }
-    }
-
     func getSyncStatus(target: URL?) {
         // Called by requestBadgeIdentifier to ask Drive for a status
         //NSLog("getSyncStatus: target: \(target!.path)")
         if let payload = preparePayload(["cmd": "get-status", "path": target!.path]) {
-            sendToDrive(payload)
+            self.socket!.send(content: payload)
         }
     }
 
@@ -208,7 +195,7 @@ class FinderSync: FIFinderSync {
         // Called on startup to ask Drive for the folders to watch
         //NSLog("triggerWatch")
         if let payload = preparePayload(["cmd": "trigger-watch"]) {
-            sendToDrive(payload)
+            self.socket!.send(content: payload)
         }
     }
 

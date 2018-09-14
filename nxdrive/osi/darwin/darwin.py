@@ -304,20 +304,18 @@ class FinderSyncServer(QTcpServer):
     def handle_connection(self) -> None:
         """ Called when a FinderSync instance is connecting. """
         con: QTcpSocket = self.nextPendingConnection()
-        log.trace("Receiving socket connection for FinderSync event handling")
         if not con or not con.waitForConnected():
             log.error(f"Unable to open FinderSync server socket: {con.errorString()}")
             return
 
         if con.waitForReadyRead():
             content = con.readAll()
-            self._handle_content(force_decode(content.data()))
             log.trace(f"FinderSync request: {content}")
+            self._handle_content(force_decode(content.data()))
 
             con.disconnectFromHost()
             con.waitForDisconnected()
             del con
-            log.trace("Successfully closed FinderSync server socket")
 
     def _listen(self) -> None:
         """

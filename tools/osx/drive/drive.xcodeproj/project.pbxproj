@@ -13,8 +13,7 @@
 		8B05679D207537FF006B1C5F /* badge_conflicted.png in Resources */ = {isa = PBXBuildFile; fileRef = 8B056797207537FF006B1C5F /* badge_conflicted.png */; };
 		8B05679E207537FF006B1C5F /* badge_unsynced.png in Resources */ = {isa = PBXBuildFile; fileRef = 8B056798207537FF006B1C5F /* badge_unsynced.png */; };
 		8B05679F207537FF006B1C5F /* badge_error.png in Resources */ = {isa = PBXBuildFile; fileRef = 8B056799207537FF006B1C5F /* badge_error.png */; };
-		8B31DA28214164970073425D /* Socket.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8B31DA26214158360073425D /* Socket.framework */; settings = {ATTRIBUTES = (Required, ); }; };
-		8B31DA2A214164BD0073425D /* Socket.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8B31DA26214158360073425D /* Socket.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		8B4D04FB214BBBA10021782A /* Socket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4D04FA214BBBA10021782A /* Socket.swift */; };
 		8B6E724A2046EE3E00AB5771 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E72492046EE3E00AB5771 /* AppDelegate.swift */; };
 		8B6E724C2046EE3E00AB5771 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6E724B2046EE3E00AB5771 /* ViewController.swift */; };
 		8B6E72512046EE3E00AB5771 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8B6E724F2046EE3E00AB5771 /* Main.storyboard */; };
@@ -35,16 +34,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		8B31DA29214164AB0073425D /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				8B31DA2A214164BD0073425D /* Socket.framework in CopyFiles */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		8B6E72692046EE5400AB5771 /* Embed App Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -65,7 +54,7 @@
 		8B056797207537FF006B1C5F /* badge_conflicted.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge_conflicted.png; sourceTree = "<group>"; };
 		8B056798207537FF006B1C5F /* badge_unsynced.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge_unsynced.png; sourceTree = "<group>"; };
 		8B056799207537FF006B1C5F /* badge_error.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = badge_error.png; sourceTree = "<group>"; };
-		8B31DA26214158360073425D /* Socket.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Socket.framework; path = Frameworks/Socket.framework; sourceTree = "<group>"; };
+		8B4D04FA214BBBA10021782A /* Socket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Socket.swift; sourceTree = "<group>"; };
 		8B6E72462046EE3D00AB5771 /* drive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = drive.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B6E72492046EE3E00AB5771 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		8B6E724B2046EE3E00AB5771 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -91,28 +80,18 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8B31DA28214164970073425D /* Socket.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		8B31DA25214158350073425D /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				8B31DA26214158360073425D /* Socket.framework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 		8B6E723D2046EE3D00AB5771 = {
 			isa = PBXGroup;
 			children = (
 				8B6E72482046EE3D00AB5771 /* drive */,
 				8B6E725E2046EE5400AB5771 /* NuxeoFinderSync */,
 				8B6E72472046EE3D00AB5771 /* Products */,
-				8B31DA25214158350073425D /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -150,6 +129,7 @@
 				8B6E72612046EE5400AB5771 /* Info.plist */,
 				8B6E72622046EE5400AB5771 /* NuxeoFinderSync.entitlements */,
 				8BEE71D22069518400E79EF1 /* FileStatus.swift */,
+				8B4D04FA214BBBA10021782A /* Socket.swift */,
 			);
 			path = NuxeoFinderSync;
 			sourceTree = "<group>";
@@ -183,7 +163,6 @@
 				8B6E72592046EE5400AB5771 /* Sources */,
 				8B6E725A2046EE5400AB5771 /* Frameworks */,
 				8B6E725B2046EE5400AB5771 /* Resources */,
-				8B31DA29214164AB0073425D /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -290,6 +269,7 @@
 			files = (
 				8B6E72602046EE5400AB5771 /* FinderSync.swift in Sources */,
 				8BEE71D32069518400E79EF1 /* FileStatus.swift in Sources */,
+				8B4D04FB214BBBA10021782A /* Socket.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
