@@ -186,7 +186,7 @@ verify_python() {
 # The main function, last in the script
 main() {
     # Adjust PATH for Mac
-    [ "${OSI}" = "osx" ] && export PATH="$PATH:/usr/local/bin"
+    [ "${OSI}" = "osx" ] && export PATH="$PATH:/usr/local/bin:/usr/sbin"
 
     check_vars
 
