@@ -198,6 +198,7 @@ for (def x in slaves) {
                                         // Adjust the PATH
                                         def env_vars = [
                                             'PATH+LOCALBIN=/usr/local/bin',
+                                            'PATH+SBIN=/usr/sbin',
                                         ]
                                         withEnv(env_vars) {
                                             sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
