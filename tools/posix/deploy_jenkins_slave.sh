@@ -20,11 +20,25 @@ PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 build_installer() {
     echo ">>> Building the release package"
     pyinstaller ndrive.spec --clean --noconfirm
-    cleanup_all
-    cd dist ; zip -9 -r "nuxeo-drive-${OSI}.zip" "ndrive" ; cd ..
+
+    # Do some clean-up
+    ${PYTHON} tools/cleanup_application_tree.py dist/ndrive
     if [ "${OSI}" = "osx" ]; then
+        ${PYTHON} tools/cleanup_application_tree.py dist/*.app/Contents/Resources
+        ${PYTHON} tools/cleanup_application_tree.py dist/*.app/Contents/MacOS
+
+        # Move problematic folders out of Contents/MacOS
         ${PYTHON} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
+
+        # Remove broken symlinks pointing to an inexistant target
+        find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     fi
+
+    find dist/ndrive -depth -type d -empty -delete
+    find dist/*.app -depth -type d -empty -delete
+
+    cd dist ; zip -9 -r "nuxeo-drive-${OSI}.zip" "ndrive" ; cd ..
+
     create_package
 }
 
@@ -82,28 +96,6 @@ check_vars() {
         echo "    SPECIFIC_TEST        = ${SPECIFIC_TEST}"
         export SPECIFIC_TEST="tests/${SPECIFIC_TEST}"
     fi
-}
-
-cleanup_all() {
-    # Remove files from the package that are not needed and too big
-    cleanup
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtAudioEngine
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtBluetooth
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtCanvas3D
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtGraphicalEffects
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtMultimedia
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtLocation
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtNfc
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtPositioning
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtQuick/Extras
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtQuick/Particles.2
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtQuick/Scene2D
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtQuick/Scene3D
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtSensors
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtTest
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtWebChannel
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/QtWebEngine
-    rm -rfv dist/ndrive/PyQt5/Qt/qml/translations/qtdeclarative*
 }
 
 install_deps() {

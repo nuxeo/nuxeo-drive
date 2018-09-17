@@ -5,22 +5,6 @@ export OSI="osx"
 
 . "$(python -c "import os.path; print(os.path.realpath('$0').replace('/osx/', '/posix/'))")"
 
-cleanup() {
-    # Remove files from the package that are not needed and too big
-    rm -rfv dist/ndrive/QtBluetooth
-    rm -rfv dist/ndrive/QtLocation
-    rm -rfv dist/ndrive/QtMultimedia
-    rm -rfv dist/ndrive/QtNfc
-    rm -rfv dist/ndrive/QtPositioning
-    rm -rfv dist/ndrive/QtPrintSupport
-    rm -rfv dist/ndrive/QtQuickTest
-    rm -rfv dist/ndrive/QtSensors
-    rm -rfv dist/ndrive/QtTest
-    rm -rfv dist/ndrive/QtWebChannel
-    rm -rfv dist/ndrive/QtWebEngine*
-    rm -rfv dist/ndrive/QtXmlPatterns
-}
-
 prepare_signing() {
     # Code sign the app
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-OSX-Code-Signing
