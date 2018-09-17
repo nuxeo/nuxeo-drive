@@ -33,11 +33,17 @@ prepare_signing() {
         return
     fi
 
-    echo ">>> [sign] Unlocking the Nuxeo keychain"
+    echo ">>> [sign] Unlocking the keychain"
     security unlock-keychain -p "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}"
     # set-key-partition-list was added in Sierra (macOS 10.12)
     security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}" || true
     security set-keychain-settings "${LOGIN_KEYCHAIN_PATH}"
+    security find-identity -p codesigning -v | grep "${SIGNING_ID}" || (
+        echo "The '${SIGNING_ID}' identity is not available or no more valid."
+        echo "This is the identities list:"
+        security find-identity -p codesigning
+        exit 1
+    )
 }
 
 build_extension() {
@@ -102,8 +108,9 @@ create_package() {
         codesign --sign "${SIGNING_ID}" "${pkg_path}"
 
         echo ">>> [sign] Verifying code signature"
-        codesign -vv "${pkg_path}"
-        spctl --assess -vv "${pkg_path}"
+        codesign -dv "${pkg_path}"
+        codesign --verbose=4 --deep --strict "${pkg_path}"
+        spctl --assess -v "${pkg_path}"
     fi
 
     echo ">>> [DMG] ${bundle_name} version ${app_version}"
