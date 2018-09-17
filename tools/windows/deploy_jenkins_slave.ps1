@@ -39,9 +39,12 @@ function build_installer {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
 	add_missing_ddls
+
 	sign "dist\ndrive\ndrive.exe"
-	cleanup
+
 	zip_files "dist\nuxeo-drive-windows.zip" "dist\ndrive"
 
 	Write-Output ">>> [$app_version] Building the installer"
@@ -53,6 +56,7 @@ function build_installer {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+
 	sign "dist\nuxeo-drive-$app_version.exe"
 }
 
@@ -109,35 +113,6 @@ function check_vars {
 		Write-Output "    SPECIFIC_TEST        = $Env:SPECIFIC_TEST"
 		$Env:SPECIFIC_TEST = "tests\$Env:SPECIFIC_TEST"
 	}
-}
-
-function cleanup {
-	# Remove files from the package that are not needed and too big
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5Bluetooth.dll"
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5Location.dll"
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5Multimedia.dll"
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5Nfc.dll"
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5Positioning.dll"
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5QuickParticles.dll"
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5QuickTest.dll"
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5Sensors.dll"
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5Test.dll"
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5WebChannel.dll"
-	Remove-Item -Force -Verbose "dist\ndrive\Qt5XmlPatterns.dll"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtBluetooth"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtCanvas3D"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtGraphicalEffects"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtLocation"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtMultimedia"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtNfc"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtPositioning"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtQuick/Extras"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtQuick/Particles.2"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtQuick/Scene2D"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtQuick/Scene3D"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtSensors"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtTest"
-	Remove-Item -Recurse -Force -Verbose "dist\ndrive\PyQt5\Qt\qml\QtWebChannel"
 }
 
 function download($url, $output) {
