@@ -349,7 +349,7 @@ def normalize_event_filename(filename: str, action: bool = True) -> str:
         and not os.path.isdir(filename)
     ):
         # We can have folders ending with spaces
-        log.debug("Forcing space normalization: %r -> %r", filename, stripped)
+        log.debug(f"Forcing space normalization: {filename!r} -> {stripped!r}")
         os.rename(filename, stripped)
         filename = stripped
 
@@ -382,7 +382,7 @@ def normalize_event_filename(filename: str, action: bool = True) -> str:
         filename = os.path.join(os.path.dirname(long_path), os.path.basename(filename))
 
     if action and filename != normalized and os.path.exists(filename):
-        log.debug("Forcing normalization: %r -> %r", filename, normalized)
+        log.debug(f"Forcing normalization: {filename!r} -> {normalized!r}")
         os.rename(filename, normalized)
 
     return normalized

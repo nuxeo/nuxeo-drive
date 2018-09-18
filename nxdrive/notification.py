@@ -415,7 +415,7 @@ class ErrorOpenedFile(Notification):
         super().__init__(
             "WINDOWS_ERROR",
             title=Translator.get("WINDOWS_ERROR_TITLE"),
-            description=Translator.get("WINDOWS_ERROR_OPENED_%s" % msg, values),
+            description=Translator.get(f"WINDOWS_ERROR_OPENED_{msg}", values),
             level=Notification.LEVEL_ERROR,
             flags=(
                 Notification.FLAG_UNIQUE
@@ -498,7 +498,7 @@ class DefaultNotificationService(NotificationService):
 
     def _directEditLockError(self, lock: str, filename: str, ref: str) -> None:
         if lock not in ("lock", "unlock"):
-            log.debug("DirectEdit LockError not handled: %s", lock)
+            log.debug(f"DirectEdit LockError not handled: {lock}")
             return
         self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
 

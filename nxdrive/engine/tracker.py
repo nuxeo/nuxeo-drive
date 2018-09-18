@@ -90,7 +90,7 @@ class Tracker(Worker):
         else:
             name, version = system, platform.release()
 
-        return "{} {}".format(name, version.strip())
+        return f"{name} {version.strip()}"
 
     @property
     def user_agent(self) -> str:

@@ -275,15 +275,15 @@ class DocPair(Row):
 
     def __repr__(self) -> str:
         return (
-            "<{name}[{cls.id!r}]"
-            " local_path={cls.local_path!r},"
-            " remote_ref={cls.remote_ref!r},"
-            " local_state={cls.local_state!r},"
-            " remote_state={cls.remote_state!r},"
-            " pair_state={cls.pair_state!r},"
-            " filter_path={cls.path!r}"
+            f"<{type(self).__name__}[{self.id!r}]"
+            f" local_path={self.local_path!r},"
+            f" remote_ref={self.remote_ref!r},"
+            f" local_state={self.local_state!r},"
+            f" remote_state={self.remote_state!r},"
+            f" pair_state={self.pair_state!r},"
+            f" filter_path={self.path!r}"
             ">"
-        ).format(name=type(self).__name__, cls=self)
+        )
 
     def __getattr__(self, name: str) -> Optional[str]:
         with suppress(IndexError):

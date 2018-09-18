@@ -171,11 +171,11 @@ class Engine(QObject):
         self.noSpaceLeftOnDevice.connect(self.suspend)
 
     def __repr__(self) -> str:
-        fmt = (
-            "{name}<name={cls.name!r}, offline={cls._offline_state!r}"
-            ", uid={cls.uid!r}, type={cls.type!r}>"
+        return (
+            f"{type(self).__name__}"
+            f"<name={self.name!r}, offline={self._offline_state!r}, "
+            f"uid={self.uid!r}, type={self.type!r}>"
         )
-        return fmt.format(name=type(self).__name__, cls=self)
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id: str = None) -> None:

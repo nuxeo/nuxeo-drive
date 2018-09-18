@@ -488,9 +488,7 @@ class CliHandler:
         # Find the command to execute based on the
         handler = getattr(self, command, None)
         if not handler:
-            raise NotImplementedError(
-                "No handler implemented for command {}".format(command)
-            )
+            raise NotImplementedError(f"No handler implemented for command {command}")
 
         return handler(options)
 

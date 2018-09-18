@@ -32,7 +32,7 @@ def get_latest_compatible_version(
         # (this allows to update Drive without any account)
         latest = max(versions.keys())
         info = versions.get(latest, {})
-        log.debug("No bound engine: using version %r, info=%r", latest, info)
+        log.debug(f"No bound engine: using version {latest!r}, info={info!r}")
         return latest, info
 
     # Skip outbound versions

@@ -809,9 +809,9 @@ class EngineDAO(ConfigurationDAO):
             # Order by path to be sure to process parents before childs
             pairs: List[DocPair] = c.execute(
                 "SELECT *"
-                "  FROM States"
-                " WHERE {}"
-                " ORDER BY local_path ASC".format(self._get_to_sync_condition())
+                "  FROM States "
+                f"WHERE {self._get_to_sync_condition()}"
+                " ORDER BY local_path ASC"
             ).fetchall()
             folders = dict()
             for pair in pairs:
@@ -1099,19 +1099,19 @@ class EngineDAO(ConfigurationDAO):
     def _get_recursive_condition(self, doc_pair: DocPair) -> str:
         path = self._escape(doc_pair.local_path)
         res = (
-            " WHERE (local_parent_path LIKE '" + path + "/%'"
-            "        OR local_parent_path = '" + path + "')"
+            f" WHERE (local_parent_path LIKE '{path}/%'"
+            f"        OR local_parent_path = '{path}')"
         )
         if doc_pair.remote_ref:
             path = self._escape(doc_pair.remote_parent_path + "/" + doc_pair.remote_ref)
-            res += " AND remote_parent_path LIKE '" + path + "%'"
+            res += f" AND remote_parent_path LIKE '{path}%'"
         return res
 
     def _get_recursive_remote_condition(self, doc_pair: DocPair) -> str:
         path = self._escape(doc_pair.remote_parent_path + "/" + doc_pair.remote_name)
         return (
-            " WHERE remote_parent_path LIKE '" + path + "/%'"
-            "    OR remote_parent_path = '" + path + "'"
+            f" WHERE remote_parent_path LIKE '{path}/%'"
+            f"    OR remote_parent_path = '{path}'"
         )
 
     def update_remote_parent_path(self, doc_pair: DocPair, new_path: str) -> None:
@@ -1125,10 +1125,8 @@ class EngineDAO(ConfigurationDAO):
                 path = self._escape(new_path + "/" + doc_pair.remote_ref)
                 query = (
                     "UPDATE States"
-                    "   SET remote_parent_path = '" + path + "'"
-                    "     || substr(remote_parent_path, "
-                    + count
-                    + ")"
+                    f"  SET remote_parent_path = '{path}'"
+                    f"      || substr(remote_parent_path, {count})"
                     + self._get_recursive_remote_condition(doc_pair)
                 )
 
@@ -1152,9 +1150,9 @@ class EngineDAO(ConfigurationDAO):
                 count = str(len(doc_pair.local_path) + 1)
                 query = (
                     "UPDATE States"
-                    "   SET local_parent_path = '" + path + "'"
-                    "       || substr(local_parent_path, " + count + "),"
-                    "          local_path = '" + path + "'"
+                    f"  SET local_parent_path = '{path}'"
+                    f"      || substr(local_parent_path, {count}),"
+                    f"         local_path = '{path}'"
                     "       || substr(local_path, "
                     + count
                     + ") "

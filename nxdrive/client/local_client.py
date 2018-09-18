@@ -146,11 +146,11 @@ class LocalClient:
 
     def __repr__(self) -> str:
         return (
-            "<{name}"
-            " base_folder={cls.base_folder!r},"
-            " is_case_sensitive={cls._case_sensitive!r}"
+            f"<{type(self).__name__}"
+            f" base_folder={self.base_folder!r},"
+            f" is_case_sensitive={self._case_sensitive!r}"
             ">"
-        ).format(name=type(self).__name__, cls=self)
+        )
 
     def is_case_sensitive(self) -> bool:
         if self._case_sensitive is None:
@@ -485,7 +485,7 @@ FolderType=Generic
         if remote_digest_algorithm is None:
             remote_digest_algorithm = get_digest_algorithm(remote_digest)
             if not remote_digest_algorithm:
-                raise UnknownDigest(remote_digest)
+                raise UnknownDigest(str(remote_digest))
 
         if remote_digest_algorithm == self._digest_func:
             return False
