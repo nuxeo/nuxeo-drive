@@ -89,7 +89,7 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
             yield sibbling
 
 
-def main(args: List[str]) -> int:
+def main(args: List[str]) -> None:
     """
     Fix the application to allow codesign (NXDRIVE-1301).
     Take one or more .app as arguments: "Nuxeo Drive.app".

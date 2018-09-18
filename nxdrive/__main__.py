@@ -63,8 +63,8 @@ Please share the following informations with Nuxeo support : we’ll do our best
         from nxdrive.report import Report
 
         # Last 20th lines
-        lines = Report.export_logs(-20)
-        lines = b"\n".join(lines).decode(errors="replace")
+        raw_lines = Report.export_logs(-20)
+        lines = b"\n".join(raw_lines).decode(errors="replace")
 
         details += ["Logs before the crash:", lines]
         label_log = QLabel("Logs before the crash:")

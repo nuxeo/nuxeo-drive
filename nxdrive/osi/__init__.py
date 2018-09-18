@@ -10,10 +10,14 @@ log = getLogger(__name__)
 
 class AbstractOSIntegration:
 
-    zoom_factor = 1.0
+    __zoom_factor = 1.0
 
     def __init__(self, manager: "Manager") -> None:
         self._manager = manager
+
+    @property
+    def zoom_factor(self) -> float:
+        return self.__zoom_factor
 
     def register_startup(self) -> bool:
         return False
@@ -60,6 +64,9 @@ class AbstractOSIntegration:
 
     @staticmethod
     def get(manager: object) -> "AbstractOSIntegration":
+
+        integration, nature = AbstractOSIntegration, "None"
+
         if MAC:
             from .darwin.darwin import DarwinIntegration
 
@@ -68,8 +75,6 @@ class AbstractOSIntegration:
             from .windows.windows import WindowsIntegration
 
             integration, nature = WindowsIntegration, "Windows"
-        else:
-            integration, nature = AbstractOSIntegration, "None"
 
-        log.debug("OS integration type: %s", nature)
+        log.debug(f"OS integration type: {nature}")
         return integration(manager)

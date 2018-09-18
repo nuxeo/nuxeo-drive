@@ -6,7 +6,7 @@ from typing import Callable
 
 from ..processor import Processor as OldProcessor
 from ...constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
-from ...objects import NuxeoDocumentInfo
+from ...objects import DocPair
 
 __all__ = ("Processor",)
 
@@ -25,7 +25,7 @@ class Processor(OldProcessor):
             local.make_folder("/", ".partials")
         return local.abspath("/.partials")
 
-    def _download_content(self, doc_pair: NuxeoDocumentInfo, file_path: str) -> None:
+    def _download_content(self, doc_pair: DocPair, file_path: str) -> str:
 
         # TODO Should share between threads
         file_out = os.path.join(
@@ -51,15 +51,15 @@ class Processor(OldProcessor):
         self._update_speed_metrics()
         return tmp_file
 
-    def _update_remotely(self, doc_pair: NuxeoDocumentInfo, is_renaming: bool) -> None:
+    def _update_remotely(self, doc_pair: DocPair, is_renaming: bool) -> None:
         log.warning("_update_remotely")
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os.path.join(os.path.dirname(os_path), doc_pair.remote_name)
-            log.debug("Replacing local file '%s' by '%s'.", os_path, new_os_path)
+            log.debug(f"Replacing local file {os_path!r} by {new_os_path!r}.")
         else:
             new_os_path = os_path
-        log.debug("Updating content of local file '%s'.", os_path)
+        log.debug(f"Updating content of local file {os_path!r}.")
         tmp_file = self._download_content(doc_pair, new_os_path)
         # Delete original file and rename tmp file
         self.local.delete_final(doc_pair.local_path)
@@ -74,8 +74,8 @@ class Processor(OldProcessor):
         self._refresh_local_state(doc_pair, updated_info)
 
     def _create_remotely(
-        self, doc_pair: NuxeoDocumentInfo, parent_pair: NuxeoDocumentInfo, name: str
-    ) -> None:
+        self, doc_pair: DocPair, parent_pair: DocPair, name: str
+    ) -> str:
         local_parent_path = parent_pair.local_path
         # TODO Shared this locking system / Can have concurrent lock
         self._unlock_readonly(local_parent_path)
@@ -83,9 +83,8 @@ class Processor(OldProcessor):
         try:
             if doc_pair.folderish:
                 log.debug(
-                    "Creating local folder '%s' in '%s'",
-                    name,
-                    self.local.abspath(parent_pair.local_path),
+                    f"Creating local folder {name!r} in "
+                    f"{self.local.abspath(parent_pair.local_path)!r}"
                 )
                 # Might want do temp name to original
                 path = self.local.make_folder(local_parent_path, name)
@@ -94,9 +93,8 @@ class Processor(OldProcessor):
                 path, os_path, name = self.local.get_new_file(local_parent_path, name)
                 tmp_file = self._download_content(doc_pair, os_path)
                 log.debug(
-                    "Creating local file '%s' in '%s'",
-                    name,
-                    self.local.abspath(parent_pair.local_path),
+                    f"Creating local file {name!r} in "
+                    f"{self.local.abspath(parent_pair.local_path)!r}"
                 )
                 # Move file to its folder - might want to split it in two for events
                 self.local.move(self.local.get_path(tmp_file), local_parent_path, name)

@@ -1,6 +1,6 @@
 # coding: utf-8
 from logging import getLogger
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from ..utils import version_between
 
@@ -11,13 +11,11 @@ Versions = Dict[str, Any]
 
 
 def get_latest_compatible_version(
-    versions: Versions, nature: str, server_ver: str
+    versions: Versions, nature: str, server_ver: Optional[str]
 ) -> Tuple[str, Versions]:
     """
     Find the latest version sorted by type and the current Nuxeo version.
     """
-
-    default = ("", {})
 
     # Skip not revelant release type
     versions = {
@@ -27,7 +25,7 @@ def get_latest_compatible_version(
     }
 
     if not versions:
-        return default
+        return ("", {})
 
     if not server_ver:
         # No engine found, just returns the latest version
@@ -48,6 +46,6 @@ def get_latest_compatible_version(
         # Found a version candidate?
         latest = max(versions.keys())
     except ValueError:
-        return default
+        return ("", {})
     else:
         return latest, versions.get(latest, {})

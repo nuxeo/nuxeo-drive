@@ -9,52 +9,61 @@ __all__ = ("Action", "FileAction", "IdleAction", "tooltip")
 
 
 class Action:
+    actions: Dict[int, Optional["Action"]]
+    lastFileActions: Dict[int, Optional["FileAction"]]
+
     progress = None
     type = None
     finished = False
     suspend = False
 
     def __init__(
-        self, action_type: str = None, progress: int = None, thread_id: int = None
+        self, action_type: str = None, progress: float = None, thread_id: int = None
     ) -> None:
         self.progress = progress
         self.type = action_type
-        Action.actions[thread_id or current_thread().ident] = self
+        idx = thread_id or current_thread().ident
+        if idx:
+            Action.actions[idx] = self
 
-    def get_percent(self) -> Optional[int]:
+    def get_percent(self) -> Optional[float]:
         return self.progress
 
     @staticmethod
-    def get_actions() -> Dict[int, "Action"]:
+    def get_actions() -> Dict[int, Optional["Action"]]:
         return Action.actions.copy()
 
     @staticmethod
-    def get_current_action(thread_id: int = None):
-        return Action.actions.get(thread_id or current_thread().ident)
+    def get_current_action(thread_id: int = None) -> Optional["Action"]:
+        idx = thread_id or current_thread().ident
+        return Action.actions.get(idx) if idx else None
 
     @staticmethod
-    def get_last_file_action(thread_id=None):
-        return Action.lastFileActions.get(thread_id or current_thread().ident)
+    def get_last_file_action(thread_id: int = None) -> Optional["FileAction"]:
+        idx = thread_id or current_thread().ident
+        return Action.lastFileActions.get(idx) if idx else None
 
     @staticmethod
     def finish_action() -> None:
         thread_id = current_thread().ident
+        if thread_id is None:
+            return
 
         action = Action.actions.get(thread_id)
         if action:
-            Action.actions[thread_id].finished = True
-            if isinstance(Action.actions[thread_id], FileAction):
-                Action.actions[thread_id].end_time = current_milli_time()
+            action.finished = True
+            if isinstance(action, FileAction):
+                action.end_time = current_milli_time()
 
                 # Save last file actions
-                Action.lastFileActions[thread_id] = Action.actions[thread_id]
+                Action.lastFileActions[thread_id] = action
 
         Action.actions[thread_id] = None
 
     def __repr__(self) -> str:
         if self.progress is None:
             return str(self.type)
-        return "%s(%s%%)" % (self.type, self.progress)
+        return f"{self.type}({self.progress}%)"
 
 
 class IdleAction(Action):
@@ -62,10 +71,11 @@ class IdleAction(Action):
 
 
 class FileAction(Action):
-    filepath = None
-    filename = None
-    size = None
-    transfer_duration = None
+    filepath: str
+    filename: str
+    size: float
+    end_time: int
+    transfer_duration: float = 0
 
     def __init__(
         self, action_type: str, filepath: str, filename: str = None, size: int = None
@@ -78,10 +88,9 @@ class FileAction(Action):
         else:
             self.size = size
         self.start_time = current_milli_time()
-        self.end_time = None
 
-    def get_percent(self) -> Optional[int]:
-        if self.size <= 0:
+    def get_percent(self) -> Optional[float]:
+        if self.size <= 0 or not self.progress:
             return None
         if self.progress > self.size:
             return 100
@@ -90,11 +99,11 @@ class FileAction(Action):
     def __repr__(self) -> str:
         # Size can be None if the file disapeared right on creation
         if self.size is None:
-            return "%s(%r)" % (self.type, self.filename)
+            return f"{self.type}({self.filename!r})"
         percent = self.get_percent()
         if percent is None:
-            return "%s(%r[%d])" % (self.type, self.filename, self.size)
-        return "%s(%r[%d]-%f%%)" % (self.type, self.filename, self.size, percent)
+            return f"{self.type}({self.filename!r}[{self.size}])"
+        return f"{self.type}({self.filename!r}[{self.size}]-{percent})"
 
 
 Action.actions = dict()

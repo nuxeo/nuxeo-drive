@@ -23,7 +23,7 @@ class NotificationDelegator(NSObject):
             info_dict["CFBundleIdentifier"] = BUNDLE_IDENTIFIER
 
     def userNotificationCenter_didActivateNotification_(
-        self, center: object, notification: object
+        self, center: NSUserNotificationCenter, notification: NSMutableDictionary
     ) -> None:
         info = notification.userInfo()
         if "uuid" not in info or self._manager is None:

@@ -3,7 +3,8 @@ import codecs
 import json
 import os
 import re
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict, List, Tuple
 
 from PyQt5.QtCore import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
 
@@ -14,15 +15,14 @@ class Translator(QTranslator):
 
     languageChanged = pyqtSignal()
     _singleton = None
+    _current_lang: str = ""
 
     def __init__(self, manager: "Manager", path: str, lang: str = None) -> None:
         super().__init__()
-        self._labels = None
+        self._labels: Dict[str, Dict[str, str]] = {}
         self._manager = manager
-        self._current_lang = None
 
         # Load from JSON
-        self._labels = {}
         for filename in os.listdir(path):
             filepath = os.path.join(path, filename)
             with codecs.open(filepath, encoding="utf-8") as fp:
@@ -33,7 +33,7 @@ class Translator(QTranslator):
                 self._labels[label] = json.loads(fp.read())
 
         # List language
-        self._langs = {}
+        self._langs: Dict[str, Tuple[str, str]] = {}
         for key in self._labels:
             try:
                 self._langs[key] = (key, self._labels[key]["LANGUAGE"])
@@ -123,11 +123,11 @@ class Translator(QTranslator):
         return Translator._singleton._set(lang)
 
     @staticmethod
-    def format_date(date: "date") -> str:
+    def format_date(date: datetime) -> str:
         return date.strftime(Translator.get("DATE_FORMAT"))
 
     @staticmethod
-    def format_datetime(date: "datetime") -> str:
+    def format_datetime(date: datetime) -> str:
         return date.strftime(Translator.get("DATETIME_FORMAT"))
 
     @staticmethod

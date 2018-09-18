@@ -616,8 +616,8 @@ Expected result: In Drive-02, all files should move into folder "878"
 
 Stack:
 
-sqlite Updating remote state for row=<StateRow> with info=...
-sqlite Increasing version to 1 for pair <StateRow>
+sqlite Updating remote state for row=<DocPair> with info=...
+sqlite Increasing version to 1 for pair <DocPair>
 remote_watcher Unexpected error
 Traceback (most recent call last):
   File "remote_watcher.py", line 487, in _handle_changes

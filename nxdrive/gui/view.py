@@ -14,6 +14,7 @@ from PyQt5.QtCore import (
 from PyQt5.QtGui import QIcon
 from PyQt5.QtQuick import QQuickView
 
+from nxdrive.engine.engine import Engine
 from ..translator import Translator
 
 __all__ = ("FileModel", "LanguageModel", "NuxeoView")
@@ -34,8 +35,8 @@ class EngineModel(QAbstractListModel):
 
     def __init__(self, parent: QObject = None) -> None:
         super(EngineModel, self).__init__(parent)
-        self.engines_uid = []
-        self.engines = {}
+        self.engines_uid: List[str] = []
+        self.engines: Dict[str, "Engine"] = {}
 
     def roleNames(self) -> Dict[int, bytes]:
         return {
@@ -188,7 +189,7 @@ class FileModel(QAbstractListModel):
 
     def __init__(self, parent: QObject = None) -> None:
         super(FileModel, self).__init__(parent)
-        self.files = []
+        self.files: List[Dict[str, Any]] = []
 
     def roleNames(self) -> Dict[int, bytes]:
         return {
@@ -290,13 +291,13 @@ class LanguageModel(QAbstractListModel):
 
     def __init__(self, parent: QObject = None) -> None:
         super(LanguageModel, self).__init__(parent)
-        self.languages = []
+        self.languages: List[Tuple[str, str]] = []
 
     def roleNames(self) -> Dict[int, bytes]:
         return {self.NAME_ROLE: b"name", self.TAG_ROLE: b"tag"}
 
     def addLanguages(
-        self, languages: Tuple[str, str], parent: QModelIndex = QModelIndex()
+        self, languages: List[Tuple[str, str]], parent: QModelIndex = QModelIndex()
     ) -> None:
         count = self.rowCount()
         self.beginInsertRows(parent, count, count + len(languages) - 1)
@@ -382,7 +383,7 @@ class NuxeoView(QQuickView):
         for name, value in colors.items():
             context.setContextProperty(name, value)
 
-    def add_engines(self, engines: Union["Engine", List["Engine"]]) -> None:
+    def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
         if not engines:
             return
 

@@ -3,7 +3,7 @@ import time
 from logging import getLogger
 
 from ..queue_manager import QueueManager as OldQueueManager
-from ...objects import NuxeoDocumentInfo
+from ...objects import DocPair
 
 __all__ = ("QueueManager",)
 
@@ -16,9 +16,9 @@ class QueueManager(OldQueueManager):
     ) -> None:
         super().__init__(engine, dao, max_file_processors=max_file_processors)
 
-    def postpone_pair(self, doc_pair: NuxeoDocumentInfo, interval: int = 60) -> None:
+    def postpone_pair(self, doc_pair: DocPair, interval: int = 60) -> None:
         doc_pair.error_next_try = interval + int(time.time())
-        log.debug("Blacklisting pair for %ds: %r", interval, doc_pair)
+        log.debug(f"Blacklisting pair for {interval}s: {doc_pair!r}")
         with self._error_lock:
             self._on_error_queue[doc_pair.id] = doc_pair
             if not self._error_timer.isActive():

@@ -25,9 +25,7 @@ class Updater(BaseUpdater):
         So, a big thank you to Inno Setup!
         """
 
-        cmd = 'timeout /t 5 /nobreak > nul && "{}" /verysilent /start=auto'.format(
-            filename
-        )
+        cmd = f'timeout /t 5 /nobreak > nul && "{filename}" /verysilent /start=auto'
         log.debug("Launching the auto-updater in 5 seconds ...")
         subprocess.Popen(cmd, shell=True, close_fds=True)
 

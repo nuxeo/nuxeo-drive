@@ -3,13 +3,14 @@ from contextlib import suppress
 from logging import getLogger
 from threading import current_thread
 from time import sleep, time
-from typing import Any
+from typing import Any, Optional
 
 from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
 
 from .activity import Action, IdleAction
+from .dao.sqlite import EngineDAO
 from ..exceptions import ThreadInterrupt
-from ..objects import Metrics, NuxeoDocumentInfo
+from ..objects import Metrics, DocPair
 
 __all__ = ("EngineWorker", "PollWorker", "Worker")
 
@@ -19,12 +20,12 @@ log = getLogger(__name__)
 class Worker(QObject):
     """" Utility class that handle one thread. """
 
-    _thread = None
+    _thread: QThread = None
     _continue = False
     _action = None
     _name = None
     _thread_id = None
-    engine = None
+    engine: "Engine" = None
     _pause = False
 
     def __init__(self, thread: QThread = None, **kwargs: Any) -> None:
@@ -39,7 +40,7 @@ class Worker(QObject):
         self._thread.finished.connect(self._finished)
 
     def __repr__(self) -> str:
-        return "<{} ID={}>".format(type(self).__name__, self._thread_id)
+        return f"<{type(self).__name__} ID={self._thread_id}>"
 
     def is_started(self) -> bool:
         return self._continue
@@ -62,7 +63,7 @@ class Worker(QObject):
 
         self._continue = False
         if not self._thread.wait(5000):
-            log.exception("Thread %d is not responding - terminate it", self._thread_id)
+            log.exception(f"Thread {self._thread_id} is not responding - terminate it")
             self._thread.terminate()
         if self._thread.isRunning():
             self._thread.wait(5000)
@@ -94,7 +95,7 @@ class Worker(QObject):
 
         self._continue = False
 
-    def get_thread_id(self) -> int:
+    def get_thread_id(self) -> Optional[int]:
         """ Get the thread ID. """
 
         return self._thread_id
@@ -127,7 +128,7 @@ class Worker(QObject):
             sleep(0.01)
 
     def _finished(self) -> None:
-        log.trace("Thread %s(%r) finished", self._name, self._thread_id)
+        log.trace(f"Thread {self._name}({self._thread_id}) finished")
 
     @property
     def action(self) -> Action:
@@ -174,9 +175,9 @@ class Worker(QObject):
             try:
                 self._execute()
             except ThreadInterrupt:
-                log.debug("Thread %s(%d) interrupted", self._name, self._thread_id)
+                log.debug(f"Thread {self._name}({self._thread_id}) interrupted")
             except:
-                log.exception("Thread %s(%d) exception", self._name, self._thread_id)
+                log.exception(f"Thread {self._name}({self._thread_id}) exception")
         finally:
             self._thread.exit(0)
             self._running = False
@@ -184,17 +185,17 @@ class Worker(QObject):
 
 class EngineWorker(Worker):
     def __init__(
-        self, engine: "Engine", dao: "EngineDAO", thread: QThread = None, **kwargs: Any
+        self, engine: "Engine", dao: EngineDAO, thread: QThread = None, **kwargs: Any
     ) -> None:
         super().__init__(thread=thread, **kwargs)
         self.engine = engine
         self._dao = dao
 
     def giveup_error(
-        self, doc_pair: NuxeoDocumentInfo, error: str, exception: Exception = None
+        self, doc_pair: DocPair, error: str, exception: Exception = None
     ) -> None:
         details = str(exception) if exception else None
-        log.debug("Give up for error [%s] (%r) for %r", error, details, doc_pair)
+        log.debug(f"Give up for error [{error}] ({details}) for {doc_pair!r}")
         self._dao.increase_error(
             doc_pair,
             error,
@@ -205,15 +206,15 @@ class EngineWorker(Worker):
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
     def increase_error(
-        self, doc_pair: NuxeoDocumentInfo, error: str, exception: Exception = None
+        self, doc_pair: DocPair, error: str, exception: Exception = None
     ) -> None:
         details = None
         if exception:
             try:
-                details = exception.message
+                details = getattr(exception, "message")
             except AttributeError:
                 details = str(exception)
-        log.debug("Increasing error [%s] (%r) for %r", error, details, doc_pair)
+        log.debug(f"Increasing error [{error}] ({details}) for {doc_pair!r}")
         self._dao.increase_error(doc_pair, error, details=details)
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
@@ -258,5 +259,5 @@ class PollWorker(Worker):
                 self._next_check = int(time()) + self._check_interval
             sleep(0.01)
 
-    def _poll(self) -> True:
+    def _poll(self) -> bool:
         return True

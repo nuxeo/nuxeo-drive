@@ -4,7 +4,7 @@ import os
 import uuid
 from logging import getLogger
 from tempfile import gettempdir
-from typing import Optional
+from typing import Any, Dict, Optional, Union
 
 import requests
 import yaml
@@ -40,7 +40,7 @@ class BaseUpdater(PollWorker):
     # Used to refresh the update progress bar in the systray
     updateProgress = pyqtSignal(int)
 
-    versions = {}
+    versions: Dict[str, Any] = {}
     nature = "release"
 
     chunk_size = 8192
@@ -53,11 +53,11 @@ class BaseUpdater(PollWorker):
 
         self.enable = getattr(self, "_can_update", Options.is_frozen)
         self.status = UPDATE_STATUS_UP_TO_DATE
-        self.version = None
-        self.progress = 0
+        self.version: Optional[str] = None
+        self.progress = .0
 
         if not self.enable:
-            log.info("Auto-update disabled (frozen=%r)", Options.is_frozen)
+            log.info(f"Auto-update disabled (frozen={Options.is_frozen!r})")
 
     #
     # Read-only properties
@@ -130,7 +130,7 @@ class BaseUpdater(PollWorker):
         if not self.enable:
             return
 
-        log.info("Starting application update process to version %s", version)
+        log.info(f"Starting application update process to version {version}")
         self._set_status(UPDATE_STATUS_UPDATING, version, 10)
         self._install(version, self._download(version))
 
@@ -146,10 +146,8 @@ class BaseUpdater(PollWorker):
         path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
 
         log.info(
-            "Fetching version %r from update site %r into %r",
-            version,
-            self.update_site,
-            path,
+            f"Fetching version {version!r} from update site {self.update_site!r} "
+            f"into {path!r}"
         )
         try:
             req = requests.get(url, stream=True)
@@ -164,10 +162,10 @@ class BaseUpdater(PollWorker):
                         self._set_progress(self.progress + incr * 50)
                     i += 1
         except Exception as exc:
-            raise UpdateError("Impossible to get %r: %s" % (url, exc))
+            raise UpdateError(f"Impossible to get {url!r}: {exc}")
 
         if not self._is_valid(version, path):
-            raise UpdateError("Installer integrity check failed for %r" % name)
+            raise UpdateError(f"Installer integrity check failed for {name!r}")
 
         return path
 
@@ -180,12 +178,12 @@ class BaseUpdater(PollWorker):
                 resp.raise_for_status()
                 content = resp.text
         except Exception as exc:
-            raise UpdateError("Impossible to get %r: %s" % (url, exc))
+            raise UpdateError(f"Impossible to get {url!r}: {exc}")
 
         try:
             versions = yaml.safe_load(content)
         except yaml.YAMLError as exc:
-            raise UpdateError("Parsing error: %s" % exc)
+            raise UpdateError(f"Parsing error: {exc}")
         else:
             self.versions = versions
 
@@ -252,12 +250,14 @@ class BaseUpdater(PollWorker):
             except UpdateError:
                 log.exception("Auto-update error")
 
-    def _set_progress(self, progress: int) -> None:
+    def _set_progress(self, progress: Union[int, float]) -> None:
         self.progress = progress
         self.updateProgress.emit(self.progress)
         QApplication.processEvents()
 
-    def _set_status(self, status: str, version: str = None, progress: int = 0) -> None:
+    def _set_status(
+        self, status: str, version: str = None, progress: Union[int, float] = 0
+    ) -> None:
         self.status = status
         self.version = version
         self._set_progress(progress)
@@ -267,7 +267,7 @@ class BaseUpdater(PollWorker):
         OS-specific method to install the new version.
         It must take care of uninstalling the current one.
         """
-        log.info("Installing %s %s", self.manager.app_name, version)
+        log.info(f"Installing {self.manager.app_name} {version}")
         self.install(filename)
 
     def _is_valid(self, version: str, filename: str) -> bool:
@@ -278,7 +278,7 @@ class BaseUpdater(PollWorker):
         algo = checksums.get("algo", "sha256").lower()
         checksum = checksums.get(self.ext, "").lower()
         if not checksum:
-            log.error("Invalid version info %r (version=%r)", info, version)
+            log.error(f"Invalid version info {info!r} (version={version!r})")
             return False
 
         func = getattr(hashlib, algo, "sha256")()
@@ -288,11 +288,8 @@ class BaseUpdater(PollWorker):
         computed = func.hexdigest()
 
         log.trace(
-            "Integrity check [%s] for %r: good=%r, found=%r",
-            algo.upper(),
-            filename,
-            checksum,
-            computed,
+            f"Integrity check [{algo.upper()}] for {filename!r}: "
+            f"good={checksum!r}, found={computed!r}"
         )
         return computed == checksum
 
@@ -301,9 +298,8 @@ class BaseUpdater(PollWorker):
 
         if self.status != UPDATE_STATUS_UPDATING:
             log.debug(
-                "Polling %r for update, the current version is %r",
-                self.update_site,
-                self.manager.version,
+                f"Polling {self.update_site!r} for update, "
+                f"the current version is {self.manager.version!r}"
             )
             try:
                 self._get_update_status()

@@ -8,7 +8,7 @@ import re
 import stat
 from logging import getLogger
 from sys import platform
-from typing import Any, Dict, Optional, Pattern, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Pattern, Tuple, Union
 from urllib.parse import urlsplit, urlunsplit
 
 from .constants import APP_NAME, MAC, WINDOWS
@@ -38,6 +38,7 @@ __all__ = (
     "safe_filename",
     "safe_long_path",
     "set_path_readonly",
+    "short_name",
     "simplify_url",
     "unlock_path",
     "unset_path_readonly",
@@ -248,35 +249,35 @@ def version_compare(x: str, y: str) -> int:
     x_numbers = x.split(".")
     y_numbers = y.split(".")
     while x_numbers and y_numbers:
-        x_number = x_numbers.pop(0)
-        y_number = y_numbers.pop(0)
+        x_part = x_numbers.pop(0)
+        y_part = y_numbers.pop(0)
 
         # Handle hotfixes
-        if "HF" in x_number:
-            hf = x_number.replace("-HF", ".").split(".", 1)
-            x_number = hf[0]
+        if "HF" in x_part:
+            hf = x_part.replace("-HF", ".").split(".", 1)
+            x_part = hf[0]
             x_numbers.append(hf[1])
-        if "HF" in y_number:
-            hf = y_number.replace("-HF", ".").split(".", 1)
-            y_number = hf[0]
+        if "HF" in y_part:
+            hf = y_part.replace("-HF", ".").split(".", 1)
+            y_part = hf[0]
             y_numbers.append(hf[1])
 
         # Handle snapshots
-        x_snapshot = "SNAPSHOT" in x_number
-        y_snapshot = "SNAPSHOT" in y_number
+        x_snapshot = "SNAPSHOT" in x_part
+        y_snapshot = "SNAPSHOT" in y_part
         if not x_snapshot and y_snapshot:
             # y is snapshot, x is not
-            x_number = int(x_number)
-            y_number = int(y_number.replace("-SNAPSHOT", ""))
+            x_number = int(x_part)
+            y_number = int(y_part.replace("-SNAPSHOT", ""))
             return ret[y_number <= x_number]
         elif not y_snapshot and x_snapshot:
             # x is snapshot, y is not
-            x_number = int(x_number.replace("-SNAPSHOT", ""))
-            y_number = int(y_number)
+            x_number = int(x_part.replace("-SNAPSHOT", ""))
+            y_number = int(y_part)
             return ret[x_number > y_number]
 
-        x_number = int(x_number.replace("-SNAPSHOT", ""))
-        y_number = int(y_number.replace("-SNAPSHOT", ""))
+        x_number = int(x_part.replace("-SNAPSHOT", ""))
+        y_number = int(y_part.replace("-SNAPSHOT", ""))
         if x_number != y_number:
             return ret[x_number - y_number > 0]
 
@@ -387,11 +388,11 @@ def normalize_event_filename(filename: str, action: bool = True) -> str:
     return normalized
 
 
-def if_frozen(func) -> callable:
+def if_frozen(func) -> Callable:
     """Decorator to enable the call of a function/method
     only if the application is frozen."""
 
-    def wrapper(*args: Any, **kwargs: Any) -> Union[bool, callable]:
+    def wrapper(*args: Any, **kwargs: Any) -> Union[bool, Callable]:
         """Inner function to do the check and abort the call
         if the application not frozen."""
         if not Options.is_frozen:
@@ -451,7 +452,9 @@ def force_encode(data: Union[bytes, str]) -> bytes:
     return data
 
 
-def encrypt(plaintext: bytes, secret: bytes, lazy: bool = True) -> bytes:
+def encrypt(
+    plaintext: Union[bytes, str], secret: Union[bytes, str], lazy: bool = True
+) -> bytes:
     """ Symetric encryption using AES. """
 
     import base64
@@ -507,12 +510,12 @@ def guess_mime_type(filename: str) -> str:
             # Patch bad Windows MIME types
             # See https://jira.nuxeo.com/browse/NXP-11660
             # and http://bugs.python.org/issue15207
-            mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type, mime_type)
-        log.trace("Guessed mime type %r for %r", mime_type, filename)
+            mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type, mime_type) or mime_type
+        log.trace(f"Guessed mime type {mime_type!r} for {filename!r}")
         return mime_type
 
     log.trace(
-        "Could not guess mime type for %r, returning application/octet-stream", filename
+        f"Could not guess mime type for {filename!r}, returning application/octet-stream"
     )
     return "application/octet-stream"
 
@@ -585,7 +588,7 @@ def guess_server_url(
         new_url = urlunsplit(new_url_parts).rstrip("/")
         try:
             rfc3987.parse(new_url, rule="URI")
-            log.trace("Testing URL %r", new_url)
+            log.trace(f"Testing URL {new_url!r}")
             full_url = new_url + "/" + login_page
             with requests.get(full_url, timeout=timeout) as resp:
                 resp.raise_for_status()
@@ -653,50 +656,46 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         ),
     )
 
-    parsed_url = None
+    match_res = None
     for regex in protocol_regex:
-        parsed_url = re.match(regex, url_string, re.I)
-        if parsed_url:
+        match_res = re.match(regex, url_string, re.I)
+        if match_res:
             break
 
-    if not parsed_url:
-        raise ValueError(
-            "Unsupported command {!r} in protocol handler".format(url_string)
-        )
+    if not match_res:
+        raise ValueError(f"Unsupported command {url_string!r} in protocol handler")
 
-    parsed_url = parsed_url.groupdict()
-    cmd = parsed_url.get("cmd")
+    parsed_url: Dict[str, str] = match_res.groupdict()
+    cmd = parsed_url["cmd"]
     if cmd == "edit":
         return parse_edit_protocol(parsed_url, url_string)
     elif cmd == "token":
         return dict(
-            command=cmd,
-            token=parsed_url.get("token"),
-            username=parsed_url.get("username"),
+            command=cmd, token=parsed_url["token"], username=parsed_url["username"]
         )
     elif cmd in path_cmds:
-        return dict(command=cmd, filepath=parsed_url.get("path"))
+        return dict(command=cmd, filepath=parsed_url["path"])
     return dict(command=cmd)
 
 
 def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str, str]:
     """ Parse a `nxdrive://edit` URL for quick editing of Nuxeo documents. """
-    scheme = parsed_url.get("scheme")
+    scheme = parsed_url["scheme"]
     if scheme not in ("http", "https"):
         raise ValueError(
-            "Invalid command {}: scheme should be http or https".format(url_string)
+            f"Invalid command {url_string}: scheme should be http or https"
         )
 
-    server_url = "{}://{}".format(scheme, parsed_url.get("server"))
+    server_url = f"{scheme}://{parsed_url.get('server')}"
 
     return dict(
         command="download_edit",
         server_url=server_url,
-        user=parsed_url.get("username"),
-        repo=parsed_url.get("repo"),
-        doc_id=parsed_url.get("docid"),
-        filename=parsed_url.get("filename"),
-        download_url=parsed_url.get("download"),
+        user=parsed_url["username"],
+        repo=parsed_url["repo"],
+        doc_id=parsed_url["docid"],
+        filename=parsed_url["filename"],
+        download_url=parsed_url["download"],
     )
 
 
@@ -797,7 +796,7 @@ class PidLockFile:
     def _get_sync_pid_filepath(self, process_name: str = None) -> str:
         if process_name is None:
             process_name = self.key
-        return os.path.join(self.folder, "nxdrive_%s.pid" % process_name)
+        return os.path.join(self.folder, f"nxdrive_{process_name}.pid")
 
     def unlock(self) -> None:
         if not self.locked:
@@ -808,10 +807,8 @@ class PidLockFile:
             os.unlink(pid_filepath)
         except Exception as e:
             log.warning(
-                "Failed to remove stalled PID file: %r for stopped process %d: %r",
-                pid_filepath,
-                os.getpid(),
-                e,
+                f"Failed to remove stalled PID file: {pid_filepath!r} "
+                f"for stopped process {os.getpid()}: {e!r}"
             )
 
     def check_running(self, process_name: str = None) -> Optional[int]:
@@ -845,32 +842,30 @@ class PidLockFile:
             try:
                 os.unlink(pid_filepath)
                 if pid is None:
-                    msg = "Removed old empty PID file %r" % pid_filepath
+                    msg = f"Removed old empty PID file {pid_filepath!r}"
                 else:
-                    msg = "Removed old PID file %r for stopped process %d" % (
-                        pid_filepath,
-                        pid,
-                    )
+                    msg = f"Removed old PID file {pid_filepath!r} for stopped process {pid}"
                 log.info(msg)
             except Exception as e:
                 if pid is not None:
                     msg = (
-                        "Failed to remove stalled PID file: %r for"
-                        " stopped process %d: %r" % (pid_filepath, pid, e)
+                        f"Failed to remove stalled PID file: {pid_filepath!r} "
+                        f"for stopped process {pid}: {e!r}"
                     )
                     log.warning(msg)
                     return pid
-                msg = "Failed to remove empty stalled PID file %r: %r" % (
-                    pid_filepath,
-                    e,
+                msg = (
+                    f"Failed to remove empty stalled PID file {pid_filepath!r}: "
+                    f"{e!r}"
                 )
                 log.warning(msg)
         self.locked = True
+        return None
 
     def lock(self) -> Optional[int]:
         pid = self.check_running(process_name=self.key)
         if pid is not None:
-            log.warning("%s process with PID %d already running", self.key, pid)
+            log.warning(f"{self.key} process with PID {pid} already running")
             return pid
 
         # Write the pid of this process
@@ -878,3 +873,4 @@ class PidLockFile:
         pid = os.getpid()
         with open(safe_long_path(pid_filepath), "w") as f:
             f.write(str(pid))
+        return None

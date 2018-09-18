@@ -79,7 +79,7 @@ class FileInfo:
         # NXDRIVE-188: normalize name on the file system if not normalized
         if not MAC and os.path.exists(filepath) and normalized_filepath != filepath:
             log.debug(
-                "Forcing normalization of %r to %r", filepath, normalized_filepath
+                f"Forcing normalization of {filepath!r} to {normalized_filepath!r}"
             )
             os.rename(filepath, normalized_filepath)
 
@@ -98,7 +98,7 @@ class FileInfo:
         self.name = os.path.basename(path)
 
     def __repr__(self) -> str:
-        return "FileInfo<path=%r, remote_ref=%r>" % (self.filepath, self.remote_ref)
+        return f"FileInfo<path={self.filepath!r}, remote_ref={self.remote_ref!r}>"
 
     def get_digest(self, digest_func: str = None) -> Optional[str]:
         """ Lazy computation of the digest. """
@@ -225,7 +225,7 @@ class LocalClient:
 
     def remove_remote_id(self, ref: str, name: str = "ndrive") -> None:
         path = self.abspath(ref)
-        log.trace("Removing xattr %r from %r", name, path)
+        log.trace(f"Removing xattr {name!r} from {path!r}")
         locker = unlock_path(path, False)
         func = (
             self._remove_remote_id_windows if WINDOWS else self._remove_remote_id_unix
@@ -341,16 +341,18 @@ FolderType=Generic
         xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, info)
         os.chflags(meta_file, stat.UF_HIDDEN)
 
-    def set_remote_id(self, ref: str, remote_id: bytes, name: str = "ndrive") -> None:
+    def set_remote_id(
+        self, ref: str, remote_id: Union[bytes, str], name: str = "ndrive"
+    ) -> None:
         path = self.abspath(ref)
 
         if not isinstance(remote_id, bytes):
             remote_id = unicodedata.normalize("NFC", remote_id).encode("utf-8")
 
-        log.trace("Setting xattr %r with value %r on %r", name, remote_id, path)
+        log.trace(f"Setting xattr {name!r} with value {remote_id!r} on {path!r}")
         locker = unlock_path(path, False)
         if WINDOWS:
-            path_alt = path + ":" + name
+            path_alt = f"{path}:{name}"
             try:
                 if not os.path.exists(path):
                     raise NotFound()
@@ -390,7 +392,7 @@ FolderType=Generic
     def get_remote_id(self, ref: str, name: str = "ndrive") -> Optional[str]:
         path = self.abspath(ref)
         value = self.get_path_remote_id(path, name)
-        log.trace("Getting xattr %r from %r: %r", name, path, value)
+        log.trace(f"Getting xattr {name!r} from {path!r}: {value!r}")
         return value
 
     @staticmethod
@@ -411,16 +413,16 @@ FolderType=Generic
         except OSError:
             return None
 
-    def get_info(self, ref: str, raise_if_missing: bool = True) -> Optional[FileInfo]:
+    def get_info(self, ref: str) -> FileInfo:
         if isinstance(ref, bytes):
             ref = ref.decode("utf-8")
 
         os_path = self.abspath(ref)
         if not os.path.exists(os_path):
-            if raise_if_missing:
-                err = "Could not find doc into {!r}: ref={!r}, os_path={!r}"
-                raise NotFound(err.format(self.base_folder, ref, os_path))
-            return None
+            raise NotFound(
+                f"Could not find doc into {self.base_folder!r}: "
+                f"ref={ref!r}, os_path={os_path!r}"
+            )
 
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
@@ -428,10 +430,7 @@ FolderType=Generic
         try:
             mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
         except (ValueError, OverflowError, OSError) as e:
-            log.error(
-                str(e)
-                + "file path: %s. st_mtime value: %s" % (os_path, stat_info.st_mtime)
-            )
+            log.error(f"{e} file path: {os_path}. st_mtime value: {stat_info.st_mtime}")
             if WINDOWS:
                 # TODO: NXDRIVE-1236 Remove those ugly fixes
                 # TODO: when https://bugs.python.org/issue29097 is fixed
@@ -456,10 +455,16 @@ FolderType=Generic
             size=size,
         )
 
+    def try_get_info(self, ref: str) -> Optional[FileInfo]:
+        try:
+            return self.get_info(ref)
+        except NotFound:
+            return None
+
     def is_equal_digests(
         self,
-        local_digest: str,
-        remote_digest: str,
+        local_digest: Optional[str],
+        remote_digest: Optional[str],
         local_path: str,
         remote_digest_algorithm: str = None,
     ) -> bool:
@@ -486,6 +491,8 @@ FolderType=Generic
             return False
 
         file_info = self.get_info(local_path)
+        if not file_info:
+            return False
         digest = file_info.get_digest(digest_func=remote_digest_algorithm)
         return digest == remote_digest
 
@@ -536,7 +543,7 @@ FolderType=Generic
 
         for child_name in sorted(children):
             if self.is_ignored(ref, child_name) or self.is_temp_file(child_name):
-                log.debug("Ignoring banned file %r in %r", child_name, os_path)
+                log.debug(f"Ignoring banned file {child_name!r} in {os_path!r}")
                 continue
 
             child_ref = self.get_children_ref(ref, child_name)
@@ -548,7 +555,8 @@ FolderType=Generic
                     " or while reading some of its attributes"
                 )
                 continue
-            result.append(info)
+            if info:
+                result.append(info)
 
         return result
 
@@ -602,12 +610,12 @@ FolderType=Generic
         if not os.path.exists(os_path):
             return
 
-        log.trace("Trashing %r", os_path)
+        log.trace(f"Trashing {os_path!r}")
         locker = self.unlock_ref(os_path, is_abs=True)
         try:
             send2trash(os_path)
         except OSError as exc:
-            log.error("Cannot trash %r", os_path)
+            log.error(f"Cannot trash {os_path!r}")
             try:
                 # WindowsError(None, None, path, retcode)
                 _, _, _, retcode = exc.args
@@ -711,7 +719,10 @@ FolderType=Generic
             self.lock_ref(parent, locker & 1 | new_locker, is_abs=True)
 
     def change_file_date(
-        self, filename: str, mtime: str = None, ctime: str = None
+        self,
+        filename: str,
+        mtime: Union[datetime, str] = None,
+        ctime: Union[datetime, float, str] = None,
     ) -> None:
         """
         Change the FS modification and creation dates of a file.
@@ -728,21 +739,21 @@ FolderType=Generic
             filename = safe_long_path(filename)
 
         log.trace(
-            "Setting file dates for %r (ctime=%r, mtime=%r)", filename, ctime, mtime
+            f"Setting file dates for {filename!r} (ctime={ctime!r}, mtime={mtime!r})"
         )
 
         # Set the creation time first as on macOS using touch will change ctime and mtime.
         # The modification time will be updated just after, if needed.
         if ctime:
             try:
-                ctime = datetime.fromtimestamp(ctime)
-            except TypeError:
-                ctime = datetime.strptime(ctime, "%Y-%m-%d %H:%M:%S")
+                d_ctime = datetime.fromtimestamp(float(ctime))
+            except (TypeError, ValueError):
+                d_ctime = datetime.strptime(str(ctime), "%Y-%m-%d %H:%M:%S")
 
             if MAC:
                 if isinstance(filename, bytes):
                     filename = filename.decode("utf-8")
-                cmd = ["touch", "-mt", ctime.strftime("%Y%m%d%H%M.%S"), filename]
+                cmd = ["touch", "-mt", d_ctime.strftime("%Y%m%d%H%M.%S"), filename]
                 subprocess.check_call(cmd)
             elif WINDOWS:
                 winfile = win32file.CreateFileW(
@@ -758,14 +769,14 @@ FolderType=Generic
                     win32con.FILE_ATTRIBUTE_NORMAL,
                     None,
                 )
-                win32file.SetFileTime(winfile, ctime)
+                win32file.SetFileTime(winfile, d_ctime)
 
         if mtime:
             try:
-                mtime = int(mtime)
+                d_mtime = float(mtime)
             except ValueError:
-                mtime = mktime(strptime(mtime, "%Y-%m-%d %H:%M:%S"))
-            os.utime(filename, (mtime, mtime))
+                d_mtime = mktime(strptime(str(mtime), "%Y-%m-%d %H:%M:%S"))
+            os.utime(filename, (d_mtime, d_mtime))
 
     def get_path(self, abspath: str) -> str:
         """ Relative path to the local client from an absolute OS path. """

@@ -6,6 +6,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 
 from .folders_treeview import FilteredFsClient, FolderTreeview
+from ..engine.engine import Engine
 from ..translator import Translator
 
 __all__ = ("FiltersDialog",)
@@ -13,7 +14,7 @@ __all__ = ("FiltersDialog",)
 
 class FiltersDialog(QDialog):
     def __init__(
-        self, application: "Application", engine: "Engine", parent: QObject = None
+        self, application: "Application", engine: Engine, parent: QObject = None
     ) -> None:
         super().__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)

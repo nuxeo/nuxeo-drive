@@ -6,6 +6,7 @@ import requests
 from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
+from ..engine.dao.sqlite import EngineDAO
 from ..utils import decrypt, encrypt, force_decode
 
 __all__ = (
@@ -22,7 +23,7 @@ log = getLogger(__name__)
 
 
 class Proxy:
-    category = None
+    category: str
 
     def __init__(self, **kwargs: str) -> None:
         """
@@ -33,11 +34,14 @@ class Proxy:
 
     def __repr__(self) -> str:
         attrs = ", ".join(
-            "{}={!r}".format(attr, getattr(self, attr, None))
+            f"{attr}={getattr(self, attr, None)!r}"
             for attr in sorted(vars(self))
             if not attr.startswith("_")
         )
-        return "{}<{}>".format(type(self).__name__, attrs)
+        return f"{type(self).__name__}<{attrs}>"
+
+    def settings(self, **kwargs: Any) -> Any:
+        return None
 
 
 class NoProxy(Proxy):
@@ -67,9 +71,6 @@ class SystemProxy(Proxy):
 
     category = "System"
 
-    def settings(self, **kwargs: Any) -> None:
-        return None
-
 
 class ManualProxy(Proxy):
     """
@@ -78,7 +79,7 @@ class ManualProxy(Proxy):
 
     category = "Manual"
 
-    def __init__(self, url: str = None, **kwargs: Any) -> None:
+    def __init__(self, url: str = "", **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
         if "://" not in url:
@@ -130,31 +131,27 @@ def get_proxy(**kwargs: Any) -> Proxy:
     return _get_cls(kwargs.pop("category"))(**kwargs)
 
 
-def load_proxy(dao: "EngineDAO", token: str = None) -> Proxy:
+def load_proxy(dao: EngineDAO, token: str = None) -> Proxy:
     category = dao.get_config("proxy_config", "System")
     kwargs = {}
 
     if category == "Automatic":
         kwargs["pac_url"] = dao.get_config("proxy_pac_url")
     elif category == "Manual":
-        if not token:
-            token = dao.get_config("device_id")
-        token += "_proxy"
-        kwargs["url"] = force_decode(decrypt(dao.get_config("proxy_url"), token))
+        token = (token or dao.get_config("device_id")) + "_proxy"
+        kwargs["url"] = force_decode(decrypt(dao.get_config("proxy_url"), token) or "")
 
     return _get_cls(category)(**kwargs)
 
 
-def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
+def save_proxy(proxy: Proxy, dao: EngineDAO, token: str = None) -> None:
     dao.update_config("proxy_config", proxy.category)
 
-    if proxy.category == "Automatic":
+    if isinstance(proxy, AutomaticProxy):
         dao.update_config("proxy_pac_url", proxy.pac_url)
-    elif proxy.category == "Manual":
+    elif isinstance(proxy, ManualProxy):
         # Encrypt password with token as the secret
-        if not token:
-            token = dao.get_config("device_id")
-        token += "_proxy"
+        token = (token or dao.get_config("device_id")) + "_proxy"
         dao.update_config("proxy_url", encrypt(proxy.url, token))
 
 

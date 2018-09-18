@@ -9,7 +9,7 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
-from typing import List, Union
+from typing import Any, List, Union
 
 from . import __version__
 from .constants import APP_NAME
@@ -407,7 +407,7 @@ class CliHandler:
                 if item[0] == "env":
                     continue
 
-                value = item[1]
+                value: Any = item[1]
                 if value == "":
                     continue
                 elif value in {"true", "True"}:
@@ -417,9 +417,8 @@ class CliHandler:
                 elif "\n" in value:
                     if "=" in value:
                         log.error(
-                            "Malformatted parameter in config.ini: %r => %r",
-                            item[0],
-                            value,
+                            "Malformatted parameter in config.ini: "
+                            f"{item[0]!r} => {value!r}"
                         )
                         value = value.split()[0].split("=")[0].strip()
                     else:
@@ -467,10 +466,10 @@ class CliHandler:
             # Don't need uninstall logs either for now.
             self._configure_logger(command, options)
 
-        log.debug("Command line: argv=%r, options=%r", argv, options)
+        log.debug(f"Command line: argv={argv!r}, options={options!r}")
         if QSslSocket:
             has_ssl_support = QSslSocket.supportsSsl()
-            log.info("SSL support: %r", has_ssl_support)
+            log.info(f"SSL support: {has_ssl_support!r}")
             if not has_ssl_support:
                 options.consider_ssl_errors = False
 
@@ -523,16 +522,16 @@ class CliHandler:
                 payload = force_encode(Options.protocol_url)
                 self._send_to_running_instance(payload)
             else:
-                log.warning("%s is already running: exiting.", self.manager.app_name)
+                log.warning(f"{self.manager.app_name} is already running: exiting.")
             return 0
 
         app = self._get_application(console=console)
         exit_code = app.exec_()
         lock.unlock()
-        log.debug("%s exited with code %d", self.manager.app_name, exit_code)
+        log.debug(f"{self.manager.app_name} exited with code {exit_code}")
         return exit_code
 
-    def _send_to_running_instance(self, payload: bytes) -> bool:
+    def _send_to_running_instance(self, payload: bytes) -> None:
         from PyQt5.QtCore import QByteArray
         from PyQt5.QtNetwork import QLocalSocket
 
@@ -544,7 +543,7 @@ class CliHandler:
 
         if not client.waitForConnected():
             log.error(f"Unable to open client socket: {client.errorString()}")
-            return 0
+            return
 
         client.write(QByteArray(payload))
         client.waitForBytesWritten()
@@ -614,16 +613,16 @@ class CliHandler:
             if engine.local_folder == options.local_folder:
                 self.manager.unbind_engine(uid)
                 return 0
-        log.error("No engine registered for local folder %r", options.local_folder)
+        log.error(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
     def bind_root(self, options: Namespace) -> int:
         for engine in self.manager.get_engines().values():
-            log.trace("Comparing: %r to %r", engine.local_folder, options.local_folder)
+            log.trace(f"Comparing: {engine.local_folder!r} to {options.local_folder!r}")
             if engine.local_folder == options.local_folder:
                 engine.remote.register_as_root(options.remote_root)
                 return 0
-        log.error("No engine registered for local folder %r", options.local_folder)
+        log.error(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
     def unbind_root(self, options: Namespace) -> int:
@@ -631,18 +630,18 @@ class CliHandler:
             if engine.local_folder == options.local_folder:
                 engine.remote.unregister_as_root(options.remote_root)
                 return 0
-        log.error("No engine registered for local folder %r", options.local_folder)
+        log.error(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
     @staticmethod
     def _install_faulthandler() -> None:
         """ Utility to help debug segfaults. """
         segfault_filename = os.path.join(Options.nxdrive_home, "logs", "segfault.log")
-        log.debug("Enabling faulthandler in %r", segfault_filename)
+        log.debug(f"Enabling faulthandler in {segfault_filename!r}")
 
         segfault_file = open(segfault_filename, "a")
         try:
-            segfault_file.write("\n\n\n>>> {}\n".format(datetime.now()))
+            segfault_file.write(f"\n\n\n>>> {datetime.now()}\n")
             faulthandler.enable(file=segfault_file)
         finally:
             segfault_file.close()

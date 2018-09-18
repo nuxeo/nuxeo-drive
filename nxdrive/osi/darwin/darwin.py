@@ -25,7 +25,7 @@ from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
 from .. import AbstractOSIntegration
 from ...constants import BUNDLE_IDENTIFIER
-from ...objects import NuxeoDocumentInfo
+from ...objects import DocPair
 from ...utils import force_decode, if_frozen, normalized_path
 
 __all__ = ("DarwinIntegration", "FinderSyncServer")
@@ -185,7 +185,7 @@ class DarwinIntegration(AbstractOSIntegration):
         self._set_monitoring("unwatch", folder)
 
     @if_frozen
-    def send_sync_status(self, state: NuxeoDocumentInfo, path: str) -> None:
+    def send_sync_status(self, state: DocPair, path: str) -> None:
         """
         Send the sync status of a file to the FinderSync.
 

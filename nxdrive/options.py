@@ -82,10 +82,10 @@ class MetaOptions(type):
     __files: Tuple[str] = (r"^atmp\d+$",)  # AutoCAD tmp file
 
     # Ignored prefixes, checked lowercase
-    __prefixes: Tuple[str] = (".", "desktop.ini", "icon\r", "thumbs.db", "~$")
+    __prefixes: Tuple[str, ...] = (".", "desktop.ini", "icon\r", "thumbs.db", "~$")
 
     # Ignored suffixes, checked lowercase
-    __suffixes: Tuple[str] = (
+    __suffixes: Tuple[str, ...] = (
         ".bak",
         ".crdownload",
         ".dwl",
@@ -109,6 +109,7 @@ class MetaOptions(type):
         "manual": 4,
     }
 
+    @staticmethod
     def __get_home() -> str:
         """
         Get the user home directory.
@@ -136,7 +137,7 @@ class MetaOptions(type):
         return os.path.expanduser("~")
 
     # Cache the home directory for later use
-    __home: str = __get_home()
+    __home: str = __get_home.__func__()
 
     # Default options
     options: Dict[str, Tuple[Any, str]] = {

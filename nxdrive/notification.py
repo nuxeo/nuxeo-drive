@@ -3,11 +3,11 @@ import time
 from datetime import datetime
 from logging import getLogger
 from threading import Lock
-from typing import Dict
+from typing import Dict, Optional
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from .objects import NuxeoDocumentInfo
+from .objects import DocPair
 from .translator import Translator
 from .utils import short_name
 
@@ -69,54 +69,53 @@ class Notification:
         self.description = description
         self.action = action
         self.engine_uid = engine_uid
-        self._time = None
+        self._time: Optional[int] = None
         self._replacements = replacements or dict()
 
-        self.uid = uid
+        self.uid = ""
         if uid:
             if engine_uid:
-                self.uid += "_" + engine_uid
+                uid += "_" + engine_uid
             if not self.is_unique():
-                self.uid += "_" + str(int(time.time()))
+                uid += "_" + str(int(time.time()))
+            self.uid = uid
         elif uuid:
             self.uid = uuid
 
-    def is_remove_on_discard(self) -> int:
-        return self.flags & Notification.FLAG_REMOVE_ON_DISCARD
+    def is_remove_on_discard(self) -> bool:
+        return bool(self.flags & Notification.FLAG_REMOVE_ON_DISCARD)
 
-    def is_persistent(self) -> int:
-        return self.flags & Notification.FLAG_PERSISTENT
+    def is_persistent(self) -> bool:
+        return bool(self.flags & Notification.FLAG_PERSISTENT)
 
-    def is_unique(self) -> int:
-        return self.flags & Notification.FLAG_UNIQUE
+    def is_unique(self) -> bool:
+        return bool(self.flags & Notification.FLAG_UNIQUE)
 
-    def is_discard(self) -> int:
-        return self.flags & Notification.FLAG_DISCARD
+    def is_discard(self) -> bool:
+        return bool(self.flags & Notification.FLAG_DISCARD)
 
-    def is_discardable(self) -> int:
-        return self.flags & Notification.FLAG_DISCARDABLE
+    def is_discardable(self) -> bool:
+        return bool(self.flags & Notification.FLAG_DISCARDABLE)
 
-    def is_systray(self) -> int:
-        return self.flags & Notification.FLAG_SYSTRAY
+    def is_systray(self) -> bool:
+        return bool(self.flags & Notification.FLAG_SYSTRAY)
 
-    def is_bubble(self) -> int:
-        return self.flags & Notification.FLAG_BUBBLE
+    def is_bubble(self) -> bool:
+        return bool(self.flags & Notification.FLAG_BUBBLE)
 
-    def is_actionable(self) -> int:
-        return self.flags & Notification.FLAG_ACTIONABLE
+    def is_actionable(self) -> bool:
+        return bool(self.flags & Notification.FLAG_ACTIONABLE)
 
-    def is_discard_on_trigger(self) -> int:
-        return self.flags & Notification.FLAG_DISCARD_ON_TRIGGER
+    def is_discard_on_trigger(self) -> bool:
+        return bool(self.flags & Notification.FLAG_DISCARD_ON_TRIGGER)
 
     def get_replacements(self) -> Dict[str, str]:
         return self._replacements
 
     def __repr__(self) -> str:
-        return "Notification(level=%r title=%r uid=%r unique=%r)" % (
-            self.level,
-            self.title,
-            self.uid,
-            self.is_unique(),
+        return (
+            f"Notification(level={self.level!r} title={self.title!r} "
+            f"uid={self.uid!r} unique={self.is_unique()!r})"
         )
 
 
@@ -129,7 +128,7 @@ class NotificationService(QObject):
     def __init__(self, manager: "Manager") -> None:
         super().__init__()
         self._lock = Lock()
-        self._notifications = dict()
+        self._notifications: Dict[str, Notification] = dict()
         self._manager = manager
         self._dao = manager.get_dao()
         self.load_notifications()
@@ -148,7 +147,7 @@ class NotificationService(QObject):
 
     def get_notifications(
         self, engine: "Engine" = None, include_generic: bool = True
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Notification]:
         # Might need to use lock and duplicate
         with self._lock:
             if engine is None:
@@ -162,7 +161,7 @@ class NotificationService(QObject):
             return result
 
     def send_notification(self, notification: Notification) -> None:
-        log.debug("Sending %r", notification)
+        log.debug(f"Sending {notification!r}")
         notification._time = int(time.time())
         with self._lock:
             if notification.is_persistent():
@@ -210,7 +209,7 @@ class DebugNotification(Notification):
 
 
 class ErrorNotification(Notification):
-    def __init__(self, engine_uid: str, doc_pair: NuxeoDocumentInfo) -> None:
+    def __init__(self, engine_uid: str, doc_pair: DocPair) -> None:
         name = doc_pair.local_name or doc_pair.remote_name or ""
         values = [short_name(name)]
         super().__init__(
@@ -274,7 +273,7 @@ class DirectEditErrorLockNotification(Notification):
 
 
 class ConflictNotification(Notification):
-    def __init__(self, engine_uid: str, doc_pair: NuxeoDocumentInfo) -> None:
+    def __init__(self, engine_uid: str, doc_pair: DocPair) -> None:
         values = [short_name(doc_pair.local_name)]
         super().__init__(
             "CONFLICT_FILE",
@@ -296,7 +295,9 @@ class ConflictNotification(Notification):
 
 class ReadOnlyNotification(Notification):
     def __init__(self, engine_uid: str, filename: str, parent: str = None) -> None:
-        values = [short_name(filename), short_name(parent)]
+        values = [short_name(filename)]
+        if parent:
+            values.append(short_name(parent))
         description = "READONLY_FILE" if parent is None else "READONLY_FOLDER"
         super().__init__(
             "READONLY",
@@ -486,10 +487,10 @@ class DefaultNotificationService(NotificationService):
         engine.errorOpenedFile.connect(self._errorOpenedFile)
         engine.fileDeletionErrorTooLong.connect(self._fileDeletionErrorTooLong)
 
-    def _errorOpenedFile(self, doc: NuxeoDocumentInfo) -> None:
+    def _errorOpenedFile(self, doc: DocPair) -> None:
         self.send_notification(ErrorOpenedFile(doc.local_path, doc.folderish))
 
-    def _fileDeletionErrorTooLong(self, doc: NuxeoDocumentInfo) -> None:
+    def _fileDeletionErrorTooLong(self, doc: DocPair) -> None:
         self.send_notification(FileDeletionError(doc.local_path))
 
     def _lockDocument(self, filename: str) -> None:

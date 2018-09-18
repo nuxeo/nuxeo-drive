@@ -61,7 +61,7 @@ class Tracker(Worker):
     def current_locale(self) -> str:
         """ Detect the OS default language. """
 
-        encoding = locale.getdefaultlocale()[1]
+        encoding = locale.getdefaultlocale()[1] or ""
         if WINDOWS:
             l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
             l10n = locale.windows_locale[l10n_code]
@@ -70,7 +70,7 @@ class Tracker(Worker):
             l10n = NSLocale.localeIdentifier(l10n_code)
             encoding = "UTF-8"
         else:
-            l10n = locale.getdefaultlocale()[0]
+            l10n = locale.getdefaultlocale()[0] or ""
 
         return ".".join([l10n, encoding])
 
@@ -168,7 +168,7 @@ class Tracker(Worker):
         for _, engine in self._manager.get_engines().items():
             for key, value in engine.get_metrics().items():
                 if not isinstance(value, int):
-                    log.trace("Skip non integer Statistics(Engine) %s: %r", key, value)
+                    log.trace(f"Skip non integer Statistics(Engine) {key}: {value!r}")
                     continue
 
                 self.send_event(

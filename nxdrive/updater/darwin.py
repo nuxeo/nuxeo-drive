@@ -30,11 +30,11 @@ class Updater(BaseUpdater):
         On any error, the backup will be reverted.
         """
 
-        log.debug("Mounting %r", filename)
+        log.debug(f"Mounting {filename!r}")
         mount_info = subprocess.check_output(["hdiutil", "mount", filename])
         lines = mount_info.splitlines()
         mount_dir = force_decode(lines[-1].split(b"\t")[-1])
-        log.debug("Mounted in %r", mount_dir)
+        log.debug(f"Mounted in {mount_dir!r}")
 
         self._backup()
         self._set_progress(70)
@@ -48,13 +48,13 @@ class Updater(BaseUpdater):
         finally:
             self._cleanup(filename)
             self._set_progress(90)
-            log.debug("Unmounting %r", mount_dir)
+            log.debug(f"Unmounting {mount_dir!r}")
             subprocess.check_call(["hdiutil", "unmount", mount_dir])
 
         # Check if the new application exists
-        app = "/Applications/{}.app".format(self.manager.app_name)
+        app = f"/Applications/{self.manager.app_name}.app"
         if not os.path.isdir(app):
-            log.error("%r does not exist, auto-update failed")
+            log.error(f"{app!r} does not exist, auto-update failed")
             return
 
         # Trigger the application exit + restart
@@ -65,7 +65,7 @@ class Updater(BaseUpdater):
     def _backup(self, restore: bool = False) -> None:
         """ Backup or restore the current application. """
 
-        src = "/Applications/{}.app".format(self.manager.app_name)
+        src = f"/Applications/{self.manager.app_name}.app"
         dst = src + ".old"
 
         if restore:
@@ -74,29 +74,29 @@ class Updater(BaseUpdater):
         if not os.path.isdir(src):
             return
 
-        log.debug("Moving %r -> %r", src, dst)
+        log.debug(f"Moving {src!r} -> {dst!r}")
         shutil.move(src, dst)
 
     def _cleanup(self, filename: str) -> None:
         """ Remove some files. """
 
         # The backup
-        path = "/Applications/{}.app.old".format(self.manager.app_name)
+        path = f"/Applications/{self.manager.app_name}.app.old"
         with suppress(OSError):
             shutil.rmtree(path)
-            log.debug("Deleted %r", path)
+            log.debug(f"Deleted {path!r}")
 
         # The temporary DMG
         with suppress(OSError):
             os.remove(filename)
-            log.debug("Deleted %r", filename)
+            log.debug(f"Deleted {filename!r}")
 
     def _copy(self, mount_dir: str) -> None:
         """ Copy the new application content to /Applications. """
 
-        src = "{}/{}.app".format(mount_dir, self.manager.app_name)
-        dst = "/Applications/{}.app".format(self.manager.app_name)
-        log.debug("Copying %r -> %r", src, dst)
+        src = f"{mount_dir}/{self.manager.app_name}.app"
+        dst = f"/Applications/{self.manager.app_name}.app"
+        log.debug(f"Copying {src!r} -> {dst!r}")
         shutil.copytree(src, dst)
 
     def _restart(self) -> None:
@@ -104,8 +104,6 @@ class Updater(BaseUpdater):
         Restart the current application to take into account the new version.
         """
 
-        cmd = 'sleep 5 ; open "/Applications/{}.app"'.format(self.manager.app_name)
-        log.debug(
-            "Launching the new %s version in 5 seconds ...", self.manager.app_name
-        )
+        cmd = f'sleep 5 ; open "/Applications/{self.manager.app_name}.app"'
+        log.debug(f"Launching the new {self.manager.app_name} version in 5 seconds ...")
         subprocess.Popen(cmd, shell=True, close_fds=True)

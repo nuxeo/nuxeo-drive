@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from logging import getLogger
 from os import getenv
-from time import struct_time, time
+from time import time
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 
@@ -17,7 +17,6 @@ from PyQt5.QtWidgets import QMessageBox
 from ..client.proxy import get_proxy
 from ..constants import APP_NAME, STARTUP_PAGE_CONNECTION_TIMEOUT, TOKEN_PERMISSION
 from ..engine.activity import Action, FileAction
-from ..engine.dao.sqlite import StateRow
 from ..engine.engine import Engine
 from ..engine.workers import Worker
 from ..exceptions import (
@@ -28,7 +27,7 @@ from ..exceptions import (
     StartupPageConnectionError,
 )
 from ..notification import Notification
-from ..objects import Binder
+from ..objects import Binder, DocPair
 from ..options import Options
 from ..translator import Translator
 from ..utils import get_device, get_default_nuxeo_drive_folder, guess_server_url
@@ -48,7 +47,7 @@ class QMLDriveApi(QObject):
         self._manager = application.manager
         self.application = application
         self.last_url = None
-        self._callback_params = {}
+        self._callback_params: Dict[str, str] = {}
 
         # Attributes for the web authentication feedback
         self.openAuthenticationDialog.connect(
@@ -63,7 +62,7 @@ class QMLDriveApi(QObject):
             return self._export_engine(obj)
         if isinstance(obj, Notification):
             return self._export_notification(obj)
-        if isinstance(obj, StateRow):
+        if isinstance(obj, DocPair):
             return self._export_state(obj)
         if isinstance(obj, Worker):
             return self._export_worker(obj)
@@ -100,23 +99,23 @@ class QMLDriveApi(QObject):
             "threads": self._get_threads(engine),
         }
 
-    def get_date_from_sqlite(self, d: str) -> Optional[struct_time]:
+    def get_date_from_sqlite(self, d: str) -> Optional[datetime]:
         format_date = "%Y-%m-%d %H:%M:%S"
         try:
             return datetime.strptime(str(d.split(".")[0]), format_date)
         except BaseException:
             return None
 
-    def get_timestamp_from_date(self, d: struct_time = None) -> int:
+    def get_timestamp_from_date(self, d: datetime = None) -> int:
         if not d:
             return 0
         return int(calendar.timegm(d.timetuple()))
 
-    def _export_state(self, state: "DocPair" = None) -> Dict[str, Any]:
+    def _export_state(self, state: DocPair = None) -> Dict[str, Any]:
         if state is None:
             return {}
 
-        result = dict(
+        result: Dict[str, Any] = dict(
             state=state.pair_state, last_sync_date="", last_sync_direction="upload"
         )
 
@@ -130,7 +129,7 @@ class QMLDriveApi(QObject):
         if date_time:
             # As date_time is in UTC
             result["last_sync_date"] = Translator.format_datetime(
-                date_time + tzlocal()._dst_offset
+                date_time + tzlocal()._dst_offset  # type: ignore
             )
 
         result["name"] = state.local_name
@@ -149,7 +148,7 @@ class QMLDriveApi(QObject):
         return result
 
     def _export_formatted_state(
-        self, uid: str, state: "DocPair" = None
+        self, uid: str, state: DocPair = None
     ) -> Dict[str, Any]:
         engine = self._get_engine(uid)
         if not state or not engine:
@@ -175,7 +174,7 @@ class QMLDriveApi(QObject):
         return result
 
     def _export_action(self, action: Action) -> Dict[str, Any]:
-        result = dict()
+        result: Dict[str, Any] = dict()
         result["name"] = action.type
         percent = action.get_percent()
         if percent:
@@ -187,7 +186,7 @@ class QMLDriveApi(QObject):
         return result
 
     def _export_worker(self, worker: Worker) -> Dict[str, Any]:
-        result = dict()
+        result: Dict[str, Any] = dict()
         action = worker.action
         if action is None:
             result["action"] = None
@@ -199,7 +198,7 @@ class QMLDriveApi(QObject):
         result["started"] = worker.is_started()
         return result
 
-    def _get_threads(self, engine: Engine) -> Dict[str, Any]:
+    def _get_threads(self, engine: Engine) -> List[Dict[str, Any]]:
         result = []
         for thread in engine.get_threads():
             result.append(self._export_worker(thread.worker))
@@ -210,7 +209,7 @@ class QMLDriveApi(QObject):
         return engines.get(uid)
 
     def get_last_files(
-        self, uid: str, number: int, direction: str, duration: int
+        self, uid: str, number: int, direction: str, duration: int = None
     ) -> List[Dict[str, Any]]:
         """ Return the last files transferred (see EngineDAO). """
         engine = self._get_engine(uid)
@@ -415,7 +414,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str)
     def open_local(self, uid: str, path: str) -> None:
         self.application.hide_systray()
-        log.trace("Opening local file %r", path)
+        log.trace(f"Opening local file {path!r}")
         if not uid:
             self._manager.open_local_file(path)
         else:
@@ -439,7 +438,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str)
     def show_settings(self, page: str) -> None:
         self.application.hide_systray()
-        log.debug("Show settings on page %s", page)
+        log.debug(f"Show settings on page {page}")
         self.application.show_settings(section=page or None)
 
     @pyqtSlot()
@@ -470,7 +469,7 @@ class QMLDriveApi(QObject):
             url = self._get_authentication_url(engine.server_url)
             if Options.is_frozen:
                 url = f"{url}&{params}"
-            callback_params = {"engine": engine}
+            callback_params = {"engine": uid}
             log.debug(f"Opening login window for token update with URL {url}")
             self.application._open_authentication_dialog(url, callback_params)
         except:
@@ -481,8 +480,12 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
 
     def _get_authentication_url(self, server_url: str) -> str:
+        url = guess_server_url(server_url)
+        if not url:
+            raise ValueError("No URL found for Nuxeo server")
+
         if not Options.is_frozen:
-            return guess_server_url(server_url)
+            return url
 
         params = urlencode(
             {
@@ -496,7 +499,7 @@ class QMLDriveApi(QObject):
         )
 
         # Handle URL parameters
-        parts = urlsplit(guess_server_url(server_url))
+        parts = urlsplit(url)
         path = f"{parts.path}/logout?requestedUrl={Options.startup_page}"
         path = path.replace("//", "/")
 
@@ -535,8 +538,8 @@ class QMLDriveApi(QObject):
         local_folder: str,
         url: str,
         username: str,
-        password: str,
-        name: str,
+        password: Optional[str],
+        name: Optional[str],
         **kwargs: Any,
     ) -> None:
         # Remove any parameters from the original URL
@@ -553,7 +556,7 @@ class QMLDriveApi(QObject):
             no_fscheck=not kwargs.get("check_fs", True),
             url=url,
         )
-        log.debug("Binder is : %s/%s", binder.url, binder.username)
+        log.debug(f"Binder is : {binder.url}/{binder.username}")
         engine = self._manager.bind_engine(
             self._manager._get_default_server_type(),
             local_folder,
@@ -572,18 +575,18 @@ class QMLDriveApi(QObject):
         local_folder: str,
         url: str,
         username: str,
-        password: str,
-        name: str,
+        password: str = None,
+        name: str = None,
         **kwargs: Any,
     ) -> None:
-        url = guess_server_url(url)
-        if not url:
+        server_url = guess_server_url(url)
+        if not server_url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
 
         try:
             return self._bind_server(
-                local_folder, url, username, password, name, **kwargs
+                local_folder, server_url, username, password, name, **kwargs
             )
         except RootAlreadyBindWithDifferentAccount as e:
             # Ask for the user
@@ -603,7 +606,7 @@ class QMLDriveApi(QObject):
 
             kwargs["check_fs"] = False
             return self.bind_server(
-                local_folder, url, username, password, name, **kwargs
+                local_folder, server_url, username, password, name, **kwargs
             )
         except NotFound:
             error = "FOLDER_DOES_NOT_EXISTS"
@@ -660,19 +663,16 @@ class QMLDriveApi(QObject):
                 }
                 url = self._get_authentication_url(server_url)
                 log.debug(
-                    "Web authentication is available on server %s, "
-                    "opening login window with URL %s",
-                    server_url,
-                    url,
+                    f"Web authentication is available on server {server_url}, "
+                    f"opening login window with URL {url}"
                 )
                 self.openAuthenticationDialog.emit(url, callback_params)
                 return
             else:
                 # Startup page is not available
                 log.debug(
-                    "Web authentication not available on server %s, "
-                    "falling back on basic authentication",
-                    server_url,
+                    f"Web authentication not available on server {server_url}, "
+                    "falling back on basic authentication"
                 )
                 return
         except FolderAlreadyUsed:
@@ -688,7 +688,7 @@ class QMLDriveApi(QObject):
 
     def _connect_startup_page(self, server_url: str) -> int:
         # Take into account URL parameters
-        parts = urlsplit(guess_server_url(server_url))
+        parts = urlsplit(guess_server_url(server_url) or "")
         url = urlunsplit(
             (
                 parts.scheme,
@@ -701,8 +701,7 @@ class QMLDriveApi(QObject):
 
         try:
             log.debug(
-                "Proxy configuration for startup page connection: %s",
-                self._manager.proxy,
+                f"Proxy configuration for startup page connection: {self._manager.proxy}"
             )
             headers = {
                 "X-Application-Name": self._manager.app_name,
@@ -719,12 +718,12 @@ class QMLDriveApi(QObject):
                 f" startup page with URL {url}"
             )
             raise StartupPageConnectionError()
-        log.debug("Status code for %s = %d", url, status)
+        log.debug(f"Status code for {url} = {status}")
         return status
 
     @pyqtSlot(str, str, result=bool)
     def set_server_ui(self, uid: str, server_ui: str) -> bool:
-        log.debug("Setting ui to %s", server_ui)
+        log.debug(f"Setting ui to {server_ui}")
         engine = self._get_engine(uid)
         if not engine:
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
@@ -772,7 +771,7 @@ class QMLDriveApi(QObject):
             self.setMessage.emit(error, "error")
 
     def create_account(self, token: str, username: str) -> str:
-        error = None
+        error = ""
         try:
             local_folder = self._callback_params["local_folder"]
             server_url = (
@@ -782,7 +781,7 @@ class QMLDriveApi(QObject):
             )
 
             log.debug(
-                "Creating new account [%s, %s, %s]", local_folder, server_url, username
+                f"Creating new account [{local_folder}, {server_url}, {username}]"
             )
 
             error = self.bind_server(
@@ -794,27 +793,23 @@ class QMLDriveApi(QObject):
                 name=None,
             )
 
-            log.debug("RETURN FROM BIND_SERVER IS: '%s'", error)
+            log.debug(f"RETURN FROM BIND_SERVER IS: '{error}'")
         except:
             log.exception(
-                "Unexpected error while trying to create a new account [%s, %s, %s]",
-                local_folder,
-                server_url,
-                username,
+                "Unexpected error while trying to create a new account "
+                f"[{local_folder}, {server_url}, {username}]"
             )
             error = "CONNECTION_UNKNOWN"
         finally:
             return error
 
     def update_token(self, token: str) -> str:
-        error = None
-        engine = self._callback_params["engine"]
+        error = ""
+        engine = self._get_engine(self._callback_params["engine"])
         try:
             log.debug(
-                "Updating token for account [%s, %s, %s]",
-                engine.local_folder,
-                engine.server_url,
-                engine.remote_user,
+                "Updating token for account "
+                f"[{engine.local_folder}, {engine.server_url}, {engine.remote_user}]"
             )
 
             engine.update_token(token)
@@ -828,10 +823,8 @@ class QMLDriveApi(QObject):
                 error = "CONNECTION_ERROR"
         except:
             log.exception(
-                "Unexpected error while trying to update token for account [%s, %s, %s]",
-                engine.local_folder,
-                engine.server_url,
-                engine.remote_user,
+                "Unexpected error while trying to update token for account "
+                f"[{engine.local_folder}, {engine.server_url}, {engine.remote_user}]"
             )
             error = "CONNECTION_UNKNOWN"
         finally:
@@ -896,7 +889,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str, str)
     def open_remote(self, uid: str, remote_ref: str, remote_name: str) -> None:
-        log.debug("Should open this : %s (%s)", remote_name, remote_ref)
+        log.debug(f"Should open this : {remote_name} ({remote_ref})")
         try:
             engine = self._get_engine(uid)
             if engine:

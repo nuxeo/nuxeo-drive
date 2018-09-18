@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 
 from .folders_treeview import Overlay
 from ..constants import APP_NAME
-from ..objects import NuxeoDocumentInfo
+from ..objects import DocPair
 
 __all__ = ("StatusDialog",)
 
@@ -25,7 +25,6 @@ class StatusTreeview(QTreeView):
     def __init__(self, parent: QObject, dao: "EngineDAO") -> None:
         super().__init__(parent)
         self._dao = dao
-        self.cache = []
         self.root_item = QStandardItemModel()
         self.root_item.setHorizontalHeaderLabels(["Name", "Status", "Action"])
 
@@ -131,7 +130,7 @@ class StatusTreeview(QTreeView):
 class StatusDialog(QDialog):
     """ Use to display the table of LastKnownState. """
 
-    def __init__(self, dao: "EngineDao") -> None:
+    def __init__(self, dao: "EngineDAO") -> None:
         super().__init__()
         self._dao = dao
         self.resize(500, 500)
@@ -144,7 +143,7 @@ class StatusDialog(QDialog):
 
 
 class RetryButton(QPushButton):
-    def __init__(self, view: StatusTreeview, pair: NuxeoDocumentInfo) -> None:
+    def __init__(self, view: StatusTreeview, pair: DocPair) -> None:
         super().__init__("Retry")
         self.pair = pair
         self.view = view
@@ -157,7 +156,7 @@ class RetryButton(QPushButton):
 
 
 class ResolveButton(QPushButton):
-    def __init__(self, view: StatusTreeview, pair: NuxeoDocumentInfo) -> None:
+    def __init__(self, view: StatusTreeview, pair: DocPair) -> None:
         super().__init__("Resolve")
         self.pair = pair
         self.view = view
