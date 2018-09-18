@@ -253,6 +253,10 @@ function start_nxdrive {
 
 function zip_files($filename, $src) {
 	# Create a ZIP archive
+	if (Test-Path $filename) {
+		Remove-Item -Path $filename -Verbose
+	}
+
 	Add-Type -Assembly System.IO.Compression.FileSystem
 	$compression_level = [System.IO.Compression.CompressionLevel]::Optimal
 	[System.IO.Compression.ZipFile]::CreateFromDirectory(
