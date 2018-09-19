@@ -147,7 +147,7 @@ class LocalWatcher(EngineWorker):
                     self._handle_watchdog_delete(evt_pair)
                 else:
                     remote_id = self.local.get_remote_id(evt_pair.local_path)
-                    if remote_id == evt_pair.remote_ref or remote_id is None:
+                    if not remote_id or remote_id == evt_pair.remote_ref:
                         log.debug(
                             f"Win: ignoring delete event as file still exists: {evt!r}"
                         )
@@ -321,7 +321,7 @@ class LocalWatcher(EngineWorker):
         # updated in the DB as for its local information.
         remote_children: Set[str] = set()
         parent_remote_id = client.get_remote_id(info.path)
-        if parent_remote_id is not None:
+        if parent_remote_id:
             pairs_ = dao.get_new_remote_children(parent_remote_id)
             remote_children = {pair.remote_name for pair in pairs_}
 
@@ -332,7 +332,7 @@ class LocalWatcher(EngineWorker):
             if child_name not in children:
                 try:
                     remote_id = client.get_remote_id(child_info.path)
-                    if remote_id is None:
+                    if not remote_id:
                         # Avoid IntegrityError: do not insert a new pair state
                         # if item is already referenced in the DB
                         if child_name in remote_children:
@@ -474,20 +474,20 @@ class LocalWatcher(EngineWorker):
                     ):
                         log.trace(f"Update file {child_info.path!r}")
                         remote_ref = client.get_remote_id(child_pair.local_path)
-                        if remote_ref is not None and child_pair.remote_ref is None:
+                        if remote_ref and not child_pair.remote_ref:
                             log.debug(
                                 "Possible race condition between remote and local "
                                 f"scan, let's refresh pair: {child_pair!r}"
                             )
                             child_pair = dao.get_state_from_id(child_pair.id)
-                            if child_pair.remote_ref is None:
+                            if not child_pair.remote_ref:
                                 log.debug(
                                     "Pair not yet handled by remote scan "
                                     "(remote_ref is None) but existing remote_id "
                                     f"xattr, let's set it to None: {child_pair!r}"
                                 )
                                 client.remove_remote_id(child_pair.local_path)
-                                remote_ref = None
+                                remote_ref = ""
                         if remote_ref != child_pair.remote_ref:
                             # Load correct doc_pair | Put the others one back
                             # to children
@@ -496,7 +496,7 @@ class LocalWatcher(EngineWorker):
                                 f"{child_pair.local_path!r} "
                                 f"({remote_ref}/{child_pair.remote_ref})"
                             )
-                            if remote_ref is None:
+                            if not remote_ref:
                                 if not child_info.folderish:
                                     # Alternative stream or xattr can have
                                     # been removed by external software or user
@@ -563,7 +563,7 @@ class LocalWatcher(EngineWorker):
             log.debug(f"Found deleted file {deleted.local_path!r}")
             # May need to count the children to be ok
             self._metrics["delete_files"] += 1
-            if deleted.remote_ref is None:
+            if not deleted.remote_ref:
                 dao.remove_state(deleted)
             else:
                 self._delete_files[deleted.remote_ref] = deleted
@@ -805,7 +805,7 @@ class LocalWatcher(EngineWorker):
             # In case of case sensitive can be an issue
             if client.exists(doc_pair.local_path):
                 remote_id = client.get_remote_id(doc_pair.local_path)
-                if remote_id == doc_pair.remote_ref or remote_id is None:
+                if not remote_id or remote_id == doc_pair.remote_ref:
                     # This happens on update, don't do anything
                     return
             self._handle_watchdog_delete(doc_pair)
@@ -815,7 +815,7 @@ class LocalWatcher(EngineWorker):
         if evt.event_type == "created":
             # NXDRIVE-471 case maybe
             remote_ref = client.get_remote_id(rel_path)
-            if remote_ref is None:
+            if not remote_ref:
                 log.debug(
                     "Created event on a known pair with no remote_ref, this should "
                     f"only happen in case of a quick move and copy-paste: {doc_pair!r}"
@@ -849,7 +849,7 @@ class LocalWatcher(EngineWorker):
                         f"Digest has not changed for {rel_path!r} (watchdog event "
                         f"[{evt.event_type}]), only update last_local_updated"
                     )
-                    if local_info.remote_ref is None:
+                    if not local_info.remote_ref:
                         client.set_remote_id(rel_path, doc_pair.remote_ref)
                     dao.update_local_modification_time(doc_pair, local_info)
                     return
@@ -858,7 +858,7 @@ class LocalWatcher(EngineWorker):
                 doc_pair.local_state = "modified"
             if (
                 evt.event_type == "modified"
-                and doc_pair.remote_ref is not None
+                and doc_pair.remote_ref
                 and doc_pair.remote_ref != local_info.remote_ref
             ):
                 original_pair = dao.get_normal_state_from_remote(local_info.remote_ref)
@@ -994,7 +994,7 @@ class LocalWatcher(EngineWorker):
                 # If the file exists but not the pair
                 if local_info is not None and doc_pair is None:
                     # Check if it is a pair that we loose track of
-                    if local_info.remote_ref is not None:
+                    if local_info.remote_ref:
                         doc_pair = dao.get_normal_state_from_remote(
                             local_info.remote_ref
                         )
@@ -1040,7 +1040,7 @@ class LocalWatcher(EngineWorker):
                 return
 
             # This might be a move but Windows don't emit this event...
-            if local_info.remote_ref is not None:
+            if local_info.remote_ref:
                 moved = False
                 from_pair = dao.get_normal_state_from_remote(local_info.remote_ref)
                 if from_pair:

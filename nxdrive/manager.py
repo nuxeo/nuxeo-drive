@@ -664,13 +664,13 @@ class Manager(QObject):
         log.debug("No engine currently synchronizing")
         return False
 
-    def get_root_id(self, file_path: str) -> Optional[str]:
+    def get_root_id(self, file_path: str) -> str:
         ref = LocalClient.get_path_remote_id(file_path, "ndriveroot")
-        if ref is None:
+        if not ref:
             parent = os.path.dirname(file_path)
             # We can't find in any parent
             if parent == file_path or parent is None:
-                return None
+                return ""
             return self.get_root_id(parent)
         return ref
 
@@ -711,7 +711,7 @@ class Manager(QObject):
 
     def get_metadata_infos(self, file_path: str, edit: bool = False) -> str:
         remote_ref = LocalClient.get_path_remote_id(file_path)
-        if remote_ref is None:
+        if not remote_ref:
             raise ValueError(f"Could not find file {file_path!r} as {APP_NAME} managed")
 
         root_id = self.get_root_id(file_path)

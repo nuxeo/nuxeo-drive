@@ -66,10 +66,10 @@ class TestLocalCreations(UnitTestCase):
 
         # Get remote folders reference IDs
         remote_ref_1 = local.get_remote_id("/A")
-        assert remote_ref_1 is not None
+        assert remote_ref_1
         assert remote.fs_exists(remote_ref_1)
         remote_ref_2 = local.get_remote_id("/B")
-        assert remote_ref_2 is not None
+        assert remote_ref_2
         assert remote.fs_exists(remote_ref_2)
 
         assert len(remote.get_fs_children(remote_ref_1)) == total_files

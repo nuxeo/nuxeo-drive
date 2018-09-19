@@ -191,7 +191,7 @@ class Processor(EngineWorker):
                         finder_info = self.local.get_remote_id(
                             doc_pair.local_path, "com.apple.FinderInfo"
                         )
-                        if finder_info is not None and "brokMACS" in finder_info:
+                        if "brokMACS" in finder_info:
                             log.trace(f"Skip as pair is in use by Finder: {doc_pair!r}")
                             self._postpone_pair(
                                 doc_pair, "Finder using file", interval=3
@@ -199,10 +199,7 @@ class Processor(EngineWorker):
                             continue
 
                 # TODO Update as the server dont take hash to avoid conflict yet
-                if (
-                    doc_pair.pair_state.startswith("locally")
-                    and doc_pair.remote_ref is not None
-                ):
+                if doc_pair.pair_state.startswith("locally") and doc_pair.remote_ref:
                     try:
                         remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
                         if (
@@ -226,7 +223,7 @@ class Processor(EngineWorker):
                             continue
                         doc_pair = refreshed
                     except NotFound:
-                        doc_pair.remote_ref = None
+                        doc_pair.remote_ref = ""
 
                 # NXDRIVE-842: parent is in disabled duplication error
                 parent_pair = self._get_normal_state_from_remote_ref(
@@ -606,7 +603,7 @@ class Processor(EngineWorker):
                 else:
                     parent_pair = None
 
-        if parent_pair is None or parent_pair.remote_ref is None:
+        if parent_pair is None or not parent_pair.remote_ref:
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             if parent_pair is not None and parent_pair.pair_state == "unsynchronized":
@@ -634,7 +631,7 @@ class Processor(EngineWorker):
                     doc_pair.folderish
                 ]
                 getattr(self.local, func)(doc_pair.local_path)
-                remote_ref = None
+                remote_ref = ""
 
         if remote_ref and info:
             try:
@@ -674,7 +671,7 @@ class Processor(EngineWorker):
                 )
                 # Document exists on the server
                 if (
-                    parent_pair.remote_ref is not None
+                    parent_pair.remote_ref
                     and parent_pair.remote_ref == fs_item_info.parent_uid
                     and self.local.is_equal_digests(
                         doc_pair.local_digest, fs_item_info.digest, doc_pair.local_path
@@ -845,7 +842,7 @@ class Processor(EngineWorker):
             self._synchronize_remotely_modified(refreshed_pair)
 
     def _synchronize_locally_moved_created(self, doc_pair: DocPair) -> None:
-        doc_pair.remote_ref = None
+        doc_pair.remote_ref = ""
         self._synchronize_locally_created(doc_pair)
 
     def _synchronize_locally_moved(
@@ -875,7 +872,7 @@ class Processor(EngineWorker):
                 return
 
         parent_ref = self.local.get_remote_id(doc_pair.local_parent_path)
-        if parent_ref is None:
+        if not parent_ref:
             parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
             parent_ref = parent_pair.remote_ref if parent_pair else None
         else:
@@ -1152,7 +1149,7 @@ class Processor(EngineWorker):
         else:
             path = doc_pair.local_path
             remote_ref = self.local.get_remote_id(doc_pair.local_path)
-            if remote_ref is not None and remote_ref == doc_pair.remote_ref:
+            if remote_ref and remote_ref == doc_pair.remote_ref:
                 log.debug(
                     f"remote_ref (xattr) = {remote_ref}, "
                     f"doc_pair.remote_ref = {doc_pair.remote_ref} "
@@ -1162,7 +1159,7 @@ class Processor(EngineWorker):
                 # TO_REVIEW May need to overwrite
                 self._dao.set_conflict_state(doc_pair)
                 return
-            elif remote_ref is not None:
+            elif remote_ref:
                 # Case of several documents with same name
                 # or case insensitive hard drive
                 path = self._create_remotely(doc_pair, parent_pair, name)

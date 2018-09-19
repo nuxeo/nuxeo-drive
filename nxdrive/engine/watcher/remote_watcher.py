@@ -448,10 +448,7 @@ class RemoteWatcher(EngineWorker):
                     child_pair = self._dao.get_state_from_local(child.path)
                     break
         if child_pair is not None:
-            if (
-                child_pair.remote_ref is not None
-                and child_pair.remote_ref != child_info.uid
-            ):
+            if child_pair.remote_ref and child_pair.remote_ref != child_info.uid:
                 log.debug(
                     "Got an existing pair with different id: "
                     f"{child_pair!r} | {child_info!r}"

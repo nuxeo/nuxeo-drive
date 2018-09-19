@@ -260,7 +260,7 @@ class Engine(QObject):
     def add_filter(self, path: str) -> None:
         remote_ref = os.path.basename(path)
         remote_parent_path = os.path.dirname(path)
-        if remote_ref is None:
+        if not remote_ref:
             return
         self._dao.add_filter(path)
         pair = self._dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
@@ -392,7 +392,7 @@ class Engine(QObject):
             return False
 
         self.local.remove_remote_id("/", tag)
-        return self.local.get_remote_id("/", tag) is None
+        return not bool(self.local.get_remote_id("/", tag))
 
     @staticmethod
     def _normalize_url(url: str) -> str:
@@ -768,7 +768,7 @@ class Engine(QObject):
 
         if os.path.isdir(path):
             root_id = self.local.get_root_id()
-            if root_id is not None:
+            if not root_id:
                 # server_url|user|device_id|uid
                 server_url, user, *_ = root_id.split("|")
                 if (self.server_url, self.remote_user) != (server_url, user):

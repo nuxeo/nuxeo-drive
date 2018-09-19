@@ -85,7 +85,7 @@ class FileInfo:
 
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
-        self.remote_ref = kwargs.pop("remote_ref", None)
+        self.remote_ref = kwargs.pop("remote_ref", "")
 
         # Last OS modification date of the file
         self.last_modification_time = last_modification_time
@@ -183,7 +183,7 @@ class LocalClient:
     def clean_xattr_folder_recursive(self, path: str) -> None:
         for child in self.get_children_info(path):
             locker = self.unlock_ref(child.path, unlock_parent=False)
-            if child.remote_ref is not None:
+            if child.remote_ref:
                 self.remove_remote_id(child.path)
             self.lock_ref(child.path, locker)
             if child.folderish:
@@ -195,7 +195,7 @@ class LocalClient:
     def set_root_id(self, value: bytes) -> None:
         self.set_remote_id("/", value, name="ndriveroot")
 
-    def get_root_id(self) -> Optional[str]:
+    def get_root_id(self) -> str:
         return self.get_remote_id("/", name="ndriveroot")
 
     def _remove_remote_id_windows(self, path: str, name: str = "ndrive") -> None:
@@ -389,21 +389,21 @@ FolderType=Generic
         finally:
             lock_path(path, locker)
 
-    def get_remote_id(self, ref: str, name: str = "ndrive") -> Optional[str]:
+    def get_remote_id(self, ref: str, name: str = "ndrive") -> str:
         path = self.abspath(ref)
         value = self.get_path_remote_id(path, name)
         log.trace(f"Getting xattr {name!r} from {path!r}: {value!r}")
         return value
 
     @staticmethod
-    def get_path_remote_id(path: str, name: str = "ndrive") -> Optional[str]:
+    def get_path_remote_id(path: str, name: str = "ndrive") -> str:
         if WINDOWS:
             path += ":" + name
             try:
                 with open(path, "rb") as f:
                     return f.read().decode("utf-8")
             except OSError:
-                return None
+                return ""
 
         if LINUX:
             name = "user." + name
@@ -411,7 +411,7 @@ FolderType=Generic
         try:
             return xattr.getxattr(path, name).decode("utf-8")
         except OSError:
-            return None
+            return ""
 
     def get_info(self, ref: str) -> FileInfo:
         if isinstance(ref, bytes):
