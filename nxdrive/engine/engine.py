@@ -293,7 +293,7 @@ class Engine(QObject):
             "jsf": f"{self.server_url}nxdoc/{repo}/{uid}/{page}?token={token}",
             "web": f"{self.server_url}ui?token={token}#!/doc/{uid}",
         }
-        return urls.get(self.force_ui or self.wui)
+        return urls[self.force_ui or self.wui]
 
     def get_remote_url(self) -> str:
         """
@@ -310,7 +310,7 @@ class Engine(QObject):
             ),
             "web": f"{self.server_url}ui?token={self.get_remote_token()}#!/drive",
         }
-        return urls.get(self.force_ui or self.wui)
+        return urls[self.force_ui or self.wui]
 
     def is_syncing(self) -> bool:
         return self._sync_started

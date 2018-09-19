@@ -254,7 +254,7 @@ class DirectEditErrorLockNotification(Notification):
         elif action == "unlock":
             action = "UNLOCK"
         else:
-            raise ValueError("Invalid action: %r not in (lock, unlock)", locals())
+            raise ValueError(f"Invalid action: {locals()!r} not in (lock, unlock)")
         title = f"DIRECT_EDIT_{action}_ERROR"
         description = f"{title}_DESCRIPTION"
 
@@ -516,7 +516,7 @@ class DefaultNotificationService(NotificationService):
             return
         self.send_notification(ConflictNotification(engine_uid, doc_pair))
 
-    def _newReadonly(self, filename: str, parent: str) -> None:
+    def _newReadonly(self, filename: str, parent: str = None) -> None:
         engine_uid = self.sender().uid
         self.send_notification(ReadOnlyNotification(engine_uid, filename, parent))
 

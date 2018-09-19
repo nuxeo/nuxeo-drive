@@ -1,9 +1,9 @@
 # coding: utf-8
 from logging import getLogger
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from ..constants import MAC, WINDOWS
-from ..objects import NuxeoDocumentInfo
+from ..objects import DocPair
 
 log = getLogger(__name__)
 
@@ -50,7 +50,7 @@ class AbstractOSIntegration:
     def unwatch_folder(self, folder: str) -> None:
         pass
 
-    def send_sync_status(self, state: NuxeoDocumentInfo, path: str) -> None:
+    def send_sync_status(self, state: Optional[DocPair], path: str) -> None:
         pass
 
     def register_folder_link(self, folder_path: str, name: str = None) -> None:
@@ -61,6 +61,12 @@ class AbstractOSIntegration:
 
     def get_system_configuration(self) -> Dict[str, Any]:
         return dict()
+
+    def _init(self) -> None:
+        pass
+
+    def _cleanup(self) -> None:
+        pass
 
     @staticmethod
     def get(manager: object) -> "AbstractOSIntegration":

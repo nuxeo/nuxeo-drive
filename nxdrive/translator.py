@@ -110,10 +110,10 @@ class Translator(QTranslator):
     def _locale(self) -> str:
         return self._current_lang
 
-    def _languages(self) -> List[Dict[str, str]]:
+    def _languages(self) -> List[Tuple[str, str]]:
         return sorted(self._langs.values())
 
-    def _translations(self) -> List[Dict[str, str]]:
+    def _translations(self) -> List[Tuple[str, Dict[str, str]]]:
         return sorted(self._labels.items())
 
     @staticmethod
@@ -143,13 +143,13 @@ class Translator(QTranslator):
         return Translator._singleton._get(label, values)
 
     @staticmethod
-    def languages() -> List[Dict[str, str]]:
+    def languages() -> List[Tuple[str, str]]:
         if Translator._singleton is None:
             raise RuntimeError("Translator not initialized")
         return Translator._singleton._languages()
 
     @staticmethod
-    def translations() -> List[Dict[str, str]]:
+    def translations() -> List[Tuple[str, Dict[str, str]]]:
         if Translator._singleton is None:
             raise RuntimeError("Translator not initialized")
         return Translator._singleton._translations()

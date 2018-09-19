@@ -183,7 +183,7 @@ class DarwinIntegration(AbstractOSIntegration):
         self._set_monitoring("unwatch", folder)
 
     @if_frozen
-    def send_sync_status(self, state: DocPair, path: str) -> None:
+    def send_sync_status(self, state: Optional[DocPair], path: str) -> None:
         """
         Send the sync status of a file to the FinderSync.
 

@@ -4,8 +4,9 @@ from logging import getLogger
 
 from PyQt5.QtCore import pyqtSlot
 
+from ...constants import MAX_LOG_DISPLAYED
 from ...gui.dialog import QMLDriveApi
-from ...logging_config import MAX_LOG_DISPLAYED, get_handler
+from ...logging_config import get_handler
 
 __all__ = ()
 

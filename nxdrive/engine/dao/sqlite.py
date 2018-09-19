@@ -15,7 +15,7 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from threading import RLock, current_thread, local
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Type
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -707,7 +707,7 @@ class EngineDAO(ConfigurationDAO):
             )
 
     def insert_local_state(self, info: FileInfo, parent_path: str) -> int:
-        pair_state = PAIR_STATES.get(("created", "unknown"))
+        pair_state = PAIR_STATES[("created", "unknown")]
         digest = info.get_digest()
         with self._lock:
             con = self._get_write_connection()
@@ -838,8 +838,11 @@ class EngineDAO(ConfigurationDAO):
         else:
             log.trace(f"Will not push pair: {pair_state}, pair={pair!r}")
 
-    def _get_pair_state(self, row):
-        return PAIR_STATES.get((row.local_state, row.remote_state))
+    def _get_pair_state(self, row: DocPair) -> str:
+        state = PAIR_STATES.get((row.local_state, row.remote_state))
+        if not state:
+            raise ValueError("Unable to find document state")
+        return state
 
     def update_last_transfer(self, row_id: int, transfer: str) -> None:
         with self._lock:
@@ -1207,7 +1210,7 @@ class EngineDAO(ConfigurationDAO):
         local_path: str,
         local_parent_path: str,
     ) -> int:
-        pair_state = PAIR_STATES.get(("unknown", "created")) or ""
+        pair_state = PAIR_STATES[("unknown", "created")]
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -1624,9 +1627,14 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute("DELETE FROM ToRemoteScan WHERE path = ?", (path,))
 
-    def get_paths_to_scan(self) -> List[Tuple[str, ...]]:
+    def get_paths_to_scan(self) -> Iterator[str]:
         c = self._get_read_connection().cursor()
-        return c.execute("SELECT * FROM ToRemoteScan").fetchall()
+        c.execute("SELECT * FROM ToRemoteScan")
+        while True:
+            res = c.fetchone()
+            if not res:
+                break
+            yield res.path
 
     def add_path_scanned(self, path: str) -> None:
         path = self._clean_filter_path(path)

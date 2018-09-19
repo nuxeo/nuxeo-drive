@@ -157,13 +157,13 @@ class Remote(Nuxeo):
         self, url: str, file_out: str = None, digest: str = None, **kwargs: Any
     ) -> str:
         log.trace(
-            "Downloading file from %r to %r with digest=%r", url, file_out, digest
+            f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
         )
 
         resp = self.client.request("GET", url.replace(self.client.host, ""))
 
         current_action = Action.get_current_action()
-        if current_action and resp:
+        if isinstance(current_action, FileAction) and resp:
             current_action.size = int(resp.headers.get("Content-Length", 0))
 
         if file_out:
@@ -469,7 +469,7 @@ class Remote(Nuxeo):
         except HTTPError as e:
             if e.status == 404:
                 raise NotFound(
-                    "Failed to fetch document %r on server %r" % (ref, self.client.host)
+                    f"Failed to fetch document {ref!r} on server {self.client.host!r}"
                 )
             raise e
 

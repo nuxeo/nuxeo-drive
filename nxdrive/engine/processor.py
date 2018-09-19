@@ -221,9 +221,10 @@ class Processor(EngineWorker):
                         if doc_pair.pair_state == "conflicted":
                             continue
 
-                        doc_pair = self._dao.get_state_from_id(doc_pair.id)
-                        if not doc_pair or not self.check_pair_state(doc_pair):
+                        refreshed = self._dao.get_state_from_id(doc_pair.id)
+                        if not refreshed or not self.check_pair_state(refreshed):
                             continue
+                        doc_pair = refreshed
                     except NotFound:
                         doc_pair.remote_ref = None
 
@@ -453,12 +454,13 @@ class Processor(EngineWorker):
             remote_info.name != doc_pair.local_name
             or remote_info.digest != doc_pair.local_digest
         ):
-            doc_pair = self._dao.get_state_from_local(doc_pair.local_path)
-            log.debug(
-                f"Forcing remotely_modified for pair={doc_pair!r} "
-                f"with info={remote_info!r}"
-            )
-            self._synchronize_remotely_modified(doc_pair)
+            modified = self._dao.get_state_from_local(doc_pair.local_path)
+            if modified:
+                log.debug(
+                    f"Forcing remotely_modified for pair={modified!r} "
+                    f"with info={remote_info!r}"
+                )
+                self._synchronize_remotely_modified(modified)
             return
 
         # Force computation of local digest to catch local modifications
@@ -660,8 +662,9 @@ class Processor(EngineWorker):
                         versioned=False,
                     )
                     # Handle document modification - update the doc_pair
-                    doc_pair = self._dao.get_state_from_id(doc_pair.id)
-                    self._synchronize_locally_modified(doc_pair)
+                    refreshed = self._dao.get_state_from_id(doc_pair.id)
+                    if refreshed:
+                        self._synchronize_locally_modified(refreshed)
                     return
 
                 fs_item_info = self.remote.get_fs_info(remote_ref)
@@ -776,7 +779,7 @@ class Processor(EngineWorker):
             except NotFound:
                 new_pair = self._dao.get_state_from_id(doc_pair.id)
                 # File has been moved during creation
-                if new_pair.local_path != doc_pair.local_path:
+                if new_pair and new_pair.local_path != doc_pair.local_path:
                     self.local.set_remote_id(new_pair.local_path, remote_ref)
                     self._synchronize_locally_moved(new_pair, update=False)
                     return
@@ -838,7 +841,8 @@ class Processor(EngineWorker):
     def _synchronize_locally_moved_remotely_modified(self, doc_pair: DocPair) -> None:
         self._synchronize_locally_moved(doc_pair, update=False)
         refreshed_pair = self._dao.get_state_from_id(doc_pair.id)
-        self._synchronize_remotely_modified(refreshed_pair)
+        if refreshed_pair:
+            self._synchronize_remotely_modified(refreshed_pair)
 
     def _synchronize_locally_moved_created(self, doc_pair: DocPair) -> None:
         doc_pair.remote_ref = None
@@ -873,7 +877,7 @@ class Processor(EngineWorker):
         parent_ref = self.local.get_remote_id(doc_pair.local_parent_path)
         if parent_ref is None:
             parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
-            parent_ref = parent_pair.remote_ref
+            parent_ref = parent_pair.remote_ref if parent_pair else None
         else:
             parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
 
@@ -1177,6 +1181,8 @@ class Processor(EngineWorker):
             )
             # Need to check if this is a remote or local change
             new_pair = self._dao.get_state_from_id(doc_pair.id)
+            if not new_pair:
+                return
             # Only local 'moved' change that can happen on
             # a pair with processor
             if new_pair.local_state == "moved":
@@ -1290,9 +1296,10 @@ class Processor(EngineWorker):
     ) -> None:
         if remote_info is None:
             remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
-        self._dao.update_remote_state(
-            doc_pair, remote_info, versioned=False, queue=False
-        )
+        if remote_info:
+            self._dao.update_remote_state(
+                doc_pair, remote_info, versioned=False, queue=False
+            )
 
     def _refresh_local_state(self, doc_pair: DocPair, local_info: FileInfo) -> None:
         if doc_pair.local_digest is None and not doc_pair.folderish:
@@ -1342,12 +1349,12 @@ class Processor(EngineWorker):
                     # Remove "new" created tree
                     pairs = self._dao.get_states_from_partial_local(
                         target_pair.local_path
-                    ).all()
+                    )
                     for pair in pairs:
                         self._dao.remove_state(pair)
                     pairs = self._dao.get_states_from_partial_local(
                         source_pair.local_path
-                    ).all()
+                    )
                     for pair in pairs:
                         self._dao.synchronize_state(pair)
                 else:

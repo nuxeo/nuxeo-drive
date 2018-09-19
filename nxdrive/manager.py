@@ -81,7 +81,7 @@ class Manager(QObject):
             normalized_path(self.nxdrive_home), "edit"
         )
 
-        self._engine_definitions: Optional[List[EngineDef]] = None
+        self._engine_definitions: List[EngineDef] = []
 
         from .engine.engine import Engine
         from .engine.next.engine_next import EngineNext
@@ -525,7 +525,7 @@ class Manager(QObject):
         return urlp.hostname
 
     def check_local_folder_available(self, local_folder: str) -> bool:
-        if self._engine_definitions is None:
+        if not self._engine_definitions:
             return True
         if not local_folder.endswith("/"):
             local_folder += "/"
@@ -540,10 +540,10 @@ class Manager(QObject):
     def update_engine_path(self, uid: str, local_folder: str) -> None:
         # Dont update the engine by itself,
         # should be only used by engine.update_engine_path
-        if uid in self._engine_definitions:
+        if uid in self._engines:
             # Unwatch old folder
-            self.osi.unwatch_folder(self._engine_definitions[uid].local_folder)
-            self._engine_definitions[uid].local_folder = local_folder
+            self.osi.unwatch_folder(self._engines[uid].local_folder)
+            self._engines[uid].local_folder = local_folder
         # Watch new folder
         self.osi.watch_folder(local_folder)
         self._dao.update_engine_path(uid, local_folder)
@@ -557,7 +557,7 @@ class Manager(QObject):
         starts: bool = True,
     ) -> "Engine":
         """Bind a local folder to a remote nuxeo server"""
-        if name is None and hasattr(binder, "url"):
+        if name is None:
             name = self._get_engine_name(binder.url)
         if hasattr(binder, "url"):
             url = binder.url
@@ -715,7 +715,7 @@ class Manager(QObject):
             raise ValueError(f"Could not find file {file_path!r} as {APP_NAME} managed")
 
         root_id = self.get_root_id(file_path)
-        root_values = root_id.split("|")
+        root_values = root_id.split("|") if root_id else []
         try:
             engine = self.get_engines()[root_values[3]]
         except:

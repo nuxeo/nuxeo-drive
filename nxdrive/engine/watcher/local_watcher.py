@@ -604,12 +604,14 @@ class LocalWatcher(EngineWorker):
         self._root_event_handler = DriveFSRootEventHandler(
             self, basename(base), ignore_patterns=ignore_patterns
         )
-        self._observer = Observer()
-        self._observer.schedule(self._event_handler, base, recursive=True)
-        self._observer.start()
-        self._root_observer = Observer()
-        self._root_observer.schedule(self._root_event_handler, dirname(base))
-        self._root_observer.start()
+        observer = Observer()
+        observer.schedule(self._event_handler, base, recursive=True)
+        observer.start()
+        self._observer = observer
+        root_observer = Observer()
+        root_observer.schedule(self._root_event_handler, dirname(base))
+        root_observer.start()
+        self._root_observer = root_observer
 
     def _stop_watchdog(self) -> None:
         if self._observer is not None:
@@ -1041,7 +1043,7 @@ class LocalWatcher(EngineWorker):
             if local_info.remote_ref is not None:
                 moved = False
                 from_pair = dao.get_normal_state_from_remote(local_info.remote_ref)
-                if from_pair is not None:
+                if from_pair:
                     if from_pair.processor > 0 or from_pair.local_path == rel_path:
                         # First condition is in process
                         # Second condition is a race condition
@@ -1075,7 +1077,8 @@ class LocalWatcher(EngineWorker):
                         )
                         if src_parent and not src_parent.remote_can_create_child:
                             self.engine.newReadonly.emit(
-                                from_pair.local_name, dst_parent.remote_name
+                                from_pair.local_name,
+                                dst_parent.remote_name if dst_parent else None,
                             )
                             log.debug(
                                 "Converting the move to a create for "

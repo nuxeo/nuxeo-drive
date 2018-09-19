@@ -81,7 +81,7 @@ class Application(QApplication):
         self.setQuitOnLastWindowClosed(False)
 
         self._conflicts_modals: Dict[str, bool] = dict()
-        self.current_notification = None
+        self.current_notification: Optional[Notification] = None
         self.default_tooltip = self.manager.app_name
 
         font = QFont("Helvetica, Arial, sans-serif", 12)

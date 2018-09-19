@@ -35,7 +35,7 @@ class FolderAlreadyUsed(DriveError):
 
 
 class InvalidDriveException(DriveError):
-    """ The bound folder cannot be used on this gile system. """
+    """ The bound folder cannot be used on this file system. """
 
     pass
 
@@ -57,9 +57,9 @@ class ParentNotSynced(ValueError):
         self.local_parent_path = local_parent_path
 
     def __repr__(self) -> str:
-        return "Parent folder of %r, %r is not bound to a remote folder" % (
-            self.local_path,
-            self.local_parent_path,
+        return (
+            f"Parent folder of {self.local_path!r}, {self.local_parent_path!r} "
+            "is not bound to a remote folder"
         )
 
     def __str__(self) -> str:

@@ -719,10 +719,7 @@ FolderType=Generic
             self.lock_ref(parent, locker & 1 | new_locker, is_abs=True)
 
     def change_file_date(
-        self,
-        filename: str,
-        mtime: Union[datetime, str] = None,
-        ctime: Union[datetime, float, str] = None,
+        self, filename: str, mtime: str = None, ctime: str = None
     ) -> None:
         """
         Change the FS modification and creation dates of a file.
@@ -745,10 +742,7 @@ FolderType=Generic
         # Set the creation time first as on macOS using touch will change ctime and mtime.
         # The modification time will be updated just after, if needed.
         if ctime:
-            try:
-                d_ctime = datetime.fromtimestamp(float(ctime))
-            except (TypeError, ValueError):
-                d_ctime = datetime.strptime(str(ctime), "%Y-%m-%d %H:%M:%S")
+            d_ctime = datetime.strptime(str(ctime), "%Y-%m-%d %H:%M:%S")
 
             if MAC:
                 if isinstance(filename, bytes):
@@ -772,10 +766,7 @@ FolderType=Generic
                 win32file.SetFileTime(winfile, d_ctime)
 
         if mtime:
-            try:
-                d_mtime = float(mtime)
-            except ValueError:
-                d_mtime = mktime(strptime(str(mtime), "%Y-%m-%d %H:%M:%S"))
+            d_mtime = mktime(strptime(str(mtime), "%Y-%m-%d %H:%M:%S"))
             os.utime(filename, (d_mtime, d_mtime))
 
     def get_path(self, abspath: str) -> str:
