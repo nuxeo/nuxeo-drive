@@ -5,7 +5,7 @@ import os
 import platform
 import sys
 from logging import getLogger
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING
 
 from PyQt5.QtCore import QTimer, pyqtSlot
 from UniversalAnalytics import Tracker as UATracker
@@ -16,6 +16,10 @@ from ..objects import NuxeoDocumentInfo
 
 if MAC:
     from Foundation import NSLocale
+
+if TYPE_CHECKING:
+    from .engine.engine import Engine  # noqa
+    from .manager import Manager  # noqa
 
 __all__ = ("Tracker",)
 
@@ -63,7 +67,9 @@ class Tracker(Worker):
 
         encoding = locale.getdefaultlocale()[1] or ""
         if WINDOWS:
-            l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+            l10n_code = (
+                ctypes.windll.kernel32.GetUserDefaultUILanguage()  # type: ignore
+            )
             l10n = locale.windows_locale[l10n_code]
         elif MAC:
             l10n_code = NSLocale.currentLocale()

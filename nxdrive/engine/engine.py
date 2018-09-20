@@ -4,7 +4,7 @@ import os
 from logging import getLogger
 from threading import Thread, current_thread
 from time import sleep
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from dataclasses import dataclass
@@ -37,6 +37,9 @@ from ..utils import (
     set_path_readonly,
     unset_path_readonly,
 )
+
+if TYPE_CHECKING:
+    from .manager import Manager  # noqa
 
 __all__ = ("Engine", "ServerBindingSettings")
 
@@ -441,7 +444,7 @@ class Engine(QObject):
         )
 
     def get_binder(self) -> "ServerBindingSettings":
-        return ServerBindingSettings(
+        return ServerBindingSettings(  # type: ignore
             self.server_url,
             self._web_authentication,
             self.remote_user,
@@ -768,7 +771,7 @@ class Engine(QObject):
 
         if os.path.isdir(path):
             root_id = self.local.get_root_id()
-            if not root_id:
+            if root_id:
                 # server_url|user|device_id|uid
                 server_url, user, *_ = root_id.split("|")
                 if (self.server_url, self.remote_user) != (server_url, user):

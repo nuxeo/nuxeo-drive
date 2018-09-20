@@ -4,9 +4,12 @@ import json
 import os
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
+
+if TYPE_CHECKING:
+    from .manager import Manager  # noqa
 
 __all__ = ("Translator",)
 

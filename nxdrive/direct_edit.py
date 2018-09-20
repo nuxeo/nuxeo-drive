@@ -5,7 +5,7 @@ from datetime import datetime
 from logging import getLogger
 from queue import Empty, Queue
 from time import sleep
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, TYPE_CHECKING
 from urllib.parse import quote
 
 from nuxeo.utils import get_digest_algorithm
@@ -29,6 +29,10 @@ from .utils import (
     simplify_url,
     unset_path_readonly,
 )
+
+if TYPE_CHECKING:
+    from .engine.engine import Engine  # noqa
+    from .manager import Manager  # noqa
 
 __all__ = ("DirectEdit",)
 
@@ -228,7 +232,9 @@ class DirectEdit(Worker):
         )
 
         # Close to processor method - should try to refactor ?
-        pair = engine.get_dao().get_valid_duplicate_file(info.digest)
+        pair = None
+        if info.digest:
+            pair = engine.get_dao().get_valid_duplicate_file(info.digest)
         if pair:
             existing_file_path = engine.local.abspath(pair.local_path)
             log.debug(
@@ -458,7 +464,7 @@ class DirectEdit(Worker):
         manager = self._manager
         for engine in manager._engine_definitions:
             dao = manager._engines[engine.uid]._dao
-            state = dao.get_states_from_remote(ref)
+            state = dao.get_normal_state_from_remote(ref)
             if state:
                 path = os.path.join(engine.local_folder, state.local_path)
                 manager.osi.send_sync_status(state, path)
@@ -490,7 +496,7 @@ class DirectEdit(Worker):
                 # Update the document, should verify
                 # the remote hash NXDRIVE-187
                 remote_info = engine.remote.get_info(uid)
-                if remote_info.digest != digest:
+                if remote_info and remote_info.digest != digest:
                     # Conflict detect
                     log.trace(
                         f"Remote digest: {remote_info.digest} is different from the "
@@ -503,9 +509,7 @@ class DirectEdit(Worker):
 
                 os_path = self.local.abspath(ref)
                 log.debug(f"Uploading file {os_path!r}")
-                engine.remote.stream_update(
-                    uid, os_path, fs=False, apply_versioning_policy=True
-                )
+                engine.remote.stream_attach(uid, os_path)
 
                 # Update hash value
                 dir_path = os.path.dirname(ref)

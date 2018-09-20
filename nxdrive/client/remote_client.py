@@ -106,7 +106,7 @@ class Remote(Nuxeo):
     def __repr__(self) -> str:
         attrs = ", ".join(
             f"{attr}={getattr(self, attr, None)!r}"
-            for attr in sorted(self.__init__.__code__.co_varnames[1:])
+            for attr in sorted(self.__init__.__code__.co_varnames[1:])  # type: ignore
         )
         return f"<{self.__class__.__name__} {attrs}>"
 
@@ -371,30 +371,26 @@ class Remote(Nuxeo):
         file_path: str,
         parent_fs_item_id: str = None,
         filename: str = None,
-        mime_type: str = None,
-        fs: bool = True,
-        apply_versioning_policy: bool = False,
-    ) -> Optional[RemoteFileInfo]:
+    ) -> RemoteFileInfo:
         """Update a document by streaming the file with the given path"""
-        if fs:
-            fs_item = self.upload(
-                file_path,
-                "NuxeoDrive.UpdateFile",
-                filename=filename,
-                id=fs_item_id,
-                parentId=parent_fs_item_id,
-            )
-            return RemoteFileInfo.from_dict(fs_item)
+        fs_item = self.upload(
+            file_path,
+            "NuxeoDrive.UpdateFile",
+            filename=filename,
+            id=fs_item_id,
+            parentId=parent_fs_item_id,
+        )
+        return RemoteFileInfo.from_dict(fs_item)
 
+    def stream_attach(
+        self, fs_item_id: str, file_path: str, apply_versioning_policy: bool = True
+    ) -> None:
         self.upload(
             file_path,
             "NuxeoDrive.AttachBlob",
-            filename=filename,
-            mime_type=mime_type,
             document=self._check_ref(fs_item_id),
             applyVersioningPolicy=apply_versioning_policy,
         )
-        return None
 
     def delete(self, fs_item_id: str, parent_fs_item_id: str = None) -> None:
         self.operations.execute(

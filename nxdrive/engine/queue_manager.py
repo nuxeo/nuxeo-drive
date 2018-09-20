@@ -5,13 +5,17 @@ from copy import deepcopy
 from logging import getLogger
 from queue import Empty, Queue
 from threading import Lock
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 
 from .dao.sqlite import EngineDAO
 from .processor import Processor
 from ..objects import DocPair, Metrics
+
+if TYPE_CHECKING:
+    from .engine.engine import Engine  # noqa
+    from .manager import Manager  # noqa
 
 __all__ = ("QueueManager",)
 
@@ -259,14 +263,15 @@ class QueueManager(QObject):
         self, doc_pair: DocPair, exception: Exception = None, interval: int = None
     ) -> None:
         error_count = doc_pair.error_count
+        err_code = WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE
         if (
             isinstance(exception, OSError)
-            and hasattr(exception, "winerror")
-            and exception.winerror == WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE
+            and getattr(exception, "winerror", None) == err_code
         ):
             strerror = exception.strerror if hasattr(exception, "strerror") else ""
             log.debug(
-                f"Detected WindowsError with code {exception.winerror}: {strerror!r}, "
+                "Detected WindowsError with code "  # type: ignore
+                f"{exception.winerror}: {strerror!r}, "
                 "won't increase next try interval"
             )
             error_count = 1
@@ -456,19 +461,19 @@ class QueueManager(QObject):
     def get_processors_on(self, path: str, exact_match: bool = True) -> List[Processor]:
         with self._thread_inspection:
             res = []
-            if self.is_processing_file(
+            if self._local_folder_thread and self.is_processing_file(
                 self._local_folder_thread, path, exact_match=exact_match
             ):
                 res.append(self._local_folder_thread.worker)
-            elif self.is_processing_file(
+            elif self._remote_folder_thread and self.is_processing_file(
                 self._remote_folder_thread, path, exact_match=exact_match
             ):
                 res.append(self._remote_folder_thread.worker)
-            elif self.is_processing_file(
+            elif self._local_file_thread and self.is_processing_file(
                 self._local_file_thread, path, exact_match=exact_match
             ):
                 res.append(self._local_file_thread.worker)
-            elif self.is_processing_file(
+            elif self._remote_file_thread and self.is_processing_file(
                 self._remote_file_thread, path, exact_match=exact_match
             ):
                 res.append(self._remote_file_thread.worker)

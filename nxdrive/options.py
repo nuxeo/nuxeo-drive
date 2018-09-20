@@ -52,8 +52,10 @@ import os.path
 import sys
 from contextlib import suppress
 from copy import deepcopy
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Tuple, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from .options_updater import ServerOptionsUpdater  # noqa
 
 __all__ = ("Options", "server_updater")
 
@@ -109,8 +111,7 @@ class MetaOptions(type):
         "manual": 4,
     }
 
-    @staticmethod
-    def __get_home() -> str:
+    def __get_home(*_) -> str:
         """
         Get the user home directory.
 
@@ -137,7 +138,7 @@ class MetaOptions(type):
         return os.path.expanduser("~")
 
     # Cache the home directory for later use
-    __home: str = __get_home.__func__()
+    __home: str = __get_home()
 
     # Default options
     options: Dict[str, Tuple[Any, str]] = {
@@ -368,39 +369,6 @@ def server_updater(*args: Any) -> "ServerOptionsUpdater":
     We use this to prevent loading any Drive related stuff and keep
     the possibility to import other classes without anything else needed.
     """
-
-    from PyQt5.QtCore import pyqtSlot
-    from .engine.workers import PollWorker
-
-    class ServerOptionsUpdater(PollWorker):
-        """ Class for checking the server's config.json updates. """
-
-        def __init__(self, manager):
-            super().__init__(Options.update_check_delay)
-            self.manager = manager
-
-        @pyqtSlot(result=bool)
-        def _poll(self) -> bool:
-            """ Check for the configuration file and apply updates. """
-
-            for _, engine in self.manager._engines.items():
-                client = engine.remote.client if engine.remote else None
-                if not client:
-                    continue
-
-                try:
-                    resp = client.request(
-                        "GET", client.api_path + "/drive/configuration"
-                    )
-                    conf = resp.json()
-                except Exception as exc:
-                    log.error(f"Polling error: {exc!r}")
-                    engine.set_ui("jsf", overwrite=False)
-                else:
-                    engine.set_ui(conf.pop("ui"), overwrite=False)
-                    Options.update(conf, setter="server", fail_on_error=True)
-                    break
-
-            return True
+    from .options_updater import ServerOptionsUpdater  # noqa
 
     return ServerOptionsUpdater(*args)

@@ -4,7 +4,7 @@ import os
 from logging import getLogger
 from queue import Queue
 from time import sleep, time
-from typing import Dict, Union
+from typing import Dict, Union, TYPE_CHECKING
 
 from watchdog.events import DirModifiedEvent, FileSystemEvent, FileSystemMovedEvent
 
@@ -13,6 +13,9 @@ from ...engine.dao.sqlite import EngineDAO
 from ...engine.watcher.local_watcher import LocalWatcher
 from ...exceptions import ThreadInterrupt
 from ...utils import current_milli_time, normalize_event_filename
+
+if TYPE_CHECKING:
+    from .engine.engine import Engine  # noqa
 
 __all__ = ("SimpleWatcher",)
 

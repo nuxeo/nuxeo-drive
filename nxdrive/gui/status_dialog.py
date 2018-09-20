@@ -1,5 +1,6 @@
 # coding: utf-8
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, QVariant, Qt, pyqtSlot
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
@@ -15,6 +16,9 @@ from PyQt5.QtWidgets import (
 from .folders_treeview import Overlay
 from ..constants import APP_NAME
 from ..objects import DocPair
+
+if TYPE_CHECKING:
+    from ..engine.dao.sqlite import EngineDAO  # noqa
 
 __all__ = ("StatusDialog",)
 

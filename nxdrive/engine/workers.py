@@ -3,7 +3,7 @@ from contextlib import suppress
 from logging import getLogger
 from threading import current_thread
 from time import sleep, time
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
 
@@ -11,6 +11,9 @@ from .activity import Action, IdleAction
 from .dao.sqlite import EngineDAO
 from ..exceptions import ThreadInterrupt
 from ..objects import Metrics, DocPair
+
+if TYPE_CHECKING:
+    from .engine.engine import Engine  # noqa
 
 __all__ = ("EngineWorker", "PollWorker", "Worker")
 
@@ -24,7 +27,7 @@ class Worker(QObject):
     _continue = False
     _action = None
     _name = None
-    _thread_id = None
+    _thread_id: int
     engine: "Engine" = None
     _pause = False
 
@@ -170,7 +173,10 @@ class Worker(QObject):
         self._running = True
         self._continue = True
         self._pause = False
-        self._thread_id = current_thread().ident
+        thread_id = current_thread().ident
+        if not thread_id:
+            raise RuntimeError("Unable to start thread")
+        self._thread_id = thread_id
         try:
             try:
                 self._execute()

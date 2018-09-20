@@ -5,16 +5,19 @@ import subprocess
 import unicodedata
 import uuid
 from logging import getLogger
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING
 from urllib.parse import urlparse
 
 from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
 from PyQt5.sip import SIP_VERSION_STR
 
 from . import __version__
+from .autolocker import ProcessAutoLockerWorker
 from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
 from .constants import APP_NAME, MAC, WINDOWS
+from .engine.dao.sqlite import ManagerDAO
+from .engine.engine import Engine
 from .exceptions import EngineTypeMissing, FolderAlreadyUsed
 from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
@@ -32,6 +35,15 @@ from .utils import (
 
 if WINDOWS:
     import win32api
+
+if TYPE_CHECKING:
+    from .client.proxy import Proxy  # noqa
+    from .direct_edit import DirectEdit  # noqa
+    from .engine.tracker import Tracker  # noqa
+    from .options_updater import ServerOptionsUpdater  # noqa
+    from .osi.darwin.darwin import FinderSyncServer  # noqa
+    from .updater import Updater  # noqa
+
 
 __all__ = ("Manager",)
 
@@ -52,6 +64,7 @@ class Manager(QObject):
 
     _singleton: Optional["Manager"] = None
     __device_id = None
+    autolock_service: ProcessAutoLockerWorker
 
     @staticmethod
     def get() -> Optional["Manager"]:
@@ -83,7 +96,6 @@ class Manager(QObject):
 
         self._engine_definitions: List[EngineDef] = []
 
-        from .engine.engine import Engine
         from .engine.next.engine_next import EngineNext
 
         self._engine_types: Dict[str, Type[Engine]] = {
@@ -91,8 +103,7 @@ class Manager(QObject):
             "NXDRIVENEXT": EngineNext,
         }
         self._engines: Dict[str, Union[Engine, EngineNext]] = {}
-        self.updater = None
-        self.server_config_updater: Optional["ServerConfigUpdater"] = None
+        self.server_config_updater: Optional["ServerOptionsUpdater"] = None
 
         if Options.proxy_server is not None:
             self.proxy = get_proxy(category="Manual", url=Options.proxy_server)
@@ -146,7 +157,7 @@ class Manager(QObject):
         self._create_server_config_updater()
 
         # Create the application update verification thread
-        self.updater = self._create_updater()
+        self.updater: "Updater" = self._create_updater()
 
         # Setup analytics tracker
         self._tracker = self._create_tracker()
@@ -202,8 +213,7 @@ class Manager(QObject):
         if self.get_auto_start():
             self.osi.register_startup()
 
-    def _create_autolock_service(self) -> "ProcessAutoLockerWorker":
-        from .autolocker import ProcessAutoLockerWorker
+    def _create_autolock_service(self) -> ProcessAutoLockerWorker:
 
         self.autolock_service = ProcessAutoLockerWorker(
             30, self._dao, folder=self.direct_edit_folder
@@ -215,7 +225,7 @@ class Manager(QObject):
         if not self.get_tracking():
             return None
 
-        from .engine.tracker import Tracker
+        from .engine.tracker import Tracker  # noqa
 
         tracker = Tracker(self)
         # Start the tracker when we launch
@@ -225,12 +235,10 @@ class Manager(QObject):
     def _get_db(self) -> str:
         return os.path.join(normalized_path(self.nxdrive_home), "manager.db")
 
-    def get_dao(self) -> "ManagerDAO":  # TODO: Remove
+    def get_dao(self) -> ManagerDAO:  # TODO: Remove
         return self._dao
 
     def _create_dao(self) -> None:
-        from .engine.dao.sqlite import ManagerDAO
-
         self._dao = ManagerDAO(self._get_db())
 
     def _create_server_config_updater(self) -> None:
@@ -241,14 +249,14 @@ class Manager(QObject):
         if self.server_config_updater:
             self.started.connect(self.server_config_updater._thread.start)
 
-    def _create_updater(self) -> "Updater":
+    def _create_updater(self) -> "Updater":  # type: ignore
         updater_ = updater(self)
         self.started.connect(updater_._thread.start)
         return updater_
 
     @if_frozen
     def _create_findersync_listener(self) -> "FinderSyncServer":
-        from .osi.darwin.darwin import FinderSyncServer
+        from .osi.darwin.darwin import FinderSyncServer  # noqa
 
         self._findersync_listener = FinderSyncServer(self)
         self._findersync_listener.listening.connect(self.osi._init)
@@ -263,7 +271,7 @@ class Manager(QObject):
             self.updater.refresh_status()
 
     def _create_direct_edit(self, url: str) -> "DirectEdit":
-        from .direct_edit import DirectEdit
+        from .direct_edit import DirectEdit  # noqa
 
         self.direct_edit = DirectEdit(self, self.direct_edit_folder, url)
         self.started.connect(self.direct_edit._thread.start)
@@ -359,7 +367,7 @@ class Manager(QObject):
                         None, "open", "explorer.exe", f"/select,{file_path}", None, 1
                     )
                 else:
-                    os.startfile(file_path)
+                    os.startfile(file_path)  # type: ignore
             except OSError as exc:
                 log.error(f"Failed to open {file_path}: {exc}")
         elif MAC:
@@ -497,7 +505,7 @@ class Manager(QObject):
         local_folder: str,
         url: str,
         username: str,
-        password: str,
+        password: str = None,
         token: str = None,
         name: str = None,
         start_engine: bool = True,

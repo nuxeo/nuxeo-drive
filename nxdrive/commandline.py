@@ -9,7 +9,7 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
-from typing import Any, List, Union
+from typing import Any, List, Union, TYPE_CHECKING
 
 from . import __version__
 from .constants import APP_NAME
@@ -20,12 +20,17 @@ from .utils import force_encode, get_default_nuxeo_drive_folder, normalized_path
 try:
     import ipdb as pdb
 except ImportError:
-    import pdb
+    import pdb  # type: ignore
 
 try:
     from PyQt5.QtNetwork import QSslSocket
 except ImportError:
     QSslSocket = None
+
+if TYPE_CHECKING:
+    from .application import Application  # noqa
+    from .console import ConsoleApplication  # noqa
+    from .manager import Manager  # noqa
 
 __all__ = ("CliHandler",)
 
@@ -493,7 +498,7 @@ class CliHandler:
         return handler(options)
 
     def get_manager(self) -> "Manager":
-        from .manager import Manager
+        from .manager import Manager  # noqa
 
         return Manager()
 
@@ -501,9 +506,9 @@ class CliHandler:
         self, console: bool = False
     ) -> Union["Application", "ConsoleApplication"]:
         if console:
-            from .console import ConsoleApplication as Application
+            from .console import ConsoleApplication as Application  # noqa
         else:
-            from .gui.application import Application
+            from .gui.application import Application  # noqa
             from .gui.systray import SystrayWindow
             from PyQt5.QtQml import qmlRegisterType
 

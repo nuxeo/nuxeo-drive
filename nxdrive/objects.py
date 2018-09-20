@@ -94,7 +94,7 @@ class RemoteFileInfo:
         if name:
             name = unicodedata.normalize("NFC", name)
 
-        return RemoteFileInfo(
+        return RemoteFileInfo(  # type: ignore
             name,
             fs_item["id"],
             fs_item["parentId"],
@@ -212,9 +212,9 @@ class NuxeoDocumentInfo:
             version = (
                 str(props["uid:major_version"]) + "." + str(props["uid:minor_version"])
             )
-        if name is not None:
+        if name:
             name = unicodedata.normalize("NFC", name)
-        return NuxeoDocumentInfo(
+        return NuxeoDocumentInfo(  # type: ignore
             doc["root"],
             name,
             doc["uid"],

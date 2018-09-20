@@ -7,7 +7,7 @@ from contextlib import suppress
 from logging import getLogger
 from threading import Lock
 from time import sleep
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal
 from nuxeo.exceptions import CorruptedFile, HTTPError
@@ -39,6 +39,9 @@ from ..utils import (
     safe_filename,
     unlock_path,
 )
+
+if TYPE_CHECKING:
+    from .engine import Engine  # noqa
 
 __all__ = ("Processor",)
 
@@ -221,7 +224,7 @@ class Processor(EngineWorker):
                         refreshed = self._dao.get_state_from_id(doc_pair.id)
                         if not refreshed or not self.check_pair_state(refreshed):
                             continue
-                        doc_pair = refreshed
+                        doc_pair = refreshed or doc_pair
                     except NotFound:
                         doc_pair.remote_ref = ""
 
@@ -377,13 +380,12 @@ class Processor(EngineWorker):
                             doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
                         )
                         self.engine.fileDeletionErrorTooLong.emit(doc_pair)
-                    elif getattr(exc, "trash_issue", False):
+                    elif hasattr(exc, "trash_issue"):
                         """
                         Special value to handle trash issues from filters on
                         Windows when there is one or more files opened by
                         another software blocking any action.
                         """
-                        doc_pair.trash_issue = True
                         self.engine.errorOpenedFile.emit(doc_pair)
                         self._postpone_pair(doc_pair, "Trashing not possible")
                     else:
@@ -874,7 +876,7 @@ class Processor(EngineWorker):
         parent_ref = self.local.get_remote_id(doc_pair.local_parent_path)
         if not parent_ref:
             parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
-            parent_ref = parent_pair.remote_ref if parent_pair else None
+            parent_ref = parent_pair.remote_ref if parent_pair else ""
         else:
             parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
 
@@ -1304,7 +1306,9 @@ class Processor(EngineWorker):
         self._dao.update_local_state(doc_pair, local_info, versioned=False, queue=False)
         doc_pair.local_path = local_info.path
         doc_pair.local_name = os.path.basename(local_info.path)
-        doc_pair.last_local_updated = local_info.last_modification_time
+        doc_pair.last_local_updated = local_info.last_modification_time.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
     def _is_remote_move(self, doc_pair: DocPair) -> Tuple[bool, Optional[DocPair]]:
         local_parent = self._dao.get_state_from_local(doc_pair.local_parent_path)

@@ -5,7 +5,7 @@ from datetime import datetime
 from logging import getLogger
 from os import getenv
 from time import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 
 import requests
@@ -31,6 +31,9 @@ from ..objects import Binder, DocPair
 from ..options import Options
 from ..translator import Translator
 from ..utils import get_device, get_default_nuxeo_drive_folder, guess_server_url
+
+if TYPE_CHECKING:
+    from .application import Application  # noqa
 
 __all__ = ("QMLDriveApi",)
 
@@ -204,7 +207,7 @@ class QMLDriveApi(QObject):
             result.append(self._export_worker(thread.worker))
         return result
 
-    def _get_engine(self, uid: str) -> Engine:
+    def _get_engine(self, uid: str) -> Optional[Engine]:
         engines = self._manager.get_engines()
         return engines.get(uid)
 
@@ -289,7 +292,7 @@ class QMLDriveApi(QObject):
         return self._manager.updater.version
 
     @pyqtSlot(result=int)
-    def get_update_progress(self) -> int:
+    def get_update_progress(self) -> float:
         """ Return the progress of the update, if one is ingoing. """
         return self._manager.updater.progress
 
@@ -484,8 +487,10 @@ class QMLDriveApi(QObject):
         if not url:
             raise ValueError("No URL found for Nuxeo server")
 
+        server_url = url
+
         if not Options.is_frozen:
-            return url
+            return server_url
 
         params = urlencode(
             {
@@ -499,14 +504,16 @@ class QMLDriveApi(QObject):
         )
 
         # Handle URL parameters
-        parts = urlsplit(url)
+        parts = urlsplit(server_url)
         path = f"{parts.path}/logout?requestedUrl={Options.startup_page}"
         path = path.replace("//", "/")
 
         params = quote(f"{parts.query}&{params}" if parts.query else params)
-        url = urlunsplit((parts.scheme, parts.netloc, path, params, parts.fragment))
+        server_url = urlunsplit(
+            (parts.scheme, parts.netloc, path, params, parts.fragment)
+        )
 
-        return url
+        return server_url
 
     # Settings section
 
@@ -806,6 +813,8 @@ class QMLDriveApi(QObject):
     def update_token(self, token: str) -> str:
         error = ""
         engine = self._get_engine(self._callback_params["engine"])
+        if not engine:
+            return ""
         try:
             log.debug(
                 "Updating token for account "

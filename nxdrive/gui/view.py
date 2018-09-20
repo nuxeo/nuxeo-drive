@@ -1,6 +1,6 @@
 # coding: utf-8
 from contextlib import suppress
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import (
     QAbstractListModel,
@@ -14,8 +14,12 @@ from PyQt5.QtCore import (
 from PyQt5.QtGui import QIcon
 from PyQt5.QtQuick import QQuickView
 
-from nxdrive.engine.engine import Engine
+from ..engine.engine import Engine
 from ..translator import Translator
+
+if TYPE_CHECKING:
+    from .api import QMLDriveApi  # noqa
+    from .application import Application  # noqa
 
 __all__ = ("FileModel", "LanguageModel", "NuxeoView")
 

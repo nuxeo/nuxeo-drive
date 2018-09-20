@@ -7,7 +7,7 @@ from os.path import basename, dirname, getctime
 from queue import Queue
 from threading import Lock
 from time import mktime, sleep, time
-from typing import Any, Dict, Set, Tuple
+from typing import Any, Dict, Set, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
@@ -27,6 +27,9 @@ from ...utils import (
     is_generated_tmp_file,
     normalize_event_filename as normalize,
 )
+
+if TYPE_CHECKING:
+    from ..engine import Engine  # noqa
 
 __all__ = ("DriveFSEventHandler", "LocalWatcher", "WIN_MOVE_RESOLUTION_PERIOD")
 
@@ -479,15 +482,17 @@ class LocalWatcher(EngineWorker):
                                 "Possible race condition between remote and local "
                                 f"scan, let's refresh pair: {child_pair!r}"
                             )
-                            child_pair = dao.get_state_from_id(child_pair.id)
-                            if not child_pair.remote_ref:
-                                log.debug(
-                                    "Pair not yet handled by remote scan "
-                                    "(remote_ref is None) but existing remote_id "
-                                    f"xattr, let's set it to None: {child_pair!r}"
-                                )
-                                client.remove_remote_id(child_pair.local_path)
-                                remote_ref = ""
+                            refreshed = dao.get_state_from_id(child_pair.id)
+                            if refreshed:
+                                child_pair = refreshed
+                                if not child_pair.remote_ref:
+                                    log.debug(
+                                        "Pair not yet handled by remote scan "
+                                        "(remote_ref is None) but existing remote_id "
+                                        f"xattr, let's set it to None: {child_pair!r}"
+                                    )
+                                    client.remove_remote_id(child_pair.local_path)
+                                    remote_ref = ""
                         if remote_ref != child_pair.remote_ref:
                             # Load correct doc_pair | Put the others one back
                             # to children

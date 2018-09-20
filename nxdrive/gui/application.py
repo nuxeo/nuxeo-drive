@@ -3,7 +3,7 @@
 import sys
 from logging import getLogger
 from math import sqrt
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
 import requests
@@ -50,6 +50,11 @@ from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
 from .view import EngineModel, FileModel, LanguageModel
 
+if MAC:
+    from ..osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
+
+if TYPE_CHECKING:
+    from ..manager import Manager  # noqa
 
 __all__ = ("Application",)
 
@@ -713,14 +718,10 @@ class Application(QApplication):
             )
 
     def _setup_notification_center(self) -> None:
-        from ..osi.darwin.pyNotificationCenter import (
-            setup_delegator,
-            NotificationDelegator,
-        )
-
         if not self._delegator:
             self._delegator = NotificationDelegator.alloc().init()
-            self._delegator._manager = self.manager
+            if self._delegator:
+                self._delegator._manager = self.manager
         setup_delegator(self._delegator)
 
     @pyqtSlot(object)
@@ -955,7 +956,7 @@ class Application(QApplication):
             return False
 
         cmd = info["command"]
-        path = info.get("filepath", None)
+        path = info.get("filepath", "")
         manager = self.manager
 
         log.debug(f"Event URL={url}, info={info!r}")

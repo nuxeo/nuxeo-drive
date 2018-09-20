@@ -3,13 +3,17 @@ import time
 from datetime import datetime
 from logging import getLogger
 from threading import Lock
-from typing import Dict, Optional
+from typing import Dict, Optional, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from .objects import DocPair
 from .translator import Translator
 from .utils import short_name
+
+if TYPE_CHECKING:
+    from .engine.engine import Engine  # noqa
+    from .manager import Manager  # noqa
 
 __all__ = ("DefaultNotificationService", "Notification")
 
@@ -136,17 +140,17 @@ class NotificationService(QObject):
     def load_notifications(self) -> None:
         notifications = self._dao.get_notifications()
         for notif in notifications:
-            self._notifications[notif.uid] = Notification(
-                uuid=notif.uid,
-                level=notif.level,
-                action=notif.action,
-                flags=notif.flags,
-                title=notif.title,
-                description=notif.description,
+            self._notifications[notif["uid"]] = Notification(
+                uuid=notif["uid"],
+                level=notif["level"],
+                action=notif["action"],
+                flags=notif["flags"],
+                title=notif["title"],
+                description=notif["description"],
             )
 
     def get_notifications(
-        self, engine: "Engine" = None, include_generic: bool = True
+        self, engine: str = None, include_generic: bool = True
     ) -> Dict[str, Notification]:
         # Might need to use lock and duplicate
         with self._lock:

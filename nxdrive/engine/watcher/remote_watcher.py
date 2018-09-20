@@ -4,7 +4,7 @@ import socket
 from datetime import datetime
 from logging import getLogger
 from time import sleep
-from typing import Any, Dict, Optional, Set, Tuple
+from typing import Any, Dict, Optional, Set, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from nuxeo.exceptions import BadQuery, HTTPError
@@ -17,6 +17,9 @@ from ...constants import WINDOWS
 from ...exceptions import NotFound, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
 from ...utils import current_milli_time, path_join, safe_filename
+
+if TYPE_CHECKING:
+    from .engine import Engine  # noqa
 
 __all__ = ("RemoteWatcher",)
 
@@ -784,7 +787,7 @@ class RemoteWatcher(EngineWorker):
                         """
                         consistent_new_info = new_info
                         if remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME:
-                            consistent_new_info = RemoteFileInfo(
+                            consistent_new_info = RemoteFileInfo(  # type: ignore
                                 new_info.name,
                                 new_info.uid,
                                 doc_pair.remote_parent_ref,

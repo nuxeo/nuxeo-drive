@@ -2,7 +2,7 @@
 import os
 import sys
 from contextlib import suppress
-from ctypes import windll
+from ctypes import windll  # type: ignore
 from logging import getLogger
 from typing import Any, Dict
 

@@ -54,6 +54,8 @@ __all__ = ("FileInfo", "LocalClient")
 
 log = getLogger(__name__)
 
+error = None
+
 
 class FileInfo:
     """ Data Transfer Object for file info on the Local FS. """
@@ -63,7 +65,7 @@ class FileInfo:
         root: str,
         path: str,
         folderish: bool,
-        last_modification_time: Union[datetime, int],
+        last_modification_time: datetime,
         **kwargs: Any,
     ) -> None:
         # Function to check during long-running processing like digest
@@ -622,8 +624,8 @@ FolderType=Generic
             except:
                 pass
             else:
-                exc.winerror = retcode
-            exc.trash_issue = True
+                exc.winerror = retcode  # type: ignore
+            exc.trash_issue = True  # type: ignore
             raise exc
         finally:
             # Don't want to unlock the current deleted
@@ -692,7 +694,9 @@ FolderType=Generic
                 os.rename(source_os_path, target_os_path)
             if WINDOWS:
                 # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
-                ctypes.windll.kernel32.SetFileAttributesW(str(target_os_path), 128)
+                ctypes.windll.kernel32.SetFileAttributesW(  # type: ignore
+                    str(target_os_path), 128
+                )
             new_ref = self.get_children_ref(parent, new_name)
             return self.get_info(new_ref)
         finally:

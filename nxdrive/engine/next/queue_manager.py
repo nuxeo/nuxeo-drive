@@ -1,9 +1,14 @@
 # coding: utf-8
 import time
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 from ..queue_manager import QueueManager as OldQueueManager
 from ...objects import DocPair
+
+if TYPE_CHECKING:
+    from ..engine.engine import Engine  # noqa
+    from ..engine.dao.sqlite import EngineDAO  # noqa
 
 __all__ = ("QueueManager",)
 

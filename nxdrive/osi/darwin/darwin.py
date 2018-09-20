@@ -4,7 +4,7 @@ import os
 import stat
 import sys
 from logging import getLogger
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import xattr
 from Foundation import NSBundle, NSDistributedNotificationCenter
@@ -27,6 +27,9 @@ from .. import AbstractOSIntegration
 from ...constants import BUNDLE_IDENTIFIER
 from ...objects import DocPair
 from ...utils import force_decode, if_frozen, normalized_path
+
+if TYPE_CHECKING:
+    from .manager import Manager  # noqa
 
 __all__ = ("DarwinIntegration", "FinderSyncServer")
 

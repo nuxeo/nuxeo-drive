@@ -10,12 +10,13 @@ from sqlite3 import (
     DatabaseError,
     IntegrityError,
     OperationalError,
+    Row,
 )
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from threading import RLock, current_thread, local
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Type
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -24,6 +25,9 @@ from ...client.local_client import FileInfo
 from ...constants import WINDOWS
 from ...notification import Notification
 from ...objects import DocPair, DocPairs, Filters, RemoteFileInfo, EngineDef
+
+if TYPE_CHECKING:
+    from .manager import Manager  # noqa
 
 __all__ = ("ConfigurationDAO", "EngineDAO", "ManagerDAO")
 
@@ -385,7 +389,7 @@ class ManagerDAO(ConfigurationDAO):
                 ),
             )
 
-    def get_notifications(self, discarded: bool = True) -> List[Tuple[str, ...]]:
+    def get_notifications(self, discarded: bool = True) -> List[Row]:
         # Flags used:
         #    1 = Notification.FLAG_DISCARD
         c = self._get_read_connection().cursor()

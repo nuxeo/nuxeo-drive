@@ -1,9 +1,12 @@
 # coding: utf-8
 from logging import getLogger
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from ..constants import MAC, WINDOWS
 from ..objects import DocPair
+
+if TYPE_CHECKING:
+    from .manager import Manager  # noqa
 
 log = getLogger(__name__)
 

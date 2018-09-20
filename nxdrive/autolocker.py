@@ -2,7 +2,7 @@
 from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
-from typing import Dict, Iterable, Iterator, List, Tuple
+from typing import Dict, Iterable, Iterator, List, Tuple, TYPE_CHECKING
 
 import psutil
 from PyQt5.QtCore import QTimer, pyqtSignal
@@ -10,6 +10,10 @@ from PyQt5.QtCore import QTimer, pyqtSignal
 from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
 from .utils import force_decode
+
+if TYPE_CHECKING:
+    from .direct_edit import DirectEdit  # noqa
+    from .engine.dao.sqlite import ManagerDAO  # noqa
 
 __all__ = ("ProcessAutoLockerWorker",)
 

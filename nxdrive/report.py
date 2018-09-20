@@ -2,12 +2,16 @@
 import os
 from datetime import datetime
 from logging import getLogger
-from typing import Iterator
+from typing import Iterator, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 from . import constants
 from .logging_config import get_handler
 from .utils import force_encode
+
+if TYPE_CHECKING:
+    from .engine.dao.sqlite import EngineDAO  # noqa
+    from .manager import Manager  # noqa
 
 __all__ = ("Report",)
 

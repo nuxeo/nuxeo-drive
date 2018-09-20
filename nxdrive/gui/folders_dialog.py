@@ -1,5 +1,5 @@
 # coding: utf-8
-from typing import Union
+from typing import Union, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtGui import QIcon
@@ -8,6 +8,9 @@ from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 from .folders_treeview import FilteredFsClient, FolderTreeview
 from ..engine.engine import Engine
 from ..translator import Translator
+
+if TYPE_CHECKING:
+    from .application import Application  # noqa
 
 __all__ = ("FiltersDialog",)
 

@@ -4,7 +4,7 @@ import os
 import uuid
 from logging import getLogger
 from tempfile import gettempdir
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, TYPE_CHECKING
 
 import requests
 import yaml
@@ -22,6 +22,9 @@ from .constants import (
 from ..engine.workers import PollWorker
 from ..options import Options
 from ..utils import version_le
+
+if TYPE_CHECKING:
+    from .manager import Manager  # noqa
 
 __all__ = ("BaseUpdater",)
 
@@ -53,7 +56,7 @@ class BaseUpdater(PollWorker):
 
         self.enable = getattr(self, "_can_update", Options.is_frozen)
         self.status = UPDATE_STATUS_UP_TO_DATE
-        self.version: Optional[str] = None
+        self.version: str = ""
         self.progress = .0
 
         if not self.enable:
@@ -256,7 +259,7 @@ class BaseUpdater(PollWorker):
         QApplication.processEvents()
 
     def _set_status(
-        self, status: str, version: str = None, progress: Union[int, float] = 0
+        self, status: str, version: str = "", progress: Union[int, float] = 0
     ) -> None:
         self.status = status
         self.version = version
