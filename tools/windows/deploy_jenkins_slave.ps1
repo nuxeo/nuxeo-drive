@@ -2,14 +2,14 @@
 #
 # Possible ARG:
 #     -build: build the installer
-#     -direct: no downloads, just run the tests suite
+#     -install: install all dependencies
 #     -start: start Nuxeo Drive
 #     -tests: launch the tests suite
 #
 # See /docs/deployment.md for more informations.
 param (
 	[switch]$build = $false,
-	[switch]$direct = $false,
+	[switch]$install = $false,
 	[switch]$start = $false,
 	[switch]$tests = $false
 )
@@ -188,6 +188,10 @@ function install_deps {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
 	& $Env:STORAGE_DIR\Scripts\pre-commit.exe install
 }
 
@@ -219,12 +223,6 @@ function install_python {
 
 function launch_tests {
 	# Launch the tests suite
-	if (!$direct) {
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
-	}
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
@@ -292,17 +290,14 @@ function main {
 	check_vars
 	install_python
 
-	if (!$direct) {
-		install_deps
-	}
-
-	if ((check_import "import PyQt5") -ne 1) {
-		Write-Output ">>> No PyQt5. Installation failed."
-		ExitWithCode 1
-	}
-
 	if ($build) {
 		build_installer
+	} elseif ($install) {
+		install_deps
+		if ((check_import "import PyQt5") -ne 1) {
+			Write-Output ">>> No PyQt5. Installation failed."
+			ExitWithCode 1
+		}
 	} elseif ($start) {
 		start_nxdrive
 	} elseif ($tests) {

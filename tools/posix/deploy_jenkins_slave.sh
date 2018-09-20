@@ -113,6 +113,7 @@ install_deps() {
     ${PIP} pip
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-dev.txt
+    ${PIP} -r requirements-tests.txt
     pyenv rehash
     pre-commit install
 }
@@ -151,7 +152,6 @@ install_python() {
 launch_tests() {
     echo ">>> Launching the tests suite"
 
-    ${PIP} -r requirements-tests.txt
     ${PYTHON} -m flake8 .
     ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}"
 }
