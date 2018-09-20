@@ -87,6 +87,7 @@ Changes in command line arguments:
 - Packaging: Updated `watchdog` from 0.8.4 to 0.9.0
 - Packaging: Removed `SIP_VERSION` and `PYQT_VERSION` envars
 - Tests: Added `-b -Wall` arguments to the Python interpreter while testing
+- Tests: Added `--maxfail=5` argument to pytest
 - \[GNU/Linux\] Packaging: Removed `COMPILE_WITH_DEBUG` envar
 - \[Windows\] Packaging: Added the `PYTHON_DIR` envar
 - \[Windows\] Packaging: Removed `QT_PATH` and `MINGW_PATH` envars
