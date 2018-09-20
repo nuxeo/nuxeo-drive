@@ -91,6 +91,8 @@ Changes in command line arguments:
 - \[GNU/Linux\] Packaging: Removed `COMPILE_WITH_DEBUG` envar
 - \[Windows\] Packaging: Added the `PYTHON_DIR` envar
 - \[Windows\] Packaging: Removed `QT_PATH` and `MINGW_PATH` envars
+- \[Windows\] Tests: Added `-install` argument
+- \[Windows\] Tests: Removed `-direct` argument
 
 
 # 3.1.1

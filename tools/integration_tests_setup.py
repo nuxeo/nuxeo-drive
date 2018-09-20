@@ -165,18 +165,17 @@ def clean_pyc(dir_):
 def run_tests_from_source():
     """ Launch the tests suite. """
 
-    install = None
-    tests = r'powershell ".\..\tools\windows\deploy_jenkins_slave.ps1" -tests'
-
     if sys.platform.startswith("linux"):
         install = "sh ../tools/linux/deploy_jenkins_slave.sh --install"
         tests = "sh ../tools/linux/deploy_jenkins_slave.sh --tests"
     elif sys.platform == "darwin":
         install = "sh ../tools/osx/deploy_jenkins_slave.sh --install"
         tests = "sh ../tools/osx/deploy_jenkins_slave.sh --tests"
+    else:
+        install = r'powershell ".\..\tools\windows\deploy_jenkins_slave.ps1" -install'
+        tests = r'powershell ".\..\tools\windows\deploy_jenkins_slave.ps1" -tests'
 
-    if install:
-        execute(install)
+    execute(install)
     execute(tests)
 
 
