@@ -341,7 +341,7 @@ FolderType=Generic
         # Configure 'com.apple.ResourceFork' for the Icon file
         info = self._read_data(icon)
         xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, info)
-        os.chflags(meta_file, stat.UF_HIDDEN)
+        os.chflags(meta_file, stat.UF_HIDDEN)  # type: ignore
 
     def set_remote_id(
         self, ref: str, remote_id: Union[bytes, str], name: str = "ndrive"
