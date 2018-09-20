@@ -39,7 +39,7 @@ from ..utils import (
 )
 
 if TYPE_CHECKING:
-    from .manager import Manager  # noqa
+    from ..manager import Manager  # noqa
 
 __all__ = ("Engine", "ServerBindingSettings")
 

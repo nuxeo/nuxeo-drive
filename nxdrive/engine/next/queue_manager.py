@@ -7,8 +7,8 @@ from ..queue_manager import QueueManager as OldQueueManager
 from ...objects import DocPair
 
 if TYPE_CHECKING:
-    from ..engine.engine import Engine  # noqa
-    from ..engine.dao.sqlite import EngineDAO  # noqa
+    from ..dao.sqlite import EngineDAO  # noqa
+    from ..engine import Engine  # noqa
 
 __all__ = ("QueueManager",)
 

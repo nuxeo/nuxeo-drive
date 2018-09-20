@@ -1,13 +1,15 @@
 # coding: utf-8
 from logging import getLogger
-from typing import Any, Dict, Type
+from typing import Any, Dict, Type, TYPE_CHECKING
 
 import requests
 from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
-from ..engine.dao.sqlite import EngineDAO
 from ..utils import decrypt, encrypt, force_decode
+
+if TYPE_CHECKING:
+    from ..engine.dao.sqlite import EngineDAO  # noqa
 
 __all__ = (
     "AutomaticProxy",
@@ -131,7 +133,7 @@ def get_proxy(**kwargs: Any) -> Proxy:
     return _get_cls(kwargs.pop("category"))(**kwargs)
 
 
-def load_proxy(dao: EngineDAO, token: str = None) -> Proxy:
+def load_proxy(dao: "EngineDAO", token: str = None) -> Proxy:
     category = dao.get_config("proxy_config", "System")
     kwargs = {}
 
@@ -144,7 +146,7 @@ def load_proxy(dao: EngineDAO, token: str = None) -> Proxy:
     return _get_cls(category)(**kwargs)
 
 
-def save_proxy(proxy: Proxy, dao: EngineDAO, token: str = None) -> None:
+def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
     dao.update_config("proxy_config", proxy.category)
 
     if isinstance(proxy, AutomaticProxy):

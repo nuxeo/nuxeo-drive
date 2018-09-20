@@ -6,7 +6,7 @@ from ..constants import MAC, WINDOWS
 from ..objects import DocPair
 
 if TYPE_CHECKING:
-    from .manager import Manager  # noqa
+    from ..manager import Manager  # noqa
 
 log = getLogger(__name__)
 
@@ -15,7 +15,7 @@ class AbstractOSIntegration:
 
     __zoom_factor = 1.0
 
-    def __init__(self, manager: "Manager") -> None:
+    def __init__(self, manager: Optional["Manager"]) -> None:
         self._manager = manager
 
     @property
@@ -72,7 +72,7 @@ class AbstractOSIntegration:
         pass
 
     @staticmethod
-    def get(manager: object) -> "AbstractOSIntegration":
+    def get(manager: Optional["Manager"]) -> "AbstractOSIntegration":
 
         integration, nature = AbstractOSIntegration, "None"
 

@@ -8,14 +8,14 @@ from typing import Dict, Union, TYPE_CHECKING
 
 from watchdog.events import DirModifiedEvent, FileSystemEvent, FileSystemMovedEvent
 
+from ..watcher.local_watcher import LocalWatcher
 from ...client.local_client import FileInfo
-from ...engine.dao.sqlite import EngineDAO
-from ...engine.watcher.local_watcher import LocalWatcher
 from ...exceptions import ThreadInterrupt
 from ...utils import current_milli_time, normalize_event_filename
 
 if TYPE_CHECKING:
-    from .engine.engine import Engine  # noqa
+    from ..dao.sqlite import EngineDAO  # noqa
+    from ..engine import Engine  # noqa
 
 __all__ = ("SimpleWatcher",)
 
@@ -29,7 +29,7 @@ class SimpleWatcher(LocalWatcher):
     with a folder check should do the trick.
     """
 
-    def __init__(self, engine: "Engine", dao: EngineDAO) -> None:
+    def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao)
         self._scan_delay = 1
         self._to_scan: Dict[str, int] = dict()

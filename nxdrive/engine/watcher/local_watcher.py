@@ -17,7 +17,6 @@ from ..activity import tooltip
 from ..workers import EngineWorker, Worker
 from ...client.local_client import LocalClient, FileInfo
 from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, WINDOWS
-from ...engine.dao.sqlite import EngineDAO
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
 from ...options import Options
@@ -29,6 +28,7 @@ from ...utils import (
 )
 
 if TYPE_CHECKING:
+    from ..dao.sqlite import EngineDAO  # noqa
     from ..engine import Engine  # noqa
 
 __all__ = ("DriveFSEventHandler", "LocalWatcher", "WIN_MOVE_RESOLUTION_PERIOD")
@@ -53,7 +53,7 @@ class LocalWatcher(EngineWorker):
     # Windows lock
     lock = Lock()
 
-    def __init__(self, engine: "Engine", dao: EngineDAO) -> None:
+    def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao)
         self._event_handler = None
         # Delay for the scheduled recursive scans of
@@ -211,9 +211,12 @@ class LocalWatcher(EngineWorker):
                 log.debug(f"Win: handling folder to scan: {local_path!r}")
                 self.scan_pair(local_path)
                 local_info = self.local.try_get_info(local_path)
-
-                mtime = mktime(local_info.last_modification_time.timetuple())
-                if local_info is not None and mtime > evt_time:
+                mtime = (
+                    mktime(local_info.last_modification_time.timetuple())
+                    if local_info
+                    else 0
+                )
+                if mtime > evt_time:
                     # Re-schedule scan as the folder
                     # has been modified since last check
                     self._folder_scan_events[local_path] = (mtime, evt_pair)

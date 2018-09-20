@@ -8,12 +8,12 @@ from typing import Any, Optional, TYPE_CHECKING
 from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
 
 from .activity import Action, IdleAction
-from .dao.sqlite import EngineDAO
 from ..exceptions import ThreadInterrupt
 from ..objects import Metrics, DocPair
 
 if TYPE_CHECKING:
-    from .engine.engine import Engine  # noqa
+    from .dao.sqlite import EngineDAO  # noqa
+    from .engine import Engine  # noqa
 
 __all__ = ("EngineWorker", "PollWorker", "Worker")
 
@@ -28,7 +28,6 @@ class Worker(QObject):
     _action = None
     _name = None
     _thread_id: int
-    engine: "Engine" = None
     _pause = False
 
     def __init__(self, thread: QThread = None, **kwargs: Any) -> None:
@@ -191,7 +190,7 @@ class Worker(QObject):
 
 class EngineWorker(Worker):
     def __init__(
-        self, engine: "Engine", dao: EngineDAO, thread: QThread = None, **kwargs: Any
+        self, engine: "Engine", dao: "EngineDAO", thread: QThread = None, **kwargs: Any
     ) -> None:
         super().__init__(thread=thread, **kwargs)
         self.engine = engine

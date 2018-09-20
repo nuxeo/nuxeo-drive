@@ -9,12 +9,12 @@ from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 
-from .dao.sqlite import EngineDAO
 from .processor import Processor
 from ..objects import DocPair, Metrics
 
 if TYPE_CHECKING:
-    from .engine.engine import Engine  # noqa
+    from .dao.sqlite import EngineDAO  # noqa
+    from .engine import Engine  # noqa
     from .manager import Manager  # noqa
 
 __all__ = ("QueueManager",)
@@ -48,7 +48,7 @@ class QueueManager(QObject):
     _disable = False
 
     def __init__(
-        self, engine: "Engine", dao: EngineDAO, max_file_processors: int = 5
+        self, engine: "Engine", dao: "EngineDAO", max_file_processors: int = 5
     ) -> None:
         super().__init__()
         self._dao = dao

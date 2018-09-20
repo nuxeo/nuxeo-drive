@@ -11,7 +11,6 @@ from nuxeo.exceptions import BadQuery, HTTPError
 from requests import ConnectionError
 
 from ..activity import Action, tooltip
-from ..dao.sqlite import EngineDAO
 from ..workers import EngineWorker
 from ...constants import WINDOWS
 from ...exceptions import NotFound, ThreadInterrupt
@@ -19,7 +18,8 @@ from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
 from ...utils import current_milli_time, path_join, safe_filename
 
 if TYPE_CHECKING:
-    from .engine import Engine  # noqa
+    from ..dao.sqlite import EngineDAO  # noqa
+    from ..engine import Engine  # noqa
 
 __all__ = ("RemoteWatcher",)
 
@@ -35,7 +35,7 @@ class RemoteWatcher(EngineWorker):
     noChangesFound = pyqtSignal()
     remoteWatcherStopped = pyqtSignal()
 
-    def __init__(self, engine: "Engine", dao: EngineDAO, delay: int) -> None:
+    def __init__(self, engine: "Engine", dao: "EngineDAO", delay: int) -> None:
         super().__init__(engine, dao)
         self.server_interval = delay
 
@@ -450,7 +450,7 @@ class RemoteWatcher(EngineWorker):
                     )
                     child_pair = self._dao.get_state_from_local(child.path)
                     break
-        if child_pair is not None:
+        if child_pair:
             if child_pair.remote_ref and child_pair.remote_ref != child_info.uid:
                 log.debug(
                     "Got an existing pair with different id: "
@@ -506,8 +506,7 @@ class RemoteWatcher(EngineWorker):
                                     refreshed and refreshed.pair_state == "synchronized"
                                 )
 
-                            if refreshed:
-                                child_pair = refreshed
+                            child_pair = refreshed if refreshed else child_pair
                         # Can be updated in previous call
                         if synced:
                             self.engine.stop_processor_on(child_pair.local_path)

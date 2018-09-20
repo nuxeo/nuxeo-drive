@@ -24,7 +24,7 @@ from ..options import Options
 from ..utils import version_le
 
 if TYPE_CHECKING:
-    from .manager import Manager  # noqa
+    from ..manager import Manager  # noqa
 
 __all__ = ("BaseUpdater",)
 

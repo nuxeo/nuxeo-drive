@@ -6,7 +6,7 @@ import time
 from contextlib import suppress
 from logging import getLogger
 from threading import Lock, current_thread
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
 from nuxeo.auth import TokenAuth
@@ -26,11 +26,13 @@ from ..constants import (
     TX_TIMEOUT,
 )
 from ..engine.activity import Action, FileAction
-from ..engine.dao.sqlite import EngineDAO
 from ..exceptions import NotFound
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..utils import get_device, lock_path, unlock_path, version_le
+
+if TYPE_CHECKING:
+    from ..engine.dao.sqlite import EngineDAO  # noqa
 
 __all__ = ("FilteredRemote", "Remote")
 
@@ -52,7 +54,7 @@ class Remote(Nuxeo):
         upload_tmp_dir: str = None,
         check_suspended: Callable = None,
         base_folder: str = None,
-        dao: EngineDAO = None,
+        dao: "EngineDAO" = None,
         repository: str = Options.remote_repo,
         timeout: int = TIMEOUT,
         **kwargs: Any,

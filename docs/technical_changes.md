@@ -30,8 +30,10 @@
 - Removed `Engine.invalidate_client_cache()`
 - Added `duration` keyword argument to `EngineDAO.get_last_files()`
 - Added `EngineDAO.get_last_files_count()`
+- Added `LocalClient.try_get_info()`
 - Moved `LocalClient.get_content()` to `LocalTest`
 - Moved `LocalClient.update_content()` to `LocalTest`
+- Removed `raise_if_missing` keyword argument from `LocalClient.get_info()`
 - Added `Manager.proxy`
 - Added `Manager.reloadIconsSet()`
 - Added `Manager.set_light_icons()`
@@ -63,6 +65,7 @@
 - Added `QMLDriveApi.get_last_files_count()`
 - Removed `QueueManager.queueEmpty()`
 - Added `Remote.set_proxy()`
+- Added `Remote.stream_attach()`
 - Moved `Remote.conflicted_name()` to `RemoteBase`
 - Moved `Remote.doc_to_info()` to `NuxeoDocumentInfo.from_dict()`
 - Moved `Remote.file_to_info()` to `RemoteFileInfo.from_dict()`
@@ -121,6 +124,7 @@
 - Added data/qml
 - Removed data/ui5
 - Removed engine/dao/sqlite.py::`FakeLock`
+- Moved engine/dao/sqlite.py::`StateRow` to objects.py::`DocPair`
 - Moved engine/engine.py::`InvalidDriveException` exception to exceptions.py
 - Moved engine/engine.py::`RootAlreadyBindWithDifferentAccount` exception to exceptions.py
 - Removed engine/engine.py::`EngineDialog`
@@ -132,6 +136,7 @@
 - Added gui/dialog.py::`TokenRequestInterceptor`
 - Removed gui/folders_treeview.py::`DocFileInfo`
 - Removed gui/folders_treeview.py::`DocRootFileInfo`
+- Removed gui/folders_treeview.py::`FsRootFileInfo`
 - Added gui/settings.py::`SettingsView`
 - Added gui/systray.py::`SystrayView`
 - Added gui/view.py
@@ -140,6 +145,7 @@
 - Moved manager.py::`FolderAlreadyUsed` exception to exceptions.py
 - Removed manager.py::`MissingToken`
 - Removed manager.py::`ProxySettings`
+- Moved options.py::`ServerOptionsUpdater` to options_updater.py
 - Removed osi/darwin/darwin.py::`FinderSyncListener`
 - Added osi/darwin/darwin.py::`FinderSyncServer`
 - Removed osi/darwin/darwin.py::`SocketThread`

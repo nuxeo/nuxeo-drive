@@ -18,8 +18,8 @@ if MAC:
     from Foundation import NSLocale
 
 if TYPE_CHECKING:
-    from .engine.engine import Engine  # noqa
-    from .manager import Manager  # noqa
+    from .engine import Engine  # noqa
+    from ..manager import Manager  # noqa
 
 __all__ = ("Tracker",)
 

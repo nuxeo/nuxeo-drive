@@ -9,7 +9,7 @@ from ...constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
 from ...objects import DocPair
 
 if TYPE_CHECKING:
-    from .engine.engine import Engine  # noqa
+    from ..engine import Engine  # noqa
 
 __all__ = ("Processor",)
 

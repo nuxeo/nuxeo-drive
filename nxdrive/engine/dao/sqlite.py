@@ -27,7 +27,7 @@ from ...notification import Notification
 from ...objects import DocPair, DocPairs, Filters, RemoteFileInfo, EngineDef
 
 if TYPE_CHECKING:
-    from .manager import Manager  # noqa
+    from ...manager import Manager  # noqa
 
 __all__ = ("ConfigurationDAO", "EngineDAO", "ManagerDAO")
 
@@ -478,7 +478,7 @@ class ManagerDAO(ConfigurationDAO):
 
 class EngineDAO(ConfigurationDAO):
 
-    _queue_manager: "Manager" = None
+    _queue_manager: "Manager"
 
     newConflict = pyqtSignal(object)
 
@@ -832,7 +832,7 @@ class EngineDAO(ConfigurationDAO):
     def _queue_pair_state(
         self, row_id: int, folderish: bool, pair_state: str, pair: DocPair = None
     ) -> None:
-        if self._queue_manager and pair_state not in {"synchronized", "unsynchronized"}:
+        if pair_state not in {"synchronized", "unsynchronized"}:
             if pair_state == "conflicted":
                 log.trace(f"Emit newConflict with: {row_id}, pair={pair!r}")
                 self.newConflict.emit(row_id)
