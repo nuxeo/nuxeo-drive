@@ -598,7 +598,7 @@ def guess_server_url(
             if exc.response.status_code == 401:
                 # When there is only Web-UI installed, the code is 401.
                 return new_url
-        except (ValueError, requests.ConnectionError):
+        except (ValueError, requests.RequestException):
             pass
 
     if not url.lower().startswith("http"):

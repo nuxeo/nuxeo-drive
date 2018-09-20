@@ -96,7 +96,6 @@ class AutoRetryConnection(Connection):
 
 class ConfigurationDAO(QObject):
 
-    _conn: Connection
     _state_factory = DocPair
 
     def __init__(self, db: str) -> None:
@@ -122,9 +121,12 @@ class ConfigurationDAO(QObject):
         self.in_tx = None
         self._tx_lock = RLock()
         self._lock = RLock()
+        self._conn: Optional[Connection] = None
         self._connections: List[Connection] = []
         self._conns = local()
         self._create_main_conn()
+        if not self._conn:
+            raise RuntimeError("Unable to connect to database.")
         c = self._conn.cursor()
         self._init_db(c)
         if exists:
