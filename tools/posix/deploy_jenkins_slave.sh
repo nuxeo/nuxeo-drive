@@ -144,6 +144,7 @@ install_python() {
 
 launch_tests() {
     echo ">>> Launching the tests suite"
+    export MYPYPATH="${WORKSPACE_DRIVE}/tools/stubs"
 
     ${PYTHON} -m flake8 .
     ${PYTHON} -m mypy --ignore-missing-imports nxdrive
