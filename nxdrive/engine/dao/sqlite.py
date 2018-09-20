@@ -27,7 +27,7 @@ from ...notification import Notification
 from ...objects import DocPair, DocPairs, Filters, RemoteFileInfo, EngineDef
 
 if TYPE_CHECKING:
-    from ...manager import Manager  # noqa
+    from ..queue_manager import QueueManager  # noqa
 
 __all__ = ("ConfigurationDAO", "EngineDAO", "ManagerDAO")
 
@@ -478,7 +478,7 @@ class ManagerDAO(ConfigurationDAO):
 
 class EngineDAO(ConfigurationDAO):
 
-    _queue_manager: "Manager"
+    _queue_manager: Optional["QueueManager"] = None
 
     newConflict = pyqtSignal(object)
 
@@ -701,9 +701,10 @@ class EngineDAO(ConfigurationDAO):
                         ("locally_deleted",),
                     )
         finally:
-            self._queue_manager.interrupt_processors_on(
-                doc_pair.local_path, exact_match=False
-            )
+            if self._queue_manager:
+                self._queue_manager.interrupt_processors_on(
+                    doc_pair.local_path, exact_match=False
+                )
 
             # Only queue parent
             self._queue_pair_state(
@@ -804,7 +805,7 @@ class EngineDAO(ConfigurationDAO):
     def _get_to_sync_condition(self) -> str:
         return "pair_state != 'synchronized' AND pair_state != 'unsynchronized'"
 
-    def register_queue_manager(self, manager: "Manager") -> None:
+    def register_queue_manager(self, manager: "QueueManager") -> None:
         # Prevent any update while init queue
         with self._lock:
             self._queue_manager = manager
@@ -822,7 +823,7 @@ class EngineDAO(ConfigurationDAO):
                 # Add all the folders
                 if pair.folderish:
                     folders[pair.local_path] = True
-                if pair.local_parent_path not in folders:
+                if self._queue_manager and pair.local_parent_path not in folders:
                     self._queue_manager.push_ref(
                         pair.id, pair.folderish, pair.pair_state
                     )
@@ -832,7 +833,7 @@ class EngineDAO(ConfigurationDAO):
     def _queue_pair_state(
         self, row_id: int, folderish: bool, pair_state: str, pair: DocPair = None
     ) -> None:
-        if pair_state not in {"synchronized", "unsynchronized"}:
+        if self._queue_manager and pair_state not in {"synchronized", "unsynchronized"}:
             if pair_state == "conflicted":
                 log.trace(f"Emit newConflict with: {row_id}, pair={pair!r}")
                 self.newConflict.emit(row_id)
