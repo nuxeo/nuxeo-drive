@@ -63,10 +63,11 @@ class ProcessAutoLockerWorker(PollWorker):
         to_unlock = deepcopy(self._autolocked)
         for pid, path in get_open_files():
             if path.startswith(self._folder):
-                log.debug("Found in watched folder: %r (PID=%r)", path, pid)
+                log.debug(f"Found in watched folder: {path!r} (PID={pid})")
             elif path in self._autolocked:
-                log.debug("Found in auto-locked: %r (PID=%r)", path, pid)
+                log.debug(f"Found in auto-locked: {path!r} (PID={pid})")
             else:
+                log.trace(f"Skipping file {path!r}")
                 continue
 
             item = (pid, path)
