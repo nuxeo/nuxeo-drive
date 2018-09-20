@@ -1,7 +1,10 @@
 # coding: utf-8
 import os
 import time
+import shutil
 from logging import getLogger
+from threading import Thread
+from typing import Any, Dict, Tuple
 from urllib.error import URLError
 
 import pytest
@@ -9,7 +12,11 @@ from unittest.mock import patch
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import User
 
+from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine, ServerBindingSettings
+from nxdrive.engine.workers import Worker
+from nxdrive.exceptions import NotFound, ThreadInterrupt
+from nxdrive.objects import NuxeoDocumentInfo
 from . import LocalTest, RemoteTest
 from .common import UnitTestCase
 
@@ -52,7 +59,33 @@ class TestDirectEdit(UnitTestCase):
 
     def tearDownApp(self):
         self.direct_edit.stop()
+        with pytest.raises(ThreadInterrupt):
+            self.direct_edit.stop_client()
         super().tearDownApp()
+
+    def setUp(self):
+        def stop_direct_edit(worker: Worker) -> None:
+            """A way to stop the Direct Edit worker."""
+            while worker.running:
+                time.sleep(0.1)
+            worker.quit()
+
+        def execute(worker: Worker):
+            """The ._execute() method is in an endless loop, it will be stopped by stop_direct_edit()."""
+            with pytest.raises(ThreadInterrupt):
+                worker._execute()
+
+        self.direct_edit.running = True
+
+        self.thread_stop = Thread(target=stop_direct_edit, args=(self.direct_edit,))
+        self.thread_execute = Thread(target=execute, args=(self.direct_edit,))
+        self.thread_stop.start()
+        self.thread_execute.start()
+
+    def tearDown(self):
+        self.direct_edit.running = False
+        self.thread_stop.join()
+        self.thread_execute.join()
 
     def _direct_edit_update(
         self, doc_id: str, filename: str, content: bytes, url: str = None
@@ -124,10 +157,72 @@ class TestDirectEdit(UnitTestCase):
             self.direct_edit._cleanup()
             assert not self.local.exists(local_path)
 
+    @pytest.mark.skipif(WINDOWS, reason="Watchdog failure")
+    def test_cleanup_no_local_folder(self):
+        """"If local folder does not exist, it should be created."""
+
+        shutil.rmtree(self.direct_edit._folder)
+        assert not os.path.isdir(self.direct_edit._folder)
+
+        self.direct_edit._cleanup()
+        assert os.path.isdir(self.direct_edit._folder)
+
+    def test_cleanup_document_not_found(self):
+        """"If a file does not exist on the server, it should be deleted locally."""
+
+        def extract_edit_info(ref: str) -> Tuple[str, "Engine", str, str]:
+            raise NotFound()
+
+        filename = "Mode op\xe9ratoire.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        local_path = f"/{doc_id}/{filename}"
+
+        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
+            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            assert self.local.exists(local_path)
+            self.wait_sync(timeout=2, fail_if_timeout=False)
+            self.direct_edit.stop()
+
+            # Simulate a deletion of the file on the server
+            with patch.object(
+                self.direct_edit, "_extract_edit_info", extract_edit_info
+            ):
+                # Verify the cleanup does delete the file
+                self.direct_edit._cleanup()
+                assert not self.local.exists(local_path)
+
+            # Verify nothing more is done after a restart
+            self.direct_edit.start()
+            self.wait_sync(timeout=2, fail_if_timeout=False)
+            assert not self.local.exists(local_path)
+
+    def test_direct_edit(self):
+        assert isinstance(self.direct_edit.get_metrics(), dict)
+
     def test_filename_encoding(self):
         filename = "Mode op\xe9ratoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
         self._direct_edit_update(doc_id, filename, b"Test")
+
+    def test_invalid_credentials(self):
+        """Opening a document without being authenticated is not allowed."""
+
+        def has_invalid_credentials(self) -> bool:
+            return True
+
+        def error_signal(self, *args, **kwargs):
+            nonlocal received
+            received = True
+
+        received = False
+        self.direct_edit.directEditError.connect(error_signal)
+        doc_id = self.remote.make_file("/", "file.txt", content=b"content")
+
+        with patch.object(
+            Engine, "has_invalid_credentials", new=has_invalid_credentials
+        ):
+            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            assert received
 
     def test_locked_file(self):
         def locked_file_signal(self, *args, **kwargs):
@@ -200,6 +295,29 @@ class TestDirectEdit(UnitTestCase):
             doc_id, "Mode op\xe9ratoire.txt", b"Atol de PomPom Gali"
         )
 
+    def test_permission_readonly(self):
+        """Opening a read-only document is prohibited."""
+
+        from_dict_orig = NuxeoDocumentInfo.from_dict
+
+        def from_dict(doc: Dict[str, Any], parent_uid: str = None) -> NuxeoDocumentInfo:
+            info = from_dict_orig(doc)
+            # Remove the Write permission to trigger the read-only signal
+            info.permissions.remove("Write")
+            return info
+
+        def readonly_signal(self, *args, **kwargs):
+            nonlocal received
+            received = True
+
+        received = False
+        self.direct_edit.directEditReadonly.connect(readonly_signal)
+        doc_id = self.remote.make_file("/", "RO file.txt", content=b"content")
+
+        with patch.object(NuxeoDocumentInfo, "from_dict", new=from_dict):
+            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            assert received
+
     def test_url_resolver(self):
         user = "Administrator"
         get_engine = self.direct_edit._get_engine
@@ -237,6 +355,13 @@ class TestDirectEdit(UnitTestCase):
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
         self.remote.lock(doc_id)
         self._direct_edit_update(doc_id, filename, b"Test")
+
+    def test_handle_url_empty(self):
+        assert not self.direct_edit.handle_url(None)
+        assert not self.direct_edit.handle_url("")
+
+    def test_handle_url_malformed(self):
+        assert not self.direct_edit.handle_url("https://example.org")
 
     def test_url_with_spaces(self):
         scheme, host = pytest.nuxeo_url.split("://")
