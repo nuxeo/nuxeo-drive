@@ -60,7 +60,7 @@ class DirectEdit(Worker):
 
         self.autolock = self._manager.autolock_service
         self.use_autolock = self._manager.get_direct_edit_auto_lock()
-        self._event_handler = None
+        self._event_handler: Optional[DriveFSEventHandler] = None
         self._metrics = {"edit_files": 0}
         self._observer: Observer = None
         self.local = LocalClient(self._folder)

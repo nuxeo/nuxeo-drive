@@ -7,7 +7,7 @@ from os.path import basename, dirname, getctime
 from queue import Queue
 from threading import Lock
 from time import mktime, sleep, time
-from typing import Any, Dict, Set, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Optional, Set, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
@@ -55,7 +55,7 @@ class LocalWatcher(EngineWorker):
 
     def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao)
-        self._event_handler = None
+        self._event_handler: Optional[DriveFSEventHandler] = None
         # Delay for the scheduled recursive scans of
         # a created / modified / moved folder under Windows
         self._windows_folder_scan_delay = 10000  # 10 seconds

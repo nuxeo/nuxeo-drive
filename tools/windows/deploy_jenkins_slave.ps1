@@ -202,6 +202,10 @@ function launch_tests {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest $Env:SPECIFIC_TEST
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode

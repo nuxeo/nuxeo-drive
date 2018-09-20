@@ -146,6 +146,7 @@ launch_tests() {
     echo ">>> Launching the tests suite"
 
     ${PYTHON} -m flake8 .
+    ${PYTHON} -m mypy --ignore-missing-imports nxdrive
     ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}"
 }
 
