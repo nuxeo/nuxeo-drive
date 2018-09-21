@@ -183,7 +183,7 @@ class DirectEdit(Worker):
         for engine in self._manager.get_engines().values():
             bind = engine.get_binder()
             server_url = bind.server_url.rstrip("/")
-            if server_url == url and (user is None or user == bind.username):
+            if server_url == url and (not user or user == bind.username):
                 return engine
 
         # Some backend are case insensitive
