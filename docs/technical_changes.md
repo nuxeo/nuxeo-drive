@@ -131,6 +131,7 @@
 - Moved engine/workers.py::`PairInterrupt` exception to exceptions.py
 - Moved engine/workers.py::`ThreadInterrupt` exception to exceptions.py
 - Added exceptions.py::`UnknownDigest`
+- Added exceptions.py::`UnknownPairState`
 - Added gui/conflicts.py::`ConflictsView`
 - Removed gui/dialog.py::`TokenNetworkAccessManager`
 - Added gui/dialog.py::`TokenRequestInterceptor`

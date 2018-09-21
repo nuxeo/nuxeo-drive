@@ -23,6 +23,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from .utils import fix_db
 from ...client.local_client import FileInfo
 from ...constants import WINDOWS
+from ...exceptions import UnknownPairState
 from ...notification import Notification
 from ...objects import DocPair, DocPairs, Filters, RemoteFileInfo, EngineDef
 
@@ -67,6 +68,7 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     ("moved", "moved"): "conflicted",
     # conflict cases that have been manually resolved
     ("resolved", "unknown"): "locally_resolved",
+    ("resolved", "synchronized"): "synchronized",
     # inconsistent cases
     ("unknown", "deleted"): "unknown_deleted",
     ("deleted", "unknown"): "deleted_unknown",
@@ -848,7 +850,7 @@ class EngineDAO(ConfigurationDAO):
     def _get_pair_state(self, row: DocPair) -> str:
         state = PAIR_STATES.get((row.local_state, row.remote_state))
         if not state:
-            raise ValueError("Unable to find document state")
+            raise UnknownPairState(row.local_state, row.remote_state)
         return state
 
     def update_last_transfer(self, row_id: int, transfer: str) -> None:
