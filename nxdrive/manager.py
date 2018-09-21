@@ -710,9 +710,7 @@ class Manager(QObject):
     def get_metadata_infos(self, file_path: str, edit: bool = False) -> str:
         remote_ref = LocalClient.get_path_remote_id(file_path)
         if remote_ref is None:
-            raise ValueError(
-                "Could not find file %r as Nuxeo Drive managed" % file_path
-            )
+            raise ValueError(f"Could not find file {file_path!r} as {APP_NAME} managed")
 
         root_id = self.get_root_id(file_path)
         root_values = root_id.split("|")

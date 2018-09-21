@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
 )
 
 from .folders_treeview import Overlay
+from ..constants import APP_NAME
 from ..objects import NuxeoDocumentInfo
 
 __all__ = ("StatusDialog",)
@@ -138,7 +139,7 @@ class StatusDialog(QDialog):
         self.setLayout(layout)
         self.tree_view = StatusTreeview(self, self._dao)
         self.tree_view.resizeColumnToContents(0)
-        self.setWindowTitle("Nuxeo Drive File Status")
+        self.setWindowTitle(f"{APP_NAME} File Status")
         layout.addWidget(self.tree_view)
 
 

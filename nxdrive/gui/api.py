@@ -15,7 +15,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 
 from ..client.proxy import get_proxy
-from ..constants import STARTUP_PAGE_CONNECTION_TIMEOUT, TOKEN_PERMISSION
+from ..constants import APP_NAME, STARTUP_PAGE_CONNECTION_TIMEOUT, TOKEN_PERMISSION
 from ..engine.activity import Action, FileAction
 from ..engine.dao.sqlite import StateRow
 from ..engine.engine import Engine
@@ -715,9 +715,8 @@ class QMLDriveApi(QObject):
                 status = resp.status_code
         except:
             log.exception(
-                "Error while trying to connect to Nuxeo Drive"
-                " startup page with URL %s",
-                url,
+                f"Error while trying to connect to {APP_NAME}"
+                f" startup page with URL {url}"
             )
             raise StartupPageConnectionError()
         log.debug("Status code for %s = %d", url, status)
