@@ -12,6 +12,7 @@ from logging import getLogger
 from typing import List, Union
 
 from . import __version__
+from .constants import APP_NAME
 from .logging_config import configure
 from .options import Options
 from .utils import force_encode, get_default_nuxeo_drive_folder, normalized_path
@@ -68,7 +69,7 @@ class CliHandler:
         common_parser.add_argument(
             "--nxdrive-home",
             default=Options.nxdrive_home,
-            help="Folder to store the Nuxeo Drive configuration",
+            help=f"Folder to store the {APP_NAME} configuration",
         )
 
         common_parser.add_argument(
@@ -184,12 +185,12 @@ class CliHandler:
             "--version",
             action="version",
             version=self.get_version(),
-            help="Print the current version of the Nuxeo Drive client",
+            help=f"Print the current version of the {APP_NAME} client",
         )
 
         parser = ArgumentParser(
             parents=[common_parser],
-            description="Command line interface for Nuxeo Drive operations.",
+            description=f"Command line interface for {APP_NAME} operations.",
             usage=USAGE,
         )
 

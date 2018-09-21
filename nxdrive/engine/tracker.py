@@ -11,7 +11,7 @@ from PyQt5.QtCore import QTimer, pyqtSlot
 from UniversalAnalytics import Tracker as UATracker
 
 from .workers import Worker
-from ..constants import MAC, WINDOWS
+from ..constants import APP_NAME, MAC, WINDOWS
 from ..objects import NuxeoDocumentInfo
 
 if MAC:
@@ -34,7 +34,8 @@ class Tracker(Worker):
         self._tracker = UATracker.create(
             uid, client_id=self._manager.device_id, user_agent=self.user_agent
         )
-        self._tracker.set("appName", "NuxeoDrive")
+        self.app_name = APP_NAME.replace(" ", "")
+        self._tracker.set("appName", self.app_name)
         self._tracker.set("appVersion", self._manager.version)
         self._tracker.set("encoding", sys.getfilesystemencoding())
         self._tracker.set("language", self.current_locale)
@@ -95,7 +96,7 @@ class Tracker(Worker):
     def user_agent(self) -> str:
         """ Format a custom user agent. """
 
-        return "NuxeoDrive/{} ({})".format(self._manager.version, self.current_os)
+        return f"{self.app_name}/{self._manager.version} ({self.current_os})"
 
     def send_event(self, **kwargs: Any) -> None:
         engine = list(self._manager.get_engines().values())[0]
