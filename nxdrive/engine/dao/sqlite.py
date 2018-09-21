@@ -69,6 +69,8 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     # conflict cases that have been manually resolved
     ("resolved", "unknown"): "locally_resolved",
     ("resolved", "synchronized"): "synchronized",
+    ("created", "synchronized"): "synchronized",
+    ("unknown", "synchronized"): "synchronized",
     # inconsistent cases
     ("unknown", "deleted"): "unknown_deleted",
     ("deleted", "unknown"): "deleted_unknown",
@@ -350,10 +352,13 @@ class ManagerDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute("DELETE FROM AutoLock WHERE path = ?", (path,))
 
-    def get_locked_paths(self) -> List[str]:
+    def get_locks(self) -> List[Row]:
         con = self._get_read_connection()
         c = con.cursor()
-        return [lock.path for lock in c.execute("SELECT * FROM AutoLock").fetchall()]
+        return c.execute("SELECT * FROM AutoLock").fetchall()
+
+    def get_locked_paths(self) -> List[str]:
+        return [lock["path"] for lock in self.get_locks()]
 
     def lock_path(self, path: str, process: int, doc_id: str) -> None:
         with self._lock:
@@ -849,7 +854,7 @@ class EngineDAO(ConfigurationDAO):
 
     def _get_pair_state(self, row: DocPair) -> str:
         state = PAIR_STATES.get((row.local_state, row.remote_state))
-        if not state:
+        if state is None:
             raise UnknownPairState(row.local_state, row.remote_state)
         return state
 
