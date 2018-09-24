@@ -581,9 +581,12 @@ class RemoteWatcher(EngineWorker):
                 self._partial_full_scan(full_scan)
                 return False
 
-            for remote_ref in self._dao.get_paths_to_scan():
+            paths = self._dao.get_paths_to_scan()
+            while paths:
+                remote_ref = paths[0]
                 self._dao.update_config("remote_need_full_scan", remote_ref)
                 self._partial_full_scan(remote_ref)
+                paths = self._dao.get_paths_to_scan()
 
             self._update_remote_states()
             (self.updated, self.initiate)[first_pass].emit()

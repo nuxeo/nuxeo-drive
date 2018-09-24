@@ -16,7 +16,7 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from threading import RLock, current_thread, local
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, Type, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -1641,14 +1641,11 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute("DELETE FROM ToRemoteScan WHERE path = ?", (path,))
 
-    def get_paths_to_scan(self) -> Iterator[str]:
+    def get_paths_to_scan(self) -> List[str]:
         c = self._get_read_connection().cursor()
-        c.execute("SELECT * FROM ToRemoteScan")
-        while True:
-            res = c.fetchone()
-            if not res:
-                break
-            yield res.path
+        return [
+            item.path for item in c.execute("SELECT * FROM ToRemoteScan").fetchall()
+        ]
 
     def add_path_scanned(self, path: str) -> None:
         path = self._clean_filter_path(path)
