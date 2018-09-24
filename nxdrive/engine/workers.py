@@ -27,7 +27,7 @@ class Worker(QObject):
     _continue = False
     _action = None
     _name = None
-    _thread_id: int
+    _thread_id: Optional[int] = None
     _pause = False
 
     def __init__(self, thread: QThread = None, **kwargs: Any) -> None:
@@ -97,9 +97,10 @@ class Worker(QObject):
 
         self._continue = False
 
-    def get_thread_id(self) -> Optional[int]:
+    def get_thread_id(self) -> int:
         """ Get the thread ID. """
-
+        if not self._thread_id:
+            raise RuntimeError("Unable to retrieve thread id")
         return self._thread_id
 
     def _interact(self) -> None:
@@ -172,10 +173,7 @@ class Worker(QObject):
         self._running = True
         self._continue = True
         self._pause = False
-        thread_id = current_thread().ident
-        if not thread_id:
-            raise RuntimeError("Unable to start thread")
-        self._thread_id = thread_id
+        self._thread_id = current_thread().ident
         try:
             try:
                 self._execute()

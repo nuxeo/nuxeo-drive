@@ -141,7 +141,7 @@ class Processor(EngineWorker):
                 break
 
             try:
-                doc_pair = self._dao.acquire_state(self._thread_id, item.id)
+                doc_pair = self._dao.acquire_state(self.get_thread_id(), item.id)
             except sqlite3.OperationalError:
                 state = self._dao.get_state_from_id(item.id)
                 if state:
@@ -404,7 +404,7 @@ class Processor(EngineWorker):
             finally:
                 if soft_lock:
                     self._unlock_soft_path(soft_lock)
-                self._dao.release_state(self._thread_id)
+                self._dao.release_state(self.get_thread_id())
             self._interact()
 
     def _handle_pair_handler_exception(

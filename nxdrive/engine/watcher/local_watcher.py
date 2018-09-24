@@ -769,7 +769,7 @@ class LocalWatcher(EngineWorker):
 
         acquired_pair = None
         try:
-            acquired_pair = dao.acquire_state(self._thread_id, doc_pair.id)
+            acquired_pair = dao.acquire_state(self.get_thread_id(), doc_pair.id)
             if acquired_pair is not None:
                 self._handle_watchdog_event_on_known_acquired_pair(
                     acquired_pair, evt, rel_path
@@ -779,7 +779,7 @@ class LocalWatcher(EngineWorker):
         except sqlite3.OperationalError:
             log.trace(f"Don't update as cannot acquire {doc_pair!r}")
         finally:
-            dao.release_state(self._thread_id)
+            dao.release_state(self.get_thread_id())
             if acquired_pair is not None:
                 refreshed_pair = dao.get_state_from_id(acquired_pair.id)
                 if refreshed_pair is not None:
