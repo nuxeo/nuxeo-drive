@@ -33,8 +33,6 @@ class BindServerTest(unittest.TestCase):
         Options.delay = TEST_DEFAULT_DELAY
         Options.nxdrive_home = self.nxdrive_conf_folder
         self.manager = Manager()
-        self.addCleanup(self.manager.unbind_all)
-        self.addCleanup(self.manager.dispose_all)
 
         with pytest.raises(FolderAlreadyUsed):
             self.manager.bind_server(
@@ -44,3 +42,5 @@ class BindServerTest(unittest.TestCase):
                 pytest.password,
                 start_engine=False,
             )
+            self.addCleanup(self.manager.unbind_all)
+            self.addCleanup(self.manager.dispose_all)
