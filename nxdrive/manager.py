@@ -23,6 +23,7 @@ from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
 from .options import Options
+from .options_updater import ServerOptionsUpdater
 from .osi import AbstractOSIntegration
 from .updater import updater
 from .utils import (
@@ -40,7 +41,6 @@ if TYPE_CHECKING:
     from .client.proxy import Proxy  # noqa
     from .direct_edit import DirectEdit  # noqa
     from .engine.tracker import Tracker  # noqa
-    from .options_updater import ServerOptionsUpdater  # noqa
     from .osi.darwin.darwin import FinderSyncServer  # noqa
     from .updater import Updater  # noqa
 
@@ -103,7 +103,7 @@ class Manager(QObject):
             "NXDRIVENEXT": EngineNext,
         }
         self._engines: Dict[str, Union[Engine, EngineNext]] = {}
-        self.server_config_updater: Optional["ServerOptionsUpdater"] = None
+        self.server_config_updater: Optional[ServerOptionsUpdater] = None
 
         if Options.proxy_server is not None:
             self.proxy = get_proxy(category="Manual", url=Options.proxy_server)

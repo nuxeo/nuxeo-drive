@@ -48,10 +48,7 @@ import os.path
 import sys
 from contextlib import suppress
 from copy import deepcopy
-from typing import Any, Callable, Dict, Tuple, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .options_updater import ServerOptionsUpdater  # noqa
+from typing import Any, Callable, Dict, Tuple
 
 __all__ = ("Options",)
 
