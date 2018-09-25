@@ -22,7 +22,7 @@ from .exceptions import EngineTypeMissing, FolderAlreadyUsed
 from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
-from .options import Options, server_updater
+from .options import Options
 from .osi import AbstractOSIntegration
 from .updater import updater
 from .utils import (
@@ -245,7 +245,7 @@ class Manager(QObject):
         if not Options.update_check_delay:
             return
 
-        self.server_config_updater = server_updater(self)
+        self.server_config_updater = ServerOptionsUpdater(self)
         if self.server_config_updater:
             self.started.connect(self.server_config_updater._thread.start)
 

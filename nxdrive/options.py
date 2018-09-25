@@ -41,10 +41,6 @@ This is the equivalent of:
 
 _For testing purposes_, a `Options.mock` decorator is available.
 
----
-
-We also provide the `server_updater()` helper.
-It creates the worker that will check for options update on the server.
 """
 
 import logging
@@ -57,7 +53,7 @@ from typing import Any, Callable, Dict, Tuple, TYPE_CHECKING
 if TYPE_CHECKING:
     from .options_updater import ServerOptionsUpdater  # noqa
 
-__all__ = ("Options", "server_updater")
+__all__ = ("Options",)
 
 log = logging.getLogger(__name__)
 
@@ -360,15 +356,3 @@ class Options(metaclass=MetaOptions):
     def __init__(self) -> None:
         """ Prevent class instances. """
         raise RuntimeError("Cannot be instantiated.")
-
-
-def server_updater(*args: Any) -> "ServerOptionsUpdater":
-    """
-    Helper to create the worker that will check for option updates
-    on the server.
-    We use this to prevent loading any Drive related stuff and keep
-    the possibility to import other classes without anything else needed.
-    """
-    from .options_updater import ServerOptionsUpdater  # noqa
-
-    return ServerOptionsUpdater(*args)

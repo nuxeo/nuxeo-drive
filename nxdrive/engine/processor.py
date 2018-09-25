@@ -13,9 +13,9 @@ from PyQt5.QtCore import pyqtSignal
 from nuxeo.exceptions import CorruptedFile, HTTPError
 from requests import ConnectionError
 
-from nxdrive.client.local_client import FileInfo
 from .activity import Action
 from .workers import EngineWorker
+from ..client.local_client import FileInfo
 from ..constants import (
     DOWNLOAD_TMP_FILE_PREFIX,
     DOWNLOAD_TMP_FILE_SUFFIX,

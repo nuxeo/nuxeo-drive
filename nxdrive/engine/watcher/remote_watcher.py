@@ -85,15 +85,14 @@ class RemoteWatcher(EngineWorker):
         start_ms = current_milli_time()
         try:
             from_state = from_state or self._dao.get_state_from_local("/")
-            if from_state:
-                remote_info = self.engine.remote.get_fs_info(from_state.remote_ref)
-                self._dao.update_remote_state(
-                    from_state,
-                    remote_info,
-                    remote_parent_path=from_state.remote_parent_path,
-                )
-            else:
+            if not from_state:
                 return
+            remote_info = self.engine.remote.get_fs_info(from_state.remote_ref)
+            self._dao.update_remote_state(
+                from_state,
+                remote_info,
+                remote_parent_path=from_state.remote_parent_path,
+            )
         except NotFound:
             log.debug(f"Marking {from_state!r} as remotely deleted")
             # Should unbind ?
@@ -910,7 +909,7 @@ class RemoteWatcher(EngineWorker):
                                 f"of {child_pair.remote_name!r}"
                             )
                             remote_path = (
-                                child_pair.remote_parent_path + "/" + new_info.uid
+                                f"{child_pair.remote_parent_path}/{new_info.uid}"
                             )
                             self._force_remote_scan(child_pair, new_info, remote_path)
                         else:

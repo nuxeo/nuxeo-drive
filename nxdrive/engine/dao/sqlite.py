@@ -165,9 +165,7 @@ class ConfigurationDAO(QObject):
         target_cols = self._get_columns(cursor, name)
         source_cols = self._get_columns(cursor, tmpname)
         cols = ", ".join(set(target_cols).intersection(source_cols))
-        cursor.execute(
-            f"INSERT INTO {name} ({cols}) " f"SELECT {cols}" f"  FROM {tmpname}"
-        )
+        cursor.execute(f"INSERT INTO {name} ({cols}) SELECT {cols} FROM {tmpname}")
         cursor.execute(f"DROP TABLE {tmpname}")
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:

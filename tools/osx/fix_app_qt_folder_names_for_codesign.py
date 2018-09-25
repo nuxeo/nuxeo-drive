@@ -89,7 +89,7 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
             yield sibbling
 
 
-def main(args: List[str]) -> None:
+def main(args: List[str]) -> int:
     """
     Fix the application to allow codesign (NXDRIVE-1301).
     Take one or more .app as arguments: "Nuxeo Drive.app".
@@ -110,6 +110,7 @@ def main(args: List[str]) -> None:
             create_symlink(folder)
             print(f" !! Fixed {folder}")
         print(f">>> [{name}] Application fixed.")
+    return 0
 
 
 if __name__ == "__main__":

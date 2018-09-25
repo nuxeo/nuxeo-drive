@@ -1,3 +1,11 @@
+"""
+This stub file is used during the mypy type check.
+We are overriding the logging module to take into account the `trace` level
+that we add at runtime.
+It contains more than just the `trace()` definition because it needs to
+contain all the logging functions and classes that are used in the program.
+"""
+
 class Formatter:
     def __init__(self, *args, **kwargs) -> None: ...
 

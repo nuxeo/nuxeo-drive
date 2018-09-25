@@ -54,6 +54,7 @@
 - Removed `Manager.set_proxy_settings()`
 - Removed `Manager.proxyUpdated()`
 - Removed `Manager.validate_proxy_settings()`
+- Changed `ManagerDAO.get_locked_paths()` return type to `List[str]`
 - Removed `Notification.get_content()`
 - Changed `fail_on_error` default value to True in `Options.update()`
 - Added `Options.home`
@@ -66,6 +67,7 @@
 - Removed `QueueManager.queueEmpty()`
 - Added `Remote.set_proxy()`
 - Added `Remote.stream_attach()`
+- Changed `command` keyword argument of `Remote.upload()` to a required argument.
 - Moved `Remote.conflicted_name()` to `RemoteBase`
 - Moved `Remote.doc_to_info()` to `NuxeoDocumentInfo.from_dict()`
 - Moved `Remote.file_to_info()` to `RemoteFileInfo.from_dict()`
@@ -75,6 +77,8 @@
 - Moved `Remote.get_roots()` to `RemoteBase`
 - Moved `Remote.make_file()` to `RemoteBase`
 - Moved `Remote.update_content()` to `RemoteBase`
+- Removed `raise_if_missing` keyword argument from `Remote.get_fs_info()`
+- Removed `mime_type` keyword argument from `Remote.stream_update()`
 - Changed `Translator(object)` to `Translator(QTranslator)``
 - Added `Translator.translate()`
 - Added `Translator.tr()`
@@ -147,6 +151,7 @@
 - Removed manager.py::`MissingToken`
 - Removed manager.py::`ProxySettings`
 - Moved options.py::`ServerOptionsUpdater` to options_updater.py
+- Removed options.py::`server_updater()`
 - Removed osi/darwin/darwin.py::`FinderSyncListener`
 - Added osi/darwin/darwin.py::`FinderSyncServer`
 - Removed osi/darwin/darwin.py::`SocketThread`
