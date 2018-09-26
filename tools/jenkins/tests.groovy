@@ -189,6 +189,14 @@ for (def x in slaves) {
                             def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                             def platform_opt = "-Dplatform=${slave.toLowerCase()}"
 
+                            // This is a dirty hack to bypass PGSQL errors, see NXDRIVE-1370 for more information.
+                            // We cannot unset hardcoded envars but we can generate a random string ourselves.
+                            // Note: that string must start with a letter.
+                            def uid = "rand" + UUID.randomUUID().toString().replace('-', '')
+                            env.NX_DB_NAME = uid
+                            env.NX_DB_USER = uid
+                            echo "Using a random string for the database name and user: ${uid}"
+
                             dir('sources') {
                                 // Set up the report name folder
                                 env.REPORT_PATH = env.WORKSPACE + '/sources'
