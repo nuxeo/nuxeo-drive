@@ -31,7 +31,7 @@ from ..objects import NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..utils import get_device, lock_path, unlock_path, version_le
 
-__all__ = ("FilteredRemote", "Remote")
+__all__ = ("Remote",)
 
 log = getLogger(__name__)
 
@@ -322,11 +322,21 @@ class Remote(Nuxeo):
             command="NuxeoDrive.FileSystemItemExists", id=fs_item_id
         )
 
-    def get_fs_children(self, fs_item_id: str) -> List[RemoteFileInfo]:
+    def get_fs_children(self, fs_item_id: str, filtered=True) -> List[RemoteFileInfo]:
         children = self.operations.execute(
             command="NuxeoDrive.GetChildren", id=fs_item_id
         )
-        return [RemoteFileInfo.from_dict(fs_item) for fs_item in children]
+        infos = [RemoteFileInfo.from_dict(fs_item) for fs_item in children]
+
+        if filtered:
+            filtered_infos = []
+            for info in infos:
+                if not self.is_filtered(info.path):
+                    filtered_infos.append(info)
+                else:
+                    log.debug(f"Filtering out item {info!r}")
+            return filtered_infos
+        return infos
 
     def scroll_descendants(
         self, fs_item_id: str, scroll_id: str, batch_size: int = 100
@@ -344,7 +354,9 @@ class Remote(Nuxeo):
             ],
         }
 
-    def is_filtered(self, path: str) -> bool:
+    def is_filtered(self, path: str, filtered=True) -> bool:
+        if filtered:
+            return self._dao.is_filter(path)
         return False
 
     def make_folder(
@@ -609,19 +621,3 @@ class Remote(Nuxeo):
         if not self._has_new_trash_service:
             return "AND ecm:currentLifeCycleState != 'deleted'"
         return "AND ecm:isTrashed = 0"
-
-
-class FilteredRemote(Remote):
-    def is_filtered(self, path: str) -> bool:
-        return self._dao.is_filter(path)
-
-    def get_fs_children(self, fs_item_id: str) -> List[RemoteFileInfo]:
-        result = super().get_fs_children(fs_item_id)
-        # Need to filter the children result
-        filtered = []
-        for item in result:
-            if not self.is_filtered(item.path):
-                filtered.append(item)
-            else:
-                log.debug("Filtering item %r", item)
-        return filtered

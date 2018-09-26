@@ -7,7 +7,7 @@ from PyQt5.QtCore import QModelIndex, QObject, QVariant, Qt, pyqtSignal, pyqtSlo
 from PyQt5.QtGui import QMovie, QPalette, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import QDialog, QLabel, QTreeView, QWidget
 
-from ..client.remote_client import FilteredRemote
+from ..client.remote_client import Remote
 from ..objects import Filters, RemoteFileInfo
 from ..utils import find_icon
 
@@ -123,7 +123,7 @@ class Client:
 
 
 class FilteredFsClient(Client):
-    def __init__(self, fs_client: FilteredRemote, filters: Filters = None) -> None:
+    def __init__(self, fs_client: Remote, filters: Filters = None) -> None:
         self.fs_client = fs_client
         filters = filters or []
         self.filters = [filter_obj.path for filter_obj in filters]
@@ -145,7 +145,7 @@ class FilteredFsClient(Client):
         self, parent: FileInfo = None
     ) -> Generator[Union[FsFileInfo, FsRootFileInfo], None, None]:
         if parent:
-            for info in self.fs_client.get_fs_children(parent.get_id()):
+            for info in self.fs_client.get_fs_children(parent.get_id(), filtered=False):
                 yield FsFileInfo(info, parent, self.get_item_state(info.path))
             return
 

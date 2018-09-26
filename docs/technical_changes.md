@@ -17,7 +17,7 @@
 - Removed `CustomMemoryHandler.flush()`
 - Removed `DriveSystrayIcon.use_old_menu`
 - Added `Engine.init_remote()`
-- Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, filtered_remote_cls, local_cls)`
+- Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, local_cls)`
 - Removed `Engine.get_abspath()`
 - Added `duration` keyword argument to `Engine.get_last_files()`
 - Added `Engine.get_last_files_count()`
