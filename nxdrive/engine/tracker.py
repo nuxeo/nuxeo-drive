@@ -31,10 +31,10 @@ class Tracker(Worker):
         self._manager = manager
         self._thread.started.connect(self.run)
         self.uid = uid
+        self.app_name = APP_NAME.replace(" ", "")
         self._tracker = UATracker.create(
             uid, client_id=self._manager.device_id, user_agent=self.user_agent
         )
-        self.app_name = APP_NAME.replace(" ", "")
         self._tracker.set("appName", self.app_name)
         self._tracker.set("appVersion", self._manager.version)
         self._tracker.set("encoding", sys.getfilesystemencoding())

@@ -257,6 +257,7 @@ class Application(QApplication):
     def _show_window(self, window: "QWindow") -> None:
         window.show()
         window.raise_()
+        window.requestActivate()
 
     def _destroy_dialog(self) -> None:
         sender = self.sender()
@@ -506,6 +507,7 @@ class Application(QApplication):
         self.filters_dlg = FiltersDialog(self, engine)
         self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
         self.filters_dlg.show()
+        self._show_window(self.settings_window)
 
     def show_file_status(self) -> None:
         from ..gui.status_dialog import StatusDialog
