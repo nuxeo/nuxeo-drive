@@ -322,7 +322,9 @@ class Remote(Nuxeo):
             command="NuxeoDrive.FileSystemItemExists", id=fs_item_id
         )
 
-    def get_fs_children(self, fs_item_id: str, filtered=True) -> List[RemoteFileInfo]:
+    def get_fs_children(
+        self, fs_item_id: str, filtered: bool = True
+    ) -> List[RemoteFileInfo]:
         children = self.operations.execute(
             command="NuxeoDrive.GetChildren", id=fs_item_id
         )
@@ -354,7 +356,7 @@ class Remote(Nuxeo):
             ],
         }
 
-    def is_filtered(self, path: str, filtered=True) -> bool:
+    def is_filtered(self, path: str, filtered: bool = True) -> bool:
         if filtered:
             return self._dao.is_filter(path)
         return False
