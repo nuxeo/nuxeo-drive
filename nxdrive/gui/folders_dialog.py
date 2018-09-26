@@ -17,6 +17,12 @@ class FiltersDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
+
+        # The window doesn't raise on Windows when the app is not in focus,
+        # so after the login in the browser, we open the filters window with
+        # the "stay on top" hint to make sure it comes back to the front
+        # instead of just having a blinking icon in the taskbar.
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.setWindowTitle(Translator.get("FILTERS_WINDOW_TITLE"))
 
         self.vertical_layout = QVBoxLayout(self)
