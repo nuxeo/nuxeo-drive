@@ -17,7 +17,7 @@
 - Removed `CustomMemoryHandler.flush()`
 - Removed `DriveSystrayIcon.use_old_menu`
 - Added `Engine.init_remote()`
-- Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, filtered_remote_cls, local_cls)`
+- Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, local_cls)`
 - Removed `Engine.get_abspath()`
 - Added `duration` keyword argument to `Engine.get_last_files()`
 - Added `Engine.get_last_files_count()`
@@ -62,6 +62,8 @@
 - Added `duration` keyword argument to `QMLDriveApi.get_last_files()`
 - Added `QMLDriveApi.get_last_files_count()`
 - Removed `QueueManager.queueEmpty()`
+- Added `filtered` keyword argument `Remote.get_fs_children()` with `True` as default value.
+- Added `filtered` keyword argument `Remote.is_filtered()` with `True` as default value.
 - Added `Remote.set_proxy()`
 - Moved `Remote.conflicted_name()` to `RemoteBase`
 - Moved `Remote.doc_to_info()` to `NuxeoDocumentInfo.from_dict()`
@@ -101,6 +103,7 @@
 - Removed application.py::`SimpleApplication`
 - Added client/proxy.py
 - Added client/remote_client.py
+- Removed client/remote_client.py::`FilteredRemote`
 - Moved client/common.py::`DuplicationDisabledError` exception to exceptions.py
 - Moved client/common.py::`COLLECTION_SYNC_ROOT_FACTORY_NAME` constant to engine/watcher/remote_watcher.py
 - Moved client/common.py::`NotFound` exception to exceptions.py

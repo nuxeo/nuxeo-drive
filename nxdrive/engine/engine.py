@@ -18,7 +18,7 @@ from .watcher.local_watcher import LocalWatcher
 from .watcher.remote_watcher import RemoteWatcher
 from .workers import Worker
 from ..client.local_client import LocalClient
-from ..client.remote_client import FilteredRemote, Remote
+from ..client.remote_client import Remote
 from ..constants import MAC, WINDOWS
 from ..exceptions import (
     InvalidDriveException,
@@ -83,7 +83,6 @@ class Engine(QObject):
         binder: Binder = None,
         processors: int = 5,
         remote_cls: Type[Remote] = Remote,
-        filtered_remote_cls: Type[FileAction] = FilteredRemote,
         local_cls: Type[LocalWatcher] = LocalClient,
     ) -> None:
         super().__init__()
@@ -91,7 +90,6 @@ class Engine(QObject):
         self.version = manager.version
 
         self.remote_cls = remote_cls
-        self.filtered_remote_cls = filtered_remote_cls
         self.local_cls = local_cls
         self.remote = None
 
@@ -735,7 +733,7 @@ class Engine(QObject):
             "dao": self._dao,
             "proxy": self.manager.proxy,
         }
-        self.remote = self.filtered_remote_cls(*args, **kwargs)
+        self.remote = self.remote_cls(*args, **kwargs)
 
     def bind(self, binder: Binder) -> None:
         check_credentials = not binder.no_check
