@@ -66,6 +66,7 @@ Changes in command line arguments:
 - [NXDRIVE-1281](https://jira.nuxeo.com/browse/NXDRIVE-1281): Cover the whole DirectEdit feature with tests
 - [NXDRIVE-1293](https://jira.nuxeo.com/browse/NXDRIVE-1293): Tweak timeouts in testing jobs on Jenkins
 - [NXDRIVE-1316](https://jira.nuxeo.com/browse/NXDRIVE-1316): Only run tests when code files are modified or build is launched manually
+- [NXDRIVE-1370](https://jira.nuxeo.com/browse/NXDRIVE-1370): Use a random string for the database name and user in PGSQL
 
 #### Minor changes
 - Development: Use the pre-commit tool to ensure a good quality code before committing
