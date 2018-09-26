@@ -25,14 +25,12 @@
   <target name="prepare-tomcat-logs" depends="_init" if="is.tomcat" unless="env.ENABLE_CONVERTERS">
     <echo level="info">Adding DEBUG logs to trace command line calls (to catch used converters) ...</echo>
     <echo level="info">Just grep "Running system command:" ;)</echo>
-    <replace file="${nuxeo.home}/lib/log4j.xml">
-      <replacetoken><![CDATA[  <category name="org.nuxeo">
+    <replace file="${nuxeo.home}/lib/log4j2.xml">
+      <replacetoken><![CDATA[    <Logger name="org.nuxeo" level="warn" />
 ]]></replacetoken>
-      <replacevalue><![CDATA[  <category name="org.nuxeo.ecm.platform.commandline.executor.service.executors">
-    <priority value="DEBUG" />
-  </category>
+      <replacevalue><![CDATA[    <Logger name="org.nuxeo.ecm.platform.commandline.executor.service.executors" level="debug" />
 
-  <category name="org.nuxeo">
+    <Logger name="org.nuxeo" level="warn" />
 ]]></replacevalue>
     </replace>
   </target>
