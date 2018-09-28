@@ -1,6 +1,6 @@
 # coding: utf-8
 from contextlib import suppress
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 from PyQt5.QtCore import (
     QAbstractListModel,
@@ -11,17 +11,14 @@ from PyQt5.QtCore import (
     pyqtSignal,
     pyqtSlot,
 )
-from PyQt5.QtGui import QIcon
-from PyQt5.QtQuick import QQuickView
 
-from ..translator import Translator
-
-__all__ = ("FileModel", "LanguageModel", "NuxeoView")
+__all__ = ("FileModel", "LanguageModel")
 
 
 class EngineModel(QAbstractListModel):
     engineChanged = pyqtSignal()
     statusChanged = pyqtSignal(object)
+    uiChanged = pyqtSignal()
 
     UID_ROLE = Qt.UserRole + 1
     TYPE_ROLE = Qt.UserRole + 2
@@ -32,10 +29,10 @@ class EngineModel(QAbstractListModel):
     UI_ROLE = Qt.UserRole + 7
     FORCE_UI_ROLE = Qt.UserRole + 8
 
-    def __init__(self, parent: QObject = None) -> None:
+    def __init__(self, application: "Application", parent: QObject = None) -> None:
         super(EngineModel, self).__init__(parent)
+        self.application = application
         self.engines_uid = []
-        self.engines = {}
 
     def roleNames(self) -> Dict[int, bytes]:
         return {
@@ -61,16 +58,14 @@ class EngineModel(QAbstractListModel):
             b"forceUi": self.FORCE_UI_ROLE,
         }
 
-    def addEngine(self, engine: "Engine", parent: QModelIndex = QModelIndex()) -> None:
-        uid = engine.uid
+    def addEngine(self, uid: str, parent: QModelIndex = QModelIndex()) -> None:
         if uid in self.engines_uid:
             return
         count = self.rowCount()
         self.beginInsertRows(parent, count, count)
         self.engines_uid.append(uid)
-        self.engines[uid] = engine
         self.endInsertRows()
-        self._connect_engine(engine)
+        self._connect_engine(self.application.manager._engines[uid])
         self.engineChanged.emit()
 
     def removeEngine(self, uid: str) -> None:
@@ -84,7 +79,7 @@ class EngineModel(QAbstractListModel):
         if index < 0 or index >= self.count:
             return None
         uid = self.engines_uid[index]
-        row = self.engines[uid]
+        row = self.application.manager._engines[uid]
         if role == self.UID_ROLE:
             return row.uid
         elif role == self.TYPE_ROLE:
@@ -108,7 +103,7 @@ class EngineModel(QAbstractListModel):
         if index < 0 or index >= self.count:
             return ""
         uid = self.engines_uid[index]
-        row = self.engines[uid]
+        row = self.application.manager._engines[uid]
         if role == "uid":
             return row.uid
         elif role == "type":
@@ -133,8 +128,7 @@ class EngineModel(QAbstractListModel):
         try:
             self.beginRemoveRows(parent, row, row + count - 1)
             for i in range(count):
-                uid = self.engines_uid.pop(row)
-                del self.engines[uid]
+                self.engines_uid.pop(row)
             self.endRemoveRows()
             return True
         except:
@@ -159,6 +153,7 @@ class EngineModel(QAbstractListModel):
         engine.syncResumed.connect(self._relay_engine_events)
         engine.syncStarted.connect(self._relay_engine_events)
         engine.syncSuspended.connect(self._relay_engine_events)
+        engine.uiChanged.connect(self.uiChanged)
 
     def _relay_engine_events(self):
         engine = self.sender()
@@ -333,62 +328,3 @@ class LanguageModel(QAbstractListModel):
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self.languages)
-
-
-class NuxeoView(QQuickView):
-    def __init__(self, application: "Application", api: "QMLDriveApi") -> None:
-        super().__init__()
-        self.application = application
-        self.api = api
-        self.setIcon(QIcon(application.get_window_icon()))
-
-        self.engine_model = EngineModel()
-
-        self.add_engines(list(self.application.manager._engines.values()))
-        context = self.rootContext()
-        context.setContextProperty("EngineModel", self.engine_model)
-        context.setContextProperty("tl", Translator._singleton)
-        context.setContextProperty("api", self.api)
-        context.setContextProperty("application", self.application)
-        context.setContextProperty("manager", self.application.manager)
-        context.setContextProperty("ratio", self.application.ratio)
-
-    def init(self) -> None:
-        self.load_colors()
-
-        self.application.manager.newEngine.connect(self.add_engines)
-        self.application.manager.initEngine.connect(self.add_engines)
-        self.application.manager.dropEngine.connect(self.remove_engine)
-
-    def reload(self) -> None:
-        self.init()
-
-    def load_colors(self) -> None:
-        colors = {
-            "darkBlue": "#1F28BF",
-            "nuxeoBlue": "#0066FF",
-            "lightBlue": "#00ADED",
-            "teal": "#73D2CF",
-            "purple": "#8400FF",
-            "red": "#C02828",
-            "orange": "#FF9E00",
-            "darkGray": "#495055",
-            "mediumGray": "#7F8284",
-            "lightGray": "#BCBFBF",
-            "lighterGray": "#F5F5F5",
-        }
-
-        context = self.rootContext()
-        for name, value in colors.items():
-            context.setContextProperty(name, value)
-
-    def add_engines(self, engines: Union["Engine", List["Engine"]]) -> None:
-        if not engines:
-            return
-
-        engines = engines if isinstance(engines, list) else [engines]
-        for engine in engines:
-            self.engine_model.addEngine(engine)
-
-    def remove_engine(self, uid: str) -> None:
-        self.engine_model.removeEngine(uid)

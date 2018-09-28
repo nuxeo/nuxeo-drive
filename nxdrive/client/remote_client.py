@@ -619,6 +619,15 @@ class Remote(Nuxeo):
             settings = proxy.settings(url=self.client.host)
             self.client.client_kwargs["proxies"] = settings
 
+    def get_server_configuration(self) -> Dict[str, Any]:
+        try:
+            return self.client.request(
+                "GET", f"{self.client.api_path}/drive/configuration"
+            ).json()
+        except Exception as exc:
+            log.error(f"Error getting server configuration: {exc}")
+            return {}
+
     def _get_trash_condition(self) -> str:
         if not self._has_new_trash_service:
             return "AND ecm:currentLifeCycleState != 'deleted'"

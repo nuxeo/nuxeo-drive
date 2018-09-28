@@ -63,6 +63,7 @@
 - Added `QMLDriveApi.get_last_files_count()`
 - Removed `QueueManager.queueEmpty()`
 - Added `filtered` keyword argument `Remote.get_fs_children()` with `True` as default value.
+- Added `Remote.get_server_configuration()`
 - Added `filtered` keyword argument `Remote.is_filtered()` with `True` as default value.
 - Added `Remote.set_proxy()`
 - Moved `Remote.conflicted_name()` to `RemoteBase`

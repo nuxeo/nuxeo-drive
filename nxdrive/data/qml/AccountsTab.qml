@@ -16,7 +16,7 @@ Rectangle {
         }
     }
 
-    GridLayout {
+    Item {
         visible: hasAccounts
 
         anchors {
@@ -25,65 +25,103 @@ Rectangle {
             topMargin: 40
             leftMargin: 30
         }
-        columns: 2
-        columnSpacing: 50
-        rowSpacing: 20
 
         ScaledText { text: qsTr("ACCOUNT_NAME") + tl.tr; color: mediumGray }
 
-        AccountsComboBox { id: accountSelect }
-
-        ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
-        ScaledText { text: accountSelect.getRole("url") }
-
-        ScaledText {
-            text: qsTr("SERVER_UI") + tl.tr
-            color: mediumGray
-            Layout.alignment: Qt.AlignTop
-        }
-
-        ColumnLayout {
-            id: uiSelect
-
-            property string suffix: " (" + qsTr("SERVER_DEFAULT") + ")"
-            spacing: 0
-            NuxeoRadioButton {
-                checked: accountSelect.getRole("forceUi") == "web"
-                text: "Web UI" + (accountSelect.getRole("ui") == "web" ? uiSelect.suffix : "")
-                onClicked: api.set_server_ui(accountSelect.getRole("uid"), "web")
-                Layout.alignment: Qt.AlignTop
-                Layout.leftMargin: -8
-                Layout.topMargin: -10
-            }
-            NuxeoRadioButton {
-                checked: accountSelect.getRole("forceUi") == "jsf"
-                text: "JSF UI" + (accountSelect.getRole("ui") == "jsf" ? uiSelect.suffix : "")
-                onClicked: api.set_server_ui(accountSelect.getRole("uid"), "jsf")
-                Layout.alignment: Qt.AlignTop
-                Layout.leftMargin: -8
-                Layout.topMargin: -5
+        AccountsComboBox {
+            id: accountSelect
+            anchors {
+                left: parent.left
+                leftMargin: 185
             }
         }
+    }
 
-        ScaledText { text: qsTr("ENGINE_FOLDER") + tl.tr; color: mediumGray }
-        ScaledText { text: accountSelect.getRole("folder") }
+    StackLayout {
+        visible: hasAccounts
+        currentIndex: accountSelect.currentIndex
 
-        ScaledText {
-            text: qsTr("SELECTIVE_SYNC") + tl.tr
-            color: mediumGray
-            Layout.alignment: Qt.AlignTop
+        anchors {
+            top: parent.top
+            left: parent.left
+            topMargin: 70
+            leftMargin: 30
         }
 
-        ColumnLayout {
-            ScaledText {
-                text: qsTr("SELECTIVE_SYNC_DESCR") + tl.tr
-                Layout.maximumWidth: 400
-                wrapMode: Text.WordWrap
-                color: mediumGray
-            }
-            Link {
-                text: qsTr("SELECT_SYNC_FOLDERS") + tl.tr
-                onClicked: api.filters_dialog(accountSelect.getRole("uid"))
+        Repeater {
+            id: accounts
+            model: EngineModel
+            delegate: GridLayout {
+                columns: 2
+                columnSpacing: 50
+                rowSpacing: 20
+                ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
+                ScaledText { text: url }
+
+                ScaledText {
+                    text: qsTr("SERVER_UI") + tl.tr
+                    color: mediumGray
+                    Layout.alignment: Qt.AlignTop
+                }
+
+                ColumnLayout {
+
+                    Connections {
+                        target: EngineModel
+                        onUiChanged: {
+                            webUiButton.defaultUi = (ui == "web")
+                            jsfUiButton.defaultUi = (ui == "jsf")
+                            webUiButton.checked = (forceUi == "web")
+                            jsfUiButton.checked = (forceUi == "jsf")
+                        }
+                    }
+                    id: uiSelect
+
+                    property string suffix: " (" + qsTr("SERVER_DEFAULT") + ")"
+                    spacing: 0
+                    NuxeoRadioButton {
+                        id: webUiButton
+                        property bool defaultUi: false
+
+                        text: "Web UI" + (defaultUi ? uiSelect.suffix : "")
+                        onClicked: api.set_server_ui(uid, "web")
+                        Layout.alignment: Qt.AlignTop
+                        Layout.leftMargin: -8
+                        Layout.topMargin: -10
+                    }
+                    NuxeoRadioButton {
+                        id: jsfUiButton
+                        property bool defaultUi: false
+
+                        text: "JSF UI" + (defaultUi ? uiSelect.suffix : "")
+                        onClicked: api.set_server_ui(uid, "jsf")
+                        Layout.alignment: Qt.AlignTop
+                        Layout.leftMargin: -8
+                        Layout.topMargin: -5
+                    }
+                }
+
+                ScaledText { text: qsTr("ENGINE_FOLDER") + tl.tr; color: mediumGray }
+                ScaledText { text: folder }
+
+                ScaledText {
+                    text: qsTr("SELECTIVE_SYNC") + tl.tr
+                    color: mediumGray
+                    Layout.alignment: Qt.AlignTop
+                }
+
+                ColumnLayout {
+                    ScaledText {
+                        text: qsTr("SELECTIVE_SYNC_DESCR") + tl.tr
+                        Layout.maximumWidth: 400
+                        wrapMode: Text.WordWrap
+                        color: mediumGray
+                    }
+                    Link {
+                        text: qsTr("SELECT_SYNC_FOLDERS") + tl.tr
+                        onClicked: api.filters_dialog(uid)
+                    }
+                }
             }
         }
     }
