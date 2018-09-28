@@ -41,7 +41,6 @@ __all__ = (
     "simplify_url",
     "unlock_path",
     "unset_path_readonly",
-    "version_between",
     "version_le",
 )
 
@@ -303,11 +302,6 @@ def version_compare_client(x: str, y: str) -> int:
         return cmp(StrictVersion(x), StrictVersion(y))
     except (AttributeError, ValueError):
         return version_compare(x, y)
-
-
-def version_between(x: str, y: str, z: str) -> bool:
-    """ x <= y <= y """
-    return version_le(x, y) and version_le(y, z)
 
 
 def version_le(x: str, y: str) -> bool:

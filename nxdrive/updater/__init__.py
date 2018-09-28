@@ -4,7 +4,6 @@
 from logging import getLogger
 from typing import Any
 
-from .utils import get_latest_compatible_version
 from ..options import Options
 
 log = getLogger(__name__)
@@ -45,4 +44,4 @@ def updater(*args: Any, **kwargs: Any) -> "Updater":
     return Updater(*args, **kwargs)
 
 
-__all__ = ("UpdateError", "get_latest_compatible_version", "updater")
+__all__ = ("UpdateError", "updater")
