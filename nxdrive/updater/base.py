@@ -11,7 +11,7 @@ import yaml
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
-from . import UpdateError, get_latest_compatible_version
+from . import UpdateError
 from .constants import (
     UPDATE_STATUS_DOWNGRADE_NEEDED,
     UPDATE_STATUS_UNAVAILABLE_SITE,
@@ -19,9 +19,9 @@ from .constants import (
     UPDATE_STATUS_UPDATING,
     UPDATE_STATUS_UP_TO_DATE,
 )
+from .utils import get_update_status
 from ..engine.workers import PollWorker
 from ..options import Options
-from ..utils import version_le
 
 __all__ = ("BaseUpdater",)
 
@@ -101,7 +101,7 @@ class BaseUpdater(PollWorker):
         Used for debugging purposes only.
         """
 
-        self._set_status(status, version)
+        self._set_status(status, version=version)
 
         if status == UPDATE_STATUS_UPDATING:
             # Put a percentage
@@ -130,8 +130,8 @@ class BaseUpdater(PollWorker):
         if not self.enable:
             return
 
-        log.info("Starting application update process to version %s", version)
-        self._set_status(UPDATE_STATUS_UPDATING, version, 10)
+        log.info(f"Starting application update process to version {version}")
+        self._set_status(UPDATE_STATUS_UPDATING, version=version, progress=10)
         self._install(version, self._download(version))
 
     #
@@ -196,29 +196,18 @@ class BaseUpdater(PollWorker):
             # Fetch all available versions
             self._fetch_versions()
         except UpdateError:
-            self._set_status(UPDATE_STATUS_UNAVAILABLE_SITE)
+            status, version = UPDATE_STATUS_UNAVAILABLE_SITE, None
         else:
-            # Find the latest available version
-            latest, info = get_latest_compatible_version(
-                self.versions, self.nature, self.server_ver
+            log.debug(
+                "Get update status for version %s (%s) on server %s",
+                self.manager.version,
+                self.nature,
+                self.server_ver,
             )
-
-            current = self.manager.version
-            if not latest or current == latest:
-                self._set_status(UPDATE_STATUS_UP_TO_DATE)
-            elif current not in self.versions:
-                log.info(
-                    "Disabling the auto-update because of unknown version. "
-                    "This is the case when the current packaged application "
-                    "has a version unknown on the server, typically the "
-                    "development one."
-                )
-                self.enable = False
-                self._set_status(UPDATE_STATUS_UP_TO_DATE)
-            elif not version_le(latest, current):
-                self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, latest)
-            else:
-                self._set_status(UPDATE_STATUS_DOWNGRADE_NEEDED, latest)
+            status, version = get_update_status(
+                self.manager.version, self.versions, self.nature, self.server_ver
+            )
+        self._set_status(status, version=version)
 
     def _handle_status(self) -> None:
         """ Handle update check status. """
@@ -240,13 +229,11 @@ class BaseUpdater(PollWorker):
         self.updateAvailable.emit()
 
         if self.status == UPDATE_STATUS_DOWNGRADE_NEEDED:
+            # In case of a downgrade, stop the engines
+            # and try to install the older version.
             self.manager.stop()
-            return
 
-        if self.manager.get_auto_update() or not self.manager.get_engines():
-            # Automatically update if:
-            #  - the auto-update option is checked
-            #  - there is no bound engine
+        if self.manager.get_auto_update():
             try:
                 self.update(self.version)
             except UpdateError:

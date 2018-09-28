@@ -3,6 +3,7 @@
 [//]: # (Note 3: keywords ordered [Added, Changed, Moved, Removed])
 
 # dev
+
 - Removed `AbstractOSIntegration.is_linux()`
 - Removed `AbstractOSIntegration.is_mac()`
 - Removed `AbstractOSIntegration.is_windows()`
@@ -150,14 +151,17 @@
 - Removed osi/darwin/darwin.py::`FinderSyncListener`
 - Added osi/darwin/darwin.py::`FinderSyncServer`
 - Removed osi/darwin/darwin.py::`SocketThread`
+- Added updater/utils.py::`get_update_status()`
 - Added utils.py::`copy_to_clipboard()`
 - Added utils.py::`force_encode()`
 - Added utils.py::`if_frozen()`
+- Removed utils.py::`version_between()`
 - Removed `codecs` argument from utils.py::`force_decode()`
 - Removed utils.py::`guess_digest_algorithm()`
 - Moved wui/* to gui/*
 
 # 3.1.0
+
 - Removed `AbstractOSIntegration.get_os_version()`
 - Removed `AbstractOSIntegration.is_same_partition()`
 - Removed `AbstractOSIntegration.os_version_above()`
@@ -312,6 +316,7 @@
 - Removed wui/modal.py
 
 # 3.0.5
+
 - Changed `BlacklistQueue.get()`, it is now a generator.
 - Removed `CLIHandler.edit()`
 - Removed `DirectEdit.is_lock_file()` (now private)
@@ -329,6 +334,7 @@
 - Removed osi/windows/win32_handlers.py
 
 # 3.0.4
+
 - Removed `FsClient`
 - Removed `LocalWatcher.get_watchdog_queue_size()`
 - Added `Options.server_version`
@@ -336,6 +342,7 @@
 - Removed logging_config.py::`get_logger()`. Use `logging.getLogger(__name__)` instead.
 
 # 3.0.0
+
 - Removed `options` keyword from `Application.__init__()`. Use `Options` instead.
 - Removed `ignored_prefixes` keyword from `BaseAutomationClient.__init__()`. Use `Options.ignored_prefixes` instead.
 - Removed `ignored_suffixes` keyword from `BaseAutomationClient.__init__()`. Use `Options.ignored_suffixes` instead.
@@ -377,9 +384,11 @@
 - Added options.py
 
 # 2.5.7
+
 - Removed `BaseAutomationClient.get_download_buffer()`. Use `FILE_BUFFER_SIZE` attribute instead.
 
 # 2.5.6
+
 - Added `BaseAutomationClient.check_access()`
 - Added `BaseAutomationClient.server_reachable()`
 - Removed `LocalWatcher.get_windows_queue_threshold()`
@@ -393,12 +402,14 @@
 - Removed wui/metadata.py
 
 # 2.5.5
+
 - Removed `LocalClient.is_osxbundle()`
 - Removed `Manager.is_updated()`. Use `updated` attribute instead.
 - Changed `WebSettingsApi.update_token()`. No more static.
 - Moved engine/watcher/local_watcher.py::`normalize_event_filename()` to utils.py
 
 # 2.5.4
+
 - Moved `RemoteDocumentClient.activate_profile()` to `RemoteDocumentClientForTests`
 - Moved `RemoteDocumentClient.add_to_locally_edited_collection()` to `RemoteDocumentClientForTests`
 - Moved `RemoteDocumentClient.deactivate_profile()` to `RemoteDocumentClientForTests`
@@ -410,6 +421,7 @@
 - Moved `RemoteDocumentClient.wait_for_async_and_es_indexing()` to `RemoteDocumentClientForTests`
 
 # 2.5.2
+
 - Added `enrichers` keyword to `BaseAutomationClient.execute()`
 - Added `force` keyword to `Engine.local_rollback()`
 - Added `dynamic_states` keyword to `EngineDAO.synchronize_state()`
@@ -428,10 +440,12 @@
 - Removed utils.py::`deprecated()`
 
 # 2.5.1
+
 - Removed `Application._get_debug_dialog()`
 - Removed `Application.update_tooltip()`
 
 # 2.5.0
+
 - Removed `AbstractOSIntegration.get_zoom_factor()`. Use `zoom_factor` attribute instead. It is a property on Windows.
 - Changed `Application.get_mac_app()` to static
 - Changed `Application._message_clicked()` to `message_clicked()`
@@ -506,10 +520,12 @@
 - Changed utils.py::`is_office_temp_file()` to `is_generated_tmp_file()`. It now returns `tuple(bool, bool)`.
 
 # 2.4.8
+
 - Removed `size`, `digest_func`, `check_suspended` and `remote_ref` keywords from `FileInfo.__init__()`. Use `kwargs.get(arg, default)` instead.
 - Removed `digest_func`, `ignored_prefixe`, `ignored_suffixes`, `check_suspended`, `case_sensitive` and `disable_duplication` keywords from `LocalClient.__init__()`. Use `kwargs.get(arg, default)` instead.
 
 # 2.4.7
+
 - Changed `AbstractOSIntegration.get_zoom_factor()` to static
 - Changed `AbstractOSIntegration.is_partition_supported()` to static
 - Changed `AbstractOSIntegration.is_same_partition()` to static
@@ -518,5 +534,6 @@
 - Changed `WindowsIntegration._get_desktop_folder()` to static
 
 # 2.4.6
+
 - Removed `mark_unknown` keyword from `RemoteWatcher._do_scan_remote()`
 - Removed `Tracker.get_user_agent()`. Use `user_agent` property instead.

@@ -38,7 +38,7 @@ EXT = {"darwin": "dmg", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
 
 
-def create_versions(dst, version, previous):
+def create_versions(dst, version):
     """ Create the versions.yml file. """
 
     name = f"nuxeo-drive-{version}.{EXT}"
@@ -49,15 +49,13 @@ def create_versions(dst, version, previous):
 
     print(">>> Crafting versions.yml")
     yml = f"""
-{previous}:
-    min: '7.10-HF11'
-    type: release
-    checksum:
-        algo: sha256
-        dmg: {checksum}
-        exe: {checksum}
-{version}:
-    min: '7.10-HF11'
+"{version}":
+    min_all:
+        "7.10": "7.10-HF47"
+        "8.10": "8.10-HF37"
+        "9.10": "9.10-HF20"
+        "10.3": "10.3-SNAPSHOT"
+        "10.10": "10.10"
     type: release
     checksum:
         algo: sha256
@@ -262,7 +260,7 @@ def main():
     assert version_checker(previous)
 
     # Create the versions.yml file
-    create_versions(root, version, previous)
+    create_versions(root, version)
 
     try:
         # Update the version in Drive code source to emulate an old version

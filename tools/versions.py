@@ -10,7 +10,7 @@ import argparse
 import glob
 import hashlib
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 def create(version):
@@ -34,13 +34,22 @@ def create(version):
 
     # Create the version file
     output = "{}.yml".format(version)
-    yml = """{}:
-    min: '7.10-HF11'
+
+    # We set 10.3-SNAPSHOT to allow presales to test the current dev version.
+    # Same for the future 10.10 to not block updates when it will be available.
+    yml = """{!r}:
+    min: "10.10"
+    min_all:
+        "7.10": "7.10-HF47"
+        "8.10": "8.10-HF37"
+        "9.10": "9.10-HF20"
+        "10.3": "10.3-SNAPSHOT"
+        "10.10": "10.10"
     type: {}
     checksum:
         algo: sha256
-        dmg: {}
-        exe: {}
+        dmg: {!r}
+        exe: {!r}
 """.format(
         version, category, checksum_dmg, checksum_exe
     )

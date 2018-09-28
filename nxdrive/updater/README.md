@@ -3,6 +3,7 @@
 ## Old Implementation
 
 Until Drive 3.1.0, we were using the [Esky](https://pypi.org/project/esky/) framework. It has worked for years but was preventing the move to Python 3 and Qt 5:
+
 - [Unmaintained](https://github.com/cloudmatrix/esky/commit/d0a107f6d672fd49a2aafe9581bbcdb73fbf9c6b) since 2016-08-04;
 - [Discontinued](https://github.com/cloudmatrix/esky/commit/6fde3201f0335064931a6c7f7847fc5ad39001b4) since 2018-02-25;
 - Errors when dealing with the Windows UAC;
@@ -13,6 +14,7 @@ So, with the issue [NXDRIVE-1143](https://jira.nuxeo.com/browse/NXDRIVE-1143), w
 ## Alternatives
 
 The only one viable at the time was [PyUpdater](http://www.pyupdater.org/). However:
+
 - The documentation was lacking good/complete examples;
 - Its usage was not intuitive nor easy;
 - It was too broad for our needs.
@@ -20,6 +22,7 @@ The only one viable at the time was [PyUpdater](http://www.pyupdater.org/). Howe
 ## Current Implementation
 
 We wrote our own auto-update framework knowing:
+
 - The code freeze is done with PyInstaller;
 - The macOS installer uses OS-specific commands to generate a `.dmg`;
 - The Windows installer uses the Inno Setup Compiler that outputs a single `.exe`.
@@ -88,32 +91,52 @@ Example of `version.yml` content:
             dmg: ...
             exe: ...
 
+    4.0.0:
+        min_all:
+            '7.10': '7.10-HF47'
+            '8.10': '8.10-HF37'
+            '9.10': '9.10-HF20'
+            '10.3': '10.3-SNAPSHOT'
+            '10.10': '10.10'
+        type: beta
+        checksum:
+            algo: MD5
+            dmg: ...
+            exe: ...
+
 Each entry describes a version with:
+
 - `type`: the release type, either an `archive`, a `beta` or a `release`. **Mandatory**.
 - `checksum`: list of checksums for related files. **Mandatory**.
-    - `algo`: the algorithm used, it must be one of the [hashlib](https://docs.python.org/2/library/hashlib.html) module (will use SHA256 by default).
-    - `dmg`: the checksum of the file `.dmg`. **Mandatory** if you provide a macOS installer.
-    - `exe`: the checksum of the file `.exe`. **Mandatory** if you provide a Windows installer.
-- `min`: the minimum Nuxeo version required for this release to work with. **Mandatory**.
-- `max`: the maximum Nuxeo version required for this release to work with. If not defined, Drive will consider the current Nuxeo version as acceptable to work with.
+  - `algo`: the algorithm used, it must be one of the [hashlib](https://docs.python.org/2/library/hashlib.html) module (will use SHA256 by default).
+  - `dmg`: the checksum of the file `.dmg`. **Mandatory** if you provide a macOS installer.
+  - `exe`: the checksum of the file `.exe`. **Mandatory** if you provide a Windows installer.
+- `min`: the minimum Nuxeo version required for this release to work with. **Not recommanded, use min_all**.
+- `min_all`: equivalent to `min` but with a finer grain. **Mandatory**.
+- `max`: the maximum Nuxeo version required for this release to work with. If not defined, Drive will consider the current Nuxeo version as acceptable to work with. Not recommanded, use max_all.
+- `max_all`: equivalent to `max` but with a finer grain.
 
-`min` and `max` can take a Hot Fix (HF) version, helpful to isolate some versions.
+`min`, `min_all`, `max` and `max_all` can take a Hot Fix (HF) version, helpful to isolate some versions. Defined versions are **inclusive**.
 
 Notes:
+
 - When a version is very old, and if you consider the file is growing too big, you can easily remove entries that are archived;
 - A version not listed can physically exist on the server but the reverse is not true: if a version is listed, files must exist on the server.
+- Versions set **are not effective**. They are listed for information only as there is no way to retrieve the exact server version at the time.
 
 ### Client
 
 When setting the `update-site-url` or `beta-update-site-url` parameter, it must point to `https://example.org/drive-updates/`, also:
+
 - You do not specify `/beta` or `/release` at the end of the URL, Drive will compute the final URL depending on set options;
 - Of course, if you are using a specific domain name where the tree is at the root, use only `https://example.org/`;
 - The trailing slash is **not** mandatory.
 
 Process:
+
 1. Fetch the file `versions.yml` from the defined URL in `update-site-url` (or `beta-update-site-url`);
 2. Find the latest version sorted by `type` and the current Nuxeo version;
-3. If the "Auto-update" option is not checked or if there is no bound engine, stop there;
+3. If the "Auto-update" option is not checked, stop there;
 4. Download the version specific to the current OS (`.dmg` for macOS, `.exe` for Windows, ... ) into a temporary folder;
 5. Verify the checksum of the downloaded file.
 
@@ -124,9 +147,9 @@ Then, actions taken are OS-specific.
 1. Mount the `nuxeo-drive-x.y.z.dmg` file;
 2. Backup the current `.app` in `/Applications`;
 3. Copy the new `.app` to `/Applications`;
-5. Unmount the `.dmg`;
-6. Delete the `.dmg`;
-4. Restart Drive.
+4. Unmount the `.dmg`;
+5. Delete the `.dmg`;
+6. Restart Drive.
 
 #### Windows
 

@@ -209,20 +209,6 @@ def test_short_name(data, too_long):
 
 
 @pytest.mark.parametrize(
-    "x, y, z",
-    [
-        ("7.10", "10.1-SNAPSHOT", "10.1-HF10"),
-        ("10.1-SNAPSHOT", "10.1", "999.999.999"),
-        ("10.1-SNAPSHOT", "10.1-SNAPSHOT", "999.999.999"),
-        ("10.1-SNAPSHOT", "10.1-SNAPSHOT", "10.1-SNAPSHOT"),
-        ("10.1-HF1", "10.1-HF1", "10.1-HF1"),
-    ],
-)
-def test_version_between(x, y, z):
-    assert nxdrive.utils.version_between(x, y, z)
-
-
-@pytest.mark.parametrize(
     "x, y",
     [
         ("7.10", "10.1-SNAPSHOT"),
