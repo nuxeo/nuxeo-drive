@@ -123,7 +123,7 @@ class Application(QApplication):
         self.api = QMLDriveApi(self)
         self.conflicts_model = FileModel()
         self.errors_model = FileModel()
-        self.engine_model = EngineModel()
+        self.engine_model = EngineModel(self)
         self.file_model = FileModel()
         self.ignoreds_model = FileModel()
         self.language_model = LanguageModel()
@@ -180,7 +180,7 @@ class Application(QApplication):
         if self.manager.get_engines():
             current_uid = self.engine_model.engines_uid[0]
             self.get_last_files(current_uid)
-            self.update_status(self.engine_model.engines[current_uid])
+            self.update_status(self.manager._engines[current_uid])
 
         self.manager.updater.updateAvailable.connect(
             self._window_root(self.systray_window).updateAvailable
@@ -195,7 +195,7 @@ class Application(QApplication):
 
         engines = engines if isinstance(engines, list) else [engines]
         for engine in engines:
-            self.engine_model.addEngine(engine)
+            self.engine_model.addEngine(engine.uid)
 
     def remove_engine(self, uid: str) -> None:
         self.engine_model.removeEngine(uid)

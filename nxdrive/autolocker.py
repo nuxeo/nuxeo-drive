@@ -67,7 +67,6 @@ class ProcessAutoLockerWorker(PollWorker):
             elif path in self._autolocked:
                 log.debug(f"Found in auto-locked: {path!r} (PID={pid})")
             else:
-                log.trace(f"Skipping file {path!r}")
                 continue
 
             item = (pid, path)

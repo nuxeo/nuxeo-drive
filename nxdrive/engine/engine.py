@@ -62,6 +62,7 @@ class Engine(QObject):
     syncResumed = pyqtSignal()
     rootDeleted = pyqtSignal()
     rootMoved = pyqtSignal(str)
+    uiChanged = pyqtSignal()
     noSpaceLeftOnDevice = pyqtSignal()
     invalidAuthentication = pyqtSignal()
     newConflict = pyqtSignal(object)
@@ -222,6 +223,7 @@ class Engine(QObject):
         self._dao.update_config(name, value)
         setattr(self, name, value)
         log.debug("{} preferences set to {}".format(name, value))
+        self.uiChanged.emit()
 
     def release_folder_lock(self) -> None:
         log.debug("Local Folder unlocking")

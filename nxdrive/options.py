@@ -384,24 +384,16 @@ def server_updater(*args: Any) -> "ServerOptionsUpdater":
         @pyqtSlot(result=bool)
         def _poll(self) -> bool:
             """ Check for the configuration file and apply updates. """
-
             for _, engine in self.manager._engines.items():
-                client = engine.remote.client if engine.remote else None
-                if not client:
+                if not engine.remote:
                     continue
 
-                try:
-                    resp = client.request(
-                        "GET", client.api_path + "/drive/configuration"
-                    )
-                    conf = resp.json()
-                except Exception as exc:
-                    log.error("Polling error: %r", exc)
-                    engine.set_ui("jsf", overwrite=False)
-                else:
-                    engine.set_ui(conf.pop("ui"), overwrite=False)
+                conf = engine.remote.get_server_configuration()
+                if conf:
+                    engine.set_ui(conf.pop("ui", "web"), overwrite=False)
                     Options.update(conf, setter="server", fail_on_error=True)
-                    break
+                else:
+                    engine.set_ui("jsf", overwrite=False)
 
             return True
 
