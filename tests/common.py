@@ -267,6 +267,7 @@ class UnitTestCase(TestCase):
             password=self.password_1,
             base_folder=self.workspace_1,
             upload_tmp_dir=self.upload_tmp_dir,
+            dao=self.engine_1._dao,
         )
 
         self.remote_2 = RemoteBase(
@@ -277,6 +278,7 @@ class UnitTestCase(TestCase):
             password=self.password_2,
             base_folder=self.workspace_2,
             upload_tmp_dir=self.upload_tmp_dir,
+            dao=self.engine_2._dao,
         )
 
         # Register sync roots
@@ -730,7 +732,7 @@ class UnitTestCase(TestCase):
                 pack(">I", len(data))
                 + header
                 + data
-                + pack(">I", zlib.crc32(header + data) & 0xffffffff)
+                + pack(">I", zlib.crc32(header + data) & 0xFFFFFFFF)
             )
 
         magic = pack(">8B", 137, 80, 78, 71, 13, 10, 26, 10)
