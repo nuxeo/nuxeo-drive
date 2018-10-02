@@ -36,6 +36,7 @@ Changes in command line arguments:
 - [NXDRIVE-1307](https://jira.nuxeo.com/browse/NXDRIVE-1307): Do not use nxdrive protocol from the FinderSync extension
 - [NXDRIVE-1339](https://jira.nuxeo.com/browse/NXDRIVE-1339): Handle boolean parameters
 - [NXDRIVE-1342](https://jira.nuxeo.com/browse/NXDRIVE-1342): Handle Windows session names with unicode
+- [NXDRIVE-1372](https://jira.nuxeo.com/browse/NXDRIVE-1372): Remove some usages of deprecated server-side code
 
 ### GUI
 - [NXDRIVE-600](https://jira.nuxeo.com/browse/NXDRIVE-600): Use the generic JSP to acquire a token

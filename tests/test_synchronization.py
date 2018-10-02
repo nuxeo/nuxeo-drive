@@ -820,11 +820,11 @@ class TestSynchronization(UnitTestCase):
         under the workspace "trial ". Verify if the DS client downloads
         the folder and trims the space at the end
         """
-        top_level_children = self.remote_1.get_top_level_children()
-        target = self.remote_1.make_folder(top_level_children[0]["id"], "trial ")
+        remote = self.remote_document_client_1
+        target = remote.make_folder("/", "trial ")
         local = self.local_root_client_1
-        self.remote_1.make_file(target.uid, "aFile.txt", content=b"File A Content")
-        self.remote_1.make_file(target.uid, "bFile.txt", content=b"File B Content")
+        remote.make_file(target, "aFile.txt", content=b"File A Content")
+        remote.make_file(target, "bFile.txt", content=b"File B Content")
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         assert local.exists("/Nuxeo Drive Test Workspace")

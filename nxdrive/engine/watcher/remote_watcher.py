@@ -635,7 +635,7 @@ class RemoteWatcher(EngineWorker):
     def _get_changes(self) -> Dict[str, Any]:
         """Fetch incremental change summary from the server"""
         summary = self.engine.remote.get_changes(
-            self._last_root_definitions, self._last_event_log_id, self._last_sync_date
+            self._last_root_definitions, self._last_event_log_id
         )
 
         root_defs = summary["activeSynchronizationRootDefinitions"]

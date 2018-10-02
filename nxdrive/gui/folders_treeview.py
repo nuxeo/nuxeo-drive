@@ -1,7 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 from threading import Thread
-from typing import Generator, List, Type, Union
+from typing import Generator, List, Type
 
 from PyQt5.QtCore import QModelIndex, QObject, QVariant, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QMovie, QPalette, QStandardItem, QStandardItemModel
@@ -79,24 +79,6 @@ class FileInfo:
         return path
 
 
-class FsRootFileInfo(FileInfo):
-    def __init__(self, fs_info: RemoteFileInfo, state: int = None) -> None:
-        super().__init__(parent=None, state=state)
-        self.fs_info = fs_info
-
-    def get_label(self) -> str:
-        return self.fs_info.name
-
-    def get_path(self) -> str:
-        return self.fs_info.path
-
-    def get_id(self) -> str:
-        return self.fs_info.id
-
-    def has_children(self) -> bool:
-        return len(self.fs_info.folder) > 0
-
-
 class FsFileInfo(FileInfo):
     def __init__(
         self, fs_info: RemoteFileInfo, parent: FileInfo = None, state: int = None
@@ -143,16 +125,15 @@ class FilteredFsClient(Client):
 
     def get_children(
         self, parent: FileInfo = None
-    ) -> Generator[Union[FsFileInfo, FsRootFileInfo], None, None]:
+    ) -> Generator[FsFileInfo, None, None]:
         if parent:
             for info in self.fs_client.get_fs_children(parent.get_id(), filtered=False):
                 yield FsFileInfo(info, parent, self.get_item_state(info.path))
             return
 
-        for root in self.fs_client.get_top_level_children():
-            yield FsFileInfo(
-                RemoteFileInfo.from_dict(root), state=self.get_item_state(root["path"])
-            )
+        root_info = self.fs_client.get_filesystem_root_info()
+        for sync_root in self.fs_client.get_fs_children(root_info.uid, filtered=False):
+            yield FsFileInfo(sync_root, state=self.get_item_state(sync_root.path))
 
 
 class FolderTreeview(QTreeView):
