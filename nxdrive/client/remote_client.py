@@ -465,27 +465,12 @@ class Remote(Nuxeo):
             parentId=parent_fs_item_id,
         )
 
-    def get_top_level_children(self) -> List[Dict[Any, str]]:
-        return self.operations.execute(command="NuxeoDrive.GetTopLevelChildren")
-
     def get_changes(
-        self, last_root_definitions: str, log_id: int = 0, last_sync_date: int = 0
+        self, last_root_definitions: str, log_id: int = 0
     ) -> Dict[str, Any]:
-        if log_id:
-            # If available, use last event log id as 'lowerBound' parameter
-            # according to the new implementation of the audit change finder,
-            # see https://jira.nuxeo.com/browse/NXP-14826.
-            return self.operations.execute(
-                command="NuxeoDrive.GetChangeSummary",
-                lowerBound=log_id,
-                lastSyncActiveRootDefinitions=last_root_definitions,
-            )
-
-        # Use last sync date as 'lastSyncDate' parameter according to the
-        # old implementation of the audit change finder.
         return self.operations.execute(
             command="NuxeoDrive.GetChangeSummary",
-            lastSyncDate=last_sync_date,
+            lowerBound=log_id,
             lastSyncActiveRootDefinitions=last_root_definitions,
         )
 

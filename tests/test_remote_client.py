@@ -367,36 +367,6 @@ class TestRemoteFileSystemClient(UnitTestCase):
         fs_item_id = FS_ITEM_ID_PREFIX + "fakeId"
         assert remote.get_fs_item(fs_item_id) is None
 
-    def test_get_top_level_children(self):
-        remote = self.remote_1
-
-        # The workspace is registered as a sync root in the setup
-        children = remote.get_top_level_children()
-        assert len(children) == 1
-        assert children[0]["name"] == self.workspace_title
-
-        # Create 2 remote folders inside the workspace sync root
-        fs_item_1_id = remote.make_folder(self.workspace_id, "Folder 1").uid
-        fs_item_2_id = remote.make_folder(self.workspace_id, "Folder 2").uid
-        folder_1_uid = fs_item_1_id.rsplit("#", 1)[1]
-        folder_2_uid = fs_item_2_id.rsplit("#", 1)[1]
-
-        # Unregister the workspace
-        remote.unregister_as_root(self.workspace)
-        children = remote.get_top_level_children()
-        assert children == []
-
-        # Register the sub folders as new roots
-        remote.register_as_root(folder_1_uid)
-        remote.register_as_root(folder_2_uid)
-        children = remote.get_top_level_children()
-        assert len(children) == 2
-
-        # Unregister one sync root
-        remote.unregister_as_root(folder_1_uid)
-        children = remote.get_top_level_children()
-        assert len(children) == 1
-
     def test_conflicted_item_name(self):
         remote = self.remote_1
         new_name = remote.conflicted_name("My File.doc")

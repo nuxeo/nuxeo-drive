@@ -69,10 +69,12 @@
 - Moved `Remote.conflicted_name()` to `RemoteBase`
 - Moved `Remote.doc_to_info()` to `NuxeoDocumentInfo.from_dict()`
 - Moved `Remote.file_to_info()` to `RemoteFileInfo.from_dict()`
+- Removed `last_sync_date` argument from `Remote.get_changes()` as it is deprecated server-side.
 - Moved `Remote.get_children()` to `RemoteBase`
 - Moved `Remote.get_children_info()` to `RemoteBase`
 - Moved `Remote.get_content()` to `RemoteBase`
 - Moved `Remote.get_roots()` to `RemoteBase`
+- Removed `Remote.get_top_level_children()` as it is deprecated server-side.
 - Moved `Remote.make_file()` to `RemoteBase`
 - Moved `Remote.update_content()` to `RemoteBase`
 - Changed `Translator(object)` to `Translator(QTranslator)``
@@ -136,6 +138,7 @@
 - Added gui/dialog.py::`TokenRequestInterceptor`
 - Removed gui/folders_treeview.py::`DocFileInfo`
 - Removed gui/folders_treeview.py::`DocRootFileInfo`
+- Removed gui/folders_treeview.py::`FsRootFileInfo`
 - Added gui/settings.py::`SettingsView`
 - Added gui/systray.py::`SystrayView`
 - Added gui/view.py

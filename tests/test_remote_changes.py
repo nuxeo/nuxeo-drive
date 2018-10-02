@@ -8,7 +8,6 @@ class TestRemoteChanges(UnitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.last_sync_date = 0
         self.last_event_log_id = 0
         self.last_root_definitions = ""
         # Initialize last event log id (lower bound)
@@ -17,11 +16,8 @@ class TestRemoteChanges(UnitTestCase):
     def get_changes(self):
         self.wait()
         summary = self.remote_1.get_changes(
-            self.last_root_definitions,
-            log_id=self.last_event_log_id,
-            last_sync_date=self.last_sync_date,
+            self.last_root_definitions, log_id=self.last_event_log_id
         )
-        self.last_sync_date = summary["syncDate"]
         if "upperBound" in summary:
             self.last_event_log_id = summary["upperBound"]
         self.last_root_definitions = summary["activeSynchronizationRootDefinitions"]
