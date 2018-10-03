@@ -256,6 +256,7 @@ class TestDirectEdit(UnitTestCase):
                 "nxdrive-test-administrator-device",
                 pytest.version,
                 password=self.password_1,
+                dao=self.engine_1._dao,
             )
             error = URLError(
                 "[Errno 10051] A mocked socket operation was attempted to an unreachable network"
