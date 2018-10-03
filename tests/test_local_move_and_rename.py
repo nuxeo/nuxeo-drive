@@ -574,6 +574,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             "nxdrive-test-administrator-device",
             pytest.version,
             password=self.password_1,
+            dao=self.engine_1._dao,
         )
         error = HTTPError(status=500, message="Mock server error")
         self.engine_1.remote.make_server_call_raise(error)

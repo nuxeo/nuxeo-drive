@@ -44,6 +44,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
             "nxdrive-test-administrator-device",
             pytest.version,
             password=self.password_1,
+            dao=self.engine_1._dao,
         )
         error = OSError(errno.ENOSPC, "No space left on device")
         self.engine_1.remote.make_download_raise(error)
