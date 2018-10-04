@@ -315,7 +315,7 @@ class Application(QApplication):
         """ Display a simple Direct Edit error message. """
 
         msg = QMessageBox()
-        msg.setWindowTitle("Direct Edit - {self.manager.app_name}")
+        msg.setWindowTitle(f"Direct Edit - {self.manager.app_name}")
         msg.setWindowIcon(QIcon(self.get_window_icon()))
         msg.setIcon(QMessageBox.Warning)
         msg.setTextFormat(Qt.RichText)
