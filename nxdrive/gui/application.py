@@ -72,7 +72,7 @@ class Application(QApplication):
         self.dialogs = dict()
         self.osi = self.manager.osi
         self.setWindowIcon(QIcon(self.get_window_icon()))
-        self.setApplicationName(manager.app_name)
+        self.setApplicationName(APP_NAME)
         self._init_translator()
         self.setQuitOnLastWindowClosed(False)
         self._delegator = None
@@ -80,7 +80,7 @@ class Application(QApplication):
         self.filters_dlg = None
         self._conflicts_modals = dict()
         self.current_notification = None
-        self.default_tooltip = self.manager.app_name
+        self.default_tooltip = APP_NAME
 
         font = QFont("Helvetica, Arial, sans-serif", 12)
         self.setFont(font)
@@ -217,7 +217,7 @@ class Application(QApplication):
         context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("tl", Translator._singleton)
         context.setContextProperty(
-            "nuxeoVersionText", f"{self.manager.app_name} {self.manager.version}"
+            "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"
         )
         metrics = self.manager.get_metrics()
         context.setContextProperty(
@@ -315,7 +315,7 @@ class Application(QApplication):
         """ Display a simple Direct Edit error message. """
 
         msg = QMessageBox()
-        msg.setWindowTitle(f"Direct Edit - {self.manager.app_name}")
+        msg.setWindowTitle(f"Direct Edit - {APP_NAME}")
         msg.setWindowIcon(QIcon(self.get_window_icon()))
         msg.setIcon(QMessageBox.Warning)
         msg.setTextFormat(Qt.RichText)
@@ -856,7 +856,7 @@ class Application(QApplication):
             return
 
         dialog = QDialog()
-        dialog.setWindowTitle(f"{self.manager.app_name} {version} - Release notes")
+        dialog.setWindowTitle(f"{APP_NAME} {version} - Release notes")
         dialog.setWindowIcon(QIcon(self.get_window_icon()))
 
         dialog.resize(600, 400)
@@ -941,7 +941,7 @@ class Application(QApplication):
         if not self.tray_icon.isSystemTrayAvailable():
             log.critical("There is no system tray available!")
         else:
-            self.tray_icon.setToolTip(self.manager.app_name)
+            self.tray_icon.setToolTip(APP_NAME)
             self.set_icon_state("disabled")
             self.tray_icon.show()
 

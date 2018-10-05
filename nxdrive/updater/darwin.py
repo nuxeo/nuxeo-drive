@@ -6,6 +6,7 @@ from contextlib import suppress
 from logging import getLogger
 
 from .base import BaseUpdater
+from ..constants import APP_NAME
 from ..utils import force_decode
 
 __all__ = ("Updater",)
@@ -52,7 +53,7 @@ class Updater(BaseUpdater):
             subprocess.check_call(["hdiutil", "unmount", mount_dir])
 
         # Check if the new application exists
-        app = "/Applications/{}.app".format(self.manager.app_name)
+        app = f"/Applications/{APP_NAME}.app"
         if not os.path.isdir(app):
             log.error("%r does not exist, auto-update failed")
             return
@@ -65,7 +66,7 @@ class Updater(BaseUpdater):
     def _backup(self, restore: bool = False) -> None:
         """ Backup or restore the current application. """
 
-        src = "/Applications/{}.app".format(self.manager.app_name)
+        src = f"/Applications/{APP_NAME}.app"
         dst = src + ".old"
 
         if restore:
@@ -81,7 +82,7 @@ class Updater(BaseUpdater):
         """ Remove some files. """
 
         # The backup
-        path = "/Applications/{}.app.old".format(self.manager.app_name)
+        path = f"/Applications/{APP_NAME}.app.old"
         with suppress(OSError):
             shutil.rmtree(path)
             log.debug("Deleted %r", path)
@@ -94,8 +95,8 @@ class Updater(BaseUpdater):
     def _copy(self, mount_dir: str) -> None:
         """ Copy the new application content to /Applications. """
 
-        src = "{}/{}.app".format(mount_dir, self.manager.app_name)
-        dst = "/Applications/{}.app".format(self.manager.app_name)
+        src = f"{mount_dir}/{APP_NAME}.app"
+        dst = f"/Applications/{APP_NAME}.app"
         log.debug("Copying %r -> %r", src, dst)
         shutil.copytree(src, dst)
 
@@ -104,8 +105,6 @@ class Updater(BaseUpdater):
         Restart the current application to take into account the new version.
         """
 
-        cmd = 'sleep 5 ; open "/Applications/{}.app"'.format(self.manager.app_name)
-        log.debug(
-            "Launching the new %s version in 5 seconds ...", self.manager.app_name
-        )
+        cmd = f'sleep 5 ; open "/Applications/{APP_NAME}.app"'
+        log.debug(f"Launching the new {APP_NAME} version in 5 seconds ...")
         subprocess.Popen(cmd, shell=True, close_fds=True)

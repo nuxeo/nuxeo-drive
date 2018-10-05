@@ -48,8 +48,6 @@ class Manager(QObject):
     reloadIconsSet = pyqtSignal(bool)
     resumed = pyqtSignal()
 
-    app_name = APP_NAME
-
     _singleton = None
     __device_id = None
 
@@ -186,7 +184,7 @@ class Manager(QObject):
             "qt_version": QT_VERSION_STR,
             "python_version": platform.python_version(),
             "platform": platform.system(),
-            "appname": self.app_name,
+            "appname": APP_NAME,
         }
 
     def open_help(self) -> None:

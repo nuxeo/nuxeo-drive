@@ -523,13 +523,13 @@ class CliHandler:
                 payload = force_encode(Options.protocol_url)
                 self._send_to_running_instance(payload)
             else:
-                log.warning("%s is already running: exiting.", self.manager.app_name)
+                log.warning(f"{APP_NAME} is already running: exiting.")
             return 0
 
         app = self._get_application(console=console)
         exit_code = app.exec_()
         lock.unlock()
-        log.debug("%s exited with code %d", self.manager.app_name, exit_code)
+        log.debug(f"{APP_NAME} exited with code {exit_code}")
         return exit_code
 
     def _send_to_running_instance(self, payload: bytes) -> bool:

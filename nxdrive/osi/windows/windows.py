@@ -114,6 +114,4 @@ class WindowsIntegration(AbstractOSIntegration):
             log.debug("Registered new favorite in Explorer for %r", filepath)
 
     def _get_folder_link(self, name: str = None) -> str:
-        return os.path.join(
-            Options.home, "Links", (name or self._manager.app_name) + ".lnk"
-        )
+        return os.path.join(Options.home, "Links", (name or APP_NAME) + ".lnk")
