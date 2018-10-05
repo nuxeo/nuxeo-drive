@@ -20,6 +20,7 @@ from .constants import (
     UPDATE_STATUS_UP_TO_DATE,
 )
 from .utils import get_update_status
+from ..constants import APP_NAME
 from ..engine.workers import PollWorker
 from ..options import Options
 
@@ -57,7 +58,7 @@ class BaseUpdater(PollWorker):
         self.progress = 0
 
         if not self.enable:
-            log.info("Auto-update disabled (frozen=%r)", Options.is_frozen)
+            log.info(f"Auto-update disabled (frozen={Options.is_frozen!r})")
 
     #
     # Read-only properties
@@ -146,10 +147,7 @@ class BaseUpdater(PollWorker):
         path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
 
         log.info(
-            "Fetching version %r from update site %r into %r",
-            version,
-            self.update_site,
-            path,
+            f"Fetching version {version} from update site {self.update_site!r} into {path!r}"
         )
         try:
             req = requests.get(url, stream=True)
@@ -164,28 +162,28 @@ class BaseUpdater(PollWorker):
                         self._set_progress(self.progress + incr * 50)
                     i += 1
         except Exception as exc:
-            raise UpdateError("Impossible to get %r: %s" % (url, exc))
+            raise UpdateError(f"Impossible to get {url!r}: {exc}")
 
         if not self._is_valid(version, path):
-            raise UpdateError("Installer integrity check failed for %r" % name)
+            raise UpdateError(f"Installer integrity check failed for {name!r}")
 
         return path
 
     def _fetch_versions(self) -> None:
         """ Fetch available versions. It sets `self.versions` on success. """
 
-        url = self.update_site + "/versions.yml"
+        url = f"{self.update_site}/versions.yml"
         try:
             with requests.get(url) as resp:
                 resp.raise_for_status()
                 content = resp.text
         except Exception as exc:
-            raise UpdateError("Impossible to get %r: %s" % (url, exc))
+            raise UpdateError(f"Impossible to get {url!r}: {exc}")
 
         try:
             versions = yaml.safe_load(content)
         except yaml.YAMLError as exc:
-            raise UpdateError("Parsing error: %s" % exc)
+            raise UpdateError(f"Parsing error: {exc}")
         else:
             self.versions = versions
 
@@ -199,10 +197,7 @@ class BaseUpdater(PollWorker):
             status, version = UPDATE_STATUS_UNAVAILABLE_SITE, None
         else:
             log.debug(
-                "Get update status for version %s (%s) on server %s",
-                self.manager.version,
-                self.nature,
-                self.server_ver,
+                f"Getting update status for version {self.manager.version} ({self.nature}) on server {self.server_ver}"
             )
             status, version = get_update_status(
                 self.manager.version, self.versions, self.nature, self.server_ver
@@ -254,7 +249,7 @@ class BaseUpdater(PollWorker):
         OS-specific method to install the new version.
         It must take care of uninstalling the current one.
         """
-        log.info("Installing %s %s", self.manager.app_name, version)
+        log.info(f"Installing {APP_NAME} {version}")
         self.install(filename)
 
     def _is_valid(self, version: str, filename: str) -> bool:
@@ -265,7 +260,7 @@ class BaseUpdater(PollWorker):
         algo = checksums.get("algo", "sha256").lower()
         checksum = checksums.get(self.ext, "").lower()
         if not checksum:
-            log.error("Invalid version info %r (version=%r)", info, version)
+            log.error(f"Invalid version info {info!r} (version={version})")
             return False
 
         func = getattr(hashlib, algo, "sha256")()
@@ -275,11 +270,7 @@ class BaseUpdater(PollWorker):
         computed = func.hexdigest()
 
         log.trace(
-            "Integrity check [%s] for %r: good=%r, found=%r",
-            algo.upper(),
-            filename,
-            checksum,
-            computed,
+            f"Integrity check [{algo.upper()}] for {filename!r}: good={checksum!r}, found={computed}"
         )
         return computed == checksum
 
@@ -287,11 +278,6 @@ class BaseUpdater(PollWorker):
     def _poll(self) -> bool:
 
         if self.status != UPDATE_STATUS_UPDATING:
-            log.debug(
-                "Polling %r for update, the current version is %r",
-                self.update_site,
-                self.manager.version,
-            )
             try:
                 self._get_update_status()
                 self._handle_status()
