@@ -41,6 +41,7 @@
 - Moved `Manager.get_system_pac_url()` to client/proxy.py
 - Moved `Manager.get_default_nuxeo_drive_folder()` to utils.py
 - Removed `Manager.aboutToStart()`
+- Removed `Manager.app_name`. Use `APP_NAME` constant instead.
 - Removed `Manager.clientUpdated()`
 - Removed `Manager.engineNotFound()`
 - Removed `Manager.exceptions`

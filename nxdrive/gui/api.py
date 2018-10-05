@@ -487,7 +487,7 @@ class QMLDriveApi(QObject):
         params = urlencode(
             {
                 "deviceId": self._manager.device_id,
-                "applicationName": self._manager.app_name,
+                "applicationName": APP_NAME,
                 "permission": TOKEN_PERMISSION,
                 "deviceDescription": get_device(),
                 "forceAnonymousLogin": "true",
@@ -590,7 +590,7 @@ class QMLDriveApi(QObject):
             values = [e.username, e.url]
             msgbox = QMessageBox(
                 QMessageBox.Question,
-                self._manager.app_name,
+                APP_NAME,
                 Translator.get("ROOT_USED_WITH_OTHER_BINDING", values),
                 QMessageBox.NoButton,
             )
@@ -705,10 +705,10 @@ class QMLDriveApi(QObject):
                 self._manager.proxy,
             )
             headers = {
-                "X-Application-Name": self._manager.app_name,
+                "X-Application-Name": APP_NAME,
                 "X-Device-Id": self._manager.device_id,
                 "X-Client-Version": self._manager.version,
-                "User-Agent": (self._manager.app_name + "/" + self._manager.version),
+                "User-Agent": f"{APP_NAME}/{self._manager.version}",
             }
             timeout = STARTUP_PAGE_CONNECTION_TIMEOUT
             with requests.get(url, headers=headers, timeout=timeout) as resp:

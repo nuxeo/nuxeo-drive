@@ -24,7 +24,7 @@ from PyQt5.Qt import pyqtSignal
 from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
 from .. import AbstractOSIntegration
-from ...constants import BUNDLE_IDENTIFIER
+from ...constants import APP_NAME, BUNDLE_IDENTIFIER
 from ...objects import NuxeoDocumentInfo
 from ...utils import force_decode, if_frozen, normalized_path
 
@@ -227,7 +227,7 @@ class DarwinIntegration(AbstractOSIntegration):
             return
 
         folder_path = normalized_path(folder_path)
-        name = os.path.basename(name) if name else self._manager.app_name
+        name = os.path.basename(name) if name else APP_NAME
 
         if self._find_item_in_list(favorites, name):
             return
@@ -250,7 +250,7 @@ class DarwinIntegration(AbstractOSIntegration):
             log.warning("Could not fetch the Finder favorite list.")
             return
 
-        name = os.path.basename(name) if name else self._manager.app_name
+        name = os.path.basename(name) if name else APP_NAME
 
         item = self._find_item_in_list(favorites, name)
         if not item:
