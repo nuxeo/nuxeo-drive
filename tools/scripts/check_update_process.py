@@ -116,7 +116,7 @@ def launch_drive():
     if sys.platform == 'darwin':
         cmd = ['open', '/Applications/Nuxeo Drive.app', '--args']
     elif sys.platform == 'win32':
-        cmd = [expanduser('~\\AppData\\Roaming\\Nuxeo Drive\\ndrive.exe')]
+        cmd = [expanduser('~\\AppData\\Local\\Nuxeo Drive\\ndrive.exe')]
 
     cmd += [
         '--log-level-console=TRACE',
@@ -153,7 +153,7 @@ def uninstall_drive():
         except OSError:
             pass
     elif sys.platform == 'win32':
-        cmd = [expanduser('~\\AppData\\Roaming\\Nuxeo Drive\\unins000.exe'),
+        cmd = [expanduser('~\\AppData\\Local\\Nuxeo Drive\\unins000.exe'),
                '/verysilent']
         print('>>> Command:', cmd)
         try:

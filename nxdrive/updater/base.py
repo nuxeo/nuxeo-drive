@@ -10,15 +10,16 @@ import requests
 import yaml
 from PyQt4.QtCore import pyqtSignal, pyqtSlot
 
-from . import UpdateError, get_latest_compatible_version
+from . import UpdateError
 from .constants import (UPDATE_STATUS_DOWNGRADE_NEEDED,
                         UPDATE_STATUS_UNAVAILABLE_SITE,
                         UPDATE_STATUS_UPDATE_AVAILABLE,
                         UPDATE_STATUS_UPDATING,
                         UPDATE_STATUS_UP_TO_DATE)
+from .utils import get_latest_compatible_version
 from ..engine.workers import PollWorker
 from ..options import Options
-from ..utils import version_le
+from ..utils import version_le, version_lt
 
 log = getLogger(__name__)
 
@@ -176,28 +177,60 @@ class BaseUpdater(PollWorker):
             self.versions = versions
 
     def _get_update_status(self):
-        # type: () -> Tuple[unicode, Union[None, bool]]
+        # type: () -> Tuple[unicode, Optional[unicode]]
         """ Retrieve available versions and find a possible candidate. """
 
         try:
             # Fetch all available versions
             self._fetch_versions()
         except UpdateError:
-            status = (UPDATE_STATUS_UNAVAILABLE_SITE, None)
-        else:
-            # Find the latest available version
-            latest, info = get_latest_compatible_version(
-                self.versions, self.nature, self.server_ver)
+            return UPDATE_STATUS_UNAVAILABLE_SITE, None
+        # Find the latest available version
+        latest, info = get_latest_compatible_version(
+            self.versions, self.nature, self.server_ver)
 
-            current = self.manager.version
-            if not latest or current == latest:
-                status = (UPDATE_STATUS_UP_TO_DATE, None)
-            elif not version_le(latest, current):
-                status = (UPDATE_STATUS_UPDATE_AVAILABLE, latest)
-            else:
-                status = (UPDATE_STATUS_DOWNGRADE_NEEDED, latest)
+        current = self.manager.version
+        if not latest or current == latest:
+            return UPDATE_STATUS_UP_TO_DATE, None
 
-        return status
+        if version_le(latest, current):
+            return UPDATE_STATUS_DOWNGRADE_NEEDED, latest
+
+        # A new version is available
+        if version_lt(latest, "4"):
+            return UPDATE_STATUS_UPDATE_AVAILABLE, latest
+
+        # If it's greater or equal to 4.X,
+        # we need to check that each server has the required JSP for the
+        # compatible authentication flow.
+        if not self.manager._engines:
+            return UPDATE_STATUS_UP_TO_DATE, None
+
+        import urlparse
+        allow_upgrade = True
+        for engine in self.manager._engines.values():
+            parts = urlparse.urlsplit(engine.server_url)
+            url = urlparse.urlunsplit((
+                parts.scheme,
+                parts.netloc,
+                parts.path + "/" + Options.browser_startup_page,
+                parts.query,
+                parts.fragment))
+            try:
+                log.info(self.manager.get_proxies(engine.server_url))
+                resp = requests.get(url, proxies=self.manager.get_proxies(engine.server_url))
+                resp.raise_for_status()
+            except requests.HTTPError as e:
+                if e.response.status_code == 401:
+                    continue
+                allow_upgrade = False
+            except:
+                allow_upgrade = False
+
+        if not allow_upgrade:
+            return UPDATE_STATUS_UP_TO_DATE, None
+
+        return UPDATE_STATUS_UPDATE_AVAILABLE, latest
 
     def _handle_status(self):
         # type: () -> None
@@ -219,12 +252,8 @@ class BaseUpdater(PollWorker):
 
         if status == UPDATE_STATUS_DOWNGRADE_NEEDED:
             self.manager.stop()
-            return
 
-        if self.manager.get_auto_update() or not self.manager.get_engines():
-            # Automatically update if:
-            #  - the auto-update option is checked
-            #  - there is no bound engine
+        if self.manager.get_auto_update():
             try:
                 self.update(version)
             except UpdateError:
