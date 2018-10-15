@@ -109,9 +109,10 @@ class ProxySettings(object):
             raise MissingToken('Your token has been revoked, please update'
                                ' your password to acquire a new one.')
         token += '_proxy'
-        password = encrypt(self.password, token)
-        dao.update_config("proxy_password", password)
-        dao.update_config("proxy_username", self.username)
+        if self.authenticated:
+            password = encrypt(self.password, token)
+            dao.update_config("proxy_password", password)
+            dao.update_config("proxy_username", self.username)
         dao.update_config("proxy_exceptions", self.exceptions)
         dao.update_config("proxy_port", self.port)
         dao.update_config("proxy_type", self.proxy_type)

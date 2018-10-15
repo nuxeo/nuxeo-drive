@@ -231,6 +231,34 @@ class Application(SimpleApplication):
             engine.set_local_folder(unicode(new_path))
             engine.start()
 
+    @pyqtSlot(str)
+    def _server_incompatible(self, version):
+        log.debug('Server is incompatible with version %s', version)
+        from datetime import datetime, timedelta
+
+        now = datetime.utcnow()
+        last_warn = self.manager._dao.get_config('last_update_compat_warning')
+
+        if last_warn:
+            limit = datetime.strptime(last_warn, '%Y-%m-%d %H:%M:%S') + timedelta(days=7)
+            if limit >= now:
+                # If we have displayed the message in the last 7 days,
+                # we don't display it.
+                log.debug("Not displaying incompatibility warning")
+                return
+
+        self.manager._dao.update_config(
+            'last_update_compat_warning',
+            now.strftime('%Y-%m-%d %H:%M:%S')
+        )
+
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setText(Translator.get('SERVER_INCOMPATIBLE', {'version': version}))
+        msg.addButton('OK', QMessageBox.AcceptRole)
+        msg.exec_()
+
     @pyqtSlot(object)
     def dropped_engine(self, engine):
         # Update icon in case the engine dropped was syncing
@@ -405,6 +433,8 @@ class Application(SimpleApplication):
         self.manager.notification_service.newNotification.connect(
             self._new_notification)
         self.manager.updater.updateAvailable.connect(self._update_notification)
+        self.manager.updater.serverIncompatible.connect(self._server_incompatible)
+
         if not self.manager.get_engines():
             self.show_settings()
         else:

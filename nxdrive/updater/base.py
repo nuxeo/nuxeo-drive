@@ -33,6 +33,9 @@ class BaseUpdater(PollWorker):
     # Used to display a notification when a new version is available
     updateAvailable = pyqtSignal()
 
+    # Used to warn user that Drive and the server are incompatible
+    serverIncompatible = pyqtSignal(str)
+
     versions = {}
     nature = 'release'
 
@@ -206,6 +209,25 @@ class BaseUpdater(PollWorker):
         if not self.manager._engines:
             return UPDATE_STATUS_UP_TO_DATE, None
 
+        if not self._server_has_new_login():
+            self.serverIncompatible.emit(latest)
+
+            # Find latest compatible version caped under 4.X
+            latest, _ = get_latest_compatible_version(
+                {
+                    version: info 
+                    for version, info in self.versions.items() 
+                    if version_lt(version, "4")
+                },
+                self.nature, self.server_ver
+            )
+            if not latest or current == latest:
+                return UPDATE_STATUS_UP_TO_DATE, None
+
+        return UPDATE_STATUS_UPDATE_AVAILABLE, latest
+
+    def _server_has_new_login(self):
+        # type: () -> bool
         import urlparse
         allow_upgrade = True
         for engine in self.manager._engines.values():
@@ -213,11 +235,10 @@ class BaseUpdater(PollWorker):
             url = urlparse.urlunsplit((
                 parts.scheme,
                 parts.netloc,
-                parts.path + "/" + Options.browser_startup_page,
+                parts.path.rstrip("/") + "/" + Options.browser_startup_page,
                 parts.query,
                 parts.fragment))
             try:
-                log.info(self.manager.get_proxies(engine.server_url))
                 resp = requests.get(url, proxies=self.manager.get_proxies(engine.server_url))
                 resp.raise_for_status()
             except requests.HTTPError as e:
@@ -226,11 +247,7 @@ class BaseUpdater(PollWorker):
                 allow_upgrade = False
             except:
                 allow_upgrade = False
-
-        if not allow_upgrade:
-            return UPDATE_STATUS_UP_TO_DATE, None
-
-        return UPDATE_STATUS_UPDATE_AVAILABLE, latest
+        return allow_upgrade
 
     def _handle_status(self):
         # type: () -> None
