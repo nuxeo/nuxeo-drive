@@ -172,6 +172,7 @@ class MetaOptions(type):
         ),
         "theme": ("ui5", "default"),
         "startup_page": ("drive_login.jsp", "default"),
+        "browser_startup_page": ("drive_browser_login.jsp", "default"),
         "timeout": (30, "default"),
         "update_check_delay": (3600, "default"),
         "update_site_url": (

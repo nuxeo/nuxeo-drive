@@ -485,6 +485,21 @@ class Manager(QObject):
     def _get_default_server_type(self) -> str:  # TODO: Move to constants.py
         return "NXDRIVE"
 
+    def _server_has_browser_login(self, url) -> bool:
+        import requests
+        from urllib.parse import urljoin
+
+        login_page = urljoin(url, Options.browser_startup_page)
+        proxies = self.proxy.settings(url=url)
+
+        try:
+            resp = requests.get(login_page, proxies=proxies)
+            if resp.status_code < 400 or resp.status_code == 401:
+                return True
+        except Exception as e:
+            log.exception("")
+        return False
+
     def bind_server(
         self,
         local_folder: str,

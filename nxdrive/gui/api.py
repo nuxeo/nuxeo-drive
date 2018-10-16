@@ -467,6 +467,14 @@ class QMLDriveApi(QObject):
                 self.setMessage.emit("CONNECTION_UNKNOWN", "error")
                 return
             params = urlencode({"updateToken": True})
+
+            status = self._connect_startup_page(engine.server_url)
+            if status >= 400 and status not in (401, 500, 503):
+                # We might have to downgrade because the
+                # browser login is not available.
+                self._manager.updater._force_downgrade()
+                return
+
             url = self._get_authentication_url(engine.server_url)
             if Options.is_frozen:
                 url = f"{url}&{params}"
@@ -482,7 +490,7 @@ class QMLDriveApi(QObject):
 
     def _get_authentication_url(self, server_url: str) -> str:
         if not Options.is_frozen:
-            return guess_server_url(server_url)
+            return guess_server_url(server_url, proxy=self._manager.proxy)
 
         params = urlencode(
             {
@@ -496,8 +504,8 @@ class QMLDriveApi(QObject):
         )
 
         # Handle URL parameters
-        parts = urlsplit(guess_server_url(server_url))
-        path = f"{parts.path}/logout?requestedUrl={Options.startup_page}"
+        parts = urlsplit(guess_server_url(server_url, proxy=self._manager.proxy))
+        path = f"{parts.path}/logout?requestedUrl={Options.browser_startup_page}"
         path = path.replace("//", "/")
 
         params = quote(f"{parts.query}&{params}" if parts.query else params)
@@ -576,7 +584,7 @@ class QMLDriveApi(QObject):
         name: str,
         **kwargs: Any,
     ) -> None:
-        url = guess_server_url(url)
+        url = guess_server_url(url, proxy=self._manager.proxy)
         if not url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
@@ -629,7 +637,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str)
     def web_authentication(self, server_url: str, local_folder: str) -> None:
         # Handle the server URL
-        url = guess_server_url(server_url)
+        url = guess_server_url(server_url, proxy=self._manager.proxy)
         if not url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
@@ -674,6 +682,9 @@ class QMLDriveApi(QObject):
                     "falling back on basic authentication",
                     server_url,
                 )
+                # We might have to downgrade because the
+                # browser login is not available.
+                self._manager.updater._force_downgrade()
                 return
         except FolderAlreadyUsed:
             error = "FOLDER_USED"
@@ -688,12 +699,12 @@ class QMLDriveApi(QObject):
 
     def _connect_startup_page(self, server_url: str) -> int:
         # Take into account URL parameters
-        parts = urlsplit(guess_server_url(server_url))
+        parts = urlsplit(guess_server_url(server_url, proxy=self._manager.proxy))
         url = urlunsplit(
             (
                 parts.scheme,
                 parts.netloc,
-                parts.path + "/" + Options.startup_page,
+                parts.path + "/" + Options.browser_startup_page,
                 parts.query,
                 parts.fragment,
             )
@@ -711,7 +722,12 @@ class QMLDriveApi(QObject):
                 "User-Agent": f"{APP_NAME}/{self._manager.version}",
             }
             timeout = STARTUP_PAGE_CONNECTION_TIMEOUT
-            with requests.get(url, headers=headers, timeout=timeout) as resp:
+            with requests.get(
+                url,
+                headers=headers,
+                timeout=timeout,
+                proxies=self._manager.proxy.settings(url=url),
+            ) as resp:
                 status = resp.status_code
         except:
             log.exception(
