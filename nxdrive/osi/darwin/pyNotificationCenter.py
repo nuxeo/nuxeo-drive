@@ -26,7 +26,7 @@ class NotificationDelegator(NSObject):
         self, center: object, notification: object
     ) -> None:
         info = notification.userInfo()
-        if "uuid" not in info or self._manager is None:
+        if not info or "uuid" not in info or self._manager is None:
             return
         notifications = self._manager.notification_service.get_notifications()
         if (
