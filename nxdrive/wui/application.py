@@ -252,10 +252,11 @@ class Application(SimpleApplication):
             now.strftime('%Y-%m-%d %H:%M:%S')
         )
 
+        info = {'version': version, 'current_version': self.manager.version}
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Warning)
         msg.setWindowIcon(QIcon(self.get_window_icon()))
-        msg.setText(Translator.get('SERVER_INCOMPATIBLE', {'version': version}))
+        msg.setText(Translator.get('SERVER_INCOMPATIBLE', info))
         msg.addButton('OK', QMessageBox.AcceptRole)
         msg.exec_()
 

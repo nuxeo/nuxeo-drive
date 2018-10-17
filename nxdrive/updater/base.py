@@ -215,8 +215,8 @@ class BaseUpdater(PollWorker):
             # Find latest compatible version caped under 4.X
             latest, _ = get_latest_compatible_version(
                 {
-                    version: info 
-                    for version, info in self.versions.items() 
+                    version: info
+                    for version, info in self.versions.items()
                     if version_lt(version, "4")
                 },
                 self.nature, self.server_ver

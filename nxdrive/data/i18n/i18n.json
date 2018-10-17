@@ -179,7 +179,7 @@
     "SECTION_GENERAL": "General",
     "SELECT_SYNC_FOLDERS": "Select Sync Folders",
     "SELECT_SYNC_FOLDERS_DESCRIPTION": "Allows you to choose which folders to sync locally. This requires the engine to be online.",
-    "SERVER_INCOMPATIBLE": "Your server version is not compatible with Drive {{ version }}. Please ask your administrator to upgrade your Nuxeo instance or you won't be able to update to the latest Drive version.",
+    "SERVER_INCOMPATIBLE": "Your server version is not compatible with Drive {{ version }}. You can still use the current version ({{ current_version }}). To update to a newer version, please contact your administrator to upgrade your Nuxeo instance.",
     "SETTINGS": "Settings",
     "SETTINGS_WINDOW_TITLE": "Nuxeo Drive - Settings",
     "SET_ACCOUNT": "Set account",
