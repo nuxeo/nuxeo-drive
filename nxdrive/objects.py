@@ -110,6 +110,31 @@ class RemoteFileInfo:
         )
 
 
+@dataclass
+class Blob:
+    name: str  # filename of the blob
+    digest: Optional[str]  # hash of the blob
+    digest_algorithm: Optional[str]  # algorithm used to compute the digest
+    size: int  # size of the blob in bytes
+    mimetype: str  # mime-type of the blob
+    data: str  # download url of the blob or content if it's a note
+
+    @staticmethod
+    def from_dict(blob: Dict[str, Any]) -> "Blob":
+        """ Convert Dict to Blob object. """
+        name = blob["name"]
+        digest = blob.get("digest")
+        digest_algorithm = blob.get("digestAlgorithm")
+        size = int(blob["length"])
+        mimetype = blob["mime-type"]
+        data = blob["data"]
+
+        if digest_algorithm:
+            digest_algorithm = digest_algorithm.lower().replace("-", "")
+
+        return Blob(name, digest, digest_algorithm, size, mimetype, data)
+
+
 # Data Transfer Object for doc info on the Remote Nuxeo repository
 @dataclass
 class NuxeoDocumentInfo:
@@ -121,15 +146,12 @@ class NuxeoDocumentInfo:
     folderish: bool  # True is can host child documents
     last_modification_time: datetime  # last update time
     last_contributor: str  # last contributor
-    digest_algorithm: Optional[str]  # digest algorithm of the document's blob
-    digest: Optional[str]  # digest of the document's blob
     repository: str  # server repository name
     doc_type: str  # Nuxeo document type
     version: Optional[str]  # Nuxeo version
     state: str  # Nuxeo lifecycle state
     is_trashed: bool  # Nuxeo trashed status
-    has_blob: bool  # If this doc has blob
-    filename: str  # Filename of document
+    blobs: Dict[str, Blob]  # Dictionary of blob with their xpath as key
     lock_owner: str  # lock owner
     lock_created: datetime  # lock creation time
     permissions: List[str]  # permissions
@@ -139,7 +161,6 @@ class NuxeoDocumentInfo:
         """Convert Automation document description to NuxeoDocumentInfo"""
         props = doc["properties"]
         name = props["dc:title"]
-        filename = None
         folderish = "Folderish" in doc["facets"]
         try:
             last_update = datetime.strptime(
@@ -149,42 +170,47 @@ class NuxeoDocumentInfo:
             # no millisecond?
             last_update = datetime.strptime(doc["lastModified"], "%Y-%m-%dT%H:%M:%SZ")
 
-        # TODO: support other main files
-        has_blob = False
-        if folderish:
-            digest_algorithm = None
-            digest = None
-        else:
-            blob = props.get("file:content")
-            if blob is None:
-                note = props.get("note:note")
-                if note is None:
-                    digest_algorithm = None
-                    digest = None
-                else:
-                    m = hashlib.md5()
-                    m.update(note.encode("utf-8"))
-                    digest = m.hexdigest()
-                    digest_algorithm = "md5"
-                    ext = ".txt"
-                    mime_type = props.get("note:mime_type")
-                    if mime_type == "text/html":
-                        ext = ".html"
-                    elif mime_type == "text/xml":
-                        ext = ".xml"
-                    elif mime_type == "text/x-web-markdown":
-                        ext = ".md"
-                    if not name.endswith(ext):
-                        filename = name + ext
-                    else:
-                        filename = name
-            else:
-                has_blob = True
-                digest_algorithm = blob.get("digestAlgorithm")
-                if digest_algorithm is not None:
-                    digest_algorithm = digest_algorithm.lower().replace("-", "")
-                digest = blob.get("digest")
-                filename = blob.get("name")
+        blobs: Dict[str, Blob] = {}
+
+        if not folderish:
+            main_blob = props.get("file:content")
+            attachments = props.get("files:files")
+            note = props.get("note:note")
+
+            if main_blob:
+                blobs["file:content"] = Blob.from_dict(main_blob)
+
+            idx = 0
+            for attachment in attachments or []:
+                blobs[f"files:files/{idx}/file"] = Blob.from_dict(attachment["file"])
+                idx += 1
+
+            if note:
+                m = hashlib.md5()
+                m.update(note.encode("utf-8"))
+                digest = m.hexdigest()
+                digest_algorithm = "md5"
+                ext = ".txt"
+                mime_type = props.get("note:mime_type")
+                if mime_type == "text/html":
+                    ext = ".html"
+                elif mime_type == "text/xml":
+                    ext = ".xml"
+                elif mime_type == "text/x-web-markdown":
+                    ext = ".md"
+                if not name.endswith(ext):
+                    name += ext
+
+                blobs["note:note"] = Blob.from_dict(
+                    {
+                        "name": name,
+                        "digest": digest,
+                        "digestAlgorithm": digest_algorithm,
+                        "length": len(note),
+                        "mime-type": mime_type,
+                        "data": note,
+                    }
+                )
 
         # Lock info
         lock_owner = doc.get("lockOwner")
@@ -217,15 +243,12 @@ class NuxeoDocumentInfo:
             folderish,
             last_update,
             props["dc:lastContributor"],
-            digest_algorithm,
-            digest,
             doc["repository"],
             doc["type"],
             version,
             doc["state"],
             is_trashed,
-            has_blob,
-            filename,
+            blobs,
             lock_owner,
             lock_created,
             permissions,

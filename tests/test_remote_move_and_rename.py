@@ -823,7 +823,7 @@ class TestRemoteFiles(UnitTestCase):
         # Check - server
         children = remote.get_children_info(self.workspace_1)
         assert len(children) == 1
-        assert children[0].filename == filename_upper
+        assert children[0].blobs["file:content"].name == filename_upper
 
         # Check - client
         children = local.get_children_info("/")

@@ -17,6 +17,7 @@ from nxdrive.engine.engine import Engine, ServerBindingSettings
 from nxdrive.engine.workers import Worker
 from nxdrive.exceptions import NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
+from nxdrive.utils import make_tmp_file, safe_os_filename
 from . import LocalTest, RemoteTest
 from .common import UnitTestCase
 
@@ -82,7 +83,12 @@ class TestDirectEdit(UnitTestCase):
         self.thread_execute.join()
 
     def _direct_edit_update(
-        self, doc_id: str, filename: str, content: bytes, url: str = None
+        self,
+        doc_id: str,
+        filename: str,
+        content: bytes,
+        xpath: str = "file:content",
+        url: str = None,
     ):
         # Download file
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
@@ -90,7 +96,7 @@ class TestDirectEdit(UnitTestCase):
                 self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
             else:
                 self.direct_edit.handle_url(url)
-            local_path = f"/{doc_id}/{filename}"
+            local_path = f"/{doc_id}_{safe_os_filename(xpath)}/{filename}"
             assert self.local.exists(local_path)
             self.wait_sync(fail_if_timeout=False)
             self.local.delete_final(local_path)
@@ -98,13 +104,48 @@ class TestDirectEdit(UnitTestCase):
             # Update file content
             self.local.update_content(local_path, content)
             self.wait_sync()
-            assert self.remote.get_blob(self.remote.get_info(doc_id)) == content
+            doc_info = self.remote.get_info(doc_id)
+            assert self.remote.get_blob(doc_info, xpath=xpath) == content
 
             # Update file content twice
             content += b" updated"
             self.local.update_content(local_path, content)
             self.wait_sync()
-            assert self.remote.get_blob(self.remote.get_info(doc_id)) == content
+            doc_info = self.remote.get_info(doc_id)
+            assert self.remote.get_blob(doc_info, xpath=xpath) == content
+
+    def test_attachments(self):
+        main_filename = "mainfile.txt"
+        attachment_filename = "attachment.txt"
+
+        doc_id = self.remote.make_file("/", main_filename, content=b"Initial content.")
+        file_path = make_tmp_file(self.upload_tmp_dir, "Attachment content")
+        self.remote.upload(
+            file_path,
+            command="Blob.AttachOnDocument",
+            filename=attachment_filename,
+            document=self.remote._check_ref(doc_id),
+            xpath="files:files",
+        )
+        scheme, host = pytest.nuxeo_url.split("://")
+        attachment_xpath = "files:files/0/file"
+        url = (
+            f"nxdrive://edit/{scheme}/{host}"
+            f"/user/{self.user_1}"
+            "/repo/default"
+            f"/nxdocid/{doc_id}"
+            f"/filename/{attachment_filename}"
+            f"/downloadUrl/nxfile/default/{doc_id}"
+            f"/{attachment_xpath}/{attachment_filename}"
+        )
+        self._direct_edit_update(doc_id, main_filename, b"Main test")
+        self._direct_edit_update(
+            doc_id,
+            attachment_filename,
+            b"Attachment test",
+            xpath=attachment_xpath,
+            url=url,
+        )
 
     def test_binder(self):
         engine = list(self.manager_1._engines.items())[0][1]
@@ -121,7 +162,7 @@ class TestDirectEdit(UnitTestCase):
     def test_cleanup(self):
         filename = "Mode op\xe9ratoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
-        local_path = f"/{doc_id}/{filename}"
+        local_path = f"/{doc_id}_file-content/{filename}"
 
         # Download file
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
@@ -169,7 +210,7 @@ class TestDirectEdit(UnitTestCase):
 
         filename = "Mode op\xe9ratoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
-        local_path = f"/{doc_id}/{filename}"
+        local_path = f"/{doc_id}_file-content/{filename}"
 
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
@@ -237,7 +278,7 @@ class TestDirectEdit(UnitTestCase):
         doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
 
         # Download file
-        local_path = f"/{doc_id}/{filename}"
+        local_path = f"/{doc_id}_file-content/{filename}"
 
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
@@ -287,7 +328,7 @@ class TestDirectEdit(UnitTestCase):
         ).uid
         doc_id = file_id.split("#")[-1]
         self._direct_edit_update(
-            doc_id, "Mode op\xe9ratoire.txt", b"Atol de PomPom Gali"
+            doc_id, "Mode op\xe9ratoire.txt", b"Atol de PomPom Gali", xpath="note:note"
         )
 
     def test_permission_readonly(self):
@@ -373,7 +414,7 @@ class TestDirectEdit(UnitTestCase):
             f"/file:content/{filename}"
         )
 
-        self._direct_edit_update(doc_id, filename, b"Test", url)
+        self._direct_edit_update(doc_id, filename, b"Test", url=url)
 
     def test_url_with_accents(self):
         scheme, host = pytest.nuxeo_url.split("://")
@@ -390,7 +431,7 @@ class TestDirectEdit(UnitTestCase):
             f"/file:content/{filename}"
         )
 
-        self._direct_edit_update(doc_id, filename, b"Test", url)
+        self._direct_edit_update(doc_id, filename, b"Test", url=url)
 
     def test_url_missing_username(self):
         """ The username must be in the URL. """
@@ -403,7 +444,7 @@ class TestDirectEdit(UnitTestCase):
             "/file:content/lebron-james-beats-by-dre-powerb.psd"
         )
         with pytest.raises(ValueError):
-            self._direct_edit_update("", "", b"", url)
+            self._direct_edit_update("", "", b"", url=url)
 
     def test_user_name(self):
         # user_1 is drive_user_1, no more informations

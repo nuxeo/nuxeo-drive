@@ -5,7 +5,7 @@ from datetime import datetime
 from logging import getLogger
 from queue import Empty, Queue
 from time import sleep
-from typing import List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib.parse import quote
 
 from nuxeo.utils import get_digest_algorithm
@@ -26,6 +26,7 @@ from .utils import (
     force_decode,
     normalize_event_filename,
     parse_protocol_url,
+    safe_os_filename,
     simplify_url,
     unset_path_readonly,
 )
@@ -37,6 +38,15 @@ if TYPE_CHECKING:
 __all__ = ("DirectEdit",)
 
 log = getLogger(__name__)
+
+
+def _is_lock_file(name: str) -> bool:
+    """
+    Check if a given file name is a temporary one created by
+    third-party software.
+    """
+
+    return name.startswith(("~$", ".~lock."))  # Microsoft Office  # (Libre|Open)Office
 
 
 class DirectEdit(Worker):
@@ -151,7 +161,7 @@ class DirectEdit(Worker):
 
             ref = children[0].path
             try:
-                _, _, func, digest = self._extract_edit_info(ref)
+                _, _, func, digest, _ = self._extract_edit_info(ref)
             except NotFound:
                 # Engine is not known anymore
                 purge(child.path)
@@ -164,7 +174,7 @@ class DirectEdit(Worker):
                 if current_digest != digest:
                     log.warning(
                         "Document has been modified and "
-                        "not synchronized, readd to upload queue"
+                        "not synchronized, add to upload queue"
                     )
                     self._upload_queue.put(ref)
                     continue
@@ -223,7 +233,12 @@ class DirectEdit(Worker):
         return engine
 
     def _download(
-        self, engine: "Engine", info: NuxeoDocumentInfo, file_path: str, url: str = None
+        self,
+        engine: "Engine",
+        info: NuxeoDocumentInfo,
+        file_path: str,
+        xpath: str,
+        url: str = None,
     ) -> str:
         file_dir = os.path.dirname(file_path)
         file_name = os.path.basename(file_path)
@@ -233,12 +248,13 @@ class DirectEdit(Worker):
 
         # Close to processor method - should try to refactor ?
         pair = None
-        if info.digest:
-            pair = engine.get_dao().get_valid_duplicate_file(info.digest)
+        blob = info.blobs[xpath]
+        if blob.digest:
+            pair = engine.get_dao().get_valid_duplicate_file(blob.digest)
         if pair:
             existing_file_path = engine.local.abspath(pair.local_path)
             log.debug(
-                f"Local file matches remote digest {info.digest!r}, "
+                f"Local file matches remote digest {blob.digest!r}, "
                 f"copying it from {existing_file_path!r}"
             )
             shutil.copy(existing_file_path, file_out)
@@ -246,17 +262,20 @@ class DirectEdit(Worker):
                 log.debug(f"Unsetting readonly flag on copied file {file_out!r}")
                 unset_path_readonly(file_out)
         else:
-            log.debug(f"Downloading file {info.filename!r}")
+            log.debug(f"Downloading file {blob.name!r}")
             if url:
                 engine.remote.download(
                     quote(url, safe="/:"),
                     file_out=file_out,
-                    digest=info.digest,
+                    digest=blob.digest,
                     check_suspended=self.stop_client,
                 )
             else:
                 engine.remote.get_blob(
-                    info, file_out=file_out, check_suspended=self.stop_client
+                    info,
+                    xpath=xpath,
+                    file_out=file_out,
+                    check_suspended=self.stop_client,
                 )
         return file_out
 
@@ -303,11 +322,40 @@ class DirectEdit(Worker):
         if not info:
             return None
 
-        filename = info.filename
+        url = None
+        url_info: Dict[str, str] = {}
+        if download_url:
+            import re
+
+            urlmatch = re.match(
+                r"([^\/]+\/){3}(?P<xpath>.+)\/(?P<filename>[^\?]*).*",
+                download_url,
+                re.I,
+            )
+            if urlmatch:
+                url_info = urlmatch.groupdict()
+
+            url = server_url
+            if not url.endswith("/"):
+                url += "/"
+            url += download_url
+
+        xpath = url_info.get("xpath") or "file:content"
+        if xpath == "blobholder:0":
+            xpath = "file:content"
+        if xpath not in info.blobs and info.doc_type == "Note":
+            xpath = "note:note"
+
+        blob = info.blobs.get(xpath)
+        if not blob:
+            return None
+
+        filename = blob.name
         self.directEditStarting.emit(engine.hostname, filename)
 
         # Create local structure
-        dir_path = os.path.join(self._folder, doc_id)
+        folder_name = safe_os_filename(f"{doc_id}_{xpath}")
+        dir_path = os.path.join(self._folder, folder_name)
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
 
@@ -315,14 +363,7 @@ class DirectEdit(Worker):
         file_path = os.path.join(dir_path, filename)
 
         # Download the file
-        url = None
-        if download_url:
-            url = server_url
-            if not url.endswith("/"):
-                url += "/"
-            url += download_url
-
-        tmp_file = self._download(engine, info, file_path, url=url)
+        tmp_file = self._download(engine, info, file_path, xpath, url=url)
         if tmp_file is None:
             log.error("Download failed")
             return None
@@ -335,14 +376,17 @@ class DirectEdit(Worker):
         if user:
             self.local.set_remote_id(dir_path, user, name="nxdirectedituser")
 
-        if info.digest:
-            self.local.set_remote_id(dir_path, info.digest, name="nxdirecteditdigest")
+        if xpath:
+            self.local.set_remote_id(dir_path, xpath, name="nxdirecteditxpath")
+
+        if blob.digest:
+            self.local.set_remote_id(dir_path, blob.digest, name="nxdirecteditdigest")
             # Set digest algorithm if not sent by the server
-            digest_algorithm = info.digest_algorithm
+            digest_algorithm = blob.digest_algorithm
             if not digest_algorithm:
-                digest_algorithm = get_digest_algorithm(info.digest)
+                digest_algorithm = get_digest_algorithm(blob.digest)
                 if not digest_algorithm:
-                    raise UnknownDigest(info.digest)
+                    raise UnknownDigest(blob.digest)
             self.local.set_remote_id(
                 dir_path,
                 digest_algorithm.encode("utf-8"),
@@ -358,7 +402,7 @@ class DirectEdit(Worker):
         os.rename(tmp_file, file_path)
 
         self._last_action_timing = current_milli_time() - start_time
-        self.openDocument.emit(info)
+        self.openDocument.emit(blob)
         return file_path
 
     def edit(
@@ -382,7 +426,7 @@ class DirectEdit(Worker):
             else:
                 raise e
 
-    def _extract_edit_info(self, ref: str) -> Tuple[str, "Engine", str, str]:
+    def _extract_edit_info(self, ref: str) -> Tuple[str, "Engine", str, str, str]:
         dir_path = os.path.dirname(ref)
         server_url = self.local.get_remote_id(dir_path, name="nxdirectedit")
         if not server_url:
@@ -404,7 +448,8 @@ class DirectEdit(Worker):
         if not digest or not digest_algorithm:
             raise NotFound()
 
-        return uid, engine, digest_algorithm, digest
+        xpath = self.local.get_remote_id(dir_path, name="nxdirecteditxpath")
+        return uid, engine, digest_algorithm, digest, xpath
 
     def force_update(self, ref: str, digest: str) -> None:
         dir_path = os.path.dirname(ref)
@@ -426,7 +471,7 @@ class DirectEdit(Worker):
             dir_path = os.path.dirname(ref)
 
             try:
-                uid, engine, _, _ = self._extract_edit_info(ref)
+                uid, engine, _, _, _ = self._extract_edit_info(ref)
                 if action == "lock":
                     engine.remote.lock(uid)
                     self.local.set_remote_id(dir_path, b"1", name="nxdirecteditlock")
@@ -478,7 +523,7 @@ class DirectEdit(Worker):
 
             log.trace(f"Handling DirectEdit queue ref: {ref!r}")
 
-            uid, engine, algorithm, digest = self._extract_edit_info(ref)
+            uid, engine, algorithm, digest, xpath = self._extract_edit_info(ref)
             # Don't update if digest are the same
             try:
                 info = self.local.get_info(ref)
@@ -496,20 +541,34 @@ class DirectEdit(Worker):
                 # Update the document, should verify
                 # the remote hash NXDRIVE-187
                 remote_info = engine.remote.get_info(uid)
-                if remote_info and remote_info.digest != digest:
+                remote_blob = remote_info.blobs.get(xpath) if remote_info else None
+                if remote_blob and remote_blob.digest != digest:
                     # Conflict detect
                     log.trace(
-                        f"Remote digest: {remote_info.digest} is different from the "
+                        f"Remote digest: {remote_blob.digest} is different from the "
                         f"recorded  one: {digest} - conflict detected for {ref!r}"
                     )
                     self.directEditConflict.emit(
-                        os.path.basename(ref), ref, remote_info.digest
+                        os.path.basename(ref), ref, remote_blob.digest
                     )
                     continue
 
                 os_path = self.local.abspath(ref)
                 log.debug(f"Uploading file {os_path!r}")
-                engine.remote.stream_attach(uid, os_path)
+
+                if xpath == "note:note":
+                    kwargs = {"applyVersioningPolicy": True}
+                    cmd = "NuxeoDrive.AttachBlob"
+                else:
+                    kwargs = {"xpath": xpath}
+                    cmd = "Blob.AttachOnDocument"
+
+                engine.remote.upload(
+                    os_path,
+                    command=cmd,
+                    document=engine.remote._check_ref(uid),
+                    **kwargs,
+                )
 
                 # Update hash value
                 dir_path = os.path.dirname(ref)
@@ -518,7 +577,7 @@ class DirectEdit(Worker):
                 )
                 self._last_action_timing = current_milli_time() - start_time
                 self.directEditUploadCompleted.emit(os.path.basename(os_path))
-                self.editDocument.emit(remote_info)
+                self.editDocument.emit(remote_blob)
             except NotFound:
                 # Not found on the server, just skip it
                 continue
@@ -602,17 +661,6 @@ class DirectEdit(Worker):
         # Delete the observer
         self._observer = None
 
-    @staticmethod
-    def _is_lock_file(name: str) -> bool:
-        """
-        Check if a given file name is a temporary one created by
-        a tierce software.
-        """
-
-        return name.startswith(
-            ("~$", ".~lock.")  # Microsoft Office  # (Libre|Open)Office
-        )
-
     @tooltip("Handle watchdog event")
     def handle_watchdog_event(self, evt: FileSystemEvent) -> None:
         try:
@@ -642,7 +690,7 @@ class DirectEdit(Worker):
             editing = self.local.get_remote_id(dir_path, name="nxdirecteditlock")
 
             if force_decode(name) != file_name:
-                if self._is_lock_file(file_name):
+                if _is_lock_file(file_name):
                     if (
                         evt.event_type == "created"
                         and self.use_autolock
