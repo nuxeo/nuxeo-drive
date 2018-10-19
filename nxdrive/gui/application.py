@@ -1034,9 +1034,6 @@ class Application(QApplication):
         del con
         log.debug("Successfully closed server socket")
 
-        # Bring settings window to front
-        self.settings_window.show()
-
     def update_status(self, engine: "Engine") -> None:
         """
         Update the systray status for synchronization,
