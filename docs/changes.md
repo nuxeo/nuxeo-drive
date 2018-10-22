@@ -77,12 +77,12 @@ Changes in command line arguments:
 - Packaging: Added `distro` 1.3.0
 - Packaging: Added `flake8` 3.5.0
 - Packaging: Added `nuxeo` 2.0.3
-- Packaging: Added `pre-commit` 1.11.1
+- Packaging: Added `pre-commit` 1.11.2
 - Packaging: Updated `markdown` from 2.6.11 to 3.0.1
 - Packaging: Updated `psutil` from 5.4.4 to 5.4.7
 - Packaging: Updated `pycryptodomex` from 3.6.1 to 3.6.6
 - Packaging: Updated `pypac` from 0.8.1 to 0.12.0
-- Packaging: Updated `pytest` from 3.5.1 to 3.8.1
+- Packaging: Updated `pytest` from 3.5.1 to 3.8.2
 - Packaging: Updated `pytest-cov` from 2.5.1 to 2.6.0
 - Packaging: Updated `pytest-timeout` from 1.2.1 to 1.3.2
 - Packaging: Updated `rfc3987` from 1.3.7 to 1.3.8
