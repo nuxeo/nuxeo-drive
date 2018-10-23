@@ -123,6 +123,7 @@ for (x in slaves) {
                                     'SIGNTOOL_PATH=C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit',
                                 ]
                                 withEnv(env_vars) {
+                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -install'
                                     bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
                                     archive 'dist/*.exe'
                                 }
