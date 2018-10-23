@@ -46,7 +46,7 @@
     "DELETE_READONLY": "Delete read-only document",
     "DELETE_READONLY_DOCUMENT": "Mark „%1“ filtered as it is in read-only mode",
     "DIRECT_EDIT_AUTO_LOCK": "Document auto-locking for DirectEdit",
-    "DIRECT_EDIT_CANT_FIND_ENGINE": "Cannot find the binding for the user <b>%1</b> on the server <a href=\"%2\">%2</a>.",
+    "DIRECT_EDIT_CANT_FIND_ENGINE": "User <b>%1</b> on server <a href=\"%2\">%2</a> is not signed in Nuxeo Drive on this computer.",
     "DIRECT_EDIT_CONFLICT_MESSAGE": "The document „%1“ was modified remotely and is now in conflict. What do you want to do?",
     "DIRECT_EDIT_CONFLICT_OVERWRITE": "Overwrite",
     "DIRECT_EDIT_AUTH_EXPIRED": "Authentication expired for the user <b>%1</b> on the server <a href=\"%2\">%2</a>.<br><br>Open the system tray menu or the settings to log back in.",
