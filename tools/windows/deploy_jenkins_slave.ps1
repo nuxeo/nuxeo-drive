@@ -27,7 +27,9 @@ Import-Module BitsTransfer
 function add_missing_ddls {
 	# Missing DLLS for Windows 7
 	$folder = "C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\x86\"
-	Get-ChildItem $folder | Copy -Verbose -Force -Destination "dist\ndrive"
+	if (Test-Path $folder) {
+		Get-ChildItem $folder | Copy -Verbose -Force -Destination "dist\ndrive"
+	}
 }
 
 function build_installer {
