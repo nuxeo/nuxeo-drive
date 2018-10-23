@@ -1,4 +1,5 @@
 flake8==3.5.0
-pytest==3.9.2
+# Ignore pytest updates until NXDRIVE-1390 is done
+pytest==3.8.2  # pyup: ignore
 pytest-cov==2.6.0
 pytest-timeout==1.3.2
