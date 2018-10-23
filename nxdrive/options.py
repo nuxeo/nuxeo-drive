@@ -145,6 +145,7 @@ class MetaOptions(type):
             "https://community.nuxeo.com/static/drive-updates",
             "default",
         ),
+        "browser_startup_page": ("drive_browser_login.jsp", "default"),
         "consider_ssl_errors": (True, "default"),
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
@@ -172,7 +173,6 @@ class MetaOptions(type):
         ),
         "theme": ("ui5", "default"),
         "startup_page": ("drive_login.jsp", "default"),
-        "browser_startup_page": ("drive_browser_login.jsp", "default"),
         "timeout": (30, "default"),
         "update_check_delay": (3600, "default"),
         "update_site_url": (

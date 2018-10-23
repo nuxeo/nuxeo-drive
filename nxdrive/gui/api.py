@@ -704,7 +704,7 @@ class QMLDriveApi(QObject):
             (
                 parts.scheme,
                 parts.netloc,
-                parts.path + "/" + Options.browser_startup_page,
+                f"{parts.path}/{Options.browser_startup_page}",
                 parts.query,
                 parts.fragment,
             )
