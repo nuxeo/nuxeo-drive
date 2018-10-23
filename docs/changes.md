@@ -1,5 +1,5 @@
 # 3.1.2
-Release date: `2018-10-XX`
+Release date: `2018-10-23`
 
 ### Core
 - [NXDRIVE-1384](https://jira.nuxeo.com/browse/NXDRIVE-1384): Check for server compatibility before 4.X update
