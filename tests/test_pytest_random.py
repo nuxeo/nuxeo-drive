@@ -15,14 +15,12 @@ def plugin(testdir):
 
 def temporary_failure(count=1, reverse=False):
     comp = ">" if reverse else "<="
-    return """import py
+    return f"""import py
     path = py.path.local(__file__).dirpath().ensure('test.res')
     count = path.read() or 1
     path.write(int(count) + 1)
-    if int(count) {1} {0}:
-        raise Exception('Failure: {{0}}'.format(count))""".format(
-        count, comp
-    )
+    if int(count) {comp} {count}:
+        raise Exception('Failure: {{0}}'.format(count))"""
 
 
 def assert_outcomes(
