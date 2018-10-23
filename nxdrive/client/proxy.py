@@ -140,7 +140,25 @@ def load_proxy(dao: "EngineDAO", token: str = None) -> Proxy:
         if not token:
             token = dao.get_config("device_id")
         token += "_proxy"
-        kwargs["url"] = force_decode(decrypt(dao.get_config("proxy_url"), token))
+
+        url = dao.get_config("proxy_url")
+        if url:
+            # This is the new proxy settings
+            kwargs["url"] = force_decode(decrypt(url, token))
+        else:
+            # We need to convert the old settings to the new format
+            url = (dao.get_config("proxy_type") or "http") + "://"
+            username = dao.get_config("proxy_username")
+            password = dao.get_config("proxy_password")
+            if username and password:
+                password = decrypt(password, token)
+                url += f"{username}:{force_decode(password)}@"
+            url += dao.get_config("proxy_server")
+            port = dao.get_config("proxy_port")
+            if port:
+                url += f":{port}"
+
+            kwargs["url"] = url
 
     return _get_cls(category)(**kwargs)
 

@@ -4,12 +4,15 @@ import platform
 import subprocess
 import unicodedata
 import uuid
+from contextlib import suppress
 from logging import getLogger
 from typing import Any, Dict, Optional
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
+import requests
 from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
 from PyQt5.sip import SIP_VERSION_STR
+
 
 from . import __version__
 from .client.local_client import LocalClient
@@ -484,6 +487,15 @@ class Manager(QObject):
 
     def _get_default_server_type(self) -> str:  # TODO: Move to constants.py
         return "NXDRIVE"
+
+    def _server_has_browser_login(self, url) -> bool:
+        login_page = urljoin(url, Options.browser_startup_page)
+        proxies = self.proxy.settings(url=url)
+
+        with suppress(Exception):
+            resp = requests.get(login_page, proxies=proxies)
+            return resp.status_code <= 401
+        return False
 
     def bind_server(
         self,

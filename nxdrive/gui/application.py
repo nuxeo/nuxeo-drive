@@ -110,6 +110,7 @@ class Application(QApplication):
 
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
+        self.manager.updater.serverIncompatible.connect(self._server_incompatible)
 
         # Display release notes on new version
         if self.manager.old_version != self.manager.version:
@@ -570,7 +571,9 @@ class Application(QApplication):
             """Retrieve a token and create the account."""
             user = str(username.text())
             pwd = str(password.text())
-            nuxeo = Nuxeo(host=url, auth=(user, pwd))
+            nuxeo = Nuxeo(
+                host=url, auth=(user, pwd), proxies=self.manager.proxy.settings(url=url)
+            )
             try:
                 token = nuxeo.client.request_auth_token(
                     device_id=self.manager.device_id,
@@ -707,6 +710,26 @@ class Application(QApplication):
             description=description,
         )
         self.manager.notification_service.send_notification(notification)
+
+    @pyqtSlot()
+    def _server_incompatible(self) -> None:
+        version = self.manager.version
+        downgrade_version = self.manager.updater.version
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setText(Translator.get("SERVER_INCOMPATIBLE", [version, downgrade_version]))
+        msg.addButton(
+            Translator.get("CONTINUE_USING", [version]), QMessageBox.RejectRole
+        )
+        downgrade = msg.addButton(
+            Translator.get("USE_OLDER_VERSION"), QMessageBox.AcceptRole
+        )
+        msg.exec_()
+
+        res = msg.clickedButton()
+        if res == downgrade:
+            self.manager.updater.update(downgrade_version)
 
     @pyqtSlot()
     def message_clicked(self) -> None:

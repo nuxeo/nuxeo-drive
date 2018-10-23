@@ -23,6 +23,7 @@ from .utils import get_update_status
 from ..constants import APP_NAME
 from ..engine.workers import PollWorker
 from ..options import Options
+from ..utils import version_lt
 
 __all__ = ("BaseUpdater",)
 
@@ -40,6 +41,9 @@ class BaseUpdater(PollWorker):
 
     # Used to refresh the update progress bar in the systray
     updateProgress = pyqtSignal(int)
+
+    # Used when the server doesn't have the new browser login
+    serverIncompatible = pyqtSignal()
 
     versions = {}
     nature = "release"
@@ -196,13 +200,37 @@ class BaseUpdater(PollWorker):
         except UpdateError:
             status, version = UPDATE_STATUS_UNAVAILABLE_SITE, None
         else:
+            has_browser_login = all(
+                [
+                    self.manager._server_has_browser_login(engine.server_url)
+                    for engine in self.manager._engines.values()
+                ]
+            )
             log.debug(
                 f"Getting update status for version {self.manager.version} ({self.nature}) on server {self.server_ver}"
             )
             status, version = get_update_status(
-                self.manager.version, self.versions, self.nature, self.server_ver
+                self.manager.version, self.versions, self.nature, self.server_ver, has_browser_login
             )
-        self._set_status(status, version=version)
+        if status:
+            self._set_status(status, version=version)
+
+    def _force_downgrade(self) -> None:
+        try:
+            # Fetch all available versions
+            self._fetch_versions()
+        except UpdateError:
+            self._set_status(UPDATE_STATUS_UNAVAILABLE_SITE)
+        else:
+            versions = {
+                version: info
+                for version, info in self.versions.items()
+                if info.get("type", "").lower() == self.nature
+                and version_lt(version, "4")
+            }
+            version = max(versions.keys())
+            self._set_status(UPDATE_STATUS_DOWNGRADE_NEEDED, version)
+            self.serverIncompatible.emit()
 
     def _handle_status(self) -> None:
         """ Handle update check status. """
@@ -227,6 +255,8 @@ class BaseUpdater(PollWorker):
             # In case of a downgrade, stop the engines
             # and try to install the older version.
             self.manager.stop()
+            self.serverIncompatible.emit()
+            return
 
         if self.manager.get_auto_update():
             try:

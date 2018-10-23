@@ -512,7 +512,10 @@ def guess_mime_type(filename: str) -> str:
 
 
 def guess_server_url(
-    url: str, login_page: str = Options.startup_page, timeout: int = 5
+    url: str,
+    login_page: str = Options.startup_page,
+    proxy: "Proxy" = None,
+    timeout: int = 5,
 ) -> Optional[str]:
     """
     Guess the complete server URL given an URL (either an IP address,
@@ -581,7 +584,8 @@ def guess_server_url(
             rfc3987.parse(new_url, rule="URI")
             log.trace("Testing URL %r", new_url)
             full_url = new_url + "/" + login_page
-            with requests.get(full_url, timeout=timeout) as resp:
+            kwargs = {"proxies": proxy.settings(url=full_url)} if proxy else {}
+            with requests.get(full_url, timeout=timeout, **kwargs) as resp:
                 resp.raise_for_status()
                 if resp.status_code == 200:
                     return new_url
