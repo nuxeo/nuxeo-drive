@@ -25,7 +25,7 @@ from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME, BUNDLE_IDENTIFIER
-from ...objects import NuxeoDocumentInfo
+from ...engine.dao.sqlite import DocPair
 from ...utils import force_decode, if_frozen, normalized_path
 
 __all__ = ("DarwinIntegration", "FinderSyncServer")
@@ -153,7 +153,7 @@ class DarwinIntegration(AbstractOSIntegration):
                     pass
         return result
 
-    def _send_notification(self, name: str, content: Dict[str, str]) -> None:
+    def _send_notification(self, name: str, content: Dict[str, Any]) -> None:
         """
         Send a notification through the macOS notification center
         to the FinderSync app extension.
@@ -185,7 +185,7 @@ class DarwinIntegration(AbstractOSIntegration):
         self._set_monitoring("unwatch", folder)
 
     @if_frozen
-    def send_sync_status(self, state: NuxeoDocumentInfo, path: str) -> None:
+    def send_sync_status(self, state: DocPair, path: str) -> None:
         """
         Send the sync status of a file to the FinderSync.
 
@@ -198,27 +198,56 @@ class DarwinIntegration(AbstractOSIntegration):
                 return
 
             name = "{}.syncStatus".format(BUNDLE_IDENTIFIER)
-            status = "unsynced"
 
-            readonly = (os.stat(path).st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
-            if readonly:
-                status = "locked"
-            elif state:
-                if state.error_count > 0:
-                    status = "error"
-                elif state.pair_state == "conflicted":
-                    status = "conflicted"
-                elif state.local_state == "synchronized":
-                    status = "synced"
-                elif state.pair_state == "unsynchronized":
-                    status = "unsynced"
-                elif state.processor != 0:
-                    status = "syncing"
-
-            log.trace("Sending status %r for file %r to FinderSync", status, path)
-            self._send_notification(name, {"status": status, "path": path})
+            self._send_notification(
+                name, {"statuses": [self._formatted_status(state, path)]}
+            )
         except:
             log.exception("Error while trying to send status to FinderSync")
+
+    @if_frozen
+    def send_content_sync_status(self, states: List[DocPair], path: str) -> None:
+        """
+        Send the sync status of the content of a folder to the FinderSync.
+
+        :param state: current local states of the children of the folder
+        :param path: full path of the folder
+        """
+        try:
+            path = force_decode(path)
+            if not os.path.exists(path):
+                return
+
+            name = "{}.syncStatus".format(BUNDLE_IDENTIFIER)
+
+            statuses = [
+                self._formatted_status(state, os.path.join(path, state.local_name))
+                for state in states
+            ]
+            self._send_notification(name, {"statuses": statuses})
+        except:
+            log.exception("Error while trying to send status to FinderSync")
+
+    def _formatted_status(self, state: DocPair, path: str) -> Dict[str, str]:
+        status = "unsynced"
+
+        readonly = (os.stat(path).st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
+        if readonly:
+            status = "locked"
+        elif state:
+            if state.error_count > 0:
+                status = "error"
+            elif state.pair_state == "conflicted":
+                status = "conflicted"
+            elif state.local_state == "synchronized":
+                status = "synced"
+            elif state.pair_state == "unsynchronized":
+                status = "unsynced"
+            elif state.processor != 0:
+                status = "syncing"
+
+        log.trace(f"Sending status {status} for file {path!r} to FinderSync")
+        return {"status": status, "path": path}
 
     def register_folder_link(self, folder_path: str, name: str = None) -> None:
         favorites = self._get_favorite_list() or []

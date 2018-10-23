@@ -732,6 +732,7 @@ class Manager(QObject):
         return engine.get_metadata_url(remote_ref, edit=edit)
 
     def send_sync_status(self, path: str) -> None:
+        log.info(f"manager.send_sync_status for {path}")
         for engine in self._engines.values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
@@ -741,6 +742,6 @@ class Manager(QObject):
             ):
                 r_path = path.replace(engine.local_folder, "")
                 dao = engine._dao
-                state = dao.get_state_from_local(r_path)
-                self.osi.send_sync_status(state, path)
+                states = dao.get_local_children(r_path)
+                self.osi.send_content_sync_status(states, path)
                 return

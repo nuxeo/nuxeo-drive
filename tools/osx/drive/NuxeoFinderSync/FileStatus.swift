@@ -21,10 +21,14 @@ enum SQLiteError: Error {
 }
 
 class FileStatus {
-    internal let dropStatement = "DROP TABLE Status"
-    internal let createStatement = "CREATE TABLE Status (path text primary key, status text)"
-    internal let insertStatement = "INSERT OR REPLACE INTO Status (path, status) VALUES (?, ?)"
-    internal let selectStatement = "SELECT * FROM Status WHERE path = ?"
+    internal let dropStatusStatement = "DROP TABLE Status"
+    internal let createStatusStatement = "CREATE TABLE Status (path text primary key, status text)"
+    internal let insertStatusStatement = "INSERT OR REPLACE INTO Status (path, status) VALUES (?, ?)"
+    internal let selectStatusStatement = "SELECT * FROM Status WHERE path = ?"
+    internal let dropVisitedStatement = "DROP TABLE Visited"
+    internal let createVisitedStatement = "CREATE TABLE Visited (path text primary key, last_visit integer)"
+    internal let insertVisitedStatement = "INSERT OR REPLACE INTO Visited (path, last_visit) VALUES (?, datetime('now'))"
+    internal let selectVisitedStatement = "SELECT * FROM Visited WHERE path = ? AND last_visit + 1 > datetime('now')"
     internal let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
     var db: OpaquePointer?
     var statement: OpaquePointer?
@@ -32,27 +36,29 @@ class FileStatus {
     init() {
         do {
             try run(sqlite3_open(":memory:", &db), error: SQLiteError.openDatabase)
-            try run(sqlite3_exec(db, createStatement, nil, nil, nil), error: SQLiteError.createTable)
+            try run(sqlite3_exec(db, createStatusStatement, nil, nil, nil), error: SQLiteError.createTable)
+            try run(sqlite3_exec(db, createVisitedStatement, nil, nil, nil), error: SQLiteError.createTable)
         } catch {
-            
+
         }
     }
-    
+
     deinit {
         do {
-            try run(sqlite3_exec(db, dropStatement, nil, nil, nil), error: SQLiteError.dropTable)
+            try run(sqlite3_exec(db, dropStatusStatement, nil, nil, nil), error: SQLiteError.dropTable)
+            try run(sqlite3_exec(db, dropVisitedStatement, nil, nil, nil), error: SQLiteError.dropTable)
             statement = nil
             try run(sqlite3_close(db), error: SQLiteError.closeDatabase)
             db = nil
         } catch {
-            
+
         }
     }
 
 
     func insertStatus(_ status: String, for path: String) {
         do {
-            try run(sqlite3_prepare_v2(db, insertStatement, -1, &statement, nil),
+            try run(sqlite3_prepare_v2(db, insertStatusStatement, -1, &statement, nil),
                     error: SQLiteError.prepareStatement)
 
             try run(sqlite3_bind_text(statement, 1, path, -1, SQLITE_TRANSIENT),
@@ -63,13 +69,13 @@ class FileStatus {
             try run(sqlite3_step(statement), error: SQLiteError.insertEntry)
             try run(sqlite3_finalize(statement), error: SQLiteError.finalizeStatement)
         } catch {
-            
+
         }
     }
 
     func getStatus(for path: String) -> String? {
         do {
-            try run(sqlite3_prepare_v2(db, selectStatement, -1, &statement, nil),
+            try run(sqlite3_prepare_v2(db, selectStatusStatement, -1, &statement, nil),
                     error: SQLiteError.prepareStatement)
             try run(sqlite3_bind_text(statement, 1, path, -1, SQLITE_TRANSIENT),
                     error: SQLiteError.bindParameter(param: "path"))
@@ -87,7 +93,42 @@ class FileStatus {
             return nil
         }
     }
-    
+
+    func visit(_ path: String) {
+        do {
+            try run(sqlite3_prepare_v2(db, insertVisitedStatement, -1, &statement, nil),
+                    error: SQLiteError.prepareStatement)
+
+            try run(sqlite3_bind_text(statement, 1, path, -1, SQLITE_TRANSIENT),
+                    error: SQLiteError.bindParameter(param: "path"))
+
+            try run(sqlite3_step(statement), error: SQLiteError.insertEntry)
+            try run(sqlite3_finalize(statement), error: SQLiteError.finalizeStatement)
+        } catch {
+
+        }
+    }
+
+    func shouldVisit(_ path: String) -> Bool {
+        var visited = false
+        do {
+            try run(sqlite3_prepare_v2(db, selectVisitedStatement, -1, &statement, nil),
+                    error: SQLiteError.prepareStatement)
+            try run(sqlite3_bind_text(statement, 1, path, -1, SQLITE_TRANSIENT),
+                    error: SQLiteError.bindParameter(param: "path"))
+
+            while sqlite3_step(statement) == SQLITE_ROW {
+                if sqlite3_column_text(statement, 1) != nil {
+                    visited = true
+                }
+            }
+            try run(sqlite3_finalize(statement), error: SQLiteError.finalizeStatement)
+        } catch {
+
+        }
+        return !visited
+    }
+
     func run(_ returnVal: Int32, error: SQLiteError) throws {
         if !(returnVal == SQLITE_OK || returnVal == SQLITE_DONE) {
             let errmsg = String(cString: sqlite3_errmsg(db)!)
