@@ -220,9 +220,10 @@ class Engine(QObject):
         if getattr(self, name, "") == value:
             return
 
-        self._dao.update_config(name, value)
+        key_name = ("force_ui", "ui")[name == "wui"]
+        self._dao.update_config(key_name, value)
         setattr(self, name, value)
-        log.debug("{} preferences set to {}".format(name, value))
+        log.debug(f"{name} preferences set to {value}")
         self.uiChanged.emit()
 
     def release_folder_lock(self) -> None:

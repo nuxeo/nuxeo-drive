@@ -81,20 +81,22 @@ Rectangle {
                     spacing: 0
                     NuxeoRadioButton {
                         id: webUiButton
-                        property bool defaultUi: false
+                        property bool defaultUi: (ui == "web")
 
                         text: "Web UI" + (defaultUi ? uiSelect.suffix : "")
                         onClicked: api.set_server_ui(uid, "web")
+                        checked: (forceUi == "web")
                         Layout.alignment: Qt.AlignTop
                         Layout.leftMargin: -8
                         Layout.topMargin: -10
                     }
                     NuxeoRadioButton {
                         id: jsfUiButton
-                        property bool defaultUi: false
+                        property bool defaultUi: (ui == "jsf")
 
                         text: "JSF UI" + (defaultUi ? uiSelect.suffix : "")
                         onClicked: api.set_server_ui(uid, "jsf")
+                        checked: (forceUi == "jsf")
                         Layout.alignment: Qt.AlignTop
                         Layout.leftMargin: -8
                         Layout.topMargin: -5
