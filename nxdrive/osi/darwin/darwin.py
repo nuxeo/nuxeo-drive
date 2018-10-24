@@ -198,10 +198,10 @@ class DarwinIntegration(AbstractOSIntegration):
                 return
 
             name = "{}.syncStatus".format(BUNDLE_IDENTIFIER)
+            status = self._formatted_status(state, path)
 
-            self._send_notification(
-                name, {"statuses": [self._formatted_status(state, path)]}
-            )
+            self._send_notification(name, {"statuses": [status]})
+            log.trace(f"Sending status to FinderSync for {path!r}: {status}")
         except:
             log.exception("Error while trying to send status to FinderSync")
 
@@ -210,7 +210,7 @@ class DarwinIntegration(AbstractOSIntegration):
         """
         Send the sync status of the content of a folder to the FinderSync.
 
-        :param state: current local states of the children of the folder
+        :param states: current local states of the children of the folder
         :param path: full path of the folder
         """
         try:
@@ -220,11 +220,20 @@ class DarwinIntegration(AbstractOSIntegration):
 
             name = "{}.syncStatus".format(BUNDLE_IDENTIFIER)
 
-            statuses = [
-                self._formatted_status(state, os.path.join(path, state.local_name))
-                for state in states
-            ]
-            self._send_notification(name, {"statuses": statuses})
+            # We send the statuses of the children by batch in case
+            # the notification center doesn't allow notifications
+            # with a heavy payload.
+            # 50 seems like a good balance between payload size
+            # and number of notifications.
+            batch_size = 50
+            for i in range(0, len(states), batch_size):
+                states_batch = states[i : i + batch_size]
+                statuses = [
+                    self._formatted_status(state, os.path.join(path, state.local_name))
+                    for state in states_batch
+                ]
+                self._send_notification(name, {"statuses": statuses})
+                log.trace(f"Sending statuses to FinderSync for {path!r}: {statuses}")
         except:
             log.exception("Error while trying to send status to FinderSync")
 
@@ -245,8 +254,6 @@ class DarwinIntegration(AbstractOSIntegration):
                 status = "unsynced"
             elif state.processor != 0:
                 status = "syncing"
-
-        log.trace(f"Sending status {status} for file {path!r} to FinderSync")
         return {"status": status, "path": path}
 
     def register_folder_link(self, folder_path: str, name: str = None) -> None:
