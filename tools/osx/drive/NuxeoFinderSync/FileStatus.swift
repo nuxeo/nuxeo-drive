@@ -18,6 +18,7 @@ enum SQLiteError: Error {
     case bindParameter(param: String)
     case finalizeStatement
     case insertEntry
+    case deleteEntry
 }
 
 class FileStatus {
@@ -28,16 +29,20 @@ class FileStatus {
     internal let dropVisitedStatement = "DROP TABLE Visited"
     internal let createVisitedStatement = "CREATE TABLE Visited (path text primary key, last_visit integer)"
     internal let insertVisitedStatement = "INSERT OR REPLACE INTO Visited (path, last_visit) VALUES (?, datetime('now'))"
-    internal let selectVisitedStatement = "SELECT * FROM Visited WHERE path = ? AND last_visit + 1 > datetime('now')"
+    internal let selectVisitedStatement = "SELECT * FROM Visited WHERE path = ? AND last_visit + 3600 > datetime('now')"
+    internal let deleteVisitedStatement = "DELETE FROM Visited WHERE path = ?"
     internal let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
     var db: OpaquePointer?
     var statement: OpaquePointer?
+    let lock = DispatchSemaphore(value: 1)
 
     init() {
         do {
+            lock.wait()
             try run(sqlite3_open(":memory:", &db), error: SQLiteError.openDatabase)
             try run(sqlite3_exec(db, createStatusStatement, nil, nil, nil), error: SQLiteError.createTable)
             try run(sqlite3_exec(db, createVisitedStatement, nil, nil, nil), error: SQLiteError.createTable)
+            lock.signal()
         } catch {
 
         }
@@ -45,11 +50,13 @@ class FileStatus {
 
     deinit {
         do {
+            lock.wait()
             try run(sqlite3_exec(db, dropStatusStatement, nil, nil, nil), error: SQLiteError.dropTable)
             try run(sqlite3_exec(db, dropVisitedStatement, nil, nil, nil), error: SQLiteError.dropTable)
             statement = nil
             try run(sqlite3_close(db), error: SQLiteError.closeDatabase)
             db = nil
+            lock.signal()
         } catch {
 
         }
@@ -58,6 +65,7 @@ class FileStatus {
 
     func insertStatus(_ status: String, for path: String) {
         do {
+            lock.wait()
             try run(sqlite3_prepare_v2(db, insertStatusStatement, -1, &statement, nil),
                     error: SQLiteError.prepareStatement)
 
@@ -68,6 +76,7 @@ class FileStatus {
 
             try run(sqlite3_step(statement), error: SQLiteError.insertEntry)
             try run(sqlite3_finalize(statement), error: SQLiteError.finalizeStatement)
+            lock.signal()
         } catch {
 
         }
@@ -75,6 +84,7 @@ class FileStatus {
 
     func getStatus(for path: String) -> String? {
         do {
+            lock.wait()
             try run(sqlite3_prepare_v2(db, selectStatusStatement, -1, &statement, nil),
                     error: SQLiteError.prepareStatement)
             try run(sqlite3_bind_text(statement, 1, path, -1, SQLITE_TRANSIENT),
@@ -87,6 +97,7 @@ class FileStatus {
                 }
             }
             try run(sqlite3_finalize(statement), error: SQLiteError.finalizeStatement)
+            lock.signal()
 
             return results.first
         } catch {
@@ -96,6 +107,7 @@ class FileStatus {
 
     func visit(_ path: String) {
         do {
+            lock.wait()
             try run(sqlite3_prepare_v2(db, insertVisitedStatement, -1, &statement, nil),
                     error: SQLiteError.prepareStatement)
 
@@ -104,6 +116,24 @@ class FileStatus {
 
             try run(sqlite3_step(statement), error: SQLiteError.insertEntry)
             try run(sqlite3_finalize(statement), error: SQLiteError.finalizeStatement)
+            lock.signal()
+        } catch {
+
+        }
+    }
+
+    func removeVisit(_ path: String) {
+        do {
+            lock.wait()
+            try run(sqlite3_prepare_v2(db, deleteVisitedStatement, -1, &statement, nil),
+                    error: SQLiteError.prepareStatement)
+
+            try run(sqlite3_bind_text(statement, 1, path, -1, SQLITE_TRANSIENT),
+                    error: SQLiteError.bindParameter(param: "path"))
+
+            try run(sqlite3_step(statement), error: SQLiteError.deleteEntry)
+            try run(sqlite3_finalize(statement), error: SQLiteError.finalizeStatement)
+            lock.signal()
         } catch {
 
         }
@@ -112,6 +142,7 @@ class FileStatus {
     func shouldVisit(_ path: String) -> Bool {
         var visited = false
         do {
+            lock.wait()
             try run(sqlite3_prepare_v2(db, selectVisitedStatement, -1, &statement, nil),
                     error: SQLiteError.prepareStatement)
             try run(sqlite3_bind_text(statement, 1, path, -1, SQLITE_TRANSIENT),
@@ -123,6 +154,7 @@ class FileStatus {
                 }
             }
             try run(sqlite3_finalize(statement), error: SQLiteError.finalizeStatement)
+            lock.signal()
         } catch {
 
         }
@@ -132,7 +164,7 @@ class FileStatus {
     func run(_ returnVal: Int32, error: SQLiteError) throws {
         if !(returnVal == SQLITE_OK || returnVal == SQLITE_DONE) {
             let errmsg = String(cString: sqlite3_errmsg(db)!)
-            NSLog("\(error): \(errmsg)")
+            //NSLog("\(error): \(errmsg)")
             throw error
         }
     }

@@ -34,7 +34,7 @@ class FinderSync: FIFinderSync {
     ]
 
     override init() {
-        NSLog("FinderSync() launched from \(Bundle.main.bundlePath)")
+        //NSLog("FinderSync() launched from \(Bundle.main.bundlePath)")
         super.init()
 
         // Upon startup, we are not watching any directories
@@ -114,9 +114,10 @@ class FinderSync: FIFinderSync {
     override func beginObservingDirectory(at url: URL) {
         // The user is now seeing the container's contents.
         // If they see it in more than one view at a time, we're only told once.
-        NSLog("beginObservingDirectoryAtURL: \(url.path)")
+        //NSLog("beginObservingDirectoryAtURL: \(url.path)")
         let path = url.path as String
         if fileStatus.shouldVisit(path) {
+            //NSLog("should visit: \(path)")
             getSyncStatus(target: url)
             fileStatus.visit(path)
         }
@@ -132,9 +133,11 @@ class FinderSync: FIFinderSync {
         //NSLog("requestBadgeIdentifierForURL: \(url.path)")
         if let status = fileStatus.getStatus(for: url.path as String) {
             setSyncStatus(path: url.path as String, status: status)
-        } //else {
-            //getSyncStatus(target: url)
-        //}
+        } else {
+            let path = url.deletingLastPathComponent().path as String
+            //NSLog("Removing visit of \(url.path) parent")
+            fileStatus.removeVisit(path)
+        }
     }
 
     // Toolbar
