@@ -40,16 +40,15 @@ VERSIONS = {
     "current, server, nature, action_required, new",
     [
         # No version
-        ("3.1.2", "", "release", UPDATE_STATUS_UP_TO_DATE, None),
-        ("3.1.2", None, "release", UPDATE_STATUS_UP_TO_DATE, None),
+        ("3.1.2", "", "release", None, None),
+        ("3.1.2", None, "release", None, None),
         # Unexisting nature
-        ("3.1.2", "10.10", "bar", UPDATE_STATUS_UP_TO_DATE, None),
-        ("3.1.2", "10.10", "bar", UPDATE_STATUS_UP_TO_DATE, None),
+        ("3.1.2", "10.10", "bar", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         # Unexisting version
-        ("3.1.2", "0.0.0", "release", UPDATE_STATUS_UP_TO_DATE, None),
-        ("3.1.2", "foo", "release", UPDATE_STATUS_UP_TO_DATE, None),
-        ("3.1.2", "8.10-SNAPSHOT", "release", UPDATE_STATUS_UP_TO_DATE, None),
-        ("3.1.2", "10.3", "release", UPDATE_STATUS_UP_TO_DATE, None),
+        ("3.1.2", "0.0.0", "release", None, None),
+        ("3.1.2", "foo", "release", None, None),
+        ("3.1.2", "8.10-SNAPSHOT", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "3.0.1"),
+        ("3.1.2", "10.3", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         # Version is up-to-date
         ("4.0.1", "7.10-HF44", "release", UPDATE_STATUS_UP_TO_DATE, None),
         # Downgrade needed
@@ -62,20 +61,20 @@ VERSIONS = {
         ("3.1.0", "9.10", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         ("3.1.0", "9.10-HF14", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         ("3.1.0", "9.10-HF15", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "4.0.1"),
-        ("3.1.1", "10.3-SNAPSHOT", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.2"),
+        ("3.1.1", "10.3-SNAPSHOT", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         # Version from the future
         # If the server has a known working version, a downgrade is asked
-        ("42.2.2", "10.3-SNAPSHOT", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "3.1.2"),
+        ("42.2.2", "10.3-SNAPSHOT", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "3.1.3"),
         # Else, do nothing
-        ("42.2.2", "10.4-HF42", "release", UPDATE_STATUS_UP_TO_DATE, None),
+        ("42.2.2", "5.6", "release", None, None),
         # Beta
-        ("2.4.2b1", "9.2", "beta", UPDATE_STATUS_UPDATE_AVAILABLE, "2.5.0b2"),
-        ("2.5.0b1", "9.2", "beta", UPDATE_STATUS_UPDATE_AVAILABLE, "2.5.0b2"),
+        ("2.4.2b1", "9.2", "beta", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
+        ("2.5.0b1", "9.2", "beta", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
     ],
 )
 def test_get_update_status(current, server, nature, action_required, new):
     """get_update_status calls get_latest_compatible_version, 2 tests in one!"""
-    action, version = get_update_status(current, VERSIONS, nature, server)
+    action, version = get_update_status(current, VERSIONS, nature, server, True)
     assert action == action_required
     # Use str() to well compare with None
     assert str(version) == str(new)

@@ -1,4 +1,5 @@
 # coding: utf-8
+import re
 from typing import Any, Dict, Optional, Tuple
 
 from .constants import (
@@ -24,7 +25,8 @@ def get_latest_compatible_version(
     # If no server_version, then we cannot know in advance if Drive
     # will be compatible with a higher version of the server.
     # This is the case when there is no bound account.
-    if not server_ver:
+    version_regex = r"^\d+(\.\d+)+(-HF\d+|)(-SNAPSHOT|)$"
+    if not server_ver or not re.match(version_regex, server_ver, re.I):
         return "", {}
 
     # Remove HF and SNAPSHOT
@@ -34,7 +36,7 @@ def get_latest_compatible_version(
     versions = {
         version: info
         for version, info in versions.items()
-        if info.get("type", "").lower() == nature
+        if info.get("type", "").lower() in (nature, "release")
     }
 
     if not versions:
@@ -56,18 +58,16 @@ def get_latest_compatible_version(
             info.get("max_all", {}).get(base_server_ver) or info.get("max", "")
         ).upper()
 
-        if not ver_min or not ver_min.startswith(base_server_ver):
+        if any(
+            [
+                not ver_min,
+                version_lt(server_ver, ver_min),
+                ver_max and version_lt(ver_max, server_ver),
+            ]
+        ):
             continue
 
-        # Min server version is required
-        is_candidate = version_le(ver_min, server_ver)
-
-        # Max server version is optional
-        if ver_max and ver_max.startswith(base_server_ver):
-            is_candidate &= version_le(server_ver, ver_max)
-
-        if is_candidate:
-            candidates[version] = info
+        candidates[version] = info
 
     if not candidates:  # ¯\_(ツ)_/¯
         return "", {}
@@ -77,12 +77,18 @@ def get_latest_compatible_version(
 
 
 def get_update_status(
-    current_version: str, versions: Versions, nature: str, server_version: Optional[str], has_browser_login: bool
+    current_version: str,
+    versions: Versions,
+    nature: str,
+    server_version: Optional[str],
+    has_browser_login: bool,
 ) -> Tuple[str, Version]:
     """Given a Drive version, determine the definitive status of the application."""
 
     # Find the latest available version
-    latest, info = get_latest_compatible_version(versions, nature, server_version, has_browser_login)
+    latest, info = get_latest_compatible_version(
+        versions, nature, server_version, has_browser_login
+    )
 
     if not latest:
         status = None, None

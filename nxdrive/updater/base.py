@@ -147,7 +147,7 @@ class BaseUpdater(PollWorker):
         """ Download a given version to a temporary file. """
 
         name = self.release_file.format(version=version)
-        url = "/".join([self.update_site, self.nature, name])
+        url = "/".join([self.update_site, self.versions[version]["type"], name])
         path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
 
         log.info(
@@ -229,7 +229,7 @@ class BaseUpdater(PollWorker):
             versions = {
                 version: info
                 for version, info in self.versions.items()
-                if info.get("type", "").lower() == self.nature
+                if info.get("type", "").lower() in (self.nature, "release")
                 and version_lt(version, "4")
             }
             if versions:
