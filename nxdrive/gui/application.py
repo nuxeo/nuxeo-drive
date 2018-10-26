@@ -714,21 +714,24 @@ class Application(QApplication):
     @pyqtSlot()
     def _server_incompatible(self) -> None:
         version = self.manager.version
-        downgrade_version = self.manager.updater.version
+        downgrade_version = self.manager.updater.version or ""
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Warning)
         msg.setWindowIcon(QIcon(self.get_window_icon()))
         msg.setText(Translator.get("SERVER_INCOMPATIBLE", [version, downgrade_version]))
-        msg.addButton(
-            Translator.get("CONTINUE_USING", [version]), QMessageBox.RejectRole
-        )
-        downgrade = msg.addButton(
-            Translator.get("USE_OLDER_VERSION"), QMessageBox.AcceptRole
-        )
+        if downgrade_version:
+            msg.addButton(
+                Translator.get("CONTINUE_USING", [version]), QMessageBox.RejectRole
+            )
+            downgrade = msg.addButton(
+                Translator.get("USE_OLDER_VERSION"), QMessageBox.AcceptRole
+            )
+        else:
+            msg.addButton(Translator.get("CONTINUE"), QMessageBox.RejectRole)
         msg.exec_()
 
         res = msg.clickedButton()
-        if res == downgrade:
+        if downgrade_version and res == downgrade:
             self.manager.updater.update(downgrade_version)
 
     @pyqtSlot()

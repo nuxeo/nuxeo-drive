@@ -147,7 +147,7 @@ class BaseUpdater(PollWorker):
         """ Download a given version to a temporary file. """
 
         name = self.release_file.format(version=version)
-        url = "/".join([self.update_site, self.nature, name])
+        url = "/".join([self.update_site, self.versions[version]["type"], name])
         path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
 
         log.info(
@@ -210,7 +210,11 @@ class BaseUpdater(PollWorker):
                 f"Getting update status for version {self.manager.version} ({self.nature}) on server {self.server_ver}"
             )
             status, version = get_update_status(
-                self.manager.version, self.versions, self.nature, self.server_ver, has_browser_login
+                self.manager.version,
+                self.versions,
+                self.nature,
+                self.server_ver,
+                has_browser_login,
             )
         if status:
             self._set_status(status, version=version)
@@ -225,11 +229,12 @@ class BaseUpdater(PollWorker):
             versions = {
                 version: info
                 for version, info in self.versions.items()
-                if info.get("type", "").lower() == self.nature
+                if info.get("type", "").lower() in (self.nature, "release")
                 and version_lt(version, "4")
             }
-            version = max(versions.keys())
-            self._set_status(UPDATE_STATUS_DOWNGRADE_NEEDED, version)
+            if versions:
+                version = max(versions.keys())
+                self._set_status(UPDATE_STATUS_DOWNGRADE_NEEDED, version)
             self.serverIncompatible.emit()
 
     def _handle_status(self) -> None:

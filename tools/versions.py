@@ -37,19 +37,19 @@ def create(version):
 
     # We set 10.3-SNAPSHOT to allow presales to test the current dev version.
     # Same for the future 10.10 to not block updates when it will be available.
-    yml = """{!r}:
-    min: "10.10"
+    yml = """{}:
+    min: "7.10"
     min_all:
         "7.10": "7.10-HF47"
-        "8.10": "8.10-HF37"
+        "8.10": "8.10-HF38"
         "9.10": "9.10-HF20"
         "10.3": "10.3-SNAPSHOT"
-        "10.10": "10.10"
+        "10.10": "10.10-SNAPSHOT"
     type: {}
     checksum:
         algo: sha256
-        dmg: {!r}
-        exe: {!r}
+        dmg: {}
+        exe: {}
 """.format(
         version, category, checksum_dmg, checksum_exe
     )
