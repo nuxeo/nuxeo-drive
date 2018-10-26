@@ -2,6 +2,7 @@
 import json
 import os
 import stat
+import subprocess
 import sys
 from logging import getLogger
 from typing import Any, Dict, List, Optional
@@ -51,21 +52,25 @@ class DarwinIntegration(AbstractOSIntegration):
         "</dict>"
         "</plist>"
     )
+    FINDERSYNC_PATH = (
+        f"/Applications/{APP_NAME}.app/Contents/PlugIns/NuxeoFinderSync.appex"
+    )
 
     @if_frozen
     def _init(self) -> None:
         log.debug("Telling plugInKit to use the FinderSync")
-        os.system("pluginkit -e use -i {}.NuxeoFinderSync".format(BUNDLE_IDENTIFIER))
+        subprocess.call(["pluginkit", "-e", "use", "-i", BUNDLE_IDENTIFIER])
+        subprocess.call(["pluginkit", "-a", self.FINDERSYNC_PATH])
 
     @if_frozen
     def _cleanup(self) -> None:
         log.debug("Telling plugInKit to ignore the FinderSync")
-        os.system("pluginkit -e ignore -i {}.NuxeoFinderSync".format(BUNDLE_IDENTIFIER))
+        subprocess.call(["pluginkit", "-r", self.FINDERSYNC_PATH])
+        subprocess.call(["pluginkit", "-e", "ignore", "-i", BUNDLE_IDENTIFIER])
 
     def _get_agent_file(self) -> str:
         return os.path.join(
-            os.path.expanduser("~/Library/LaunchAgents"),
-            "{}.plist".format(BUNDLE_IDENTIFIER),
+            os.path.expanduser("~/Library/LaunchAgents"), f"{BUNDLE_IDENTIFIER}.plist"
         )
 
     @if_frozen
@@ -75,8 +80,7 @@ class DarwinIntegration(AbstractOSIntegration):
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
         """
         agent = os.path.join(
-            os.path.expanduser("~/Library/LaunchAgents"),
-            "{}.plist".format(BUNDLE_IDENTIFIER),
+            os.path.expanduser("~/Library/LaunchAgents"), f"{BUNDLE_IDENTIFIER}.plist"
         )
         if os.path.isfile(agent):
             return False
