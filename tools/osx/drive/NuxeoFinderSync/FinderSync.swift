@@ -95,11 +95,6 @@ class FinderSync: FIFinderSync {
                 setSyncStatus(path: path, status: status)
             }
         }
-//        if let status = notification.userInfo!["status"], let path = notification.userInfo!["path"] {
-//            //NSLog("Receiving sync status of \(path) to \(status)")
-//            fileStatus.insertStatus(status as! String, for: path as! String)
-//            setSyncStatus(path: path as! String, status: status as! String)
-//        }
     }
 
     func setSyncStatus(path: String, status: String) {
@@ -133,10 +128,6 @@ class FinderSync: FIFinderSync {
         //NSLog("requestBadgeIdentifierForURL: \(url.path)")
         if let status = fileStatus.getStatus(for: url.path as String) {
             setSyncStatus(path: url.path as String, status: status)
-        } else {
-            let path = url.deletingLastPathComponent().path as String
-            //NSLog("Removing visit of \(url.path) parent")
-            fileStatus.removeVisit(path)
         }
     }
 

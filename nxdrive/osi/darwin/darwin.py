@@ -235,7 +235,7 @@ class DarwinIntegration(AbstractOSIntegration):
                 self._send_notification(name, {"statuses": statuses})
                 log.trace(
                     f"Sending statuses to FinderSync for children of {path!r} "
-                    f"(items {i}-{i + batch_size - 1})"
+                    f"(items {i}-{i + len(states_batch) - 1})"
                 )
         except:
             log.exception("Error while trying to send status to FinderSync")
