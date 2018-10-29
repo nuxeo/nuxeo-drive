@@ -2,6 +2,7 @@
 import json
 import os
 import stat
+import subprocess
 import sys
 from logging import getLogger
 from typing import Any, Dict, List, Optional
@@ -25,7 +26,8 @@ from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME, BUNDLE_IDENTIFIER
-from ...objects import NuxeoDocumentInfo
+from ...engine.dao.sqlite import DocPair
+from ...options import Options
 from ...utils import force_decode, if_frozen, normalized_path
 
 __all__ = ("DarwinIntegration", "FinderSyncServer")
@@ -51,22 +53,24 @@ class DarwinIntegration(AbstractOSIntegration):
         "</dict>"
         "</plist>"
     )
+    FINDERSYNC_PATH = (
+        f"/Applications/{APP_NAME}.app/Contents/PlugIns/NuxeoFinderSync.appex"
+    )
 
     @if_frozen
     def _init(self) -> None:
         log.debug("Telling plugInKit to use the FinderSync")
-        os.system("pluginkit -e use -i {}.NuxeoFinderSync".format(BUNDLE_IDENTIFIER))
+        subprocess.call(["pluginkit", "-e", "use", "-i", BUNDLE_IDENTIFIER])
+        subprocess.call(["pluginkit", "-a", self.FINDERSYNC_PATH])
 
     @if_frozen
     def _cleanup(self) -> None:
         log.debug("Telling plugInKit to ignore the FinderSync")
-        os.system("pluginkit -e ignore -i {}.NuxeoFinderSync".format(BUNDLE_IDENTIFIER))
+        subprocess.call(["pluginkit", "-r", self.FINDERSYNC_PATH])
+        subprocess.call(["pluginkit", "-e", "ignore", "-i", BUNDLE_IDENTIFIER])
 
     def _get_agent_file(self) -> str:
-        return os.path.join(
-            os.path.expanduser("~/Library/LaunchAgents"),
-            "{}.plist".format(BUNDLE_IDENTIFIER),
-        )
+        return os.path.expanduser(f"~/Library/LaunchAgents/{BUNDLE_IDENTIFIER}.plist")
 
     @if_frozen
     def register_startup(self) -> bool:
@@ -74,10 +78,7 @@ class DarwinIntegration(AbstractOSIntegration):
         Register the Nuxeo Drive.app as a user Launch Agent.
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
         """
-        agent = os.path.join(
-            os.path.expanduser("~/Library/LaunchAgents"),
-            "{}.plist".format(BUNDLE_IDENTIFIER),
-        )
+        agent = self._get_agent_file()
         if os.path.isfile(agent):
             return False
 
@@ -153,7 +154,7 @@ class DarwinIntegration(AbstractOSIntegration):
                     pass
         return result
 
-    def _send_notification(self, name: str, content: Dict[str, str]) -> None:
+    def _send_notification(self, name: str, content: Dict[str, Any]) -> None:
         """
         Send a notification through the macOS notification center
         to the FinderSync app extension.
@@ -171,7 +172,7 @@ class DarwinIntegration(AbstractOSIntegration):
         :param operation: 'watch' or 'unwatch'
         :param path: path to the folder
         """
-        name = "{}.watchFolder".format(BUNDLE_IDENTIFIER)
+        name = f"{BUNDLE_IDENTIFIER}.watchFolder"
         self._send_notification(name, {"operation": operation, "path": path})
 
     @if_frozen
@@ -185,7 +186,7 @@ class DarwinIntegration(AbstractOSIntegration):
         self._set_monitoring("unwatch", folder)
 
     @if_frozen
-    def send_sync_status(self, state: NuxeoDocumentInfo, path: str) -> None:
+    def send_sync_status(self, state: DocPair, path: str) -> None:
         """
         Send the sync status of a file to the FinderSync.
 
@@ -197,28 +198,67 @@ class DarwinIntegration(AbstractOSIntegration):
             if not os.path.exists(path):
                 return
 
-            name = "{}.syncStatus".format(BUNDLE_IDENTIFIER)
-            status = "unsynced"
+            name = f"{BUNDLE_IDENTIFIER}.syncStatus"
+            status = self._formatted_status(state, path)
 
-            readonly = (os.stat(path).st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
-            if readonly:
-                status = "locked"
-            elif state:
-                if state.error_count > 0:
-                    status = "error"
-                elif state.pair_state == "conflicted":
-                    status = "conflicted"
-                elif state.local_state == "synchronized":
-                    status = "synced"
-                elif state.pair_state == "unsynchronized":
-                    status = "unsynced"
-                elif state.processor != 0:
-                    status = "syncing"
-
-            log.trace("Sending status %r for file %r to FinderSync", status, path)
-            self._send_notification(name, {"status": status, "path": path})
+            log.trace(f"Sending status to FinderSync for {path!r}: {status}")
+            self._send_notification(name, {"statuses": [status]})
         except:
             log.exception("Error while trying to send status to FinderSync")
+
+    @if_frozen
+    def send_content_sync_status(self, states: List[DocPair], path: str) -> None:
+        """
+        Send the sync status of the content of a folder to the FinderSync.
+
+        :param states: current local states of the children of the folder
+        :param path: full path of the folder
+        """
+        try:
+            path = force_decode(path)
+            if not os.path.exists(path):
+                return
+
+            name = f"{BUNDLE_IDENTIFIER}.syncStatus"
+
+            # We send the statuses of the children by batch in case
+            # the notification center doesn't allow notifications
+            # with a heavy payload.
+            # 50 seems like a good balance between payload size
+            # and number of notifications.
+            batch_size = Options.findersync_batch_size
+            for i in range(0, len(states), batch_size):
+                states_batch = states[i : i + batch_size]
+                statuses = [
+                    self._formatted_status(state, os.path.join(path, state.local_name))
+                    for state in states_batch
+                ]
+                log.trace(
+                    f"Sending statuses to FinderSync for children of {path!r} "
+                    f"(items {i}-{i + len(states_batch) - 1})"
+                )
+                self._send_notification(name, {"statuses": statuses})
+        except:
+            log.exception("Error while trying to send status to FinderSync")
+
+    def _formatted_status(self, state: DocPair, path: str) -> Dict[str, str]:
+        status = "unsynced"
+
+        readonly = (os.stat(path).st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
+        if readonly:
+            status = "locked"
+        elif state:
+            if state.error_count > 0:
+                status = "error"
+            elif state.pair_state == "conflicted":
+                status = "conflicted"
+            elif state.local_state == "synchronized":
+                status = "synced"
+            elif state.pair_state == "unsynchronized":
+                status = "unsynced"
+            elif state.processor != 0:
+                status = "syncing"
+        return {"status": status, "path": path}
 
     def register_folder_link(self, folder_path: str, name: str = None) -> None:
         favorites = self._get_favorite_list() or []
@@ -232,7 +272,7 @@ class DarwinIntegration(AbstractOSIntegration):
         if self._find_item_in_list(favorites, name):
             return
 
-        url = CFURLCreateWithString(None, "file://{}".format(quote(folder_path)), None)
+        url = CFURLCreateWithString(None, f"file://{quote(folder_path)}", None)
         if not url:
             log.warning("Could not generate valid favorite URL for: %r", folder_path)
             return

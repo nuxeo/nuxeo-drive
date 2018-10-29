@@ -87,10 +87,13 @@ class FinderSync: FIFinderSync {
 
     @objc func receiveSyncStatus(notification: NSNotification) {
         // Retrieve the operation status and the path from the notification dictionary
-        if let status = notification.userInfo!["status"], let path = notification.userInfo!["path"] {
-            //NSLog("Receiving sync status of \(path) to \(status)")
-            fileStatus.insertStatus(status as! String, for: path as! String)
-            setSyncStatus(path: path as! String, status: status as! String)
+        if let statuses = notification.userInfo!["statuses"] as! Array<Dictionary<String, String>>? {
+            for item in statuses {
+                let path = item["path"]!
+                let status = item["status"]!
+                fileStatus.insertStatus(status, for: path)
+                setSyncStatus(path: path, status: status)
+            }
         }
     }
 
@@ -107,6 +110,12 @@ class FinderSync: FIFinderSync {
         // The user is now seeing the container's contents.
         // If they see it in more than one view at a time, we're only told once.
         //NSLog("beginObservingDirectoryAtURL: \(url.path)")
+        let path = url.path as String
+        if fileStatus.shouldVisit(path) {
+            //NSLog("should visit: \(path)")
+            getSyncStatus(target: url)
+            fileStatus.visit(path)
+        }
     }
 
     override func endObservingDirectory(at url: URL) {
@@ -119,8 +128,6 @@ class FinderSync: FIFinderSync {
         //NSLog("requestBadgeIdentifierForURL: \(url.path)")
         if let status = fileStatus.getStatus(for: url.path as String) {
             setSyncStatus(path: url.path as String, status: status)
-        } else {
-            getSyncStatus(target: url)
         }
     }
 
