@@ -396,7 +396,7 @@ def if_frozen(func) -> callable:
 
 
 def safe_filename(
-    name: str, replacement: str = "-", pattern: Pattern = re.compile(r'(["|*/:<>?\\]+)')
+    name: str, replacement: str = "-", pattern: Pattern = re.compile(r'(["|*/:<>?\\])')
 ) -> str:
     """ Replace invalid character in candidate filename. """
     return re.sub(pattern, replacement, name)

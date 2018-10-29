@@ -178,7 +178,15 @@ def test_simplify_url(url, result):
 
 
 @pytest.mark.parametrize(
-    "invalid, valid", [('a/b\\c*d:e<f>g?h"i|j.doc', "a-b-c-d-e-f-g-h-i-j.doc")]
+    "invalid, valid",
+    [
+        ('a/b\\c*d:e<f>g?h"i|j.doc', "a-b-c-d-e-f-g-h-i-j.doc"),
+        ("/*@?<>", "--@---"),
+        ("/*?<>", "-----"),
+        ("/ * @ ? < >", "- - @ - - -"),
+        ("/ * ? < >", "- - - - -"),
+        ("/*  ?<>", "--  ---"),
+    ],
 )
 def test_safe_filename(invalid, valid):
     assert nxdrive.utils.safe_filename(invalid) == valid
