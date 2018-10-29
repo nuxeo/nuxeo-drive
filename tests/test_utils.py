@@ -1,4 +1,7 @@
 # coding: utf-8
+import os
+
+
 import pytest
 
 import nxdrive.utils
@@ -201,8 +204,6 @@ def test_safe_filename(invalid, valid):
     ],
 )
 def test_short_name(data, too_long):
-    import os
-
     short_name = nxdrive.utils.short_name
     force_decode = nxdrive.utils.force_decode
 
