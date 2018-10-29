@@ -736,11 +736,15 @@ class Manager(QObject):
             # Only send status if we picked the right
             # engine and if we're not targeting the root
             path = unicodedata.normalize("NFC", force_decode(path))
-            if path.startswith(engine.local_folder_bs) and not os.path.samefile(
-                path, engine.local_folder
-            ):
+
+            if path == engine.local_folder:
+                r_path = "/"
+            elif path.startswith(engine.local_folder_bs):
                 r_path = path.replace(engine.local_folder, "")
-                dao = engine._dao
-                states = dao.get_local_children(r_path)
-                self.osi.send_content_sync_status(states, path)
+            else:
                 return
+
+            dao = engine._dao
+            states = dao.get_local_children(r_path)
+            self.osi.send_content_sync_status(states, path)
+            return
