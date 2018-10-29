@@ -5,7 +5,7 @@ markdown==3.0.1
 nuxeo==2.0.4
 psutil==5.4.7
 pyaml==17.12.1
-pycryptodomex==3.6.6
+pycryptodomex==3.7.0
 pyobjc-framework-Cocoa==4.2.2; sys_platform == 'darwin'
 pyobjc-framework-LaunchServices==4.2.2; sys_platform == 'darwin'
 pypac==0.12.0
