@@ -27,6 +27,7 @@ from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME, BUNDLE_IDENTIFIER
 from ...engine.dao.sqlite import DocPair
+from ...options import Options
 from ...utils import force_decode, if_frozen, normalized_path
 
 __all__ = ("DarwinIntegration", "FinderSyncServer")
@@ -69,9 +70,7 @@ class DarwinIntegration(AbstractOSIntegration):
         subprocess.call(["pluginkit", "-e", "ignore", "-i", BUNDLE_IDENTIFIER])
 
     def _get_agent_file(self) -> str:
-        return os.path.join(
-            os.path.expanduser("~/Library/LaunchAgents"), f"{BUNDLE_IDENTIFIER}.plist"
-        )
+        return os.path.expanduser(f"~/Library/LaunchAgents/{BUNDLE_IDENTIFIER}.plist")
 
     @if_frozen
     def register_startup(self) -> bool:
@@ -79,9 +78,7 @@ class DarwinIntegration(AbstractOSIntegration):
         Register the Nuxeo Drive.app as a user Launch Agent.
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
         """
-        agent = os.path.join(
-            os.path.expanduser("~/Library/LaunchAgents"), f"{BUNDLE_IDENTIFIER}.plist"
-        )
+        agent = self._get_agent_file()
         if os.path.isfile(agent):
             return False
 
@@ -175,7 +172,7 @@ class DarwinIntegration(AbstractOSIntegration):
         :param operation: 'watch' or 'unwatch'
         :param path: path to the folder
         """
-        name = "{}.watchFolder".format(BUNDLE_IDENTIFIER)
+        name = f"{BUNDLE_IDENTIFIER}.watchFolder"
         self._send_notification(name, {"operation": operation, "path": path})
 
     @if_frozen
@@ -201,11 +198,11 @@ class DarwinIntegration(AbstractOSIntegration):
             if not os.path.exists(path):
                 return
 
-            name = "{}.syncStatus".format(BUNDLE_IDENTIFIER)
+            name = f"{BUNDLE_IDENTIFIER}.syncStatus"
             status = self._formatted_status(state, path)
 
-            self._send_notification(name, {"statuses": [status]})
             log.trace(f"Sending status to FinderSync for {path!r}: {status}")
+            self._send_notification(name, {"statuses": [status]})
         except:
             log.exception("Error while trying to send status to FinderSync")
 
@@ -222,25 +219,25 @@ class DarwinIntegration(AbstractOSIntegration):
             if not os.path.exists(path):
                 return
 
-            name = "{}.syncStatus".format(BUNDLE_IDENTIFIER)
+            name = f"{BUNDLE_IDENTIFIER}.syncStatus"
 
             # We send the statuses of the children by batch in case
             # the notification center doesn't allow notifications
             # with a heavy payload.
             # 50 seems like a good balance between payload size
             # and number of notifications.
-            batch_size = 50
+            batch_size = Options.findersync_batch_size
             for i in range(0, len(states), batch_size):
                 states_batch = states[i : i + batch_size]
                 statuses = [
                     self._formatted_status(state, os.path.join(path, state.local_name))
                     for state in states_batch
                 ]
-                self._send_notification(name, {"statuses": statuses})
                 log.trace(
                     f"Sending statuses to FinderSync for children of {path!r} "
                     f"(items {i}-{i + len(states_batch) - 1})"
                 )
+                self._send_notification(name, {"statuses": statuses})
         except:
             log.exception("Error while trying to send status to FinderSync")
 
@@ -275,7 +272,7 @@ class DarwinIntegration(AbstractOSIntegration):
         if self._find_item_in_list(favorites, name):
             return
 
-        url = CFURLCreateWithString(None, "file://{}".format(quote(folder_path)), None)
+        url = CFURLCreateWithString(None, f"file://{quote(folder_path)}", None)
         if not url:
             log.warning("Could not generate valid favorite URL for: %r", folder_path)
             return
