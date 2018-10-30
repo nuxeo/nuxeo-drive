@@ -4,6 +4,11 @@
 
 # dev
 
+- Removed `DocRemote.get_repository_names()`
+- Removed `Remote.conflicted_name()`
+
+# 4.0.0
+
 - Removed `AbstractOSIntegration.is_linux()`
 - Removed `AbstractOSIntegration.is_mac()`
 - Removed `AbstractOSIntegration.is_windows()`

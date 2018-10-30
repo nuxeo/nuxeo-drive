@@ -84,12 +84,6 @@ class RemoteBase(Remote):
             SERVER_INFO = self.client.server_info()
             nuxeo.client.NuxeoClient._server_info = SERVER_INFO
 
-    def conflicted_name(self, original_name: str) -> str:
-        """Generate a new name suitable for conflict deduplication."""
-        return self.operations.execute(
-            command="NuxeoDrive.GenerateConflictedItemName", name=original_name
-        )
-
     def get_children(self, ref: str) -> Dict[str, Any]:
         return self.operations.execute(
             command="Document.GetChildren", input_obj="doc:" + ref
@@ -446,9 +440,6 @@ class DocRemote(RemoteTest):
     def is_locked(self, ref: str) -> bool:
         data = self.fetch(ref, headers={"fetch-document": "lock"})
         return "lockCreated" in data
-
-    def get_repository_names(self):
-        return self.operations.execute(command="GetRepositories")["value"]
 
     def get_versions(self, ref: str):
         headers = {"X-NXfetch.document": "versionLabel"}
