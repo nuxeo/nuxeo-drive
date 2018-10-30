@@ -61,7 +61,7 @@ As of now, we are using the __Python 3.7__ (but it is kept compatible with Pytho
 
 History:
 
-- `2018-06-06` (v4.0.0): dropped support for Python 2.7
+- `2018-10-30` (v4.0.0): dropped support for Python 2.7
 - `2014-??-??`: dropped support for Python 2.6
 
 
