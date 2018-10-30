@@ -73,8 +73,8 @@
 - Added `Remote.get_server_configuration()`
 - Added `filtered` keyword argument `Remote.is_filtered()` with `True` as default value.
 - Added `Remote.set_proxy()`
- - Moved `Remote.conflicted_name()` to `RemoteBase` 
- - Moved `Remote.doc_to_info()` to `NuxeoDocumentInfo.from_dict()`
+- Moved `Remote.conflicted_name()` to `RemoteBase`
+- Moved `Remote.doc_to_info()` to `NuxeoDocumentInfo.from_dict()`
 - Moved `Remote.file_to_info()` to `RemoteFileInfo.from_dict()`
 - Removed `last_sync_date` argument from `Remote.get_changes()` as it is deprecated server-side.
 - Moved `Remote.get_children()` to `RemoteBase`
