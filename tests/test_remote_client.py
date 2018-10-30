@@ -367,12 +367,6 @@ class TestRemoteFileSystemClient(UnitTestCase):
         fs_item_id = FS_ITEM_ID_PREFIX + "fakeId"
         assert remote.get_fs_item(fs_item_id) is None
 
-    def test_conflicted_item_name(self):
-        remote = self.remote_1
-        new_name = remote.conflicted_name("My File.doc")
-        assert new_name.startswith("My File (" + self.user_1 + " - ")
-        assert new_name.endswith(").doc")
-
     def test_streaming_upload(self):
         remote = self.remote_1
 
@@ -496,8 +490,6 @@ class TestRemoteFileSystemClient(UnitTestCase):
         # automatically unregister sub folders to avoid synchronization
         # inconsistencies
         remote = self.remote_document_client_1
-        # Check that the list of repositories can be introspected
-        assert remote.get_repository_names() == ["default"]
 
         # By default no root is synchronized
         remote.unregister_as_root(self.workspace)

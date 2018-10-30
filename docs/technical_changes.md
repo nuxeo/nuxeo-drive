@@ -17,6 +17,7 @@
 - Removed `Application.get_cache_folder()`
 - Removed `CustomMemoryHandler.flush()`
 - Removed `DriveSystrayIcon.use_old_menu`
+- Removed `DocRemote.get_repository_names()`
 - Added `Engine.init_remote()`
 - Changed `Engine(..., remote_doc_client_factory, remote_fs_client_factory, remote_filtered_fs_client_factory` to `Engine(..., remote_cls, local_cls)`
 - Removed `Engine.get_abspath()`
@@ -68,7 +69,7 @@
 - Added `Remote.get_server_configuration()`
 - Added `filtered` keyword argument `Remote.is_filtered()` with `True` as default value.
 - Added `Remote.set_proxy()`
-- Moved `Remote.conflicted_name()` to `RemoteBase`
+- Removed `Remote.conflicted_name()`
 - Moved `Remote.doc_to_info()` to `NuxeoDocumentInfo.from_dict()`
 - Moved `Remote.file_to_info()` to `RemoteFileInfo.from_dict()`
 - Removed `last_sync_date` argument from `Remote.get_changes()` as it is deprecated server-side.
