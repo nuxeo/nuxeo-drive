@@ -113,6 +113,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "..\..\dist\ndrive\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\dist\nuxeo-drive-addons.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 
 [UninstallDelete]
