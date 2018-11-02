@@ -32,6 +32,19 @@ function add_missing_ddls {
 	}
 }
 
+function build($app_version, $script) {
+	# Build an executable
+	Write-Output ">>> [$app_version] Building $script"
+	if (-Not (Test-Path "$Env:ISCC_PATH")) {
+		Write-Output ">>> ISCC does not exist: $Env:ISCC_PATH. Aborting."
+		ExitWithCode 1
+	}
+	& $Env:ISCC_PATH\iscc /DMyAppVersion="$app_version" "$script"
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+}
+
 function build_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
@@ -44,21 +57,10 @@ function build_installer {
 
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
 	add_missing_ddls
-
 	sign "dist\ndrive\ndrive.exe"
-
 	zip_files "dist\nuxeo-drive-windows.zip" "dist\ndrive"
 
-	Write-Output ">>> [$app_version] Building the installer"
-	if (-Not (Test-Path "$Env:ISCC_PATH")) {
-		Write-Output ">>> ISCC does not exist: $Env:ISCC_PATH. Aborting."
-		ExitWithCode 1
-	}
-	& $Env:ISCC_PATH\iscc /DMyAppVersion="$app_version" "tools\windows\setup.iss"
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-
+	build "$app_version" "tools\windows\setup.iss"
 	sign "dist\nuxeo-drive-$app_version.exe"
 }
 
