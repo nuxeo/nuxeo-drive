@@ -60,6 +60,9 @@ function build_installer {
 	sign "dist\ndrive\ndrive.exe"
 	zip_files "dist\nuxeo-drive-windows.zip" "dist\ndrive"
 
+	build "$app_version" "tools\windows\setup-addons.iss"
+	sign "dist\nuxeo-drive-addons.exe"
+
 	build "$app_version" "tools\windows\setup.iss"
 	sign "dist\nuxeo-drive-$app_version.exe"
 }
