@@ -355,7 +355,7 @@ class CliHandler:
         has_command = False
 
         filtered_args = []
-        for arg in argv[1:]:
+        for arg in argv:
             if arg.startswith("nxdrive://"):
                 Options.set("protocol_url", arg, setter="cli")
                 continue

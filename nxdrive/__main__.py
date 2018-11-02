@@ -7,6 +7,11 @@ import sys
 from contextlib import suppress
 
 
+def section(header: str, content: str) -> str:
+    """Format a "section" of information."""
+    return f"{header}\n```\n{content.strip()}\n```"
+
+
 def show_critical_error() -> None:
     """ Display a "friendly" dialog box on fatal error. """
 
@@ -31,7 +36,7 @@ def show_critical_error() -> None:
     dialog.resize(600, 400)
     layout = QVBoxLayout()
     css = "font-family: monospace; font-size: 12px;"
-    details = ["Exception:"]
+    details = []
 
     with suppress(Exception):
         from nxdrive.utils import find_icon
@@ -39,22 +44,38 @@ def show_critical_error() -> None:
         dialog.setWindowIcon(QIcon(find_icon("app_icon.svg")))
 
     # Display a little message to apologize
-    text = f"""Ooops! Unfortunately, a fatal error occurred and Nuxeo Drive has stopped.
-Please share the following informations with Nuxeo support : we’ll do our best to fix it!
+    text = """Ooops! Unfortunately, a fatal error occurred and Nuxeo Drive has stopped.
+Please share the following informations with Nuxeo support: we’ll do our best to fix it!
 """
     info = QLabel(text)
     info.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
     layout.addWidget(info)
 
-    # Display the the exception
-    label_exc = QLabel("Exception:")
+    # Display CLI arguments
+    if sys.argv[1:]:
+        text = "Command line arguments:"
+        label_cli = QLabel(text)
+        label_cli.setAlignment(Qt.AlignVCenter)
+        cli_args = QTextEdit()
+        cli_args.setStyleSheet(css)
+        cli_args.setReadOnly(True)
+        args = "\n".join(arg for arg in sys.argv[1:])
+        details.append(section(text, args))
+        cli_args.setText(args)
+        cli_args.setSizeAdjustPolicy(QTextEdit.AdjustToContents)
+        layout.addWidget(label_cli)
+        layout.addWidget(cli_args)
+
+    # Display the exception
+    text = "Exception:"
+    label_exc = QLabel(text)
     label_exc.setAlignment(Qt.AlignVCenter)
     exception = QTextEdit()
     exception.setStyleSheet(css)
     exception.setReadOnly(True)
-    exc_formatted = traceback.format_exception(*sys.exc_info())
-    details += exc_formatted
-    exception.setText("".join(exc_formatted))
+    exc_formatted = "".join(traceback.format_exception(*sys.exc_info()))
+    details.append(section(text, exc_formatted))
+    exception.setText(exc_formatted)
     layout.addWidget(label_exc)
     layout.addWidget(exception)
 
@@ -66,8 +87,9 @@ Please share the following informations with Nuxeo support : we’ll do our best
         lines = Report.export_logs(-20)
         lines = b"\n".join(lines).decode(errors="replace")
 
-        details += ["Logs before the crash:", lines]
-        label_log = QLabel("Logs before the crash:")
+        text = "Logs before the crash:"
+        label_log = QLabel(text)
+        details.append(section(text, lines))
         label_log.setAlignment(Qt.AlignVCenter)
         layout.addWidget(label_log)
 
@@ -111,7 +133,7 @@ def main() -> int:
     try:
         from nxdrive.commandline import CliHandler
 
-        return CliHandler().handle(sys.argv)
+        return CliHandler().handle(sys.argv[1:])
     except:
         show_critical_error()
         return 1
