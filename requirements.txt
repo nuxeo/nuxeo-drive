@@ -3,7 +3,7 @@ distro==1.3.0; sys_platform == 'linux'
 https://github.com/GoodRx/universal-analytics-python/archive/0.2.5.zip
 markdown==3.0.1
 nuxeo==2.0.4
-psutil==5.4.7
+psutil==5.4.8
 pyaml==17.12.1
 pycryptodomex==3.6.6
 pyobjc-framework-Cocoa==4.2.2; sys_platform == 'darwin'
