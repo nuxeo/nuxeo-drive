@@ -7,7 +7,7 @@ psutil==5.4.8
 pyaml==17.12.1
 pycryptodomex==3.7.0
 pyobjc-framework-Cocoa==4.2.2; sys_platform == 'darwin'
-pyobjc-framework-LaunchServices==4.2.2; sys_platform == 'darwin'
+pyobjc-framework-LaunchServices==5.1.1; sys_platform == 'darwin'
 pypac==0.12.0
 pypiwin32==223; sys_platform == 'win32'
 # Ignore PyQt5 updates until NXDRIVE-1391 is done
