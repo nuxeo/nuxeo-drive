@@ -81,7 +81,7 @@ function check_import($import) {
 function check_vars {
 	# Check required variables
 	if (-Not ($Env:PYTHON_DRIVE_VERSION)) {
-		$Env:PYTHON_DRIVE_VERSION = '3.6.6'  # XXX_PYTHON
+		$Env:PYTHON_DRIVE_VERSION = '3.6.7'  # XXX_PYTHON
 	} elseif (-Not ($Env:WORKSPACE)) {
 		Write-Output ">>> WORKSPACE not defined. Aborting."
 		ExitWithCode 1
