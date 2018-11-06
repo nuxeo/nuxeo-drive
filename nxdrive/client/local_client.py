@@ -428,16 +428,8 @@ FolderType=Generic
         try:
             mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
         except (ValueError, OverflowError, OSError) as e:
-            log.error(
-                str(e)
-                + "file path: %s. st_mtime value: %s" % (os_path, stat_info.st_mtime)
-            )
-            if WINDOWS:
-                # TODO: NXDRIVE-1236 Remove those ugly fixes
-                # TODO: when https://bugs.python.org/issue29097 is fixed
-                mtime = datetime.utcfromtimestamp(86400)
-            else:
-                mtime = datetime.utcfromtimestamp(0)
+            log.error(f"{e} file path: {os_path}. st_mtime value: {stat_info.st_mtime}")
+            mtime = datetime.utcfromtimestamp(0)
 
         # TODO Do we need to load it everytime ?
         remote_ref = self.get_remote_id(ref)
