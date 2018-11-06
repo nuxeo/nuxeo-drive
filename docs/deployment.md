@@ -46,7 +46,7 @@ Executing the script without argument will setup.update the isolated environment
 
 ### Dependencies:
 
-- [Python 3.6.6](https://www.python.org/ftp/python/3.6.6/python-3.6.6.exe) or newer.
+- [Python 3.6.7](https://www.python.org/ftp/python/3.6.7/python-3.6.7.exe) or newer.
 - [Inno Setup 5.5.9 (u)](http://www.jrsoftware.org/download.php/is-unicode.exe) to create the installer.
 
 ### Troubleshooting
