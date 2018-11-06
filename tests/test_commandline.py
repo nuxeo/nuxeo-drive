@@ -11,9 +11,7 @@ from .common import clean_dir
 
 class FakeOSIntegration(AbstractOSIntegration):
     def get_system_configuration(self):
-        args = dict()
-        args["log_level_console"] = "SYSTEM_TEST"
-        return args
+        return {"log_level_console": "SYSTEM_TEST"}
 
 
 def getOSIntegration(manager):
@@ -72,7 +70,7 @@ delay = 3
     @Options.mock()
     def test_update_site_url(self):
         Options.nxdrive_home = tempfile.mkdtemp("config", dir=self.tmpdir)
-        argv = ["ndrive", "console", "--update-site-url", "DEBUG_TEST"]
+        argv = ["console", "--update-site-url", "DEBUG_TEST"]
         options = self.cmd.parse_cli([])
         assert options.update_site_url == Options.update_site_url
 
@@ -87,7 +85,7 @@ delay = 3
         AbstractOSIntegration.get = staticmethod(getOSIntegration)
         try:
             self.clean_ini()
-            argv = ["ndrive", "console", "--log-level-console", "WARNING"]
+            argv = ["console", "--log-level-console", "WARNING"]
             # Default value
             options = self.cmd.parse_cli([])
             assert options.log_level_console == "SYSTEM_TEST"
@@ -102,7 +100,7 @@ delay = 3
     def test_default_override(self):
         Options.nxdrive_home = tempfile.mkdtemp("config", dir=self.tmpdir)
         self.clean_ini()
-        argv = ["ndrive", "console", "--log-level-console=WARNING"]
+        argv = ["console", "--log-level-console=WARNING"]
 
         # Default value
         options = self.cmd.parse_cli([])
