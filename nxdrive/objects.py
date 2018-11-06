@@ -68,14 +68,8 @@ class RemoteFileInfo(SlotInfo):
         """Convert Automation file system item description to RemoteFileInfo"""
         folderish = fs_item["folder"]
 
-        # TODO: NXDRIVE-1236 Remove those ugly fixes
-        # TODO: when https://bugs.python.org/issue29097 is fixed
-        last_update = fs_item["lastModificationDate"] // 1000
-        last_update = max(86400, last_update)
-        last_update = datetime.fromtimestamp(last_update)
-        creation = fs_item["creationDate"] // 1000
-        creation = max(86400, creation)
-        creation = datetime.fromtimestamp(creation)
+        last_update = datetime.fromtimestamp(fs_item["lastModificationDate"] // 1000)
+        creation = datetime.fromtimestamp(fs_item["creationDate"] // 1000)
 
         last_contributor = fs_item.get("lastContributor")
 
