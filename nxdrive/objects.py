@@ -2,9 +2,11 @@
 import hashlib
 import unicodedata
 from collections import namedtuple
+from contextlib import suppress
+from dataclasses import dataclass
 from datetime import datetime
-from sqlite3 import Cursor
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional
+from sqlite3 import Row
 
 from dateutil import parser
 
@@ -13,55 +15,35 @@ Binder = namedtuple(
     "binder", ["username", "password", "token", "url", "no_check", "no_fscheck"]
 )
 
-# Document's pair state
-DocPair = Cursor
-DocPairs = List[Tuple[DocPair]]
-
 # List of filters from the database
-Filters = List[Tuple[str]]
+Filters = List[str]
 
 # Metrics
 Metrics = Dict[str, Any]
 
 
-class SlotInfo:
-    __slots__ = ()
-
-    def __init__(self, **kwargs):
-        for item in self.__slots__:
-            setattr(self, item, kwargs.get(item, None))
-
-    def __repr__(self) -> str:
-        attrs = [f"{attr}={getattr(self, attr)!r}" for attr in sorted(self.__slots__)]
-        return f"<{type(self).__name__} {', '.join(attrs)}>"
-
-    def __str__(self) -> str:
-        return repr(self)
-
-
 # Data Transfer Object for remote file info
-class RemoteFileInfo(SlotInfo):
-    __slots__ = (
-        "name",  # title of the file (not guaranteed to be locally unique)
-        "uid",  # id of the file
-        "parent_uid",  # id of the parent file
-        "path",  # abstract file system path: useful for ordering folder trees
-        "folderish",  # True is can host children
-        "last_modification_time",  # last update time
-        "creation_time",  # creation time
-        "last_contributor",  # last contributor
-        "digest",  # digest of the file
-        "digest_algorithm",  # digest algorithm of the file
-        "download_url",  # download URL of the file
-        "can_rename",  # True is can rename
-        "can_delete",  # True is can delete
-        "can_update",  # True is can update content
-        "can_create_child",  # True is can create child
-        "lock_owner",  # lock owner
-        "lock_created",  # lock creation time
-        "can_scroll_descendants"  # True if the API to scroll through
-        # the descendants can be used
-    )
+@dataclass
+class RemoteFileInfo:
+    name: str  # title of the file (not guaranteed to be locally unique)
+    uid: str  # id of the file
+    parent_uid: str  # id of the parent file
+    path: str  # abstract file system path: useful for ordering folder trees
+    folderish: bool  # True is can host children
+    last_modification_time: datetime  # last update time
+    creation_time: datetime  # creation time
+    last_contributor: str  # last contributor
+    digest: Optional[str]  # digest of the file
+    digest_algorithm: Optional[str]  # digest algorithm of the file
+    download_url: str  # download URL of the file
+    can_rename: bool  # True is can rename
+    can_delete: bool  # True is can delete
+    can_update: bool  # True is can update content
+    can_create_child: bool  # True is can create child
+    lock_owner: Optional[str]  # lock owner
+    lock_created: Optional[datetime]  # lock creation time
+    can_scroll_descendants: bool  # True if the API to scroll through
+    # the descendants can be used
 
     @staticmethod
     def from_dict(fs_item: Dict[str, Any]) -> "RemoteFileInfo":
@@ -71,7 +53,7 @@ class RemoteFileInfo(SlotInfo):
         last_update = datetime.fromtimestamp(fs_item["lastModificationDate"] // 1000)
         creation = datetime.fromtimestamp(fs_item["creationDate"] // 1000)
 
-        last_contributor = fs_item.get("lastContributor")
+        last_contributor = fs_item.get("lastContributor", "")
 
         if folderish:
             digest = None
@@ -106,52 +88,51 @@ class RemoteFileInfo(SlotInfo):
         if name:
             name = unicodedata.normalize("NFC", name)
 
-        return RemoteFileInfo(
-            name=name,
-            uid=fs_item["id"],
-            parent_uid=fs_item["parentId"],
-            path=fs_item["path"],
-            folderish=folderish,
-            last_modification_time=last_update,
-            creation_time=creation,
-            last_contributor=last_contributor,
-            digest=digest,
-            digest_algorithm=digest_algorithm,
-            download_url=download_url,
-            can_rename=fs_item["canRename"],
-            can_delete=fs_item["canDelete"],
-            can_update=can_update,
-            can_create_child=can_create_child,
-            lock_owner=lock_owner,
-            lock_created=lock_created,
-            can_scroll_descendants=can_scroll_descendants,
+        return RemoteFileInfo(  # type: ignore
+            name,
+            fs_item["id"],
+            fs_item["parentId"],
+            fs_item["path"],
+            folderish,
+            last_update,
+            creation,
+            last_contributor,
+            digest,
+            digest_algorithm,
+            download_url,
+            fs_item["canRename"],
+            fs_item["canDelete"],
+            can_update,
+            can_create_child,
+            lock_owner,
+            lock_created,
+            can_scroll_descendants,
         )
 
 
 # Data Transfer Object for doc info on the Remote Nuxeo repository
-class NuxeoDocumentInfo(SlotInfo):
-    __slots__ = (
-        "root",  # ref of the document that serves as sync root
-        "name",  # title of the document (not guaranteed to be locally unique)
-        "uid",  # ref of the document
-        "parent_uid",  # ref of the parent document
-        "path",  # remote path (useful for ordering)
-        "folderish",  # True is can host child documents
-        "last_modification_time",  # last update time
-        "last_contributor",  # last contributor
-        "digest_algorithm",  # digest algorithm of the document's blob
-        "digest",  # digest of the document's blob
-        "repository",  # server repository name
-        "doc_type",  # Nuxeo document type
-        "version",  # Nuxeo version
-        "state",  # Nuxeo lifecycle state
-        "is_trashed",  # Nuxeo trashed status
-        "has_blob",  # If this doc has blob
-        "filename",  # Filename of document
-        "lock_owner",  # lock owner
-        "lock_created",  # lock creation time
-        "permissions",  # permissions
-    )
+@dataclass
+class NuxeoDocumentInfo:
+    root: str  # ref of the document that serves as sync root
+    name: str  # title of the document (not guaranteed to be locally unique)
+    uid: str  # ref of the document
+    parent_uid: str  # ref of the parent document
+    path: str  # remote path (useful for ordering)
+    folderish: bool  # True is can host child documents
+    last_modification_time: datetime  # last update time
+    last_contributor: str  # last contributor
+    digest_algorithm: Optional[str]  # digest algorithm of the document's blob
+    digest: Optional[str]  # digest of the document's blob
+    repository: str  # server repository name
+    doc_type: str  # Nuxeo document type
+    version: Optional[str]  # Nuxeo version
+    state: str  # Nuxeo lifecycle state
+    is_trashed: bool  # Nuxeo trashed status
+    has_blob: bool  # If this doc has blob
+    filename: str  # Filename of document
+    lock_owner: str  # lock owner
+    lock_created: datetime  # lock creation time
+    permissions: List[str]  # permissions
 
     @staticmethod
     def from_dict(doc: Dict[str, Any], parent_uid: str = None) -> "NuxeoDocumentInfo":
@@ -220,33 +201,108 @@ class NuxeoDocumentInfo(SlotInfo):
         # XXX: we need another roundtrip just to fetch the parent uid...
 
         # Normalize using NFC to make the tests more intuitive
+        version = None
         if "uid:major_version" in props and "uid:minor_version" in props:
             version = (
                 str(props["uid:major_version"]) + "." + str(props["uid:minor_version"])
             )
-        else:
-            version = None
-        if name is not None:
+        if name:
             name = unicodedata.normalize("NFC", name)
-        return NuxeoDocumentInfo(
-            root=doc["root"],
-            name=name,
-            uid=doc["uid"],
-            parent_uid=parent_uid,
-            path=doc["path"],
-            folderish=folderish,
-            last_modification_time=last_update,
-            last_contributor=props["dc:lastContributor"],
-            digest_algorithm=digest_algorithm,
-            digest=digest,
-            repository=doc["repository"],
-            doc_type=doc["type"],
-            version=version,
-            state=doc["state"],
-            is_trashed=is_trashed,
-            has_blob=has_blob,
-            filename=filename,
-            lock_owner=lock_owner,
-            lock_created=lock_created,
-            permissions=permissions,
+        return NuxeoDocumentInfo(  # type: ignore
+            doc["root"],
+            name,
+            doc["uid"],
+            parent_uid,
+            doc["path"],
+            folderish,
+            last_update,
+            props["dc:lastContributor"],
+            digest_algorithm,
+            digest,
+            doc["repository"],
+            doc["type"],
+            version,
+            doc["state"],
+            is_trashed,
+            has_blob,
+            filename,
+            lock_owner,
+            lock_created,
+            permissions,
         )
+
+
+class DocPair(Row):
+
+    id: int
+    last_local_updated: str
+    last_remote_updated: str
+    local_digest: Optional[str]
+    remote_digest: str
+    local_path: str
+    remote_ref: str
+    local_parent_path: str
+    remote_parent_ref: str
+    remote_parent_path: str
+    local_name: str
+    remote_name: str
+    size: int
+    folderish: bool
+    local_state: str
+    remote_state: str
+    pair_state: str
+    remote_can_create_child: bool
+    remote_can_delete: bool
+    remote_can_rename: bool
+    remote_can_update: bool
+    last_remote_modifier: str
+    last_sync_date: str
+    error_count: int
+    last_sync_error_date: str
+    last_error: Optional[str]
+    last_error_details: str
+    error_next_try: int
+    version: int
+    processor: int
+    last_transfer: str
+    creation_date: str
+
+    def __repr__(self) -> str:
+        return (
+            f"<{type(self).__name__}[{self.id!r}]"
+            f" local_path={self.local_path!r},"
+            f" remote_ref={self.remote_ref!r},"
+            f" local_state={self.local_state!r},"
+            f" remote_state={self.remote_state!r},"
+            f" pair_state={self.pair_state!r},"
+            f" filter_path={self.path!r}"
+            ">"
+        )
+
+    def __getattr__(self, name: str) -> Optional[str]:
+        with suppress(IndexError):
+            return self[name]
+
+    def is_readonly(self) -> bool:
+        if self.folderish:
+            return self.remote_can_create_child == 0
+        return (
+            self.remote_can_delete & self.remote_can_rename & self.remote_can_update
+        ) == 0
+
+    def update_state(self, local_state: str = None, remote_state: str = None) -> None:
+        if local_state is not None:
+            self.local_state = local_state
+        if remote_state is not None:
+            self.remote_state = remote_state
+
+
+DocPairs = List[DocPair]
+
+
+@dataclass
+class EngineDef(Row):
+    local_folder: str
+    engine: str
+    uid: str
+    name: str

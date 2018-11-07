@@ -7,7 +7,7 @@ from contextlib import suppress
 from logging import getLogger
 from threading import Lock
 from time import sleep
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal
 from nuxeo.exceptions import CorruptedFile, HTTPError
@@ -15,6 +15,7 @@ from requests import ConnectionError
 
 from .activity import Action
 from .workers import EngineWorker
+from ..client.local_client import FileInfo
 from ..constants import (
     DOWNLOAD_TMP_FILE_PREFIX,
     DOWNLOAD_TMP_FILE_SUFFIX,
@@ -30,7 +31,7 @@ from ..exceptions import (
     ThreadInterrupt,
     UnknownDigest,
 )
-from ..objects import DocPair, NuxeoDocumentInfo, RemoteFileInfo
+from ..objects import DocPair, RemoteFileInfo
 from ..utils import (
     current_milli_time,
     is_generated_tmp_file,
@@ -38,6 +39,9 @@ from ..utils import (
     safe_filename,
     unlock_path,
 )
+
+if TYPE_CHECKING:
+    from .engine import Engine  # noqa
 
 __all__ = ("Processor",)
 
@@ -47,13 +51,14 @@ log = getLogger(__name__)
 class Processor(EngineWorker):
     pairSync = pyqtSignal(object)
     path_locker = Lock()
-    soft_locks = dict()
-    readonly_locks = dict()
+    soft_locks: Dict[str, Dict[str, bool]] = dict()
+    readonly_locks: Dict[str, Dict[str, List[int]]] = dict()
     readonly_locker = Lock()
+
+    _current_doc_pair: Optional[DocPair] = None
 
     def __init__(self, engine: "Engine", item_getter: Callable, **kwargs: Any) -> None:
         super().__init__(engine, engine.get_dao(), **kwargs)
-        self._current_doc_pair = None
         self._get_item = item_getter
         self.engine = engine
         self.local = self.engine.local
@@ -91,21 +96,13 @@ class Processor(EngineWorker):
                 return
 
             Processor.readonly_locks[self.engine.uid][path][0] -= 1
-            log.trace(
-                "Readonly lock: update lock count on %r to %d",
-                path,
-                Processor.readonly_locks[self.engine.uid][path][0],
-            )
+            idx, lock = Processor.readonly_locks[self.engine.uid][path]
 
-            if Processor.readonly_locks[self.engine.uid][path][0] <= 0:
-                self.local.lock_ref(
-                    path, Processor.readonly_locks[self.engine.uid][path][1]
-                )
-                log.trace(
-                    "Readonly lock: relocked %r with %d",
-                    path,
-                    Processor.readonly_locks[self.engine.uid][path][1],
-                )
+            log.trace(f"Readonly lock: update lock count on {path!r} to {idx}")
+
+            if idx <= 0:
+                self.local.lock_ref(path, lock)
+                log.trace(f"Readonly lock: relocked {path!r} with {lock}")
                 del Processor.readonly_locks[self.engine.uid][path]
 
     def _lock_soft_path(self, path: str) -> str:
@@ -120,11 +117,11 @@ class Processor(EngineWorker):
                 Processor.soft_locks[self.engine.uid][path] = True
                 return path
 
-    def get_current_pair(self) -> NuxeoDocumentInfo:
+    def get_current_pair(self) -> Optional[DocPair]:
         return self._current_doc_pair
 
     @staticmethod
-    def check_pair_state(doc_pair: NuxeoDocumentInfo) -> bool:
+    def check_pair_state(doc_pair: DocPair) -> bool:
         """ Eliminate unprocessable states. """
 
         if any(
@@ -144,7 +141,7 @@ class Processor(EngineWorker):
                 break
 
             try:
-                doc_pair = self._dao.acquire_state(self._thread_id, item.id)
+                doc_pair = self._dao.acquire_state(self.get_thread_id(), item.id)
             except sqlite3.OperationalError:
                 state = self._dao.get_state_from_id(item.id)
                 if state:
@@ -197,18 +194,15 @@ class Processor(EngineWorker):
                         finder_info = self.local.get_remote_id(
                             doc_pair.local_path, "com.apple.FinderInfo"
                         )
-                        if finder_info is not None and "brokMACS" in finder_info:
-                            log.trace("Skip as pair is in use by Finder: %r", doc_pair)
+                        if "brokMACS" in finder_info:
+                            log.trace(f"Skip as pair is in use by Finder: {doc_pair!r}")
                             self._postpone_pair(
                                 doc_pair, "Finder using file", interval=3
                             )
                             continue
 
                 # TODO Update as the server dont take hash to avoid conflict yet
-                if (
-                    doc_pair.pair_state.startswith("locally")
-                    and doc_pair.remote_ref is not None
-                ):
+                if doc_pair.pair_state.startswith("locally") and doc_pair.remote_ref:
                     try:
                         remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
                         if (
@@ -227,11 +221,12 @@ class Processor(EngineWorker):
                         if doc_pair.pair_state == "conflicted":
                             continue
 
-                        doc_pair = self._dao.get_state_from_id(doc_pair.id)
-                        if not doc_pair or not self.check_pair_state(doc_pair):
+                        refreshed = self._dao.get_state_from_id(doc_pair.id)
+                        if not refreshed or not self.check_pair_state(refreshed):
                             continue
+                        doc_pair = refreshed or doc_pair
                     except NotFound:
-                        doc_pair.remote_ref = None
+                        doc_pair.remote_ref = ""
 
                 # NXDRIVE-842: parent is in disabled duplication error
                 parent_pair = self._get_normal_state_from_remote_ref(
@@ -385,13 +380,12 @@ class Processor(EngineWorker):
                             doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
                         )
                         self.engine.fileDeletionErrorTooLong.emit(doc_pair)
-                    elif getattr(exc, "trash_issue", False):
+                    elif hasattr(exc, "trash_issue"):
                         """
                         Special value to handle trash issues from filters on
                         Windows when there is one or more files opened by
                         another software blocking any action.
                         """
-                        doc_pair.trash_issue = True
                         self.engine.errorOpenedFile.emit(doc_pair)
                         self._postpone_pair(doc_pair, "Trashing not possible")
                     else:
@@ -410,11 +404,11 @@ class Processor(EngineWorker):
             finally:
                 if soft_lock:
                     self._unlock_soft_path(soft_lock)
-                self._dao.release_state(self._thread_id)
+                self._dao.release_state(self.get_thread_id())
             self._interact()
 
     def _handle_pair_handler_exception(
-        self, doc_pair: NuxeoDocumentInfo, handler_name: str, e: Exception
+        self, doc_pair: DocPair, handler_name: str, e: Exception
     ) -> None:
         if isinstance(e, OSError) and e.errno == 28:
             self.engine.noSpaceLeftOnDevice.emit()
@@ -422,7 +416,7 @@ class Processor(EngineWorker):
         log.exception("Unknown error")
         self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
 
-    def _synchronize_conflicted(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _synchronize_conflicted(self, doc_pair: DocPair) -> None:
         if doc_pair.local_state == "moved" and doc_pair.remote_state in (
             "moved",
             "unknown",
@@ -449,23 +443,23 @@ class Processor(EngineWorker):
             if duration <= 0:
                 return
             speed = (action.size / duration) * 1000
-            log.trace("Transfer speed %d ko/s", speed / 1024)
+            log.trace(f"Transfer speed {speed / 1024} ko/s")
             self._current_metrics["speed"] = speed
 
     def _synchronize_if_not_remotely_dirty(
-        self, doc_pair: NuxeoDocumentInfo, remote_info: NuxeoDocumentInfo = None
+        self, doc_pair: DocPair, remote_info: RemoteFileInfo = None
     ) -> None:
         if remote_info is not None and (
             remote_info.name != doc_pair.local_name
             or remote_info.digest != doc_pair.local_digest
         ):
-            doc_pair = self._dao.get_state_from_local(doc_pair.local_path)
-            log.debug(
-                "Forcing remotely_modified for pair=%r with info=%r",
-                doc_pair,
-                remote_info,
-            )
-            self._synchronize_remotely_modified(doc_pair)
+            modified = self._dao.get_state_from_local(doc_pair.local_path)
+            if modified:
+                log.debug(
+                    f"Forcing remotely_modified for pair={modified!r} "
+                    f"with info={remote_info!r}"
+                )
+                self._synchronize_remotely_modified(modified)
             return
 
         # Force computation of local digest to catch local modifications
@@ -488,7 +482,7 @@ class Processor(EngineWorker):
 
         self._dao.synchronize_state(doc_pair, dynamic_states=dynamic_states)
 
-    def _synchronize_locally_modified(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _synchronize_locally_modified(self, doc_pair: DocPair) -> None:
         fs_item_info = None
         if doc_pair.local_digest == UNACCESSIBLE_HASH:
             # Try to update
@@ -554,12 +548,12 @@ class Processor(EngineWorker):
             self._dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
         self._synchronize_if_not_remotely_dirty(doc_pair, remote_info=fs_item_info)
 
-    def _get_normal_state_from_remote_ref(self, ref: str) -> Optional[RemoteFileInfo]:
+    def _get_normal_state_from_remote_ref(self, ref: str) -> Optional[DocPair]:
         # TODO Select the only states that is not a collection
         return self._dao.get_normal_state_from_remote(ref)
 
     def _postpone_pair(
-        self, doc_pair: NuxeoDocumentInfo, reason: str = "", interval: int = None
+        self, doc_pair: DocPair, reason: str = "", interval: int = None
     ) -> None:
         """ Wait 60 sec for it. """
 
@@ -569,12 +563,12 @@ class Processor(EngineWorker):
             doc_pair, exception=None, interval=interval
         )
 
-    def _synchronize_locally_resolved(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _synchronize_locally_resolved(self, doc_pair: DocPair) -> None:
         """ NXDRIVE-766: processes a locally resolved conflict. """
         self._synchronize_locally_created(doc_pair, overwrite=True)
 
     def _synchronize_locally_created(
-        self, doc_pair: NuxeoDocumentInfo, overwrite: bool = False
+        self, doc_pair: DocPair, overwrite: bool = False
     ) -> None:
         """
         :param bool overwrite: Allows to overwrite an existing document
@@ -605,10 +599,13 @@ class Processor(EngineWorker):
             # Try to get it from xattr
             log.trace("Fallback to xattr")
             if self.local.exists(doc_pair.local_parent_path):
-                parent_ref = self.local.get_remote_id(doc_pair.local_parent_path)
-                parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
+                ref = self.local.get_remote_id(doc_pair.local_parent_path)
+                if ref:
+                    parent_pair = self._get_normal_state_from_remote_ref(ref)
+                else:
+                    parent_pair = None
 
-        if parent_pair is None or parent_pair.remote_ref is None:
+        if parent_pair is None or not parent_pair.remote_ref:
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
             if parent_pair is not None and parent_pair.pair_state == "unsynchronized":
@@ -636,12 +633,12 @@ class Processor(EngineWorker):
                     doc_pair.folderish
                 ]
                 getattr(self.local, func)(doc_pair.local_path)
-                remote_ref = None
+                remote_ref = ""
 
-        if remote_ref:
+        if remote_ref and info:
             try:
-                if info.is_trashed:
-                    log.debug("Untrash from the client: %r", doc_pair)
+                if uid and info.is_trashed:
+                    log.debug(f"Untrash from the client: {doc_pair!r}")
                     self.remote.undelete(uid)
                     remote_parent_path = (
                         parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
@@ -664,8 +661,9 @@ class Processor(EngineWorker):
                         versioned=False,
                     )
                     # Handle document modification - update the doc_pair
-                    doc_pair = self._dao.get_state_from_id(doc_pair.id)
-                    self._synchronize_locally_modified(doc_pair)
+                    refreshed = self._dao.get_state_from_id(doc_pair.id)
+                    if refreshed:
+                        self._synchronize_locally_modified(refreshed)
                     return
 
                 fs_item_info = self.remote.get_fs_info(remote_ref)
@@ -675,7 +673,7 @@ class Processor(EngineWorker):
                 )
                 # Document exists on the server
                 if (
-                    parent_pair.remote_ref is not None
+                    parent_pair.remote_ref
                     and parent_pair.remote_ref == fs_item_info.parent_uid
                     and self.local.is_equal_digests(
                         doc_pair.local_digest, fs_item_info.digest, doc_pair.local_path
@@ -731,20 +729,20 @@ class Processor(EngineWorker):
                     f"Creating remote document {name!r} "
                     f"in folder {parent_pair.remote_name!r}"
                 )
-                info = self.local.get_info(doc_pair.local_path)
-                if info.size != doc_pair.size:
+                local_info = self.local.get_info(doc_pair.local_path)
+                if local_info.size != doc_pair.size:
                     # Size has changed ( copy must still be running )
                     doc_pair.local_digest = UNACCESSIBLE_HASH
                     self._dao.update_local_state(
-                        doc_pair, info, versioned=False, queue=False
+                        doc_pair, local_info, versioned=False, queue=False
                     )
                     self._postpone_pair(doc_pair, "Unaccessible hash")
                     return
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
-                    doc_pair.local_digest = info.get_digest()
-                    log.trace("Creation of postponed local file: %r", doc_pair)
+                    doc_pair.local_digest = local_info.get_digest()
+                    log.trace(f"Creation of postponed local file: {doc_pair!r}")
                     self._dao.update_local_state(
-                        doc_pair, info, versioned=False, queue=False
+                        doc_pair, local_info, versioned=False, queue=False
                     )
                     if doc_pair.local_digest == UNACCESSIBLE_HASH:
                         self._postpone_pair(doc_pair, "Unaccessible hash")
@@ -780,7 +778,7 @@ class Processor(EngineWorker):
             except NotFound:
                 new_pair = self._dao.get_state_from_id(doc_pair.id)
                 # File has been moved during creation
-                if new_pair.local_path != doc_pair.local_path:
+                if new_pair and new_pair.local_path != doc_pair.local_path:
                     self.local.set_remote_id(new_pair.local_path, remote_ref)
                     self._synchronize_locally_moved(new_pair, update=False)
                     return
@@ -804,7 +802,7 @@ class Processor(EngineWorker):
                 )
                 self._handle_unsynchronized(doc_pair)
 
-    def _synchronize_locally_deleted(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _synchronize_locally_deleted(self, doc_pair: DocPair) -> None:
         if not doc_pair.remote_ref:
             self._dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
@@ -839,19 +837,18 @@ class Processor(EngineWorker):
                 self.engine.deleteReadonly.emit(doc_pair.local_name)
         self._search_for_dedup(doc_pair)
 
-    def _synchronize_locally_moved_remotely_modified(
-        self, doc_pair: NuxeoDocumentInfo
-    ) -> None:
+    def _synchronize_locally_moved_remotely_modified(self, doc_pair: DocPair) -> None:
         self._synchronize_locally_moved(doc_pair, update=False)
         refreshed_pair = self._dao.get_state_from_id(doc_pair.id)
-        self._synchronize_remotely_modified(refreshed_pair)
+        if refreshed_pair:
+            self._synchronize_remotely_modified(refreshed_pair)
 
-    def _synchronize_locally_moved_created(self, doc_pair: NuxeoDocumentInfo) -> None:
-        doc_pair.remote_ref = None
+    def _synchronize_locally_moved_created(self, doc_pair: DocPair) -> None:
+        doc_pair.remote_ref = ""
         self._synchronize_locally_created(doc_pair)
 
     def _synchronize_locally_moved(
-        self, doc_pair: NuxeoDocumentInfo, update: bool = True
+        self, doc_pair: DocPair, update: bool = True
     ) -> None:
         """
         A file has been moved locally, and an error occurs when tried to
@@ -877,9 +874,9 @@ class Processor(EngineWorker):
                 return
 
         parent_ref = self.local.get_remote_id(doc_pair.local_parent_path)
-        if parent_ref is None:
+        if not parent_ref:
             parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
-            parent_ref = parent_pair.remote_ref
+            parent_ref = parent_pair.remote_ref if parent_pair else ""
         else:
             parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
 
@@ -920,7 +917,7 @@ class Processor(EngineWorker):
             else:
                 self._synchronize_locally_modified(doc_pair)
 
-    def _synchronize_deleted_unknown(self, doc_pair: NuxeoDocumentInfo, *_) -> None:
+    def _synchronize_deleted_unknown(self, doc_pair: DocPair, *_) -> None:
         """
         Somehow a pair can get to an inconsistent state:
         <local_state='deleted',remote_state='unknown',pair_state='unknown'>
@@ -947,7 +944,7 @@ class Processor(EngineWorker):
             ),
         )
 
-    def _download_content(self, doc_pair: NuxeoDocumentInfo, file_path: str) -> str:
+    def _download_content(self, doc_pair: DocPair, file_path: str) -> str:
         # Check if the file is already on the HD
         pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
         if pair:
@@ -965,7 +962,7 @@ class Processor(EngineWorker):
         self._update_speed_metrics()
         return tmp_file
 
-    def _update_remotely(self, doc_pair: NuxeoDocumentInfo, is_renaming: bool) -> None:
+    def _update_remotely(self, doc_pair: DocPair, is_renaming: bool) -> None:
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os.path.join(
@@ -974,8 +971,8 @@ class Processor(EngineWorker):
             log.debug(f"Replacing local file {os_path!r} by {new_os_path!r}")
         else:
             new_os_path = os_path
-        log.debug("Updating content of local file %r", os_path)
-        self.tmp_file = self._download_content(doc_pair, new_os_path)
+        log.debug(f"Updating content of local file {os_path!r}")
+        self.tmp_file: Optional[str] = self._download_content(doc_pair, new_os_path)
 
         # Delete original file and rename tmp file
         remote_id = self.local.get_remote_id(doc_pair.local_path)
@@ -994,7 +991,7 @@ class Processor(EngineWorker):
         self._dao.update_last_transfer(doc_pair.id, "download")
         self._refresh_local_state(doc_pair, updated_info)
 
-    def _search_for_dedup(self, doc_pair: NuxeoDocumentInfo, name: str = None) -> None:
+    def _search_for_dedup(self, doc_pair: DocPair, name: str = None) -> None:
         if name is None:
             name = doc_pair.local_name
         # Auto resolve duplicate
@@ -1006,7 +1003,7 @@ class Processor(EngineWorker):
             log.debug(f"Dupe pair found {dupe_pair!r}")
             self._dao.reset_error(dupe_pair)
 
-    def _synchronize_remotely_modified(self, doc_pair: RemoteFileInfo) -> None:
+    def _synchronize_remotely_modified(self, doc_pair: DocPair) -> None:
         self.tmp_file = None
         is_renaming = safe_filename(doc_pair.remote_name) != doc_pair.local_name
         try:
@@ -1106,7 +1103,7 @@ class Processor(EngineWorker):
         with suppress(OSError):
             os.remove(self.tmp_file)
 
-    def _synchronize_remotely_created(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _synchronize_remotely_created(self, doc_pair: DocPair) -> None:
         name = doc_pair.remote_name
         # Find the parent pair to find the path of the local folder to
         # create the document into
@@ -1154,7 +1151,7 @@ class Processor(EngineWorker):
         else:
             path = doc_pair.local_path
             remote_ref = self.local.get_remote_id(doc_pair.local_path)
-            if remote_ref is not None and remote_ref == doc_pair.remote_ref:
+            if remote_ref and remote_ref == doc_pair.remote_ref:
                 log.debug(
                     f"remote_ref (xattr) = {remote_ref}, "
                     f"doc_pair.remote_ref = {doc_pair.remote_ref} "
@@ -1164,7 +1161,7 @@ class Processor(EngineWorker):
                 # TO_REVIEW May need to overwrite
                 self._dao.set_conflict_state(doc_pair)
                 return
-            elif remote_ref is not None:
+            elif remote_ref:
                 # Case of several documents with same name
                 # or case insensitive hard drive
                 path = self._create_remotely(doc_pair, parent_pair, name)
@@ -1183,6 +1180,8 @@ class Processor(EngineWorker):
             )
             # Need to check if this is a remote or local change
             new_pair = self._dao.get_state_from_id(doc_pair.id)
+            if not new_pair:
+                return
             # Only local 'moved' change that can happen on
             # a pair with processor
             if new_pair.local_state == "moved":
@@ -1194,7 +1193,7 @@ class Processor(EngineWorker):
                     self._synchronize_remotely_modified(new_pair)
 
     def _create_remotely(
-        self, doc_pair: NuxeoDocumentInfo, parent_pair: NuxeoDocumentInfo, name: str
+        self, doc_pair: DocPair, parent_pair: DocPair, name: str
     ) -> str:
         # TODO Shared this locking system / Can have concurrent lock
         local_parent_path = parent_pair.local_path
@@ -1238,7 +1237,7 @@ class Processor(EngineWorker):
         finally:
             self._lock_readonly(local_parent_path)
 
-    def _synchronize_remotely_deleted(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _synchronize_remotely_deleted(self, doc_pair: DocPair) -> None:
         try:
             if doc_pair.local_state != "deleted":
                 log.debug(
@@ -1265,7 +1264,7 @@ class Processor(EngineWorker):
             if doc_pair.folderish:
                 self.engine.release_folder_lock()
 
-    def _synchronize_unknown_deleted(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _synchronize_unknown_deleted(self, doc_pair: DocPair) -> None:
         # Somehow a pair can get to an inconsistent state:
         # <local_state='unknown', remote_state='deleted',
         # pair_state='unknown'>
@@ -1292,32 +1291,33 @@ class Processor(EngineWorker):
             )
 
     def _refresh_remote(
-        self, doc_pair: NuxeoDocumentInfo, remote_info: NuxeoDocumentInfo = None
+        self, doc_pair: DocPair, remote_info: RemoteFileInfo = None
     ) -> None:
         if remote_info is None:
             remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
-        self._dao.update_remote_state(
-            doc_pair, remote_info, versioned=False, queue=False
-        )
+        if remote_info:
+            self._dao.update_remote_state(
+                doc_pair, remote_info, versioned=False, queue=False
+            )
 
-    def _refresh_local_state(
-        self, doc_pair: NuxeoDocumentInfo, local_info: NuxeoDocumentInfo
-    ) -> None:
+    def _refresh_local_state(self, doc_pair: DocPair, local_info: FileInfo) -> None:
         if doc_pair.local_digest is None and not doc_pair.folderish:
             doc_pair.local_digest = local_info.get_digest()
         self._dao.update_local_state(doc_pair, local_info, versioned=False, queue=False)
         doc_pair.local_path = local_info.path
         doc_pair.local_name = os.path.basename(local_info.path)
-        doc_pair.last_local_updated = local_info.last_modification_time
+        doc_pair.last_local_updated = local_info.last_modification_time.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
-    def _is_remote_move(
-        self, doc_pair: NuxeoDocumentInfo
-    ) -> Tuple[bool, Optional[DocPair]]:
+    def _is_remote_move(self, doc_pair: DocPair) -> Tuple[bool, Optional[DocPair]]:
         local_parent = self._dao.get_state_from_local(doc_pair.local_parent_path)
         remote_parent = self._get_normal_state_from_remote_ref(
             doc_pair.remote_parent_ref
         )
-        state = local_parent and remote_parent and local_parent.id != remote_parent.id
+        state = bool(
+            local_parent and remote_parent and local_parent.id != remote_parent.id
+        )
         log.debug(
             f"is_remote_move={state!r}: name={doc_pair.remote_name!r}, "
             f"local={local_parent!r}, remote={remote_parent!r}"
@@ -1325,14 +1325,14 @@ class Processor(EngineWorker):
         return state, remote_parent
 
     def _handle_failed_remote_move(
-        self, source_pair: NuxeoDocumentInfo, target_pair: NuxeoDocumentInfo
+        self, source_pair: DocPair, target_pair: DocPair
     ) -> None:
         pass
 
     def _handle_failed_remote_rename(
-        self, source_pair: NuxeoDocumentInfo, target_pair: NuxeoDocumentInfo
+        self, source_pair: DocPair, target_pair: DocPair
     ) -> bool:
-        """ An error occurs return False. """
+        """  Return False if an error occurs. """
 
         if not self.engine.local_rollback(force=WINDOWS):
             return False
@@ -1350,12 +1350,12 @@ class Processor(EngineWorker):
                     # Remove "new" created tree
                     pairs = self._dao.get_states_from_partial_local(
                         target_pair.local_path
-                    ).all()
+                    )
                     for pair in pairs:
                         self._dao.remove_state(pair)
                     pairs = self._dao.get_states_from_partial_local(
                         source_pair.local_path
-                    ).all()
+                    )
                     for pair in pairs:
                         self._dao.synchronize_state(pair)
                 else:
@@ -1364,12 +1364,13 @@ class Processor(EngineWorker):
             return True
         except:
             log.exception("Cannot rollback local modification")
+        return False
 
-    def _handle_unsynchronized(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _handle_unsynchronized(self, doc_pair: DocPair) -> None:
         # Used for overwrite
         pass
 
-    def _handle_readonly(self, doc_pair: NuxeoDocumentInfo) -> None:
+    def _handle_readonly(self, doc_pair: DocPair) -> None:
         # Don't use readonly on folder for win32 and on Locally Edited
         if doc_pair.folderish and WINDOWS:
             return

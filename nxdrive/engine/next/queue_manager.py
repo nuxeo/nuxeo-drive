@@ -1,9 +1,14 @@
 # coding: utf-8
 import time
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 from ..queue_manager import QueueManager as OldQueueManager
-from ...objects import NuxeoDocumentInfo
+from ...objects import DocPair
+
+if TYPE_CHECKING:
+    from ..dao.sqlite import EngineDAO  # noqa
+    from ..engine import Engine  # noqa
 
 __all__ = ("QueueManager",)
 
@@ -16,7 +21,7 @@ class QueueManager(OldQueueManager):
     ) -> None:
         super().__init__(engine, dao, max_file_processors=max_file_processors)
 
-    def postpone_pair(self, doc_pair: NuxeoDocumentInfo, interval: int = 60) -> None:
+    def postpone_pair(self, doc_pair: DocPair, interval: int = 60) -> None:
         doc_pair.error_next_try = interval + int(time.time())
         log.debug(f"Blacklisting pair for {interval}s: {doc_pair!r}")
         with self._error_lock:

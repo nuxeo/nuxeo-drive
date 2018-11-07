@@ -3,15 +3,15 @@
 import sys
 from logging import getLogger
 from math import sqrt
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
 import requests
 from markdown import markdown
 from PyQt5.QtCore import Qt, QUrl, pyqtSlot, QEvent
-from PyQt5.QtGui import QFont, QFontMetricsF, QIcon
+from PyQt5.QtGui import QFont, QFontMetricsF, QIcon, QWindow
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
-from PyQt5.QtQml import QQmlApplicationEngine
+from PyQt5.QtQml import QQmlApplicationEngine, QQmlContext
 from PyQt5.QtQuick import QQuickView, QQuickWindow
 from PyQt5.QtWidgets import (
     QAction,
@@ -27,6 +27,8 @@ from PyQt5.QtWidgets import (
 
 from ..constants import APP_NAME, LINUX, MAC, TOKEN_PERMISSION, WINDOWS
 from ..engine.activity import Action, FileAction
+from ..engine.engine import Engine
+from ..gui.folders_dialog import FiltersDialog
 from ..notification import Notification
 from ..options import Options
 from ..translator import Translator
@@ -48,6 +50,11 @@ from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
 from .view import EngineModel, FileModel, LanguageModel
 
+if MAC:
+    from ..osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
+
+if TYPE_CHECKING:
+    from ..manager import Manager  # noqa
 
 __all__ = ("Application",)
 
@@ -60,26 +67,26 @@ log = getLogger(__name__)
 class Application(QApplication):
     """Main Nuxeo Drive application controlled by a system tray icon + menu"""
 
-    icons = {}
+    icons: Dict[str, QIcon] = {}
     icon_state = None
-    tray_icon = None
     use_light_icons = None
+    filters_dlg: Optional[FiltersDialog] = None
+    _delegator: Optional["NotificationDelegator"] = None
+    tray_icon: DriveSystrayIcon
 
     def __init__(self, manager: "Manager", *args: Any) -> None:
         super().__init__(list(*args))
         self.manager = manager
 
-        self.dialogs = dict()
+        self.dialogs: Dict[str, QDialog] = dict()
         self.osi = self.manager.osi
         self.setWindowIcon(QIcon(self.get_window_icon()))
         self.setApplicationName(APP_NAME)
         self._init_translator()
         self.setQuitOnLastWindowClosed(False)
-        self._delegator = None
 
-        self.filters_dlg = None
-        self._conflicts_modals = dict()
-        self.current_notification = None
+        self._conflicts_modals: Dict[str, bool] = dict()
+        self.current_notification: Optional[Notification] = None
         self.default_tooltip = APP_NAME
 
         font = QFont("Helvetica, Arial, sans-serif", 12)
@@ -190,7 +197,7 @@ class Application(QApplication):
             self._window_root(self.systray_window).updateProgress
         )
 
-    def add_engines(self, engines: Union["Engine", List["Engine"]]) -> None:
+    def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
         if not engines:
             return
 
@@ -201,7 +208,7 @@ class Application(QApplication):
     def remove_engine(self, uid: str) -> None:
         self.engine_model.removeEngine(uid)
 
-    def _fill_qml_context(self, context: "QQmlContext") -> None:
+    def _fill_qml_context(self, context: QQmlContext) -> None:
         """ Fill the context of a QML element with the necessary resources. """
         context.setContextProperty("ConflictsModel", self.conflicts_model)
         context.setContextProperty("ErrorsModel", self.errors_model)
@@ -252,10 +259,10 @@ class Application(QApplication):
             return window.rootObject()
         return window
 
-    def translate(self, message: str, values: dict = None) -> str:
+    def translate(self, message: str, values: List[Any] = None) -> str:
         return Translator.get(message, values)
 
-    def _show_window(self, window: "QWindow") -> None:
+    def _show_window(self, window: QWindow) -> None:
         window.show()
         window.raise_()
         window.requestActivate()
@@ -502,8 +509,6 @@ class Application(QApplication):
             self.filters_dlg.close()
             self.filters_dlg = None
 
-        from ..gui.folders_dialog import FiltersDialog
-
         self.filters_dlg = FiltersDialog(self, engine)
         self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
         self.filters_dlg.show()
@@ -741,14 +746,10 @@ class Application(QApplication):
             )
 
     def _setup_notification_center(self) -> None:
-        from ..osi.darwin.pyNotificationCenter import (
-            setup_delegator,
-            NotificationDelegator,
-        )
-
         if not self._delegator:
             self._delegator = NotificationDelegator.alloc().init()
-            self._delegator._manager = self.manager
+            if self._delegator:
+                self._delegator._manager = self.manager
         setup_delegator(self._delegator)
 
     @pyqtSlot(object)
@@ -760,9 +761,9 @@ class Application(QApplication):
             # Use notification center
             from ..osi.darwin.pyNotificationCenter import notify
 
-            return notify(
-                notif.title, None, notif.description, user_info={"uuid": notif.uid}
-            )
+            user_info = {"uuid": notif.uid} if notif.uid else None
+
+            return notify(notif.title, "", notif.description, user_info=user_info)
 
         icon = QSystemTrayIcon.Information
         if notif.level == Notification.LEVEL_WARNING:
@@ -983,7 +984,7 @@ class Application(QApplication):
             return False
 
         cmd = info["command"]
-        path = info.get("filepath", None)
+        path = info.get("filepath", "")
         manager = self.manager
 
         log.debug(f"Event URL={url}, info={info!r}")
@@ -1080,7 +1081,7 @@ class Application(QApplication):
 
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:
-        files = self.api.get_last_files(uid, 10, "", None)
+        files = self.api.get_last_files(uid, 10, "")
         self.file_model.empty()
         self.file_model.addFiles(files)
 

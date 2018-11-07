@@ -2,7 +2,7 @@
 import time
 from logging import getLogger
 from threading import Lock
-from typing import Generator
+from typing import Dict, Generator
 
 __all__ = ("BlacklistQueue",)
 log = getLogger(__name__)
@@ -36,7 +36,7 @@ class BlacklistQueue:
     def __init__(self, delay: int = 30) -> None:
         self._delay = delay
 
-        self._queue = dict()
+        self._queue: Dict[str, BlacklistItem] = dict()
         self._lock = Lock()
 
     def push(self, id_obj: str, obj: str) -> None:

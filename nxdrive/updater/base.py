@@ -4,7 +4,7 @@ import os
 import uuid
 from logging import getLogger
 from tempfile import gettempdir
-from typing import Optional
+from typing import Any, Dict, Optional, Union, TYPE_CHECKING
 
 import requests
 import yaml
@@ -24,6 +24,9 @@ from ..constants import APP_NAME
 from ..engine.workers import PollWorker
 from ..options import Options
 from ..utils import version_lt
+
+if TYPE_CHECKING:
+    from ..manager import Manager  # noqa
 
 __all__ = ("BaseUpdater",)
 
@@ -45,7 +48,7 @@ class BaseUpdater(PollWorker):
     # Used when the server doesn't have the new browser login
     serverIncompatible = pyqtSignal()
 
-    versions = {}
+    versions: Dict[str, Any] = {}
     nature = "release"
 
     chunk_size = 8192
@@ -58,8 +61,8 @@ class BaseUpdater(PollWorker):
 
         self.enable = getattr(self, "_can_update", Options.is_frozen)
         self.status = UPDATE_STATUS_UP_TO_DATE
-        self.version = None
-        self.progress = 0
+        self.version: str = ""
+        self.progress = .0
 
         if not self.enable:
             log.info(f"Auto-update disabled (frozen={Options.is_frozen!r})")
@@ -217,7 +220,7 @@ class BaseUpdater(PollWorker):
                 self.server_ver,
                 has_browser_login,
             )
-        if status:
+        if status and version:
             self._set_status(status, version=version)
 
     def _force_downgrade(self) -> None:
@@ -270,12 +273,14 @@ class BaseUpdater(PollWorker):
             except UpdateError:
                 log.exception("Auto-update error")
 
-    def _set_progress(self, progress: int) -> None:
+    def _set_progress(self, progress: Union[int, float]) -> None:
         self.progress = progress
         self.updateProgress.emit(self.progress)
         QApplication.processEvents()
 
-    def _set_status(self, status: str, version: str = None, progress: int = 0) -> None:
+    def _set_status(
+        self, status: str, version: str = "", progress: Union[int, float] = 0
+    ) -> None:
         self.status = status
         self.version = version
         self._set_progress(progress)

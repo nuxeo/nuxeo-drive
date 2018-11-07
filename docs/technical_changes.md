@@ -4,8 +4,20 @@
 
 # dev
 
+- Added `ConfigurationDAO.get_locks()`
 - Removed `DocRemote.get_repository_names()`
+- Removed `raise_if_missing` keyword argument from `LocalClient.get_info()`
+- Added `LocalClient.try_get_info()`
+- Changed `ManagerDAO.get_locked_paths()` return type to `List[str]`
+- Added `Remote.stream_attach()`
 - Removed `Remote.conflicted_name()`
+- Removed `raise_if_missing` keyword argument from `Remote.get_fs_info()`
+- Removed `mime_type`, `fs` and `apply_versioning_policy` keyword arguments from `Remote.stream_update()`
+- Changed `command` keyword argument of `Remote.upload()` to a positional argument
+- Moved engine/dao/sqlite.py::`StateRow` to objects.py::`DocPair`
+- Added exceptions.py::`UnknownPairState`
+- Moved options.py::`ServerOptionsUpdater` to options_updater.py
+- Removed options.py::`server_updater()`
 
 # 4.0.0
 

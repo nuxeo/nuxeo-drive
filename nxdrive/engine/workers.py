@@ -3,13 +3,17 @@ from contextlib import suppress
 from logging import getLogger
 from threading import current_thread
 from time import sleep, time
-from typing import Any
+from typing import Any, Optional, TYPE_CHECKING
 
 from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
 
 from .activity import Action, IdleAction
 from ..exceptions import ThreadInterrupt
-from ..objects import Metrics, NuxeoDocumentInfo
+from ..objects import Metrics, DocPair
+
+if TYPE_CHECKING:
+    from .dao.sqlite import EngineDAO  # noqa
+    from .engine import Engine  # noqa
 
 __all__ = ("EngineWorker", "PollWorker", "Worker")
 
@@ -19,12 +23,11 @@ log = getLogger(__name__)
 class Worker(QObject):
     """" Utility class that handle one thread. """
 
-    _thread = None
+    _thread: QThread = None
     _continue = False
     _action = None
     _name = None
-    _thread_id = None
-    engine = None
+    _thread_id: Optional[int] = None
     _pause = False
 
     def __init__(self, thread: QThread = None, **kwargs: Any) -> None:
@@ -96,7 +99,8 @@ class Worker(QObject):
 
     def get_thread_id(self) -> int:
         """ Get the thread ID. """
-
+        if not self._thread_id:
+            raise RuntimeError("Unable to retrieve thread id")
         return self._thread_id
 
     def _interact(self) -> None:
@@ -191,7 +195,7 @@ class EngineWorker(Worker):
         self._dao = dao
 
     def giveup_error(
-        self, doc_pair: NuxeoDocumentInfo, error: str, exception: Exception = None
+        self, doc_pair: DocPair, error: str, exception: Exception = None
     ) -> None:
         details = str(exception) if exception else None
         log.debug(f"Give up for error [{error}] ({details}) for {doc_pair!r}")
@@ -205,12 +209,12 @@ class EngineWorker(Worker):
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
     def increase_error(
-        self, doc_pair: NuxeoDocumentInfo, error: str, exception: Exception = None
+        self, doc_pair: DocPair, error: str, exception: Exception = None
     ) -> None:
         details = None
         if exception:
             try:
-                details = exception.message
+                details = getattr(exception, "message")
             except AttributeError:
                 details = str(exception)
         log.debug(f"Increasing error [{error}] ({details}) for {doc_pair!r}")
@@ -258,5 +262,5 @@ class PollWorker(Worker):
                 self._next_check = int(time()) + self._check_interval
             sleep(0.01)
 
-    def _poll(self) -> True:
+    def _poll(self) -> bool:
         return True

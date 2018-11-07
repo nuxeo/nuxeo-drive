@@ -3,6 +3,7 @@
 
 import logging
 import os
+from logging import Formatter
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
 from typing import Any, List
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -17,7 +18,7 @@ TRACE = 5
 TRACE_ADDED = False
 
 # Default formatter
-FORMAT = logging.Formatter(
+FORMAT = Formatter(
     "%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -40,13 +41,13 @@ def add_trace_level() -> None:
         return
 
     logging.addLevelName(TRACE, "TRACE")
-    logging.TRACE = TRACE
+    setattr(logging, "TRACE", TRACE)
 
     def trace(self, message, *args, **kws):
         if self.isEnabledFor(TRACE):
             self._log(TRACE, message, args, **kws)
 
-    logging.Logger.trace = trace
+    setattr(logging.Logger, "trace", trace)
     TRACE_ADDED = True
 
 
@@ -109,7 +110,7 @@ def configure(
     console_level: str = "INFO",
     command_name: str = None,
     force_configure: bool = False,
-    formatter: logging.Formatter = None,
+    formatter: Formatter = None,
 ) -> None:
 
     global is_logging_configured

@@ -54,6 +54,8 @@ __all__ = ("FileInfo", "LocalClient")
 
 log = getLogger(__name__)
 
+error = None
+
 
 class FileInfo:
     """ Data Transfer Object for file info on the Local FS. """
@@ -63,7 +65,7 @@ class FileInfo:
         root: str,
         path: str,
         folderish: bool,
-        last_modification_time: Union[datetime, int],
+        last_modification_time: datetime,
         **kwargs: Any,
     ) -> None:
         # Function to check during long-running processing like digest
@@ -85,7 +87,7 @@ class FileInfo:
 
         self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
-        self.remote_ref = kwargs.pop("remote_ref", None)
+        self.remote_ref = kwargs.pop("remote_ref", "")
 
         # Last OS modification date of the file
         self.last_modification_time = last_modification_time
@@ -183,7 +185,7 @@ class LocalClient:
     def clean_xattr_folder_recursive(self, path: str) -> None:
         for child in self.get_children_info(path):
             locker = self.unlock_ref(child.path, unlock_parent=False)
-            if child.remote_ref is not None:
+            if child.remote_ref:
                 self.remove_remote_id(child.path)
             self.lock_ref(child.path, locker)
             if child.folderish:
@@ -195,7 +197,7 @@ class LocalClient:
     def set_root_id(self, value: bytes) -> None:
         self.set_remote_id("/", value, name="ndriveroot")
 
-    def get_root_id(self) -> Optional[str]:
+    def get_root_id(self) -> str:
         return self.get_remote_id("/", name="ndriveroot")
 
     def _remove_remote_id_windows(self, path: str, name: str = "ndrive") -> None:
@@ -339,9 +341,11 @@ FolderType=Generic
         # Configure 'com.apple.ResourceFork' for the Icon file
         info = self._read_data(icon)
         xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, info)
-        os.chflags(meta_file, stat.UF_HIDDEN)
+        os.chflags(meta_file, stat.UF_HIDDEN)  # type: ignore
 
-    def set_remote_id(self, ref: str, remote_id: bytes, name: str = "ndrive") -> None:
+    def set_remote_id(
+        self, ref: str, remote_id: Union[bytes, str], name: str = "ndrive"
+    ) -> None:
         path = self.abspath(ref)
 
         if not isinstance(remote_id, bytes):
@@ -387,21 +391,21 @@ FolderType=Generic
         finally:
             lock_path(path, locker)
 
-    def get_remote_id(self, ref: str, name: str = "ndrive") -> Optional[str]:
+    def get_remote_id(self, ref: str, name: str = "ndrive") -> str:
         path = self.abspath(ref)
         value = self.get_path_remote_id(path, name)
         log.trace(f"Getting xattr {name!r} from {path!r}: {value!r}")
         return value
 
     @staticmethod
-    def get_path_remote_id(path: str, name: str = "ndrive") -> Optional[str]:
+    def get_path_remote_id(path: str, name: str = "ndrive") -> str:
         if WINDOWS:
             path += ":" + name
             try:
                 with open(path, "rb") as f:
                     return f.read().decode("utf-8")
             except OSError:
-                return None
+                return ""
 
         if LINUX:
             name = "user." + name
@@ -409,18 +413,18 @@ FolderType=Generic
         try:
             return xattr.getxattr(path, name).decode("utf-8")
         except OSError:
-            return None
+            return ""
 
-    def get_info(self, ref: str, raise_if_missing: bool = True) -> Optional[FileInfo]:
+    def get_info(self, ref: str) -> FileInfo:
         if isinstance(ref, bytes):
             ref = ref.decode("utf-8")
 
         os_path = self.abspath(ref)
         if not os.path.exists(os_path):
-            if raise_if_missing:
-                err = "Could not find doc into {!r}: ref={!r}, os_path={!r}"
-                raise NotFound(err.format(self.base_folder, ref, os_path))
-            return None
+            raise NotFound(
+                f"Could not find doc into {self.base_folder!r}: "
+                f"ref={ref!r}, os_path={os_path!r}"
+            )
 
         folderish = os.path.isdir(os_path)
         stat_info = os.stat(os_path)
@@ -448,10 +452,16 @@ FolderType=Generic
             size=size,
         )
 
+    def try_get_info(self, ref: str) -> Optional[FileInfo]:
+        try:
+            return self.get_info(ref)
+        except NotFound:
+            return None
+
     def is_equal_digests(
         self,
-        local_digest: str,
-        remote_digest: str,
+        local_digest: Optional[str],
+        remote_digest: Optional[str],
         local_path: str,
         remote_digest_algorithm: str = None,
     ) -> bool:
@@ -472,12 +482,14 @@ FolderType=Generic
         if remote_digest_algorithm is None:
             remote_digest_algorithm = get_digest_algorithm(remote_digest)
             if not remote_digest_algorithm:
-                raise UnknownDigest(remote_digest)
+                raise UnknownDigest(str(remote_digest))
 
         if remote_digest_algorithm == self._digest_func:
             return False
 
         file_info = self.get_info(local_path)
+        if not file_info:
+            return False
         digest = file_info.get_digest(digest_func=remote_digest_algorithm)
         return digest == remote_digest
 
@@ -540,7 +552,8 @@ FolderType=Generic
                     " or while reading some of its attributes"
                 )
                 continue
-            result.append(info)
+            if info:
+                result.append(info)
 
         return result
 
@@ -606,8 +619,8 @@ FolderType=Generic
             except:
                 pass
             else:
-                exc.winerror = retcode
-            exc.trash_issue = True
+                exc.winerror = retcode  # type: ignore
+            exc.trash_issue = True  # type: ignore
             raise exc
         finally:
             # Don't want to unlock the current deleted
@@ -676,7 +689,9 @@ FolderType=Generic
                 os.rename(source_os_path, target_os_path)
             if WINDOWS:
                 # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
-                ctypes.windll.kernel32.SetFileAttributesW(str(target_os_path), 128)
+                ctypes.windll.kernel32.SetFileAttributesW(  # type: ignore
+                    str(target_os_path), 128
+                )
             new_ref = self.get_children_ref(parent, new_name)
             return self.get_info(new_ref)
         finally:
@@ -726,15 +741,12 @@ FolderType=Generic
         # Set the creation time first as on macOS using touch will change ctime and mtime.
         # The modification time will be updated just after, if needed.
         if ctime:
-            try:
-                ctime = datetime.fromtimestamp(ctime)
-            except TypeError:
-                ctime = datetime.strptime(ctime, "%Y-%m-%d %H:%M:%S")
+            d_ctime = datetime.strptime(str(ctime), "%Y-%m-%d %H:%M:%S")
 
             if MAC:
                 if isinstance(filename, bytes):
                     filename = filename.decode("utf-8")
-                cmd = ["touch", "-mt", ctime.strftime("%Y%m%d%H%M.%S"), filename]
+                cmd = ["touch", "-mt", d_ctime.strftime("%Y%m%d%H%M.%S"), filename]
                 subprocess.check_call(cmd)
             elif WINDOWS:
                 winfile = win32file.CreateFileW(
@@ -750,14 +762,11 @@ FolderType=Generic
                     win32con.FILE_ATTRIBUTE_NORMAL,
                     None,
                 )
-                win32file.SetFileTime(winfile, ctime)
+                win32file.SetFileTime(winfile, d_ctime)
 
         if mtime:
-            try:
-                mtime = int(mtime)
-            except ValueError:
-                mtime = mktime(strptime(mtime, "%Y-%m-%d %H:%M:%S"))
-            os.utime(filename, (mtime, mtime))
+            d_mtime = mktime(strptime(str(mtime), "%Y-%m-%d %H:%M:%S"))
+            os.utime(filename, (d_mtime, d_mtime))
 
     def get_path(self, abspath: str) -> str:
         """ Relative path to the local client from an absolute OS path. """

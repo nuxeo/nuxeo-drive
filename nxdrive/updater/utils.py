@@ -82,7 +82,7 @@ def get_update_status(
     nature: str,
     server_version: Optional[str],
     has_browser_login: bool,
-) -> Tuple[str, Version]:
+) -> Tuple[str, str]:
     """Given a Drive version, determine the definitive status of the application."""
 
     # Find the latest available version
@@ -91,9 +91,9 @@ def get_update_status(
     )
 
     if not latest:
-        status = None, None
+        status = "", ""
     elif current_version == latest:
-        status = UPDATE_STATUS_UP_TO_DATE, None
+        status = UPDATE_STATUS_UP_TO_DATE, ""
     elif not version_le(latest, current_version):
         status = UPDATE_STATUS_UPDATE_AVAILABLE, latest
     else:
