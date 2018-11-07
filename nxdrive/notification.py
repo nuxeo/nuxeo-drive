@@ -112,11 +112,9 @@ class Notification:
         return self._replacements
 
     def __repr__(self) -> str:
-        return "Notification(level=%r title=%r uid=%r unique=%r)" % (
-            self.level,
-            self.title,
-            self.uid,
-            self.is_unique(),
+        return (
+            f"Notification(level={self.level!r} title={self.title!r} "
+            f"uid={self.uid!r} unique={self.is_unique()!r})"
         )
 
 
@@ -162,7 +160,7 @@ class NotificationService(QObject):
             return result
 
     def send_notification(self, notification: Notification) -> None:
-        log.debug("Sending %r", notification)
+        log.debug(f"Sending {notification!r}")
         notification._time = int(time.time())
         with self._lock:
             if notification.is_persistent():
@@ -255,7 +253,7 @@ class DirectEditErrorLockNotification(Notification):
         elif action == "unlock":
             action = "UNLOCK"
         else:
-            raise ValueError("Invalid action: %r not in (lock, unlock)", locals())
+            raise ValueError(f"Invalid action: {locals()!r} not in (lock, unlock)")
         title = f"DIRECT_EDIT_{action}_ERROR"
         description = f"{title}_DESCRIPTION"
 
@@ -414,7 +412,7 @@ class ErrorOpenedFile(Notification):
         super().__init__(
             "WINDOWS_ERROR",
             title=Translator.get("WINDOWS_ERROR_TITLE"),
-            description=Translator.get("WINDOWS_ERROR_OPENED_%s" % msg, values),
+            description=Translator.get(f"WINDOWS_ERROR_OPENED_{msg}", values),
             level=Notification.LEVEL_ERROR,
             flags=(
                 Notification.FLAG_UNIQUE
@@ -497,7 +495,7 @@ class DefaultNotificationService(NotificationService):
 
     def _directEditLockError(self, lock: str, filename: str, ref: str) -> None:
         if lock not in ("lock", "unlock"):
-            log.debug("DirectEdit LockError not handled: %s", lock)
+            log.debug(f"DirectEdit LockError not handled: {lock}")
             return
         self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
 

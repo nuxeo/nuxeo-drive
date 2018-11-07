@@ -89,7 +89,7 @@ class ProcessAutoLockerWorker(PollWorker):
 
     def _lock_file(self, item: Item) -> None:
         pid, path = item
-        log.debug("Locking file %r (PID=%r)", path, pid)
+        log.debug(f"Locking file {path!r} (PID={pid!r})")
         if path in self._lockers:
             locker = self._lockers[path]
             locker.autolock_lock(path)
@@ -97,7 +97,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self._to_lock.remove(item)
 
     def _unlock_file(self, path: str) -> None:
-        log.debug("Unlocking file %r", path)
+        log.debug(f"Unlocking file {path!r}")
         if path in self._lockers:
             locker = self._lockers[path]
             locker.autolock_unlock(path)

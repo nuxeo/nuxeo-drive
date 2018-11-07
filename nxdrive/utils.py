@@ -342,7 +342,7 @@ def normalize_event_filename(filename: str, action: bool = True) -> str:
         and not os.path.isdir(filename)
     ):
         # We can have folders ending with spaces
-        log.debug("Forcing space normalization: %r -> %r", filename, stripped)
+        log.debug(f"Forcing space normalization: {filename!r} -> {stripped!r}")
         os.rename(filename, stripped)
         filename = stripped
 
@@ -375,7 +375,7 @@ def normalize_event_filename(filename: str, action: bool = True) -> str:
         filename = os.path.join(os.path.dirname(long_path), os.path.basename(filename))
 
     if action and filename != normalized and os.path.exists(filename):
-        log.debug("Forcing normalization: %r -> %r", filename, normalized)
+        log.debug(f"Forcing normalization: {filename!r} -> {normalized!r}")
         os.rename(filename, normalized)
 
     return normalized
@@ -506,7 +506,7 @@ def guess_mime_type(filename: str) -> str:
         return mime_type
 
     log.trace(
-        "Could not guess mime type for %r, returning application/octet-stream", filename
+        f"Could not guess mime type for {filename!r}, returning application/octet-stream"
     )
     return "application/octet-stream"
 
@@ -582,7 +582,7 @@ def guess_server_url(
         new_url = urlunsplit(new_url_parts).rstrip("/")
         try:
             rfc3987.parse(new_url, rule="URI")
-            log.trace("Testing URL %r", new_url)
+            log.trace(f"Testing URL {new_url!r}")
             full_url = new_url + "/" + login_page
             kwargs = {"proxies": proxy.settings(url=full_url)} if proxy else {}
             with requests.get(full_url, timeout=timeout, **kwargs) as resp:
@@ -682,10 +682,10 @@ def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str
     scheme = parsed_url.get("scheme")
     if scheme not in ("http", "https"):
         raise ValueError(
-            "Invalid command {}: scheme should be http or https".format(url_string)
+            f"Invalid command {url_string}: scheme should be http or https"
         )
 
-    server_url = "{}://{}".format(scheme, parsed_url.get("server"))
+    server_url = f"{scheme}://{parsed_url.get('server')}"
 
     return dict(
         command="download_edit",
@@ -795,7 +795,7 @@ class PidLockFile:
     def _get_sync_pid_filepath(self, process_name: str = None) -> str:
         if process_name is None:
             process_name = self.key
-        return os.path.join(self.folder, "nxdrive_%s.pid" % process_name)
+        return os.path.join(self.folder, f"nxdrive_{process_name}.pid")
 
     def unlock(self) -> None:
         if not self.locked:
@@ -806,10 +806,8 @@ class PidLockFile:
             os.unlink(pid_filepath)
         except Exception as e:
             log.warning(
-                "Failed to remove stalled PID file: %r for stopped process %d: %r",
-                pid_filepath,
-                os.getpid(),
-                e,
+                f"Failed to remove stalled PID file: {pid_filepath!r} "
+                f"for stopped process {os.getpid()}: {e!r}"
             )
 
     def check_running(self, process_name: str = None) -> Optional[int]:
@@ -843,24 +841,21 @@ class PidLockFile:
             try:
                 os.unlink(pid_filepath)
                 if pid is None:
-                    msg = "Removed old empty PID file %r" % pid_filepath
+                    msg = f"Removed old empty PID file {pid_filepath!r}"
                 else:
-                    msg = "Removed old PID file %r for stopped process %d" % (
-                        pid_filepath,
-                        pid,
-                    )
+                    msg = f"Removed old PID file {pid_filepath!r} for stopped process {pid}"
                 log.info(msg)
             except Exception as e:
                 if pid is not None:
                     msg = (
-                        "Failed to remove stalled PID file: %r for"
-                        " stopped process %d: %r" % (pid_filepath, pid, e)
+                        f"Failed to remove stalled PID file: {pid_filepath!r} "
+                        f"for stopped process {pid}: {e!r}"
                     )
                     log.warning(msg)
                     return pid
-                msg = "Failed to remove empty stalled PID file %r: %r" % (
-                    pid_filepath,
-                    e,
+                msg = (
+                    f"Failed to remove empty stalled PID file {pid_filepath!r}: "
+                    f"{e!r}"
                 )
                 log.warning(msg)
         self.locked = True
@@ -868,7 +863,7 @@ class PidLockFile:
     def lock(self) -> Optional[int]:
         pid = self.check_running(process_name=self.key)
         if pid is not None:
-            log.warning("%s process with PID %d already running", self.key, pid)
+            log.warning(f"{self.key} process with PID {pid} already running")
             return pid
 
         # Write the pid of this process

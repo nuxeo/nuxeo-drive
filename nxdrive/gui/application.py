@@ -285,12 +285,12 @@ class Application(QApplication):
 
     @pyqtSlot(str, str, str)
     def _direct_edit_conflict(self, filename: str, ref: str, digest: str) -> None:
-        log.trace("Entering _direct_edit_conflict for %r / %r", filename, ref)
+        log.trace(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
         try:
             if filename in self._conflicts_modals:
-                log.trace("Filename already in _conflicts_modals: %r", filename)
+                log.trace(f"Filename already in _conflicts_modals: {filename!r}")
                 return
-            log.trace("Putting filename in _conflicts_modals: %r", filename)
+            log.trace(f"Putting filename in _conflicts_modals: {filename!r}")
             self._conflicts_modals[filename] = True
 
             msg = QMessageBox()
@@ -307,8 +307,7 @@ class Application(QApplication):
             del self._conflicts_modals[filename]
         except:
             log.exception(
-                "Error while displaying Direct Edit conflict modal dialog for %r",
-                filename,
+                f"Error while displaying Direct Edit conflict modal dialog for {filename!r}"
             )
 
     @pyqtSlot(str, list)
@@ -326,7 +325,7 @@ class Application(QApplication):
     @pyqtSlot()
     def _root_deleted(self) -> None:
         engine = self.sender()
-        log.debug("Root has been deleted for engine: %s", engine.uid)
+        log.debug(f"Root has been deleted for engine: {engine.uid}")
 
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
@@ -359,7 +358,7 @@ class Application(QApplication):
     @pyqtSlot(str)
     def _root_moved(self, new_path: str) -> None:
         engine = self.sender()
-        log.debug("Root has been moved for engine: %s to %r", engine.uid, new_path)
+        log.debug(f"Root has been moved for engine: {engine.uid} to {new_path!r}")
         info = [engine.local_folder, new_path]
 
         msg = QMessageBox()
@@ -815,28 +814,21 @@ class Application(QApplication):
 
         if isinstance(action, FileAction):
             if action.get_percent() is not None:
-                return "%s - %s - %s - %d%%" % (
-                    self.default_tooltip,
-                    action.type,
-                    action.filename,
-                    action.get_percent(),
+                return (
+                    f"{self.default_tooltip} - {action.type} - "
+                    f"{action.filename} - {action.get_percent()}%"
                 )
-            return "%s - %s - %s" % (self.default_tooltip, action.type, action.filename)
+            return f"{self.default_tooltip} - {action.type} - {action.filename}"
         elif action.get_percent() is not None:
-            return "%s - %s - %d%%" % (
-                self.default_tooltip,
-                action.type,
-                action.get_percent(),
-            )
-
-        return "%s - %s" % (self.default_tooltip, action.type)
+            return f"{self.default_tooltip} - {action.type} - {action.get_percent()}%"
+        return f"{self.default_tooltip} - {action.type}"
 
     @if_frozen
     def show_release_notes(self, version: str) -> None:
         """ Display release notes of a given version. """
 
         beta = self.manager.get_beta_channel()
-        log.debug("Showing release notes, version=%r beta=%r", version, beta)
+        log.debug(f"Showing release notes, version={version!r} beta={beta!r}")
 
         # For now, we do care about beta only
         if not beta:
@@ -854,20 +846,18 @@ class Application(QApplication):
             content = requests.get(url)
         except requests.HTTPError as exc:
             if exc.response.status_code == 404:
-                log.error("[%s] Release does not exist", version)
+                log.error(f"[{version}] Release does not exist")
             else:
-                log.exception(
-                    "[%s] Network error while fetching release notes", version
-                )
+                log.exception(f"[{version}] Network error while fetching release notes")
             return
         except:
-            log.exception("[%s] Unknown error while fetching release notes", version)
+            log.exception(f"[{version}] Unknown error while fetching release notes")
             return
 
         try:
             data = content.json()
         except ValueError:
-            log.exception("[%s] Invalid release notes", version)
+            log.exception(f"[{version}] Invalid release notes")
             return
         finally:
             del content
@@ -875,10 +865,10 @@ class Application(QApplication):
         try:
             html = markdown(data["body"])
         except KeyError:
-            log.error("[%s] Release notes is missing its body", version)
+            log.error(f"[{version}] Release notes is missing its body")
             return
         except (UnicodeDecodeError, ValueError):
-            log.exception("[%s] Release notes conversion error", version)
+            log.exception(f"[{version}] Release notes conversion error")
             return
 
         dialog = QDialog()
@@ -982,7 +972,7 @@ class Application(QApplication):
             final_url = unquote(event.url().toString())
             return self._handle_nxdrive_url(final_url)
         except:
-            log.exception("Error handling URL event %r", url)
+            log.exception(f"Error handling URL event {url!r}")
             return False
 
     def _handle_nxdrive_url(self, url: str) -> bool:
@@ -996,7 +986,7 @@ class Application(QApplication):
         path = info.get("filepath", None)
         manager = self.manager
 
-        log.debug("Event URL=%s, info=%r", url, info)
+        log.debug(f"Event URL={url}, info={info!r}")
 
         # Event fired by a context menu item
         func = {
@@ -1016,7 +1006,7 @@ class Application(QApplication):
         elif cmd == "token":
             self.api.handle_token(info["token"], info["username"])
         else:
-            log.warning("Unknown event URL=%r, info=%r", url, info)
+            log.warning(f"Unknown event URL={url}, info={info!r}")
             return False
         return True
 

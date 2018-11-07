@@ -33,7 +33,7 @@ class Proxy:
 
     def __repr__(self) -> str:
         attrs = ", ".join(
-            "{}={!r}".format(attr, getattr(self, attr, None))
+            f"{attr}={getattr(self, attr, None)!r}"
             for attr in sorted(vars(self))
             if not attr.startswith("_")
         )

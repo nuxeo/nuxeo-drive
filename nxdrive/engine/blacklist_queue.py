@@ -40,7 +40,7 @@ class BlacklistQueue:
         self._lock = Lock()
 
     def push(self, id_obj: str, obj: str) -> None:
-        log.trace("Blacklisting %r", obj)
+        log.trace(f"Blacklisting {obj!r}")
         item = BlacklistItem(item_id=id_obj, item=obj, next_try=self._delay)
         with self._lock:
             self._queue[item.uid] = item

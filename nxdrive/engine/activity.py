@@ -54,7 +54,7 @@ class Action:
     def __repr__(self) -> str:
         if self.progress is None:
             return str(self.type)
-        return "%s(%s%%)" % (self.type, self.progress)
+        return f"{self.type}({self.progress}%)"
 
 
 class IdleAction(Action):
@@ -90,11 +90,11 @@ class FileAction(Action):
     def __repr__(self) -> str:
         # Size can be None if the file disapeared right on creation
         if self.size is None:
-            return "%s(%r)" % (self.type, self.filename)
+            return f"{self.type}({self.filename!r})"
         percent = self.get_percent()
         if percent is None:
-            return "%s(%r[%d])" % (self.type, self.filename, self.size)
-        return "%s(%r[%d]-%f%%)" % (self.type, self.filename, self.size, percent)
+            return f"{self.type}({self.filename!r}[{self.size}])"
+        return f"{self.type}({self.filename!r}[{self.size}]-{percent})"
 
 
 Action.actions = dict()

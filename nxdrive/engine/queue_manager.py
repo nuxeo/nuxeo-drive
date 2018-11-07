@@ -25,11 +25,9 @@ class QueueItem:
         self.pair_state = pair_state
 
     def __repr__(self) -> str:
-        return "%s[%s](folderish=%r, state=%r)" % (
-            type(self).__name__,
-            self.id,
-            self.folderish,
-            self.pair_state,
+        return (
+            f"{type(self).__name__}[{self.id}](folderish={self.folderish!r}, "
+            f"state={self.pair_state!r})"
         )
 
 
@@ -188,45 +186,45 @@ class QueueManager(QObject):
 
     def push(self, state: NuxeoDocumentInfo) -> None:
         if state.pair_state is None:
-            log.trace("Don't push an empty pair_state: %r", state)
+            log.trace(f"Don't push an empty pair_state: {state!r}")
             return
-        log.trace("Pushing %r", state)
+        log.trace(f"Pushing {state!r}")
         row_id = state.id
         if state.pair_state.startswith("locally"):
             if state.folderish:
                 self._local_folder_queue.put(state)
                 log.trace(
-                    "Pushed to _local_folder_queue, now of size: %d",
-                    self._local_folder_queue.qsize(),
+                    "Pushed to _local_folder_queue, now of size: "
+                    f"{self._local_folder_queue.qsize()}"
                 )
             else:
                 if "deleted" in state.pair_state:
                     self._engine.cancel_action_on(state.id)
                 self._local_file_queue.put(state)
                 log.trace(
-                    "Pushed to _local_file_queue, now of size: %d",
-                    self._local_file_queue.qsize(),
+                    "Pushed to _local_file_queue, now of size: "
+                    f"{self._local_file_queue.qsize()}"
                 )
             self.newItem.emit(row_id)
         elif state.pair_state.startswith("remotely"):
             if state.folderish:
                 self._remote_folder_queue.put(state)
                 log.trace(
-                    "Pushed to _remote_folder_queue, now of size: %d",
-                    self._remote_folder_queue.qsize(),
+                    f"Pushed to _remote_folder_queue, now of size: "
+                    f"{self._remote_folder_queue.qsize()}"
                 )
             else:
                 if "deleted" in state.pair_state:
                     self._engine.cancel_action_on(state.id)
                 self._remote_file_queue.put(state)
                 log.trace(
-                    "Pushed to _remote_file_queue, now of size: %d",
-                    self._remote_file_queue.qsize(),
+                    "Pushed to _remote_file_queue, now of size: "
+                    f"{self._remote_file_queue.qsize()}"
                 )
             self.newItem.emit(row_id)
         else:
             # deleted and conflicted
-            log.debug("Not processable state: %r", state)
+            log.debug(f"Not processable state: {state!r}")
 
     @pyqtSlot()
     def _on_error_timer(self) -> None:
@@ -238,7 +236,9 @@ class QueueManager(QObject):
                         doc_pair.id, doc_pair.folderish, doc_pair.pair_state
                     )
                     del self._on_error_queue[doc_pair.id]
-                    log.debug("End of blacklist period, pushing doc_pair: %r", doc_pair)
+                    log.debug(
+                        f"End of blacklist period, pushing doc_pair: {doc_pair!r}"
+                    )
                     self.push(queue_item)
             if not self._on_error_queue:
                 self._error_timer.stop()
@@ -276,12 +276,12 @@ class QueueManager(QObject):
             error_count = 1
         if error_count > self._error_threshold:
             self.newErrorGiveUp.emit(doc_pair.id)
-            log.debug("Giving up on pair : %r", doc_pair)
+            log.debug(f"Giving up on pair : {doc_pair!r}")
             return
         if interval is None:
             interval = self._error_interval * error_count
         doc_pair.error_next_try = interval + int(time.time())
-        log.debug("Blacklisting pair for %ds: %r", interval, doc_pair)
+        log.debug(f"Blacklisting pair for {interval}s: {doc_pair!r}")
         with self._error_lock:
             emit_sig = False
             if doc_pair.id not in self._on_error_queue:
@@ -450,7 +450,7 @@ class QueueManager(QObject):
         else:
             result = doc_pair.local_path.startswith(path)
         if result:
-            log.trace("Worker(%r) is processing: %r", worker.get_metrics(), path)
+            log.trace(f"Worker({worker.get_metrics()!r}) is processing: {path!r}")
         return result
 
     def interrupt_processors_on(self, path: str, exact_match: bool = True) -> None:

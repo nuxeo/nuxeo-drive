@@ -79,7 +79,7 @@ class FileInfo:
         # NXDRIVE-188: normalize name on the file system if not normalized
         if not MAC and os.path.exists(filepath) and normalized_filepath != filepath:
             log.debug(
-                "Forcing normalization of %r to %r", filepath, normalized_filepath
+                f"Forcing normalization of {filepath!r} to {normalized_filepath!r}"
             )
             os.rename(filepath, normalized_filepath)
 
@@ -98,7 +98,7 @@ class FileInfo:
         self.name = os.path.basename(path)
 
     def __repr__(self) -> str:
-        return "FileInfo<path=%r, remote_ref=%r>" % (self.filepath, self.remote_ref)
+        return f"FileInfo<path={self.filepath!r}, remote_ref={self.remote_ref!r}>"
 
     def get_digest(self, digest_func: str = None) -> Optional[str]:
         """ Lazy computation of the digest. """
@@ -146,11 +146,11 @@ class LocalClient:
 
     def __repr__(self) -> str:
         return (
-            "<{name}"
-            " base_folder={cls.base_folder!r},"
-            " is_case_sensitive={cls._case_sensitive!r}"
+            f"<{type(self).__name__}"
+            f" base_folder={self.base_folder!r},"
+            f" is_case_sensitive={self._case_sensitive!r}"
             ">"
-        ).format(name=type(self).__name__, cls=self)
+        )
 
     def is_case_sensitive(self) -> bool:
         if self._case_sensitive is None:
@@ -225,7 +225,7 @@ class LocalClient:
 
     def remove_remote_id(self, ref: str, name: str = "ndrive") -> None:
         path = self.abspath(ref)
-        log.trace("Removing xattr %r from %r", name, path)
+        log.trace(f"Removing xattr {name!r} from {path!r}")
         locker = unlock_path(path, False)
         func = (
             self._remove_remote_id_windows if WINDOWS else self._remove_remote_id_unix
@@ -347,10 +347,10 @@ FolderType=Generic
         if not isinstance(remote_id, bytes):
             remote_id = unicodedata.normalize("NFC", remote_id).encode("utf-8")
 
-        log.trace("Setting xattr %r with value %r on %r", name, remote_id, path)
+        log.trace(f"Setting xattr {name!r} with value {remote_id!r} on {path!r}")
         locker = unlock_path(path, False)
         if WINDOWS:
-            path_alt = path + ":" + name
+            path_alt = f"{path}:{name}"
             try:
                 if not os.path.exists(path):
                     raise NotFound()
@@ -390,7 +390,7 @@ FolderType=Generic
     def get_remote_id(self, ref: str, name: str = "ndrive") -> Optional[str]:
         path = self.abspath(ref)
         value = self.get_path_remote_id(path, name)
-        log.trace("Getting xattr %r from %r: %r", name, path, value)
+        log.trace(f"Getting xattr {name!r} from {path!r}: {value!r}")
         return value
 
     @staticmethod
@@ -528,7 +528,7 @@ FolderType=Generic
 
         for child_name in sorted(children):
             if self.is_ignored(ref, child_name) or self.is_temp_file(child_name):
-                log.debug("Ignoring banned file %r in %r", child_name, os_path)
+                log.debug(f"Ignoring banned file {child_name!r} in {os_path!r}")
                 continue
 
             child_ref = self.get_children_ref(ref, child_name)
@@ -594,12 +594,12 @@ FolderType=Generic
         if not os.path.exists(os_path):
             return
 
-        log.trace("Trashing %r", os_path)
+        log.trace(f"Trashing {os_path!r}")
         locker = self.unlock_ref(os_path, is_abs=True)
         try:
             send2trash(os_path)
         except OSError as exc:
-            log.error("Cannot trash %r", os_path)
+            log.error(f"Cannot trash {os_path!r}")
             try:
                 # WindowsError(None, None, path, retcode)
                 _, _, _, retcode = exc.args
@@ -720,7 +720,7 @@ FolderType=Generic
             filename = safe_long_path(filename)
 
         log.trace(
-            "Setting file dates for %r (ctime=%r, mtime=%r)", filename, ctime, mtime
+            f"Setting file dates for {filename!r} (ctime={ctime!r}, mtime={mtime!r})"
         )
 
         # Set the creation time first as on macOS using touch will change ctime and mtime.

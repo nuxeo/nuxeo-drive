@@ -151,7 +151,8 @@ class BaseUpdater(PollWorker):
         path = os.path.join(gettempdir(), uuid.uuid4().hex + "_" + name)
 
         log.info(
-            f"Fetching version {version} from update site {self.update_site!r} into {path!r}"
+            f"Fetching version {version!r} from update site {self.update_site!r} "
+            f"into {path!r}"
         )
         try:
             req = requests.get(url, stream=True)
@@ -305,7 +306,8 @@ class BaseUpdater(PollWorker):
         computed = func.hexdigest()
 
         log.trace(
-            f"Integrity check [{algo.upper()}] for {filename!r}: good={checksum!r}, found={computed}"
+            f"Integrity check [{algo.upper()}] for {filename!r}: "
+            f"good={checksum!r}, found={computed!r}"
         )
         return computed == checksum
 

@@ -417,9 +417,8 @@ class CliHandler:
                 elif "\n" in value:
                     if "=" in value:
                         log.error(
-                            "Malformatted parameter in config.ini: %r => %r",
-                            item[0],
-                            value,
+                            "Malformatted parameter in config.ini: "
+                            f"{item[0]!r} => {value!r}"
                         )
                         value = value.split()[0].split("=")[0].strip()
                     else:
@@ -467,10 +466,10 @@ class CliHandler:
             # Don't need uninstall logs either for now.
             self._configure_logger(command, options)
 
-        log.debug("Command line: argv=%r, options=%r", argv, options)
+        log.debug(f"Command line: argv={argv!r}, options={options!r}")
         if QSslSocket:
             has_ssl_support = QSslSocket.supportsSsl()
-            log.info("SSL support: %r", has_ssl_support)
+            log.info(f"SSL support: {has_ssl_support!r}")
             if not has_ssl_support:
                 options.consider_ssl_errors = False
 
@@ -489,9 +488,7 @@ class CliHandler:
         # Find the command to execute based on the
         handler = getattr(self, command, None)
         if not handler:
-            raise NotImplementedError(
-                "No handler implemented for command {}".format(command)
-            )
+            raise NotImplementedError(f"No handler implemented for command {command}")
 
         return handler(options)
 
@@ -614,16 +611,16 @@ class CliHandler:
             if engine.local_folder == options.local_folder:
                 self.manager.unbind_engine(uid)
                 return 0
-        log.error("No engine registered for local folder %r", options.local_folder)
+        log.error(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
     def bind_root(self, options: Namespace) -> int:
         for engine in self.manager.get_engines().values():
-            log.trace("Comparing: %r to %r", engine.local_folder, options.local_folder)
+            log.trace(f"Comparing: {engine.local_folder!r} to {options.local_folder!r}")
             if engine.local_folder == options.local_folder:
                 engine.remote.register_as_root(options.remote_root)
                 return 0
-        log.error("No engine registered for local folder %r", options.local_folder)
+        log.error(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
     def unbind_root(self, options: Namespace) -> int:
@@ -631,18 +628,18 @@ class CliHandler:
             if engine.local_folder == options.local_folder:
                 engine.remote.unregister_as_root(options.remote_root)
                 return 0
-        log.error("No engine registered for local folder %r", options.local_folder)
+        log.error(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
     @staticmethod
     def _install_faulthandler() -> None:
         """ Utility to help debug segfaults. """
         segfault_filename = os.path.join(Options.nxdrive_home, "logs", "segfault.log")
-        log.debug("Enabling faulthandler in %r", segfault_filename)
+        log.debug(f"Enabling faulthandler in {segfault_filename!r}")
 
         segfault_file = open(segfault_filename, "a")
         try:
-            segfault_file.write("\n\n\n>>> {}\n".format(datetime.now()))
+            segfault_file.write(f"\n\n\n>>> {datetime.now()}\n")
             faulthandler.enable(file=segfault_file)
         finally:
             segfault_file.close()
