@@ -4,7 +4,7 @@ import socket
 from datetime import datetime
 from logging import getLogger
 from time import sleep
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Set, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from nuxeo.exceptions import BadQuery, HTTPError
@@ -14,8 +14,12 @@ from ..activity import Action, tooltip
 from ..workers import EngineWorker
 from ...constants import WINDOWS
 from ...exceptions import NotFound, ThreadInterrupt
-from ...objects import Metrics, NuxeoDocumentInfo, RemoteFileInfo
+from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
 from ...utils import current_milli_time, path_join, safe_filename
+
+if TYPE_CHECKING:
+    from ..dao.sqlite import EngineDAO  # noqa
+    from ..engine import Engine  # noqa
 
 __all__ = ("RemoteWatcher",)
 
@@ -75,13 +79,14 @@ class RemoteWatcher(EngineWorker):
             raise
 
     @tooltip("Remote scanning")
-    def _scan_remote(self, from_state: NuxeoDocumentInfo = None):
+    def _scan_remote(self, from_state: DocPair = None):
         """Recursively scan the bound remote folder looking for updates"""
         log.trace("Remote full scan")
         start_ms = current_milli_time()
         try:
-            if from_state is None:
-                from_state = self._dao.get_state_from_local("/")
+            from_state = from_state or self._dao.get_state_from_local("/")
+            if not from_state:
+                return
             remote_info = self.engine.remote.get_fs_info(from_state.remote_ref)
             self._dao.update_remote_state(
                 from_state,
@@ -153,14 +158,14 @@ class RemoteWatcher(EngineWorker):
                 child_info, remote_parent_path, local_path, parent_pair.local_path
             )
             doc_pair = self._dao.get_state_from_id(row_id, from_write=True)
-            if child_info.folderish:
+            if doc_pair and child_info.folderish:
                 self._do_scan_remote(doc_pair, child_info)
         else:
             log.debug(f"Remote scan_pair: {remote_path!r} is not available")
             self._scan_remote()
 
     @staticmethod
-    def _check_modified(pair: NuxeoDocumentInfo, info: NuxeoDocumentInfo) -> bool:
+    def _check_modified(pair: DocPair, info: RemoteFileInfo) -> bool:
         return any(
             {
                 pair.remote_can_delete != info.can_delete,
@@ -175,34 +180,28 @@ class RemoteWatcher(EngineWorker):
 
     def _do_scan_remote(
         self,
-        doc_pair: NuxeoDocumentInfo,
-        remote_info: NuxeoDocumentInfo,
+        doc_pair: DocPair,
+        remote_info: RemoteFileInfo,
         force_recursion: bool = True,
         moved: bool = False,
     ) -> None:
         if remote_info.can_scroll_descendants:
             log.debug(
-                "Performing scroll remote scan for %r (%r)",
-                remote_info.name,
-                remote_info,
+                "Performing scroll remote scan "
+                f"for {remote_info.name!r} ({remote_info})"
             )
             self._scan_remote_scroll(doc_pair, remote_info, moved=moved)
         else:
             log.debug(
-                "Scroll scan not available, performing recursive "
-                "remote scan for %r (%r)",
-                remote_info.name,
-                remote_info,
+                "Scroll scan not available, performing recursive remote scan "
+                f"for {remote_info.name!r} ({remote_info})"
             )
             self._scan_remote_recursive(
                 doc_pair, remote_info, force_recursion=force_recursion
             )
 
     def _scan_remote_scroll(
-        self,
-        doc_pair: NuxeoDocumentInfo,
-        remote_info: NuxeoDocumentInfo,
-        moved: bool = False,
+        self, doc_pair: DocPair, remote_info: RemoteFileInfo, moved: bool = False
     ) -> None:
         """
         Perform a scroll scan of the bound remote folder looking for updates.
@@ -333,8 +332,8 @@ class RemoteWatcher(EngineWorker):
 
     def _scan_remote_recursive(
         self,
-        doc_pair: NuxeoDocumentInfo,
-        remote_info: NuxeoDocumentInfo,
+        doc_pair: DocPair,
+        remote_info: RemoteFileInfo,
         force_recursion: bool = True,
     ) -> None:
         """
@@ -353,7 +352,9 @@ class RemoteWatcher(EngineWorker):
 
         # Detect recently deleted children
         db_children = self._dao.get_remote_children(doc_pair.remote_ref)
-        children = {child.remote_ref: child for child in db_children}
+        children: Dict[str, DocPair] = {
+            child.remote_ref: child for child in db_children
+        }
         children_info = self.engine.remote.get_fs_children(remote_info.uid)
 
         to_scan = []
@@ -372,9 +373,11 @@ class RemoteWatcher(EngineWorker):
                     child_pair, child_info, remote_parent_path=remote_parent_path
                 )
             else:
-                child_pair, new_pair = self._find_remote_child_match_or_create(
+                match_pair = self._find_remote_child_match_or_create(
                     doc_pair, child_info
                 )
+                if match_pair:
+                    child_pair, new_pair = match_pair
 
             if (new_pair or force_recursion) and child_info.folderish:
                 to_scan.append((child_pair, child_info))
@@ -383,13 +386,13 @@ class RemoteWatcher(EngineWorker):
         for deleted in children.values():
             self._dao.delete_remote_state(deleted)
 
-        for folder in to_scan:
+        for pair, info in to_scan:
             # TODO Optimize by multithreading this too ?
-            self._do_scan_remote(folder[0], folder[1], force_recursion=force_recursion)
+            self._do_scan_remote(pair, info, force_recursion=force_recursion)
         self._dao.add_path_scanned(remote_parent_path)
 
     def _init_scan_remote(
-        self, doc_pair: NuxeoDocumentInfo, remote_info: NuxeoDocumentInfo
+        self, doc_pair: DocPair, remote_info: RemoteFileInfo
     ) -> Optional[str]:
         if remote_info is None:
             raise ValueError(f"Cannot bind {doc_pair!r} to missing remote info")
@@ -409,8 +412,8 @@ class RemoteWatcher(EngineWorker):
         return remote_parent_path
 
     def _find_remote_child_match_or_create(
-        self, parent_pair: NuxeoDocumentInfo, child_info: NuxeoDocumentInfo
-    ) -> Tuple[Optional[RemoteFileInfo], Optional[bool]]:
+        self, parent_pair: DocPair, child_info: RemoteFileInfo
+    ) -> Optional[Tuple[DocPair, bool]]:
         if not parent_pair.local_path:
             # The parent folder has an empty local_path,
             # it probably means that it has been put in error as a duplicate
@@ -419,14 +422,14 @@ class RemoteWatcher(EngineWorker):
                 f"Ignoring child {child_info!r} of a duplicate folder "
                 f"in error {parent_pair!r}"
             )
-            return None, None
+            return None
 
         if self._dao.get_normal_state_from_remote(child_info.uid):
             log.warning(
                 "Illegal state: a remote creation cannot happen if "
                 "there already is the same remote ref in the database"
             )
-            return None, None
+            return None
 
         local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
         remote_parent_path = (
@@ -446,11 +449,8 @@ class RemoteWatcher(EngineWorker):
                     )
                     child_pair = self._dao.get_state_from_local(child.path)
                     break
-        if child_pair is not None:
-            if (
-                child_pair.remote_ref is not None
-                and child_pair.remote_ref != child_info.uid
-            ):
+        if child_pair:
+            if child_pair.remote_ref and child_pair.remote_ref != child_info.uid:
                 log.debug(
                     "Got an existing pair with different id: "
                     f"{child_pair!r} | {child_info!r}"
@@ -488,19 +488,24 @@ class RemoteWatcher(EngineWorker):
                         )
                         if not synced:
                             # Try again, might happen that it has been modified locally and remotely
-                            child_pair = self._dao.get_state_from_id(child_pair.id)
+                            refreshed = self._dao.get_state_from_id(child_pair.id)
                             if (
-                                child_pair.folderish is child_info.folderish is False
+                                refreshed
+                                and refreshed.folderish is child_info.folderish is False
                                 and self.engine.local.is_equal_digests(
-                                    child_pair.local_digest,
+                                    refreshed.local_digest,
                                     child_info.digest,
-                                    child_pair.local_path,
+                                    refreshed.local_path,
                                     remote_digest_algorithm=child_info.digest_algorithm,
                                 )
                             ):
-                                self._dao.synchronize_state(child_pair)
-                                child_pair = self._dao.get_state_from_id(child_pair.id)
-                                synced = child_pair.pair_state == "synchronized"
+                                self._dao.synchronize_state(refreshed)
+                                refreshed = self._dao.get_state_from_id(refreshed.id)
+                                synced = bool(
+                                    refreshed and refreshed.pair_state == "synchronized"
+                                )
+
+                            child_pair = refreshed if refreshed else child_pair
                         # Can be updated in previous call
                         if synced:
                             self.engine.stop_processor_on(child_pair.local_path)
@@ -520,14 +525,14 @@ class RemoteWatcher(EngineWorker):
                         child_pair, child_info, remote_parent_path=remote_parent_path
                     )
                 child_pair = self._dao.get_state_from_id(child_pair.id, from_write=True)
-                return child_pair, False
+                return (child_pair, False) if child_pair else None
         row_id = self._dao.insert_remote_state(
             child_info, remote_parent_path, local_path, parent_pair.local_path
         )
         child_pair = self._dao.get_state_from_id(row_id, from_write=True)
-        return child_pair, True
+        return (child_pair, True) if child_pair else None
 
-    def _handle_readonly(self, doc_pair: RemoteFileInfo) -> None:
+    def _handle_readonly(self, doc_pair: DocPair) -> None:
         # Don't use readonly on folder for win32 and on Locally Edited
         if doc_pair.folderish and WINDOWS:
             return
@@ -577,7 +582,7 @@ class RemoteWatcher(EngineWorker):
 
             paths = self._dao.get_paths_to_scan()
             while paths:
-                remote_ref = paths[0].path
+                remote_ref = paths[0]
                 self._dao.update_config("remote_need_full_scan", remote_ref)
                 self._partial_full_scan(remote_ref)
                 paths = self._dao.get_paths_to_scan()
@@ -592,8 +597,8 @@ class RemoteWatcher(EngineWorker):
             else:
                 log.error(err)
         except (ConnectionError, socket.error) as exc:
-            log.error("Network error: %s", exc)
-        except BadQuery as exc:
+            log.error(f"Network error: {exc}")
+        except BadQuery:
             # This should never happen: there is an error in the operation's
             # parameters sent to the server.  This exception is possible only
             # in debug mode or when running the test suite.
@@ -633,8 +638,8 @@ class RemoteWatcher(EngineWorker):
 
     def _force_remote_scan(
         self,
-        doc_pair: NuxeoDocumentInfo,
-        remote_info: NuxeoDocumentInfo,
+        doc_pair: DocPair,
+        remote_info: RemoteFileInfo,
         remote_path: str = None,
         force_recursion: bool = True,
         moved: bool = False,
@@ -675,7 +680,7 @@ class RemoteWatcher(EngineWorker):
         self.changesFound.emit(n_changes)
 
         # Scan events and update the related pair states
-        refreshed = set()
+        refreshed: Set[str] = set()
         delete_queue = []
         for change in sorted_changes:
             # Check if synchronization thread was suspended
@@ -712,19 +717,21 @@ class RemoteWatcher(EngineWorker):
                 # match 'deleted' or 'securityUpdated' events.
                 # See https://jira.nuxeo.com/browse/NXDRIVE-167
                 doc_pair = self._dao.get_first_state_from_partial_remote(remote_ref)
-                if doc_pair is not None:
+                if doc_pair:
                     doc_pairs = [doc_pair]
 
             updated = False
             doc_pairs = doc_pairs or []
             for doc_pair in doc_pairs:
+                if not doc_pair:
+                    continue
                 doc_pair_repr = (
                     doc_pair.local_path
                     if doc_pair.local_path is not None
                     else doc_pair.remote_name
                 )
                 if event_id == "deleted":
-                    if fs_item is None:
+                    if fs_item is None or new_info is None:
                         if doc_pair.local_path == "":
                             log.debug(f"Delete pair from duplicate: {doc_pair!r}")
                             self._dao.remove_state(doc_pair, remote_recursion=True)
@@ -739,7 +746,7 @@ class RemoteWatcher(EngineWorker):
                         # To ignore completely put updated to true
                         updated = True
                         break
-                elif fs_item is None:
+                elif fs_item is None or new_info is None:
                     if event_id == "securityUpdated":
                         log.debug(
                             f"Security has been updated for doc_pair {doc_pair_repr!r} "
@@ -781,25 +788,25 @@ class RemoteWatcher(EngineWorker):
                         """
                         consistent_new_info = new_info
                         if remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME:
-                            consistent_new_info = RemoteFileInfo(
-                                name=new_info.name,
-                                uid=new_info.uid,
-                                parent_uid=doc_pair.remote_parent_ref,
-                                path=doc_pair.remote_parent_path + "/" + remote_ref,
-                                folderish=new_info.folderish,
-                                last_modification_time=new_info.last_modification_time,
-                                creation_time=new_info.creation_time,
-                                last_contributor=new_info.last_contributor,
-                                digest=new_info.digest,
-                                digest_algorithm=new_info.digest_algorithm,
-                                download_url=new_info.download_url,
-                                can_rename=new_info.can_rename,
-                                can_delete=new_info.can_delete,
-                                can_update=new_info.can_update,
-                                can_create_child=new_info.can_create_child,
-                                lock_owner=new_info.lock_owner,
-                                lock_created=new_info.lock_created,
-                                can_scroll_descendants=new_info.can_scroll_descendants,
+                            consistent_new_info = RemoteFileInfo(  # type: ignore
+                                new_info.name,
+                                new_info.uid,
+                                doc_pair.remote_parent_ref,
+                                doc_pair.remote_parent_path + "/" + remote_ref,
+                                new_info.folderish,
+                                new_info.last_modification_time,
+                                new_info.creation_time,
+                                new_info.last_contributor,
+                                new_info.digest,
+                                new_info.digest_algorithm,
+                                new_info.download_url,
+                                new_info.can_rename,
+                                new_info.can_delete,
+                                new_info.can_update,
+                                new_info.can_create_child,
+                                new_info.lock_owner,
+                                new_info.lock_created,
+                                new_info.can_scroll_descendants,
                             )
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved
@@ -870,16 +877,18 @@ class RemoteWatcher(EngineWorker):
                         if lock_update:
                             locked_pair = self._dao.get_state_from_id(doc_pair.id)
                             try:
-                                self._handle_readonly(doc_pair)
+                                if locked_pair:
+                                    self._handle_readonly(locked_pair)
                             except OSError as exc:
                                 log.trace(
                                     f"Cannot handle readonly for {locked_pair!r} ({exc!r})"
                                 )
 
                 pair = self._dao.get_state_from_id(doc_pair.id)
-                self.engine.manager.osi.send_sync_status(
-                    pair, self.engine.local.abspath(pair.local_path)
-                )
+                if pair:
+                    self.engine.manager.osi.send_sync_status(
+                        pair, self.engine.local.abspath(pair.local_path)
+                    )
 
                 updated = True
                 refreshed.add(remote_ref)
@@ -889,22 +898,25 @@ class RemoteWatcher(EngineWorker):
                 created = False
                 parent_pairs = self._dao.get_states_from_remote(new_info.parent_uid)
                 for parent_pair in parent_pairs:
-                    child_pair, new_pair = self._find_remote_child_match_or_create(
+                    match_pair = self._find_remote_child_match_or_create(
                         parent_pair, new_info
                     )
-                    if new_pair:
-                        log.debug(
-                            "Marked doc_pair %r as remote creation",
-                            child_pair.remote_name,
-                        )
-
-                    if child_pair and child_pair.folderish and new_pair:
-                        log.debug(
-                            "Remote recursive scan of the content of %r",
-                            child_pair.remote_name,
-                        )
-                        remote_path = child_pair.remote_parent_path + "/" + new_info.uid
-                        self._force_remote_scan(child_pair, new_info, remote_path)
+                    if match_pair:
+                        child_pair, new_pair = match_pair
+                        if child_pair.folderish:
+                            log.debug(
+                                "Remote recursive scan of the content "
+                                f"of {child_pair.remote_name!r}"
+                            )
+                            remote_path = (
+                                f"{child_pair.remote_parent_path}/{new_info.uid}"
+                            )
+                            self._force_remote_scan(child_pair, new_info, remote_path)
+                        else:
+                            log.debug(
+                                f"Marked doc_pair {child_pair.remote_name!r} "
+                                "as remote creation"
+                            )
 
                     created = True
                     refreshed.add(remote_ref)
@@ -918,12 +930,12 @@ class RemoteWatcher(EngineWorker):
 
         # Sort by path the deletion to only mark parent
         sorted_deleted = sorted(delete_queue, key=lambda x: x.local_path)
-        delete_processed = []
+        delete_processed: DocPairs = []
         for delete_pair in sorted_deleted:
             # Mark as deleted
             skip = False
-            for processed in delete_processed:
-                path = processed.local_path
+            for processed_pair in delete_processed:
+                path = processed_pair.local_path
 
                 if path[-1] != "/":
                     path += "/"
@@ -943,7 +955,7 @@ class RemoteWatcher(EngineWorker):
             log.debug(f"Marking doc_pair {delete_pair!r} as deleted")
             self._dao.delete_remote_state(delete_pair)
 
-    def filtered(self, info: NuxeoDocumentInfo) -> bool:
+    def filtered(self, info: Optional[RemoteFileInfo]) -> bool:
         """ Check if a remote document is locally ignored. """
         return (
             info is not None

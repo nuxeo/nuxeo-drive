@@ -1,12 +1,15 @@
 # coding: utf-8
 from logging import getLogger
-from typing import Any, Dict, Type
+from typing import Any, Dict, Type, TYPE_CHECKING
 
 import requests
 from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
 from ..utils import decrypt, encrypt, force_decode
+
+if TYPE_CHECKING:
+    from ..engine.dao.sqlite import EngineDAO  # noqa
 
 __all__ = (
     "AutomaticProxy",
@@ -22,7 +25,7 @@ log = getLogger(__name__)
 
 
 class Proxy:
-    category = None
+    category: str
 
     def __init__(self, **kwargs: str) -> None:
         """
@@ -37,7 +40,10 @@ class Proxy:
             for attr in sorted(vars(self))
             if not attr.startswith("_")
         )
-        return "{}<{}>".format(type(self).__name__, attrs)
+        return f"{type(self).__name__}<{attrs}>"
+
+    def settings(self, **kwargs: Any) -> Any:
+        return None
 
 
 class NoProxy(Proxy):
@@ -67,9 +73,6 @@ class SystemProxy(Proxy):
 
     category = "System"
 
-    def settings(self, **kwargs: Any) -> None:
-        return None
-
 
 class ManualProxy(Proxy):
     """
@@ -78,7 +81,7 @@ class ManualProxy(Proxy):
 
     category = "Manual"
 
-    def __init__(self, url: str = None, **kwargs: Any) -> None:
+    def __init__(self, url: str = "", **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
         if "://" not in url:
@@ -130,7 +133,7 @@ def get_proxy(**kwargs: Any) -> Proxy:
     return _get_cls(kwargs.pop("category"))(**kwargs)
 
 
-def load_proxy(dao: "EngineDAO", token: str = None) -> Proxy:
+def load_proxy(dao: "EngineDAO", token: str = "") -> Proxy:
     category = dao.get_config("proxy_config", "System")
     kwargs = {}
 
@@ -144,7 +147,7 @@ def load_proxy(dao: "EngineDAO", token: str = None) -> Proxy:
         url = dao.get_config("proxy_url")
         if url:
             # This is the new proxy settings
-            kwargs["url"] = force_decode(decrypt(url, token))
+            kwargs["url"] = force_decode(decrypt(url, token) or "")
         else:
             # We need to convert the old settings to the new format
             url = (dao.get_config("proxy_type") or "http") + "://"
@@ -166,13 +169,11 @@ def load_proxy(dao: "EngineDAO", token: str = None) -> Proxy:
 def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
     dao.update_config("proxy_config", proxy.category)
 
-    if proxy.category == "Automatic":
+    if isinstance(proxy, AutomaticProxy):
         dao.update_config("proxy_pac_url", proxy.pac_url)
-    elif proxy.category == "Manual":
+    elif isinstance(proxy, ManualProxy):
         # Encrypt password with token as the secret
-        if not token:
-            token = dao.get_config("device_id")
-        token += "_proxy"
+        token = (token or dao.get_config("device_id")) + "_proxy"
         dao.update_config("proxy_url", encrypt(proxy.url, token))
 
 

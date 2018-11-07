@@ -1,7 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 from threading import Thread
-from typing import Generator, List, Type
+from typing import Iterator, List
 
 from PyQt5.QtCore import QModelIndex, QObject, QVariant, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QMovie, QPalette, QStandardItem, QStandardItemModel
@@ -19,7 +19,7 @@ log = getLogger(__name__)
 class FileInfo:
     def __init__(self, parent: QObject = None, state: int = None) -> None:
         self.parent = parent
-        self.children = []
+        self.children: List["FileInfo"] = []
         if parent:
             parent.add_child(self)
         if state is None and parent is not None:
@@ -41,7 +41,7 @@ class FileInfo:
     def add_child(self, child: "FileInfo") -> None:
         self.children.append(child)
 
-    def get_children(self) -> Generator["FileInfo", None, None]:
+    def get_children(self) -> Iterator["FileInfo"]:
         for child in self.children:
             yield child
 
@@ -98,15 +98,14 @@ class FsFileInfo(FileInfo):
 
 
 class Client:
-    def get_children(self, parent: FileInfo = None) -> None:
-        return None
+    pass
 
 
 class FilteredFsClient(Client):
     def __init__(self, fs_client: Remote, filters: Filters = None) -> None:
         self.fs_client = fs_client
         filters = filters or []
-        self.filters = [filter_obj.path for filter_obj in filters]
+        self.filters = filters
 
     def get_item_state(self, path: str) -> int:
         if not path.endswith("/"):
@@ -121,9 +120,7 @@ class FilteredFsClient(Client):
 
         return Qt.Checked
 
-    def get_children(
-        self, parent: FileInfo = None
-    ) -> Generator[FsFileInfo, None, None]:
+    def get_children(self, parent: FileInfo = None) -> Iterator[FsFileInfo]:
         if parent:
             for info in self.fs_client.get_fs_children(parent.get_id(), filtered=False):
                 yield FsFileInfo(info, parent, self.get_item_state(info.path))
@@ -143,7 +140,7 @@ class FolderTreeview(QTreeView):
         # parent is FiltersDialog
         super().__init__(parent)
         self.client = client
-        self.cache = []
+        self.cache: List[str] = []
         self.root_item = QStandardItemModel()
         self.root_item.itemChanged.connect(self.itemChanged)
         self.showHideLoadingOverlay.connect(self.setLoad)
@@ -151,7 +148,7 @@ class FolderTreeview(QTreeView):
         self.setHeaderHidden(True)
 
         # Keep track of dirty items
-        self.dirty_items = []
+        self.dirty_items: List[QStandardItemModel] = []
         # Add widget overlay for loading
         self.overlay = Overlay(self)
         self.overlay.move(1, 0)
@@ -235,7 +232,7 @@ class FolderTreeview(QTreeView):
         load_thread = Thread(target=self.load_children_thread, args=(item,))
         load_thread.start()
 
-    def sort_children(self, children: List[Type[FileInfo]]) -> List[Type[FileInfo]]:
+    def sort_children(self, children: List[FsFileInfo]) -> List[FsFileInfo]:
         # Put in a specific method to be able to override if needed
         # NXDRIVE-12: Sort child alphabetically
         return sorted(children, key=lambda x: x.get_label().lower())

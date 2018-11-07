@@ -2,7 +2,7 @@
 from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
-from typing import Dict, List
+from typing import Dict, Iterable, Iterator, List, Tuple, TYPE_CHECKING
 
 import psutil
 from PyQt5.QtCore import QTimer, pyqtSignal
@@ -11,10 +11,14 @@ from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
 from .utils import force_decode
 
+if TYPE_CHECKING:
+    from .direct_edit import DirectEdit  # noqa
+    from .engine.dao.sqlite import ManagerDAO  # noqa
+
 __all__ = ("ProcessAutoLockerWorker",)
 
 log = getLogger(__name__)
-Item = Dict[int, str]
+Item = Tuple[int, str]
 Items = List[Item]
 
 
@@ -29,9 +33,9 @@ class ProcessAutoLockerWorker(PollWorker):
         self._dao = dao
         self._folder = force_decode(folder)
 
-        self._autolocked = {}
-        self._lockers = {}
-        self._to_lock = []
+        self._autolocked: Dict[str, int] = {}
+        self._lockers: Dict[str, "DirectEdit"] = {}
+        self._to_lock: Items = []
         self._first = True
 
     def set_autolock(self, filepath: str, locker: "DirectEdit") -> None:
@@ -43,7 +47,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self._lockers[filepath] = locker
         QTimer.singleShot(2000, self.force_poll)
 
-    def _poll(self) -> None:
+    def _poll(self) -> bool:
         try:
             if self._first:
                 # Cannot guess the locker of orphans so emit a signal
@@ -51,10 +55,12 @@ class ProcessAutoLockerWorker(PollWorker):
                 self.orphanLocks.emit(locks)
                 self._first = False
             self._process()
+            return True
         except ThreadInterrupt:
             raise
         except:
             log.exception("Unhandled error")
+        return False
 
     def orphan_unlocked(self, path: str) -> None:
         self._dao.unlock_path(path)
@@ -69,7 +75,7 @@ class ProcessAutoLockerWorker(PollWorker):
             else:
                 continue
 
-            item = (pid, path)
+            item: Item = (pid, path)
             if path in to_unlock:
                 if not self._autolocked[path]:
                     self._to_lock.append(item)
@@ -83,7 +89,7 @@ class ProcessAutoLockerWorker(PollWorker):
         for item in items:
             self._lock_file(item)
 
-    def _unlock_files(self, files: List[str]) -> None:
+    def _unlock_files(self, files: Iterable[str]) -> None:
         for path in files:
             self._unlock_file(path)
 
@@ -106,8 +112,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self._dao.unlock_path(path)
 
 
-def get_open_files() -> Items:
-    # type () -> generator(int, str)
+def get_open_files() -> Iterator[Item]:
     """
     Get all opened files on the OS.
 

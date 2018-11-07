@@ -205,7 +205,13 @@ function install_python {
 
 function launch_tests {
 	# Launch the tests suite
+	$Env:MYPYPATH = "$Env:WORKSPACE_DRIVE\tools\stubs"
+
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}

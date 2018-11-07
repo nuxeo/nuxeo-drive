@@ -2,9 +2,13 @@
 """ Evolution to try new engine solution. """
 
 from logging import getLogger
-from typing import Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
 
 from ..engine import Engine
+
+if TYPE_CHECKING:
+    from .queue_manager import QueueManager  # noqa
+    from .simple_watcher import SimpleWatcher  # noqa
 
 __all__ = ("EngineNext",)
 
@@ -20,7 +24,7 @@ class EngineNext(Engine):
         return Processor(self, item_getter, **kwargs)
 
     def _create_queue_manager(self, processors: int) -> "QueueManager":
-        from .queue_manager import QueueManager
+        from .queue_manager import QueueManager  # noqa
         from ...options import Options
 
         if Options.debug:
@@ -28,6 +32,6 @@ class EngineNext(Engine):
         return QueueManager(self, self._dao)
 
     def _create_local_watcher(self) -> "SimpleWatcher":
-        from .simple_watcher import SimpleWatcher
+        from .simple_watcher import SimpleWatcher  # noqa
 
         return SimpleWatcher(self, self._dao)

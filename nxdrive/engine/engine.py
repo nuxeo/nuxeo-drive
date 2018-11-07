@@ -4,9 +4,10 @@ import os
 from logging import getLogger
 from threading import Thread, current_thread
 from time import sleep
-from typing import Any, Callable, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 from urllib.parse import urlsplit
 
+from dataclasses import dataclass
 from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
 
@@ -26,7 +27,7 @@ from ..exceptions import (
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
 )
-from ..objects import Binder, DocPairs, Metrics
+from ..objects import DocPairs, Binder, Metrics, EngineDef
 from ..options import Options
 from ..utils import (
     find_icon,
@@ -36,6 +37,9 @@ from ..utils import (
     set_path_readonly,
     unset_path_readonly,
 )
+
+if TYPE_CHECKING:
+    from ..manager import Manager  # noqa
 
 __all__ = ("Engine", "ServerBindingSettings")
 
@@ -76,15 +80,18 @@ class Engine(QObject):
     online = pyqtSignal()
 
     type = "NXDRIVE"
+    # Folder locker - LocalFolder processor can prevent
+    # others processors to operate on a folder
+    _folder_lock: Optional[str] = None
 
     def __init__(
         self,
         manager: "Manager",
-        definition: object,
+        definition: EngineDef,
         binder: Binder = None,
         processors: int = 5,
         remote_cls: Type[Remote] = Remote,
-        local_cls: Type[LocalWatcher] = LocalClient,
+        local_cls: Type[LocalClient] = LocalClient,
     ) -> None:
         super().__init__()
 
@@ -92,13 +99,9 @@ class Engine(QObject):
 
         self.remote_cls = remote_cls
         self.local_cls = local_cls
-        self.remote = None
 
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
-        # Folder locker - LocalFolder processor can prevent
-        # others processors to operate on a folder
-        self._folder_lock = None
         self.timeout = 30
         self._handshake_timeout = 60
         self.manager = manager
@@ -116,15 +119,15 @@ class Engine(QObject):
         self._sync_started = False
         self._invalid_credentials = False
         self._offline_state = False
-        self._threads = list()
+        self._threads: List[QThread] = list()
         self._dao = EngineDAO(self._get_db_file())
 
         if binder:
             self.bind(binder)
         self._load_configuration()
 
-        if not self.remote:
-            self.init_remote()
+        if not binder:
+            self.remote = self.init_remote()
 
         self._local_watcher = self._create_local_watcher()
         self.create_thread(worker=self._local_watcher)
@@ -164,7 +167,7 @@ class Engine(QObject):
         self._scanPair.connect(self._remote_watcher.scan_pair)
 
         self._set_root_icon()
-        self._user_cache = dict()
+        self._user_cache: Dict[str, str] = dict()
 
         # Pause in case of no more space on the device
         self.noSpaceLeftOnDevice.connect(self.suspend)
@@ -261,7 +264,7 @@ class Engine(QObject):
     def add_filter(self, path: str) -> None:
         remote_ref = os.path.basename(path)
         remote_parent_path = os.path.dirname(path)
-        if remote_ref is None:
+        if not remote_ref:
             return
         self._dao.add_filter(path)
         pair = self._dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
@@ -393,7 +396,7 @@ class Engine(QObject):
             return False
 
         self.local.remove_remote_id("/", tag)
-        return self.local.get_remote_id("/", tag) is None
+        return not bool(self.local.get_remote_id("/", tag))
 
     @staticmethod
     def _normalize_url(url: str) -> str:
@@ -442,12 +445,12 @@ class Engine(QObject):
         )
 
     def get_binder(self) -> "ServerBindingSettings":
-        return ServerBindingSettings(
-            server_url=self.server_url,
-            web_authentication=self._web_authentication,
-            username=self.remote_user,
-            local_folder=self.local_folder,
-            initialized=True,
+        return ServerBindingSettings(  # type: ignore
+            self.server_url,
+            self._web_authentication,
+            self.remote_user,
+            self.local_folder,
+            True,
             pwd_update_required=self.has_invalid_credentials(),
         )
 
@@ -518,11 +521,13 @@ class Engine(QObject):
 
     def resolve_with_local(self, row_id: int) -> None:
         row = self._dao.get_state_from_id(row_id)
-        self._dao.force_local(row)
+        if row:
+            self._dao.force_local(row)
 
     def resolve_with_remote(self, row_id: int) -> None:
         row = self._dao.get_state_from_id(row_id)
-        self._dao.force_remote(row)
+        if row:
+            self._dao.force_remote(row)
 
     @pyqtSlot()
     def _check_last_sync(self) -> None:
@@ -704,7 +709,7 @@ class Engine(QObject):
         self.set_invalid_credentials(value=False)
         self.start()
 
-    def init_remote(self) -> None:
+    def init_remote(self) -> Remote:
         # Used for FS synchronization operations
         args = (self.server_url, self.remote_user, self.manager.device_id, self.version)
         kwargs = {
@@ -715,7 +720,7 @@ class Engine(QObject):
             "dao": self._dao,
             "proxy": self.manager.proxy,
         }
-        self.remote = self.remote_cls(*args, **kwargs)
+        return self.remote_cls(*args, **kwargs)
 
     def bind(self, binder: Binder) -> None:
         check_credentials = not binder.no_check
@@ -726,7 +731,7 @@ class Engine(QObject):
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
 
-        self.init_remote()
+        self.remote = self.init_remote()
 
         if check_fs:
             try:
@@ -767,7 +772,7 @@ class Engine(QObject):
 
         if os.path.isdir(path):
             root_id = self.local.get_root_id()
-            if root_id is not None:
+            if root_id:
                 # server_url|user|device_id|uid
                 server_url, user, *_ = root_id.split("|")
                 if (self.server_url, self.remote_user) != (server_url, user):
@@ -834,6 +839,9 @@ class Engine(QObject):
 
         self._dao.insert_local_state(local_info, "")
         row = self._dao.get_state_from_local("/")
+        if not row:
+            return
+
         self._dao.update_remote_state(
             row, remote_info, remote_parent_path="", versioned=False
         )
@@ -908,25 +916,15 @@ class Engine(QObject):
         return full_name
 
 
+@dataclass
 class ServerBindingSettings:
     """ Summarize server binding settings. """
 
-    def __init__(
-        self,
-        server_version: str = None,
-        password: str = None,
-        pwd_update_required: bool = False,
-        **kwargs,
-    ) -> None:
-        self.server_version = server_version
-        self.password = password
-        self.pwd_update_required = pwd_update_required
-        for arg, value in kwargs.items():
-            setattr(self, arg, value)
-
-    def __repr__(self) -> str:
-        attrs = ", ".join(
-            "{}={!r}".format(attr, getattr(self, attr, None))
-            for attr in sorted(vars(self))
-        )
-        return "<{} {}>".format(self.__class__.__name__, attrs)
+    server_url: str
+    web_authentication: str
+    username: str
+    local_folder: str
+    initialized: bool
+    server_version: Optional[str] = None
+    password: Optional[str] = None
+    pwd_update_required: bool = False

@@ -1,6 +1,6 @@
 # coding: utf-8
 """ Python integration macOS notification center. """
-from typing import Dict
+from typing import Dict, TYPE_CHECKING
 
 from Foundation import (
     NSBundle,
@@ -12,21 +12,26 @@ from Foundation import (
 
 from ...constants import BUNDLE_IDENTIFIER
 
+if TYPE_CHECKING:
+    from ...manager import Manager  # noqa
+
 __all__ = ("NotificationDelegator", "notify", "setup_delegator")
 
 
 class NotificationDelegator(NSObject):
+
+    _manager: "Manager"
+
     def __init__(self) -> None:
-        self._manager = None
         info_dict = NSBundle.mainBundle().infoDictionary()
         if "CFBundleIdentifier" not in info_dict:
             info_dict["CFBundleIdentifier"] = BUNDLE_IDENTIFIER
 
     def userNotificationCenter_didActivateNotification_(
-        self, center: object, notification: object
+        self, center: NSUserNotificationCenter, notification: NSMutableDictionary
     ) -> None:
         info = notification.userInfo()
-        if not info or "uuid" not in info or self._manager is None:
+        if "uuid" not in info:
             return
         notifications = self._manager.notification_service.get_notifications()
         if (

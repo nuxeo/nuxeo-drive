@@ -35,7 +35,7 @@ class FolderAlreadyUsed(DriveError):
 
 
 class InvalidDriveException(DriveError):
-    """ The bound folder cannot be used on this gile system. """
+    """ The bound folder cannot be used on this file system. """
 
     pass
 
@@ -94,6 +94,20 @@ class UnknownDigest(ValueError):
 
     def __repr__(self) -> str:
         return f"Unknown digest {self.digest!r}"
+
+    def __str__(self) -> str:
+        return repr(self)
+
+
+class UnknownPairState(ValueError):
+    """ The local and remote state don't fit any pair state. """
+
+    def __init__(self, local_state: str, remote_state: str) -> None:
+        self.local_state = local_state
+        self.remote_state = remote_state
+
+    def __repr__(self) -> str:
+        return f"Unknown pair state for {self.local_state!r} and {self.remote_state!r}"
 
     def __str__(self) -> str:
         return repr(self)

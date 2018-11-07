@@ -1,5 +1,6 @@
 # coding: utf-8
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 from PyQt5.QtCore import QEvent
 from PyQt5.QtQuick import QQuickView
@@ -7,6 +8,9 @@ from PyQt5.QtWidgets import QApplication, QMenu, QStyle, QSystemTrayIcon
 
 from ..constants import MAC
 from ..translator import Translator
+
+if TYPE_CHECKING:
+    from .application import Application  # noqa
 
 log = getLogger(__name__)
 
@@ -17,7 +21,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
 
     __context_menu = None
 
-    def __init__(self, application: "Application"):
+    def __init__(self, application: "Application") -> None:
         super().__init__(application)
         self.application = application
         self.messageClicked.connect(self.application.message_clicked)

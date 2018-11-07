@@ -5,7 +5,7 @@ import stat
 import subprocess
 import sys
 from logging import getLogger
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import xattr
 from Foundation import NSBundle, NSDistributedNotificationCenter
@@ -26,9 +26,12 @@ from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME, BUNDLE_IDENTIFIER
-from ...engine.dao.sqlite import DocPair
+from ...objects import DocPair
 from ...options import Options
 from ...utils import force_decode, if_frozen, normalized_path
+
+if TYPE_CHECKING:
+    from ...manager import Manager  # noqa
 
 __all__ = ("DarwinIntegration", "FinderSyncServer")
 

@@ -5,12 +5,17 @@ from copy import deepcopy
 from logging import getLogger
 from queue import Empty, Queue
 from threading import Lock
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 
 from .processor import Processor
-from ..objects import DocPair, Metrics, NuxeoDocumentInfo
+from ..objects import DocPair, Metrics
+
+if TYPE_CHECKING:
+    from .dao.sqlite import EngineDAO  # noqa
+    from .engine import Engine  # noqa
+    from .manager import Manager  # noqa
 
 __all__ = ("QueueManager",)
 
@@ -19,7 +24,7 @@ WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE = 32
 
 
 class QueueItem:
-    def __init__(self, row_id: int, folderish: bool, pair_state: DocPair) -> None:
+    def __init__(self, row_id: int, folderish: bool, pair_state: str) -> None:
         self.id = row_id
         self.folderish = folderish
         self.pair_state = pair_state
@@ -48,10 +53,10 @@ class QueueManager(QObject):
         super().__init__()
         self._dao = dao
         self._engine = engine
-        self._local_folder_queue = Queue()
-        self._local_file_queue = Queue()
-        self._remote_file_queue = Queue()
-        self._remote_folder_queue = Queue()
+        self._local_folder_queue: Queue = Queue()
+        self._local_file_queue: Queue = Queue()
+        self._remote_file_queue: Queue = Queue()
+        self._remote_folder_queue: Queue = Queue()
         self._local_folder_enable = True
         self._local_file_enable = True
         self._remote_folder_enable = True
@@ -63,7 +68,7 @@ class QueueManager(QObject):
         self._error_threshold = 3
         self._error_interval = 60
         self.set_max_processors(max_file_processors)
-        self._processors_pool = list()
+        self._processors_pool: List[QThread] = list()
         self._get_file_lock = Lock()
         # Should not operate on thread while we are inspecting them
         """
@@ -84,7 +89,7 @@ class QueueManager(QObject):
 
         # ERROR HANDLING
         self._error_lock = Lock()
-        self._on_error_queue = dict()
+        self._on_error_queue: Dict[int, DocPair] = dict()
         self._error_timer = QTimer()
         self._error_timer.timeout.connect(self._on_error_timer)
         self.newError.connect(self._on_new_error)
@@ -105,7 +110,7 @@ class QueueManager(QObject):
 
     @staticmethod
     def _copy_queue(queue: Queue) -> Queue:
-        result = deepcopy(queue.queue)
+        result = deepcopy(queue.queue)  # type: ignore
         result.reverse()
         return result
 
@@ -179,12 +184,10 @@ class QueueManager(QObject):
     def get_remote_folder_queue(self) -> Queue:
         return self._copy_queue(self._remote_folder_queue)
 
-    def push_ref(
-        self, row_id: int, folderish: bool, pair_state: NuxeoDocumentInfo
-    ) -> None:
+    def push_ref(self, row_id: int, folderish: bool, pair_state: str) -> None:
         self.push(QueueItem(row_id, folderish, pair_state))
 
-    def push(self, state: NuxeoDocumentInfo) -> None:
+    def push(self, state: Union[DocPair, QueueItem]) -> None:
         if state.pair_state is None:
             log.trace(f"Don't push an empty pair_state: {state!r}")
             return
@@ -257,21 +260,19 @@ class QueueManager(QObject):
         return self._error_threshold
 
     def push_error(
-        self,
-        doc_pair: NuxeoDocumentInfo,
-        exception: Exception = None,
-        interval: int = None,
+        self, doc_pair: DocPair, exception: Exception = None, interval: int = None
     ) -> None:
         error_count = doc_pair.error_count
+        err_code = WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE
         if (
             isinstance(exception, OSError)
-            and hasattr(exception, "winerror")
-            and exception.winerror == WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE
+            and getattr(exception, "winerror", None) == err_code
         ):
+            strerror = exception.strerror if hasattr(exception, "strerror") else ""
             log.debug(
-                "Detected WindowsError with code %d: '%s', won't increase next try interval",
-                WINERROR_CODE_PROCESS_CANNOT_ACCESS_FILE,
-                exception.strerror if hasattr(exception, "strerror") else "",
+                "Detected WindowsError with code "  # type: ignore
+                f"{exception.winerror}: {strerror!r}, "
+                "won't increase next try interval"
             )
             error_count = 1
         if error_count > self._error_threshold:
@@ -306,7 +307,7 @@ class QueueManager(QObject):
             return self._get_local_folder()
         return state
 
-    def _get_local_file(self) -> Optional[NuxeoDocumentInfo]:
+    def _get_local_file(self) -> Optional[DocPair]:
         if self._local_file_queue.empty():
             return None
         try:
@@ -317,7 +318,7 @@ class QueueManager(QObject):
             return self._get_local_file()
         return state
 
-    def _get_remote_folder(self) -> Optional[NuxeoDocumentInfo]:
+    def _get_remote_folder(self) -> Optional[DocPair]:
         if self._remote_folder_queue.empty():
             return None
         try:
@@ -328,7 +329,7 @@ class QueueManager(QObject):
             return self._get_remote_folder()
         return state
 
-    def _get_remote_file(self) -> Optional[NuxeoDocumentInfo]:
+    def _get_remote_file(self) -> Optional[DocPair]:
         if self._remote_file_queue.empty():
             return None
         try:
@@ -339,7 +340,7 @@ class QueueManager(QObject):
             return self._get_remote_file()
         return state
 
-    def _get_file(self) -> Optional[NuxeoDocumentInfo]:
+    def _get_file(self) -> Optional[DocPair]:
         with self._get_file_lock:
             if self._remote_file_queue.empty() and self._local_file_queue.empty():
                 return None
@@ -460,19 +461,19 @@ class QueueManager(QObject):
     def get_processors_on(self, path: str, exact_match: bool = True) -> List[Processor]:
         with self._thread_inspection:
             res = []
-            if self.is_processing_file(
+            if self._local_folder_thread and self.is_processing_file(
                 self._local_folder_thread, path, exact_match=exact_match
             ):
                 res.append(self._local_folder_thread.worker)
-            elif self.is_processing_file(
+            elif self._remote_folder_thread and self.is_processing_file(
                 self._remote_folder_thread, path, exact_match=exact_match
             ):
                 res.append(self._remote_folder_thread.worker)
-            elif self.is_processing_file(
+            elif self._local_file_thread and self.is_processing_file(
                 self._local_file_thread, path, exact_match=exact_match
             ):
                 res.append(self._local_file_thread.worker)
-            elif self.is_processing_file(
+            elif self._remote_file_thread and self.is_processing_file(
                 self._remote_file_thread, path, exact_match=exact_match
             ):
                 res.append(self._remote_file_thread.worker)

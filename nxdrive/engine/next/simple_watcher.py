@@ -4,14 +4,18 @@ import os
 from logging import getLogger
 from queue import Queue
 from time import sleep, time
-from typing import Union
+from typing import Dict, Union, TYPE_CHECKING
 
-from watchdog.events import DirModifiedEvent, FileSystemEvent
+from watchdog.events import DirModifiedEvent, FileSystemEvent, FileSystemMovedEvent
 
+from ..watcher.local_watcher import LocalWatcher
 from ...client.local_client import FileInfo
-from ...engine.watcher.local_watcher import LocalWatcher
 from ...exceptions import ThreadInterrupt
 from ...utils import current_milli_time, normalize_event_filename
+
+if TYPE_CHECKING:
+    from ..dao.sqlite import EngineDAO  # noqa
+    from ..engine import Engine  # noqa
 
 __all__ = ("SimpleWatcher",)
 
@@ -28,7 +32,7 @@ class SimpleWatcher(LocalWatcher):
     def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao)
         self._scan_delay = 1
-        self._to_scan = dict()
+        self._to_scan: Dict[str, int] = dict()
 
     def _push_to_scan(self, info: Union[FileInfo, str]) -> None:
         if isinstance(info, FileInfo):
@@ -50,7 +54,7 @@ class SimpleWatcher(LocalWatcher):
     def is_pending_scan(self, ref: str) -> bool:
         return ref in self._to_scan
 
-    def handle_watchdog_move(self, evt: FileSystemEvent, _, rel_path: str) -> None:
+    def handle_watchdog_move(self, evt: FileSystemMovedEvent, _, rel_path: str) -> None:
         # Dest
         dst_path = normalize_event_filename(evt.dest_path)
         if self.local.is_temp_file(os.path.basename(dst_path)):
@@ -70,7 +74,7 @@ class SimpleWatcher(LocalWatcher):
         # It is not yet created no need to move it
         if doc_pair.local_state != "created":
             doc_pair.local_state = "moved"
-        local_info = self.local.get_info(dst_rel_path, raise_if_missing=False)
+        local_info = self.local.try_get_info(dst_rel_path)
         if local_info is None:
             log.warning("Should not disapear")
             return
@@ -114,14 +118,13 @@ class SimpleWatcher(LocalWatcher):
         if isinstance(evt, DirModifiedEvent):
             self._push_to_scan(rel_path)
         else:
-            local_info = self.local.get_info(rel_path, raise_if_missing=False)
+            local_info = self.local.try_get_info(rel_path)
             if local_info is None or doc_pair is None:
                 # Suspicious
                 return
             digest = local_info.get_digest()
-            if doc_pair.local_state != "created":
-                if doc_pair.local_digest != digest:
-                    doc_pair.local_state = "modified"
+            if doc_pair.local_state != "created" and doc_pair.local_digest != digest:
+                doc_pair.local_state = "modified"
             doc_pair.local_digest = digest
             log.warning(f"file is updated: {doc_pair!r}")
             self._dao.update_local_state(doc_pair, local_info, versioned=True)
@@ -199,7 +202,7 @@ class SimpleWatcher(LocalWatcher):
             log.warning(
                 f"Scan delayed folder: {path}:{len(self.local.get_children_info(path))}"
             )
-            local_info = self.local.get_info(path, raise_if_missing=False)
+            local_info = self.local.try_get_info(path)
             if local_info is not None:
                 self._scan_recursive(local_info, False)
                 log.warning("scan delayed done")

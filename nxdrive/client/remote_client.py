@@ -6,7 +6,7 @@ import time
 from contextlib import suppress
 from logging import getLogger
 from threading import Lock, current_thread
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
 from nuxeo.auth import TokenAuth
@@ -30,6 +30,9 @@ from ..exceptions import NotFound
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..utils import get_device, lock_path, unlock_path, version_le
+
+if TYPE_CHECKING:
+    from ..engine.dao.sqlite import EngineDAO  # noqa
 
 __all__ = ("Remote",)
 
@@ -162,7 +165,7 @@ class Remote(Nuxeo):
         resp = self.client.request("GET", url.replace(self.client.host, ""))
 
         current_action = Action.get_current_action()
-        if current_action and resp:
+        if isinstance(current_action, FileAction) and resp:
             current_action.size = int(resp.headers.get("Content-Length", 0))
 
         if file_out:
@@ -189,11 +192,11 @@ class Remote(Nuxeo):
     def upload(
         self,
         file_path: str,
+        command: str,
         filename: str = None,
         mime_type: str = None,
-        command: str = None,
         **params: Any,
-    ):
+    ) -> Dict[str, Any]:
         """ Upload a file with a batch.
 
         If command is not None, the operation is executed
@@ -233,30 +236,19 @@ class Remote(Nuxeo):
                         f"{size / upload_duration} bytes/sec"
                     )
 
-                if command:
-                    headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
-                    return self.operations.execute(
-                        command=command,
-                        input_obj=upload_result,
-                        headers=headers,
-                        **params,
-                    )
+                headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
+                return self.operations.execute(
+                    command=command, input_obj=upload_result, headers=headers, **params
+                )
             finally:
                 FileAction.finish_action()
 
     def get_fs_info(
-        self,
-        fs_item_id: str,
-        parent_fs_item_id: str = None,
-        raise_if_missing: bool = True,
-    ) -> Optional[RemoteFileInfo]:
+        self, fs_item_id: str, parent_fs_item_id: str = None
+    ) -> RemoteFileInfo:
         fs_item = self.get_fs_item(fs_item_id, parent_fs_item_id=parent_fs_item_id)
         if fs_item is None:
-            if raise_if_missing:
-                raise NotFound(
-                    "Could not find %r on %r" % (fs_item_id, self.client.host)
-                )
-            return None
+            raise NotFound(f"Could not find {fs_item_id!r} on {self.client.host!r}")
         return RemoteFileInfo.from_dict(fs_item)
 
     def get_filesystem_root_info(self) -> RemoteFileInfo:
@@ -270,7 +262,7 @@ class Remote(Nuxeo):
         fs_item_id: str,
         file_path: str,
         parent_fs_item_id: str = None,
-        fs_item_info: str = None,
+        fs_item_info: RemoteFileInfo = None,
         file_out: str = None,
         **kwargs: Any,
     ) -> str:
@@ -335,7 +327,7 @@ class Remote(Nuxeo):
         return infos
 
     def scroll_descendants(
-        self, fs_item_id: str, scroll_id: str, batch_size: int = 100
+        self, fs_item_id: str, scroll_id: Optional[str], batch_size: int = 100
     ) -> Dict[str, Any]:
         res = self.operations.execute(
             command="NuxeoDrive.ScrollDescendants",
@@ -381,9 +373,9 @@ class Remote(Nuxeo):
         """
         fs_item = self.upload(
             file_path,
+            "NuxeoDrive.CreateFile",
             filename=filename,
             mime_type=mime_type,
-            command="NuxeoDrive.CreateFile",
             parentId=parent_id,
             overwrite=overwrite,
         )
@@ -395,26 +387,23 @@ class Remote(Nuxeo):
         file_path: str,
         parent_fs_item_id: str = None,
         filename: str = None,
-        mime_type: str = None,
-        fs: bool = True,
-        apply_versioning_policy: bool = False,
     ) -> RemoteFileInfo:
         """Update a document by streaming the file with the given path"""
-        if fs:
-            fs_item = self.upload(
-                file_path,
-                filename=filename,
-                command="NuxeoDrive.UpdateFile",
-                id=fs_item_id,
-                parentId=parent_fs_item_id,
-            )
-            return RemoteFileInfo.from_dict(fs_item)
+        fs_item = self.upload(
+            file_path,
+            "NuxeoDrive.UpdateFile",
+            filename=filename,
+            id=fs_item_id,
+            parentId=parent_fs_item_id,
+        )
+        return RemoteFileInfo.from_dict(fs_item)
 
+    def stream_attach(
+        self, fs_item_id: str, file_path: str, apply_versioning_policy: bool = True
+    ) -> None:
         self.upload(
             file_path,
-            filename=filename,
-            mime_type=mime_type,
-            command="NuxeoDrive.AttachBlob",
+            "NuxeoDrive.AttachBlob",
             document=self._check_ref(fs_item_id),
             applyVersioningPolicy=apply_versioning_policy,
         )

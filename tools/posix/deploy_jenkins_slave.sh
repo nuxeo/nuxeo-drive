@@ -19,6 +19,7 @@ PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 
 build_installer() {
     echo ">>> Building the release package"
+    cd "${WORKSPACE_DRIVE}"
     pyinstaller ndrive.spec --clean --noconfirm
 
     # Do some clean-up
@@ -143,8 +144,10 @@ install_python() {
 
 launch_tests() {
     echo ">>> Launching the tests suite"
+    export MYPYPATH="${WORKSPACE_DRIVE}/tools/stubs"
 
     ${PYTHON} -m flake8 .
+    ${PYTHON} -m mypy --ignore-missing-imports nxdrive
     ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}"
 }
 

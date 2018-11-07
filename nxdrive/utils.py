@@ -8,11 +8,14 @@ import re
 import stat
 from logging import getLogger
 from sys import platform
-from typing import Any, Dict, Optional, Pattern, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 from urllib.parse import urlsplit, urlunsplit
 
 from .constants import APP_NAME, MAC, WINDOWS
 from .options import Options
+
+if TYPE_CHECKING:
+    from .proxy import Proxy  # noqa
 
 __all__ = (
     "PidLockFile",
@@ -38,6 +41,7 @@ __all__ = (
     "safe_filename",
     "safe_long_path",
     "set_path_readonly",
+    "short_name",
     "simplify_url",
     "unlock_path",
     "unset_path_readonly",
@@ -247,35 +251,35 @@ def version_compare(x: str, y: str) -> int:
     x_numbers = x.split(".")
     y_numbers = y.split(".")
     while x_numbers and y_numbers:
-        x_number = x_numbers.pop(0)
-        y_number = y_numbers.pop(0)
+        x_part = x_numbers.pop(0)
+        y_part = y_numbers.pop(0)
 
         # Handle hotfixes
-        if "HF" in x_number:
-            hf = x_number.replace("-HF", ".").split(".", 1)
-            x_number = hf[0]
+        if "HF" in x_part:
+            hf = x_part.replace("-HF", ".").split(".", 1)
+            x_part = hf[0]
             x_numbers.append(hf[1])
-        if "HF" in y_number:
-            hf = y_number.replace("-HF", ".").split(".", 1)
-            y_number = hf[0]
+        if "HF" in y_part:
+            hf = y_part.replace("-HF", ".").split(".", 1)
+            y_part = hf[0]
             y_numbers.append(hf[1])
 
         # Handle snapshots
-        x_snapshot = "SNAPSHOT" in x_number
-        y_snapshot = "SNAPSHOT" in y_number
+        x_snapshot = "SNAPSHOT" in x_part
+        y_snapshot = "SNAPSHOT" in y_part
         if not x_snapshot and y_snapshot:
             # y is snapshot, x is not
-            x_number = int(x_number)
-            y_number = int(y_number.replace("-SNAPSHOT", ""))
+            x_number = int(x_part)
+            y_number = int(y_part.replace("-SNAPSHOT", ""))
             return ret[y_number <= x_number]
         elif not y_snapshot and x_snapshot:
             # x is snapshot, y is not
-            x_number = int(x_number.replace("-SNAPSHOT", ""))
-            y_number = int(y_number)
+            x_number = int(x_part.replace("-SNAPSHOT", ""))
+            y_number = int(y_part)
             return ret[x_number > y_number]
 
-        x_number = int(x_number.replace("-SNAPSHOT", ""))
-        y_number = int(y_number.replace("-SNAPSHOT", ""))
+        x_number = int(x_part.replace("-SNAPSHOT", ""))
+        y_number = int(y_part.replace("-SNAPSHOT", ""))
         if x_number != y_number:
             return ret[x_number - y_number > 0]
 
@@ -381,11 +385,11 @@ def normalize_event_filename(filename: str, action: bool = True) -> str:
     return normalized
 
 
-def if_frozen(func) -> callable:
+def if_frozen(func) -> Callable:
     """Decorator to enable the call of a function/method
     only if the application is frozen."""
 
-    def wrapper(*args: Any, **kwargs: Any) -> Union[bool, callable]:
+    def wrapper(*args: Any, **kwargs: Any) -> Union[bool, Callable]:
         """Inner function to do the check and abort the call
         if the application not frozen."""
         if not Options.is_frozen:
@@ -445,7 +449,9 @@ def force_encode(data: Union[bytes, str]) -> bytes:
     return data
 
 
-def encrypt(plaintext: bytes, secret: bytes, lazy: bool = True) -> bytes:
+def encrypt(
+    plaintext: Union[bytes, str], secret: Union[bytes, str], lazy: bool = True
+) -> bytes:
     """ Symetric encryption using AES. """
 
     import base64
@@ -501,8 +507,8 @@ def guess_mime_type(filename: str) -> str:
             # Patch bad Windows MIME types
             # See https://jira.nuxeo.com/browse/NXP-11660
             # and http://bugs.python.org/issue15207
-            mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type, mime_type)
-        log.trace("Guessed mime type %r for %r", mime_type, filename)
+            mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type, mime_type) or mime_type
+        log.trace(f"Guessed mime type {mime_type!r} for {filename!r}")
         return mime_type
 
     log.trace(
@@ -593,7 +599,7 @@ def guess_server_url(
             if exc.response.status_code == 401:
                 # When there is only Web-UI installed, the code is 401.
                 return new_url
-        except (ValueError, requests.ConnectionError):
+        except (ValueError, requests.RequestException):
             pass
 
     if not url.lower().startswith("http"):
@@ -651,35 +657,31 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         ),
     )
 
-    parsed_url = None
+    match_res = None
     for regex in protocol_regex:
-        parsed_url = re.match(regex, url_string, re.I)
-        if parsed_url:
+        match_res = re.match(regex, url_string, re.I)
+        if match_res:
             break
 
-    if not parsed_url:
-        raise ValueError(
-            "Unsupported command {!r} in protocol handler".format(url_string)
-        )
+    if not match_res:
+        raise ValueError(f"Unsupported command {url_string!r} in protocol handler")
 
-    parsed_url = parsed_url.groupdict()
-    cmd = parsed_url.get("cmd")
+    parsed_url: Dict[str, str] = match_res.groupdict()
+    cmd = parsed_url["cmd"]
     if cmd == "edit":
         return parse_edit_protocol(parsed_url, url_string)
     elif cmd == "token":
         return dict(
-            command=cmd,
-            token=parsed_url.get("token"),
-            username=parsed_url.get("username"),
+            command=cmd, token=parsed_url["token"], username=parsed_url["username"]
         )
     elif cmd in path_cmds:
-        return dict(command=cmd, filepath=parsed_url.get("path"))
+        return dict(command=cmd, filepath=parsed_url["path"])
     return dict(command=cmd)
 
 
 def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str, str]:
     """ Parse a `nxdrive://edit` URL for quick editing of Nuxeo documents. """
-    scheme = parsed_url.get("scheme")
+    scheme = parsed_url["scheme"]
     if scheme not in ("http", "https"):
         raise ValueError(
             f"Invalid command {url_string}: scheme should be http or https"
@@ -690,11 +692,11 @@ def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str
     return dict(
         command="download_edit",
         server_url=server_url,
-        user=parsed_url.get("username"),
-        repo=parsed_url.get("repo"),
-        doc_id=parsed_url.get("docid"),
-        filename=parsed_url.get("filename"),
-        download_url=parsed_url.get("download"),
+        user=parsed_url["username"],
+        repo=parsed_url["repo"],
+        doc_id=parsed_url["docid"],
+        filename=parsed_url["filename"],
+        download_url=parsed_url["download"],
     )
 
 
@@ -859,6 +861,7 @@ class PidLockFile:
                 )
                 log.warning(msg)
         self.locked = True
+        return None
 
     def lock(self) -> Optional[int]:
         pid = self.check_running(process_name=self.key)
@@ -871,3 +874,4 @@ class PidLockFile:
         pid = os.getpid()
         with open(safe_long_path(pid_filepath), "w") as f:
             f.write(str(pid))
+        return None

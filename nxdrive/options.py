@@ -41,10 +41,6 @@ This is the equivalent of:
 
 _For testing purposes_, a `Options.mock` decorator is available.
 
----
-
-We also provide the `server_updater()` helper.
-It creates the worker that will check for options update on the server.
 """
 
 import logging
@@ -54,8 +50,7 @@ from contextlib import suppress
 from copy import deepcopy
 from typing import Any, Callable, Dict, Tuple
 
-
-__all__ = ("Options", "server_updater")
+__all__ = ("Options",)
 
 log = logging.getLogger(__name__)
 
@@ -82,10 +77,10 @@ class MetaOptions(type):
     __files: Tuple[str] = (r"^atmp\d+$",)  # AutoCAD tmp file
 
     # Ignored prefixes, checked lowercase
-    __prefixes: Tuple[str] = (".", "desktop.ini", "icon\r", "thumbs.db", "~$")
+    __prefixes: Tuple[str, ...] = (".", "desktop.ini", "icon\r", "thumbs.db", "~$")
 
     # Ignored suffixes, checked lowercase
-    __suffixes: Tuple[str] = (
+    __suffixes: Tuple[str, ...] = (
         ".bak",
         ".crdownload",
         ".dwl",
@@ -109,7 +104,7 @@ class MetaOptions(type):
         "manual": 4,
     }
 
-    def __get_home() -> str:
+    def __get_home(*_) -> str:
         """
         Get the user home directory.
 
@@ -360,40 +355,3 @@ class Options(metaclass=MetaOptions):
     def __init__(self) -> None:
         """ Prevent class instances. """
         raise RuntimeError("Cannot be instantiated.")
-
-
-def server_updater(*args: Any) -> "ServerOptionsUpdater":
-    """
-    Helper to create the worker that will check for option updates
-    on the server.
-    We use this to prevent loading any Drive related stuff and keep
-    the possibility to import other classes without anything else needed.
-    """
-
-    from PyQt5.QtCore import pyqtSlot
-    from .engine.workers import PollWorker
-
-    class ServerOptionsUpdater(PollWorker):
-        """ Class for checking the server's config.json updates. """
-
-        def __init__(self, manager):
-            super().__init__(Options.update_check_delay)
-            self.manager = manager
-
-        @pyqtSlot(result=bool)
-        def _poll(self) -> bool:
-            """ Check for the configuration file and apply updates. """
-            for _, engine in self.manager._engines.items():
-                if not engine.remote:
-                    continue
-
-                conf = engine.remote.get_server_configuration()
-                if conf:
-                    engine.set_ui(conf.pop("ui", "web"), overwrite=False)
-                    Options.update(conf, setter="server", fail_on_error=True)
-                else:
-                    engine.set_ui("jsf", overwrite=False)
-
-            return True
-
-    return ServerOptionsUpdater(*args)

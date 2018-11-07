@@ -2,11 +2,14 @@
 import os
 import shutil
 from logging import getLogger
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
 from ..processor import Processor as OldProcessor
 from ...constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
-from ...objects import NuxeoDocumentInfo
+from ...objects import DocPair
+
+if TYPE_CHECKING:
+    from ..engine import Engine  # noqa
 
 __all__ = ("Processor",)
 
@@ -25,7 +28,7 @@ class Processor(OldProcessor):
             local.make_folder("/", ".partials")
         return local.abspath("/.partials")
 
-    def _download_content(self, doc_pair: NuxeoDocumentInfo, file_path: str) -> None:
+    def _download_content(self, doc_pair: DocPair, file_path: str) -> str:
 
         # TODO Should share between threads
         file_out = os.path.join(
@@ -51,7 +54,7 @@ class Processor(OldProcessor):
         self._update_speed_metrics()
         return tmp_file
 
-    def _update_remotely(self, doc_pair: NuxeoDocumentInfo, is_renaming: bool) -> None:
+    def _update_remotely(self, doc_pair: DocPair, is_renaming: bool) -> None:
         log.warning("_update_remotely")
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
@@ -74,8 +77,8 @@ class Processor(OldProcessor):
         self._refresh_local_state(doc_pair, updated_info)
 
     def _create_remotely(
-        self, doc_pair: NuxeoDocumentInfo, parent_pair: NuxeoDocumentInfo, name: str
-    ) -> None:
+        self, doc_pair: DocPair, parent_pair: DocPair, name: str
+    ) -> str:
         local_parent_path = parent_pair.local_path
         # TODO Shared this locking system / Can have concurrent lock
         self._unlock_readonly(local_parent_path)

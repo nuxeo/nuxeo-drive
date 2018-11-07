@@ -2,7 +2,7 @@
 import os
 import sys
 from contextlib import suppress
-from ctypes import windll
+from ctypes import windll  # type: ignore
 from logging import getLogger
 from typing import Any, Dict
 
@@ -23,9 +23,6 @@ log = getLogger(__name__)
 
 
 class WindowsIntegration(AbstractOSIntegration):
-
-    __zoom_factor = None
-
     @property
     def zoom_factor(self) -> float:
         if not self.__zoom_factor:

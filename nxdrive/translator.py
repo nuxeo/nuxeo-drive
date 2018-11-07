@@ -3,9 +3,13 @@ import codecs
 import json
 import os
 import re
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
+
+if TYPE_CHECKING:
+    from .manager import Manager  # noqa
 
 __all__ = ("Translator",)
 
@@ -14,15 +18,14 @@ class Translator(QTranslator):
 
     languageChanged = pyqtSignal()
     _singleton = None
+    _current_lang: str = ""
 
     def __init__(self, manager: "Manager", path: str, lang: str = None) -> None:
         super().__init__()
-        self._labels = None
+        self._labels: Dict[str, Dict[str, str]] = {}
         self._manager = manager
-        self._current_lang = None
 
         # Load from JSON
-        self._labels = {}
         for filename in os.listdir(path):
             filepath = os.path.join(path, filename)
             with codecs.open(filepath, encoding="utf-8") as fp:
@@ -33,7 +36,7 @@ class Translator(QTranslator):
                 self._labels[label] = json.loads(fp.read())
 
         # List language
-        self._langs = {}
+        self._langs: Dict[str, Tuple[str, str]] = {}
         for key in self._labels:
             try:
                 self._langs[key] = (key, self._labels[key]["LANGUAGE"])
@@ -110,10 +113,10 @@ class Translator(QTranslator):
     def _locale(self) -> str:
         return self._current_lang
 
-    def _languages(self) -> List[Dict[str, str]]:
+    def _languages(self) -> List[Tuple[str, str]]:
         return sorted(self._langs.values())
 
-    def _translations(self) -> List[Dict[str, str]]:
+    def _translations(self) -> List[Tuple[str, Dict[str, str]]]:
         return sorted(self._labels.items())
 
     @staticmethod
@@ -123,11 +126,11 @@ class Translator(QTranslator):
         return Translator._singleton._set(lang)
 
     @staticmethod
-    def format_date(date: "date") -> str:
+    def format_date(date: datetime) -> str:
         return date.strftime(Translator.get("DATE_FORMAT"))
 
     @staticmethod
-    def format_datetime(date: "datetime") -> str:
+    def format_datetime(date: datetime) -> str:
         return date.strftime(Translator.get("DATETIME_FORMAT"))
 
     @staticmethod
@@ -143,13 +146,13 @@ class Translator(QTranslator):
         return Translator._singleton._get(label, values)
 
     @staticmethod
-    def languages() -> List[Dict[str, str]]:
+    def languages() -> List[Tuple[str, str]]:
         if Translator._singleton is None:
             raise RuntimeError("Translator not initialized")
         return Translator._singleton._languages()
 
     @staticmethod
-    def translations() -> List[Dict[str, str]]:
+    def translations() -> List[Tuple[str, Dict[str, str]]]:
         if Translator._singleton is None:
             raise RuntimeError("Translator not initialized")
         return Translator._singleton._translations()

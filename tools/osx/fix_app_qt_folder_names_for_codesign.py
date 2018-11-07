@@ -110,6 +110,7 @@ def main(args: List[str]) -> int:
             create_symlink(folder)
             print(f" !! Fixed {folder}")
         print(f">>> [{name}] Application fixed.")
+    return 0
 
 
 if __name__ == "__main__":
