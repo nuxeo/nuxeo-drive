@@ -212,19 +212,19 @@ class MetaOptions(type):
     def __repr__(cls) -> str:
         """ Display all options. """
         options = [
-            "{}[{}]={!r}".format(name, setter, value)
+            f"{name}[{setter}]={value!r}"
             for name, (value, setter) in MetaOptions.options.items()
         ]
-        return "Options({})".format(", ".join(options))
+        return f"Options({', '.join(options)})"
 
     def __str__(cls) -> str:
         """ Display non default options. """
         options = [
-            "{}[{}]={!r}".format(name, setter, value)
+            f"{name}[{setter}]={value!r}"
             for name, (value, setter) in MetaOptions.options.items()
             if setter != "default"
         ]
-        return "Options({})".format(", ".join(options))
+        return f"Options({', '.join(options)})"
 
     @staticmethod
     def set(
@@ -284,21 +284,18 @@ class MetaOptions(type):
                 if not fail_on_error:
                     return
 
-                err = "The type of the option {} is {}, while {} is required."
-                raise TypeError(
-                    err.format(item, type(new_value).__name__, type(old_value).__name__)
+                err = (
+                    f"The type of the option {item} is {type(new_value).__name__}, "
+                    f"while {type(old_value).__name__} is required."
                 )
+                raise TypeError(err)
 
             # Only update if the setter has rights to
             setter = setter.lower()
             if MetaOptions._setters[setter] >= MetaOptions._setters[old_setter]:
                 MetaOptions.options[item] = new_value, setter
                 log.debug(
-                    "Option %s updated: %r -> %r [%s]",
-                    item,
-                    old_value,
-                    new_value,
-                    setter,
+                    f"Option {item} updated: {old_value!r} -> {new_value!r} [{setter}]"
                 )
 
                 # Callback for that option

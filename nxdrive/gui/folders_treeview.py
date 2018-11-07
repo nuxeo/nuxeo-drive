@@ -33,11 +33,9 @@ class FileInfo:
         self.old_state = self.state = state
 
     def __repr__(self) -> str:
-        return "FileInfo<state=%r, id=%r, label=%r, parent=%r>" % (
-            self.state,
-            self.get_id(),
-            self.get_label(),
-            self.get_path(),
+        return (
+            f"FileInfo<state={self.state}, id={self.get_id()}, "
+            f"label={self.get_label()}, parent={self.get_path()!r}>"
         )
 
     def add_child(self, child: "FileInfo") -> None:

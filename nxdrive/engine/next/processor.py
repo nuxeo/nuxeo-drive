@@ -56,10 +56,10 @@ class Processor(OldProcessor):
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os.path.join(os.path.dirname(os_path), doc_pair.remote_name)
-            log.debug("Replacing local file '%s' by '%s'.", os_path, new_os_path)
+            log.debug(f"Replacing local file {os_path!r} by {new_os_path!r}.")
         else:
             new_os_path = os_path
-        log.debug("Updating content of local file '%s'.", os_path)
+        log.debug(f"Updating content of local file {os_path!r}.")
         tmp_file = self._download_content(doc_pair, new_os_path)
         # Delete original file and rename tmp file
         self.local.delete_final(doc_pair.local_path)
@@ -83,9 +83,8 @@ class Processor(OldProcessor):
         try:
             if doc_pair.folderish:
                 log.debug(
-                    "Creating local folder '%s' in '%s'",
-                    name,
-                    self.local.abspath(parent_pair.local_path),
+                    f"Creating local folder {name!r} in "
+                    f"{self.local.abspath(parent_pair.local_path)!r}"
                 )
                 # Might want do temp name to original
                 path = self.local.make_folder(local_parent_path, name)
@@ -94,9 +93,8 @@ class Processor(OldProcessor):
                 path, os_path, name = self.local.get_new_file(local_parent_path, name)
                 tmp_file = self._download_content(doc_pair, os_path)
                 log.debug(
-                    "Creating local file '%s' in '%s'",
-                    name,
-                    self.local.abspath(parent_pair.local_path),
+                    f"Creating local file {name!r} in "
+                    f"{self.local.abspath(parent_pair.local_path)!r}"
                 )
                 # Move file to its folder - might want to split it in two for events
                 self.local.move(self.local.get_path(tmp_file), local_parent_path, name)

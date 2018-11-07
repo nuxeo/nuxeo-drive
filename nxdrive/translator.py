@@ -100,7 +100,7 @@ class Translator(QTranslator):
         try:
             self._current = self._labels[lang]
         except KeyError:
-            raise ValueError("Unknown language {!r}".format(lang))
+            raise ValueError(f"Unknown language {lang!r}")
         else:
             if self._current_lang != lang:
                 self._current_lang = lang

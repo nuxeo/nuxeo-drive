@@ -90,7 +90,7 @@ class Tracker(Worker):
         else:
             name, version = system, platform.release()
 
-        return "{} {}".format(name, version.strip())
+        return f"{name} {version.strip()}"
 
     @property
     def user_agent(self) -> str:
@@ -168,7 +168,7 @@ class Tracker(Worker):
         for _, engine in self._manager.get_engines().items():
             for key, value in engine.get_metrics().items():
                 if not isinstance(value, int):
-                    log.trace("Skip non integer Statistics(Engine) %s: %r", key, value)
+                    log.trace(f"Skip non integer Statistics(Engine) {key}: {value!r}")
                     continue
 
                 self.send_event(

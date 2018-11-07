@@ -415,7 +415,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str)
     def open_local(self, uid: str, path: str) -> None:
         self.application.hide_systray()
-        log.trace("Opening local file %r", path)
+        log.trace(f"Opening local file {path!r}")
         if not uid:
             self._manager.open_local_file(path)
         else:
@@ -439,7 +439,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str)
     def show_settings(self, page: str) -> None:
         self.application.hide_systray()
-        log.debug("Show settings on page %s", page)
+        log.debug(f"Show settings on page {page}")
         self.application.show_settings(section=page or None)
 
     @pyqtSlot()
@@ -561,7 +561,7 @@ class QMLDriveApi(QObject):
             no_fscheck=not kwargs.get("check_fs", True),
             url=url,
         )
-        log.debug("Binder is : %s/%s", binder.url, binder.username)
+        log.debug(f"Binder is : {binder.url}/{binder.username}")
         engine = self._manager.bind_engine(
             self._manager._get_default_server_type(),
             local_folder,
@@ -668,19 +668,16 @@ class QMLDriveApi(QObject):
                 }
                 url = self._get_authentication_url(server_url)
                 log.debug(
-                    "Web authentication is available on server %s, "
-                    "opening login window with URL %s",
-                    server_url,
-                    url,
+                    f"Web authentication is available on server {server_url}, "
+                    f"opening login window with URL {url}"
                 )
                 self.openAuthenticationDialog.emit(url, callback_params)
                 return
             else:
                 # Startup page is not available
                 log.debug(
-                    "Web authentication not available on server %s, "
-                    "falling back on basic authentication",
-                    server_url,
+                    f"Web authentication not available on server {server_url}, "
+                    "falling back on basic authentication"
                 )
                 # We might have to downgrade because the
                 # browser login is not available.
@@ -712,8 +709,7 @@ class QMLDriveApi(QObject):
 
         try:
             log.debug(
-                "Proxy configuration for startup page connection: %s",
-                self._manager.proxy,
+                f"Proxy configuration for startup page connection: {self._manager.proxy}"
             )
             headers = {
                 "X-Application-Name": APP_NAME,
@@ -735,12 +731,12 @@ class QMLDriveApi(QObject):
                 f" startup page with URL {url}"
             )
             raise StartupPageConnectionError()
-        log.debug("Status code for %s = %d", url, status)
+        log.debug(f"Status code for {url} = {status}")
         return status
 
     @pyqtSlot(str, str, result=bool)
     def set_server_ui(self, uid: str, server_ui: str) -> bool:
-        log.debug("Setting ui to %s", server_ui)
+        log.debug(f"Setting ui to {server_ui}")
         engine = self._get_engine(uid)
         if not engine:
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
@@ -798,7 +794,7 @@ class QMLDriveApi(QObject):
             )
 
             log.debug(
-                "Creating new account [%s, %s, %s]", local_folder, server_url, username
+                f"Creating new account [{local_folder}, {server_url}, {username}]"
             )
 
             error = self.bind_server(
@@ -810,13 +806,11 @@ class QMLDriveApi(QObject):
                 name=None,
             )
 
-            log.debug("RETURN FROM BIND_SERVER IS: '%s'", error)
+            log.debug(f"RETURN FROM BIND_SERVER IS: '{error}'")
         except:
             log.exception(
-                "Unexpected error while trying to create a new account [%s, %s, %s]",
-                local_folder,
-                server_url,
-                username,
+                "Unexpected error while trying to create a new account "
+                f"[{local_folder}, {server_url}, {username}]"
             )
             error = "CONNECTION_UNKNOWN"
         finally:
@@ -827,10 +821,8 @@ class QMLDriveApi(QObject):
         engine = self._callback_params["engine"]
         try:
             log.debug(
-                "Updating token for account [%s, %s, %s]",
-                engine.local_folder,
-                engine.server_url,
-                engine.remote_user,
+                "Updating token for account "
+                f"[{engine.local_folder}, {engine.server_url}, {engine.remote_user}]"
             )
 
             engine.update_token(token)
@@ -844,10 +836,8 @@ class QMLDriveApi(QObject):
                 error = "CONNECTION_ERROR"
         except:
             log.exception(
-                "Unexpected error while trying to update token for account [%s, %s, %s]",
-                engine.local_folder,
-                engine.server_url,
-                engine.remote_user,
+                "Unexpected error while trying to update token for account "
+                f"[{engine.local_folder}, {engine.server_url}, {engine.remote_user}]"
             )
             error = "CONNECTION_UNKNOWN"
         finally:
@@ -912,7 +902,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str, str)
     def open_remote(self, uid: str, remote_ref: str, remote_name: str) -> None:
-        log.debug("Should open this : %s (%s)", remote_name, remote_ref)
+        log.debug(f"Should open this : {remote_name} ({remote_ref})")
         try:
             engine = self._get_engine(uid)
             if engine:

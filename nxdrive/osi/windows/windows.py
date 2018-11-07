@@ -109,9 +109,9 @@ class WindowsIntegration(AbstractOSIntegration):
             shortcut.IconLocation = filepath
             shortcut.save()
         except:
-            log.exception("Could not create the favorite for %r", filepath)
+            log.exception(f"Could not create the favorite for {filepath!r}")
         else:
-            log.debug("Registered new favorite in Explorer for %r", filepath)
+            log.debug(f"Registered new favorite in Explorer for {filepath!r}")
 
     def _get_folder_link(self, name: str = None) -> str:
         return os.path.join(Options.home, "Links", (name or APP_NAME) + ".lnk")

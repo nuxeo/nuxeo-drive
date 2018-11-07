@@ -7,6 +7,7 @@ from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 from . import constants
 from .logging_config import get_handler
+from .utils import force_encode
 
 __all__ = ("Report",)
 
@@ -68,7 +69,7 @@ class Report:
             try:
                 myzip.write(path, rel_path, compress_type=comp)
             except:
-                log.exception("Impossible to copy the log %r", rel_path)
+                log.exception(f"Impossible to copy the log {rel_path!r}")
 
     @staticmethod
     def copy_db(myzip: ZipFile, dao: "EngineDAO") -> None:
@@ -85,7 +86,7 @@ class Report:
                 )
             except:
                 log.exception(
-                    "Impossible to copy the database %r", os.path.basename(dao._db)
+                    f"Impossible to copy the database { os.path.basename(dao._db)!r}"
                 )
 
     def get_path(self) -> str:
@@ -107,7 +108,7 @@ class Report:
                 line = handler.format(record)
             except:
                 try:
-                    yield "Logging record error: {record!r}"
+                    yield force_encode(f"Logging record error: {record!r}")
                 except:
                     pass
             else:
@@ -118,14 +119,14 @@ class Report:
     def generate(self) -> None:
         """ Create the ZIP report with all interesting files. """
 
-        log.debug("Create report %r", self._zipfile)
-        log.debug("Manager metrics: %r", self._manager.get_metrics())
+        log.debug(f"Create report {self._zipfile!r}")
+        log.debug(f"Manager metrics: {self._manager.get_metrics()!r}")
         dao = self._manager.get_dao()
         with ZipFile(self._zipfile, mode="w", allowZip64=True) as zip_:
             # Databases
             self.copy_db(zip_, dao)
             for engine in self._manager.get_engines().values():
-                log.debug("Engine metrics: %r", engine.get_metrics())
+                log.debug(f"Engine metrics: {engine.get_metrics()!r}")
                 self.copy_db(zip_, engine.get_dao())
 
             # Logs

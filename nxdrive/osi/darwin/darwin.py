@@ -84,11 +84,11 @@ class DarwinIntegration(AbstractOSIntegration):
 
         agents_folder = os.path.dirname(agent)
         if not os.path.exists(agents_folder):
-            log.debug("Making launch agent folder %r", agents_folder)
+            log.debug(f"Making launch agent folder {agents_folder!r}")
             os.makedirs(agents_folder)
 
         exe = os.path.realpath(sys.executable)
-        log.debug("Registering %r for startup in %r", exe, agent)
+        log.debug(f"Registering {exe!r} for startup in {agent!r}")
         with open(agent, "w") as f:
             f.write(self.NDRIVE_AGENT_TEMPLATE % exe)
         return True
@@ -97,7 +97,7 @@ class DarwinIntegration(AbstractOSIntegration):
     def unregister_startup(self) -> bool:
         agent = self._get_agent_file()
         if os.path.isfile(agent):
-            log.debug("Unregistering startup agent %r", agent)
+            log.debug(f"Unregistering startup agent {agent!r}")
             os.remove(agent)
             return True
         return False
@@ -114,7 +114,7 @@ class DarwinIntegration(AbstractOSIntegration):
             return
         LSSetDefaultHandlerForURLScheme(self.NXDRIVE_SCHEME, bundle_id)
         log.debug(
-            "Registered bundle %r for URL scheme %r", bundle_id, self.NXDRIVE_SCHEME
+            f"Registered bundle {bundle_id!r} for URL scheme {self.NXDRIVE_SCHEME!r}"
         )
 
     @if_frozen
@@ -177,12 +177,12 @@ class DarwinIntegration(AbstractOSIntegration):
 
     @if_frozen
     def watch_folder(self, folder: str) -> None:
-        log.debug("FinderSync now watching %r", folder)
+        log.debug(f"FinderSync now watching {folder!r}")
         self._set_monitoring("watch", folder)
 
     @if_frozen
     def unwatch_folder(self, folder: str) -> None:
-        log.debug("FinderSync now ignoring %r", folder)
+        log.debug(f"FinderSync now ignoring {folder!r}")
         self._set_monitoring("unwatch", folder)
 
     @if_frozen
@@ -274,7 +274,7 @@ class DarwinIntegration(AbstractOSIntegration):
 
         url = CFURLCreateWithString(None, f"file://{quote(folder_path)}", None)
         if not url:
-            log.warning("Could not generate valid favorite URL for: %r", folder_path)
+            log.warning(f"Could not generate valid favorite URL for: {folder_path!r}")
             return
 
         # Register the folder as favorite if not already there
@@ -282,7 +282,7 @@ class DarwinIntegration(AbstractOSIntegration):
             favorites, kLSSharedFileListItemBeforeFirst, name, None, url, {}, []
         )
         if item:
-            log.debug("Registered new favorite in Finder for: %r", folder_path)
+            log.debug(f"Registered new favorite in Finder for: {folder_path!r}")
 
     def unregister_folder_link(self, name: str = None) -> None:
         favorites = self._get_favorite_list()

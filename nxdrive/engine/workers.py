@@ -39,7 +39,7 @@ class Worker(QObject):
         self._thread.finished.connect(self._finished)
 
     def __repr__(self) -> str:
-        return "<{} ID={}>".format(type(self).__name__, self._thread_id)
+        return f"<{type(self).__name__} ID={self._thread_id}>"
 
     def is_started(self) -> bool:
         return self._continue
@@ -62,7 +62,7 @@ class Worker(QObject):
 
         self._continue = False
         if not self._thread.wait(5000):
-            log.exception("Thread %d is not responding - terminate it", self._thread_id)
+            log.exception(f"Thread {self._thread_id} is not responding - terminate it")
             self._thread.terminate()
         if self._thread.isRunning():
             self._thread.wait(5000)
@@ -127,7 +127,7 @@ class Worker(QObject):
             sleep(0.01)
 
     def _finished(self) -> None:
-        log.trace("Thread %s(%r) finished", self._name, self._thread_id)
+        log.trace(f"Thread {self._name}({self._thread_id}) finished")
 
     @property
     def action(self) -> Action:
@@ -174,9 +174,9 @@ class Worker(QObject):
             try:
                 self._execute()
             except ThreadInterrupt:
-                log.debug("Thread %s(%d) interrupted", self._name, self._thread_id)
+                log.debug(f"Thread {self._name}({self._thread_id}) interrupted")
             except:
-                log.exception("Thread %s(%d) exception", self._name, self._thread_id)
+                log.exception(f"Thread {self._name}({self._thread_id}) exception")
         finally:
             self._thread.exit(0)
             self._running = False
@@ -194,7 +194,7 @@ class EngineWorker(Worker):
         self, doc_pair: NuxeoDocumentInfo, error: str, exception: Exception = None
     ) -> None:
         details = str(exception) if exception else None
-        log.debug("Give up for error [%s] (%r) for %r", error, details, doc_pair)
+        log.debug(f"Give up for error [{error}] ({details}) for {doc_pair!r}")
         self._dao.increase_error(
             doc_pair,
             error,
@@ -213,7 +213,7 @@ class EngineWorker(Worker):
                 details = exception.message
             except AttributeError:
                 details = str(exception)
-        log.debug("Increasing error [%s] (%r) for %r", error, details, doc_pair)
+        log.debug(f"Increasing error [{error}] ({details}) for {doc_pair!r}")
         self._dao.increase_error(doc_pair, error, details=details)
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 

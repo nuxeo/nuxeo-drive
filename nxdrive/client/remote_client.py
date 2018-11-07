@@ -103,11 +103,11 @@ class Remote(Nuxeo):
             self._base_folder_ref, self._base_folder_path = None, None
 
     def __repr__(self) -> str:
-        attrs = sorted(self.__init__.__code__.co_varnames[1:])
         attrs = ", ".join(
-            "{}={!r}".format(attr, getattr(self, attr, None)) for attr in attrs
+            f"{attr}={getattr(self, attr, None)!r}"
+            for attr in sorted(self.__init__.__code__.co_varnames[1:])  # type: ignore
         )
-        return "<{} {}>".format(self.__class__.__name__, attrs)
+        return f"<{self.__class__.__name__} {attrs}>"
 
     def exists(
         self, ref: str, use_trash: bool = True, include_versions: bool = False
@@ -156,7 +156,7 @@ class Remote(Nuxeo):
         self, url: str, file_out: str = None, digest: str = None, **kwargs: Any
     ) -> str:
         log.trace(
-            "Downloading file from %r to %r with digest=%r", url, file_out, digest
+            f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
         )
 
         resp = self.client.request("GET", url.replace(self.client.host, ""))
@@ -220,23 +220,17 @@ class Remote(Nuxeo):
                 # Use upload duration * 2 as Nuxeo transaction timeout
                 tx_timeout = max(TX_TIMEOUT, upload_duration * 2)
                 log.trace(
-                    "Using %d seconds [max(%d, 2 * upload time=%d)] as "
-                    "Nuxeo transaction timeout for batch execution of %r "
-                    "with file %r",
-                    tx_timeout,
-                    TX_TIMEOUT,
-                    upload_duration,
-                    command,
-                    file_path,
+                    f"Using {tx_timeout} seconds [max({TX_TIMEOUT}, "
+                    f"2 * upload time={upload_duration})] as Nuxeo "
+                    f"transaction timeout for batch execution of {command!r} "
+                    f"with file {file_path!r}"
                 )
 
                 if upload_duration > 0:
                     size = os.stat(file_path).st_size
                     log.trace(
-                        "Speed for %d bytes is %d sec: %f bytes/sec",
-                        size,
-                        upload_duration,
-                        size / upload_duration,
+                        f"Speed for {size} bytes is {upload_duration} sec: "
+                        f"{size / upload_duration} bytes/sec"
                     )
 
                 if command:
@@ -483,7 +477,7 @@ class Remote(Nuxeo):
         except HTTPError as e:
             if e.status == 404:
                 raise NotFound(
-                    "Failed to fetch document %r on server %r" % (ref, self.client.host)
+                    f"Failed to fetch document {ref!r} on server {self.client.host!r}"
                 )
             raise e
 

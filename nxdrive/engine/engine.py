@@ -170,11 +170,11 @@ class Engine(QObject):
         self.noSpaceLeftOnDevice.connect(self.suspend)
 
     def __repr__(self) -> str:
-        fmt = (
-            "{name}<name={cls.name!r}, offline={cls._offline_state!r}"
-            ", uid={cls.uid!r}, type={cls.type!r}>"
+        return (
+            f"{type(self).__name__}"
+            f"<name={self.name!r}, offline={self._offline_state!r}, "
+            f"uid={self.uid!r}, type={self.type!r}>"
         )
-        return fmt.format(name=type(self).__name__, cls=self)
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id: str = None) -> None:
@@ -195,11 +195,13 @@ class Engine(QObject):
 
     def stop_processor_on(self, path: str) -> None:
         for worker in self.get_queue_manager().get_processors_on(path):
-            log.trace("Quitting processor: %r as requested to stop on %r", worker, path)
+            log.trace(
+                f"Quitting processor: {worker!r} as requested to stop on {path!r}"
+            )
             worker.quit()
 
     def set_local_folder(self, path: str) -> None:
-        log.debug("Update local folder to %r", path)
+        log.debug(f"Update local folder to {path!r}")
         self.local_folder = path
         self.local_folder_bs = self._normalize_url(self.local_folder)
         self._local_watcher.stop()
@@ -209,11 +211,11 @@ class Engine(QObject):
     def set_local_folder_lock(self, path: str) -> None:
         self._folder_lock = path
         # Check for each processor
-        log.debug("Local Folder locking on %r", path)
+        log.debug(f"Local Folder locking on {path!r}")
         while self.get_queue_manager().has_file_processors_on(path):
             log.trace("Local folder locking wait for file processor to finish")
             sleep(1)
-        log.debug("Local Folder lock setup completed on %r", path)
+        log.debug(f"Local Folder lock setup completed on {path!r}")
 
     def set_ui(self, value: str, overwrite: bool = True) -> None:
         name = ("wui", "force_ui")[overwrite]
@@ -245,11 +247,11 @@ class Engine(QObject):
             return
         self._offline_state = value
         if value:
-            log.debug("Engine %s goes offline", self.uid)
+            log.debug(f"Engine {self.uid} goes offline")
             self._queue_manager.suspend()
             self.offline.emit()
         else:
-            log.debug("Engine %s goes online", self.uid)
+            log.debug(f"Engine {self.uid} goes online")
             self._queue_manager.resume()
             self.online.emit()
 
@@ -264,7 +266,7 @@ class Engine(QObject):
         self._dao.add_filter(path)
         pair = self._dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
         if not pair:
-            log.debug("Cannot find the pair: %s (%r)", remote_ref, remote_parent_path)
+            log.debug(f"Cannot find the pair: {remote_ref} ({remote_parent_path!r})")
             return
         self._dao.delete_remote_state(pair)
 
@@ -284,20 +286,15 @@ class Engine(QObject):
         :return: The complete URL.
         """
 
-        urls = {
-            "jsf": "{server}nxdoc/{repo}/{uid}/{edit}?token={token}",
-            "web": "{server}ui?token={token}#!/doc/{uid}",
-        }
+        _, repo, uid = remote_ref.split("#", 2)
+        page = ("view_documents", "view_drive_metadata")[edit]
+        token = self.get_remote_token()
 
-        remote_ref_segments = remote_ref.split("#", 2)
-        infos = {
-            "server": self.server_url,
-            "repo": remote_ref_segments[1],
-            "uid": remote_ref_segments[2],
-            "edit": ("view_documents", "view_drive_metadata")[edit],
-            "token": self.get_remote_token(),
+        urls = {
+            "jsf": f"{self.server_url}nxdoc/{repo}/{uid}/{page}?token={token}",
+            "web": f"{self.server_url}ui?token={token}#!/doc/{uid}",
         }
-        return urls.get(self.force_ui or self.wui).format(**infos)
+        return urls[self.force_ui or self.wui]
 
     def get_remote_url(self) -> str:
         """
@@ -309,18 +306,12 @@ class Engine(QObject):
 
         urls = {
             "jsf": (
-                "{server}nxhome/{repo}/@view_home?"
+                f"{self.server_url}nxhome/{Options.remote_repo}/@view_home?"
                 "tabIds=USER_CENTER%3AuserCenterNuxeoDrive"
             ),
-            "web": "{server}ui?token={token}#!/drive",
+            "web": f"{self.server_url}ui?token={self.get_remote_token()}#!/drive",
         }
-
-        infos = {
-            "server": self.server_url,
-            "repo": Options.remote_repo,
-            "token": self.get_remote_token(),
-        }
-        return urls.get(self.force_ui or self.wui).format(**infos)
+        return urls[self.force_ui or self.wui]
 
     def is_syncing(self) -> bool:
         return self._sync_started
@@ -332,7 +323,7 @@ class Engine(QObject):
         doc_ref = remote_ref
         if "#" in doc_ref:
             doc_ref = doc_ref[doc_ref.rfind("#") + 1 :]
-        log.debug("Will try to open edit : %s", doc_ref)
+        log.debug(f"Will try to open edit : {doc_ref}")
         # TODO Implement a TemporaryWorker
 
         def run():
@@ -408,7 +399,7 @@ class Engine(QObject):
     def _normalize_url(url: str) -> str:
         """Ensure that user provided url always has a trailing '/'"""
         if not url:
-            raise ValueError("Invalid url: %r" % url)
+            raise ValueError(f"Invalid url: {url!r}")
         if not url.endswith("/"):
             return url + "/"
         return url
@@ -466,7 +457,7 @@ class Engine(QObject):
         if value and changed:
             msg = "Setting invalid credentials"
             if reason:
-                msg += ", reason is: %s" % reason
+                msg += f", reason is: {reason}"
             log.error(msg)
             self.invalidAuthentication.emit()
 
@@ -539,29 +530,21 @@ class Engine(QObject):
         blacklist_size = self._queue_manager.get_errors_count()
         qm_size = self._queue_manager.get_overall_size()
         qm_active = self._queue_manager.active()
+        active_status = "active" if qm_active else "inactive"
         empty_polls = self._remote_watcher.get_metrics()["empty_polls"]
         if not WINDOWS:
             win_info = "not Windows"
         else:
             win_info = (
-                "Windows with win queue size = %d and win folder "
-                "scan size = %d"
-                % (
-                    self._local_watcher.get_win_queue_size(),
-                    self._local_watcher.get_win_folder_scan_size(),
-                )
+                "Windows with win queue size = "
+                f"{self._local_watcher.get_win_queue_size()} and win folder "
+                f"scan size = {self._local_watcher.get_win_folder_scan_size()}"
             )
         log.debug(
-            "Checking sync completed [%s]: queue manager is %s, "
-            "overall size = %d, empty polls count = %d, "
-            "local watcher empty events = %d, blacklist = %d, %s",
-            self.uid,
-            "active" if qm_active else "inactive",
-            qm_size,
-            empty_polls,
-            empty_events,
-            blacklist_size,
-            win_info,
+            f"Checking sync completed [{self.uid}]: queue manager is {active_status}, "
+            f"overall size = {qm_size}, empty polls count = {empty_polls}, "
+            f"local watcher empty events = {empty_events}, "
+            f"blacklist = {blacklist_size}, {win_info}"
         )
         local_metrics = self._local_watcher.get_metrics()
         if qm_size == 0 and not qm_active and empty_polls > 0 and empty_events:
@@ -572,7 +555,7 @@ class Engine(QObject):
             if local_metrics["last_event"] == 0:
                 log.trace("No watchdog event detected but sync is completed")
             self._sync_started = False
-            log.trace("Emitting syncCompleted for engine %s", self.uid)
+            log.trace(f"Emitting syncCompleted for engine {self.uid}")
             self.syncCompleted.emit()
 
     def _thread_finished(self) -> None:
@@ -600,7 +583,7 @@ class Engine(QObject):
 
         self._stopped = False
         Processor.soft_locks = dict()
-        log.debug("Engine %s is starting", self.uid)
+        log.debug(f"Engine {self.uid} is starting")
         for thread in self._threads:
             thread.start()
         self.syncStarted.emit(0)
@@ -613,8 +596,8 @@ class Engine(QObject):
         QCoreApplication.processEvents()
         log.debug("Engine status")
         for thread in self._threads:
-            log.debug("%r", thread.worker.get_metrics())
-        log.debug("%r", self._queue_manager.get_metrics())
+            log.debug(f"{thread.worker.get_metrics()!r}")
+        log.debug(f"{self._queue_manager.get_metrics()!r}")
 
     def get_metrics(self) -> Metrics:
         return {
@@ -644,18 +627,14 @@ class Engine(QObject):
                 pair.local_digest, pair.remote_digest, pair.local_path
             )
             log.warning(
-                "Conflict resolver: names=%r(%r|%r) digests=%r(%s|%s)"
-                " parents=%r(%s|%s) [emit=%r]",
-                pair.remote_name == pair.local_name,
-                pair.remote_name,
-                pair.local_name,
-                same_digests,
-                pair.local_digest,
-                pair.remote_digest,
-                pair.remote_parent_ref == parent_ref,
-                pair.remote_parent_ref,
-                parent_ref,
-                emit,
+                "Conflict resolver: "
+                f"names={pair.remote_name == pair.local_name!r}"
+                f"({pair.remote_name!r}|{pair.local_name!r}) "
+                f"digests={same_digests!r}"
+                f"({pair.local_digest}|{pair.remote_digest}) "
+                f"parents={pair.remote_parent_ref == parent_ref!r}"
+                f"({pair.remote_parent_ref}|{parent_ref}) "
+                f"[emit={emit!r}]"
             )
             if (
                 same_digests
@@ -680,7 +659,7 @@ class Engine(QObject):
 
     def stop(self) -> None:
         self._stopped = True
-        log.trace("Engine %s stopping", self.uid)
+        log.trace(f"Engine {self.uid} stopping")
         self._stop.emit()
         for thread in self._threads:
             if not thread.wait(5000):
@@ -699,7 +678,7 @@ class Engine(QObject):
             self._local_watcher.get_thread().wait(5000)
         # Soft locks needs to be reinit in case of threads termination
         Processor.soft_locks = dict()
-        log.trace("Engine %s stopped", self.uid)
+        log.trace(f"Engine {self.uid} stopped")
 
     @staticmethod
     def use_trash() -> bool:
@@ -892,7 +871,7 @@ class Engine(QObject):
             and current_file.startswith(self._folder_lock)
         ):
             log.debug(
-                "PairInterrupt %r because lock on %r", current_file, self._folder_lock
+                f"PairInterrupt {current_file!r} because lock on {self._folder_lock!r}"
             )
             raise PairInterrupt()
 

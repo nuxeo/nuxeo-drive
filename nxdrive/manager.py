@@ -97,7 +97,7 @@ class Manager(QObject):
             save_proxy(self.proxy, self._dao, token=self.device_id)
         else:
             self.proxy = load_proxy(self._dao)
-        log.info("Proxy configuration is %r", self.proxy)
+        log.info(f"Proxy configuration is {self.proxy!r}")
 
         # Set the logs levels option
         if FILE_HANDLER:
@@ -276,7 +276,7 @@ class Manager(QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug("Resume engine %s", uid)
+            log.debug(f"Resume engine {uid}")
             engine.resume()
         self.resumed.emit()
 
@@ -287,7 +287,7 @@ class Manager(QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug("Suspend engine %s", uid)
+            log.debug(f"Suspend engine {uid}")
             engine.suspend()
         self.suspended.emit()
 
@@ -296,7 +296,7 @@ class Manager(QObject):
             if euid is not None and euid != uid:
                 continue
             if engine.is_started():
-                log.debug("Stop engine %s", uid)
+                log.debug(f"Stop engine {uid}")
                 engine.stop()
         if MAC:
             self.osi._cleanup()
@@ -308,11 +308,11 @@ class Manager(QObject):
             if euid is not None and euid != uid:
                 continue
             if not self._pause:
-                log.debug("Launch engine %s", uid)
+                log.debug(f"Launch engine {uid}")
                 try:
                     engine.start()
                 except:
-                    log.exception("Could not start the engine %s", uid)
+                    log.exception(f"Could not start the engine {uid}")
 
         # Check only if manager is started
         self._handle_os()
@@ -325,7 +325,7 @@ class Manager(QObject):
         self._engines = dict()
         for engine in self._engine_definitions:
             if engine.engine not in self._engine_types:
-                log.warning("Cannot find engine %s anymore", engine.engine)
+                log.warning(f"Cannot find engine {engine.engine} anymore")
                 if engine.engine not in in_error:
                     in_error[engine.engine] = True
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
@@ -347,7 +347,7 @@ class Manager(QObject):
                        opening a folder and to select a file.
         """
         file_path = force_decode(file_path)
-        log.debug("Launching editor on %r", file_path)
+        log.debug(f"Launching editor on {file_path!r}")
         if WINDOWS:
             try:
                 if select:
@@ -376,7 +376,7 @@ class Manager(QObject):
                 subprocess.Popen(["xdg-open", file_path])
             except OSError:
                 # xdg-open should be supported by recent Gnome, KDE, Xfce
-                log.error("Failed to find and editor for: %r", file_path)
+                log.error(f"Failed to find and editor for: {file_path!r}")
 
     @property
     def device_id(self) -> str:
@@ -482,7 +482,7 @@ class Manager(QObject):
 
         save_proxy(proxy, self._dao)
         self.proxy = proxy
-        log.trace("Effective proxy: %r", proxy)
+        log.trace(f"Effective proxy: {proxy!r}")
         return ""
 
     def _get_default_server_type(self) -> str:  # TODO: Move to constants.py
@@ -571,8 +571,7 @@ class Manager(QObject):
                 engine_type = url.split("#")[1]
                 binder = binder._replace(url=url.split("#")[0])
                 log.debug(
-                    "Engine type has been specified in the URL: %s will be used",
-                    engine_type,
+                    f"Engine type has been specified in the URL: {engine_type} will be used"
                 )
 
         if not self.check_local_folder_available(local_folder):
@@ -665,7 +664,7 @@ class Manager(QObject):
             if engine.is_syncing():
                 syncing_engines.append(uid)
         if syncing_engines:
-            log.debug("Some engines are currently synchronizing: %s", syncing_engines)
+            log.debug(f"Some engines are currently synchronizing: {syncing_engines}")
             return True
         log.debug("No engine currently synchronizing")
         return False
@@ -683,14 +682,13 @@ class Manager(QObject):
     def ctx_access_online(self, file_path: str) -> None:
         """ Open the user's browser to a remote document. """
 
-        log.debug("Opening metadata window for %r", file_path)
+        log.debug(f"Opening metadata window for {file_path!r}")
         try:
             url = self.get_metadata_infos(file_path)
         except ValueError:
             log.warning(
-                "The document %r is not handled by the Nuxeo server"
-                " or is not synchronized yet.",
-                file_path,
+                f"The document {file_path!r} is not handled by the Nuxeo server "
+                "or is not synchronized yet."
             )
         else:
             self.open_local_file(url)
@@ -700,19 +698,18 @@ class Manager(QObject):
 
         url = self.get_metadata_infos(file_path)
         copy_to_clipboard(url)
-        log.info("Copied %r", url)
+        log.info(f"Copied {url!r}")
 
     def ctx_edit_metadata(self, file_path: str) -> None:
         """ Open the user's browser to a remote document's metadata. """
 
-        log.debug("Opening metadata window for %r", file_path)
+        log.debug(f"Opening metadata window for {file_path!r}")
         try:
             url = self.get_metadata_infos(file_path, edit=True)
         except ValueError:
             log.warning(
-                "The document %r is not handled by the Nuxeo server"
-                " or is not synchronized yet.",
-                file_path,
+                f"The document {file_path!r} is not handled by the Nuxeo server "
+                "or is not synchronized yet."
             )
         else:
             self.open_local_file(url)
@@ -727,7 +724,7 @@ class Manager(QObject):
         try:
             engine = self.get_engines()[root_values[3]]
         except:
-            raise ValueError("Unknown engine %s for %r" % (root_values[3], file_path))
+            raise ValueError(f"Unknown engine {root_values[3]} for {file_path!r}")
 
         return engine.get_metadata_url(remote_ref, edit=edit)
 

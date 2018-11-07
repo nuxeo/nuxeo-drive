@@ -17,7 +17,7 @@ def is_healthy(database: str) -> bool:
     http://www.sqlite.org/pragma.html#pragma_integrity_check
     """
 
-    log.info("Checking database integrity: %r", database)
+    log.info(f"Checking database integrity: {database!r}")
     with sqlite3.connect(database) as con:
         status = con.cursor().execute("PRAGMA integrity_check(1)").fetchone()
         return status[0] == "ok"
@@ -30,10 +30,10 @@ def dump(database: str, dump_file: str) -> None:
     in the sqlite3 shell.
     """
 
-    log.debug("Dumping the database %r into %r ...", database, dump_file)
+    log.debug(f"Dumping the database {database!r} into {dump_file!r}...")
     with sqlite3.connect(database) as con, open(dump_file, "w") as f:
         for line in con.iterdump():
-            f.write("%s\n" % line)
+            f.write(f"{line}\n")
     log.debug("Dump finished with success.")
 
 
@@ -44,7 +44,7 @@ def read(dump_file: str, database: str) -> None:
     in the sqlite3 shell.
     """
 
-    log.debug("Restoring %r into the database %r ...", dump_file, database)
+    log.debug(f"Restoring {dump_file!r} into the database {database!r} ...")
     with sqlite3.connect(database) as con, open(dump_file) as f:
         con.executescript(f.read())
     log.debug("Restoration done with success.")
@@ -64,7 +64,7 @@ def fix_db(database: str, dump_file: str = "dump.sql") -> None:
     if is_healthy(database):
         return
 
-    log.debug("Re-generating the whole database content of %r ...", database)
+    log.debug(f"Re-generating the whole database content of {database!r}...")
 
     # Dump
     try:
@@ -97,4 +97,4 @@ def fix_db(database: str, dump_file: str = "dump.sql") -> None:
             os.remove(dump_file)
 
     new_size = os.stat(database).st_size
-    log.debug("Re-generation completed, saved %d Kb.", (old_size - new_size) / 1024)
+    log.debug(f"Re-generation completed, saved {(old_size - new_size) / 1024} Kb.")
