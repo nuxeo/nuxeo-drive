@@ -65,9 +65,9 @@ class TestLocalCopyPaste(UnitTestCase):
 
         # get remote folders reference ids
         self.remote_ref_1 = local.get_remote_id(self.folder_path_1)
-        assert self.remote_ref_1 is not None
+        assert self.remote_ref_1
         self.remote_ref_2 = local.get_remote_id(self.folder_path_2)
-        assert self.remote_ref_2 is not None
+        assert self.remote_ref_2
         assert remote.fs_exists(self.remote_ref_1)
         assert remote.fs_exists(self.remote_ref_2)
 

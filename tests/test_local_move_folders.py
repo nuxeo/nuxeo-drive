@@ -46,7 +46,7 @@ class TestLocalMoveFolders(UnitTestCase):
 
             # Check remote files
             uid = local.get_remote_id(folder)
-            assert uid is not None
+            assert uid
             assert remote.fs_exists(uid)
             children = [child.name for child in remote.get_fs_children(uid)]
             assert len(children) == num
@@ -80,7 +80,7 @@ class TestLocalMoveFolders(UnitTestCase):
             assert set(children) == names
 
             uid = local.get_remote_id(folder)
-            assert uid is not None
+            assert uid
             assert remote.fs_exists(uid)
             children = [
                 child.name

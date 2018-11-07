@@ -75,7 +75,6 @@ class TestRemoteFileSystemClient(UnitTestCase):
         fs_item_id = FS_ITEM_ID_PREFIX + "fakeId"
         with pytest.raises(NotFound):
             remote.get_fs_info(fs_item_id)
-        assert not remote.get_fs_info(fs_item_id, raise_if_missing=False)
 
     def test_get_content(self):
         remote = self.remote_1

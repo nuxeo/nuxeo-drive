@@ -37,13 +37,7 @@ class MockUrlTestEngine(Engine):
         self._invalid_credentials = False
 
     def get_binder(self):
-        return ServerBindingSettings(
-            server_url=self._url,
-            web_authentication=None,
-            username="Administrator",
-            local_folder="/",
-            initialized=True,
-        )
+        return ServerBindingSettings(self._url, None, "Administrator", "/", True)
 
 
 class TestDirectEdit(UnitTestCase):

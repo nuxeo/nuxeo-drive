@@ -40,13 +40,11 @@ class ManagerDAOTest(unittest.TestCase):
         dao.lock_path("/test_3", 3, "doc_id_3")
         # Verify that it does fail
         dao.lock_path("/test_3", 4, "doc_id_4")
-        locks = dao.get_locked_paths()
-        assert len(locks) == 3
+        assert len(dao.get_locked_paths()) == 3
         dao.unlock_path("/test")
-        locks = dao.get_locked_paths()
-        assert len(locks) == 3
+        assert len(dao.get_locked_paths()) == 3
         dao.unlock_path("/test_1")
-        locks = dao.get_locked_paths()
+        locks = dao.get_locks()
         assert len(locks) == 2
         assert locks[0].path == "/test_2"
         assert locks[0].process == 2
