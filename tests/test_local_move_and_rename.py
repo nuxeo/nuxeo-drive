@@ -413,7 +413,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert local.exists("/Renamed File.txt")
         assert not local.exists("/File.txt")
         # Path don't change on Nuxeo
-        assert local.get_remote_id("/Renamed File.txt") is not None
+        assert local.get_remote_id("/Renamed File.txt")
         assert len(local.get_children_info("/")) == 5
         assert len(remote.get_children_info(self.workspace_1)) == 5
 
@@ -445,7 +445,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             assert not local.exists("/File.txt")
 
             # Path doesn't change on Nuxeo
-            assert local.get_remote_id("/Renamed File.txt") is not None
+            assert local.get_remote_id("/Renamed File.txt")
             assert len(local.get_children_info("/")) == 5
             assert len(remote.get_children_info(self.workspace_1)) == 5
 
@@ -617,8 +617,8 @@ Expected result: In Drive-02, all files should move into folder "878"
 
 Stack:
 
-sqlite Updating remote state for row=<StateRow> with info=...
-sqlite Increasing version to 1 for pair <StateRow>
+sqlite Updating remote state for row=<DocPair> with info=...
+sqlite Increasing version to 1 for pair <DocPair>
 remote_watcher Unexpected error
 Traceback (most recent call last):
   File "remote_watcher.py", line 487, in _handle_changes

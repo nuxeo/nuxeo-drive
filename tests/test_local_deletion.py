@@ -137,12 +137,12 @@ class TestLocalDeletion(UnitTestCase):
 
         # See if it untrash or recreate
         shutil.move(os.path.join(self.local_test_folder_1, file1), local.abspath("/"))
-        assert local.get_remote_id("/" + file1) is not None
+        assert local.get_remote_id("/" + file1)
         self.wait_sync()
         assert local.exists("/" + file1)
         new_uid = local.get_remote_id("/" + file1)
         # Because remote_document_client_1 was used
-        assert new_uid is not None
+        assert new_uid
         assert not new_uid.endswith(old_info.uid)
 
     @pytest.mark.skip(

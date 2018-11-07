@@ -133,10 +133,7 @@ class RemoteBase(Remote):
             file_path = name
         try:
             fs_item = self.upload(
-                file_path,
-                filename=name,
-                command="NuxeoDrive.CreateFile",
-                parentId=parent_id,
+                file_path, "NuxeoDrive.CreateFile", filename=name, parentId=parent_id
             )
             return RemoteFileInfo.from_dict(fs_item)
         finally:
@@ -156,9 +153,9 @@ class RemoteBase(Remote):
                 filename = self.get_fs_info(ref).name
             fs_item = self.upload(
                 file_path,
+                "NuxeoDrive.UpdateFile",
                 filename=filename,
                 mime_type=mime_type,
-                command="NuxeoDrive.UpdateFile",
                 id=ref,
             )
             return RemoteFileInfo.from_dict(fs_item)
@@ -332,9 +329,7 @@ class DocRemote(RemoteTest):
         file_path = make_tmp_file(self.upload_tmp_dir, content)
         try:
             return self.upload(
-                file_path,
-                filename=filename,
-                command="UserWorkspace.CreateDocumentFromBlob",
+                file_path, "UserWorkspace.CreateDocumentFromBlob", filename=filename
             )
         finally:
             os.remove(file_path)
@@ -352,9 +347,9 @@ class DocRemote(RemoteTest):
         ref = self.make_file(parent, name, doc_type=doc_type)
         self.upload(
             file_path,
+            "Blob.Attach",
             filename=filename,
             mime_type=mime_type,
-            command="Blob.Attach",
             document=ref,
         )
         return ref
@@ -363,7 +358,7 @@ class DocRemote(RemoteTest):
         file_path = make_tmp_file(self.upload_tmp_dir, blob)
         try:
             return self.upload(
-                file_path, filename=filename, command="Blob.Attach", document=ref
+                file_path, "Blob.Attach", filename=filename, document=ref
             )
         finally:
             os.remove(file_path)

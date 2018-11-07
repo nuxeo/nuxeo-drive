@@ -99,7 +99,7 @@ class TestMultipleFiles(UnitTestCase):
 
             # Remote
             uid = local.get_remote_id(path)
-            assert uid is not None
+            assert uid
 
             children = remote.get_fs_children(uid)
             assert len(children) == num
