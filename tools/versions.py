@@ -35,16 +35,20 @@ def create(version):
     # Create the version file
     output = "{}.yml".format(version)
 
-    # We set 10.3-SNAPSHOT to allow presales to test the current dev version.
-    # Same for the future 10.10 to not block updates when it will be available.
-    yml = """{}:
-    min: "7.10"
+    """
+    We set 10.3-SNAPSHOT to allow presales to test the current dev version.
+    Same for the future 10.10 to not block updates when it will be available.
+    Note that we removed the following section with NXDRIVE-1419:
+
     min_all:
         "7.10": "7.10-HF47"
         "8.10": "8.10-HF38"
         "9.10": "9.10-HF20"
         "10.3": "10.3-SNAPSHOT"
         "10.10": "10.10-SNAPSHOT"
+    """
+    yml = """{}:
+    min: "7.10"
     type: {}
     checksum:
         algo: sha256
