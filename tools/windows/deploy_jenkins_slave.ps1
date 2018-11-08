@@ -65,6 +65,9 @@ function build_installer {
 
 	build "$app_version" "tools\windows\setup.iss"
 	sign "dist\nuxeo-drive-$app_version.exe"
+
+	build "$app_version" "tools\windows\setup-admin.iss"
+	sign "dist\nuxeo-drive-$app_version-admin.exe"
 }
 
 function check_import($import) {
