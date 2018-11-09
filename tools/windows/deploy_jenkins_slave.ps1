@@ -210,14 +210,17 @@ function launch_tests {
 	# Launch the tests suite
 	$Env:MYPYPATH = "$Env:WORKSPACE_DRIVE\tools\stubs"
 
+	Write-Output ">>> Checking the style"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+	Write-Output ">>> Checking type annotations"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+	Write-Output ">>> Launching the tests suite"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest $Env:SPECIFIC_TEST
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
