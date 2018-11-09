@@ -1,5 +1,6 @@
 # coding: utf-8
 import argparse
+from contextlib import suppress
 
 import pytest
 import requests
@@ -7,14 +8,10 @@ import requests
 from nxdrive.options import Options
 
 # Remove eventual logging callbacks
-try:
+with suppress(KeyError):
     del Options.callbacks["log_level_console"]
-except KeyError:
-    pass
-try:
+with suppress(KeyError):
     del Options.callbacks["log_level_file"]
-except KeyError:
-    pass
 
 
 @Options.mock()
@@ -44,8 +41,29 @@ def test_batch_update_from_dict():
 def test_batch_update_from_dict_with_unknown_option():
     options = {"debug": True, "foo": 42}
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as err:
         Options.update(options, setter="local")
+    msg = err.value.args[0]
+    assert "foo" in msg
+    assert "test.ini" not in msg
+    assert "debugging" not in msg
+
+    # Test the 'section' arg
+    with pytest.raises(RuntimeError) as err:
+        Options.update(options, setter="local", file="test.ini")
+    msg = err.value.args[0]
+    assert "foo" in msg
+    assert "test.ini" in msg
+    assert "debugging" not in msg
+
+    # Test `file` and `section` args
+    with pytest.raises(RuntimeError) as err:
+        Options.update(options, setter="local", file="test.ini", section="debugging")
+    msg = err.value.args[0]
+    assert "foo" in msg
+    assert "test.ini" in msg
+    assert "debugging" in msg
+
     assert Options.debug
     assert not Options.foo
 
@@ -111,8 +129,28 @@ def test_error():
 
     Options.set("no key", 42, fail_on_error=False)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError) as err:
         Options.set("delay", "foo")
+    msg = err.value.args[0]
+    assert "delay" in msg
+    assert "test.ini" not in msg
+    assert "debugging" not in msg
+
+    # Test the 'section' arg
+    with pytest.raises(TypeError) as err:
+        Options.set("delay", "foo", file="test.ini")
+    msg = err.value.args[0]
+    assert "delay" in msg
+    assert "test.ini" in msg
+    assert "debugging" not in msg
+
+    # Test `file` and `section` args
+    with pytest.raises(TypeError) as err:
+        Options.set("delay", "foo", file="test.ini", section="debugging")
+    msg = err.value.args[0]
+    assert "delay" in msg
+    assert "test.ini" in msg
+    assert "debugging" in msg
 
 
 @Options.mock()
@@ -152,7 +190,6 @@ def test_setters():
     assert Options.delay == 222
 
 
-@pytest.mark.skip("Waiting for NXDRIVE-1162")
 def test_site_update_url():
     for url in (Options.update_site_url, Options.beta_update_site_url):
         with requests.get(url) as resp:

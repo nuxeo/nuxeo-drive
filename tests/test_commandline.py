@@ -2,6 +2,9 @@
 import os
 import tempfile
 import unittest
+from contextlib import suppress
+
+import pytest
 
 from nxdrive.commandline import CliHandler
 from nxdrive.options import Options
@@ -22,8 +25,7 @@ class CommandLineTestCase(unittest.TestCase):
     def setUp(self):
         self.tmpdir = os.path.join(os.environ.get("WORKSPACE", ""), "tmp")
         self.addCleanup(clean_dir, self.tmpdir)
-        if not os.path.isdir(self.tmpdir):
-            os.makedirs(self.tmpdir)
+        os.makedirs(self.tmpdir, exist_ok=True)
 
         self.cmd = CliHandler()
         self.addCleanup(self.clean_ini)
@@ -31,19 +33,18 @@ class CommandLineTestCase(unittest.TestCase):
     def create_ini(self, filename="config.ini", env="PROD"):
         with open(filename, "w+") as inifile:
             inifile.writelines(
-                """
+                f"""
 [DEFAULT]
-env = %s
+env = {env}
 
 [PROD]
-log-level-console = TRACE
+log-level_console = TRACE
 debug = False
 
 [DEV]
 log_level-console = ERROR
 delay = 3
 """
-                % env
             )
 
     def create_ini_bad(self, filename="config.ini"):
@@ -62,10 +63,8 @@ delay = 3
             )
 
     def clean_ini(self, filename="config.ini"):
-        try:
+        with suppress(OSError):
             os.remove(filename)
-        except OSError:
-            pass
 
     @Options.mock()
     def test_update_site_url(self):
@@ -133,7 +132,6 @@ delay = 3
 
         # config.ini override
         self.create_ini_bad()
-        options = self.cmd.parse_cli([])
-        assert options.log_level_console == "TRACE"
-        assert options.delay == 3
+        with pytest.raises(TypeError):
+            self.cmd.parse_cli([])
         self.clean_ini()
