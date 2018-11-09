@@ -3,6 +3,7 @@ import subprocess
 from logging import getLogger
 
 from .base import BaseUpdater
+from ..options import Options
 
 __all__ = ("Updater",)
 
@@ -12,8 +13,12 @@ log = getLogger(__name__)
 class Updater(BaseUpdater):
     """ Windows updater. """
 
-    ext = "exe"
-    release_file = "nuxeo-drive-{version}.exe"
+    ext = "exe-admin" if Options.system_wide else "exe"
+    release_file = (
+        "nuxeo-drive-{version}-admin.exe"
+        if Options.system_wide
+        else "nuxeo-drive-{version}.exe"
+    )
 
     def install(self, filename: str) -> None:
         """
