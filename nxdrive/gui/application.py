@@ -228,14 +228,14 @@ class Application(QApplication):
             "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"
         )
         metrics = self.manager.get_metrics()
-        context.setContextProperty(
-            "modulesVersionText",
-            (
-                f'Python {metrics["python_version"]}, '
-                f'Qt {metrics["qt_version"]}, '
-                f'SIP {metrics["sip_version"]}'
-            ),
+        versions = (
+            f'Python {metrics["python_version"]}, '
+            f'Qt {metrics["qt_version"]}, '
+            f'SIP {metrics["sip_version"]}'
         )
+        if Options.system_wide:
+            versions += " [admin]"
+        context.setContextProperty("modulesVersionText", versions)
 
         colors = {
             "darkBlue": "#1F28BF",

@@ -169,6 +169,13 @@ class MetaOptions(type):
         ),
         "theme": ("ui5", "default"),
         "startup_page": ("drive_login.jsp", "default"),
+        "system_wide": (
+            sys.platform == "win32"
+            and os.path.isfile(
+                os.path.join(os.path.dirname(sys.executable), "system-wide.txt")
+            ),
+            "default",
+        ),
         "timeout": (30, "default"),
         "update_check_delay": (3600, "default"),
         "update_site_url": (

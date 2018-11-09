@@ -9,8 +9,10 @@ from __future__ import print_function, unicode_literals
 import argparse
 import glob
 import hashlib
+import os
+import os.path
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 
 def create(version):
@@ -22,13 +24,24 @@ def create(version):
         category, version = version.split("-")
 
     # Compute installers checksum
-    checksum_dmg = checksum_exe = None
-    paths = ("dist/nuxeo-drive-{}.dmg", "dist/nuxeo-drive-{}.exe")
+    checksum_dmg = checksum_exe = checksum_exe_admin = None
+    paths = (
+        "dist/nuxeo-drive-{}.dmg",
+        "dist/nuxeo-drive-{}.exe",
+        "dist/nuxeo-drive-{}-admin.exe",
+    )
     for path in paths:
-        with open(path.format(version), "rb") as installer:
+        if os.getenv("TESTING") and not os.path.isfile(path.format(version)):
+            continue
+
+        with open(
+            path.format(version), "rb"  # Set TESTING=1 envar to skip the error
+        ) as installer:
             checksum = hashlib.sha256(installer.read()).hexdigest()
             if path.endswith("dmg"):
                 checksum_dmg = checksum
+            elif "admin" in path:
+                checksum_exe_admin = checksum
             else:
                 checksum_exe = checksum
 
@@ -54,8 +67,9 @@ def create(version):
         algo: sha256
         dmg: {}
         exe: {}
+        exe-admin: {}
 """.format(
-        version, category, checksum_dmg, checksum_exe
+        version, category, checksum_dmg, checksum_exe, checksum_exe_admin
     )
     with open(output, "w") as versions:
         versions.write(yml)
