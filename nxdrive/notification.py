@@ -227,7 +227,7 @@ class ErrorNotification(Notification):
                 | Notification.FLAG_DISCARD_ON_TRIGGER
                 | Notification.FLAG_REMOVE_ON_DISCARD
             ),
-            action="show_conflicts",
+            action="show_conflicts_resolution",
         )
 
 
@@ -290,7 +290,7 @@ class ConflictNotification(Notification):
                 | Notification.FLAG_DISCARD_ON_TRIGGER
                 | Notification.FLAG_REMOVE_ON_DISCARD
             ),
-            action="show_conflicts",
+            action="show_conflicts_resolution",
         )
 
 
