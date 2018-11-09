@@ -230,7 +230,12 @@ class MetaOptions(type):
 
     @staticmethod
     def set(
-        item: str, new_value: Any, setter: str = "default", fail_on_error: bool = True
+        item: str,
+        new_value: Any,
+        setter: str = "default",
+        fail_on_error: bool = True,
+        file: str = "",
+        section: str = "",
     ) -> None:
         """
         Set an option.
@@ -240,6 +245,8 @@ class MetaOptions(type):
 
         If the `setter` has the right to override the option value, set
         `new_value`, else do nothing.
+
+        `file` and `section` are used for a better exception message.
 
         Any `list` will be converted to a sorted `tuple`.
         Any `bytes` value will be decoded.
@@ -253,11 +260,21 @@ class MetaOptions(type):
         `new_value` as sole argument.
         """
 
+        src_err = ""
+        if file:
+            # There can be a section only when there is a file
+            if section:
+                src_err = f" From {file!r}, section [{section}]."
+            else:
+                src_err = f" From {file!r}."
+
         try:
             old_value, old_setter = MetaOptions.options[item]
         except KeyError:
             if fail_on_error:
-                raise RuntimeError(f"{item!r} is not a recognized parameter.") from None
+                raise RuntimeError(
+                    f"{item!r} is not a recognized parameter.{src_err}"
+                ) from None
         else:
             if isinstance(new_value, list):
                 # Need a tuple when JSON sends a simple list
@@ -287,8 +304,8 @@ class MetaOptions(type):
                     return
 
                 err = (
-                    f"The type of the option {item} is {type(new_value).__name__}, "
-                    f"while {type(old_value).__name__} is required."
+                    f"The type of the {item!r} option is {type(new_value).__name__}, "
+                    f"while {type(old_value).__name__} is required.{src_err}"
                 )
                 raise TypeError(err)
 
@@ -297,7 +314,7 @@ class MetaOptions(type):
             if MetaOptions._setters[setter] >= MetaOptions._setters[old_setter]:
                 MetaOptions.options[item] = new_value, setter
                 log.debug(
-                    f"Option {item} updated: {old_value!r} -> {new_value!r} [{setter}]"
+                    f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]"
                 )
 
                 # Callback for that option
@@ -309,7 +326,13 @@ class MetaOptions(type):
                     callback(new_value)
 
     @staticmethod
-    def update(items: Any, setter: str = "default", fail_on_error: bool = True) -> None:
+    def update(
+        items: Any,
+        setter: str = "default",
+        fail_on_error: bool = True,
+        file: str = "",
+        section: str = "",
+    ) -> None:
         """
         Batch update options.
         If an option does not exist, it will be ignored.
@@ -323,7 +346,14 @@ class MetaOptions(type):
             items = items._get_kwargs()
 
         for item, value in items:
-            MetaOptions.set(item, value, setter=setter, fail_on_error=fail_on_error)
+            MetaOptions.set(
+                item,
+                value,
+                setter=setter,
+                fail_on_error=fail_on_error,
+                file=file,
+                section=section,
+            )
 
     @staticmethod
     def mock() -> Callable:
@@ -361,4 +391,4 @@ class MetaOptions(type):
 class Options(metaclass=MetaOptions):
     def __init__(self) -> None:
         """ Prevent class instances. """
-        raise RuntimeError("Cannot be instantiated.")
+        raise RuntimeError("Instantiation is not allowed.")

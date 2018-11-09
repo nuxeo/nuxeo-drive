@@ -9,12 +9,13 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
-from typing import Any, List, Union, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Tuple, Union
 
 from . import __version__
 from .constants import APP_NAME
 from .logging_config import configure
 from .options import Options
+from .osi import AbstractOSIntegration
 from .utils import force_encode, get_default_nuxeo_drive_folder, normalized_path
 
 try:
@@ -359,6 +360,9 @@ class CliHandler:
         # tolerant to missing subcommand
         has_command = False
 
+        # Pre-configure the logging to catch early errors
+        configure(console_level="DEBUG", command_name="early")
+
         filtered_args = []
         for arg in argv:
             if arg.startswith("nxdrive://"):
@@ -388,50 +392,59 @@ class CliHandler:
 
         return options
 
-    def load_config(self, parser: ArgumentParser) -> None:
-        config_name = "config.ini"
-        config = ConfigParser()
-        configs = []
-        path = os.path.join(os.path.dirname(sys.executable), config_name)
-        if os.path.exists(path):
-            configs.append(path)
-        if os.path.exists(config_name):
-            configs.append(config_name)
-        user_ini = os.path.join(Options.nxdrive_home, config_name)
-        if os.path.exists(user_ini):
-            configs.append(user_ini)
-        if configs:
-            config.read(configs)
+    @staticmethod
+    def get_value(name: str, value: str) -> Union[bool, str, Tuple[str, ...]]:
+        """Handle a given parameter from config.ini."""
 
-        from .osi import AbstractOSIntegration
+        if value.lower() in {"true", "1", "on", "yes", "oui"}:
+            return True
+        elif value.lower() in {"false", "0", "off", "no", "non"}:
+            return False
+        elif "\n" in value:
+            return tuple(sorted(value.split()))
 
+        return value
+
+    def load_config(
+        self, parser: ArgumentParser, conf_name: str = "config.ini"
+    ) -> None:
+        """
+        Load local configuration from different sources:
+            - the registry on Windows
+            - config.ini next to the current executable
+            - config.ini from the ~/.nuxeo-drive folder
+            - config.ini from the current working directory
+        Each configuration file is independant and can define its own `env` section.
+        """
         args = AbstractOSIntegration.get(None).get_system_configuration()
-        if config.has_option(DEFAULTSECT, "env"):
-            env = config.get(DEFAULTSECT, "env")
-            for item in config.items(env):
-                if item[0] == "env":
-                    continue
-
-                value: Any = item[1]
-                if value == "":
-                    continue
-                elif value in {"true", "True"}:
-                    value = True
-                elif value in {"false", "False"}:
-                    value = False
-                elif "\n" in value:
-                    if "=" in value:
-                        log.error(
-                            "Malformatted parameter in config.ini: "
-                            f"{item[0]!r} => {value!r}"
-                        )
-                        value = value.split()[0].split("=")[0].strip()
-                    else:
-                        # Treat multiline option as a set
-                        value = tuple(sorted(item[1].split()))
-                args[item[0].replace("-", "_")] = value
         if args:
-            Options.update(args, setter="local")
+            # This is the case on Windows only, values from the registry
+            Options.update(args, setter="local", file="HKCU\\Software\\Nuxeo\\Drive")
+
+        for conf_file in {
+            os.path.join(os.path.dirname(sys.executable), conf_name),
+            os.path.join(Options.nxdrive_home, conf_name),
+            conf_name,
+        }:
+            config = ConfigParser()
+            config.read(conf_file)
+
+            if config.has_option(DEFAULTSECT, "env"):
+                env = config.get(DEFAULTSECT, "env")
+                conf_args = {}
+
+                for name, value in config.items(env):
+                    if name == "env" or value == "":
+                        continue
+
+                    conf_args[name.replace("-", "_")] = self.get_value(name, value)
+
+                if conf_args:
+                    file = os.path.abspath(conf_file)
+                    Options.update(conf_args, setter="local", file=file, section=env)
+                    args.update(**conf_args)
+
+        if args:
             parser.set_defaults(**args)
 
     def _configure_logger(self, command: str, options: Namespace) -> None:
@@ -450,6 +463,7 @@ class CliHandler:
             file_level=options.log_level_file,
             console_level=options.log_level_console,
             command_name=command,
+            force_configure=True,
         )
 
     def uninstall(self) -> None:
