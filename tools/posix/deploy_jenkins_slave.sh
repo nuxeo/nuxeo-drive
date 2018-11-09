@@ -143,11 +143,13 @@ install_python() {
 }
 
 launch_tests() {
-    echo ">>> Launching the tests suite"
     export MYPYPATH="${WORKSPACE_DRIVE}/tools/stubs"
 
+    echo ">>> Checking the style"
     ${PYTHON} -m flake8 .
+    echo ">>> Checking type annotations"
     ${PYTHON} -m mypy --ignore-missing-imports nxdrive
+    echo ">>> Launching the tests suite"
     ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}"
 }
 
