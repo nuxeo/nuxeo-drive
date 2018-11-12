@@ -92,12 +92,7 @@ Example of `version.yml` content:
             exe: ...
 
     4.0.0:
-        min_all:
-            '7.10': '7.10-HF47'
-            '8.10': '8.10-HF37'
-            '9.10': '9.10-HF20'
-            '10.3': '10.3-SNAPSHOT'
-            '10.10': '10.10'
+        min: '7.10'
         type: beta
         checksum:
             algo: MD5
@@ -111,12 +106,10 @@ Each entry describes a version with:
   - `algo`: the algorithm used, it must be one of the [hashlib](https://docs.python.org/2/library/hashlib.html) module (will use SHA256 by default).
   - `dmg`: the checksum of the file `.dmg`. **Mandatory** if you provide a macOS installer.
   - `exe`: the checksum of the file `.exe`. **Mandatory** if you provide a Windows installer.
-- `min`: the minimum Nuxeo version required for this release to work with. **Not recommanded, use min_all**.
-- `min_all`: equivalent to `min` but with a finer grain. **Mandatory**.
-- `max`: the maximum Nuxeo version required for this release to work with. If not defined, Drive will consider the current Nuxeo version as acceptable to work with. Not recommanded, use max_all.
-- `max_all`: equivalent to `max` but with a finer grain.
+- `min`: the minimum Nuxeo version required for this release to work with. **Mandatory**.
+- `max`: the maximum Nuxeo version required for this release to work with. If not defined, Drive will consider the current Nuxeo version as acceptable to work with.
 
-`min`, `min_all`, `max` and `max_all` can take a Hot Fix (HF) version, helpful to isolate some versions. Defined versions are **inclusive**.
+`min` and `max` can take a Hot Fix (HF) version, helpful to isolate some versions. Defined versions are **inclusive**.
 
 Notes:
 

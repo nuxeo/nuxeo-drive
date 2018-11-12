@@ -1,4 +1,6 @@
-# Nuxeo Drive - Desktop Synchronization Client for Nuxeo
+# Nuxeo Drive
+
+**Desktop Synchronization Client for Nuxeo**
 
 This is an ongoing development project for desktop synchronization of local folders with remote Nuxeo workspaces.
 
@@ -8,41 +10,32 @@ See [USERDOC/Nuxeo Drive](https://doc.nuxeo.com/x/04HQ) for complete up-to-date 
 
 Note: this documentation follows the Drive version of the master branch, which could evolve rapidly. To see the documentation of a given Drive release, use this kind of link:
 
-    # For Drive 2.1.113 go to:
-    https://github.com/nuxeo/nuxeo-drive/release-2.1.113/README.md
-
+```shell
+# For Drive 2.1.113 go to:
+https://github.com/nuxeo/nuxeo-drive/release-2.1.113/README.md
+```
 
 ## License
 
-The source code of Nuxeo Drive is available under the GNU Lesser General Public License v2.1 described in LICENSE.txt.
+The source code of Nuxeo Drive is available under the GNU LGPL v2.1 described in [LICENSE.txt](LICENSE.txt).
 
 ## Install
 
-Installing Nuxeo Drive requires two components: a server addon for the Nuxeo Platform and a desktop program on the user's computer.
-
-## Server-Side Marketplace Package
-
-### Getting the Marketplace Package
-
-**Stable releases for Nuxeo Drive** are available as a Marketplace package from the Nuxeo Online Services portal: [https://connect.nuxeo.com/nuxeo/site/marketplace/package/nuxeo-drive](https://connect.nuxeo.com/nuxeo/site/marketplace/package/nuxeo-drive)
-
-You can also fetch the **latest development version** of the [Marketplace package for the Nuxeo master branch](https://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace) from the Continuous Integration server (use at your own risk).
-
-### Installing the Marketplace Package
-
-The Marketplace package can be installed using the **Admin Center** / **Update Center** / **Local Packages** interface of a Nuxeo server.
-
-Alternatively, from the command line:
-
-    $NUXEO_HOME/bin/nuxeoctl stop
-    $NUXEO_HOME/bin/nuxeoctl mp-install --nodeps marketplace-<version>.zip
-    $NUXEO_HOME/bin/nuxeoctl start
+Installing Nuxeo Drive requires two components: the `nuxeo-drive` server addon for the Nuxeo Platform and a desktop program on the user's computer.
 
 ## Clients
 
+### macOS and Windows Desktop Clients
+
+Once the Marketplace package is installed, the macOS/Windows desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab or from the [update website](https://community.nuxeo.com/static/drive-updates/). Administrator rights are not required.
+
+You can also fetch the latest development version from the [our Continous Integration server](https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/).
+
+All the necessary dependencies (such as the Python interpreter and the Qt / PyQt for the client side user interface) are included and will not impact any alternative version you may have already installed on your computer.
+
 ### Debian based Distributions (and Other GNU/Linux Variants) Client
 
-The .deb (or .rpm) package of the client is not yet available. In the meantime you can install it from source code.
+There is currently no universal package to download. In the meantime you can install it from the source code.
 
 *Has been reported to work on* Ubuntu >= 12.04.
 
@@ -56,7 +49,9 @@ On FreeBSD and macOS, xattrs are enabled in the default kernel.
 
 On GNU/Linux, depending on the distribution, you may need a special mount option (`user_xattr`) to enable them for a given file system, e.g.:
 
-    sudo mount -o remount,user_xattr /dev/sda3
+```shell
+sudo mount -o remount,user_xattr /dev/sda3
+```
 
 #### Python
 
@@ -65,22 +60,22 @@ Nuxeo Drive is officially supported on **Python 3.6+**.
 #### Install Nuxeo Drive
 
 Install Nuxeo Drive requirements and Nuxeo Drive itself.
-These are common installation actions, not depending on the package manager:
+These are common installation actions, not depending on the package manager.
+From the folder containing the Nuxeo Drive source code (this repository):
 
-    DRIVE_VERSION=release-3.1.0
-    pip install -r https://raw.github.com/nuxeo/nuxeo-drive/$DRIVE_VERSION/requirements.txt
-    pip install git+https://github.com/nuxeo/nuxeo-drive.git@$DRIVE_VERSION
+```shell
+git checkout "release-4.0.0"  # Or whatever release you want, starting with 4.0.0 and newer
 
+export WORKSPACE="$(pwd)"
+./tools/linux/deploy_jenkins_slave.sh --install
+```
 
-Check that `~/.local/bin` is in the `PATH` and then you can start Drive by typing `ndrive` in a terminal.
+Then, when you want to launch Drive, simply type:
 
-### macOS and Windows Desktop Clients
-
-Once the Marketplace package is installed, the macOS/Windows desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab. Administrator rights are required.
-
-You can also fetch the latest development version from the [our Continous Integration server](https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/).
-
-All the necessary dependencies (such as the Python interpreter and the Qt / PyQt for the client side user interface) are included and will not impact any alternative version you may have already installed on your computer.
+```shell
+export WORKSPACE="$(pwd)"
+./tools/linux/deploy_jenkins_slave.sh --start
+```
 
 ### Jenkins
 
@@ -102,24 +97,22 @@ To easily manage all dependencies and packaging steps, we created several Jenkin
 
 The desktop synchronization client can also be operated from the command-line:
 
-1. Make sure that the `ndrive` program is installed in a folder that has been added to the `PATH` enviroment variable of your OS (on Unix like, it may be `~/.local/bin`).
+1. Make sure that the `ndrive` program is installed in a folder that has been added to the `PATH` enviroment variable of your OS.
 
-    * You can check by typing the `ndrive --help` command in a console.
+    * If you installed the .dmg package for macOS, the binary is:
 
-    * If you installed the .dmg package for OSX, the binary is:
-
-    ```
+    ```shell
     /Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive
     ```
 
-    * You can alias it in your `bashrc` with:
+    * You can alias it in your `~/.bashrc` with:
 
-    ```
+    ```shell
     alias ndrive="/Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive"
     ```
 2. Launch Nuxeo Drive (no automatic background mode yet, this will come in future versions):
 
-    ```
+    ```shell
     ndrive
     ```
     Under Windows you can launch `ndrive.exe` instead to avoid keeping the cmd console open while Nuxeo Drive is running instead.
@@ -128,26 +121,20 @@ The desktop synchronization client can also be operated from the command-line:
 
     Alternatively you can bind to a Nuxeo server with your user credentials using the following commandline arguments:
 
-    ```
+    ```shell
     ndrive bind-server nuxeo-username https://server:port/nuxeo --password secret
     ```
-    This will create a new folder called Nuxeo Drive in your home folder on GNU/Linux & macOS and under the Documents folder on  Windows.
+    This will create a new folder called Nuxeo Drive in your home folder on GNU/Linux & macOS and under the Documents folder on Windows.
 
 4. Go to your Nuxeo with your browser, navigate to workspaces or folder where you have permission to create new documents.
 5. Click on the Nuxeo Drive icon right of the title of the folder to treat this folder as a new synchronization root.
 
     Alternatively you can do this operation from the commandline with:
 
-    ```
+    ```shell
     ndrive bind-root "/default-domain/workspaces/My Workspace"
     ```
     You can now create office documents and folders locally or inside Nuxeo and watch them getting synchronized both ways automatically.
-
-For more options, type:
-
-    ndrive --help
-    ndrive subcommand --help
-
 
 ## Localization
 
@@ -160,8 +147,9 @@ The reference file [i18n.json](https://github.com/nuxeo/nuxeo-drive/blob/master/
 Translations for other languages are managed in the [nuxeo-drive](https://crowdin.com/project/nuxeo-drive) Crowdin project, e.g. [French](https://crowdin.com/translate/nuxeo-drive/40/en-fr).
 
 The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crowdin/job/sync-nuxeo-drive-crowdin/) Jenkins job triggers a daily synchronization of:
-- The i18n.json reference file to Crowdin. This file can be edited and changes must be pushed to the current repository.
-- The Crowdin translation files to the i18n folder, e.g. i18n-fr.json. These files must never be edited from the source tree.
+
+* The i18n.json reference file to Crowdin. This file can be edited and changes must be pushed to the current repository.
+* The Crowdin translation files to the i18n folder, e.g. i18n-fr.json. These files must never be edited from the source tree.
 
 ## Reporting Issues
 
@@ -169,7 +157,7 @@ The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crow
 
     You can also log TRACE information directly in the console by using the following command-line:
 
-    ```
+    ```shell
     ndrive --log-level-console=TRACE
     ```
 
@@ -177,7 +165,7 @@ The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crow
 
 3. For long running sessions, it is better to dump the debug information in a log file. This can be done with the following command:
 
-    ```
+    ```shell
     ndrive --log-level-file=TRACE
     ```
 
@@ -185,7 +173,7 @@ The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crow
 
     * Under Windows 7 and 8: `C:\Users\username\.nuxeo-drive\logs`
     * Under macOS: `/Users/username/.nuxeo-drive/logs`
-    * Under Ubuntu (and other GNU/Linux variants): `/home/username/.nuxeo-drive/logs`
+    * Under GNU/Linux: `/home/username/.nuxeo-drive/logs`
 
 ## Roadmap
 
