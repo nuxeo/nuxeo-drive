@@ -40,17 +40,17 @@ VERSIONS = {
     "current, server, nature, action_required, new",
     [
         # No version
-        ("3.1.2", "", "release", None, None),
-        ("3.1.2", None, "release", None, None),
+        ("3.1.2", "", "release", "", ""),
+        ("3.1.2", None, "release", "", ""),
         # Unexisting nature
         ("3.1.2", "10.10", "bar", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         # Unexisting version
-        ("3.1.2", "0.0.0", "release", None, None),
-        ("3.1.2", "foo", "release", None, None),
+        ("3.1.2", "0.0.0", "release", "", ""),
+        ("3.1.2", "foo", "release", "", ""),
         ("3.1.2", "8.10-SNAPSHOT", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "3.0.1"),
         ("3.1.2", "10.3", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         # Version is up-to-date
-        ("4.0.1", "7.10-HF44", "release", UPDATE_STATUS_UP_TO_DATE, None),
+        ("4.0.1", "7.10-HF44", "release", UPDATE_STATUS_UP_TO_DATE, ""),
         # Downgrade needed
         ("3.1.3", "7.10-HF10", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "3.1.1"),
         ("4.0.1", "7.10-HF49", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "4.0.0"),
@@ -66,7 +66,7 @@ VERSIONS = {
         # If the server has a known working version, a downgrade is asked
         ("42.2.2", "10.3-SNAPSHOT", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "3.1.3"),
         # Else, do nothing
-        ("42.2.2", "5.6", "release", None, None),
+        ("42.2.2", "5.6", "release", "", ""),
         # Beta
         ("2.4.2b1", "9.2", "beta", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         ("2.5.0b1", "9.2", "beta", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
