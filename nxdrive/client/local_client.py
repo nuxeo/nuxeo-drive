@@ -34,7 +34,7 @@ from ..utils import (
     force_decode,
     lock_path,
     normalized_path,
-    safe_filename,
+    safe_os_filename,
     safe_long_path,
     set_path_readonly,
     unlock_path,
@@ -662,7 +662,7 @@ FolderType=Generic
     def rename(self, ref: str, to_name: str) -> FileInfo:
         """ Rename a local file or folder. """
 
-        new_name = safe_filename(to_name)
+        new_name = safe_os_filename(to_name)
         source_os_path = self.abspath(ref)
         parent = ref.rsplit("/", 1)[0]
         old_name = ref.rsplit("/", 1)[1]
@@ -795,14 +795,12 @@ FolderType=Generic
         """ Absolute path on the operating system with deduplicated names. """
 
         # Make name safe by removing invalid chars
-        name = safe_filename(orig_name)
+        name = safe_os_filename(orig_name)
 
         # Decompose the name into actionable components
         name, suffix = os.path.splitext(name)
 
         os_path = self.abspath(os.path.join(parent, name + suffix))
-        if old_name == (name + suffix):
-            return os_path, name + suffix
-        if not os.path.exists(os_path):
+        if old_name == (name + suffix) or not os.path.exists(os_path):
             return os_path, name + suffix
         raise DuplicationDisabledError("De-duplication is disabled")

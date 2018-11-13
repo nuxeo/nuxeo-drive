@@ -652,10 +652,12 @@ class TestSynchronization(UnitTestCase):
 
         # Create a remote folder with a weird name
         folder = remote.make_folder(self.workspace, 'Folder with chars: / \\ * < > ? "')
+        characters = "- - - - - - - -" if WINDOWS else '- - \\ * < > ? "'
+        foldername = f"Folder with chars{characters}"
 
         self.wait_sync(wait_for_async=True)
         folder_names = [i.name for i in local.get_children_info("/")]
-        assert folder_names == ["Folder with chars- - - - - - - -"]
+        assert folder_names == [foldername]
 
         # Create a remote file with a weird name
         file_ = remote.make_file(
@@ -664,27 +666,20 @@ class TestSynchronization(UnitTestCase):
             content=b"some content",
             doc_type="Note",
         )
+        filename = f"File with chars{characters}.txt"
 
         self.wait_sync(wait_for_async=True)
         file_names = [
             i.name
             for i in local.get_children_info(local.get_children_info("/")[0].path)
         ]
-        assert file_names == ["File with chars- - - - - - - -.txt"]
+        assert file_names == [filename]
 
         # Update a remote file with a weird name (NXDRIVE-286)
         remote.update(file_, properties={"note:note": "new content"})
         self.wait_sync(wait_for_async=True, enforce_errors=False)
-        assert (
-            local.get_content(
-                "/Folder with chars- - - - - - - -"
-                "/File with chars- - - - - - - -.txt"
-            )
-            == b"new content"
-        )
-        file_state = self.get_dao_state_from_engine_1(
-            "/Folder with chars- - - - - - - -" "/File with chars- - - - - - - -.txt"
-        )
+        assert local.get_content(f"/{foldername}/{filename}") == b"new content"
+        file_state = self.get_dao_state_from_engine_1(f"/{foldername}/{filename}")
         assert file_state.pair_state == "synchronized"
         assert file_state.local_digest == file_state.remote_digest
 
@@ -692,23 +687,25 @@ class TestSynchronization(UnitTestCase):
         remote.update(
             file_, properties={"dc:title": 'File with chars: / \\ * < > ? " - 2'}
         )
+        filename = f"File with chars{characters} - 2.txt"
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         file_names = [
             i.name
             for i in local.get_children_info(local.get_children_info("/")[0].path)
         ]
-        assert file_names == ["File with chars- - - - - - - - - 2.txt"]
+        assert file_names == [filename]
 
         # Update note title changing the case (NXRIVE-532)
         remote.update(
             file_, properties={"dc:title": 'file with chars: / \\ * < > ? " - 2'}
         )
+        filename = f"file with chars{characters} - 2.txt"
         self.wait_sync(wait_for_async=True, enforce_errors=False)
         file_names = [
             i.name
             for i in local.get_children_info(local.get_children_info("/")[0].path)
         ]
-        assert file_names == ["file with chars- - - - - - - - - 2.txt"]
+        assert file_names == [filename]
 
     def test_synchronize_error_remote(self):
         path = f"/{self.workspace_title}/test.odt"

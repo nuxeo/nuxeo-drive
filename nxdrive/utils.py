@@ -11,7 +11,7 @@ from sys import platform
 from typing import Any, Callable, Dict, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 from urllib.parse import urlsplit, urlunsplit
 
-from .constants import APP_NAME, MAC, WINDOWS
+from .constants import APP_NAME, WINDOWS
 from .options import Options
 
 if TYPE_CHECKING:
@@ -352,10 +352,11 @@ def normalize_event_filename(filename: str, action: bool = True) -> str:
 
     # NXDRIVE-188: Normalize name on the file system, if needed
     normalized = unicodedata.normalize("NFC", str(filename))
+    normalized = os.path.join(
+        os.path.dirname(normalized), safe_os_filename(os.path.basename(normalized))
+    )
 
-    if MAC:
-        return normalized
-    elif WINDOWS and os.path.exists(filename):
+    if WINDOWS and os.path.exists(filename):
         """
         If `filename` exists, and as Windows is case insensitive,
         the result of Get(Full|Long|Short)PathName() could be unexpected
@@ -402,8 +403,21 @@ def if_frozen(func) -> Callable:
 def safe_filename(
     name: str, replacement: str = "-", pattern: Pattern = re.compile(r'(["|*/:<>?\\])')
 ) -> str:
-    """ Replace invalid character in candidate filename. """
+    """ Replace invalid characters in target filename. """
     return re.sub(pattern, replacement, name)
+
+
+def safe_os_filename(name: str) -> str:
+    """
+    Replace characters that are forbidden in file or folder names by the OS.
+
+    On Windows, they are  " | * / : < > ? \\
+    On Unix, they are  / :
+    """
+    if WINDOWS:
+        return safe_filename(name)
+    else:
+        return safe_filename(name, pattern=re.compile(r"([/:])"))
 
 
 def safe_long_path(path: str) -> str:
