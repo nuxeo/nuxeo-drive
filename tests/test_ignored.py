@@ -24,7 +24,7 @@ class TestIgnored(UnitTestCase):
         error_id = errors[0].id
 
         # Ignore the error
-        self.engine_1.unsynchronize_pair(error_id, reason=errors[0].last_error)
+        self.engine_1.ignore_pair(error_id, reason=errors[0].last_error)
 
         self.wait_sync(wait_for_async=True)
 

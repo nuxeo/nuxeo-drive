@@ -151,7 +151,7 @@ ShadowRectangle {
                     text: qsTr("IGNORE_PAIR") + tl.tr
                     visible: type == "error"
                     onClicked: {
-                        api.unsynchronize_pair(engineUid, fileData.id, fileData.last_error)
+                        api.ignore_pair(engineUid, fileData.id, fileData.last_error)
                         control.ignored()
                     }
                 }

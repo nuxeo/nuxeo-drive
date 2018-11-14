@@ -901,12 +901,10 @@ class QMLDriveApi(QObject):
             engine.retry_pair(state_id)
 
     @pyqtSlot(str, int, str)
-    def unsynchronize_pair(
-        self, uid: str, state_id: int, reason: str = "UNKNOWN"
-    ) -> None:
+    def ignore_pair(self, uid: str, state_id: int, reason: str = "UNKNOWN") -> None:
         engine = self._get_engine(uid)
         if engine:
-            engine.unsynchronize_pair(state_id, reason=reason)
+            engine.ignore_pair(state_id, reason=reason)
 
     @pyqtSlot(str, str, str)
     def open_remote(self, uid: str, remote_ref: str, remote_name: str) -> None:
