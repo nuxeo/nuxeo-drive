@@ -85,6 +85,7 @@ Rectangle {
 
                 ColumnLayout {
                     Layout.alignment: Qt.AlignLeft
+                    Layout.maximumWidth: parent.width / 2
 
                     AccountsComboBox {
                         id: accountSelect
@@ -94,9 +95,24 @@ Rectangle {
                     }
 
                     ScaledText {
+                        id: accountUrl
+                        Layout.maximumWidth: parent.width
                         text: accountSelect.getRole("url")
+                        elide: Text.ElideRight
                         pointSize: 10
                         color: mediumGray
+
+                        MouseArea {
+                            id: urlHover
+                            z: parent.z + 10
+                            anchors.fill: parent
+                            anchors.margins: -3
+                            hoverEnabled: true
+                        }
+                        NuxeoToolTip {
+                            text: accountUrl.text
+                            visible: urlHover.containsMouse
+                        }
                     }
                 }
 
