@@ -10,6 +10,7 @@ TextInput {
     selectionColor: teal
     horizontalAlignment: TextInput.AlignLeft
     verticalAlignment: TextInput.AlignVCenter
+    selectByMouse: true
 
     Rectangle {
         color: control.focus ? control.lineColor : lightGray
