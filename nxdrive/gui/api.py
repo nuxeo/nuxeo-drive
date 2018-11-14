@@ -239,7 +239,7 @@ class QMLDriveApi(QObject):
     def set_language(self, locale: str) -> None:
         try:
             Translator.set(locale)
-        except RuntimeError as e:
+        except RuntimeError:
             log.exception("Set language error")
 
     @pyqtSlot(str)
