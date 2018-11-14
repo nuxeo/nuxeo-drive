@@ -74,6 +74,12 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     # inconsistent cases
     ("unknown", "deleted"): "unknown_deleted",
     ("deleted", "unknown"): "deleted_unknown",
+    # Ignored documents
+    ("unsynchronized", "unknown"): "unsynchronized",
+    ("unsynchronized", "created"): "unsynchronized",
+    ("unsynchronized", "modified"): "unsynchronized",
+    ("unsynchronized", "moved"): "unsynchronized",
+    ("unsynchronized", "deleted"): "remotely_deleted",
 }
 
 
@@ -1371,14 +1377,21 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute(
                 "UPDATE States"
-                "   SET pair_state = ?,"
+                "   SET local_state = ?,"
+                "       pair_state = ?,"
                 "       last_sync_date = ?,"
                 "       processor = 0,"
                 "       last_error = ?,"
                 "       error_count = 0,"
                 "       last_sync_error_date = NULL"
                 " WHERE id = ?",
-                ("unsynchronized", datetime.utcnow(), last_error, row.id),
+                (
+                    "unsynchronized",
+                    "unsynchronized",
+                    datetime.utcnow(),
+                    last_error,
+                    row.id,
+                ),
             )
 
     def unset_unsychronised(self, row: DocPair) -> None:
