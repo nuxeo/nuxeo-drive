@@ -53,7 +53,7 @@
     "QUIT": "Quit",
     "CONFLICTS_SYSTRAY": "%1 conflicts",
     "ERRORS_SYSTRAY": "%1 errors",
-    "SYNCHRONIZATION_COMPLETED": "Synchronization completed",
+    "SYNCHRONIZATION_COMPLETED": "Synchronization complete",
     "SYNCHRONIZATION_IN_PROGRESS": "Synchronization in progress",
     "OPEN_ROOT_FOLDER": "Open Nuxeo Drive Folder",
     "OPEN_SERVER": "Open Nuxeo Server",
