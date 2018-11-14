@@ -14,7 +14,7 @@ class TestIgnored(UnitTestCase):
         remote.make_file("/", "abcde.txt", content=b"Some content.")
         remote.make_file("/", "abcde.txt", content=b"Some other content.")
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
         assert local.exists("/abcde.txt")
         # Check we only have one file locally
         assert len(dao.get_local_children("/")) == 1
@@ -26,7 +26,7 @@ class TestIgnored(UnitTestCase):
         # Ignore the error
         self.engine_1.unsynchronize_pair(error_id, reason=errors[0].last_error)
 
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # Check there are no errors
         assert not dao.get_errors()
@@ -38,7 +38,7 @@ class TestIgnored(UnitTestCase):
 
         # Force the engine to do a full scan again
         self.engine_1._remote_watcher._last_remote_full_scan = None
-        self.wait_sync()
+        self.wait_sync(wait_for_async=True)
 
         # Check that there are no errors back
         assert not dao.get_errors()
