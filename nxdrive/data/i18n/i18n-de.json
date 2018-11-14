@@ -162,7 +162,7 @@
     "NO_ACCOUNT_DESCR": "Benutzen Sie den %1 Button, um sich mit einem Nuxeo Account zu verbinden und beginnen Sie, Inhalte mit ihrem Computer zu synchronisieren.",
     "NO_CONFLICTS_BODY": "Sie haben alle Konflikte und Fehler aufgelöst",
     "NO_CONFLICTS_TITLE": "Keine Konflikte oder Fehler mehr",
-    "NO_ROOTS": "There is no synchronized folders associated with your account.<br/><br/> Please browse to <a href=\"%1\">your instance</a> and pick a folder to start synchronizing content.<br/><br/> Learn more about synchronization on <a href=\"%2\">the documentation website</a>.",
+    "NO_ROOTS": "There is no synchronized folder associated with your account.<br/><br/> Please browse to <a href=\"%1\">your instance</a> and pick a folder to start synchronizing content.<br/><br/> Learn more about synchronization on <a href=\"%2\">the documentation website</a>.",
     "NO_SPACE_LEFT_ON_DEVICE": "Kein Speicherplatz mehr auf dem Gerät, geben Sie Speicherplatz frei.",
     "OPEN_LOCAL": "Lokale Kopie öffnen",
     "OPEN_REMOTE": "Remote-Kopie öffnen",

@@ -162,7 +162,7 @@
     "NO_ACCOUNT_DESCR": "Use the %1 button to connect to a Nuxeo account and start synchronizing content on your computer.",
     "NO_CONFLICTS_BODY": "Du har åtgärdat alla konflikter och fel",
     "NO_CONFLICTS_TITLE": "Inga konflikter eller fel",
-    "NO_ROOTS": "There is no synchronized folders associated with your account.<br/><br/> Please browse to <a href=\"%1\">your instance</a> and pick a folder to start synchronizing content.<br/><br/> Learn more about synchronization on <a href=\"%2\">the documentation website</a>.",
+    "NO_ROOTS": "There is no synchronized folder associated with your account.<br/><br/> Please browse to <a href=\"%1\">your instance</a> and pick a folder to start synchronizing content.<br/><br/> Learn more about synchronization on <a href=\"%2\">the documentation website</a>.",
     "NO_SPACE_LEFT_ON_DEVICE": "Inget utrymme kvar på enheten, frigör lite diskutrymme.",
     "OPEN_LOCAL": "Öppna lokalt",
     "OPEN_REMOTE": "Öppna fjärr",
