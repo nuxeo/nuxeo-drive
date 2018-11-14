@@ -45,7 +45,7 @@ Rectangle {
         IconLabel {
             z: 20; size: 24
             Layout.alignment: Qt.AlignLeft; Layout.rightMargin: 10
-            icon: MdiFont.Icon.folder
+            icon: MdiFont.Icon.pencil
             onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
         }
     }
