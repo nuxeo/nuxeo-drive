@@ -847,24 +847,22 @@ class Application(QApplication):
             version += " beta"
 
         try:
-            content = requests.get(url)
+            # No need for the `verify=Options.consider_ssl_errors` here as GitHub will never use
+            # a bad certificate.
+            with requests.get(url) as resp:
+                data = resp.json()
         except requests.HTTPError as exc:
             if exc.response.status_code == 404:
                 log.error(f"[{version}] Release does not exist")
             else:
                 log.exception(f"[{version}] Network error while fetching release notes")
             return
-        except:
-            log.exception(f"[{version}] Unknown error while fetching release notes")
-            return
-
-        try:
-            data = content.json()
         except ValueError:
             log.exception(f"[{version}] Invalid release notes")
             return
-        finally:
-            del content
+        except:
+            log.exception(f"[{version}] Unknown error while fetching release notes")
+            return
 
         try:
             html = markdown(data["body"])

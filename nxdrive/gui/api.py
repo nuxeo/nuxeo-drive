@@ -727,8 +727,9 @@ class QMLDriveApi(QObject):
             with requests.get(
                 url,
                 headers=headers,
-                timeout=timeout,
                 proxies=self._manager.proxy.settings(url=url),
+                timeout=timeout,
+                verify=Options.consider_ssl_errors,
             ) as resp:
                 status = resp.status_code
         except:

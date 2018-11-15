@@ -598,14 +598,16 @@ def guess_server_url(
         ("http", domain, "", "", ""),
     ]
 
+    kwargs = {"timeout": timeout, "verify": Options.consider_ssl_errors}
     for new_url_parts in urls:
         new_url = urlunsplit(new_url_parts).rstrip("/")
         try:
             rfc3987.parse(new_url, rule="URI")
             log.trace(f"Testing URL {new_url!r}")
-            full_url = new_url + "/" + login_page
-            kwargs = {"proxies": proxy.settings(url=full_url)} if proxy else {}
-            with requests.get(full_url, timeout=timeout, **kwargs) as resp:
+            full_url = f"{new_url}/{login_page}"
+            if proxy:
+                kwargs["proxies"] = proxy.settings(url=full_url)
+            with requests.get(full_url, **kwargs) as resp:
                 resp.raise_for_status()
                 if resp.status_code == 200:
                     return new_url

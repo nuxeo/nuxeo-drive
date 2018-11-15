@@ -6,6 +6,7 @@ import requests
 from pypac import get_pac
 from pypac.resolver import ProxyResolver
 
+from ..options import Options
 from ..utils import decrypt, encrypt, force_decode
 
 if TYPE_CHECKING:
@@ -179,8 +180,10 @@ def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
 
 def validate_proxy(proxy: Proxy, url: str) -> bool:
     try:
-        requests.get(url, proxies=proxy.settings(url=url))
-        return True
+        with requests.get(
+            url, proxies=proxy.settings(url=url), verify=Options.consider_ssl_errors
+        ):
+            return True
     except:
         log.exception("Invalid proxy.")
         return False
