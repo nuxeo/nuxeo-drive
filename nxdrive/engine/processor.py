@@ -1239,6 +1239,9 @@ class Processor(EngineWorker):
 
     def _synchronize_remotely_deleted(self, doc_pair: DocPair) -> None:
         try:
+            if doc_pair.local_state == "unsynchronized":
+                self._dao.remove_state(doc_pair)
+                return
             if doc_pair.local_state != "deleted":
                 log.debug(
                     f"Deleting locally {self.local.abspath(doc_pair.local_path)!r}"

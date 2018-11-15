@@ -74,6 +74,12 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     # inconsistent cases
     ("unknown", "deleted"): "unknown_deleted",
     ("deleted", "unknown"): "deleted_unknown",
+    # Ignored documents
+    ("unsynchronized", "unknown"): "unsynchronized",
+    ("unsynchronized", "created"): "unsynchronized",
+    ("unsynchronized", "modified"): "unsynchronized",
+    ("unsynchronized", "moved"): "unsynchronized",
+    ("unsynchronized", "deleted"): "remotely_deleted",
 }
 
 
@@ -1365,20 +1371,24 @@ class EngineDAO(ConfigurationDAO):
             return True
         return False
 
-    def unsynchronize_state(self, row: DocPair, last_error: str = None) -> None:
+    def unsynchronize_state(
+        self, row: DocPair, last_error: str = None, ignore: bool = False
+    ) -> None:
+        local_state = "local_state = 'unsynchronized'," if ignore else ""
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute(
                 "UPDATE States"
-                "   SET pair_state = ?,"
+                "   SET pair_state = 'unsynchronized',"
+                f"      {local_state}"
                 "       last_sync_date = ?,"
                 "       processor = 0,"
                 "       last_error = ?,"
                 "       error_count = 0,"
                 "       last_sync_error_date = NULL"
                 " WHERE id = ?",
-                ("unsynchronized", datetime.utcnow(), last_error, row.id),
+                (datetime.utcnow(), last_error, row.id),
             )
 
     def unset_unsychronised(self, row: DocPair) -> None:

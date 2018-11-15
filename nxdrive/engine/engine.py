@@ -512,11 +512,11 @@ class Engine(QObject):
             return
         self._dao.reset_error(state)
 
-    def unsynchronize_pair(self, row_id: int, reason: str = None) -> None:
+    def ignore_pair(self, row_id: int, reason: str = None) -> None:
         state = self._dao.get_state_from_id(row_id)
         if state is None:
             return
-        self._dao.unsynchronize_state(state, last_error=reason)
+        self._dao.unsynchronize_state(state, last_error=reason, ignore=True)
         self._dao.reset_error(state, last_error=reason)
 
     def resolve_with_local(self, row_id: int) -> None:
