@@ -60,6 +60,7 @@ class Remote(Nuxeo):
         **kwargs: Any,
     ) -> None:
         auth = TokenAuth(token) if token else (user_id, password)
+        kwargs["verify"] = Options.consider_ssl_errors
         self.kwargs = kwargs
 
         super().__init__(

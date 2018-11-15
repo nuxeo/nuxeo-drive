@@ -132,7 +132,7 @@ class CliHandler:
             "--consider-ssl-errors",
             default=Options.consider_ssl_errors,
             action="store_true",
-            help="Do not ignore SSL errors in Qt network manager requests",
+            help="Ensure HTTPS certificates are valid. Highly unadvised to disable this option.",
         )
 
         common_parser.add_argument(
@@ -373,9 +373,11 @@ class CliHandler:
             filtered_args.append(arg)
 
         parser = self.make_cli_parser(add_subparsers=has_command)
+
         # Change default value according to config.ini
         self.load_config(parser)
         options = parser.parse_args(filtered_args)
+
         if options.debug:
             # Automatically check all operations done with the Python client
             import nuxeo.constants

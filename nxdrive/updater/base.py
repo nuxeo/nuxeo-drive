@@ -158,6 +158,8 @@ class BaseUpdater(PollWorker):
             f"into {path!r}"
         )
         try:
+            # Note: I do not think we should pass the `verify=Options.consider_ssl_errors` kwarg here
+            # because updates are critical and must be stored on a secured server.
             req = requests.get(url, stream=True)
             size = int(req.headers["content-length"])
             incr = self.chunk_size * 100 / size
@@ -182,6 +184,8 @@ class BaseUpdater(PollWorker):
 
         url = f"{self.update_site}/versions.yml"
         try:
+            # Note: I do not think we should pass the `verify=Options.consider_ssl_errors` kwarg here
+            # because updates are critical and must be stored on a secured server.
             with requests.get(url) as resp:
                 resp.raise_for_status()
                 content = resp.text

@@ -88,9 +88,6 @@ class Manager(QObject):
         self.notification_service = DefaultNotificationService(self)
         self.osi = AbstractOSIntegration.get(self)
 
-        if not Options.consider_ssl_errors:
-            self._bypass_https_verification()
-
         self.direct_edit_folder = os.path.join(
             normalized_path(self.nxdrive_home), "edit"
         )
@@ -166,27 +163,6 @@ class Manager(QObject):
         # Create the FinderSync listener thread
         if MAC:
             self._create_findersync_listener()
-
-    @staticmethod
-    def _bypass_https_verification() -> None:
-        """
-        Let's bypass HTTPS verification since many servers
-        unfortunately have invalid certificates.
-        See https://www.python.org/dev/peps/pep-0476/ and NXDRIVE-506.
-        """
-
-        import ssl
-
-        log.warning(
-            "--consider-ssl-errors option is False, "
-            "will not verify HTTPS certificates"
-        )
-        log.info(
-            "Handle target environment that does not support HTTPS "
-            "verification: globally disable verification by "
-            "monkeypatching the ssl module though highly discouraged"
-        )
-        ssl._create_default_https_context = ssl._create_unverified_context
 
     def get_metrics(self) -> Metrics:
         return {
