@@ -4,9 +4,13 @@ import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
 import "icon-font/Icon.js" as MdiFont
 
-Item {
+Rectangle {
     id: systray
     width: 300; height: 370
+    border {
+        width: 1
+        color: "#33000000"
+    }
 
     property bool hasAccounts: EngineModel.count > 0
 
@@ -46,11 +50,12 @@ Item {
     ColumnLayout {
         id: systrayContainer
         visible: hasAccounts
-
+        width: parent.width - 2
+        height: parent.height - 2
         property int syncingCount: 0
         property int extraCount: 0
 
-        anchors.fill: parent
+        anchors.centerIn: parent
         z: 5; spacing: 0
 
         Rectangle {
@@ -281,7 +286,9 @@ Item {
 
     Rectangle {
         visible: !hasAccounts
-        anchors.fill: parent
+        width: parent.width - 2
+        height: parent.height - 2
+        anchors.centerIn: parent
         z: 5
         color: "white"
 
