@@ -484,7 +484,7 @@ class TestSynchronization(UnitTestCase):
         remote_1 = self.remote_document_client_1
         remote_children = remote_1.get_children_info(self.workspace)
         assert len(remote_children) == 1
-        assert remote_children[0].filename == "Some File.doc"
+        assert remote_children[0].blobs["file:content"].name == "Some File.doc"
         assert remote_1.get_content("/Some File.doc") == b"Same new content."
 
         # Let's trigger another conflict that cannot be resolved
@@ -511,7 +511,7 @@ class TestSynchronization(UnitTestCase):
         assert local.get_content(local_path) == b"Local new content."
         remote_children = remote_1.get_children_info(self.workspace)
         assert len(remote_children) == 1
-        assert remote_children[0].filename == "Some File.doc"
+        assert remote_children[0].blobs["file:content"].name == "Some File.doc"
         assert remote_1.get_content("/Some File.doc") == b"Remote new content."
 
     def test_create_content_in_readonly_area(self):

@@ -537,7 +537,7 @@ class Remote(Nuxeo):
     ) -> bytes:
         if isinstance(ref, NuxeoDocumentInfo):
             doc_id = ref.uid
-            if not ref.has_blob and ref.doc_type == "Note":
+            if ref.doc_type == "Note":
                 doc = self.fetch(doc_id)
                 content = doc["properties"].get("note:note")
                 if content:

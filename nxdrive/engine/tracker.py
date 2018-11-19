@@ -12,7 +12,7 @@ from UniversalAnalytics import Tracker as UATracker
 
 from .workers import Worker
 from ..constants import APP_NAME, MAC, WINDOWS
-from ..objects import NuxeoDocumentInfo
+from ..objects import Blob
 
 if MAC:
     from Foundation import NSLocale
@@ -123,8 +123,8 @@ class Tracker(Worker):
             log.exception("Error sending analytics")
 
     @pyqtSlot(object)
-    def _send_directedit_open(self, remote_info: NuxeoDocumentInfo) -> None:
-        _, extension = os.path.splitext(remote_info.filename)
+    def _send_directedit_open(self, blob: Blob) -> None:
+        _, extension = os.path.splitext(blob.name)
         if extension is None:
             extension = "unknown"
 
@@ -136,8 +136,8 @@ class Tracker(Worker):
         )
 
     @pyqtSlot(object)
-    def _send_directedit_edit(self, remote_info: NuxeoDocumentInfo) -> None:
-        _, extension = os.path.splitext(remote_info.filename)
+    def _send_directedit_edit(self, blob: Blob) -> None:
+        _, extension = os.path.splitext(blob.name)
         if extension is None:
             extension = "unknown"
 
