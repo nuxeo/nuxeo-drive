@@ -5,7 +5,7 @@ from datetime import datetime
 from logging import getLogger
 from queue import Empty, Queue
 from time import sleep
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib.parse import quote
 
 from nuxeo.utils import get_digest_algorithm
@@ -340,7 +340,7 @@ class DirectEdit(Worker):
                 url += "/"
             url += download_url
 
-        xpath = url_info.get("xpath") or "file:content"
+        xpath = url_info.get("xpath", "file:content")
         if xpath == "blobholder:0":
             xpath = "file:content"
         if xpath not in info.blobs and info.doc_type == "Note":
@@ -557,7 +557,7 @@ class DirectEdit(Worker):
                 log.debug(f"Uploading file {os_path!r}")
 
                 if xpath == "note:note":
-                    kwargs = {"applyVersioningPolicy": True}
+                    kwargs: Dict[str, Any] = {"applyVersioningPolicy": True}
                     cmd = "NuxeoDrive.AttachBlob"
                 else:
                     kwargs = {"xpath": xpath}
