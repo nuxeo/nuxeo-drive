@@ -174,16 +174,14 @@ class NuxeoDocumentInfo:
 
         if not folderish:
             main_blob = props.get("file:content")
-            attachments = props.get("files:files")
+            attachments = props.get("files:files", [])
             note = props.get("note:note")
 
             if main_blob:
                 blobs["file:content"] = Blob.from_dict(main_blob)
 
-            idx = 0
-            for attachment in attachments or []:
+            for idx, attachment in enumerate(attachments):
                 blobs[f"files:files/{idx}/file"] = Blob.from_dict(attachment["file"])
-                idx += 1
 
             if note:
                 m = hashlib.md5()
