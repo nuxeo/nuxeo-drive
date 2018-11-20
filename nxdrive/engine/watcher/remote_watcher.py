@@ -788,7 +788,7 @@ class RemoteWatcher(EngineWorker):
                         """
                         consistent_new_info = new_info
                         if remote_parent_factory == COLLECTION_SYNC_ROOT_FACTORY_NAME:
-                            consistent_new_info = RemoteFileInfo(  # type: ignore
+                            consistent_new_info = RemoteFileInfo(
                                 new_info.name,
                                 new_info.uid,
                                 doc_pair.remote_parent_ref,

@@ -3,12 +3,14 @@ import hashlib
 import unicodedata
 from collections import namedtuple
 from contextlib import suppress
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 from sqlite3 import Row
+from typing import Any, Dict, List, Optional
 
+from dataclasses import dataclass
 from dateutil import parser
+
+from .exceptions import DriveError
 
 # Settings passed to Manager.bind_server()
 Binder = namedtuple(
@@ -30,12 +32,12 @@ class RemoteFileInfo:
     parent_uid: str  # id of the parent file
     path: str  # abstract file system path: useful for ordering folder trees
     folderish: bool  # True is can host children
-    last_modification_time: datetime  # last update time
-    creation_time: datetime  # creation time
-    last_contributor: str  # last contributor
+    last_modification_time: Optional[datetime]  # last update time
+    creation_time: Optional[datetime]  # creation time
+    last_contributor: Optional[str]  # last contributor
     digest: Optional[str]  # digest of the file
     digest_algorithm: Optional[str]  # digest algorithm of the file
-    download_url: str  # download URL of the file
+    download_url: Optional[str]  # download URL of the file
     can_rename: bool  # True is can rename
     can_delete: bool  # True is can delete
     can_update: bool  # True is can update content
@@ -48,29 +50,37 @@ class RemoteFileInfo:
     @staticmethod
     def from_dict(fs_item: Dict[str, Any]) -> "RemoteFileInfo":
         """Convert Automation file system item description to RemoteFileInfo"""
-        folderish = fs_item["folder"]
+        try:
+            uid = fs_item["id"]
+            parent_uid = fs_item["parentId"]
+            path = fs_item["path"]
+            name = unicodedata.normalize("NFC", fs_item["name"])
+        except KeyError:
+            raise DriveError(f"This item is missing mandatory information: {fs_item}")
 
-        last_update = datetime.fromtimestamp(fs_item["lastModificationDate"] // 1000)
-        creation = datetime.fromtimestamp(fs_item["creationDate"] // 1000)
+        folderish = fs_item.get("folder", False)
 
-        last_contributor = fs_item.get("lastContributor", "")
+        timestamp = fs_item.get("lastModificationDate")
+        last_update = datetime.fromtimestamp(timestamp // 1000) if timestamp else None
+        timestamp = fs_item.get("creationDate")
+        creation = datetime.fromtimestamp(timestamp // 1000) if timestamp else None
 
         if folderish:
             digest = None
             digest_algorithm = None
             download_url = None
             can_update = False
-            can_create_child = fs_item["canCreateChild"]
+            can_create_child = fs_item.get("canCreateChild", False)
             # Scroll API availability
             can_scroll = fs_item.get("canScrollDescendants", False)
             can_scroll_descendants = can_scroll
         else:
-            digest = fs_item["digest"]
-            digest_algorithm = fs_item["digestAlgorithm"] or None
+            digest = fs_item.get("digest")
+            digest_algorithm = fs_item.get("digestAlgorithm")
             if digest_algorithm:
                 digest_algorithm = digest_algorithm.lower().replace("-", "")
-            download_url = fs_item["downloadURL"]
-            can_update = fs_item["canUpdate"]
+            download_url = fs_item.get("downloadURL")
+            can_update = fs_item.get("canUpdate", False)
             can_create_child = False
             can_scroll_descendants = False
 
@@ -79,29 +89,24 @@ class RemoteFileInfo:
         lock_owner = lock_created = None
         if lock_info:
             lock_owner = lock_info.get("owner")
-            lock_created_millis = lock_info.get("created")
-            if lock_created_millis:
-                lock_created = datetime.fromtimestamp(lock_created_millis // 1000)
+            lock_created = lock_info.get("created")
+            if lock_created:
+                lock_created = datetime.fromtimestamp(lock_created // 1000)
 
-        # Normalize using NFC to make the tests more intuitive
-        name = fs_item["name"]
-        if name:
-            name = unicodedata.normalize("NFC", name)
-
-        return RemoteFileInfo(  # type: ignore
+        return RemoteFileInfo(
             name,
-            fs_item["id"],
-            fs_item["parentId"],
-            fs_item["path"],
+            uid,
+            parent_uid,
+            path,
             folderish,
             last_update,
             creation,
-            last_contributor,
+            fs_item.get("lastContributor"),
             digest,
             digest_algorithm,
             download_url,
-            fs_item["canRename"],
-            fs_item["canDelete"],
+            fs_item.get("canRename", False),
+            fs_item.get("canDelete", False),
             can_update,
             can_create_child,
             lock_owner,
@@ -125,9 +130,9 @@ class Blob:
         name = blob["name"]
         digest = blob.get("digest")
         digest_algorithm = blob.get("digestAlgorithm")
-        size = int(blob["length"])
-        mimetype = blob["mime-type"]
-        data = blob["data"]
+        size = int(blob.get("length", 0))
+        mimetype = blob.get("mime-type", "application/octet-stream")
+        data = blob.get("data", "")
 
         if digest_algorithm:
             digest_algorithm = digest_algorithm.lower().replace("-", "")
@@ -141,86 +146,50 @@ class NuxeoDocumentInfo:
     root: str  # ref of the document that serves as sync root
     name: str  # title of the document (not guaranteed to be locally unique)
     uid: str  # ref of the document
-    parent_uid: str  # ref of the parent document
+    parent_uid: Optional[str]  # ref of the parent document
     path: str  # remote path (useful for ordering)
     folderish: bool  # True is can host child documents
-    last_modification_time: datetime  # last update time
+    last_modification_time: Optional[datetime]  # last update time
     last_contributor: str  # last contributor
     repository: str  # server repository name
-    doc_type: str  # Nuxeo document type
+    doc_type: Optional[str]  # Nuxeo document type
     version: Optional[str]  # Nuxeo version
-    state: str  # Nuxeo lifecycle state
+    state: Optional[str]  # Nuxeo lifecycle state
     is_trashed: bool  # Nuxeo trashed status
     blobs: Dict[str, Blob]  # Dictionary of blob with their xpath as key
-    lock_owner: str  # lock owner
-    lock_created: datetime  # lock creation time
+    lock_owner: Optional[str]  # lock owner
+    lock_created: Optional[datetime]  # lock creation time
     permissions: List[str]  # permissions
 
     @staticmethod
     def from_dict(doc: Dict[str, Any], parent_uid: str = None) -> "NuxeoDocumentInfo":
         """Convert Automation document description to NuxeoDocumentInfo"""
-        props = doc["properties"]
-        name = props["dc:title"]
-        folderish = "Folderish" in doc["facets"]
         try:
-            last_update = datetime.strptime(
-                doc["lastModified"], "%Y-%m-%dT%H:%M:%S.%fZ"
-            )
-        except ValueError:
-            # no millisecond?
-            last_update = datetime.strptime(doc["lastModified"], "%Y-%m-%dT%H:%M:%SZ")
+            root = doc["root"]
+            uid = doc["uid"]
+            path = doc["path"]
+            props = doc["properties"]
+            name = unicodedata.normalize("NFC", props["dc:title"])
+            folderish = "Folderish" in doc["facets"]
+            modified = doc["lastModified"]
+        except KeyError:
+            raise DriveError(f"This document is missing mandatory information: {doc}")
 
-        blobs: Dict[str, Blob] = {}
+        last_update = parser.parse(modified)
 
-        if not folderish:
-            main_blob = props.get("file:content")
-            attachments = props.get("files:files", [])
-            note = props.get("note:note")
-
-            if main_blob:
-                blobs["file:content"] = Blob.from_dict(main_blob)
-
-            for idx, attachment in enumerate(attachments):
-                blobs[f"files:files/{idx}/file"] = Blob.from_dict(attachment["file"])
-
-            if note:
-                m = hashlib.md5()
-                m.update(note.encode("utf-8"))
-                digest = m.hexdigest()
-                digest_algorithm = "md5"
-                ext = ".txt"
-                mime_type = props.get("note:mime_type")
-                if mime_type == "text/html":
-                    ext = ".html"
-                elif mime_type == "text/xml":
-                    ext = ".xml"
-                elif mime_type == "text/x-web-markdown":
-                    ext = ".md"
-                if not name.endswith(ext):
-                    name += ext
-
-                blobs["note:note"] = Blob.from_dict(
-                    {
-                        "name": name,
-                        "digest": digest,
-                        "digestAlgorithm": digest_algorithm,
-                        "length": len(note),
-                        "mime-type": mime_type,
-                        "data": note,
-                    }
-                )
+        blobs = {} if folderish else NuxeoDocumentInfo._parse_blobs(props)
 
         # Lock info
         lock_owner = doc.get("lockOwner")
         lock_created = doc.get("lockCreated")
-        if lock_created is not None:
+        if lock_created:
             lock_created = parser.parse(lock_created)
 
         # Permissions
         permissions = doc.get("contextParameters", {}).get("permissions", None)
 
         # Trashed
-        is_trashed = doc.get("isTrashed", doc["state"] == "deleted")
+        is_trashed = doc.get("isTrashed", doc.get("state") == "deleted")
 
         # XXX: we need another roundtrip just to fetch the parent uid...
 
@@ -230,27 +199,69 @@ class NuxeoDocumentInfo:
             version = (
                 str(props["uid:major_version"]) + "." + str(props["uid:minor_version"])
             )
-        if name:
-            name = unicodedata.normalize("NFC", name)
-        return NuxeoDocumentInfo(  # type: ignore
-            doc["root"],
+        return NuxeoDocumentInfo(
+            root,
             name,
-            doc["uid"],
+            uid,
             parent_uid,
-            doc["path"],
+            path,
             folderish,
             last_update,
-            props["dc:lastContributor"],
-            doc["repository"],
-            doc["type"],
+            props.get("dc:lastContributor"),
+            doc.get("repository", "default"),
+            doc.get("type"),
             version,
-            doc["state"],
+            doc.get("state"),
             is_trashed,
             blobs,
             lock_owner,
             lock_created,
             permissions,
         )
+
+    @staticmethod
+    def _parse_blobs(props: Dict[str, Any]) -> Dict[str, Blob]:
+        blobs: Dict[str, Blob] = {}
+
+        main_blob = props.get("file:content")
+        attachments = props.get("files:files", [])
+        note = props.get("note:note")
+
+        if main_blob:
+            blobs["file:content"] = Blob.from_dict(main_blob)
+
+        for idx, attachment in enumerate(attachments):
+            blobs[f"files:files/{idx}/file"] = Blob.from_dict(attachment["file"])
+
+        if note:
+            m = hashlib.md5()
+            m.update(note.encode("utf-8"))
+            digest = m.hexdigest()
+            digest_algorithm = "md5"
+            ext = ".txt"
+            mime_type = props.get("note:mime_type")
+            if mime_type == "text/html":
+                ext = ".html"
+            elif mime_type == "text/xml":
+                ext = ".xml"
+            elif mime_type == "text/x-web-markdown":
+                ext = ".md"
+            name = props["dc:title"]
+            if not name.endswith(ext):
+                name += ext
+
+            blobs["note:note"] = Blob.from_dict(
+                {
+                    "name": name,
+                    "digest": digest,
+                    "digestAlgorithm": digest_algorithm,
+                    "length": len(note),
+                    "mime-type": mime_type,
+                    "data": note,
+                }
+            )
+
+        return blobs
 
 
 class DocPair(Row):
