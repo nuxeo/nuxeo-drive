@@ -1,6 +1,7 @@
 # coding: utf-8
 import logging
 import os
+import tempfile
 from typing import Any, Dict, List, Tuple
 
 import nuxeo.client
@@ -13,13 +14,31 @@ from nxdrive.client.remote_client import Remote
 from nxdrive.logging_config import configure
 from nxdrive.manager import Manager
 from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
-from nxdrive.utils import make_tmp_file, safe_filename
+from nxdrive.options import Options
+from nxdrive.utils import force_encode, safe_filename
 
 # Automatically check all operations done with the Python client
 nuxeo.constants.CHECK_PARAMS = True
 
+
+def dispose_all(self) -> None:
+    for engine in self.get_engines().values():
+        engine.dispose_db()
+    self.dispose_db()
+
+
+def unbind_all(self) -> None:
+    if not self._engines:
+        self.load()
+    for engine in self._engine_definitions:
+        self.unbind_engine(engine.uid)
+
+
 # Remove features for tests
 Manager._create_server_config_updater = lambda *args: None
+
+Manager.dispose_all = dispose_all
+Manager.unbind_all = unbind_all
 
 
 def configure_logger():
@@ -32,6 +51,24 @@ def configure_logger():
         force_configure=True,
         formatter=formatter,
     )
+
+
+def make_tmp_file(folder: str, content: bytes) -> str:
+    """Create a temporary file with the given content
+    for streaming upload purposes.
+
+    Make sure that you remove the temporary file with os.remove()
+    when done with it.
+    """
+    import tempfile
+
+    fd, path = tempfile.mkstemp(suffix="-nxdrive-file-to-upload", dir=folder)
+    try:
+        with open(path, "wb") as f:
+            f.write(force_encode(content))
+    finally:
+        os.close(fd)
+    return path
 
 
 # Configure test logger
@@ -69,10 +106,27 @@ class LocalTest(LocalClient):
             if value is not None:
                 self.set_remote_id(ref, value, name=name)
 
+    def make_file(self, parent: str, name: str, content: bytes = None) -> str:
+        os_path, name = self._abspath_deduped(parent, name)
+        locker = self.unlock_ref(parent, unlock_parent=False)
+        try:
+            with open(os_path, "wb") as f:
+                if content:
+                    f.write(content)
+            if parent == "/":
+                return "/" + name
+            return parent + "/" + name
+        finally:
+            self.lock_ref(parent, locker)
+
 
 class RemoteBase(Remote):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, upload_tmp_dir: str = None, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.upload_tmp_dir = (
+            upload_tmp_dir if upload_tmp_dir is not None else tempfile.gettempdir()
+        )
 
         # Save bandwith by caching operations details
         global OPS_CACHE
@@ -83,6 +137,11 @@ class RemoteBase(Remote):
         if not SERVER_INFO:
             SERVER_INFO = self.client.server_info()
             nuxeo.client.NuxeoClient._server_info = SERVER_INFO
+
+    def fs_exists(self, fs_item_id: str) -> bool:
+        return self.operations.execute(
+            command="NuxeoDrive.FileSystemItemExists", id=fs_item_id
+        )
 
     def get_children(self, ref: str) -> Dict[str, Any]:
         return self.operations.execute(
@@ -161,6 +220,30 @@ class RemoteBase(Remote):
             return RemoteFileInfo.from_dict(fs_item)
         finally:
             os.remove(file_path)
+
+    def _filtered_results(
+        self, entries: List[Dict], parent_uid: str = None, fetch_parent_uid: bool = True
+    ) -> List[NuxeoDocumentInfo]:
+        # Filter out filenames that would be ignored by the file system client
+        # so as to be consistent.
+        filtered = []
+        for entry in entries:
+            entry.update(
+                {"root": self._base_folder_ref, "repository": self.client.repository}
+            )
+            if parent_uid is None and fetch_parent_uid:
+                parent_uid = self.fetch(os.path.dirname(entry["path"]))["uid"]
+
+            info = NuxeoDocumentInfo.from_dict(entry, parent_uid=parent_uid)
+            name = info.name.lower()
+            if name.endswith(Options.ignored_suffixes) or name.startswith(
+                Options.ignored_prefixes
+            ):
+                continue
+
+            filtered.append(info)
+
+        return filtered
 
 
 class RemoteTest(RemoteBase):

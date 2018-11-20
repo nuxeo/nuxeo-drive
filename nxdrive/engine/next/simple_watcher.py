@@ -45,14 +45,8 @@ class SimpleWatcher(LocalWatcher):
     def empty_events(self) -> bool:
         return self.watchdog_queue.empty() and len(self._to_scan) == 0
 
-    def get_scan_delay(self) -> int:
-        return self._scan_delay
-
     def is_inside(self, abspath: str) -> bool:
         return abspath.startswith(self.local.base_folder)
-
-    def is_pending_scan(self, ref: str) -> bool:
-        return ref in self._to_scan
 
     def handle_watchdog_move(self, evt: FileSystemMovedEvent, _, rel_path: str) -> None:
         # Dest

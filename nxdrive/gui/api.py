@@ -49,14 +49,12 @@ class QMLDriveApi(QObject):
         super().__init__()
         self._manager = application.manager
         self.application = application
-        self.last_url = None
         self._callback_params: Dict[str, str] = {}
 
         # Attributes for the web authentication feedback
         self.openAuthenticationDialog.connect(
             self.application._open_authentication_dialog
         )
-        self.__unbinding = False
 
     def _json_default(self, obj: Any) -> Any:
         if isinstance(obj, Action):
@@ -532,11 +530,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str)
     def unbind_server(self, uid: str) -> None:
-        self.__unbinding = True
-        try:
-            self._manager.unbind_engine(uid)
-        finally:
-            self.__unbinding = False
+        self._manager.unbind_engine(uid)
 
     @pyqtSlot(str)
     def filters_dialog(self, uid: str) -> None:

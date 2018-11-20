@@ -622,20 +622,9 @@ class Manager(QObject):
         self.dropEngine.emit(uid)
         self._engine_definitions = self._dao.get_engines()
 
-    def unbind_all(self) -> None:
-        if not self._engines:
-            self.load()
-        for engine in self._engine_definitions:
-            self.unbind_engine(engine.uid)
-
     def dispose_db(self) -> None:
         if self._dao is not None:
             self._dao.dispose()
-
-    def dispose_all(self) -> None:
-        for engine in self.get_engines().values():
-            engine.dispose_db()
-        self.dispose_db()
 
     def get_engines(self) -> Dict[str, "Engine"]:  # TODO: Remove
         return self._engines

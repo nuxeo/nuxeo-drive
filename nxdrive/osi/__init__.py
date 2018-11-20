@@ -44,9 +44,6 @@ class AbstractOSIntegration:
     def register_protocol_handlers(self) -> None:
         pass
 
-    def unregister_protocol_handlers(self) -> None:
-        pass
-
     def watch_folder(self, folder: str) -> None:
         pass
 

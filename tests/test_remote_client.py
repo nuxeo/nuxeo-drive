@@ -8,8 +8,7 @@ from threading import current_thread
 import pytest
 
 from nxdrive.exceptions import NotFound
-from nxdrive.utils import make_tmp_file
-from . import LocalTest
+from . import LocalTest, make_tmp_file
 from .common import FS_ITEM_ID_PREFIX, UnitTestCase
 
 

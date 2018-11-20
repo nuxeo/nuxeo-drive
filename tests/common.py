@@ -352,13 +352,11 @@ class UnitTestCase(TestCase):
         )
 
         engine.syncCompleted.connect(self.app.sync_completed)
-        engine.get_remote_watcher().remoteScanFinished.connect(
+        engine._remote_watcher.remoteScanFinished.connect(
             self.app.remote_scan_completed
         )
-        engine.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
-        engine.get_remote_watcher().noChangesFound.connect(
-            self.app.no_remote_changes_found
-        )
+        engine._remote_watcher.changesFound.connect(self.app.remote_changes_found)
+        engine._remote_watcher.noChangesFound.connect(self.app.no_remote_changes_found)
 
         engine_uid = engine.uid
         self._wait_sync[engine_uid] = True

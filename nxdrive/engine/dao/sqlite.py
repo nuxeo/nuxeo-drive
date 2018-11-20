@@ -1676,65 +1676,6 @@ class EngineDAO(ConfigurationDAO):
         ).fetchone()
         return row[0] > 0
 
-    @staticmethod
-    def get_batch_sync_ignore() -> str:
-        return (
-            "AND (pair_state != 'unsynchronized' "
-            "AND pair_state != 'conflicted') "
-            "AND folderish = 0 "
-        )
-
-    def _get_adjacent_sync_file(
-        self, ref: str, comp: str, order: str, sync_mode: str = None
-    ) -> Optional[DocPair]:
-        state = self.get_normal_state_from_remote(ref)
-        if state is None:
-            return None
-
-        mode = f"AND last_transfer='{sync_mode}' " if sync_mode else ""
-        c = self._get_read_connection().cursor()
-        return c.execute(
-            "SELECT *"
-            "  FROM States "
-            f"WHERE last_sync_date {comp} ? "
-            f"{mode}{self.get_batch_sync_ignore()} "
-            f"ORDER BY last_sync_date {order}"
-            " LIMIT 1",
-            (state.last_sync_date,),
-        ).fetchone()
-
-    def get_previous_sync_file(
-        self, ref: str, sync_mode: str = None
-    ) -> Optional[DocPair]:
-        return self._get_adjacent_sync_file(ref, ">", "ASC", sync_mode)
-
-    def get_next_sync_file(self, ref: str, sync_mode: str = None) -> Optional[DocPair]:
-        return self._get_adjacent_sync_file(ref, "<", "DESC", sync_mode)
-
-    def _get_adjacent_folder_file(
-        self, ref: str, comp: str, order: str
-    ) -> Optional[DocPair]:
-        state = self.get_normal_state_from_remote(ref)
-        if not state:
-            return None
-        c = self._get_read_connection().cursor()
-        return c.execute(
-            "SELECT *"
-            "  FROM States"
-            " WHERE remote_parent_ref = ?"
-            f"  AND remote_name {comp} ?"
-            "   AND folderish = 0 "
-            f"ORDER BY remote_name {order}"
-            " LIMIT 1",
-            (state.remote_parent_ref, state.remote_name),
-        ).fetchone()
-
-    def get_next_folder_file(self, ref: str) -> Optional[DocPair]:
-        return self._get_adjacent_folder_file(ref, ">", "ASC")
-
-    def get_previous_folder_file(self, ref: str) -> Optional[DocPair]:
-        return self._get_adjacent_folder_file(ref, "<", "DESC")
-
     def is_filter(self, path: str) -> bool:
         path = self._clean_filter_path(path)
         return any(path.startswith(_filter) for _filter in self._filters)

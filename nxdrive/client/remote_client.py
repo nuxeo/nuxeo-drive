@@ -1,7 +1,6 @@
 # coding: utf-8
 import os
 import socket
-import tempfile
 import time
 from contextlib import suppress
 from logging import getLogger
@@ -51,7 +50,6 @@ class Remote(Nuxeo):
         password: str = None,
         token: str = None,
         proxy: Proxy = None,
-        upload_tmp_dir: str = None,
         check_suspended: Callable = None,
         base_folder: str = None,
         dao: "EngineDAO" = None,
@@ -92,10 +90,6 @@ class Remote(Nuxeo):
         self.version = version
         self.check_suspended = check_suspended
         self._has_new_trash_service = not version_le(self.client.server_version, "10.1")
-
-        self.upload_tmp_dir = (
-            upload_tmp_dir if upload_tmp_dir is not None else tempfile.gettempdir()
-        )
 
         self.upload_lock = Lock()
 
@@ -304,11 +298,6 @@ class Remote(Nuxeo):
             FileAction.finish_action()
         return tmp_file
 
-    def fs_exists(self, fs_item_id: str) -> bool:
-        return self.operations.execute(
-            command="NuxeoDrive.FileSystemItemExists", id=fs_item_id
-        )
-
     def get_fs_children(
         self, fs_item_id: str, filtered: bool = True
     ) -> List[RemoteFileInfo]:
@@ -399,16 +388,6 @@ class Remote(Nuxeo):
         )
         return RemoteFileInfo.from_dict(fs_item)
 
-    def stream_attach(
-        self, fs_item_id: str, file_path: str, apply_versioning_policy: bool = True
-    ) -> None:
-        self.upload(
-            file_path,
-            "NuxeoDrive.AttachBlob",
-            document=self._check_ref(fs_item_id),
-            applyVersioningPolicy=apply_versioning_policy,
-        )
-
     def delete(self, fs_item_id: str, parent_fs_item_id: str = None) -> None:
         self.operations.execute(
             command="NuxeoDrive.Delete", id=fs_item_id, parentId=parent_fs_item_id
@@ -479,30 +458,6 @@ class Remote(Nuxeo):
             else:
                 ref = self._base_folder_path + ref
         return ref
-
-    def _filtered_results(
-        self, entries: List[Dict], parent_uid: str = None, fetch_parent_uid: bool = True
-    ) -> List[NuxeoDocumentInfo]:
-        # Filter out filenames that would be ignored by the file system client
-        # so as to be consistent.
-        filtered = []
-        for entry in entries:
-            entry.update(
-                {"root": self._base_folder_ref, "repository": self.client.repository}
-            )
-            if parent_uid is None and fetch_parent_uid:
-                parent_uid = self.fetch(os.path.dirname(entry["path"]))["uid"]
-
-            info = NuxeoDocumentInfo.from_dict(entry, parent_uid=parent_uid)
-            name = info.name.lower()
-            if name.endswith(Options.ignored_suffixes) or name.startswith(
-                Options.ignored_prefixes
-            ):
-                continue
-
-            filtered.append(info)
-
-        return filtered
 
     def query(self, query: str) -> Dict[str, Any]:  # TODO: use Nuxeo.client.query()
         return self.operations.execute(command="Document.Query", query=query)

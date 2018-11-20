@@ -272,11 +272,6 @@ class Application(QApplication):
         name = sender.objectName()
         self.dialogs.pop(name, None)
 
-    def _create_unique_dialog(self, name: str, dialog: QDialog) -> None:
-        dialog.setObjectName(name)
-        dialog.destroyed.connect(self._destroy_dialog)
-        self.dialogs[name] = dialog
-
     def _init_translator(self) -> None:
         locale = Options.force_locale or Options.locale
         Translator(
@@ -513,19 +508,6 @@ class Application(QApplication):
         self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
         self.filters_dlg.show()
         self._show_window(self.settings_window)
-
-    def show_file_status(self) -> None:
-        from ..gui.status_dialog import StatusDialog
-
-        for _, engine in self.manager.get_engines().items():
-            self.status = StatusDialog(engine.get_dao())
-            self.status.show()
-            break
-
-    def show_activities(self) -> None:
-        return
-        # TODO: Create activities window
-        self.activities.show()
 
     @pyqtSlot(str, object)
     def _open_authentication_dialog(

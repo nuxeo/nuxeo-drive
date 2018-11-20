@@ -3,8 +3,8 @@ import os
 import tempfile
 import unittest
 
-from nxdrive.manager import Manager
 from nxdrive.options import Options
+from nxdrive.manager import Manager
 from .common import clean_dir
 
 
