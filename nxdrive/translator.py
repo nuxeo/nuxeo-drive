@@ -3,6 +3,7 @@ import codecs
 import json
 import os
 import re
+from contextlib import suppress
 from datetime import datetime
 from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 
@@ -38,10 +39,8 @@ class Translator(QTranslator):
         # List language
         self._langs: Dict[str, Tuple[str, str]] = {}
         for key in self._labels:
-            try:
+            with suppress(KeyError):
                 self._langs[key] = (key, self._labels[key]["LANGUAGE"])
-            except KeyError:
-                pass
 
         # Select one
         try:

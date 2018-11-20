@@ -613,12 +613,9 @@ FolderType=Generic
             send2trash(os_path)
         except OSError as exc:
             log.error(f"Cannot trash {os_path!r}")
-            try:
+            with suppress(Exception):
                 # WindowsError(None, None, path, retcode)
                 _, _, _, retcode = exc.args
-            except:
-                pass
-            else:
                 exc.winerror = retcode  # type: ignore
             exc.trash_issue = True  # type: ignore
             raise exc

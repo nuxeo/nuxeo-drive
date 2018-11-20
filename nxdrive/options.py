@@ -318,11 +318,8 @@ class MetaOptions(type):
                 )
 
                 # Callback for that option
-                try:
+                with suppress(KeyError):
                     callback = MetaOptions.callbacks[item]
-                except KeyError:
-                    pass
-                else:
                     callback(new_value)
 
     @staticmethod

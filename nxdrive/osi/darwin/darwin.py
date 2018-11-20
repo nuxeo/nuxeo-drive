@@ -4,6 +4,7 @@ import os
 import stat
 import subprocess
 import sys
+from contextlib import suppress
 from logging import getLogger
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
@@ -151,10 +152,8 @@ class DarwinIntegration(AbstractOSIntegration):
             xattr.removexattr(folder, key)
         finally:
             if to_delete:
-                try:
+                with suppress(OSError):
                     os.rmdir(folder)
-                except:
-                    pass
         return result
 
     def _send_notification(self, name: str, content: Dict[str, Any]) -> None:
