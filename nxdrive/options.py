@@ -141,7 +141,6 @@ class MetaOptions(type):
             "default",
         ),
         "browser_startup_page": ("drive_browser_login.jsp", "default"),
-        "consider_ssl_errors": (True, "default"),
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
@@ -167,7 +166,7 @@ class MetaOptions(type):
             os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(__file__)), "data"),
             "default",
         ),
-        "theme": ("ui5", "default"),
+        "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
         "system_wide": (
             sys.platform == "win32"
@@ -176,6 +175,7 @@ class MetaOptions(type):
             ),
             "default",
         ),
+        "theme": ("ui5", "default"),
         "timeout": (30, "default"),
         "update_check_delay": (3600, "default"),
         "update_site_url": (

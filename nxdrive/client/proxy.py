@@ -181,7 +181,7 @@ def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
 def validate_proxy(proxy: Proxy, url: str) -> bool:
     try:
         with requests.get(
-            url, proxies=proxy.settings(url=url), verify=Options.consider_ssl_errors
+            url, proxies=proxy.settings(url=url), verify=not Options.ssl_no_verify
         ):
             return True
     except:

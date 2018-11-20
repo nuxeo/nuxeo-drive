@@ -729,7 +729,7 @@ class QMLDriveApi(QObject):
                 headers=headers,
                 proxies=self._manager.proxy.settings(url=url),
                 timeout=timeout,
-                verify=Options.consider_ssl_errors,
+                verify=not Options.ssl_no_verify,
             ) as resp:
                 status = resp.status_code
         except:
