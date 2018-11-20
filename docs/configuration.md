@@ -12,7 +12,7 @@ Each of these ways overrides the previous one.
 | Parameter | Default Value | Description
 |---|---|---
 | `beta-update-site-url` | https://community.nuxeo.com/static/drive-updates | Configure custom beta update website.
-| `consider-ssl-errors` | True | Define if SSL errors should be ignored.
+| `ssl-no-verify` | False | Define if SSL errors should be ignored.
 | `debug` | False | Activate the debug window, and debug mode.
 | `delay` | 30 | Define the delay before each remote check.
 | `force-locale` | None | Force the reset to the language.

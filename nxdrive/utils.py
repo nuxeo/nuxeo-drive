@@ -598,7 +598,7 @@ def guess_server_url(
         ("http", domain, "", "", ""),
     ]
 
-    kwargs = {"timeout": timeout, "verify": Options.consider_ssl_errors}
+    kwargs = {"timeout": timeout, "verify": not Options.ssl_no_verify}
     for new_url_parts in urls:
         new_url = urlunsplit(new_url_parts).rstrip("/")
         try:

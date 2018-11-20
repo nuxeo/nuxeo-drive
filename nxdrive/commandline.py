@@ -129,10 +129,10 @@ class CliHandler:
         common_parser.add_argument("--proxy-server", help="Define proxy server")
 
         common_parser.add_argument(
-            "--consider-ssl-errors",
-            default=Options.consider_ssl_errors,
-            action="store_true",
-            help="Ensure HTTPS certificates are valid. Highly unadvised to disable this option.",
+            "--ssl-no-verify",
+            default=Options.ssl_no_verify,
+            action="store_false",
+            help="Allows invalid/custom certificates. Highly unadvised to enable this option.",
         )
 
         common_parser.add_argument(
@@ -492,7 +492,7 @@ class CliHandler:
             has_ssl_support = QSslSocket.supportsSsl()
             log.info(f"SSL support: {has_ssl_support!r}")
             if not has_ssl_support:
-                options.consider_ssl_errors = False
+                options.ssl_no_verify = True
 
         # Update default options
         # We cannot use fail_on_error=True because options is a namespace
