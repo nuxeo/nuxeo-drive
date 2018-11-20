@@ -234,10 +234,10 @@ class NuxeoDocumentInfo:
             blobs[f"files:files/{idx}/file"] = Blob.from_dict(attachment["file"])
 
         if note:
-            m = hashlib.md5()
+            m = hashlib.sha256()
             m.update(note.encode("utf-8"))
             digest = m.hexdigest()
-            digest_algorithm = "md5"
+            digest_algorithm = "sha256"
             ext = ".txt"
             mime_type = props.get("note:mime_type")
             if mime_type == "text/html":
