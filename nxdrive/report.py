@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from typing import Iterator, TYPE_CHECKING
@@ -111,10 +112,8 @@ class Report:
             try:
                 line = handler.format(record)
             except:
-                try:
+                with suppress(Exception):
                     yield force_encode(f"Logging record error: {record!r}")
-                except:
-                    pass
             else:
                 if not isinstance(line, bytes):
                     line = line.encode(errors="replace")

@@ -1,6 +1,7 @@
 # coding: utf-8
 import datetime
 import os
+from contextlib import suppress
 from logging import getLogger
 from threading import Thread, current_thread
 from time import sleep
@@ -738,11 +739,9 @@ class Engine(QObject):
                 os.makedirs(self.local_folder, exist_ok=True)
                 self._check_fs(self.local_folder)
             except (InvalidDriveException, RootAlreadyBindWithDifferentAccount):
-                try:
+                with suppress(OSError):
                     self.local.unset_readonly(self.local_folder)
                     os.rmdir(self.local_folder)
-                except:
-                    pass
             except OSError:
                 raise
 
