@@ -1,7 +1,28 @@
 # coding: utf-8
-from time import sleep
+from time import sleep, time
 
-from nxdrive.engine.blacklist_queue import BlacklistQueue
+from nxdrive.engine.blacklist_queue import BlacklistItem, BlacklistQueue
+
+
+def increase(item: BlacklistItem, next_try: int = None) -> None:
+    item.count += 1
+    cur_time = int(time())
+    if next_try is not None:
+        item._next_try = next_try + cur_time
+    else:
+        item._next_try = item.count * item._interval + cur_time
+
+
+def repush(
+    queue: BlacklistQueue, item: BlacklistItem, increase_wait: bool = True
+) -> None:
+    if increase_wait:
+        increase(item)
+    else:
+        increase(item, next_try=queue._delay)
+
+    with queue._lock:
+        queue._queue[item.uid] = item
 
 
 def test_delay():
@@ -26,7 +47,7 @@ def test_delay():
     assert item.count == 1
 
     # Repush item without increasing delay
-    queue.repush(item, increase_wait=False)
+    repush(queue, item, increase_wait=False)
     assert not list(queue.get())
     sleep(sleep_time)
 
@@ -37,7 +58,7 @@ def test_delay():
     assert item.count == 2
 
     # Repush item with increase
-    queue.repush(item, increase_wait=True)
+    repush(queue, item, increase_wait=True)
     sleep(sleep_time)
     assert not list(queue.get())
     sleep(sleep_time)

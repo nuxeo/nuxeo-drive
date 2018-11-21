@@ -17,8 +17,8 @@ from nxdrive.engine.engine import Engine, ServerBindingSettings
 from nxdrive.engine.workers import Worker
 from nxdrive.exceptions import NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
-from nxdrive.utils import make_tmp_file, safe_os_filename
-from . import LocalTest, RemoteTest
+from nxdrive.utils import safe_os_filename
+from . import LocalTest, RemoteTest, make_tmp_file
 from .common import UnitTestCase
 
 log = getLogger(__name__)

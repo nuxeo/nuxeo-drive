@@ -352,13 +352,11 @@ class UnitTestCase(TestCase):
         )
 
         engine.syncCompleted.connect(self.app.sync_completed)
-        engine.get_remote_watcher().remoteScanFinished.connect(
+        engine._remote_watcher.remoteScanFinished.connect(
             self.app.remote_scan_completed
         )
-        engine.get_remote_watcher().changesFound.connect(self.app.remote_changes_found)
-        engine.get_remote_watcher().noChangesFound.connect(
-            self.app.no_remote_changes_found
-        )
+        engine._remote_watcher.changesFound.connect(self.app.remote_changes_found)
+        engine._remote_watcher.noChangesFound.connect(self.app.no_remote_changes_found)
 
         engine_uid = engine.uid
         self._wait_sync[engine_uid] = True
@@ -589,7 +587,7 @@ class UnitTestCase(TestCase):
     def make_local_tree(self, root=None, local_client=None):
         nb_files, nb_folders = 6, 4
         if not local_client:
-            local_client = self.local_root_client_1
+            local_client = LocalTest(self.engine_1.local_folder)
         if not root:
             root = "/" + self.workspace_title
             if not local_client.exists(root):

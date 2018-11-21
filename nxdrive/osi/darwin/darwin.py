@@ -121,11 +121,6 @@ class DarwinIntegration(AbstractOSIntegration):
             f"Registered bundle {bundle_id!r} for URL scheme {self.NXDRIVE_SCHEME!r}"
         )
 
-    @if_frozen
-    def unregister_protocol_handlers(self) -> None:
-        # Don't unregister, should be removed when Bundle removed
-        pass
-
     @staticmethod
     def is_partition_supported(folder: str) -> bool:
         if folder is None:

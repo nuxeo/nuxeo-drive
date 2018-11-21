@@ -21,15 +21,11 @@ class ServerOptionsUpdater(PollWorker):
         """ Check for the configuration file and apply updates. """
 
         for _, engine in self.manager._engines.items():
-            client = engine.remote.client if engine.remote else None
-            if not client:
+            if not engine.remote:
                 continue
 
-            try:
-                resp = client.request("GET", client.api_path + "/drive/configuration")
-                conf = resp.json()
-            except Exception as exc:
-                log.error(f"Polling error: {exc!r}")
+            conf = engine.remote.get_server_configuration()
+            if not conf:
                 engine.set_ui("jsf", overwrite=False)
             else:
                 engine.set_ui(conf.pop("ui"), overwrite=False)

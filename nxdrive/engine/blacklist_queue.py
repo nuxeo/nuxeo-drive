@@ -23,14 +23,6 @@ class BlacklistItem:
     def get(self):
         return self._item
 
-    def increase(self, next_try: int = None) -> None:
-        self.count += 1
-        cur_time = int(time.time())
-        if next_try is not None:
-            self._next_try = next_try + cur_time
-        else:
-            self._next_try = self.count * self._interval + cur_time
-
 
 class BlacklistQueue:
     def __init__(self, delay: int = 30) -> None:
@@ -42,15 +34,6 @@ class BlacklistQueue:
     def push(self, id_obj: str, obj: str) -> None:
         log.trace(f"Blacklisting {obj!r}")
         item = BlacklistItem(item_id=id_obj, item=obj, next_try=self._delay)
-        with self._lock:
-            self._queue[item.uid] = item
-
-    def repush(self, item: BlacklistItem, increase_wait: bool = True) -> None:
-        if increase_wait:
-            item.increase()
-        else:
-            item.increase(next_try=self._delay)
-
         with self._lock:
             self._queue[item.uid] = item
 

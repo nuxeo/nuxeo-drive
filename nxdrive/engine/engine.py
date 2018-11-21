@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from dataclasses import dataclass
-from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
 
 from .activity import Action, FileAction
@@ -104,7 +104,6 @@ class Engine(QObject):
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
         self.timeout = 30
-        self._handshake_timeout = 60
         self.manager = manager
 
         self.local_folder = definition.local_folder
@@ -471,12 +470,6 @@ class Engine(QObject):
     def get_queue_manager(self) -> QueueManager:
         return self._queue_manager
 
-    def get_local_watcher(self) -> LocalWatcher:
-        return self._local_watcher
-
-    def get_remote_watcher(self) -> RemoteWatcher:
-        return self._remote_watcher
-
     def get_dao(self) -> EngineDAO:
         return self._dao
 
@@ -598,13 +591,6 @@ class Engine(QObject):
     def get_threads(self) -> List[QThread]:
         return self._threads
 
-    def get_status(self) -> None:
-        QCoreApplication.processEvents()
-        log.debug("Engine status")
-        for thread in self._threads:
-            log.debug(f"{thread.worker.get_metrics()!r}")
-        log.debug(f"{self._queue_manager.get_metrics()!r}")
-
     def get_metrics(self) -> Metrics:
         return {
             "uid": self.uid,
@@ -689,18 +675,6 @@ class Engine(QObject):
     @staticmethod
     def use_trash() -> bool:
         return True
-
-    def update_password(self, password: str) -> None:
-        self._load_configuration()
-        self.remote.client.auth = (self.remote.user_id, password)
-        self._remote_token = self.remote.request_token()
-        if self._remote_token is None:
-            raise ValueError
-        self._dao.update_config("remote_token", self._remote_token)
-        self.set_invalid_credentials(value=False)
-        # In case of a binding
-        self._check_root()
-        self.start()
 
     def update_token(self, token: str) -> None:
         self._load_configuration()

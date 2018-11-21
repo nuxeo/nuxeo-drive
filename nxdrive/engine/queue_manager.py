@@ -1,7 +1,6 @@
 # coding: utf-8
 import time
 from contextlib import suppress
-from copy import deepcopy
 from logging import getLogger
 from queue import Empty, Queue
 from threading import Lock
@@ -108,12 +107,6 @@ class QueueManager(QObject):
             # TypeError: disconnect() failed between 'newItem' and 'launch_processors'
             self.newItem.disconnect(self.launch_processors)
 
-    @staticmethod
-    def _copy_queue(queue: Queue) -> Queue:
-        result = deepcopy(queue.queue)  # type: ignore
-        result.reverse()
-        return result
-
     def set_max_processors(self, max_file_processors: int) -> None:
         if max_file_processors < 2:
             max_file_processors = 2
@@ -171,18 +164,6 @@ class QueueManager(QObject):
             self._remote_folder_thread.quit()
         if value and emit:
             self.queueProcessing.emit()
-
-    def get_local_file_queue(self) -> Queue:
-        return self._copy_queue(self._local_file_queue)
-
-    def get_remote_file_queue(self) -> Queue:
-        return self._copy_queue(self._remote_file_queue)
-
-    def get_local_folder_queue(self) -> Queue:
-        return self._copy_queue(self._local_folder_queue)
-
-    def get_remote_folder_queue(self) -> Queue:
-        return self._copy_queue(self._remote_folder_queue)
 
     def push_ref(self, row_id: int, folderish: bool, pair_state: str) -> None:
         self.push(QueueItem(row_id, folderish, pair_state))
@@ -290,11 +271,6 @@ class QueueManager(QObject):
             self._on_error_queue[doc_pair.id] = doc_pair
             if emit_sig:
                 self.newError.emit(doc_pair.id)
-
-    def requeue_errors(self) -> None:
-        with self._error_lock:
-            for doc_pair in self._on_error_queue.values():
-                doc_pair.error_next_try = 0
 
     def _get_local_folder(self) -> Optional[str]:
         if self._local_folder_queue.empty():

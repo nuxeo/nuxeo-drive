@@ -32,7 +32,6 @@ __all__ = (
     "if_frozen",
     "is_generated_tmp_file",
     "lock_path",
-    "make_tmp_file",
     "normalize_event_filename",
     "normalized_path",
     "parse_edit_protocol",
@@ -512,25 +511,6 @@ def _lazysecret(secret: bytes, blocksize: int = 32, padding: bytes = b"}") -> by
     return secret
 
 
-def guess_mime_type(filename: str) -> str:
-    import mimetypes
-
-    mime_type, _ = mimetypes.guess_type(filename)
-    if mime_type:
-        if WINDOWS:
-            # Patch bad Windows MIME types
-            # See https://jira.nuxeo.com/browse/NXP-11660
-            # and http://bugs.python.org/issue15207
-            mime_type = WIN32_PATCHED_MIME_TYPES.get(mime_type, mime_type) or mime_type
-        log.trace(f"Guessed mime type {mime_type!r} for {filename!r}")
-        return mime_type
-
-    log.trace(
-        f"Could not guess mime type for {filename!r}, returning application/octet-stream"
-    )
-    return "application/octet-stream"
-
-
 def guess_server_url(
     url: str,
     login_page: str = Options.startup_page,
@@ -770,24 +750,6 @@ def lock_path(path: str, locker: int) -> None:
     if locker & 2 == 2:
         parent = os.path.dirname(path)
         set_path_readonly(parent)
-
-
-def make_tmp_file(folder: str, content: bytes) -> str:
-    """Create a temporary file with the given content
-    for streaming upload purposes.
-
-    Make sure that you remove the temporary file with os.remove()
-    when done with it.
-    """
-    import tempfile
-
-    fd, path = tempfile.mkstemp(suffix="-nxdrive-file-to-upload", dir=folder)
-    try:
-        with open(path, "wb") as f:
-            f.write(force_encode(content))
-    finally:
-        os.close(fd)
-    return path
 
 
 def short_name(name: Union[bytes, str]) -> str:

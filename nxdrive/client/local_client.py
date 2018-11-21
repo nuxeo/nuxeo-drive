@@ -567,19 +567,6 @@ FolderType=Generic
         path = ref if is_abs else self.abspath(ref)
         lock_path(path, locker)
 
-    def make_file(self, parent: str, name: str, content: bytes = None) -> str:
-        os_path, name = self._abspath_deduped(parent, name)
-        locker = self.unlock_ref(parent, unlock_parent=False)
-        try:
-            with open(os_path, "wb") as f:
-                if content:
-                    f.write(content)
-            if parent == "/":
-                return "/" + name
-            return parent + "/" + name
-        finally:
-            self.lock_ref(parent, locker)
-
     def make_folder(self, parent: str, name: str) -> str:
         os_path, name = self._abspath_deduped(parent, name)
         locker = self.unlock_ref(parent, unlock_parent=False)

@@ -1,4 +1,6 @@
 # coding: utf-8
+from copy import deepcopy
+from queue import Queue
 from shutil import copyfile
 from time import sleep
 
@@ -9,6 +11,12 @@ from nxdrive.constants import WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from . import LocalTest
 from .common import UnitTestCase
+
+
+def copy_queue(queue: Queue) -> Queue:
+    result = deepcopy(queue.queue)  # type: ignore
+    result.reverse()
+    return result
 
 
 class TestWatchers(UnitTestCase):
@@ -49,13 +57,13 @@ class TestWatchers(UnitTestCase):
         # or not, in which case we get a conflicted file
         assert self.engine_1.get_dao().get_sync_count() >= folders + files
         # Verify it has been reconciled and all items in queue are synchronized
-        queue = self.get_full_queue(manager.get_local_file_queue())
+        queue = self.get_full_queue(copy_queue(manager._local_file_queue))
         for item in queue:
             if item.remote_name == "Duplicated File.txt":
                 assert item.pair_state in ["synchronized", "conflicted"]
             else:
                 assert item.pair_state == "synchronized"
-        queue = self.get_full_queue(manager.get_local_folder_queue())
+        queue = self.get_full_queue(copy_queue(manager._local_folder_queue))
         for item in queue:
             assert item.pair_state == "synchronized"
 
@@ -100,7 +108,7 @@ class TestWatchers(UnitTestCase):
         self.wait_sync(timeout=1, fail_if_timeout=False)
 
         timeout = 5
-        while not self.engine_1.get_local_watcher().empty_events():
+        while not self.engine_1._local_watcher.empty_events():
             sleep(1)
             timeout -= 1
             if timeout < 0:

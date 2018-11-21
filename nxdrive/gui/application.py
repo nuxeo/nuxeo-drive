@@ -14,11 +14,9 @@ from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtQml import QQmlApplicationEngine, QQmlContext
 from PyQt5.QtQuick import QQuickView, QQuickWindow
 from PyQt5.QtWidgets import (
-    QAction,
     QApplication,
     QDialog,
     QDialogButtonBox,
-    QMenu,
     QMessageBox,
     QSystemTrayIcon,
     QTextEdit,
@@ -78,7 +76,6 @@ class Application(QApplication):
         super().__init__(list(*args))
         self.manager = manager
 
-        self.dialogs: Dict[str, QDialog] = dict()
         self.osi = self.manager.osi
         self.setWindowIcon(QIcon(self.get_window_icon()))
         self.setApplicationName(APP_NAME)
@@ -266,16 +263,6 @@ class Application(QApplication):
         window.show()
         window.raise_()
         window.requestActivate()
-
-    def _destroy_dialog(self) -> None:
-        sender = self.sender()
-        name = sender.objectName()
-        self.dialogs.pop(name, None)
-
-    def _create_unique_dialog(self, name: str, dialog: QDialog) -> None:
-        dialog.setObjectName(name)
-        dialog.destroyed.connect(self._destroy_dialog)
-        self.dialogs[name] = dialog
 
     def _init_translator(self) -> None:
         locale = Options.force_locale or Options.locale
@@ -514,19 +501,6 @@ class Application(QApplication):
         self.filters_dlg.show()
         self._show_window(self.settings_window)
 
-    def show_file_status(self) -> None:
-        from ..gui.status_dialog import StatusDialog
-
-        for _, engine in self.manager.get_engines().items():
-            self.status = StatusDialog(engine.get_dao())
-            self.status.show()
-            break
-
-    def show_activities(self) -> None:
-        return
-        # TODO: Create activities window
-        self.activities.show()
-
     @pyqtSlot(str, object)
     def _open_authentication_dialog(
         self, url: str, callback_params: Dict[str, str]
@@ -615,52 +589,6 @@ class Application(QApplication):
         engine.rootMoved.connect(self._root_moved)
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
         self.change_systray_icon()
-
-    @pyqtSlot()
-    def _debug_toggle_invalid_credentials(self) -> None:
-        sender = self.sender()
-        engine = sender.data()
-        engine.set_invalid_credentials(
-            not engine.has_invalid_credentials(), reason="debug"
-        )
-
-    @pyqtSlot()
-    def _debug_show_file_status(self) -> None:
-        from ..gui.status_dialog import StatusDialog
-
-        sender = self.sender()
-        engine = sender.data()
-        self.status_dialog = StatusDialog(engine.get_dao())
-        self.status_dialog.show()
-
-    def _create_debug_engine_menu(self, engine: "Engine", parent: QMenu) -> QMenu:
-        menu = QMenu(parent)
-        action = QAction(Translator.get("DEBUG_INVALID_CREDENTIALS"), menu)
-        action.setCheckable(True)
-        action.setChecked(engine.has_invalid_credentials())
-        action.setData(engine)
-        action.triggered.connect(self._debug_toggle_invalid_credentials)
-        menu.addAction(action)
-        action = QAction(Translator.get("DEBUG_FILE_STATUS"), menu)
-        action.setData(engine)
-        action.triggered.connect(self._debug_show_file_status)
-        menu.addAction(action)
-        return menu
-
-    def create_debug_menu(self, menu: QMenu) -> None:
-        menu.addAction(Translator.get("DEBUG_WINDOW"), self.show_debug_window)
-        for engine in self.manager.get_engines().values():
-            action = QAction(engine.name, menu)
-            action.setMenu(self._create_debug_engine_menu(engine, menu))
-            action.setData(engine)
-            menu.addAction(action)
-
-    @pyqtSlot()
-    def show_debug_window(self) -> None:
-        return
-        debug = self.dialogs.get("debug")
-        # TODO: if not debug: Create debug window
-        self._show_window(debug)
 
     def init_checks(self) -> None:
         if Options.debug:

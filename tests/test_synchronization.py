@@ -279,12 +279,8 @@ class TestSynchronization(UnitTestCase):
         # Simulate synchronization errors
         file_5_state = sorted_children[0]
         folder_3_state = sorted_children[3]
-        self.engine_1.get_local_watcher().increase_error(
-            file_5_state, "TEST_FILE_ERROR"
-        )
-        self.engine_1.get_local_watcher().increase_error(
-            folder_3_state, "TEST_FILE_ERROR"
-        )
+        self.engine_1._local_watcher.increase_error(file_5_state, "TEST_FILE_ERROR")
+        self.engine_1._local_watcher.increase_error(folder_3_state, "TEST_FILE_ERROR")
 
         # Run synchronization
         self.queue_manager_1._disable = False
