@@ -199,19 +199,6 @@ class NotificationService(QObject):
         self.discardNotification.emit(uid)
 
 
-class DebugNotification(Notification):
-    def __init__(self, engine_uid: str) -> None:
-        super().__init__(
-            "DEBUG",
-            engine_uid=engine_uid,
-            level=Notification.LEVEL_ERROR,
-            flags=Notification.FLAG_UNIQUE | Notification.FLAG_PERSISTENT,
-        )
-        self.title = "Debug notification"
-        self.description = "Small description for this debug notification"
-        self.action = ""
-
-
 class ErrorNotification(Notification):
     def __init__(self, engine_uid: str, doc_pair: DocPair) -> None:
         name = doc_pair.local_name or doc_pair.remote_name or ""

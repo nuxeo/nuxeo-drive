@@ -291,11 +291,6 @@ class QueueManager(QObject):
             if emit_sig:
                 self.newError.emit(doc_pair.id)
 
-    def requeue_errors(self) -> None:
-        with self._error_lock:
-            for doc_pair in self._on_error_queue.values():
-                doc_pair.error_next_try = 0
-
     def _get_local_folder(self) -> Optional[str]:
         if self._local_folder_queue.empty():
             return None

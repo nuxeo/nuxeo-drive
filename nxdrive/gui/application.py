@@ -267,11 +267,6 @@ class Application(QApplication):
         window.raise_()
         window.requestActivate()
 
-    def _destroy_dialog(self) -> None:
-        sender = self.sender()
-        name = sender.objectName()
-        self.dialogs.pop(name, None)
-
     def _init_translator(self) -> None:
         locale = Options.force_locale or Options.locale
         Translator(
@@ -636,13 +631,6 @@ class Application(QApplication):
             action.setMenu(self._create_debug_engine_menu(engine, menu))
             action.setData(engine)
             menu.addAction(action)
-
-    @pyqtSlot()
-    def show_debug_window(self) -> None:
-        return
-        debug = self.dialogs.get("debug")
-        # TODO: if not debug: Create debug window
-        self._show_window(debug)
 
     def init_checks(self) -> None:
         if Options.debug:

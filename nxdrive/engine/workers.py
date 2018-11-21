@@ -83,10 +83,6 @@ class Worker(QObject):
 
         self._pause = True
 
-    def _end_action(self) -> None:
-        Action.finish_action()
-        self._action = None
-
     def get_thread(self) -> QThread:
         """ Return worker internal thread. """
 

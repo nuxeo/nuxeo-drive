@@ -11,6 +11,7 @@ from nuxeo.exceptions import HTTPError
 
 from nxdrive.client.local_client import LocalClient
 from nxdrive.client.remote_client import Remote
+from nxdrive.engine.queue_manager import QueueManager
 from nxdrive.logging_config import configure
 from nxdrive.manager import Manager
 from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
@@ -20,7 +21,11 @@ from nxdrive.utils import force_encode, safe_filename
 # Automatically check all operations done with the Python client
 nuxeo.constants.CHECK_PARAMS = True
 
+# Remove feature for tests
+Manager._create_server_config_updater = lambda *args: None
 
+
+# Add Manager and QueueManager features for tests
 def dispose_all(self) -> None:
     for engine in self.get_engines().values():
         engine.dispose_db()
@@ -34,11 +39,15 @@ def unbind_all(self) -> None:
         self.unbind_engine(engine.uid)
 
 
-# Remove features for tests
-Manager._create_server_config_updater = lambda *args: None
+def requeue_errors(self) -> None:
+    with self._error_lock:
+        for doc_pair in self._on_error_queue.values():
+            doc_pair.error_next_try = 0
+
 
 Manager.dispose_all = dispose_all
 Manager.unbind_all = unbind_all
+QueueManager.requeue_errors = requeue_errors
 
 
 def configure_logger():
