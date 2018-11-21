@@ -587,7 +587,7 @@ class UnitTestCase(TestCase):
     def make_local_tree(self, root=None, local_client=None):
         nb_files, nb_folders = 6, 4
         if not local_client:
-            local_client = self.local_root_client_1
+            local_client = LocalTest(self.engine_1.local_folder)
         if not root:
             root = "/" + self.workspace_title
             if not local_client.exists(root):

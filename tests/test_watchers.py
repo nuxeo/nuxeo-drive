@@ -108,7 +108,7 @@ class TestWatchers(UnitTestCase):
         self.wait_sync(timeout=1, fail_if_timeout=False)
 
         timeout = 5
-        while not self.engine_1.get_local_watcher().empty_events():
+        while not self.engine_1._local_watcher.empty_events():
             sleep(1)
             timeout -= 1
             if timeout < 0:
