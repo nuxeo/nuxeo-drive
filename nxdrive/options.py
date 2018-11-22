@@ -141,6 +141,7 @@ class MetaOptions(type):
             "default",
         ),
         "browser_startup_page": ("drive_browser_login.jsp", "default"),
+        "ca_bundle": (None, "default"),
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),

@@ -578,7 +578,10 @@ def guess_server_url(
         ("http", domain, "", "", ""),
     ]
 
-    kwargs = {"timeout": timeout, "verify": not Options.ssl_no_verify}
+    kwargs = {
+        "timeout": timeout,
+        "verify": Options.ca_bundle or not Options.ssl_no_verify,
+    }
     for new_url_parts in urls:
         new_url = urlunsplit(new_url_parts).rstrip("/")
         try:
@@ -597,6 +600,11 @@ def guess_server_url(
                 return new_url
         except (ValueError, requests.RequestException):
             pass
+        except OSError as exc:
+            # OSError: Could not find a suitable TLS CA certificate bundle, invalid path: ...
+            log.critical(f"{exc}. Ensure the 'ca_bundle' option is correct.")
+        except Exception:
+            log.exception("Unhandled error")
 
     if not url.lower().startswith("http"):
         return None

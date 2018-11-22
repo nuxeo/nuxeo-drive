@@ -179,11 +179,14 @@ def save_proxy(proxy: Proxy, dao: "EngineDAO", token: str = None) -> None:
 
 
 def validate_proxy(proxy: Proxy, url: str) -> bool:
+    verify = Options.ca_bundle or not Options.ssl_no_verify
     try:
-        with requests.get(
-            url, proxies=proxy.settings(url=url), verify=not Options.ssl_no_verify
-        ):
+        with requests.get(url, proxies=proxy.settings(url=url), verify=verify):
             return True
+    except OSError as exc:
+        # OSError: Could not find a suitable TLS CA certificate bundle, invalid path: ...
+        log.critical(f"{exc}. Ensure the 'ca_bundle' option is correct.")
+        return False
     except:
         log.exception("Invalid proxy.")
         return False

@@ -492,6 +492,7 @@ class CliHandler:
             has_ssl_support = QSslSocket.supportsSsl()
             log.info(f"SSL support: {has_ssl_support!r}")
             if not has_ssl_support:
+                options.ca_bundle = None
                 options.ssl_no_verify = True
 
         # Update default options

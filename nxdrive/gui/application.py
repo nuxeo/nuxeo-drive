@@ -775,8 +775,7 @@ class Application(QApplication):
             version += " beta"
 
         try:
-            # No need for the `verify=not Options.ssl_no_verify` here as GitHub will never use
-            # a bad certificate.
+            # No need for the `verify` kwarg here as GitHub will never use a bad certificate.
             with requests.get(url) as resp:
                 data = resp.json()
         except requests.HTTPError as exc:

@@ -723,9 +723,13 @@ class QMLDriveApi(QObject):
                 headers=headers,
                 proxies=self._manager.proxy.settings(url=url),
                 timeout=timeout,
-                verify=not Options.ssl_no_verify,
+                verify=Options.ca_bundle or not Options.ssl_no_verify,
             ) as resp:
                 status = resp.status_code
+        except OSError as exc:
+            # OSError: Could not find a suitable TLS CA certificate bundle, invalid path: ...
+            log.critical(f"{exc}. Ensure the 'ca_bundle' option is correct.")
+            raise StartupPageConnectionError()
         except:
             log.exception(
                 f"Error while trying to connect to {APP_NAME}"
