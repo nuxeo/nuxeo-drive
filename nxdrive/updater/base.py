@@ -158,7 +158,7 @@ class BaseUpdater(PollWorker):
             f"into {path!r}"
         )
         try:
-            # Note: I do not think we should pass the `verify=not Options.ssl_no_verify` kwarg here
+            # Note: I do not think we should pass the `verify` kwarg here
             # because updates are critical and must be stored on a secured server.
             req = requests.get(url, stream=True)
             size = int(req.headers["content-length"])
@@ -184,7 +184,7 @@ class BaseUpdater(PollWorker):
 
         url = f"{self.update_site}/versions.yml"
         try:
-            # Note: I do not think we should pass the `verify=not Options.ssl_no_verify` kwarg here
+            # Note: I do not think we should pass the `verify` kwarg here
             # because updates are critical and must be stored on a secured server.
             with requests.get(url) as resp:
                 resp.raise_for_status()

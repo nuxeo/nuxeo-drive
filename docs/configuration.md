@@ -1,18 +1,23 @@
 # Configuration
 
 Nuxeo Drive has different parameters that you can set up through:
-- the REST API endpoint `/drive/configuration` served by the server (since [NXP-22946](https://jira.nuxeo.com/browse/NXP-22946) and Drive 3.0.0),
-- a `$HOME/.nuxeo-drive/config.ini` file,
-- a registry key inside `HKEY_CURRENT_USER\Software\Nuxeo\Drive` (since Drive 3.1.0, Windows only),
-- the command line.
+
+- The REST API endpoint `/drive/configuration` served by the server (since [NXP-22946](https://jira.nuxeo.com/browse/NXP-22946) and Drive 3.0.0).
+- The command line.
+- A registry key inside `HKEY_CURRENT_USER\Software\Nuxeo\Drive` (since Drive 3.1.0, Windows only).
+- A `config.ini` file that can be located in different places:
+  - next to the Nuxeo Drive executable
+  - from the `$HOME/.nuxeo-drive` folder
+  - from the current working directory
+
 Each of these ways overrides the previous one.
 
 ## Parameters
 
 | Parameter | Default Value | Description
 |---|---|---
-| `beta-update-site-url` | https://community.nuxeo.com/static/drive-updates | Configure custom beta update website.
-| `ssl-no-verify` | False | Define if SSL errors should be ignored.
+| `beta-update-site-url` | `https://community.nuxeo.com/static/drive-updates` | Configure custom beta update website.
+| `ca-bundle` | None | File or directory with certificates of trusted CAs. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
 | `debug` | False | Activate the debug window, and debug mode.
 | `delay` | 30 | Define the delay before each remote check.
 | `force-locale` | None | Force the reset to the language.
@@ -25,24 +30,36 @@ Each of these ways overrides the previous one.
 | `ndrive-home` | `$HOME/.nuxeo-drive` | Define the personal folder.
 | `nofscheck` | False | Disable the standard check for binding, to allow installation on network filesystem.
 | `proxy-server` | None | Define the address of the proxy server (e.g. `http://proxy.example.com:3128`). This can also be set up by the user from the Settings window.
+| `ssl-no-verify` | False | Define if SSL errors should be ignored. Highly unadvised to enable this option.
 | `timeout` | 30 | Define the socket timeout.
 | `update-check-delay` | 3600 | Define the auto-update check delay. 0 means disabled.
-| `update-site-url` | https://community.nuxeo.com/static/drive-updates | Configure a custom update website. See Nuxeo Drive Update Site for more details.
+| `update-site-url` | `https://community.nuxeo.com/static/drive-updates` | Configure a custom update website. See Nuxeo Drive Update Site for more details.
 
 ## Command Line Arguments
 
-When used as a command line argument you need to prefix with the long argument modifier `--`, e.g.: `--log-level-file TRACE`.
+When used as a command line argument you need to prefix with the long argument modifier `--`, e.g.: `--log-level-file=TRACE`.
 
 ## Configuration File
 
-Instead of using command line arguments, you can create the `config.ini` file into the `$HOME/.nuxeo-drive` folder.
-The file syntax is:
+The format of the `config.ini` file is as following:
 
-    [DEFAULT]
-    env = custom
+```ini
+[DEFAULT]
+env = custom
 
-    [custom]
-    log-level-file = TRACE
-    debug = False
+[no-updates]
+; Unused section
+update-check-delay = 0
 
-You can add parameters inside the `[custom]` section.
+[custom]
+ca_bundle = C:\certificates\terena-ssl.crt
+debug = False
+log-level-file = TRACE
+ignored_suffixes =
+    .bak
+    .tmp
+    .XXX
+```
+
+The `env` option from the `[DEFAULT]` section defines in which section looking for options.
+Here, options defined in the `[custom]` section will be taken into account.
