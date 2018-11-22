@@ -14,26 +14,52 @@ Each of these ways overrides the previous one.
 
 ## Parameters
 
-| Parameter | Default Value | Description
-|---|---|---
-| `beta-update-site-url` | `https://community.nuxeo.com/static/drive-updates` | Configure custom beta update website.
-| `ca-bundle` | None | File or directory with certificates of trusted CAs. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
-| `debug` | False | Activate the debug window, and debug mode.
-| `delay` | 30 | Define the delay before each remote check.
-| `force-locale` | None | Force the reset to the language.
-| `handshake-timeout` | 60 | Define the handshake timeout.
-| `locale` | en | Set up the language if not already defined. This can also be set up by the user from the Settings window.
-| `log-filename` | None | The name of the log file.
-| `log-level-console` | INFO | Define level for console log. Can be TRACE, DEBUG, INFO, WARNING, ERROR.
-| `log-level-file` | DEBUG | Define level for file log. Can be TRACE, DEBUG, INFO, WARNING, ERROR. This can also be set up from the Settings window.
-| `max-errors` | 3 | Define the maximum number of retries before considering the file as in error.
-| `ndrive-home` | `$HOME/.nuxeo-drive` | Define the personal folder.
-| `nofscheck` | False | Disable the standard check for binding, to allow installation on network filesystem.
-| `proxy-server` | None | Define the address of the proxy server (e.g. `http://proxy.example.com:3128`). This can also be set up by the user from the Settings window.
-| `ssl-no-verify` | False | Define if SSL errors should be ignored. Highly unadvised to enable this option.
-| `timeout` | 30 | Define the socket timeout.
-| `update-check-delay` | 3600 | Define the auto-update check delay. 0 means disabled.
-| `update-site-url` | `https://community.nuxeo.com/static/drive-updates` | Configure a custom update website. See Nuxeo Drive Update Site for more details.
+### Names and Values
+
+Parameters' names are quite flexible. For instance you can specify `ssl-no-verify`, `ssl_no_verify` or `ssl_no-verify`: same result.
+
+Parameters' values are even more flexible. If the value is a boolean, you can specify (case insensitive):
+
+- `true`, `1`, `on`, `yes` or `oui` to enable
+- `false`, `0`, `off`, `no` or `non` to disable
+
+### Value Types
+
+- bool: boolean
+- int: integer
+- list: list of strings (one item by line)
+- str: string
+
+### Available Parameters
+
+| Parameter | Default Value | Type | Description
+|---|---|---|---
+| `beta-update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) | str | Configure custom beta update website.
+| `ca-bundle` | None | str | File or directory with certificates of trusted CAs. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
+| `debug` | False | bool | Activate the debug window, and debug mode.
+| `delay` | 30 | int | Define the delay before each remote check.
+| `force-locale` | None | str | Force the reset to the language.
+| `handshake-timeout` | 60 | int | Define the handshake timeout.
+| `ignored_files` | ... | list | File names to ignore while syncing.
+| `ignored_prefixes` | ... | list | File prefixes to ignore while syncing.
+| `ignored_suffixes` | ... | list | File suffixes to ignore while syncing.
+| `locale` | en | str | Set up the language if not already defined. This can also be set up by the user from the Settings window.
+| `log-filename` | None | str | The name of the log file.
+| `log-level-console` | INFO | str | Define level for console log. Can be TRACE, DEBUG, INFO, WARNING, ERROR.
+| `log-level-file` | DEBUG | str | Define level for file log. Can be TRACE, DEBUG, INFO, WARNING, ERROR.
+| `max-errors` | 3 | int | Define the maximum number of retries before considering the file as in error.
+| `nofscheck` | False | bool | Disable the standard check for binding, to allow installation on network filesystem.
+| `proxy-server` | None | str | Define the address of the proxy server (e.g. `http://proxy.example.com:3128`). This can also be set up by the user from the Settings window.
+| `ssl-no-verify` | False | bool | Define if SSL errors should be ignored. Highly unadvised to enable this option.
+| `timeout` | 30 | int | Define the socket timeout.
+| `update-check-delay` | 3600 | int | Define the auto-update check delay. 0 means disabled.
+| `update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) | str | Configure a custom update website. See Nuxeo Drive Update Site for more details.
+
+### Obsolete Parameters
+
+| Parameter | Default Value | Version Removed | New Option Name | New Default Value
+|---|---|---|---|---
+| `consider-ssl-errors` | True (bool) | 4.0.1 | `ssl-no-verify` | False (bool)
 
 ## Command Line Arguments
 
