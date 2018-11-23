@@ -11,6 +11,7 @@ from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 import requests
 from dateutil.tz import tzlocal
 from nuxeo.exceptions import HTTPError, Unauthorized
+from requests.exceptions import SSLError
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 
@@ -488,8 +489,25 @@ class QMLDriveApi(QObject):
             )
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
 
+    def _guess_server_url(self, server_url: str) -> str:
+        """Handle invalide SSL certificates when guessing the server URL."""
+        try:
+            return guess_server_url(server_url, proxy=self._manager.proxy)
+        except SSLError as exc:
+            log.critical(
+                f"{exc}. Use 'ca-bundle' (or 'ssl-no-verify') option to tune SSL behavior."
+            )
+            if "CERTIFICATE_VERIFY_FAILED" in str(exc):
+                parts = urlsplit(server_url)
+                hostname = parts.netloc or parts.path
+                if self.application.accept_unofficial_ssl_cert(hostname):
+                    Options.ca_bundle = None
+                    Options.ssl_no_verify = True
+                    return self._guess_server_url(server_url)
+        return ""
+
     def _get_authentication_url(self, server_url: str) -> str:
-        url = guess_server_url(server_url, proxy=self._manager.proxy)
+        url = self._guess_server_url(server_url)
         if not url:
             raise ValueError("No URL found for Nuxeo server")
 
@@ -584,7 +602,7 @@ class QMLDriveApi(QObject):
         name: str = None,
         **kwargs: Any,
     ) -> None:
-        server_url = guess_server_url(url, proxy=self._manager.proxy)
+        server_url = self._guess_server_url(url)
         if not server_url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
@@ -637,7 +655,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str)
     def web_authentication(self, server_url: str, local_folder: str) -> None:
         # Handle the server URL
-        url = guess_server_url(server_url, proxy=self._manager.proxy)
+        url = self._guess_server_url(server_url)
         if not url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
@@ -657,32 +675,35 @@ class QMLDriveApi(QObject):
 
             # Connect to startup page
             status = self._connect_startup_page(server_url)
+            callback_params = {
+                "local_folder": local_folder,
+                "server_url": server_url,
+                "engine_type": engine_type,
+            }
+            url = self._get_authentication_url(server_url)
+
             # Server will send a 401 in case of anonymous user configuration
             # Should maybe only check for 404
             if status < 400 or status in (401, 500, 503):
                 # Page exists, let's open authentication dialog
-                callback_params = {
-                    "local_folder": local_folder,
-                    "server_url": server_url,
-                    "engine_type": engine_type,
-                }
-                url = self._get_authentication_url(server_url)
                 log.debug(
                     f"Web authentication is available on server {server_url}, "
                     f"opening login window with URL {url}"
                 )
-                self.openAuthenticationDialog.emit(url, callback_params)
-                return
             else:
                 # Startup page is not available
                 log.debug(
                     f"Web authentication not available on server {server_url}, "
                     "falling back on basic authentication"
                 )
-                # We might have to downgrade because the
-                # browser login is not available.
-                self._manager.updater._force_downgrade()
-                return
+                if Options.is_frozen:
+                    # We might have to downgrade because the
+                    # browser login is not available.
+                    self._manager.updater._force_downgrade()
+                    return
+
+            self.openAuthenticationDialog.emit(url, callback_params)
+            return
         except FolderAlreadyUsed:
             error = "FOLDER_USED"
         except StartupPageConnectionError:
@@ -696,7 +717,7 @@ class QMLDriveApi(QObject):
 
     def _connect_startup_page(self, server_url: str) -> int:
         # Take into account URL parameters
-        parts = urlsplit(guess_server_url(server_url, proxy=self._manager.proxy) or "")
+        parts = urlsplit(self._guess_server_url(server_url))
         url = urlunsplit(
             (
                 parts.scheme,
@@ -706,38 +727,34 @@ class QMLDriveApi(QObject):
                 parts.fragment,
             )
         )
+        headers = {
+            "X-Application-Name": APP_NAME,
+            "X-Device-Id": self._manager.device_id,
+            "X-Client-Version": self._manager.version,
+            "User-Agent": f"{APP_NAME}/{self._manager.version}",
+        }
 
+        log.debug(
+            f"Proxy configuration for startup page connection: {self._manager.proxy}"
+        )
         try:
-            log.debug(
-                f"Proxy configuration for startup page connection: {self._manager.proxy}"
-            )
-            headers = {
-                "X-Application-Name": APP_NAME,
-                "X-Device-Id": self._manager.device_id,
-                "X-Client-Version": self._manager.version,
-                "User-Agent": f"{APP_NAME}/{self._manager.version}",
-            }
-            timeout = STARTUP_PAGE_CONNECTION_TIMEOUT
             with requests.get(
                 url,
                 headers=headers,
                 proxies=self._manager.proxy.settings(url=url),
-                timeout=timeout,
+                timeout=STARTUP_PAGE_CONNECTION_TIMEOUT,
                 verify=Options.ca_bundle or not Options.ssl_no_verify,
             ) as resp:
                 status = resp.status_code
-        except OSError as exc:
-            # OSError: Could not find a suitable TLS CA certificate bundle, invalid path: ...
-            log.critical(f"{exc}. Ensure the 'ca_bundle' option is correct.")
-            raise StartupPageConnectionError()
         except:
             log.exception(
                 f"Error while trying to connect to {APP_NAME}"
                 f" startup page with URL {url}"
             )
             raise StartupPageConnectionError()
-        log.debug(f"Status code for {url} = {status}")
-        return status
+        else:
+            log.debug(f"Status code for {url} = {status}")
+            return status
 
     @pyqtSlot(str, str, result=bool)
     def set_server_ui(self, uid: str, server_ui: str) -> bool:

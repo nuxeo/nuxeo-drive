@@ -24,15 +24,20 @@ def pytest_namespace():
     user = os.getenv("NXDRIVE_TEST_USER", "Administrator")
     version = nxdrive.__version__
 
-    root_remote = DocRemote(
-        nuxeo_url,
-        user,
-        "nxdrive-test-administrator-device",
-        version,
-        password=password,
-        base_folder="/",
-        timeout=60,
-    )
+    try:
+        root_remote = DocRemote(
+            nuxeo_url,
+            user,
+            "nxdrive-test-administrator-device",
+            version,
+            password=password,
+            base_folder="/",
+            timeout=60,
+        )
+    except:
+        # When testing locally a function that does not need to communicate with the
+        # server we can skip this object. To be reviewed with the tests refactoring.
+        root_remote = None
 
     return {
         "nuxeo_url": nuxeo_url,
