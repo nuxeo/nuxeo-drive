@@ -27,6 +27,7 @@ __all__ = (
     "find_resource",
     "force_decode",
     "force_encode",
+    "get_certificate_details",
     "get_device",
     "guess_server_url",
     "if_frozen",
@@ -37,6 +38,7 @@ __all__ = (
     "parse_edit_protocol",
     "parse_protocol_url",
     "path_join",
+    "retrieve_ssl_certificate",
     "safe_filename",
     "safe_long_path",
     "set_path_readonly",
@@ -475,6 +477,46 @@ def force_encode(data: Union[bytes, str]) -> bytes:
     return data
 
 
+def retrieve_ssl_certificate(hostname: str, port: int = 443) -> str:
+    """Retreive the SSL certificate from a given hostname."""
+
+    import ssl
+
+    with ssl.create_connection((hostname, port)) as conn:  # type: ignore
+        context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        with context.wrap_socket(conn, server_hostname=hostname) as sock:
+            cert_data: bytes = sock.getpeercert(binary_form=True)  # type: ignore
+            return ssl.DER_cert_to_PEM_cert(cert_data)
+
+
+def get_certificate_details(hostname: str = "", cert_data: str = "") -> Dict[str, Any]:
+    """
+    Get SSL certificate details from a given certificate content or hostname.
+
+    Note: This function uses a undocumented method of the _ssl module.
+          It is continuously tested in our CI to ensure it still
+          available after any Python upgrade.
+          Certified working as of Python 3.6.7.
+    """
+
+    import ssl
+
+    cert_file = "c.crt"
+
+    try:
+        certificate = cert_data or retrieve_ssl_certificate(hostname)
+        with open(cert_file, "w") as f:
+            f.write(certificate)
+        try:
+            # Taken from https://stackoverflow.com/a/50072461/1117028
+            return ssl._ssl._test_decode_cert(cert_file)  # type: ignore
+        finally:
+            os.remove(cert_file)
+    except:
+        log.exception("Error while retreiving the SSL certificate")
+        return {}
+
+
 def encrypt(
     plaintext: Union[bytes, str], secret: Union[bytes, str], lazy: bool = True
 ) -> bytes:
@@ -529,7 +571,7 @@ def guess_server_url(
     login_page: str = Options.startup_page,
     proxy: "Proxy" = None,
     timeout: int = 5,
-) -> Optional[str]:
+) -> str:
     """
     Guess the complete server URL given an URL (either an IP address,
     a simple domain name or an already complete URL).
@@ -542,6 +584,8 @@ def guess_server_url(
 
     import requests
     import rfc3987
+
+    from requests.exceptions import SSLError
 
     parts = urlsplit(url)
 
@@ -611,16 +655,15 @@ def guess_server_url(
             if exc.response.status_code == 401:
                 # When there is only Web-UI installed, the code is 401.
                 return new_url
+        except SSLError:
+            raise
         except (ValueError, requests.RequestException):
             pass
-        except OSError as exc:
-            # OSError: Could not find a suitable TLS CA certificate bundle, invalid path: ...
-            log.critical(f"{exc}. Ensure the 'ca_bundle' option is correct.")
         except Exception:
             log.exception("Unhandled error")
 
     if not url.lower().startswith("http"):
-        return None
+        return ""
     return url
 
 

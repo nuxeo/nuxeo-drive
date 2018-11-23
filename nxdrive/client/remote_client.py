@@ -58,7 +58,6 @@ class Remote(Nuxeo):
         **kwargs: Any,
     ) -> None:
         auth = TokenAuth(token) if token else (user_id, password)
-        kwargs["verify"] = Options.ca_bundle or not Options.ssl_no_verify
         self.kwargs = kwargs
 
         super().__init__(

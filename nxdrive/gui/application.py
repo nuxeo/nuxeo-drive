@@ -15,6 +15,7 @@ from PyQt5.QtQml import QQmlApplicationEngine, QQmlContext
 from PyQt5.QtQuick import QQuickView, QQuickWindow
 from PyQt5.QtWidgets import (
     QApplication,
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QMessageBox,
@@ -555,7 +556,10 @@ class Application(QApplication):
             user = str(username.text())
             pwd = str(password.text())
             nuxeo = Nuxeo(
-                host=url, auth=(user, pwd), proxies=self.manager.proxy.settings(url=url)
+                host=url,
+                auth=(user, pwd),
+                proxies=self.manager.proxy.settings(url=url),
+                verify=Options.ca_bundle or not Options.ssl_no_verify,
             )
             try:
                 token = nuxeo.client.request_auth_token(
@@ -825,6 +829,96 @@ class Application(QApplication):
         layout.addWidget(buttons)
         dialog.setLayout(layout)
         dialog.exec_()
+
+    def accept_unofficial_ssl_cert(self, hostname: str) -> bool:
+        """Ask the user to bypass the SSL certificate verification."""
+        from ..utils import get_certificate_details
+
+        def signature(sig: str) -> str:
+            """
+            Format the certificate signature.
+
+                >>> signature("0F4019D1E6C52EF9A3A929B6D5613816")
+                0f:40:19:d1:e6:c5:2e:f9:a3:a9:29:b6:d5:61:38:16
+
+            """
+            from textwrap import wrap
+
+            return str.lower(":".join(wrap(sig, 2)))
+
+        cert = get_certificate_details(hostname=hostname)
+        if not cert:
+            return False
+
+        subject = [
+            f"<li>{details[0][0]}: {details[0][1]}</li>"
+            for details in sorted(cert["subject"])
+        ]
+        issuer = [
+            f"<li>{details[0][0]}: {details[0][1]}</li>"
+            for details in sorted(cert["issuer"])
+        ]
+        urls = [
+            f"<li><a href='{details}'>{details}</a></li>"
+            for details in cert["caIssuers"]
+        ]
+        sig = f"<code><small>{signature(cert['serialNumber'])}</small></code>"
+        message = f"""
+<h2>{Translator.get("SSL_CANNOT_CONNECT", [hostname])}</h2>
+<p style="color:red">{Translator.get("SSL_HOSTNAME_ERROR")}</p>
+
+<h2>{Translator.get("SSL_CERTIFICATE")}</h2>
+<ul>
+    {"".join(subject)}
+    <li style="margin-top: 10px;">{Translator.get("SSL_SERIAL_NUMBER")} {sig}</li>
+    <li style="margin-top: 10px;">{Translator.get("SSL_DATE_FROM")} {cert["notBefore"]}</li>
+    <li>{Translator.get("SSL_DATE_EXPIRATION")} {cert["notAfter"]}</li>
+</ul>
+
+<h2>{Translator.get("SSL_ISSUER")}</h2>
+<ul style="list-style-type:square;">{"".join(issuer)}</ul>
+
+<h2>{Translator.get("URL")}</h2>
+<ul>{"".join(urls)}</ul>
+"""
+
+        dialog = QDialog()
+        dialog.setWindowTitle(Translator.get("SSL_UNTRUSTED_CERT_TITLE"))
+        dialog.setWindowIcon(QIcon(self.get_window_icon()))
+        dialog.resize(600, 650)
+
+        notes = QTextEdit()
+        notes.setReadOnly(True)
+        notes.setHtml(message)
+
+        continue_with_bad_ssl_cert = False
+
+        def accept() -> None:
+            nonlocal continue_with_bad_ssl_cert
+            continue_with_bad_ssl_cert = True
+            dialog.accept()
+
+        buttons = QDialogButtonBox()
+        buttons.setStandardButtons(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Ok).setEnabled(False)
+        buttons.accepted.connect(accept)
+        buttons.rejected.connect(dialog.close)
+
+        def bypass_triggered(state: int) -> None:
+            """Enable the OK button only when the checkbox is checked."""
+            buttons.button(QDialogButtonBox.Ok).setEnabled(bool(state))
+
+        bypass = QCheckBox(Translator.get("SSL_TRUST_ANYWAY"))
+        bypass.stateChanged.connect(bypass_triggered)
+
+        layout = QVBoxLayout()
+        layout.addWidget(notes)
+        layout.addWidget(bypass)
+        layout.addWidget(buttons)
+        dialog.setLayout(layout)
+        dialog.exec_()
+
+        return continue_with_bad_ssl_cert
 
     def show_metadata(self, file_path: str) -> None:
         self.manager.ctx_edit_metadata(file_path)

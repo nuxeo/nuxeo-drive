@@ -418,6 +418,7 @@ class Engine(QObject):
         self.remote_user = self._dao.get_config("remote_user")
         self._remote_password = self._dao.get_config("remote_password")
         self._remote_token = self._dao.get_config("remote_token")
+        self._ssl_verify = self._dao.get_config("ssl_verify", default=True)
         if self._remote_password is None and self._remote_token is None:
             self.set_invalid_credentials(
                 reason="found no password nor token in engine configuration"
@@ -694,6 +695,7 @@ class Engine(QObject):
             "check_suspended": self.suspend_client,
             "dao": self._dao,
             "proxy": self.manager.proxy,
+            "verify": self._ssl_verify,
         }
         return self.remote_cls(*args, **kwargs)
 
@@ -705,6 +707,11 @@ class Engine(QObject):
         self._remote_password = binder.password
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
+
+        # Persist the user preference about the SSL behavior.
+        # It can be tweaked via ca-bundle or ssl-no-verify options. But also
+        # from the ponctual bypass-ssl window prompted at the account creation.
+        self._ssl_verify = Options.ca_bundle or not Options.ssl_no_verify
 
         self.remote = self.init_remote()
 
@@ -733,6 +740,7 @@ class Engine(QObject):
         self._dao.update_config("remote_user", self.remote_user)
         self._dao.update_config("remote_password", self._remote_password)
         self._dao.update_config("remote_token", self._remote_token)
+        self._dao.update_config("ssl_verify", self._ssl_verify)
 
         # Check for the root
         # If the top level state for the server binding doesn't exist,
