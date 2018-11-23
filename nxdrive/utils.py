@@ -578,7 +578,7 @@ def guess_server_url(
         ("http", domain, "", "", ""),
     ]
 
-    kwargs = {
+    kwargs: Dict[str, Any] = {
         "timeout": timeout,
         "verify": Options.ca_bundle or not Options.ssl_no_verify,
     }

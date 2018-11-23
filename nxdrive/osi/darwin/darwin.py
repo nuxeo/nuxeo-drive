@@ -29,6 +29,7 @@ from .. import AbstractOSIntegration
 from ...constants import APP_NAME, BUNDLE_IDENTIFIER
 from ...objects import DocPair
 from ...options import Options
+from ...translator import Translator
 from ...utils import force_decode, if_frozen, normalized_path
 
 if TYPE_CHECKING:
@@ -256,6 +257,14 @@ class DarwinIntegration(AbstractOSIntegration):
             elif state.processor != 0:
                 status = "syncing"
         return {"status": status, "path": path}
+
+    @if_frozen
+    def register_contextual_menu(self) -> None:
+        name = f"{BUNDLE_IDENTIFIER}.setConfig"
+
+        log.trace(f"Sending menu to FinderSync")
+        entries = [Translator.get(f"CONTEXT_MENU_{i}") for i in range(1, 4)]
+        self._send_notification(name, {"entries": entries})
 
     def register_folder_link(self, folder_path: str, name: str = None) -> None:
         favorites = self._get_favorite_list() or []

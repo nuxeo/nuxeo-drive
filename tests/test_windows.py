@@ -144,54 +144,17 @@ class TestWindows(UnitTestCase):
     @pytest.mark.skipif(not WINDOWS, reason="Windows only.")
     def test_registry_configuration(self):
         """ Test the configuration stored in the registry. """
-
-        import winreg
-
-        def _update_reg_key(reg_, path, attributes=()):
-            """ Helper function to create / set a key with attribute values. """
-            key_ = winreg.CreateKey(reg_, path)
-            winreg.CloseKey(key_)
-            with winreg.OpenKey(reg_, path, 0, winreg.KEY_WRITE) as key_:
-                for name, type_, data in attributes:
-                    winreg.SetValueEx(key_, name, 0, type_, data)
-
-        def _recursive_delete(key0, key1, key2=""):
-            """ Delete a key and its subkeys. """
-
-            current = key1 if not key2 else key1 + "\\" + key2
-            with winreg.OpenKey(key0, current, 0, winreg.KEY_ALL_ACCESS) as key:
-                info = winreg.QueryInfoKey(key)
-                for x in range(info[0]):
-                    """
-                    Deleting the subkey will change the SubKey count
-                    used by EnumKey. We must always pass 0 to EnumKey
-                    so we always get back the new first SubKey.
-                    """
-                    subkey = winreg.EnumKey(key, 0)
-                    try:
-                        winreg.DeleteKey(key, subkey)
-                    except WindowsError:
-                        _recursive_delete(key0, current, key2=subkey)
-
-            try:
-                winreg.DeleteKey(key0, key1)
-            except WindowsError:
-                pass
+        from nxdrive.osi.windows import registry
 
         osi = self.manager_1.osi
         key = "Software\\Nuxeo\\Drive"
 
         assert not osi.get_system_configuration()
-        self.addCleanup(_recursive_delete, winreg.HKEY_CURRENT_USER, key)
+        self.addCleanup(registry.delete, key)
 
         # Add new parameters
-        reg = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-        _update_reg_key(
-            reg, key, [("update-site-url", winreg.REG_SZ, "http://no.where")]
-        )
-        _update_reg_key(
-            reg, key, [("update-BETA_site-url", winreg.REG_SZ, "http://no.where.beta")]
-        )
+        registry.write(key, {"update-site-url": "http://no.where"})
+        registry.write(key, {"update-BETA_site-url": "http://no.where.beta"})
 
         conf = osi.get_system_configuration()
         assert conf["update_site_url"] == "http://no.where"

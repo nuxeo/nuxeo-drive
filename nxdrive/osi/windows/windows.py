@@ -8,13 +8,14 @@ from typing import Any, Dict
 
 import win32api
 import win32file
-import winreg
 from win32com.client import Dispatch
 from win32con import LOGPIXELSX
 
+from . import registry
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME
 from ...options import Options
+from ...translator import Translator
 from ...utils import if_frozen
 
 __all__ = ("WindowsIntegration",)
@@ -50,15 +51,62 @@ class WindowsIntegration(AbstractOSIntegration):
         return t[-1] == "NTFS"
 
     def get_system_configuration(self) -> Dict[str, Any]:
-        result = dict()
-        reg = winreg.HKEY_CURRENT_USER
-        reg_key = "Software\\Nuxeo\\Drive"
-        with suppress(WindowsError):
-            with winreg.OpenKey(reg, reg_key, 0, winreg.KEY_READ) as key:
-                for i in range(winreg.QueryInfoKey(key)[1]):
-                    k, v, _ = winreg.EnumValue(key, i)
-                    result[k.replace("-", "_").lower()] = v
-        return result
+        config = registry.read("Software\\Nuxeo\\Drive") or {}
+        return {key.replace("-", "_").lower(): value for key, value in config.items()}
+
+    @if_frozen
+    def register_contextual_menu(self) -> None:
+        log.debug("Registering contextual menu")
+
+        # Register a submenu for both files (*) and folders (directory)
+        for item in ("*", "directory"):
+            registry.write(
+                f"Software\\Classes\\{item}\\shell\\{APP_NAME}",
+                {
+                    "Icon": f"{sys.executable},0",
+                    "MUIVerb": APP_NAME,
+                    "ExtendedSubCommandsKey": f"*\\shell\\{APP_NAME}\\",
+                },
+            )
+
+        self.register_contextual_menu_entry(
+            Translator.get("CONTEXT_MENU_1"),
+            'access-online --file %1"',
+            "shell32.dll,17",
+            1,
+        )
+        self.register_contextual_menu_entry(
+            Translator.get("CONTEXT_MENU_2"),
+            'copy-share-link --file %1"',
+            "shell32.dll,134",
+            2,
+        )
+        self.register_contextual_menu_entry(
+            Translator.get("CONTEXT_MENU_3"),
+            'edit-metadata --file %1"',
+            "shell32.dll,269",
+            3,
+        )
+
+    @if_frozen
+    def register_contextual_menu_entry(
+        self, name: str, command: str, icon: str, n: int
+    ) -> None:
+        registry.write(
+            f"Software\\Classes\\*\\shell\\{APP_NAME}\\shell\\item{n}",
+            {"MUIVerb": name, "Icon": icon},
+        )
+        registry.write(
+            f"Software\\Classes\\*\\shell\\{APP_NAME}\\shell\\item{n}\\command",
+            f"{sys.executable} {command}",
+        )
+
+    @if_frozen
+    def unregister_contextual_menu(self) -> None:
+        log.debug("Unregistering contextual menu")
+
+        for item in ("*", "directory"):
+            registry.delete(f"Software\\Classes\\{item}\\shell\\{APP_NAME}")
 
     @if_frozen
     def register_folder_link(self, folder_path: str, name: str = None) -> None:
@@ -73,29 +121,16 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @if_frozen
     def register_startup(self) -> bool:
-        reg = winreg.HKEY_CURRENT_USER
-        reg_key = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
-
-        try:
-            with winreg.CreateKey(reg, reg_key) as key:
-                winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, sys.executable)
-            return True
-        except WindowsError:
-            log.exception("Error while trying to modify registry.")
-            return False
+        return registry.write(
+            "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+            {APP_NAME: sys.executable},
+        )
 
     @if_frozen
     def unregister_startup(self) -> bool:
-        reg = winreg.HKEY_CURRENT_USER
-        reg_key = "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
-
-        try:
-            with winreg.OpenKey(reg, reg_key, 0, winreg.KEY_SET_VALUE) as key:
-                winreg.DeleteValue(key, APP_NAME)
-            return True
-        except WindowsError:
-            log.exception("Error while trying to modify registry.")
-            return False
+        return registry.delete_value(
+            "Software\\Microsoft\\Windows\\CurrentVersion\\Run", APP_NAME
+        )
 
     def _create_shortcut(self, favorite: str, filepath: str) -> None:
         try:
