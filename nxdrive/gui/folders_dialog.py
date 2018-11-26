@@ -2,7 +2,6 @@
 from typing import Union, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, Qt
-from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
 
 from .folders_treeview import FilteredFsClient, FolderTreeview
@@ -35,9 +34,7 @@ class FiltersDialog(QDialog):
         self._engine = engine
         self.syncing = self._engine.is_syncing()  # NXDRIVE-959
         self.application = application
-        icon = self.application.get_window_icon()
-        if icon is not None:
-            self.setWindowIcon(QIcon(icon))
+        self.setWindowIcon(self.application.icon)
 
         self.no_root_label = self.get_no_roots_label()
         self.tree_view = self.get_tree_view()
