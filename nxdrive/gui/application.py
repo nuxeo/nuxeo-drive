@@ -66,6 +66,7 @@ log = getLogger(__name__)
 class Application(QApplication):
     """Main Nuxeo Drive application controlled by a system tray icon + menu"""
 
+    icon = QIcon(find_icon("app_icon.svg"))
     icons: Dict[str, QIcon] = {}
     icon_state = None
     use_light_icons = None
@@ -78,7 +79,7 @@ class Application(QApplication):
         self.manager = manager
 
         self.osi = self.manager.osi
-        self.setWindowIcon(QIcon(self.get_window_icon()))
+        self.setWindowIcon(self.icon)
         self.setApplicationName(APP_NAME)
         self._init_translator()
         self.setQuitOnLastWindowClosed(False)
@@ -279,10 +280,6 @@ class Application(QApplication):
         self.osi.register_contextual_menu()
         self.installTranslator(Translator._singleton)
 
-    @staticmethod
-    def get_window_icon() -> str:
-        return find_icon("app_icon.svg")
-
     @pyqtSlot(str, str, str)
     def _direct_edit_conflict(self, filename: str, ref: str, digest: str) -> None:
         log.trace(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
@@ -316,7 +313,7 @@ class Application(QApplication):
 
         msg = QMessageBox()
         msg.setWindowTitle(f"Direct Edit - {APP_NAME}")
-        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setWindowIcon(self.icon)
         msg.setIcon(QMessageBox.Warning)
         msg.setTextFormat(Qt.RichText)
         msg.setText(self.translate(message, values))
@@ -329,7 +326,7 @@ class Application(QApplication):
 
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
-        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setWindowIcon(self.icon)
         msg.setText(Translator.get("DRIVE_ROOT_DELETED", [engine.local_folder]))
         recreate = msg.addButton(
             Translator.get("DRIVE_ROOT_RECREATE"), QMessageBox.AcceptRole
@@ -350,7 +347,7 @@ class Application(QApplication):
     def _no_space_left(self) -> None:
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Warning)
-        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setWindowIcon(self.icon)
         msg.setText(Translator.get("NO_SPACE_LEFT_ON_DEVICE"))
         msg.addButton(Translator.get("OK"), QMessageBox.AcceptRole)
         msg.exec_()
@@ -363,7 +360,7 @@ class Application(QApplication):
 
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
-        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setWindowIcon(self.icon)
         msg.setText(Translator.get("DRIVE_ROOT_MOVED", info))
         move = msg.addButton(
             Translator.get("DRIVE_ROOT_UPDATE"), QMessageBox.AcceptRole
@@ -540,7 +537,7 @@ class Application(QApplication):
 
         dialog = QDialog()
         dialog.setWindowTitle(self.translate("WEB_AUTHENTICATION_WINDOW_TITLE"))
-        dialog.setWindowIcon(QIcon(self.get_window_icon()))
+        dialog.setWindowIcon(self.icon)
         dialog.resize(250, 100)
 
         layout = QVBoxLayout()
@@ -658,7 +655,7 @@ class Application(QApplication):
         downgrade_version = self.manager.updater.version or ""
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Warning)
-        msg.setWindowIcon(QIcon(self.get_window_icon()))
+        msg.setWindowIcon(self.icon)
         msg.setText(Translator.get("SERVER_INCOMPATIBLE", [version, downgrade_version]))
         if downgrade_version:
             msg.addButton(
@@ -811,7 +808,7 @@ class Application(QApplication):
 
         dialog = QDialog()
         dialog.setWindowTitle(f"{APP_NAME} {version} - Release notes")
-        dialog.setWindowIcon(QIcon(self.get_window_icon()))
+        dialog.setWindowIcon(self.icon)
 
         dialog.resize(600, 400)
 
@@ -884,7 +881,7 @@ class Application(QApplication):
 
         dialog = QDialog()
         dialog.setWindowTitle(Translator.get("SSL_UNTRUSTED_CERT_TITLE"))
-        dialog.setWindowIcon(QIcon(self.get_window_icon()))
+        dialog.setWindowIcon(self.icon)
         dialog.resize(600, 650)
 
         notes = QTextEdit()
