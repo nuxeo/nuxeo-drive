@@ -5,7 +5,7 @@ https://github.com/GoodRx/universal-analytics-python/archive/0.2.5.zip
 markdown==3.0.1
 nuxeo==2.0.4
 psutil==5.4.8
-pyaml==17.12.1
+pyaml==18.11.0
 pycryptodomex==3.6.6
 pyobjc-framework-Cocoa==4.2.2; sys_platform == 'darwin'
 pyobjc-framework-LaunchServices==4.2.2; sys_platform == 'darwin'
