@@ -16,7 +16,7 @@ from .. import AbstractOSIntegration
 from ...constants import APP_NAME
 from ...options import Options
 from ...translator import Translator
-from ...utils import if_frozen
+from ...utils import get_value, if_frozen
 
 __all__ = ("WindowsIntegration",)
 
@@ -52,7 +52,10 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def get_system_configuration(self) -> Dict[str, Any]:
         config = registry.read("Software\\Nuxeo\\Drive") or {}
-        return {key.replace("-", "_").lower(): value for key, value in config.items()}
+        return {
+            key.replace("-", "_").lower(): get_value(value)
+            for key, value in config.items()
+        }
 
     @if_frozen
     def register_contextual_menu(self) -> None:
@@ -63,7 +66,7 @@ class WindowsIntegration(AbstractOSIntegration):
             registry.write(
                 f"Software\\Classes\\{item}\\shell\\{APP_NAME}",
                 {
-                    "Icon": f"{sys.executable},0",
+                    "Icon": f'"{sys.executable}",0',
                     "MUIVerb": APP_NAME,
                     "ExtendedSubCommandsKey": f"*\\shell\\{APP_NAME}\\",
                 },
@@ -71,19 +74,19 @@ class WindowsIntegration(AbstractOSIntegration):
 
         self.register_contextual_menu_entry(
             Translator.get("CONTEXT_MENU_1"),
-            'access-online --file %1"',
+            'access-online --file "%1"',
             "shell32.dll,17",
             1,
         )
         self.register_contextual_menu_entry(
             Translator.get("CONTEXT_MENU_2"),
-            'copy-share-link --file %1"',
+            'copy-share-link --file "%1"',
             "shell32.dll,134",
             2,
         )
         self.register_contextual_menu_entry(
             Translator.get("CONTEXT_MENU_3"),
-            'edit-metadata --file %1"',
+            'edit-metadata --file "%1"',
             "shell32.dll,269",
             3,
         )
@@ -98,7 +101,7 @@ class WindowsIntegration(AbstractOSIntegration):
         )
         registry.write(
             f"Software\\Classes\\*\\shell\\{APP_NAME}\\shell\\item{n}\\command",
-            f"{sys.executable} {command}",
+            f'"{sys.executable}" {command}',
         )
 
     @if_frozen

@@ -271,7 +271,11 @@ class Application(QApplication):
             find_resource("i18n"),
             self.manager.get_config("locale", locale),
         )
+        # Make sure that a language change changes external values like
+        # the text in the contextual menu
         Translator.on_change(self._handle_language_change)
+        # Trigger it now
+        self.osi.register_contextual_menu()
         self.installTranslator(Translator._singleton)
 
     @staticmethod

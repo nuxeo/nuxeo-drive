@@ -9,14 +9,19 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
-from typing import List, TYPE_CHECKING, Tuple, Union
+from typing import List, TYPE_CHECKING, Union
 
 from . import __version__
 from .constants import APP_NAME
 from .logging_config import configure
 from .options import Options
 from .osi import AbstractOSIntegration
-from .utils import force_encode, get_default_nuxeo_drive_folder, normalized_path
+from .utils import (
+    force_encode,
+    get_default_nuxeo_drive_folder,
+    get_value,
+    normalized_path,
+)
 
 try:
     import ipdb as pdb
@@ -394,19 +399,6 @@ class CliHandler:
 
         return options
 
-    @staticmethod
-    def get_value(name: str, value: str) -> Union[bool, str, Tuple[str, ...]]:
-        """Handle a given parameter from config.ini."""
-
-        if value.lower() in {"true", "1", "on", "yes", "oui"}:
-            return True
-        elif value.lower() in {"false", "0", "off", "no", "non"}:
-            return False
-        elif "\n" in value:
-            return tuple(sorted(value.split()))
-
-        return value
-
     def load_config(
         self, parser: ArgumentParser, conf_name: str = "config.ini"
     ) -> None:
@@ -439,7 +431,7 @@ class CliHandler:
                     if name == "env" or value == "":
                         continue
 
-                    conf_args[name.replace("-", "_")] = self.get_value(name, value)
+                    conf_args[name.replace("-", "_")] = get_value(value)
 
                 if conf_args:
                     file = os.path.abspath(conf_file)
@@ -488,6 +480,7 @@ class CliHandler:
             self._configure_logger(command, options)
 
         log.debug(f"Command line: argv={argv!r}, options={options!r}")
+        log.info(f"Running on version {self.get_version()}")
         if QSslSocket:
             has_ssl_support = QSslSocket.supportsSsl()
             log.info(f"SSL support: {has_ssl_support!r}")

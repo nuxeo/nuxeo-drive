@@ -1,5 +1,6 @@
 # coding: utf-8
 import winreg
+from contextlib import suppress
 from logging import getLogger
 from typing import Dict, Optional, Union
 
@@ -62,6 +63,18 @@ def delete_value(key: str, value: str) -> bool:
         log.exception(f"Couldn't delete {value} value from {key} registry key")
         return False
     return True
+
+
+def exists(key: str) -> bool:
+    """
+    Check if the specified key already exists in the Current User registry.
+
+    Return `True` if it does, `False` otherwise.
+    """
+    with suppress(OSError):
+        with winreg.OpenKey(HKCU, key, 0, winreg.KEY_READ):
+            return True
+    return False
 
 
 def read(key: str) -> Optional[Dict[str, str]]:
