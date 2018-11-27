@@ -12,7 +12,39 @@ import hashlib
 import os
 import os.path
 
-__version__ = "0.0.4"
+import yaml
+
+__version__ = "0.0.5"
+__all__ = ("create", "delete", "merge", "promote")
+
+
+def _load():
+    """ Get initial versions. """
+
+    with open("versions.yml") as yml:
+        return yaml.safe_load(yml.read()) or {}
+
+
+def _dump(versions):
+    """ Write back the updated versions details. """
+
+    with open("versions.yml", "w") as yml:
+        yaml.safe_dump(versions or "", yml, indent=4, default_flow_style=False)
+
+
+def wrap(func):
+    """ Decorator to ease versions.yml management. """
+
+    def func_wrapper(*args, **kwargs):
+        """
+        Call the original function on the loaded versions.yml content.
+        `versions` is a dict, so `func` can change its content. This is a feature here.
+        """
+        versions = _load()
+        func(versions, *args, **kwargs)
+        _dump(versions)
+
+    return func_wrapper
 
 
 def create(version):
@@ -75,37 +107,21 @@ def create(version):
         versions.write(yml)
 
 
-def delete(version):
+@wrap
+def delete(versions, version):
     """ Delete a given version. """
 
-    import yaml
-
-    # Get initial versions
-    with open("versions.yml") as yml:
-        versions = yaml.safe_load(yml.read())
-
-    # Remove the version everywhere
     versions.pop(version, None)
     try:
         os.remove("{}.yml".format(version))
     except OSError:
         pass
 
-    # Write back the updated versions details
-    with open("versions.yml", "w") as yml:
-        yaml.safe_dump(versions, yml, indent=4, default_flow_style=False)
 
-
-def merge():
+@wrap
+def merge(versions):
     """ Merge any single version file into versions.yml. """
 
-    import yaml
-
-    # Get initial versions
-    with open("versions.yml") as yml:
-        versions = yaml.safe_load(yml.read())
-
-    # Find new versions and merge them together
     for filename in glob.glob("*.yml"):
         if filename == "versions.yml":
             continue
@@ -115,19 +131,10 @@ def merge():
             info = yaml.safe_load(yml.read())
             versions[version] = info[version]
 
-    # Write back the updated versions details
-    with open("versions.yml", "w") as yml:
-        yaml.safe_dump(versions, yml, indent=4, default_flow_style=False)
 
-
-def promote(version):
+@wrap
+def promote(versions, version):
     """ Promote a given version to the next category. """
-
-    import yaml
-
-    # Get initial versions
-    with open("versions.yml") as yml:
-        versions = yaml.safe_load(yml.read())
 
     categories = {
         # current -> new
@@ -136,10 +143,6 @@ def promote(version):
         "archive": "archive",
     }
     versions[version]["type"] = categories[versions[version]["type"]]
-
-    # Write back the updated versions details
-    with open("versions.yml", "w") as yml:
-        yaml.safe_dump(versions, yml, indent=4, default_flow_style=False)
 
 
 def main():
