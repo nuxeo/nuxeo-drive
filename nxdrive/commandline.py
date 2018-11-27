@@ -460,8 +460,8 @@ class CliHandler:
             force_configure=True,
         )
 
-    def uninstall(self) -> None:
-        self.manager.osi.uninstall()
+    def uninstall(self, options: Namespace = None) -> None:
+        AbstractOSIntegration.get(None).uninstall()
 
     def handle(self, argv: List[str]) -> int:
         """ Parse options, setup logs and manager and dispatch execution. """
@@ -470,17 +470,16 @@ class CliHandler:
         if getattr(options, "local_folder", ""):
             options.local_folder = normalized_path(options.local_folder)
 
-        # 'launch' is the default command if None is provided
-        command = getattr(options, "command", "launch")
-
-        if command != "uninstall":
-            # Configure the logging framework, except for the tests as they
-            # configure their own.
-            # Don't need uninstall logs either for now.
-            self._configure_logger(command, options)
-
         log.debug(f"Command line: argv={argv!r}, options={options!r}")
         log.info(f"Running on version {self.get_version()}")
+
+        command = getattr(options, "command", "launch")
+        handler = getattr(self, command, None)
+        if not handler:
+            raise NotImplementedError(f"No handler implemented for command {command}")
+
+        self._configure_logger(command, options)
+
         if QSslSocket:
             has_ssl_support = QSslSocket.supportsSsl()
             log.info(f"SSL support: {has_ssl_support!r}")
@@ -488,22 +487,13 @@ class CliHandler:
                 options.ca_bundle = None
                 options.ssl_no_verify = True
 
-        # Update default options
         # We cannot use fail_on_error=True because options is a namespace
         # and contains a lot of inexistant Options values.
         Options.update(options, setter="cli", fail_on_error=False)
 
         if command != "uninstall":
-            # Install utility to help debugging segmentation faults
             self._install_faulthandler()
-
-        # Initialize a manager for this process
-        self.manager = self.get_manager()
-
-        # Find the command to execute based on the
-        handler = getattr(self, command, None)
-        if not handler:
-            raise NotImplementedError(f"No handler implemented for command {command}")
+            self.manager = self.get_manager()
 
         return handler(options)
 

@@ -48,6 +48,10 @@ CloseApplicationsFilter=*.*
 Type: filesandordirs; Name: "{app}"
 
 
+[UninstallRun]
+Filename: "{app}\{#MyAppExeName}"; Parameters: "uninstall"
+Filename: "taskkill"; Parameters: "/F /IM {#MyAppExeName}"
+
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
