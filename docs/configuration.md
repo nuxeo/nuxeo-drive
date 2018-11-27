@@ -16,9 +16,10 @@ Each of these ways overrides the previous one.
 
 ### Names and Values
 
-Parameters' names are quite flexible. For instance you can specify `ssl-no-verify`, `ssl_no_verify` or `ssl_no-verify`: same result.
+Parameter names are quite flexible. There is no differentiation between lowercase and uppercase, nor between hyphens and underscores.
+For instance, you can specify `ssl-no-verify`, `ssl_no_verify`, `ssl_no-verify` or `SSL_No_verify`, it will be the same result.
 
-Parameters' values are even more flexible. If the value is a boolean, you can specify (case insensitive):
+Parameter values are taken as is, except for booleans. In that case, you can specify, in lowercase or uppercase:
 
 - `true`, `1`, `on`, `yes` or `oui` to enable
 - `false`, `0`, `off`, `no` or `non` to disable
