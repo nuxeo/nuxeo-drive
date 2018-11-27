@@ -271,6 +271,11 @@ class Application(QApplication):
             find_resource("i18n"),
             self.manager.get_config("locale", locale),
         )
+        # Make sure that a language change changes external values like
+        # the text in the contextual menu
+        Translator.on_change(self._handle_language_change)
+        # Trigger it now
+        self.osi.register_contextual_menu()
         self.installTranslator(Translator._singleton)
 
     @staticmethod
@@ -889,6 +894,11 @@ class Application(QApplication):
             self.tray_icon.setToolTip(APP_NAME)
             self.set_icon_state("disabled")
             self.tray_icon.show()
+
+    def _handle_language_change(self) -> None:
+        if not MAC:
+            self.tray_icon.setContextMenu(self.tray_icon.get_context_menu())
+        self.osi.register_contextual_menu()
 
     def event(self, event: QEvent) -> bool:
         """ Handle URL scheme events under macOS. """

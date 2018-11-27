@@ -35,6 +35,7 @@
     "CONNECTION_UNKNOWN": "Unknown error occured while trying to connect",
     "CONTEXT_MENU_1": "Access online",
     "CONTEXT_MENU_2": "Copy share-link",
+    "CONTEXT_MENU_3": "Edit metadata",
     "CONTINUE": "Continue",
     "CONTINUE_USING": "Continue using Drive %1",
     "CREATE_REPORT": "Generate a bug report",

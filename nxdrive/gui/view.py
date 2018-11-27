@@ -15,6 +15,7 @@ from PyQt5.QtCore import (
 if TYPE_CHECKING:
     from .api import QMLDriveApi  # noqa
     from .application import Application  # noqa
+    from ..engine.engine import Engine  # noqa
 
 __all__ = ("FileModel", "LanguageModel")
 

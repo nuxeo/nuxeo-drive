@@ -42,33 +42,6 @@ Root: HKLM; Subkey: "Software\Classes\nxdrive\DefaultIcon"; ValueType: expandsz;
 Root: HKLM; Subkey: "Software\Classes\nxdrive\shell"; ValueType: expandsz; ValueData: ""
 Root: HKLM; Subkey: "Software\Classes\nxdrive\shell\open\command"; ValueType: expandsz; ValueData: "{app}\{#MyAppExeName} ""%1"""
 
-; Context menu: create the submenu
-; On files
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}"; Flags: uninsdeletekey
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}"; ValueType: expandsz; ValueName: "MUIVerb"; ValueData: "{#MyAppName}"
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}"; ValueType: expandsz; ValueName: "ExtendedSubCommandsKey"; ValueData: "*\shell\{#MyAppName}\"
-; On folders
-Root: HKLM; Subkey: "Software\Classes\directory\shell\{#MyAppName}"; Flags: uninsdeletekey
-Root: HKLM; Subkey: "Software\Classes\directory\shell\{#MyAppName}"; ValueType: expandsz; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName}"
-Root: HKLM; Subkey: "Software\Classes\directory\shell\{#MyAppName}"; ValueType: expandsz; ValueName: "MUIVerb"; ValueData: "{#MyAppName}"
-Root: HKLM; Subkey: "Software\Classes\directory\shell\{#MyAppName}"; ValueType: expandsz; ValueName: "ExtendedSubCommandsKey"; ValueData: "*\shell\{#MyAppName}\"
-
-; Context menu entry: Access online
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}\shell\item1"; ValueType: expandsz; ValueName: "MUIVerb"; ValueData: "{cm:ctx_menu_access_online}"
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}\shell\item1"; ValueType: expandsz; ValueName: "Icon"; ValueData: "shell32.dll,17"
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}\shell\item1\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" access-online --file ""%1"""
-
-; Context menu entry: Copy share-link
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}\shell\item2"; ValueType: expandsz;  ValueName: "MUIVerb"; ValueData: "{cm:ctx_menu_copy_share_link}"
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}\shell\item2"; ValueType: expandsz; ValueName: "Icon"; ValueData: "shell32.dll,134"
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}\shell\item2\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" copy-share-link --file ""%1"""
-
-; Context menu entry: Edit metadata
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}\shell\item3"; ValueType: expandsz;  ValueName: "MUIVerb"; ValueData: "{cm:ctx_menu_edit_metadata}"
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}\shell\item3"; ValueType: expandsz; ValueName: "Icon"; ValueData: "shell32.dll,269"
-Root: HKLM; Subkey: "Software\Classes\*\shell\{#MyAppName}\shell\item3\command"; ValueType: expandsz; ValueData: """{app}\{#MyAppExeName}"" edit-metadata --file ""%1"""
-
 ; Taken from setup-addons.iss (to keep synchronized)
 ; Remove the MAX_PATH limitation
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\FileSystem"; ValueType: dword; ValueName: "LongPathsEnabled"; ValueData: "1"; Flags: createvalueifdoesntexist

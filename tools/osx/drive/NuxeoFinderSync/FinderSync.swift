@@ -15,9 +15,16 @@ import FinderSync
 
 class FinderSync: FIFinderSync {
     var icon = NSImage(named: NSImage.Name(rawValue: "icon_64.png"))
+
     let watchFolderNotif = NSNotification.Name("org.nuxeo.drive.watchFolder")
     let triggerWatchNotif = NSNotification.Name("org.nuxeo.drive.triggerWatch")
     let syncStatusNotif = NSNotification.Name("org.nuxeo.drive.syncStatus")
+    let setConfigNotif = NSNotification.Name("org.nuxeo.drive.setConfig")
+
+    var title1 = "Access online"
+    var title2 = "Copy share-link"
+    var title3 = "Edit metadata"
+
     let fileStatus = FileStatus()
     let addr = "127.0.0.1"
     let port: Int = 50675
@@ -55,6 +62,10 @@ class FinderSync: FIFinderSync {
         DistributedNotificationCenter.default.addObserver(self,
                                                           selector: #selector(setWatchedFolders),
                                                           name: self.watchFolderNotif,
+                                                          object: nil)
+        DistributedNotificationCenter.default.addObserver(self,
+                                                          selector: #selector(setConfig),
+                                                          name: self.setConfigNotif,
                                                           object: nil)
         self.socket = SocketCom(addr: addr, port: port)
 
@@ -94,6 +105,15 @@ class FinderSync: FIFinderSync {
                 fileStatus.insertStatus(status, for: path)
                 setSyncStatus(path: path, status: status)
             }
+        }
+    }
+
+    @objc func setConfig(notification: NSNotification) {
+        // Retrieve the entries of the contextual menu
+        if let entries = notification.userInfo!["entries"] as! Array<String>? {
+            self.title1 = entries[0]
+            self.title2 = entries[1]
+            self.title3 = entries[2]
         }
     }
 
@@ -155,21 +175,21 @@ class FinderSync: FIFinderSync {
         let menu = NSMenu(title: "Nuxeo Drive")
 
         // Access online
-        let item1 = NSMenuItem(title: "Access online",
+        let item1 = NSMenuItem(title: self.title1,
                                action: #selector(accessOnline(_:)),
                                keyEquivalent: "A")
         item1.image = self.icon
         menu.addItem(item1)
 
         // Copy share-link
-        let item2 = NSMenuItem(title: "Copy share-link",
+        let item2 = NSMenuItem(title: self.title2,
                                action: #selector(copyShareLink(_:)),
                                keyEquivalent: "C")
         item2.image = self.icon
         menu.addItem(item2)
 
         // Edit metadata
-        let item3 = NSMenuItem(title: "Edit metadata",
+        let item3 = NSMenuItem(title: self.title3,
                                action: #selector(editMetadata(_:)),
                                keyEquivalent: "E")
         item3.image = self.icon

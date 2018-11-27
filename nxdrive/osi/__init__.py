@@ -40,6 +40,7 @@ class AbstractOSIntegration:
         """
         self.unregister_startup()
         self.unregister_folder_link(None)
+        self.unregister_contextual_menu()
 
     def register_protocol_handlers(self) -> None:
         pass
@@ -54,6 +55,12 @@ class AbstractOSIntegration:
         pass
 
     def send_content_sync_status(self, states: List[DocPair], path: str) -> None:
+        pass
+
+    def register_contextual_menu(self) -> None:
+        pass
+
+    def unregister_contextual_menu(self) -> None:
         pass
 
     def register_folder_link(self, folder_path: str, name: str = None) -> None:

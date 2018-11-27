@@ -45,6 +45,28 @@ def test_generated_tempory_file(name, state):
 
 
 @pytest.mark.parametrize(
+    "raw_value, expected_value",
+    [
+        ("true", True),
+        ("TRUE", True),
+        ("1", True),
+        ("on", True),
+        ("yes", True),
+        ("oui", True),
+        ("false", False),
+        ("FALSE", False),
+        ("0", False),
+        ("off", False),
+        ("no", False),
+        ("non", False),
+        ("epsilon\nalpha\ndelta\nbeta", ("alpha", "beta", "delta", "epsilon")),
+    ],
+)
+def test_get_value(raw_value, expected_value):
+    assert nxdrive.utils.get_value(raw_value) == expected_value
+
+
+@pytest.mark.parametrize(
     "url, result",
     [
         ("localhost", "http://localhost:8080/nuxeo"),

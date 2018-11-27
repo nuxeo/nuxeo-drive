@@ -48,6 +48,10 @@ CloseApplicationsFilter=*.*
 Type: filesandordirs; Name: "{app}"
 
 
+[UninstallRun]
+Filename: "{app}\{#MyAppExeName}"; Parameters: "uninstall"
+Filename: "taskkill"; Parameters: "/F /IM {#MyAppExeName}"
+
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -71,23 +75,6 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 ; Waiting for official support: http://www.jrsoftware.org/files/istrans/
 Name: "indonesian"; MessagesFile: "unofficial_i18n\Indonesian.isl"
 Name: "swedish"; MessagesFile: "unofficial_i18n\Swedish.isl"
-
-
-[CustomMessages]
-; Translations from Crowdin
-; NOTE: when upgrading silently, english is used by default. So we are not using it for now.
-
-; Context meny entry: Access online
-english.ctx_menu_access_online=Access online
-;french.ctx_menu_access_online=Voir en ligne
-
-; Context meny entry: Copy share-link
-english.ctx_menu_copy_share_link=Copy share-link
-;french.ctx_menu_copy_share_link=Copier le lien de partage
-
-; Context meny entry: Edit metadata
-english.ctx_menu_edit_metadata=Edit metadata
-;french.ctx_menu_edit_metadata=Éditer les métadonnées
 
 
 [Tasks]

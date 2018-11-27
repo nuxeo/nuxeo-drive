@@ -151,6 +151,19 @@ def get_default_nuxeo_drive_folder() -> str:
     return force_decode(folder)
 
 
+def get_value(value: str) -> Union[bool, str, Tuple[str, ...]]:
+    """ Get parsed value for commandline/registry input. """
+
+    if value.lower() in {"true", "1", "on", "yes", "oui"}:
+        return True
+    elif value.lower() in {"false", "0", "off", "no", "non"}:
+        return False
+    elif "\n" in value:
+        return tuple(sorted(value.split()))
+
+    return value
+
+
 def increment_local_folder(basefolder: str, name: str) -> str:
     """Increment the number for a possible local folder.
     Example: "Nuxeo Drive" > "Nuxeo Drive 2" > "Nuxeo Drive 3"
@@ -578,7 +591,7 @@ def guess_server_url(
         ("http", domain, "", "", ""),
     ]
 
-    kwargs = {
+    kwargs: Dict[str, Any] = {
         "timeout": timeout,
         "verify": Options.ca_bundle or not Options.ssl_no_verify,
     }

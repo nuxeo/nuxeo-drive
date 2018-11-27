@@ -34,7 +34,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
             # On macOS, only the left click is detected, so the context
             # menu is useless.  It is better to not define it else it
             # will show up every click on the systray icon.
-            self.setContextMenu(self.context_menu)
+            self.setContextMenu(self.get_context_menu())
 
     def handle_mouse_click(self, reason: int) -> None:
         """
@@ -56,8 +56,7 @@ class DriveSystrayIcon(QSystemTrayIcon):
             # On middle click, open settings.  Yeah, it rocks!
             self.application.show_settings()
 
-    @property
-    def context_menu(self) -> QMenu:
+    def get_context_menu(self) -> QMenu:
         """
         Create the context menu.
         It shows up on left click.
@@ -66,29 +65,27 @@ class DriveSystrayIcon(QSystemTrayIcon):
         distributions, it depends on the graphical environment.
         """
 
-        if not self.__context_menu:
-            style = QApplication.style()
-            menu = QMenu()
-            menu.addAction(
-                style.standardIcon(QStyle.SP_FileDialogInfoView),
-                Translator.get("SETTINGS"),
-                self.application.show_settings,
-            )
-            menu.addSeparator()
-            menu.addAction(
-                style.standardIcon(QStyle.SP_MessageBoxQuestion),
-                Translator.get("HELP"),
-                self.application.open_help,
-            )
-            menu.addSeparator()
-            menu.addAction(
-                style.standardIcon(QStyle.SP_DialogCloseButton),
-                Translator.get("QUIT"),
-                self.application.quit,
-            )
-            self.__context_menu = menu
+        style = QApplication.style()
+        menu = QMenu()
+        menu.addAction(
+            style.standardIcon(QStyle.SP_FileDialogInfoView),
+            Translator.get("SETTINGS"),
+            self.application.show_settings,
+        )
+        menu.addSeparator()
+        menu.addAction(
+            style.standardIcon(QStyle.SP_MessageBoxQuestion),
+            Translator.get("HELP"),
+            self.application.open_help,
+        )
+        menu.addSeparator()
+        menu.addAction(
+            style.standardIcon(QStyle.SP_DialogCloseButton),
+            Translator.get("QUIT"),
+            self.application.quit,
+        )
 
-        return self.__context_menu
+        return menu
 
 
 class SystrayWindow(QQuickView):

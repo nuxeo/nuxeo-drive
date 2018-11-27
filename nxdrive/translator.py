@@ -5,7 +5,7 @@ import os
 import re
 from contextlib import suppress
 from datetime import datetime
-from typing import Any, Dict, List, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
 
@@ -72,6 +72,12 @@ class Translator(QTranslator):
         if label == "i18n":
             label = "en"
         return label
+
+    @staticmethod
+    def on_change(func: Callable) -> None:
+        if Translator._singleton is None:
+            raise RuntimeError("Translator not initialized")
+        Translator._singleton.languageChanged.connect(func)
 
     @staticmethod
     def _tokenize(label: str, values: List[Any] = None) -> str:
