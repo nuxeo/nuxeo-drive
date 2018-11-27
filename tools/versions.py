@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-versions.yml generator.
+versions.yml management.
 Requires the pyaml module.
 """
 
@@ -12,7 +12,7 @@ import hashlib
 import os
 import os.path
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 
 def create(version):
@@ -75,6 +75,27 @@ def create(version):
         versions.write(yml)
 
 
+def delete(version):
+    """ Delete a given version. """
+
+    import yaml
+
+    # Get initial versions
+    with open("versions.yml") as yml:
+        versions = yaml.safe_load(yml.read())
+
+    # Remove the version everywhere
+    versions.pop(version, None)
+    try:
+        os.remove("{}.yml".format(version))
+    except OSError:
+        pass
+
+    # Write back the updated versions details
+    with open("versions.yml", "w") as yml:
+        yaml.safe_dump(versions, yml, indent=4, default_flow_style=False)
+
+
 def merge():
     """ Merge any single version file into versions.yml. """
 
@@ -126,6 +147,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--add", help="add a new version")
+    parser.add_argument("--delete", help="delete a version")
     parser.add_argument(
         "--merge",
         action="store_true",
@@ -134,12 +156,14 @@ def main():
     parser.add_argument("--promote", help="change a given version to the next category")
     args = parser.parse_args()
 
-    if args.merge:
+    if args.add:
+        return create(args.add)
+    elif args.delete:
+        return delete(args.delete)
+    elif args.merge:
         return merge()
     elif args.promote:
         return promote(args.promote)
-    elif args.add:
-        return create(args.add)
 
     return 1
 
