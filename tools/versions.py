@@ -14,7 +14,7 @@ import os.path
 
 import yaml
 
-__version__ = "0.0.6"
+__version__ = "0.0.7"
 __all__ = ("create", "delete", "merge", "promote")
 
 
@@ -45,6 +45,13 @@ def wrap(func):
         _dump(versions)
 
     return func_wrapper
+
+
+@wrap
+def check(versions):
+    """ Check versions file integrity.. """
+
+    assert isinstance(versions, dict) and versions, versions
 
 
 def create(version, category):
@@ -140,6 +147,9 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--add", help="add a new version")
+    parser.add_argument(
+        "--check", action="store_true", help="check the versions file integrity"
+    )
     parser.add_argument("--delete", help="delete a version")
     parser.add_argument(
         "--merge",
@@ -157,6 +167,8 @@ def main():
     if args.add:
         assert args.type, "You must provide the version type"
         return create(args.add, args.type)
+    elif args.check:
+        return check()
     elif args.delete:
         return delete(args.delete)
     elif args.merge:
