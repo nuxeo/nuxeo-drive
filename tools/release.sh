@@ -79,7 +79,7 @@ publish_beta() {
 
     echo ">>> [beta ${drive_version}] Generating ${drive_version}.yml"
     python -m pip install --user pyaml==17.12.1
-    python tools/versions.py --add "beta-${drive_version}"
+    python tools/versions.py --add "${drive_version}" --type "beta"
     echo "\nContent of ${drive_version}.yml:"
     cat "${drive_version}.yml"
 
