@@ -14,7 +14,7 @@ import os.path
 
 import yaml
 
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 __all__ = ("create", "delete", "merge", "promote")
 
 
@@ -47,13 +47,9 @@ def wrap(func):
     return func_wrapper
 
 
-def create(version):
+def create(version, category):
     # type: (str) -> None
     """ Create a version file with default values. """
-
-    category = "beta"
-    if "-" in version:
-        category, version = version.split("-")
 
     # Compute installers checksum
     checksum_dmg = checksum_exe = checksum_exe_admin = None
@@ -133,16 +129,10 @@ def merge(versions):
 
 
 @wrap
-def promote(versions, version):
-    """ Promote a given version to the next category. """
+def promote(versions, version, category):
+    """ Promote a given version to the given category. """
 
-    categories = {
-        # current -> new
-        "beta": "release",
-        "release": "release",
-        "archive": "archive",
-    }
-    versions[version]["type"] = categories[versions[version]["type"]]
+    versions[version]["type"] = category
 
 
 def main():
@@ -157,16 +147,23 @@ def main():
         help="merge any single version file into versions.yml",
     )
     parser.add_argument("--promote", help="change a given version to the next category")
+    parser.add_argument(
+        "--type",
+        choices=("beta", "nightly", "release"),
+        help="version type (mandatory for --create and --promote)",
+    )
     args = parser.parse_args()
 
     if args.add:
-        return create(args.add)
+        assert args.type, "You must provide the version type"
+        return create(args.add, args.type)
     elif args.delete:
         return delete(args.delete)
     elif args.merge:
         return merge()
     elif args.promote:
-        return promote(args.promote)
+        assert args.type, "You must provide the version type"
+        return promote(args.promote, args.type)
 
     return 1
 
