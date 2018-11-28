@@ -11,10 +11,13 @@ properties([
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
     [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
         [$class: 'StringParameterDefinition',
-            name: 'BRANCH',
+            name: 'BRANCH_NAME',
             defaultValue: 'master',
             description: 'The branch to checkout.']
-    ]]
+    ]],
+    [$class: 'ChoiceParameterDefinition',
+        name: 'CHANNEL',
+        choices: 'beta\nalpha']
 ])
 
 timestamps {
