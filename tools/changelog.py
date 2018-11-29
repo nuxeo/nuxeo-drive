@@ -14,7 +14,7 @@ import sys
 
 import requests
 
-__version__ = "1.2.7"
+__version__ = "1.2.8"
 
 
 # Available formatters
@@ -129,7 +129,8 @@ def get_latest_tag():
     """ Retrieve the latest release tag. """
 
     debug(">>> Retrieving latest created tag")
-    cmd = "git rev-list --tags --remove-empty --branches=master --max-count=10"
+    # Retrieve 32 IDs as there may be at least 21 alpha. Taking large.
+    cmd = "git rev-list --tags --remove-empty --branches=master --max-count=32"
     latest = ""
     for sha1 in backtick(cmd.split()).splitlines():
         cmd = "git describe --abbrev=0 --tags " + sha1

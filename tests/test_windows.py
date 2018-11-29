@@ -154,8 +154,8 @@ class TestWindows(UnitTestCase):
 
         # Add new parameters
         registry.write(key, {"update-site-url": "http://no.where"})
-        registry.write(key, {"update-BETA_site-url": "http://no.where.beta"})
+        registry.write(key, {"ChAnnEL": "beta"})
 
         conf = osi.get_system_configuration()
         assert conf["update_site_url"] == "http://no.where"
-        assert conf["update_beta_site_url"] == "http://no.where.beta"
+        assert conf["channel"] == "beta"

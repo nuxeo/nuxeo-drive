@@ -277,8 +277,8 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=str)
     def get_update_channel(self) -> str:
-        """ Return the channel of the update: beta or release. """
-        return self._manager.updater.nature
+        """ Return the channel of the update. """
+        return self._manager.get_update_channel()
 
     @pyqtSlot(result=str)
     def get_update_status(self) -> str:
@@ -378,13 +378,9 @@ class QMLDriveApi(QObject):
     def get_auto_update(self) -> bool:
         return self._manager.get_auto_update()
 
-    @pyqtSlot(bool)
-    def set_beta_channel(self, value: bool) -> None:
-        self._manager.set_beta_channel(value)
-
-    @pyqtSlot(result=bool)
-    def get_beta_channel(self) -> bool:
-        return self._manager.get_beta_channel()
+    @pyqtSlot(str)
+    def set_update_channel(self, value: str) -> None:
+        self._manager.set_update_channel(value)
 
     @pyqtSlot(result=str)
     def generate_report(self) -> str:

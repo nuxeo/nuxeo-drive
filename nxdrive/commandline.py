@@ -112,6 +112,13 @@ class CliHandler:
         )
 
         common_parser.add_argument(
+            "--channel",
+            default=None,
+            choices=("alpha", "beta", "release"),
+            help="Update channel",
+        )
+
+        common_parser.add_argument(
             "--debug",
             default=Options.debug,
             action="store_true",
@@ -464,19 +471,19 @@ class CliHandler:
         if getattr(options, "local_folder", ""):
             options.local_folder = normalized_path(options.local_folder)
 
-        log.debug(f"Command line: argv={argv!r}, options={options!r}")
-        log.info(f"Running on version {self.get_version()}")
-
         command = getattr(options, "command", "launch")
         handler = getattr(self, command, None)
         if not handler:
-            raise NotImplementedError(f"No handler implemented for command {command}")
+            raise RuntimeError(f"No handler implemented for command {command}")
 
         self._configure_logger(command, options)
 
+        log.debug(f"Command line: argv={argv!r}, options={options!r}")
+        log.info(f"Running on version {self.get_version()}")
+
         if QSslSocket:
             has_ssl_support = QSslSocket.supportsSsl()
-            log.info(f"SSL support: {has_ssl_support!r}")
+            log.debug(f"SSL support: {has_ssl_support!r}")
             if not has_ssl_support:
                 options.ca_bundle = None
                 options.ssl_no_verify = True
