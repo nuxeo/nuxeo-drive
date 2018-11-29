@@ -92,15 +92,15 @@ Rectangle {
         ScaledText {
             text: qsTr("ADVANCED_SETTINGS") + tl.tr
             pointSize: 16
+            Layout.bottomMargin: 15
         }
 
-        NuxeoSwitch {
-            text: qsTr("BETACHANNEL") + tl.tr
-            enabled: isFrozen
-            checked: manager.get_beta_channel()
-            onClicked: manager.set_beta_channel(checked)
-            Layout.leftMargin: -5
+        Link {
+            id: channelPopupLink
+            text: qsTr("CHANNEL_CHANGE_SETTINGS") + tl.tr
+            onClicked: channelPopup.open()
         }
+
         Link {
             id: proxyPopupLink
             text: qsTr("PROXY_CHANGE_SETTINGS") + tl.tr
@@ -128,5 +128,6 @@ Rectangle {
         }
     }
 
+    ChannelPopup { id: channelPopup }
     ProxyPopup { id: proxyPopup }
 }

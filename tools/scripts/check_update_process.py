@@ -31,7 +31,7 @@ import time
 from contextlib import suppress
 from os.path import expanduser
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 
 EXT = {"darwin": "dmg", "win32": "exe"}[sys.platform]
@@ -42,7 +42,7 @@ def create_versions(dst, version):
     """ Create the versions.yml file. """
 
     name = f"nuxeo-drive-{version}.{EXT}"
-    path = os.path.join(dst, "release", name)
+    path = os.path.join(dst, "alpha", name)
     with open(path, "rb") as installer:
         checksum = hashlib.sha256(installer.read()).hexdigest()
     print(">>> Computed the checksum:", checksum)
@@ -61,7 +61,7 @@ def create_versions(dst, version):
     yml = f"""
 "{version}":
     min: "7.10"
-    type: release
+    type: alpha
     checksum:
         algo: sha256
         dmg: {checksum}
@@ -128,7 +128,11 @@ def launch_drive():
     elif EXT == "exe":
         cmd = [expanduser("~\\AppData\\Local\\Nuxeo Drive\\ndrive.exe")]
 
-    cmd += ["--log-level-console=TRACE", "--update-site-url=http://localhost:8000"]
+    cmd += [
+        "--log-level-console=TRACE",
+        "--update-site-url=http://localhost:8000",
+        "--channel=alpha",
+    ]
     print(">>> Command:", cmd)
     return subprocess.check_output(cmd).decode("utf-8").strip()
 
@@ -141,6 +145,8 @@ def tests():
     assert version_decrement("2.5.0") == "2.4.9"
     assert version_decrement("1.2.3") == "1.2.2"
     assert version_decrement("1.2.333") == "1.2.332"
+    assert version_decrement("1.2.333.4") == "1.2.333.3"
+    assert version_decrement("1.2.333.0") == "1.2.332.0"
     assert version_checker(version_decrement("1.0.0"))
     assert version_checker(version_decrement("2.5.0"))
     assert version_checker(version_decrement("1.2.3"))
@@ -170,9 +176,16 @@ def uninstall_drive():
 def version_decrement(version):
     """ Guess the lower version of the one given. """
 
-    major, minor, patch = map(int, version.split("."))
+    major, minor, patch, *dev = map(int, version.split("."))
 
-    patch -= 1
+    if dev:
+        dev[0] -= 1
+        if dev[0] < 0:
+            dev[0] = 0
+            patch -= 1
+    else:
+        patch -= 1
+
     if patch < 0:
         patch = 9
         minor -= 1
@@ -180,7 +193,11 @@ def version_decrement(version):
         minor = 9
         major -= 1
 
-    return ".".join(map(str, [major, minor, patch]))
+    numbers = [major, minor, patch]
+    if dev:
+        numbers.append(dev[0])
+
+    return ".".join(map(str, numbers))
 
 
 def version_find():
@@ -239,7 +256,7 @@ def main():
 
     # Server tree
     root = tempfile.mkdtemp()
-    path = os.path.join(root, "release")
+    path = os.path.join(root, "alpha")
     os.makedirs(path)
 
     # Generate the current version executable

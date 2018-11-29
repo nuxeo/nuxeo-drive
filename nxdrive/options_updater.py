@@ -29,7 +29,15 @@ class ServerOptionsUpdater(PollWorker):
                 engine.set_ui("jsf", overwrite=False)
             else:
                 engine.set_ui(conf.pop("ui"), overwrite=False)
-                Options.update(conf, setter="server", fail_on_error=True)
+
+                # Compat with old servers
+                beta = conf.pop("beta_channel", False)
+                if beta:
+                    conf["channel"] = "beta"
+
+                # We cannot use fail_on_error=True because the server may
+                # be outdated and still have obsolete options.
+                Options.update(conf, setter="server", fail_on_error=False)
                 break
 
         return True

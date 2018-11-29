@@ -120,8 +120,15 @@ class Manager(QObject):
 
         self.old_version = None
         if Options.is_frozen:
-            # Persist beta channel check
-            Options.set("beta_channel", self.get_beta_channel(), setter="manual")
+            # Persist the channel update
+            # Retro-compatibility for versions < 4.0.2
+            beta = self.get_config("beta_channel")
+            if beta is not None:
+                if beta:
+                    Options.set("channel", "beta", setter="manual")
+                self._dao.delete_config("beta_channel")
+            else:
+                Options.set("channel", self.get_update_channel(), setter="manual")
 
             # Keep a trace of installed versions
             if not self.get_config("original_version"):
@@ -169,7 +176,7 @@ class Manager(QObject):
             "version": self.version,
             "auto_start": self.get_auto_start(),
             "auto_update": self.get_auto_update(),
-            "beta_channel": self.get_beta_channel(),
+            "channel": self.get_update_channel(),
             "device_id": self.device_id,
             "tracker_id": self.get_tracker_id(),
             "tracking": self.get_tracking(),
@@ -434,15 +441,16 @@ class Manager(QObject):
         self.set_config("light_icons", value)
         self.reloadIconsSet.emit(value)
 
-    @pyqtSlot(result=bool)
-    def get_beta_channel(self) -> bool:
-        return self._dao.get_config("beta_channel", "0") == "1"
+    @pyqtSlot(result=str)
+    def get_update_channel(self) -> str:
+        return self._dao.get_config("channel", default=Options.channel or "release")
 
-    @pyqtSlot(bool)
-    def set_beta_channel(self, value: bool) -> None:
-        self.set_config("beta_channel", value)
+    @pyqtSlot(str)
+    def set_update_channel(self, value: str) -> None:
+        self.set_config("channel", value)
         # Trigger update status refresh
-        self.refresh_update_status()
+        if self.updater.enable:
+            self.refresh_update_status()
 
     @pyqtSlot(result=bool)
     def get_tracking(self) -> bool:
