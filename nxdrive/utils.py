@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, Optional, Pattern, Tuple, TYPE_CHECKING,
 from urllib.parse import urlsplit, urlunsplit
 
 from .constants import APP_NAME, WINDOWS
+from .exceptions import InvalidSSLCertificate
 from .options import Options
 
 if TYPE_CHECKING:
@@ -655,8 +656,9 @@ def guess_server_url(
             if exc.response.status_code == 401:
                 # When there is only Web-UI installed, the code is 401.
                 return new_url
-        except SSLError:
-            raise
+        except SSLError as exc:
+            if "CERTIFICATE_VERIFY_FAILED" in str(exc):
+                raise InvalidSSLCertificate()
         except (ValueError, requests.RequestException):
             pass
         except Exception:

@@ -40,6 +40,16 @@ class InvalidDriveException(DriveError):
     pass
 
 
+class InvalidSSLCertificate(DriveError):
+    """ The SSL certificate is not official. """
+
+    def __repr__(self) -> str:
+        return "Invalid SSL certificate. Use 'ca-bundle' (or 'ssl-no-verify') option to tune SSL behavior."
+
+    def __str__(self) -> str:
+        return repr(self)
+
+
 class NotFound(OSError):
     """
     A remote document is not found on the server

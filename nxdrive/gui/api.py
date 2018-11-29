@@ -11,7 +11,6 @@ from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 import requests
 from dateutil.tz import tzlocal
 from nuxeo.exceptions import HTTPError, Unauthorized
-from requests.exceptions import SSLError
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 
@@ -23,6 +22,7 @@ from ..engine.workers import Worker
 from ..exceptions import (
     FolderAlreadyUsed,
     InvalidDriveException,
+    InvalidSSLCertificate,
     NotFound,
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
@@ -493,17 +493,14 @@ class QMLDriveApi(QObject):
         """Handle invalide SSL certificates when guessing the server URL."""
         try:
             return guess_server_url(server_url, proxy=self._manager.proxy)
-        except SSLError as exc:
-            log.critical(
-                f"{exc}. Use 'ca-bundle' (or 'ssl-no-verify') option to tune SSL behavior."
-            )
-            if "CERTIFICATE_VERIFY_FAILED" in str(exc):
-                parts = urlsplit(server_url)
-                hostname = parts.netloc or parts.path
-                if self.application.accept_unofficial_ssl_cert(hostname):
-                    Options.ca_bundle = None
-                    Options.ssl_no_verify = True
-                    return self._guess_server_url(server_url)
+        except InvalidSSLCertificate as exc:
+            log.critical(exc)
+            parts = urlsplit(server_url)
+            hostname = parts.netloc or parts.path
+            if self.application.accept_unofficial_ssl_cert(hostname):
+                Options.ca_bundle = None
+                Options.ssl_no_verify = True
+                return self._guess_server_url(server_url)
         return ""
 
     def _get_authentication_url(self, server_url: str) -> str:
