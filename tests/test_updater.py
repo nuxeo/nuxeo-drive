@@ -33,6 +33,9 @@ VERSIONS = {
         "min_all": {"7.10": "7.10-HF44", "8.10": "8.10-HF35", "9.10": "9.10-HF15"},
         "max_all": {"7.10": "7.10-HF48"},
     },
+    "4.0.2.13": {"type": "alpha", "min": "9.10"},
+    "4.0.2.14": {"type": "alpha", "min": "9.10"},
+    "4.0.3.1": {"type": "alpha", "min": "10.10"},
 }
 
 
@@ -70,6 +73,10 @@ VERSIONS = {
         # Beta
         ("2.4.2b1", "9.2", "beta", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         ("2.5.0b1", "9.2", "beta", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
+        # Alpha
+        ("4.0.2.13", "9.10", "alpha", UPDATE_STATUS_UPDATE_AVAILABLE, "4.0.2.14"),
+        ("4.0.3.1", "10.10", "alpha", UPDATE_STATUS_UP_TO_DATE, ""),
+        ("4.0.3.3", "10.10", "alpha", UPDATE_STATUS_DOWNGRADE_NEEDED, "4.0.3.1"),
     ],
 )
 def test_get_update_status(current, server, nature, action_required, new):

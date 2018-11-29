@@ -39,9 +39,9 @@ Note: using a secured server with `HTTPS` access only is **strongly recommended*
 The server side tree is quite simple:
 
     drive-updates/
-        archive/
-            nuxeo-drive-2.0.0.dmg
-            nuxeo-drive-2.0.0.exe
+        alpha/
+            nuxeo-drive-2.0.0.13.dmg
+            nuxeo-drive-2.0.0.13.exe
         beta/
             nuxeo-drive-3.1.1.dmg
             nuxeo-drive-3.1.1.exe
@@ -54,9 +54,9 @@ The server side tree is quite simple:
 
 #### Folders
 
-- `archive`: old/obsolete/non-wanted releases/betas. We keep it there for history only, nobody should use them.
+- `alpha`: early developement versions. It can be promoted to beta, in that case files are just **moved** from this folder to the `beta` one.
 - `beta`: all betas that are not releases. If one beta is going to be officially released, files are just **moved** from this folder to the `release` one.
-- `release`: all official releases. Very old ones should be **moved** to the folder `archives`. The TTL is not yet decided.
+- `release`: all official releases.
 
 #### Files
 
@@ -69,7 +69,7 @@ Example of `version.yml` content:
     2.0.0:
         min: '5.6'
         max: 7.10-HF18
-        type: archive
+        type: alpha
         checksum:
             also: SHA1
             dmg: ...
@@ -101,7 +101,7 @@ Example of `version.yml` content:
 
 Each entry describes a version with:
 
-- `type`: the release type, either an `archive`, a `beta` or a `release`. **Mandatory**.
+- `type`: the release type, either an `alpha`, a `beta` or a `release`. **Mandatory**.
 - `checksum`: list of checksums for related files. **Mandatory**.
   - `algo`: the algorithm used, it must be one of the [hashlib](https://docs.python.org/2/library/hashlib.html) module (will use SHA256 by default).
   - `dmg`: the checksum of the file `.dmg`. **Mandatory** if you provide a macOS installer.
@@ -113,7 +113,6 @@ Each entry describes a version with:
 
 Notes:
 
-- When a version is very old, and if you consider the file is growing too big, you can easily remove entries that are archived;
 - A version not listed can physically exist on the server but the reverse is not true: if a version is listed, files must exist on the server.
 - Versions set **are not effective**. They are listed for information only as there is no way to retrieve the exact server version at the time.
 

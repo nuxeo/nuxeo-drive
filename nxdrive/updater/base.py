@@ -49,11 +49,8 @@ class BaseUpdater(PollWorker):
     serverIncompatible = pyqtSignal()
 
     versions: Dict[str, Any] = {}
-    nature = "release"
 
     chunk_size = 8192
-
-    __update_site = None
 
     def __init__(self, manager: "Manager") -> None:
         super().__init__(Options.update_check_delay)
@@ -63,6 +60,7 @@ class BaseUpdater(PollWorker):
         self.status = UPDATE_STATUS_UP_TO_DATE
         self.version: str = ""
         self.progress = .0
+        self.update_site = Options.update_site_url.rstrip("/")
 
         if not self.enable:
             log.info(f"Auto-update disabled (frozen={Options.is_frozen!r})")
@@ -83,21 +81,6 @@ class BaseUpdater(PollWorker):
             if engine.remote:
                 return engine.remote.client.server_version
         return None
-
-    @property
-    def update_site(self) -> str:
-        """ The update site URL without trailing slash. """
-
-        if not self.__update_site:
-
-            if self.manager.get_beta_channel():
-                log.debug("Update beta channel activated")
-                self.nature = "beta"
-            else:
-                self.nature = "release"
-            self.__update_site = Options.update_site_url.rstrip("/")
-
-        return self.__update_site
 
     #
     # Public methods that can be overrided
@@ -214,13 +197,15 @@ class BaseUpdater(PollWorker):
                     for engine in self.manager._engines.values()
                 ]
             )
+            channel = self.manager.get_update_channel()
             log.debug(
-                f"Getting update status for version {self.manager.version} ({self.nature}) on server {self.server_ver}"
+                f"Getting update status for version {self.manager.version}"
+                f" (channel={channel}) on server {self.server_ver}"
             )
             status, version = get_update_status(
                 self.manager.version,
                 self.versions,
-                self.nature,
+                channel,
                 self.server_ver,
                 has_browser_login,
             )
@@ -237,7 +222,8 @@ class BaseUpdater(PollWorker):
             versions = {
                 version: info
                 for version, info in self.versions.items()
-                if info.get("type", "").lower() in (self.nature, "release")
+                if info.get("type", "").lower()
+                in (self.manager.get_update_channel(), "release")
                 and version_lt(version, "4")
             }
             if versions:
@@ -324,12 +310,7 @@ class BaseUpdater(PollWorker):
     def _poll(self) -> bool:
 
         if self.status != UPDATE_STATUS_UPDATING:
-            try:
-                self._get_update_status()
-                self._handle_status()
-            finally:
-                # Reset the update site URL to force
-                # recomputation the next time
-                self.__update_site = None
+            self._get_update_status()
+            self._handle_status()
 
         return self.status != UPDATE_STATUS_UNAVAILABLE_SITE

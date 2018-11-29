@@ -48,7 +48,7 @@ import os.path
 import sys
 from contextlib import suppress
 from copy import deepcopy
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Set, Tuple
 
 __all__ = ("Options",)
 
@@ -133,11 +133,24 @@ class MetaOptions(type):
     # Cache the home directory for later use
     __home: str = __get_home()
 
+    # Options that should not trigger an error
+    __ignored_options: Set[str] = set(
+        [
+            # From the CLI parser
+            "command",
+            "log_filename",
+            # From the Manager
+            "client_version",
+            "light_icons",
+            "original_version",
+        ]
+    )
+
     # Default options
     options: Dict[str, Tuple[Any, str]] = {
-        "beta_channel": (False, "default"),
         "browser_startup_page": ("drive_browser_login.jsp", "default"),
         "ca_bundle": (None, "default"),
+        "channel": (None, "default"),
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
@@ -268,10 +281,14 @@ class MetaOptions(type):
         try:
             old_value, old_setter = MetaOptions.options[item]
         except KeyError:
+            if item in MetaOptions.__ignored_options:
+                return
+
+            err = f"{item!r} is not a recognized parameter.{src_err}"
             if fail_on_error:
-                raise RuntimeError(
-                    f"{item!r} is not a recognized parameter.{src_err}"
-                ) from None
+                raise RuntimeError(err)
+            else:
+                log.error(err)
         else:
             if isinstance(new_value, list):
                 # Need a tuple when JSON sends a simple list
@@ -297,14 +314,14 @@ class MetaOptions(type):
             if not isinstance(new_value, type_orig) and not isinstance(
                 old_value, type(None)
             ):
-                if not fail_on_error:
-                    return
-
                 err = (
                     f"The type of the {item!r} option is {type(new_value).__name__}, "
                     f"while {type(old_value).__name__} is required.{src_err}"
                 )
-                raise TypeError(err)
+                if fail_on_error:
+                    raise TypeError(err)
+                else:
+                    log.error(err)
 
             # Only update if the setter has rights to
             setter = setter.lower()

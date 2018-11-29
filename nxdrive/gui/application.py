@@ -765,20 +765,20 @@ class Application(QApplication):
     def show_release_notes(self, version: str) -> None:
         """ Display release notes of a given version. """
 
-        beta = self.manager.get_beta_channel()
-        log.debug(f"Showing release notes, version={version!r} beta={beta!r}")
+        channel = self.manager.get_update_channel()
+        log.debug(f"Showing release notes, version={version!r} channel={channel}")
 
         # For now, we do care about beta only
-        if not beta:
+        if channel != "beta":
             return
 
         url = (
             "https://api.github.com/repos/nuxeo/nuxeo-drive"
-            "/releases/tags/release-" + version
+            f"/releases/tags/release-{version}"
         )
 
-        if beta:
-            version += " beta"
+        if channel != "release":
+            version += f" {channel}"
 
         try:
             # No need for the `verify` kwarg here as GitHub will never use a bad certificate.

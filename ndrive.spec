@@ -57,7 +57,7 @@ if sys.platform == "win32":
     if os.path.isfile(properties_rc):
         os.remove(properties_rc)
 
-    version_tuple = tuple(map(int, version.split(".") + [0]))
+    version_tuple = tuple(map(int, version.split(".") + [0] * (3 - version.count("."))))
 
     with open(properties_tpl) as tpl, open(properties_rc, "w") as out:
         content = tpl.read().format(version=version, version_tuple=version_tuple)
