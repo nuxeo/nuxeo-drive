@@ -191,9 +191,8 @@ def test_setters():
 
 
 def test_site_update_url():
-    for url in (Options.update_site_url, Options.beta_update_site_url):
-        with requests.get(url) as resp:
-            resp.raise_for_status()
+    with requests.get(Options.update_site_url) as resp:
+        resp.raise_for_status()
 
 
 @Options.mock()

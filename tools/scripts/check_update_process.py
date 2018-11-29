@@ -128,11 +128,7 @@ def launch_drive():
     elif EXT == "exe":
         cmd = [expanduser("~\\AppData\\Local\\Nuxeo Drive\\ndrive.exe")]
 
-    cmd += [
-        "--log-level-console=TRACE",
-        "--update-site-url=http://localhost:8000",
-        "--beta-update-site-url=http://localhost:8000",
-    ]
+    cmd += ["--log-level-console=TRACE", "--update-site-url=http://localhost:8000"]
     print(">>> Command:", cmd)
     return subprocess.check_output(cmd).decode("utf-8").strip()
 

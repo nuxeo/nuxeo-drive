@@ -136,10 +136,6 @@ class MetaOptions(type):
     # Default options
     options: Dict[str, Tuple[Any, str]] = {
         "beta_channel": (False, "default"),
-        "beta_update_site_url": (
-            "https://community.nuxeo.com/static/drive-updates",
-            "default",
-        ),
         "browser_startup_page": ("drive_browser_login.jsp", "default"),
         "ca_bundle": (None, "default"),
         "debug": (False, "default"),
