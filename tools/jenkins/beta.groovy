@@ -22,52 +22,59 @@ properties([
 
 timestamps {
     node('IT') {
-        withEnv(["WORKSPACE=${pwd()}"]) {
-            def credential_id = '4691426b-aa51-428b-901d-4e851ee37b01'
-            def release = ''
+        def credential_id = '4691426b-aa51-428b-901d-4e851ee37b01'
+        def differ_commits = '0'
+        def release = ''
+        def release_type = env.CHANNEL == 'beta' ? 'release' : 'alpha'
 
-            try {
-                stage('Checkout') {
-                    deleteDir()
-                    git credentialsId: credential_id, url: 'ssh://git@github.com/nuxeo/nuxeo-drive.git', branch: env.BRANCH
-                }
-
-                stage('Create') {
-                    sshagent([credential_id]) {
-                        sh 'tools/release.sh --create'
-                        archive 'draft.json'
-                    }
-                }
-
-                stage('Trigger') {
-                    // Trigger the Drive packages job to build executables and have artifacts
-                    release = sh script: 'git tag -l "release-*" --sort=-taggerdate | head -n1', returnStdout: true
-                    release = release.trim()
-                    build job: 'Drive-packages', parameters: [
-                        [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: 'refs/tags/' + release],
-                        [$class: 'BooleanParameterValue', name: 'CLEAN_WORKSPACE', value: true]]
-                }
-
-                stage('Publish') {
-                    dir('build') {
-                        deleteDir()
-                    }
-                    dir('dist') {
-                        deleteDir()
-                    }
-                    def release_ver = release.replace('release-', '').trim()
-                    sshagent([credential_id]) {
-                        sh 'tools/release.sh --publish'
-                    }
-                    currentBuild.description = "Beta ${release_ver}"
-                }
-            } catch(e) {
-                sshagent([credential_id]) {
-                    sh 'tools/release.sh --cancel'
-                }
-                currentBuild.result = 'FAILURE'
-                throw e
+        try {
+            stage('Checkout') {
+                deleteDir()
+                git credentialsId: credential_id, url: 'ssh://git@github.com/nuxeo/nuxeo-drive.git', branch: env.BRANCH_NAME
             }
+
+            stage('Create') {
+                differ_commits = sh script: "git describe --always | cut -d'-' -f3", returnStdout: true
+                differ_commits = differ_commits.trim()
+                if (differ_commits == '0') {
+                    currentBuild.description = 'Skip: no new commit'
+                    currentBuild.result = 'ABORTED'
+                    return
+                }
+
+                sshagent([credential_id]) {
+                    sh "tools/release.sh --create ${release_type}"
+                    archive 'draft.json'
+                }
+            }
+
+            stage('Trigger') {
+                // Trigger the Drive packages job to build executables and have artifacts
+                release = sh script: "git tag -l '${release_type}-*' --sort=-taggerdate | head -n1", returnStdout: true
+                release = release.trim()
+                build job: 'Drive-packages', parameters: [
+                    [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: 'refs/tags/' + release],
+                    [$class: 'BooleanParameterValue', name: 'CLEAN_WORKSPACE', value: true]]
+            }
+
+            stage('Publish') {
+                dir('build') {
+                    deleteDir()
+                }
+                dir('dist') {
+                    deleteDir()
+                }
+                sshagent([credential_id]) {
+                    sh "tools/release.sh --publish ${release_type}"
+                }
+                currentBuild.description = release
+            }
+        } catch(e) {
+            sshagent([credential_id]) {
+                sh "tools/release.sh --cancel ${release_type}"
+            }
+            currentBuild.result = 'FAILURE'
+            throw e
         }
     }
 }
