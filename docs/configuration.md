@@ -35,7 +35,6 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 
 | Parameter | Default Value | Type | Description
 |---|---|---|---
-| `beta-update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) | str | Configure custom beta update website.
 | `ca-bundle` | None | str | File or directory with certificates of trusted CAs. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
 | `debug` | False | bool | Activate the debug window, and debug mode.
 | `delay` | 30 | int | Define the delay before each remote check.
@@ -60,6 +59,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 
 | Parameter | Default Value | Version Removed | New Option Name | New Default Value
 |---|---|---|---|---
+| `beta-update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) (str) | 4.0.2 | None | None
 | `consider-ssl-errors` | True (bool) | 4.0.1 | `ssl-no-verify` | False (bool)
 
 ## Command Line Arguments

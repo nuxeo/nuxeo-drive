@@ -456,8 +456,6 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=str)
     def get_update_url(self) -> str:
-        if self._manager.get_beta_channel():
-            return Options.beta_update_site_url
         return Options.update_site_url
 
     @pyqtSlot(str)

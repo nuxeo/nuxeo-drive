@@ -112,12 +112,6 @@ class CliHandler:
         )
 
         common_parser.add_argument(
-            "--beta-update-site-url",
-            default=Options.beta_update_site_url,
-            help="Website for client beta auto-update",
-        )
-
-        common_parser.add_argument(
             "--debug",
             default=Options.debug,
             action="store_true",

@@ -92,10 +92,10 @@ class BaseUpdater(PollWorker):
 
             if self.manager.get_beta_channel():
                 log.debug("Update beta channel activated")
-                url, self.nature = Options.beta_update_site_url, "beta"
+                self.nature = "beta"
             else:
-                url, self.nature = Options.update_site_url, "release"
-            self.__update_site = url.rstrip("/")
+                self.nature = "release"
+            self.__update_site = Options.update_site_url.rstrip("/")
 
         return self.__update_site
 
