@@ -6,7 +6,7 @@ from logging import getLogger
 from os import getenv
 from time import time
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
-from urllib.parse import quote, urlencode, urlsplit, urlunsplit
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 import requests
 from dateutil.tz import tzlocal
@@ -526,10 +526,9 @@ class QMLDriveApi(QObject):
 
         # Handle URL parameters
         parts = urlsplit(server_url)
-        path = f"{parts.path}/logout?requestedUrl={Options.browser_startup_page}"
-        path = path.replace("//", "/")
+        path = f"{parts.path}/{Options.browser_startup_page}".replace("//", "/")
 
-        params = quote(f"{parts.query}&{params}" if parts.query else params)
+        params = f"{parts.query}&{params}" if parts.query else params
         return urlunsplit((parts.scheme, parts.netloc, path, params, parts.fragment))
 
     # Settings section
