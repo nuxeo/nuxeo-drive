@@ -85,8 +85,7 @@ def gen_exe():
         )
 
     print(">>> Command:", cmd)
-    output = subprocess.check_output(cmd.split())
-    return output.decode("utf-8").strip()
+    subprocess.check_call(cmd.split())
 
 
 def install_drive(installer):
@@ -261,7 +260,6 @@ def main():
 
     # Guess the anterior version
     previous = version_decrement(version)
-    print(">>> Testing upgrade", previous, "->", version)
     assert version_checker(previous)
 
     # Create the versions.yml file
@@ -286,6 +284,7 @@ def main():
         install_drive(dst_file)
 
         # Launch Drive in its own thread
+        print(">>> Testing upgrade", previous, "->", version)
         threading.Thread(target=launch_drive).start()
 
         # Start the web server
