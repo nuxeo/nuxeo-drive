@@ -15,7 +15,7 @@ VSVersionInfo(
       StringTable(
         '040904B0',
         [StringStruct('CompanyName', 'Nuxeo'),
-        StringStruct('FileDescription', 'Desktop synchronization client for Nuxeo'),
+        StringStruct('FileDescription', 'Nuxeo Drive'),
         StringStruct('FileVersion', '{version}'),
         StringStruct('InternalName', 'ndrive'),
         StringStruct('LegalCopyright', '\xa9 Nuxeo. All rights reserved.'),
