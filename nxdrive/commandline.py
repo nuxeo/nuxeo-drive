@@ -413,7 +413,7 @@ class CliHandler:
         args = AbstractOSIntegration.get(None).get_system_configuration()
         if args:
             # This is the case on Windows only, values from the registry
-            Options.update(args, setter="local", file="HKCU\\Software\\Nuxeo\\Drive")
+            Options.update(args, setter="local", file="the Registry")
 
         for conf_file in {
             os.path.join(os.path.dirname(sys.executable), conf_name),

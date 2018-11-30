@@ -19,9 +19,9 @@ def create(key: str) -> bool:
     """
     try:
         with winreg.CreateKey(HKCU, key):
-            log.debug(f"Created {key} registry key")
+            log.debug(f"Created {key!r}")
     except OSError:
-        log.exception(f"Couldn't create {key} registry key")
+        log.exception(f"Couldn't create {key!r}")
         return False
     return True
 
@@ -42,9 +42,9 @@ def delete(key: str) -> bool:
                 else:
                     delete(f"{key}\\{subkey}")
             winreg.DeleteKey(HKCU, key)
-            log.debug(f"Deleted {key} registry key")
+            log.debug(f"Deleted {key!r}")
     except OSError:
-        log.exception(f"Couldn't delete {key} registry key")
+        log.exception(f"Couldn't delete {key!r}")
         return False
     return True
 
@@ -58,9 +58,9 @@ def delete_value(key: str, value: str) -> bool:
     try:
         with winreg.OpenKey(HKCU, key, 0, winreg.KEY_SET_VALUE) as handle:
             winreg.DeleteValue(handle, value)
-            log.debug(f"Deleted {value} value from {key} registry key")
+            log.debug(f"Deleted {value!r} value from {key!r}")
     except OSError:
-        log.exception(f"Couldn't delete {value} value from {key} registry key")
+        log.exception(f"Couldn't delete {value!r} value from {key!r}")
         return False
     return True
 
@@ -90,7 +90,7 @@ def read(key: str) -> Optional[Dict[str, str]]:
                 value = winreg.EnumValue(handle, i)
                 values[value[0]] = value[1]
     except OSError:
-        log.exception(f"Couldn't read {key} registry key values")
+        log.exception(f"Couldn't read {key!r} values")
         return None
     return values
 
@@ -114,8 +114,8 @@ def write(key: str, content: Union[str, Dict[Optional[str], str]]) -> bool:
         with winreg.CreateKeyEx(HKCU, key) as handle:
             for name, data in content.items():
                 winreg.SetValueEx(handle, name, 0, winreg.REG_SZ, data)
-            log.debug(f"Wrote in {key} registry key: {content}")
+            log.debug(f"Wrote {key!r}: {content!r}")
     except OSError:
-        log.exception(f"Couldn't write {key} registry key")
+        log.exception(f"Couldn't write {key!r}")
         return False
     return True

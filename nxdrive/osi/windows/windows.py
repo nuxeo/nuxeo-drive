@@ -13,7 +13,7 @@ from win32con import LOGPIXELSX
 
 from . import registry
 from .. import AbstractOSIntegration
-from ...constants import APP_NAME
+from ...constants import APP_NAME, CONFIG_REGISTRY_KEY
 from ...options import Options
 from ...translator import Translator
 from ...utils import get_value, if_frozen
@@ -51,7 +51,10 @@ class WindowsIntegration(AbstractOSIntegration):
         return t[-1] == "NTFS"
 
     def get_system_configuration(self) -> Dict[str, Any]:
-        config = registry.read("Software\\Nuxeo\\Drive") or {}
+        if not registry.exists(CONFIG_REGISTRY_KEY):
+            return {}
+
+        config = registry.read(CONFIG_REGISTRY_KEY) or {}
         return {
             key.replace("-", "_").lower(): get_value(value)
             for key, value in config.items()
