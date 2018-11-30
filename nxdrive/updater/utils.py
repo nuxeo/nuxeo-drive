@@ -1,5 +1,6 @@
 # coding: utf-8
 import re
+from logging import getLogger
 from typing import Any, Dict, Optional, Tuple
 
 from .constants import (
@@ -10,6 +11,8 @@ from .constants import (
 from ..utils import version_le, version_lt
 
 __all__ = ("get_update_status",)
+
+log = getLogger(__name__)
 
 Version = Dict[str, Any]
 Versions = Dict[str, Version]
@@ -27,6 +30,7 @@ def get_latest_compatible_version(
     # This is the case when there is no bound account.
     version_regex = r"^\d+(\.\d+)+(-HF\d+|)(-SNAPSHOT|)$"
     if not server_ver or not re.match(version_regex, server_ver, re.I):
+        log.debug("No bound account, skipping the update check.")
         return "", {}
 
     # Remove HF and SNAPSHOT
@@ -40,6 +44,7 @@ def get_latest_compatible_version(
     }
 
     if not versions:
+        log.debug("No version found in that channel.")
         return "", {}
 
     # Filter version candidates
@@ -70,6 +75,7 @@ def get_latest_compatible_version(
         candidates[version] = info
 
     if not candidates:  # ¯\_(ツ)_/¯
+        log.debug("No version found for that server version.")
         return "", {}
 
     highest = max(candidates.keys())
@@ -84,6 +90,14 @@ def get_update_status(
     has_browser_login: bool,
 ) -> Tuple[str, str]:
     """Given a Drive version, determine the definitive status of the application."""
+
+    if current_version not in versions:
+        log.debug(
+            "Unknown version: this is the case when the current packaged application"
+            " has a version unknown on the server, typically the development one."
+            " Ignoring updates."
+        )
+        return "", ""
 
     # Find the latest available version
     latest, info = get_latest_compatible_version(
