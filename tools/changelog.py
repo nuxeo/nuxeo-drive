@@ -159,6 +159,10 @@ def get_issues(args):
     debug(">>> Retrieving issues")
     commits = []
     for commit in all_commits.splitlines():
+        # Skip timebox tickets
+        if "timebox" in commit.lower():
+            continue
+
         for issue in regexp.findall(commit):
             # Sanitization
             issue = re.sub(r"\s+", "", issue).upper()
@@ -179,18 +183,21 @@ def get_issue_infos(issue, raw=False):
 
     for _ in range(5):
         try:
-            content = requests.get(url)
-            break
+            with requests.get(url) as content:
+                data = content.json()
+                break
         except requests.HTTPError:
             pass
-        finally:
-            data = content.json()
     else:
         debug(">>> Impossible to to retrieve informations, passing")
         return
 
     # Skip unfinished work
     if data["fields"]["status"]["name"] != "Resolved":
+        return
+
+    # Skip timeboxes
+    if "timebox" in data["fields"]["summary"].lower():
         return
 
     if raw:
