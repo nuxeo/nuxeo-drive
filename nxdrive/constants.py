@@ -20,3 +20,6 @@ DOWNLOAD_TMP_FILE_SUFFIX = ".nxpart"
 UNACCESSIBLE_HASH = "TO_COMPUTE"
 
 TOKEN_PERMISSION = "ReadWrite"
+
+# The registry key from the HKCU hive where to look for local configuration on Windows
+CONFIG_REGISTRY_KEY = "Software\\Nuxeo\\Drive"
