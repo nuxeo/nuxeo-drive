@@ -61,14 +61,9 @@ VERSIONS = {
         ("1.4.0622", "7.10", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.0.1"),
         ("3.0.1", "7.10-HF11", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         ("3.1.3", "7.10-HF44", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "4.0.1"),
-        ("3.1.0", "9.10", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
-        ("3.1.0", "9.10-HF14", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
-        ("3.1.0", "9.10-HF15", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "4.0.1"),
         ("3.1.1", "10.3-SNAPSHOT", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
-        # Version from the future
-        # If the server has a known working version, a downgrade is asked
-        ("42.2.2", "10.3-SNAPSHOT", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "3.1.3"),
-        # Else, do nothing
+        # Unknown version from versions.yml
+        ("42.2.2", "10.3-SNAPSHOT", "release", "", ""),
         ("42.2.2", "5.6", "release", "", ""),
         # Beta
         ("2.4.2b1", "9.2", "beta", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
@@ -76,12 +71,11 @@ VERSIONS = {
         # Alpha
         ("4.0.2.13", "9.10", "alpha", UPDATE_STATUS_UPDATE_AVAILABLE, "4.0.2.14"),
         ("4.0.3.1", "10.10", "alpha", UPDATE_STATUS_UP_TO_DATE, ""),
-        ("4.0.3.3", "10.10", "alpha", UPDATE_STATUS_DOWNGRADE_NEEDED, "4.0.3.1"),
+        ("4.0.3.3", "10.10", "alpha", "", ""),
     ],
 )
 def test_get_update_status(current, server, nature, action_required, new):
     """get_update_status calls get_latest_compatible_version, 2 tests in one!"""
     action, version = get_update_status(current, VERSIONS, nature, server, True)
     assert action == action_required
-    # Use str() to well compare with None
-    assert str(version) == str(new)
+    assert version == new

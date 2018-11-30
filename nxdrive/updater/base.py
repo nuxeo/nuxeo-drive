@@ -211,6 +211,9 @@ class BaseUpdater(PollWorker):
             )
         if status and version:
             self._set_status(status, version=version)
+        elif status:
+            self.status = status
+            self.version = ""
 
     def _force_downgrade(self) -> None:
         try:
