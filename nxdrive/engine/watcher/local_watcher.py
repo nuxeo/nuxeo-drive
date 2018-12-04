@@ -7,15 +7,16 @@ from os.path import basename, dirname, getctime
 from queue import Queue
 from threading import Lock
 from time import mktime, sleep, time
-from typing import Any, Dict, Optional, Set, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Optional, Set, TYPE_CHECKING, Tuple
 
 from PyQt5.QtCore import pyqtSignal
+
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
 
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
-from ...client.local_client import LocalClient, FileInfo
+from ...client.local_client import FileInfo, LocalClient
 from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
@@ -79,8 +80,8 @@ class LocalWatcher(EngineWorker):
         }
         self._observer = None
         self._root_observer = None
-        self._delete_events: Dict[str, Tuple[int, DocPair]] = dict()
-        self._folder_scan_events: Dict[str, Tuple[float, DocPair]] = dict()
+        self._delete_events: Dict[str, Tuple[int, DocPair]] = {}
+        self._folder_scan_events: Dict[str, Tuple[float, DocPair]] = {}
 
     def _execute(self) -> None:
         try:
@@ -161,7 +162,7 @@ class LocalWatcher(EngineWorker):
                 del self._delete_events[evt_pair.remote_ref]
         except ThreadInterrupt:
             raise
-        except:
+        except Exception:
             log.exception("Win: dequeuing deletion error")
 
     def win_folder_scan_empty(self) -> bool:
@@ -225,7 +226,7 @@ class LocalWatcher(EngineWorker):
                     del self._folder_scan_events[local_path]
         except ThreadInterrupt:
             raise
-        except:
+        except Exception:
             log.exception("Win: dequeuing folder scan error")
 
     @tooltip("Full local scan")
@@ -235,8 +236,8 @@ class LocalWatcher(EngineWorker):
         to_pause = not self.engine.get_queue_manager().is_paused()
         if to_pause:
             self._suspend_queue()
-        self._delete_files: Dict[str, DocPair] = dict()
-        self._protected_files: Dict[str, bool] = dict()
+        self._delete_files: Dict[str, DocPair] = {}
+        self._protected_files: Dict[str, bool] = {}
 
         info = self.local.get_info("/")
         self._scan_recursive(info)
@@ -252,7 +253,7 @@ class LocalWatcher(EngineWorker):
             if deleted in self._protected_files:
                 continue
             self._dao.delete_local_state(self._delete_files[deleted])
-        self._delete_files = dict()
+        self._delete_files = {}
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
@@ -461,7 +462,7 @@ class LocalWatcher(EngineWorker):
                                 self._protected_files[doc_pair.remote_ref] = True
                     if child_info.folderish:
                         to_scan_new.append(child_info)
-                except:
+                except Exception:
                     log.exception(
                         f"Error during recursive scan of {child_info.path!r}, "
                         "ignoring until next full scan"
@@ -606,7 +607,7 @@ class LocalWatcher(EngineWorker):
         log.debug(f"Watching FS modification on : {base!r}")
 
         # Filter out all ignored suffixes. It will handle custom ones too.
-        ignore_patterns = list("*" + suffix for suffix in Options.ignored_suffixes)
+        ignore_patterns = [f"*{suffix}" for suffix in Options.ignored_suffixes]
 
         self._event_handler = DriveFSEventHandler(self, ignore_patterns=ignore_patterns)
         self._root_event_handler = DriveFSRootEventHandler(
@@ -626,13 +627,13 @@ class LocalWatcher(EngineWorker):
             log.info("Stopping FS Observer thread")
             try:
                 self._observer.stop()
-            except:
+            except Exception:
                 log.exception("Cannot stop FS observer")
 
             # Wait for all observers to stop
             try:
                 self._observer.join()
-            except:
+            except Exception:
                 log.exception("Cannot join FS observer ")
 
             del self._observer
@@ -641,13 +642,13 @@ class LocalWatcher(EngineWorker):
             log.info("Stopping FS root Observer thread")
             try:
                 self._root_observer.stop()
-            except:
+            except Exception:
                 log.exception("Cannot stop FS root observer")
 
             # Wait for all observers to stop
             try:
                 self._root_observer.join()
-            except:
+            except Exception:
                 log.exception("Cannot join FS root observer")
 
             # Delete all observers
