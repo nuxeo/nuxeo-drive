@@ -13,11 +13,11 @@ properties([
         [$class: 'StringParameterDefinition',
             name: 'BRANCH_NAME',
             defaultValue: 'master',
-            description: 'The branch to checkout.']
-    ]],
-    [$class: 'ChoiceParameterDefinition',
-        name: 'CHANNEL',
-        choices: 'beta\nalpha']
+            description: 'The branch to checkout.'],
+        [$class: 'ChoiceParameterDefinition',
+            name: 'CHANNEL',
+            choices: 'beta\nalpha']
+    ]]
 ])
 
 timestamps {
