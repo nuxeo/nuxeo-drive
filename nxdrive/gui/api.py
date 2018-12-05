@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from logging import getLogger
 from os import getenv
+from os.path import abspath
 from time import time
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib.parse import urlencode, urlsplit, urlunsplit
@@ -11,7 +12,7 @@ from urllib.parse import urlencode, urlsplit, urlunsplit
 import requests
 from dateutil.tz import tzlocal
 from nuxeo.exceptions import HTTPError, Unauthorized
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 
 from ..client.proxy import get_proxy
@@ -240,6 +241,19 @@ class QMLDriveApi(QObject):
             Translator.set(locale)
         except RuntimeError:
             log.exception("Set language error")
+
+    @pyqtSlot(QUrl, result=str)
+    def to_local_file(self, url: QUrl) -> str:
+        """
+        Convert the given QUrl to its local path equivalent.
+
+            >>> to_local_file("file:///home/username/nuxeo")
+            /home/username/nuxeo
+            >>> to_local_file("file:///C:/Users/username/nuxeo")
+            C:\\Users\\username\\nuxeo
+
+        """
+        return abspath(url.toLocalFile())
 
     @pyqtSlot(str)
     def trigger_notification(self, id_: str) -> None:
