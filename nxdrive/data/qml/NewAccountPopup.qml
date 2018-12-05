@@ -90,6 +90,6 @@ NuxeoPopup {
         id: fileDialog
         folder: shortcuts.home
         selectFolder: true
-        onAccepted: folderInput.text = fileDialog.fileUrl.toString().replace("file://", "")
+        onAccepted: folderInput.text = api.to_local_file(fileDialog.fileUrl)
     }
 }
