@@ -67,7 +67,7 @@ create() {
         # New alpha version:
         #    - checkout the last commit
         #    - update the version number and release date
-        echo ">>> [${release_type} ${drive_version}] Update informations into a new headless branch"
+        echo ">>> [${release_type}] Update informations into a new headless branch"
         git checkout "$(git log --format='%H' -n 1)"
         drive_version="$(python tools/changelog.py --drive-version)"
         alpha_version="$(git describe --always --match="release-*" | cut -d"-" -f3)"
