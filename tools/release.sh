@@ -97,6 +97,7 @@ publish() {
     local artifacts
     local path
 
+    release_type="$1"
     drive_version="$(python tools/changelog.py --drive-version)"
     artifacts="https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/lastSuccessfulBuild/artifact/dist/*zip*/dist.zip"
     path="/var/www/community.nuxeo.com/static/drive-updates/"
