@@ -643,9 +643,6 @@ class CliHandler:
         segfault_filename = os.path.join(Options.nxdrive_home, "logs", "segfault.log")
         log.debug(f"Enabling faulthandler in {segfault_filename!r}")
 
-        segfault_file = open(segfault_filename, "a")
-        try:
-            segfault_file.write(f"\n\n\n>>> {datetime.now()}\n")
-            faulthandler.enable(file=segfault_file)
-        finally:
-            segfault_file.close()
+        with open(segfault_filename, "a") as fh:
+            fh.write(f"\n\n\n>>> {datetime.now()}\n")
+            faulthandler.enable(file=fh)
