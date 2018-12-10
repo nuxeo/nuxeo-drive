@@ -396,28 +396,29 @@ class RemoteWatcher(EngineWorker):
     ) -> Optional[str]:
         if remote_info is None:
             raise ValueError(f"Cannot bind {doc_pair!r} to missing remote info")
+
         if not remote_info.folderish:
             # No children to align, early stop.
             log.trace(
                 f"Skip remote scan as it is not a folderish document: {remote_info!r}"
             )
             return None
+
         remote_parent_path = doc_pair.remote_parent_path + "/" + remote_info.uid
         if self._dao.is_path_scanned(remote_parent_path):
             log.trace(f"Skip already remote scanned: {doc_pair.local_path!r}")
             return None
-        if doc_pair.local_path is not None:
+
+        if doc_pair.local_path:
             Action(f"Remote scanning {doc_pair.local_path!r}")
             log.debug(f"Remote scanning: {doc_pair.local_path!r}")
+
         return remote_parent_path
 
     def _find_remote_child_match_or_create(
         self, parent_pair: DocPair, child_info: RemoteFileInfo
     ) -> Optional[Tuple[DocPair, bool]]:
-        if not parent_pair.local_path:
-            # The parent folder has an empty local_path,
-            # it probably means that it has been put in error as a duplicate
-            # by a processor => ignoring this child.
+        if parent_pair.last_error == "DEDUP":
             log.debug(
                 f"Ignoring child {child_info!r} of a duplicate folder "
                 f"in error {parent_pair!r}"
@@ -725,14 +726,10 @@ class RemoteWatcher(EngineWorker):
             for doc_pair in doc_pairs:
                 if not doc_pair:
                     continue
-                doc_pair_repr = (
-                    doc_pair.local_path
-                    if doc_pair.local_path is not None
-                    else doc_pair.remote_name
-                )
+                doc_pair_repr = doc_pair.local_path or doc_pair.remote_name
                 if event_id == "deleted":
                     if fs_item is None or new_info is None:
-                        if doc_pair.local_path == "":
+                        if doc_pair.last_error == "DEDUP":
                             log.debug(f"Delete pair from duplicate: {doc_pair!r}")
                             self._dao.remove_state(doc_pair, remote_recursion=True)
                             continue
@@ -885,7 +882,7 @@ class RemoteWatcher(EngineWorker):
                                 )
 
                 pair = self._dao.get_state_from_id(doc_pair.id)
-                if pair:
+                if pair and pair.last_error != "DEDUP":
                     self.engine.manager.osi.send_sync_status(
                         pair, self.engine.local.abspath(pair.local_path)
                     )

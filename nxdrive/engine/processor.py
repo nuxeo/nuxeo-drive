@@ -166,14 +166,6 @@ class Processor(EngineWorker):
 
             soft_lock = None
             try:
-                # In case of duplicate we remove the local_path as it
-                # has conflict
-                if doc_pair.local_path == "":
-                    doc_pair.local_path = os.path.join(
-                        doc_pair.local_parent_path, doc_pair.remote_name
-                    )
-                    log.trace(f"Re-guess local_path from duplicate: {doc_pair!r}")
-
                 log.debug(f"Executing processor on {doc_pair!r}({doc_pair.version})")
                 self._current_doc_pair = doc_pair
                 if not self.check_pair_state(doc_pair):
@@ -313,8 +305,6 @@ class Processor(EngineWorker):
                     continue
                 except DuplicationDisabledError:
                     self.giveup_error(doc_pair, "DEDUP")
-                    log.debug(f"Removing local_path on {doc_pair!r}")
-                    self._dao.remove_local_path(doc_pair.id)
                     continue
                 except CorruptedFile as exc:
                     self.increase_error(doc_pair, "CORRUPT", exception=exc)
@@ -1269,8 +1259,7 @@ class Processor(EngineWorker):
 
     def _synchronize_unknown_deleted(self, doc_pair: DocPair) -> None:
         # Somehow a pair can get to an inconsistent state:
-        # <local_state='unknown', remote_state='deleted',
-        # pair_state='unknown'>
+        # <local_state='unknown', remote_state='deleted', pair_state='unknown'>
         # Even though we are not able to figure out how this can happen we
         # need to handle this case to put the database back to a consistent
         # state.
@@ -1281,15 +1270,15 @@ class Processor(EngineWorker):
             "synchronizer will fix this case at next iteration"
         )
         self._dao.remove_state(doc_pair)
-        if doc_pair.local_path is not None:
+        if doc_pair.local_path:
             log.debug(
-                f"Since the local path is not None: {doc_pair.local_path!r}, "
+                f"Since the local path is set: {doc_pair.local_path!r}, "
                 "the synchronizer will probably consider this as a local creation at "
                 "next iteration and create the file or folder remotely"
             )
         else:
             log.debug(
-                "Since the local path is None the synchronizer will "
+                "Since the local path is _not_ set, the synchronizer will "
                 "probably do nothing at next iteration"
             )
 

@@ -143,7 +143,7 @@ ShadowRectangle {
                 Link {
                     id: retry
                     text: qsTr("CONFLICT_RETRY") + tl.tr
-                    visible: type == "error"
+                    visible: type == "error" && fileData.last_error != "DEDUP"
                     onClicked: api.retry_pair(engineUid, fileData.id)
                 }
 
