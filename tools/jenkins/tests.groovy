@@ -153,7 +153,7 @@ for (def x in slaves) {
     // Create a map to pass in to the 'parallel' step so we can fire all the builds at once
     builders[slave] = {
         node(slave) {
-            timeout(120) {
+            timeout(240) {
                 withEnv(["WORKSPACE=${pwd()}"]) {
                     // TODO: Remove the Windows part when https://github.com/pypa/pip/issues/3055 is resolved
                     if (params.CLEAN_WORKSPACE || osi == "Windows") {
