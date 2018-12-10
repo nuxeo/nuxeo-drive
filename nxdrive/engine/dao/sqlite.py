@@ -881,12 +881,6 @@ class EngineDAO(ConfigurationDAO):
             (row_id, name, parent),
         ).fetchone()
 
-    def remove_local_path(self, row_id: int) -> None:
-        with self._lock:
-            con = self._get_write_connection()
-            c = con.cursor()
-            c.execute("UPDATE States SET local_path = '' WHERE id = ?", (row_id,))
-
     def update_local_state(
         self, row: DocPair, info: FileInfo, versioned: bool = True, queue: bool = True
     ) -> None:
@@ -1104,13 +1098,12 @@ class EngineDAO(ConfigurationDAO):
         self, row_id: int, from_write: bool = False
     ) -> Optional[DocPair]:
         if from_write:
-            from_write = False
+            self._lock.acquire()
+            c = self._get_write_connection().cursor()
+        else:
+            c = self._get_read_connection().cursor()
+
         try:
-            if from_write:
-                self._lock.acquire()
-                c = self._get_write_connection().cursor()
-            else:
-                c = self._get_read_connection().cursor()
             state = c.execute("SELECT * FROM States WHERE id = ?", (row_id,)).fetchone()
         finally:
             if from_write:
