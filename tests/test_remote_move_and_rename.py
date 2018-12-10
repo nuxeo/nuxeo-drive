@@ -829,3 +829,78 @@ class TestRemoteFiles(UnitTestCase):
         children = local.get_children_info("/")
         assert len(children) == 1
         assert children[0].name == filename_upper
+
+    def test_remote_create_folders_upper_lower_cases(self):
+        """
+        Check that remote (lower|upper)case renaming is taken
+        into account locally. See NXDRIVE-927.
+        """
+        remote = self.remote_1
+        local = self.local_1
+        engine = self.engine_1
+        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+
+        # Create innocent folders, upper case
+        folder1 = remote.make_folder(workspace_id, "AA_1").uid
+        folder1_uid = folder1.partition("#")[-1]
+        folder2 = remote.make_folder(workspace_id, "BA_1").uid
+        folder2_uid = folder2.partition("#")[-1]
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Check
+        for folder in ("/AA_1", "/BA_1"):
+            assert remote.exists(folder)
+            assert local.exists(folder)
+
+        # Remotely rename the folder2 to lowercase folder1
+        foldername_lower = "aa_1"
+        remote.rename(folder2, foldername_lower)
+        self.wait_sync(wait_for_async=True)
+
+        if WINDOWS:
+            # There should be a conflict
+            errors = engine.get_dao().get_errors()
+            assert len(errors) == 1
+            assert errors[0].remote_ref.endswith(folder2_uid)
+        else:
+            # We should not have any error
+            assert not engine.get_dao().get_errors(limit=0)
+
+        # Check - server
+        children = list(
+            sorted(remote.get_children_info(self.workspace_1), key=lambda x: x.name)
+        )
+        assert len(children) == 2
+        assert folder1_uid.endswith(children[0].uid)
+        assert children[0].name == "AA_1"
+        assert folder2_uid.endswith(children[1].uid)
+        assert children[1].name == foldername_lower
+
+        # Check - client
+        children = list(sorted(local.get_children_info("/"), key=lambda x: x.name))
+        assert len(children) == 2
+        assert children[0].remote_ref.endswith(folder1_uid)
+        assert children[0].name == "AA_1"
+        assert children[1].remote_ref.endswith(folder2_uid)
+        if WINDOWS:
+            # The rename was _not_ effective
+            assert children[1].path.endswith("BA_1")
+
+            # Re-rename the folder on the server
+            remote.rename(folder2, "aZeRtY")
+            self.wait_sync(wait_for_async=True)
+
+            # There should be no more conflict
+            assert not engine.get_dao().get_errors()
+
+            # And the local folder must be renamed
+            children = list(sorted(local.get_children_info("/"), key=lambda x: x.name))
+            assert len(children) == 2
+            assert children[0].remote_ref.endswith(folder1_uid)
+            assert children[0].name == "AA_1"
+            assert children[1].remote_ref.endswith(folder2_uid)
+            assert children[1].path.endswith("aZeRtY")
+        else:
+            # The rename was effective
+            assert children[1].path.endswith(foldername_lower)
