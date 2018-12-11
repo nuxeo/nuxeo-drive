@@ -67,15 +67,16 @@ create() {
         # New alpha version:
         #    - checkout the last commit
         #    - update the version number and release date
-        echo ">>> [${release_type}] Update informations into a new headless branch"
-        git checkout "$(git log --format='%H' -n 1)"
+        echo ">>> [${release_type}] Update informations into a new branch"
         drive_version="$(python tools/changelog.py --drive-version)"
         alpha_version="$(git describe --always --match="release-*" | cut -d"-" -f3)"
+        git checkout -b "wip-alpha-${drive_version}.${alpha_version}"
         sed -i s"/^__version__ = \".*\"/__version__ = \"${drive_version}.${alpha_version}\"/" nxdrive/__init__.py
         sed -i s"/^Release date: \`.*\`/Release date: \`$(date '+%Y-%m-%d')\`/" "docs/changes/${drive_version}.md" || true
         git add nxdrive/__init__.py
         git add "docs/changes/${drive_version}.md" || true
         git commit -m "Bump version to ${drive_version}.${alpha_version}"
+        git push --set-upstream origin "wip-alpha-${drive_version}.${alpha_version}"
     fi
 
     drive_version="$(python tools/changelog.py --drive-version)"

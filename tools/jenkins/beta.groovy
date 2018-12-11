@@ -34,7 +34,7 @@ timestamps {
             }
 
             stage('Create') {
-                differ_commits = sh script: "git describe --always | cut -d'-' -f3", returnStdout: true
+                differ_commits = sh script: "git describe --always --match='alpha-*' | cut -d'-' -f3", returnStdout: true
                 differ_commits = differ_commits.trim()
                 if (differ_commits == '0') {
                     currentBuild.description = 'Skip: no new commit'

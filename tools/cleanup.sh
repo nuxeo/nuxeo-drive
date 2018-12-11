@@ -40,13 +40,14 @@ main() {
     echo ">>> Uploading versions.yml"
     rsync -vz versions.yml nuxeo@lethe.nuxeo.com:${path}
 
-    echo ">>> Removing binaries and tags:"
+    echo ">>> Removing binaries, tags and branches:"
     for release in ${cmd}; do
         version="$(echo ${release} | sed s'/alpha-//')"
         echo " - ${version}"
-        ssh -T nuxeo@lethe.nuxeo.com "rm -vf ${path}/alpha/*${version}*"
-        git tag --delete "${release}"
-        git push --delete origin "${release}"
+        ssh -T nuxeo@lethe.nuxeo.com "rm -vf ${path}/alpha/*${version}*" || true
+        git tag --delete "${release}" || true
+        git push --delete origin "wip-${release}" || true  # branch
+        git push --delete origin "${release}" || true  # tag
     done
 }
 
