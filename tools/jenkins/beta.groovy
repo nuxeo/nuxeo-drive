@@ -34,12 +34,16 @@ timestamps {
             }
 
             stage('Create') {
-                differ_commits = sh script: "git describe --always --match='alpha-*' | cut -d'-' -f3", returnStdout: true
-                differ_commits = differ_commits.trim()
-                if (differ_commits == '0') {
-                    currentBuild.description = 'Skip: no new commit'
-                    currentBuild.result = 'ABORTED'
-                    return
+                if (release_type == 'alpha') {
+                    release = sh script: "git tag -l 'alpha-*' --sort=-taggerdate | head -n1", returnStdout: true
+                    release = release.trim()
+                    differ_commits = sh script: "git describe --always --match='alpha-*' | cut -d'-' -f3", returnStdout: true
+                    differ_commits = differ_commits.trim()
+                    if (release == '' || differ_commits == '0') {
+                        currentBuild.description = 'Skip: no new commit'
+                        currentBuild.result = 'ABORTED'
+                        return
+                    }
                 }
 
                 sshagent([credential_id]) {
