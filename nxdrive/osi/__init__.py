@@ -1,5 +1,6 @@
 # coding: utf-8
 from logging import getLogger
+from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from ..constants import MAC, WINDOWS
@@ -29,7 +30,7 @@ class AbstractOSIntegration:
         return False
 
     @staticmethod
-    def is_partition_supported(folder: str) -> bool:
+    def is_partition_supported(folder: Path) -> bool:
         return True
 
     def uninstall(self) -> None:
@@ -45,16 +46,16 @@ class AbstractOSIntegration:
     def register_protocol_handlers(self) -> None:
         pass
 
-    def watch_folder(self, folder: str) -> None:
+    def watch_folder(self, folder: Path) -> None:
         pass
 
-    def unwatch_folder(self, folder: str) -> None:
+    def unwatch_folder(self, folder: Path) -> None:
         pass
 
-    def send_sync_status(self, state: DocPair, path: str) -> None:
+    def send_sync_status(self, state: DocPair, path: Path) -> None:
         pass
 
-    def send_content_sync_status(self, states: List[DocPair], path: str) -> None:
+    def send_content_sync_status(self, states: List[DocPair], path: Path) -> None:
         pass
 
     def register_contextual_menu(self) -> None:
@@ -63,7 +64,7 @@ class AbstractOSIntegration:
     def unregister_contextual_menu(self) -> None:
         pass
 
-    def register_folder_link(self, folder_path: str, name: str = None) -> None:
+    def register_folder_link(self, folder_path: Path, name: str = None) -> None:
         pass
 
     def unregister_folder_link(self, name: str = None) -> None:

@@ -4,8 +4,10 @@ import os
 import stat
 import subprocess
 import sys
+import unicodedata
 from contextlib import suppress
 from logging import getLogger
+from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import xattr
@@ -30,7 +32,7 @@ from ...constants import APP_NAME, BUNDLE_IDENTIFIER
 from ...objects import DocPair
 from ...options import Options
 from ...translator import Translator
-from ...utils import force_decode, if_frozen, normalized_path
+from ...utils import force_decode, if_frozen
 
 if TYPE_CHECKING:
     from ...manager import Manager  # noqa
@@ -74,8 +76,8 @@ class DarwinIntegration(AbstractOSIntegration):
         subprocess.call(["pluginkit", "-r", self.FINDERSYNC_PATH])
         subprocess.call(["pluginkit", "-e", "ignore", "-i", BUNDLE_IDENTIFIER])
 
-    def _get_agent_file(self) -> str:
-        return os.path.expanduser(f"~/Library/LaunchAgents/{BUNDLE_IDENTIFIER}.plist")
+    def _get_agent_file(self) -> Path:
+        return Path(f"~/Library/LaunchAgents/{BUNDLE_IDENTIFIER}.plist").expanduser()
 
     @if_frozen
     def register_startup(self) -> bool:
@@ -84,26 +86,26 @@ class DarwinIntegration(AbstractOSIntegration):
         http://developer.apple.com/library/mac/#documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html
         """
         agent = self._get_agent_file()
-        if os.path.isfile(agent):
+        if agent.is_file():
             return False
 
-        agents_folder = os.path.dirname(agent)
-        if not os.path.exists(agents_folder):
-            log.debug(f"Making launch agent folder {agents_folder!r}")
-            os.makedirs(agents_folder)
+        parent = agent.parent
+        if not parent.exists():
+            log.debug(f"Making launch agent folder {parent!r}")
+            parent.mkdir(parents=True)
 
         exe = os.path.realpath(sys.executable)
         log.debug(f"Registering {exe!r} for startup in {agent!r}")
-        with open(agent, "w") as f:
+        with agent.open(mode="w") as f:
             f.write(self.NDRIVE_AGENT_TEMPLATE % exe)
         return True
 
     @if_frozen
     def unregister_startup(self) -> bool:
         agent = self._get_agent_file()
-        if os.path.isfile(agent):
+        if agent.is_file():
             log.debug(f"Unregistering startup agent {agent!r}")
-            os.remove(agent)
+            agent.unlink()
             return True
         return False
 
@@ -123,23 +125,22 @@ class DarwinIntegration(AbstractOSIntegration):
         )
 
     @staticmethod
-    def is_partition_supported(folder: str) -> bool:
+    def is_partition_supported(folder: Path) -> bool:
         if folder is None:
             return False
         result = False
-        to_delete = not os.path.exists(folder)
+        to_delete = not folder.exists()
         try:
             if to_delete:
-                os.mkdir(folder)
+                folder.mkdir()
             if not os.access(folder, os.W_OK):
-                os.chmod(
-                    folder,
+                folder.chmod(
                     stat.S_IXUSR
                     | stat.S_IRGRP
                     | stat.S_IXGRP
                     | stat.S_IRUSR
                     | stat.S_IWGRP
-                    | stat.S_IWUSR,
+                    | stat.S_IWUSR
                 )
             key, value = "drive-test", b"drive-test"
             xattr.setxattr(folder, key, value)
@@ -149,7 +150,7 @@ class DarwinIntegration(AbstractOSIntegration):
         finally:
             if to_delete:
                 with suppress(OSError):
-                    os.rmdir(folder)
+                    folder.rmdir()
         return result
 
     def _send_notification(self, name: str, content: Dict[str, Any]) -> None:
@@ -163,7 +164,7 @@ class DarwinIntegration(AbstractOSIntegration):
         nc = NSDistributedNotificationCenter.defaultCenter()
         nc.postNotificationName_object_userInfo_(name, None, content)
 
-    def _set_monitoring(self, operation: str, path: str) -> None:
+    def _set_monitoring(self, operation: str, path: Path) -> None:
         """
         Set the monitoring of a folder by the FinderSync.
 
@@ -171,20 +172,20 @@ class DarwinIntegration(AbstractOSIntegration):
         :param path: path to the folder
         """
         name = f"{BUNDLE_IDENTIFIER}.watchFolder"
-        self._send_notification(name, {"operation": operation, "path": path})
+        self._send_notification(name, {"operation": operation, "path": str(path)})
 
     @if_frozen
-    def watch_folder(self, folder: str) -> None:
+    def watch_folder(self, folder: Path) -> None:
         log.debug(f"FinderSync now watching {folder!r}")
         self._set_monitoring("watch", folder)
 
     @if_frozen
-    def unwatch_folder(self, folder: str) -> None:
+    def unwatch_folder(self, folder: Path) -> None:
         log.debug(f"FinderSync now ignoring {folder!r}")
         self._set_monitoring("unwatch", folder)
 
     @if_frozen
-    def send_sync_status(self, state: DocPair, path: str) -> None:
+    def send_sync_status(self, state: DocPair, path: Path) -> None:
         """
         Send the sync status of a file to the FinderSync.
 
@@ -192,8 +193,7 @@ class DarwinIntegration(AbstractOSIntegration):
         :param path: full path of the file
         """
         try:
-            path = force_decode(path)
-            if not os.path.exists(path):
+            if not path.exists():
                 return
 
             name = f"{BUNDLE_IDENTIFIER}.syncStatus"
@@ -205,7 +205,7 @@ class DarwinIntegration(AbstractOSIntegration):
             log.exception("Error while trying to send status to FinderSync")
 
     @if_frozen
-    def send_content_sync_status(self, states: List[DocPair], path: str) -> None:
+    def send_content_sync_status(self, states: List[DocPair], path: Path) -> None:
         """
         Send the sync status of the content of a folder to the FinderSync.
 
@@ -213,8 +213,7 @@ class DarwinIntegration(AbstractOSIntegration):
         :param path: full path of the folder
         """
         try:
-            path = force_decode(path)
-            if not os.path.exists(path):
+            if not path.exists():
                 return
 
             name = f"{BUNDLE_IDENTIFIER}.syncStatus"
@@ -228,7 +227,7 @@ class DarwinIntegration(AbstractOSIntegration):
             for i in range(0, len(states), batch_size):
                 states_batch = states[i : i + batch_size]
                 statuses = [
-                    self._formatted_status(state, os.path.join(path, state.local_name))
+                    self._formatted_status(state, path / state.local_name)
                     for state in states_batch
                 ]
                 log.trace(
@@ -239,10 +238,10 @@ class DarwinIntegration(AbstractOSIntegration):
         except:
             log.exception("Error while trying to send status to FinderSync")
 
-    def _formatted_status(self, state: DocPair, path: str) -> Dict[str, str]:
+    def _formatted_status(self, state: DocPair, path: Path) -> Dict[str, str]:
         status = "unsynced"
 
-        readonly = (os.stat(path).st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
+        readonly = (path.stat().st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
         if readonly:
             status = "locked"
         elif state:
@@ -256,7 +255,7 @@ class DarwinIntegration(AbstractOSIntegration):
                 status = "unsynced"
             elif state.processor != 0:
                 status = "syncing"
-        return {"status": status, "path": path}
+        return {"status": status, "path": str(path)}
 
     @if_frozen
     def register_contextual_menu(self) -> None:
@@ -266,21 +265,20 @@ class DarwinIntegration(AbstractOSIntegration):
         entries = [Translator.get(f"CONTEXT_MENU_{i}") for i in range(1, 4)]
         self._send_notification(name, {"entries": entries})
 
-    def register_folder_link(self, folder_path: str, name: str = None) -> None:
+    def register_folder_link(self, path: Path, name: str = None) -> None:
         favorites = self._get_favorite_list() or []
         if not favorites:
             log.warning("Could not fetch the Finder favorite list.")
             return
 
-        folder_path = normalized_path(folder_path)
         name = os.path.basename(name) if name else APP_NAME
 
         if self._find_item_in_list(favorites, name):
             return
 
-        url = CFURLCreateWithString(None, f"file://{quote(folder_path)}", None)
+        url = CFURLCreateWithString(None, f"file://{quote(str(path))}", None)
         if not url:
-            log.warning(f"Could not generate valid favorite URL for: {folder_path!r}")
+            log.warning(f"Could not generate valid favorite URL for: {path!r}")
             return
 
         # Register the folder as favorite if not already there
@@ -288,7 +286,7 @@ class DarwinIntegration(AbstractOSIntegration):
             favorites, kLSSharedFileListItemBeforeFirst, name, None, url, {}, []
         )
         if item:
-            log.debug(f"Registered new favorite in Finder for: {folder_path!r}")
+            log.debug(f"Registered new favorite in Finder for: {path!r}")
 
     def unregister_folder_link(self, name: str = None) -> None:
         favorites = self._get_favorite_list()
@@ -382,8 +380,8 @@ class FinderSyncServer(QTcpServer):
         cmd = data.get("cmd", None)
 
         if cmd == "get-status":
-            path = data["path"]
-            if path:
+            if "path" in data:
+                path = Path(unicodedata.normalize("NFC", force_decode(data["path"])))
                 self.manager.send_sync_status(path)
         elif cmd == "trigger-watch":
             for engine in self.manager._engine_definitions:

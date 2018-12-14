@@ -7,6 +7,7 @@ import os
 import re
 import stat
 from logging import getLogger
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 from urllib.parse import urlsplit, urlunsplit
 
@@ -390,9 +391,9 @@ def version_lt(x: str, y: str) -> bool:
     return version_compare_client(x, y) < 0
 
 
-def normalized_path(path: str) -> str:
+def normalized_path(path: str) -> Path:
     """ Return absolute, normalized file path. """
-    return os.path.realpath(os.path.normpath(os.path.abspath(force_decode(path))))
+    return Path(force_decode(path)).expanduser().resolve()
 
 
 def normalize_event_filename(filename: str, action: bool = True) -> str:

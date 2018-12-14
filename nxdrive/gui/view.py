@@ -116,7 +116,7 @@ class EngineModel(QAbstractListModel):
         elif role == "server":
             return row.name
         elif role == "folder":
-            return row.local_folder
+            return str(row.local_folder)
         elif role == "username":
             return row.remote_user
         elif role == "url":

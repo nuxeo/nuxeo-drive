@@ -4,6 +4,7 @@ import sys
 from contextlib import suppress
 from ctypes import windll  # type: ignore
 from logging import getLogger
+from pathlib import Path
 from typing import Any, Dict
 
 import win32api
@@ -41,7 +42,8 @@ class WindowsIntegration(AbstractOSIntegration):
         return self.__zoom_factor
 
     @staticmethod
-    def is_partition_supported(folder: str) -> bool:
+    def is_partition_supported(path: Path) -> bool:
+        folder = str(path)
         if folder[-1] != os.path.sep:
             folder = folder + os.path.sep
         if win32file.GetDriveType(folder) != win32file.DRIVE_FIXED:
@@ -115,15 +117,15 @@ class WindowsIntegration(AbstractOSIntegration):
             registry.delete(f"Software\\Classes\\{item}\\shell\\{APP_NAME}")
 
     @if_frozen
-    def register_folder_link(self, folder_path: str, name: str = None) -> None:
+    def register_folder_link(self, path: Path, name: str = None) -> None:
         favorite = self._get_folder_link(name)
-        if not os.path.isfile(favorite):
-            self._create_shortcut(favorite, folder_path)
+        if not favorite.is_file():
+            self._create_shortcut(favorite, path)
 
     @if_frozen
     def unregister_folder_link(self, name: str = None) -> None:
         with suppress(OSError):
-            os.remove(self._get_folder_link(name))
+            self._get_folder_link(name).unlink()
 
     @if_frozen
     def register_startup(self) -> bool:
@@ -138,18 +140,18 @@ class WindowsIntegration(AbstractOSIntegration):
             "Software\\Microsoft\\Windows\\CurrentVersion\\Run", APP_NAME
         )
 
-    def _create_shortcut(self, favorite: str, filepath: str) -> None:
+    def _create_shortcut(self, favorite: Path, path: Path) -> None:
         try:
             shell = Dispatch("WScript.Shell")
-            shortcut = shell.CreateShortCut(favorite)
-            shortcut.Targetpath = filepath
-            shortcut.WorkingDirectory = os.path.dirname(filepath)
-            shortcut.IconLocation = filepath
+            shortcut = shell.CreateShortCut(str(favorite))
+            shortcut.Targetpath = str(path)
+            shortcut.WorkingDirectory = str(path.parent)
+            shortcut.IconLocation = str(path)
             shortcut.save()
         except:
-            log.exception(f"Could not create the favorite for {filepath!r}")
+            log.exception(f"Could not create the favorite for {path!r}")
         else:
-            log.debug(f"Registered new favorite in Explorer for {filepath!r}")
+            log.debug(f"Registered new favorite in Explorer for {path!r}")
 
-    def _get_folder_link(self, name: str = None) -> str:
-        return os.path.join(Options.home, "Links", (name or APP_NAME) + ".lnk")
+    def _get_folder_link(self, name: str = None) -> Path:
+        return Options.home / "Links" / f"{name or APP_NAME}.lnk"
