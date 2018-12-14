@@ -2,10 +2,10 @@
 import os
 import platform
 import subprocess
-import unicodedata
 import uuid
 from contextlib import suppress
 from logging import getLogger
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING
 from urllib.parse import urljoin, urlparse
 
@@ -86,18 +86,16 @@ class Manager(QObject):
         self._platform = get_current_os_full()
 
         # Primary attributes to allow initializing the notification center early
-        self.nxdrive_home = os.path.realpath(Options.nxdrive_home)
-        if not os.path.exists(self.nxdrive_home):
-            os.mkdir(self.nxdrive_home)
+        self.nxdrive_home = normalized_path(Options.nxdrive_home)
+        if not self.nxdrive_home.exists():
+            self.nxdrive_home.mkdir()
 
         self._create_dao()
 
         self.notification_service = DefaultNotificationService(self)
         self.osi = AbstractOSIntegration.get(self)
 
-        self.direct_edit_folder = os.path.join(
-            normalized_path(self.nxdrive_home), "edit"
-        )
+        self.direct_edit_folder = self.nxdrive_home / "edit"
 
         self._engine_definitions: List[EngineDef] = []
 
@@ -225,8 +223,8 @@ class Manager(QObject):
         self.started.connect(tracker._thread.start)
         return tracker
 
-    def _get_db(self) -> str:
-        return os.path.join(normalized_path(self.nxdrive_home), "manager.db")
+    def _get_db(self) -> Path:
+        return self.nxdrive_home / "manager.db"
 
     def get_dao(self) -> ManagerDAO:  # TODO: Remove
         return self._dao
@@ -515,7 +513,7 @@ class Manager(QObject):
 
     def bind_server(
         self,
-        local_folder: str,
+        local_folder: Path,
         url: str,
         username: str,
         password: str = None,
@@ -545,34 +543,30 @@ class Manager(QObject):
         urlp = urlparse(server_url)
         return urlp.hostname
 
-    def check_local_folder_available(self, local_folder: str) -> bool:
+    def check_local_folder_available(self, path: Path) -> bool:
         if not self._engine_definitions:
             return True
-        if not local_folder.endswith("/"):
-            local_folder += "/"
         for engine in self._engine_definitions:
             other = engine.local_folder
-            if not other.endswith("/"):
-                other += "/"
-            if other.startswith(local_folder) or local_folder.startswith(other):
+            if path in other.parents or other in path.parents:
                 return False
         return True
 
-    def update_engine_path(self, uid: str, local_folder: str) -> None:
+    def update_engine_path(self, uid: str, path: Path) -> None:
         # Dont update the engine by itself,
         # should be only used by engine.update_engine_path
         if uid in self._engines:
             # Unwatch old folder
             self.osi.unwatch_folder(self._engines[uid].local_folder)
-            self._engines[uid].local_folder = local_folder
+            self._engines[uid].local_folder = path
         # Watch new folder
-        self.osi.watch_folder(local_folder)
-        self._dao.update_engine_path(uid, local_folder)
+        self.osi.watch_folder(path)
+        self._dao.update_engine_path(uid, path)
 
     def bind_engine(
         self,
         engine_type: str,
-        local_folder: str,
+        local_folder: Path,
         name: Optional[str],
         binder: Binder,
         starts: bool = True,
@@ -601,7 +595,6 @@ class Manager(QObject):
 
         if not local_folder:
             local_folder = get_default_nuxeo_drive_folder()
-        local_folder = normalized_path(local_folder)
         if local_folder == self.nxdrive_home:
             # Prevent from binding in the configuration folder
             raise FolderAlreadyUsed()
@@ -674,78 +667,73 @@ class Manager(QObject):
         log.debug("No engine currently synchronizing")
         return False
 
-    def get_root_id(self, file_path: str) -> str:
-        ref = LocalClient.get_path_remote_id(file_path, "ndriveroot")
+    def get_root_id(self, path: Path) -> str:
+        ref = LocalClient.get_path_remote_id(path, "ndriveroot")
         if not ref:
-            parent = os.path.dirname(file_path)
+            parent = path.parent
             # We can't find in any parent
-            if parent == file_path or parent is None:
+            if parent == path or parent is None:
                 return ""
             return self.get_root_id(parent)
         return ref
 
-    def ctx_access_online(self, file_path: str) -> None:
+    def ctx_access_online(self, path: Path) -> None:
         """ Open the user's browser to a remote document. """
 
-        log.debug(f"Opening metadata window for {file_path!r}")
+        log.debug(f"Opening metadata window for {path!r}")
         try:
-            url = self.get_metadata_infos(file_path)
+            url = self.get_metadata_infos(path)
         except ValueError:
             log.warning(
-                f"The document {file_path!r} is not handled by the Nuxeo server "
+                f"The document {path!r} is not handled by the Nuxeo server "
                 "or is not synchronized yet."
             )
         else:
             self.open_local_file(url)
 
-    def ctx_copy_share_link(self, file_path: str) -> None:
+    def ctx_copy_share_link(self, path: Path) -> None:
         """ Copy the document's share-link to the clipboard. """
 
-        url = self.get_metadata_infos(file_path)
+        url = self.get_metadata_infos(path)
         copy_to_clipboard(url)
         log.info(f"Copied {url!r}")
 
-    def ctx_edit_metadata(self, file_path: str) -> None:
+    def ctx_edit_metadata(self, path: Path) -> None:
         """ Open the user's browser to a remote document's metadata. """
 
-        log.debug(f"Opening metadata window for {file_path!r}")
+        log.debug(f"Opening metadata window for {path!r}")
         try:
-            url = self.get_metadata_infos(file_path, edit=True)
+            url = self.get_metadata_infos(path, edit=True)
         except ValueError:
             log.warning(
-                f"The document {file_path!r} is not handled by the Nuxeo server "
+                f"The document {path!r} is not handled by the Nuxeo server "
                 "or is not synchronized yet."
             )
         else:
             self.open_local_file(url)
 
-    def get_metadata_infos(self, file_path: str, edit: bool = False) -> str:
-        remote_ref = LocalClient.get_path_remote_id(file_path)
+    def get_metadata_infos(self, path: Path, edit: bool = False) -> str:
+        remote_ref = LocalClient.get_path_remote_id(path)
         if not remote_ref:
-            raise ValueError(f"Could not find file {file_path!r} as {APP_NAME} managed")
+            raise ValueError(f"Could not find file {path!r} as {APP_NAME} managed")
 
-        root_id = self.get_root_id(file_path)
+        root_id = self.get_root_id(path)
         root_values = root_id.split("|") if root_id else []
         try:
             engine = self.get_engines()[root_values[3]]
         except:
-            raise ValueError(f"Unknown engine {root_values[3]} for {file_path!r}")
+            raise ValueError(f"Unknown engine {root_values[3]} for {path!r}")
 
         return engine.get_metadata_url(remote_ref, edit=edit)
 
-    def send_sync_status(self, path: str) -> None:
+    def send_sync_status(self, path: Path) -> None:
         for engine in self._engines.values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
-            path = unicodedata.normalize("NFC", force_decode(path))
-
-            if path == engine.local_folder:
-                r_path = "/"
-            elif path.startswith(engine.local_folder_bs):
-                r_path = path.replace(engine.local_folder, "")
-            else:
+            if engine.local_folder not in path.parents:
                 return
 
+            r_path = path.relative_to(engine.local_folder)
             dao = engine._dao
             states = dao.get_local_children(r_path)
             self.osi.send_content_sync_status(states, path)

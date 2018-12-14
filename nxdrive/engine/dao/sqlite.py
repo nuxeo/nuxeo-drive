@@ -15,6 +15,7 @@ from sqlite3 import (
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from threading import RLock, current_thread, local
 from typing import Any, Dict, List, Optional, Tuple, Type, TYPE_CHECKING
 
@@ -108,11 +109,11 @@ class ConfigurationDAO(QObject):
 
     _state_factory = DocPair
 
-    def __init__(self, db: str) -> None:
+    def __init__(self, db: Path) -> None:
         super().__init__()
         log.debug(f"Create DAO on {db!r}")
         self._db = db
-        exists = os.path.isfile(self._db)
+        exists = self._db.is_file()
 
         if exists:
             # Fix potential file corruption
@@ -122,9 +123,8 @@ class ConfigurationDAO(QObject):
                 # The file is too damaged, just recreate it from scratch.
                 # Sync data will not be re-downloaded nor deleted, but a full
                 # scan will be done.
-                os.rename(
-                    self._db, self._db + "_" + str(int(datetime.now().timestamp()))
-                )
+                new_name = f"{self._db.name}_{str(int(datetime.now().timestamp()))}"
+                self._db.rename(self._db.with_name(new_name))
                 exists = False
 
         self.schema_version = self.get_schema_version()
@@ -205,11 +205,11 @@ class ConfigurationDAO(QObject):
     def _create_main_conn(self) -> None:
         log.debug(
             f"Create main connexion on {self._db!r} "
-            f"(dir_exists={os.path.exists(os.path.dirname(self._db))}, "
-            f"file_exists={os.path.exists(self._db)})"
+            f"(dir_exists={self._db.parent.exists()}, "
+            f"file_exists={self._db.exists()})"
         )
         self._conn = connect(
-            self._db,
+            str(self._db),
             check_same_thread=False,
             factory=AutoRetryConnection,
             isolation_level=None,
@@ -246,7 +246,7 @@ class ConfigurationDAO(QObject):
         if getattr(self._conns, "_conn", None) is None:
             # Dont check same thread for closing purpose
             self._conns._conn = connect(
-                self._db,
+                str(self._db),
                 check_same_thread=False,
                 factory=AutoRetryConnection,
                 isolation_level=None,
@@ -463,22 +463,22 @@ class ManagerDAO(ConfigurationDAO):
         c = self._get_read_connection().cursor()
         return c.execute("SELECT * FROM Engines").fetchall()
 
-    def update_engine_path(self, engine: str, path: str) -> None:
+    def update_engine_path(self, engine: str, path: Path) -> None:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute(
-                "UPDATE Engines SET local_folder = ? WHERE uid = ?", (path, engine)
+                "UPDATE Engines SET local_folder = ? WHERE uid = ?", (str(path), engine)
             )
 
-    def add_engine(self, engine: str, path: str, key: str, name: str) -> EngineDef:
+    def add_engine(self, engine: str, path: Path, key: str, name: str) -> EngineDef:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             c.execute(
                 "INSERT INTO Engines (local_folder, engine, uid, name) "
                 "VALUES (?, ?, ?, ?)",
-                (path, engine, key, name),
+                (str(path), engine, key, name),
             )
             return c.execute("SELECT * FROM Engines WHERE uid = ?", (key,)).fetchone()
 
@@ -1051,16 +1051,16 @@ class EngineDAO(ConfigurationDAO):
             "SELECT * FROM States WHERE error_count > ?", (limit,)
         ).fetchall()
 
-    def get_local_children(self, path: str) -> DocPairs:
+    def get_local_children(self, path: Path) -> DocPairs:
         c = self._get_read_connection().cursor()
         return c.execute(
-            "SELECT * FROM States WHERE local_parent_path = ?", (path,)
+            "SELECT * FROM States WHERE local_parent_path = ?", (str(path),)
         ).fetchall()
 
-    def get_states_from_partial_local(self, path: str) -> DocPairs:
+    def get_states_from_partial_local(self, path: Path) -> DocPairs:
         c = self._get_read_connection().cursor()
         return c.execute(
-            "SELECT * FROM States WHERE local_path LIKE ?", (f"{path}%",)
+            "SELECT * FROM States WHERE local_path LIKE ?", (f"{str(path)}%",)
         ).fetchall()
 
     def get_first_state_from_partial_remote(self, ref: str) -> Optional[DocPair]:

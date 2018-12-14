@@ -2,6 +2,7 @@
 from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
+from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Tuple, TYPE_CHECKING
 
 import psutil
@@ -28,10 +29,10 @@ class ProcessAutoLockerWorker(PollWorker):
     documentLocked = pyqtSignal(str)
     documentUnlocked = pyqtSignal(str)
 
-    def __init__(self, check_interval: int, dao: "ManagerDAO", folder: str) -> None:
+    def __init__(self, check_interval: int, dao: "ManagerDAO", folder: Path) -> None:
         super().__init__(check_interval)
         self._dao = dao
-        self._folder = force_decode(folder)
+        self._folder = folder
 
         self._autolocked: Dict[str, int] = {}
         self._lockers: Dict[str, "DirectEdit"] = {}

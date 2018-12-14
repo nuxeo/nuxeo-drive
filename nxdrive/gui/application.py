@@ -3,6 +3,7 @@
 import sys
 from logging import getLogger
 from math import sqrt
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
@@ -42,6 +43,7 @@ from ..utils import (
     force_decode,
     get_device,
     if_frozen,
+    normalized_path,
     parse_protocol_url,
     short_name,
 )
@@ -918,8 +920,8 @@ class Application(QApplication):
 
         return continue_with_bad_ssl_cert
 
-    def show_metadata(self, file_path: str) -> None:
-        self.manager.ctx_edit_metadata(file_path)
+    def show_metadata(self, path: Path) -> None:
+        self.manager.ctx_edit_metadata(path)
 
     @pyqtSlot(bool)
     def load_icons_set(self, use_light_icons: bool = False) -> None:
@@ -1014,7 +1016,7 @@ class Application(QApplication):
             return False
 
         cmd = info["command"]
-        path = info.get("filepath", "")
+        path = normalized_path(info.get("filepath", ""))
         manager = self.manager
 
         log.debug(f"Event URL={url}, info={info!r}")

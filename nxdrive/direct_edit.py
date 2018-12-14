@@ -3,6 +3,7 @@ import os
 import shutil
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from queue import Empty, Queue
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
@@ -61,11 +62,11 @@ class DirectEdit(Worker):
     directEditStarting = pyqtSignal(str, str)
     directEditLocked = pyqtSignal(str, str, datetime)
 
-    def __init__(self, manager: "Manager", folder: str, url: str) -> None:
+    def __init__(self, manager: "Manager", folder: Path, url: str) -> None:
         super().__init__()
 
         self._manager = manager
-        self._folder = force_decode(folder)
+        self._folder = folder
         self.url = url
 
         self.autolock = self._manager.autolock_service

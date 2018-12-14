@@ -12,6 +12,7 @@ import uuid
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from time import mktime, strptime
 from typing import Any, List, Optional, Tuple, Union
 
@@ -398,17 +399,17 @@ FolderType=Generic
         return value
 
     @staticmethod
-    def get_path_remote_id(path: str, name: str = "ndrive") -> str:
+    def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
         if WINDOWS:
-            path += ":" + name
+            path = path.with_name(f"{path.name}:{name}")
             try:
-                with open(path, "rb") as f:
+                with path.open(mode="rb") as f:
                     return f.read().decode("utf-8")
             except OSError:
                 return ""
 
         if LINUX:
-            name = "user." + name
+            name = f"user.{name}"
 
         try:
             return xattr.getxattr(path, name).decode("utf-8")

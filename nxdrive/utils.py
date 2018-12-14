@@ -171,7 +171,7 @@ def get_device() -> str:
     return device
 
 
-def get_default_nuxeo_drive_folder() -> str:
+def get_default_nuxeo_drive_folder() -> Path:
     """
     Find a reasonable location for the root Nuxeo Drive folder
 
@@ -206,10 +206,10 @@ def get_default_nuxeo_drive_folder() -> str:
                 "Access denied to the API SHGetFolderPath,"
                 " falling back on manual detection"
             )
-            folder = os.path.join(Options.home, "Documents")
+            folder = Options.home / "Documents"
 
     folder = increment_local_folder(folder, APP_NAME)
-    return force_decode(folder)
+    return folder
 
 
 def get_value(value: str) -> Union[bool, str, Tuple[str, ...]]:
@@ -225,17 +225,17 @@ def get_value(value: str) -> Union[bool, str, Tuple[str, ...]]:
     return value
 
 
-def increment_local_folder(basefolder: str, name: str) -> str:
+def increment_local_folder(basefolder: Path, name: str) -> Path:
     """Increment the number for a possible local folder.
     Example: "Nuxeo Drive" > "Nuxeo Drive 2" > "Nuxeo Drive 3"
     """
-    folder = os.path.join(basefolder, name)
+    folder = basefolder / name
     for num in range(2, 42):
-        if not os.path.isdir(folder):
+        if not folder.is_dir():
             break
-        folder = os.path.join(basefolder, f"{name} {num}")
+        folder = basefolder / f"{name} {num}"
     else:
-        folder = ""
+        folder = Path()
     return folder
 
 
