@@ -34,6 +34,7 @@ from ..options import Options
 from ..utils import (
     force_decode,
     lock_path,
+    normalized_path,
     safe_os_filename,
     safe_long_path,
     set_path_readonly,
@@ -159,22 +160,22 @@ class LocalClient:
             DOWNLOAD_TMP_FILE_SUFFIX
         )
 
-    def set_readonly(self, ref: str) -> None:
+    def set_readonly(self, ref: Path) -> None:
         path = self.abspath(ref)
         set_path_readonly(path)
 
-    def unset_readonly(self, ref: str) -> None:
+    def unset_readonly(self, ref: Path) -> None:
         path = self.abspath(ref)
-        if os.path.exists(path):
+        if path.exists():
             unset_path_readonly(path)
 
     def clean_xattr_root(self) -> None:
-        self.unlock_ref("/", unlock_parent=False)
+        self.unlock_ref(Path(), unlock_parent=False)
         with suppress(OSError):
             self.remove_root_id()
-        self.clean_xattr_folder_recursive("/")
+        self.clean_xattr_folder_recursive(Path())
 
-    def clean_xattr_folder_recursive(self, path: str) -> None:
+    def clean_xattr_folder_recursive(self, path: Path) -> None:
         for child in self.get_children_info(path):
             locker = self.unlock_ref(child.path, unlock_parent=False)
             if child.remote_ref:
@@ -184,33 +185,33 @@ class LocalClient:
                 self.clean_xattr_folder_recursive(child.path)
 
     def remove_root_id(self) -> None:
-        self.remove_remote_id("/", name="ndriveroot")
+        self.remove_remote_id(Path(), name="ndriveroot")
 
     def set_root_id(self, value: bytes) -> None:
-        self.set_remote_id("/", value, name="ndriveroot")
+        self.set_remote_id(Path(), value, name="ndriveroot")
 
     def get_root_id(self) -> str:
-        return self.get_remote_id("/", name="ndriveroot")
+        return self.get_remote_id(Path(), name="ndriveroot")
 
-    def _remove_remote_id_windows(self, path: str, name: str = "ndrive") -> None:
-        path_alt = path + ":" + name
+    def _remove_remote_id_windows(self, path: Path, name: str = "ndrive") -> None:
+        path_alt = path.with_name(f"{path.name}:{name}")
         try:
-            os.remove(path_alt)
+            path_alt.unlink()
         except OSError as e:
             if e.errno != errno.EACCES:
                 raise e
             unset_path_readonly(path)
             try:
-                os.remove(path_alt)
+                path_alt.unlink()
             finally:
                 set_path_readonly(path)
 
     @staticmethod
-    def _remove_remote_id_unix(path: str, name: str = "ndrive") -> None:
+    def _remove_remote_id_unix(path: Path, name: str = "ndrive") -> None:
         if LINUX:
-            name = "user." + name
+            name = f"user.{name}"
         try:
-            xattr.removexattr(path, name)
+            xattr.removexattr(str(path), name)
         except OSError as exc:
             # EPROTONOSUPPORT: protocol not supported (xattr)
             # ENODATA: no data available
@@ -234,15 +235,15 @@ class LocalClient:
         finally:
             lock_path(path, locker)
 
-    def has_folder_icon(self, ref: str) -> Union[bool, str]:
+    def has_folder_icon(self, ref: Path) -> Union[bool, str]:
         """Check if the folder icon is set.
         On Windows, it may return the version number as str for later use in stats."""
 
         if MAC:
-            return os.path.isfile(os.path.join(self.abspath(ref), "Icon\r"))
+            return (self.abspath(ref) / "Icon\r").is_file()
 
         if WINDOWS:
-            fname = os.path.join(self.abspath(ref), "desktop.ini")
+            fname = self.abspath(ref) / "desktop.ini"
             with suppress(FileNotFoundError):
                 with open(fname) as handler:
                     version = re.findall(
@@ -254,19 +255,19 @@ class LocalClient:
 
         return False
 
-    def set_folder_icon(self, ref: str, icon: str) -> None:
+    def set_folder_icon(self, ref: Path, icon: Path) -> None:
         if MAC:
             self.set_folder_icon_darwin(ref, icon)
         elif WINDOWS:
             self.set_folder_icon_win32(ref, icon)
 
-    def set_folder_icon_win32(self, ref: str, icon: str) -> None:
+    def set_folder_icon_win32(self, ref: Path, icon: Path) -> None:
         """ Configure the icon for a folder on Windows. """
 
         # Desktop.ini file content
         content = f"""
 [.ShellClassInfo]
-IconResource={icon},0
+IconResource={str(icon)},0
 [ViewState]
 Mode=
 Vid=
@@ -274,25 +275,19 @@ FolderType=Generic
 """
         # Create the desktop.ini file inside the ReadOnly shared folder.
         os_path = self.abspath(ref)
-        filename = os.path.join(os_path, "desktop.ini")
+        filename = os_path / "desktop.ini"
         with suppress(FileNotFoundError):
-            os.remove(filename)
+            filename.unlink()
 
-        with open(filename, "w", encoding="utf-8") as handler:
+        with filename.open(mode="w", encoding="utf-8") as handler:
             handler.write(content)
-        win32api.SetFileAttributes(filename, win32con.FILE_ATTRIBUTE_SYSTEM)
-        win32api.SetFileAttributes(filename, win32con.FILE_ATTRIBUTE_HIDDEN)
+
+        win32api.SetFileAttributes(str(filename), win32con.FILE_ATTRIBUTE_SYSTEM)
+        win32api.SetFileAttributes(str(filename), win32con.FILE_ATTRIBUTE_HIDDEN)
 
         # Windows folder use READ_ONLY flag as a customization flag ...
         # https://support.microsoft.com/en-us/kb/326549
-        win32api.SetFileAttributes(os_path, win32con.FILE_ATTRIBUTE_READONLY)
-
-    @staticmethod
-    def _read_data(file_path: str) -> bytes:
-        """ The data file contains macOS icons. """
-
-        with open(file_path, "rb") as dat:
-            return dat.read()
+        win32api.SetFileAttributes(str(os_path), win32con.FILE_ATTRIBUTE_READONLY)
 
     @staticmethod
     def _get_icon_xdata() -> List[int]:
@@ -303,7 +298,7 @@ FolderType=Generic
         result[icon_flag_index] = icon_flag_value
         return result
 
-    def set_folder_icon_darwin(self, ref: str, icon: str) -> None:
+    def set_folder_icon_darwin(self, ref: Path, icon: Path) -> None:
         """
         macOS: configure a folder with a given custom icon
             1. Read the com.apple.ResourceFork extended attribute from the icon file
@@ -319,20 +314,20 @@ FolderType=Generic
         has_icon_xdata = bytes(bytearray(self._get_icon_xdata()))
 
         # Configure 'com.apple.FinderInfo' for the folder
-        xattr.setxattr(target_folder, xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
+        xattr.setxattr(str(target_folder), xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
 
         # Create the 'Icon\r' file
-        meta_file = os.path.join(target_folder, "Icon\r")
-        if os.path.isfile(meta_file):
-            os.remove(meta_file)
-        open(meta_file, "w").close()
+        meta_file = target_folder / "Icon\r"
+        if meta_file.is_file():
+            meta_file.unlink()
+        meta_file.touch()
 
         # Configure 'com.apple.FinderInfo' for the Icon file
-        xattr.setxattr(meta_file, xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
+        xattr.setxattr(str(meta_file), xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
 
         # Configure 'com.apple.ResourceFork' for the Icon file
-        info = self._read_data(icon)
-        xattr.setxattr(meta_file, xattr.XATTR_RESOURCEFORK_NAME, info)
+        info = icon.read_bytes()
+        xattr.setxattr(str(meta_file), xattr.XATTR_RESOURCEFORK_NAME, info)
         os.chflags(meta_file, stat.UF_HIDDEN)  # type: ignore
 
     def set_remote_id(
@@ -346,14 +341,13 @@ FolderType=Generic
         log.trace(f"Setting xattr {name!r} with value {remote_id!r} on {path!r}")
         locker = unlock_path(path, False)
         if WINDOWS:
-            path_alt = f"{path}:{name}"
+            path_alt = path.with_name(f"{path.name}:{name}")
             try:
-                if not os.path.exists(path):
+                if not path.exists():
                     raise NotFound()
 
-                stat_ = os.stat(path)
-                with open(path_alt, "wb") as f:
-                    f.write(remote_id)
+                stat_ = path.stat()
+                path_alt.write_bytes(remote_id)
 
                 # Avoid time modified change
                 os.utime(path, (stat_.st_atime, stat_.st_mtime))
@@ -364,19 +358,18 @@ FolderType=Generic
                 if e.errno != errno.EACCES:
                     raise e
                 unset_path_readonly(path)
-                with open(path_alt, "wb") as f:
-                    f.write(remote_id)
+                path_alt.write_bytes(remote_id)
                 set_path_readonly(path)
             finally:
                 lock_path(path, locker)
             return
 
         if LINUX:
-            name = "user." + name
+            name = f"user.{name}"
 
         try:
-            stat_ = os.stat(path)
-            xattr.setxattr(path, name, remote_id)
+            stat_ = path.stat()
+            xattr.setxattr(str(path), name, remote_id)
             os.utime(path, (stat_.st_atime, stat_.st_mtime))
         except FileNotFoundError:
             pass
@@ -394,8 +387,7 @@ FolderType=Generic
         if WINDOWS:
             path = path.with_name(f"{path.name}:{name}")
             try:
-                with path.open(mode="rb") as f:
-                    return f.read().decode("utf-8")
+                return path.read_text(encoding="utf-8")
             except OSError:
                 return ""
 
@@ -403,7 +395,7 @@ FolderType=Generic
             name = f"user.{name}"
 
         try:
-            return xattr.getxattr(path, name).decode("utf-8")
+            return xattr.getxattr(str(path), name).decode("utf-8")
         except OSError:
             return ""
 
@@ -441,7 +433,7 @@ FolderType=Generic
             size=size,
         )
 
-    def try_get_info(self, ref: str) -> Optional[FileInfo]:
+    def try_get_info(self, ref: Path) -> Optional[FileInfo]:
         try:
             return self.get_info(ref)
         except NotFound:
@@ -451,7 +443,7 @@ FolderType=Generic
         self,
         local_digest: Optional[str],
         remote_digest: Optional[str],
-        local_path: str,
+        local_path: Path,
         remote_digest_algorithm: str = None,
     ) -> bool:
         """
@@ -482,7 +474,7 @@ FolderType=Generic
         digest = file_info.get_digest(digest_func=remote_digest_algorithm)
         return digest == remote_digest
 
-    def is_ignored(self, parent_ref: str, file_name: str) -> bool:
+    def is_ignored(self, parent_ref: Path, file_name: str) -> bool:
         """ Note: added parent_ref to be able to filter on size if needed. """
 
         file_name = force_decode(file_name.lower())
@@ -494,12 +486,12 @@ FolderType=Generic
 
         if WINDOWS:
             # NXDRIVE-465: ignore hidden files on Windows
-            ref = self.get_children_ref(parent_ref, file_name)
+            ref = parent_ref / file_name
             path = self.abspath(ref)
             is_system = win32con.FILE_ATTRIBUTE_SYSTEM
             is_hidden = win32con.FILE_ATTRIBUTE_HIDDEN
             try:
-                attrs = win32api.GetFileAttributes(path)
+                attrs = win32api.GetFileAttributes(str(path))
             except win32file.error:
                 return False
             if attrs & is_system == is_system:
@@ -509,29 +501,27 @@ FolderType=Generic
 
         # NXDRIVE-655: need to check every parent if they are ignored
         result = False
-        if parent_ref != "/":
-            file_name = os.path.basename(parent_ref)
-            parent_ref = os.path.dirname(parent_ref)
+        if parent_ref != Path():
+            file_name = parent_ref.name
+            parent_ref = parent_ref.parent
             result = self.is_ignored(parent_ref, file_name)
 
         return result
 
     @staticmethod
-    def get_children_ref(parent_ref: str, name: str) -> str:
-        if parent_ref == "/":
-            return parent_ref + name
-        return parent_ref + "/" + name
+    def get_children_ref(parent_ref: Path, name: str) -> Path:
+        return parent_ref / name
 
     def get_children_info(self, ref: Path) -> List[FileInfo]:
         os_path = self.abspath(ref)
         result = []
 
-        for child_name in sorted([x for x in os_path.iterdir()]):
-            if self.is_ignored(ref, child_name) or self.is_temp_file(child_name):
-                log.debug(f"Ignoring banned file {child_name!r} in {os_path!r}")
+        for child in sorted([x for x in os_path.iterdir()]):
+            if self.is_ignored(ref, child.name) or self.is_temp_file(child.name):
+                log.debug(f"Ignoring banned file {child.name!r} in {os_path!r}")
                 continue
 
-            child_ref = self.get_children_ref(ref, child_name)
+            child_ref = ref / child.name
             try:
                 info = self.get_info(child_ref)
             except NotFound:
@@ -546,46 +536,40 @@ FolderType=Generic
         return result
 
     def unlock_ref(
-        self, ref: str, unlock_parent: bool = True, is_abs: bool = False
+        self, ref: Path, unlock_parent: bool = True, is_abs: bool = False
     ) -> int:
         path = ref if is_abs else self.abspath(ref)
         return unlock_path(path, unlock_parent)
 
-    def lock_ref(self, ref: str, locker: int, is_abs: bool = False) -> None:
+    def lock_ref(self, ref: Path, locker: int, is_abs: bool = False) -> None:
         path = ref if is_abs else self.abspath(ref)
         lock_path(path, locker)
 
-    def make_folder(self, parent: str, name: str) -> str:
+    def make_folder(self, parent: Path, name: str) -> Path:
         os_path, name = self._abspath_deduped(parent, name)
         locker = self.unlock_ref(parent, unlock_parent=False)
         try:
-            os.mkdir(os_path)
+            os_path.mkdir()
         finally:
             self.lock_ref(parent, locker)
 
         # Name should be the actual name of the folder created locally
-        name = os.path.basename(os_path)
-        if parent == "/":
-            return "/" + name
-        return parent + "/" + name
+        return parent / os_path.name
 
-    def get_new_file(self, parent: str, name: str) -> Tuple[str, str, str]:
+    def get_new_file(self, parent: Path, name: str) -> Tuple[Path, Path, str]:
         os_path, name = self._abspath_deduped(parent, name)
-        if parent == "/":
-            path = "/" + name
-        else:
-            path = parent + "/" + name
+        path = parent / name
         return path, os_path, name
 
-    def delete(self, ref: str) -> None:
+    def delete(self, ref: Path) -> None:
         os_path = self.abspath(ref)
-        if not os.path.exists(os_path):
+        if not os_path.exists():
             return
 
         log.trace(f"Trashing {os_path!r}")
         locker = self.unlock_ref(os_path, is_abs=True)
         try:
-            send2trash(os_path)
+            send2trash(str(os_path))
         except OSError as exc:
             log.error(f"Cannot trash {os_path!r}")
             with suppress(Exception):
@@ -598,7 +582,7 @@ FolderType=Generic
             # Don't want to unlock the current deleted
             self.lock_ref(os_path, locker & 2, is_abs=True)
 
-    def delete_final(self, ref: str) -> None:
+    def delete_final(self, ref: Path) -> None:
         global error
         error = None
 
@@ -611,17 +595,17 @@ FolderType=Generic
         locker = 0
         parent_ref = None
         try:
-            if ref != "/":
-                parent_ref = os.path.dirname(ref)
+            if ref != Path():
+                parent_ref = ref.parent
                 locker = self.unlock_ref(parent_ref, unlock_parent=False)
             self.unset_readonly(ref)
             os_path = self.abspath(ref)
-            if os.path.isfile(os_path):
-                os.unlink(os_path)
-            elif os.path.isdir(os_path):
+            if os_path.is_file():
+                os_path.unlink()
+            elif os_path.is_dir():
                 # Override `onerror` to catch the 1st exception and let other
                 # documents to be deleted.
-                shutil.rmtree(os_path, onerror=onerror)
+                shutil.rmtree(str(os_path), onerror=onerror)
                 if error:
                     raise error
         finally:
@@ -631,14 +615,13 @@ FolderType=Generic
     def exists(self, ref: Path) -> bool:
         return self.abspath(ref).exists()
 
-    def rename(self, ref: str, to_name: str) -> FileInfo:
+    def rename(self, ref: Path, to_name: str) -> FileInfo:
         """ Rename a local file or folder. """
 
         new_name = safe_os_filename(to_name)
         source_os_path = self.abspath(ref)
-        parent = ref.rsplit("/", 1)[0]
-        old_name = ref.rsplit("/", 1)[1]
-        parent = parent or "/"
+        parent = ref.parent
+        old_name = ref.name
         locker = self.unlock_ref(source_os_path, is_abs=True)
         try:
             # Check if only case renaming
@@ -648,41 +631,41 @@ FolderType=Generic
                 and not self.is_case_sensitive()
             ):
                 # Must use a temp rename as FS is not case sensitive
-                temp_path = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
-                os.rename(source_os_path, temp_path)
+                temp_path = normalized_path(tempfile.gettempdir()) / str(uuid.uuid4())
+                source_os_path.rename(temp_path)
                 source_os_path = temp_path
                 # Try the os rename part
-                target_os_path = self.abspath(os.path.join(parent, new_name))
+                target_os_path = self.abspath(parent / new_name)
             else:
                 target_os_path, new_name = self._abspath_deduped(
                     parent, new_name, old_name
                 )
             if old_name != new_name:
-                os.rename(source_os_path, target_os_path)
+                source_os_path.rename(target_os_path)
             if WINDOWS:
                 # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
                 ctypes.windll.kernel32.SetFileAttributesW(  # type: ignore
                     str(target_os_path), 128
                 )
-            new_ref = self.get_children_ref(parent, new_name)
+            new_ref = parent / new_name
             return self.get_info(new_ref)
         finally:
             self.lock_ref(source_os_path, locker & 2, is_abs=True)
 
-    def move(self, ref: str, new_parent_ref: str, name: str = None) -> FileInfo:
+    def move(self, ref: Path, new_parent_ref: Path, name: str = None) -> FileInfo:
         """ Move a local file or folder into another folder. """
 
-        if ref == "/":
+        if ref == Path():
             raise ValueError("Cannot move the toplevel folder.")
 
-        name = name or ref.rsplit("/", 1)[1]
+        name = name or ref.name
         filename = self.abspath(ref)
         target_os_path, new_name = self._abspath_deduped(new_parent_ref, name)
         locker = self.unlock_ref(filename, is_abs=True)
-        parent = os.path.dirname(target_os_path)
+        parent = target_os_path.parent
         new_locker = self.unlock_ref(parent, unlock_parent=False, is_abs=True)
         try:
-            os.rename(filename, target_os_path)
+            filename.rename(target_os_path)
             new_ref = self.get_children_ref(new_parent_ref, new_name)
             return self.get_info(new_ref)
         finally:
@@ -751,17 +734,14 @@ FolderType=Generic
         return self.base_folder / ref
 
     def _abspath_deduped(
-        self, parent: str, orig_name: str, old_name: str = None
-    ) -> Tuple[str, str]:
+        self, parent: Path, orig_name: str, old_name: str = None
+    ) -> Tuple[Path, str]:
         """ Absolute path on the operating system with deduplicated names. """
 
         # Make name safe by removing invalid chars
         name = safe_os_filename(orig_name)
 
-        # Decompose the name into actionable components
-        name, suffix = os.path.splitext(name)
-
-        os_path = self.abspath(os.path.join(parent, name + suffix))
-        if old_name == (name + suffix) or not os.path.exists(os_path):
-            return os_path, name + suffix
+        os_path = self.abspath(parent / name)
+        if old_name == name or not os_path.exists():
+            return os_path, name
         raise DuplicationDisabledError("De-duplication is disabled")

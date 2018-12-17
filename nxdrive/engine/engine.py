@@ -3,6 +3,7 @@ import datetime
 import os
 from contextlib import suppress
 from logging import getLogger
+from pathlib import Path
 from threading import Thread, current_thread
 from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
@@ -199,7 +200,7 @@ class Engine(QObject):
         if started:
             self.start()
 
-    def stop_processor_on(self, path: str) -> None:
+    def stop_processor_on(self, path: Path) -> None:
         for worker in self.get_queue_manager().get_processors_on(path):
             log.trace(
                 f"Quitting processor: {worker!r} as requested to stop on {path!r}"

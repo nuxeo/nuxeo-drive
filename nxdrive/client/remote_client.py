@@ -152,7 +152,7 @@ class Remote(Nuxeo):
 
     def download(
         self, url: str, file_out: Path = None, digest: str = None, **kwargs: Any
-    ) -> str:
+    ) -> Path:
         log.trace(
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
         )
@@ -255,12 +255,12 @@ class Remote(Nuxeo):
     def stream_content(
         self,
         fs_item_id: str,
-        file_path: str,
+        file_path: Path,
         parent_fs_item_id: str = None,
         fs_item_info: RemoteFileInfo = None,
-        file_out: str = None,
+        file_out: Path = None,
         **kwargs: Any,
-    ) -> str:
+    ) -> Path:
         """Stream the binary content of a file system item to a tmp file
 
         Raises NotFound if file system item with id fs_item_id
@@ -270,20 +270,17 @@ class Remote(Nuxeo):
             fs_item_id, parent_fs_item_id=parent_fs_item_id
         )
         download_url = self.client.host + fs_item_info.download_url
-        file_name = os.path.basename(file_path)
+        file_name = file_path.name
         if file_out is None:
-            file_dir = os.path.dirname(file_path)
-            file_out = os.path.join(
-                file_dir,
-                "".join(
-                    [
-                        DOWNLOAD_TMP_FILE_PREFIX,
-                        file_name,
-                        str(current_thread().ident),
-                        DOWNLOAD_TMP_FILE_SUFFIX,
-                    ]
-                ),
+            name = "".join(
+                [
+                    DOWNLOAD_TMP_FILE_PREFIX,
+                    file_name,
+                    str(current_thread().ident),
+                    DOWNLOAD_TMP_FILE_SUFFIX,
+                ]
             )
+            file_out = file_path.with_name(name)
 
         FileAction("Download", file_out, file_name, 0)
         try:
@@ -292,7 +289,7 @@ class Remote(Nuxeo):
             )
         except Exception as e:
             with suppress(FileNotFoundError):
-                os.remove(file_out)
+                file_out.unlink()
             raise e
         finally:
             FileAction.finish_action()
@@ -351,7 +348,7 @@ class Remote(Nuxeo):
     def stream_file(
         self,
         parent_id: str,
-        file_path: str,
+        file_path: Path,
         filename: str = None,
         mime_type: str = None,
         overwrite: bool = False,
@@ -374,7 +371,7 @@ class Remote(Nuxeo):
     def stream_update(
         self,
         fs_item_id: str,
-        file_path: str,
+        file_path: Path,
         parent_fs_item_id: str = None,
         filename: str = None,
     ) -> RemoteFileInfo:

@@ -303,7 +303,7 @@ class Application(QApplication):
             msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
             msg.setIcon(QMessageBox.Warning)
             if msg.clickedButton() == overwrite:
-                self.manager.direct_edit.force_update(ref, digest)
+                self.manager.direct_edit.force_update(Path(ref), digest)
             del self._conflicts_modals[filename]
         except:
             log.exception(
