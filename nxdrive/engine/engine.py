@@ -34,7 +34,6 @@ from ..options import Options
 from ..utils import (
     find_icon,
     if_frozen,
-    normalized_path,
     safe_filename,
     set_path_readonly,
     unset_path_readonly,
@@ -84,7 +83,7 @@ class Engine(QObject):
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
     # others processors to operate on a folder
-    _folder_lock: Optional[str] = None
+    _folder_lock: Optional[Path] = None
 
     def __init__(
         self,
@@ -111,11 +110,10 @@ class Engine(QObject):
         self.timeout = 30
         self.manager = manager
 
-        self.local_folder = definition.local_folder
+        self.local_folder = Path(definition.local_folder)
         self.local = self.local_cls(self.local_folder)
         # Keep folder path with backslash to find the right engine when
         # FinderSync is asking for the status of a file
-        self.local_folder_bs = self._normalize_url(self.local_folder)
 
         self.uid = definition.uid
         self.name = definition.name
@@ -207,10 +205,9 @@ class Engine(QObject):
             )
             worker.quit()
 
-    def set_local_folder(self, path: str) -> None:
+    def set_local_folder(self, path: Path) -> None:
         log.debug(f"Update local folder to {path!r}")
         self.local_folder = path
-        self.local_folder_bs = self._normalize_url(self.local_folder)
         self._local_watcher.stop()
         self._create_local_watcher()
         self.manager.update_engine_path(self.uid, path)
@@ -395,12 +392,12 @@ class Engine(QObject):
             self.rootDeleted.emit()
             return False
 
-        self.local.set_remote_id("/", tag_value, tag)
-        if self.local.get_remote_id("/", tag) != tag_value.decode("utf-8"):
+        self.local.set_remote_id(Path(), tag_value, tag)
+        if self.local.get_remote_id(Path(), tag) != tag_value.decode("utf-8"):
             return False
 
-        self.local.remove_remote_id("/", tag)
-        return not bool(self.local.get_remote_id("/", tag))
+        self.local.remove_remote_id(Path(), tag)
+        return not bool(self.local.get_remote_id(Path(), tag))
 
     @staticmethod
     def _normalize_url(url: str) -> str:
@@ -444,10 +441,15 @@ class Engine(QObject):
     def _create_local_watcher(self) -> LocalWatcher:
         return LocalWatcher(self, self._dao)
 
+<<<<<<< HEAD
     def _get_db_file(self) -> str:
         return os.path.join(
             normalized_path(self.manager.nxdrive_home), f"ndrive_{self.uid}.db"
         )
+=======
+    def _get_db_file(self) -> Path:
+        return self.manager.nxdrive_home / f"ndrive_{self.uid}.db"
+>>>>>>> 163af36b... NXDRIVE-1109: Further work
 
     def get_binder(self) -> "ServerBindingSettings":
         return ServerBindingSettings(  # type: ignore
@@ -731,12 +733,12 @@ class Engine(QObject):
 
         if check_fs:
             try:
-                os.makedirs(self.local_folder, exist_ok=True)
+                self.local_folder.mkdir(parents=True, exist_ok=True)
                 self._check_fs(self.local_folder)
             except (InvalidDriveException, RootAlreadyBindWithDifferentAccount):
                 with suppress(OSError):
                     self.local.unset_readonly(self.local_folder)
-                    os.rmdir(self.local_folder)
+                    self.local_folder.rmdir()
             except OSError:
                 raise
 
@@ -761,11 +763,11 @@ class Engine(QObject):
         # create the local folder and the top level state.
         self._check_root()
 
-    def _check_fs(self, path: str) -> None:
+    def _check_fs(self, path: Path) -> None:
         if not self.manager.osi.is_partition_supported(path):
             raise InvalidDriveException()
 
-        if os.path.isdir(path):
+        if path.is_dir():
             root_id = self.local.get_root_id()
             if root_id:
                 # server_url|user|device_id|uid
@@ -774,9 +776,9 @@ class Engine(QObject):
                     raise RootAlreadyBindWithDifferentAccount(user, server_url)
 
     def _check_root(self) -> None:
-        root = self._dao.get_state_from_local("/")
+        root = self._dao.get_state_from_local(Path())
         if root is None:
-            if os.path.isdir(self.local_folder):
+            if self.local_folder.is_dir():
                 unset_path_readonly(self.local_folder)
             self._make_local_folder(self.local_folder)
             self._add_top_level_state()
@@ -784,8 +786,8 @@ class Engine(QObject):
             self.manager.osi.register_folder_link(self.local_folder)
             set_path_readonly(self.local_folder)
 
-    def _make_local_folder(self, local_folder: str) -> None:
-        os.makedirs(local_folder, exist_ok=True)
+    def _make_local_folder(self, local_folder: Path) -> None:
+        local_folder.mkdir(parents=True, exist_ok=True)
         # Put the ROOT in readonly
 
     def cancel_action_on(self, pair_id: int) -> None:
@@ -797,7 +799,7 @@ class Engine(QObject):
 
     @if_frozen
     def _set_root_icon(self) -> None:
-        state = self.local.has_folder_icon("/")
+        state = self.local.has_folder_icon(Path())
         if isinstance(state, str):
             # Save the original version in the database for later stats
             # and proceed to the new icon installation.
@@ -816,24 +818,24 @@ class Engine(QObject):
         if not icon:
             return
 
-        locker = self.local.unlock_ref("/", unlock_parent=False)
+        locker = self.local.unlock_ref(Path(), unlock_parent=False)
         try:
-            self.local.set_folder_icon("/", icon)
+            self.local.set_folder_icon(Path(), icon)
         except:
             log.exception("Icon folder cannot be set")
         finally:
-            self.local.lock_ref("/", locker)
+            self.local.lock_ref(Path(), locker)
 
     def _add_top_level_state(self) -> None:
-        local_info = self.local.get_info("/")
+        local_info = self.local.get_info(Path())
 
         if not self.remote:
             return
 
         remote_info = self.remote.get_filesystem_root_info()
 
-        self._dao.insert_local_state(local_info, "")
-        row = self._dao.get_state_from_local("/")
+        self._dao.insert_local_state(local_info, Path())
+        row = self._dao.get_state_from_local(Path())
         if not row:
             return
 
@@ -844,7 +846,7 @@ class Engine(QObject):
             (self.server_url, self.remote_user, self.manager.device_id, self.uid)
         )
         self.local.set_root_id(value.encode("utf-8"))
-        self.local.set_remote_id("/", remote_info.uid)
+        self.local.set_remote_id(Path(), remote_info.uid)
         self._dao.synchronize_state(row)
         # The root should also be sync
 
@@ -871,7 +873,7 @@ class Engine(QObject):
         if (
             current_file is not None
             and self._folder_lock is not None
-            and current_file.startswith(self._folder_lock)
+            and self._folder_lock in current_file.parents
         ):
             log.debug(
                 f"PairInterrupt {current_file!r} because lock on {self._folder_lock!r}"

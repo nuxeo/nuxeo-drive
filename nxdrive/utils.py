@@ -181,7 +181,6 @@ def get_default_nuxeo_drive_folder() -> Path:
     win32com shell API if allowed, else falling back on a manual detection.
     """
 
-    folder = Options.home
     if WINDOWS:
         from win32com.shell import shell, shellcon
 
@@ -206,7 +205,9 @@ def get_default_nuxeo_drive_folder() -> Path:
                 "Access denied to the API SHGetFolderPath,"
                 " falling back on manual detection"
             )
-            folder = Options.home / "Documents"
+            folder = normalized_path(Options.home) / "Documents"
+    else:
+        folder = normalized_path(Options.home)
 
     folder = increment_local_folder(folder, APP_NAME)
     return folder
@@ -491,12 +492,12 @@ def path_join(parent: str, child: str) -> str:
     return parent + "/" + child
 
 
-def find_resource(folder: str, filename: str = "") -> str:
+def find_resource(folder: str, filename: str = "") -> Path:
     """ Find the FS path of a directory in various OS binary packages. """
-    return os.path.join(Options.res_dir, folder, filename)
+    return normalized_path(Options.res_dir) / folder / filename
 
 
-def find_icon(icon: str) -> str:
+def find_icon(icon: str) -> Path:
     return find_resource("icons", icon)
 
 
@@ -536,17 +537,16 @@ def get_certificate_details(hostname: str = "", cert_data: str = "") -> Dict[str
 
     import ssl
 
-    cert_file = "c.crt"
+    cert_file = Path("c.crt")
 
     try:
         certificate = cert_data or retrieve_ssl_certificate(hostname)
-        with open(cert_file, "w") as f:
-            f.write(certificate)
+        cert_file.write_text(certificate, encoding="utf-8")
         try:
             # Taken from https://stackoverflow.com/a/50072461/1117028
             return ssl._ssl._test_decode_cert(cert_file)  # type: ignore
         finally:
-            os.remove(cert_file)
+            cert_file.unlink()
     except:
         log.exception("Error while retreiving the SSL certificate")
         return {}
@@ -903,17 +903,16 @@ class PidLockFile:
             process_name = self.key
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
         if pid_filepath.exists():
-            with pid_filepath.open(mode="rb") as f:
-                with suppress(ValueError, psutil.NoSuchProcess):
-                    pid = int(f.read().strip())
-                    p = psutil.Process(pid)
-                    # If process has been created after the lock file
-                    # Changed from getctime() to getmtime() because of Windows
-                    # file system tunneling
-                    if p.create_time() > pid_filepath.stat().st_mtime:
-                        raise ValueError
-                    return pid
-                pid = os.getpid()
+            pid = int(pid_filepath.read_text().strip())
+            with suppress(ValueError, psutil.NoSuchProcess):
+                p = psutil.Process(pid)
+                # If process has been created after the lock file
+                # Changed from getctime() to getmtime() because of Windows
+                # file system tunneling
+                if p.create_time() > pid_filepath.stat().st_mtime:
+                    raise ValueError
+                return pid
+            pid = os.getpid()
             # This is a pid file that is empty or pointing to either a
             # stopped process or a non-nxdrive process: let's delete it if
             # possible
@@ -949,6 +948,5 @@ class PidLockFile:
         # Write the pid of this process
         pid_filepath = self._get_sync_pid_filepath(process_name=self.key)
         pid = os.getpid()
-        with pid_filepath.open(mode="w") as f:
-            f.write(str(pid))
+        pid_filepath.write_text(str(pid))
         return None

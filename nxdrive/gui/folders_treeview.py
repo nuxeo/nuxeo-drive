@@ -295,7 +295,7 @@ class Overlay(QWidget):
         palette = QPalette(self.palette())
         palette.setColor(palette.Background, Qt.transparent)
         self.setPalette(palette)
-        self.movie = QMovie(find_icon("loader.gif"))
+        self.movie = QMovie(str(find_icon("loader.gif")))
         self.movie.frameChanged.connect(self.redraw)
         self.movie.start()
 

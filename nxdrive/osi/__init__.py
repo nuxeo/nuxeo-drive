@@ -3,7 +3,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from ..constants import MAC, WINDOWS
+from ..constants import APP_NAME, MAC, WINDOWS
 from ..objects import DocPair
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ class AbstractOSIntegration:
         implementation.
         """
         self.unregister_startup()
-        self.unregister_folder_link(None)
+        self.unregister_folder_link(Path(APP_NAME))
         self.unregister_contextual_menu()
 
     def register_protocol_handlers(self) -> None:
@@ -64,10 +64,10 @@ class AbstractOSIntegration:
     def unregister_contextual_menu(self) -> None:
         pass
 
-    def register_folder_link(self, folder_path: Path, name: str = None) -> None:
+    def register_folder_link(self, path: Path) -> None:
         pass
 
-    def unregister_folder_link(self, name: str = None) -> None:
+    def unregister_folder_link(self, path: Path) -> None:
         pass
 
     def get_system_configuration(self) -> Dict[str, Any]:

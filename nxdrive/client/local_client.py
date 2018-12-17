@@ -244,12 +244,10 @@ class LocalClient:
         if WINDOWS:
             fname = self.abspath(ref) / "desktop.ini"
             with suppress(FileNotFoundError):
-                with open(fname) as handler:
-                    version = re.findall(
-                        r"nuxeo-drive-([0-9.]+).win32\\", handler.read()
-                    )
-                    if version:
-                        return version[0]
+                content = fname.read_text(encoding="utf-8")
+                version = re.findall(r"nuxeo-drive-([0-9.]+).win32\\", content)
+                if version:
+                    return version[0]
                 return True
 
         return False
@@ -278,8 +276,7 @@ FolderType=Generic
         with suppress(FileNotFoundError):
             filename.unlink()
 
-        with filename.open(mode="w", encoding="utf-8") as handler:
-            handler.write(content)
+        filename.write_text(content, encoding="utf-8")
 
         win32api.SetFileAttributes(str(filename), win32con.FILE_ATTRIBUTE_SYSTEM)
         win32api.SetFileAttributes(str(filename), win32con.FILE_ATTRIBUTE_HIDDEN)

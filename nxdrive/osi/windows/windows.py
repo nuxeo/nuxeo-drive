@@ -117,15 +117,15 @@ class WindowsIntegration(AbstractOSIntegration):
             registry.delete(f"Software\\Classes\\{item}\\shell\\{APP_NAME}")
 
     @if_frozen
-    def register_folder_link(self, path: Path, name: str = None) -> None:
-        favorite = self._get_folder_link(name)
+    def register_folder_link(self, path: Path) -> None:
+        favorite = self._get_folder_link(path.name)
         if not favorite.is_file():
             self._create_shortcut(favorite, path)
 
     @if_frozen
-    def unregister_folder_link(self, name: str = None) -> None:
+    def unregister_folder_link(self, path: Path) -> None:
         with suppress(OSError):
-            self._get_folder_link(name).unlink()
+            self._get_folder_link(path.name).unlink()
 
     @if_frozen
     def register_startup(self) -> bool:

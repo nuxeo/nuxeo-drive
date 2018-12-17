@@ -68,7 +68,7 @@ log = getLogger(__name__)
 class Application(QApplication):
     """Main Nuxeo Drive application controlled by a system tray icon + menu"""
 
-    icon = QIcon(find_icon("app_icon.svg"))
+    icon = QIcon(str(find_icon("app_icon.svg")))
     icons: Dict[str, QIcon] = {}
     icon_state = None
     use_light_icons = None
@@ -156,19 +156,21 @@ class Application(QApplication):
             )
 
             self.conflicts_window.setSource(
-                QUrl.fromLocalFile(find_resource("qml", "Conflicts.qml"))
+                QUrl.fromLocalFile(str(find_resource("qml", "Conflicts.qml")))
             )
             self.settings_window.setSource(
-                QUrl.fromLocalFile(find_resource("qml", "Settings.qml"))
+                QUrl.fromLocalFile(str(find_resource("qml", "Settings.qml")))
             )
             self.systray_window.setSource(
-                QUrl.fromLocalFile(find_resource("qml", "Systray.qml"))
+                QUrl.fromLocalFile(str(find_resource("qml", "Systray.qml")))
             )
             flags |= Qt.Popup
         else:
             self.app_engine = QQmlApplicationEngine()
             self._fill_qml_context(self.app_engine.rootContext())
-            self.app_engine.load(QUrl.fromLocalFile(find_resource("qml", "Main.qml")))
+            self.app_engine.load(
+                QUrl.fromLocalFile(str(find_resource("qml", "Main.qml")))
+            )
             root = self.app_engine.rootObjects()[0]
             self.conflicts_window = root.findChild(QQuickWindow, "conflictsWindow")
             self.settings_window = root.findChild(QQuickWindow, "settingsWindow")
@@ -930,7 +932,7 @@ class Application(QApplication):
             return
 
         suffix = ("", "_light")[use_light_icons]
-        mask = find_icon("active.svg")  # Icon mask for macOS
+        mask = str(find_icon("active.svg"))  # Icon mask for macOS
         for state in {
             "conflict",
             "disabled",
@@ -942,7 +944,7 @@ class Application(QApplication):
             "update",
         }:
             icon = QIcon()
-            icon.addFile(find_icon(f"{state}{suffix}.svg"))
+            icon.addFile(str(find_icon(f"{state}{suffix}.svg")))
             if MAC:
                 icon.addFile(mask, mode=QIcon.Selected)
             self.icons[state] = icon

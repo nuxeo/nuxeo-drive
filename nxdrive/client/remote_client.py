@@ -495,8 +495,7 @@ class Remote(Nuxeo):
                 if content:
                     content = unquote(content).encode("utf-8")
                     if file_out:
-                        with open(file_out, "wb") as f:
-                            f.write(content)
+                        file_out.write_bytes(content)
                 return content
         else:
             doc_id = ref

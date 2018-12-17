@@ -9,7 +9,7 @@ import sys
 import tempfile
 import zlib
 from logging import getLogger
-from os.path import dirname
+from pathlib import Path
 from threading import Thread
 from time import sleep
 from typing import Tuple, Union
@@ -25,7 +25,7 @@ from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.translator import Translator
-from nxdrive.utils import safe_long_path, unset_path_readonly
+from nxdrive.utils import normalized_path, safe_long_path, unset_path_readonly
 from . import DocRemote, LocalTest, RemoteBase
 
 # Default remote watcher delay used for tests
@@ -100,7 +100,7 @@ class StubQApplication(QCoreApplication):
 
 class UnitTestCase(TestCase):
     # Save the current path for test files
-    location = dirname(__file__)
+    location = normalized_path(__file__).parent
 
     def setUpServer(self, server_profile=None):
         # Long timeout for the root client that is responsible for the test
@@ -158,16 +158,18 @@ class UnitTestCase(TestCase):
 
         self.report_path = os.environ.get("REPORT_PATH")
 
-        self.tmpdir = os.path.join(os.environ.get("WORKSPACE", ""), "tmp")
+        self.tmpdir = normalized_path(os.environ.get("WORKSPACE", "")) / "tmp"
         self.addCleanup(clean_dir, self.tmpdir)
-        if not os.path.isdir(self.tmpdir):
-            os.makedirs(self.tmpdir)
+        if not self.tmpdir.is_dir():
+            self.tmpdir.mkdir(parents=True)
 
-        self.upload_tmp_dir = tempfile.mkdtemp("-nxdrive-uploads", dir=self.tmpdir)
+        self.upload_tmp_dir = Path(
+            tempfile.mkdtemp("-nxdrive-uploads", dir=self.tmpdir)
+        )
 
         # Check the local filesystem test environment
-        self.local_test_folder_1 = tempfile.mkdtemp("drive-1", dir=self.tmpdir)
-        self.local_test_folder_2 = tempfile.mkdtemp("drive-2", dir=self.tmpdir)
+        self.local_test_folder_1 = Path(tempfile.mkdtemp("drive-1", dir=self.tmpdir))
+        self.local_test_folder_2 = Path(tempfile.mkdtemp("drive-2", dir=self.tmpdir))
 
         # Correct the casing of the temp folders for windows
         if WINDOWS:
@@ -180,29 +182,21 @@ class UnitTestCase(TestCase):
                 self.local_test_folder_2
             )
 
-        self.local_nxdrive_folder_1 = os.path.join(
-            self.local_test_folder_1, "Nuxeo Drive"
-        )
-        os.mkdir(self.local_nxdrive_folder_1)
-        self.local_nxdrive_folder_2 = os.path.join(
-            self.local_test_folder_2, "Nuxeo Drive"
-        )
-        os.mkdir(self.local_nxdrive_folder_2)
+        self.local_nxdrive_folder_1 = self.local_test_folder_1 / "Nuxeo Drive"
+        self.local_nxdrive_folder_1.mkdir()
+        self.local_nxdrive_folder_2 = self.local_test_folder_2 / "Nuxeo Drive"
+        self.local_nxdrive_folder_2.mkdir()
 
-        self.nxdrive_conf_folder_1 = os.path.join(
-            self.local_test_folder_1, "nuxeo-drive-conf"
-        )
-        os.mkdir(self.nxdrive_conf_folder_1)
-        self.nxdrive_conf_folder_2 = os.path.join(
-            self.local_test_folder_2, "nuxeo-drive-conf"
-        )
-        os.mkdir(self.nxdrive_conf_folder_2)
+        self.nxdrive_conf_folder_1 = self.local_test_folder_1 / "nuxeo-drive-conf"
+        self.nxdrive_conf_folder_1.mkdir()
+        self.nxdrive_conf_folder_2 = self.local_test_folder_2 / "nuxeo-drive-conf"
+        self.nxdrive_conf_folder_2.mkdir()
 
         Options.delay = TEST_DEFAULT_DELAY
         Options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager()
         self.connected = False
-        i18n_path = self.location + "/resources/i18n"
+        i18n_path = self.location / "resources/i18n"
         Translator(self.manager_1, i18n_path)
         Options.nxdrive_home = self.nxdrive_conf_folder_2
         Manager._singleton = None
@@ -223,12 +217,8 @@ class UnitTestCase(TestCase):
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.bind_engine(2, start_engine=False)
 
-        self.sync_root_folder_1 = os.path.join(
-            self.local_nxdrive_folder_1, self.workspace_title_1
-        )
-        self.sync_root_folder_2 = os.path.join(
-            self.local_nxdrive_folder_2, self.workspace_title_2
-        )
+        self.sync_root_folder_1 = self.local_nxdrive_folder_1 / self.workspace_title_1
+        self.sync_root_folder_2 = self.local_nxdrive_folder_2 / self.workspace_title_2
 
         self.local_root_client_1 = self.engine_1.local
 

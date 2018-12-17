@@ -649,9 +649,9 @@ class CliHandler:
     @staticmethod
     def _install_faulthandler() -> None:
         """ Utility to help debug segfaults. """
-        segfault_filename = os.path.join(Options.nxdrive_home, "logs", "segfault.log")
+        segfault_filename = Options.nxdrive_home / "logs" / "segfault.log"
         log.debug(f"Enabling faulthandler in {segfault_filename!r}")
 
-        with open(segfault_filename, "a") as fh:
+        with segfault_filename.open(mode="a") as fh:
             fh.write(f"\n\n\n>>> {datetime.now()}\n")
             faulthandler.enable(file=fh)

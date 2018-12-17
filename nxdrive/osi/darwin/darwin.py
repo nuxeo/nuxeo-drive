@@ -96,8 +96,7 @@ class DarwinIntegration(AbstractOSIntegration):
 
         exe = os.path.realpath(sys.executable)
         log.debug(f"Registering {exe!r} for startup in {agent!r}")
-        with agent.open(mode="w") as f:
-            f.write(self.NDRIVE_AGENT_TEMPLATE % exe)
+        agent.write_text(self.NDRIVE_AGENT_TEMPLATE % exe, encoding="utf-8")
         return True
 
     @if_frozen
@@ -265,15 +264,13 @@ class DarwinIntegration(AbstractOSIntegration):
         entries = [Translator.get(f"CONTEXT_MENU_{i}") for i in range(1, 4)]
         self._send_notification(name, {"entries": entries})
 
-    def register_folder_link(self, path: Path, name: str = None) -> None:
+    def register_folder_link(self, path: Path) -> None:
         favorites = self._get_favorite_list() or []
         if not favorites:
             log.warning("Could not fetch the Finder favorite list.")
             return
 
-        name = os.path.basename(name) if name else APP_NAME
-
-        if self._find_item_in_list(favorites, name):
+        if self._find_item_in_list(favorites, path.name):
             return
 
         url = CFURLCreateWithString(None, f"file://{quote(str(path))}", None)
@@ -283,20 +280,18 @@ class DarwinIntegration(AbstractOSIntegration):
 
         # Register the folder as favorite if not already there
         item = LSSharedFileListInsertItemURL(
-            favorites, kLSSharedFileListItemBeforeFirst, name, None, url, {}, []
+            favorites, kLSSharedFileListItemBeforeFirst, path.name, None, url, {}, []
         )
         if item:
             log.debug(f"Registered new favorite in Finder for: {path!r}")
 
-    def unregister_folder_link(self, name: str = None) -> None:
+    def unregister_folder_link(self, path: Path) -> None:
         favorites = self._get_favorite_list()
         if not favorites:
             log.warning("Could not fetch the Finder favorite list.")
             return
 
-        name = os.path.basename(name) if name else APP_NAME
-
-        item = self._find_item_in_list(favorites, name)
+        item = self._find_item_in_list(favorites, path.name)
         if not item:
             return
 

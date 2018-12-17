@@ -17,7 +17,7 @@ from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from threading import RLock, current_thread, local
-from typing import Any, Dict, List, Optional, Tuple, Type, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -84,8 +84,32 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 }
 
 
+def prepare_args(data: Tuple[Union[Path, str], ...]) -> Tuple[str, ...]:
+    """ Convert Path objects to str before insertion into database. """
+
+    data = list(data)  # type: ignore
+    for i in range(len(data)):
+        if isinstance(data[i], Path):
+            path = str(data[i])
+            path = "" if path == "." else path
+            if not path.startswith("/"):
+                path = "/" + path
+            data[i] = path  # type: ignore
+    return tuple(data)  # type: ignore
+
+
+def str_to_path(data: str) -> Optional[Path]:
+    """ Convert str to Path after querying the database. """
+    return None if data == "" else Path(data.lstrip("/"))
+
+
 class AutoRetryCursor(Cursor):
     def execute(self, *args: str, **kwargs: Any) -> Cursor:
+        if len(args) > 1:
+            # Convert all Path objects to str
+            args = list(args)  # type: ignore
+            args[1] = prepare_args(args[1])  # type: ignore
+            args = tuple(args)
         count = 1
         while True:
             count += 1
@@ -155,7 +179,7 @@ class ConfigurationDAO(QObject):
     def get_schema_version(self) -> int:
         return 1
 
-    def get_db(self) -> str:
+    def get_db(self) -> Path:
         return self._db
 
     def _migrate_table(self, cursor: Cursor, name: str) -> None:
@@ -361,8 +385,13 @@ class ManagerDAO(ConfigurationDAO):
         c = con.cursor()
         return c.execute("SELECT * FROM AutoLock").fetchall()
 
-    def get_locked_paths(self) -> List[str]:
-        return [lock["path"] for lock in self.get_locks()]
+    def get_locked_paths(self) -> List[Path]:
+        paths = []
+        for lock in self.get_locks():
+            path = str_to_path(lock["path"])
+            if path:
+                paths.append(path)
+        return paths
 
     def lock_path(self, path: Path, process: int, doc_id: str) -> None:
         with self._lock:
@@ -495,7 +524,7 @@ class EngineDAO(ConfigurationDAO):
 
     newConflict = pyqtSignal(object)
 
-    def __init__(self, db: str, state_factory: Type[DocPair] = None) -> None:
+    def __init__(self, db: Path, state_factory: Type[DocPair] = None) -> None:
         if state_factory:
             self._state_factory = state_factory
 
@@ -1112,7 +1141,7 @@ class EngineDAO(ConfigurationDAO):
         return state
 
     def _get_recursive_condition(self, doc_pair: DocPair) -> str:
-        path = self._escape(doc_pair.local_path)
+        path = self._escape(str(doc_pair.local_path))
         res = (
             f" WHERE (local_parent_path LIKE '{path}/%'"
             f"        OR local_parent_path = '{path}')"
@@ -1160,7 +1189,7 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             if doc_pair.folderish:
                 path = self._escape(str(new_path / new_name))
-                count = str(len(doc_pair.local_path) + 1)
+                count = str(len(str(doc_pair.local_path)) + 1)
                 query = (
                     "UPDATE States"
                     f"  SET local_parent_path = '{path}'"
@@ -1407,7 +1436,7 @@ class EngineDAO(ConfigurationDAO):
                     row.remote_state,
                     row.pair_state,
                     datetime.utcnow(),
-                    row.local_path + "%",
+                    str(row.local_path) + "%",
                 ),
             )
 
