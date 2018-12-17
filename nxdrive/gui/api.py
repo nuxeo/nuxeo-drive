@@ -32,7 +32,12 @@ from ..notification import Notification
 from ..objects import Binder, DocPair
 from ..options import Options
 from ..translator import Translator
-from ..utils import get_device, get_default_nuxeo_drive_folder, guess_server_url
+from ..utils import (
+    get_device,
+    get_default_nuxeo_drive_folder,
+    guess_server_url,
+    normalized_path,
+)
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -338,7 +343,7 @@ class QMLDriveApi(QObject):
         self.application.hide_systray()
         engine = self._get_engine(uid)
         if engine:
-            path = engine.local.abspath(ref)
+            path = engine.local.abspath(normalized_path(ref))
             self.application.show_metadata(path)
 
     @pyqtSlot(str, result=list)
@@ -432,7 +437,7 @@ class QMLDriveApi(QObject):
         else:
             engine = self._get_engine(uid)
             if engine:
-                filepath = engine.local.abspath(path)
+                filepath = engine.local.abspath(normalized_path(path))
                 self._manager.open_local_file(filepath)
 
     @pyqtSlot()
@@ -543,7 +548,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=str)
     def default_nuxeo_drive_folder(self) -> str:
-        return get_default_nuxeo_drive_folder()
+        return str(get_default_nuxeo_drive_folder())
 
     @pyqtSlot(result=str)
     def default_server_url_value(self) -> str:
@@ -573,8 +578,7 @@ class QMLDriveApi(QObject):
         parts = urlsplit(url)
         url = urlunsplit((parts.scheme, parts.netloc, parts.path, "", parts.fragment))
 
-        if name == "":
-            name = None
+        name = name or None
         binder = Binder(
             username=username,
             password=password,
@@ -584,12 +588,11 @@ class QMLDriveApi(QObject):
             url=url,
         )
         log.debug(f"Binder is : {binder.url}/{binder.username}")
+
+        folder = normalized_path(local_folder)
+
         engine = self._manager.bind_engine(
-            self._manager._get_default_server_type(),
-            local_folder,
-            name,
-            binder,
-            starts=False,
+            self._manager._get_default_server_type(), folder, name, binder, starts=False
         )
 
         # Display the filters window to let the user choose what to sync
@@ -664,6 +667,8 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
 
+        folder = normalized_path(local_folder)
+
         parts = urlsplit(url)
         server_url = urlunsplit(
             (parts.scheme, parts.netloc, parts.path, parts.query, parts.fragment)
@@ -674,13 +679,13 @@ class QMLDriveApi(QObject):
 
         try:
             # Handle local folder
-            if not self._manager.check_local_folder_available(local_folder):
+            if not self._manager.check_local_folder_available(folder):
                 raise FolderAlreadyUsed()
 
             # Connect to startup page
             status = self._connect_startup_page(server_url)
             callback_params = {
-                "local_folder": local_folder,
+                "local_folder": folder,
                 "server_url": server_url,
                 "engine_type": engine_type,
             }

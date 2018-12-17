@@ -350,11 +350,11 @@ class ManagerDAO(ConfigurationDAO):
                 ),
             )
 
-    def unlock_path(self, path: str) -> None:
+    def unlock_path(self, path: Path) -> None:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM AutoLock WHERE path = ?", (path,))
+            c.execute("DELETE FROM AutoLock WHERE path = ?", (str(path),))
 
     def get_locks(self) -> List[Row]:
         con = self._get_read_connection()
@@ -364,7 +364,7 @@ class ManagerDAO(ConfigurationDAO):
     def get_locked_paths(self) -> List[str]:
         return [lock["path"] for lock in self.get_locks()]
 
-    def lock_path(self, path: str, process: int, doc_id: str) -> None:
+    def lock_path(self, path: Path, process: int, doc_id: str) -> None:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -372,7 +372,7 @@ class ManagerDAO(ConfigurationDAO):
                 c.execute(
                     "INSERT INTO AutoLock (path, process, remote_id) "
                     "VALUES (?, ?, ?)",
-                    (path, process, doc_id),
+                    (str(path), process, doc_id),
                 )
             except IntegrityError:
                 # Already there just update the process
@@ -381,7 +381,7 @@ class ManagerDAO(ConfigurationDAO):
                     "   SET process = ?,"
                     "       remote_id = ?"
                     " WHERE path = ?",
-                    (process, doc_id, path),
+                    (process, doc_id, str(path)),
                 )
 
     def update_notification(self, notification: Notification) -> None:

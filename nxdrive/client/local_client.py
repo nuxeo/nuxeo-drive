@@ -34,7 +34,6 @@ from ..options import Options
 from ..utils import (
     force_decode,
     lock_path,
-    normalized_path,
     safe_os_filename,
     safe_long_path,
     set_path_readonly,
@@ -63,8 +62,8 @@ class FileInfo:
 
     def __init__(
         self,
-        root: str,
-        path: str,
+        root: Path,
+        path: Path,
         folderish: bool,
         last_modification_time: datetime,
         **kwargs: Any,
@@ -73,20 +72,15 @@ class FileInfo:
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = kwargs.pop("check_suspended", None)
         self.size = kwargs.pop("size", 0)
-        filepath = os.path.join(root, path[1:].replace("/", os.path.sep))
-        root = unicodedata.normalize("NFC", root)
-        path = unicodedata.normalize("NFC", path)
-        normalized_filepath = os.path.join(root, path[1:].replace("/", os.path.sep))
-        self.filepath = normalized_filepath
+        filepath = root / path
+        self.path = Path(unicodedata.normalize("NFC", str(path)))
+        self.filepath = Path(unicodedata.normalize("NFC", str(filepath)))
 
         # NXDRIVE-188: normalize name on the file system if not normalized
-        if not MAC and os.path.exists(filepath) and normalized_filepath != filepath:
-            log.debug(
-                f"Forcing normalization of {filepath!r} to {normalized_filepath!r}"
-            )
-            os.rename(filepath, normalized_filepath)
+        if not MAC and filepath.exists() and self.filepath != filepath:
+            log.debug(f"Forcing normalization of {filepath!r} to {self.filepath!r}")
+            filepath.rename(self.filepath)
 
-        self.path = path  # the truncated path (under the root)
         self.folderish = folderish  # True if a Folder
         self.remote_ref = kwargs.pop("remote_ref", "")
 
@@ -98,7 +92,7 @@ class FileInfo:
 
         # Precompute base name once and for all are it's often useful in
         # practice
-        self.name = os.path.basename(path)
+        self.name = path.name
 
     def __repr__(self) -> str:
         return f"FileInfo<path={self.filepath!r}, remote_ref={self.remote_ref!r}>"
@@ -115,10 +109,10 @@ class FileInfo:
             raise UnknownDigest(digest_func)
 
         try:
-            with open(safe_long_path(self.filepath), "rb") as f:
+            with self.filepath.open(mode="rb") as f:
                 while True:
                     # Check if synchronization thread was suspended
-                    if self.check_suspended is not None:
+                    if self.check_suspended:
                         self.check_suspended(f"Digest computation: {self.filepath}")
                     buf = f.read(FILE_BUFFER_SIZE)
                     if not buf:
@@ -135,14 +129,11 @@ class LocalClient:
     CASE_RENAME_PREFIX = "driveCaseRename_"
     _case_sensitive = None
 
-    def __init__(self, base_folder: str, **kwargs: Any) -> None:
+    def __init__(self, base_folder: Path, **kwargs: Any) -> None:
         self._digest_func = kwargs.pop("digest_func", "md5")
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = kwargs.pop("check_suspended", None)
-
-        while len(base_folder) > 1 and base_folder.endswith(os.path.sep):
-            base_folder = base_folder[:-1]
         self.base_folder = base_folder
 
         self.is_case_sensitive()
@@ -226,7 +217,7 @@ class LocalClient:
             if exc.errno not in {errno.ENODATA, errno.EPROTONOSUPPORT}:
                 raise exc
 
-    def remove_remote_id(self, ref: str, name: str = "ndrive") -> None:
+    def remove_remote_id(self, ref: Path, name: str = "ndrive") -> None:
         path = self.abspath(ref)
         log.trace(f"Removing xattr {name!r} from {path!r}")
         locker = unlock_path(path, False)
@@ -345,7 +336,7 @@ FolderType=Generic
         os.chflags(meta_file, stat.UF_HIDDEN)  # type: ignore
 
     def set_remote_id(
-        self, ref: str, remote_id: Union[bytes, str], name: str = "ndrive"
+        self, ref: Path, remote_id: Union[bytes, str], name: str = "ndrive"
     ) -> None:
         path = self.abspath(ref)
 
@@ -392,7 +383,7 @@ FolderType=Generic
         finally:
             lock_path(path, locker)
 
-    def get_remote_id(self, ref: str, name: str = "ndrive") -> str:
+    def get_remote_id(self, ref: Path, name: str = "ndrive") -> str:
         path = self.abspath(ref)
         value = self.get_path_remote_id(path, name)
         log.trace(f"Getting xattr {name!r} from {path!r}: {value!r}")
@@ -416,19 +407,16 @@ FolderType=Generic
         except OSError:
             return ""
 
-    def get_info(self, ref: str) -> FileInfo:
-        if isinstance(ref, bytes):
-            ref = ref.decode("utf-8")
-
+    def get_info(self, ref: Path) -> FileInfo:
         os_path = self.abspath(ref)
-        if not os.path.exists(os_path):
+        if not os_path.exists():
             raise NotFound(
                 f"Could not find doc into {self.base_folder!r}: "
                 f"ref={ref!r}, os_path={os_path!r}"
             )
 
-        folderish = os.path.isdir(os_path)
-        stat_info = os.stat(os_path)
+        folderish = os_path.is_dir()
+        stat_info = os_path.stat()
         size = 0 if folderish else stat_info.st_size
         try:
             mtime = datetime.utcfromtimestamp(stat_info.st_mtime)
@@ -534,12 +522,11 @@ FolderType=Generic
             return parent_ref + name
         return parent_ref + "/" + name
 
-    def get_children_info(self, ref: str) -> List[FileInfo]:
+    def get_children_info(self, ref: Path) -> List[FileInfo]:
         os_path = self.abspath(ref)
         result = []
-        children = os.listdir(os_path)
 
-        for child_name in sorted(children):
+        for child_name in sorted([x for x in os_path.iterdir()]):
             if self.is_ignored(ref, child_name) or self.is_temp_file(child_name):
                 log.debug(f"Ignoring banned file {child_name!r} in {os_path!r}")
                 continue
@@ -641,8 +628,8 @@ FolderType=Generic
             if parent_ref is not None:
                 self.lock_ref(parent_ref, locker)
 
-    def exists(self, ref: str) -> bool:
-        return os.path.exists(self.abspath(ref))
+    def exists(self, ref: Path) -> bool:
+        return self.abspath(ref).exists()
 
     def rename(self, ref: str, to_name: str) -> FileInfo:
         """ Rename a local file or folder. """
@@ -753,26 +740,15 @@ FolderType=Generic
             d_mtime = mktime(strptime(str(mtime), "%Y-%m-%d %H:%M:%S"))
             os.utime(filename, (d_mtime, d_mtime))
 
-    def get_path(self, abspath: str) -> str:
+    def get_path(self, abspath: Path) -> Path:
         """ Relative path to the local client from an absolute OS path. """
+        if self.base_folder not in abspath.parents:
+            return Path()
+        return abspath.relative_to(self.base_folder)
 
-        if isinstance(abspath, bytes):
-            abspath = abspath.decode("utf-8")
-
-        _, _, path = abspath.partition(self.base_folder)
-        if not path:
-            return "/"
-        return path.replace(os.path.sep, "/")
-
-    def abspath(self, ref: str) -> str:
+    def abspath(self, ref: Path) -> Path:
         """ Absolute path on the operating system. """
-
-        if not ref.startswith("/"):
-            raise ValueError("LocalClient expects ref starting with '/'")
-
-        path_suffix = ref[1:].replace("/", os.path.sep)
-        path = normalized_path(os.path.join(self.base_folder, path_suffix))
-        return safe_long_path(path)
+        return self.base_folder / ref
 
     def _abspath_deduped(
         self, parent: str, orig_name: str, old_name: str = None

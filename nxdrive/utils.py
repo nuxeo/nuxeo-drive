@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 from urllib.parse import urlsplit, urlunsplit
 
-from .constants import APP_NAME, WINDOWS
+from .constants import APP_NAME, MAC, WINDOWS
 from .exceptions import InvalidSSLCertificate
 from .options import Options
 
@@ -396,65 +396,41 @@ def normalized_path(path: str) -> Path:
     return Path(force_decode(path)).expanduser().resolve()
 
 
-def normalize_event_filename(filename: str, action: bool = True) -> str:
+def normalize_event_filename(filename: str, action: bool = True) -> Path:
     """
     Normalize a file name.
 
     :param unicode filename: The file name to normalize.
     :param bool action: Apply changes on the file system.
-    :return unicode: The normalized file name.
+    :return Path: The normalized file name.
     """
 
     import unicodedata
 
+    path = normalized_path(filename)
+
     # NXDRIVE-688: Ensure the name is stripped for a file
-    stripped = filename.strip()
-    if WINDOWS:
-        # Windows does not allow files/folders ending with space(s)
-        filename = stripped
-    elif (
-        action
-        and filename != stripped
-        and os.path.exists(filename)
-        and not os.path.isdir(filename)
+    stripped = Path(str(path).strip())
+    if all(
+        [
+            not WINDOWS,  # Windows does not allow files/folders ending with space(s)
+            action,
+            path != stripped,
+            path.exists(),
+            not path.is_dir(),
+        ]
     ):
         # We can have folders ending with spaces
-        log.debug(f"Forcing space normalization: {filename!r} -> {stripped!r}")
-        os.rename(filename, stripped)
-        filename = stripped
+        log.debug(f"Forcing space normalization: {path!r} -> {stripped!r}")
+        path.rename(stripped)
+        path = stripped
 
     # NXDRIVE-188: Normalize name on the file system, if needed
-    normalized = unicodedata.normalize("NFC", str(filename))
-    normalized = os.path.join(
-        os.path.dirname(normalized), safe_os_filename(os.path.basename(normalized))
-    )
+    normalized = Path(unicodedata.normalize("NFC", str(path)))
 
-    if WINDOWS and os.path.exists(filename):
-        """
-        If `filename` exists, and as Windows is case insensitive,
-        the result of Get(Full|Long|Short)PathName() could be unexpected
-        because it will return the path of the existant `filename`.
-
-        Check this simplified code session (the file "ABC.txt" exists):
-
-            >>> win32api.GetLongPathName('abc.txt')
-            'ABC.txt'
-            >>> win32api.GetLongPathName('ABC.TXT')
-            'ABC.txt'
-            >>> win32api.GetLongPathName('ABC.txt')
-            'ABC.txt'
-
-        So, to counter that behavior, we save the actual file name
-        and restore it in the full path.
-        """
-        import win32api
-
-        long_path = win32api.GetLongPathNameW(filename)
-        filename = os.path.join(os.path.dirname(long_path), os.path.basename(filename))
-
-    if action and filename != normalized and os.path.exists(filename):
-        log.debug(f"Forcing normalization: {filename!r} -> {normalized!r}")
-        os.rename(filename, normalized)
+    if not MAC and action and path != normalized and path.exists():
+        log.debug(f"Forcing normalization: {path!r} -> {normalized!r}")
+        path.rename(normalized)
 
     return normalized
 
@@ -820,23 +796,23 @@ def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str
     )
 
 
-def set_path_readonly(path: str) -> None:
-    current = os.stat(path).st_mode
-    if os.path.isdir(path):
+def set_path_readonly(path: Path) -> None:
+    current = path.stat().st_mode
+    if path.is_dir():
         # Need to add
         right = stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IRUSR
         if current & ~right != 0:
-            os.chmod(path, right)
+            path.chmod(right)
     else:
         # Already in read only
         right = stat.S_IRGRP | stat.S_IRUSR
         if current & ~right != 0:
-            os.chmod(path, right)
+            path.chmod(right)
 
 
-def unset_path_readonly(path: str) -> None:
-    current = os.stat(path).st_mode
-    if os.path.isdir(path):
+def unset_path_readonly(path: Path) -> None:
+    current = path.stat().st_mode
+    if path.is_dir():
         right = (
             stat.S_IXUSR
             | stat.S_IRGRP
@@ -846,34 +822,33 @@ def unset_path_readonly(path: str) -> None:
             | stat.S_IWUSR
         )
         if current & right != right:
-            os.chmod(path, right)
+            path.chmod(right)
     else:
         right = stat.S_IRGRP | stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR
         if current & right != right:
-            os.chmod(path, right)
+            path.chmod(right)
 
 
-def unlock_path(path: str, unlock_parent: bool = True) -> int:
+def unlock_path(path: Path, unlock_parent: bool = True) -> int:
     result = 0
     if unlock_parent:
-        parent_path = os.path.dirname(path)
-        if os.path.exists(parent_path) and not os.access(parent_path, os.W_OK):
+        parent_path = path.parent
+        if parent_path.exists() and not os.access(parent_path, os.W_OK):
             unset_path_readonly(parent_path)
             result |= 2
-    if os.path.exists(path) and not os.access(path, os.W_OK):
+    if path.exists() and not os.access(path, os.W_OK):
         unset_path_readonly(path)
         result |= 1
     return result
 
 
-def lock_path(path: str, locker: int) -> None:
+def lock_path(path: Path, locker: int) -> None:
     if locker == 0:
         return
     if locker & 1 == 1:
         set_path_readonly(path)
     if locker & 2 == 2:
-        parent = os.path.dirname(path)
-        set_path_readonly(parent)
+        set_path_readonly(path.parent)
 
 
 def short_name(name: Union[bytes, str]) -> str:
@@ -891,15 +866,15 @@ def short_name(name: Union[bytes, str]) -> str:
 class PidLockFile:
     """ This class handle the pid lock file"""
 
-    def __init__(self, folder: str, key: str) -> None:
+    def __init__(self, folder: Path, key: str) -> None:
         self.folder = folder
         self.key = key
         self.locked = False
 
-    def _get_sync_pid_filepath(self, process_name: str = None) -> str:
+    def _get_sync_pid_filepath(self, process_name: str = None) -> Path:
         if process_name is None:
             process_name = self.key
-        return os.path.join(self.folder, f"nxdrive_{process_name}.pid")
+        return self.folder / f"nxdrive_{process_name}.pid"
 
     def unlock(self) -> None:
         if not self.locked:
@@ -907,7 +882,7 @@ class PidLockFile:
         # Clean pid file
         pid_filepath = self._get_sync_pid_filepath()
         try:
-            os.unlink(pid_filepath)
+            pid_filepath.unlink()
         except Exception as e:
             log.warning(
                 f"Failed to remove stalled PID file: {pid_filepath!r} "
@@ -927,15 +902,15 @@ class PidLockFile:
         if process_name is None:
             process_name = self.key
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
-        if os.path.exists(pid_filepath):
-            with open(safe_long_path(pid_filepath), "rb") as f:
+        if pid_filepath.exists():
+            with pid_filepath.open(mode="rb") as f:
                 with suppress(ValueError, psutil.NoSuchProcess):
                     pid = int(f.read().strip())
                     p = psutil.Process(pid)
                     # If process has been created after the lock file
                     # Changed from getctime() to getmtime() because of Windows
                     # file system tunneling
-                    if p.create_time() > os.path.getmtime(pid_filepath):
+                    if p.create_time() > pid_filepath.stat().st_mtime:
                         raise ValueError
                     return pid
                 pid = os.getpid()
@@ -943,7 +918,7 @@ class PidLockFile:
             # stopped process or a non-nxdrive process: let's delete it if
             # possible
             try:
-                os.unlink(pid_filepath)
+                pid_filepath.unlink()
                 if pid is None:
                     msg = f"Removed old empty PID file {pid_filepath!r}"
                 else:
@@ -974,6 +949,6 @@ class PidLockFile:
         # Write the pid of this process
         pid_filepath = self._get_sync_pid_filepath(process_name=self.key)
         pid = os.getpid()
-        with open(safe_long_path(pid_filepath), "w") as f:
+        with pid_filepath.open(mode="w") as f:
             f.write(str(pid))
         return None

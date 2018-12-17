@@ -4,6 +4,7 @@ import socket
 import time
 from contextlib import suppress
 from logging import getLogger
+from pathlib import Path
 from threading import Lock, current_thread
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
@@ -150,7 +151,7 @@ class Remote(Nuxeo):
         self.client.auth = self.auth
 
     def download(
-        self, url: str, file_out: str = None, digest: str = None, **kwargs: Any
+        self, url: str, file_out: Path = None, digest: str = None, **kwargs: Any
     ) -> str:
         log.trace(
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
@@ -185,7 +186,7 @@ class Remote(Nuxeo):
 
     def upload(
         self,
-        file_path: str,
+        file_path: Path,
         command: str,
         filename: str = None,
         mime_type: str = None,
@@ -487,7 +488,7 @@ class Remote(Nuxeo):
         return NuxeoDocumentInfo.from_dict(doc, parent_uid=parent_uid)
 
     def get_blob(
-        self, ref: Union[NuxeoDocumentInfo, str], file_out: str = None, **kwargs: Any
+        self, ref: Union[NuxeoDocumentInfo, str], file_out: Path = None, **kwargs: Any
     ) -> bytes:
         if isinstance(ref, NuxeoDocumentInfo):
             doc_id = ref.uid
