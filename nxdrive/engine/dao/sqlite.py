@@ -725,7 +725,7 @@ class EngineDAO(ConfigurationDAO):
                 int(doc_pair.id), bool(doc_pair.folderish), "locally_deleted"
             )
 
-    def insert_local_state(self, info: FileInfo, parent_path: str) -> int:
+    def insert_local_state(self, info: FileInfo, parent_path: Path) -> int:
         pair_state = PAIR_STATES[("created", "unknown")]
         digest = info.get_digest()
         with self._lock:
@@ -754,7 +754,7 @@ class EngineDAO(ConfigurationDAO):
                 "SELECT * FROM States WHERE local_path = ?", (parent_path,)
             ).fetchone()
             # Don't queue if parent is not yet created
-            if (parent is None and parent_path == "") or (
+            if (parent is None and parent_path == Path()) or (
                 parent and parent.pair_state != "locally_created"
             ):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
@@ -1209,7 +1209,7 @@ class EngineDAO(ConfigurationDAO):
                     condition = self._get_recursive_condition(doc_pair)
                 c.execute("DELETE FROM States " + condition)
 
-    def get_state_from_local(self, path: str) -> Optional[DocPair]:
+    def get_state_from_local(self, path: Path) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
         return c.execute(
             "SELECT * FROM States WHERE local_path = ?", (path,)
@@ -1219,8 +1219,8 @@ class EngineDAO(ConfigurationDAO):
         self,
         info: RemoteFileInfo,
         remote_parent_path: str,
-        local_path: str,
-        local_parent_path: str,
+        local_path: Path,
+        local_parent_path: Path,
     ) -> int:
         pair_state = PAIR_STATES[("unknown", "created")]
         with self._lock:

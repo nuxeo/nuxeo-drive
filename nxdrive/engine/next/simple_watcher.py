@@ -1,7 +1,7 @@
 # coding: utf-8
 import copy
-import os
 from logging import getLogger
+from pathlib import Path
 from queue import Queue
 from time import sleep, time
 from typing import Dict, Union, TYPE_CHECKING
@@ -32,9 +32,9 @@ class SimpleWatcher(LocalWatcher):
     def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao)
         self._scan_delay = 1
-        self._to_scan: Dict[str, int] = dict()
+        self._to_scan: Dict[Path, int] = dict()
 
-    def _push_to_scan(self, info: Union[FileInfo, str]) -> None:
+    def _push_to_scan(self, info: Union[FileInfo, Path]) -> None:
         if isinstance(info, FileInfo):
             super()._scan_recursive(info)
             return
@@ -45,22 +45,24 @@ class SimpleWatcher(LocalWatcher):
     def empty_events(self) -> bool:
         return self.watchdog_queue.empty() and len(self._to_scan) == 0
 
-    def is_inside(self, abspath: str) -> bool:
-        return abspath.startswith(self.local.base_folder)
+    def is_inside(self, abspath: Path) -> bool:
+        return self.local.base_folder in abspath.parents
 
-    def handle_watchdog_move(self, evt: FileSystemMovedEvent, _, rel_path: str) -> None:
+    def handle_watchdog_move(
+        self, evt: FileSystemMovedEvent, _, rel_path: Path
+    ) -> None:
         # Dest
         dst_path = normalize_event_filename(evt.dest_path)
-        if self.local.is_temp_file(os.path.basename(dst_path)):
+        if self.local.is_temp_file(dst_path.name):
             return
         log.warning(f"handle watchdog move: {evt!r}")
         dst_rel_path = self.local.get_path(dst_path)
         doc_pair = self._dao.get_state_from_local(rel_path)
         # Add for security src_path and dest_path parent - not sure it is needed
-        self._push_to_scan(os.path.dirname(rel_path))
+        self._push_to_scan(rel_path.parent)
         if self.is_inside(dst_path):
             dst_rel_path = self.local.get_path(dst_path)
-            self._push_to_scan(os.path.dirname(dst_rel_path))
+            self._push_to_scan(dst_rel_path.parent)
         if not doc_pair:
             # Scan new parent
             log.warning("NO PAIR")
@@ -80,30 +82,28 @@ class SimpleWatcher(LocalWatcher):
         # For creation and deletion just update the parent folder
         src_path = normalize_event_filename(evt.src_path)
         rel_path = self.local.get_path(src_path)
-        file_name = os.path.basename(src_path)
-        if self.local.is_temp_file(file_name) or rel_path == "/.partials":
+        file_name = src_path.name
+        if self.local.is_temp_file(file_name) or rel_path == Path("/.partials"):
             return
         if evt.event_type == "moved":
             self.handle_watchdog_move(evt, src_path, rel_path)
             return
         # Dont care about ignored file, unless it is moved
-        if self.local.is_ignored(os.path.dirname(rel_path), file_name):
+        if self.local.is_ignored(rel_path.parent, file_name):
             return
         log.warning(f"Got evt: {evt!r}")
-        if len(rel_path) == 0 or rel_path == "/":
-            self._push_to_scan("/")
+        if rel_path == Path():
+            self._push_to_scan(rel_path)
             return
         # If not modified then we will scan the parent folder later
         if evt.event_type != "modified":
             log.warning(rel_path)
-            parent_rel_path = os.path.dirname(rel_path)
-            if parent_rel_path == "":
-                parent_rel_path = "/"
+            parent_rel_path = rel_path.parent
             self._push_to_scan(parent_rel_path)
             return
-        file_name = os.path.basename(src_path)
+        file_name = src_path.name
         doc_pair = self._dao.get_state_from_local(rel_path)
-        if not os.path.exists(src_path):
+        if not src_path.exists():
             log.warning(f"Event on a disappeared file: {evt!r} {rel_path} {file_name}")
             return
         if doc_pair is not None and doc_pair.processor > 0:
@@ -126,7 +126,7 @@ class SimpleWatcher(LocalWatcher):
     def _execute(self) -> None:
         try:
             self._init()
-            if not self.local.exists("/"):
+            if not self.local.exists(Path()):
                 self.rootDeleted.emit()
                 return
             self.watchdog_queue = Queue()
@@ -191,7 +191,7 @@ class SimpleWatcher(LocalWatcher):
             # Really delete file then
             del self._delete_files[deleted]
 
-    def _scan_path(self, path: str) -> None:
+    def _scan_path(self, path: Path) -> None:
         if self.local.exists(path):
             log.warning(
                 f"Scan delayed folder: {path}:{len(self.local.get_children_info(path))}"

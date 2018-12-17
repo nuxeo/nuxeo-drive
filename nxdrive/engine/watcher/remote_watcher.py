@@ -3,6 +3,7 @@ import os
 import socket
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from time import sleep
 from typing import Any, Dict, Optional, Set, Tuple, TYPE_CHECKING
 
@@ -15,7 +16,7 @@ from ..workers import EngineWorker
 from ...constants import WINDOWS
 from ...exceptions import NotFound, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
-from ...utils import current_milli_time, path_join, safe_filename
+from ...utils import current_milli_time, safe_filename
 
 if TYPE_CHECKING:
     from ..dao.sqlite import EngineDAO  # noqa
@@ -84,7 +85,7 @@ class RemoteWatcher(EngineWorker):
         log.trace("Remote full scan")
         start_ms = current_milli_time()
         try:
-            from_state = from_state or self._dao.get_state_from_local("/")
+            from_state = from_state or self._dao.get_state_from_local(Path())
             if not from_state:
                 return
             remote_info = self.engine.remote.get_fs_info(from_state.remote_ref)
@@ -149,7 +150,7 @@ class RemoteWatcher(EngineWorker):
         log.debug(f"scan_pair: parent_pair: {parent_pair!r}")
         if parent_pair is None:
             return
-        local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
+        local_path = parent_pair.local_path / safe_filename(child_info.name)
         remote_parent_path = (
             parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
         )
@@ -432,7 +433,7 @@ class RemoteWatcher(EngineWorker):
             )
             return None
 
-        local_path = path_join(parent_pair.local_path, safe_filename(child_info.name))
+        local_path = parent_pair.local_path / safe_filename(child_info.name)
         remote_parent_path = (
             parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
         )
@@ -932,12 +933,7 @@ class RemoteWatcher(EngineWorker):
             # Mark as deleted
             skip = False
             for processed_pair in delete_processed:
-                path = processed_pair.local_path
-
-                if path[-1] != "/":
-                    path += "/"
-
-                if delete_pair.local_path.startswith(path):
+                if processed_pair.local_path in delete_pair.local_path.parents:
                     skip = True
                     break
 
@@ -957,5 +953,5 @@ class RemoteWatcher(EngineWorker):
         return (
             info is not None
             and not info.folderish
-            and self.engine.local.is_ignored("/", info.name)
+            and self.engine.local.is_ignored(Path(), info.name)
         )
