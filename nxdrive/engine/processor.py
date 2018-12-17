@@ -1,10 +1,10 @@
 # coding: utf-8
-import os
 import shutil
 import socket
 import sqlite3
 from contextlib import suppress
 from logging import getLogger
+from pathlib import Path
 from threading import Lock
 from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
@@ -51,8 +51,8 @@ log = getLogger(__name__)
 class Processor(EngineWorker):
     pairSync = pyqtSignal(object)
     path_locker = Lock()
-    soft_locks: Dict[str, Dict[str, bool]] = dict()
-    readonly_locks: Dict[str, Dict[str, List[int]]] = dict()
+    soft_locks: Dict[str, Dict[Path, bool]] = dict()
+    readonly_locks: Dict[str, Dict[Path, List[int]]] = dict()
     readonly_locker = Lock()
 
     _current_doc_pair: Optional[DocPair] = None
@@ -64,16 +64,16 @@ class Processor(EngineWorker):
         self.local = self.engine.local
         self.remote = self.engine.remote
 
-    def _unlock_soft_path(self, path: str) -> None:
+    def _unlock_soft_path(self, path: Path) -> None:
         log.trace(f"Soft unlocking {path!r}")
-        path = path.lower()
+        path = Path(str(path).lower())
         with Processor.path_locker:
             if self.engine.uid not in Processor.soft_locks:
                 Processor.soft_locks[self.engine.uid] = dict()
             else:
                 Processor.soft_locks[self.engine.uid].pop(path, None)
 
-    def _unlock_readonly(self, path: str) -> None:
+    def _unlock_readonly(self, path: Path) -> None:
         with Processor.readonly_locker:
             if self.engine.uid not in Processor.readonly_locks:
                 Processor.readonly_locks[self.engine.uid] = dict()
@@ -86,7 +86,7 @@ class Processor(EngineWorker):
                 log.trace(f"Readonly unlock: unlock on {path!r} with {lock}")
                 Processor.readonly_locks[self.engine.uid][path] = [1, lock]
 
-    def _lock_readonly(self, path: str) -> None:
+    def _lock_readonly(self, path: Path) -> None:
         with Processor.readonly_locker:
             if self.engine.uid not in Processor.readonly_locks:
                 Processor.readonly_locks[self.engine.uid] = dict()
@@ -105,9 +105,9 @@ class Processor(EngineWorker):
                 log.trace(f"Readonly lock: relocked {path!r} with {lock}")
                 del Processor.readonly_locks[self.engine.uid][path]
 
-    def _lock_soft_path(self, path: str) -> str:
+    def _lock_soft_path(self, path: Path) -> Path:
         log.trace(f"Soft locking {path!r}")
-        path = path.lower()
+        path = Path(str(path).lower())
         with Processor.path_locker:
             if self.engine.uid not in Processor.soft_locks:
                 Processor.soft_locks[self.engine.uid] = dict()
@@ -228,8 +228,6 @@ class Processor(EngineWorker):
                     continue
 
                 parent_path = doc_pair.local_parent_path
-                if parent_path == "":
-                    parent_path = "/"
 
                 if not self.local.exists(parent_path):
                     if (
@@ -565,7 +563,7 @@ class Processor(EngineWorker):
                                with the same title on the server.
         """
 
-        name = os.path.basename(doc_pair.local_path)
+        name = doc_pair.local_path.name
         if not doc_pair.folderish:
             ignore, delay = is_generated_tmp_file(name)
             if ignore:
@@ -602,7 +600,9 @@ class Processor(EngineWorker):
                 self._dao.unsynchronize_state(doc_pair, "PARENT_UNSYNC")
                 self._handle_unsynchronized(doc_pair)
                 return
-            raise ParentNotSynced(doc_pair.local_path, doc_pair.local_parent_path)
+            raise ParentNotSynced(
+                str(doc_pair.local_path), str(doc_pair.local_parent_path)
+            )
 
         uid = info = None
         if remote_ref and "#" in remote_ref:
@@ -924,24 +924,19 @@ class Processor(EngineWorker):
         self._dao.remove_state(doc_pair)
 
     @staticmethod
-    def _get_temporary_file(file_path: str) -> str:
-        return os.path.join(
-            os.path.dirname(file_path),
-            (
-                DOWNLOAD_TMP_FILE_PREFIX
-                + os.path.basename(file_path)
-                + DOWNLOAD_TMP_FILE_SUFFIX
-            ),
+    def _get_temporary_file(file_path: Path) -> Path:
+        return file_path.with_name(
+            DOWNLOAD_TMP_FILE_PREFIX + file_path.name + DOWNLOAD_TMP_FILE_SUFFIX
         )
 
-    def _download_content(self, doc_pair: DocPair, file_path: str) -> str:
+    def _download_content(self, doc_pair: DocPair, file_path: Path) -> Path:
         # Check if the file is already on the HD
         pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
         if pair:
             file_out = self._get_temporary_file(file_path)
             locker = unlock_path(file_out)
             try:
-                shutil.copy(self.local.abspath(pair.local_path), file_out)
+                shutil.copy(str(self.local.abspath(pair.local_path)), str(file_out))
             finally:
                 lock_path(file_out, locker)
             return file_out
@@ -955,14 +950,12 @@ class Processor(EngineWorker):
     def _update_remotely(self, doc_pair: DocPair, is_renaming: bool) -> None:
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
-            new_os_path = os.path.join(
-                os.path.dirname(os_path), safe_filename(doc_pair.remote_name)
-            )
+            new_os_path = os_path.with_name(safe_filename(doc_pair.remote_name))
             log.debug(f"Replacing local file {os_path!r} by {new_os_path!r}")
         else:
             new_os_path = os_path
         log.debug(f"Updating content of local file {os_path!r}")
-        self.tmp_file: Optional[str] = self._download_content(doc_pair, new_os_path)
+        self.tmp_file: Optional[Path] = self._download_content(doc_pair, new_os_path)
 
         # Delete original file and rename tmp file
         remote_id = self.local.get_remote_id(doc_pair.local_path)
@@ -1030,7 +1023,7 @@ class Processor(EngineWorker):
                             doc_pair.remote_name if is_renaming else doc_pair.local_name
                         )
                         old_path = doc_pair.local_path
-                        new_path = new_parent_pair.local_path + "/" + moved_name
+                        new_path = new_parent_pair.local_path / moved_name
                         if old_path == new_path:
                             log.debug(f"Wrong guess for move: {doc_pair!r}")
                             self._is_remote_move(doc_pair)
@@ -1075,9 +1068,9 @@ class Processor(EngineWorker):
 
                     if updated_info:
                         # Should call a DAO method
-                        new_path = os.path.dirname(updated_info.path)
+                        new_path = updated_info.path.parent
                         self._dao.update_local_parent_path(
-                            doc_pair, os.path.basename(updated_info.path), new_path
+                            doc_pair, updated_info.path.name, new_path
                         )
                         self._search_for_dedup(doc_pair)
                         self._refresh_local_state(doc_pair, updated_info)
@@ -1091,7 +1084,7 @@ class Processor(EngineWorker):
         if not self.tmp_file:
             return
         with suppress(OSError):
-            os.remove(self.tmp_file)
+            self.tmp_file.unlink()
 
     def _synchronize_remotely_created(self, doc_pair: DocPair) -> None:
         name = doc_pair.remote_name
@@ -1116,8 +1109,8 @@ class Processor(EngineWorker):
             # parent folder issue to get resolved first
             raise ParentNotSynced(name, doc_pair.remote_ref)
 
-        path = doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
-        if self.remote.is_filtered(path):
+        remote_path = doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
+        if self.remote.is_filtered(remote_path):
             nature = ("file", "folder")[doc_pair.folderish]
             log.trace(f"Skip filtered {nature} {doc_pair.local_path!r}")
             self._dao.remove_state(doc_pair)
@@ -1159,9 +1152,7 @@ class Processor(EngineWorker):
         self.local.set_remote_id(path, doc_pair.remote_ref)
         if path != doc_pair.local_path and doc_pair.folderish:
             # Update childs
-            self._dao.update_local_parent_path(
-                doc_pair, os.path.basename(path), os.path.dirname(path)
-            )
+            self._dao.update_local_parent_path(doc_pair, path.name, path.parent)
         self._refresh_local_state(doc_pair, self.local.get_info(path))
         self._handle_readonly(doc_pair)
         if not self._dao.synchronize_state(doc_pair):
@@ -1184,7 +1175,7 @@ class Processor(EngineWorker):
 
     def _create_remotely(
         self, doc_pair: DocPair, parent_pair: DocPair, name: str
-    ) -> str:
+    ) -> Path:
         # TODO Shared this locking system / Can have concurrent lock
         local_parent_path = parent_pair.local_path
         self._unlock_readonly(local_parent_path)
@@ -1221,7 +1212,7 @@ class Processor(EngineWorker):
 
             # Clean-up the TMP file
             with suppress(OSError):
-                os.remove(tmp_file)
+                tmp_file.unlink()
 
             return path
         finally:
@@ -1243,8 +1234,8 @@ class Processor(EngineWorker):
                     file_out = self._get_temporary_file(
                         self.local.abspath(doc_pair.local_path)
                     )
-                    if os.path.exists(file_out):
-                        os.remove(file_out)
+                    if file_out.exists():
+                        file_out.unlink()
 
                 if not self.engine.use_trash():
                     # Force the complete file deletion
@@ -1297,7 +1288,7 @@ class Processor(EngineWorker):
             doc_pair.local_digest = local_info.get_digest()
         self._dao.update_local_state(doc_pair, local_info, versioned=False, queue=False)
         doc_pair.local_path = local_info.path
-        doc_pair.local_name = os.path.basename(local_info.path)
+        doc_pair.local_name = local_info.path.name
         doc_pair.last_local_updated = local_info.last_modification_time.strftime(
             "%Y-%m-%d %H:%M:%S"
         )

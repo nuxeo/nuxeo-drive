@@ -215,7 +215,7 @@ class Engine(QObject):
         self._create_local_watcher()
         self.manager.update_engine_path(self.uid, path)
 
-    def set_local_folder_lock(self, path: str) -> None:
+    def set_local_folder_lock(self, path: Path) -> None:
         self._folder_lock = path
         # Check for each processor
         log.debug(f"Local Folder locking on {path!r}")

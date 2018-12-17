@@ -1153,15 +1153,13 @@ class EngineDAO(ConfigurationDAO):
             )
 
     def update_local_parent_path(
-        self, doc_pair: DocPair, new_name: str, new_path: str
+        self, doc_pair: DocPair, new_name: str, new_path: Path
     ) -> None:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             if doc_pair.folderish:
-                if new_path == "/":
-                    new_path = ""
-                path = self._escape(new_path + "/" + new_name)
+                path = self._escape(str(new_path / new_name))
                 count = str(len(doc_pair.local_path) + 1)
                 query = (
                     "UPDATE States"

@@ -36,7 +36,6 @@ from ..utils import (
     lock_path,
     normalized_path,
     safe_os_filename,
-    safe_long_path,
     set_path_readonly,
     unlock_path,
     unset_path_readonly,
@@ -673,7 +672,7 @@ FolderType=Generic
             self.lock_ref(parent, locker & 1 | new_locker, is_abs=True)
 
     def change_file_date(
-        self, filename: str, mtime: str = None, ctime: str = None
+        self, filepath: Path, mtime: str = None, ctime: str = None
     ) -> None:
         """
         Change the FS modification and creation dates of a file.
@@ -686,11 +685,8 @@ FolderType=Generic
         :param ctime: The creation time
         """
 
-        if WINDOWS:
-            filename = safe_long_path(filename)
-
         log.trace(
-            f"Setting file dates for {filename!r} (ctime={ctime!r}, mtime={mtime!r})"
+            f"Setting file dates for {filepath!r} (ctime={ctime!r}, mtime={mtime!r})"
         )
 
         # Set the creation time first as on macOS using touch will change ctime and mtime.
@@ -699,13 +695,11 @@ FolderType=Generic
             d_ctime = datetime.strptime(str(ctime), "%Y-%m-%d %H:%M:%S")
 
             if MAC:
-                if isinstance(filename, bytes):
-                    filename = filename.decode("utf-8")
-                cmd = ["touch", "-mt", d_ctime.strftime("%Y%m%d%H%M.%S"), filename]
+                cmd = ["touch", "-mt", d_ctime.strftime("%Y%m%d%H%M.%S"), str(filepath)]
                 subprocess.check_call(cmd)
             elif WINDOWS:
                 winfile = win32file.CreateFileW(
-                    filename,
+                    str(filepath),
                     win32con.GENERIC_WRITE,
                     (
                         win32con.FILE_SHARE_READ
@@ -721,7 +715,7 @@ FolderType=Generic
 
         if mtime:
             d_mtime = mktime(strptime(str(mtime), "%Y-%m-%d %H:%M:%S"))
-            os.utime(filename, (d_mtime, d_mtime))
+            os.utime(filepath, (d_mtime, d_mtime))
 
     def get_path(self, abspath: Path) -> Path:
         """ Relative path to the local client from an absolute OS path. """
