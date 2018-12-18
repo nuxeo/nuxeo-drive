@@ -3,6 +3,7 @@ import calendar
 import json
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from os import getenv
 from os.path import abspath
 from time import time
@@ -437,7 +438,7 @@ class QMLDriveApi(QObject):
         else:
             engine = self._get_engine(uid)
             if engine:
-                filepath = engine.local.abspath(normalized_path(path))
+                filepath = engine.local.abspath(Path(path))
                 self._manager.open_local_file(filepath)
 
     @pyqtSlot()

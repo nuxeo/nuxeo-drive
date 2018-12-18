@@ -241,9 +241,9 @@ class FileModel(QAbstractListModel):
         elif role == self.LAST_TRANSFER:
             return row["last_transfer"]
         elif role == self.LOCAL_PARENT_PATH:
-            return row["local_parent_path"]
+            return str(row["local_parent_path"])
         elif role == self.LOCAL_PATH:
-            return row["local_path"]
+            return str(row["local_path"])
         elif role == self.NAME:
             return row["name"]
         elif role == self.REMOTE_CAN_RENAME:
