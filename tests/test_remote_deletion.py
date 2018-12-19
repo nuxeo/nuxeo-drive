@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 import time
 from logging import getLogger
 from shutil import copyfile
@@ -91,10 +90,10 @@ class TestRemoteDeletion(UnitTestCase):
             self.wait_sync(wait_for_async=True)
 
             # Create a document by streaming a binary file
-            file_path = os.path.join(local.abspath("/Test folder"), "testFile.pdf")
-            copyfile(self.location + "/resources/testFile.pdf", file_path)
-            file_path = os.path.join(local.abspath("/Test folder"), "testFile2.pdf")
-            copyfile(self.location + "/resources/testFile.pdf", file_path)
+            file_path = local.abspath("/Test folder") / "testFile.pdf"
+            copyfile(self.location / "resources/testFile.pdf", file_path)
+            file_path = local.abspath("/Test folder") / "testFile2.pdf"
+            copyfile(self.location / "resources/testFile.pdf", file_path)
 
             # Delete remote folder then synchronize
             remote.delete("/Test folder")
@@ -122,12 +121,11 @@ class TestRemoteDeletion(UnitTestCase):
         self.engine_1.start()
         self.engine_1.has_delete = False
 
-        filepath = os.path.join(self.location, "resources", "testFile.pdf")
+        filepath = self.location / "resources" / "testFile.pdf"
 
         with patch.object(self.engine_1.remote, "check_suspended", new=check_suspended):
             remote.make_folder("/", "Test folder")
-            with open(filepath, "rb") as pdf:
-                remote.make_file("/Test folder", "testFile.pdf", pdf.read())
+            remote.make_file("/Test folder", "testFile.pdf", filepath.read_bytes())
 
             self.wait_sync(wait_for_async=True)
             # Sometimes the server does not return the document trash action in summary changes.

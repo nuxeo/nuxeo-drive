@@ -1,5 +1,6 @@
 # coding: utf-8
 import time
+from pathlib import Path
 
 import pytest
 
@@ -297,6 +298,6 @@ class TestSecurityUpdates(UnitTestCase):
             pytest.root_remote.block_inheritance(doc_path)
 
     def _check_pair_state(self, local_path, pair_state):
-        local_path = "/" + self.workspace_title + local_path
+        local_path = Path(self.workspace_title) / local_path
         doc_pair = self.engine_1.get_dao().get_state_from_local(local_path)
         assert doc_pair.pair_state == pair_state

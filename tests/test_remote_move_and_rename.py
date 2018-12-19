@@ -1,6 +1,6 @@
 # coding: utf-8
-import os
 import time
+from pathlib import Path
 from shutil import copyfile
 
 import pytest
@@ -32,7 +32,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         remote = self.remote_1
 
         self.workspace_id = "defaultSyncRootFolderItemFactory#default#" + self.workspace
-        self.workspace_pair_local_path = "/" + self.workspace_title
+        self.workspace_path = Path(self.workspace_title)
 
         self.file_1_id = remote.make_file(
             self.workspace_id, "Original Fil\xe9 1.odt", content=b"Some Content 1"
@@ -84,9 +84,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # Check file state
         file_1_state = self.get_state(self.file_1_id)
-        assert file_1_state.local_path == (
-            self.workspace_pair_local_path + "/" + "Renamed File 1.odt"
-        )
+        assert file_1_state.local_path == self.workspace_path / "Renamed File 1.odt"
         assert file_1_state.local_name == "Renamed File 1.odt"
 
         # Rename 'Renamed File 1.odt' to 'Renamed Again File 1.odt'
@@ -118,13 +116,12 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Check file states
         file_1_state = self.get_state(self.file_1_id)
         assert file_1_state.local_path == (
-            self.workspace_pair_local_path + "/" + "Renamed Again File 1.odt"
+            self.workspace_path / "Renamed Again File 1.odt"
         )
         assert file_1_state.local_name == "Renamed Again File 1.odt"
         file_1_1_state = self.get_state(self.file_1_1_id)
         assert file_1_1_state.local_path == (
-            self.workspace_pair_local_path + "/Original Fold\xe9r 1"
-            "/Renamed File 1.1 \xe9.odt"
+            self.workspace_path / "Original Fold\xe9r 1/Renamed File 1.1 \xe9.odt"
         )
         assert file_1_1_state.local_name == "Renamed File 1.1 \xe9.odt"
 
@@ -135,15 +132,13 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Check parents of renamed files to ensure it is an actual rename
         # that has been performed and not a move
         file_1_local_info = local.get_info("/Renamed Again File 1.odt")
-        file_1_parent_path = os.path.dirname(file_1_local_info.filepath)
-        assert file_1_parent_path == self.sync_root_folder_1
+        assert file_1_local_info.filepath.parent == self.sync_root_folder_1
 
         file_1_1_local_info = local.get_info(
             "/Original Fold\xe9r 1/Renamed File 1.1 \xe9.odt"
         )
-        file_1_1_parent_path = os.path.dirname(file_1_1_local_info.filepath)
-        assert file_1_1_parent_path == os.path.join(
-            self.sync_root_folder_1, "Original Fold\xe9r 1"
+        assert file_1_1_local_info.filepath.parent == (
+            self.sync_root_folder_1 / "Original Fold\xe9r 1"
         )
 
     def test_remote_rename_update_content_file(self):
@@ -187,16 +182,13 @@ class TestRemoteMoveAndRename(UnitTestCase):
         file_1_local_info = local.get_info(
             "/Original Fold\xe9r 1/Original Fil\xe9 1.odt"
         )
-        file_1_parent_path = os.path.dirname(file_1_local_info.filepath)
-        assert file_1_parent_path == os.path.join(
-            self.sync_root_folder_1, "Original Fold\xe9r 1"
-        )
+        file_1_parent_path = file_1_local_info.filepath.parent
+        assert file_1_parent_path == (self.sync_root_folder_1 / "Original Fold\xe9r 1")
 
         # Check file state
         file_1_state = self.get_state(self.file_1_id)
         assert file_1_state.local_path == (
-            self.workspace_pair_local_path + "/Original Fold\xe9r 1/"
-            "Original Fil\xe9 1.odt"
+            self.workspace_path / "Original Fold\xe9r 1/Original Fil\xe9 1.odt"
         )
         assert file_1_state.local_name == "Original Fil\xe9 1.odt"
 
@@ -222,16 +214,13 @@ class TestRemoteMoveAndRename(UnitTestCase):
         file_1_local_info = local.get_info(
             "/Original Fold\xe9r 1/Renamed File 1 \xe9.odt"
         )
-        file_1_parent_path = os.path.dirname(file_1_local_info.filepath)
-        assert file_1_parent_path == os.path.join(
-            self.sync_root_folder_1, "Original Fold\xe9r 1"
-        )
+        file_1_parent_path = file_1_local_info.filepath.parent
+        assert file_1_parent_path == (self.sync_root_folder_1 / "Original Fold\xe9r 1")
 
         # Check file state
         file_1_state = self.get_state(self.file_1_id)
         assert file_1_state.local_path == (
-            self.workspace_pair_local_path + "/Original Fold\xe9r 1"
-            "/Renamed File 1 \xe9.odt"
+            self.workspace_path / "Original Fold\xe9r 1/Renamed File 1 \xe9.odt"
         )
         assert file_1_state.local_name == "Renamed File 1 \xe9.odt"
 
@@ -257,32 +246,31 @@ class TestRemoteMoveAndRename(UnitTestCase):
         file_1_1_local_info = local.get_info(
             "/Renamed Folder 1 \xe9/Original File 1.1.odt"
         )
-        file_1_1_parent_path = os.path.dirname(file_1_1_local_info.filepath)
-        assert file_1_1_parent_path == os.path.join(
-            self.sync_root_folder_1, "Renamed Folder 1 \xe9"
+        file_1_1_parent_path = file_1_1_local_info.filepath.parent
+        assert file_1_1_parent_path == (
+            self.sync_root_folder_1 / "Renamed Folder 1 \xe9"
         )
 
         # Check child state
         file_1_1_state = self.get_state(self.file_1_1_id)
         assert file_1_1_state.local_path == (
-            self.workspace_pair_local_path + "/Renamed Folder 1 \xe9"
-            "/Original File 1.1.odt"
+            self.workspace_path / "Renamed Folder 1 \xe9/Original File 1.1.odt"
         )
         assert file_1_1_state.local_name == "Original File 1.1.odt"
 
         # Check child name
         assert local.exists("/Renamed Folder 1 \xe9/Sub-Folder 1.1")
         folder_1_1_local_info = local.get_info("/Renamed Folder 1 \xe9/Sub-Folder 1.1")
-        folder_1_1_parent_path = os.path.dirname(folder_1_1_local_info.filepath)
-        assert folder_1_1_parent_path == os.path.join(
-            self.sync_root_folder_1, "Renamed Folder 1 \xe9"
+        folder_1_1_parent_path = folder_1_1_local_info.filepath.parent
+        assert folder_1_1_parent_path == (
+            self.sync_root_folder_1 / "Renamed Folder 1 \xe9"
         )
 
         # Check child state
         folder_1_1_state = self.get_state(self.folder_1_1_id)
         assert folder_1_1_state
         assert folder_1_1_state.local_path == (
-            self.workspace_pair_local_path + "/Renamed Folder 1 \xe9" "/Sub-Folder 1.1"
+            self.workspace_path / "Renamed Folder 1 \xe9/Sub-Folder 1.1"
         )
         assert folder_1_1_state.local_name == "Sub-Folder 1.1"
 
@@ -338,16 +326,14 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert not local.exists("/Original Fold\xe9r 1")
         assert local.exists("/Original Folder 2/Original Fold\xe9r 1")
         folder_1_local_info = local.get_info("/Original Folder 2/Original Fold\xe9r 1")
-        folder_1_parent_path = os.path.dirname(folder_1_local_info.filepath)
-        assert folder_1_parent_path == os.path.join(
-            self.sync_root_folder_1, "Original Folder 2"
+        assert folder_1_local_info.filepath.parent == (
+            self.sync_root_folder_1 / "Original Folder 2"
         )
 
         # Check folder state
         folder_1_state = self.get_state(self.folder_1_id)
         assert folder_1_state.local_path == (
-            self.workspace_pair_local_path + "/Original Folder 2/"
-            "Original Fold\xe9r 1"
+            self.workspace_path / "Original Folder 2/Original Fold\xe9r 1"
         )
         assert folder_1_state.local_name == "Original Fold\xe9r 1"
 
@@ -358,17 +344,16 @@ class TestRemoteMoveAndRename(UnitTestCase):
         file_1_1_local_info = local.get_info(
             "/Original Folder 2/Original Fold\xe9r 1/Original File 1.1.odt"
         )
-        file_1_1_parent_path = os.path.dirname(file_1_1_local_info.filepath)
-        assert file_1_1_parent_path == os.path.join(
-            self.sync_root_folder_1, "Original Folder 2", "Original Fold\xe9r 1"
+        assert file_1_1_local_info.filepath.parent == (
+            self.sync_root_folder_1 / "Original Folder 2" / "Original Fold\xe9r 1"
         )
 
         # Check child state
         file_1_1_state = self.get_state(self.file_1_1_id)
         assert file_1_1_state.local_path == (
-            self.workspace_pair_local_path + "/Original Folder 2"
-            "/Original Fold\xe9r 1"
-            "/Original File 1.1.odt"
+            self.workspace_path
+            / "Original Folder 2"
+            / "Original Fold\xe9r 1/Original File 1.1.odt"
         )
         assert file_1_1_state.local_name == "Original File 1.1.odt"
 
@@ -379,17 +364,16 @@ class TestRemoteMoveAndRename(UnitTestCase):
         folder_1_1_local_info = local.get_info(
             "/Original Folder 2/Original Fold\xe9r 1/Sub-Folder 1.1"
         )
-        folder_1_1_parent_path = os.path.dirname(folder_1_1_local_info.filepath)
-        assert folder_1_1_parent_path == os.path.join(
-            self.sync_root_folder_1, "Original Folder 2", "Original Fold\xe9r 1"
+        assert folder_1_1_local_info.filepath.parent == (
+            self.sync_root_folder_1 / "Original Folder 2" / "Original Fold\xe9r 1"
         )
 
         # Check child state
         folder_1_1_state = self.get_state(self.folder_1_1_id)
         assert folder_1_1_state.local_path == (
-            self.workspace_pair_local_path + "/Original Folder 2"
-            "/Original Fold\xe9r 1"
-            "/Sub-Folder 1.1"
+            self.workspace_path
+            / "Original Folder 2"
+            / "Original Fold\xe9r 1/Sub-Folder 1.1"
         )
         assert folder_1_1_state.local_name == "Sub-Folder 1.1"
 
@@ -411,31 +395,28 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Check child name
         assert local.exists("/Renamed Folder 1/Original File 1.1.odt")
         file_1_1_local_info = local.get_info("/Renamed Folder 1/Original File 1.1.odt")
-        file_1_1_parent_path = os.path.dirname(file_1_1_local_info.filepath)
-        assert file_1_1_parent_path == os.path.join(
-            self.sync_root_folder_1, "Renamed Folder 1"
+        assert file_1_1_local_info.filepath.parent == (
+            self.sync_root_folder_1 / "Renamed Folder 1"
         )
 
         # Check child state
         file_1_1_state = self.get_state(self.file_1_1_id)
         assert file_1_1_state.local_path == (
-            self.workspace_pair_local_path + "/Renamed Folder 1"
-            "/Original File 1.1.odt"
+            self.workspace_path / "Renamed Folder 1/Original File 1.1.odt"
         )
         assert file_1_1_state.local_name == "Original File 1.1.odt"
 
         # Check child name
         assert local.exists("/Renamed Folder 2/Original File 3.odt")
         file_3_local_info = local.get_info("/Renamed Folder 2/Original File 3.odt")
-        file_3_parent_path = os.path.dirname(file_3_local_info.filepath)
-        assert file_3_parent_path == os.path.join(
-            self.sync_root_folder_1, "Renamed Folder 2"
+        assert file_3_local_info.filepath.parent == (
+            self.sync_root_folder_1 / "Renamed Folder 2"
         )
 
         # Check child state
         file_3_state = self.get_state(self.file_3_id)
         assert file_3_state.local_path == (
-            self.workspace_pair_local_path + "/Renamed Folder 2" "/Original File 3.odt"
+            self.workspace_path / "Renamed Folder 2/Original File 3.odt"
         )
         assert file_3_state.local_name == "Original File 3.odt"
 
@@ -458,8 +439,8 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert not local.exists("/Nuxeo Drive Test Workspace")
         assert local.exists("/Renamed Nuxeo Drive Test Workspace")
 
-        renamed_workspace_path = os.path.join(
-            self.local_nxdrive_folder_1, "Renamed Nuxeo Drive Test Workspace"
+        renamed_workspace_path = (
+            self.local_nxdrive_folder_1 / "Renamed Nuxeo Drive Test Workspace"
         )
 
         # The content of the renamed folder is left unchanged
@@ -470,80 +451,70 @@ class TestRemoteMoveAndRename(UnitTestCase):
         file_1_local_info = local.get_info(
             "/Renamed Nuxeo Drive Test Workspace/Original Fil\xe9 1.odt"
         )
-        file_1_parent_path = os.path.dirname(file_1_local_info.filepath)
-        assert file_1_parent_path == renamed_workspace_path
+        assert file_1_local_info.filepath.parent == renamed_workspace_path
 
         # Check child state
         file_1_state = self.get_state(self.file_1_id)
-        assert (
-            file_1_state.local_path == "/Renamed Nuxeo Drive Test Workspace"
-            "/Original Fil\xe9 1.odt"
+        assert file_1_state.local_path == Path(
+            "Renamed Nuxeo Drive Test Workspace/Original Fil\xe9 1.odt"
         )
         assert file_1_state.local_name == "Original Fil\xe9 1.odt"
 
         # Check child name
-        assert local.exists(
-            "/Renamed Nuxeo Drive Test Workspace" "/Original Fold\xe9r 1"
-        )
+        assert local.exists("/Renamed Nuxeo Drive Test Workspace/Original Fold\xe9r 1")
         folder_1_local_info = local.get_info(
             "/Renamed Nuxeo Drive Test Workspace/Original Fold\xe9r 1"
         )
-        folder_1_parent_path = os.path.dirname(folder_1_local_info.filepath)
-        assert folder_1_parent_path == renamed_workspace_path
+        assert folder_1_local_info.filepath.parent == renamed_workspace_path
 
         # Check child state
         folder_1_state = self.get_state(self.folder_1_id)
-        assert (
-            folder_1_state.local_path == "/Renamed Nuxeo Drive Test Workspace"
-            "/Original Fold\xe9r 1"
+        assert folder_1_state.local_path == Path(
+            "Renamed Nuxeo Drive Test Workspace/Original Fold\xe9r 1"
         )
         assert folder_1_state.local_name == "Original Fold\xe9r 1"
 
         # Check child name
         assert local.exists(
-            "/Renamed Nuxeo Drive Test Workspace/"
-            "Original Fold\xe9r 1"
+            "/Renamed Nuxeo Drive Test Workspace"
+            "/Original Fold\xe9r 1"
             "/Sub-Folder 1.1"
         )
         folder_1_1_local_info = local.get_info(
-            "/Renamed Nuxeo Drive Test Workspace/"
-            "Original Fold\xe9r 1"
+            "/Renamed Nuxeo Drive Test Workspace"
+            "/Original Fold\xe9r 1"
             "/Sub-Folder 1.1"
         )
-        folder_1_1_parent_path = os.path.dirname(folder_1_1_local_info.filepath)
-        assert folder_1_1_parent_path == os.path.join(
-            renamed_workspace_path, "Original Fold\xe9r 1"
+        assert folder_1_1_local_info.filepath.parent == (
+            renamed_workspace_path / "Original Fold\xe9r 1"
         )
 
         # Check child state
         folder_1_1_state = self.get_state(self.folder_1_1_id)
-        assert (
-            folder_1_1_state.local_path == "/Renamed Nuxeo Drive Test Workspace"
-            "/Original Fold\xe9r 1/Sub-Folder 1.1"
+        assert folder_1_1_state.local_path == Path(
+            "Renamed Nuxeo Drive Test Workspace/Original Fold\xe9r 1/Sub-Folder 1.1"
         )
         assert folder_1_1_state.local_name == "Sub-Folder 1.1"
 
         # Check child name
         assert local.exists(
-            "/Renamed Nuxeo Drive Test Workspace/"
-            "Original Fold\xe9r 1"
+            "/Renamed Nuxeo Drive Test Workspace"
+            "/Original Fold\xe9r 1"
             "/Original File 1.1.odt"
         )
         file_1_1_local_info = local.get_info(
-            "/Renamed Nuxeo Drive Test Workspace/"
-            "Original Fold\xe9r 1"
+            "/Renamed Nuxeo Drive Test Workspace"
+            "/Original Fold\xe9r 1"
             "/Original File 1.1.odt"
         )
-        file_1_1_parent_path = os.path.dirname(file_1_1_local_info.filepath)
-        assert file_1_1_parent_path == os.path.join(
-            renamed_workspace_path, "Original Fold\xe9r 1"
+        assert file_1_1_local_info.filepath.parent == (
+            renamed_workspace_path / "Original Fold\xe9r 1"
         )
 
         # Check child state
         file_1_1_state = self.get_state(self.file_1_1_id)
-        assert (
-            file_1_1_state.local_path == "/Renamed Nuxeo Drive Test Workspace"
-            "/Original Fold\xe9r 1/Original File 1.1.odt"
+        assert file_1_1_state.local_path == Path(
+            "Renamed Nuxeo Drive Test Workspace/Original Fold\xe9r 1/Original File 1.1.odt"
         )
         assert file_1_1_state.local_name == "Original File 1.1.odt"
 
@@ -608,7 +579,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
 
         # Create documents in the remote root workspace
         self.workspace_id = "defaultSyncRootFolderItemFactory#default#" + self.workspace
-        self.workspace_pair_local_path = "/" + self.workspace_title
+        self.workspace_path = Path(self.workspace_title)
         self.folder_id = remote.make_folder(self.workspace_id, "Test folder").uid
 
         self.engine_1.start()
@@ -620,8 +591,8 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         local = self.local_1
         remote = self.remote_1
 
-        file_path = os.path.join(local.abspath("/Test folder"), "testFile.pdf")
-        copyfile(self.location + "/resources/testFile.pdf", file_path)
+        file_path = local.abspath("/Test folder") / "testFile.pdf"
+        copyfile(self.location / "resources/testFile.pdf", file_path)
         self.wait_sync()
         file_id = local.get_remote_id("/Test folder/testFile.pdf")
         assert file_id
@@ -663,8 +634,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
 
         try:
             self.engine_1.remote.check_suspended = _suspend_check
-            with open(self.location + "/resources/testFile.pdf", "rb") as f:
-                content = f.read()
+            content = (self.location / "resources/testFile.pdf").read_bytes()
             self.engine_1.file_id = remote.make_file(
                 self.folder_id, "testFile.pdf", content=content
             ).uid
@@ -681,8 +651,8 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         local = self.local_1
         remote = self.remote_1
 
-        file_path = os.path.join(local.abspath("/Test folder"), "testFile.pdf")
-        copyfile(self.location + "/resources/testFile.pdf", file_path)
+        file_path = local.abspath("/Test folder") / "testFile.pdf"
+        copyfile(self.location / "resources/testFile.pdf", file_path)
         self.wait_sync()
         file_id = local.get_remote_id("/Test folder/testFile.pdf")
         assert file_id
@@ -720,8 +690,8 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         with patch.object(
             self.engine_1.remote, "check_suspended", new_callable=check_suspended
         ):
-            with open(self.location + "/resources/testFile.pdf", "rb") as f:
-                remote.make_file("/Test folder", "testFile.pdf", content=f.read())
+            content = (self.location / "resources/testFile.pdf").read_bytes()
+            remote.make_file("/Test folder", "testFile.pdf", content=content)
 
             # Rename remote folder then synchronize
             self.wait_sync(wait_for_async=True)
@@ -751,10 +721,10 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
 
         with patch.object(self.engine_1.remote, "check_suspended", new=check_suspended):
             # Create a document by streaming a binary file
-            file_path = os.path.join(local.abspath("/Test folder"), "testFile.pdf")
-            copyfile(self.location + "/resources/testFile.pdf", file_path)
-            file_path = os.path.join(local.abspath("/Test folder"), "testFile2.pdf")
-            copyfile(self.location + "/resources/testFile.pdf", file_path)
+            file_path = local.abspath("/Test folder") / "testFile.pdf"
+            copyfile(self.location / "resources/testFile.pdf", file_path)
+            file_path = local.abspath("/Test folder") / "testFile2.pdf"
+            copyfile(self.location / "resources/testFile.pdf", file_path)
 
             # Rename remote folder then synchronize
             remote.rename(self.folder_id, "Test folder renamed")
@@ -858,7 +828,7 @@ class TestRemoteFiles(UnitTestCase):
         remote.rename(folder2, foldername_lower)
         self.wait_sync(wait_for_async=True)
 
-        if WINDOWS:
+        if not local.is_case_sensitive():
             # There should be a conflict
             errors = engine.get_dao().get_errors()
             assert len(errors) == 1
@@ -883,9 +853,10 @@ class TestRemoteFiles(UnitTestCase):
         assert children[0].remote_ref.endswith(folder1_uid)
         assert children[0].name == "AA_1"
         assert children[1].remote_ref.endswith(folder2_uid)
-        if WINDOWS:
+
+        if not local.is_case_sensitive():
             # The rename was _not_ effective
-            assert children[1].path.endswith("BA_1")
+            assert str(children[1].path).endswith("BA_1")
 
             # Re-rename the folder on the server
             remote.rename(folder2, "aZeRtY")
@@ -900,7 +871,7 @@ class TestRemoteFiles(UnitTestCase):
             assert children[0].remote_ref.endswith(folder1_uid)
             assert children[0].name == "AA_1"
             assert children[1].remote_ref.endswith(folder2_uid)
-            assert children[1].path.endswith("aZeRtY")
+            assert str(children[1].path).endswith("aZeRtY")
         else:
             # The rename was effective
-            assert children[1].path.endswith(foldername_lower)
+            assert str(children[1].path).endswith(foldername_lower)

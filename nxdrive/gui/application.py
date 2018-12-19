@@ -286,7 +286,7 @@ class Application(QApplication):
         self.installTranslator(Translator._singleton)
 
     @pyqtSlot(str, str, str)
-    def _direct_edit_conflict(self, filename: str, ref: str, digest: str) -> None:
+    def _direct_edit_conflict(self, filename: str, ref: Path, digest: str) -> None:
         log.trace(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
         try:
             if filename in self._conflicts_modals:
@@ -305,7 +305,7 @@ class Application(QApplication):
             msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
             msg.setIcon(QMessageBox.Warning)
             if msg.clickedButton() == overwrite:
-                self.manager.direct_edit.force_update(Path(ref), digest)
+                self.manager.direct_edit.force_update(ref, digest)
             del self._conflicts_modals[filename]
         except:
             log.exception(
@@ -358,10 +358,10 @@ class Application(QApplication):
         msg.exec_()
 
     @pyqtSlot(str)
-    def _root_moved(self, new_path: str) -> None:
+    def _root_moved(self, new_path: Path) -> None:
         engine = self.sender()
         log.debug(f"Root has been moved for engine: {engine.uid} to {new_path!r}")
-        info = [engine.local_folder, new_path]
+        info = [engine.local_folder, str(new_path)]
 
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)

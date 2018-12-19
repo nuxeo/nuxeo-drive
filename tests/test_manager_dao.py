@@ -5,6 +5,7 @@ import unittest
 
 from nxdrive.manager import Manager
 from nxdrive.options import Options
+from nxdrive.utils import normalized_path
 from .common import clean_dir
 
 
@@ -13,12 +14,14 @@ class ManagerDAOTest(unittest.TestCase):
         if Manager._singleton:
             Manager._singleton = None
 
-        self.tmpdir = os.path.join(os.environ.get("WORKSPACE", ""), "tmp")
+        self.tmpdir = normalized_path(os.environ.get("WORKSPACE", "")) / "tmp"
         self.addCleanup(clean_dir, self.tmpdir)
-        if not os.path.isdir(self.tmpdir):
-            os.makedirs(self.tmpdir)
+        if not self.tmpdir.is_dir():
+            self.tmpdir.mkdir(parents=True)
 
-        self.test_folder = tempfile.mkdtemp("-nxdrive-tests", dir=self.tmpdir)
+        self.test_folder = normalized_path(
+            tempfile.mkdtemp("-nxdrive-tests", dir=str(self.tmpdir))
+        )
 
     def tearDown(self):
         Manager._singleton = None

@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 import time
 import shutil
 from logging import getLogger
@@ -12,7 +11,7 @@ from unittest.mock import patch
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import User
 
-from nxdrive.constants import WINDOWS
+from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.engine.engine import Engine, ServerBindingSettings
 from nxdrive.engine.workers import Worker
 from nxdrive.exceptions import NotFound, ThreadInterrupt
@@ -38,7 +37,7 @@ class MockUrlTestEngine(Engine):
         self._invalid_credentials = False
 
     def get_binder(self):
-        return ServerBindingSettings(self._url, None, "Administrator", "/", True)
+        return ServerBindingSettings(self._url, None, "Administrator", ROOT, True)
 
 
 class TestDirectEdit(UnitTestCase):
@@ -50,7 +49,7 @@ class TestDirectEdit(UnitTestCase):
         self.direct_edit.start()
 
         self.remote = self.remote_document_client_1
-        self.local = LocalTest(os.path.join(self.nxdrive_conf_folder_1, "edit"))
+        self.local = LocalTest(self.nxdrive_conf_folder_1 / "edit")
 
     def tearDownApp(self):
         self.direct_edit.stop()
@@ -225,10 +224,10 @@ class TestDirectEdit(UnitTestCase):
         """"If local folder does not exist, it should be created."""
 
         shutil.rmtree(self.direct_edit._folder)
-        assert not os.path.isdir(self.direct_edit._folder)
+        assert not self.direct_edit._folder.is_dir()
 
         self.direct_edit._cleanup()
-        assert os.path.isdir(self.direct_edit._folder)
+        assert self.direct_edit._folder.is_dir()
 
     def test_cleanup_document_not_found(self):
         """"If a file does not exist on the server, it should be deleted locally."""

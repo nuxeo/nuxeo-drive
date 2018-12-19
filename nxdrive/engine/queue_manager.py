@@ -428,7 +428,7 @@ class QueueManager(QObject):
         if exact_match:
             result = doc_pair.local_path == path
         else:
-            result = str(doc_pair.local_path).startswith(str(path))
+            result = path in doc_pair.local_path.parents
         if result:
             log.trace(f"Worker({worker.get_metrics()!r}) is processing: {path!r}")
         return result

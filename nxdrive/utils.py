@@ -185,7 +185,9 @@ def get_default_nuxeo_drive_folder() -> Path:
         from win32com.shell import shell, shellcon
 
         try:
-            folder = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, None, 0)
+            folder = normalized_path(
+                shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, None, 0)
+            )
         except:
             """
             In some cases (not really sure how this happens) the current user
@@ -209,8 +211,7 @@ def get_default_nuxeo_drive_folder() -> Path:
     else:
         folder = normalized_path(Options.home)
 
-    folder = increment_local_folder(folder, APP_NAME)
-    return folder
+    return increment_local_folder(folder, APP_NAME)
 
 
 def get_value(value: str) -> Union[bool, str, Tuple[str, ...]]:

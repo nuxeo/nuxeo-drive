@@ -205,7 +205,7 @@ class Remote(Nuxeo):
                 # server. This batch is to be used as a resumable session
                 batch = self.uploads.batch()
 
-                blob = FileBlob(file_path)
+                blob = FileBlob(str(file_path))
                 if filename:
                     blob.name = filename
                 if mime_type:

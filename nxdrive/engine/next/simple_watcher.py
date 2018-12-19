@@ -10,6 +10,7 @@ from watchdog.events import DirModifiedEvent, FileSystemEvent, FileSystemMovedEv
 
 from ..watcher.local_watcher import LocalWatcher
 from ...client.local_client import FileInfo
+from ...constants import ROOT
 from ...exceptions import ThreadInterrupt
 from ...utils import current_milli_time, normalize_event_filename
 
@@ -83,7 +84,7 @@ class SimpleWatcher(LocalWatcher):
         src_path = normalize_event_filename(evt.src_path)
         rel_path = self.local.get_path(src_path)
         file_name = src_path.name
-        if self.local.is_temp_file(file_name) or rel_path == Path("/.partials"):
+        if self.local.is_temp_file(file_name) or rel_path == Path(".partials"):
             return
         if evt.event_type == "moved":
             self.handle_watchdog_move(evt, src_path, rel_path)
@@ -92,7 +93,7 @@ class SimpleWatcher(LocalWatcher):
         if self.local.is_ignored(rel_path.parent, file_name):
             return
         log.warning(f"Got evt: {evt!r}")
-        if rel_path == Path():
+        if rel_path == ROOT:
             self._push_to_scan(rel_path)
             return
         # If not modified then we will scan the parent folder later
@@ -126,7 +127,7 @@ class SimpleWatcher(LocalWatcher):
     def _execute(self) -> None:
         try:
             self._init()
-            if not self.local.exists(Path()):
+            if not self.local.exists(ROOT):
                 self.rootDeleted.emit()
                 return
             self.watchdog_queue = Queue()

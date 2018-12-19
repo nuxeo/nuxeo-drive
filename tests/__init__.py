@@ -2,7 +2,8 @@
 import logging
 import os
 import tempfile
-from typing import Any, Dict, List, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Tuple, Union
 
 import nuxeo.client
 import nuxeo.constants
@@ -62,7 +63,7 @@ def configure_logger():
     )
 
 
-def make_tmp_file(folder: str, content: bytes) -> str:
+def make_tmp_file(folder: Path, content: bytes) -> Path:
     """Create a temporary file with the given content
     for streaming upload purposes.
 
@@ -71,10 +72,10 @@ def make_tmp_file(folder: str, content: bytes) -> str:
     """
     import tempfile
 
-    fd, path = tempfile.mkstemp(suffix="-nxdrive-file-to-upload", dir=folder)
+    fd, path = tempfile.mkstemp(suffix="-nxdrive-file-to-upload", dir=str(folder))
+    path = Path(path)
     try:
-        with open(path, "wb") as f:
-            f.write(force_encode(content))
+        path.write_bytes(force_encode(content))
     finally:
         os.close(fd)
     return path
@@ -88,14 +89,22 @@ log = logging.getLogger(__name__)
 OPS_CACHE = None
 SERVER_INFO = None
 
+RawPath = Union[Path, str]
+
+
+def force_path(ref: RawPath) -> Path:
+    if not isinstance(ref, Path):
+        ref = Path(ref.lstrip("/"))
+    return ref
+
 
 class LocalTest(LocalClient):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def get_content(self, ref: str) -> bytes:
-        with open(self.abspath(ref), "rb") as f:
-            return f.read()
+    def get_content(self, ref: RawPath) -> bytes:
+        ref = force_path(ref)
+        return self.abspath(ref).read_bytes()
 
     def has_folder_icon(self, *args: Any, **kwargs: Any) -> bool:
         return True
@@ -103,30 +112,58 @@ class LocalTest(LocalClient):
     def set_folder_icon(self, *args: Any, **kwargs: Any) -> None:
         return
 
+    def abspath(self, ref: RawPath) -> Path:
+        ref = force_path(ref)
+        return super().abspath(ref)
+
+    def exists(self, ref: RawPath) -> bool:
+        ref = force_path(ref)
+        return super().exists(ref)
+
+    def get_children_info(self, ref: RawPath):
+        ref = force_path(ref)
+        return super().get_children_info(ref)
+
+    def get_info(self, ref: RawPath):
+        ref = force_path(ref)
+        return super().get_info(ref)
+
+    def get_path(self, abspath: RawPath):
+        abspath = force_path(abspath)
+        return super().get_path(abspath)
+
     def update_content(
-        self, ref: str, content: bytes, xattr_names: Tuple[str, ...] = ("ndrive",)
+        self, ref: RawPath, content: bytes, xattr_names: Tuple[str, ...] = ("ndrive",)
     ) -> None:
+        ref = force_path(ref)
         xattrs = {name: self.get_remote_id(ref, name=name) for name in xattr_names}
 
-        with open(self.abspath(ref), "wb") as f:
-            f.write(content)
+        self.abspath(ref).write_bytes(content)
 
         for name, value in xattrs.items():
             if value is not None:
                 self.set_remote_id(ref, value, name=name)
 
-    def make_file(self, parent: str, name: str, content: bytes = None) -> str:
+    def make_folder(self, parent: RawPath, *args: Any, **kwargs: Any) -> Path:
+        parent = force_path(parent)
+        return super().make_folder(parent, *args, **kwargs)
+
+    def make_file(self, parent: RawPath, name: str, content: bytes = None) -> Path:
+        parent = force_path(parent)
         os_path, name = self._abspath_deduped(parent, name)
         locker = self.unlock_ref(parent, unlock_parent=False)
         try:
-            with open(os_path, "wb") as f:
-                if content:
-                    f.write(content)
-            if parent == "/":
-                return "/" + name
-            return parent + "/" + name
+            if content:
+                os_path.write_bytes(content)
+            else:
+                os_path.touch()
+            return parent / name
         finally:
             self.lock_ref(parent, locker)
+
+    def get_new_file(self, parent: RawPath, name: str) -> Tuple[Path, Path, str]:
+        parent = force_path(parent)
+        return super().get_new_file(parent, name)
 
 
 class RemoteBase(Remote):
@@ -172,7 +209,7 @@ class RemoteBase(Remote):
         entries = self.query(query)["entries"]
         return self._filtered_results(entries)
 
-    def get_content(self, fs_item_id: str, **kwargs: Any) -> str:
+    def get_content(self, fs_item_id: str, **kwargs: Any) -> Path:
         """Download and return the binary content of a file system item
 
         Beware that the content is loaded in memory.
@@ -206,7 +243,7 @@ class RemoteBase(Remote):
             return RemoteFileInfo.from_dict(fs_item)
         finally:
             if content is not None:
-                os.remove(file_path)
+                file_path.unlink()
 
     def update_content(
         self, ref: str, content: bytes, filename: str = None, mime_type: str = None
@@ -228,7 +265,7 @@ class RemoteBase(Remote):
             )
             return RemoteFileInfo.from_dict(fs_item)
         finally:
-            os.remove(file_path)
+            file_path.unlink()
 
     def _filtered_results(
         self, entries: List[Dict], parent_uid: str = None, fetch_parent_uid: bool = True
@@ -424,7 +461,7 @@ class DocRemote(RemoteTest):
                 file_path, "UserWorkspace.CreateDocumentFromBlob", filename=filename
             )
         finally:
-            os.remove(file_path)
+            file_path.unlink()
 
     def stream_file(
         self,
@@ -453,7 +490,7 @@ class DocRemote(RemoteTest):
                 file_path, "Blob.Attach", filename=filename, document=ref
             )
         finally:
-            os.remove(file_path)
+            file_path.unlink()
 
     def get_content(self, ref: str) -> bytes:
         """

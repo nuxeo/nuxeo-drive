@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 import shutil
 
 import pytest
@@ -28,12 +27,12 @@ class TestLocalDeletion(UnitTestCase):
         abs_path = local.abspath("/" + file1)
 
         # Pretend we had trash the file
-        shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
+        shutil.move(str(abs_path), str(self.local_test_folder_1 / file1))
         self.wait_sync(wait_for_async=True)
         assert not remote.exists("/" + file1)
         assert not local.exists("/" + file1)
         # See if it untrash or recreate
-        shutil.move(os.path.join(self.local_test_folder_1, file1), local.abspath("/"))
+        shutil.move(str(self.local_test_folder_1 / file1), str(local.abspath("/")))
         self.wait_sync(wait_for_async=True)
         assert remote.exists(old_info.uid)
         assert local.exists("/" + file1)
@@ -51,19 +50,16 @@ class TestLocalDeletion(UnitTestCase):
         old_info = remote.get_info("/" + file1, use_trash=True)
         abs_path = local.abspath("/" + file1)
         # Pretend we had trash the file
-        shutil.move(abs_path, os.path.join(self.local_test_folder_1, file2))
+        shutil.move(str(abs_path), str(self.local_test_folder_1 / file2))
         self.wait_sync(wait_for_async=True)
         assert not remote.exists("/" + file1)
         assert not local.exists("/" + file1)
-        with open(os.path.join(self.local_test_folder_1, file2), "wb") as f:
-            f.write(b"New content")
+        (self.local_test_folder_1 / file2).write_bytes(b"New content")
         if WINDOWS:
             # Python API overwrite the tag by default
-            path = os.path.join(self.local_test_folder_1, file2 + ":ndrive")
-            with open(path, "w") as f:
-                f.write(uid)
+            (self.local_test_folder_1 / f"{file2}:ndrive").write_text(uid)
         # See if it untrash or recreate
-        shutil.move(os.path.join(self.local_test_folder_1, file2), local.abspath("/"))
+        shutil.move(str(self.local_test_folder_1 / file2), str(local.abspath("/")))
         self.wait_sync(wait_for_async=True)
         assert remote.exists(old_info.uid)
         assert local.exists("/" + file2)
@@ -83,7 +79,7 @@ class TestLocalDeletion(UnitTestCase):
         old_info = remote.get_info(file_path, use_trash=True)
         abs_path = local.abspath(file_path)
         # Pretend we had trash the file
-        shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
+        shutil.move(str(abs_path), str(self.local_test_folder_1 / file1))
         self.wait_sync()
         local.delete("/ToDelete")
         self.wait_sync()
@@ -91,7 +87,7 @@ class TestLocalDeletion(UnitTestCase):
         assert not local.exists(file_path)
 
         # See if it untrash or recreate
-        shutil.move(os.path.join(self.local_test_folder_1, file1), local.abspath("/"))
+        shutil.move(str(self.local_test_folder_1 / file1), str(local.abspath("/")))
         self.wait_sync()
         new_info = remote.get_info(old_info.uid, use_trash=True)
         assert new_info.state == "project"
@@ -115,7 +111,7 @@ class TestLocalDeletion(UnitTestCase):
         old_info = remote.get_info(file_path, use_trash=True)
         abs_path = local.abspath(file_path)
         # Pretend we had trash the file
-        shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
+        shutil.move(str(abs_path), str(self.local_test_folder_1 / file1))
         self.wait_sync()
 
         # Remove rights
@@ -136,7 +132,7 @@ class TestLocalDeletion(UnitTestCase):
         assert not local.exists(file_path)
 
         # See if it untrash or recreate
-        shutil.move(os.path.join(self.local_test_folder_1, file1), local.abspath("/"))
+        shutil.move(str(self.local_test_folder_1 / file1), str(local.abspath("/")))
         assert local.get_remote_id("/" + file1)
         self.wait_sync()
         assert local.exists("/" + file1)
@@ -165,7 +161,7 @@ class TestLocalDeletion(UnitTestCase):
         abs_path = local.abspath(file_path)
 
         # Pretend we had trash the file
-        shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
+        shutil.move(str(abs_path), str(self.local_test_folder_1 / file1))
         self.wait_sync()
 
         # Remove rights
@@ -187,7 +183,7 @@ class TestLocalDeletion(UnitTestCase):
         # See if it untrash or unsynchronized
         local.unlock_ref("/ToCopy")
         shutil.move(
-            os.path.join(self.local_test_folder_1, file1), local.abspath("/ToCopy")
+            str(self.local_test_folder_1 / file1), str(local.abspath("/ToCopy"))
         )
         self.wait_sync(wait_for_async=True)
 
@@ -206,7 +202,7 @@ class TestLocalDeletion(UnitTestCase):
         abs_path = local.abspath(file_path)
 
         # Pretend we had trash the file
-        shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
+        shutil.move(str(abs_path), str(self.local_test_folder_1 / file1))
         self.wait_sync()
         local.delete("/ToDelete")
         self.wait_sync()
@@ -216,7 +212,7 @@ class TestLocalDeletion(UnitTestCase):
         # See if it untrash or recreate
         local.make_folder("/", "ToDelete")
         shutil.move(
-            os.path.join(self.local_test_folder_1, file1), local.abspath("/ToDelete/")
+            str(self.local_test_folder_1 / file1), str(local.abspath("/ToDelete"))
         )
         self.wait_sync()
         assert remote.exists(old_info.uid)
@@ -237,7 +233,7 @@ class TestLocalDeletion(UnitTestCase):
         old_info = remote.get_info(file_path, use_trash=True)
         abs_path = local.abspath(file_path)
         # Pretend we had trash the file
-        shutil.move(abs_path, os.path.join(self.local_test_folder_1, file1))
+        shutil.move(str(abs_path), str(self.local_test_folder_1 / file1))
         local.delete("/ToDelete")
         self.wait_sync()
         assert not remote.exists(file_path)
@@ -245,7 +241,7 @@ class TestLocalDeletion(UnitTestCase):
         # See if it untrash or recreate
         local.make_folder("/", "ToDelete")
         shutil.move(
-            os.path.join(self.local_test_folder_1, file1), local.abspath("/ToDelete/")
+            str(self.local_test_folder_1 / file1), str(local.abspath("/ToDelete"))
         )
         self.wait_sync()
         assert remote.exists(old_info.uid)

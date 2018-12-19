@@ -4,8 +4,11 @@ import shutil
 from copy import copy
 from logging import getLogger
 from math import floor, log10
+from pathlib import Path
 
 import pytest
+
+from nxdrive.constants import ROOT
 
 from .common import TEST_WORKSPACE_PATH, UnitTestCase
 
@@ -68,11 +71,11 @@ class VolumeTestCase(UnitTestCase):
         self.num_folders = int(values[0])
         self.tree = dict()
         self.tree["childs"] = dict()
-        self.tree["path"] = "/"
-        log.debug("Generating in: " + self.local_1.abspath("/"))
+        self.tree["path"] = ROOT
+        log.debug("Generating in: " + self.local_1.abspath(ROOT))
         self.create_tree(self.num_folders, self.num_files, self.depth, self.tree)
 
-        log.debug("Generated done in: " + self.local_1.abspath("/"))
+        log.debug("Generated done in: " + self.local_1.abspath(ROOT))
         if not self.fake:
             if not stopped:
                 log.debug("*** engine1 starting")
@@ -87,22 +90,20 @@ class VolumeTestCase(UnitTestCase):
         return "file_" + self.fmt[2] + "_" + self.fmt[1] + ".png" % (depth, number)
 
     def get_path(self, folder, depth, number):
-        child = ""
+        child = ROOT
         for i in range(self.depth + 1 - depth, self.depth + 1):
             if i == 1 and not folder:
-                child = self.get_name(False, self.depth - i + 1, number)
-            child = os.path.join(self.get_name(True, self.depth - i + 1, number), child)
-        return "/" + child
+                child = ROOT / self.get_name(False, self.depth - i + 1, number)
+            child = ROOT / self.get_name(True, self.depth - i + 1, number) / child
+        return child
 
-    def _check_folder(self, path, removed=[], added=[]):
-        if path[-1] == "/":
-            path = path[0:-1]
+    def _check_folder(self, path: Path, removed=[], added=[]):
         # First get the remote id
         remote_id = self.local_1.get_remote_id(path)
         assert remote_id
 
         # get depth
-        depth = int(os.path.basename(path).split("_")[1])
+        depth = int(path.name.split("_")[1])
 
         # calculated expected children
         children = dict()
@@ -119,13 +120,14 @@ class VolumeTestCase(UnitTestCase):
         remote_refs = dict()
 
         # check locally
-        os_children = os.listdir(self.local_1.abspath(path))
+        os_children = os.listdir()
         assert len(os_children) == len(children)
         cmp_children = copy(children)
-        for name in os_children:
+        for child in self.local_1.abspath(path).iterdir():
+            name = child.name
             if name not in cmp_children:
-                self.fail('Not expected local child "' + name + '" in ' + path)
-            remote_ref = self.local_1.get_remote_id(os.path.join(path, name))
+                self.fail(f'Unexpected local child "{name}" in {path}')
+            remote_ref = self.local_1.get_remote_id(child)
             assert remote_ref
             remote_refs[remote_ref] = name
             del cmp_children[name]
@@ -136,7 +138,7 @@ class VolumeTestCase(UnitTestCase):
         assert len(remote_children) == len(children)
         for child in remote_children:
             if child.uid not in remote_refs:
-                self.fail('Not expected remote child "' + child.name + '" in ' + path)
+                self.fail(f'Unexpected remote child "{child.name}" in {path}')
             assert child.name == remote_refs[child.uid]
 
     def test_moves_while_creating(self):
@@ -165,18 +167,22 @@ class VolumeTestCase(UnitTestCase):
         # Move root 2 in, first subchild of 1
         root_2 = self.get_path(True, 1, 2)
         child = self.get_path(True, self.depth, 1)
-        log.debug("Will move " + root_2 + " into " + child)
+        log.debug(f"Will move {root_2} into {child}")
         if not self.fake:
-            shutil.move(self.local_1.abspath(root_2), self.local_1.abspath(child))
+            shutil.move(
+                str(self.local_1.abspath(root_2)), str(self.local_1.abspath(child))
+            )
         root_1 = self.get_path(True, 1, 1)
         root_3 = self.get_path(True, 1, 3)
-        log.debug("Will move " + root_1 + " into " + root_3)
+        log.debug(f"Will move {root_1} into {root_3}")
         if not self.fake:
-            shutil.move(self.local_1.abspath(root_1), self.local_1.abspath(root_3))
+            shutil.move(
+                str(self.local_1.abspath(root_1)), str(self.local_1.abspath(root_3))
+            )
         # Update paths
-        child = "/" + self.get_name(True, 1, 3) + child
-        root_2 = child + self.get_name(True, 1, 2)
-        root_1 = root_3 + self.get_name(True, 1, 1)
+        child = ROOT / self.get_name(True, 1, 3) + str(child)
+        root_2 = ROOT / str(child) + self.get_name(True, 1, 2)
+        root_1 = ROOT / root_3 + self.get_name(True, 1, 1)
         if stopped and not self.fake:
             self.engine_1.start()
         self.wait_sync(wait_for_async=True, timeout=self.items * 10)
@@ -209,41 +215,41 @@ class VolumeTestCase(UnitTestCase):
         # Copy root 2 in, first subchild of 1
         root_2 = self.get_path(True, 1, 2)
         child = self.get_path(True, self.depth, 1)
-        log.debug("Will copy " + root_2 + " into " + child)
+        log.debug(f"Will copy {root_2} into {child}")
         if not self.fake:
             shutil.copytree(
-                self.local_1.abspath(root_2),
-                self.local_1.abspath(child + self.get_name(True, 1, 2)),
+                str(self.local_1.abspath(root_2)),
+                str(self.local_1.abspath(child + self.get_name(True, 1, 2))),
             )
         root_1 = self.get_path(True, 1, 1)
         root_3 = self.get_path(True, 1, 3)
         # new copies
         root_4 = self.get_path(True, 1, self.num_folders + 1)
         root_5 = self.get_path(True, 1, self.num_folders + 2)
-        log.debug("Will copy " + root_1 + " into " + root_3)
+        log.debug(f"Will copy {root_1} into {root_3}")
         if not self.fake:
             shutil.copytree(
-                self.local_1.abspath(root_1),
-                self.local_1.abspath(root_3 + self.get_name(True, 1, 1)),
+                str(self.local_1.abspath(root_1)),
+                str(self.local_1.abspath(root_3 + self.get_name(True, 1, 1))),
             )
 
-            log.debug("Will copy " + root_3 + " into " + root_4)
-            log.debug("Will copy " + root_3 + " into " + root_5)
+            log.debug(f"Will copy {root_3} into {root_4}")
+            log.debug(f"Will copy {root_3} into {root_5}")
             shutil.copytree(self.local_1.abspath(root_3), self.local_1.abspath(root_4))
             shutil.copytree(self.local_1.abspath(root_3), self.local_1.abspath(root_5))
         # Update paths
-        child = "/" + self.get_name(True, 1, 3) + child
-        root_2 = child + self.get_name(True, 1, 2)
-        root_1 = root_3 + self.get_name(True, 1, 1)
+        child = ROOT / self.get_name(True, 1, 3) + str(child)
+        root_2 = ROOT / str(child) + self.get_name(True, 1, 2)
+        root_1 = ROOT / root_3 + self.get_name(True, 1, 1)
         root_1_path = self.local_1.abspath(root_1)
         child_path = self.local_1.abspath(child)
         added_files = []
         # Copies files from one folder to another
-        for name in os.listdir(child_path):
-            if not os.path.isfile(os.path.join(child_path, name)):
+        for path in child_path.iterdir():
+            if not path.is_file():
                 continue
-            shutil.copy(os.path.join(child_path, name), root_1_path)
-            added_files.append(name)
+            shutil.copy(path, root_1_path)
+            added_files.append(path.name)
 
         if stopped and not self.fake:
             self.engine_1.start()
@@ -287,6 +293,6 @@ class VolumeTestCase(UnitTestCase):
             "   AND ecm:mixinType != 'HiddenInNavigation'" % self.workspace
         )["resultsCount"]
         local_file, local_folders = self.get_local_child_count(
-            self.local_nxdrive_folder_1 + "/" + self.workspace_title
+            self.local_nxdrive_folder_1 / self.workspace_title
         )
         assert local_folders + local_file == doc_count

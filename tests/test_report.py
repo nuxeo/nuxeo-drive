@@ -1,7 +1,7 @@
 # coding: utf-8
-import os
 import tempfile
 from logging import getLogger
+from pathlib import Path
 
 from nxdrive.manager import Manager
 from nxdrive.options import Options
@@ -11,7 +11,7 @@ from nxdrive.report import Report
 @Options.mock()
 def test_logs():
     log = getLogger(__name__)
-    folder = tempfile.mkdtemp("-nxdrive-tests")
+    folder = Path(tempfile.mkdtemp("-nxdrive-tests"))
     Options.nxdrive_home = folder
     manager = Manager()
 
@@ -27,7 +27,7 @@ def test_logs():
             log.exception(str(e))
             log.exception(e)
 
-        report = Report(manager, os.path.join(folder, "report"))
+        report = Report(manager, folder / "report")
         report.generate()
     finally:
         manager.dispose_db()

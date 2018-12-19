@@ -1,5 +1,4 @@
 # coding: utf-8
-from os.path import join as join_path
 from .common import UnitTestCase
 
 
@@ -40,9 +39,7 @@ class TestCollection(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Get a client on the newly synchronized collection
-        local = self.get_local_client(
-            join_path(self.local_nxdrive_folder_1, "CollectionA")
-        )
+        local = self.get_local_client(self.local_nxdrive_folder_1 / "CollectionA")
 
         # Check the attached file is here
         assert local.exists("/abcde.txt")

@@ -1,4 +1,6 @@
 # coding: utf-8
+from pathlib import Path
+
 import pytest
 
 from . import LocalTest
@@ -210,7 +212,7 @@ class TestSharedFolders(UnitTestCase):
         assert local.exists("/Final")
         assert local.exists("/Final/Aerial04.png")
         folder_pair_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Final"
+            Path(self.workspace_title) / "Final"
         )
         assert folder_pair_state is not None
 

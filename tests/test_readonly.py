@@ -1,8 +1,8 @@
 # coding: utf-8
-import os
 import shutil
 import time
 from logging import getLogger
+from pathlib import Path
 
 import pytest
 from nuxeo.exceptions import HTTPError
@@ -20,13 +20,11 @@ class TestReadOnly(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
     @staticmethod
-    def touch(fname):
-        dirname = os.path.dirname(fname)
-        if WINDOWS and not os.path.isdir(dirname):
-            os.mkdir(dirname)
+    def touch(path: Path):
+        if WINDOWS and not path.parent.is_dir():
+            path.parent.mkdir()
         try:
-            with open(fname, "wb") as f:
-                f.write(b"Test")
+            path.write_bytes(b"Test")
         except OSError:
             log.exception("Enable to touch")
             return False
@@ -38,31 +36,31 @@ class TestReadOnly(UnitTestCase):
         remote = self.remote_document_client_1
         remote.make_folder("/", "Test locking")
         remote.make_file("/Test locking", "myDoc.odt", content=b"Some content")
+        filepath = "/Test locking/myDoc.odt"
+
         self.wait_sync(wait_for_async=True)
 
         # Check readonly flag is not set for a document that isn't locked
-        user1_file_path = os.path.join(
-            self.sync_root_folder_1, "Test locking", "myDoc.odt"
-        )
-        assert os.path.exists(user1_file_path)
+        user1_file_path = self.sync_root_folder_1 / filepath.lstrip("/")
+        assert user1_file_path.exists()
         assert self.touch(user1_file_path)
         self.wait_sync()
 
         # Check readonly flag is not set for a document locked by the
         # current user
-        remote.lock("/Test locking/myDoc.odt")
+        remote.lock(filepath)
         self.wait_sync(wait_for_async=True)
         assert self.touch(user1_file_path)
-        remote.unlock("/Test locking/myDoc.odt")
+        remote.unlock(filepath)
         self.wait_sync(wait_for_async=True)
 
         # Check readonly flag is set for a document locked by another user
-        self.remote_document_client_2.lock("/Test locking/myDoc.odt")
+        self.remote_document_client_2.lock(filepath)
         self.wait_sync(wait_for_async=True)
         assert not self.touch(user1_file_path)
 
         # Check readonly flag is unset for a document unlocked by another user
-        self.remote_document_client_2.unlock("/Test locking/myDoc.odt")
+        self.remote_document_client_2.unlock(filepath)
         self.wait_sync(wait_for_async=True)
         assert self.touch(user1_file_path)
 
@@ -75,7 +73,7 @@ class TestReadOnly(UnitTestCase):
         remote = self.remote_document_client_1
 
         # Try to create the file
-        state = self.touch(os.path.join(self.local_nxdrive_folder_1, "test.txt"))
+        state = self.touch(self.local_nxdrive_folder_1 / "test.txt")
 
         if not WINDOWS:
             # The creation must have failed
@@ -85,7 +83,7 @@ class TestReadOnly(UnitTestCase):
             self.wait_sync(wait_for_async=True)
             ignored = self.engine_1.get_dao().get_unsynchronizeds()
             assert len(ignored) == 1
-            assert ignored[0].local_path == "/test.txt"
+            assert ignored[0].local_path == Path("test.txt")
 
             # Check there is nothing uploaded to the server
             assert not remote.get_children_info("/")
@@ -109,8 +107,7 @@ class TestReadOnly(UnitTestCase):
 
         # Try to change the file content locally
         with pytest.raises(OSError):
-            with open(local.abspath("/folder/foo.txt"), "wb") as handler:
-                handler.write(b"Change")
+            local.abspath("/folder/foo.txt").write_bytes(b"Change")
 
         with pytest.raises(OSError):
             local.update_content("/folder/foo.txt", b"Locally changed")
@@ -171,15 +168,15 @@ class TestReadOnly(UnitTestCase):
         self.set_readonly(self.user_1, TEST_WORKSPACE_PATH)
         self.wait_sync(wait_for_async=True)
 
-        doc_abs = os.path.join(local.abspath(src), "here.txt")
+        doc_abs = local.abspath(src) / "here.txt"
         dst_abs = local.abspath(dst)
         if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
-                shutil.move(doc_abs, dst_abs)
+                shutil.move(str(doc_abs), str(dst_abs))
         else:
             # The move happens
-            shutil.move(doc_abs, dst_abs)
+            shutil.move(str(doc_abs), str(dst_abs))
             time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
             self.wait_sync()
 
@@ -221,15 +218,15 @@ class TestReadOnly(UnitTestCase):
         self.set_readonly(self.user_1, TEST_WORKSPACE_PATH + "/folder-ro")
         self.wait_sync(wait_for_async=True)
 
-        doc_abs = os.path.join(local.abspath(src), "here.txt")
+        doc_abs = local.abspath(src) / "here.txt"
         dst_abs = local.abspath(dst)
         if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
-                shutil.move(doc_abs, dst_abs)
+                shutil.move(str(doc_abs), str(dst_abs))
         else:
             # The move happens
-            shutil.move(doc_abs, dst_abs)
+            shutil.move(str(doc_abs), str(dst_abs))
             time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
             self.wait_sync()
 
@@ -270,15 +267,15 @@ class TestReadOnly(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Locally rename the file
-        doc = os.path.join(local.abspath(folder), "foo.txt")
-        dst = os.path.join(local.abspath(folder), "bar.txt")
+        doc = local.abspath(folder) / "foo.txt"
+        dst = local.abspath(folder) / "bar.txt"
         if not WINDOWS:
             # The rename should fail
             with pytest.raises(OSError):
-                os.rename(doc, dst)
+                doc.rename(dst)
         else:
             # The rename happens locally but nothing remotely
-            os.rename(doc, dst)
+            doc.rename(dst)
             self.wait_sync()
             assert remote.exists("/folder/foo.txt")
             assert not remote.exists("/folder/bar.txt")
@@ -293,7 +290,7 @@ class TestReadOnly(UnitTestCase):
         """
 
         remote = self.remote_document_client_1
-        folder = os.path.join(self.local_nxdrive_folder_1, "foo", "test.txt")
+        folder = self.local_nxdrive_folder_1 / "foo" / "test.txt"
 
         if not WINDOWS:
             # The creation must have failed
@@ -368,10 +365,10 @@ class TestReadOnly(UnitTestCase):
         if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
-                shutil.move(src, dst)
+                shutil.move(str(src), str(dst))
         else:
             # The move happens
-            shutil.move(src, dst)
+            shutil.move(str(src), str(dst))
             time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
             self.wait_sync()
 
@@ -417,10 +414,10 @@ class TestReadOnly(UnitTestCase):
         if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
-                shutil.move(src, dst)
+                shutil.move(str(src), str(dst))
         else:
             # The move happens
-            shutil.move(src, dst)
+            shutil.move(str(src), str(dst))
             time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
             self.wait_sync()
 
@@ -476,16 +473,16 @@ class TestReadOnly(UnitTestCase):
 
         # Locally rename the folder
         src = local.abspath(folder)
-        dst = os.path.join(os.path.dirname(src), "bar")
+        dst = src.with_name("bar")
         if not WINDOWS:
             # The rename should fail
             with pytest.raises(OSError):
-                os.rename(src, dst)
+                src.rename(dst)
         else:
             # The rename happens locally but:
             #     - nothing remotely
             #     - the folder is re-renamed to its original name
-            os.rename(src, dst)
+            src.rename(dst)
             self.wait_sync()
             assert local.exists("/foo")
             assert not local.exists("/bar")
@@ -534,7 +531,7 @@ Expected Result: Files should sync with the server.
         # Move
         src = local.abspath("/ReadFolder/shareme.doc")
         dst = local.abspath("/MEFolder")
-        shutil.move(src, dst)
+        shutil.move(str(src), str(dst))
         time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
         self.wait_sync()
 

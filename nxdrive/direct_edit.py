@@ -15,7 +15,7 @@ from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
 
 from .client.local_client import LocalClient
-from .constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX, WINDOWS
+from .constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX, ROOT, WINDOWS
 from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
@@ -145,7 +145,7 @@ class DirectEdit(Worker):
         - Remove obsolete folders
         """
 
-        if not self.local.exists(Path()):
+        if not self.local.exists(ROOT):
             self._folder.mkdir()
             return
 
@@ -154,7 +154,7 @@ class DirectEdit(Worker):
 
         log.debug("Cleanup DirectEdit folder")
 
-        for child in self.local.get_children_info(Path()):
+        for child in self.local.get_children_info(ROOT):
             children = self.local.get_children_info(child.path)
             if not children:
                 purge(child.path)

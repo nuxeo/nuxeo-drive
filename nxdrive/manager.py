@@ -433,7 +433,7 @@ class Manager(QObject):
         # Enabled by default, if app is frozen
         return self._dao.get_config("auto_start", str(int(Options.is_frozen))) == "1"
 
-    def generate_report(self, path: str = None) -> str:
+    def generate_report(self, path: Path = None) -> Path:
         from .report import Report
 
         report = Report(self, path)

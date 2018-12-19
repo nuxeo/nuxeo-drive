@@ -7,11 +7,12 @@ See NXDRIVE-742.
 """
 import hashlib
 import os
+from pathlib import Path
 from time import sleep
 
 import pytest
 
-from nxdrive.constants import LINUX, WINDOWS
+from nxdrive.constants import LINUX, ROOT, WINDOWS
 from nxdrive.exceptions import DuplicationDisabledError, NotFound
 from . import LocalTest
 from .common import UnitTestCase
@@ -77,9 +78,7 @@ class StubLocalClient:
     def test_get_info_invalid_date(self):
         local = self.local_1
         doc_1 = local.make_file("/", "Document 1.txt")
-        os.utime(
-            local.abspath(os.path.join("/", "Document 1.txt")), (0, 999999999999999)
-        )
+        os.utime(local.abspath("/Document 1.txt"), (0, 999999999999999))
         doc_1_info = local.get_info(doc_1)
         assert doc_1_info.name == "Document 1.txt"
         assert doc_1_info.path == doc_1
@@ -104,7 +103,7 @@ class StubLocalClient:
         file_1 = local.make_file(folder_1, long_filename)
         file_1 = local.get_info(file_1)
         assert file_1.name == long_filename
-        assert file_1.path == folder_1_info.path + "/" + long_filename
+        assert file_1.path == folder_1_info.path / long_filename
 
         # Create a file with invalid chars
         invalid_filename = 'a/b\\c*d:e<f>g?h"i|j.doc'
@@ -114,7 +113,7 @@ class StubLocalClient:
         file_2 = local.make_file(folder_1, invalid_filename)
         file_2 = local.get_info(file_2)
         assert file_2.name == escaped_filename
-        assert file_2.path == folder_1_info.path + "/" + escaped_filename
+        assert file_2.path == folder_1_info.path / escaped_filename
 
     @pytest.mark.xfail(True, raises=NotFound, reason="Must fail.")
     def test_missing_file(self):
@@ -151,10 +150,10 @@ class StubLocalClient:
         with pytest.raises(DuplicationDisabledError):
             local.make_file("/", short_name)
         path = local.abspath(folder)
-        assert os.path.basename(path) == long_name
+        assert path.name == long_name
 
         # Get the short name
-        short = win32api.GetShortPathName(path)
+        short = win32api.GetShortPathName(str(path))
         assert os.path.basename(short) == short_name
 
         # Sync and check the short name is nowhere
@@ -203,7 +202,7 @@ class StubLocalClient:
 
         # Last Level
         last_level_folder_info = local.get_info(folder)
-        assert last_level_folder_info.path == "/0123456789" * 30
+        assert last_level_folder_info.path == Path("0123456789/" * 30)
 
         # Create a nested file
         deep_file = local.make_file(folder, "File.txt", content=b"Some Content.")
@@ -233,32 +232,34 @@ class StubLocalClient:
     def test_get_new_file(self):
         local = self.local_1
         path, os_path, name = local.get_new_file("/", "Document 1.txt")
-        assert path == "/Document 1.txt"
-        assert os_path.endswith(os.path.join(self.workspace_title, "Document 1.txt"))
+        assert path == Path("Document 1.txt")
+        assert str(os_path).endswith(
+            os.path.join(self.workspace_title, "Document 1.txt")
+        )
         assert name == "Document 1.txt"
         assert not local.exists(path)
-        assert not os.path.exists(os_path)
+        assert not os_path.exists()
 
     def test_xattr(self):
         local = self.local_1
         ref = local.make_file("/", "File 2.txt", content=b"baz\n")
         path = local.abspath(ref)
-        mtime = int(os.path.getmtime(path))
+        mtime = int(path.stat().st_mtime)
         sleep(1)
         local.set_remote_id(ref, "TEST")
-        assert mtime == int(os.path.getmtime(path))
+        assert mtime == int(path.stat().st_mtime)
         sleep(1)
         local.remove_remote_id(ref)
-        assert mtime == int(os.path.getmtime(path))
+        assert mtime == int(path.stat().st_mtime)
 
     def test_get_path(self):
         local = self.local_1
-        doc = "doc.txt"
-        abs_path = os.path.join(self.local_nxdrive_folder_1, self.workspace_title, doc)
-        assert local.get_path(abs_path) == "/" + doc
+        doc = Path("doc.txt")
+        abs_path = self.local_nxdrive_folder_1 / self.workspace_title / doc
+        assert local.get_path(abs_path) == doc
 
         # Encoding test
-        assert local.get_path("été.txt") == "/"
+        assert local.get_path("été.txt") == ROOT
 
     def test_is_equal_digests(self):
         local = self.local_1

@@ -3,7 +3,6 @@ import os
 import socket
 from datetime import datetime
 from logging import getLogger
-from pathlib import Path
 from time import sleep
 from typing import Any, Dict, Optional, Set, Tuple, TYPE_CHECKING
 
@@ -13,7 +12,7 @@ from requests import ConnectionError
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
-from ...constants import WINDOWS
+from ...constants import ROOT, WINDOWS
 from ...exceptions import NotFound, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
 from ...utils import current_milli_time, safe_filename
@@ -85,7 +84,7 @@ class RemoteWatcher(EngineWorker):
         log.trace("Remote full scan")
         start_ms = current_milli_time()
         try:
-            from_state = from_state or self._dao.get_state_from_local(Path())
+            from_state = from_state or self._dao.get_state_from_local(ROOT)
             if not from_state:
                 return
             remote_info = self.engine.remote.get_fs_info(from_state.remote_ref)
@@ -953,5 +952,5 @@ class RemoteWatcher(EngineWorker):
         return (
             info is not None
             and not info.folderish
-            and self.engine.local.is_ignored(Path(), info.name)
+            and self.engine.local.is_ignored(ROOT, info.name)
         )

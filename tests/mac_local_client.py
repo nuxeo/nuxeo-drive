@@ -6,15 +6,11 @@ user actions.
 
 import os
 import time
+from pathlib import Path
 
 import Cocoa
 
 from . import LocalTest
-
-
-class MockFile:
-    def __init__(self, path):
-        self.path = path
 
 
 class MacLocalClient(LocalTest):
@@ -22,47 +18,43 @@ class MacLocalClient(LocalTest):
         super().__init__(base_folder, **kwargs)
         self.fm = Cocoa.NSFileManager.defaultManager()
 
-    def copy(self, srcref, dstref):
+    def copy(self, srcref: str, dstref: str) -> None:
         src = self.abspath(srcref)
         dst = self.abspath(dstref)
-        path, name = os.path.split(src)
-        if not os.path.exists(dst) and not os.path.exists(os.path.dirname(dst)):
+        if not dst.exists() and not dst.parent.exists():
             raise ValueError(
-                "parent destination directory %s does not exist", os.path.dirname(dst)
+                f"parent destination directory {dst.parent} does not exist"
             )
-        if os.path.isdir(src) and os.path.exists(dst) and os.path.isfile(dst):
-            raise ValueError("cannnot copy directory %s to a file %s", src, dst)
-        if os.path.exists(dst) and os.path.isdir(dst):
-            dst = os.path.join(dst, name)
+        if src.is_dir() and dst.exists() and dst.is_file():
+            raise ValueError(f"cannnot copy directory {src} to a file {dst}")
+        if dst.exists() and dst.is_dir():
+            dst = dst / src.name
 
         error = None
-        result = self.fm.copyItemAtPath_toPath_error_(src, dst, error)
+        result = self.fm.copyItemAtPath_toPath_error_(str(src), str(dst), error)
         self._process_result(result)
 
-    def move(self, srcref, parentref, name=None):
+    def move(self, srcref: str, parentref: str, name: str = None) -> None:
         src = self.abspath(srcref)
         parent = self.abspath(parentref)
-        path, srcname = os.path.split(src)
 
-        if name:
-            srcname = name
-        dst = os.path.join(parent, srcname)
+        dst = parent / (name or src.name)
 
         error = None
-        result = self.fm.moveItemAtPath_toPath_error_(src, dst, error)
+        result = self.fm.moveItemAtPath_toPath_error_(str(src), str(dst), error)
         time.sleep(0.3)
         self._process_result(result)
 
-    def rename(self, srcref, to_name):
+    def rename(self, srcref: str, to_name: str):
         parent = os.path.dirname(srcref)
         dstref = os.path.join(parent)
         self.move(srcref, dstref, name=to_name)
-        return MockFile(os.path.join(parent, to_name))
+        return Path(parent) / to_name
 
     def delete(self, ref):
         path = self.abspath(ref)
         error = None
-        result = self.fm.removeItemAtPath_error_(path, error)
+        result = self.fm.removeItemAtPath_error_(str(path), error)
         self._process_result(result)
 
     @staticmethod

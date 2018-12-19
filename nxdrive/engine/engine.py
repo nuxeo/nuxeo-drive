@@ -22,7 +22,7 @@ from .watcher.remote_watcher import RemoteWatcher
 from .workers import Worker
 from ..client.local_client import LocalClient
 from ..client.remote_client import Remote
-from ..constants import MAC, WINDOWS
+from ..constants import MAC, ROOT, WINDOWS
 from ..exceptions import (
     InvalidDriveException,
     PairInterrupt,
@@ -34,6 +34,7 @@ from ..options import Options
 from ..utils import (
     find_icon,
     if_frozen,
+    normalized_path,
     safe_filename,
     set_path_readonly,
     unset_path_readonly,
@@ -388,16 +389,16 @@ class Engine(QObject):
 
     def check_fs_marker(self) -> bool:
         tag, tag_value = "drive-fs-test", b"NXDRIVE_VERIFICATION"
-        if not os.path.isdir(self.local_folder):
+        if not self.local_folder.is_dir():
             self.rootDeleted.emit()
             return False
 
-        self.local.set_remote_id(Path(), tag_value, tag)
-        if self.local.get_remote_id(Path(), tag) != tag_value.decode("utf-8"):
+        self.local.set_remote_id(ROOT, tag_value, tag)
+        if self.local.get_remote_id(ROOT, tag) != tag_value.decode("utf-8"):
             return False
 
-        self.local.remove_remote_id(Path(), tag)
-        return not bool(self.local.get_remote_id(Path(), tag))
+        self.local.remove_remote_id(ROOT, tag)
+        return not bool(self.local.get_remote_id(ROOT, tag))
 
     @staticmethod
     def _normalize_url(url: str) -> str:
@@ -441,15 +442,8 @@ class Engine(QObject):
     def _create_local_watcher(self) -> LocalWatcher:
         return LocalWatcher(self, self._dao)
 
-<<<<<<< HEAD
-    def _get_db_file(self) -> str:
-        return os.path.join(
-            normalized_path(self.manager.nxdrive_home), f"ndrive_{self.uid}.db"
-        )
-=======
     def _get_db_file(self) -> Path:
         return self.manager.nxdrive_home / f"ndrive_{self.uid}.db"
->>>>>>> 163af36b... NXDRIVE-1109: Further work
 
     def get_binder(self) -> "ServerBindingSettings":
         return ServerBindingSettings(  # type: ignore
@@ -776,7 +770,7 @@ class Engine(QObject):
                     raise RootAlreadyBindWithDifferentAccount(user, server_url)
 
     def _check_root(self) -> None:
-        root = self._dao.get_state_from_local(Path())
+        root = self._dao.get_state_from_local(ROOT)
         if root is None:
             if self.local_folder.is_dir():
                 unset_path_readonly(self.local_folder)
@@ -799,7 +793,7 @@ class Engine(QObject):
 
     @if_frozen
     def _set_root_icon(self) -> None:
-        state = self.local.has_folder_icon(Path())
+        state = self.local.has_folder_icon(ROOT)
         if isinstance(state, str):
             # Save the original version in the database for later stats
             # and proceed to the new icon installation.
@@ -818,24 +812,24 @@ class Engine(QObject):
         if not icon:
             return
 
-        locker = self.local.unlock_ref(Path(), unlock_parent=False)
+        locker = self.local.unlock_ref(ROOT, unlock_parent=False)
         try:
-            self.local.set_folder_icon(Path(), icon)
+            self.local.set_folder_icon(ROOT, normalized_path(icon))
         except:
             log.exception("Icon folder cannot be set")
         finally:
-            self.local.lock_ref(Path(), locker)
+            self.local.lock_ref(ROOT, locker)
 
     def _add_top_level_state(self) -> None:
-        local_info = self.local.get_info(Path())
+        local_info = self.local.get_info(ROOT)
 
         if not self.remote:
             return
 
         remote_info = self.remote.get_filesystem_root_info()
 
-        self._dao.insert_local_state(local_info, Path())
-        row = self._dao.get_state_from_local(Path())
+        self._dao.insert_local_state(local_info, None)
+        row = self._dao.get_state_from_local(ROOT)
         if not row:
             return
 
@@ -846,7 +840,7 @@ class Engine(QObject):
             (self.server_url, self.remote_user, self.manager.device_id, self.uid)
         )
         self.local.set_root_id(value.encode("utf-8"))
-        self.local.set_remote_id(Path(), remote_info.uid)
+        self.local.set_remote_id(ROOT, remote_info.uid)
         self._dao.synchronize_state(row)
         # The root should also be sync
 
@@ -920,7 +914,7 @@ class ServerBindingSettings:
     server_url: str
     web_authentication: str
     username: str
-    local_folder: str
+    local_folder: Path
     initialized: bool
     server_version: Optional[str] = None
     password: Optional[str] = None

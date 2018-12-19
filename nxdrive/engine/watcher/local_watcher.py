@@ -17,7 +17,7 @@ from watchdog.observers import Observer
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
 from ...client.local_client import FileInfo, LocalClient
-from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, WINDOWS
+from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, ROOT, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
 from ...options import Options
@@ -86,7 +86,7 @@ class LocalWatcher(EngineWorker):
     def _execute(self) -> None:
         try:
             self._init()
-            if not self.local.exists(Path()):
+            if not self.local.exists(ROOT):
                 self.rootDeleted.emit()
                 return
 
@@ -239,7 +239,7 @@ class LocalWatcher(EngineWorker):
         self._delete_files: Dict[str, DocPair] = {}
         self._protected_files: Dict[str, bool] = {}
 
-        info = self.local.get_info(Path())
+        info = self.local.get_info(ROOT)
         self._scan_recursive(info)
         self._scan_handle_deleted_files()
         self._metrics["last_local_scan_time"] = current_milli_time() - start_ms
@@ -264,7 +264,7 @@ class LocalWatcher(EngineWorker):
     def _suspend_queue(self) -> None:
         queue = self.engine.get_queue_manager()
         queue.suspend()
-        for processor in queue.get_processors_on(Path(), exact_match=False):
+        for processor in queue.get_processors_on(ROOT, exact_match=False):
             processor.stop()
 
     def scan_pair(self, local_path: Path) -> None:
@@ -594,7 +594,7 @@ class LocalWatcher(EngineWorker):
               otherwise we might miss some events
             - Increase the ReadDirectoryChangesW buffer size for Windows
         """
-        base = self.local.base_folder
+        base: Path = self.local.base_folder
 
         if WINDOWS:
             try:
@@ -725,7 +725,7 @@ class LocalWatcher(EngineWorker):
                 return
 
             old_local_path = None
-            rel_parent_path = client.get_path(src_path.parent) or Path()
+            rel_parent_path = client.get_path(src_path.parent) or ROOT
 
             # Ignore inner movement
             versioned = False
@@ -892,7 +892,7 @@ class LocalWatcher(EngineWorker):
     def handle_watchdog_root_event(self, evt: FileSystemEvent) -> None:
         if evt.event_type == "moved":
             log.warning(f"Root has been moved to {evt.dest_path!r}")
-            self.rootMoved.emit(evt.dest_path)
+            self.rootMoved.emit(normalize(evt.dest_path))
         elif evt.event_type == "deleted":
             log.warning("Root has been deleted")
             self.rootDeleted.emit()
@@ -932,7 +932,7 @@ class LocalWatcher(EngineWorker):
         try:
             src_path = normalize(evt.src_path)
             rel_path = client.get_path(src_path)
-            if not rel_path or rel_path == Path():
+            if not rel_path or rel_path == ROOT:
                 self.handle_watchdog_root_event(evt)
                 return
 
@@ -962,7 +962,7 @@ class LocalWatcher(EngineWorker):
                         path = (
                             evt.dest_path if evt.event_type == "moved" else evt.src_path
                         )
-                        ignore, _ = is_generated_tmp_file(path.name)
+                        ignore, _ = is_generated_tmp_file(basename(path))
                         if not ignore:
                             log.debug(
                                 f"Removing pair state for {evt.event_type} event: "
@@ -1020,6 +1020,8 @@ class LocalWatcher(EngineWorker):
                             return
 
                     rel_parent_path = client.get_path(src_path.parent)
+                    if not rel_parent_path:  # Check validity
+                        rel_parent_path = ROOT  # Check validity
                     dao.insert_local_state(local_info, rel_parent_path)
 
                     # An event can be missed inside a new created folder as

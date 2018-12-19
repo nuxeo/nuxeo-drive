@@ -49,6 +49,8 @@ class TestOfflineChangesSync(UnitTestCase):
         Custom copy tree method that also copies xattr along with
         shutil.copytree functionality.
         """
+        src = str(src)
+        dst = str(dst)
 
         if WINDOWS:
             # Make a copy of file1 using shell (to copy including xattr)

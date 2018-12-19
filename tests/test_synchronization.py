@@ -1,13 +1,14 @@
 # coding: utf-8
 import socket
 import time
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
-from nxdrive.constants import WINDOWS
+from nxdrive.constants import ROOT, WINDOWS
 from . import LocalTest, RemoteTest
 from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH, UnitTestCase
 
@@ -169,13 +170,15 @@ class TestSynchronization(UnitTestCase):
         # Regression test: a file is created locally, then modification is
         # detected before first upload
         local = self.local_1
+        workspace_path = Path(self.workspace_title)
+        dao = self.engine_1.get_dao()
+
         assert not local.exists("/")
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         assert local.exists("/")
         self.engine_1.stop()
-
         # Let's create some documents on the client
         local.make_folder("/", "Folder")
         local.make_file("/Folder", "File.txt", content=b"Some content.")
@@ -185,14 +188,10 @@ class TestSynchronization(UnitTestCase):
         self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_sync(timeout=5, fail_if_timeout=False)
-        workspace_children = self.engine_1.get_dao().get_local_children(
-            "/" + self.workspace_title
-        )
+        workspace_children = dao.get_local_children(workspace_path)
         assert len(workspace_children) == 1
         assert workspace_children[0].pair_state == "locally_created"
-        folder_children = self.engine_1.get_dao().get_local_children(
-            "/" + self.workspace_title + "/Folder"
-        )
+        folder_children = dao.get_local_children(workspace_path / "Folder")
         assert len(folder_children) == 1
         assert folder_children[0].pair_state == "locally_created"
 
@@ -205,9 +204,7 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(timeout=5, fail_if_timeout=False)
         # File has not been synchronized, it is still
         # in the locally_created state
-        file_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Folder/File.txt"
-        )
+        file_state = dao.get_state_from_local(workspace_path / "Folder/File.txt")
         assert file_state.pair_state == "locally_created"
 
         # Assume the computer is back online, the synchronization should occur
@@ -215,13 +212,9 @@ class TestSynchronization(UnitTestCase):
         self.queue_manager_1._disable = False
         self.queue_manager_1.resume()
         self.wait_sync(wait_for_async=True)
-        folder_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Folder"
-        )
+        folder_state = dao.get_state_from_local(workspace_path / "Folder")
         assert folder_state.pair_state == "synchronized"
-        file_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Folder/File.txt"
-        )
+        file_state = dao.get_state_from_local(workspace_path / "Folder/File.txt")
         assert file_state.pair_state == "synchronized"
 
     def test_basic_synchronization(self):
@@ -243,6 +236,8 @@ class TestSynchronization(UnitTestCase):
 
     def test_synchronization_skip_errors(self):
         local = self.local_1
+        dao = self.engine_1.get_dao()
+
         assert not local.exists("/")
 
         # Perform first scan and sync
@@ -262,9 +257,7 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True, timeout=10, fail_if_timeout=False)
 
-        workspace_children = self.engine_1.get_dao().get_local_children(
-            "/" + self.workspace_title
-        )
+        workspace_children = dao.get_local_children(Path(self.workspace_title))
         assert len(workspace_children) == 4
         sorted_children = sorted(workspace_children, key=lambda x: x.local_path)
         assert sorted_children[0].remote_name == "File 5.txt"
@@ -291,32 +284,20 @@ class TestSynchronization(UnitTestCase):
 
         # All errors have been skipped, while the remaining docs have
         # been synchronized
-        file_5_state = self.engine_1.get_dao().get_normal_state_from_remote(
-            file_5_state.remote_ref
-        )
+        file_5_state = dao.get_normal_state_from_remote(file_5_state.remote_ref)
         assert file_5_state.pair_state == "remotely_created"
-        folder_3_state = self.engine_1.get_dao().get_state_from_local(
-            folder_3_state.local_path
-        )
+        folder_3_state = dao.get_state_from_local(folder_3_state.local_path)
         assert folder_3_state.pair_state == "locally_created"
-        folder_1_state = self.engine_1.get_dao().get_normal_state_from_remote(
-            sorted_children[1].remote_ref
-        )
+        folder_1_state = dao.get_normal_state_from_remote(sorted_children[1].remote_ref)
         assert folder_1_state.pair_state == "synchronized"
-        folder_2_state = self.engine_1.get_dao().get_normal_state_from_remote(
-            sorted_children[2].remote_ref
-        )
+        folder_2_state = dao.get_normal_state_from_remote(sorted_children[2].remote_ref)
         assert folder_2_state.pair_state == "synchronized"
 
         # Retry synchronization of pairs in error
         self.wait_sync()
-        file_5_state = self.engine_1.get_dao().get_normal_state_from_remote(
-            file_5_state.remote_ref
-        )
+        file_5_state = dao.get_normal_state_from_remote(file_5_state.remote_ref)
         assert file_5_state.pair_state == "synchronized"
-        folder_3_state = self.engine_1.get_dao().get_state_from_local(
-            folder_3_state.local_path
-        )
+        folder_3_state = dao.get_state_from_local(folder_3_state.local_path)
         assert folder_3_state.pair_state == "synchronized"
 
     def test_synchronization_give_up(self):
@@ -326,6 +307,8 @@ class TestSynchronization(UnitTestCase):
 
         # Bound root but nothing is synchronized yet
         local = self.local_1
+        dao = self.engine_1.get_dao()
+        workspace_path = Path(self.workspace_title)
         assert not local.exists("/")
 
         # Perform first scan and sync
@@ -354,11 +337,9 @@ class TestSynchronization(UnitTestCase):
         # errors are handled and queue manager has given up on them
         self.engine_1.start()
         self.wait_sync(wait_for_async=True, timeout=60)
-        states_in_error = self.engine_1.get_dao().get_errors(limit=test_error_threshold)
+        states_in_error = dao.get_errors(limit=test_error_threshold)
         assert len(states_in_error) == 1
-        workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
-            "/" + self.workspace_title + "/"
-        )
+        workspace_children = dao.get_states_from_partial_local(workspace_path)
         assert len(workspace_children) == 4
         for state in workspace_children:
             if state.folderish:
@@ -369,15 +350,13 @@ class TestSynchronization(UnitTestCase):
         # Remove faulty client and reset errors
         self.engine_1.remote.make_download_raise(None)
         for state in states_in_error:
-            self.engine_1.get_dao().reset_error(state)
+            dao.reset_error(state)
 
         # Verify that everything now gets synchronized
         self.wait_sync()
-        states_in_error = self.engine_1.get_dao().get_errors(limit=test_error_threshold)
+        states_in_error = dao.get_errors(limit=test_error_threshold)
         assert not states_in_error
-        workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
-            "/" + self.workspace_title + "/"
-        )
+        workspace_children = dao.get_states_from_partial_local(workspace_path)
         assert len(workspace_children) == 4
         for state in workspace_children:
             assert state.pair_state == "synchronized"
@@ -385,6 +364,8 @@ class TestSynchronization(UnitTestCase):
     def test_synchronization_offline(self):
         # Bound root but nothing is synchronized yet
         local = self.local_1
+        dao = self.engine_1.get_dao()
+        workspace_path = Path(self.workspace_title)
         assert not local.exists("/")
 
         # Perform first scan and sync
@@ -422,9 +403,7 @@ class TestSynchronization(UnitTestCase):
             # - one 'locally_created' error is registered for Folder 3
             # - no states are inserted for the remote documents
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-            workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
-                "/" + self.workspace_title + "/"
-            )
+            workspace_children = dao.get_states_from_partial_local(workspace_path)
             assert len(workspace_children) == 1
             assert workspace_children[0].pair_state != "synchronized"
             assert not self.engine_1.is_offline()
@@ -435,10 +414,8 @@ class TestSynchronization(UnitTestCase):
         # Verify that everything now gets synchronized
         self.wait_sync(wait_for_async=True)
         assert not self.engine_1.is_offline()
-        assert not self.engine_1.get_dao().get_errors(limit=0)
-        workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
-            "/" + self.workspace_title + "/"
-        )
+        assert not dao.get_errors(limit=0)
+        workspace_children = dao.get_states_from_partial_local(workspace_path)
         assert len(workspace_children) == 4
         for state in workspace_children:
             assert state.pair_state == "synchronized"
@@ -446,6 +423,8 @@ class TestSynchronization(UnitTestCase):
     def test_conflict_detection(self):
         # Fetch the workspace sync root
         local = self.local_1
+        dao = self.engine_1.get_dao()
+        workspace_path = Path(self.workspace_title)
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         assert local.exists("/")
@@ -467,9 +446,7 @@ class TestSynchronization(UnitTestCase):
         # resolution will work for this case
         self.wait_sync(wait_for_async=True)
         assert not self.engine_1.get_conflicts()
-        workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
-            "/" + self.workspace_title + "/"
-        )
+        workspace_children = dao.get_states_from_partial_local(workspace_path)
         assert len(workspace_children) == 1
         assert workspace_children[0].pair_state == "synchronized"
 
@@ -495,9 +472,7 @@ class TestSynchronization(UnitTestCase):
         # Let's synchronize and check the conflict handling
         self.wait_sync(wait_for_async=True)
         assert len(self.engine_1.get_conflicts()) == 1
-        workspace_children = self.engine_1.get_dao().get_states_from_partial_local(
-            "/" + self.workspace_title + "/"
-        )
+        workspace_children = dao.get_states_from_partial_local(workspace_path)
         assert len(workspace_children) == 1
         assert workspace_children[0].pair_state == "conflicted"
 
@@ -511,6 +486,7 @@ class TestSynchronization(UnitTestCase):
         assert remote_1.get_content("/Some File.doc") == b"Remote new content."
 
     def test_create_content_in_readonly_area(self):
+        dao = self.engine_1.get_dao()
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
@@ -527,7 +503,7 @@ class TestSynchronization(UnitTestCase):
         # States have been created for the subfolder and its content,
         # subfolder is marked as unsynchronized
         good_states = ("locally_created", "unsynchronized")
-        states = self.engine_1.get_dao().get_states_from_partial_local("/")
+        states = dao.get_states_from_partial_local(ROOT)
         assert len(states) == 6
         sorted_states = sorted(states, key=lambda x: x.local_path)
         assert sorted_states[0].local_name == ""
@@ -549,7 +525,7 @@ class TestSynchronization(UnitTestCase):
 
         # A state has been created, marked as unsynchronized
         # Other states are unchanged
-        states = self.engine_1.get_dao().get_states_from_partial_local("/")
+        states = dao.get_states_from_partial_local(ROOT)
         assert len(states) == 7
         sorted_states = sorted(states, key=lambda x: x.local_path)
         assert sorted_states[0].local_name == ""
@@ -576,6 +552,7 @@ class TestSynchronization(UnitTestCase):
         # will be made.
         # States will be marked as unsynchronized.
 
+        workspace_path = Path(self.workspace_title)
         # Create local folder and synchronize it remotely
         local = self.local_1
         local.make_folder("/", "Readonly folder")
@@ -585,8 +562,8 @@ class TestSynchronization(UnitTestCase):
         assert remote.exists("/Readonly folder")
 
         # Check remote_can_create_child flag in pair state
-        readonly_folder_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Readonly folder"
+        readonly_folder_state = dao.get_state_from_local(
+            workspace_path / "Readonly folder"
         )
         assert readonly_folder_state.remote_can_create_child
 
@@ -594,8 +571,8 @@ class TestSynchronization(UnitTestCase):
         # triggered by last synchronization and make sure we get a clean
         # state at next change summary
         self.wait_sync(wait_for_async=True)
-        readonly_folder_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Readonly folder"
+        readonly_folder_state = dao.get_state_from_local(
+            workspace_path / "Readonly folder"
         )
         assert readonly_folder_state.remote_can_create_child
 
@@ -614,8 +591,8 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         # Re-fetch folder state and check remote_can_create_child
         # flag has been updated
-        readonly_folder_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Readonly folder"
+        readonly_folder_state = dao.get_state_from_local(
+            workspace_path / "Readonly folder"
         )
         assert not readonly_folder_state.remote_can_create_child
 
@@ -629,8 +606,8 @@ class TestSynchronization(UnitTestCase):
         assert not remote.exists("/Readonly folder/File in readonly folder")
         assert not remote.exists("/Readonly folder/Folder in readonly folder")
 
-        states = self.engine_1.get_dao().get_states_from_partial_local(
-            "/" + self.workspace_title + "/Readonly folder"
+        states = dao.get_states_from_partial_local(
+            workspace_path / "Readonly folder", strict=False
         )
         assert len(states) == 3
         sorted_states = sorted(states, key=lambda x: x.local_path)
@@ -706,6 +683,7 @@ class TestSynchronization(UnitTestCase):
     def test_synchronize_error_remote(self):
         path = f"/{self.workspace_title}/test.odt"
         remote = self.remote_document_client_1
+        dao = self.engine_1.get_dao()
         error = HTTPError(status=400, message="Mock")
         bad_remote = RemoteTest(
             pytest.nuxeo_url,
@@ -725,20 +703,20 @@ class TestSynchronization(UnitTestCase):
             self.wait_sync(wait_for_async=True)
             self.engine_1.stop()
 
-            pair = self.engine_1.get_dao().get_state_from_local(path)
+            pair = dao.get_state_from_local(path)
             assert pair.error_count
             assert pair.pair_state == "remotely_created"
 
             self.engine_1.start()
             self.wait_sync()
-            pair = self.engine_1.get_dao().get_state_from_local(path)
+            pair = dao.get_state_from_local(path)
             assert pair.error_count == 4
             assert pair.pair_state == "remotely_created"
 
         # Requeue errors
         self.engine_1.retry_pair(pair.id)
         self.wait_sync()
-        pair = self.engine_1.get_dao().get_state_from_local(path)
+        pair = dao.get_state_from_local(path)
         assert not pair.error_count
         assert pair.pair_state == "synchronized"
 

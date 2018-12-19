@@ -26,6 +26,7 @@ from ..constants import (
     FILE_BUFFER_SIZE,
     LINUX,
     MAC,
+    ROOT,
     UNACCESSIBLE_HASH,
     WINDOWS,
 )
@@ -169,10 +170,10 @@ class LocalClient:
             unset_path_readonly(path)
 
     def clean_xattr_root(self) -> None:
-        self.unlock_ref(Path(), unlock_parent=False)
+        self.unlock_ref(ROOT, unlock_parent=False)
         with suppress(OSError):
             self.remove_root_id()
-        self.clean_xattr_folder_recursive(Path())
+        self.clean_xattr_folder_recursive(ROOT)
 
     def clean_xattr_folder_recursive(self, path: Path) -> None:
         for child in self.get_children_info(path):
@@ -184,13 +185,13 @@ class LocalClient:
                 self.clean_xattr_folder_recursive(child.path)
 
     def remove_root_id(self) -> None:
-        self.remove_remote_id(Path(), name="ndriveroot")
+        self.remove_remote_id(ROOT, name="ndriveroot")
 
     def set_root_id(self, value: bytes) -> None:
-        self.set_remote_id(Path(), value, name="ndriveroot")
+        self.set_remote_id(ROOT, value, name="ndriveroot")
 
     def get_root_id(self) -> str:
-        return self.get_remote_id(Path(), name="ndriveroot")
+        return self.get_remote_id(ROOT, name="ndriveroot")
 
     def _remove_remote_id_windows(self, path: Path, name: str = "ndrive") -> None:
         path_alt = path.with_name(f"{path.name}:{name}")
@@ -497,22 +498,18 @@ FolderType=Generic
 
         # NXDRIVE-655: need to check every parent if they are ignored
         result = False
-        if parent_ref != Path():
+        if parent_ref != ROOT:
             file_name = parent_ref.name
             parent_ref = parent_ref.parent
             result = self.is_ignored(parent_ref, file_name)
 
         return result
 
-    @staticmethod
-    def get_children_ref(parent_ref: Path, name: str) -> Path:
-        return parent_ref / name
-
     def get_children_info(self, ref: Path) -> List[FileInfo]:
         os_path = self.abspath(ref)
         result = []
 
-        for child in sorted([x for x in os_path.iterdir()]):
+        for child in sorted(os_path.iterdir()):
             if self.is_ignored(ref, child.name) or self.is_temp_file(child.name):
                 log.debug(f"Ignoring banned file {child.name!r} in {os_path!r}")
                 continue
@@ -545,7 +542,7 @@ FolderType=Generic
         os_path, name = self._abspath_deduped(parent, name)
         locker = self.unlock_ref(parent, unlock_parent=False)
         try:
-            os_path.mkdir()
+            os_path.mkdir(parents=True, exist_ok=True)
         finally:
             self.lock_ref(parent, locker)
 
@@ -554,8 +551,7 @@ FolderType=Generic
 
     def get_new_file(self, parent: Path, name: str) -> Tuple[Path, Path, str]:
         os_path, name = self._abspath_deduped(parent, name)
-        path = parent / name
-        return path, os_path, name
+        return parent / name, os_path, name
 
     def delete(self, ref: Path) -> None:
         os_path = self.abspath(ref)
@@ -591,7 +587,7 @@ FolderType=Generic
         locker = 0
         parent_ref = None
         try:
-            if ref != Path():
+            if ref != ROOT:
                 parent_ref = ref.parent
                 locker = self.unlock_ref(parent_ref, unlock_parent=False)
             self.unset_readonly(ref)
@@ -651,7 +647,7 @@ FolderType=Generic
     def move(self, ref: Path, new_parent_ref: Path, name: str = None) -> FileInfo:
         """ Move a local file or folder into another folder. """
 
-        if ref == Path():
+        if ref == ROOT:
             raise ValueError("Cannot move the toplevel folder.")
 
         name = name or ref.name
@@ -662,7 +658,7 @@ FolderType=Generic
         new_locker = self.unlock_ref(parent, unlock_parent=False, is_abs=True)
         try:
             filename.rename(target_os_path)
-            new_ref = self.get_children_ref(new_parent_ref, new_name)
+            new_ref = new_parent_ref / new_name
             return self.get_info(new_ref)
         finally:
             self.lock_ref(filename, locker & 2, is_abs=True)
@@ -717,12 +713,13 @@ FolderType=Generic
     def get_path(self, abspath: Path) -> Path:
         """ Relative path to the local client from an absolute OS path. """
         if self.base_folder not in abspath.parents:
-            return Path()
+            return ROOT
         return abspath.relative_to(self.base_folder)
 
     def abspath(self, ref: Path) -> Path:
         """ Absolute path on the operating system. """
-        return self.base_folder / ref
+        path = self.base_folder / ref
+        return path.resolve()
 
     def _abspath_deduped(
         self, parent: Path, orig_name: str, old_name: str = None

@@ -245,8 +245,13 @@ class TestConflicts(UnitTestCase):
         local.update_content(
             "/787D3000", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03"
         )
-        shutil.move(local.abspath("/Excel 97 file.xls"), local.abspath("/1743B25F.tmp"))
-        shutil.move(local.abspath("/787D3000"), local.abspath("/Excel 97 file.xls"))
+        shutil.move(
+            str(local.abspath("/Excel 97 file.xls")),
+            str(local.abspath("/1743B25F.tmp")),
+        )
+        shutil.move(
+            str(local.abspath("/787D3000")), str(local.abspath("/Excel 97 file.xls"))
+        )
         local.update_content(
             "/Excel 97 file.xls", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00\x03\x04"
         )

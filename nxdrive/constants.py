@@ -1,4 +1,5 @@
 # coding: utf-8
+from pathlib import Path
 from sys import platform
 
 LINUX = platform == "linux"
@@ -16,6 +17,7 @@ MAX_LOG_DISPLAYED = 50000
 
 DOWNLOAD_TMP_FILE_PREFIX = "."
 DOWNLOAD_TMP_FILE_SUFFIX = ".nxpart"
+ROOT = Path()
 
 UNACCESSIBLE_HASH = "TO_COMPUTE"
 

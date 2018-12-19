@@ -1,19 +1,19 @@
 # coding: utf-8
-import os
 import shutil
 import time
 from typing import Optional
 
 from nxdrive.engine.dao.sqlite import EngineDAO
 from nxdrive.objects import DocPair
+from nxdrive.utils import normalized_path
 
 
 class MockEngineDao(EngineDAO):
     """ Convenient class with auto-cleanup at exit. """
 
     def __init__(self, fname):
-        db = os.path.join(os.path.dirname(__file__), "resources", fname)
-        tmp = db + "_copy.db"
+        db = normalized_path(__file__).parent / "resources" / fname
+        tmp = db.with_name(f"{db.name}_copy.db")
         shutil.copy(db, tmp)
         time.sleep(1)
         super().__init__(tmp)
@@ -23,7 +23,7 @@ class MockEngineDao(EngineDAO):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.dispose()
-        os.remove(self._db)
+        self._db.unlink()
 
     def _get_adjacent_sync_file(
         self, ref: str, comp: str, order: str, sync_mode: str = None
