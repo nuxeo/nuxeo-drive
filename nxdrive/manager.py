@@ -32,7 +32,10 @@ from .updater import updater
 from .utils import (
     copy_to_clipboard,
     force_decode,
+    get_arch,
+    get_current_os_full,
     get_default_nuxeo_drive_folder,
+    get_device,
     if_frozen,
     normalized_path,
 )
@@ -77,6 +80,10 @@ class Manager(QObject):
 
         super().__init__()
         Manager._singleton = self
+
+        self._os = get_device()
+        self._arch = get_arch()
+        self._platform = get_current_os_full()
 
         # Primary attributes to allow initializing the notification center early
         self.nxdrive_home = os.path.realpath(Options.nxdrive_home)
@@ -183,7 +190,9 @@ class Manager(QObject):
             "sip_version": SIP_VERSION_STR,
             "qt_version": QT_VERSION_STR,
             "python_version": platform.python_version(),
-            "platform": platform.system(),
+            "os": self._os,
+            "platform": self._platform,
+            "arch": self._arch,
             "appname": APP_NAME,
         }
 

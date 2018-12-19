@@ -2,7 +2,6 @@
 import ctypes
 import locale
 import os
-import platform
 import sys
 from logging import getLogger
 from typing import Any, Dict, TYPE_CHECKING
@@ -13,6 +12,7 @@ from UniversalAnalytics import Tracker as UATracker
 from .workers import Worker
 from ..constants import APP_NAME, MAC, WINDOWS
 from ..objects import Blob
+from ..utils import get_arch, get_current_os
 
 if MAC:
     from Foundation import NSLocale
@@ -36,6 +36,8 @@ class Tracker(Worker):
         self._thread.started.connect(self.run)
         self.uid = uid
         self.app_name = APP_NAME.replace(" ", "")
+        self.arch = get_arch()
+        self.current_os = get_current_os()
         self._tracker = UATracker.create(
             uid, client_id=self._manager.device_id, user_agent=self.user_agent
         )
@@ -81,24 +83,6 @@ class Tracker(Worker):
         return ".".join([l10n, encoding])
 
     @property
-    def current_os(self) -> str:
-        """ Detect the OS. """
-
-        system = platform.system()
-        if system == "Darwin":
-            name, version = "Macintosh Intel", platform.mac_ver()[0]
-        elif system == "Linux":
-            import distro
-
-            name, version = distro.linux_distribution()[:2]
-        elif system == "Windows":
-            name, version = "Microsoft Windows", platform.release()
-        else:
-            name, version = system, platform.release()
-
-        return f"{name} {version.strip()}"
-
-    @property
     def user_agent(self) -> str:
         """ Format a custom user agent. """
 
@@ -113,6 +97,8 @@ class Tracker(Worker):
                     "dimension6": engine.hostname,
                     "dimension7": engine.server_url,
                     "dimension8": engine.remote.client.server_version,
+                    "dimension9": self.current_os,
+                    "dimension10": self.arch,
                 }
             )
 

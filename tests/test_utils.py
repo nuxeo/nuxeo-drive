@@ -1,6 +1,6 @@
 # coding: utf-8
 import os
-
+from unittest.mock import patch
 
 import pytest
 
@@ -42,6 +42,15 @@ def test_encrypt_decrypt():
 )
 def test_generated_tempory_file(name, state):
     assert nxdrive.utils.is_generated_tmp_file(name) == state
+
+
+def test_get_arch():
+    import struct
+
+    with patch.object(struct, "calcsize", return_value=12):
+        assert nxdrive.utils.get_arch() == f"{12 * 8}-bit"
+
+    assert nxdrive.utils.get_arch() in {"32-bit", "64-bit"}
 
 
 def test_get_certificate_details_from_file():
@@ -133,6 +142,18 @@ def test_get_certificate_details_from_hostname():
         "subject",
     }:
         assert key in cert_details
+
+
+def test_get_current_os():
+    ver = nxdrive.utils.get_current_os()
+    assert isinstance(ver, str)
+    assert ver
+
+
+def test_get_current_os_full():
+    ver = nxdrive.utils.get_current_os_full()
+    assert isinstance(ver, tuple)
+    assert ver
 
 
 def test_retrieve_ssl_certificate_unknown():
