@@ -405,7 +405,10 @@ class Manager(QObject):
     @pyqtSlot(result=bool)
     def get_auto_update(self) -> bool:
         # Enabled by default, if app is frozen
-        return self._dao.get_config("auto_update", str(int(Options.is_frozen))) == "1"
+        return (
+            self._dao.get_config("auto_update", str(int(Options.is_frozen))) == "1"
+            and Options.update_check_delay > 0
+        )
 
     @pyqtSlot(bool)
     def set_auto_update(self, value: bool) -> None:
