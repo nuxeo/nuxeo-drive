@@ -7,7 +7,6 @@ import os
 import re
 import stat
 from logging import getLogger
-from sys import platform
 from typing import Any, Callable, Dict, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 from urllib.parse import urlsplit, urlunsplit
 
@@ -28,7 +27,10 @@ __all__ = (
     "find_resource",
     "force_decode",
     "force_encode",
+    "get_arch",
     "get_certificate_details",
+    "get_current_os",
+    "get_current_os_full",
     "get_device",
     "guess_server_url",
     "if_frozen",
@@ -104,8 +106,63 @@ def current_milli_time() -> int:
     return int(round(time() * 1000))
 
 
+def get_arch() -> str:
+    """ Detect the OS architecture. """
+
+    from struct import calcsize
+
+    return f"{calcsize('P') * 8}-bit"
+
+
+def get_current_os() -> str:
+    """ Detect the OS version. """
+
+    device = get_device()
+
+    if device == "macOS":
+        from platform import mac_ver
+
+        # Ex: macOS 10.12.6
+        version = mac_ver()[0]
+    elif device == "GNU/Linux":
+        import distro
+
+        # Ex: Debian GNU/Linux testing buster
+        details = distro.linux_distribution()
+        device = details[0]
+        version = " ".join(details[1:])
+    else:
+        from platform import win32_ver
+
+        # Ex: Windows 7
+        version = win32_ver()[0]
+
+    return f"{device} {version}".strip()
+
+
+def get_current_os_full() -> Tuple[Any, ...]:
+    """ Detect the full OS version for log debugging. """
+
+    device = get_device()
+
+    if device == "macOS":
+        from platform import mac_ver
+
+        return mac_ver()
+    elif device == "GNU/Linux":
+        import distro
+
+        return distro.linux_distribution()
+    else:
+        from platform import win32_ver
+
+        return win32_ver()
+
+
 def get_device() -> str:
     """ Retrieve the device type. """
+
+    from sys import platform
 
     device = DEVICE_DESCRIPTIONS.get(platform)
     if not device:
