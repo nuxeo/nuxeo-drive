@@ -28,7 +28,7 @@ Rectangle {
 
         NuxeoSwitch {
             text: qsTr("AUTOUPDATE") + tl.tr
-            enabled: isFrozen
+            enabled: isFrozen && update_check_delay > 0
             checked: manager.get_auto_update()
             onClicked: manager.set_auto_update(checked)
             Layout.leftMargin: -5
