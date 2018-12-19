@@ -14,7 +14,7 @@ import sys
 
 import requests
 
-__version__ = "1.2.8"
+__version__ = "1.2.9"
 
 
 # Available formatters
@@ -187,7 +187,7 @@ def get_issue_infos(issue, raw=False):
             with requests.get(url) as content:
                 data = content.json()
                 break
-        except requests.HTTPError:
+        except (requests.HTTPError, ValueError):
             pass
     else:
         debug(">>> Impossible to to retrieve informations, passing")
