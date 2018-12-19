@@ -1,5 +1,6 @@
 # coding: utf-8
 import re
+from distutils.version import LooseVersion
 from logging import getLogger
 from typing import Any, Dict, Optional, Tuple
 
@@ -78,7 +79,7 @@ def get_latest_compatible_version(
         log.debug("No version found for that server version.")
         return "", {}
 
-    highest = max(candidates.keys())
+    highest = str(max(map(LooseVersion, candidates.keys())))
     return highest, candidates[highest]  # ᕦ(ò_óˇ)ᕤ
 
 

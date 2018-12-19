@@ -36,6 +36,8 @@ VERSIONS = {
     "4.0.2.13": {"type": "alpha", "min": "9.10"},
     "4.0.2.14": {"type": "alpha", "min": "9.10"},
     "4.0.3.1": {"type": "alpha", "min": "10.10"},
+    "4.0.3.6": {"type": "alpha", "min": "10.11"},
+    "4.0.3.12": {"type": "alpha", "min": "10.11"},
 }
 
 
@@ -72,6 +74,7 @@ VERSIONS = {
         ("4.0.2.13", "9.10", "alpha", UPDATE_STATUS_UPDATE_AVAILABLE, "4.0.2.14"),
         ("4.0.3.1", "10.10", "alpha", UPDATE_STATUS_UP_TO_DATE, ""),
         ("4.0.3.3", "10.10", "alpha", "", ""),
+        ("4.0.3.1", "10.11", "alpha", UPDATE_STATUS_UPDATE_AVAILABLE, "4.0.3.12"),
     ],
 )
 def test_get_update_status(current, server, nature, action_required, new):
