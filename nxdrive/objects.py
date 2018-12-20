@@ -234,29 +234,16 @@ class NuxeoDocumentInfo:
             blobs[f"files:files/{idx}/file"] = Blob.from_dict(attachment["file"])
 
         if note:
-            m = hashlib.sha256()
-            m.update(note.encode("utf-8"))
-            digest = m.hexdigest()
-            digest_algorithm = "sha256"
-            ext = ".txt"
-            mime_type = props.get("note:mime_type")
-            if mime_type == "text/html":
-                ext = ".html"
-            elif mime_type == "text/xml":
-                ext = ".xml"
-            elif mime_type == "text/x-web-markdown":
-                ext = ".md"
-            name = props["dc:title"]
-            if not name.endswith(ext):
-                name += ext
+            digest = hashlib.sha256()
+            digest.update(note.encode("utf-8"))
 
             blobs["note:note"] = Blob.from_dict(
                 {
-                    "name": name,
-                    "digest": digest,
-                    "digestAlgorithm": digest_algorithm,
+                    "name": props["dc:title"],
+                    "digest": digest.hexdigest(),
+                    "digestAlgorithm": "sha256",
                     "length": len(note),
-                    "mime-type": mime_type,
+                    "mime-type": props.get("note:mime_type"),
                     "data": note,
                 }
             )
