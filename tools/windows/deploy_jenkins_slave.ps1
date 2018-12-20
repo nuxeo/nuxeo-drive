@@ -117,7 +117,7 @@ function check_vars {
 
 	Set-Location "$Env:WORKSPACE_DRIVE"
 
-	if (-Not ($Env:SPECIFIC_TEST) -Or ($Env:SPECIFIC_TEST -eq "") -Or ($Env:SPECIFIC_TEST -eq "tests")) {
+	if (-Not ($Env:SPECIFIC_TEST) -Or ($Env:SPECIFIC_TEST -eq "")) {
 		$Env:SPECIFIC_TEST = "tests"
 	} else {
 		Write-Output "    SPECIFIC_TEST        = $Env:SPECIFIC_TEST"
@@ -210,15 +210,17 @@ function launch_tests {
 	# Launch the tests suite
 	$Env:MYPYPATH = "$Env:WORKSPACE_DRIVE\tools\stubs"
 
-	Write-Output ">>> Checking the style"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-	Write-Output ">>> Checking type annotations"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
+	if ($Env:SPECIFIC_TEST -eq "tests") {
+		Write-Output ">>> Checking the style"
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
+		Write-Output ">>> Checking type annotations"
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
 	}
 	Write-Output ">>> Launching the tests suite"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest $Env:SPECIFIC_TEST
