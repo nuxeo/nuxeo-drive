@@ -89,9 +89,7 @@ check_vars() {
 
     cd "${WORKSPACE_DRIVE}"
 
-    if [ "${SPECIFIC_TEST:=unset}" = "unset" ] ||
-       [ "${SPECIFIC_TEST}" = "" ] ||
-       [ "${SPECIFIC_TEST}" = "tests" ]; then
+    if [ "${SPECIFIC_TEST:=unset}" = "unset" ] || [ "${SPECIFIC_TEST}" = "" ]; then
         export SPECIFIC_TEST="tests"
     else
         echo "    SPECIFIC_TEST        = ${SPECIFIC_TEST}"
@@ -145,10 +143,12 @@ install_python() {
 launch_tests() {
     export MYPYPATH="${WORKSPACE_DRIVE}/tools/stubs"
 
-    echo ">>> Checking the style"
-    ${PYTHON} -m flake8 .
-    echo ">>> Checking type annotations"
-    ${PYTHON} -m mypy --ignore-missing-imports nxdrive
+    if [ "${SPECIFIC_TEST}" = "tests" ]; then
+        echo ">>> Checking the style"
+        ${PYTHON} -m flake8 .
+        echo ">>> Checking type annotations"
+        ${PYTHON} -m mypy --ignore-missing-imports nxdrive
+    fi
     echo ">>> Launching the tests suite"
     ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}"
 }
