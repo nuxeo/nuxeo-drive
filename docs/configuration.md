@@ -1,5 +1,8 @@
 # Configuration
 
+> Starting with Nuxeo Drive 4.0, invalid parameter names and values will make the program to stop.
+> This is a quality check to ensure a good experience.
+
 Nuxeo Drive has different parameters that you can set up through:
 
 - The REST API endpoint `/drive/configuration` served by the server (since [NXP-22946](https://jira.nuxeo.com/browse/NXP-22946) and Drive 3.0.0).
@@ -60,7 +63,10 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | Parameter | Default Value | Version Removed | New Option Name | New Default Value
 |---|---|---|---|---
 | `beta-update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) (str) | 4.0.2 | None | None
+| `beta-channel` | False (bool) | 4.0.2 | `channel` | release (str)
 | `consider-ssl-errors` | True (bool) | 4.0.1 | `ssl-no-verify` | False (bool)
+| `proxy-exceptions` | None (str) | 4.0.0 | None | None
+| `proxy-type` | None (str) | 4.0.0 | None | None
 
 ## Command Line Arguments
 
@@ -90,3 +96,25 @@ ignored_suffixes =
 
 The `env` option from the `[DEFAULT]` section defines in which section looking for options.
 Here, options defined in the `[custom]` section will be taken into account.
+
+### Interpolation
+
+If you are using special characters in values like:
+
+```ini
+ca_bundle = %userprofile%\.certificates
+```
+
+You may end up on such error:
+
+```python
+configparser.InterpolationSyntaxError: '%' must be followed by '%' or '(', found: '%userprofile%/.certificates'
+```
+
+This is a special processing done by the configuration parser named [values interpolation](https://docs.python.org/3/library/configparser.html#interpolation-of-values).
+
+In that case, just double the percent sign:
+
+```ini
+ca_bundle = %%userprofile%%\.certificates
+```
