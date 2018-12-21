@@ -304,6 +304,7 @@ class Manager(QObject):
                 engine.stop()
         if MAC:
             self.osi._cleanup()
+        self.dispose_db()
         self.stopped.emit()
 
     def start(self, euid: str = None) -> None:
@@ -649,7 +650,7 @@ class Manager(QObject):
         self._engine_definitions = self._dao.get_engines()
 
     def dispose_db(self) -> None:
-        if self._dao is not None:
+        if self._dao:
             self._dao.dispose()
 
     def get_engines(self) -> Dict[str, "Engine"]:  # TODO: Remove
