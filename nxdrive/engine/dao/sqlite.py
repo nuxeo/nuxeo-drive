@@ -610,8 +610,8 @@ class EngineDAO(ConfigurationDAO):
             )
         self._create_state_table(cursor)
 
-    def acquire_state(self, thread_id: int, row_id: int) -> Optional[DocPair]:
-        if self.acquire_processor(thread_id, row_id):
+    def acquire_state(self, thread_id: Optional[int], row_id: int) -> Optional[DocPair]:
+        if thread_id is not None and self.acquire_processor(thread_id, row_id):
             # Avoid any lock for this call by using the write connection
             try:
                 return self.get_state_from_id(row_id, from_write=True)
@@ -620,8 +620,9 @@ class EngineDAO(ConfigurationDAO):
                 raise
         raise OperationalError("Cannot acquire")
 
-    def release_state(self, thread_id: int) -> None:
-        self.release_processor(thread_id)
+    def release_state(self, thread_id: Optional[int]) -> None:
+        if thread_id is not None:
+            self.release_processor(thread_id)
 
     def release_processor(self, processor_id: int) -> bool:
         with self._lock:

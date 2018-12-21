@@ -93,10 +93,8 @@ class Worker(QObject):
 
         self._continue = False
 
-    def get_thread_id(self) -> int:
+    def get_thread_id(self) -> Optional[int]:
         """ Get the thread ID. """
-        if not self._thread_id:
-            raise RuntimeError("Unable to retrieve thread id")
         return self._thread_id
 
     def _interact(self) -> None:
