@@ -6,8 +6,7 @@ markdown==3.0.1
 nuxeo==2.0.4
 psutil==5.4.8
 pyaml==18.11.0
-# Ignore pyobjc updates until NXDRIVE-1429 is done
-pycryptodomex==3.6.6  # pyup: ignore
+pycryptodomex==3.7.2
 # Ignore pyobjc updates until NXDRIVE-1396 is done
 pyobjc-framework-Cocoa==4.2.2; sys_platform == 'darwin'  # pyup: ignore
 pyobjc-framework-LaunchServices==4.2.2; sys_platform == 'darwin'  # pyup: ignore
