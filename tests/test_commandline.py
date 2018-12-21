@@ -21,7 +21,7 @@ def getOSIntegration(manager):
     return FakeOSIntegration(None)
 
 
-class CommandLineTestCase(unittest.TestCase):
+class TestCommandLine(unittest.TestCase):
     def setUp(self):
         self.tmpdir = os.path.join(os.environ.get("WORKSPACE", ""), "tmp")
         self.addCleanup(clean_dir, self.tmpdir)
@@ -65,6 +65,11 @@ delay = 3
     def clean_ini(self, filename="config.ini"):
         with suppress(OSError):
             os.remove(filename)
+
+    def test_redact_payload(self):
+        payload = b"nxdrive://token/12345678-acbd-1234-cdef-1234567890ab/user/Administrator@127.0.0.1"
+        assert self.cmd.redact_payload(payload) == b"<REDACTED>"
+        assert self.cmd.redact_payload(b"payload") == b"payload"
 
     @Options.mock()
     def test_update_site_url(self):
