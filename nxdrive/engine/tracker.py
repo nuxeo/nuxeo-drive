@@ -92,13 +92,22 @@ class Tracker(Worker):
         engine = list(self._manager.get_engines().values())[0]
 
         if engine:
+            # Do not reuse old dimensions:
+            # https://support.google.com/analytics/answer/2709828?hl=en#Limits
             self._tracker.set(
                 {
+                    # Those dimensions are transposed from Engine.get_metrics() when calling ._send_stats():
+                    # "dimension1": $sync_files,
+                    # "dimension2": $sync_folders,
+                    # "dimension3": $error_files,
+                    # "dimension4": $conflicted_files,
+                    # "dimension5": $file_size,
                     "dimension6": engine.hostname,
                     "dimension7": engine.server_url,
                     "dimension8": engine.remote.client.server_version,
-                    "dimension9": self.current_os,
+                    # "dimension9": NXDRIVE-1238,
                     "dimension10": self.arch,
+                    "dimension11": self.current_os,
                 }
             )
 
