@@ -535,12 +535,21 @@ class CliHandler:
         log.debug(f"{APP_NAME} exited with code {exit_code}")
         return exit_code
 
+    def redact_payload(self, payload: bytes) -> bytes:
+        """Some information may not be needed in logs."""
+
+        # Do not disclose the token in logs
+        if payload.startswith(b"nxdrive://token/"):
+            payload = b"<REDACTED>"
+
+        return payload
+
     def _send_to_running_instance(self, payload: bytes) -> None:
         from PyQt5.QtCore import QByteArray
         from PyQt5.QtNetwork import QLocalSocket
 
         log.debug(
-            f"Opening local socket to send to the running instance (payload={payload})"
+            f"Opening local socket to send to the running instance (payload={self.redact_payload(payload)})"
         )
         client = QLocalSocket()
         client.connectToServer("com.nuxeo.drive.protocol")
