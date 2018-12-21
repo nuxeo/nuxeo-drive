@@ -101,6 +101,10 @@ class Engine(QObject):
         self.remote_cls = remote_cls
         self.local_cls = local_cls
 
+        # Initialize those attributes first to be sure .stop()
+        # can be called without missing ones
+        self._threads: List[QThread] = []
+
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
         self.timeout = 30
@@ -119,7 +123,6 @@ class Engine(QObject):
         self._sync_started = False
         self._invalid_credentials = False
         self._offline_state = False
-        self._threads: List[QThread] = list()
         self._dao = EngineDAO(self._get_db_file())
 
         if binder:
@@ -167,7 +170,7 @@ class Engine(QObject):
         self._scanPair.connect(self._remote_watcher.scan_pair)
 
         self._set_root_icon()
-        self._user_cache: Dict[str, str] = dict()
+        self._user_cache: Dict[str, str] = {}
 
         # Pause in case of no more space on the device
         self.noSpaceLeftOnDevice.connect(self.suspend)
@@ -442,7 +445,7 @@ class Engine(QObject):
 
     def _get_db_file(self) -> str:
         return os.path.join(
-            normalized_path(self.manager.nxdrive_home), "ndrive_" + self.uid + ".db"
+            normalized_path(self.manager.nxdrive_home), f"ndrive_{self.uid}.db"
         )
 
     def get_binder(self) -> "ServerBindingSettings":
@@ -582,7 +585,7 @@ class Engine(QObject):
             self.manager.server_config_updater.force_poll()
 
         self._stopped = False
-        Processor.soft_locks = dict()
+        Processor.soft_locks = {}
         log.debug(f"Engine {self.uid} is starting")
         for thread in self._threads:
             thread.start()
@@ -658,19 +661,29 @@ class Engine(QObject):
             if not thread.wait(5000):
                 log.warning("Thread is not responding - terminate it")
                 thread.terminate()
-        if not self._local_watcher.get_thread().wait(5000):
+        if hasattr(
+            self, "_local_watcher"
+        ) and not self._local_watcher.get_thread().wait(5000):
             self._local_watcher.get_thread().terminate()
-        if not self._remote_watcher.get_thread().wait(5000):
+        if hasattr(
+            self, "_remote_watcher"
+        ) and not self._remote_watcher.get_thread().wait(5000):
             self._remote_watcher.get_thread().terminate()
         for thread in self._threads:
             if thread.isRunning():
                 thread.wait(5000)
-        if not self._remote_watcher.get_thread().isRunning():
+        if (
+            hasattr(self, "_remote_watcher")
+            and not self._remote_watcher.get_thread().isRunning()
+        ):
             self._remote_watcher.get_thread().wait(5000)
-        if not self._local_watcher.get_thread().isRunning():
+        if (
+            hasattr(self, "_local_watcher")
+            and not self._local_watcher.get_thread().isRunning()
+        ):
             self._local_watcher.get_thread().wait(5000)
         # Soft locks needs to be reinit in case of threads termination
-        Processor.soft_locks = dict()
+        Processor.soft_locks = {}
         log.trace(f"Engine {self.uid} stopped")
 
     @staticmethod

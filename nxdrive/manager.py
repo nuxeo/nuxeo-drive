@@ -324,16 +324,22 @@ class Manager(QObject):
 
     def load(self) -> None:
         self._engine_definitions = self._engine_definitions or self._dao.get_engines()
-        in_error: Dict[str, bool] = dict()
-        self._engines = dict()
+        self._engines = {}
+
         for engine in self._engine_definitions:
             if engine.engine not in self._engine_types:
-                log.warning(f"Cannot find engine {engine.engine} anymore")
-                if engine.engine not in in_error:
-                    in_error[engine.engine] = True
+                log.error(f"Cannot find {engine.engine} engine type anymore")
+                continue
+            elif not os.path.isfile(self._get_engine_db_file(engine.uid)):
+                log.error(f"Cannot find {engine.uid} engine database file anymore")
+                continue
+
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
             self._engines[engine.uid].online.connect(self._force_autoupdate)
             self.initEngine.emit(self._engines[engine.uid])
+
+    def _get_engine_db_file(self, uid: str) -> str:
+        return os.path.join(normalized_path(self.nxdrive_home), f"ndrive_{uid}.db")
 
     def _force_autoupdate(self) -> None:
         if not self.updater:
