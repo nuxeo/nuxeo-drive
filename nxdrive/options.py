@@ -138,6 +138,7 @@ class MetaOptions(type):
         [
             # From the CLI parser
             "command",
+            "file",
             "log_filename",
             # From the Manager
             "client_version",
