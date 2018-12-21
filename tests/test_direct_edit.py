@@ -147,6 +147,34 @@ class TestDirectEdit(UnitTestCase):
             url=url,
         )
 
+    def test_no_xpath(self):
+        filename = "test_file.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
+        content = b"Initial content."
+        xpath = "file:content"
+
+        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
+            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            local_path = f"/{doc_id}_{safe_os_filename(xpath)}/{filename}"
+            assert self.local.exists(local_path)
+            self.wait_sync(fail_if_timeout=False)
+            self.local.set_remote_id(
+                os.path.dirname(local_path), b"", name="nxdirecteditxpath"
+            )
+
+            # Update file content
+            self.local.update_content(local_path, content)
+            self.wait_sync()
+            doc_info = self.remote.get_info(doc_id)
+            assert self.remote.get_blob(doc_info, xpath=xpath) == content
+
+            # Update file content twice
+            content += b" updated"
+            self.local.update_content(local_path, content)
+            self.wait_sync()
+            doc_info = self.remote.get_info(doc_id)
+            assert self.remote.get_blob(doc_info, xpath=xpath) == content
+
     def test_binder(self):
         engine = list(self.manager_1._engines.items())[0][1]
         binder = engine.get_binder()

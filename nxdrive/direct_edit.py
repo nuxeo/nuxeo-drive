@@ -524,6 +524,11 @@ class DirectEdit(Worker):
             log.trace(f"Handling DirectEdit queue ref: {ref!r}")
 
             uid, engine, algorithm, digest, xpath = self._extract_edit_info(ref)
+            if not xpath:
+                log.debug(
+                    f"DirectEdit on {ref} has no xpath, defaulting to 'file:content'"
+                )
+                xpath = "file:content"
             # Don't update if digest are the same
             try:
                 info = self.local.get_info(ref)
