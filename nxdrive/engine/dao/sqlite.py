@@ -1090,9 +1090,9 @@ class EngineDAO(ConfigurationDAO):
     ) -> DocPairs:
         c = self._get_read_connection().cursor()
 
-        path = "/%" if path == ROOT else f"/{path}{'/' if strict else ''}%"
+        local_path = "/%" if path == ROOT else f"/{path}{'/' if strict else ''}%"
         return c.execute(
-            "SELECT * FROM States WHERE local_path LIKE ?", (path,)
+            "SELECT * FROM States WHERE local_path LIKE ?", (local_path,)
         ).fetchall()
 
     def get_first_state_from_partial_remote(self, ref: str) -> Optional[DocPair]:

@@ -34,7 +34,6 @@ from ..options import Options
 from ..utils import (
     find_icon,
     if_frozen,
-    normalized_path,
     safe_filename,
     set_path_readonly,
     unset_path_readonly,
@@ -814,7 +813,7 @@ class Engine(QObject):
 
         locker = self.local.unlock_ref(ROOT, unlock_parent=False)
         try:
-            self.local.set_folder_icon(ROOT, normalized_path(icon))
+            self.local.set_folder_icon(ROOT, icon)
         except:
             log.exception("Icon folder cannot be set")
         finally:

@@ -38,9 +38,9 @@ class Report:
 
     def __init__(self, manager: "Manager", report_path: Path = None) -> None:
         self._manager = manager
-        if not report_path:
-            name = f"report_{datetime.now().strftime('%y%m%d_%H%M%S')}"
-            report_path = self._manager.nxdrive_home / "reports" / name
+        name = f"report_{datetime.now().strftime('%y%m%d_%H%M%S')}"
+        report_path = report_path or self._manager.nxdrive_home / "reports" / name
+
         if not report_path.parent.exists():
             report_path.parent.mkdir()
         self._zipfile = report_path.with_suffix(".zip")
