@@ -2,6 +2,7 @@
 import time
 import shutil
 from logging import getLogger
+from pathlib import Path
 from threading import Thread
 from typing import Any, Dict, Tuple
 from urllib.error import URLError
@@ -95,7 +96,7 @@ class TestDirectEdit(UnitTestCase):
                 self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
             else:
                 self.direct_edit.handle_url(url)
-            local_path = f"/{doc_id}_{safe_os_filename(xpath)}/{filename}"
+            local_path = Path(f"{doc_id}_{safe_os_filename(xpath)}/{filename}")
             assert self.local.exists(local_path)
             self.wait_sync(fail_if_timeout=False)
             self.local.delete_final(local_path)

@@ -639,7 +639,7 @@ class DirectEdit(Worker):
         log.debug(f"Watching FS modification on {self._folder!r}")
         self._event_handler = DriveFSEventHandler(self)
         self._observer = Observer()
-        self._observer.schedule(self._event_handler, self._folder, recursive=True)
+        self._observer.schedule(self._event_handler, str(self._folder), recursive=True)
         self._observer.start()
 
     def _stop_watchdog(self) -> None:
