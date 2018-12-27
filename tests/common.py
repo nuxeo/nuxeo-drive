@@ -675,7 +675,7 @@ class UnitTestCase(TestCase):
             # No break => no unexpected exceptions
             return
 
-        path = self.report_path / self.id() + "-" + sys.platform
+        path = self.report_path / f"{self.id()}-{sys.platform}"
         self.manager_1.generate_report(path)
 
     def _set_read_permission(self, user, doc_path, grant):
