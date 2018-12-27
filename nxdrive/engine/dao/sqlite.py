@@ -1113,6 +1113,7 @@ class EngineDAO(ConfigurationDAO):
 
     def get_state_from_remote_with_path(self, ref: str, path: str) -> Optional[DocPair]:
         # remote_path root is empty, should refactor this
+        path = "" if path == "/" else path
         c = self._get_read_connection().cursor()
         return c.execute(
             "SELECT *"
@@ -1733,6 +1734,7 @@ class EngineDAO(ConfigurationDAO):
 
     def remove_filter(self, path: str) -> None:
         path = self._clean_filter_path(path)
+        log.trace(f"Remove filter on {path!r}")
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
