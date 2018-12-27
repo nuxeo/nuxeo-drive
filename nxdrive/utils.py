@@ -41,7 +41,6 @@ __all__ = (
     "normalized_path",
     "parse_edit_protocol",
     "parse_protocol_url",
-    "path_join",
     "retrieve_ssl_certificate",
     "safe_filename",
     "safe_long_path",
@@ -485,12 +484,6 @@ def safe_long_path(path: str) -> str:
         path = f"\\\\?\\{normalized_path(path)}"
 
     return path
-
-
-def path_join(parent: str, child: str) -> str:
-    if parent == "/":
-        return "/" + child
-    return parent + "/" + child
 
 
 def find_resource(folder: str, filename: str = "") -> Path:

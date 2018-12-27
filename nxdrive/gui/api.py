@@ -434,7 +434,7 @@ class QMLDriveApi(QObject):
     def open_local(self, uid: str, path: str) -> None:
         self.application.hide_systray()
         log.trace(f"Opening local file {path!r}")
-        filepath = Path(force_decode(path))
+        filepath = Path(force_decode(path).lstrip("/"))
         if not uid:
             self._manager.open_local_file(filepath)
         else:
