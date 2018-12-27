@@ -329,7 +329,7 @@ class Manager(QObject):
             if engine.engine not in self._engine_types:
                 log.error(f"Cannot find {engine.engine} engine type anymore")
                 continue
-            elif not os.path.isfile(self._get_engine_db_file(engine.uid)):
+            elif not self._get_engine_db_file(engine.uid).is_file():
                 log.error(f"Cannot find {engine.uid} engine database file anymore")
                 continue
 
@@ -337,8 +337,8 @@ class Manager(QObject):
             self._engines[engine.uid].online.connect(self._force_autoupdate)
             self.initEngine.emit(self._engines[engine.uid])
 
-    def _get_engine_db_file(self, uid: str) -> str:
-        return os.path.join(normalized_path(self.nxdrive_home), f"ndrive_{uid}.db")
+    def _get_engine_db_file(self, uid: str) -> Path:
+        return self.nxdrive_home / f"ndrive_{uid}.db"
 
     def _force_autoupdate(self) -> None:
         if not self.updater:
