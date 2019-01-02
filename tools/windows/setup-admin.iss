@@ -23,6 +23,8 @@ DefaultDirName={param:targetdir|{pf}\{#MyAppName}}
 
 [Files]
 Source: "system-wide.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "tools\windows\dll\x86\*"; DestDir: "{app}\dll"; Flags: onlyifdoesntexist regserver 32bit
+Source: "tools\windows\dll\x64\*"; DestDir: "{app}\dll"; Flags: onlyifdoesntexist regserver 64bit; Check: IsWin64
 
 
 [Registry]

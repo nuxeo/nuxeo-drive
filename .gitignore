@@ -10,7 +10,6 @@ debian
 dist
 dist-beta
 .DS_Store
-*.dll
 *.dylib
 *.egg-info
 ENV

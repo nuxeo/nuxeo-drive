@@ -10,14 +10,16 @@ from typing import Any, Dict
 import win32api
 import win32file
 from win32com.client import Dispatch
+from win32com.shell import shell, shellcon
 from win32con import LOGPIXELSX
 
 from . import registry
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME, CONFIG_REGISTRY_KEY
+from ...objects import DocPair
 from ...options import Options
 from ...translator import Translator
-from ...utils import get_value, if_frozen
+from ...utils import force_encode, get_value, if_frozen
 
 __all__ = ("WindowsIntegration",)
 
@@ -166,3 +168,11 @@ class WindowsIntegration(AbstractOSIntegration):
 
     def _get_folder_link(self, name: str = None) -> Path:
         return Options.home / "Links" / f"{name or APP_NAME}.lnk"
+
+    def send_sync_status(self, state: DocPair, path: Path) -> None:
+        shell.SHChangeNotify(
+            shellcon.SHCNE_UPDATEITEM,
+            shellcon.SHCNF_PATH | shellcon.SHCNF_FLUSH,
+            force_encode(str(path)),
+            None,
+        )

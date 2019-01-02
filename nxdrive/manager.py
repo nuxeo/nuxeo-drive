@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from .direct_edit import DirectEdit  # noqa
     from .engine.tracker import Tracker  # noqa
     from .osi.darwin.darwin import FinderSyncServer  # noqa
+    from .osi.windows.overlay import NativityControl  # noqa
     from .updater import Updater  # noqa
 
 
@@ -172,6 +173,10 @@ class Manager(QObject):
         if MAC:
             self._create_findersync_listener()
 
+        # Create the Nativity DLL listener thread
+        if WINDOWS:
+            self._create_nativity_listener()
+
     def get_metrics(self) -> Metrics:
         return {
             "version": self.version,
@@ -251,6 +256,17 @@ class Manager(QObject):
         self.stopped.connect(self._findersync_listener.close)
 
         return self._findersync_listener
+
+    @if_frozen
+    def _create_nativity_listener(self) -> "NativityControl":
+        from .osi.windows.overlay import NativityControl  # noqa
+
+        self._nativity_listener = NativityControl(self)
+        self._nativity_listener._loaded = True
+        self.started.connect(self._nativity_listener.connect)
+        self.stopped.connect(self._nativity_listener.disconnect)
+
+        return self._nativity_listener
 
     @if_frozen
     def refresh_update_status(self) -> None:
