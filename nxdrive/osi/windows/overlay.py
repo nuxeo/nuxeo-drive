@@ -150,23 +150,16 @@ class OverlayHandlerListener(QTcpServer):
 
     def _handle_content(self, content: str) -> str:
         content = json.loads(content)
-        log.trace(f"JSON is {content}")
         if content.get("command", "") == "getFileIconId":
             state = None
             path = content.get("value")
-            log.trace(f"Path is {path}")
             if not path:
                 return ""
             path = unicodedata.normalize("NFC", force_decode(path))
 
-            log.trace(f"Normalized path is {path}")
             for engine in self.manager._engines.values():
                 # Only send status if we picked the right
                 # engine and if we're not targeting the root
-
-                log.trace(
-                    f"Checking engine at {engine.local_folder} ({engine.local_folder_bs})"
-                )
                 if path == engine.local_folder:
                     r_path = "/"
                 elif path.startswith(engine.local_folder_bs):
@@ -174,7 +167,6 @@ class OverlayHandlerListener(QTcpServer):
                 else:
                     continue
 
-                log.trace(f"Relative path is {r_path}")
                 dao = engine._dao
                 state = dao.get_state_from_local(r_path)
                 break
