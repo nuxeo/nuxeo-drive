@@ -116,6 +116,10 @@ class LocalTest(LocalClient):
         ref = force_path(ref)
         return super().abspath(ref)
 
+    def delete_final(self, ref: RawPath) -> None:
+        ref = force_path(ref)
+        return super().delete_final(ref)
+
     def exists(self, ref: RawPath) -> bool:
         ref = force_path(ref)
         return super().exists(ref)
@@ -131,6 +135,10 @@ class LocalTest(LocalClient):
     def get_path(self, abspath: RawPath):
         abspath = force_path(abspath)
         return super().get_path(abspath)
+
+    def rename(self, ref: RawPath, to_name: str):
+        ref = force_path(ref)
+        return super().rename(ref, to_name)
 
     def update_content(
         self, ref: RawPath, content: bytes, xattr_names: Tuple[str, ...] = ("ndrive",)
