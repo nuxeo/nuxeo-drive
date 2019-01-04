@@ -59,10 +59,10 @@ class Test(UnitTestCase):
 
         for folder in folders:
             assert local_1.exists(folder)
-            assert remote.exists(f"/{str(folder)}")
+            assert remote.exists(f"/{folder.as_posix()}")
             for file_ in files[folder]:
                 assert local_1.exists(file_)
-                assert remote.exists(f"/{str(file_)}")
+                assert remote.exists(f"/{file_.as_posix()}")
 
         engine_2.start()
         self.wait_sync(
@@ -93,10 +93,10 @@ class Test(UnitTestCase):
 
         for folder, new_folder in zip(folders, new_folders):
             assert local_1.exists(new_folder)
-            assert remote.get_info(f"/{str(folder)}").name == new_folder.name
+            assert remote.get_info(f"/{folder.as_posix()}").name == new_folder.name
             for file_, new_file in zip(files[folder], new_files[new_folder]):
                 assert local_1.exists(new_file)
-                assert remote.get_info(f"/{str(file_)}").name == new_file.name
+                assert remote.get_info(f"/{file_.as_posix()}").name == new_file.name
 
         # Steps 19 -> 21
         engine_2.resume()

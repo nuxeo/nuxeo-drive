@@ -1054,7 +1054,9 @@ class LocalWatcher(EngineWorker):
                 moved = False
                 from_pair = dao.get_normal_state_from_remote(local_info.remote_ref)
                 if from_pair:
-                    if from_pair.processor > 0 or from_pair.local_path == rel_path:
+                    if from_pair.processor > 0 or str(from_pair.local_path) == str(
+                        rel_path
+                    ):
                         # First condition is in process
                         # Second condition is a race condition
                         log.trace(

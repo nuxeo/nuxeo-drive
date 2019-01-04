@@ -90,7 +90,7 @@ def prepare_args(data: Tuple[Union[Path, str], ...]) -> Tuple[str, ...]:
     data = list(data)  # type: ignore
     for i in range(len(data)):
         if isinstance(data[i], Path):
-            path = str(data[i])
+            path = data[i].as_posix()
             path = "" if path == "." else path
             if not data[i].is_absolute():  # type: ignore
                 path = "/" + path
@@ -243,10 +243,12 @@ class ConfigurationDAO(QObject):
 
     def dispose(self) -> None:
         log.debug(f"Disposing SQLite database {self.get_db()!r}")
-        for con in self._connections:
-            con.close()
-        del self._connections
-        del self._conn
+        if hasattr(self, "_connections"):
+            for con in self._connections:
+                con.close()
+            del self._connections
+        if hasattr(self, "_conn"):
+            del self._conn
 
     def _get_write_connection(self) -> Connection:
         if self.in_tx:
@@ -1090,7 +1092,9 @@ class EngineDAO(ConfigurationDAO):
     ) -> DocPairs:
         c = self._get_read_connection().cursor()
 
-        local_path = "/%" if path == ROOT else f"/{path}{'/' if strict else ''}%"
+        local_path = (
+            "/%" if path == ROOT else f"/{path.as_posix()}{'/' if strict else ''}%"
+        )
         return c.execute(
             "SELECT * FROM States WHERE local_path LIKE ?", (local_path,)
         ).fetchall()
@@ -1144,7 +1148,7 @@ class EngineDAO(ConfigurationDAO):
         return state
 
     def _get_recursive_condition(self, doc_pair: DocPair) -> str:
-        path = "/" + str(doc_pair.local_path)
+        path = "/" + doc_pair.local_path.as_posix()
         res = (
             f" WHERE (local_parent_path LIKE '{path}/%'"
             f"        OR local_parent_path = '{path}')"
@@ -1191,8 +1195,8 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             if doc_pair.folderish:
-                path = "/" + str(new_path / new_name)
-                count = str(len(str(doc_pair.local_path)) + 2)
+                path = "/" + (new_path / new_name).as_posix()
+                count = str(len(doc_pair.local_path.as_posix()) + 2)
                 query = (
                     "UPDATE States"
                     f"  SET local_parent_path = '{path}'"
@@ -1439,7 +1443,7 @@ class EngineDAO(ConfigurationDAO):
                     row.remote_state,
                     row.pair_state,
                     datetime.utcnow(),
-                    "/" + str(row.local_path) + "%",
+                    "/" + row.local_path.as_posix() + "%",
                 ),
             )
 

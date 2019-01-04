@@ -302,9 +302,10 @@ class TestReadOnly(UnitTestCase):
             # Sync and check that it is ignored
             self.wait_sync(wait_for_async=True)
             ignored = [
-                d.local_path for d in self.engine_1.get_dao().get_unsynchronizeds()
+                d.local_path.as_posix()
+                for d in self.engine_1.get_dao().get_unsynchronizeds()
             ]
-            assert list(sorted(ignored)) == ["/foo", "/foo/test.txt"]
+            assert list(sorted(ignored)) == ["foo", "foo/test.txt"]
 
             # Check there is nothing uploaded to the server
             assert not remote.get_children_info("/")

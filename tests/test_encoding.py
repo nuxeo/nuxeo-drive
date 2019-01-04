@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+from pathlib import Path
 
 import pytest
 
@@ -105,7 +106,7 @@ class TestEncoding(UnitTestCase):
         local.make_file("/", name, content=b"Test")
 
         # FileInfo() will normalize the filename
-        assert FileInfo(local.base_folder, "/" + name, False, 0).name != name
+        assert FileInfo(local.base_folder, Path(name), False, 0).name != name
 
         # The encoding should be different,
         # cannot trust the get_children as they use FileInfo

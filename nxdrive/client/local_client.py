@@ -93,7 +93,7 @@ class FileInfo:
 
         # Precompute base name once and for all are it's often useful in
         # practice
-        self.name = path.name
+        self.name = self.filepath.name
 
     def __repr__(self) -> str:
         return f"FileInfo<path={self.filepath!r}, remote_ref={self.remote_ref!r}>"
@@ -194,15 +194,15 @@ class LocalClient:
         return self.get_remote_id(ROOT, name="ndriveroot")
 
     def _remove_remote_id_windows(self, path: Path, name: str = "ndrive") -> None:
-        path_alt = path.with_name(f"{path.name}:{name}")
+        path_alt = f"{str(path)}:{name}"
         try:
-            path_alt.unlink()
+            os.remove(path_alt)
         except OSError as e:
             if e.errno != errno.EACCES:
                 raise e
             unset_path_readonly(path)
             try:
-                path_alt.unlink()
+                os.remove(path_alt)
             finally:
                 set_path_readonly(path)
 
@@ -338,13 +338,14 @@ FolderType=Generic
         log.trace(f"Setting xattr {name!r} with value {remote_id!r} on {path!r}")
         locker = unlock_path(path, False)
         if WINDOWS:
-            path_alt = path.with_name(f"{path.name}:{name}")
+            path_alt = f"{str(path)}:{name}"
             try:
                 if not path.exists():
                     raise NotFound()
 
                 stat_ = path.stat()
-                path_alt.write_bytes(remote_id)
+                with open(path_alt, "wb") as f:
+                    f.write(remote_id)
 
                 # Avoid time modified change
                 os.utime(path, (stat_.st_atime, stat_.st_mtime))
@@ -355,7 +356,8 @@ FolderType=Generic
                 if e.errno != errno.EACCES:
                     raise e
                 unset_path_readonly(path)
-                path_alt.write_bytes(remote_id)
+                with open(path_alt, "wb") as f:
+                    f.write(remote_id)
                 set_path_readonly(path)
             finally:
                 lock_path(path, locker)
@@ -382,9 +384,10 @@ FolderType=Generic
     @staticmethod
     def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
         if WINDOWS:
-            path = path.with_name(f"{path.name}:{name}")
+            path_alt = f"{str(path)}:{name}"
             try:
-                return path.read_text(encoding="utf-8")
+                with open(path_alt, "rb") as f:
+                    return f.read().decode("utf-8")
             except OSError:
                 return ""
 

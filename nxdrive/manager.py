@@ -632,6 +632,8 @@ class Manager(QObject):
     def unbind_engine(self, uid: str) -> None:
         if not self._engines:
             self.load()
+        if uid not in self._engines:
+            return
         # Unwatch folder
         self.osi.unwatch_folder(self._engines[uid].local_folder)
         self._engines[uid].suspend()

@@ -408,7 +408,7 @@ def normalize_event_filename(filename: str, action: bool = True) -> Path:
 
     import unicodedata
 
-    path = normalized_path(filename)
+    path = Path(filename)
 
     # NXDRIVE-688: Ensure the name is stripped for a file
     stripped = Path(str(path).strip())
@@ -428,6 +428,10 @@ def normalize_event_filename(filename: str, action: bool = True) -> Path:
 
     # NXDRIVE-188: Normalize name on the file system, if needed
     normalized = Path(unicodedata.normalize("NFC", str(path)))
+    normalized = normalized.with_name(safe_os_filename(normalized.name))
+
+    if WINDOWS and path.exists():
+        path = normalized_path(path).with_name(path.name)
 
     if not MAC and action and path != normalized and path.exists():
         log.debug(f"Forcing normalization: {path!r} -> {normalized!r}")
