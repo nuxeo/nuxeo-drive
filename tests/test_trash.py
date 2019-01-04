@@ -6,10 +6,12 @@ from tempfile import gettempdir
 import pytest
 from send2trash import send2trash as trash
 
+from nxdrive.constants import WINDOWS
+
 
 def create_tree():
     filename = "A" * 100
-    path = Path(gettempdir())
+    path = Path(("//?/" if WINDOWS else "") + gettempdir())
 
     for i in range(5):
         # From the third subfolder, the path is not trashable from Explorer
@@ -27,7 +29,7 @@ def create_tree():
 def test_trash_long_file():
     path = create_tree()
     try:
-        trash(path)
+        trash(str(path))
         assert not path.exists()
     except PermissionError:
         pytest.skip("Cannot trash from different partition.")
@@ -39,7 +41,7 @@ def test_trash_long_file():
 def test_trash_long_folder():
     path = create_tree()
     try:
-        trash(path)
+        trash(str(path))
         assert not path.exists()
     except PermissionError:
         pytest.skip("Cannot trash from different partition.")

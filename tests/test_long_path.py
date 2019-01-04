@@ -3,12 +3,7 @@ from logging import getLogger
 
 import pytest
 
-from nxdrive.constants import WINDOWS
 from .common import UnitTestCase
-
-if WINDOWS:
-    import win32api
-
 
 log = getLogger(__name__)
 
@@ -42,11 +37,7 @@ class TestLongPath(UnitTestCase):
             self.local_1.abspath("/") / FOLDER_A / FOLDER_B / FOLDER_C / FOLDER_D
         )
         log.info(f"Creating folder with path: {parent_path}")
-        parent_path.mkdir(parents=True)
-
-        if WINDOWS:
-            log.info("Convert path of FOLDER_D\\File2.txt to short path format")
-            parent_path = win32api.GetShortPathName(parent_path)
+        parent_path.mkdir(parents=True, exist_ok=True)
 
         new_file = parent_path / "File2.txt"
         log.info(f"Creating file with path: {new_file}")

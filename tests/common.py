@@ -25,7 +25,7 @@ from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.translator import Translator
-from nxdrive.utils import normalized_path, unset_path_readonly
+from nxdrive.utils import normalized_path, safe_long_path, unset_path_readonly
 from . import DocRemote, LocalTest, RemoteBase
 
 # Default remote watcher delay used for tests
@@ -787,6 +787,7 @@ class UnitTestCase(TestCase):
 
 
 def clean_dir(_dir: Path, retry: int = 1, max_retries: int = 5) -> None:
+    _dir = safe_long_path(_dir)
     if not _dir.exists():
         return
 

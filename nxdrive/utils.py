@@ -474,7 +474,7 @@ def safe_os_filename(name: str) -> str:
         return safe_filename(name, pattern=re.compile(r"([/:])"))
 
 
-def safe_long_path(path: str) -> str:
+def safe_long_path(path: Path) -> Path:
     """
     Utility to prefix path with the long path marker for Windows
     Source: http://msdn.microsoft.com/en-us/library/aa365247.aspx#maxpath
@@ -482,11 +482,8 @@ def safe_long_path(path: str) -> str:
     We also need to normalize the path as described here:
         https://bugs.python.org/issue18199#msg260122
     """
-    path = force_decode(path)
-
-    if WINDOWS and not path.startswith("\\\\?\\"):
-        path = f"\\\\?\\{normalized_path(path)}"
-
+    if WINDOWS:
+        path = Path(f"\\\\?\\{str(normalized_path(path))}")
     return path
 
 
@@ -901,7 +898,7 @@ class PidLockFile:
             process_name = self.key
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
         if pid_filepath.exists():
-            pid = int(pid_filepath.read_text().strip())
+            pid = int(safe_long_path(pid_filepath).read_text().strip())
             with suppress(ValueError, psutil.NoSuchProcess):
                 p = psutil.Process(pid)
                 # If process has been created after the lock file
@@ -946,5 +943,5 @@ class PidLockFile:
         # Write the pid of this process
         pid_filepath = self._get_sync_pid_filepath(process_name=self.key)
         pid = os.getpid()
-        pid_filepath.write_text(str(pid))
+        safe_long_path(pid_filepath).write_text(str(pid))
         return None

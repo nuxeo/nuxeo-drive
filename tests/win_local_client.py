@@ -54,7 +54,7 @@ class WindowsLocalClient(LocalTest):
 
     def abspath(self, ref: RawPath) -> Path:
         # Remove \\?\
-        abs_path = super().abspath(ref)
+        abs_path = super().abspath(ref).resolve()
         if len(str(abs_path)) >= 255:
             log.warning(
                 "The path is longer than 255 characters and the "

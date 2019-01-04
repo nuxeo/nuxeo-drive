@@ -36,6 +36,7 @@ from ..utils import (
     force_decode,
     lock_path,
     normalized_path,
+    safe_long_path,
     safe_os_filename,
     set_path_readonly,
     unlock_path,
@@ -110,7 +111,7 @@ class FileInfo:
             raise UnknownDigest(digest_func)
 
         try:
-            with self.filepath.open(mode="rb") as f:
+            with safe_long_path(self.filepath).open(mode="rb") as f:
                 while True:
                     # Check if synchronization thread was suspended
                     if self.check_suspended:
@@ -680,6 +681,7 @@ FolderType=Generic
         :param mtime: The modification time
         :param ctime: The creation time
         """
+        filepath = safe_long_path(filepath)
 
         log.trace(
             f"Setting file dates for {filepath!r} (ctime={ctime!r}, mtime={mtime!r})"
@@ -715,14 +717,17 @@ FolderType=Generic
 
     def get_path(self, abspath: Path) -> Path:
         """ Relative path to the local client from an absolute OS path. """
-        if self.base_folder not in abspath.parents:
+        base = self.base_folder.resolve()
+        target = abspath.resolve()
+
+        if base not in target.parents:
             return ROOT
-        return abspath.relative_to(self.base_folder)
+        return target.relative_to(base)
 
     def abspath(self, ref: Path) -> Path:
         """ Absolute path on the operating system. """
         path = self.base_folder / ref
-        return path.resolve()
+        return safe_long_path(path)
 
     def _abspath_deduped(
         self, parent: Path, orig_name: str, old_name: str = None
