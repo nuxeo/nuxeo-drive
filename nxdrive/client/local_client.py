@@ -478,7 +478,7 @@ FolderType=Generic
     def is_ignored(self, parent_ref: Path, file_name: str) -> bool:
         """ Note: added parent_ref to be able to filter on size if needed. """
 
-        file_name = force_decode(file_name.lower())
+        file_name = safe_os_filename(force_decode(file_name.lower()))
 
         if file_name.endswith(Options.ignored_suffixes) or file_name.startswith(
             Options.ignored_prefixes
