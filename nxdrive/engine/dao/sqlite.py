@@ -90,7 +90,7 @@ def prepare_args(data: Tuple[Union[Path, str], ...]) -> Tuple[str, ...]:
     data = list(data)  # type: ignore
     for i in range(len(data)):
         if isinstance(data[i], Path):
-            path = data[i].as_posix()
+            path = data[i].as_posix()  # type: ignore
             path = "" if path == "." else path
             if not data[i].is_absolute():  # type: ignore
                 path = "/" + path

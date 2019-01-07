@@ -392,9 +392,11 @@ def version_lt(x: str, y: str) -> bool:
     return version_compare_client(x, y) < 0
 
 
-def normalized_path(path: str) -> Path:
+def normalized_path(path: Union[bytes, str, Path]) -> Path:
     """ Return absolute, normalized file path. """
-    return Path(force_decode(path)).expanduser().resolve()
+    if not isinstance(path, Path):
+        path = force_decode(path)
+    return Path(path).expanduser().resolve()
 
 
 def normalize_event_filename(filename: str, action: bool = True) -> Path:
