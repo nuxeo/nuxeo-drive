@@ -41,7 +41,10 @@ def pac_file():
     pac = Path("proxy.pac")
     pac.write_text(js)
 
-    yield pac.resolve().as_uri()
+    uri = pac.resolve().as_uri()
+    if WINDOWS:
+        uri = uri.replace("///", "//")
+    yield uri
 
     try:
         pac.unlink()
