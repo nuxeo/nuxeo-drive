@@ -718,7 +718,7 @@ FolderType=Generic
     def get_path(self, abspath: Path) -> Path:
         """ Relative path to the local client from an absolute OS path. """
         base = self.base_folder.resolve()
-        target = abspath.resolve()
+        target = abspath.resolve().with_name(abspath.name)
 
         if base not in target.parents:
             return ROOT
