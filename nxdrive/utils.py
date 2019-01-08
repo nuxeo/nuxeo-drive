@@ -460,6 +460,9 @@ def safe_filename(
     name: str, replacement: str = "-", pattern: Pattern = re.compile(r'(["|*/:<>?\\])')
 ) -> str:
     """ Replace invalid characters in target filename. """
+    if WINDOWS:
+        # Windows doesn't allow whitespace at the end of filenames
+        name = name.rstrip()
     return re.sub(pattern, replacement, name)
 
 

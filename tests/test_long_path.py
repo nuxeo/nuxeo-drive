@@ -1,6 +1,6 @@
 # coding: utf-8
 from logging import getLogger
-
+import os
 import pytest
 
 from .common import UnitTestCase
@@ -33,15 +33,16 @@ class TestLongPath(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        parent_path = (
+        parent_path = "\\\\?\\" + str(
             self.local_1.abspath("/") / FOLDER_A / FOLDER_B / FOLDER_C / FOLDER_D
         )
         log.info(f"Creating folder with path: {parent_path}")
-        parent_path.mkdir(parents=True, exist_ok=True)
+        os.makedirs(parent_path, exist_ok=True)
 
-        new_file = parent_path / "File2.txt"
+        new_file = os.path.join(parent_path, "File2.txt")
         log.info(f"Creating file with path: {new_file}")
-        new_file.write_bytes(b"Hello world")
+        with open(new_file, "wb") as f:
+            f.write(b"Hello world")
 
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
         remote_children_of_c = self.remote_1.get_children_info(self.folder_c)
