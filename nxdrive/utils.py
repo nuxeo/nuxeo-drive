@@ -488,7 +488,7 @@ def safe_long_path(path: Path) -> Path:
         https://bugs.python.org/issue18199#msg260122
     """
     if WINDOWS:
-        path = Path(f"\\\\?\\{str(normalized_path(path))}")
+        path = Path(f"\\\\?\\{normalized_path(path)}")
     return path
 
 

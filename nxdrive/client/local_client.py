@@ -195,7 +195,7 @@ class LocalClient:
         return self.get_remote_id(ROOT, name="ndriveroot")
 
     def _remove_remote_id_windows(self, path: Path, name: str = "ndrive") -> None:
-        path_alt = f"{str(path)}:{name}"
+        path_alt = f"{path}:{name}"
         try:
             os.remove(path_alt)
         except OSError as e:
@@ -266,7 +266,7 @@ class LocalClient:
         # Desktop.ini file content
         content = f"""
 [.ShellClassInfo]
-IconResource={str(icon)},0
+IconResource={icon},0
 [ViewState]
 Mode=
 Vid=
@@ -339,7 +339,7 @@ FolderType=Generic
         log.trace(f"Setting xattr {name!r} with value {remote_id!r} on {path!r}")
         locker = unlock_path(path, False)
         if WINDOWS:
-            path_alt = f"{str(path)}:{name}"
+            path_alt = f"{path}:{name}"
             try:
                 if not path.exists():
                     raise NotFound()
@@ -385,7 +385,7 @@ FolderType=Generic
     @staticmethod
     def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
         if WINDOWS:
-            path_alt = f"{str(path)}:{name}"
+            path_alt = f"{path}:{name}"
             try:
                 with open(path_alt, "rb") as f:
                     return f.read().decode("utf-8")

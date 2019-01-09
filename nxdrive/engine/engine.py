@@ -112,8 +112,6 @@ class Engine(QObject):
 
         self.local_folder = Path(definition.local_folder)
         self.local = self.local_cls(self.local_folder)
-        # Keep folder path with backslash to find the right engine when
-        # FinderSync is asking for the status of a file
 
         self.uid = definition.uid
         self.name = definition.name

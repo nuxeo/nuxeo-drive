@@ -5,7 +5,12 @@ from pathlib import Path
 from typing import Callable, TYPE_CHECKING
 
 from ..processor import Processor as OldProcessor
-from ...constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
+from ...constants import (
+    DOWNLOAD_TMP_FILE_PREFIX,
+    DOWNLOAD_TMP_FILE_SUFFIX,
+    PARTIALS_PATH,
+    ROOT,
+)
 from ...objects import DocPair
 
 if TYPE_CHECKING:
@@ -24,9 +29,9 @@ class Processor(OldProcessor):
 
     def _get_partial_folders(self) -> Path:
         local = self.engine.local
-        if not local.exists(Path(".partials")):
-            local.make_folder(Path(), ".partials")
-        return local.abspath(Path(".partials"))
+        if not local.exists(PARTIALS_PATH):
+            local.make_folder(ROOT, str(PARTIALS_PATH))
+        return local.abspath(PARTIALS_PATH)
 
     def _download_content(self, doc_pair: DocPair, file_path: Path) -> Path:
 

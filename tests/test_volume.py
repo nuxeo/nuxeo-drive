@@ -72,10 +72,10 @@ class VolumeTestCase(UnitTestCase):
         self.tree = dict()
         self.tree["childs"] = dict()
         self.tree["path"] = ROOT
-        log.debug("Generating in: " + self.local_1.abspath(ROOT))
+        log.debug(f"Generating in: {self.local_1.abspath(ROOT)}")
         self.create_tree(self.num_folders, self.num_files, self.depth, self.tree)
 
-        log.debug("Generated done in: " + self.local_1.abspath(ROOT))
+        log.debug(f"Generated done in: {self.local_1.abspath(ROOT)}")
         if not self.fake:
             if not stopped:
                 log.debug("*** engine1 starting")

@@ -91,9 +91,9 @@ class TestRemoteDeletion(UnitTestCase):
 
             # Create a document by streaming a binary file
             file_path = local.abspath("/Test folder") / "testFile.pdf"
-            copyfile(self.location / "resources/testFile.pdf", file_path)
+            copyfile(self.location / "resources" / "testFile.pdf", file_path)
             file_path = local.abspath("/Test folder") / "testFile2.pdf"
-            copyfile(self.location / "resources/testFile.pdf", file_path)
+            copyfile(self.location / "resources" / "testFile.pdf", file_path)
 
             # Delete remote folder then synchronize
             remote.delete("/Test folder")

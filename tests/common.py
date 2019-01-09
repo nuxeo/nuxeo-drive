@@ -190,7 +190,7 @@ class UnitTestCase(TestCase):
         Options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager()
         self.connected = False
-        i18n_path = self.location / "resources/i18n"
+        i18n_path = self.location / "resources" / "i18n"
         Translator(self.manager_1, i18n_path)
         Options.nxdrive_home = self.nxdrive_conf_folder_2
         Manager._singleton = None

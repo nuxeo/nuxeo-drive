@@ -183,7 +183,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
             "/Original Fold\xe9r 1/Original Fil\xe9 1.odt"
         )
         file_1_parent_path = file_1_local_info.filepath.parent
-        assert file_1_parent_path == (self.sync_root_folder_1 / "Original Fold\xe9r 1")
+        assert file_1_parent_path == self.sync_root_folder_1 / "Original Fold\xe9r 1"
 
         # Check file state
         file_1_state = self.get_state(self.file_1_id)
@@ -215,7 +215,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
             "/Original Fold\xe9r 1/Renamed File 1 \xe9.odt"
         )
         file_1_parent_path = file_1_local_info.filepath.parent
-        assert file_1_parent_path == (self.sync_root_folder_1 / "Original Fold\xe9r 1")
+        assert file_1_parent_path == self.sync_root_folder_1 / "Original Fold\xe9r 1"
 
         # Check file state
         file_1_state = self.get_state(self.file_1_id)
@@ -592,7 +592,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         remote = self.remote_1
 
         file_path = local.abspath("/Test folder") / "testFile.pdf"
-        copyfile(self.location / "resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         self.wait_sync()
         file_id = local.get_remote_id("/Test folder/testFile.pdf")
         assert file_id
@@ -634,7 +634,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
 
         try:
             self.engine_1.remote.check_suspended = _suspend_check
-            content = (self.location / "resources/testFile.pdf").read_bytes()
+            content = (self.location / "resources" / "testFile.pdf").read_bytes()
             self.engine_1.file_id = remote.make_file(
                 self.folder_id, "testFile.pdf", content=content
             ).uid
@@ -652,7 +652,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         remote = self.remote_1
 
         file_path = local.abspath("/Test folder") / "testFile.pdf"
-        copyfile(self.location / "resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         self.wait_sync()
         file_id = local.get_remote_id("/Test folder/testFile.pdf")
         assert file_id
@@ -690,7 +690,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         with patch.object(
             self.engine_1.remote, "check_suspended", new_callable=check_suspended
         ):
-            content = (self.location / "resources/testFile.pdf").read_bytes()
+            content = (self.location / "resources" / "testFile.pdf").read_bytes()
             remote.make_file("/Test folder", "testFile.pdf", content=content)
 
             # Rename remote folder then synchronize
@@ -722,9 +722,9 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         with patch.object(self.engine_1.remote, "check_suspended", new=check_suspended):
             # Create a document by streaming a binary file
             file_path = local.abspath("/Test folder") / "testFile.pdf"
-            copyfile(self.location / "resources/testFile.pdf", file_path)
+            copyfile(self.location / "resources" / "testFile.pdf", file_path)
             file_path = local.abspath("/Test folder") / "testFile2.pdf"
-            copyfile(self.location / "resources/testFile.pdf", file_path)
+            copyfile(self.location / "resources" / "testFile.pdf", file_path)
 
             # Rename remote folder then synchronize
             remote.rename(self.folder_id, "Test folder renamed")

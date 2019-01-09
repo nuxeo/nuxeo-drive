@@ -1020,8 +1020,8 @@ class LocalWatcher(EngineWorker):
                             return
 
                     rel_parent_path = client.get_path(src_path.parent)
-                    if not rel_parent_path:  # Check validity
-                        rel_parent_path = ROOT  # Check validity
+                    if not rel_parent_path:
+                        rel_parent_path = ROOT
                     dao.insert_local_state(local_info, rel_parent_path)
 
                     # An event can be missed inside a new created folder as

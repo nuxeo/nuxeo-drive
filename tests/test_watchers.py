@@ -353,11 +353,11 @@ class TestWatchers(UnitTestCase):
         # Create files with Unicode combining accents,
         # Unicode latin characters and no special characters
         file_path = local.abspath("/Test.pdf")
-        copyfile(self.location / "resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         # Wait for test workspace synchronization
         self.wait_sync()
         remote_id = local.get_remote_id("/Test.pdf")
-        copyfile(self.location / "resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         self.wait_sync()
         assert remote_id == local.get_remote_id("/Test.pdf")
 
@@ -368,13 +368,13 @@ class TestWatchers(UnitTestCase):
         self.wait_sync()
 
         file_path = self.local_1.abspath("/Test.pdf")
-        copyfile(self.location / "resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         # Give some time for the local watcher to handle the copy
         sleep(5)
 
         self.engine_1.stop()
         remote_id = self.local_1.get_remote_id("/Test.pdf")
-        copyfile(self.location / "resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         self.engine_1.start()
         self.wait_sync()
         assert remote_id == self.local_1.get_remote_id("/Test.pdf")

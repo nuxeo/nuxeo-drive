@@ -49,7 +49,7 @@ class TestLocalCopyPaste(UnitTestCase):
 
         # add image files in folder 'Nuxeo Drive Test Workspace/A'
         abs_folder_path_1 = local.abspath(self.folder_path_1)
-        test_doc_path = self.location / "resources/cat.jpg"
+        test_doc_path = self.location / "resources" / "cat.jpg"
         for file_num in range(
             self.NUMBER_OF_LOCAL_TEXT_FILES + 1, self.NUMBER_OF_LOCAL_FILES_TOTAL + 1
         ):

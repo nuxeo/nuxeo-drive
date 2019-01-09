@@ -387,7 +387,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Create a document by streaming a binary file
         file_path = self.upload_tmp_dir / "testFile.pdf"
-        copyfile(self.location / "resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path)
         local_client = LocalTest(self.upload_tmp_dir)
         assert fs_item_info.name == "testFile.pdf"
@@ -400,7 +400,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Create a document by streaming a binary file
         file_path = self.upload_tmp_dir / "testFile.pdf"
-        copyfile(self.location / "resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path, mime_type="pdf")
         local_client = LocalTest(self.upload_tmp_dir)
         assert fs_item_info.name == "testFile.pdf"
@@ -414,7 +414,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Upload a PDF file, should create a File document
         file_path = self.upload_tmp_dir / "testFile.pdf"
-        copyfile(self.location / "resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path)
         fs_item_id = fs_item_info.uid
         doc_uid = fs_item_id.rsplit("#", 1)[1]
@@ -423,7 +423,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
 
         # Upload a JPG file, should create a Picture document
         file_path = self.upload_tmp_dir / "cat.jpg"
-        copyfile(self.location / "resources/cat.jpg", file_path)
+        copyfile(self.location / "resources" / "cat.jpg", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path)
         fs_item_id = fs_item_info.uid
         doc_uid = fs_item_id.rsplit("#", 1)[1]

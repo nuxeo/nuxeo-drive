@@ -11,7 +11,7 @@ from nxdrive.constants import WINDOWS
 
 def create_tree():
     filename = "A" * 100
-    path = Path(("//?/" if WINDOWS else "") + gettempdir())
+    path = Path(("\\\\?\\" if WINDOWS else "") + gettempdir())
 
     for i in range(5):
         # From the third subfolder, the path is not trashable from Explorer

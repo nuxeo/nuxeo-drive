@@ -1109,7 +1109,7 @@ class Processor(EngineWorker):
             # parent folder issue to get resolved first
             raise ParentNotSynced(name, doc_pair.remote_ref)
 
-        remote_path = doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
+        remote_path = f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
         if self.remote.is_filtered(remote_path):
             nature = ("file", "folder")[doc_pair.folderish]
             log.trace(f"Skip filtered {nature} {doc_pair.local_path!r}")

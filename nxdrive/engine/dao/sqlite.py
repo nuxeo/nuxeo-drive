@@ -147,7 +147,7 @@ class ConfigurationDAO(QObject):
                 # The file is too damaged, just recreate it from scratch.
                 # Sync data will not be re-downloaded nor deleted, but a full
                 # scan will be done.
-                new_name = f"{self._db.name}_{str(int(datetime.now().timestamp()))}"
+                new_name = f"{self._db.name}_{int(datetime.now().timestamp())}"
                 self._db.rename(self._db.with_name(new_name))
                 exists = False
 
@@ -1092,9 +1092,12 @@ class EngineDAO(ConfigurationDAO):
     ) -> DocPairs:
         c = self._get_read_connection().cursor()
 
-        local_path = (
-            "/%" if path == ROOT else f"/{path.as_posix()}{'/' if strict else ''}%"
-        )
+        if path == ROOT:
+            local_path = "/%"
+        else:
+            suffix = "/%" if strict else "%"
+            local_path = f"/{path.as_posix()}{suffix}"
+
         return c.execute(
             "SELECT * FROM States WHERE local_path LIKE ?", (local_path,)
         ).fetchall()
@@ -1148,7 +1151,7 @@ class EngineDAO(ConfigurationDAO):
         return state
 
     def _get_recursive_condition(self, doc_pair: DocPair) -> str:
-        path = "/" + doc_pair.local_path.as_posix()
+        path = f"/{doc_pair.local_path.as_posix()}"
         res = (
             f" WHERE (local_parent_path LIKE '{path}/%'"
             f"        OR local_parent_path = '{path}')"
@@ -1171,9 +1174,9 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             if doc_pair.folderish:
                 count = str(
-                    len(doc_pair.remote_parent_path + "/" + doc_pair.remote_ref) + 1
+                    len(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}") + 1
                 )
-                path = new_path + "/" + doc_pair.remote_ref
+                path = f"{new_path}/{doc_pair.remote_ref}"
                 query = (
                     "UPDATE States"
                     f"  SET remote_parent_path = '{path}'"
@@ -1195,7 +1198,7 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             if doc_pair.folderish:
-                path = "/" + (new_path / new_name).as_posix()
+                path = f"/{(new_path / new_name).as_posix()}"
                 count = str(len(doc_pair.local_path.as_posix()) + 2)
                 query = (
                     "UPDATE States"
@@ -1443,7 +1446,7 @@ class EngineDAO(ConfigurationDAO):
                     row.remote_state,
                     row.pair_state,
                     datetime.utcnow(),
-                    "/" + row.local_path.as_posix() + "%",
+                    f"/{row.local_path.as_posix()}%",
                 ),
             )
 
