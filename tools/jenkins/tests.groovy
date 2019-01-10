@@ -77,7 +77,10 @@ def github_status(status) {
 }
 
 def checkout_custom() {
-    checkout([$class: 'GitSCM',
+    build_changeset = currentBuild.changeSets.isEmpty()
+    checkout(
+        changelog: build_changeset,
+        scm: [$class: 'GitSCM',
         branches: [[name: env.BRANCH_NAME]],
         browser: [$class: 'GithubWeb', repoUrl: repos_url],
         doGenerateSubmoduleConfigurations: false,
@@ -238,14 +241,7 @@ for (def x in slaves) {
                             // Update GitHub status whatever the result
                             github_status(currentBuild.result)
 
-                            archive 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt'
-
-                            // Update revelant Jira issues only if we are working on the master branch
-                            if (env.BRANCH_NAME == 'master') {
-                                step([$class: 'JiraIssueUpdater',
-                                    issueSelector: [$class: 'DefaultIssueSelector'],
-                                    scm: scm, comment: osi])
-                            }
+                            archiveArtifacts 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt'
                         }
                     }
                 }
@@ -256,7 +252,18 @@ for (def x in slaves) {
 
 timeout(240) {
     timestamps {
-        parallel builders
+        try {
+            parallel builders
+        } finally {
+            // Update revelant Jira issues only if we are working on the master branch
+            if (env.BRANCH_NAME == 'master') {
+                node('SLAVE') {
+                    step([$class: 'JiraIssueUpdater',
+                        issueSelector: [$class: 'DefaultIssueSelector'],
+                        scm: scm])
+                }
+            }
+        }
 
         if (env.ENABLE_SONAR && currentBuild.result != 'UNSTABLE' && env.SPECIFIC_TEST == '') {
             node('SLAVE') {
@@ -284,8 +291,8 @@ timeout(240) {
                             }
 
                             sh "./tools/qa.sh"
-                            archive 'coverage.xml'
-                            archive 'pylint-report.txt'
+                            archiveArtifacts 'coverage.xml'
+                            archiveArtifacts 'pylint-report.txt'
 
                             withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                                 withEnv(["WORKSPACE=${pwd()}"]) {
