@@ -936,7 +936,7 @@ class Processor(EngineWorker):
             file_out = self._get_temporary_file(file_path)
             locker = unlock_path(file_out)
             try:
-                shutil.copy(str(self.local.abspath(pair.local_path)), str(file_out))
+                shutil.copy(self.local.abspath(pair.local_path), file_out)
             finally:
                 lock_path(file_out, locker)
             return file_out

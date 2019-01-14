@@ -173,10 +173,10 @@ class TestReadOnly(UnitTestCase):
         if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
-                shutil.move(str(doc_abs), str(dst_abs))
+                shutil.move(doc_abs, dst_abs)
         else:
             # The move happens
-            shutil.move(str(doc_abs), str(dst_abs))
+            shutil.move(doc_abs, dst_abs)
             time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
             self.wait_sync()
 
@@ -223,10 +223,10 @@ class TestReadOnly(UnitTestCase):
         if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
-                shutil.move(str(doc_abs), str(dst_abs))
+                shutil.move(doc_abs, dst_abs)
         else:
             # The move happens
-            shutil.move(str(doc_abs), str(dst_abs))
+            shutil.move(doc_abs, dst_abs)
             time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
             self.wait_sync()
 
@@ -366,10 +366,10 @@ class TestReadOnly(UnitTestCase):
         if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
-                shutil.move(str(src), str(dst))
+                shutil.move(src, dst)
         else:
             # The move happens
-            shutil.move(str(src), str(dst))
+            shutil.move(src, dst)
             time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
             self.wait_sync()
 
@@ -415,10 +415,10 @@ class TestReadOnly(UnitTestCase):
         if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
-                shutil.move(str(src), str(dst))
+                shutil.move(src, dst)
         else:
             # The move happens
-            shutil.move(str(src), str(dst))
+            shutil.move(src, dst)
             time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
             self.wait_sync()
 
@@ -532,7 +532,7 @@ Expected Result: Files should sync with the server.
         # Move
         src = local.abspath("/ReadFolder/shareme.doc")
         dst = local.abspath("/MEFolder")
-        shutil.move(str(src), str(dst))
+        shutil.move(src, dst)
         time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
         self.wait_sync()
 

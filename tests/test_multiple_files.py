@@ -46,7 +46,7 @@ class TestMultipleFiles(UnitTestCase):
         local = self.local_1
         src = local.abspath(self.folder_path_1)
         dst = local.abspath(self.folder_path_2)
-        shutil.move(str(src), str(dst))
+        shutil.move(src, dst)
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
         self._move_and_copy_paste_folder(
             Path("a2/a1"), Path(""), Path("a2"), stopped=stopped
@@ -71,7 +71,7 @@ class TestMultipleFiles(UnitTestCase):
         dst = local.abspath(folder_2)
         new_path = folder_2 / folder_1.name
         copy_path = target_folder / folder_1.name
-        shutil.move(str(src), str(dst))
+        shutil.move(src, dst)
         # check that 'Nuxeo Drive Test Workspace/a1' does not exist anymore
         assert not local.exists(folder_1)
         # check that 'Nuxeo Drive Test Workspace/a2/a1' now exists

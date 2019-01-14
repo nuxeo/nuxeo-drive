@@ -48,7 +48,7 @@ class Processor(OldProcessor):
         # Check if the file is already on the HD
         pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
         if pair:
-            shutil.copy(str(self.local.abspath(pair.local_path)), str(file_out))
+            shutil.copy(self.local.abspath(pair.local_path), file_out)
             return file_out
         tmp_file = self.remote.stream_content(
             doc_pair.remote_ref,

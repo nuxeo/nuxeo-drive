@@ -89,7 +89,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
                 if event["eventId"] == "securityUpdated":
                     nonlocal src
                     nonlocal dst
-                    shutil.move(str(src), str(dst))
+                    shutil.move(src, dst)
             return summary
 
         with patch.object(RemoteWatcher, "_get_changes", new=get_changes):

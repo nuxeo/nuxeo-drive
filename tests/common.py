@@ -793,7 +793,7 @@ def clean_dir(_dir: Path, retry: int = 1, max_retries: int = 5) -> None:
 
     test_data = os.environ.get("TEST_SAVE_DATA")
     if test_data:
-        shutil.move(str(_dir), test_data)
+        shutil.move(_dir, test_data)
         return
 
     try:

@@ -1,6 +1,7 @@
 # coding: utf-8
 import logging
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
@@ -46,9 +47,19 @@ def requeue_errors(self) -> None:
             doc_pair.error_next_try = 0
 
 
+def _basename(path):
+    """ Patch shutil._basename for pathlib compatibility """
+    if isinstance(path, os.PathLike):
+        return path.name
+
+    sep = os.path.sep + (os.path.altsep or "")
+    return os.path.basename(path.rstrip(sep))
+
+
 Manager.dispose_all = dispose_all
 Manager.unbind_all = unbind_all
 QueueManager.requeue_errors = requeue_errors
+shutil._basename = _basename
 
 
 def configure_logger():

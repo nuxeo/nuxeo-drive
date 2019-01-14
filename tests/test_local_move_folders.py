@@ -59,7 +59,7 @@ class TestLocalMoveFolders(UnitTestCase):
         remote_doc = self.remote_document_client_1
         src = local.abspath(self.folder_path_1)
         dst = local.abspath(self.folder_path_2)
-        shutil.move(str(src), str(dst))
+        shutil.move(src, dst)
         self.wait_sync()
         num = self.NUMBER_OF_LOCAL_IMAGE_FILES
         names = set(["file%03d.png" % file_num for file_num in range(1, num + 1)])

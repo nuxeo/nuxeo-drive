@@ -150,7 +150,7 @@ class DirectEdit(Worker):
             return
 
         def purge(path):
-            shutil.rmtree(str(self.local.abspath(path)), ignore_errors=True)
+            shutil.rmtree(self.local.abspath(path), ignore_errors=True)
 
         log.debug("Cleanup DirectEdit folder")
 
