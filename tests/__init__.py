@@ -48,7 +48,11 @@ def requeue_errors(self) -> None:
 
 
 def _basename(path):
-    """ Patch shutil._basename for pathlib compatibility """
+    """
+    Patch shutil._basename for pathlib compatibility.
+
+    TODO: remove when https://bugs.python.org/issue32689 is fixed (Python 3.7.3 or newer)
+    """
     if isinstance(path, os.PathLike):
         return path.name
 
@@ -83,7 +87,7 @@ def make_tmp_file(folder: Path, content: bytes) -> Path:
     """
     import tempfile
 
-    fd, path = tempfile.mkstemp(suffix="-nxdrive-file-to-upload", dir=str(folder))
+    fd, path = tempfile.mkstemp(suffix="-nxdrive-file-to-upload", dir=folder)
     path = Path(path)
     try:
         path.write_bytes(force_encode(content))
