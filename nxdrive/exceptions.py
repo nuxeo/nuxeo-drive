@@ -34,6 +34,12 @@ class FolderAlreadyUsed(DriveError):
     pass
 
 
+class Forbidden(DriveError):
+    """ The access to a remote document is forbidden for the user. """
+
+    pass
+
+
 class InvalidDriveException(DriveError):
     """ The bound folder cannot be used on this file system. """
 

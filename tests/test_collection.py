@@ -26,12 +26,12 @@ class TestCollection(UnitTestCase):
         self.remote_document_client_1.attach_blob(doc, b"abcde", "abcde.txt")
 
         # Create a collection and add the document to it
-        self.collection = remote.operations.execute(
+        self.collection = remote.execute(
             command="Collection.Create",
             name="CollectionA",
             description="Test collection",
         )
-        remote.operations.execute(
+        remote.execute(
             command="Document.AddToCollection",
             collection=self.collection["uid"],
             input_obj=f"doc:{doc}",

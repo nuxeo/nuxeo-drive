@@ -194,9 +194,9 @@ class TestPermissionHierarchy(UnitTestCase):
         folder_b_fs = self.local_2.get_remote_id("/Other Docs/Folder A/Folder B")
         folder_a_fs = self.local_2.get_remote_id("/Other Docs/Folder A")
         # Unshare Folder A and share Folder C
-        pytest.root_remote.operations.execute(
+        pytest.root_remote.execute(
             command="Document.RemoveACL",
-            input_obj="doc:" + test_folder_uid,
+            input_obj=f"doc:{test_folder_uid}",
             acl="local",
         )
         self.set_readonly(self.user_2, folder_c)

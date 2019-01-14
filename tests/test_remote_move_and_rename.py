@@ -522,7 +522,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Grant ReadWrite permission on Workspaces for test user
         workspaces_path = "/default-domain/workspaces"
         input_obj = "doc:" + workspaces_path
-        pytest.root_remote.operations.execute(
+        pytest.root_remote.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user=self.user_1,

@@ -114,7 +114,7 @@ class UnitTestCase(TestCase):
             pytest.root_remote.activate_profile(server_profile)
 
         # Call the Nuxeo operation to setup the integration test environment
-        credentials = pytest.root_remote.operations.execute(
+        credentials = pytest.root_remote.execute(
             command="NuxeoDrive.SetupIntegrationTests",
             userNames="user_1, user_2",
             permission="ReadWrite",
@@ -141,9 +141,7 @@ class UnitTestCase(TestCase):
     def tearDownServer(self, server_profile=None):
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
-        pytest.root_remote.operations.execute(
-            command="NuxeoDrive.TearDownIntegrationTests"
-        )
+        pytest.root_remote.execute(command="NuxeoDrive.TearDownIntegrationTests")
 
         # Deactivate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
@@ -682,7 +680,7 @@ class UnitTestCase(TestCase):
         input_obj = "doc:" + doc_path
         remote = pytest.root_remote
         if grant:
-            remote.operations.execute(
+            remote.execute(
                 command="Document.SetACE",
                 input_obj=input_obj,
                 user=user,
@@ -769,7 +767,7 @@ class UnitTestCase(TestCase):
         remote = pytest.root_remote
         input_obj = "doc:" + doc_path
         if grant:
-            remote.operations.execute(
+            remote.execute(
                 command="Document.SetACE",
                 input_obj=input_obj,
                 user=user,
@@ -777,7 +775,7 @@ class UnitTestCase(TestCase):
             )
             remote.block_inheritance(doc_path, overwrite=False)
         else:
-            remote.operations.execute(
+            remote.execute(
                 command="Document.SetACE",
                 input_obj=input_obj,
                 user=user,

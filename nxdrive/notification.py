@@ -312,6 +312,18 @@ class DirectEditReadOnlyNotification(Notification):
         )
 
 
+class DirectEditForbiddenNotification(Notification):
+    def __init__(self, doc_id: str, user_id: str, hostname: str) -> None:
+        values = [doc_id, user_id, hostname]
+        super().__init__(
+            "DIRECT_EDIT_FORBIDDEN",
+            title=Translator.get("DIRECT_EDIT_FORBIDDEN_TITLE"),
+            description=Translator.get("DIRECT_EDIT_FORBIDDEN_MSG", values),
+            level=Notification.LEVEL_WARNING,
+            flags=Notification.FLAG_PERSISTENT | Notification.FLAG_BUBBLE,
+        )
+
+
 class DirectEditStartingNotification(Notification):
     def __init__(self, hostname: str, filename: str) -> None:
         values_title = [hostname]
@@ -460,6 +472,7 @@ class DefaultNotificationService(NotificationService):
         self._manager.newEngine.connect(self._connect_engine)
         self._manager.direct_edit.directEditLockError.connect(self._directEditLockError)
         self._manager.direct_edit.directEditStarting.connect(self._directEditStarting)
+        self._manager.direct_edit.directEditForbidden.connect(self._directEditForbidden)
         self._manager.direct_edit.directEditReadonly.connect(self._directEditReadonly)
         self._manager.direct_edit.directEditLocked.connect(self._directEditLocked)
         self._manager.direct_edit.directEditUploadCompleted.connect(
@@ -510,6 +523,11 @@ class DefaultNotificationService(NotificationService):
     def _newReadonly(self, filename: str, parent: str = None) -> None:
         engine_uid = self.sender().uid
         self.send_notification(ReadOnlyNotification(engine_uid, filename, parent))
+
+    def _directEditForbidden(self, doc_id: str, user_id: str, hostname: str) -> None:
+        self.send_notification(
+            DirectEditForbiddenNotification(doc_id, user_id, hostname)
+        )
 
     def _directEditReadonly(self, filename: str) -> None:
         self.send_notification(DirectEditReadOnlyNotification(filename))

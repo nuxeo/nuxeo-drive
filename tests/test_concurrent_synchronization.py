@@ -13,9 +13,9 @@ from .common import (
 
 class TestConcurrentSynchronization(UnitTestCase):
     def create_docs(self, parent, number, name_pattern=None, delay=1.0):
-        return pytest.root_remote.operations.execute(
+        return pytest.root_remote.execute(
             command="NuxeoDrive.CreateTestDocuments",
-            input_obj="doc:" + parent,
+            input_obj=f"doc:{parent}",
             namePattern=name_pattern,
             number=number,
             delay=int(delay * 1000),
