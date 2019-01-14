@@ -172,7 +172,7 @@ class TestRemoteDeletion(UnitTestCase):
         assert local.exists("/Test folder")
         assert local.exists("/Test folder/joe.odt")
         input_obj = "doc:" + self.workspace
-        pytest.root_remote.operations.execute(
+        pytest.root_remote.execute(
             command="Document.RemoveACL", input_obj=input_obj, acl="local"
         )
         self.wait_sync(

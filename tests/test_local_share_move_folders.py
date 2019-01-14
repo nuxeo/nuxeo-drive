@@ -74,7 +74,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         dst = local.abspath(self.folder_path_2)
 
         input_obj = local.get_remote_id("/a1").split("#")[-1]
-        remote.operations.execute(
+        remote.execute(
             command="Document.AddPermission",
             input_obj=input_obj,
             username=self.user_2,

@@ -208,14 +208,10 @@ class RemoteBase(Remote):
             nuxeo.client.NuxeoClient._server_info = SERVER_INFO
 
     def fs_exists(self, fs_item_id: str) -> bool:
-        return self.operations.execute(
-            command="NuxeoDrive.FileSystemItemExists", id=fs_item_id
-        )
+        return self.execute(command="NuxeoDrive.FileSystemItemExists", id=fs_item_id)
 
     def get_children(self, ref: str) -> Dict[str, Any]:
-        return self.operations.execute(
-            command="Document.GetChildren", input_obj="doc:" + ref
-        )
+        return self.execute(command="Document.GetChildren", input_obj=f"doc:{ref}")
 
     def get_children_info(self, ref: str, limit: int = 1000) -> List[NuxeoDocumentInfo]:
         ref = self._check_ref(ref)
@@ -245,7 +241,7 @@ class RemoteBase(Remote):
         return self.download(download_url, digest=fs_item_info.digest, **kwargs)
 
     def get_roots(self) -> List[NuxeoDocumentInfo]:
-        res = self.operations.execute(command="NuxeoDrive.GetRoots")
+        res = self.execute(command="NuxeoDrive.GetRoots")
         return self._filtered_results(res["entries"], fetch_parent_uid=False)
 
     def make_file(
@@ -322,11 +318,6 @@ class RemoteTest(RemoteBase):
     _server_error = None
     raise_on = None
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.exec_fn = self.operations.execute
-        self.operations.execute = self.execute
-
     def download(self, *args, **kwargs):
         self._raise(self._download_remote_error, *args, **kwargs)
         return super().download(*args, **kwargs)
@@ -337,7 +328,7 @@ class RemoteTest(RemoteBase):
 
     def execute(self, *args, **kwargs):
         self._raise(self._server_error, *args, **kwargs)
-        return self.exec_fn(*args, **kwargs)
+        return super().execute(*args, **kwargs)
 
     def make_download_raise(self, error):
         """ Make next calls to do_get() raise the provided exception. """
@@ -369,12 +360,10 @@ class RemoteTest(RemoteBase):
         self.raise_on = None
 
     def activate_profile(self, profile):
-        self.operations.execute(
-            command="NuxeoDrive.SetActiveFactories", profile=profile
-        )
+        self.execute(command="NuxeoDrive.SetActiveFactories", profile=profile)
 
     def deactivate_profile(self, profile):
-        self.operations.execute(
+        self.execute(
             command="NuxeoDrive.SetActiveFactories", profile=profile, enable=False
         )
 
@@ -409,7 +398,7 @@ class RemoteTest(RemoteBase):
 
         tx_timeout = 3600
         headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
-        self.operations.execute(
+        self.execute(
             command="Elasticsearch.WaitForIndexing",
             timeout=tx_timeout,
             headers=headers,
@@ -418,16 +407,14 @@ class RemoteTest(RemoteBase):
         )
 
     def result_set_query(self, query):
-        return self.operations.execute(command="Repository.ResultSetQuery", query=query)
+        return self.execute(command="Repository.ResultSetQuery", query=query)
 
     def log_on_server(self, message, level="WARN"):
         """ Log the current test server side.  Helpful for debugging. """
-        return self.operations.execute(
-            command="Log", message=message, level=level.lower()
-        )
+        return self.execute(command="Log", message=message, level=level.lower())
 
     def wait(self):
-        self.operations.execute(command="NuxeoDrive.WaitForElasticsearchCompletion")
+        self.execute(command="NuxeoDrive.WaitForElasticsearchCompletion")
 
 
 class DocRemote(RemoteTest):
@@ -439,9 +426,9 @@ class DocRemote(RemoteTest):
         properties: Dict[str, str] = None,
     ):
         name = safe_filename(name)
-        return self.operations.execute(
+        return self.execute(
             command="Document.Create",
-            input_obj="doc:" + ref,
+            input_obj=f"doc:{ref}",
             type=doc_type,
             name=name,
             properties=properties,
@@ -537,52 +524,48 @@ class DocRemote(RemoteTest):
         self.attach_blob(self._check_ref(ref), content, filename)
 
     def move(self, ref: str, target: str, name: str = None):
-        return self.operations.execute(
+        return self.execute(
             command="Document.Move",
-            input_obj="doc:" + self._check_ref(ref),
+            input_obj=f"doc:{self._check_ref(ref)}",
             target=self._check_ref(target),
             name=name,
         )
 
     def update(self, ref: str, properties=None):
-        return self.operations.execute(
-            command="Document.Update", input_obj="doc:" + ref, properties=properties
+        return self.execute(
+            command="Document.Update", input_obj=f"doc:{ref}", properties=properties
         )
 
     def copy(self, ref: str, target: str, name: str = None):
-        return self.operations.execute(
+        return self.execute(
             command="Document.Copy",
-            input_obj="doc:" + self._check_ref(ref),
+            input_obj=f"doc:{self._check_ref(ref)}",
             target=self._check_ref(target),
             name=name,
         )
 
     def delete(self, ref: str, use_trash: bool = True):
-        input_obj = "doc:" + self._check_ref(ref)
+        input_obj = f"doc:{self._check_ref(ref)}"
         if use_trash:
             try:
                 if not self._has_new_trash_service:
-                    return self.operations.execute(
+                    return self.execute(
                         command="Document.SetLifeCycle",
                         input_obj=input_obj,
                         value="delete",
                     )
                 else:
-                    return self.operations.execute(
-                        command="Document.Trash", input_obj=input_obj
-                    )
+                    return self.execute(command="Document.Trash", input_obj=input_obj)
             except HTTPError as e:
                 if e.status != 500:
                     raise
-        return self.operations.execute(command="Document.Delete", input_obj=input_obj)
+        return self.execute(command="Document.Delete", input_obj=input_obj)
 
     def delete_content(self, ref: str, xpath: str = None):
         return self.delete_blob(self._check_ref(ref), xpath=xpath)
 
     def delete_blob(self, ref: str, xpath: str = None):
-        return self.operations.execute(
-            command="Blob.Remove", input_obj="doc:" + ref, xpath=xpath
-        )
+        return self.execute(command="Blob.Remove", input_obj=f"doc:{ref}", xpath=xpath)
 
     def is_locked(self, ref: str) -> bool:
         data = self.fetch(ref, headers={"fetch-document": "lock"})
@@ -590,32 +573,32 @@ class DocRemote(RemoteTest):
 
     def get_versions(self, ref: str):
         headers = {"X-NXfetch.document": "versionLabel"}
-        versions = self.operations.execute(
+        versions = self.execute(
             command="Document.GetVersions",
-            input_obj="doc:" + self._check_ref(ref),
+            input_obj=f"doc:{self._check_ref(ref)}",
             headers=headers,
         )
         return [(v["uid"], v["versionLabel"]) for v in versions["entries"]]
 
     def create_version(self, ref: str, increment: str = "None"):
-        doc = self.operations.execute(
+        doc = self.execute(
             command="Document.CreateVersion",
-            input_obj="doc:" + self._check_ref(ref),
+            input_obj=f"doc:{self._check_ref(ref)}",
             increment=increment,
         )
         return doc["uid"]
 
     def restore_version(self, version: str) -> str:
-        doc = self.operations.execute(
+        doc = self.execute(
             command="Document.RestoreVersion",
-            input_obj="doc:" + self._check_ref(version),
+            input_obj=f"doc:{self._check_ref(version)}",
         )
         return doc["uid"]
 
     def block_inheritance(self, ref: str, overwrite: bool = True):
-        input_obj = "doc:" + self._check_ref(ref)
+        input_obj = f"doc:{self._check_ref(ref)}"
 
-        self.operations.execute(
+        self.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user="Administrator",
@@ -623,7 +606,7 @@ class DocRemote(RemoteTest):
             overwrite=overwrite,
         )
 
-        self.operations.execute(
+        self.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user="Everyone",

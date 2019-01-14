@@ -287,7 +287,7 @@ class TestSecurityUpdates(UnitTestCase):
     def _set_read_permission(self, user, doc_path, grant):
         input_obj = "doc:" + doc_path
         if grant:
-            pytest.root_remote.operations.execute(
+            pytest.root_remote.execute(
                 command="Document.SetACE",
                 input_obj=input_obj,
                 user=user,

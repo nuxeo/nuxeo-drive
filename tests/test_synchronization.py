@@ -579,7 +579,7 @@ class TestSynchronization(UnitTestCase):
         # Set remote folder as readonly for test user
         readonly_folder_path = TEST_WORKSPACE_PATH + "/Readonly folder"
         input_obj = "doc:" + readonly_folder_path
-        pytest.root_remote.operations.execute(
+        pytest.root_remote.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user=self.user_1,

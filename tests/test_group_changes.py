@@ -102,9 +102,9 @@ class TestGroupChanges(UnitTestCase):
         sync_root_id = self.admin_remote.make_folder("/", "syncRoot")
 
         log.debug("Grant ReadWrite permission to group1 on syncRoot")
-        self.admin_remote.operations.execute(
+        self.admin_remote.execute(
             command="Document.SetACE",
-            input_obj="doc:" + sync_root_id,
+            input_obj=f"doc:{sync_root_id}",
             user="group1",
             permission="ReadWrite",
         )
@@ -133,17 +133,17 @@ class TestGroupChanges(UnitTestCase):
         child_id = self.admin_remote.make_folder("/syncRoot", "child")
 
         log.debug("Grant ReadWrite permission to group1 on syncRoot")
-        self.admin_remote.operations.execute(
+        self.admin_remote.execute(
             command="Document.SetACE",
-            input_obj="doc:" + sync_root_id,
+            input_obj=f"doc:{sync_root_id}",
             user="group1",
             permission="ReadWrite",
         )
 
         log.debug("Grant ReadWrite permission to group2 on child")
-        self.admin_remote.operations.execute(
+        self.admin_remote.execute(
             command="Document.SetACE",
-            input_obj="doc:" + child_id,
+            input_obj=f"doc:{child_id}",
             user="group2",
             permission="ReadWrite",
         )
@@ -176,9 +176,9 @@ class TestGroupChanges(UnitTestCase):
         sync_root_id = self.admin_remote.make_folder("/parent", "syncRoot")
 
         log.debug("Grant ReadWrite permission to group1 on parent")
-        self.admin_remote.operations.execute(
+        self.admin_remote.execute(
             command="Document.SetACE",
-            input_obj="doc:" + parent_id,
+            input_obj=f"doc:{parent_id}",
             user="group1",
             permission="ReadWrite",
         )
@@ -294,9 +294,9 @@ class TestGroupChanges(UnitTestCase):
 
         log.debug("Grant ReadWrite permission to %s on syncRoot", ancestor_group)
 
-        self.admin_remote.operations.execute(
+        self.admin_remote.execute(
             command="Document.SetACE",
-            input_obj="doc:" + sync_root_id,
+            input_obj=f"doc:{sync_root_id}",
             user=ancestor_group,
             permission="ReadWrite",
         )

@@ -119,7 +119,7 @@ class TestLocalDeletion(UnitTestCase):
             "/default-domain/workspaces" "/nuxeo-drive-test-workspace/ToDelete"
         )
         input_obj = "doc:" + folder_path
-        pytest.root_remote.operations.execute(
+        pytest.root_remote.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user=self.user_1,
@@ -167,7 +167,7 @@ class TestLocalDeletion(UnitTestCase):
         # Remove rights
         folder_path = "/default-domain/workspaces" "/nuxeo-drive-test-workspace/ToCopy"
         input_obj = "doc:" + folder_path
-        pytest.root_remote.operations.execute(
+        pytest.root_remote.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user=self.user_1,

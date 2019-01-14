@@ -20,7 +20,7 @@ from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
-from .exceptions import NotFound, ThreadInterrupt, UnknownDigest
+from .exceptions import Forbidden, NotFound, ThreadInterrupt, UnknownDigest
 from .objects import Metrics, NuxeoDocumentInfo
 from .utils import (
     current_milli_time,
@@ -58,6 +58,7 @@ class DirectEdit(Worker):
     directEditLockError = pyqtSignal(str, str, str)
     directEditConflict = pyqtSignal(str, str, str)
     directEditError = pyqtSignal(str, list)
+    directEditForbidden = pyqtSignal(str, str, str)
     directEditReadonly = pyqtSignal(str)
     directEditStarting = pyqtSignal(str, str)
     directEditLocked = pyqtSignal(str, str, datetime)
@@ -278,9 +279,19 @@ class DirectEdit(Worker):
         return file_out
 
     def _get_info(self, engine: "Engine", doc_id: str) -> Optional[NuxeoDocumentInfo]:
-        doc = engine.remote.fetch(
-            doc_id, headers={"fetch-document": "lock"}, enrichers=["permissions"]
-        )
+        try:
+            doc = engine.remote.fetch(
+                doc_id, headers={"fetch-document": "lock"}, enrichers=["permissions"]
+            )
+        except Forbidden:
+            msg = (
+                f" Access to the document {doc_id!r} on server {engine.hostname!r}"
+                f" is forbidden for user {engine.remote_user!r}"
+            )
+            log.warning(msg)
+            self.directEditForbidden.emit(doc_id, engine.hostname, engine.remote_user)
+            return None
+
         doc.update(
             {
                 "root": engine.remote._base_folder_ref,
@@ -580,6 +591,15 @@ class DirectEdit(Worker):
                 self.editDocument.emit(remote_blob)
             except NotFound:
                 # Not found on the server, just skip it
+                continue
+            except Forbidden:
+                msg = (
+                    "Upload queue error:"
+                    f" Access to the document {ref!r} on server {engine.hostname!r}"
+                    f" is forbidden for user {engine.remote_user!r}"
+                )
+                log.warning(msg)
+                self.directEditForbidden.emit(ref, engine.hostname, engine.remote_user)
                 continue
             except ThreadInterrupt:
                 raise

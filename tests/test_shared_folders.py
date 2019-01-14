@@ -32,7 +32,7 @@ class TestSharedFolders(UnitTestCase):
 
             # As user1 grant Everything permission to user2 on parent folder
             input_obj = "doc:" + parent_uid
-            pytest.root_remote.operations.execute(
+            pytest.root_remote.execute(
                 command="Document.SetACE",
                 input_obj=input_obj,
                 user=self.user_2,
@@ -92,7 +92,7 @@ class TestSharedFolders(UnitTestCase):
 
         # Remove ReadWrite permission for user_1 on the test workspace
         test_workspace = "doc:" + TEST_WORKSPACE_PATH
-        pytest.root_remote.operations.execute(
+        pytest.root_remote.execute(
             command="Document.SetACE",
             input_obj=test_workspace,
             user=self.user_2,
@@ -107,9 +107,9 @@ class TestSharedFolders(UnitTestCase):
         file_id = remote_2.make_file(folder, "File01.txt", content=b"plaintext")
 
         # Grant Read permission for user_1 on the test folder and register
-        pytest.root_remote.operations.execute(
+        pytest.root_remote.execute(
             command="Document.SetACE",
-            input_obj="doc:" + folder,
+            input_obj=f"doc:{folder}",
             user=self.user_1,
             permission="Read",
         )
@@ -142,9 +142,9 @@ class TestSharedFolders(UnitTestCase):
             self.engine_1.stop()
 
         # Restore write permission to user_1 (=> ReadWrite)
-        pytest.root_remote.operations.execute(
+        pytest.root_remote.execute(
             command="Document.SetACE",
-            input_obj="doc:" + folder,
+            input_obj=f"doc:{folder}",
             user=self.user_1,
             permission="ReadWrite",
         )

@@ -15,7 +15,7 @@ from nuxeo.models import User
 from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.engine.engine import Engine, ServerBindingSettings
 from nxdrive.engine.workers import Worker
-from nxdrive.exceptions import NotFound, ThreadInterrupt
+from nxdrive.exceptions import Forbidden, NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import safe_os_filename
 from . import LocalTest, RemoteTest, make_tmp_file
@@ -297,6 +297,76 @@ class TestDirectEdit(UnitTestCase):
         self.direct_edit.directEditLocked.connect(locked_file_signal)
         self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
         assert received
+
+    def test_forbidden_edit(self):
+        """
+        A user may lost its rights to edit a file (or even access to the document).
+        In that case, a notification is shown and the DirectEdit is stopped early.
+        """
+        filename = "secret-file.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
+
+        self.engine_1.remote = RemoteTest(
+            pytest.nuxeo_url,
+            self.user_1,
+            "nxdrive-test-administrator-device",
+            pytest.version,
+            password=self.password_1,
+            dao=self.engine_1._dao,
+        )
+
+        def forbidden_signal(self, *args, **kwargs):
+            nonlocal received
+            received = True
+
+        received = False
+        self.direct_edit.directEditForbidden.connect(forbidden_signal)
+
+        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
+            self.engine_1.remote.make_server_call_raise(Forbidden())
+            try:
+                self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+                assert received
+            finally:
+                self.engine_1.remote.make_server_call_raise(None)
+
+    def test_forbidden_upload(self):
+        """
+        A user may lost its rights to edit a file (or even access to the document).
+        In that case, a notification is shown and the document is remove dfrom the upload queue.
+        """
+        filename = "secret-file2.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
+        local_path = f"/{doc_id}_file-content/{filename}"
+
+        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
+            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            self.wait_sync(timeout=2, fail_if_timeout=False)
+
+            # Simulate server error
+            self.engine_1.remote = RemoteTest(
+                pytest.nuxeo_url,
+                self.user_1,
+                "nxdrive-test-administrator-device",
+                pytest.version,
+                password=self.password_1,
+                dao=self.engine_1._dao,
+            )
+
+            self.engine_1.remote.make_upload_raise(Forbidden())
+
+            try:
+                # Update file content
+                self.local.update_content(local_path, b"Updated")
+                time.sleep(5)
+
+                # The file should _not_ be updated on the server
+                assert (
+                    self.remote.get_blob(self.remote.get_info(doc_id))
+                    == b"Initial content."
+                )
+            finally:
+                self.engine_1.remote.make_upload_raise(None)
 
     def test_network_loss(self):
         """ Updates should be sent when the network is up again. """
