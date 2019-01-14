@@ -20,7 +20,7 @@ class ManagerDAOTest(unittest.TestCase):
             self.tmpdir.mkdir(parents=True)
 
         self.test_folder = normalized_path(
-            tempfile.mkdtemp("-nxdrive-tests", dir=str(self.tmpdir))
+            tempfile.mkdtemp("-nxdrive-tests", dir=self.tmpdir)
         )
 
     def tearDown(self):

@@ -69,7 +69,7 @@ delay = 3
 
     def set_home(self):
         Options.nxdrive_home = normalized_path(
-            tempfile.mkdtemp("config", dir=str(self.tmpdir))
+            tempfile.mkdtemp("config", dir=self.tmpdir)
         )
 
     def test_redact_payload(self):
