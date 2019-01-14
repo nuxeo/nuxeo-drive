@@ -169,16 +169,12 @@ class VolumeTestCase(UnitTestCase):
         child = self.get_path(True, self.depth, 1)
         log.debug(f"Will move {root_2} into {child}")
         if not self.fake:
-            shutil.move(
-                str(self.local_1.abspath(root_2)), str(self.local_1.abspath(child))
-            )
+            shutil.move(self.local_1.abspath(root_2), self.local_1.abspath(child))
         root_1 = self.get_path(True, 1, 1)
         root_3 = self.get_path(True, 1, 3)
         log.debug(f"Will move {root_1} into {root_3}")
         if not self.fake:
-            shutil.move(
-                str(self.local_1.abspath(root_1)), str(self.local_1.abspath(root_3))
-            )
+            shutil.move(self.local_1.abspath(root_1), self.local_1.abspath(root_3))
         # Update paths
         child = ROOT / self.get_name(True, 1, 3) + str(child)
         root_2 = ROOT / str(child) + self.get_name(True, 1, 2)
@@ -218,8 +214,8 @@ class VolumeTestCase(UnitTestCase):
         log.debug(f"Will copy {root_2} into {child}")
         if not self.fake:
             shutil.copytree(
-                str(self.local_1.abspath(root_2)),
-                str(self.local_1.abspath(child + self.get_name(True, 1, 2))),
+                self.local_1.abspath(root_2),
+                self.local_1.abspath(child + self.get_name(True, 1, 2)),
             )
         root_1 = self.get_path(True, 1, 1)
         root_3 = self.get_path(True, 1, 3)
@@ -229,8 +225,8 @@ class VolumeTestCase(UnitTestCase):
         log.debug(f"Will copy {root_1} into {root_3}")
         if not self.fake:
             shutil.copytree(
-                str(self.local_1.abspath(root_1)),
-                str(self.local_1.abspath(root_3 + self.get_name(True, 1, 1))),
+                self.local_1.abspath(root_1),
+                self.local_1.abspath(root_3 + self.get_name(True, 1, 1)),
             )
 
             log.debug(f"Will copy {root_3} into {root_4}")

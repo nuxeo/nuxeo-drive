@@ -182,9 +182,7 @@ class TestLocalDeletion(UnitTestCase):
 
         # See if it untrash or unsynchronized
         local.unlock_ref("/ToCopy")
-        shutil.move(
-            str(self.local_test_folder_1 / file1), str(local.abspath("/ToCopy"))
-        )
+        shutil.move(self.local_test_folder_1 / file1, local.abspath("/ToCopy"))
         self.wait_sync(wait_for_async=True)
 
     def test_untrash_file_on_delete_parent(self):
@@ -211,9 +209,7 @@ class TestLocalDeletion(UnitTestCase):
 
         # See if it untrash or recreate
         local.make_folder("/", "ToDelete")
-        shutil.move(
-            str(self.local_test_folder_1 / file1), str(local.abspath("/ToDelete"))
-        )
+        shutil.move(self.local_test_folder_1 / file1, local.abspath("/ToDelete"))
         self.wait_sync()
         assert remote.exists(old_info.uid)
         new_info = remote.get_info(old_info.uid, use_trash=True)
@@ -240,9 +236,7 @@ class TestLocalDeletion(UnitTestCase):
         assert not local.exists(file_path)
         # See if it untrash or recreate
         local.make_folder("/", "ToDelete")
-        shutil.move(
-            str(self.local_test_folder_1 / file1), str(local.abspath("/ToDelete"))
-        )
+        shutil.move(self.local_test_folder_1 / file1, local.abspath("/ToDelete"))
         self.wait_sync()
         assert remote.exists(old_info.uid)
         assert local.exists(file_path)
