@@ -39,7 +39,7 @@ class TestLongPath(UnitTestCase):
             self.local_1.abspath("/") / FOLDER_A / FOLDER_B / FOLDER_C / FOLDER_D
         )
         if WINDOWS:
-            parent_path = "\\\\?\\" + str(parent_path)
+            parent_path = f"\\\\?\\{parent_path}"
         log.info(f"Creating folder with path: {parent_path}")
         os.makedirs(parent_path, exist_ok=True)
 
