@@ -193,18 +193,24 @@ def test_get_value(raw_value, expected_value):
     [
         ("localhost", "http://localhost:8080/nuxeo"),
         # HTTPS domain
-        ("intranet.nuxeo.com", "https://intranet.nuxeo.com/nuxeo"),
+        (
+            "intranet-preprod.nuxeocloud.com",
+            "https://intranet-preprod.nuxeocloud.com/nuxeo",
+        ),
         # With additional parameters
         (
-            "https://intranet.nuxeo.com/nuxeo?TenantId=0xdeadbeaf",
-            "https://intranet.nuxeo.com/nuxeo?TenantId=0xdeadbeaf",
+            "https://intranet-preprod.nuxeocloud.com/nuxeo?TenantId=0xdeadbeaf",
+            "https://intranet-preprod.nuxeocloud.com/nuxeo?TenantId=0xdeadbeaf",
         ),
         # Incomplete URL
-        ("https://intranet.nuxeo.com", "https://intranet.nuxeo.com/nuxeo"),
+        (
+            "https://intranet-preprod.nuxeocloud.com",
+            "https://intranet-preprod.nuxeocloud.com/nuxeo",
+        ),
         # Bad IP
-        ("1.2.3.4", None),
+        ("1.2.3.4", ""),
         # Bad protocol
-        ("htto://intranet.nuxeo.com/nuxeo", None),
+        ("htto://intranet-preprod.nuxeocloud.com/nuxeo", ""),
     ],
 )
 def test_guess_server_url(url, result):
