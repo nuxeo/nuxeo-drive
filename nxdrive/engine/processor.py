@@ -1,6 +1,5 @@
 # coding: utf-8
 import shutil
-import socket
 import sqlite3
 from contextlib import suppress
 from logging import getLogger
@@ -289,13 +288,8 @@ class Processor(EngineWorker):
                         error = f"{handler_name}_http_error_{exc.status}"
                         self._handle_pair_handler_exception(doc_pair, error, exc)
                     continue
-                except (
-                    ConnectionError,
-                    socket.error,  # SSLError
-                    PairInterrupt,
-                    ParentNotSynced,
-                ) as exc:
-                    log.error(
+                except (ConnectionError, PairInterrupt, ParentNotSynced) as exc:
+                    log.debug(
                         f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue"
                     )
                     sleep(1)
