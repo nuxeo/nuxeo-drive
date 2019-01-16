@@ -12,6 +12,30 @@ def section(header: str, content: str) -> str:
     return f"{header}\n```\n{content.strip()}\n```"
 
 
+def setup_sentry() -> None:
+    """ Setup Sentry. """
+    import os
+
+    sentry_env: str = os.getenv("SENTRY_ENV", "production")
+    assert sentry_env in {
+        "production",
+        "testing",
+    }, "Bad SENTRY_ENV value (production or testing)"
+
+    import sentry_sdk
+
+    version: str = None
+    with suppress(ImportError):
+        from nxdrive import __version__ as version
+
+    sentry_sdk.init(
+        dsn="https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714",
+        environment=sentry_env,
+        release=version,
+        attach_stacktrace=True,
+    )
+
+
 def show_critical_error() -> None:
     """ Display a "friendly" dialog box on fatal error. """
 
@@ -131,9 +155,7 @@ def main() -> int:
         raise RuntimeError("Nuxeo Drive requires Python 3.6+")
 
     try:
-        import sentry_sdk
-
-        sentry_sdk.init("https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714")
+        setup_sentry()
 
         from nxdrive.commandline import CliHandler
 
