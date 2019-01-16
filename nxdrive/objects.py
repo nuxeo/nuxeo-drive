@@ -4,8 +4,9 @@ import unicodedata
 from collections import namedtuple
 from contextlib import suppress
 from datetime import datetime
+from pathlib import Path
 from sqlite3 import Row
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from dataclasses import dataclass
 from dateutil import parser
@@ -258,9 +259,9 @@ class DocPair(Row):
     last_remote_updated: str
     local_digest: Optional[str]
     remote_digest: str
-    local_path: str
+    local_path: Path
     remote_ref: str
-    local_parent_path: str
+    local_parent_path: Path
     remote_parent_ref: str
     remote_parent_path: str
     local_name: str
@@ -298,8 +299,10 @@ class DocPair(Row):
             ">"
         )
 
-    def __getattr__(self, name: str) -> Optional[str]:
+    def __getattr__(self, name: str) -> Optional[Union[str, Path]]:
         with suppress(IndexError):
+            if name in {"local_path", "local_parent_path"}:
+                return Path(self[name].lstrip("/"))
             return self[name]
 
     def is_readonly(self) -> bool:
@@ -321,7 +324,13 @@ DocPairs = List[DocPair]
 
 @dataclass
 class EngineDef(Row):
-    local_folder: str
+    local_folder: Path
     engine: str
     uid: str
     name: str
+
+    def __getattr__(self, name: str) -> Optional[Union[str, Path]]:
+        with suppress(IndexError):
+            if name == "local_folder":
+                return Path(self[name])
+            return self[name]

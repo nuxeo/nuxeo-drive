@@ -44,10 +44,10 @@ _For testing purposes_, a `Options.mock` decorator is available.
 """
 
 import logging
-import os.path
 import sys
 from contextlib import suppress
 from copy import deepcopy
+from pathlib import Path
 from typing import Any, Callable, Dict, Set, Tuple
 
 __all__ = ("Options",)
@@ -104,7 +104,7 @@ class MetaOptions(type):
         "manual": 4,
     }
 
-    def __get_home(*_) -> str:
+    def __get_home(*_) -> Path:
         """
         Get the user home directory.
 
@@ -121,17 +121,18 @@ class MetaOptions(type):
             Another idea would be to use the short version of the path, but we will
             try it only if we find bugs with the current implementation.
         """
+        path = "~"
         if sys.platform == "win32":
             from contextlib import suppress
             from win32com.shell import shell, shellcon
 
             with suppress(Exception):
-                return shell.SHGetFolderPath(0, shellcon.CSIDL_PROFILE, None, 0)
+                path = shell.SHGetFolderPath(0, shellcon.CSIDL_PROFILE, None, 0)
 
-        return os.path.expanduser("~")
+        return Path(path).expanduser().resolve()
 
     # Cache the home directory for later use
-    __home: str = __get_home()
+    __home: Path = __get_home()
 
     # Options that should not trigger an error
     __ignored_options: Set[str] = set(
@@ -168,22 +169,20 @@ class MetaOptions(type):
         "log_level_file": ("DEBUG", "default"),
         "max_errors": (3, "default"),
         "max_sync_step": (10, "default"),
-        "nxdrive_home": (os.path.join(__home, ".nuxeo-drive"), "default"),
+        "nxdrive_home": (__home / ".nuxeo-drive", "default"),
         "nofscheck": (False, "default"),
         "protocol_url": (None, "default"),
         "proxy_server": (None, "default"),
         "remote_repo": ("default", "default"),
         "res_dir": (
-            os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(__file__)), "data"),
+            Path(getattr(sys, "_MEIPASS", Path(__file__).parent)) / "data",
             "default",
         ),
         "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
         "system_wide": (
             sys.platform == "win32"
-            and os.path.isfile(
-                os.path.join(os.path.dirname(sys.executable), "system-wide.txt")
-            ),
+            and Path(sys.executable).with_name("system-wide.txt").is_file(),
             "default",
         ),
         "theme": ("ui5", "default"),

@@ -2,6 +2,8 @@
 """
 Test behaviors when the server allows duplicates and not the client.
 """
+from pathlib import Path
+
 from .common import UnitTestCase
 
 
@@ -232,7 +234,7 @@ class TestSynchronizationDedupCaseSensitive(UnitTestCase):
         assert len(local.get_children_info("/fruits")) == 3
 
         # Fix the duplicate error
-        local.delete("/fruits")
+        self.engine_1.local.delete(Path("fruits"))
         self.wait_sync(wait_for_async=True)
         assert len(local.get_children_info("/")) == 1
         assert folder1 in local.get_remote_id("/fruits")
@@ -270,7 +272,7 @@ class TestSynchronizationDedupCaseSensitive(UnitTestCase):
         assert len(local.get_children_info("/fruits")) == 3
 
         # Fix the duplicate error
-        local.rename("/fruits", "fruits-renamed")
+        self.engine_1.local.rename(Path("fruits"), "fruits-renamed")
         self.wait_sync(wait_for_async=True)
         assert len(local.get_children_info("/")) == 2
         assert len(local.get_children_info("/fruits")) == 2

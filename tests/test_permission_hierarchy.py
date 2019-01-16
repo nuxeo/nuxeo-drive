@@ -1,7 +1,6 @@
 # coding: utf-8
 import hashlib
-import os
-import os.path
+from pathlib import Path
 
 import pytest
 from nuxeo.exceptions import HTTPError
@@ -58,15 +57,14 @@ class TestPermissionHierarchy(UnitTestCase):
         self.engine_2.stop()
 
         # Checks
-        root = "/Other Docs/testing/FolderA"
+        root = Path("Other Docs/testing/FolderA")
         assert local.exists(root)
 
         # Create documents
         abspath = local.abspath(root)
-        new_folder = os.path.join(abspath, "FolderCreated")
-        os.mkdir(new_folder)
-        with open(os.path.join(new_folder, "file.txt"), "wb") as handler:
-            handler.write(b"content")
+        new_folder = abspath / "FolderCreated"
+        new_folder.mkdir()
+        (new_folder / "file.txt").write_bytes(b"content")
 
         # Change from RO to RW for the shared folder
         self.set_readonly(self.user_2, folder, grant=False)
@@ -84,7 +82,7 @@ class TestPermissionHierarchy(UnitTestCase):
         assert not dao.get_unsynchronizeds()
 
         # Local check
-        assert local.exists(root + "/FolderCreated/file.txt")
+        assert local.exists(root / "FolderCreated/file.txt")
 
         # Remote checks
         children = remote.get_children_info(folder)
@@ -112,9 +110,9 @@ class TestPermissionHierarchy(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Check locally synchronized content
-        root = "/My Docs/test_folder"
+        root = Path("My Docs/test_folder")
         assert self.local_1.exists(root)
-        assert self.local_1.exists(root + "/test_file.txt")
+        assert self.local_1.exists(root / "test_file.txt")
 
         # Delete test folder
         remote.delete(test_folder_uid)
@@ -258,16 +256,16 @@ class TestPermissionHierarchy(UnitTestCase):
         )
 
         # Checks
-        root = "/Other Docs/testing/"
-        assert local.exists(root + "ReadFolder")
-        assert local.exists(root + "ReadFolder/file_ro.txt")
-        assert local.exists(root + "WriteFolder")
-        content = local.get_content(root + "ReadFolder/file_ro.txt")
+        root = Path("Other Docs/testing")
+        assert local.exists(root / "ReadFolder")
+        assert local.exists(root / "ReadFolder/file_ro.txt")
+        assert local.exists(root / "WriteFolder")
+        content = local.get_content(root / "ReadFolder/file_ro.txt")
         assert content == b"Read-only doc."
 
         # Move the read-only file
         local.move(
-            root + "ReadFolder/file_ro.txt", root + "WriteFolder", name="file_rw.txt"
+            root / "ReadFolder/file_ro.txt", root / "WriteFolder", name="file_rw.txt"
         )
 
         # Remove RO on ReadFolder folder
@@ -275,7 +273,7 @@ class TestPermissionHierarchy(UnitTestCase):
 
         # Edit the new writable file
         new_data = b"Now a fresh read-write doc."
-        local.update_content(root + "WriteFolder/file_rw.txt", new_data)
+        local.update_content(root / "WriteFolder/file_rw.txt", new_data)
 
         # Sync
         self.wait_sync(
@@ -288,10 +286,10 @@ class TestPermissionHierarchy(UnitTestCase):
         assert not self.engine_2.get_dao().get_unsynchronizeds()
 
         # Local checks
-        assert not local.exists(root + "ReadFolder/file_ro.txt")
-        assert not local.exists(root + "WriteFolder/file_ro.txt")
-        assert local.exists(root + "WriteFolder/file_rw.txt")
-        content = local.get_content(root + "WriteFolder/file_rw.txt")
+        assert not local.exists(root / "ReadFolder/file_ro.txt")
+        assert not local.exists(root / "WriteFolder/file_ro.txt")
+        assert local.exists(root / "WriteFolder/file_rw.txt")
+        content = local.get_content(root / "WriteFolder/file_rw.txt")
         assert content == new_data
 
         # Remote checks

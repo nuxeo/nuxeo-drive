@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 import shutil
 import time
 
@@ -20,9 +19,9 @@ class TestLocalCreations(UnitTestCase):
         local.make_folder("/" + self.workspace_title, "A")
         folder_path_1 = self.workspace_title + "/A"
 
-        test_doc_path = os.path.join(self.location, "resources", "cat.jpg")
+        test_doc_path = self.location / "resources" / "cat.jpg"
         abs_folder_path_1 = local.abspath("/" + folder_path_1)
-        dst_path = os.path.join(abs_folder_path_1, "cat.jpg")
+        dst_path = abs_folder_path_1 / "cat.jpg"
         shutil.copyfile(test_doc_path, dst_path)
 
         self.wait_sync(timeout=100)
@@ -53,11 +52,11 @@ class TestLocalCreations(UnitTestCase):
             local.make_file("/A", filename, content=FILE_CONTENT)
 
         # Add pictures into A
-        test_doc_path = os.path.join(self.location, "resources", "cat.jpg")
+        test_doc_path = self.location / "resources" / "cat.jpg"
         abs_folder_path_1 = local.abspath("/A")
         for file_num in range(len_text_files + 1, total_files + 1):
             filename = "file_%02d.jpg" % file_num
-            dst_path = os.path.join(abs_folder_path_1, filename)
+            dst_path = abs_folder_path_1 / filename
             shutil.copyfile(test_doc_path, dst_path)
 
         # Create the folder B, and sync
@@ -187,7 +186,7 @@ class TestLocalCreations(UnitTestCase):
 
         filename = f"/{filename}"
         assert local.exists(filename)
-        assert os.stat(local.abspath(filename)).st_mtime < remote_mtime
+        assert local.abspath(filename).stat().st_mtime < remote_mtime
 
     def test_local_modification_date_non_latin(self):
         """ Check that non-latin files have the Platform modification date. """
@@ -207,7 +206,7 @@ class TestLocalCreations(UnitTestCase):
 
         filename = f"/{filename}"
         assert local.exists(filename)
-        assert os.stat(local.abspath(filename)).st_mtime < remote_mtime
+        assert local.abspath(filename).stat().st_mtime < remote_mtime
 
     def test_local_modification_date_kanjis_file(self):
         """ Check that Kanjis files have the Platform modification date. """
@@ -217,8 +216,8 @@ class TestLocalCreations(UnitTestCase):
 
         workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
         name = "東京スカイツリー.jpg"
-        filepath = os.path.join(self.location, "resources", name)
-        remote.make_file(workspace_id, filepath)
+        filepath = self.location / "resources" / name
+        remote.stream_file(workspace_id, filepath)
         remote_mtime = time.time()
 
         time.sleep(3)
@@ -228,7 +227,7 @@ class TestLocalCreations(UnitTestCase):
 
         filename = f"/{name}"
         assert local.exists(filename)
-        assert os.stat(local.abspath(filename)).st_mtime < remote_mtime
+        assert local.abspath(filename).stat().st_mtime < remote_mtime
 
     def test_local_modification_date_hiraganas_file(self):
         """ Check that Hiraganas files have the Platform modification date. """
@@ -238,8 +237,8 @@ class TestLocalCreations(UnitTestCase):
 
         workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
         name = "こんにちは.jpg"
-        filepath = os.path.join(self.location, "resources", name)
-        remote.make_file(workspace_id, filepath)
+        filepath = self.location / "resources" / name
+        remote.stream_file(workspace_id, filepath)
         remote_mtime = time.time()
 
         time.sleep(3)
@@ -249,7 +248,7 @@ class TestLocalCreations(UnitTestCase):
 
         filename = f"/{name}"
         assert local.exists(filename)
-        assert os.stat(local.abspath(filename)).st_mtime < remote_mtime
+        assert local.abspath(filename).stat().st_mtime < remote_mtime
 
     def test_local_creation_date(self):
         """ Check that the files have the Platform modification date. """
@@ -273,7 +272,7 @@ class TestLocalCreations(UnitTestCase):
 
         filename = f"/{filename}"
         assert local.exists(filename)
-        stats = os.stat(local.abspath(filename))
+        stats = local.abspath(filename).stat()
         local_mtime = stats.st_mtime
 
         # Note: GNU/Linux does not have a creation time
@@ -296,8 +295,8 @@ class TestLocalCreations(UnitTestCase):
 
         workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
         name = "東京スカイツリー.jpg"
-        filename = os.path.join(self.location, "resources", name)
-        file_id = remote.make_file(workspace_id, filename).uid
+        filename = self.location / "resources" / name
+        file_id = remote.stream_file(workspace_id, filename).uid
         after_ctime = time.time()
 
         time.sleep(sleep_time)
@@ -311,7 +310,7 @@ class TestLocalCreations(UnitTestCase):
         file = f"/a {name}"
         assert local.exists(file)
         file = local.abspath(file)
-        stats = os.stat(file)
+        stats = file.stat()
         local_mtime = stats.st_mtime
 
         # Note: GNU/Linux does not have a creation time
@@ -334,8 +333,8 @@ class TestLocalCreations(UnitTestCase):
 
         workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
         name = "こんにちは.jpg"
-        filename = os.path.join(self.location, "resources", name)
-        file_id = remote.make_file(workspace_id, filename).uid
+        filename = self.location / "resources" / name
+        file_id = remote.stream_file(workspace_id, filename).uid
         after_ctime = time.time()
 
         time.sleep(sleep_time)
@@ -349,7 +348,7 @@ class TestLocalCreations(UnitTestCase):
         file = f"/a {name}"
         assert local.exists(file)
         file = local.abspath(file)
-        stats = os.stat(file)
+        stats = file.stat()
         local_mtime = stats.st_mtime
 
         # Note: GNU/Linux does not have a creation time

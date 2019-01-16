@@ -1,19 +1,22 @@
 # coding: utf-8
-import os
 import shutil
 import time
+from pathlib import Path
 from typing import Optional
 
-from nxdrive.engine.dao.sqlite import EngineDAO
+import pytest
+
+from nxdrive.engine.dao.sqlite import EngineDAO, prepare_args
 from nxdrive.objects import DocPair
+from nxdrive.utils import normalized_path, WINDOWS
 
 
 class MockEngineDao(EngineDAO):
     """ Convenient class with auto-cleanup at exit. """
 
     def __init__(self, fname):
-        db = os.path.join(os.path.dirname(__file__), "resources", fname)
-        tmp = db + "_copy.db"
+        db = normalized_path(__file__).parent / "resources" / fname
+        tmp = db.with_name(f"{db.name}_copy.db")
         shutil.copy(db, tmp)
         time.sleep(1)
         super().__init__(tmp)
@@ -23,7 +26,7 @@ class MockEngineDao(EngineDAO):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.dispose()
-        os.remove(self._db)
+        self._db.unlink()
 
     def _get_adjacent_sync_file(
         self, ref: str, comp: str, order: str, sync_mode: str = None
@@ -285,6 +288,24 @@ def test_migration_db_v1_with_duplicates():
         assert len(cols) == 31
         assert dao.get_config("remote_last_event_log_id") is None
         assert dao.get_config("remote_last_full_scan") is None
+
+
+@pytest.mark.parametrize(
+    "args, expected_args, skip",
+    [
+        (("a", "b", "c"), ("a", "b", "c"), False),
+        ((Path("a"),), ("/a",), False),
+        ((Path("/a"),), ("/a",), WINDOWS),
+        ((Path("C:\\a"),), ("C:/a",), not WINDOWS),
+        ((Path(),), ("/",), False),
+    ],
+)
+def test_prepare_args(args, expected_args, skip):
+    if skip:
+        import sys
+
+        pytest.skip(f"Not relevant on {sys.platform}")
+    assert prepare_args(args) == expected_args
 
 
 def test_reinit_processors():

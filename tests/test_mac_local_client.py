@@ -24,7 +24,7 @@ class TestMacSpecific(UnitTestCase):
         key[:8] = 0x62, 0x72, 0x6F, 0x6B, 0x4D, 0x41, 0x43, 0x53
 
         xattr.setxattr(
-            self.local_1.abspath("/File.txt"),
+            str(self.local_1.abspath("/File.txt")),
             xattr.XATTR_FINDERINFO_NAME,
             bytes(bytearray(key)),
         )

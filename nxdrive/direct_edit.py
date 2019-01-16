@@ -3,6 +3,7 @@ import os
 import shutil
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from queue import Empty, Queue
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
@@ -14,7 +15,7 @@ from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
 
 from .client.local_client import LocalClient
-from .constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX, WINDOWS
+from .constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX, ROOT, WINDOWS
 from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
@@ -61,11 +62,11 @@ class DirectEdit(Worker):
     directEditStarting = pyqtSignal(str, str)
     directEditLocked = pyqtSignal(str, str, datetime)
 
-    def __init__(self, manager: "Manager", folder: str, url: str) -> None:
+    def __init__(self, manager: "Manager", folder: Path, url: str) -> None:
         super().__init__()
 
         self._manager = manager
-        self._folder = force_decode(folder)
+        self._folder = folder
         self.url = url
 
         self.autolock = self._manager.autolock_service
@@ -85,23 +86,23 @@ class DirectEdit(Worker):
         self.autolock.orphanLocks.connect(self._autolock_orphans)
 
     @pyqtSlot(object)
-    def _autolock_orphans(self, locks: List[str]) -> None:
+    def _autolock_orphans(self, locks: List[Path]) -> None:
         log.trace(f"Orphans lock: {locks!r}")
         for lock in locks:
-            if lock.startswith(self._folder):
+            if self._folder in lock.parents:
                 log.debug(f"Should unlock {lock!r}")
-                if not os.path.exists(lock):
+                if not lock.exists():
                     self.autolock.orphan_unlocked(lock)
                     continue
 
                 ref = self.local.get_path(lock)
                 self._lock_queue.put((ref, "unlock_orphan"))
 
-    def autolock_lock(self, src_path: str) -> None:
+    def autolock_lock(self, src_path: Path) -> None:
         ref = self.local.get_path(src_path)
         self._lock_queue.put((ref, "lock"))
 
-    def autolock_unlock(self, src_path: str) -> None:
+    def autolock_unlock(self, src_path: Path) -> None:
         ref = self.local.get_path(src_path)
         self._lock_queue.put((ref, "unlock"))
 
@@ -144,8 +145,8 @@ class DirectEdit(Worker):
         - Remove obsolete folders
         """
 
-        if not self.local.exists("/"):
-            os.mkdir(self._folder)
+        if not self.local.exists(ROOT):
+            self._folder.mkdir()
             return
 
         def purge(path):
@@ -153,7 +154,7 @@ class DirectEdit(Worker):
 
         log.debug("Cleanup DirectEdit folder")
 
-        for child in self.local.get_children_info("/"):
+        for child in self.local.get_children_info(ROOT):
             children = self.local.get_children_info(child.path)
             if not children:
                 purge(child.path)
@@ -236,15 +237,12 @@ class DirectEdit(Worker):
         self,
         engine: "Engine",
         info: NuxeoDocumentInfo,
-        file_path: str,
+        file_path: Path,
         xpath: str,
         url: str = None,
-    ) -> str:
-        file_dir = os.path.dirname(file_path)
-        file_name = os.path.basename(file_path)
-        file_out = os.path.join(
-            file_dir, DOWNLOAD_TMP_FILE_PREFIX + file_name + DOWNLOAD_TMP_FILE_SUFFIX
-        )
+    ) -> Path:
+        filename = DOWNLOAD_TMP_FILE_PREFIX + file_path.name + DOWNLOAD_TMP_FILE_SUFFIX
+        file_out = file_path.parent / filename
 
         # Close to processor method - should try to refactor ?
         pair = None
@@ -310,7 +308,7 @@ class DirectEdit(Worker):
 
     def _prepare_edit(
         self, server_url: str, doc_id: str, user: str = None, download_url: str = None
-    ) -> Optional[str]:
+    ) -> Optional[Path]:
         start_time = current_milli_time()
         engine = self._get_engine(server_url, doc_id=doc_id, user=user)
         if not engine:
@@ -355,12 +353,11 @@ class DirectEdit(Worker):
 
         # Create local structure
         folder_name = safe_os_filename(f"{doc_id}_{xpath}")
-        dir_path = os.path.join(self._folder, folder_name)
-        if not os.path.exists(dir_path):
-            os.mkdir(dir_path)
+        dir_path = self._folder / folder_name
+        dir_path.mkdir(exist_ok=True)
 
         log.debug(f"Editing {filename!r}")
-        file_path = os.path.join(dir_path, filename)
+        file_path = dir_path / filename
 
         # Download the file
         tmp_file = self._download(engine, info, file_path, xpath, url=url)
@@ -369,7 +366,7 @@ class DirectEdit(Worker):
             return None
 
         # Set the remote_id
-        dir_path = self.local.get_path(os.path.dirname(file_path))
+        dir_path = self.local.get_path(dir_path)
         self.local.set_remote_id(dir_path, doc_id)
         self.local.set_remote_id(dir_path, server_url, name="nxdirectedit")
 
@@ -397,9 +394,9 @@ class DirectEdit(Worker):
         # Rename to final filename
         # Under Windows first need to delete target file if exists,
         # otherwise will get a 183 WindowsError
-        if WINDOWS and os.path.exists(file_path):
-            os.unlink(file_path)
-        os.rename(tmp_file, file_path)
+        if WINDOWS and file_path.exists():
+            file_path.unlink()
+        tmp_file.rename(file_path)
 
         self._last_action_timing = current_milli_time() - start_time
         self.openDocument.emit(blob)
@@ -426,8 +423,8 @@ class DirectEdit(Worker):
             else:
                 raise e
 
-    def _extract_edit_info(self, ref: str) -> Tuple[str, "Engine", str, str, str]:
-        dir_path = os.path.dirname(ref)
+    def _extract_edit_info(self, ref: Path) -> Tuple[str, "Engine", str, str, str]:
+        dir_path = ref.parent
         server_url = self.local.get_remote_id(dir_path, name="nxdirectedit")
         if not server_url:
             raise NotFound()
@@ -451,8 +448,8 @@ class DirectEdit(Worker):
         xpath = self.local.get_remote_id(dir_path, name="nxdirecteditxpath")
         return uid, engine, digest_algorithm, digest, xpath
 
-    def force_update(self, ref: str, digest: str) -> None:
-        dir_path = os.path.dirname(ref)
+    def force_update(self, ref: Path, digest: str) -> None:
+        dir_path = ref.parent
         self.local.set_remote_id(
             dir_path, digest.encode("utf-8"), name="nxdirecteditdigest"
         )
@@ -511,7 +508,7 @@ class DirectEdit(Worker):
             dao = manager._engines[engine.uid]._dao
             state = dao.get_normal_state_from_remote(ref)
             if state:
-                path = os.path.join(engine.local_folder, state.local_path)
+                path = engine.local_folder / state.local_path
                 manager.osi.send_sync_status(state, path)
 
     def _handle_upload_queue(self) -> None:
@@ -553,9 +550,7 @@ class DirectEdit(Worker):
                         f"Remote digest: {remote_blob.digest} is different from the "
                         f"recorded  one: {digest} - conflict detected for {ref!r}"
                     )
-                    self.directEditConflict.emit(
-                        os.path.basename(ref), ref, remote_blob.digest
-                    )
+                    self.directEditConflict.emit(ref.name, ref, remote_blob.digest)
                     continue
 
                 os_path = self.local.abspath(ref)
@@ -576,12 +571,12 @@ class DirectEdit(Worker):
                 )
 
                 # Update hash value
-                dir_path = os.path.dirname(ref)
+                dir_path = ref.parent
                 self.local.set_remote_id(
                     dir_path, current_digest, name="nxdirecteditdigest"
                 )
                 self._last_action_timing = current_milli_time() - start_time
-                self.directEditUploadCompleted.emit(os.path.basename(os_path))
+                self.directEditUploadCompleted.emit(os_path.name)
                 self.editDocument.emit(remote_blob)
             except NotFound:
                 # Not found on the server, just skip it
@@ -644,7 +639,7 @@ class DirectEdit(Worker):
         log.debug(f"Watching FS modification on {self._folder!r}")
         self._event_handler = DriveFSEventHandler(self)
         self._observer = Observer()
-        self._observer.schedule(self._event_handler, self._folder, recursive=True)
+        self._observer.schedule(self._event_handler, str(self._folder), recursive=True)
         self._observer.start()
 
     def _stop_watchdog(self) -> None:
@@ -672,21 +667,19 @@ class DirectEdit(Worker):
             src_path = normalize_event_filename(evt.src_path)
 
             # Event on the folder by itself
-            if os.path.isdir(src_path):
+            if src_path.is_dir():
                 return
 
-            file_name = force_decode(os.path.basename(src_path))
-            if self.local.is_temp_file(file_name):
+            if self.local.is_temp_file(src_path.name):
                 return
 
             log.debug(f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}")
 
             if evt.event_type == "moved":
                 src_path = normalize_event_filename(evt.dest_path)
-                file_name = force_decode(os.path.basename(src_path))
 
             ref = self.local.get_path(src_path)
-            dir_path = self.local.get_path(os.path.dirname(src_path))
+            dir_path = self.local.get_path(src_path.parent)
             name = self.local.get_remote_id(dir_path, name="nxdirecteditname")
 
             if not name:
@@ -694,8 +687,8 @@ class DirectEdit(Worker):
 
             editing = self.local.get_remote_id(dir_path, name="nxdirecteditlock")
 
-            if force_decode(name) != file_name:
-                if _is_lock_file(file_name):
+            if force_decode(name) != src_path.name:
+                if _is_lock_file(src_path.name):
                     if (
                         evt.event_type == "created"
                         and self.use_autolock
@@ -711,7 +704,7 @@ class DirectEdit(Worker):
                         and use the lock if not already done.
                         """
                         # Recompute the path from 'dir/temp_file' -> 'dir/file'
-                        path = os.path.join(os.path.dirname(src_path), name)
+                        path = src_path.parent / name
                         self.autolock.set_autolock(path, self)
                     elif evt.event_type == "deleted":
                         # Free the xattr to let _cleanup() does its work

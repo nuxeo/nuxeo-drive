@@ -1,5 +1,5 @@
 # coding: utf-8
-import os
+from pathlib import Path
 from threading import current_thread
 from typing import Dict, Optional
 
@@ -71,20 +71,20 @@ class IdleAction(Action):
 
 
 class FileAction(Action):
-    filepath: str
+    filepath: Path
     filename: str
     size: float
     end_time: int
     transfer_duration: float = 0
 
     def __init__(
-        self, action_type: str, filepath: str, filename: str = None, size: int = None
+        self, action_type: str, filepath: Path, filename: str = None, size: int = None
     ) -> None:
         super().__init__(action_type, 0)
         self.filepath = filepath
-        self.filename = filename or os.path.basename(filepath)
+        self.filename = filename or filepath.name
         if size is None:
-            self.size = os.path.getsize(filepath)
+            self.size = filepath.stat().st_size
         else:
             self.size = size
         self.start_time = current_milli_time()

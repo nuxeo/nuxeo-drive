@@ -1,11 +1,16 @@
 # coding: utf-8
-import os
 import shutil
 from logging import getLogger
+from pathlib import Path
 from typing import Callable, TYPE_CHECKING
 
 from ..processor import Processor as OldProcessor
-from ...constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX
+from ...constants import (
+    DOWNLOAD_TMP_FILE_PREFIX,
+    DOWNLOAD_TMP_FILE_SUFFIX,
+    PARTIALS_PATH,
+    ROOT,
+)
 from ...objects import DocPair
 
 if TYPE_CHECKING:
@@ -22,24 +27,24 @@ class Processor(OldProcessor):
     ) -> None:
         super().__init__(engine, item_getter, name=name)
 
-    def _get_partial_folders(self) -> str:
+    def _get_partial_folders(self) -> Path:
         local = self.engine.local
-        if not local.exists("/.partials"):
-            local.make_folder("/", ".partials")
-        return local.abspath("/.partials")
+        if not local.exists(PARTIALS_PATH):
+            local.make_folder(ROOT, str(PARTIALS_PATH))
+        return local.abspath(PARTIALS_PATH)
 
-    def _download_content(self, doc_pair: DocPair, file_path: str) -> str:
+    def _download_content(self, doc_pair: DocPair, file_path: Path) -> Path:
 
         # TODO Should share between threads
-        file_out = os.path.join(
-            self._get_partial_folders(),
-            (
-                DOWNLOAD_TMP_FILE_PREFIX
-                + doc_pair.remote_digest
-                + str(self._thread_id)
-                + DOWNLOAD_TMP_FILE_SUFFIX
-            ),
+        name = "".join(
+            [
+                DOWNLOAD_TMP_FILE_PREFIX,
+                doc_pair.remote_digest,
+                str(self._thread_id),
+                DOWNLOAD_TMP_FILE_SUFFIX,
+            ]
         )
+        file_out = self._get_partial_folders() / name
         # Check if the file is already on the HD
         pair = self._dao.get_valid_duplicate_file(doc_pair.remote_digest)
         if pair:
@@ -58,7 +63,7 @@ class Processor(OldProcessor):
         log.warning("_update_remotely")
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
-            new_os_path = os.path.join(os.path.dirname(os_path), doc_pair.remote_name)
+            new_os_path = os_path.with_name(doc_pair.remote_name)
             log.debug(f"Replacing local file {os_path!r} by {new_os_path!r}.")
         else:
             new_os_path = os_path
@@ -78,7 +83,7 @@ class Processor(OldProcessor):
 
     def _create_remotely(
         self, doc_pair: DocPair, parent_pair: DocPair, name: str
-    ) -> str:
+    ) -> Path:
         local_parent_path = parent_pair.local_path
         # TODO Shared this locking system / Can have concurrent lock
         self._unlock_readonly(local_parent_path)
@@ -105,6 +110,6 @@ class Processor(OldProcessor):
         finally:
             self._lock_readonly(local_parent_path)
             # Clean .nxpart if needed
-            if tmp_file and os.path.isfile(tmp_file):
-                os.remove(tmp_file)
+            if tmp_file and tmp_file.is_file():
+                tmp_file.unlink()
         return path

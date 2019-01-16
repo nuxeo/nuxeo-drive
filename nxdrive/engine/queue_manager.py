@@ -2,6 +2,7 @@
 import time
 from contextlib import suppress
 from logging import getLogger
+from pathlib import Path
 from queue import Empty, Queue
 from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
@@ -410,7 +411,9 @@ class QueueManager(QObject):
         )
 
     @staticmethod
-    def is_processing_file(proc: QThread, path: str, exact_match: bool = False) -> bool:
+    def is_processing_file(
+        proc: QThread, path: Path, exact_match: bool = False
+    ) -> bool:
         if not proc:
             return False
 
@@ -425,16 +428,18 @@ class QueueManager(QObject):
         if exact_match:
             result = doc_pair.local_path == path
         else:
-            result = doc_pair.local_path.startswith(path)
+            result = path in doc_pair.local_path.parents
         if result:
             log.trace(f"Worker({worker.get_metrics()!r}) is processing: {path!r}")
         return result
 
-    def interrupt_processors_on(self, path: str, exact_match: bool = True) -> None:
+    def interrupt_processors_on(self, path: Path, exact_match: bool = True) -> None:
         for proc in self.get_processors_on(path, exact_match):
             proc.stop()
 
-    def get_processors_on(self, path: str, exact_match: bool = True) -> List[Processor]:
+    def get_processors_on(
+        self, path: Path, exact_match: bool = True
+    ) -> List[Processor]:
         with self._thread_inspection:
             res = []
             if self._local_folder_thread and self.is_processing_file(
@@ -459,7 +464,7 @@ class QueueManager(QObject):
                         res.append(thread.worker)
         return res
 
-    def has_file_processors_on(self, path: str) -> bool:
+    def has_file_processors_on(self, path: Path) -> bool:
         with self._thread_inspection:
             # First check local and remote file
             if self.is_processing_file(

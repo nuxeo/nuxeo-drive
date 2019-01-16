@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 import shutil
 
 import pytest
@@ -35,7 +34,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         abs_folder_path_1 = local.abspath(self.folder_path_1)
         for file_num in range(1, num + 1):
             file_name = "file%03d.png" % file_num
-            file_path = os.path.join(abs_folder_path_1, file_name)
+            file_path = abs_folder_path_1 / file_name
             self.generate_random_png(file_path)
 
         self.engine_1.start()

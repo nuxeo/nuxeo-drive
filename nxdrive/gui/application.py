@@ -3,6 +3,7 @@
 import sys
 from logging import getLogger
 from math import sqrt
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
@@ -42,6 +43,7 @@ from ..utils import (
     force_decode,
     get_device,
     if_frozen,
+    normalized_path,
     parse_protocol_url,
     short_name,
 )
@@ -66,7 +68,7 @@ log = getLogger(__name__)
 class Application(QApplication):
     """Main Nuxeo Drive application controlled by a system tray icon + menu"""
 
-    icon = QIcon(find_icon("app_icon.svg"))
+    icon = QIcon(str(find_icon("app_icon.svg")))
     icons: Dict[str, QIcon] = {}
     icon_state = None
     use_light_icons = None
@@ -154,19 +156,21 @@ class Application(QApplication):
             )
 
             self.conflicts_window.setSource(
-                QUrl.fromLocalFile(find_resource("qml", "Conflicts.qml"))
+                QUrl.fromLocalFile(str(find_resource("qml", "Conflicts.qml")))
             )
             self.settings_window.setSource(
-                QUrl.fromLocalFile(find_resource("qml", "Settings.qml"))
+                QUrl.fromLocalFile(str(find_resource("qml", "Settings.qml")))
             )
             self.systray_window.setSource(
-                QUrl.fromLocalFile(find_resource("qml", "Systray.qml"))
+                QUrl.fromLocalFile(str(find_resource("qml", "Systray.qml")))
             )
             flags |= Qt.Popup
         else:
             self.app_engine = QQmlApplicationEngine()
             self._fill_qml_context(self.app_engine.rootContext())
-            self.app_engine.load(QUrl.fromLocalFile(find_resource("qml", "Main.qml")))
+            self.app_engine.load(
+                QUrl.fromLocalFile(str(find_resource("qml", "Main.qml")))
+            )
             root = self.app_engine.rootObjects()[0]
             self.conflicts_window = root.findChild(QQuickWindow, "conflictsWindow")
             self.settings_window = root.findChild(QQuickWindow, "settingsWindow")
@@ -282,7 +286,7 @@ class Application(QApplication):
         self.installTranslator(Translator._singleton)
 
     @pyqtSlot(str, str, str)
-    def _direct_edit_conflict(self, filename: str, ref: str, digest: str) -> None:
+    def _direct_edit_conflict(self, filename: str, ref: Path, digest: str) -> None:
         log.trace(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
         try:
             if filename in self._conflicts_modals:
@@ -354,10 +358,10 @@ class Application(QApplication):
         msg.exec_()
 
     @pyqtSlot(str)
-    def _root_moved(self, new_path: str) -> None:
+    def _root_moved(self, new_path: Path) -> None:
         engine = self.sender()
         log.debug(f"Root has been moved for engine: {engine.uid} to {new_path!r}")
-        info = [engine.local_folder, new_path]
+        info = [engine.local_folder, str(new_path)]
 
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
@@ -918,8 +922,8 @@ class Application(QApplication):
 
         return continue_with_bad_ssl_cert
 
-    def show_metadata(self, file_path: str) -> None:
-        self.manager.ctx_edit_metadata(file_path)
+    def show_metadata(self, path: Path) -> None:
+        self.manager.ctx_edit_metadata(path)
 
     @pyqtSlot(bool)
     def load_icons_set(self, use_light_icons: bool = False) -> None:
@@ -928,7 +932,7 @@ class Application(QApplication):
             return
 
         suffix = ("", "_light")[use_light_icons]
-        mask = find_icon("active.svg")  # Icon mask for macOS
+        mask = str(find_icon("active.svg"))  # Icon mask for macOS
         for state in {
             "conflict",
             "disabled",
@@ -940,7 +944,7 @@ class Application(QApplication):
             "update",
         }:
             icon = QIcon()
-            icon.addFile(find_icon(f"{state}{suffix}.svg"))
+            icon.addFile(str(find_icon(f"{state}{suffix}.svg")))
             if MAC:
                 icon.addFile(mask, mode=QIcon.Selected)
             self.icons[state] = icon
@@ -1014,7 +1018,7 @@ class Application(QApplication):
             return False
 
         cmd = info["command"]
-        path = info.get("filepath", "")
+        path = normalized_path(info.get("filepath", ""))
         manager = self.manager
 
         log.debug(f"Event URL={url}, info={info!r}")

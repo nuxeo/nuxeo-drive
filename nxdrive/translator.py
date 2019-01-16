@@ -1,10 +1,10 @@
 # coding: utf-8
-import codecs
 import json
 import os
 import re
 from contextlib import suppress
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
@@ -21,20 +21,18 @@ class Translator(QTranslator):
     _singleton = None
     _current_lang: str = ""
 
-    def __init__(self, manager: "Manager", path: str, lang: str = None) -> None:
+    def __init__(self, manager: "Manager", path: Path, lang: str = None) -> None:
         super().__init__()
         self._labels: Dict[str, Dict[str, str]] = {}
         self._manager = manager
 
         # Load from JSON
-        for filename in os.listdir(path):
-            filepath = os.path.join(path, filename)
-            with codecs.open(filepath, encoding="utf-8") as fp:
-                label = self.guess_label(filename)
-                # Hebrew is not translated, skip it
-                if label == "he":
-                    continue
-                self._labels[label] = json.loads(fp.read())
+        for translation in path.iterdir():
+            label = self.guess_label(translation.name)
+            # Hebrew is not translated, skip it
+            if label == "he":
+                continue
+            self._labels[label] = json.loads(translation.read_text(encoding="utf-8"))
 
         # List language
         self._langs: Dict[str, Tuple[str, str]] = {}

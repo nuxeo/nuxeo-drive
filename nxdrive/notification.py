@@ -479,10 +479,10 @@ class DefaultNotificationService(NotificationService):
         engine.fileDeletionErrorTooLong.connect(self._fileDeletionErrorTooLong)
 
     def _errorOpenedFile(self, doc: DocPair) -> None:
-        self.send_notification(ErrorOpenedFile(doc.local_path, doc.folderish))
+        self.send_notification(ErrorOpenedFile(str(doc.local_path), doc.folderish))
 
     def _fileDeletionErrorTooLong(self, doc: DocPair) -> None:
-        self.send_notification(FileDeletionError(doc.local_path))
+        self.send_notification(FileDeletionError(str(doc.local_path)))
 
     def _lockDocument(self, filename: str) -> None:
         self.send_notification(LockNotification(filename))

@@ -1,5 +1,6 @@
 # coding: utf-8
 from copy import deepcopy
+from pathlib import Path
 from queue import Queue
 from shutil import copyfile
 from time import sleep
@@ -7,7 +8,7 @@ from time import sleep
 import pytest
 from unittest.mock import patch
 
-from nxdrive.constants import WINDOWS
+from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from . import LocalTest
 from .common import UnitTestCase
@@ -36,7 +37,7 @@ class TestWatchers(UnitTestCase):
         self.wait_sync()
 
         # Workspace should have been reconcile
-        res = self.engine_1.get_dao().get_states_from_partial_local("/")
+        res = self.engine_1.get_dao().get_states_from_partial_local(ROOT)
         # With root
         count = folders + files + 1
         assert len(res) == count
@@ -77,7 +78,7 @@ class TestWatchers(UnitTestCase):
         self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_sync()
-        res = self.engine_1.get_dao().get_states_from_partial_local("/")
+        res = self.engine_1.get_dao().get_states_from_partial_local(ROOT)
         # With root
         count = folders + files + 1
         assert len(res) == count
@@ -96,12 +97,12 @@ class TestWatchers(UnitTestCase):
         metrics = self.queue_manager_1.get_metrics()
         assert metrics["local_folder_queue"]
         assert metrics["local_file_queue"]
-        res = self.engine_1.get_dao().get_states_from_partial_local("/")
+        res = self.engine_1.get_dao().get_states_from_partial_local(ROOT)
         # With root
         assert len(res) == folders + files + 1
 
     def _delete_folder_1(self):
-        path = "/Folder 1"
+        path = Path("Folder 1")
         self.local_1.delete_final(path)
         if WINDOWS:
             sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000 + 1)
@@ -113,7 +114,7 @@ class TestWatchers(UnitTestCase):
             timeout -= 1
             if timeout < 0:
                 break
-        return "/" + self.workspace_title + path + "/"
+        return Path(self.workspace_title) / path
 
     def test_local_watchdog_delete_non_synced(self):
         # Test the deletion after first local scan
@@ -136,7 +137,7 @@ class TestWatchers(UnitTestCase):
         # Test the deletion after first local scan
         self.test_reconcile_scan()
         path = self._delete_folder_1()
-        child = self.engine_1.get_dao().get_state_from_local(path[:-1])
+        child = self.engine_1.get_dao().get_state_from_local(path)
         assert child.pair_state == "locally_deleted"
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
         assert len(children) == 5
@@ -150,7 +151,7 @@ class TestWatchers(UnitTestCase):
         path = self._delete_folder_1()
         self.engine_1.start()
         self.wait_sync(timeout=5, fail_if_timeout=False)
-        child = self.engine_1.get_dao().get_state_from_local(path[:-1])
+        child = self.engine_1.get_dao().get_state_from_local(path)
         assert child.pair_state == "locally_deleted"
         children = self.engine_1.get_dao().get_states_from_partial_local(path)
         assert len(children) == 5
@@ -352,11 +353,11 @@ class TestWatchers(UnitTestCase):
         # Create files with Unicode combining accents,
         # Unicode latin characters and no special characters
         file_path = local.abspath("/Test.pdf")
-        copyfile(self.location + "/resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         # Wait for test workspace synchronization
         self.wait_sync()
         remote_id = local.get_remote_id("/Test.pdf")
-        copyfile(self.location + "/resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         self.wait_sync()
         assert remote_id == local.get_remote_id("/Test.pdf")
 
@@ -367,13 +368,13 @@ class TestWatchers(UnitTestCase):
         self.wait_sync()
 
         file_path = self.local_1.abspath("/Test.pdf")
-        copyfile(self.location + "/resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         # Give some time for the local watcher to handle the copy
         sleep(5)
 
         self.engine_1.stop()
         remote_id = self.local_1.get_remote_id("/Test.pdf")
-        copyfile(self.location + "/resources/testFile.pdf", file_path)
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         self.engine_1.start()
         self.wait_sync()
         assert remote_id == self.local_1.get_remote_id("/Test.pdf")

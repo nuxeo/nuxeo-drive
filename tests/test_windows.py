@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 import shutil
 import time
 
@@ -26,15 +25,15 @@ class TestWindows(UnitTestCase):
         local.make_file("/", "test.odt", content=b"Some content.")
         local.make_folder("/", "folder")
         shutil.copyfile(
-            os.path.join(self.local_test_folder_1, "test.odt"),
-            os.path.join(self.local_test_folder_1, "folder", "test.odt"),
+            self.local_test_folder_1 / "test.odt",
+            self.local_test_folder_1 / "folder" / "test.odt",
         )
         local.update_content("/folder/test.odt", content=b"Updated content.")
 
         # Copy the newest file to the root workspace and synchronize it
-        sync_root = os.path.join(self.local_nxdrive_folder_1, self.workspace_title)
-        test_file = os.path.join(self.local_test_folder_1, "folder", "test.odt")
-        shutil.copyfile(test_file, os.path.join(sync_root, "test.odt"))
+        sync_root = self.local_nxdrive_folder_1 / self.workspace_title
+        test_file = self.local_test_folder_1 / "folder" / "test.odt"
+        shutil.copyfile(test_file, sync_root / "test.odt")
         self.wait_sync()
         assert remote.exists("/test.odt")
         assert remote.get_content("/test.odt") == b"Updated content."
@@ -42,10 +41,7 @@ class TestWindows(UnitTestCase):
         # Copy the oldest file to the root workspace and synchronize it.
         # First wait a bit for file time stamps to increase enough.
         time.sleep(OS_STAT_MTIME_RESOLUTION)
-        shutil.copyfile(
-            os.path.join(self.local_test_folder_1, "test.odt"),
-            os.path.join(sync_root, "test.odt"),
-        )
+        shutil.copyfile(self.local_test_folder_1 / "test.odt", sync_root / "test.odt")
         self.wait_sync()
         assert remote.exists("/test.odt")
         assert remote.get_content("/test.odt") == b"Some content."

@@ -2,6 +2,7 @@
 from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
+from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Tuple, TYPE_CHECKING
 
 import psutil
@@ -9,7 +10,7 @@ from PyQt5.QtCore import QTimer, pyqtSignal
 
 from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
-from .utils import force_decode
+from .utils import normalized_path
 
 if TYPE_CHECKING:
     from .direct_edit import DirectEdit  # noqa
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
 __all__ = ("ProcessAutoLockerWorker",)
 
 log = getLogger(__name__)
-Item = Tuple[int, str]
+Item = Tuple[int, Path]
 Items = List[Item]
 
 
@@ -28,17 +29,17 @@ class ProcessAutoLockerWorker(PollWorker):
     documentLocked = pyqtSignal(str)
     documentUnlocked = pyqtSignal(str)
 
-    def __init__(self, check_interval: int, dao: "ManagerDAO", folder: str) -> None:
+    def __init__(self, check_interval: int, dao: "ManagerDAO", folder: Path) -> None:
         super().__init__(check_interval)
         self._dao = dao
-        self._folder = force_decode(folder)
+        self._folder = folder
 
-        self._autolocked: Dict[str, int] = {}
-        self._lockers: Dict[str, "DirectEdit"] = {}
+        self._autolocked: Dict[Path, int] = {}
+        self._lockers: Dict[Path, "DirectEdit"] = {}
         self._to_lock: Items = []
         self._first = True
 
-    def set_autolock(self, filepath: str, locker: "DirectEdit") -> None:
+    def set_autolock(self, filepath: Path, locker: "DirectEdit") -> None:
         if self._autolocked.get(filepath):
             # Already locked
             return
@@ -62,13 +63,13 @@ class ProcessAutoLockerWorker(PollWorker):
             log.exception("Unhandled error")
         return False
 
-    def orphan_unlocked(self, path: str) -> None:
+    def orphan_unlocked(self, path: Path) -> None:
         self._dao.unlock_path(path)
 
     def _process(self) -> None:
         to_unlock = deepcopy(self._autolocked)
         for pid, path in get_open_files():
-            if path.startswith(self._folder):
+            if self._folder in path.parents:
                 log.debug(f"Found in watched folder: {path!r} (PID={pid})")
             elif path in self._autolocked:
                 log.debug(f"Found in auto-locked: {path!r} (PID={pid})")
@@ -89,7 +90,7 @@ class ProcessAutoLockerWorker(PollWorker):
         for item in items:
             self._lock_file(item)
 
-    def _unlock_files(self, files: Iterable[str]) -> None:
+    def _unlock_files(self, files: Iterable[Path]) -> None:
         for path in files:
             self._unlock_file(path)
 
@@ -102,7 +103,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self._dao.lock_path(path, pid, "")
         self._to_lock.remove(item)
 
-    def _unlock_file(self, path: str) -> None:
+    def _unlock_file(self, path: Path) -> None:
         log.debug(f"Unlocking file {path!r}")
         if path in self._lockers:
             locker = self._lockers[path]
@@ -122,4 +123,4 @@ def get_open_files() -> Iterator[Item]:
     for proc in psutil.process_iter():
         with suppress(psutil.Error):
             for handler in proc.open_files():
-                yield proc.pid, force_decode(handler.path)
+                yield proc.pid, normalized_path(handler.path)

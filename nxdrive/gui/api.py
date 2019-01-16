@@ -3,6 +3,7 @@ import calendar
 import json
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from os import getenv
 from os.path import abspath
 from time import time
@@ -32,7 +33,13 @@ from ..notification import Notification
 from ..objects import Binder, DocPair
 from ..options import Options
 from ..translator import Translator
-from ..utils import get_device, get_default_nuxeo_drive_folder, guess_server_url
+from ..utils import (
+    force_decode,
+    get_device,
+    get_default_nuxeo_drive_folder,
+    guess_server_url,
+    normalized_path,
+)
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -89,7 +96,7 @@ class QMLDriveApi(QObject):
             "started": engine.is_started(),
             "syncing": engine.is_syncing(),
             "paused": engine.is_paused(),
-            "local_folder": engine.local_folder,
+            "local_folder": str(engine.local_folder),
             "queue": engine.get_queue_manager().get_metrics(),
             "web_authentication": bind.web_authentication,
             "server_url": bind.server_url,
@@ -140,8 +147,8 @@ class QMLDriveApi(QObject):
             result["name"] = state.remote_name
         result["remote_name"] = state.remote_name
         result["last_error"] = state.last_error
-        result["local_path"] = state.local_path
-        result["local_parent_path"] = state.local_parent_path
+        result["local_path"] = str(state.local_path)
+        result["local_parent_path"] = str(state.local_parent_path)
         result["remote_ref"] = state.remote_ref
         result["folderish"] = state.folderish
         result["last_transfer"] = state.last_transfer
@@ -185,7 +192,7 @@ class QMLDriveApi(QObject):
         if isinstance(action, FileAction):
             result["size"] = action.size
             result["filename"] = action.filename
-            result["filepath"] = action.filepath
+            result["filepath"] = str(action.filepath)
         return result
 
     def _export_worker(self, worker: Worker) -> Dict[str, Any]:
@@ -338,7 +345,7 @@ class QMLDriveApi(QObject):
         self.application.hide_systray()
         engine = self._get_engine(uid)
         if engine:
-            path = engine.local.abspath(ref)
+            path = engine.local.abspath(Path(ref))
             self.application.show_metadata(path)
 
     @pyqtSlot(str, result=list)
@@ -399,7 +406,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(result=str)
     def generate_report(self) -> str:
         try:
-            return self._manager.generate_report()
+            return str(self._manager.generate_report())
         except Exception as e:
             log.exception("Report error")
             return "[ERROR] " + str(e)
@@ -427,12 +434,13 @@ class QMLDriveApi(QObject):
     def open_local(self, uid: str, path: str) -> None:
         self.application.hide_systray()
         log.trace(f"Opening local file {path!r}")
+        filepath = Path(force_decode(path).lstrip("/"))
         if not uid:
-            self._manager.open_local_file(path)
+            self._manager.open_local_file(filepath)
         else:
             engine = self._get_engine(uid)
             if engine:
-                filepath = engine.local.abspath(path)
+                filepath = engine.local.abspath(filepath)
                 self._manager.open_local_file(filepath)
 
     @pyqtSlot()
@@ -543,7 +551,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=str)
     def default_nuxeo_drive_folder(self) -> str:
-        return get_default_nuxeo_drive_folder()
+        return str(get_default_nuxeo_drive_folder())
 
     @pyqtSlot(result=str)
     def default_server_url_value(self) -> str:
@@ -562,7 +570,7 @@ class QMLDriveApi(QObject):
 
     def _bind_server(
         self,
-        local_folder: str,
+        local_folder: Path,
         url: str,
         username: str,
         password: Optional[str],
@@ -573,8 +581,7 @@ class QMLDriveApi(QObject):
         parts = urlsplit(url)
         url = urlunsplit((parts.scheme, parts.netloc, parts.path, "", parts.fragment))
 
-        if name == "":
-            name = None
+        name = name or None
         binder = Binder(
             username=username,
             password=password,
@@ -584,6 +591,7 @@ class QMLDriveApi(QObject):
             url=url,
         )
         log.debug(f"Binder is : {binder.url}/{binder.username}")
+
         engine = self._manager.bind_engine(
             self._manager._get_default_server_type(),
             local_folder,
@@ -613,7 +621,12 @@ class QMLDriveApi(QObject):
 
         try:
             return self._bind_server(
-                local_folder, server_url, username, password, name, **kwargs
+                normalized_path(local_folder),
+                server_url,
+                username,
+                password,
+                name,
+                **kwargs,
             )
         except RootAlreadyBindWithDifferentAccount as e:
             # Ask for the user
@@ -674,7 +687,9 @@ class QMLDriveApi(QObject):
 
         try:
             # Handle local folder
-            if not self._manager.check_local_folder_available(local_folder):
+            if not self._manager.check_local_folder_available(
+                normalized_path(local_folder)
+            ):
                 raise FolderAlreadyUsed()
 
             # Connect to startup page

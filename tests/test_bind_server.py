@@ -2,28 +2,27 @@
 import os
 import tempfile
 import unittest
+from pathlib import Path
 
 import pytest
 
 from nxdrive.exceptions import FolderAlreadyUsed
 from nxdrive.manager import Manager
 from nxdrive.options import Options
+from nxdrive.utils import normalized_path
 from .common import TEST_DEFAULT_DELAY, clean_dir
 
 
 class BindServerTest(unittest.TestCase):
     def setUp(self):
-        self.tmpdir = os.path.join(os.environ.get("WORKSPACE", ""), "tmp")
+        self.tmpdir = Path(os.environ.get("WORKSPACE", "")) / "tmp"
         self.addCleanup(clean_dir, self.tmpdir)
-        if not os.path.isdir(self.tmpdir):
-            os.makedirs(self.tmpdir)
+        self.tmpdir.mkdir(parents=True, exist_ok=True)
 
-        self.local_test_folder = tempfile.mkdtemp(
-            "-nxdrive-temp-config", dir=self.tmpdir
+        self.local_test_folder = normalized_path(
+            tempfile.mkdtemp("-nxdrive-temp-config", dir=self.tmpdir)
         )
-        self.nxdrive_conf_folder = os.path.join(
-            self.local_test_folder, "nuxeo-drive-conf"
-        )
+        self.nxdrive_conf_folder = self.local_test_folder / "nuxeo-drive-conf"
 
     def tearDown(self):
         Manager._singleton = None

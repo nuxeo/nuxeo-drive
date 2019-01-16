@@ -1,5 +1,6 @@
 # coding: utf-8
 import time
+from pathlib import Path
 
 from .common import OS_STAT_MTIME_RESOLUTION
 from .common import UnitTestCase
@@ -29,7 +30,7 @@ class TestReinitDatabase(UnitTestCase):
         self.bind_engine(1, start_engine=False)
 
     def _check_states(self):
-        rows = self.engine_1.get_dao().get_states_from_partial_local("/")
+        rows = self.engine_1.get_dao().get_states_from_partial_local(Path())
         for row in rows:
             assert row.pair_state == "synchronized"
 
@@ -55,7 +56,7 @@ class TestReinitDatabase(UnitTestCase):
         # Check that a conflict is detected
         self._check_conflict_detection()
         file_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Test folder/Test.txt"
+            Path(self.workspace_title) / "Test folder/Test.txt"
         )
         assert file_state
         assert file_state.pair_state == "conflicted"
@@ -76,7 +77,7 @@ class TestReinitDatabase(UnitTestCase):
         # Check that a conflict is detected
         self._check_conflict_detection()
         file_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Test folder/Test.txt"
+            Path(self.workspace_title) / "Test folder/Test.txt"
         )
         assert file_state
         assert file_state.pair_state == "conflicted"
@@ -104,7 +105,7 @@ class TestReinitDatabase(UnitTestCase):
         # Check that a conflict is detected
         self._check_conflict_detection()
         file_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Test folder/Test.txt"
+            Path(self.workspace_title) / "Test folder/Test.txt"
         )
         assert file_state
         assert file_state.pair_state == "conflicted"

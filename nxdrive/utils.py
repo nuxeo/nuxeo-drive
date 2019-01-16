@@ -7,10 +7,11 @@ import os
 import re
 import stat
 from logging import getLogger
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 from urllib.parse import urlsplit, urlunsplit
 
-from .constants import APP_NAME, WINDOWS
+from .constants import APP_NAME, MAC, WINDOWS
 from .exceptions import InvalidSSLCertificate
 from .options import Options
 
@@ -40,7 +41,6 @@ __all__ = (
     "normalized_path",
     "parse_edit_protocol",
     "parse_protocol_url",
-    "path_join",
     "retrieve_ssl_certificate",
     "safe_filename",
     "safe_long_path",
@@ -170,7 +170,7 @@ def get_device() -> str:
     return device
 
 
-def get_default_nuxeo_drive_folder() -> str:
+def get_default_nuxeo_drive_folder() -> Path:
     """
     Find a reasonable location for the root Nuxeo Drive folder
 
@@ -180,12 +180,13 @@ def get_default_nuxeo_drive_folder() -> str:
     win32com shell API if allowed, else falling back on a manual detection.
     """
 
-    folder = Options.home
     if WINDOWS:
         from win32com.shell import shell, shellcon
 
         try:
-            folder = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, None, 0)
+            folder = normalized_path(
+                shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, None, 0)
+            )
         except:
             """
             In some cases (not really sure how this happens) the current user
@@ -205,10 +206,11 @@ def get_default_nuxeo_drive_folder() -> str:
                 "Access denied to the API SHGetFolderPath,"
                 " falling back on manual detection"
             )
-            folder = os.path.join(Options.home, "Documents")
+            folder = normalized_path(Options.home) / "Documents"
+    else:
+        folder = normalized_path(Options.home)
 
-    folder = increment_local_folder(folder, APP_NAME)
-    return force_decode(folder)
+    return increment_local_folder(folder, APP_NAME)
 
 
 def get_value(value: str) -> Union[bool, str, Tuple[str, ...]]:
@@ -224,17 +226,17 @@ def get_value(value: str) -> Union[bool, str, Tuple[str, ...]]:
     return value
 
 
-def increment_local_folder(basefolder: str, name: str) -> str:
+def increment_local_folder(basefolder: Path, name: str) -> Path:
     """Increment the number for a possible local folder.
     Example: "Nuxeo Drive" > "Nuxeo Drive 2" > "Nuxeo Drive 3"
     """
-    folder = os.path.join(basefolder, name)
+    folder = basefolder / name
     for num in range(2, 42):
-        if not os.path.isdir(folder):
+        if not folder.is_dir():
             break
-        folder = os.path.join(basefolder, f"{name} {num}")
+        folder = basefolder / f"{name} {num}"
     else:
-        folder = ""
+        folder = Path()
     return folder
 
 
@@ -390,70 +392,52 @@ def version_lt(x: str, y: str) -> bool:
     return version_compare_client(x, y) < 0
 
 
-def normalized_path(path: str) -> str:
+def normalized_path(path: Union[bytes, str, Path]) -> Path:
     """ Return absolute, normalized file path. """
-    return os.path.realpath(os.path.normpath(os.path.abspath(force_decode(path))))
+    if not isinstance(path, Path):
+        path = force_decode(path)
+    return Path(path).expanduser().resolve()
 
 
-def normalize_event_filename(filename: str, action: bool = True) -> str:
+def normalize_event_filename(filename: str, action: bool = True) -> Path:
     """
     Normalize a file name.
 
     :param unicode filename: The file name to normalize.
     :param bool action: Apply changes on the file system.
-    :return unicode: The normalized file name.
+    :return Path: The normalized file name.
     """
 
     import unicodedata
 
+    path = Path(filename)
+
     # NXDRIVE-688: Ensure the name is stripped for a file
-    stripped = filename.strip()
-    if WINDOWS:
-        # Windows does not allow files/folders ending with space(s)
-        filename = stripped
-    elif (
-        action
-        and filename != stripped
-        and os.path.exists(filename)
-        and not os.path.isdir(filename)
+    stripped = Path(str(path).strip())
+    if all(
+        [
+            not WINDOWS,  # Windows does not allow files/folders ending with space(s)
+            action,
+            path != stripped,
+            path.exists(),
+            not path.is_dir(),
+        ]
     ):
         # We can have folders ending with spaces
-        log.debug(f"Forcing space normalization: {filename!r} -> {stripped!r}")
-        os.rename(filename, stripped)
-        filename = stripped
+        log.debug(f"Forcing space normalization: {path!r} -> {stripped!r}")
+        path.rename(stripped)
+        path = stripped
 
     # NXDRIVE-188: Normalize name on the file system, if needed
-    normalized = unicodedata.normalize("NFC", str(filename))
-    normalized = os.path.join(
-        os.path.dirname(normalized), safe_os_filename(os.path.basename(normalized))
-    )
+    normalized = Path(unicodedata.normalize("NFC", str(path)))
+    normalized = normalized.with_name(safe_os_filename(normalized.name))
 
-    if WINDOWS and os.path.exists(filename):
-        """
-        If `filename` exists, and as Windows is case insensitive,
-        the result of Get(Full|Long|Short)PathName() could be unexpected
-        because it will return the path of the existant `filename`.
+    if WINDOWS and path.exists():
+        path = normalized_path(path).with_name(path.name)
 
-        Check this simplified code session (the file "ABC.txt" exists):
-
-            >>> win32api.GetLongPathName('abc.txt')
-            'ABC.txt'
-            >>> win32api.GetLongPathName('ABC.TXT')
-            'ABC.txt'
-            >>> win32api.GetLongPathName('ABC.txt')
-            'ABC.txt'
-
-        So, to counter that behavior, we save the actual file name
-        and restore it in the full path.
-        """
-        import win32api
-
-        long_path = win32api.GetLongPathNameW(filename)
-        filename = os.path.join(os.path.dirname(long_path), os.path.basename(filename))
-
-    if action and filename != normalized and os.path.exists(filename):
-        log.debug(f"Forcing normalization: {filename!r} -> {normalized!r}")
-        os.rename(filename, normalized)
+    if not MAC and action and path != normalized and path.exists():
+        log.debug(f"Forcing normalization: {path!r} -> {normalized!r}")
+        path.rename(normalized)
 
     return normalized
 
@@ -476,6 +460,9 @@ def safe_filename(
     name: str, replacement: str = "-", pattern: Pattern = re.compile(r'(["|*/:<>?\\])')
 ) -> str:
     """ Replace invalid characters in target filename. """
+    if WINDOWS:
+        # Windows doesn't allow whitespace at the end of filenames
+        name = name.rstrip()
     return re.sub(pattern, replacement, name)
 
 
@@ -492,7 +479,7 @@ def safe_os_filename(name: str) -> str:
         return safe_filename(name, pattern=re.compile(r"([/:])"))
 
 
-def safe_long_path(path: str) -> str:
+def safe_long_path(path: Path) -> Path:
     """
     Utility to prefix path with the long path marker for Windows
     Source: http://msdn.microsoft.com/en-us/library/aa365247.aspx#maxpath
@@ -500,26 +487,17 @@ def safe_long_path(path: str) -> str:
     We also need to normalize the path as described here:
         https://bugs.python.org/issue18199#msg260122
     """
-    path = force_decode(path)
-
-    if WINDOWS and not path.startswith("\\\\?\\"):
-        path = f"\\\\?\\{normalized_path(path)}"
-
+    if WINDOWS:
+        path = Path(f"\\\\?\\{normalized_path(path)}")
     return path
 
 
-def path_join(parent: str, child: str) -> str:
-    if parent == "/":
-        return "/" + child
-    return parent + "/" + child
-
-
-def find_resource(folder: str, filename: str = "") -> str:
+def find_resource(folder: str, filename: str = "") -> Path:
     """ Find the FS path of a directory in various OS binary packages. """
-    return os.path.join(Options.res_dir, folder, filename)
+    return normalized_path(Options.res_dir) / folder / filename
 
 
-def find_icon(icon: str) -> str:
+def find_icon(icon: str) -> Path:
     return find_resource("icons", icon)
 
 
@@ -559,17 +537,16 @@ def get_certificate_details(hostname: str = "", cert_data: str = "") -> Dict[str
 
     import ssl
 
-    cert_file = "c.crt"
+    cert_file = Path("c.crt")
 
     try:
         certificate = cert_data or retrieve_ssl_certificate(hostname)
-        with open(cert_file, "w") as f:
-            f.write(certificate)
+        cert_file.write_text(certificate, encoding="utf-8")
         try:
             # Taken from https://stackoverflow.com/a/50072461/1117028
             return ssl._ssl._test_decode_cert(cert_file)  # type: ignore
         finally:
-            os.remove(cert_file)
+            cert_file.unlink()
     except:
         log.exception("Error while retreiving the SSL certificate")
         return {}
@@ -819,23 +796,23 @@ def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str
     )
 
 
-def set_path_readonly(path: str) -> None:
-    current = os.stat(path).st_mode
-    if os.path.isdir(path):
+def set_path_readonly(path: Path) -> None:
+    current = path.stat().st_mode
+    if path.is_dir():
         # Need to add
         right = stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IRUSR
         if current & ~right != 0:
-            os.chmod(path, right)
+            path.chmod(right)
     else:
         # Already in read only
         right = stat.S_IRGRP | stat.S_IRUSR
         if current & ~right != 0:
-            os.chmod(path, right)
+            path.chmod(right)
 
 
-def unset_path_readonly(path: str) -> None:
-    current = os.stat(path).st_mode
-    if os.path.isdir(path):
+def unset_path_readonly(path: Path) -> None:
+    current = path.stat().st_mode
+    if path.is_dir():
         right = (
             stat.S_IXUSR
             | stat.S_IRGRP
@@ -845,34 +822,33 @@ def unset_path_readonly(path: str) -> None:
             | stat.S_IWUSR
         )
         if current & right != right:
-            os.chmod(path, right)
+            path.chmod(right)
     else:
         right = stat.S_IRGRP | stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR
         if current & right != right:
-            os.chmod(path, right)
+            path.chmod(right)
 
 
-def unlock_path(path: str, unlock_parent: bool = True) -> int:
+def unlock_path(path: Path, unlock_parent: bool = True) -> int:
     result = 0
     if unlock_parent:
-        parent_path = os.path.dirname(path)
-        if os.path.exists(parent_path) and not os.access(parent_path, os.W_OK):
+        parent_path = path.parent
+        if parent_path.exists() and not os.access(parent_path, os.W_OK):
             unset_path_readonly(parent_path)
             result |= 2
-    if os.path.exists(path) and not os.access(path, os.W_OK):
+    if path.exists() and not os.access(path, os.W_OK):
         unset_path_readonly(path)
         result |= 1
     return result
 
 
-def lock_path(path: str, locker: int) -> None:
+def lock_path(path: Path, locker: int) -> None:
     if locker == 0:
         return
     if locker & 1 == 1:
         set_path_readonly(path)
     if locker & 2 == 2:
-        parent = os.path.dirname(path)
-        set_path_readonly(parent)
+        set_path_readonly(path.parent)
 
 
 def short_name(name: Union[bytes, str]) -> str:
@@ -890,15 +866,15 @@ def short_name(name: Union[bytes, str]) -> str:
 class PidLockFile:
     """ This class handle the pid lock file"""
 
-    def __init__(self, folder: str, key: str) -> None:
+    def __init__(self, folder: Path, key: str) -> None:
         self.folder = folder
         self.key = key
         self.locked = False
 
-    def _get_sync_pid_filepath(self, process_name: str = None) -> str:
+    def _get_sync_pid_filepath(self, process_name: str = None) -> Path:
         if process_name is None:
             process_name = self.key
-        return os.path.join(self.folder, f"nxdrive_{process_name}.pid")
+        return self.folder / f"nxdrive_{process_name}.pid"
 
     def unlock(self) -> None:
         if not self.locked:
@@ -906,7 +882,7 @@ class PidLockFile:
         # Clean pid file
         pid_filepath = self._get_sync_pid_filepath()
         try:
-            os.unlink(pid_filepath)
+            pid_filepath.unlink()
         except Exception as e:
             log.warning(
                 f"Failed to remove stalled PID file: {pid_filepath!r} "
@@ -926,23 +902,22 @@ class PidLockFile:
         if process_name is None:
             process_name = self.key
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
-        if os.path.exists(pid_filepath):
-            with open(safe_long_path(pid_filepath), "rb") as f:
-                with suppress(ValueError, psutil.NoSuchProcess):
-                    pid = int(f.read().strip())
-                    p = psutil.Process(pid)
-                    # If process has been created after the lock file
-                    # Changed from getctime() to getmtime() because of Windows
-                    # file system tunneling
-                    if p.create_time() > os.path.getmtime(pid_filepath):
-                        raise ValueError
-                    return pid
-                pid = os.getpid()
+        if pid_filepath.exists():
+            pid = int(safe_long_path(pid_filepath).read_text().strip())
+            with suppress(ValueError, psutil.NoSuchProcess):
+                p = psutil.Process(pid)
+                # If process has been created after the lock file
+                # Changed from getctime() to getmtime() because of Windows
+                # file system tunneling
+                if p.create_time() > pid_filepath.stat().st_mtime:
+                    raise ValueError
+                return pid
+            pid = os.getpid()
             # This is a pid file that is empty or pointing to either a
             # stopped process or a non-nxdrive process: let's delete it if
             # possible
             try:
-                os.unlink(pid_filepath)
+                pid_filepath.unlink()
                 if pid is None:
                     msg = f"Removed old empty PID file {pid_filepath!r}"
                 else:
@@ -973,6 +948,5 @@ class PidLockFile:
         # Write the pid of this process
         pid_filepath = self._get_sync_pid_filepath(process_name=self.key)
         pid = os.getpid()
-        with open(safe_long_path(pid_filepath), "w") as f:
-            f.write(str(pid))
+        safe_long_path(pid_filepath).write_text(str(pid))
         return None

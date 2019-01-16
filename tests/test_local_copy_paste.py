@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 import shutil
 
 from .common import FILE_CONTENT, UnitTestCase
@@ -50,12 +49,12 @@ class TestLocalCopyPaste(UnitTestCase):
 
         # add image files in folder 'Nuxeo Drive Test Workspace/A'
         abs_folder_path_1 = local.abspath(self.folder_path_1)
-        test_doc_path = self.location + "/resources/cat.jpg"
+        test_doc_path = self.location / "resources" / "cat.jpg"
         for file_num in range(
             self.NUMBER_OF_LOCAL_TEXT_FILES + 1, self.NUMBER_OF_LOCAL_FILES_TOTAL + 1
         ):
             filename = self.FILE_NAME_PATTERN % (file_num, ".jpg")
-            dst_path = os.path.join(abs_folder_path_1, filename)
+            dst_path = abs_folder_path_1 / filename
             shutil.copyfile(test_doc_path, dst_path)
             self.local_files_list.append(filename)
 
@@ -94,8 +93,8 @@ class TestLocalCopyPaste(UnitTestCase):
         num = self.NUMBER_OF_LOCAL_FILES_TOTAL
         expected_files = set(self.local_files_list)
 
-        for f in os.listdir(src):
-            shutil.copy(os.path.join(src, f), dst)
+        for f in src.iterdir():
+            shutil.copy(f, dst)
 
         if stopped:
             self.engine_1.start()
@@ -103,15 +102,15 @@ class TestLocalCopyPaste(UnitTestCase):
 
         # Expect local "/A" to contain all the files
         abs_folder_path_1 = local.abspath(self.folder_path_1)
-        assert os.path.exists(abs_folder_path_1)
-        children = os.listdir(abs_folder_path_1)
+        assert abs_folder_path_1.exists()
+        children = [f.name for f in abs_folder_path_1.iterdir()]
         assert len(children) == num
         assert set(children) == expected_files
 
         # expect local "/B" to contain the same files
         abs_folder_path_2 = local.abspath(self.folder_path_2)
-        assert os.path.exists(abs_folder_path_2)
-        children = os.listdir(abs_folder_path_2)
+        assert abs_folder_path_2.exists()
+        children = [f.name for f in abs_folder_path_2.iterdir()]
         assert len(children) == num
         assert set(children) == expected_files
 

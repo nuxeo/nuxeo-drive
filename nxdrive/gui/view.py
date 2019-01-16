@@ -92,7 +92,7 @@ class EngineModel(QAbstractListModel):
         elif role == self.SERVER_ROLE:
             return row.name
         elif role == self.FOLDER_ROLE:
-            return row.local_folder
+            return str(row.local_folder)
         elif role == self.USERNAME_ROLE:
             return row.remote_user
         elif role == self.URL_ROLE:
@@ -116,7 +116,7 @@ class EngineModel(QAbstractListModel):
         elif role == "server":
             return row.name
         elif role == "folder":
-            return row.local_folder
+            return str(row.local_folder)
         elif role == "username":
             return row.remote_user
         elif role == "url":
@@ -241,9 +241,9 @@ class FileModel(QAbstractListModel):
         elif role == self.LAST_TRANSFER:
             return row["last_transfer"]
         elif role == self.LOCAL_PARENT_PATH:
-            return row["local_parent_path"]
+            return str(row["local_parent_path"])
         elif role == self.LOCAL_PATH:
-            return row["local_path"]
+            return str(row["local_path"])
         elif role == self.NAME:
             return row["name"]
         elif role == self.REMOTE_CAN_RENAME:

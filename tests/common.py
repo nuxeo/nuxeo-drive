@@ -9,7 +9,7 @@ import sys
 import tempfile
 import zlib
 from logging import getLogger
-from os.path import dirname
+from pathlib import Path
 from threading import Thread
 from time import sleep
 from typing import Tuple, Union
@@ -25,7 +25,7 @@ from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.translator import Translator
-from nxdrive.utils import safe_long_path, unset_path_readonly
+from nxdrive.utils import normalized_path, safe_long_path, unset_path_readonly
 from . import DocRemote, LocalTest, RemoteBase
 
 # Default remote watcher delay used for tests
@@ -100,7 +100,7 @@ class StubQApplication(QCoreApplication):
 
 class UnitTestCase(TestCase):
     # Save the current path for test files
-    location = dirname(__file__)
+    location = normalized_path(__file__).parent
 
     def setUpServer(self, server_profile=None):
         # Long timeout for the root client that is responsible for the test
@@ -156,53 +156,41 @@ class UnitTestCase(TestCase):
         # Install callback early to be called the last
         self.addCleanup(self._check_cleanup)
 
-        self.report_path = os.environ.get("REPORT_PATH")
+        self.report_path = None
+        if "REPORT_PATH" in os.environ:
+            self.report_path = normalized_path(os.environ["REPORT_PATH"])
 
-        self.tmpdir = os.path.join(os.environ.get("WORKSPACE", ""), "tmp")
+        self.tmpdir = normalized_path(os.environ.get("WORKSPACE", "")) / "tmp"
         self.addCleanup(clean_dir, self.tmpdir)
-        if not os.path.isdir(self.tmpdir):
-            os.makedirs(self.tmpdir)
+        self.tmpdir.mkdir(parents=True, exist_ok=True)
 
-        self.upload_tmp_dir = tempfile.mkdtemp("-nxdrive-uploads", dir=self.tmpdir)
+        self.upload_tmp_dir = normalized_path(
+            tempfile.mkdtemp("-nxdrive-uploads", dir=self.tmpdir)
+        )
 
         # Check the local filesystem test environment
-        self.local_test_folder_1 = tempfile.mkdtemp("drive-1", dir=self.tmpdir)
-        self.local_test_folder_2 = tempfile.mkdtemp("drive-2", dir=self.tmpdir)
-
-        # Correct the casing of the temp folders for windows
-        if WINDOWS:
-            import win32api
-
-            self.local_test_folder_1 = win32api.GetLongPathNameW(
-                self.local_test_folder_1
-            )
-            self.local_test_folder_2 = win32api.GetLongPathNameW(
-                self.local_test_folder_2
-            )
-
-        self.local_nxdrive_folder_1 = os.path.join(
-            self.local_test_folder_1, "Nuxeo Drive"
+        self.local_test_folder_1 = normalized_path(
+            tempfile.mkdtemp("drive-1", dir=self.tmpdir)
         )
-        os.mkdir(self.local_nxdrive_folder_1)
-        self.local_nxdrive_folder_2 = os.path.join(
-            self.local_test_folder_2, "Nuxeo Drive"
+        self.local_test_folder_2 = normalized_path(
+            tempfile.mkdtemp("drive-2", dir=self.tmpdir)
         )
-        os.mkdir(self.local_nxdrive_folder_2)
 
-        self.nxdrive_conf_folder_1 = os.path.join(
-            self.local_test_folder_1, "nuxeo-drive-conf"
-        )
-        os.mkdir(self.nxdrive_conf_folder_1)
-        self.nxdrive_conf_folder_2 = os.path.join(
-            self.local_test_folder_2, "nuxeo-drive-conf"
-        )
-        os.mkdir(self.nxdrive_conf_folder_2)
+        self.local_nxdrive_folder_1 = self.local_test_folder_1 / "Nuxeo Drive"
+        self.local_nxdrive_folder_1.mkdir()
+        self.local_nxdrive_folder_2 = self.local_test_folder_2 / "Nuxeo Drive"
+        self.local_nxdrive_folder_2.mkdir()
+
+        self.nxdrive_conf_folder_1 = self.local_test_folder_1 / "nuxeo-drive-conf"
+        self.nxdrive_conf_folder_1.mkdir()
+        self.nxdrive_conf_folder_2 = self.local_test_folder_2 / "nuxeo-drive-conf"
+        self.nxdrive_conf_folder_2.mkdir()
 
         Options.delay = TEST_DEFAULT_DELAY
         Options.nxdrive_home = self.nxdrive_conf_folder_1
         self.manager_1 = Manager()
         self.connected = False
-        i18n_path = self.location + "/resources/i18n"
+        i18n_path = self.location / "resources" / "i18n"
         Translator(self.manager_1, i18n_path)
         Options.nxdrive_home = self.nxdrive_conf_folder_2
         Manager._singleton = None
@@ -223,14 +211,12 @@ class UnitTestCase(TestCase):
         self.queue_manager_1 = self.engine_1.get_queue_manager()
         self.bind_engine(2, start_engine=False)
 
-        self.sync_root_folder_1 = os.path.join(
-            self.local_nxdrive_folder_1, self.workspace_title_1
-        )
-        self.sync_root_folder_2 = os.path.join(
-            self.local_nxdrive_folder_2, self.workspace_title_2
-        )
+        self.sync_root_folder_1 = self.local_nxdrive_folder_1 / self.workspace_title_1
+        self.sync_root_folder_2 = self.local_nxdrive_folder_2 / self.workspace_title_2
 
-        self.local_root_client_1 = self.engine_1.local
+        self.local_root_client_1 = self.get_local_client(
+            self.engine_1.local.base_folder
+        )
 
         self.local_1 = self.get_local_client(self.sync_root_folder_1)
         self.local_2 = self.get_local_client(self.sync_root_folder_2)
@@ -317,7 +303,7 @@ class UnitTestCase(TestCase):
             except AttributeError:
                 pass
 
-    def get_local_client(self, path: str):
+    def get_local_client(self, path: Path):
         """
         Return an OS specific LocalClient class by default to simulate user actions on:
             - Explorer (Windows)
@@ -589,9 +575,9 @@ class UnitTestCase(TestCase):
         if not local_client:
             local_client = LocalTest(self.engine_1.local_folder)
         if not root:
-            root = "/" + self.workspace_title
+            root = Path(self.workspace_title)
             if not local_client.exists(root):
-                local_client.make_folder("/", self.workspace_title)
+                local_client.make_folder(Path(), self.workspace_title)
                 nb_folders += 1
         # create some folders
         folder_1 = local_client.make_folder(root, "Folder 1")
@@ -641,7 +627,7 @@ class UnitTestCase(TestCase):
         remote.make_file(self.workspace, "File 5.txt", content=b"eee")
         return (7, 4) if deep else (1, 2)
 
-    def get_local_child_count(self, path: str) -> Tuple[int, int]:
+    def get_local_child_count(self, path: Path) -> Tuple[int, int]:
         """
         Create some folders on the server.
         Returns a tuple (files_count, folders_count).
@@ -650,7 +636,7 @@ class UnitTestCase(TestCase):
         for _, dirnames, filenames in os.walk(path):
             dir_count += len(dirnames)
             file_count += len(filenames)
-        if os.path.exists(os.path.join(path, ".partials")):
+        if (path / ".partials").exists():
             dir_count -= 1
         return file_count, dir_count
 
@@ -689,9 +675,7 @@ class UnitTestCase(TestCase):
             # No break => no unexpected exceptions
             return
 
-        path = os.path.join(self.report_path, self.id() + "-" + sys.platform)
-        if WINDOWS:
-            path = "\\\\?\\" + path.replace("/", os.path.sep)
+        path = self.report_path / f"{self.id()}-{sys.platform}"
         self.manager_1.generate_report(path)
 
     def _set_read_permission(self, user, doc_path, grant):
@@ -709,7 +693,7 @@ class UnitTestCase(TestCase):
             remote.block_inheritance(doc_path)
 
     @staticmethod
-    def generate_random_png(filename: str = None, size: int = 0) -> Union[None, bytes]:
+    def generate_random_png(filename: Path = None, size: int = 0) -> Union[None, bytes]:
         """ Generate a random PNG file.
 
         :param filename: The output file name. If None, returns
@@ -747,21 +731,21 @@ class UnitTestCase(TestCase):
         if not filename:
             return png
 
-        with open(filename, "wb") as fileo:
-            fileo.write(png)
+        filename.write_bytes(png)
 
     def assertNxPart(self, path: str, name: str):
-        for child in os.listdir(self.local_1.abspath(path)):
-            if len(child) < 8:
+        for child in self.local_1.abspath(path).iterdir():
+            child_name = child.name
+            if len(child_name) < 8:
                 continue
-            if name is not None and len(child) < len(name) + 8:
+            if name is not None and len(child_name) < len(name) + 8:
                 continue
             if (
-                child[0] == "."
-                and child.endswith(".nxpart")
-                and (name is None or child[1 : len(name) + 1] == name)
+                child_name[0] == "."
+                and child_name.endswith(".nxpart")
+                and (name is None or child_name[1 : len(name) + 1] == name)
             ):
-                self.fail("nxpart found in %r" % path)
+                self.fail(f"nxpart found in {path!r}")
 
     def get_dao_state_from_engine_1(self, path: str):
         """
@@ -802,23 +786,24 @@ class UnitTestCase(TestCase):
             )
 
 
-def clean_dir(_dir: str, retry: int = 1, max_retries: int = 5) -> None:
-    if not os.path.exists(_dir):
+def clean_dir(_dir: Path, retry: int = 1, max_retries: int = 5) -> None:
+    _dir = safe_long_path(_dir)
+    if not _dir.exists():
         return
 
-    to_remove = safe_long_path(_dir)
     test_data = os.environ.get("TEST_SAVE_DATA")
     if test_data:
-        shutil.move(to_remove, test_data)
+        shutil.move(_dir, test_data)
         return
 
     try:
-        for dirpath, folders, filenames in os.walk(to_remove):
+        for path, folders, filenames in os.walk(_dir):
+            dirpath = normalized_path(path)
             for folder in folders:
-                unset_path_readonly(os.path.join(dirpath, folder))
+                unset_path_readonly(dirpath / folder)
             for filename in filenames:
-                unset_path_readonly(os.path.join(dirpath, filename))
-        shutil.rmtree(to_remove)
+                unset_path_readonly(dirpath / filename)
+        shutil.rmtree(_dir)
     except:
         if retry < max_retries:
             sleep(2)

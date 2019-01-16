@@ -59,10 +59,10 @@ class Test(UnitTestCase):
 
         for folder in folders:
             assert local_1.exists(folder)
-            assert remote.exists(folder)
+            assert remote.exists(f"/{folder.as_posix()}")
             for file_ in files[folder]:
                 assert local_1.exists(file_)
-                assert remote.exists(file_)
+                assert remote.exists(f"/{file_.as_posix()}")
 
         engine_2.start()
         self.wait_sync(
@@ -80,23 +80,23 @@ class Test(UnitTestCase):
         new_folders = []
         new_files = {}
         for folder in folders:
-            name = os.path.basename(folder)
-            new_folder = local_1.rename(folder, name + "-renamed").path
+            name = folder.name
+            new_folder = local_1.rename(folder, name + "-renamed")
             new_folders.append(new_folder)
             new_files[new_folder] = []
             for file_ in files[folder]:
-                name = os.path.basename(file_)
+                name = file_.name
                 new_name = os.path.splitext(name)[0] + "-renamed.txt"
-                new_file = local_1.rename(new_folder + "/" + name, new_name)
-                new_files[new_folder].append(new_file.path)
+                new_file = local_1.rename(new_folder / name, new_name)
+                new_files[new_folder].append(new_file)
         self.wait_sync()
 
         for folder, new_folder in zip(folders, new_folders):
             assert local_1.exists(new_folder)
-            assert remote.get_info(folder).name == os.path.basename(new_folder)
+            assert remote.get_info(f"/{folder.as_posix()}").name == new_folder.name
             for file_, new_file in zip(files[folder], new_files[new_folder]):
                 assert local_1.exists(new_file)
-                assert remote.get_info(file_).name == os.path.basename(new_file)
+                assert remote.get_info(f"/{file_.as_posix()}").name == new_file.name
 
         # Steps 19 -> 21
         engine_2.resume()

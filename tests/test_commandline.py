@@ -9,6 +9,7 @@ import pytest
 from nxdrive.commandline import CliHandler
 from nxdrive.options import Options
 from nxdrive.osi import AbstractOSIntegration
+from nxdrive.utils import normalized_path
 from .common import clean_dir
 
 
@@ -23,9 +24,9 @@ def getOSIntegration(manager):
 
 class TestCommandLine(unittest.TestCase):
     def setUp(self):
-        self.tmpdir = os.path.join(os.environ.get("WORKSPACE", ""), "tmp")
+        self.tmpdir = normalized_path(os.environ.get("WORKSPACE", "")) / "tmp"
         self.addCleanup(clean_dir, self.tmpdir)
-        os.makedirs(self.tmpdir, exist_ok=True)
+        self.tmpdir.mkdir(parents=True, exist_ok=True)
 
         self.cmd = CliHandler()
         self.addCleanup(self.clean_ini)
@@ -66,6 +67,11 @@ delay = 3
         with suppress(OSError):
             os.remove(filename)
 
+    def set_home(self):
+        Options.nxdrive_home = normalized_path(
+            tempfile.mkdtemp("config", dir=self.tmpdir)
+        )
+
     def test_redact_payload(self):
         payload = b"nxdrive://token/12345678-acbd-1234-cdef-1234567890ab/user/Administrator@127.0.0.1"
         assert self.cmd.redact_payload(payload) == b"<REDACTED>"
@@ -73,7 +79,7 @@ delay = 3
 
     @Options.mock()
     def test_update_site_url(self):
-        Options.nxdrive_home = tempfile.mkdtemp("config", dir=self.tmpdir)
+        self.set_home()
         argv = ["console", "--update-site-url", "DEBUG_TEST"]
         options = self.cmd.parse_cli([])
         assert options.update_site_url == Options.update_site_url
@@ -84,7 +90,7 @@ delay = 3
 
     @Options.mock()
     def test_system_default(self):
-        Options.nxdrive_home = tempfile.mkdtemp("config", dir=self.tmpdir)
+        self.set_home()
         original = AbstractOSIntegration.get
         AbstractOSIntegration.get = staticmethod(getOSIntegration)
         try:
@@ -102,7 +108,7 @@ delay = 3
 
     @Options.mock()
     def test_default_override(self):
-        Options.nxdrive_home = tempfile.mkdtemp("config", dir=self.tmpdir)
+        self.set_home()
         self.clean_ini()
         argv = ["console", "--log-level-console=WARNING"]
 
@@ -132,7 +138,7 @@ delay = 3
 
     @Options.mock()
     def test_malformatted_line(self):
-        Options.nxdrive_home = tempfile.mkdtemp("config", dir=self.tmpdir)
+        self.set_home()
         self.clean_ini()
 
         # config.ini override

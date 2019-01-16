@@ -1,5 +1,6 @@
 # coding: utf-8
 from itertools import product
+from pathlib import Path
 from time import sleep
 
 import pytest
@@ -78,14 +79,13 @@ class TestLocalMoveAndRename(UnitTestCase):
     def test_local_rename_file_while_creating(self):
         local = self.engine_1.local
         remote = self.remote_document_client_1
-        root_local = self.local_root_client_1
         marker = False
 
-        def set_remote_id(ref: str, remote_id: bytes, name: str = "ndrive"):
+        def set_remote_id(ref: Path, remote_id: bytes, name: str = "ndrive"):
             nonlocal local, marker
             LocalTest.set_remote_id(local, ref, remote_id, name)
-            if not marker and ref.endswith("/File.txt"):
-                root_local.rename(ref, "Renamed File.txt")
+            if not marker and ref.name == "File.txt":
+                local.rename(ref, "Renamed File.txt")
                 marker = True
 
         with patch.object(self.engine_1.local, "set_remote_id", new=set_remote_id):
@@ -106,13 +106,12 @@ class TestLocalMoveAndRename(UnitTestCase):
     def test_local_rename_file_while_creating_before_marker(self):
         local = self.local_1
         remote = self.remote_document_client_1
-        root_local = self.local_root_client_1
         marker = False
 
-        def set_remote_id(ref: str, remote_id: bytes, name: str = "ndrive"):
+        def set_remote_id(ref: Path, remote_id: bytes, name: str = "ndrive"):
             nonlocal local, marker
-            if not marker and ref.endswith("/File.txt"):
-                root_local.rename(ref, "Renamed File.txt")
+            if not marker and ref.name == "File.txt":
+                self.engine_1.local.rename(ref, "Renamed File.txt")
                 marker = True
             LocalTest.set_remote_id(local, ref, remote_id, name)
 
@@ -132,14 +131,13 @@ class TestLocalMoveAndRename(UnitTestCase):
     def test_local_rename_file_while_creating_after_marker(self):
         marker = False
         local = self.local_1
-        root_local = self.local_root_client_1
         remote = self.remote_document_client_1
 
         def update_remote_state(row, *args, **kwargs):
             nonlocal marker
             EngineDAO.update_remote_state(self.engine_1._dao, row, *args, **kwargs)
             if not marker and row.local_name == "File.txt":
-                root_local.rename(row.local_path, "Renamed File.txt")
+                self.engine_1.local.rename(row.local_path, "Renamed File.txt")
                 marker = True
 
         with patch.object(
@@ -548,7 +546,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         toplevel_local_client = LocalTest(self.local_nxdrive_folder_1)
 
         toplevel_local_client.rename(
-            "/" + self.workspace_title, "Renamed Nuxeo Drive Test Workspace"
+            Path(self.workspace_title), "Renamed Nuxeo Drive Test Workspace"
         )
         self.wait_sync()
 

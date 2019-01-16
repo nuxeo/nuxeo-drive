@@ -15,14 +15,15 @@ from sqlite3 import (
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from threading import RLock, current_thread, local
-from typing import Any, Dict, List, Optional, Tuple, Type, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from .utils import fix_db
 from ...client.local_client import FileInfo
-from ...constants import WINDOWS
+from ...constants import ROOT, WINDOWS
 from ...exceptions import UnknownPairState
 from ...notification import Notification
 from ...objects import DocPair, DocPairs, Filters, RemoteFileInfo, EngineDef
@@ -83,8 +84,32 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
 }
 
 
+def prepare_args(data: Tuple[Union[Path, str], ...]) -> Tuple[str, ...]:
+    """ Convert Path objects to str before insertion into database. """
+
+    data = list(data)  # type: ignore
+    for i in range(len(data)):
+        if isinstance(data[i], Path):
+            path = data[i].as_posix()  # type: ignore
+            path = "" if path == "." else path
+            if not data[i].is_absolute():  # type: ignore
+                path = "/" + path
+            data[i] = path  # type: ignore
+    return tuple(data)  # type: ignore
+
+
+def str_to_path(data: str) -> Optional[Path]:
+    """ Convert str to Path after querying the database. """
+    return None if data == "" else Path(data.lstrip("/"))
+
+
 class AutoRetryCursor(Cursor):
     def execute(self, *args: str, **kwargs: Any) -> Cursor:
+        if len(args) > 1:
+            # Convert all Path objects to str
+            args = list(args)  # type: ignore
+            args[1] = prepare_args(args[1])  # type: ignore
+            args = tuple(args)
         count = 1
         while True:
             count += 1
@@ -108,11 +133,11 @@ class ConfigurationDAO(QObject):
 
     _state_factory = DocPair
 
-    def __init__(self, db: str) -> None:
+    def __init__(self, db: Path) -> None:
         super().__init__()
         log.debug(f"Create DAO on {db!r}")
         self._db = db
-        exists = os.path.isfile(self._db)
+        exists = self._db.is_file()
 
         if exists:
             # Fix potential file corruption
@@ -122,9 +147,8 @@ class ConfigurationDAO(QObject):
                 # The file is too damaged, just recreate it from scratch.
                 # Sync data will not be re-downloaded nor deleted, but a full
                 # scan will be done.
-                os.rename(
-                    self._db, self._db + "_" + str(int(datetime.now().timestamp()))
-                )
+                new_name = f"{self._db.name}_{int(datetime.now().timestamp())}"
+                self._db.rename(self._db.with_name(new_name))
                 exists = False
 
         self.schema_version = self.get_schema_version()
@@ -155,7 +179,7 @@ class ConfigurationDAO(QObject):
     def get_schema_version(self) -> int:
         return 1
 
-    def get_db(self) -> str:
+    def get_db(self) -> Path:
         return self._db
 
     def _migrate_table(self, cursor: Cursor, name: str) -> None:
@@ -205,11 +229,11 @@ class ConfigurationDAO(QObject):
     def _create_main_conn(self) -> None:
         log.debug(
             f"Create main connexion on {self._db!r} "
-            f"(dir_exists={os.path.exists(os.path.dirname(self._db))}, "
-            f"file_exists={os.path.exists(self._db)})"
+            f"(dir_exists={self._db.parent.exists()}, "
+            f"file_exists={self._db.exists()})"
         )
         self._conn = connect(
-            self._db,
+            str(self._db),
             check_same_thread=False,
             factory=AutoRetryConnection,
             isolation_level=None,
@@ -219,10 +243,12 @@ class ConfigurationDAO(QObject):
 
     def dispose(self) -> None:
         log.debug(f"Disposing SQLite database {self.get_db()!r}")
-        for con in self._connections:
-            con.close()
-        del self._connections
-        del self._conn
+        if hasattr(self, "_connections"):
+            for con in self._connections:
+                con.close()
+            del self._connections
+        if hasattr(self, "_conn"):
+            del self._conn
 
     def _get_write_connection(self) -> Connection:
         if self.in_tx:
@@ -246,7 +272,7 @@ class ConfigurationDAO(QObject):
         if getattr(self._conns, "_conn", None) is None:
             # Dont check same thread for closing purpose
             self._conns._conn = connect(
-                self._db,
+                str(self._db),
                 check_same_thread=False,
                 factory=AutoRetryConnection,
                 isolation_level=None,
@@ -350,7 +376,7 @@ class ManagerDAO(ConfigurationDAO):
                 ),
             )
 
-    def unlock_path(self, path: str) -> None:
+    def unlock_path(self, path: Path) -> None:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -361,10 +387,15 @@ class ManagerDAO(ConfigurationDAO):
         c = con.cursor()
         return c.execute("SELECT * FROM AutoLock").fetchall()
 
-    def get_locked_paths(self) -> List[str]:
-        return [lock["path"] for lock in self.get_locks()]
+    def get_locked_paths(self) -> List[Path]:
+        paths = []
+        for lock in self.get_locks():
+            path = str_to_path(lock["path"])
+            if path:
+                paths.append(path)
+        return paths
 
-    def lock_path(self, path: str, process: int, doc_id: str) -> None:
+    def lock_path(self, path: Path, process: int, doc_id: str) -> None:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -463,7 +494,7 @@ class ManagerDAO(ConfigurationDAO):
         c = self._get_read_connection().cursor()
         return c.execute("SELECT * FROM Engines").fetchall()
 
-    def update_engine_path(self, engine: str, path: str) -> None:
+    def update_engine_path(self, engine: str, path: Path) -> None:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -471,7 +502,7 @@ class ManagerDAO(ConfigurationDAO):
                 "UPDATE Engines SET local_folder = ? WHERE uid = ?", (path, engine)
             )
 
-    def add_engine(self, engine: str, path: str, key: str, name: str) -> EngineDef:
+    def add_engine(self, engine: str, path: Path, key: str, name: str) -> EngineDef:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -495,7 +526,7 @@ class EngineDAO(ConfigurationDAO):
 
     newConflict = pyqtSignal(object)
 
-    def __init__(self, db: str, state_factory: Type[DocPair] = None) -> None:
+    def __init__(self, db: Path, state_factory: Type[DocPair] = None) -> None:
         if state_factory:
             self._state_factory = state_factory
 
@@ -725,13 +756,12 @@ class EngineDAO(ConfigurationDAO):
                 int(doc_pair.id), bool(doc_pair.folderish), "locally_deleted"
             )
 
-    def insert_local_state(self, info: FileInfo, parent_path: str) -> int:
+    def insert_local_state(self, info: FileInfo, parent_path: Optional[Path]) -> int:
         pair_state = PAIR_STATES[("created", "unknown")]
         digest = info.get_digest()
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            name = os.path.basename(info.path)
             c.execute(
                 "INSERT INTO States "
                 "(last_local_updated, local_digest, local_path, "
@@ -743,7 +773,7 @@ class EngineDAO(ConfigurationDAO):
                     digest,
                     info.path,
                     parent_path,
-                    name,
+                    info.path.name,
                     info.folderish,
                     info.size,
                     pair_state,
@@ -754,7 +784,7 @@ class EngineDAO(ConfigurationDAO):
                 "SELECT * FROM States WHERE local_path = ?", (parent_path,)
             ).fetchone()
             # Don't queue if parent is not yet created
-            if (parent is None and parent_path == "") or (
+            if (parent is None and parent_path is None) or (
                 parent and parent.pair_state != "locally_created"
             ):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
@@ -893,7 +923,7 @@ class EngineDAO(ConfigurationDAO):
             version = ", version = version + 1"
             log.trace(f"Increasing version to {row.version + 1} for pair {row!r}")
 
-        parent_path = os.path.dirname(info.path)
+        parent_path = info.path.parent
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -914,7 +944,7 @@ class EngineDAO(ConfigurationDAO):
                     row.local_digest,
                     info.path,
                     parent_path,
-                    os.path.basename(info.path),
+                    info.path.name,
                     row.local_state,
                     info.size,
                     row.remote_state,
@@ -1051,16 +1081,25 @@ class EngineDAO(ConfigurationDAO):
             "SELECT * FROM States WHERE error_count > ?", (limit,)
         ).fetchall()
 
-    def get_local_children(self, path: str) -> DocPairs:
+    def get_local_children(self, path: Path) -> DocPairs:
         c = self._get_read_connection().cursor()
         return c.execute(
             "SELECT * FROM States WHERE local_parent_path = ?", (path,)
         ).fetchall()
 
-    def get_states_from_partial_local(self, path: str) -> DocPairs:
+    def get_states_from_partial_local(
+        self, path: Path, strict: bool = True
+    ) -> DocPairs:
         c = self._get_read_connection().cursor()
+
+        if path == ROOT:
+            local_path = "/%"
+        else:
+            suffix = "/%" if strict else "%"
+            local_path = f"/{path.as_posix()}{suffix}"
+
         return c.execute(
-            "SELECT * FROM States WHERE local_path LIKE ?", (f"{path}%",)
+            "SELECT * FROM States WHERE local_path LIKE ?", (local_path,)
         ).fetchall()
 
     def get_first_state_from_partial_remote(self, ref: str) -> Optional[DocPair]:
@@ -1112,7 +1151,7 @@ class EngineDAO(ConfigurationDAO):
         return state
 
     def _get_recursive_condition(self, doc_pair: DocPair) -> str:
-        path = self._escape(doc_pair.local_path)
+        path = f"/{doc_pair.local_path.as_posix()}"
         res = (
             f" WHERE (local_parent_path LIKE '{path}/%'"
             f"        OR local_parent_path = '{path}')"
@@ -1135,9 +1174,9 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             if doc_pair.folderish:
                 count = str(
-                    len(doc_pair.remote_parent_path + "/" + doc_pair.remote_ref) + 1
+                    len(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}") + 1
                 )
-                path = self._escape(new_path + "/" + doc_pair.remote_ref)
+                path = f"{new_path}/{doc_pair.remote_ref}"
                 query = (
                     "UPDATE States"
                     f"  SET remote_parent_path = '{path}'"
@@ -1153,16 +1192,14 @@ class EngineDAO(ConfigurationDAO):
             )
 
     def update_local_parent_path(
-        self, doc_pair: DocPair, new_name: str, new_path: str
+        self, doc_pair: DocPair, new_name: str, new_path: Path
     ) -> None:
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
             if doc_pair.folderish:
-                if new_path == "/":
-                    new_path = ""
-                path = self._escape(new_path + "/" + new_name)
-                count = str(len(doc_pair.local_path) + 1)
+                path = f"/{(new_path / new_name).as_posix()}"
+                count = str(len(doc_pair.local_path.as_posix()) + 2)
                 query = (
                     "UPDATE States"
                     f"  SET local_parent_path = '{path}'"
@@ -1209,7 +1246,7 @@ class EngineDAO(ConfigurationDAO):
                     condition = self._get_recursive_condition(doc_pair)
                 c.execute("DELETE FROM States " + condition)
 
-    def get_state_from_local(self, path: str) -> Optional[DocPair]:
+    def get_state_from_local(self, path: Path) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
         return c.execute(
             "SELECT * FROM States WHERE local_path = ?", (path,)
@@ -1219,8 +1256,8 @@ class EngineDAO(ConfigurationDAO):
         self,
         info: RemoteFileInfo,
         remote_parent_path: str,
-        local_path: str,
-        local_parent_path: str,
+        local_path: Path,
+        local_parent_path: Path,
     ) -> int:
         pair_state = PAIR_STATES[("unknown", "created")]
         with self._lock:
@@ -1264,7 +1301,7 @@ class EngineDAO(ConfigurationDAO):
             parent = c.execute(
                 "SELECT * FROM States WHERE remote_ref = ?", (info.parent_uid,)
             ).fetchone()
-            if (parent is None and local_parent_path == "") or (
+            if (parent is None and local_parent_path == ROOT) or (
                 parent and parent.pair_state != "remotely_created"
             ):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
@@ -1409,7 +1446,7 @@ class EngineDAO(ConfigurationDAO):
                     row.remote_state,
                     row.pair_state,
                     datetime.utcnow(),
-                    row.local_path + "%",
+                    f"/{row.local_path.as_posix()}%",
                 ),
             )
 
@@ -1704,6 +1741,7 @@ class EngineDAO(ConfigurationDAO):
 
     def remove_filter(self, path: str) -> None:
         path = self._clean_filter_path(path)
+        log.trace(f"Remove filter on {path!r}")
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()

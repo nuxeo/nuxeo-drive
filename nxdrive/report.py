@@ -1,8 +1,8 @@
 # coding: utf-8
-import os
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from typing import Iterator, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
@@ -36,19 +36,14 @@ class Report:
             final_path = report.path
     """
 
-    def __init__(self, manager: "Manager", report_path: str = None) -> None:
+    def __init__(self, manager: "Manager", report_path: Path = None) -> None:
         self._manager = manager
-        if not report_path:
-            self._report_name = "report_" + datetime.now().strftime("%y%m%d_%H%M%S")
-            folder = os.path.join(self._manager.nxdrive_home, "reports")
-        else:
-            self._report_name = os.path.basename(report_path)
-            folder = os.path.dirname(report_path)
-        if not os.path.exists(folder):
-            os.mkdir(folder)
-        if not self._report_name.endswith(".zip"):
-            self._report_name += ".zip"
-        self._zipfile = os.path.join(folder, self._report_name)
+        name = f"report_{datetime.now().strftime('%y%m%d_%H%M%S')}"
+        report_path = report_path or self._manager.nxdrive_home / "reports" / name
+
+        if not report_path.parent.exists():
+            report_path.parent.mkdir()
+        self._zipfile = report_path.with_suffix(".zip")
 
     def copy_logs(self, myzip: ZipFile) -> None:
         """
@@ -56,23 +51,23 @@ class Report:
         If one log file fails, we just try the next one.
         """
 
-        folder = os.path.join(self._manager.nxdrive_home, "logs")
-        if not os.path.isdir(folder):
+        folder = self._manager.nxdrive_home / "logs"
+        if not folder.is_dir():
             return
 
-        for fname in os.listdir(folder):
-            path = os.path.join(folder, fname)
-            if not os.path.isfile(path):
+        for path in folder.iterdir():
+            if not path.is_file():
                 continue
-            if fname not in ("nxdrive.log", "segfault.log") and not fname.endswith(
-                ".zip"
+            if (
+                path.name not in ("nxdrive.log", "segfault.log")
+                and path.suffix != ".zip"
             ):
                 continue
 
-            comp = ZIP_DEFLATED if fname.endswith(".log") else ZIP_STORED
-            rel_path = os.path.join("logs", fname)
+            comp = ZIP_DEFLATED if path.suffix == ".log" else ZIP_STORED
+            rel_path = path.relative_to(self._manager.nxdrive_home)
             try:
-                myzip.write(path, rel_path, compress_type=comp)
+                myzip.write(str(path), str(rel_path), compress_type=comp)
             except:
                 log.exception(f"Impossible to copy the log {rel_path!r}")
 
@@ -86,15 +81,11 @@ class Report:
         # Lock to avoid inconsistence
         with dao._lock:
             try:
-                myzip.write(
-                    dao._db, os.path.basename(dao._db), compress_type=ZIP_DEFLATED
-                )
+                myzip.write(dao._db, dao._db.name, compress_type=ZIP_DEFLATED)
             except:
-                log.exception(
-                    f"Impossible to copy the database { os.path.basename(dao._db)!r}"
-                )
+                log.exception(f"Impossible to copy the database {dao._db.name!r}")
 
-    def get_path(self) -> str:
+    def get_path(self) -> Path:
         return self._zipfile
 
     @staticmethod

@@ -1,6 +1,6 @@
 # coding: utf-8
-import os
 import shutil
+from pathlib import Path
 
 from .common import UnitTestCase
 
@@ -28,9 +28,9 @@ class TestLocalMoveFolders(UnitTestCase):
         num = self.NUMBER_OF_LOCAL_IMAGE_FILES
         names = set(["file%03d.png" % file_num for file_num in range(1, num + 1)])
 
-        for path in [self.folder_path_1, self.folder_path_2]:
+        for path in {self.folder_path_1, self.folder_path_2}:
             for name in names:
-                file_path = os.path.join(local.abspath(path), name)
+                file_path = local.abspath(path) / name
                 self.generate_random_png(file_path)
 
         self.engine_1.start()
@@ -113,7 +113,7 @@ class TestLocalMoveFolders(UnitTestCase):
         assert remote.exists("/Folder1")
         assert local.exists("/Folder1")
         folder_pair_state = self.engine_1.get_dao().get_state_from_local(
-            "/" + self.workspace_title + "/Folder1"
+            Path(self.workspace_title) / "Folder1"
         )
         assert folder_pair_state is not None
         folder_remote_ref = folder_pair_state.remote_ref

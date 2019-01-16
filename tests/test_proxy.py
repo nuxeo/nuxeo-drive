@@ -1,6 +1,6 @@
 # coding: utf-8
-import os
 from unittest.mock import patch
+from pathlib import Path
 
 import pytest
 
@@ -29,27 +29,25 @@ js = """
 
 @pytest.fixture()
 def config_dao():
-    dao = ConfigurationDAO("tmp.db")
+    db = Path("tmp.db")
+    dao = ConfigurationDAO(db)
     yield dao
     dao.dispose()
-    os.remove("tmp.db")
+    db.unlink()
 
 
 @pytest.fixture()
 def pac_file():
-    pac = "proxy.pac"
-    with open(pac, "w") as f:
-        f.write(js)
+    pac = Path("proxy.pac")
+    pac.write_text(js)
 
-    path = "file://" + os.path.abspath(pac)
+    uri = pac.resolve().as_uri()
     if WINDOWS:
-        # PyPAC does not accept "file://E:\\proxy.pac" but "file://E:/proxy.pac"
-        path = path.replace("\\", "/")
-
-    yield path
+        uri = uri.replace("///", "//")
+    yield uri
 
     try:
-        os.remove(pac)
+        pac.unlink()
     except:
         pass
 

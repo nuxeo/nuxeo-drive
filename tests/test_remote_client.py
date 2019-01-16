@@ -1,7 +1,6 @@
 # coding: utf-8
 import hashlib
 import operator
-import os
 from shutil import copyfile
 from threading import current_thread
 
@@ -49,11 +48,8 @@ class TestRemoteFileSystemClient(UnitTestCase):
         assert info.digest == digest
         file_uid = fs_item_id.rsplit("#", 1)[1]
         # NXP-17827: nxbigile has been replace to nxfile, keep handling both
-        url = "/default/" + file_uid + "/blobholder:0/Document%201.txt"
-        cond = (
-            info.download_url == "nxbigfile" + url
-            or info.download_url == "nxfile" + url
-        )
+        url = f"/default/{file_uid}/blobholder:0/Document%201.txt"
+        cond = info.download_url in (f"nxbigfile{url}", f"nxfile{url}")
         assert cond
 
         # Check folder info
@@ -97,14 +93,11 @@ class TestRemoteFileSystemClient(UnitTestCase):
         fs_item_id = remote.make_file(
             self.workspace_id, "Document 1.txt", "Content of doc 1."
         ).uid
-        file_path = os.path.join(self.local_test_folder_1, "Document 1.txt")
+        file_path = self.local_test_folder_1 / "Document 1.txt"
         tmp_file = remote.stream_content(fs_item_id, file_path)
-        assert os.path.exists(tmp_file)
-        assert os.path.basename(tmp_file) == (
-            ".Document 1.txt" + str(current_thread().ident) + ".nxpart"
-        )
-        with open(tmp_file, "rb") as f:
-            assert f.read() == b"Content of doc 1."
+        assert tmp_file.exists()
+        assert tmp_file.name == f".Document 1.txt{str(current_thread().ident)}.nxpart"
+        assert tmp_file.read_bytes() == b"Content of doc 1."
 
     def test_get_fs_children(self):
         remote = self.remote_1
@@ -375,7 +368,7 @@ class TestRemoteFileSystemClient(UnitTestCase):
                 self.workspace_id, file_path, filename="My streamed file.txt"
             )
         finally:
-            os.remove(file_path)
+            file_path.unlink()
         fs_item_id = fs_item_info.uid
         assert fs_item_info.name == "My streamed file.txt"
         assert remote.get_content(fs_item_id) == b"Some content."
@@ -387,14 +380,14 @@ class TestRemoteFileSystemClient(UnitTestCase):
                 fs_item_id, file_path, filename="My updated file.txt"
             )
         finally:
-            os.remove(file_path)
+            file_path.unlink()
         assert fs_item_info.uid == fs_item_id
         assert fs_item_info.name == "My updated file.txt"
         assert remote.get_content(fs_item_id) == b"Other content."
 
         # Create a document by streaming a binary file
-        file_path = os.path.join(self.upload_tmp_dir, "testFile.pdf")
-        copyfile(self.location + "/resources/testFile.pdf", file_path)
+        file_path = self.upload_tmp_dir / "testFile.pdf"
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path)
         local_client = LocalTest(self.upload_tmp_dir)
         assert fs_item_info.name == "testFile.pdf"
@@ -406,8 +399,8 @@ class TestRemoteFileSystemClient(UnitTestCase):
         remote = self.remote_1
 
         # Create a document by streaming a binary file
-        file_path = os.path.join(self.upload_tmp_dir, "testFile.pdf")
-        copyfile(self.location + "/resources/testFile.pdf", file_path)
+        file_path = self.upload_tmp_dir / "testFile.pdf"
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path, mime_type="pdf")
         local_client = LocalTest(self.upload_tmp_dir)
         assert fs_item_info.name == "testFile.pdf"
@@ -420,8 +413,8 @@ class TestRemoteFileSystemClient(UnitTestCase):
         remote_doc = self.remote_document_client_1
 
         # Upload a PDF file, should create a File document
-        file_path = os.path.join(self.upload_tmp_dir, "testFile.pdf")
-        copyfile(self.location + "/resources/testFile.pdf", file_path)
+        file_path = self.upload_tmp_dir / "testFile.pdf"
+        copyfile(self.location / "resources" / "testFile.pdf", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path)
         fs_item_id = fs_item_info.uid
         doc_uid = fs_item_id.rsplit("#", 1)[1]
@@ -429,8 +422,8 @@ class TestRemoteFileSystemClient(UnitTestCase):
         assert doc_type == "File"
 
         # Upload a JPG file, should create a Picture document
-        file_path = os.path.join(self.upload_tmp_dir, "cat.jpg")
-        copyfile(self.location + "/resources/cat.jpg", file_path)
+        file_path = self.upload_tmp_dir / "cat.jpg"
+        copyfile(self.location / "resources" / "cat.jpg", file_path)
         fs_item_info = remote.stream_file(self.workspace_id, file_path)
         fs_item_id = fs_item_info.uid
         doc_uid = fs_item_id.rsplit("#", 1)[1]
@@ -531,5 +524,5 @@ class TestRemoteFileSystemClient(UnitTestCase):
     def _get_digest(algorithm: str, content: bytes) -> str:
         hasher = getattr(hashlib, algorithm)
         if hasher is None:
-            raise RuntimeError("Unknown digest algorithm: %s" % algorithm)
+            raise RuntimeError(f"Unknown digest algorithm: {algorithm}")
         return hasher(content).hexdigest()

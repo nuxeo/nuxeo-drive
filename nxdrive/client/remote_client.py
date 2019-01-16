@@ -4,6 +4,7 @@ import socket
 import time
 from contextlib import suppress
 from logging import getLogger
+from pathlib import Path
 from threading import Lock, current_thread
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
@@ -150,8 +151,8 @@ class Remote(Nuxeo):
         self.client.auth = self.auth
 
     def download(
-        self, url: str, file_out: str = None, digest: str = None, **kwargs: Any
-    ) -> str:
+        self, url: str, file_out: Path = None, digest: str = None, **kwargs: Any
+    ) -> Path:
         log.trace(
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
         )
@@ -185,7 +186,7 @@ class Remote(Nuxeo):
 
     def upload(
         self,
-        file_path: str,
+        file_path: Path,
         command: str,
         filename: str = None,
         mime_type: str = None,
@@ -204,7 +205,7 @@ class Remote(Nuxeo):
                 # server. This batch is to be used as a resumable session
                 batch = self.uploads.batch()
 
-                blob = FileBlob(file_path)
+                blob = FileBlob(str(file_path))
                 if filename:
                     blob.name = filename
                 if mime_type:
@@ -254,12 +255,12 @@ class Remote(Nuxeo):
     def stream_content(
         self,
         fs_item_id: str,
-        file_path: str,
+        file_path: Path,
         parent_fs_item_id: str = None,
         fs_item_info: RemoteFileInfo = None,
-        file_out: str = None,
+        file_out: Path = None,
         **kwargs: Any,
-    ) -> str:
+    ) -> Path:
         """Stream the binary content of a file system item to a tmp file
 
         Raises NotFound if file system item with id fs_item_id
@@ -269,20 +270,17 @@ class Remote(Nuxeo):
             fs_item_id, parent_fs_item_id=parent_fs_item_id
         )
         download_url = self.client.host + fs_item_info.download_url
-        file_name = os.path.basename(file_path)
+        file_name = file_path.name
         if file_out is None:
-            file_dir = os.path.dirname(file_path)
-            file_out = os.path.join(
-                file_dir,
-                "".join(
-                    [
-                        DOWNLOAD_TMP_FILE_PREFIX,
-                        file_name,
-                        str(current_thread().ident),
-                        DOWNLOAD_TMP_FILE_SUFFIX,
-                    ]
-                ),
+            name = "".join(
+                [
+                    DOWNLOAD_TMP_FILE_PREFIX,
+                    file_name,
+                    str(current_thread().ident),
+                    DOWNLOAD_TMP_FILE_SUFFIX,
+                ]
             )
+            file_out = file_path.with_name(name)
 
         FileAction("Download", file_out, file_name, 0)
         try:
@@ -291,7 +289,7 @@ class Remote(Nuxeo):
             )
         except Exception as e:
             with suppress(FileNotFoundError):
-                os.remove(file_out)
+                file_out.unlink()
             raise e
         finally:
             FileAction.finish_action()
@@ -350,7 +348,7 @@ class Remote(Nuxeo):
     def stream_file(
         self,
         parent_id: str,
-        file_path: str,
+        file_path: Path,
         filename: str = None,
         mime_type: str = None,
         overwrite: bool = False,
@@ -373,7 +371,7 @@ class Remote(Nuxeo):
     def stream_update(
         self,
         fs_item_id: str,
-        file_path: str,
+        file_path: Path,
         parent_fs_item_id: str = None,
         filename: str = None,
     ) -> RemoteFileInfo:
@@ -487,7 +485,7 @@ class Remote(Nuxeo):
         return NuxeoDocumentInfo.from_dict(doc, parent_uid=parent_uid)
 
     def get_blob(
-        self, ref: Union[NuxeoDocumentInfo, str], file_out: str = None, **kwargs: Any
+        self, ref: Union[NuxeoDocumentInfo, str], file_out: Path = None, **kwargs: Any
     ) -> bytes:
         if isinstance(ref, NuxeoDocumentInfo):
             doc_id = ref.uid
@@ -497,8 +495,7 @@ class Remote(Nuxeo):
                 if content:
                     content = unquote(content).encode("utf-8")
                     if file_out:
-                        with open(file_out, "wb") as f:
-                            f.write(content)
+                        file_out.write_bytes(content)
                 return content
         else:
             doc_id = ref

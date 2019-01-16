@@ -1,9 +1,9 @@
 # coding: utf-8
-import os
 import re
 import sqlite3
 from logging import getLogger
-from os.path import basename, dirname, getctime
+from pathlib import Path
+from os.path import basename
 from queue import Queue
 from threading import Lock
 from time import mktime, sleep, time
@@ -17,7 +17,7 @@ from watchdog.observers import Observer
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
 from ...client.local_client import FileInfo, LocalClient
-from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, WINDOWS
+from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, ROOT, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
 from ...options import Options
@@ -81,12 +81,12 @@ class LocalWatcher(EngineWorker):
         self._observer = None
         self._root_observer = None
         self._delete_events: Dict[str, Tuple[int, DocPair]] = {}
-        self._folder_scan_events: Dict[str, Tuple[float, DocPair]] = {}
+        self._folder_scan_events: Dict[Path, Tuple[float, DocPair]] = {}
 
     def _execute(self) -> None:
         try:
             self._init()
-            if not self.local.exists("/"):
+            if not self.local.exists(ROOT):
                 self.rootDeleted.emit()
                 return
 
@@ -239,7 +239,7 @@ class LocalWatcher(EngineWorker):
         self._delete_files: Dict[str, DocPair] = {}
         self._protected_files: Dict[str, bool] = {}
 
-        info = self.local.get_info("/")
+        info = self.local.get_info(ROOT)
         self._scan_recursive(info)
         self._scan_handle_deleted_files()
         self._metrics["last_local_scan_time"] = current_milli_time() - start_ms
@@ -264,10 +264,10 @@ class LocalWatcher(EngineWorker):
     def _suspend_queue(self) -> None:
         queue = self.engine.get_queue_manager()
         queue.suspend()
-        for processor in queue.get_processors_on("/", exact_match=False):
+        for processor in queue.get_processors_on(ROOT, exact_match=False):
             processor.stop()
 
-    def scan_pair(self, local_path: str) -> None:
+    def scan_pair(self, local_path: Path) -> None:
         to_pause = not self.engine.get_queue_manager().is_paused()
         if to_pause:
             self._suspend_queue()
@@ -286,11 +286,11 @@ class LocalWatcher(EngineWorker):
             ret &= self.win_folder_scan_empty()
         return ret
 
-    def get_creation_time(self, child_full_path: str) -> int:
+    def get_creation_time(self, child_full_path: Path) -> int:
         if WINDOWS:
-            return int(getctime(child_full_path))
+            return int(child_full_path.stat().st_ctime)
 
-        stat = os.stat(child_full_path)
+        stat = child_full_path.stat()
         # Try inode number as on HFS seems to be increasing
         if MAC and hasattr(stat, "st_ino"):
             return stat.st_ino
@@ -334,7 +334,7 @@ class LocalWatcher(EngineWorker):
 
         # recursively update children
         for child_info in fs_children_info:
-            child_name = basename(child_info.path)
+            child_name = child_info.path.name
             child_type = "folder" if child_info.folderish else "file"
             if child_name not in children:
                 try:
@@ -361,8 +361,8 @@ class LocalWatcher(EngineWorker):
                         if doc_pair and client.exists(doc_pair.local_path):
                             if (
                                 not client.is_case_sensitive()
-                                and doc_pair.local_path.lower()
-                                == child_info.path.lower()
+                                and str(doc_pair.local_path).lower()
+                                == str(child_info.path).lower()
                             ):
                                 log.debug(
                                     "Case renaming on a case insensitive filesystem, "
@@ -427,7 +427,7 @@ class LocalWatcher(EngineWorker):
                                 client.remove_remote_id(doc_pair.local_path)
                                 dao.insert_local_state(
                                     client.get_info(doc_pair.local_path),
-                                    os.path.dirname(doc_pair.local_path),
+                                    doc_pair.local_path.parent,
                                 )
                         else:
                             # File still exists - must check the remote_id
@@ -594,7 +594,7 @@ class LocalWatcher(EngineWorker):
               otherwise we might miss some events
             - Increase the ReadDirectoryChangesW buffer size for Windows
         """
-        base = self.local.base_folder
+        base: Path = self.local.base_folder
 
         if WINDOWS:
             try:
@@ -611,14 +611,14 @@ class LocalWatcher(EngineWorker):
 
         self._event_handler = DriveFSEventHandler(self, ignore_patterns=ignore_patterns)
         self._root_event_handler = DriveFSRootEventHandler(
-            self, basename(base), ignore_patterns=ignore_patterns
+            self, base.name, ignore_patterns=ignore_patterns
         )
         observer = Observer()
-        observer.schedule(self._event_handler, base, recursive=True)
+        observer.schedule(self._event_handler, str(base), recursive=True)
         observer.start()
         self._observer = observer
         root_observer = Observer()
-        root_observer.schedule(self._root_event_handler, dirname(base))
+        root_observer.schedule(self._root_event_handler, str(base.parent))
         root_observer.start()
         self._root_observer = root_observer
 
@@ -662,7 +662,7 @@ class LocalWatcher(EngineWorker):
             self._dao.delete_local_state(doc_pair)
 
     def _handle_watchdog_event_on_known_pair(
-        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: str
+        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
     ) -> None:
         log.trace(f"Watchdog event {evt!r} on known pair {doc_pair!r}")
         dao, client = self._dao, self.local
@@ -672,9 +672,7 @@ class LocalWatcher(EngineWorker):
             dest_filename = basename(evt.dest_path)
             prefix = LocalClient.CASE_RENAME_PREFIX
 
-            if dest_filename.startswith(prefix) or basename(rel_path).startswith(
-                prefix
-            ):
+            if dest_filename.startswith(prefix) or rel_path.name.startswith(prefix):
                 log.debug(f"Ignoring case rename {evt.src_path!r} to {evt.dest_path!r}")
                 return
 
@@ -727,12 +725,12 @@ class LocalWatcher(EngineWorker):
                 return
 
             old_local_path = None
-            rel_parent_path = client.get_path(dirname(src_path)) or "/"
+            rel_parent_path = client.get_path(src_path.parent) or ROOT
 
             # Ignore inner movement
             versioned = False
             remote_parent_ref = client.get_remote_id(rel_parent_path)
-            parent_path = dirname(doc_pair.local_path)
+            parent_path = doc_pair.local_path.parent
             if (
                 doc_pair.remote_name == local_info.name
                 and doc_pair.remote_parent_ref == remote_parent_ref
@@ -796,7 +794,7 @@ class LocalWatcher(EngineWorker):
                     )
 
     def _handle_watchdog_event_on_known_acquired_pair(
-        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: str
+        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
     ) -> None:
         dao, client = self._dao, self.local
 
@@ -894,7 +892,7 @@ class LocalWatcher(EngineWorker):
     def handle_watchdog_root_event(self, evt: FileSystemEvent) -> None:
         if evt.event_type == "moved":
             log.warning(f"Root has been moved to {evt.dest_path!r}")
-            self.rootMoved.emit(evt.dest_path)
+            self.rootMoved.emit(normalize(evt.dest_path))
         elif evt.event_type == "deleted":
             log.warning("Root has been deleted")
             self.rootDeleted.emit()
@@ -920,7 +918,10 @@ class LocalWatcher(EngineWorker):
             # See https://jira.nuxeo.com/browse/NXDRIVE-188
             filename = normalize(evt.src_path, action=False)
 
-            if force_decode(dst_path) in (filename, force_decode(evt.src_path.strip())):
+            if force_decode(dst_path) in (
+                str(filename),
+                force_decode(evt.src_path.strip()),
+            ):
                 log.debug(
                     f"Ignoring move from {evt.src_path!r} to normalized {dst_path!r}"
                 )
@@ -931,12 +932,12 @@ class LocalWatcher(EngineWorker):
         try:
             src_path = normalize(evt.src_path)
             rel_path = client.get_path(src_path)
-            if not rel_path or rel_path == "/":
+            if not rel_path or rel_path == ROOT:
                 self.handle_watchdog_root_event(evt)
                 return
 
-            file_name = basename(src_path)
-            parent_path = dirname(src_path)
+            file_name = src_path.name
+            parent_path = src_path.parent
             parent_rel_path = client.get_path(parent_path)
             # Don't care about ignored file, unless it is moved
             if evt.event_type != "moved" and client.is_ignored(
@@ -1018,9 +1019,9 @@ class LocalWatcher(EngineWorker):
                             )
                             return
 
-                    rel_parent_path = client.get_path(dirname(src_path))
-                    if rel_parent_path == "":
-                        rel_parent_path = "/"
+                    rel_parent_path = client.get_path(src_path.parent)
+                    if not rel_parent_path:
+                        rel_parent_path = ROOT
                     dao.insert_local_state(local_info, rel_parent_path)
 
                     # An event can be missed inside a new created folder as
@@ -1053,7 +1054,9 @@ class LocalWatcher(EngineWorker):
                 moved = False
                 from_pair = dao.get_normal_state_from_remote(local_info.remote_ref)
                 if from_pair:
-                    if from_pair.processor > 0 or from_pair.local_path == rel_path:
+                    if from_pair.processor > 0 or str(from_pair.local_path) == str(
+                        rel_path
+                    ):
                         # First condition is in process
                         # Second condition is a race condition
                         log.trace(
@@ -1067,7 +1070,7 @@ class LocalWatcher(EngineWorker):
                     # delete/create => move on Windows
                     if not client.exists(from_pair.local_path):
                         # Check if the destination is writable
-                        dst_parent = dao.get_state_from_local(dirname(rel_path))
+                        dst_parent = dao.get_state_from_local(rel_path.parent)
                         if dst_parent and not dst_parent.remote_can_create_child:
                             log.debug(
                                 "Moving to a read-only folder: "
@@ -1082,7 +1085,7 @@ class LocalWatcher(EngineWorker):
                         # Check if the source is read-only, in that case we
                         # convert the move to a creation
                         src_parent = dao.get_state_from_local(
-                            dirname(from_pair.local_path)
+                            from_pair.local_path.parent
                         )
                         if src_parent and not src_parent.remote_can_create_child:
                             self.engine.newReadonly.emit(
@@ -1132,7 +1135,7 @@ class LocalWatcher(EngineWorker):
                             dao.update_local_state(from_pair, client.get_info(rel_path))
                             dao.insert_local_state(
                                 client.get_info(from_pair.local_path),
-                                dirname(from_pair.local_path),
+                                from_pair.local_path.parent,
                             )
                             client.remove_remote_id(from_pair.local_path)
                             moved = True

@@ -1,5 +1,5 @@
 # coding: utf-8
-import os
+from pathlib import Path
 
 import pytest
 
@@ -110,5 +110,5 @@ def test_translate_twice():
     assert values == ["value"]
 
 
-def get_folder(folder):
-    return os.path.join(os.path.dirname(__file__), "resources", folder)
+def get_folder(folder) -> Path:
+    return Path(__file__).parent / "resources" / folder

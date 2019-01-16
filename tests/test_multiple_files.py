@@ -1,6 +1,6 @@
 # coding: utf-8
-import os
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -25,17 +25,15 @@ class TestMultipleFiles(UnitTestCase):
         self.wait_sync()
         local = self.local_1
         # create  folder a1
-        local.make_folder("/", "a1")
-        self.folder_path_1 = os.path.join("/", "a1")
+        self.folder_path_1 = local.make_folder("/", "a1")
         # add 100 files in folder 'Nuxeo Drive Test Workspace/a1'
         for file_num in range(1, self.NUMBER_OF_LOCAL_FILES + 1):
             local.make_file(
                 self.folder_path_1, "local%04d.txt" % file_num, content=b"content"
             )
         # create  folder a2
-        local.make_folder("/", "a2")
-        self.folder_path_2 = os.path.join("/", "a2")
-        self.folder_path_3 = os.path.join("/", "a3")
+        self.folder_path_2 = local.make_folder("/", "a2")
+        self.folder_path_3 = Path("a3")
         self.wait_sync(wait_for_async=True, timeout=self.SYNC_TIMEOUT)
 
     def test_move_and_copy_paste_folder_original_location_from_child_stopped(self):
@@ -50,10 +48,12 @@ class TestMultipleFiles(UnitTestCase):
         dst = local.abspath(self.folder_path_2)
         shutil.move(src, dst)
         self.wait_sync(timeout=self.SYNC_TIMEOUT)
-        self._move_and_copy_paste_folder("/a2/a1", "/", "/a2", stopped=stopped)
+        self._move_and_copy_paste_folder(
+            Path("a2/a1"), Path(""), Path("a2"), stopped=stopped
+        )
 
     def _move_and_copy_paste_folder(
-        self, folder_1, folder_2, target_folder, stopped=True
+        self, folder_1: Path, folder_2: Path, target_folder: Path, stopped=True
     ):
         """
         /folder_1
@@ -69,8 +69,8 @@ class TestMultipleFiles(UnitTestCase):
         local = self.local_1
         src = local.abspath(folder_1)
         dst = local.abspath(folder_2)
-        new_path = os.path.join(folder_2, os.path.basename(folder_1))
-        copy_path = os.path.join(target_folder, os.path.basename(folder_1))
+        new_path = folder_2 / folder_1.name
+        copy_path = target_folder / folder_1.name
         shutil.move(src, dst)
         # check that 'Nuxeo Drive Test Workspace/a1' does not exist anymore
         assert not local.exists(folder_1)
@@ -91,8 +91,8 @@ class TestMultipleFiles(UnitTestCase):
 
         for path in {new_path, copy_path}:
             # Local
-            assert os.path.exists(local.abspath(path))
-            children = os.listdir(local.abspath(path))
+            assert local.abspath(path).exists()
+            children = [f.name for f in local.abspath(path).iterdir()]
 
             assert len(children) == num
             assert set(children) == names
@@ -112,7 +112,7 @@ class TestMultipleFiles(UnitTestCase):
         self._move_and_copy_paste_folder(
             self.folder_path_1,
             self.folder_path_2,
-            os.path.dirname(self.folder_path_1),
+            self.folder_path_1.parent,
             stopped=False,
         )
 
@@ -123,7 +123,7 @@ class TestMultipleFiles(UnitTestCase):
     )
     def test_move_and_copy_paste_folder_original_location_stopped(self):
         self._move_and_copy_paste_folder(
-            self.folder_path_1, self.folder_path_2, os.path.dirname(self.folder_path_1)
+            self.folder_path_1, self.folder_path_2, self.folder_path_1.parent
         )
 
     def test_move_and_copy_paste_folder_new_location(self):
