@@ -179,10 +179,10 @@ for (def x in slaves) {
 
                         stage(osi + ' Tests') {
                             // Launch the tests suite
-                            if (currentBuild.result == 'UNSTABLE' || currentBuild.result == 'FAILURE') {
-                                echo 'Stopping early: apparently another slave did not try its best ...'
-                                return
-                            }
+                            //if (currentBuild.result == 'UNSTABLE' || currentBuild.result == 'FAILURE') {
+                            //    echo 'Stopping early: apparently another slave did not try its best ...'
+                            //    return
+                            //}
 
                             def jdk = tool name: 'java-8-openjdk'
                             if (osi == 'macOS') {
