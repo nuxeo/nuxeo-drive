@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Tuple, Union
 import nuxeo.client
 import nuxeo.constants
 import nuxeo.operations
-import sentry_sdk
 from nuxeo.exceptions import HTTPError
 
 from nxdrive.client.local_client import LocalClient
@@ -22,9 +21,20 @@ from nxdrive.options import Options
 from nxdrive.utils import force_encode, safe_filename
 
 
-sentry_sdk.init(
-    "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714", environment="testing"
-)
+def setup_sentry() -> None:
+    """ Setup Sentry. """
+    import sentry_sdk
+    from nxdrive import __version__ as version
+
+    sentry_sdk.init(
+        dsn="https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714",
+        environment="testing",
+        release=version,
+        attach_stacktrace=True,
+    )
+
+
+setup_sentry()
 
 # Automatically check all operations done with the Python client
 nuxeo.constants.CHECK_PARAMS = True
