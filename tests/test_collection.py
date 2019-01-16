@@ -1,10 +1,16 @@
 # coding: utf-8
+from contextlib import suppress
+
 from .common import UnitTestCase
 
 
 class TestCollection(UnitTestCase):
     def tearDown(self):
-        self.remote_document_client_1.delete(self.collection["uid"], use_trash=False)
+        with suppress(AttributeError):
+            # Happened when the test fails at setUp()
+            self.remote_document_client_1.delete(
+                self.collection["uid"], use_trash=False
+            )
         super().tearDown()
 
     def test_collection_synchronization(self):
