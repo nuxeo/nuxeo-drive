@@ -131,6 +131,10 @@ def main() -> int:
         raise RuntimeError("Nuxeo Drive requires Python 3.6+")
 
     try:
+        import sentry_sdk
+
+        sentry_sdk.init("https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714")
+
         from nxdrive.commandline import CliHandler
 
         return CliHandler().handle(sys.argv[1:])
