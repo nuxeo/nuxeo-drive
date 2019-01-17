@@ -599,7 +599,9 @@ class DirectEdit(Worker):
                     f" is forbidden for user {engine.remote_user!r}"
                 )
                 log.warning(msg)
-                self.directEditForbidden.emit(ref, engine.hostname, engine.remote_user)
+                self.directEditForbidden.emit(
+                    str(ref), engine.hostname, engine.remote_user
+                )
                 continue
             except ThreadInterrupt:
                 raise
