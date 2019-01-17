@@ -6,6 +6,7 @@ import pytest
 import requests
 
 from nxdrive.options import Options
+from sentry_sdk import configure_scope
 
 # Remove eventual logging callbacks
 with suppress(KeyError):
@@ -127,7 +128,10 @@ def test_error():
     with pytest.raises(RuntimeError):
         Options.set("no key", 42)
 
-    Options.set("no key", 42, fail_on_error=False)
+    # Lower the logging level to not pollute Sentry events
+    with configure_scope() as scope:
+        scope._should_capture = False
+        Options.set("no key", 42, fail_on_error=False)
 
     with pytest.raises(TypeError) as err:
         Options.set("delay", "foo")
