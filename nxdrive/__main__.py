@@ -47,9 +47,11 @@ def setup_sentry() -> None:
 
     import sentry_sdk
 
-    version: str = None
+    version = None
     with suppress(ImportError):
-        from nxdrive import __version__ as version
+        from nxdrive import __version__
+
+        version = __version__
 
     sentry_sdk.init(
         dsn="https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714",
