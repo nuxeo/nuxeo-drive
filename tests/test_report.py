@@ -6,6 +6,7 @@ from pathlib import Path
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.report import Report
+from sentry_sdk import configure_scope
 
 
 @Options.mock()
@@ -19,13 +20,15 @@ def test_logs():
         log.debug("Strange encoding \xe8 \xe9")
 
         # Crafted problematic logRecord
-        try:
-            raise ValueError("[tests] folder/\xeatre ou ne pas \xeatre.odt")
-        except ValueError as e:
-            log.exception("Oups!")
-            log.exception(repr(e))
-            log.exception(str(e))
-            log.exception(e)
+        with configure_scope() as scope:
+            scope._should_capture = False
+            try:
+                raise ValueError("[tests] folder/\xeatre ou ne pas \xeatre.odt")
+            except ValueError as e:
+                log.exception("Oups!")
+                log.exception(repr(e))
+                log.exception(str(e))
+                log.exception(e)
 
         report = Report(manager, folder / "report")
         report.generate()
