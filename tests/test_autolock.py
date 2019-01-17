@@ -47,17 +47,20 @@ def test_autolock(autolock, tmpdir):
     autolock.set_autolock("already_locked.ods", Mock())
     autolock.set_autolock("abc こん ツリー/2.ods", Mock())
 
+    tmp = Path(tmpdir)
+
     def files() -> List[Tuple[int, Path]]:
         # Watched file to unlock
-        yield 4, tmpdir / "already_locked.ods"
+        file1 = tmp / "already_locked.ods"
+        yield 4, file1
         # Check if the next command does nothing as the file is already watched
-        autolock.set_autolock("already_locked.ods", Mock())
+        autolock.set_autolock(file1.name, Mock())
 
         # New watched file
-        yield 42, tmpdir / "myfile.doc"
+        yield 42, tmp / "myfile.doc"
 
         # File not monitored, e.g. not in the watched folder
-        yield 7071, tmpdir / "He-Who-Must-Not-Be-Named.lock"
+        yield 7071, tmp / "He-Who-Must-Not-Be-Named.lock"
 
     with patch.object(nxdrive.autolocker, "get_open_files", new=files):
         autolock._poll()
