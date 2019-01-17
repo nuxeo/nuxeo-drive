@@ -5,6 +5,29 @@ See https://github.com/pyinstaller/pyinstaller/issues/2560
 """
 import sys
 from contextlib import suppress
+from typing import Any, Set
+
+
+def before_send(event: Any, hint: Any) -> Any:
+    """
+    Alter an event before sending to the Sentry server.
+    The event will not be sent if None is returned.
+    """
+
+    # Local vars to hide from Sentry reports
+    to_redact: Set[str] = {"password", "pwd", "token"}
+    replace: str = "<REDACTED>"
+
+    # Remove passwords from locals
+    with suppress(KeyError):
+        for thread in event["threads"]:
+            for frame in thread["stacktrace"]["frames"]:
+                for var in to_redact:
+                    # Only alter the value if it exists
+                    if var in frame["vars"]:
+                        frame["vars"][var] = replace
+
+    return event
 
 
 def section(header: str, content: str) -> str:
@@ -33,6 +56,7 @@ def setup_sentry() -> None:
         environment=sentry_env,
         release=version,
         attach_stacktrace=True,
+        before_send=before_send,
     )
 
 
