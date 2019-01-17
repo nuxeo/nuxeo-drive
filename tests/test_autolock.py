@@ -2,6 +2,7 @@
 """
 Test the Auto-Lock feature used heavily by Direct Edit.
 """
+from pathlib import Path
 from typing import Dict, List, Tuple
 from unittest.mock import Mock, patch
 
@@ -46,17 +47,17 @@ def test_autolock(autolock, tmpdir):
     autolock.set_autolock("already_locked.ods", Mock())
     autolock.set_autolock("abc こん ツリー/2.ods", Mock())
 
-    def files() -> List[Tuple[int, str]]:
+    def files() -> List[Tuple[int, Path]]:
         # Watched file to unlock
-        yield 4, "already_locked.ods"
+        yield 4, tmpdir / "already_locked.ods"
         # Check if the next command does nothing as the file is already watched
         autolock.set_autolock("already_locked.ods", Mock())
 
         # New watched file
-        yield 42, str(tmpdir / "myfile.doc")
+        yield 42, tmpdir / "myfile.doc"
 
         # File not monitored, e.g. not in the watched folder
-        yield 7071, "He-Who-Must-Not-Be-Named.lock"
+        yield 7071, tmpdir / "He-Who-Must-Not-Be-Named.lock"
 
     with patch.object(nxdrive.autolocker, "get_open_files", new=files):
         autolock._poll()
