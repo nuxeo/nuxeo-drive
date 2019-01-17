@@ -668,17 +668,19 @@ class DirectEdit(Worker):
         if not self._observer:
             return
 
-        log.info("Stopping FS Observer thread")
-        try:
-            self._observer.stop()
-        except:
-            log.exception("Cannot stop the FS observer")
+        if self._observer.is_alive():
+            log.info("Stopping FS observer thread")
+            try:
+                self._observer.stop()
+            except:
+                log.exception("Cannot stop the FS observer")
 
-        # Wait for the observer to stop
-        try:
-            self._observer.join()
-        except:
-            log.exception("Cannot join the FS observer")
+        if self._observer._started.is_set():
+            log.info("Wait for the FS oobserver to stop")
+            try:
+                self._observer.join()
+            except:
+                log.exception("Cannot join the FS observer")
 
         # Delete the observer
         self._observer = None
