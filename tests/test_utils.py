@@ -158,9 +158,12 @@ def test_get_current_os_full():
 
 def test_retrieve_ssl_certificate_unknown():
     from ssl import SSLError
+    from sentry_sdk import configure_scope
 
     func = nxdrive.utils.get_certificate_details
-    assert func(hostname="example42.org") == {}
+    with configure_scope() as scope:
+        scope._should_capture = False
+        assert func(hostname="example42.org") == {}
 
     with pytest.raises(SSLError):
         nxdrive.utils.retrieve_ssl_certificate("example.org", port=80)
