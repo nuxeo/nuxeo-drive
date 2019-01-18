@@ -1078,7 +1078,9 @@ class Application(QApplication):
             server.listen(named_pipe)
             log.debug(f"Listening for nxdrive:// calls on {server.fullServerName()}")
         except:
-            log.debug(f"Unable to start local server on {named_pipe}")
+            log.debug(
+                f"Unable to start local server on {named_pipe}: {server.errorString()}"
+            )
 
         self._nxdrive_listener = server
         self.aboutToQuit.connect(self._nxdrive_listener.close)
