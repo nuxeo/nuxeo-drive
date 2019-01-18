@@ -248,7 +248,14 @@ class DirectEdit(Worker):
         # Close to processor method - should try to refactor ?
         pair = None
         blob = info.blobs[xpath]
+        kwargs: Dict[str, Any] = {}
+
         if blob.digest:
+            # The digest is available in the Blob, use it and disable parameters check
+            # as 'digest' is not a recognized param for the Blob.Get operation.
+            kwargs["digest"] = blob.digest
+            kwargs["check_params"] = False
+
             pair = engine.get_dao().get_valid_duplicate_file(blob.digest)
         if pair:
             existing_file_path = engine.local.abspath(pair.local_path)
@@ -275,6 +282,7 @@ class DirectEdit(Worker):
                     xpath=xpath,
                     file_out=file_out,
                     check_suspended=self.stop_client,
+                    **kwargs,
                 )
         return file_out
 
