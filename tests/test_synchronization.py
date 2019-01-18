@@ -9,7 +9,7 @@ from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
 from nxdrive.constants import ROOT, WINDOWS
-from . import LocalTest, RemoteTest
+from . import LocalTest, RemoteTest, ensure_no_exception
 from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH, UnitTestCase
 
 
@@ -120,17 +120,25 @@ class TestSynchronization(UnitTestCase):
     def test_single_quote_escaping(self):
         remote = self.remote_document_client_1
         local = LocalTest(self.local_nxdrive_folder_1)
+        dao = self.engine_1.get_dao()
+
+        file = "APPEL D'OFFRES"
+        filename = f"/{file}"
+
+        assert dao._escape(file) == "APPEL D''OFFRES"
 
         remote.unregister_as_root(self.workspace)
         self.engine_1.start()
-        remote.make_folder("/", "APPEL D'OFFRES")
-        remote.register_as_root("/APPEL D'OFFRES")
-        self.wait_sync(wait_for_async=True)
-        assert local.exists("/APPEL D'OFFRES")
 
-        remote.unregister_as_root("/APPEL D'OFFRES")
-        self.wait_sync(wait_for_async=True)
-        assert not local.exists("/APPEL D'OFFRES")
+        with ensure_no_exception():
+            remote.make_folder("/", file)
+            remote.register_as_root(filename)
+            self.wait_sync(wait_for_async=True)
+            assert local.exists(filename)
+
+            remote.unregister_as_root(filename)
+            self.wait_sync(wait_for_async=True)
+            assert not local.exists(filename)
 
     def test_invalid_credentials(self):
         # Perform first scan and sync
