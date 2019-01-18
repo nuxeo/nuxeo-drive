@@ -544,7 +544,7 @@ class Remote(Nuxeo):
                 "GET", f"{self.client.api_path}/drive/configuration"
             ).json()
         except Exception as exc:
-            log.error(f"Error getting server configuration: {exc}")
+            log.warning(f"Error getting server configuration: {exc}")
             return {}
 
     def _get_trash_condition(self) -> str:

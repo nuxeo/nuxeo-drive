@@ -1,5 +1,4 @@
 # coding: utf-8
-import socket
 import time
 from pathlib import Path
 from unittest.mock import patch
@@ -397,7 +396,7 @@ class TestSynchronization(UnitTestCase):
         )
         errors = [
             ConnectionError("Mock connection error"),
-            socket.error("Mock socket error"),
+            OSError("Mock socket error"),  # Old socket.error
             HTTPError(status=503, message="Mock"),
         ]
         engine_started = False

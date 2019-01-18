@@ -569,7 +569,7 @@ FolderType=Generic
         try:
             send2trash(str(os_path))
         except OSError as exc:
-            log.error(f"Cannot trash {os_path!r}")
+            log.exception(f"Cannot trash {os_path!r}")
             with suppress(Exception):
                 # WindowsError(None, None, path, retcode)
                 _, _, _, retcode = exc.args

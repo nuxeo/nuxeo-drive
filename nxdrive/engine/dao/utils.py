@@ -75,7 +75,7 @@ def fix_db(database: Path, dump_file: Path = Path("dump.sql")) -> None:
     except sqlite3.DatabaseError:
         # The file is so damaged we cannot save anything.
         # Forward the exception, and sorry for you :/
-        log.error("Database is not recoverable")
+        log.exception("Database is not recoverable")
         raise
     except:
         log.exception("Dump error")

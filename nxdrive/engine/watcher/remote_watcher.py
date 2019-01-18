@@ -1,6 +1,5 @@
 # coding: utf-8
 import os
-import socket
 from datetime import datetime
 from logging import getLogger
 from time import sleep
@@ -597,8 +596,8 @@ class RemoteWatcher(EngineWorker):
                 self.engine.set_offline()
             else:
                 log.error(err)
-        except (ConnectionError, socket.error) as exc:
-            log.error(f"Network error: {exc}")
+        except (ConnectionError, OSError) as exc:
+            log.warning(f"Network error: {exc}")
         except BadQuery:
             # This should never happen: there is an error in the operation's
             # parameters sent to the server.  This exception is possible only

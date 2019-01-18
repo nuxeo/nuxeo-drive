@@ -800,26 +800,9 @@ class Application(QApplication):
             # No need for the `verify` kwarg here as GitHub will never use a bad certificate.
             with requests.get(url) as resp:
                 data = resp.json()
-        except requests.HTTPError as exc:
-            if exc.response.status_code == 404:
-                log.error(f"[{version}] Release does not exist")
-            else:
-                log.exception(f"[{version}] Network error while fetching release notes")
-            return
-        except ValueError:
-            log.exception(f"[{version}] Invalid release notes")
-            return
-        except:
-            log.exception(f"[{version}] Unknown error while fetching release notes")
-            return
-
-        try:
-            html = markdown(data["body"])
-        except KeyError:
-            log.error(f"[{version}] Release notes is missing its body")
-            return
-        except (UnicodeDecodeError, ValueError):
-            log.exception(f"[{version}] Release notes conversion error")
+                html = markdown(data["body"])
+        except Exception:
+            log.warning(f"[{version}] Release notes retrieval error")
             return
 
         dialog = QDialog()

@@ -462,7 +462,7 @@ class Engine(QObject):
             msg = "Setting invalid credentials"
             if reason:
                 msg += f", reason is: {reason}"
-            log.error(msg)
+            log.warning(msg)
             self.invalidAuthentication.emit()
 
     def has_invalid_credentials(self) -> bool:
