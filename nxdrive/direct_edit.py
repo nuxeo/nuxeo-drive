@@ -683,7 +683,7 @@ class DirectEdit(Worker):
             except:
                 log.exception("Cannot stop the FS observer")
 
-        if self._observer._started.is_set():
+        if self._observer and self._observer._started.is_set():
             log.info("Wait for the FS oobserver to stop")
             try:
                 self._observer.join()
