@@ -1,6 +1,7 @@
 # coding: utf-8
 import shutil
 import sqlite3
+import sys
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
@@ -374,6 +375,10 @@ class Processor(EngineWorker):
                         self._handle_pair_handler_exception(doc_pair, handler_name, exc)
                     continue
                 except Exception as exc:
+                    # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
+                    type_, value, traceback = sys.exc_info()
+                    sys.excepthook(type_, value, traceback)
+
                     self._handle_pair_handler_exception(doc_pair, handler_name, exc)
                     continue
             except ThreadInterrupt:
