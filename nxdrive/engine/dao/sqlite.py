@@ -1151,18 +1151,18 @@ class EngineDAO(ConfigurationDAO):
         return state
 
     def _get_recursive_condition(self, doc_pair: DocPair) -> str:
-        path = f"/{doc_pair.local_path.as_posix()}"
+        path = self._escape(f"/{doc_pair.local_path.as_posix()}")
         res = (
             f" WHERE (local_parent_path LIKE '{path}/%'"
             f"        OR local_parent_path = '{path}')"
         )
         if doc_pair.remote_ref:
-            path = self._escape(doc_pair.remote_parent_path + "/" + doc_pair.remote_ref)
+            path = self._escape(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}")
             res += f" AND remote_parent_path LIKE '{path}%'"
         return res
 
     def _get_recursive_remote_condition(self, doc_pair: DocPair) -> str:
-        path = self._escape(doc_pair.remote_parent_path + "/" + doc_pair.remote_name)
+        path = self._escape(f"{doc_pair.remote_parent_path}/{doc_pair.remote_name}")
         return (
             f" WHERE remote_parent_path LIKE '{path}/%'"
             f"    OR remote_parent_path = '{path}'"
@@ -1670,7 +1670,7 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             # Remove any subchilds as it is gonna be scanned anyway
-            c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (path + "%",))
+            c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (f"{path}%",))
             c.execute("INSERT INTO ToRemoteScan (path) VALUES (?)", (path,))
 
     def delete_path_to_scan(self, path: str) -> None:
@@ -1726,10 +1726,10 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             # Delete any subfilters
-            c.execute("DELETE FROM Filters WHERE path LIKE ?", (path + "%",))
+            c.execute("DELETE FROM Filters WHERE path LIKE ?", (f"{path}%",))
 
             # Prevent any rescan
-            c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (path + "%",))
+            c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (f"{path}%",))
 
             # Add it
             c.execute("INSERT INTO Filters (path) VALUES (?)", (path,))
@@ -1745,7 +1745,7 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            c.execute("DELETE FROM Filters WHERE path LIKE ?", (path + "%",))
+            c.execute("DELETE FROM Filters WHERE path LIKE ?", (f"{path}%",))
             self._filters = self.get_filters()
             self._items_count = self.get_syncing_count()
 
