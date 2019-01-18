@@ -1,6 +1,7 @@
 # coding: utf-8
 import json
 import os
+import psutil
 import stat
 import subprocess
 import sys
@@ -60,21 +61,34 @@ class DarwinIntegration(AbstractOSIntegration):
         "</dict>"
         "</plist>"
     )
+    FINDERSYNC_ID = f"{BUNDLE_IDENTIFIER}.NuxeoFinderSync"
     FINDERSYNC_PATH = (
-        f"/Applications/{APP_NAME}.app/Contents/PlugIns/NuxeoFinderSync.appex"
+        f"/Applications/{APP_NAME}.app/Contents/PlugIns/NuxeoFinderSync.appex/"
     )
 
     @if_frozen
     def _init(self) -> None:
         log.debug("Telling plugInKit to use the FinderSync")
-        subprocess.call(["pluginkit", "-e", "use", "-i", BUNDLE_IDENTIFIER])
-        subprocess.call(["pluginkit", "-a", self.FINDERSYNC_PATH])
+        try:
+            subprocess.run(
+                ["pluginkit", "-e", "use", "-i", self.FINDERSYNC_ID], check=True
+            )
+            subprocess.run(["pluginkit", "-a", self.FINDERSYNC_PATH], check=True)
+            for p in psutil.process_iter(attrs=["name", "pid"]):
+                if p.info["name"] == "NuxeoFinderSync":
+                    log.debug(f"FinderSync is running with pid {p.info['pid']}")
+        except subprocess.CalledProcessError:
+            log.exception("Error while starting FinderSync")
 
     @if_frozen
     def _cleanup(self) -> None:
         log.debug("Telling plugInKit to ignore the FinderSync")
-        subprocess.call(["pluginkit", "-r", self.FINDERSYNC_PATH])
-        subprocess.call(["pluginkit", "-e", "ignore", "-i", BUNDLE_IDENTIFIER])
+        try:
+            subprocess.run(
+                ["pluginkit", "-e", "ignore", "-i", self.FINDERSYNC_ID], check=True
+            )
+        except subprocess.CalledProcessError:
+            log.exception("Error while stopping FinderSync")
 
     def _get_agent_file(self) -> Path:
         return Path(f"~/Library/LaunchAgents/{BUNDLE_IDENTIFIER}.plist").expanduser()
