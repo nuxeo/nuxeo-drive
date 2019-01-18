@@ -80,6 +80,7 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     ("unsynchronized", "created"): "unsynchronized",
     ("unsynchronized", "modified"): "unsynchronized",
     ("unsynchronized", "moved"): "unsynchronized",
+    ("unsynchronized", "synchronized"): "unsynchronized",
     ("unsynchronized", "deleted"): "remotely_deleted",
 }
 
