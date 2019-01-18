@@ -4,7 +4,7 @@ import os
 import shutil
 import sys
 import tempfile
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
@@ -30,12 +30,16 @@ def before_send(event: Any, hint: Any) -> Any:
     """
 
     # Do not send Mock'ed exceptions to not pollute Sentry events
-    with suppress(KeyError):
+    if "threads" in event:
         for thread in event["threads"]:
             for frame in thread["stacktrace"]["frames"]:
                 for value in frame["vars"].values():
-                    if "mock" in value.lower():
+                    if "Mock" in value:
                         return None
+    elif "exception" in event:
+        for exception in event["exception"]["values"]:
+            if "Mock" in exception["value"]:
+                return None
 
     return event
 
