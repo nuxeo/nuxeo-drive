@@ -390,7 +390,7 @@ class TestDirectEdit(UnitTestCase):
                 dao=self.engine_1._dao,
             )
             error = URLError(
-                "[Errno 10051] A mocked socket operation was attempted to an unreachable network"
+                "[Errno 10051] (Mock) socket operation was attempted to an unreachable network"
             )
             self.engine_1.remote.make_upload_raise(error)
             try:
