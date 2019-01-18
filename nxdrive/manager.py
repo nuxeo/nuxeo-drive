@@ -330,7 +330,7 @@ class Manager(QObject):
                 log.error(f"Cannot find {engine.engine} engine type anymore")
                 continue
             elif not self._get_engine_db_file(engine.uid).is_file():
-                log.error(f"Cannot find {engine.uid} engine database file anymore")
+                log.warning(f"Cannot find {engine.uid} engine database file anymore")
                 continue
 
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
@@ -367,7 +367,7 @@ class Manager(QObject):
                 else:
                     os.startfile(file_path)  # type: ignore
             except OSError as exc:
-                log.error(f"Failed to open {file_path}: {exc}")
+                log.warning(f"Failed to open {file_path}: {exc}")
         elif MAC:
             args = ["open"]
             if select:
@@ -386,7 +386,7 @@ class Manager(QObject):
                 subprocess.Popen(["xdg-open", file_path])
             except OSError:
                 # xdg-open should be supported by recent Gnome, KDE, Xfce
-                log.error(f"Failed to find and editor for: {file_path!r}")
+                log.warning(f"Failed to find and editor for: {file_path!r}")
 
     @property
     def device_id(self) -> str:

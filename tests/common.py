@@ -557,7 +557,7 @@ class UnitTestCase(TestCase):
         try:
             for root, _, files in os.walk(self.tmpdir):
                 if files:
-                    log.error("tempdir not cleaned-up: %r", root)
+                    log.warning("tempdir not cleaned-up: %r", root)
         except OSError:
             pass
 

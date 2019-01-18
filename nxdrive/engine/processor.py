@@ -281,7 +281,7 @@ class Processor(EngineWorker):
                     elif exc.status == 409:  # Conflict
                         # It could happen on multiple files drag'n drop
                         # starting with identical characters.
-                        log.error(f"Delaying conflicted document: {doc_pair!r}")
+                        log.warning(f"Delaying conflicted document: {doc_pair!r}")
                         self._postpone_pair(doc_pair, "Conflict")
                     elif exc.status == 500:
                         self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
@@ -1319,7 +1319,7 @@ class Processor(EngineWorker):
         if not self.engine.local_rollback(force=WINDOWS):
             return False
 
-        log.error(
+        log.warning(
             f"Renaming {target_pair.remote_name!r} "
             f"to {target_pair.local_name!r} canceled"
         )
