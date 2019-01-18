@@ -10,7 +10,6 @@ from PyQt5.QtCore import QTimer, pyqtSignal
 
 from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
-from .utils import normalized_path
 
 if TYPE_CHECKING:
     from .direct_edit import DirectEdit  # noqa
@@ -123,4 +122,5 @@ def get_open_files() -> Iterator[Item]:
     for proc in psutil.process_iter():
         with suppress(psutil.Error):
             for handler in proc.open_files():
-                yield proc.pid, normalized_path(handler.path)
+                with suppress(PermissionError):
+                    yield proc.pid, Path(handler.path)

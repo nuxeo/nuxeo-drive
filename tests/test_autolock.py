@@ -66,3 +66,14 @@ def test_autolock(autolock, tmpdir):
         autolock._poll()
 
     autolock.stop()
+
+
+def test_get_opend_file():
+    """Just check get_open_files() works."""
+    files = list(nxdrive.autolocker.get_open_files())
+
+    # Print files for debug purpose, in case the test fails
+    for f in files:
+        print(f)
+
+    assert files
