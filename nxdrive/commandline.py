@@ -12,7 +12,7 @@ from logging import getLogger
 from typing import List, TYPE_CHECKING, Union
 
 from . import __version__
-from .constants import APP_NAME
+from .constants import APP_NAME, BUNDLE_IDENTIFIER
 from .logging_config import configure
 from .options import Options
 from .osi import AbstractOSIntegration
@@ -521,10 +521,11 @@ class CliHandler:
         from .utils import PidLockFile
 
         lock = PidLockFile(self.manager.nxdrive_home, "qt")
-        if lock.lock():
+        pid = lock.lock()
+        if pid:
             if Options.protocol_url:
                 payload = force_encode(Options.protocol_url)
-                self._send_to_running_instance(payload)
+                self._send_to_running_instance(payload, pid)
             else:
                 log.warning(f"{APP_NAME} is already running: exiting.")
             return 0
@@ -544,25 +545,29 @@ class CliHandler:
 
         return payload
 
-    def _send_to_running_instance(self, payload: bytes) -> None:
+    def _send_to_running_instance(self, payload: bytes, pid: int) -> None:
         from PyQt5.QtCore import QByteArray
         from PyQt5.QtNetwork import QLocalSocket
 
+        named_pipe = f"{BUNDLE_IDENTIFIER}.protocol.{pid}"
         log.debug(
-            f"Opening local socket to send to the running instance (payload={self.redact_payload(payload)})"
+            f"Opening a local socket to the running instance on {named_pipe} "
+            f"(payload={self.redact_payload(payload)})"
         )
         client = QLocalSocket()
-        client.connectToServer("com.nuxeo.drive.protocol")
+        try:
+            client.connectToServer(named_pipe)
 
-        if not client.waitForConnected():
-            log.error(f"Unable to open client socket: {client.errorString()}")
-            return
+            if not client.waitForConnected():
+                log.error(f"Unable to open client socket: {client.errorString()}")
+                return
 
-        client.write(QByteArray(payload))
-        client.waitForBytesWritten()
-        client.disconnectFromServer()
-        client.waitForDisconnected()
-        del client
+            client.write(QByteArray(payload))
+            client.waitForBytesWritten()
+            client.disconnectFromServer()
+            client.waitForDisconnected()
+        finally:
+            del client
         log.debug("Successfully closed client socket")
 
     def clean_folder(self, options: Namespace) -> int:
