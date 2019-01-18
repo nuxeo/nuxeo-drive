@@ -2,7 +2,9 @@
 import logging
 import os
 import shutil
+import sys
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
@@ -48,6 +50,34 @@ nuxeo.constants.CHECK_PARAMS = True
 
 # Remove feature for tests
 Manager._create_server_config_updater = lambda *args: None
+
+
+@contextmanager
+def ensure_no_exception():
+    """
+    Helper to use as a context manager to check a snippet does not throw any exception.
+    Usefull when one exception is only loggued and not forwared to the parent thread.
+
+        >>> with ensure_no_exception():
+        ...     # some code where you do not want any exception
+    """
+
+    def error(type_, value, traceback) -> None:
+        """ Install an exception hook to catch any error. """
+        nonlocal received
+        received = True
+        print(type_)
+        print(value)
+        print(repr(traceback))
+
+    received = False
+    excepthook, sys.excepthook = sys.excepthook, error
+
+    try:
+        yield
+    finally:
+        sys.excepthook = excepthook
+        assert not received, "Unhandled exception raised!"
 
 
 # Add Manager and QueueManager features for tests
