@@ -1,5 +1,6 @@
 # coding: utf-8
 """ Main Qt application handling OS events and system tray UI. """
+import os
 import sys
 from logging import getLogger
 from math import sqrt
@@ -25,7 +26,14 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..constants import APP_NAME, LINUX, MAC, TOKEN_PERMISSION, WINDOWS
+from ..constants import (
+    APP_NAME,
+    BUNDLE_IDENTIFIER,
+    LINUX,
+    MAC,
+    TOKEN_PERMISSION,
+    WINDOWS,
+)
 from ..engine.activity import Action, FileAction
 from ..engine.engine import Engine
 from ..gui.folders_dialog import FiltersDialog
@@ -96,7 +104,6 @@ class Application(QApplication):
 
         self.init_gui()
 
-        self.aboutToQuit.connect(self.manager.stop)
         self.manager.dropEngine.connect(self.dropped_engine)
 
         # This is a windowless application mostly using the system tray
@@ -126,6 +133,10 @@ class Application(QApplication):
 
         # Listen for nxdrive:// sent by a new instance
         self.init_nxdrive_listener()
+
+        # Connect this slot last so the other slots connected
+        # to self.aboutToQuit can run beforehand.
+        self.aboutToQuit.connect(self.manager.stop)
 
     def init_gui(self) -> None:
 
@@ -1059,30 +1070,42 @@ class Application(QApplication):
         pipes. We just need to connect a handler to the newConnection signal
         to process the URLs.
         """
+        named_pipe = f"{BUNDLE_IDENTIFIER}.protocol.{os.getpid()}"
+        server = QLocalServer()
+        server.setSocketOptions(QLocalServer.WorldAccessOption)
+        server.newConnection.connect(self._handle_connection)
+        try:
+            server.listen(named_pipe)
+            log.debug(f"Listening for nxdrive:// calls on {server.fullServerName()}")
+        except:
+            log.debug(
+                f"Unable to start local server on {named_pipe}: {server.errorString()}"
+            )
 
-        self._nxdrive_listener = QLocalServer()
-        self._nxdrive_listener.newConnection.connect(self._handle_connection)
-        self._nxdrive_listener.listen("com.nuxeo.drive.protocol")
+        self._nxdrive_listener = server
         self.aboutToQuit.connect(self._nxdrive_listener.close)
 
     @if_frozen
     def _handle_connection(self) -> None:
         """ Retrieve the connection with other instances and handle the incoming data. """
 
-        con: QLocalSocket = self._nxdrive_listener.nextPendingConnection()
-        log.debug("Receiving socket connection for nxdrive protocol handling")
-        if not con or not con.waitForConnected():
-            log.error(f"Unable to open server socket: {con.errorString()}")
-            return
+        con: QLocalSocket = None
+        try:
+            con = self._nxdrive_listener.nextPendingConnection()
+            log.debug("Receiving socket connection for nxdrive protocol handling")
+            if not con or not con.waitForConnected():
+                log.error(f"Unable to open server socket: {con.errorString()}")
+                return
 
-        if con.waitForReadyRead():
-            payload = con.readAll()
-            url = force_decode(payload.data())
-            self._handle_nxdrive_url(url)
+            if con.waitForReadyRead():
+                payload = con.readAll()
+                url = force_decode(payload.data())
+                self._handle_nxdrive_url(url)
 
-        con.disconnectFromServer()
-        con.waitForDisconnected()
-        del con
+            con.disconnectFromServer()
+            con.waitForDisconnected()
+        finally:
+            del con
         log.debug("Successfully closed server socket")
 
     def update_status(self, engine: "Engine") -> None:
