@@ -19,6 +19,7 @@ import pytest
 from PyQt5.QtCore import QCoreApplication, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
+from sentry_sdk import configure_scope
 
 from nxdrive.constants import LINUX, MAC, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
@@ -518,12 +519,17 @@ class UnitTestCase(TestCase):
         self.setUpApp()
 
         def launch_test():
-            log.debug("UnitTest thread started")
-            pytest.root_remote.log_on_server(">>> testing: " + self.id())
-            # Note: we cannot use super().run(result) here
-            super(UnitTestCase, self).run(result)
-            self.app.quit()
-            log.debug("UnitTest thread finished")
+            with configure_scope() as scope:
+                scope.set_tag("test-id", self.id())
+
+                log.debug("UnitTest thread started")
+                pytest.root_remote.log_on_server(">>> testing: " + self.id())
+
+                # Note: we cannot use super().run(result) here
+                super(UnitTestCase, self).run(result)
+
+                self.app.quit()
+                log.debug("UnitTest thread finished")
 
         sync_thread = Thread(target=launch_test)
         sync_thread.start()
