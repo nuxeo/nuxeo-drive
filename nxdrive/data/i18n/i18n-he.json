@@ -54,6 +54,8 @@
     "DIRECT_EDIT_CONFLICT_MESSAGE": "The document „%1“ was modified remotely and is now in conflict. What do you want to do?",
     "DIRECT_EDIT_CONFLICT_OVERWRITE": "Overwrite",
     "DIRECT_EDIT_AUTH_EXPIRED": "Authentication expired for the user <b>%1</b> on the server <a href=\"%2\">%2</a>.<br><br>Open the system tray menu or the settings to log back in.",
+    "DIRECT_EDIT_FORBIDDEN_MSG": "Access to the document „%1“ on %2 is forbidden for user %3.",
+    "DIRECT_EDIT_FORBIDDEN_TITLE": "Forbidden DirectEdit",
     "DIRECT_EDIT_LOCKED_FILE": "Cannot edit „%1“ as it was locked by %2 on %3",
     "DIRECT_EDIT_LOCK_ERROR": "Locking issue",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "The document „%1“ was not locked",

@@ -54,6 +54,8 @@
     "DIRECT_EDIT_CONFLICT_MESSAGE": "文書„%1“がリモートで修正されました。現在、競合しています。何をしますか？",
     "DIRECT_EDIT_CONFLICT_OVERWRITE": "上書き",
     "DIRECT_EDIT_AUTH_EXPIRED": "ユーザ<b>%1</b>の無効なクレデンシャル情報がサーバ<a href=\"%2\">%2</a>にあります。<br><br>［設定］に移動して、有効な情報を入力してください。",
+    "DIRECT_EDIT_FORBIDDEN_MSG": "Access to the document „%1“ on %2 is forbidden for user %3.",
+    "DIRECT_EDIT_FORBIDDEN_TITLE": "Forbidden DirectEdit",
     "DIRECT_EDIT_LOCKED_FILE": "„%1“は、%3に%2によってロックされたため、編集できません",
     "DIRECT_EDIT_LOCK_ERROR": "ロックの問題",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "文書「„%1“」はロックされませんでした",
