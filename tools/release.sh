@@ -19,6 +19,11 @@ cancel() {
     echo ">>> [${release_type} ${drive_version}] Removing the tag"
     git tag --delete "${release_type}-${drive_version}" || true
     git push --delete origin "${release_type}-${drive_version}" || true
+
+    echo ">>> [${release_type} ${drive_version}] Removing the branch"
+    git branch -D "wip-alpha-${release_type}.${drive_version}" || true
+    git push --delete origin "wip-alpha-${release_type}.${drive_version}" || true
+
 }
 
 changelog() {
@@ -68,6 +73,7 @@ create() {
         #    - checkout the last commit
         #    - update the version number and release date
         echo ">>> [${release_type}] Update informations into a new branch"
+        git pull --rebase
         drive_version="$(python tools/changelog.py --drive-version)"
         alpha_version="$(git describe --always --match="release-*" | cut -d"-" -f3)"
         git checkout -b "wip-alpha-${drive_version}.${alpha_version}"
