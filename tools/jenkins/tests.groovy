@@ -241,7 +241,7 @@ for (def x in slaves) {
                             // Update GitHub status whatever the result
                             github_status(currentBuild.result)
 
-                            archiveArtifacts 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt'
+                            archiveArtifacts 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt', fingerprint: true
                         }
                     }
                 }
@@ -291,8 +291,8 @@ timeout(240) {
                             }
 
                             sh "./tools/qa.sh"
-                            archiveArtifacts 'coverage.xml'
-                            archiveArtifacts 'pylint-report.txt'
+                            archiveArtifacts 'coverage.xml', fingerprint: true
+                            archiveArtifacts 'pylint-report.txt', fingerprint: true
 
                             withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
                                 withEnv(["WORKSPACE=${pwd()}"]) {

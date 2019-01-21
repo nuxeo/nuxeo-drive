@@ -103,7 +103,7 @@ for (x in slaves) {
                             if (osi == 'GNU/Linux') {
                                 sh 'tools/linux/deploy_jenkins_slave.sh --install'
                                 sh 'tools/linux/deploy_jenkins_slave.sh --build'
-                                archive 'dist/*.deb'
+                                archiveArtifacts artifacts: 'dist/*.deb', fingerprint: true
                             } else if (osi == 'macOS') {
                                 def env_vars = [
                                     'SIGNING_ID=NUXEO CORP',
@@ -114,7 +114,7 @@ for (x in slaves) {
                                                             variable: 'LOGIN_KEYCHAIN_PASSWORD')]) {
                                         sh 'tools/osx/deploy_jenkins_slave.sh --install'
                                         sh 'tools/osx/deploy_jenkins_slave.sh --build'
-                                        archive 'dist/*.dmg'
+                                        archiveArtifacts artifacts: 'dist/*.dmg', fingerprint: true
                                     }
                                 }
                             } else {
@@ -125,10 +125,10 @@ for (x in slaves) {
                                 withEnv(env_vars) {
                                     bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -install'
                                     bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
-                                    archive 'dist/*.exe'
+                                    archiveArtifacts artifacts: 'dist/*.exe', fingerprint: true
                                 }
                             }
-                            archive 'dist/*.zip'
+                            archiveArtifacts artifacts: 'dist/*.zip', fingerprint: true
                         } catch(e) {
                             currentBuild.result = 'FAILURE'
                             throw e
