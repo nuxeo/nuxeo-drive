@@ -95,7 +95,6 @@ class TestLocalDeletion(UnitTestCase):
         # Because remote_document_client_1 was used
         assert local.get_remote_id("/").endswith(new_info.parent_uid)
 
-    @pytest.mark.skip("NXP-25066: Untrash raises 500 error here")
     @Options.mock()
     def test_move_untrash_file_on_parent_with_no_rights(self):
         local = self.local_1
