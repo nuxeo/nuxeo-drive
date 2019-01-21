@@ -27,7 +27,7 @@ timestamps {
 
             stage('Deploy') {
                 sh "tools/deploy.sh ${env.VERSION}"
-                archive 'prerelease.json'
+                archiveArtifacts artifacts: 'prerelease.json', fingerprint: true
                 currentBuild.description = "Release ${env.VERSION}"
             }
         }
