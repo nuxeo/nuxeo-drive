@@ -115,10 +115,11 @@ class Remote(Nuxeo):
         try:
             return self.operations.execute(**kwargs)
         except HTTPError as e:
+            stack = getattr(e, "stacktrace", None)
             if e.status == 403:
-                raise Forbidden()
+                raise Forbidden(stack)
             if e.status == 404:
-                raise NotFound()
+                raise NotFound(stack)
             raise e
 
     def exists(
