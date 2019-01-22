@@ -120,7 +120,7 @@ def get_open_files() -> Iterator[Item]:
     """
 
     for proc in psutil.process_iter():
-        with suppress(psutil.Error):
+        with suppress(psutil.Error, OSError):
             for handler in proc.open_files():
                 with suppress(PermissionError):
                     yield proc.pid, Path(handler.path)
