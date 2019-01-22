@@ -303,6 +303,8 @@ class DocPair(Row):
         with suppress(IndexError):
             if name in {"local_path", "local_parent_path"}:
                 return Path(self[name].lstrip("/"))
+            if name == "remote_ref":
+                return self[name] or ""
             return self[name]
 
     def is_readonly(self) -> bool:
