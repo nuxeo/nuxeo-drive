@@ -51,11 +51,9 @@ class LocalWatcher(EngineWorker):
     rootMoved = pyqtSignal(str)
     rootDeleted = pyqtSignal()
 
-    # Windows lock
-    lock = Lock()
-
     def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao)
+        self.lock = Lock()
         self._event_handler: Optional[DriveFSEventHandler] = None
         # Delay for the scheduled recursive scans of
         # a created / modified / moved folder under Windows
@@ -118,7 +116,8 @@ class LocalWatcher(EngineWorker):
         except ThreadInterrupt:
             raise
         finally:
-            self._stop_watchdog()
+            with self.lock:
+                self._stop_watchdog()
 
     def win_queue_empty(self) -> bool:
         return not self._delete_events

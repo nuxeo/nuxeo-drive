@@ -6,6 +6,7 @@ from logging import getLogger
 from pathlib import Path
 from queue import Empty, Queue
 from time import sleep
+from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib.parse import quote
 
@@ -69,6 +70,7 @@ class DirectEdit(Worker):
         self._manager = manager
         self._folder = folder
         self.url = url
+        self.lock = Lock()
 
         self.autolock = self._manager.autolock_service
         self.use_autolock = self._manager.get_direct_edit_auto_lock()
@@ -655,7 +657,8 @@ class DirectEdit(Worker):
         except ThreadInterrupt:
             raise
         finally:
-            self._stop_watchdog()
+            with self.lock:
+                self._stop_watchdog()
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()

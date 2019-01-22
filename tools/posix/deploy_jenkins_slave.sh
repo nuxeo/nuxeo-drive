@@ -100,6 +100,7 @@ check_vars() {
 install_deps() {
     echo ">>> Installing requirements"
     # Do not delete, it fixes "Could not import setuptools which is required to install from a source distribution."
+    cd "${WORKSPACE_DRIVE}"
     ${PIP} setuptools
     ${PIP} pip
     ${PIP} -r requirements.txt
