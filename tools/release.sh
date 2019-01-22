@@ -73,14 +73,20 @@ create() {
         #    - checkout the last commit
         #    - update the version number and release date
         echo ">>> [${release_type}] Update informations into a new branch"
-        git pull --rebase
         drive_version="$(python tools/changelog.py --drive-version)"
         alpha_version="$(git describe --always --match="release-*" | cut -d"-" -f3)"
+
+        # Delete remote wip-alpha branch if it already exists and create a local one
+        git push origin --delete "wip-alpha-${drive_version}.${alpha_version}" || true
         git checkout -b "wip-alpha-${drive_version}.${alpha_version}"
+
+        # Set version number
         sed -i s"/^__version__ = \".*\"/__version__ = \"${drive_version}.${alpha_version}\"/" nxdrive/__init__.py
         sed -i s"/^Release date: \`.*\`/Release date: \`$(date '+%Y-%m-%d')\`/" "docs/changes/${drive_version}.md" || true
         git add nxdrive/__init__.py
         git add "docs/changes/${drive_version}.md" || true
+
+        # Commit and push alpha branch
         git commit -m "Bump version to ${drive_version}.${alpha_version}"
         git push --set-upstream origin "wip-alpha-${drive_version}.${alpha_version}"
     fi
