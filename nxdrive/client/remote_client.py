@@ -425,7 +425,7 @@ class Remote(Nuxeo):
     def get_fs_item(
         self, fs_item_id: str, parent_fs_item_id: str = None
     ) -> Optional[Dict[str, Any]]:
-        if fs_item_id is None:
+        if not fs_item_id:
             log.warning("get_fs_item() called without fs_item_id")
             return None
         return self.execute(
