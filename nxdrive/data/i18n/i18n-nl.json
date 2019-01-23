@@ -54,6 +54,8 @@
     "DIRECT_EDIT_CONFLICT_MESSAGE": "Het document '{{ name }}' is extern gewijzigd en bevindt zich nu in een conflict. Wat wilt u doen?",
     "DIRECT_EDIT_CONFLICT_OVERWRITE": "Overschrijven",
     "DIRECT_EDIT_AUTH_EXPIRED": "Ongeldige aanmeldgegevens voor de gebruiker <b>%1</b> op de server <a href=\"%2\">%2</a>.<br><br>Ga naar Instellingen en voer geldige gegevens in.",
+    "DIRECT_EDIT_FORBIDDEN_MSG": "Access to the document „%1“ on %2 is forbidden for user %3.",
+    "DIRECT_EDIT_FORBIDDEN_TITLE": "Forbidden DirectEdit",
     "DIRECT_EDIT_LOCKED_FILE": "Kan '{{ name }}' niet bewerken omdat het door {{ lock_owner }} op {{ lock_created }} is vergrendeld.",
     "DIRECT_EDIT_LOCK_ERROR": "Vergrendelingsprobleem",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "Het document '{{ name }}' is niet vergrendeld",

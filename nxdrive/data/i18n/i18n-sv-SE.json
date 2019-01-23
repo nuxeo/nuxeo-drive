@@ -54,6 +54,8 @@
     "DIRECT_EDIT_CONFLICT_MESSAGE": "Dokumentet „%1“ har modifierats via fjärranslutning och står nu i konflikt. Vad vill du göra?",
     "DIRECT_EDIT_CONFLICT_OVERWRITE": "Skriv över",
     "DIRECT_EDIT_AUTH_EXPIRED": "Ogiltiga inloggningsuppgifter för användaren <b>%1</b> på servern <a href=\"%2\">%2</a>.<br><br>Gå till Inställningar och ange giltiga uppgifter.",
+    "DIRECT_EDIT_FORBIDDEN_MSG": "Access to the document „%1“ on %2 is forbidden for user %3.",
+    "DIRECT_EDIT_FORBIDDEN_TITLE": "Forbidden DirectEdit",
     "DIRECT_EDIT_LOCKED_FILE": "Kan inte redigera „%1“ eftersom det har låsts av %2 den %3",
     "DIRECT_EDIT_LOCK_ERROR": "Problem med låsning",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "Dokumentet „%1“ låstes inte",

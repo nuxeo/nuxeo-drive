@@ -54,6 +54,8 @@
     "DIRECT_EDIT_CONFLICT_MESSAGE": "Das Dokument „%1“ wurde remote bearbeitet und befindet sich jetzt im Konflikt. Was möchten Sie tun?",
     "DIRECT_EDIT_CONFLICT_OVERWRITE": "Überschreiben",
     "DIRECT_EDIT_AUTH_EXPIRED": "Falsche Anmeldeinformationen für den Benutzer <b>%1</b> auf dem Server <a href=\"%2\">%2</a>.<br><br>Geben Sie unter den Einstellungen gültige Daten ein.",
+    "DIRECT_EDIT_FORBIDDEN_MSG": "Access to the document „%1“ on %2 is forbidden for user %3.",
+    "DIRECT_EDIT_FORBIDDEN_TITLE": "Forbidden DirectEdit",
     "DIRECT_EDIT_LOCKED_FILE": "„%1“ kann nicht bearbeitet werden, da von %2 am %3 gesperrt",
     "DIRECT_EDIT_LOCK_ERROR": "Problem mit dem Sperren",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "Das Dokument „%1“ wurde nicht gesperrt",

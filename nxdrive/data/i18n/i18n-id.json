@@ -54,6 +54,8 @@
     "DIRECT_EDIT_CONFLICT_MESSAGE": "Dokumen ,,{{ name }}\" diubah dari jarak jauh dan sekarang dalam konflik. Apa yang ingin anda lakukan?",
     "DIRECT_EDIT_CONFLICT_OVERWRITE": "Timpa",
     "DIRECT_EDIT_AUTH_EXPIRED": "Kredensial tidak sah untuk pengguna <b>%1</b> di server <a href=\"%2\">%2</a>.<br><br>Silakan masuk ke Pengaturan dan masukkan informasi yang benar.",
+    "DIRECT_EDIT_FORBIDDEN_MSG": "Access to the document „%1“ on %2 is forbidden for user %3.",
+    "DIRECT_EDIT_FORBIDDEN_TITLE": "Forbidden DirectEdit",
     "DIRECT_EDIT_LOCKED_FILE": "Tidak dapat menyunting „{{ name }}“ sepertinya dikunci oleh {{ lock_owner }} pada {{ lock_created }}",
     "DIRECT_EDIT_LOCK_ERROR": "Masalah penguncian",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "Dokumen ,,{{name}}\" tidak terkunci",

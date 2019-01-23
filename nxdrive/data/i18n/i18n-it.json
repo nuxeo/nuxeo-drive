@@ -54,6 +54,8 @@
     "DIRECT_EDIT_CONFLICT_MESSAGE": "Il documento „%1“ è stato modificato in remoto e ora è in conflitto. Come si desidera procedere?",
     "DIRECT_EDIT_CONFLICT_OVERWRITE": "Sovrascrivi",
     "DIRECT_EDIT_AUTH_EXPIRED": "Credenziali non valide per l’utente <b>%1</b> sul server <a href=\"%2\">%2</a>.<br><br>Passare a Impostazioni e immettere informazioni valide.",
+    "DIRECT_EDIT_FORBIDDEN_MSG": "L'accesso al documento,,%1\" su %2 è vietato per l'utente %3.",
+    "DIRECT_EDIT_FORBIDDEN_TITLE": "Modifica diretta Proibita",
     "DIRECT_EDIT_LOCKED_FILE": "Impossibile modificare „%1“ perché è stato bloccato da %2 il %3",
     "DIRECT_EDIT_LOCK_ERROR": "Problema di blocco",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "Il documento „%1“ non è stato bloccato",
