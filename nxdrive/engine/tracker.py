@@ -89,9 +89,11 @@ class Tracker(Worker):
         return f"{self.app_name}/{self._manager.version} ({self.current_os})"
 
     def send_event(self, **kwargs: Any) -> None:
-        engine = list(self._manager.get_engines().values())[0]
+        engines = list(self._manager.get_engines().values())
 
-        if engine:
+        if engines:
+            engine = engines[0]
+
             # Do not reuse old dimensions:
             # https://support.google.com/analytics/answer/2709828?hl=en#Limits
             self._tracker.set(
