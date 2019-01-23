@@ -89,30 +89,32 @@ class Tracker(Worker):
         return f"{self.app_name}/{self._manager.version} ({self.current_os})"
 
     def send_event(self, **kwargs: Any) -> None:
-        engines = list(self._manager.get_engines().values())
+        """
+        Send a event to Google Analytics. Attach some attributes (dimensions) to ease filtering.
 
+        [WARNING] Do not reuse old dimensions:
+        https://support.google.com/analytics/answer/2709828?hl=en#Limits
+
+        Those dimensions are transposed from Engine.get_metrics() when calling ._send_stats():
+            dimension1: $sync_files
+            dimension2: $sync_folders
+            dimension3: $error_files
+            dimension4: $conflicted_files
+            dimension5: $file_size
+
+        And those ones were deleted at some point:
+            dimension9: NXDRIVE-1238
+        """
+        dimensions = {"dimension10": self.arch, "dimension11": self.current_os}
+
+        engines = list(self._manager.get_engines().values())
         if engines:
             engine = engines[0]
+            dimensions["dimension6"] = engine.hostname
+            dimensions["dimension7"] = engine.server_url
+            dimensions["dimension8"] = engine.remote.client.server_version
 
-            # Do not reuse old dimensions:
-            # https://support.google.com/analytics/answer/2709828?hl=en#Limits
-            self._tracker.set(
-                {
-                    # Those dimensions are transposed from Engine.get_metrics() when calling ._send_stats():
-                    # "dimension1": $sync_files,
-                    # "dimension2": $sync_folders,
-                    # "dimension3": $error_files,
-                    # "dimension4": $conflicted_files,
-                    # "dimension5": $file_size,
-                    "dimension6": engine.hostname,
-                    "dimension7": engine.server_url,
-                    "dimension8": engine.remote.client.server_version,
-                    # "dimension9": NXDRIVE-1238,
-                    "dimension10": self.arch,
-                    "dimension11": self.current_os,
-                }
-            )
-
+        self._tracker.set(dimensions)
         log.trace(self.fmt_event.format(**kwargs))
         try:
             self._tracker.send("event", **kwargs)
