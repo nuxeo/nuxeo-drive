@@ -48,7 +48,7 @@ timestamps {
 
                 sshagent([credential_id]) {
                     sh "tools/release.sh --create ${release_type}"
-                    archiveArtifacts artifacts: 'draft.json', fingerprint: true
+                    archiveArtifacts artifacts: 'draft.json', fingerprint: true, allowEmptyArchive: true
                 }
             }
 

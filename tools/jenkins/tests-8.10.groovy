@@ -135,7 +135,7 @@ for (def x in slaves) {
                         }
 
                         // echo 'Retrieve coverage statistics'
-                        // archiveArtifacts artifacts: 'coverage/*', fingerprint: true
+                        // archiveArtifacts artifacts: 'coverage/*', fingerprint: true, allowEmptyArchive: true
 
                         currentBuild.result = 'SUCCESS'
                     }
@@ -145,7 +145,7 @@ for (def x in slaves) {
                         // Update GitHub status whatever the result
                         github_status(currentBuild.result)
 
-                        archiveArtifacts artifacts: 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt', fingerprint: true
+                        archiveArtifacts artifacts: 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt', fingerprint: true, allowEmptyArchive: true
 
                         // Update revelant Jira issues only if we are working on the master branch
                         if (env.BRANCH_NAME == 'master') {
