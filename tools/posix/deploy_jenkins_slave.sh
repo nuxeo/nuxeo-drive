@@ -102,7 +102,8 @@ install_deps() {
     # Do not delete, it fixes "Could not import setuptools which is required to install from a source distribution."
     cd "${WORKSPACE_DRIVE}"
     ${PIP} setuptools
-    ${PIP} pip
+    # NXDRIVE-1521: pip 19.0.1 prevents PyInstaller installation
+    ${PIP} pip==18.1
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-dev.txt
     ${PIP} -r requirements-tests.txt
