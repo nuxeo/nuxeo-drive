@@ -3,11 +3,10 @@ import os
 import platform
 import subprocess
 import uuid
-from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse, urlsplit, urlunsplit
 
 import requests
 from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
@@ -18,10 +17,10 @@ from . import __version__
 from .autolocker import ProcessAutoLockerWorker
 from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
-from .constants import APP_NAME, MAC, WINDOWS
+from .constants import APP_NAME, MAC, STARTUP_PAGE_CONNECTION_TIMEOUT, WINDOWS
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
-from .exceptions import EngineTypeMissing, FolderAlreadyUsed
+from .exceptions import EngineTypeMissing, FolderAlreadyUsed, StartupPageConnectionError
 from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
@@ -29,6 +28,7 @@ from .options import Options
 from .options_updater import ServerOptionsUpdater
 from .osi import AbstractOSIntegration
 from .updater import updater
+from .updater.constants import Login
 from .utils import (
     copy_to_clipboard,
     force_decode,
@@ -502,14 +502,55 @@ class Manager(QObject):
     def _get_default_server_type(self) -> str:  # TODO: Move to constants.py
         return "NXDRIVE"
 
-    def _server_has_browser_login(self, url) -> bool:
-        login_page = urljoin(url, Options.browser_startup_page)
-        proxies = self.proxy.settings(url=url)
+    def _get_server_login_type(self, server_url: str, _raise: bool = True) -> Login:
+        # Take into account URL parameters
+        parts = urlsplit(server_url)
+        url = urlunsplit(
+            (
+                parts.scheme,
+                parts.netloc,
+                f"{parts.path}/{Options.browser_startup_page}",
+                parts.query,
+                parts.fragment,
+            )
+        )
+        headers = {
+            "X-Application-Name": APP_NAME,
+            "X-Device-Id": self.device_id,
+            "X-Client-Version": self.version,
+            "User-Agent": f"{APP_NAME}/{self.version}",
+        }
 
-        with suppress(Exception):
-            resp = requests.get(login_page, proxies=proxies)
-            return resp.status_code <= 401
-        return False
+        log.debug(f"Proxy configuration for startup page connection: {self.proxy}")
+        try:
+            with requests.get(
+                url,
+                headers=headers,
+                proxies=self.proxy.settings(url=url),
+                timeout=STARTUP_PAGE_CONNECTION_TIMEOUT,
+                verify=Options.ca_bundle or not Options.ssl_no_verify,
+            ) as resp:
+                status = resp.status_code
+        except:
+            log.exception(
+                f"Error while trying to connect to {APP_NAME} "
+                f"startup page with URL {url}"
+            )
+            if _raise:
+                raise StartupPageConnectionError()
+        else:
+            log.debug(f"Status code for {url} = {status}")
+            if status == 404:
+                # We know the new endpoint is unavailable,
+                # so we need to use the old login.
+                return Login.OLD
+            if status < 400 or status in {401, 403}:
+                # We can access the new login page, or we are unauthorized
+                # but it exists, so we can use the new login.
+                return Login.NEW
+        # The server returned an unexpected status code, or it was unreachable
+        # for some reason, so the login endpoint is unknown.
+        return Login.UNKNOWN
 
     def bind_server(
         self,

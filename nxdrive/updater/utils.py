@@ -8,6 +8,7 @@ from .constants import (
     UPDATE_STATUS_DOWNGRADE_NEEDED,
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UP_TO_DATE,
+    Login,
 )
 from ..utils import version_le, version_lt
 
@@ -29,7 +30,7 @@ def get_latest_compatible_version(
     # If no server_version, then we cannot know in advance if Drive
     # will be compatible with a higher version of the server.
     # This is the case when there is no bound account.
-    version_regex = r"^\d+(\.\d+)+(-HF\d+|)(-SNAPSHOT|)$"
+    version_regex = r"^\d+(\.\d+)+(-HF\d+|)(-SNAPSHOT|)(-I.*|)$"
     if not server_ver or not re.match(version_regex, server_ver, re.I):
         log.debug("No bound account, skipping the update check.")
         return "", {}
@@ -88,21 +89,27 @@ def get_update_status(
     versions: Versions,
     nature: str,
     server_version: Optional[str],
-    has_browser_login: bool,
+    login_type: Login,
 ) -> Tuple[str, str]:
     """Given a Drive version, determine the definitive status of the application."""
 
     if current_version not in versions:
         log.debug(
-            "Unknown version: this is the case when the current packaged application"
-            " has a version unknown on the server, typically the development one."
-            " Ignoring updates."
+            "Unknown version: this is the case when the current packaged application "
+            "has a version unknown on the server, typically the development one. "
+            "Ignoring updates."
+        )
+        return "", ""
+
+    if Login.UNKNOWN in login_type and Login.OLD not in login_type:
+        log.debug(
+            "Unable to retrieve server login compatibility info. Ignoring updates."
         )
         return "", ""
 
     # Find the latest available version
     latest, info = get_latest_compatible_version(
-        versions, nature, server_version, has_browser_login
+        versions, nature, server_version, Login.OLD not in login_type
     )
 
     if not latest:

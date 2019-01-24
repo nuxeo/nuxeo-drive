@@ -18,6 +18,7 @@ from .constants import (
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UPDATING,
     UPDATE_STATUS_UP_TO_DATE,
+    Login,
 )
 from .utils import get_update_status
 from ..constants import APP_NAME
@@ -191,12 +192,11 @@ class BaseUpdater(PollWorker):
         except UpdateError:
             status, version = UPDATE_STATUS_UNAVAILABLE_SITE, None
         else:
-            has_browser_login = all(
-                [
-                    self.manager._server_has_browser_login(engine.server_url)
-                    for engine in self.manager._engines.values()
-                ]
-            )
+            login_type = Login.NONE
+            for engine in list(self.manager._engines.values()):
+                url = engine.server_url
+                login_type |= self.manager._get_server_login_type(url, _raise=False)
+
             channel = self.manager.get_update_channel()
             log.debug(
                 f"Getting update status for version {self.manager.version}"
@@ -207,7 +207,7 @@ class BaseUpdater(PollWorker):
                 self.versions,
                 channel,
                 self.server_ver,
-                has_browser_login,
+                login_type,
             )
         if status and version:
             self._set_status(status, version=version)
@@ -232,7 +232,7 @@ class BaseUpdater(PollWorker):
             if versions:
                 version = max(versions.keys())
                 self._set_status(UPDATE_STATUS_DOWNGRADE_NEEDED, version)
-            self.serverIncompatible.emit()
+        self.serverIncompatible.emit()
 
     def _handle_status(self) -> None:
         """ Handle update check status. """
