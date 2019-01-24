@@ -17,7 +17,7 @@ from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 
 from ..client.proxy import get_proxy
-from ..constants import APP_NAME, STARTUP_PAGE_CONNECTION_TIMEOUT, TOKEN_PERMISSION
+from ..constants import APP_NAME, TOKEN_PERMISSION
 from ..engine.activity import Action, FileAction
 from ..engine.engine import Engine
 from ..engine.workers import Worker
@@ -33,6 +33,7 @@ from ..notification import Notification
 from ..objects import Binder, DocPair
 from ..options import Options
 from ..translator import Translator
+from ..updater.constants import Login
 from ..utils import (
     force_decode,
     get_device,
@@ -485,8 +486,9 @@ class QMLDriveApi(QObject):
                 return
             params = urlencode({"updateToken": True})
 
-            status = self._connect_startup_page(engine.server_url)
-            if status >= 400 and status not in (401, 500, 503):
+            url = self._guess_server_url(engine.server_url)
+            login_type = self._manager._get_server_login_type(url)
+            if login_type is Login.OLD:
                 # We might have to downgrade because the
                 # browser login is not available.
                 self._manager.updater._force_downgrade()
@@ -693,18 +695,12 @@ class QMLDriveApi(QObject):
                 raise FolderAlreadyUsed()
 
             # Connect to startup page
-            status = self._connect_startup_page(server_url)
-            callback_params = {
-                "local_folder": local_folder,
-                "server_url": server_url,
-                "engine_type": engine_type,
-            }
+            url = self._guess_server_url(server_url)
+            login_type = self._manager._get_server_login_type(url)
             url = self._get_authentication_url(server_url)
 
-            # Server will send a 401 in case of anonymous user configuration
-            # Should maybe only check for 404
-            if status < 400 or status in (401, 500, 503):
-                # Page exists, let's open authentication dialog
+            if login_type is not Login.OLD:
+                # Page should exists, let's open authentication dialog
                 log.debug(
                     f"Web authentication is available on server {server_url}, "
                     f"opening login window with URL {url}"
@@ -721,6 +717,11 @@ class QMLDriveApi(QObject):
                     self._manager.updater._force_downgrade()
                     return
 
+            callback_params = {
+                "local_folder": local_folder,
+                "server_url": server_url,
+                "engine_type": engine_type,
+            }
             self.openAuthenticationDialog.emit(url, callback_params)
             return
         except FolderAlreadyUsed:
@@ -733,47 +734,6 @@ class QMLDriveApi(QObject):
             )
             error = "CONNECTION_UNKNOWN"
         self.setMessage.emit(error, "error")
-
-    def _connect_startup_page(self, server_url: str) -> int:
-        # Take into account URL parameters
-        parts = urlsplit(self._guess_server_url(server_url))
-        url = urlunsplit(
-            (
-                parts.scheme,
-                parts.netloc,
-                f"{parts.path}/{Options.browser_startup_page}",
-                parts.query,
-                parts.fragment,
-            )
-        )
-        headers = {
-            "X-Application-Name": APP_NAME,
-            "X-Device-Id": self._manager.device_id,
-            "X-Client-Version": self._manager.version,
-            "User-Agent": f"{APP_NAME}/{self._manager.version}",
-        }
-
-        log.debug(
-            f"Proxy configuration for startup page connection: {self._manager.proxy}"
-        )
-        try:
-            with requests.get(
-                url,
-                headers=headers,
-                proxies=self._manager.proxy.settings(url=url),
-                timeout=STARTUP_PAGE_CONNECTION_TIMEOUT,
-                verify=Options.ca_bundle or not Options.ssl_no_verify,
-            ) as resp:
-                status = resp.status_code
-        except:
-            log.exception(
-                f"Error while trying to connect to {APP_NAME}"
-                f" startup page with URL {url}"
-            )
-            raise StartupPageConnectionError()
-        else:
-            log.debug(f"Status code for {url} = {status}")
-            return status
 
     @pyqtSlot(str, str, result=bool)
     def set_server_ui(self, uid: str, server_ui: str) -> bool:

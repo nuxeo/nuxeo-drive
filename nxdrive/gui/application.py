@@ -678,7 +678,8 @@ class Application(QApplication):
                 Translator.get("CONTINUE_USING", [version]), QMessageBox.RejectRole
             )
             downgrade = msg.addButton(
-                Translator.get("USE_OLDER_VERSION"), QMessageBox.AcceptRole
+                Translator.get("DOWNGRADE_TO", [downgrade_version]),
+                QMessageBox.AcceptRole,
             )
         else:
             msg.addButton(Translator.get("CONTINUE"), QMessageBox.RejectRole)
