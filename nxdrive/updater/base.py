@@ -193,7 +193,7 @@ class BaseUpdater(PollWorker):
             status, version = UPDATE_STATUS_UNAVAILABLE_SITE, None
         else:
             login_type = Login.NONE
-            for engine in self.manager._engines.values():
+            for engine in list(self.manager._engines.values()):
                 url = engine.server_url
                 login_type |= self.manager._get_server_login_type(url, _raise=False)
 
