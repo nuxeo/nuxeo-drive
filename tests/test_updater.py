@@ -5,6 +5,7 @@ from nxdrive.updater.constants import (
     UPDATE_STATUS_DOWNGRADE_NEEDED,
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UP_TO_DATE,
+    Login,
 )
 from nxdrive.updater.utils import get_update_status
 
@@ -79,6 +80,6 @@ VERSIONS = {
 )
 def test_get_update_status(current, server, nature, action_required, new):
     """get_update_status calls get_latest_compatible_version, 2 tests in one!"""
-    action, version = get_update_status(current, VERSIONS, nature, server, True)
+    action, version = get_update_status(current, VERSIONS, nature, server, Login.NEW)
     assert action == action_required
     assert version == new
