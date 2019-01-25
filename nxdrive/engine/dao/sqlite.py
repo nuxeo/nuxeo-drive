@@ -132,7 +132,7 @@ class AutoRetryConnection(Connection):
 
 class ConfigurationDAO(QObject):
 
-    _state_factory = DocPair
+    _state_factory: Type[Row] = DocPair
 
     def __init__(self, db: Path) -> None:
         super().__init__()
@@ -323,6 +323,9 @@ class ConfigurationDAO(QObject):
 
 
 class ManagerDAO(ConfigurationDAO):
+
+    _state_factory = EngineDef
+
     def get_schema_version(self) -> int:
         return 2
 
