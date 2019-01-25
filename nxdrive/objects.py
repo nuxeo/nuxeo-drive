@@ -324,7 +324,6 @@ class DocPair(Row):
 DocPairs = List[DocPair]
 
 
-@dataclass
 class EngineDef(Row):
     local_folder: Path
     engine: str
