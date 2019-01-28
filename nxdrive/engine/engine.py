@@ -58,7 +58,7 @@ class Engine(QObject):
     _stop = pyqtSignal()
     _scanPair = pyqtSignal(str)
     errorOpenedFile = pyqtSignal(object)
-    fileDeletionErrorTooLong = pyqtSignal(object)
+    longPathError = pyqtSignal(object)
     syncStarted = pyqtSignal(object)
     syncCompleted = pyqtSignal()
     # Sent when files are in blacklist but the rest is ok
