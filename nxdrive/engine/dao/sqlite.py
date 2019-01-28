@@ -211,7 +211,7 @@ class ConfigurationDAO(QObject):
 
     def _migrate_db(self, cursor: Cursor, version: int) -> None:
         if version < 1:
-            self.update_config(SCHEMA_VERSION, 1)
+            self.store_int(SCHEMA_VERSION, 1)
 
     def _init_db(self, cursor: Cursor) -> None:
         # http://www.stevemcarthur.co.uk/blog/post/some-kind-of-disk-io-error-occurred-sqlite
@@ -312,6 +312,16 @@ class ConfigurationDAO(QObject):
                 (value, name),
             )
 
+    def store_bool(self, name: str, value: bool) -> None:
+        """ Store a boolean parameter. """
+
+        self.update_config(name, bool(value))
+
+    def store_int(self, name: str, value: int) -> None:
+        """ Store an integer parameter. """
+
+        self.update_config(name, int(value))
+
     def get_config(self, name: str, default: Any = None) -> Any:
         c = self._get_read_connection().cursor()
         obj = c.execute(
@@ -320,6 +330,24 @@ class ConfigurationDAO(QObject):
         if not obj or not obj.value:
             return default
         return obj.value
+
+    def get_bool(self, name: str, default: bool = False) -> bool:
+        """Retrieve a parameter of boolean type."""
+
+        with suppress(Exception):
+            val = self.get_config(name, default=default)
+            return bool(int(val))
+
+        return default if isinstance(default, bool) else False
+
+    def get_int(self, name: str, default: int = 0) -> int:
+        """Retrieve a parameter of integer type."""
+
+        with suppress(Exception):
+            val = self.get_config(name, default=default)
+            return int(val)
+
+        return default if isinstance(default, int) else 0
 
 
 class ManagerDAO(ConfigurationDAO):
@@ -482,7 +510,7 @@ class ManagerDAO(ConfigurationDAO):
                 "    PRIMARY KEY (uid)"
                 ")"
             )
-            self.update_config(SCHEMA_VERSION, 2)
+            self.store_int(SCHEMA_VERSION, 2)
         if version < 3:
             cursor.execute(
                 "CREATE TABLE if not exists AutoLock ("
@@ -492,7 +520,7 @@ class ManagerDAO(ConfigurationDAO):
                 "    PRIMARY KEY (path)"
                 ")"
             )
-            self.update_config(SCHEMA_VERSION, 3)
+            self.store_int(SCHEMA_VERSION, 3)
 
     def get_engines(self) -> List[EngineDef]:
         c = self._get_read_connection().cursor()
@@ -567,7 +595,7 @@ class EngineDAO(ConfigurationDAO):
                 " WHERE last_local_updated > last_remote_updated"
                 "   AND folderish = 0"
             )
-            self.update_config(SCHEMA_VERSION, 1)
+            self.store_int(SCHEMA_VERSION, 1)
         if version < 2:
             cursor.execute(
                 "CREATE TABLE if not exists ToRemoteScan ("
@@ -575,14 +603,14 @@ class EngineDAO(ConfigurationDAO):
                 "    PRIMARY KEY (path)"
                 ")"
             )
-            self.update_config(SCHEMA_VERSION, 2)
+            self.store_int(SCHEMA_VERSION, 2)
         if version < 3:
             self._migrate_state(cursor)
-            self.update_config(SCHEMA_VERSION, 3)
+            self.store_int(SCHEMA_VERSION, 3)
         if version < 4:
             self._migrate_state(cursor)
             cursor.execute("UPDATE States SET creation_date = last_remote_updated")
-            self.update_config(SCHEMA_VERSION, 4)
+            self.store_int(SCHEMA_VERSION, 4)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":

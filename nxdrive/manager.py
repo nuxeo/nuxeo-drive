@@ -147,7 +147,7 @@ class Manager(QObject):
             # Add auto-lock on edit
             res = self._dao.get_config("direct_edit_auto_lock")
             if res is None:
-                self._dao.update_config("direct_edit_auto_lock", "1")
+                self._dao.store_bool("direct_edit_auto_lock", True)
 
         # Create DirectEdit
         self._create_autolock_service()
@@ -407,31 +407,27 @@ class Manager(QObject):
     @pyqtSlot(result=bool)
     def get_direct_edit_auto_lock(self) -> bool:
         # Enabled by default, if app is frozen
-        return (
-            self._dao.get_config("direct_edit_auto_lock", str(int(Options.is_frozen)))
-            == "1"
-        )
+        return self._dao.get_bool("direct_edit_auto_lock", default=Options.is_frozen)
 
     @pyqtSlot(bool)
     def set_direct_edit_auto_lock(self, value: bool) -> None:
-        self._dao.update_config("direct_edit_auto_lock", value)
+        self._dao.store_bool("direct_edit_auto_lock", value)
 
     @pyqtSlot(result=bool)
     def get_auto_update(self) -> bool:
         # Enabled by default, if app is frozen
-        return (
-            self._dao.get_config("auto_update", str(int(Options.is_frozen))) == "1"
-            and Options.update_check_delay > 0
+        return Options.update_check_delay > 0 and self._dao.get_bool(
+            "auto_update", default=Options.is_frozen
         )
 
     @pyqtSlot(bool)
     def set_auto_update(self, value: bool) -> None:
-        self._dao.update_config("auto_update", value)
+        self._dao.store_bool("auto_update", value)
 
     @pyqtSlot(result=bool)
     def get_auto_start(self) -> bool:
         # Enabled by default, if app is frozen
-        return self._dao.get_config("auto_start", str(int(Options.is_frozen))) == "1"
+        return self._dao.get_bool("auto_start", default=Options.is_frozen)
 
     def generate_report(self, path: Path = None) -> Path:
         from .report import Report
@@ -442,16 +438,17 @@ class Manager(QObject):
 
     @pyqtSlot(bool, result=bool)
     def set_auto_start(self, value: bool) -> bool:
-        self._dao.update_config("auto_start", value)
+        self._dao.store_bool("auto_start", value)
+
         if value:
             return self.osi.register_startup()
-        else:
-            return self.osi.unregister_startup()
+
+        return self.osi.unregister_startup()
 
     @pyqtSlot(result=bool)
     def use_light_icons(self) -> bool:
-        """Return True is the current icons set is the light one (default)."""
-        return self._dao.get_config("light_icons") == "1"
+        """Return True is the current icons set is the light one."""
+        return self._dao.get_bool("light_icons")
 
     @pyqtSlot(bool)
     def set_light_icons(self, value: bool) -> None:
@@ -474,11 +471,11 @@ class Manager(QObject):
         """
         Avoid sending statistics when testing or if the user does not allow it.
         """
-        return all({Options.is_frozen, self._dao.get_config("tracking", "1") == "1"})
+        return Options.is_frozen and self._dao.get_bool("tracking", default=True)
 
     @pyqtSlot(bool)
     def set_tracking(self, value: bool) -> None:
-        self._dao.update_config("tracking", value)
+        self._dao.store_bool("tracking", value)
         if value:
             self._create_tracker()
         elif self._tracker:

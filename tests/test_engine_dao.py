@@ -149,7 +149,7 @@ def test_batch_upload_files():
         assert dao.get_next_sync_file(state.remote_ref, "upload") is None
 
 
-def test_configuration():
+def test_configuration_get():
     with MockEngineDao("test_engine_migration.db") as dao:
         result = dao.get_config("empty", "DefaultValue")
         assert result == "DefaultValue"
@@ -170,6 +170,97 @@ def test_configuration():
 
         result = dao.get_config("empty")
         assert result is None
+
+
+def test_configuration_get_bool():
+    name = "something"
+    with MockEngineDao("test_engine_migration.db") as dao:
+        # Boolean parameter set to True
+        dao.store_bool(name, True)
+        assert dao.get_bool(name) is True
+        assert dao.get_bool(name, default=True) is True
+        assert dao.get_bool(name, default=False) is True
+        assert dao.get_bool(name, default="nothing") is True
+
+        # Boolean parameter set to False
+        dao.store_bool(name, False)
+        assert dao.get_bool(name) is False
+        assert dao.get_bool(name, default=True) is False
+        assert dao.get_bool(name, default=False) is False
+        assert dao.get_bool(name, default="nothing") is False
+
+        # Unknown parameter
+        assert dao.get_bool("unk") is False
+        assert dao.get_bool("unk", default="string") is False
+        assert dao.get_bool("unk", default=True) is True
+        assert dao.get_bool("unk", default=0) is False
+        assert dao.get_bool("unk", default=1) is True
+
+        # Mimic old behavior to ensure no regression
+
+        dao.store_int("web_authentication", 0)
+        res = dao.get_config("web_authentication", "0") == "1"
+        assert res is False
+        assert dao.get_bool("web_authentication") is res
+
+        dao.store_int("web_authentication", 1)
+        res = dao.get_config("web_authentication", "0") == "1"
+        assert res is True
+        assert dao.get_bool("web_authentication") is res
+
+        res = dao.get_config("ssl_verify", "1") != "0"
+        assert res is True
+        assert dao.get_bool("ssl_verify", default=True) is res
+
+        is_frozen = True  # False value for Options.is_frozen
+        res = dao.get_config("direct_edit_auto_lock", str(int(is_frozen))) == "1"
+        assert res is True
+        assert dao.get_bool("direct_edit_auto_lock", default=is_frozen) is res
+
+        is_frozen = False  # False value for Options.is_frozen
+        res = dao.get_config("direct_edit_auto_lock", str(int(is_frozen))) == "1"
+        assert res is False
+        assert dao.get_bool("direct_edit_auto_lock", default=is_frozen) is res
+
+        res = dao.get_config("light_icons") == "1"
+        assert res is False
+        assert dao.get_bool("light_icons") is res
+
+
+def test_configuration_get_int():
+    name = "something"
+    with MockEngineDao("test_engine_migration.db") as dao:
+        # Boolean parameter set to True
+        dao.store_int(name, 42)
+        assert dao.get_int(name) == 42
+        assert dao.get_int(name, default=-42) == 42
+        assert dao.get_int(name, default=0) == 42
+        assert dao.get_int(name, default="nothing") == 42
+
+        # Boolean parameter set to False
+        dao.store_int(name, -42)
+        assert dao.get_int(name) == -42
+        assert dao.get_int(name, default=42) == -42
+        assert dao.get_int(name, default=0) == -42
+        assert dao.get_int(name, default="nothing") == -42
+
+        # Unknown parameter
+        assert dao.get_int("unk") == 0
+        assert dao.get_int("unk", default="string") == 0
+        assert dao.get_int("unk", default=False) == 0
+        assert dao.get_int("unk", default=True) == 1
+        assert dao.get_int("unk", default=1) == 1
+
+        # Mimic old behavior to ensure no regression
+
+        res = int(dao.get_config("remote_last_sync_date", 0))
+        assert res == 1_427_818_905_000
+        assert dao.get_int("remote_last_sync_date") == res
+
+        dao.delete_config("remote_last_sync_date")
+        res = int(dao.get_config("remote_last_sync_date", 0))
+        assert res == 0
+        assert dao.get_int("remote_last_sync_date") == res
 
 
 def test_conflicts():
