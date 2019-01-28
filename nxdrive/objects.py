@@ -170,6 +170,7 @@ class NuxeoDocumentInfo:
             uid = doc["uid"]
             path = doc["path"]
             props = doc["properties"]
+            file_content_data = doc["properties"].get("file:content").get("data")
             name = unicodedata.normalize("NFC", props["dc:title"])
             folderish = "Folderish" in doc["facets"]
             modified = doc["lastModified"]
@@ -178,7 +179,8 @@ class NuxeoDocumentInfo:
 
         last_update = parser.parse(modified)
 
-        blobs = {} if folderish else NuxeoDocumentInfo._parse_blobs(props)
+        # check for file:content/data instead of folderish facet NXDRIVE-1519
+        blobs = NuxeoDocumentInfo._parse_blobs(props) if file_content_data else {}
 
         # Lock info
         lock_owner = doc.get("lockOwner")
