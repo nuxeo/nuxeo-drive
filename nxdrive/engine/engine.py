@@ -407,9 +407,7 @@ class Engine(QObject):
         return url
 
     def _load_configuration(self) -> None:
-        self._web_authentication = (
-            self._dao.get_config("web_authentication", "0") == "1"
-        )
+        self._web_authentication = self._dao.get_bool("web_authentication")
         self.server_url = self._dao.get_config("server_url")
         self.hostname = urlsplit(self.server_url).hostname
         self.wui = self._dao.get_config("ui", default="jsf")
@@ -417,7 +415,7 @@ class Engine(QObject):
         self.remote_user = self._dao.get_config("remote_user")
         self._remote_password = self._dao.get_config("remote_password")
         self._remote_token = self._dao.get_config("remote_token")
-        self._ssl_verify = self._dao.get_config("ssl_verify", "1") != "0"
+        self._ssl_verify = self._dao.get_bool("ssl_verify", default=True)
         if Options.ssl_no_verify:
             self._ssl_verify = False
         self._ca_bundle = Options.ca_bundle or self._dao.get_config("ca_bundle")
@@ -751,12 +749,12 @@ class Engine(QObject):
             self._remote_password = None
 
         # Save the configuration
-        self._dao.update_config("web_authentication", self._web_authentication)
+        self._dao.store_bool("web_authentication", self._web_authentication)
         self._dao.update_config("server_url", self.server_url)
         self._dao.update_config("remote_user", self.remote_user)
         self._dao.update_config("remote_password", self._remote_password)
         self._dao.update_config("remote_token", self._remote_token)
-        self._dao.update_config("ssl_verify", self._ssl_verify)
+        self._dao.store_bool("ssl_verify", self._ssl_verify)
         self._dao.update_config("ca_bundle", self._ca_bundle)
 
         # Check for the root

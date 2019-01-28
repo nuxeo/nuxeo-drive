@@ -39,14 +39,14 @@ class RemoteWatcher(EngineWorker):
         self.server_interval = delay
 
         self._next_check = 0
-        self._last_sync_date = int(self._dao.get_config("remote_last_sync_date", 0))
-        self._last_event_log_id = int(
-            self._dao.get_config("remote_last_event_log_id", 0)
-        )
+        self._last_sync_date: int = self._dao.get_int("remote_last_sync_date")
+        self._last_event_log_id: int = self._dao.get_int("remote_last_event_log_id")
         self._last_root_definitions = self._dao.get_config(
             "remote_last_root_definitions", ""
         )
-        self._last_remote_full_scan = self._dao.get_config("remote_last_full_scan")
+        self._last_remote_full_scan: Optional[datetime] = self._dao.get_config(
+            "remote_last_full_scan"
+        )
         self._metrics = {
             "last_remote_scan_time": -1,
             "last_remote_update_time": -1,
@@ -628,8 +628,8 @@ class RemoteWatcher(EngineWorker):
         # see https://jira.nuxeo.com/browse/NXP-14826.
         self._last_event_log_id = int(summary.get("upperBound", 0))
 
-        self._dao.update_config("remote_last_sync_date", self._last_sync_date)
-        self._dao.update_config("remote_last_event_log_id", self._last_event_log_id)
+        self._dao.store_int("remote_last_sync_date", self._last_sync_date)
+        self._dao.store_int("remote_last_event_log_id", self._last_event_log_id)
         self._dao.update_config(
             "remote_last_root_definitions", self._last_root_definitions
         )
