@@ -428,13 +428,13 @@ class ErrorOpenedFile(Notification):
         )
 
 
-class FileDeletionError(Notification):
+class LongPathError(Notification):
     def __init__(self, path: str) -> None:
         values = [short_name(path)]
         super().__init__(
-            "DELETION_ERROR",
-            title=Translator.get("DELETION_ERROR_TITLE"),
-            description=Translator.get("DELETION_ERROR_MSG", values),
+            "LONG_PATH_ERROR",
+            title=Translator.get("LONG_PATH_ERROR_TITLE"),
+            description=Translator.get("LONG_PATH_ERROR_MSG", values),
             level=Notification.LEVEL_ERROR,
             flags=(
                 Notification.FLAG_UNIQUE
@@ -489,13 +489,13 @@ class DefaultNotificationService(NotificationService):
         engine.invalidAuthentication.connect(self._invalidAuthentication)
         engine.online.connect(self._validAuthentication)
         engine.errorOpenedFile.connect(self._errorOpenedFile)
-        engine.fileDeletionErrorTooLong.connect(self._fileDeletionErrorTooLong)
+        engine.longPathError.connect(self._longPathError)
 
     def _errorOpenedFile(self, doc: DocPair) -> None:
         self.send_notification(ErrorOpenedFile(str(doc.local_path), doc.folderish))
 
-    def _fileDeletionErrorTooLong(self, doc: DocPair) -> None:
-        self.send_notification(FileDeletionError(str(doc.local_path)))
+    def _longPathError(self, doc: DocPair) -> None:
+        self.send_notification(LongPathError(str(doc.local_path)))
 
     def _lockDocument(self, filename: str) -> None:
         self.send_notification(LockNotification(filename))

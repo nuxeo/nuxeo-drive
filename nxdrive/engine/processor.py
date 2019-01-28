@@ -337,8 +337,12 @@ class Processor(EngineWorker):
                         )
                         self.engine.errorOpenedFile.emit(doc_pair)
                         self._postpone_pair(doc_pair, "Used by another process")
-                    elif error in {111, 121, 124, 206, 1223}:
+                    elif error in {36, 111, 121, 124, 206, 1223}:
                         """
+                        OSError: [Errno 36] Filename too long
+                        Cause: on GNU/Linux, filename is restricted to 255 chars
+                        or even worse: 143 if using encryptFS
+
                         WindowsError: [Error 111] ??? (seems related to deep
                         tree)
                         Cause: short paths are disabled on Windows
@@ -362,7 +366,7 @@ class Processor(EngineWorker):
                         self._dao.remove_filter(
                             doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
                         )
-                        self.engine.fileDeletionErrorTooLong.emit(doc_pair)
+                        self.engine.longPathError.emit(doc_pair)
                     elif hasattr(exc, "trash_issue"):
                         """
                         Special value to handle trash issues from filters on
