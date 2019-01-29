@@ -18,6 +18,8 @@ Possible `ARG`:
 
     --build: freeze the client into self-hosted binary package
     --build-ext: build the FinderSync extension (macOS only)
+    --install: install a complete development environment
+    --install-release: install a complete environment for a release (without tests requirements)
     --start: start Nuxeo Drive
     --tests: launch the tests suite
 
@@ -38,9 +40,10 @@ See [pyenv](https://github.com/yyuu/pyenv/wiki/Common-build-problems#requirement
 Possible `ARG`:
 
     -build: freeze the client into self-hosted binary package
+    -install: install a complete development environment
+    -install_release: install a complete environment for a release (without tests requirements)
     -start: start Nuxeo Drive
     -tests: launch the tests suite
-    -direct: skip dependencies downloads
 
 Executing the script without argument will setup.update the isolated environment.
 
