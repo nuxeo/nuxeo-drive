@@ -3,13 +3,16 @@ import json
 import os
 import stat
 import unicodedata
-from ctypes import windll
 from logging import getLogger
-from typing import Any, Dict, List, TYPE_CHECKING
+from pathlib import Path
+from typing import Any, Dict, List, Set, TYPE_CHECKING
 
 from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
+from win32com.shell import shell, shellcon
+
 from . import registry
+from ...constants import CONFIG_REGISTRY_KEY
 from ...objects import DocPair
 from ...utils import force_decode, force_encode
 
@@ -18,104 +21,49 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-WINDOWS_UTIL_DLL_PATH = (
-    "C:\\development\\liferay-nativity\\windows\\LiferayNativityShellExtensions"
-    "\\Release\\x64\\LiferayNativityUtil_x64.dll"
-)
-NATIVITY_REGISTRY_KEY = "SOFTWARE\\Liferay Inc\\Liferay Nativity"
-FILTER_FOLDERS_REGISTRY_NAME = "FilterFolders"
+OVERLAYS_REGISTRY_KEY = f"{CONFIG_REGISTRY_KEY}\\Overlays"
+FILTER_FOLDERS = "FilterFolders"
+ENABLE_OVERLAY = "EnableOverlay"
 
 
-class NativityControl:
-    def __init__(self, manager: "Manager") -> None:
-        self.manager = manager
-        self._loaded = False
-        self._connected = False
-        self._listener = None
-        self._win_dll = None
+def enable_overlay() -> None:
+    registry.write(OVERLAYS_REGISTRY_KEY, {ENABLE_OVERLAY: "1"})
 
-    def load(self) -> bool:
-        if not self._loaded:
-            try:
-                self._win_dll = windll.LoadLibrary(WINDOWS_UTIL_DLL_PATH)
-            except OSError:
-                log.exception("Unable to load DLL.")
-            else:
-                self._loaded = bool(self._win_dll)
-        return self._loaded
 
-    def connect(self) -> bool:
-        if self._connected:
-            return True
+def disable_overlay() -> None:
+    registry.write(OVERLAYS_REGISTRY_KEY, {ENABLE_OVERLAY: "0"})
 
-        if not self.load():
-            return False
-        log.info("Loaded DLL.")
 
-        if not self._listener:
-            self._listener = OverlayHandlerListener(
-                self.manager, host="localhost", port=33001
-            )
+def get_filter_folders() -> Set[Path]:
+    filters = json.loads(registry.read(OVERLAYS_REGISTRY_KEY)[FILTER_FOLDERS])
+    return {Path(path) for path in filters}
 
-        if not self._listener.isListening():
-            self._listener._listen()
 
-        return True
+def set_filter_folders(paths: Set[Path]) -> None:
+    filters = json.dumps([str(path) for path in paths])
+    registry.write(OVERLAYS_REGISTRY_KEY, {FILTER_FOLDERS: filters})
 
-    def disconnect(self):
-        if not self._connected:
-            return True
 
-        self._listener.close()
-        self._connected = False
+def refresh_files(paths: List[Path]) -> None:
+    for path in paths:
+        update_explorer(path)
 
-        return True
 
-    def set_filter_folder(self, path: str) -> None:
-        self.set_filter_folders([path])
-
-    def set_filter_folders(self, paths: List[str]) -> None:
-        registry.write(
-            NATIVITY_REGISTRY_KEY, {FILTER_FOLDERS_REGISTRY_NAME: json.dumps(paths)}
-        )
-
-        for path in paths:
-            self.refresh_explorer(path)
-
-    def refresh_files(self, paths: List[str]) -> None:
-        if not paths or not self._loaded:
-            return
-
-        for path in paths:
-            self.update_explorer(path)
-
-    # Native function bridges
-    def refresh_explorer(self, path: str) -> None:
-        if self._loaded:
-            self._win_dll.RefreshExplorer(path)
-
-    def update_explorer(self, path: str) -> None:
-        if self._loaded:
-            self._win_dll.UpdateExplorer(path)
-
-    def set_system_folder(self, path: str) -> None:
-        if self._loaded:
-            self._win_dll.SetSystemFolder(path)
+def update_explorer(path: Path) -> None:
+    shell.SHChangeNotify(
+        shellcon.SHCNE_UPDATEITEM,
+        shellcon.SHCNF_PATH | shellcon.SHCNF_FLUSH,
+        force_encode(str(path)),
+        None,
+    )
 
 
 class OverlayHandlerListener(QTcpServer):
-    def __init__(
-        self,
-        manager: "Manager",
-        *args: Any,
-        host: str = None,
-        port: int = None,
-        **kwargs: Any,
-    ) -> None:
+    def __init__(self, manager: "Manager", *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.host = host
-        self.port = port
         self.manager = manager
+        self.host = "localhost"
+        self.port = 50675
         self.newConnection.connect(self.handle_connection)
 
     def _listen(self):
@@ -125,7 +73,7 @@ class OverlayHandlerListener(QTcpServer):
     def handle_connection(self) -> None:
         """ Called when an Explorer instance is connecting. """
         con: QTcpSocket = self.nextPendingConnection()
-        print("getting connection")
+
         if not con or not con.waitForConnected():
             log.error(
                 f"Unable to open OverlayHandler server socket: {con.errorString()}"
@@ -133,20 +81,19 @@ class OverlayHandlerListener(QTcpServer):
             return
 
         if con.waitForReadyRead():
-            payload = con.readAll()
-            print(payload)
-            content = force_decode(payload.data()).replace(chr(0), "")
-            log.trace(f"OverlayHandler request: {content}")
+            payload = con.readLine()
 
-            response = self._handle_content(content)
-            if response:
-                log.trace(response)
-                con.write(force_encode(chr(0).join(response) + chr(0)))
-                con.waitForBytesWritten()
+            try:
+                content = payload.data().replace(b"\0", b"").decode("cp1252")
+            except:
+                log.debug(f"Unable to decode payload: {payload}")
+            else:
+                response = self._handle_content(content)
+                if response:
+                    con.write(force_encode(chr(0).join(response) + chr(0)))
 
-            con.disconnectFromHost()
-            con.waitForDisconnected()
-            del con
+        con.disconnectFromHost()
+        del con
 
     def _handle_content(self, content: str) -> str:
         content = json.loads(content)
@@ -155,18 +102,15 @@ class OverlayHandlerListener(QTcpServer):
             path = content.get("value")
             if not path:
                 return ""
-            path = unicodedata.normalize("NFC", force_decode(path))
+            path = Path(unicodedata.normalize("NFC", force_decode(path)))
 
             for engine in self.manager._engines.values():
                 # Only send status if we picked the right
                 # engine and if we're not targeting the root
-                if path == engine.local_folder:
-                    r_path = "/"
-                elif path.startswith(engine.local_folder_bs):
-                    r_path = path.replace(engine.local_folder, "").replace("\\", "/")
-                else:
-                    continue
+                if engine.local_folder not in path.parents:
+                    return ""
 
+                r_path = path.relative_to(engine.local_folder)
                 dao = engine._dao
                 state = dao.get_state_from_local(r_path)
                 break

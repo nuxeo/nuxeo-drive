@@ -14,6 +14,7 @@ from win32com.shell import shell, shellcon
 from win32con import LOGPIXELSX
 
 from . import registry
+from .overlay import get_filter_folders, set_filter_folders
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME, CONFIG_REGISTRY_KEY
 from ...objects import DocPair
@@ -176,3 +177,15 @@ class WindowsIntegration(AbstractOSIntegration):
             force_encode(str(path)),
             None,
         )
+
+    def watch_folder(self, folder: Path) -> None:
+        log.debug(f"Explorer now watching {folder!r}")
+        current_filters = get_filter_folders()
+        current_filters.add(folder)
+        set_filter_folders(current_filters)
+
+    def unwatch_folder(self, folder: Path) -> None:
+        log.debug(f"Explorer now ignoring {folder!r}")
+        current_filters = get_filter_folders()
+        current_filters.remove(folder)
+        set_filter_folders(current_filters)

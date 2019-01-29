@@ -406,17 +406,6 @@ class Engine(QObject):
             return url + "/"
         return url
 
-    @staticmethod
-    def _normalize_file_url(url: str) -> str:
-        """Ensure that user provided url always has a trailing '/'"""
-        if not url:
-            raise ValueError(f"Invalid url: {url!r}")
-        if not WINDOWS and not url.endswith("/"):
-            return url + "/"
-        if WINDOWS and not url.endswith("\\"):
-            return url + "\\"
-        return url
-
     def _load_configuration(self) -> None:
         self._web_authentication = self._dao.get_bool("web_authentication")
         self.server_url = self._dao.get_config("server_url")

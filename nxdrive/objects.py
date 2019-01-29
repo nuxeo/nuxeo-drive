@@ -66,9 +66,13 @@ class RemoteFileInfo:
         folderish = fs_item.get("folder", False)
 
         timestamp = fs_item.get("lastModificationDate")
-        last_update = datetime.fromtimestamp(timestamp // 1000) if timestamp else None
+        last_update = (
+            datetime.fromtimestamp(max(86400, timestamp // 1000)) if timestamp else None
+        )
         timestamp = fs_item.get("creationDate")
-        creation = datetime.fromtimestamp(timestamp // 1000) if timestamp else None
+        creation = (
+            datetime.fromtimestamp(max(86400, timestamp // 1000)) if timestamp else None
+        )
 
         if folderish:
             digest = None
