@@ -314,7 +314,7 @@ class Application(QApplication):
         self.osi.register_contextual_menu()
         self.installTranslator(Translator._singleton)
 
-    @pyqtSlot(str, str, str)
+    @pyqtSlot(str, Path, str)
     def _direct_edit_conflict(self, filename: str, ref: Path, digest: str) -> None:
         log.trace(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
         try:
