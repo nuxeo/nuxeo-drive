@@ -72,6 +72,7 @@
     "DRIVE_ROOT_MOVE": "Verplaatsen",
     "DRIVE_ROOT_MOVED": "De synchronisatiemap '{{ folder }}' van Nuxeo Drive is verplaatst naar '{{ new_folder }}'. Wilt u de synchronisatielocatie bijwerken, de map opnieuw aanmaken of de verbinding verbreken?",
     "DRIVE_ROOT_RECREATE": "Opnieuw aanmaken",
+    "DOWNGRADE_TO": "Downgrade to %1",
     "DUPLICATING": "Bezig met dupliceren ...",
     "ENGINE_BETA": "U hebt een bèta-engine geconfigureerd. U ervaart mogelijk een paar problemen. We stellen uw feedback op prijs.",
     "ENGINE_FOLDER": "Map",
@@ -123,6 +124,8 @@
     "LOCKED_FILE": "Kan '{{ name }}' niet bijwerken omdat het door {{ lock_owner }} op {{ lock_created }} is vergrendeld",
     "LOCK_NOTIFICATION_DESCRIPTION": "Het document '{{ name }}' is vergrendeld",
     "LOCK_NOTIFICATION_TITLE": "Automatische vergrendeling",
+    "LONG_PATH_ERROR_TITLE": "Filename too long",
+    "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "Handmatig",
     "METADATA_FILE_NOT_HANDLE": "Dit bestand wordt niet door de Nuxeo-server behandeld of wordt nog niet gesynchroniseerd.",
     "MINS_AGO": "{{interval}} minuten geleden",
@@ -236,13 +239,10 @@
     "UPGRADE_AVAILABLE": "Er is een nieuwe upgrade {{ version }} beschikbaar",
     "URL": "URL",
     "USE_LIGHT_ICONS": "Gebruik de ingestelde lichtpictogrammen",
-    "USE_OLDER_VERSION": "Gebruik oudere versie",
     "USERNAME": "Gebruikersnaam",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Webverificatie",
     "WELCOME_MESSAGE": "Stel uw account in en synchroniseer uw bestanden met het Nuxeo-platform.",
     "WINDOWS_ERROR_TITLE": "Documentfout",
     "WINDOWS_ERROR_OPENED_FILE": "Het bestand '{{ name }}' is in gebruik door een ander programma. Sluit dit af voordat Nuxeo Drive het uit uw lokale opslag kan verwijderen.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "De map '{{ name }}' of onderliggende mappen ervan zijn vergrendeld door een ander programma. Sluit dit af voordat Nuxeo Drive het uit uw lokale opslag kan verwijderen.",
-    "DELETION_ERROR_TITLE": "Fout verwijderen document",
-    "DELETION_ERROR_MSG": "De synchronisatie van document '{{ name }}' kan niet ongedaan worden gemaakt omdat het volledige pad te lang is."
+    "WINDOWS_ERROR_OPENED_FOLDER": "De map '{{ name }}' of onderliggende mappen ervan zijn vergrendeld door een ander programma. Sluit dit af voordat Nuxeo Drive het uit uw lokale opslag kan verwijderen."
 }

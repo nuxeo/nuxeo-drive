@@ -72,6 +72,7 @@
     "DRIVE_ROOT_MOVE": "Flytta",
     "DRIVE_ROOT_MOVED": "Synkroniseringsmappen „%1“ för Nuxeo Drive har flyttats till „%2“. Vill du uppdatera synkroniseringsplatsen, återskapa mappen eller koppla från?",
     "DRIVE_ROOT_RECREATE": "Återskapa",
+    "DOWNGRADE_TO": "Downgrade to %1",
     "DUPLICATING": "Duplicerar ...",
     "ENGINE_BETA": "Du har konfigurerat en betamotor. Om du upplever några problem skulle vi uppskatta att få feedback.",
     "ENGINE_FOLDER": "Mapp",
@@ -123,6 +124,8 @@
     "LOCKED_FILE": "Kan inte uppdatera „%1“ eftersom det har låsts av %2 den %3",
     "LOCK_NOTIFICATION_DESCRIPTION": "Dokumentet „%1“ har låsts",
     "LOCK_NOTIFICATION_TITLE": "Autolås",
+    "LONG_PATH_ERROR_TITLE": "Filename too long",
+    "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "Manuell",
     "METADATA_FILE_NOT_HANDLE": "Den här filen hanteras inte av Nuxeo-servern eller så har den inte synkroniserats ännu.",
     "MINS_AGO": "%1 minuter sedan",
@@ -236,13 +239,10 @@
     "UPGRADE_AVAILABLE": "Det finns en ny uppgradering %1",
     "URL": "Webbadress",
     "USE_LIGHT_ICONS": "Använd uppsättningen ljusikoner",
-    "USE_OLDER_VERSION": "Använd äldre version",
     "USERNAME": "Användarnamn",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive – webbautentisering",
     "WELCOME_MESSAGE": "Ange konto och synkronisera dina filer med Nuxeo Platform.",
     "WINDOWS_ERROR_TITLE": "Dokumentfel",
     "WINDOWS_ERROR_OPENED_FILE": "Filen „%1“ har öppnats av ett annat program. Stäng den innan Nuxeo Drive kan bearbeta den här borttagningen från den lokala lagringsplatsen.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "Mappen „%1“ eller dess underordnade mappar har låsts av ett annat program. Stäng den innan Nuxeo Drive kan bearbeta den här borttagningen från den lokala lagringsplatsen.",
-    "DELETION_ERROR_TITLE": "Fel vid dokumentborttagning",
-    "DELETION_ERROR_MSG": "Dokumentet „%1“ kan inte avsynkroniseras p. g. a. att den fullständiga sökvägen är för lång."
+    "WINDOWS_ERROR_OPENED_FOLDER": "Mappen „%1“ eller dess underordnade mappar har låsts av ett annat program. Stäng den innan Nuxeo Drive kan bearbeta den här borttagningen från den lokala lagringsplatsen."
 }

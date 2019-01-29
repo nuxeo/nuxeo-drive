@@ -72,6 +72,7 @@
     "DRIVE_ROOT_MOVE": "Sposta",
     "DRIVE_ROOT_MOVED": "La cartella di sincronizzazione „%1“ di Nuxeo Drive è stata spostata in „%2“. Aggiornare la posizione di sincronizzazione, ricreare la cartella o disconnettersi?",
     "DRIVE_ROOT_RECREATE": "Ricrea",
+    "DOWNGRADE_TO": "Downgrade to %1",
     "DUPLICATING": "Duplicazione in corso...",
     "ENGINE_BETA": "Si è configurato un motore beta. Potrebbero verificarsi dei problemi e gradiremmo ricevere i suoi commenti.",
     "ENGINE_FOLDER": "Cartella",
@@ -123,6 +124,8 @@
     "LOCKED_FILE": "Impossibile aggiornare „%1“ perché è stato bloccato da %2 il %3",
     "LOCK_NOTIFICATION_DESCRIPTION": "Il documento „%1“ è stato bloccato",
     "LOCK_NOTIFICATION_TITLE": "Blocco automatico",
+    "LONG_PATH_ERROR_TITLE": "Filename too long",
+    "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "Manuale",
     "METADATA_FILE_NOT_HANDLE": "Questo file non è gestito da server Nuxeo oppure non è stato ancora sincronizzato.",
     "MINS_AGO": "%1 minuti fa",
@@ -236,13 +239,10 @@
     "UPGRADE_AVAILABLE": "Nuovo aggiornamento a %1 disponibile",
     "URL": "URL",
     "USE_LIGHT_ICONS": "Utilizza il set di icone chiare",
-    "USE_OLDER_VERSION": "Utilizza vecchia versione",
     "USERNAME": "Nome utente",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Autenticazione Web",
     "WELCOME_MESSAGE": "Impostare l’account e sincronizzare i file con Nuxeo Platform.",
     "WINDOWS_ERROR_TITLE": "Errore del documento",
     "WINDOWS_ERROR_OPENED_FILE": "Il file „%1“ è utilizzato da un altro programma software. Chiudere il programma per consentire a Nuxeo Drive di elaborare l’eliminazione dall’archivio locale.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "La cartella „%1“ o i suoi figli sono bloccati da un altro programma software. Chiudere il programma per consentire a Nuxeo Drive di elaborare l’eliminazione dall’archivio locale.",
-    "DELETION_ERROR_TITLE": "Errore di eliminazione del documento",
-    "DELETION_ERROR_MSG": "Impossibile annullare la sincronizzazione del documento „%1“ perché il suo percorso completo è troppo lungo."
+    "WINDOWS_ERROR_OPENED_FOLDER": "La cartella „%1“ o i suoi figli sono bloccati da un altro programma software. Chiudere il programma per consentire a Nuxeo Drive di elaborare l’eliminazione dall’archivio locale."
 }

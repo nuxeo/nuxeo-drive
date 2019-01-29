@@ -72,6 +72,7 @@
     "DRIVE_ROOT_MOVE": "Déplacer",
     "DRIVE_ROOT_MOVED": "Le dossier de synchronisation „%1“ a été déplacé vers „%2“. Voulez-vous le mettre à jour, vous déconnecter ou le recréer ?",
     "DRIVE_ROOT_RECREATE": "Recréer",
+    "DOWNGRADE_TO": "Downgrade to %1",
     "DUPLICATING": "Duplication en cours...",
     "ENGINE_BETA": "Vous avez configuré un moteur en phase beta. Il est possible de rencontrer des problèmes et nous vous serions reconnaissants de vos retours.",
     "ENGINE_FOLDER": "Dossier de synchronisation",
@@ -123,6 +124,8 @@
     "LOCKED_FILE": "„%1“ ne peut pas être mis à jour, il est verrouillé par %2 depuis le %3",
     "LOCK_NOTIFICATION_DESCRIPTION": "Le document „%1“ a été verrouillé",
     "LOCK_NOTIFICATION_TITLE": "Autoverrou",
+    "LONG_PATH_ERROR_TITLE": "Filename too long",
+    "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "Manuel",
     "METADATA_FILE_NOT_HANDLE": "Ce fichier n'est pas géré par le serveur Nuxeo ou n'est pas synchronisé.",
     "MINS_AGO": "Il y a %1 minutes",
@@ -236,13 +239,10 @@
     "UPGRADE_AVAILABLE": "Nouvelle mise à jour %1 disponible",
     "URL": "URL",
     "USE_LIGHT_ICONS": "Utiliser des icônes claires",
-    "USE_OLDER_VERSION": "Utiliser la version antérieure",
     "USERNAME": "Utilisateur",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Authentification web",
     "WELCOME_MESSAGE": "Connectez-vous et synchronisez vos fichiers avec Nuxeo.",
     "WINDOWS_ERROR_TITLE": "Erreur de document",
     "WINDOWS_ERROR_OPENED_FILE": "Le fichier „%1“ est ouvert par un autre logiciel. Veuillez le fermer pour que Nuxeo Drive puisse traiter la suppression depuis votre espace de stockage local.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "Le dossier „%1“ ou un de ses enfants est verrouillé par un autre logiciel. Veuillez le fermer pour que Nuxeo Drive puisse traiter la suppression depuis votre espace de stockage local.",
-    "DELETION_ERROR_TITLE": "Erreur de suppression de document",
-    "DELETION_ERROR_MSG": "Le document „%1“ ne peut pas être désynchronisé car son chemin d’accès complet est trop long."
+    "WINDOWS_ERROR_OPENED_FOLDER": "Le dossier „%1“ ou un de ses enfants est verrouillé par un autre logiciel. Veuillez le fermer pour que Nuxeo Drive puisse traiter la suppression depuis votre espace de stockage local."
 }
