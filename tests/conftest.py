@@ -100,6 +100,7 @@ def no_warnings(recwarn):
             isinstance(warning.message, ImportWarning)
             and message.startswith("Not importing directory ")
             and " missing __init__" in message
+            and "sentry_sdk" in message
         ):
             warnings.append(f"{warning.filename}:{warning.lineno} {message}")
     assert not warnings
