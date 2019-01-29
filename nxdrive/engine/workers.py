@@ -63,12 +63,14 @@ class Worker(QObject):
         the thread is sent.
         """
 
-        self._continue = False
-        if not self._thread.wait(5000):
-            log.exception(f"Thread {self._thread_id} is not responding - terminate it")
-            self._thread.terminate()
+        self.quit()
+
         if self._thread.isRunning():
             self._thread.wait(5000)
+
+        if self._thread.isRunning():
+            log.error(f"Thread {self._thread_id} is not responding - terminate it")
+            self._thread.terminate()
 
     def resume(self) -> None:
         """ Resume the thread. """
@@ -92,6 +94,7 @@ class Worker(QObject):
         """ Order the stop of the thread. Return before thread is stopped. """
 
         self._continue = False
+        self._thread.quit()
 
     def get_thread_id(self) -> Optional[int]:
         """ Get the thread ID. """
