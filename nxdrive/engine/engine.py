@@ -649,34 +649,45 @@ class Engine(QObject):
         return self._stopped
 
     def stop(self) -> None:
-        self._stopped = True
         log.trace(f"Engine {self.uid} stopping")
+
+        self._stopped = True
+
+        # The signal will propagate to all Workers. Each Worker being a QThread,
+        # the stop() method will be called on each one that will trigger QThread.stop().
         self._stop.emit()
+
         for thread in self._threads:
             if not thread.wait(5000):
-                log.warning("Thread is not responding - terminate it")
+                log.error(f"Thread {thread} is not responding - terminate it")
                 thread.terminate()
-        if hasattr(
-            self, "_local_watcher"
-        ) and not self._local_watcher.get_thread().wait(5000):
-            self._local_watcher.get_thread().terminate()
-        if hasattr(
-            self, "_remote_watcher"
-        ) and not self._remote_watcher.get_thread().wait(5000):
-            self._remote_watcher.get_thread().terminate()
+
+        with suppress(AttributeError):
+            thread = self._local_watcher.get_thread()
+            if not thread.wait(5000):
+                log.error(f"Thread {thread} is not responding - terminate it")
+                thread.terminate()
+
+        with suppress(AttributeError):
+            thread = self._remote_watcher.get_thread()
+            if not thread.wait(5000):
+                log.error(f"Thread {thread} is not responding - terminate it")
+                thread.terminate()
+
         for thread in self._threads:
             if thread.isRunning():
                 thread.wait(5000)
-        if (
-            hasattr(self, "_remote_watcher")
-            and not self._remote_watcher.get_thread().isRunning()
-        ):
-            self._remote_watcher.get_thread().wait(5000)
-        if (
-            hasattr(self, "_local_watcher")
-            and not self._local_watcher.get_thread().isRunning()
-        ):
-            self._local_watcher.get_thread().wait(5000)
+
+        with suppress(AttributeError):
+            thread = self._remote_watcher.get_thread()
+            if not thread.isRunning():
+                thread.wait(5000)
+
+        with suppress(AttributeError):
+            thread = self._local_watcher.get_thread()
+            if not thread.isRunning():
+                thread.wait(5000)
+
         # Soft locks needs to be reinit in case of threads termination
         Processor.soft_locks = {}
         log.trace(f"Engine {self.uid} stopped")
