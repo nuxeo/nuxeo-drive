@@ -4,7 +4,7 @@ from contextlib import suppress
 from logging import getLogger
 from typing import Dict, Optional, Union
 
-__all__ = ("read", "delete")
+__all__ = ("delete", "read", "write")
 
 log = getLogger(__name__)
 
@@ -20,10 +20,10 @@ def create(key: str) -> bool:
     try:
         with winreg.CreateKey(HKCU, key):
             log.debug(f"Created {key!r}")
+            return True
     except OSError:
         log.exception(f"Couldn't create {key!r}")
-        return False
-    return True
+    return False
 
 
 def delete(key: str) -> bool:
@@ -43,10 +43,12 @@ def delete(key: str) -> bool:
                     delete(f"{key}\\{subkey}")
             winreg.DeleteKey(HKCU, key)
             log.debug(f"Deleted {key!r}")
+            return True
+    except FileNotFoundError:
+        return True
     except OSError:
         log.exception(f"Couldn't delete {key!r}")
-        return False
-    return True
+    return False
 
 
 def delete_value(key: str, value: str) -> bool:
@@ -59,10 +61,12 @@ def delete_value(key: str, value: str) -> bool:
         with winreg.OpenKey(HKCU, key, 0, winreg.KEY_SET_VALUE) as handle:
             winreg.DeleteValue(handle, value)
             log.debug(f"Deleted {value!r} value from {key!r}")
+            return True
+    except FileNotFoundError:
+        return True
     except OSError:
         log.exception(f"Couldn't delete {value!r} value from {key!r}")
-        return False
-    return True
+    return False
 
 
 def exists(key: str) -> bool:
@@ -89,8 +93,8 @@ def read(key: str) -> Optional[Dict[str, str]]:
             for i in range(winreg.QueryInfoKey(handle)[1]):
                 value = winreg.EnumValue(handle, i)
                 values[value[0]] = value[1]
-    except OSError:
-        log.exception(f"Couldn't read {key!r} values")
+    except OSError as exc:
+        log.warning(f"Couldn't read {key!r} values: {exc}")
         return None
     return values
 

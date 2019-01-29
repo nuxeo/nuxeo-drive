@@ -12,6 +12,9 @@ from .common import (
     UnitTestCase,
 )
 
+if WINDOWS:
+    from nxdrive.osi.windows import registry
+
 
 class TestWindows(UnitTestCase):
     def test_local_replace(self):
@@ -155,3 +158,55 @@ class TestWindows(UnitTestCase):
         conf = osi.get_system_configuration()
         assert conf["update_site_url"] == "http://no.where"
         assert conf["channel"] == "beta"
+
+
+@pytest.mark.skipif(not WINDOWS, reason="Windows only.")
+def test_registry_create():
+    k = f"Software\\Classes\\directory\\shell\\MockedApplicationName"
+    try:
+        registry.create(k)
+        assert registry.exists(k)
+    finally:
+        assert registry.delete(k)
+
+
+@pytest.mark.skipif(not WINDOWS, reason="Windows only.")
+def test_registry_delete():
+    k = f"Software\\Classes\\directory\\shell\\MockedApplicationNameUnknown"
+    assert registry.delete(k)
+
+
+@pytest.mark.skipif(not WINDOWS, reason="Windows only.")
+def test_registry_delete_value():
+    k = f"Software\\Classes\\directory\\shell\\MockedApplicationNameUnknown"
+    v = "nonSenseValue"
+    assert registry.delete_value(k, v)
+
+
+@pytest.mark.skipif(not WINDOWS, reason="Windows only.")
+def test_registry_exists():
+    k = f"Software\\Classes\\directory\\shell\\MockedApplicationNameUnknown"
+    assert not registry.exists(k)
+
+
+@pytest.mark.skipif(not WINDOWS, reason="Windows only.")
+def test_registry_read():
+    k = "Software\\MockedApplicationName"
+    assert not registry.read(k)
+    assert registry.delete(k)
+
+
+@pytest.mark.skipif(not WINDOWS, reason="Windows only.")
+def test_registry_write():
+    k1 = "Software\\MockedApplicationName1"
+    k2 = "Software\\MockedApplicationName2"
+    values = {"a": "foo", "b": "42"}
+
+    try:
+        assert registry.write(k1, "bar")
+        assert registry.write(k2, values)
+        assert not registry.read(f"{k1}\\unknown")
+        assert registry.read(k2) == values
+    finally:
+        assert registry.delete(k1)
+        assert registry.delete(k2)
