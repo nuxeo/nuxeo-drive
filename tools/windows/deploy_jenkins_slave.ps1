@@ -10,6 +10,7 @@
 param (
 	[switch]$build = $false,
 	[switch]$install = $false,
+	[switch]$install_release = $false,
 	[switch]$start = $false,
 	[switch]$tests = $false
 )
@@ -169,15 +170,17 @@ function install_deps {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-dev.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
+	if (-Not ($install_release)) {
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-dev.txt
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
+		# & $Env:STORAGE_DIR\Scripts\pre-commit.exe install
 	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-	& $Env:STORAGE_DIR\Scripts\pre-commit.exe install
 }
 
 function install_python {
@@ -292,7 +295,7 @@ function main {
 
 	if ($build) {
 		build_installer
-	} elseif ($install) {
+	} elseif ($install -or $install_release) {
 		install_deps
 		if ((check_import "import PyQt5") -ne 1) {
 			Write-Output ">>> No PyQt5. Installation failed."

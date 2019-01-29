@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/bash
 # Shared functions for tools/$OSI/deploy_jenkins_slave.sh files.
 #
 # Usage: sh tools/$OSI/deploy_jenkins_slave.sh [ARG]
@@ -13,13 +13,14 @@
 # See /docs/deployment.md for more information.
 #
 
+set -e
+
 # Global variables
 PYTHON="python -E -s"
 PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 
 build_installer() {
     echo ">>> Building the release package"
-    cd "${WORKSPACE_DRIVE}"
     pyinstaller ndrive.spec --clean --noconfirm
 
     # Do some clean-up
@@ -35,10 +36,15 @@ build_installer() {
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     fi
 
+    # Remove empty folders
     find dist/ndrive -depth -type d -empty -delete
-    find dist/*.app -depth -type d -empty -delete
+    if [ "${OSI}" = "osx" ]; then
+        find dist/*.app -depth -type d -empty -delete
+    fi
 
-    cd dist ; zip -9 -r "nuxeo-drive-${OSI}.zip" "ndrive" ; cd ..
+    cd dist
+    zip -9 -r "nuxeo-drive-${OSI}.zip" "ndrive"
+    cd -
 
     create_package
 }
@@ -100,29 +106,42 @@ check_vars() {
 install_deps() {
     echo ">>> Installing requirements"
     # Do not delete, it fixes "Could not import setuptools which is required to install from a source distribution."
-    cd "${WORKSPACE_DRIVE}"
     ${PIP} setuptools
     # NXDRIVE-1521: pip 19.0.1 prevents PyInstaller installation
     ${PIP} pip==18.1
     ${PIP} -r requirements.txt
-    ${PIP} -r requirements-dev.txt
-    ${PIP} -r requirements-tests.txt
-    pyenv rehash
-    pre-commit install
+    if [ "${INSTALL_RELEASE_ARG:=0}" != "1" ]; then
+        ${PIP} -r requirements-dev.txt
+        ${PIP} -r requirements-tests.txt
+        pyenv rehash
+        pre-commit install
+    fi
 }
 
 install_pyenv() {
     local url="https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
+    local venv_plugin
+    local venv_plugin_url="https://github.com/yyuu/pyenv-virtualenv.git"
 
     export PYENV_ROOT="${STORAGE_DIR}/.pyenv"
     export PATH="${PYENV_ROOT}/bin:$PATH"
 
-    if ! hash pyenv 2>/dev/null; then
-        echo ">>> [pyenv] Downloading and installing"
-        curl -L "${url}" | bash
-    else
-        echo ">>> [pyenv] Updating"
-        cd "${PYENV_ROOT}" && git pull && cd -
+    venv_plugin="${PYENV_ROOT}/plugins/pyenv-virtualenv"
+
+    if [ "${INSTALL_ARG:=0}" = "1" ]; then
+        if [ ! -d "${PYENV_ROOT}" ]; then
+            echo ">>> [pyenv] Downloading and installing"
+            curl -L "${url}" | bash
+        else
+            echo ">>> [pyenv] Updating"
+            cd "${PYENV_ROOT}"
+            git pull
+            cd -
+        fi
+        if [ ! -d "${venv_plugin}" ]; then
+            echo ">>> [pyenv] Installing virtualenv plugin"
+            git clone "${venv_plugin_url}" "${venv_plugin}"
+        fi
     fi
 
     echo ">>> [pyenv] Initializing"
@@ -196,6 +215,13 @@ main() {
                 build_extension
                 exit 0
             ;;
+            "--install")
+                export INSTALL_ARG="1"
+            ;;
+            "--install-release")
+                export INSTALL_ARG="1"
+                export INSTALL_RELEASE_ARG="1"
+            ;;
         esac
     fi
 
@@ -207,7 +233,7 @@ main() {
     if [ $# -eq 1 ]; then
         case "$1" in
             "--build") build_installer ;;
-            "--install")
+            "--install" | "--install-release")
                 install_deps
                 if ! check_import "import PyQt5" >/dev/null; then
                     echo ">>> No PyQt5. Installation failed."

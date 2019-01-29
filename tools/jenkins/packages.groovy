@@ -101,7 +101,7 @@ for (x in slaves) {
 
                         try {
                             if (osi == 'GNU/Linux') {
-                                sh 'tools/linux/deploy_jenkins_slave.sh --install'
+                                sh 'tools/linux/deploy_jenkins_slave.sh --install-release'
                                 sh 'tools/linux/deploy_jenkins_slave.sh --build'
                                 archiveArtifacts artifacts: 'dist/*.deb', fingerprint: true
                             } else if (osi == 'macOS') {
@@ -112,7 +112,7 @@ for (x in slaves) {
                                 withEnv(env_vars) {
                                     withCredentials([string(credentialsId: 'MOBILE_LOGIN_KEYCHAIN_PASSWORD',
                                                             variable: 'LOGIN_KEYCHAIN_PASSWORD')]) {
-                                        sh 'tools/osx/deploy_jenkins_slave.sh --install'
+                                        sh 'tools/osx/deploy_jenkins_slave.sh --install-release'
                                         sh 'tools/osx/deploy_jenkins_slave.sh --build'
                                         archiveArtifacts artifacts: 'dist/*.dmg', fingerprint: true
                                     }
@@ -123,7 +123,7 @@ for (x in slaves) {
                                     'SIGNTOOL_PATH=C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit',
                                 ]
                                 withEnv(env_vars) {
-                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -install'
+                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -install_release'
                                     bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
                                     archiveArtifacts artifacts: 'dist/*.exe', fingerprint: true
                                 }

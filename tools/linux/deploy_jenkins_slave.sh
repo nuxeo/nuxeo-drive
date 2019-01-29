@@ -1,5 +1,7 @@
-#!/bin/sh -eu
+#!/bin/bash
 # See tools/posix/deploy_jenkins_slave.sh for more informations and arguments.
+
+set -e
 
 export OSI="linux"
 
