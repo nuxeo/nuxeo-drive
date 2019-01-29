@@ -314,6 +314,18 @@ class Processor(EngineWorker):
                     )
                     self.giveup_error(doc_pair, "UNKNOWN_DIGEST", exception=exc)
                     continue
+                except PermissionError:
+                    """
+                    WindowsError: [Error 32] The process cannot access the
+                    file because it is being used by another process
+                    """
+                    log.info(
+                        "Document used by another software, delaying "
+                        f"action({doc_pair.pair_state}) "
+                        f"on {doc_pair.local_path!r}, ref={doc_pair.remote_ref!r}"
+                    )
+                    self.engine.errorOpenedFile.emit(doc_pair)
+                    self._postpone_pair(doc_pair, "Used by another process")
                 except OSError as exc:
                     # Try to handle different kind of Windows error
                     error = getattr(exc, "winerror", exc.errno)
@@ -325,18 +337,6 @@ class Processor(EngineWorker):
                         """
                         log.debug(f"The document does not exist anymore:{doc_pair!r}")
                         self._dao.remove_state(doc_pair)
-                    elif error == 32:
-                        """
-                        WindowsError: [Error 32] The process cannot access the
-                        file because it is being used by another process
-                        """
-                        log.info(
-                            "Document used by another software, delaying "
-                            f"action({doc_pair.pair_state}) "
-                            f"on {doc_pair.local_path!r}, ref={doc_pair.remote_ref!r}"
-                        )
-                        self.engine.errorOpenedFile.emit(doc_pair)
-                        self._postpone_pair(doc_pair, "Used by another process")
                     elif error in {36, 111, 121, 124, 206, 1223}:
                         """
                         OSError: [Errno 36] Filename too long
