@@ -25,7 +25,7 @@ The proposal should be submitted as a draft DEP via a [GitHub pull request](http
 The standard DEP workflow is:
 
 - Create a file named `YYYY-MM Title.md` inside the folder `docs/dep/` that contains your new DEP.
-- You should use that [skeleton](0000-00%20Skeleton.md) to be sure to have an overall idea of sections and required headers. You can add more sections for your needs.
+- You should use this [template](0000-00%20Template.md) to be sure to have an overall idea of sections and required headers. You can add more sections for your needs.
 
 Once the review process is complete, the DEP will be merged.
 
@@ -34,3 +34,10 @@ Once the review process is complete, the DEP will be merged.
 DEP status are `draft`, `approved`, `rejected`, `ongoing implementation` and `implemented`.
 
 `rejected` and `implemented` status are final, e.g. when one of those is set, the DEP cannot be modifed later. Another DEP will be needed to apply changes to the current status.
+
+## Security
+
+When implementing, keep in mind that security is a critical part:
+
+- Will you be introducing another third-party module? Is it the most secure?
+- Have a look at the [OWASP top ten project](https://www.owasp.org/index.php/Category:OWASP_Top_Ten_Project) to ensure you will not introduce vulnerabilities.
