@@ -427,6 +427,23 @@ class TestDirectEdit(UnitTestCase):
             doc_id, "Mode op\xe9ratoire.txt", b"Atol de PomPom Gali", xpath="note:note"
         )
 
+    def test_edit_document_with_folderish_facet(self):
+        """ Ensure we can DirectEdit documents that have the Folderish facet. """
+
+        filename = "picture-as-folder.png"
+        content = self.generate_random_png(size=42)
+        doc_id = self.remote.make_file(
+            "/", filename, content=content, doc_type="Picture"
+        )
+
+        # Add the Folderish facet
+        self.remote.execute(
+            command="Document.AddFacet", input_obj=doc_id, facet="Folderish"
+        )
+
+        content_updated = self.generate_random_png(size=24)
+        self._direct_edit_update(doc_id, filename, content_updated)
+
     def test_permission_readonly(self):
         """Opening a read-only document is prohibited."""
 
