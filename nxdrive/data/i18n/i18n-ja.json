@@ -72,6 +72,7 @@
     "DRIVE_ROOT_MOVE": "移動",
     "DRIVE_ROOT_MOVED": "Nuxeo Driveの同期化フォルダ「„%1“」が「„%2“」へ移動しました。同期の場所の更新、またはフォルダの再作成、あるいは接続の切断を行いますか？",
     "DRIVE_ROOT_RECREATE": "再作成",
+    "DOWNGRADE_TO": "Downgrade to %1",
     "DUPLICATING": "複製中...",
     "ENGINE_BETA": "ベータエンジンを構成しました。問題を経験する可能性がありますので、フィードバックをお願い致します。",
     "ENGINE_FOLDER": "フォルダ",
@@ -123,6 +124,8 @@
     "LOCKED_FILE": "„%1“は、%3に%2によってロックされたため、更新できません",
     "LOCK_NOTIFICATION_DESCRIPTION": "文書 „%1“ はロックされています",
     "LOCK_NOTIFICATION_TITLE": "オートロック",
+    "LONG_PATH_ERROR_TITLE": "Filename too long",
+    "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "手動",
     "METADATA_FILE_NOT_HANDLE": "このファイルはNuxeoサーバでは処理されないか、まだ同期化されていません。",
     "MINS_AGO": "%1分前",
@@ -236,13 +239,10 @@
     "UPGRADE_AVAILABLE": "新しいアップグレード%1が利用できます",
     "URL": "URL",
     "USE_LIGHT_ICONS": "ライトのアイコンを使用する",
-    "USE_OLDER_VERSION": "古いバージョンを使用する",
     "USERNAME": "ユーザ名",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Web認証",
     "WELCOME_MESSAGE": "アカウントを設定し、ファイルをNuxeo Platformと同期化します。",
     "WINDOWS_ERROR_TITLE": "文書エラー",
     "WINDOWS_ERROR_OPENED_FILE": "ファイル„%1“は別のソフトウェアによって開かれています。Nuxeo Driveがローカルストレージからの削除を処理できるよう、まずファイルを閉じてください。",
-    "WINDOWS_ERROR_OPENED_FOLDER": "フォルダ„%1“ またはその子が別のソフトウェアによってロックされています。Nuxeo Driveがローカルストレージからの削除を処理できるよう、まずファイルを閉じてください。",
-    "DELETION_ERROR_TITLE": "文書削除エラー",
-    "DELETION_ERROR_MSG": "フルパスが長すぎるため、文書„%1“の同期を解除できません。"
+    "WINDOWS_ERROR_OPENED_FOLDER": "フォルダ„%1“ またはその子が別のソフトウェアによってロックされています。Nuxeo Driveがローカルストレージからの削除を処理できるよう、まずファイルを閉じてください。"
 }
