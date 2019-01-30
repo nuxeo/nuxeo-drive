@@ -5,10 +5,10 @@ from logging import getLogger
 from pathlib import Path
 
 import pytest
-from nuxeo.exceptions import HTTPError
 
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
+from nxdrive.exceptions import Forbidden
 from .common import TEST_WORKSPACE_PATH, UnitTestCase
 
 log = getLogger(__name__)
@@ -113,7 +113,7 @@ class TestReadOnly(UnitTestCase):
             local.update_content("/folder/foo.txt", b"Locally changed")
 
         # Try to change the file content remotely
-        with pytest.raises(HTTPError):
+        with pytest.raises(Forbidden):
             remote.update_content("/folder/foo.txt", b"Remotely changed")
 
     def test_file_delete(self):

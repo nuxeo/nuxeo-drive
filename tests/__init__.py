@@ -229,9 +229,9 @@ class LocalTest(LocalClient):
         abspath = force_path(abspath)
         return super().get_path(abspath)
 
-    def rename(self, ref: RawPath, to_name: str):
+    def rename(self, ref: RawPath, to_name: str) -> Path:
         ref = force_path(ref)
-        return super().rename(ref, to_name)
+        return super().rename(ref, to_name).filepath
 
     def update_content(
         self, ref: RawPath, content: bytes, xattr_names: Tuple[str, ...] = ("ndrive",)
@@ -265,6 +265,15 @@ class LocalTest(LocalClient):
     def get_new_file(self, parent: RawPath, name: str) -> Tuple[Path, Path, str]:
         parent = force_path(parent)
         return super().get_new_file(parent, name)
+
+    def move(self, ref: RawPath, new_parent_ref: RawPath, name: str = None):
+        ref = force_path(ref)
+        new_parent_ref = force_path(new_parent_ref)
+        return super().move(ref, new_parent_ref, name=name)
+
+    def delete(self, ref: RawPath) -> None:
+        ref = force_path(ref)
+        return super().delete(ref)
 
 
 class RemoteBase(Remote):

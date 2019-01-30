@@ -3,9 +3,9 @@ import hashlib
 from pathlib import Path
 
 import pytest
-from nuxeo.exceptions import HTTPError
 
 from nxdrive.constants import WINDOWS
+from nxdrive.exceptions import Forbidden
 from . import LocalTest
 from .common import UnitTestCase
 
@@ -243,7 +243,7 @@ class TestPermissionHierarchy(UnitTestCase):
         self.set_readonly(self.user_2, readonly)
 
         # Basic test to be sure we are in RO mode
-        with pytest.raises(HTTPError):
+        with pytest.raises(Forbidden):
             remote2.make_file(readonly, "test.txt", content=b"test")
 
         # ReadWrite folder for user 2
