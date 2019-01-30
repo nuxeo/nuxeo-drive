@@ -170,12 +170,16 @@ class NuxeoDocumentInfo:
             uid = doc["uid"]
             path = doc["path"]
             props = doc["properties"]
-            has_data = props.get("file:content", {}).get("data")
             name = unicodedata.normalize("NFC", props["dc:title"])
             folderish = "Folderish" in doc["facets"]
             modified = doc["lastModified"]
         except KeyError:
             raise DriveError(f"This document is missing mandatory information: {doc}")
+
+        try:
+            has_data = props["file:content"]["data"]
+        except (KeyError, AttributeError):
+            has_data = False
 
         last_update = parser.parse(modified)
 
