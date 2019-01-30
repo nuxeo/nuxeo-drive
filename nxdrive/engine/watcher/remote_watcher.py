@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional, Set, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from nuxeo.exceptions import BadQuery, HTTPError
-from requests import ConnectionError
+from requests import ConnectionError, Timeout
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
@@ -589,21 +589,24 @@ class RemoteWatcher(EngineWorker):
 
             self._update_remote_states()
             (self.updated, self.initiate)[first_pass].emit()
-        except HTTPError as e:
-            err = f"HTTP error {e.status} while trying to handle remote changes"
-            if e.status in (401, 403):
-                self.engine.set_invalid_credentials(reason=err)
-                self.engine.set_offline()
-            else:
-                log.error(err)
-        except (ConnectionError, OSError) as exc:
-            log.warning(f"Network error: {exc}")
         except BadQuery:
             # This should never happen: there is an error in the operation's
             # parameters sent to the server.  This exception is possible only
             # in debug mode or when running the test suite.
             log.critical("Oops! Bad query parameter", exc_info=True)
             raise
+        except (ConnectionError, Timeout, OSError) as exc:
+            log.warning(f"Network error: {exc}")
+        except HTTPError as exc:
+            status = exc.status
+            err = f"HTTP error {status} while trying to handle remote changes"
+            if status in {401, 403}:
+                self.engine.set_invalid_credentials(reason=err)
+                self.engine.set_offline()
+            elif status == 504:
+                log.warning(f"Gateaway timeout: {exc}")
+            else:
+                log.error(err)
         except ThreadInterrupt:
             raise
         except:
