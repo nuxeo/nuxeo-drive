@@ -7,7 +7,6 @@ import pytest
 
 from nxdrive.constants import MAC, WINDOWS
 from nuxeo.exceptions import Unauthorized
-from . import RemoteTest
 from .common import FILE_CONTENT, UnitTestCase
 
 
@@ -20,14 +19,7 @@ class TestLocalCreations(UnitTestCase):
         engine.start()
         self.wait_sync(wait_for_async=True)
 
-        bad_remote = RemoteTest(
-            pytest.nuxeo_url,
-            self.user_1,
-            "nxdrive-test-upload-error-401",
-            pytest.version,
-            password=self.password_1,
-            dao=dao,
-        )
+        bad_remote = self.get_bad_remote()
         error = Unauthorized(status=401, message="Mock")
         bad_remote.make_upload_raise(error)
 

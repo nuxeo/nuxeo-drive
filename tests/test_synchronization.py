@@ -8,7 +8,7 @@ from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
 from nxdrive.constants import ROOT, WINDOWS
-from . import LocalTest, RemoteTest, ensure_no_exception
+from . import LocalTest, ensure_no_exception
 from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH, UnitTestCase
 
 
@@ -140,38 +140,26 @@ class TestSynchronization(UnitTestCase):
             assert not local.exists(filename)
 
     def test_invalid_credentials(self):
-        # Perform first scan and sync
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
         # Simulate bad responses
-        remote_orig = self.engine_1.remote
-        self.engine_1.remote = RemoteTest(
-            pytest.nuxeo_url,
-            self.user_1,
-            "nxdrive-test-administrator-device",
-            pytest.version,
-            password=self.password_1,
-            dao=self.engine_1._dao,
-        )
+        bad_remote = self.get_bad_remote()
         errors = [
             HTTPError(status=401, message="Mock"),
             HTTPError(status=403, message="Mock"),
         ]
-        remote = self.engine_1.remote
-        remote.request_token()
-        for error in errors:
-            remote.make_server_call_raise(error)
-            self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-            assert self.engine_1.is_offline()
 
-            self.engine_1.set_offline(value=False)
-            self.engine_1.set_invalid_credentials(value=False)
-            self.engine_1.resume()
+        with patch.object(self.engine_1, "remote", new=bad_remote):
+            for error in errors:
+                self.engine_1.remote.request_token()
+                self.engine_1.remote.make_server_call_raise(error)
+                self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+                assert self.engine_1.is_offline()
 
-        # Re-enable network
-        remote.make_server_call_raise(None)
-        self.engine_1.remote = remote_orig
+                self.engine_1.set_offline(value=False)
+                self.engine_1.set_invalid_credentials(value=False)
+                self.engine_1.resume()
 
     def test_synchronization_modification_on_created_file(self):
         # Regression test: a file is created locally, then modification is
@@ -195,9 +183,9 @@ class TestSynchronization(UnitTestCase):
         self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_sync(timeout=5, fail_if_timeout=False)
-        workspace_children = dao.get_local_children(workspace_path)
-        assert len(workspace_children) == 1
-        assert workspace_children[0].pair_state == "locally_created"
+        children = dao.get_local_children(workspace_path)
+        assert len(children) == 1
+        assert children[0].pair_state == "locally_created"
         folder_children = dao.get_local_children(workspace_path / "Folder")
         assert len(folder_children) == 1
         assert folder_children[0].pair_state == "locally_created"
@@ -264,9 +252,9 @@ class TestSynchronization(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True, timeout=10, fail_if_timeout=False)
 
-        workspace_children = dao.get_local_children(Path(self.workspace_title))
-        assert len(workspace_children) == 4
-        sorted_children = sorted(workspace_children, key=lambda x: x.local_path)
+        children = dao.get_local_children(Path(self.workspace_title))
+        assert len(children) == 4
+        sorted_children = sorted(children, key=lambda x: x.local_path)
         assert sorted_children[0].remote_name == "File 5.txt"
         assert sorted_children[0].pair_state == "remotely_created"
         assert sorted_children[1].remote_name == "Folder 1"
@@ -329,44 +317,36 @@ class TestSynchronization(UnitTestCase):
         self.make_server_tree(deep=False)
 
         # Simulate a server failure on file download
-        self.engine_1.remote = RemoteTest(
-            pytest.nuxeo_url,
-            self.user_1,
-            "nxdrive-test-administrator-device",
-            pytest.version,
-            password=self.password_1,
-            dao=self.engine_1._dao,
-        )
+        bad_remote = self.get_bad_remote()
         error = HTTPError(status=500, message="Mock download error")
-        self.engine_1.remote.make_download_raise(error)
+        bad_remote.make_download_raise(error)
 
         # File is not synchronized but synchronization does not fail either,
         # errors are handled and queue manager has given up on them
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True, timeout=60)
-        states_in_error = dao.get_errors(limit=test_error_threshold)
-        assert len(states_in_error) == 1
-        workspace_children = dao.get_states_from_partial_local(workspace_path)
-        assert len(workspace_children) == 4
-        for state in workspace_children:
-            if state.folderish:
-                assert state.pair_state == "synchronized"
-            else:
-                assert state.pair_state != "synchronized"
+        with patch.object(self.engine_1, "remote", new=bad_remote):
+            self.engine_1.start()
+            self.wait_sync(wait_for_async=True, timeout=60)
+            states_in_error = dao.get_errors(limit=test_error_threshold)
+            assert len(states_in_error) == 1
+            children = dao.get_states_from_partial_local(workspace_path)
+            assert len(children) == 4
+            for state in children:
+                if state.folderish:
+                    assert state.pair_state == "synchronized"
+                else:
+                    assert state.pair_state != "synchronized"
 
-        # Remove faulty client and reset errors
-        self.engine_1.remote.make_download_raise(None)
+        # Reset errors
         for state in states_in_error:
             dao.reset_error(state)
 
         # Verify that everything now gets synchronized
         self.wait_sync()
-        states_in_error = dao.get_errors(limit=test_error_threshold)
-        assert not states_in_error
-        workspace_children = dao.get_states_from_partial_local(workspace_path)
-        assert len(workspace_children) == 4
-        for state in workspace_children:
-            assert state.pair_state == "synchronized"
+        assert not dao.get_errors(limit=test_error_threshold)
+        children = dao.get_states_from_partial_local(workspace_path)
+        assert len(children) == 4
+        for child in children:
+            assert child.pair_state == "synchronized"
 
     def test_synchronization_offline(self):
         # Bound root but nothing is synchronized yet
@@ -386,45 +366,38 @@ class TestSynchronization(UnitTestCase):
         self.make_server_tree(deep=False)
 
         # Find various ways to simulate a network failure
-        self.engine_1.remote = RemoteTest(
-            pytest.nuxeo_url,
-            self.user_1,
-            "nxdrive-test-administrator-device",
-            pytest.version,
-            password=self.password_1,
-            dao=self.engine_1._dao,
-        )
+        bad_remote = self.get_bad_remote()
         errors = [
             ConnectionError("Mock connection error"),
             OSError("Mock socket error"),  # Old socket.error
             HTTPError(status=503, message="Mock"),
         ]
+
         engine_started = False
-        for error in errors:
-            self.engine_1.remote.make_server_call_raise(error)
-            if not engine_started:
-                self.engine_1.start()
-                engine_started = True
+        with patch.object(self.engine_1, "remote", new=bad_remote):
+            for error in errors:
+                self.engine_1.remote.make_server_call_raise(error)
+                if not engine_started:
+                    self.engine_1.start()
+                    engine_started = True
 
-            # Synchronization doesn't occur but does not fail either.
-            # - one 'locally_created' error is registered for Folder 3
-            # - no states are inserted for the remote documents
-            self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-            workspace_children = dao.get_states_from_partial_local(workspace_path)
-            assert len(workspace_children) == 1
-            assert workspace_children[0].pair_state != "synchronized"
-            assert not self.engine_1.is_offline()
+                # Synchronization doesn't occur but does not fail either.
+                # - one 'locally_created' error is registered for Folder 3
+                # - no states are inserted for the remote documents
+                self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+                children = dao.get_states_from_partial_local(workspace_path)
+                assert len(children) == 1
+                assert children[0].pair_state != "synchronized"
+                assert not self.engine_1.is_offline()
 
-        # Re-enable network
-        self.engine_1.remote.make_server_call_raise(None)
-
+        # Starting here, the network is re-enable
         # Verify that everything now gets synchronized
         self.wait_sync(wait_for_async=True)
         assert not self.engine_1.is_offline()
         assert not dao.get_errors(limit=0)
-        workspace_children = dao.get_states_from_partial_local(workspace_path)
-        assert len(workspace_children) == 4
-        for state in workspace_children:
+        children = dao.get_states_from_partial_local(workspace_path)
+        assert len(children) == 4
+        for state in children:
             assert state.pair_state == "synchronized"
 
     def test_conflict_detection(self):
@@ -453,9 +426,9 @@ class TestSynchronization(UnitTestCase):
         # resolution will work for this case
         self.wait_sync(wait_for_async=True)
         assert not self.engine_1.get_conflicts()
-        workspace_children = dao.get_states_from_partial_local(workspace_path)
-        assert len(workspace_children) == 1
-        assert workspace_children[0].pair_state == "synchronized"
+        children = dao.get_states_from_partial_local(workspace_path)
+        assert len(children) == 1
+        assert children[0].pair_state == "synchronized"
 
         local_children = local.get_children_info("/")
         assert len(local_children) == 1
@@ -479,9 +452,9 @@ class TestSynchronization(UnitTestCase):
         # Let's synchronize and check the conflict handling
         self.wait_sync(wait_for_async=True)
         assert len(self.engine_1.get_conflicts()) == 1
-        workspace_children = dao.get_states_from_partial_local(workspace_path)
-        assert len(workspace_children) == 1
-        assert workspace_children[0].pair_state == "conflicted"
+        children = dao.get_states_from_partial_local(workspace_path)
+        assert len(children) == 1
+        assert children[0].pair_state == "conflicted"
 
         local_children = local.get_children_info("/")
         assert len(local_children) == 1
@@ -691,16 +664,9 @@ class TestSynchronization(UnitTestCase):
         path = f"/{self.workspace_title}/test.odt"
         remote = self.remote_document_client_1
         dao = self.engine_1.get_dao()
-        error = HTTPError(status=400, message="Mock")
-        bad_remote = RemoteTest(
-            pytest.nuxeo_url,
-            self.user_1,
-            "nxdrive-test-administrator-device",
-            pytest.version,
-            password=self.password_1,
-            dao=self.engine_1._dao,
-        )
 
+        bad_remote = self.get_bad_remote()
+        error = HTTPError(status=400, message="Mock")
         bad_remote.make_download_raise(error)
 
         with patch.object(self.engine_1, "remote", new=bad_remote):
@@ -996,36 +962,28 @@ class TestSynchronization(UnitTestCase):
             return kwargs.get("filename").endswith("2.txt")
 
         # Simulate a server conflict on file upload
-        engine.remote = RemoteTest(
-            pytest.nuxeo_url,
-            self.user_1,
-            "nxdrive-test-administrator-device",
-            pytest.version,
-            password=self.password_1,
-            dao=engine._dao,
-        )
+        bad_remote = self.get_bad_remote()
         error = HTTPError(status=409, message="Mock Conflict")
-        engine.remote.make_upload_raise(error)
-        engine.remote.raise_on = _raise_for_second_file_only
+        bad_remote.make_upload_raise(error)
+        bad_remote.raise_on = _raise_for_second_file_only
 
-        # Create 2 files locally
-        base = "A" * 40
-        file1 = base + "1.txt"
-        file2 = base + "2.txt"
-        local.make_file("/", file1, content=b"foo")
-        local.make_file("/", file2, content=b"bar")
+        with patch.object(self.engine_1, "remote", new=bad_remote):
+            # Create 2 files locally
+            base = "A" * 40
+            file1 = base + "1.txt"
+            file2 = base + "2.txt"
+            local.make_file("/", file1, content=b"foo")
+            local.make_file("/", file2, content=b"bar")
 
-        self.wait_sync(fail_if_timeout=False)
+            self.wait_sync(fail_if_timeout=False)
 
-        # Checks
-        assert engine.get_dao()._queue_manager.get_errors_count() == 1
-        children = remote.get_children_info(self.workspace)
-        assert len(children) == 1
-        assert children[0].name == file1
+            # Checks
+            assert engine.get_dao()._queue_manager.get_errors_count() == 1
+            children = remote.get_children_info(self.workspace)
+            assert len(children) == 1
+            assert children[0].name == file1
 
-        # Re-enable default behavior
-        engine.remote.reset_errors()
-
+        # Starting here, default behavior is restored
         self.wait_sync()
 
         # Checks
