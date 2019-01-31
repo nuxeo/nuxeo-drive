@@ -705,7 +705,7 @@ def guess_server_url(
                 if resp.status_code == 200:
                     return new_url
         except requests.HTTPError as exc:
-            if exc.response.status_code == 401:
+            if exc.response.status_code in {401, 403}:
                 # When there is only Web-UI installed, the code is 401.
                 return new_url
         except SSLError as exc:

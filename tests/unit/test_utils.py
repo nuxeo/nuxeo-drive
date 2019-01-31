@@ -6,15 +6,17 @@ import pytest
 
 import nxdrive.utils
 
+from ..markers import jenkins_only
+
 
 @pytest.mark.parametrize(
     "path, pid",
     [
-        ("/Users/Bob/Documents/Sans%20titre-1.psd", 1868982964),
-        (b"/Users/Bob/Documents/Sans%20titre-1.psd", 1868982964),
-        ("C:\\Users\\Alice\\tests\\test.psd", 3523690320),
-        (r"C:\Users\Alice\tests\test.psd", 3523690320),
-        (br"C:\Users\Alice\tests\test.psd", 3523690320),
+        ("/Users/Bob/Documents/Sans%20titre-1.psd", 1_868_982_964),
+        (b"/Users/Bob/Documents/Sans%20titre-1.psd", 1_868_982_964),
+        ("C:\\Users\\Alice\\tests\\test.psd", 3_523_690_320),
+        (r"C:\Users\Alice\tests\test.psd", 3_523_690_320),
+        (br"C:\Users\Alice\tests\test.psd", 3_523_690_320),
         ("", 0),
         (b"", 0),
     ],
@@ -175,12 +177,9 @@ def test_get_current_os_full():
 
 def test_retrieve_ssl_certificate_unknown():
     from ssl import SSLError
-    from sentry_sdk import configure_scope
 
     func = nxdrive.utils.get_certificate_details
-    with configure_scope() as scope:
-        scope._should_capture = False
-        assert func(hostname="example42.org") == {}
+    assert func(hostname="example42.org") == {}
 
     with pytest.raises(SSLError):
         nxdrive.utils.retrieve_ssl_certificate("example.org", port=80)
@@ -225,7 +224,7 @@ def test_get_value(raw_value, expected_value):
         # Incomplete URL
         (
             "https://intranet-preprod.nuxeocloud.com",
-            "https://intranet-preprod.nuxeocloud.com/nuxeo",
+            "https://intranet-preprod.nuxeocloud.com",
         ),
         # Bad IP
         ("1.2.3.4", ""),
@@ -233,6 +232,7 @@ def test_get_value(raw_value, expected_value):
         ("htto://intranet-preprod.nuxeocloud.com/nuxeo", ""),
     ],
 )
+@jenkins_only
 def test_guess_server_url(url, result):
     assert nxdrive.utils.guess_server_url(url) == result
 

@@ -1,6 +1,5 @@
 # coding: utf-8
 """ Common test utilities. """
-import itertools
 import os
 import random
 import shutil
@@ -8,6 +7,7 @@ import struct
 import sys
 import tempfile
 import zlib
+from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from threading import Thread
@@ -19,7 +19,8 @@ import pytest
 from PyQt5.QtCore import QCoreApplication, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
-from sentry_sdk import configure_scope
+
+# from sentry_sdk import configure_scope
 
 from nxdrive.constants import LINUX, MAC, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
@@ -101,7 +102,7 @@ class StubQApplication(QCoreApplication):
 
 class UnitTestCase(TestCase):
     # Save the current path for test files
-    location = normalized_path(__file__).parent
+    location = normalized_path(__file__).parent.parent
 
     def setUpServer(self, server_profile=None):
         # Long timeout for the root client that is responsible for the test
@@ -149,9 +150,6 @@ class UnitTestCase(TestCase):
             pytest.root_remote.deactivate_profile(server_profile)
 
     def setUpApp(self, server_profile=None, register_roots=True):
-        if Manager._singleton:
-            Manager._singleton = None
-
         # Install callback early to be called the last
         self.addCleanup(self._check_cleanup)
 
@@ -186,14 +184,11 @@ class UnitTestCase(TestCase):
         self.nxdrive_conf_folder_2.mkdir()
 
         Options.delay = TEST_DEFAULT_DELAY
-        Options.nxdrive_home = self.nxdrive_conf_folder_1
-        self.manager_1 = Manager()
+        self.manager_1 = Manager(home=self.nxdrive_conf_folder_1)
         self.connected = False
         i18n_path = self.location / "resources" / "i18n"
         Translator(self.manager_1, i18n_path)
-        Options.nxdrive_home = self.nxdrive_conf_folder_2
-        Manager._singleton = None
-        self.manager_2 = Manager()
+        self.manager_2 = Manager(home=self.nxdrive_conf_folder_2)
 
         self.setUpServer(server_profile)
         self.addCleanup(self.tearDownServer, server_profile)
@@ -324,9 +319,9 @@ class UnitTestCase(TestCase):
         if LINUX:
             client = LocalTest
         elif MAC:
-            from .mac_local_client import MacLocalClient as client
+            from .local_client_darwin import MacLocalClient as client
         elif WINDOWS:
-            from .win_local_client import WindowsLocalClient as client
+            from .local_client_windows import WindowsLocalClient as client
 
         return client(path)
 
@@ -530,17 +525,17 @@ class UnitTestCase(TestCase):
         self.setUpApp()
 
         def launch_test():
-            with configure_scope() as scope:
-                scope.set_tag("test-id", self.id())
+            # with configure_scope() as scope:
+            #    scope.set_tag("test-id", self.id())
 
-                log.debug("UnitTest thread started")
-                pytest.root_remote.log_on_server(">>> testing: " + self.id())
+            log.debug("UnitTest thread started")
+            pytest.root_remote.log_on_server(">>> testing: " + self.id())
 
-                # Note: we cannot use super().run(result) here
-                super(UnitTestCase, self).run(result)
+            # Note: we cannot use super().run(result) here
+            super(UnitTestCase, self).run(result)
 
-                self.app.quit()
-                log.debug("UnitTest thread finished")
+            self.app.quit()
+            log.debug("UnitTest thread finished")
 
         sync_thread = Thread(target=launch_test)
         sync_thread.start()
@@ -553,21 +548,11 @@ class UnitTestCase(TestCase):
     def _stop_managers(self):
         """ Called by self.addCleanup() to stop all managers. """
 
-        try:
-            methods = itertools.product(
-                ((self.manager_1, 1), (self.manager_2, 2)),
-                ("unbind_all", "dispose_all"),
-            )
-            for (manager, idx), method in methods:
-                func = getattr(manager, method, None)
-                if func:
-                    log.debug("Calling self.manager_%d.%s()", idx, method)
-                    try:
-                        func()
-                    except:
-                        pass
-        finally:
-            Manager._singleton = None
+        with suppress(Exception):
+            self.manager_1.close()
+
+        with suppress(Exception):
+            self.manager_2.close()
 
     def _check_cleanup(self):
         """ Called by self.addCleanup() to ensure folders are deleted. """

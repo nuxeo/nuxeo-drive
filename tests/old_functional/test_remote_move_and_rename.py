@@ -8,8 +8,7 @@ from unittest.mock import Mock, patch
 
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
-from tests import DocRemote
-from . import LocalTest
+from . import DocRemote, LocalTest
 from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, UnitTestCase
 
 

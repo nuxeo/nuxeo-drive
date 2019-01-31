@@ -520,7 +520,7 @@ class CliHandler:
         """Launch the Qt app in the main thread and sync in another thread."""
         from .utils import PidLockFile
 
-        lock = PidLockFile(self.manager.nxdrive_home, "qt")
+        lock = PidLockFile(self.manager.home, "qt")
         pid = lock.lock()
         if pid:
             if Options.protocol_url:

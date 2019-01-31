@@ -1,9 +1,9 @@
 # coding: utf-8
-import pytest
 from pathlib import Path
 
-from nxdrive.constants import MAC
 from nxdrive.osi import AbstractOSIntegration
+
+from ..markers import mac_only
 
 
 def is_folder_registered(osi: AbstractOSIntegration, name: str) -> bool:
@@ -11,7 +11,7 @@ def is_folder_registered(osi: AbstractOSIntegration, name: str) -> bool:
     return osi._find_item_in_list(lst, name) is not None
 
 
-@pytest.mark.skipif(not MAC, reason="macOS only.")
+@mac_only
 def test_folder_registration():
     path = Path("TestCazz")
 
