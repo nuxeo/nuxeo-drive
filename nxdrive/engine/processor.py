@@ -1,4 +1,5 @@
 # coding: utf-8
+import errno
 import shutil
 import sqlite3
 import sys
@@ -404,11 +405,14 @@ class Processor(EngineWorker):
     def _handle_pair_handler_exception(
         self, doc_pair: DocPair, handler_name: str, e: Exception
     ) -> None:
-        if isinstance(e, OSError) and e.errno == 28:
-            self.engine.noSpaceLeftOnDevice.emit()
+        if isinstance(e, OSError) and e.errno == errno.ENOSPC:
             self.engine.suspend()
-        log.exception("Unknown error")
-        self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
+            log.warning("No space left on device!")
+            self.increase_error(doc_pair, "NO_SPACE_LEFT_ON_DEVICE")
+            self.engine.noSpaceLeftOnDevice.emit()
+        else:
+            log.exception("Unknown error")
+            self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
 
     def _synchronize_conflicted(self, doc_pair: DocPair) -> None:
         if doc_pair.local_state == "moved" and doc_pair.remote_state in (
