@@ -18,7 +18,7 @@ from nxdrive.engine.workers import Worker
 from nxdrive.exceptions import Forbidden, NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import safe_os_filename
-from . import LocalTest, RemoteTest, make_tmp_file
+from . import LocalTest, make_tmp_file
 from .common import UnitTestCase
 
 log = getLogger(__name__)
@@ -306,15 +306,6 @@ class TestDirectEdit(UnitTestCase):
         filename = "secret-file.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
 
-        self.engine_1.remote = RemoteTest(
-            pytest.nuxeo_url,
-            self.user_1,
-            "nxdrive-test-administrator-device",
-            pytest.version,
-            password=self.password_1,
-            dao=self.engine_1._dao,
-        )
-
         def forbidden_signal(self, *args, **kwargs):
             nonlocal received
             received = True
@@ -322,13 +313,14 @@ class TestDirectEdit(UnitTestCase):
         received = False
         self.direct_edit.directEditForbidden.connect(forbidden_signal)
 
-        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
-            self.engine_1.remote.make_server_call_raise(Forbidden())
-            try:
-                self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
-                assert received
-            finally:
-                self.engine_1.remote.make_server_call_raise(None)
+        bad_remote = self.get_bad_remote()
+        bad_remote.make_server_call_raise(Forbidden())
+
+        with patch.object(
+            self.manager_1, "open_local_file", new=open_local_file
+        ), patch.object(self.engine_1, "remote", new=bad_remote):
+            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            assert received
 
     def test_forbidden_upload(self):
         """
@@ -344,18 +336,10 @@ class TestDirectEdit(UnitTestCase):
             self.wait_sync(timeout=2, fail_if_timeout=False)
 
             # Simulate server error
-            self.engine_1.remote = RemoteTest(
-                pytest.nuxeo_url,
-                self.user_1,
-                "nxdrive-test-administrator-device",
-                pytest.version,
-                password=self.password_1,
-                dao=self.engine_1._dao,
-            )
+            bad_remote = self.get_bad_remote()
+            bad_remote.make_upload_raise(Forbidden())
 
-            self.engine_1.remote.make_upload_raise(Forbidden())
-
-            try:
+            with patch.object(self.engine_1, "remote", new=bad_remote):
                 # Update file content
                 self.local.update_content(local_path, b"Updated")
                 time.sleep(5)
@@ -365,8 +349,6 @@ class TestDirectEdit(UnitTestCase):
                     self.remote.get_blob(self.remote.get_info(doc_id))
                     == b"Initial content."
                 )
-            finally:
-                self.engine_1.remote.make_upload_raise(None)
 
     def test_network_loss(self):
         """ Updates should be sent when the network is up again. """
@@ -381,19 +363,13 @@ class TestDirectEdit(UnitTestCase):
             self.wait_sync(timeout=2, fail_if_timeout=False)
 
             # Simulate server error
-            self.engine_1.remote = RemoteTest(
-                pytest.nuxeo_url,
-                self.user_1,
-                "nxdrive-test-administrator-device",
-                pytest.version,
-                password=self.password_1,
-                dao=self.engine_1._dao,
-            )
+            bad_remote = self.get_bad_remote()
             error = URLError(
                 "[Errno 10051] (Mock) socket operation was attempted to an unreachable network"
             )
-            self.engine_1.remote.make_upload_raise(error)
-            try:
+            bad_remote.make_upload_raise(error)
+
+            with patch.object(self.engine_1, "remote", new=bad_remote):
                 # Update file content
                 self.local.update_content(local_path, b"Updated")
                 time.sleep(5)
@@ -404,8 +380,6 @@ class TestDirectEdit(UnitTestCase):
                     self.remote.get_blob(self.remote.get_info(doc_id))
                     == b"Initial content."
                 )
-            finally:
-                self.engine_1.remote.make_upload_raise(None)
 
             # Check the file is reuploaded when the network come again
             # timout=30 to ensure the file is removed from the blacklist (which have a 30 sec delay)

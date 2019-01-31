@@ -8,7 +8,7 @@ from unittest.mock import patch
 from nuxeo.exceptions import HTTPError
 
 from nxdrive.engine.dao.sqlite import EngineDAO
-from . import DocRemote, LocalTest, RemoteTest
+from . import DocRemote, LocalTest
 from .common import UnitTestCase
 
 
@@ -566,25 +566,18 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert local.exists("/Original Folder 1")
 
         # Simulate server error
-        self.engine_1.remote = RemoteTest(
-            pytest.nuxeo_url,
-            self.user_1,
-            "nxdrive-test-administrator-device",
-            pytest.version,
-            password=self.password_1,
-            dao=self.engine_1._dao,
-        )
+        bad_remote = self.get_bad_remote()
         error = HTTPError(status=500, message="Mock server error")
-        self.engine_1.remote.make_server_call_raise(error)
+        bad_remote.make_server_call_raise(error)
 
-        local.rename("/Original Folder 1", "OSErrorTest")
-        self.wait_sync(timeout=5, fail_if_timeout=False)
-        folder_1 = remote.get_info("/Original Folder 1")
-        assert folder_1.name == "Original Folder 1"
-        assert local.exists("/OSErrorTest")
+        with patch.object(self.engine_1, "remote", new=bad_remote):
+            local.rename("/Original Folder 1", "OSErrorTest")
+            self.wait_sync(timeout=5, fail_if_timeout=False)
+            folder_1 = remote.get_info("/Original Folder 1")
+            assert folder_1.name == "Original Folder 1"
+            assert local.exists("/OSErrorTest")
 
-        # Remove faulty client and set engine online
-        self.engine_1.remote.make_server_call_raise(None)
+        # Set engine online as starting from here the behavior is restored
         self.engine_1.set_offline(value=False)
 
         self.wait_sync()

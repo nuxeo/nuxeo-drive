@@ -27,7 +27,7 @@ from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.translator import Translator
 from nxdrive.utils import normalized_path, safe_long_path, unset_path_readonly
-from . import DocRemote, LocalTest, RemoteBase
+from . import DocRemote, LocalTest, RemoteBase, RemoteTest
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
@@ -301,6 +301,17 @@ class UnitTestCase(TestCase):
                 delattr(self, attr)
             except AttributeError:
                 pass
+
+    def get_bad_remote(self):
+        """ A Remote client that will raise some error. """
+        return RemoteTest(
+            pytest.nuxeo_url,
+            self.user_1,
+            "nxdrive-test-administrator-device",
+            pytest.version,
+            password=self.password_1,
+            dao=self.engine_1._dao,
+        )
 
     def get_local_client(self, path: Path):
         """
