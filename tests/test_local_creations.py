@@ -1,14 +1,63 @@
 # coding: utf-8
 import shutil
 import time
+from unittest.mock import patch
 
 import pytest
 
 from nxdrive.constants import MAC, WINDOWS
+from nuxeo.exceptions import Unauthorized
+from . import RemoteTest
 from .common import FILE_CONTENT, UnitTestCase
 
 
 class TestLocalCreations(UnitTestCase):
+    def test_invalid_credentials_on_file_upload(self):
+        local = self.local_1
+        engine = self.engine_1
+        dao = engine.get_dao()
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        bad_remote = RemoteTest(
+            pytest.nuxeo_url,
+            self.user_1,
+            "nxdrive-test-upload-error-401",
+            pytest.version,
+            password=self.password_1,
+            dao=dao,
+        )
+        error = Unauthorized(status=401, message="Mock")
+        bad_remote.make_upload_raise(error)
+
+        file = "Performance Reports - error n°401.txt"
+
+        with patch.object(engine, "remote", new=bad_remote):
+            local.make_file("/", file, content=b"something")
+            assert local.exists(f"/{file}")
+            self.wait_sync()
+
+            remote_ref = local.get_remote_id(f"/{file}")
+            assert not remote_ref
+            errors = dao.get_errors()
+            assert len(errors) == 1
+            assert errors[0].last_error == "INVALID_CREDENTIALS"
+            assert not self.remote_1.get_children_info(self.workspace_1)
+
+        # When the credentials are restored, retrying the sync should work
+        errors = dao.get_errors()
+        engine.retry_pair(errors[0].id)
+        self.wait_sync()
+
+        assert not dao.get_errors()
+        children = self.remote_1.get_children_info(self.workspace_1)
+        assert len(children) == 1
+        assert children[0].name == file
+        children = local.get_children_info("/")
+        assert len(children) == 1
+        assert children[0].name == file
+
     def test_mini_scenario(self):
         local = self.local_root_client_1
         remote = self.remote_1

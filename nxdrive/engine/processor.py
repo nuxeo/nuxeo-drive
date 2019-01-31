@@ -10,7 +10,7 @@ from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal
-from nuxeo.exceptions import CorruptedFile, HTTPError
+from nuxeo.exceptions import CorruptedFile, HTTPError, Unauthorized
 from requests import ConnectionError
 
 from .activity import Action
@@ -271,6 +271,16 @@ class Processor(EngineWorker):
                     self.pairSync.emit(self._current_metrics)
                 except ThreadInterrupt:
                     raise
+                except Unauthorized:
+                    self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
+                    continue
+                except (ConnectionError, PairInterrupt, ParentNotSynced) as exc:
+                    log.debug(
+                        f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue"
+                    )
+                    sleep(1)
+                    self.engine.get_queue_manager().push(doc_pair)
+                    continue
                 except HTTPError as exc:
                     if exc.status == 404:
                         # We saw it happened once a migration is done.
@@ -288,13 +298,6 @@ class Processor(EngineWorker):
                     else:
                         error = f"{handler_name}_http_error_{exc.status}"
                         self._handle_pair_handler_exception(doc_pair, error, exc)
-                    continue
-                except (ConnectionError, PairInterrupt, ParentNotSynced) as exc:
-                    log.debug(
-                        f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue"
-                    )
-                    sleep(1)
-                    self.engine.get_queue_manager().push(doc_pair)
                     continue
                 except DuplicationDisabledError:
                     self.giveup_error(doc_pair, "DEDUP")
@@ -687,7 +690,7 @@ class Processor(EngineWorker):
                     return
             except HTTPError as e:
                 # undelete will fail if you dont have the rights
-                if e.status != 403:
+                if e.status not in {401, 403}:
                     raise e
                 log.trace(
                     "Create new document as current known document "
