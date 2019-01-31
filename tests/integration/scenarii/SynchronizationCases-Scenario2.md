@@ -38,5 +38,3 @@ Related issue: https://jira.nuxeo.com/browse/NXDRIVE-646
 ## Expected Results
 
 Aerial09.jpg should be deleted server-side
-
-

@@ -1,21 +1,14 @@
 # coding: utf-8
-import tempfile
 from logging import getLogger
-from pathlib import Path
 
 from nxdrive.manager import Manager
-from nxdrive.options import Options
 from nxdrive.report import Report
 
 
-@Options.mock()
-def test_logs():
+def test_logs(tmp):
     log = getLogger(__name__)
-    folder = Path(tempfile.mkdtemp("-nxdrive-tests"))
-    Options.nxdrive_home = folder
-    manager = Manager()
 
-    try:
+    with Manager(home=tmp()) as manager:
         log.debug("Strange encoding \xe8 \xe9")
 
         # Crafted problematic logRecord
@@ -27,8 +20,15 @@ def test_logs():
             log.exception(str(e))
             log.exception(e)
 
-        report = Report(manager, folder / "report")
+        # Test raw report (calling the Report class manually)
+        report = Report(manager)
         report.generate()
-    finally:
-        manager.dispose_db()
-        Manager._singleton = None
+        path = report.get_path()
+        assert path.is_file()
+        assert path.suffix == ".zip"
+
+        # Test the report managed by the Manager
+        path_managed = manager.generate_report()
+        assert path_managed.is_file()
+        assert path_managed.suffix == ".zip"
+        assert path == path_managed

@@ -111,4 +111,4 @@ def test_translate_twice():
 
 
 def get_folder(folder) -> Path:
-    return Path(__file__).parent / "resources" / folder
+    return Path(__file__).parent.parent / "resources" / folder

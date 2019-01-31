@@ -1,4 +1,5 @@
 # coding: utf-8
+from contextlib import suppress
 from unittest.mock import patch
 from pathlib import Path
 
@@ -11,12 +12,17 @@ from nxdrive.client.proxy import (
     load_proxy,
     save_proxy,
 )
-from nxdrive.constants import MAC, WINDOWS
+from nxdrive.constants import WINDOWS
 from nxdrive.engine.dao.sqlite import ConfigurationDAO
 from nxdrive.manager import Manager
 from nxdrive.options import Options
 
-js = """
+from ..markers import mac_only, windows_only
+
+
+@pytest.fixture(scope="module")
+def js():
+    return """
     function FindProxyForURL(url, host) {
         if (shExpMatch(host, "nuxeo.com"))
         {
@@ -24,10 +30,10 @@ js = """
         }
         return "DIRECT";
     }
-"""
+    """
 
 
-@pytest.fixture()
+@pytest.fixture
 def config_dao():
     db = Path("tmp.db")
     dao = ConfigurationDAO(db)
@@ -36,20 +42,19 @@ def config_dao():
     db.unlink()
 
 
-@pytest.fixture()
-def pac_file():
+@pytest.fixture
+def pac_file(js):
     pac = Path("proxy.pac")
     pac.write_text(js)
 
     uri = pac.resolve().as_uri()
     if WINDOWS:
         uri = uri.replace("///", "//")
+
     yield uri
 
-    try:
+    with suppress(Exception):
         pac.unlink()
-    except:
-        pass
 
 
 def test_manual_proxy():
@@ -59,7 +64,7 @@ def test_manual_proxy():
     assert settings["http"] == settings["https"] == proxy.url == "http://localhost:3128"
 
 
-def test_pac_proxy_js():
+def test_pac_proxy_js(js):
     proxy = get_proxy(category="Automatic", js=js)
     assert isinstance(proxy, AutomaticProxy)
     settings = proxy.settings("http://nuxeo.com")
@@ -83,7 +88,7 @@ def _patch_winreg_qve(**kwargs):
     return patch("pypac.os_settings.winreg.QueryValueEx", **kwargs)
 
 
-@pytest.mark.skipif(not WINDOWS, reason="Only for Windows")
+@windows_only
 def test_mock_autoconfigurl_windows(pac_file):
     with _patch_winreg_qve(return_value=(pac_file, "foo")):
         proxy = get_proxy(category="Automatic")
@@ -102,7 +107,7 @@ def _patch_pyobjc_dscp(**kwargs):
     )
 
 
-@pytest.mark.skipif(not MAC, reason="Only for macOS")
+@mac_only
 def test_mock_autoconfigurl_mac(pac_file):
     with _patch_pyobjc_dscp(
         return_value={"ProxyAutoConfigEnable": 1, "ProxyAutoConfigURLString": pac_file}
@@ -121,13 +126,9 @@ def test_mock_autoconfigurl_mac(pac_file):
 def test_cli_args():
     url = "http://username:password@localhost:8899"
     Options.set("proxy_server", url, setter="cli")
-    manager = Manager()
-    proxy = manager.proxy
-    assert isinstance(proxy, ManualProxy)
-    assert proxy.url == url
-    settings = proxy.settings()
-    assert settings["http"] == settings["https"] == url
-    manager.stop()
-    manager.unbind_all()
-    manager.dispose_all()
-    Manager._singleton = None
+    with Manager() as manager:
+        proxy = manager.proxy
+        assert isinstance(proxy, ManualProxy)
+        assert proxy.url == url
+        settings = proxy.settings()
+        assert settings["http"] == settings["https"] == url

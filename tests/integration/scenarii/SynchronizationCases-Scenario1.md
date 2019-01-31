@@ -31,7 +31,7 @@ related issue: https://jira.nuxeo.com/browse/NXDRIVE-645
 
 <img src="/docs/Pictures/Scenario1-Pic4.png" width="300"/>
 
-* Locally: 
+* Locally:
 “Finished” folder created by user2 remains the same
 Previous local “final” folder is renamed “Finished__1”
 
@@ -45,4 +45,3 @@ Previous local “final” folder is renamed “Finished__1”
 
 Rename with __ ( the option exists now ) and put the folder in conflict with option to merge it.
 (“Aerial04.jpg” is waiting for parent’s conflict resolution).
-
