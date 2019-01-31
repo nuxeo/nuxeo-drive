@@ -178,7 +178,7 @@ class NuxeoDocumentInfo:
 
         try:
             has_data = props["file:content"]["data"]
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, TypeError):
             has_data = False
 
         last_update = parser.parse(modified)
