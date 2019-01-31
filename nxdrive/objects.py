@@ -184,7 +184,9 @@ class NuxeoDocumentInfo:
         last_update = parser.parse(modified)
 
         # Check for file:content/data first instead of only the folderish facet (NXDRIVE-1519)
-        blobs = NuxeoDocumentInfo._parse_blobs(props) if has_data else {}
+        blobs: Dict[str, Blob] = {}
+        if has_data or not folderish:
+            blobs = NuxeoDocumentInfo._parse_blobs(props)
 
         # Lock info
         lock_owner = doc.get("lockOwner")
