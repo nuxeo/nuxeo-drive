@@ -33,7 +33,9 @@ We should no more call the `NuxeoDrive.SetupIntegrationTests` operation.
 
 ## Specifications
 
-TODO
+We will completely move to `pytest` instead of having a mix between it and `unittest` formats.
+We then may be able to fully embrace pytest [fixture's factories](https://docs.pytest.org/en/latest/fixture.html#factories-as-fixtures).
+Speaking of factories, we may have a look at [Factory Boy](https://factoryboy.readthedocs.io/en/latest/).
 
 ## Notes
 
