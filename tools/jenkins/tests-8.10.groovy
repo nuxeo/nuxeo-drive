@@ -121,7 +121,7 @@ for (def x in slaves) {
                                         'PATH+LOCALBIN=/usr/local/bin',
                                     ]
                                     withEnv(env_vars) {
-                                        sh "${mvnHome}/bin/mvn -f ftest/pom-8.10.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                        sh "mvn -f ftest/pom-8.10.xml clean verify -Pqa,pgsql ${platform_opt}"
                                     }
                                 } else if (osi == 'GNU/Linux') {
                                     sh "${mvnHome}/bin/mvn -f ftest/pom-8.10.xml clean verify -Pqa,pgsql ${platform_opt}"
