@@ -10,7 +10,7 @@ from urllib.parse import unquote
 
 import requests
 from markdown import markdown
-from PyQt5.QtCore import Qt, QUrl, pyqtSlot, QEvent, QObject
+from PyQt5.QtCore import Qt, QUrl, pyqtSlot, QEvent
 from PyQt5.QtGui import QFont, QFontMetricsF, QIcon, QWindow
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtQml import QQmlApplicationEngine, QQmlContext
@@ -137,24 +137,6 @@ class Application(QApplication):
         # Connect this slot last so the other slots connected
         # to self.aboutToQuit can run beforehand.
         self.aboutToQuit.connect(self.manager.stop)
-
-    def notify(self, receiver: QObject, event: QEvent) -> bool:
-        """
-        Redefine QApplication.notify() to catch exceptions thrown from signals
-        and prevent crashes or exceptions at exit like:
-
-            nxdrive.engine.engine Thread is not responding - terminate it
-            Qt has caught an exception thrown from an event handler. Throwing
-            exceptions from an event handler is not supported in Qt.
-            You must not let any exception whatsoever propagate through Qt code.
-            If that is not possible, in Qt 5 you must at least reimplement
-            QCoreApplication::notify() and catch all exceptions there.
-        """
-        try:
-            return QApplication.notify(self, receiver, event)
-        except:  # noqa
-            log.exception(f"Uncaught exception: signal={receiver}, event={event}")
-        return False
 
     def init_gui(self) -> None:
 
