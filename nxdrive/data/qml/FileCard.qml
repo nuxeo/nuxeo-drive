@@ -109,6 +109,7 @@ ShadowRectangle {
                     id: resolveAction
                     displayText: qsTr("RESOLVE") + tl.tr
                     visible: type == "conflict"
+                    width: 170
 
                     model: ["CONFLICT_USE_LOCAL", "CONFLICT_USE_REMOTE"]
 
