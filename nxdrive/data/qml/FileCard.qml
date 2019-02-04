@@ -11,7 +11,7 @@ ShadowRectangle {
     property variant fileData
     property string type: fileData.state == "conflicted" ? "conflict" : "error"
 
-    width: parent.width - 20; height: cardContent.height + 40
+    width: parent.width - 10; height: cardContent.height + 40
     anchors.horizontalCenter: parent.horizontalCenter
 
     RowLayout {
@@ -31,8 +31,10 @@ ShadowRectangle {
 
             ScaledText {
                 id: fileName
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
                 text: fileData.name + (fileData.folderish ? "/" : "")
-                pointSize: 16; font.weight: Font.Bold
+                pointSize: 14; font.weight: Font.Bold
             }
 
             ScaledText {
@@ -67,6 +69,7 @@ ShadowRectangle {
                 id: parentPath
                 text: qsTr("FILE_PATH").arg(fileData.local_parent_path) + tl.tr
                 color: mediumGray
+                Layout.fillWidth: true
                 MouseArea {
                     anchors.fill: parent
                     onClicked: api.open_local(engineUid, fileData.local_parent_path)
@@ -76,6 +79,7 @@ ShadowRectangle {
             ScaledText {
                 id: lastContributor
                 text: qsTr("LAST_CONTRIBUTOR").arg(fileData.last_contributor) + tl.tr
+                Layout.fillWidth: true
                 color: mediumGray
             }
 
@@ -85,6 +89,7 @@ ShadowRectangle {
                 property string date: fileData.last_sync_date ? fileData.last_sync_date : fileData.last_remote_update
 
                 text: qsTr("LAST_SYNCHRONIZED").arg(date) + tl.tr
+                Layout.fillWidth: true
                 color: mediumGray
             }
 
