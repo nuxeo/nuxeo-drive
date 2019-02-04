@@ -1,4 +1,4 @@
-flake8==3.6.0
+flake8==3.7.5
 mypy==0.660
 # Ignore pytest updates until NXDRIVE-1390 is done
 pytest==3.8.2  # pyup: ignore
