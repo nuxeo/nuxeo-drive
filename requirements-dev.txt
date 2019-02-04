@@ -1,2 +1,2 @@
-pre-commit==1.14.2
+pre-commit==1.14.3
 pyinstaller==3.4.0
