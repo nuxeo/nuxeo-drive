@@ -3,13 +3,14 @@ from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Tuple, TYPE_CHECKING
+from typing import Dict, Iterable, Iterator, TYPE_CHECKING
 
 import psutil
 from PyQt5.QtCore import QTimer, pyqtSignal
 
 from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
+from .objects import Item, Items
 
 if TYPE_CHECKING:
     from .direct_edit import DirectEdit  # noqa
@@ -18,8 +19,6 @@ if TYPE_CHECKING:
 __all__ = ("ProcessAutoLockerWorker",)
 
 log = getLogger(__name__)
-Item = Tuple[int, Path]
-Items = List[Item]
 
 
 class ProcessAutoLockerWorker(PollWorker):
