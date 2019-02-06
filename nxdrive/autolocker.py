@@ -8,6 +8,7 @@ from typing import Dict, Iterable, Iterator, TYPE_CHECKING
 import psutil
 from PyQt5.QtCore import QTimer, pyqtSignal
 
+from .constants import LINUX, MAC, WINDOWS
 from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
 from .objects import Item, Items
@@ -15,6 +16,13 @@ from .objects import Item, Items
 if TYPE_CHECKING:
     from .direct_edit import DirectEdit  # noqa
     from .engine.dao.sqlite import ManagerDAO  # noqa
+
+if LINUX:
+    from .osi.linux.files import get_other_opened_files
+elif MAC:
+    from .osi.darwin.files import get_other_opened_files
+elif WINDOWS:
+    from .osi.windows.files import get_other_opened_files
 
 __all__ = ("ProcessAutoLockerWorker",)
 
@@ -141,3 +149,5 @@ def get_open_files() -> Iterator[Item]:
             for handler in proc.open_files():
                 with suppress(PermissionError):
                     yield proc.pid, Path(handler.path)
+
+    yield from get_other_opened_files()
