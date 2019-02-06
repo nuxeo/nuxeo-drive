@@ -38,6 +38,8 @@ class ProcessAutoLockerWorker(PollWorker):
         self._first = True
 
     def set_autolock(self, filepath: Path, locker: "DirectEdit") -> None:
+        """Schedule the document lock."""
+
         if self._autolocked.get(filepath):
             # Already locked
             return
@@ -62,37 +64,52 @@ class ProcessAutoLockerWorker(PollWorker):
         return False
 
     def orphan_unlocked(self, path: Path) -> None:
+        """Unlock old documents, or documents from an old DirectEdit session."""
         self._dao.unlock_path(path)
 
     def _process(self) -> None:
-        to_unlock = deepcopy(self._autolocked)
+        current_locks = deepcopy(self._autolocked)
+
         for pid, path in get_open_files():
             if self._folder in path.parents:
                 log.debug(f"Found in watched folder: {path!r} (PID={pid})")
             elif path in self._autolocked:
                 log.debug(f"Found in auto-locked: {path!r} (PID={pid})")
             else:
+                # All documents are not interesting!
                 continue
 
             item: Item = (pid, path)
-            if path in to_unlock:
-                if not self._autolocked[path]:
-                    self._to_lock.append(item)
-                self._autolocked[path] = pid
-                del to_unlock[path]
+            if path in current_locks:
+                # If the doc has been detected but not yet locked ...
+                if self._autolocked[path] == 0:
+                    self._to_lock.append(item)  # ... schedule the lock
 
+                # Prevent re-locking the next time, set the PID as a flag (always != 0)
+                self._autolocked[path] = pid
+
+                # Remove the doc, else it will be unlocked just after
+                del current_locks[path]
+
+        # Lock new documents
         self._lock_files(self._to_lock)
-        self._unlock_files(to_unlock)
+
+        # If there are remaining documents, it means they are no more opened
+        # and therefore we need to unlock them.
+        self._unlock_files(current_locks)
 
     def _lock_files(self, items: Items) -> None:
+        """Schedule locks for the given documents."""
         for item in items:
             self._lock_file(item)
 
     def _unlock_files(self, files: Iterable[Path]) -> None:
+        """Schedule unlocks for the given documents."""
         for path in files:
             self._unlock_file(path)
 
     def _lock_file(self, item: Item) -> None:
+        """Lock a given document."""
         pid, path = item
         log.debug(f"Locking file {path!r} (PID={pid!r})")
         if path in self._lockers:
@@ -102,6 +119,7 @@ class ProcessAutoLockerWorker(PollWorker):
         self._to_lock.remove(item)
 
     def _unlock_file(self, path: Path) -> None:
+        """Unlock a given document."""
         log.debug(f"Unlocking file {path!r}")
         if path in self._lockers:
             locker = self._lockers[path]
