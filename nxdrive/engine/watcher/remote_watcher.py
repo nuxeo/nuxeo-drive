@@ -12,7 +12,7 @@ from requests import ConnectionError, Timeout
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
 from ...constants import ROOT, WINDOWS
-from ...exceptions import NotFound, ThreadInterrupt
+from ...exceptions import Forbidden, NotFound, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
 from ...utils import current_milli_time, safe_filename
 
@@ -597,13 +597,13 @@ class RemoteWatcher(EngineWorker):
             raise
         except (ConnectionError, Timeout, OSError) as exc:
             log.warning(f"Network error: {exc}")
+        except Forbidden:
+            self.engine.set_invalid_credentials()
+            self.engine.set_offline()
         except HTTPError as exc:
             status = exc.status
             err = f"HTTP error {status} while trying to handle remote changes"
-            if status in {401, 403}:
-                self.engine.set_invalid_credentials(reason=err)
-                self.engine.set_offline()
-            elif status == 504:
+            if status == 504:
                 log.warning(f"Gateaway timeout: {exc}")
             else:
                 log.error(err)
