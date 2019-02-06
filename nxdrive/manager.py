@@ -261,6 +261,7 @@ class Manager(QObject):
 
         self.direct_edit = DirectEdit(self, self.direct_edit_folder, url)
         self.started.connect(self.direct_edit._thread.start)
+        self.autolock_service.direct_edit = self.direct_edit
         return self.direct_edit
 
     def is_paused(self) -> bool:  # TODO: Remove

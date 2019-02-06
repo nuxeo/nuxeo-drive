@@ -79,8 +79,10 @@ class ProcessAutoLockerWorker(PollWorker):
         current_locks = deepcopy(self._autolocked)
 
         for pid, path in get_open_files():
+            found_in_watched_folder = False
             if self._folder in path.parents:
                 log.debug(f"Found in watched folder: {path!r} (PID={pid})")
+                found_in_watched_folder = True
             elif path in self._autolocked:
                 log.debug(f"Found in auto-locked: {path!r} (PID={pid})")
             else:
@@ -88,6 +90,7 @@ class ProcessAutoLockerWorker(PollWorker):
                 continue
 
             item: Item = (pid, path)
+
             if path in current_locks:
                 # If the doc has been detected but not yet locked ...
                 if self._autolocked[path] == 0:
@@ -98,13 +101,20 @@ class ProcessAutoLockerWorker(PollWorker):
 
                 # Remove the doc, else it will be unlocked just after
                 del current_locks[path]
+            elif found_in_watched_folder:
+                # The document has been found but not locked, this is the case when the application
+                # that opens the document does not use identifiable temporary files.
+                # Such as Photoshop and Illustrator.
+                self.set_autolock(path, self.direct_edit)
 
         # Lock new documents
-        self._lock_files(self._to_lock)
+        if self._to_lock:
+            self._lock_files(self._to_lock)
 
-        # If there are remaining documents, it means they are no more opened
+        # If there are remaining documents, it means they are no more being edited
         # and therefore we need to unlock them.
-        self._unlock_files(current_locks)
+        if current_locks:
+            self._unlock_files(current_locks)
 
     def _lock_files(self, items: Items) -> None:
         """Schedule locks for the given documents."""
