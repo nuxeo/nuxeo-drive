@@ -1,7 +1,5 @@
 # coding: utf-8
-import os
 import platform
-import subprocess
 import uuid
 from logging import getLogger
 from pathlib import Path
@@ -17,7 +15,7 @@ from . import __version__
 from .autolocker import ProcessAutoLockerWorker
 from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
-from .constants import APP_NAME, MAC, STARTUP_PAGE_CONNECTION_TIMEOUT, WINDOWS
+from .constants import APP_NAME, MAC, STARTUP_PAGE_CONNECTION_TIMEOUT
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .exceptions import EngineTypeMissing, FolderAlreadyUsed, StartupPageConnectionError
@@ -39,9 +37,6 @@ from .utils import (
     if_frozen,
     normalized_path,
 )
-
-if WINDOWS:
-    import win32api
 
 if TYPE_CHECKING:
     from .client.proxy import Proxy  # noqa
@@ -300,8 +295,7 @@ class Manager(QObject):
             if engine.is_started():
                 log.debug(f"Stop engine {uid}")
                 engine.stop()
-        if MAC:
-            self.osi._cleanup()
+        self.osi._cleanup()
         self.dispose_db()
         self.stopped.emit()
 
@@ -348,45 +342,15 @@ class Manager(QObject):
 
     @pyqtSlot(str)
     def open_local_file(self, file_path: str, select: bool = False) -> None:
-        # TODO: Move to utils.py
-        """
-        Launch the local OS program on the given file / folder.
-
-        :param file_path: The file URL to open.
-        :param select: Hightlight the given file_path. Useful when
-                       opening a folder and to select a file.
-        """
+        """Launch the local OS program on the given file / folder."""
         file_path = force_decode(file_path)
         log.debug(f"Launching editor on {file_path!r}")
-        if WINDOWS:
-            try:
-                if select:
-                    win32api.ShellExecute(
-                        None, "open", "explorer.exe", f"/select,{file_path}", None, 1
-                    )
-                else:
-                    os.startfile(file_path)  # type: ignore
-            except OSError as exc:
-                log.warning(f"Failed to open {file_path}: {exc}")
-        elif MAC:
-            args = ["open"]
-            if select:
-                args += ["-R"]
-            args += [file_path]
-            subprocess.Popen(args)
-        else:
-            if select:
-                # TODO NXDRIVE-848: Select feature not yet implemented
-                # TODO See https://bugs.freedesktop.org/show_bug.cgi?id=49552
-                log.info(
-                    "The Select/Highlight feature is not yet implemented, please vote "
-                    "https://jira.nuxeo.com/browse/NXDRIVE-848 to show your interest"
-                )
-            try:
-                subprocess.Popen(["xdg-open", file_path])
-            except OSError:
-                # xdg-open should be supported by recent Gnome, KDE, Xfce
-                log.warning(f"Failed to find and editor for: {file_path!r}")
+        try:
+            self.osi.open_local_file(file_path)
+        except Exception:
+            # Log the exception now, will see later if we need to adapt
+            log.exception(f"Failed to find and editor for {file_path!r}")
+            return
 
     @property
     def device_id(self) -> str:

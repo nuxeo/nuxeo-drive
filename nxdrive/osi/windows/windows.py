@@ -62,6 +62,14 @@ class WindowsIntegration(AbstractOSIntegration):
             for key, value in config.items()
         }
 
+    def open_local_file(self, file_path: str, select: bool = False) -> None:
+        if select:
+            win32api.ShellExecute(
+                None, "open", "explorer.exe", f"/select,{file_path}", None, 1
+            )
+        else:
+            os.startfile(file_path)  # type: ignore
+
     @if_frozen
     def register_contextual_menu(self) -> None:
         log.debug("Registering contextual menu")
