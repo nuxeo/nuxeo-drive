@@ -38,7 +38,12 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @if_frozen
     def _init(self) -> None:
-        enable_overlay()
+        watched_folders = {
+            engine.local_folder for engine in self._manager._engine_definitions
+        }
+        if watched_folders:
+            set_filter_folders(watched_folders)
+            enable_overlay()
 
     @if_frozen
     def _cleanup(self) -> None:

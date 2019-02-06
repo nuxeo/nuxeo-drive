@@ -11,6 +11,7 @@ AppVersion={#MyAppVersion}
 VersionInfoVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppCopyright="© {#MyAppPublisher}. All rights reserved."
+DefaultDirName={param:targetdir|{localappdata}\{#MyAppName}}
 
 ArchitecturesInstallIn64BitMode=x64
 CreateAppDir=no
@@ -24,12 +25,9 @@ WizardImageFile=wizard.bmp
 WizardSmallImageFile=wizard-small.bmp
 MinVersion=6.1.7600
 
+; Overlays
+#include "setup-overlay.iss"
 
 [Registry]
 ; Remove the MAX_PATH limitation
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\FileSystem"; ValueType: dword; ValueName: "LongPathsEnabled"; ValueData: "1"; Flags: createvalueifdoesntexist
-
-; Register the icon overlay
-; The ValueData must be the AppId from setup.iss
-Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\DriveIconOverlay"; Flags: uninsdeletekey
-Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\DriveIconOverlay"; ValueType: expandsz; ValueData: "{{64519FA4-137A-4DC6-BF91-E2B698C02788}"

@@ -262,6 +262,7 @@ class Manager(QObject):
         from .osi.windows.overlay import OverlayHandlerListener  # noqa
 
         self._explorer_listener = OverlayHandlerListener(self)
+        self._explorer_listener.listening.connect(self.osi._init)
         self.started.connect(self._explorer_listener._listen)
         self.stopped.connect(self._explorer_listener.close)
 

@@ -7,6 +7,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Set, TYPE_CHECKING
 
+from PyQt5.Qt import pyqtSignal
 from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
 from win32com.shell import shell, shellcon
@@ -35,7 +36,13 @@ def disable_overlay() -> None:
 
 
 def get_filter_folders() -> Set[Path]:
-    filters = json.loads(registry.read(OVERLAYS_REGISTRY_KEY)[FILTER_FOLDERS])
+    value = registry.read(OVERLAYS_REGISTRY_KEY)
+    if not value:
+        return set()
+    overlay_conf = json.loads(value)
+    if not isinstance(overlay_conf, list):
+        return set()
+    filters = overlay_conf.get(FILTER_FOLDERS, [])
     return {Path(path) for path in filters}
 
 
@@ -59,6 +66,9 @@ def update_explorer(path: Path) -> None:
 
 
 class OverlayHandlerListener(QTcpServer):
+
+    listening = pyqtSignal()
+
     def __init__(self, manager: "Manager", *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.manager = manager
@@ -69,6 +79,7 @@ class OverlayHandlerListener(QTcpServer):
     def _listen(self):
         self.listen(QHostAddress(self.host), self.port)
         log.debug(f"Listening to Explorer on {self.host}:{self.port}")
+        self.listening.emit()
 
     def handle_connection(self) -> None:
         """ Called when an Explorer instance is connecting. """
