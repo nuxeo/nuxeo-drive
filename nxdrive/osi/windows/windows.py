@@ -14,7 +14,12 @@ from win32com.shell import shell, shellcon
 from win32con import LOGPIXELSX
 
 from . import registry
-from .overlay import get_filter_folders, set_filter_folders
+from .overlay import (
+    disable_overlay,
+    enable_overlay,
+    get_filter_folders,
+    set_filter_folders,
+)
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME, CONFIG_REGISTRY_KEY
 from ...objects import DocPair
@@ -30,6 +35,14 @@ log = getLogger(__name__)
 class WindowsIntegration(AbstractOSIntegration):
 
     nature = "Windows"
+
+    @if_frozen
+    def _init(self) -> None:
+        enable_overlay()
+
+    @if_frozen
+    def _cleanup(self) -> None:
+        disable_overlay()
 
     @property
     def zoom_factor(self) -> float:

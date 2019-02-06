@@ -29,15 +29,18 @@ The revelant source code can be found in the `tools/windows/setup-admin.iss` fil
 
 ### Building
 
-The setup to build the DLL is the following:
-- Windows 7
+The setup to build the DLLs on Windows 7 is the following:
 - Visual Studio Express 2010
 - The [Windows SDK for Windows 7 and .NET Framework 4](https://www.microsoft.com/en-us/download/details.aspx?id=8279)
 - The [Windows Driver Kit 7.1.0](https://www.microsoft.com/en-us/download/details.aspx?id=11800)
 - The [Visual C++ 2010 SP1 Compiler Update](https://www.microsoft.com/en-us/download/details.aspx?id=4422)
 - [Ant](https://ant.apache.org/bindownload.cgi)
 
-Once [liferay-nativity](https://github.com/liferay/liferay-nativity) is checked out, we modify the content of `.\windows\LiferayNativityShellExtensions\LiferayNativityUtil\UtilConstants.h` and set the `REGISTRY_ROOT_KEY` to `SOFTWARE\\Nuxeo\\Drive\\Overlays`, as well as the `PORT` to `50675`.
+On Windows 10, you should be able to install all the recent C++ dependencies with Visual Studio 2017, however you need to upgrade the project:
+Once [liferay-nativity](https://github.com/liferay/liferay-nativity) is checked out, re-target the projects in `LiferayNativityShellExtensions` to the Windows 10 SDK and change the Properties > Configuration Properties > General > Platform toolset to the latest VS 2017 one.
+
+
+Then modify the content of `.\windows\LiferayNativityShellExtensions\LiferayNativityUtil\UtilConstants.h` and set the `REGISTRY_ROOT_KEY` to `SOFTWARE\\Nuxeo\\Drive\\Overlays`, as well as the `PORT` to `10650`.
 
 Then we add a `build.<username>.properties` file in it which contains the following:
 ```
@@ -61,7 +64,7 @@ ant -propertyfile build.<username>.properties build-windows-overlays \
     -Doverlay.id=<id> \
     -Doverlay.path=<icon>
 ```
-The name must identify what status the icon represents, e.g. "DriveOKOverlay".
+The name must identify what status the icon represents, e.g. "DriveSyncedOverlay".
 The guid must be a unique CLSID.
 The id must be different for each icon.
 The icon must be a path that points to an .ico file.

@@ -63,7 +63,7 @@ class OverlayHandlerListener(QTcpServer):
         super().__init__(*args, **kwargs)
         self.manager = manager
         self.host = "localhost"
-        self.port = 50675
+        self.port = 10650
         self.newConnection.connect(self.handle_connection)
 
     def _listen(self):
