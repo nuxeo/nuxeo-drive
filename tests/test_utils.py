@@ -7,6 +7,23 @@ import pytest
 import nxdrive.utils
 
 
+@pytest.mark.parametrize(
+    "path, pid",
+    [
+        ("/Users/Bob/Documents/Sans%20titre-1.psd", 1868982964),
+        (b"/Users/Bob/Documents/Sans%20titre-1.psd", 1868982964),
+        ("C:\\Users\\Alice\\tests\\test.psd", 3523690320),
+        (r"C:\Users\Alice\tests\test.psd", 3523690320),
+        (br"C:\Users\Alice\tests\test.psd", 3523690320),
+        ("", 0),
+        (b"", 0),
+    ],
+)
+def test_compute_fake_pid_from_path(path, pid):
+    func = nxdrive.utils.compute_fake_pid_from_path
+    assert func(path) == pid
+
+
 def test_encrypt_decrypt():
     enc = nxdrive.utils.encrypt
     dec = nxdrive.utils.decrypt

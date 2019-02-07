@@ -1,26 +1,14 @@
 # coding: utf-8
-from binascii import crc32
 from contextlib import suppress
 from pathlib import Path
-from sys import getdefaultencoding
 from typing import Iterator
 
 from win32com.client import GetActiveObject
 
 from ...objects import Items
+from ...utils import compute_fake_pid_from_path
 
 __all__ = ("get_other_opened_files",)
-
-
-def _compute_pid(path: str) -> int:
-    """
-    We have no way to find the PID of the apps using the opened file.
-    This is a limitation (or a feature) of COM objects.
-    To bypass this, we compute a unique ID for a given path.
-    """
-    if not isinstance(path, bytes):
-        path = path.encode(getdefaultencoding(), errors="ignore")  # type: ignore
-    return crc32(path)
 
 
 def _get_opened_files_adobe_cc(obj: str) -> Iterator[Items]:
@@ -38,7 +26,9 @@ def _get_opened_files_adobe_cc(obj: str) -> Iterator[Items]:
     with suppress(Exception):
         app = GetActiveObject(obj)
         for doc in app.Application.Documents:
-            yield _compute_pid(doc.fullName), Path(doc.FullName)
+            path = doc.fullName
+            pid = compute_fake_pid_from_path(path)
+            yield pid, Path(path)
 
 
 def get_other_opened_files() -> Iterator[Items]:
