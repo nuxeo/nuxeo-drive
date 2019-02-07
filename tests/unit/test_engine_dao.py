@@ -1,90 +1,14 @@
 # coding: utf-8
-import shutil
-import time
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
-from nxdrive.engine.dao.sqlite import EngineDAO, prepare_args
-from nxdrive.objects import DocPair
-from nxdrive.utils import normalized_path, WINDOWS
+from nxdrive.engine.dao.sqlite import prepare_args
+from nxdrive.utils import WINDOWS
 
 
-class MockEngineDao(EngineDAO):
-    """ Convenient class with auto-cleanup at exit. """
-
-    def __init__(self, fname):
-        db = normalized_path(__file__).parent / "resources" / fname
-        tmp = db.with_name(f"{db.name}_copy.db")
-        shutil.copy(db, tmp)
-        time.sleep(1)
-        super().__init__(tmp)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.dispose()
-        self._db.unlink()
-
-    def _get_adjacent_sync_file(
-        self, ref: str, comp: str, order: str, sync_mode: str = None
-    ) -> Optional[DocPair]:
-        state = self.get_normal_state_from_remote(ref)
-        if state is None:
-            return None
-
-        mode = f" AND last_transfer='{sync_mode}' " if sync_mode else ""
-        c = self._get_read_connection().cursor()
-        return c.execute(
-            "SELECT *"
-            "  FROM States "
-            f"WHERE last_sync_date {comp} ? "
-            "   AND (pair_state != 'unsynchronized' "
-            "   AND pair_state != 'conflicted') "
-            "   AND folderish = 0 "
-            f"{mode}"
-            f"ORDER BY last_sync_date {order}"
-            " LIMIT 1",
-            (state.last_sync_date,),
-        ).fetchone()
-
-    def _get_adjacent_folder_file(
-        self, ref: str, comp: str, order: str
-    ) -> Optional[DocPair]:
-        state = self.get_normal_state_from_remote(ref)
-        if not state:
-            return None
-        c = self._get_read_connection().cursor()
-        return c.execute(
-            "SELECT *"
-            "  FROM States"
-            " WHERE remote_parent_ref = ?"
-            f"  AND remote_name {comp} ?"
-            "   AND folderish = 0 "
-            f"ORDER BY remote_name {order}"
-            " LIMIT 1",
-            (state.remote_parent_ref, state.remote_name),
-        ).fetchone()
-
-    def get_previous_folder_file(self, ref: str) -> Optional[DocPair]:
-        return self._get_adjacent_folder_file(ref, "<", "DESC")
-
-    def get_next_folder_file(self, ref: str) -> Optional[DocPair]:
-        return self._get_adjacent_folder_file(ref, ">", "ASC")
-
-    def get_previous_sync_file(
-        self, ref: str, sync_mode: str = None
-    ) -> Optional[DocPair]:
-        return self._get_adjacent_sync_file(ref, ">", "ASC", sync_mode)
-
-    def get_next_sync_file(self, ref: str, sync_mode: str = None) -> Optional[DocPair]:
-        return self._get_adjacent_sync_file(ref, "<", "DESC", sync_mode)
-
-
-def test_acquire_processors():
-    with MockEngineDao("test_engine_migration.db") as dao:
+def test_acquire_processors(engine_dao):
+    with engine_dao("test_engine_migration.db") as dao:
         assert dao.acquire_processor(666, 2)
 
         # Cannot acquire processor if different processor
@@ -101,9 +25,9 @@ def test_acquire_processors():
         assert not dao.release_processor(666)
 
 
-def test_batch_folder_files():
+def test_batch_folder_files(engine_dao):
     """ Verify that the batch is ok. """
-    with MockEngineDao("test_engine_migration.db") as dao:
+    with engine_dao("test_engine_migration.db") as dao:
         ids = range(25, 47)
         index = 0
         state = dao.get_state_from_id(25)  # ids[index])
@@ -125,9 +49,9 @@ def test_batch_folder_files():
         assert dao.get_next_folder_file(state.remote_ref) is None
 
 
-def test_batch_upload_files():
+def test_batch_upload_files(engine_dao):
     """ Verify that the batch is ok. """
-    with MockEngineDao("test_engine_migration.db") as dao:
+    with engine_dao("test_engine_migration.db") as dao:
         ids = [58, 62, 61, 60, 63]
         index = 0
         state = dao.get_state_from_id(ids[index])
@@ -149,8 +73,8 @@ def test_batch_upload_files():
         assert dao.get_next_sync_file(state.remote_ref, "upload") is None
 
 
-def test_configuration_get():
-    with MockEngineDao("test_engine_migration.db") as dao:
+def test_configuration_get(engine_dao):
+    with engine_dao("test_engine_migration.db") as dao:
         result = dao.get_config("empty", "DefaultValue")
         assert result == "DefaultValue"
 
@@ -172,9 +96,9 @@ def test_configuration_get():
         assert result is None
 
 
-def test_configuration_get_bool():
+def test_configuration_get_bool(engine_dao):
     name = "something"
-    with MockEngineDao("test_engine_migration.db") as dao:
+    with engine_dao("test_engine_migration.db") as dao:
         # Boolean parameter set to True
         dao.store_bool(name, True)
         assert dao.get_bool(name) is True
@@ -227,9 +151,9 @@ def test_configuration_get_bool():
         assert dao.get_bool("light_icons") is res
 
 
-def test_configuration_get_int():
+def test_configuration_get_int(engine_dao):
     name = "something"
-    with MockEngineDao("test_engine_migration.db") as dao:
+    with engine_dao("test_engine_migration.db") as dao:
         # Boolean parameter set to True
         dao.store_int(name, 42)
         assert dao.get_int(name) == 42
@@ -263,22 +187,22 @@ def test_configuration_get_int():
         assert dao.get_int("remote_last_sync_date") == res
 
 
-def test_conflicts():
-    with MockEngineDao("test_engine_migration.db") as dao:
+def test_conflicts(engine_dao):
+    with engine_dao("test_engine_migration.db") as dao:
         assert dao.get_conflict_count() == 3
         assert len(dao.get_conflicts()) == 3
 
 
-def test_corrupted_database():
+def test_corrupted_database(engine_dao):
     """ DatabaseError: database disk image is malformed. """
-    with MockEngineDao("test_corrupted_database.db") as dao:
+    with engine_dao("test_corrupted_database.db") as dao:
         c = dao._get_read_connection().cursor()
         cols = c.execute("SELECT * FROM States").fetchall()
         assert len(cols) == 3
 
 
-def test_errors():
-    with MockEngineDao("test_engine_migration.db") as dao:
+def test_errors(engine_dao):
+    with engine_dao("test_engine_migration.db") as dao:
         assert dao.get_error_count() == 1
         assert not dao.get_error_count(5)
         assert len(dao.get_errors()) == 1
@@ -311,9 +235,9 @@ def test_errors():
         assert not dao.get_error_count(2)
 
 
-def test_filters():
+def test_filters(engine_dao):
     """ Contains by default /fakeFilter/Test_Parent and /fakeFilter/Retest. """
-    with MockEngineDao("test_engine_migration.db") as dao:
+    with engine_dao("test_engine_migration.db") as dao:
         assert len(dao.get_filters()) == 2
 
         dao.remove_filter("/fakeFilter/Retest")
@@ -327,17 +251,17 @@ def test_filters():
         assert len(dao.get_filters()) == 2
 
 
-def test_init_db():
-    with MockEngineDao("test_manager_migration.db") as dao:
+def test_init_db(engine_dao):
+    with engine_dao("test_manager_migration.db") as dao:
         assert not dao.get_filters()
         assert not dao.get_conflicts()
         assert dao.get_config("remote_user") is None
         assert not dao.is_path_scanned("/")
 
 
-def test_last_sync():
+def test_last_sync(engine_dao):
     """ Based only on file so not showing 2. """
-    with MockEngineDao("test_engine_migration.db") as dao:
+    with engine_dao("test_engine_migration.db") as dao:
         ids = [58, 8, 62, 61, 60]
         files = dao.get_last_files(5)
         assert len(files) == 5
@@ -357,8 +281,8 @@ def test_last_sync():
             assert files[i].id == ids[i]
 
 
-def test_migration_db_v1():
-    with MockEngineDao("test_engine_migration.db") as dao:
+def test_migration_db_v1(engine_dao):
+    with engine_dao("test_engine_migration.db") as dao:
         c = dao._get_read_connection().cursor()
 
         cols = c.execute("PRAGMA table_info('States')").fetchall()
@@ -368,9 +292,9 @@ def test_migration_db_v1():
         assert len(cols) == 63
 
 
-def test_migration_db_v1_with_duplicates():
+def test_migration_db_v1_with_duplicates(engine_dao):
     """ Test a non empty DB. """
-    with MockEngineDao("test_engine_migration_duplicate.db") as dao:
+    with engine_dao("test_engine_migration_duplicate.db") as dao:
         c = dao._get_read_connection().cursor()
         rows = c.execute("SELECT * FROM States").fetchall()
         assert not rows
@@ -399,7 +323,7 @@ def test_prepare_args(args, expected_args, skip):
     assert prepare_args(args) == expected_args
 
 
-def test_reinit_processors():
-    with MockEngineDao("test_engine_migration.db") as dao:
+def test_reinit_processors(engine_dao):
+    with engine_dao("test_engine_migration.db") as dao:
         state = dao.get_state_from_id(1)
         assert not state.processor

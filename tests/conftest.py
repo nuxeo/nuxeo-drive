@@ -1,51 +1,16 @@
 # coding: utf-8
 import os
+import sys
 
 import pytest
-
-import nxdrive
-
-from . import DocRemote
 
 pytest_plugins = "tests.pytest_random"
 
 
-def pytest_namespace():
-    """
-    This namespace is used to store global variables for
-    tests. They can be accessed with `pytest.<variable_name>`
-    e.g. `pytest.nuxeo_url`
-    """
-
-    nuxeo_url = os.getenv(
-        "NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo"
-    ).split("#")[0]
-    password = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
-    user = os.getenv("NXDRIVE_TEST_USER", "Administrator")
-    version = nxdrive.__version__
-
-    try:
-        root_remote = DocRemote(
-            nuxeo_url,
-            user,
-            "nxdrive-test-administrator-device",
-            version,
-            password=password,
-            base_folder="/",
-            timeout=60,
-        )
-    except:
-        # When testing locally a function that does not need to communicate with the
-        # server we can skip this object. To be reviewed with the tests refactoring.
-        root_remote = None
-
-    return {
-        "nuxeo_url": nuxeo_url,
-        "user": user,
-        "password": password,
-        "root_remote": root_remote,
-        "version": version,
-    }
+# pytest marker to skip tests based on data coming from Jenkins (not public)
+jenkins_only = pytest.mark.skipif(
+    "JENKINS_URL" not in os.environ, reason="Must be ran from Jenkins."
+)
 
 
 @pytest.hookimpl(trylast=True, hookwrapper=True)
@@ -104,3 +69,25 @@ def no_warnings(recwarn):
         ):
             warnings.append(f"{warning.filename}:{warning.lineno} {message}")
     assert not warnings
+
+
+@pytest.fixture(autouse=True)
+def ensure_no_exception(request):
+    """No exception must pass under the radar!"""
+
+    def error(type_, value, traceback) -> None:
+        """ Install an exception hook to catch any error. """
+        nonlocal received
+        received = True
+        print(type_)
+        print(value)
+        print(repr(traceback))
+
+    received = False
+    excepthook, sys.excepthook = sys.excepthook, error
+
+    try:
+        yield 2
+    finally:
+        sys.excepthook = excepthook
+        assert not received, "Unhandled exception raised!"

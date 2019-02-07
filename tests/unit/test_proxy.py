@@ -121,13 +121,9 @@ def test_mock_autoconfigurl_mac(pac_file):
 def test_cli_args():
     url = "http://username:password@localhost:8899"
     Options.set("proxy_server", url, setter="cli")
-    manager = Manager()
-    proxy = manager.proxy
-    assert isinstance(proxy, ManualProxy)
-    assert proxy.url == url
-    settings = proxy.settings()
-    assert settings["http"] == settings["https"] == url
-    manager.stop()
-    manager.unbind_all()
-    manager.dispose_all()
-    Manager._singleton = None
+    with Manager() as manager:
+        proxy = manager.proxy
+        assert isinstance(proxy, ManualProxy)
+        assert proxy.url == url
+        settings = proxy.settings()
+        assert settings["http"] == settings["https"] == url

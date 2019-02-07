@@ -37,5 +37,3 @@ Related issue: https://jira.nuxeo.com/browse/NXDRIVE-647
 ## Expected Results
 
 This looks like a conflict situation on the folder. Ideally, I would say that conflict is handled client side in the conflict management UI, letting the user the choice to either apply server name or keep client name and update server. Just by renaming, not deleting the folder and re-downloading.
-
-

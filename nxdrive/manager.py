@@ -176,6 +176,15 @@ class Manager(QObject):
         if MAC:
             self._create_findersync_listener()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        try:
+            self.stop()
+        finally:
+            Manager._singleton = None
+
     def get_metrics(self) -> Metrics:
         return {
             "version": self.version,

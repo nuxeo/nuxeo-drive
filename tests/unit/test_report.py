@@ -13,9 +13,8 @@ def test_logs():
     log = getLogger(__name__)
     folder = Path(tempfile.mkdtemp("-nxdrive-tests"))
     Options.nxdrive_home = folder
-    manager = Manager()
 
-    try:
+    with Manager() as manager:
         log.debug("Strange encoding \xe8 \xe9")
 
         # Crafted problematic logRecord
@@ -29,6 +28,3 @@ def test_logs():
 
         report = Report(manager, folder / "report")
         report.generate()
-    finally:
-        manager.dispose_db()
-        Manager._singleton = None
