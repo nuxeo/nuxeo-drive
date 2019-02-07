@@ -232,4 +232,15 @@ for doc in app.Application.Documents:
     print(doc.FullName)
 ```
 
-It will output the list of opened files.
+And for macOS, using AppleScript:
+
+```python
+from ScriptingBridge import SBApplication
+
+
+app = SBApplication.applicationWithBundleIdentifier_("com.adobe.Photoshop")
+for doc in app.documents():
+    print(doc.filePath().path())
+```
+
+Both codes will output the list of opened files.
