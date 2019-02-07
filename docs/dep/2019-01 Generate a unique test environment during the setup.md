@@ -33,9 +33,38 @@ We should no more call the `NuxeoDrive.SetupIntegrationTests` operation.
 
 ## Specifications
 
-We will completely move to `pytest` instead of having a mix between it and `unittest` formats.
+We will completely move to `pytest` instead of having a mix with `unittest` format.
 We then may be able to fully embrace pytest [fixture's factories](https://docs.pytest.org/en/latest/fixture.html#factories-as-fixtures).
 Speaking of factories, we may have a look at [Factory Boy](https://factoryboy.readthedocs.io/en/latest/).
+
+We will split the `tests` folder to reflect the actual tests file it constains.
+I am thinking of somthing like:
+
+```tree
+tests/
+    - conftest.py (global fixtures)
+    - /functional
+        - conftest.py (Nuxeo specific fixtures)
+        - /local_creations
+            - conftest.py
+            - test_invalid_credentials_on_file_upload.py
+            - test_folders_and_children_files.py
+        - /
+    - integration
+        - ??? (for the future)
+    - unit
+        - conftest.py (maybe unecessary)
+        - test_report.py
+        - tet_utils.py
+```
+
+Where:
+
+- `tests/functional` are tests that require a Nuxeo instance to work with.
+- `test/integration` will be the folder where real scenarii will be tested.
+- `test/unit` are real unit tests, with no requirements but the Nuxeo Drive code.
+
+It will speed tests because only `tests/functional` will require a server connection and it will help future parallelization.
 
 ## Notes
 
