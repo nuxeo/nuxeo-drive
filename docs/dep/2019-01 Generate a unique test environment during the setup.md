@@ -213,3 +213,5 @@ def user_factory(server, faker):
         with suppress(Exception):
             _user.delete()
 ```
+
+This may be seen as a lot of code, but it is actually only what is needed to factorize such objects across all tests.
