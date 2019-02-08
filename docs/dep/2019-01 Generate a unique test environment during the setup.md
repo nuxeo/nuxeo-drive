@@ -16,10 +16,10 @@ Running the test suite twice should not use same users and workspaces to ensure 
 
 As of now, tests are calling the `NuxeoDrive.SetupIntegrationTests` operation to create users and workspaces.
 
-With the future move to OpenShift for testing ([NXDRIVE-1435](https://jira.nuxeo.com/browse/NXDRIVE-1435)), we will encounter errors because 3 OSes will talk to the server at the same time.
+With the future move to Jenkins X for testing ([NXDRIVE-1435](https://jira.nuxeo.com/browse/NXDRIVE-1435)), we will encounter errors because 3 OSes will talk to the server at the same time.
 It will break everything as users and workspaces are the same everywhere.
 
-Before that move to OpenShift, we need to tweak tests setup to:
+Before that move, we need to tweak tests setup to:
 
 - create needed user for each tests;
 - create the workspace based on the OS name and the test name/function/whatever (we should keep it short for OS path limits);
@@ -38,20 +38,18 @@ We then may be able to fully embrace pytest [fixture's factories](https://docs.p
 Speaking of factories, we may have a look at [Factory Boy](https://factoryboy.readthedocs.io/en/latest/).
 
 We will split the `tests` folder to reflect the actual tests file it constains.
-I am thinking of somthing like:
+I am thinking of something like:
 
-```tree
+```text
 tests/
     - conftest.py (global fixtures)
     - /functional
-        - conftest.py (Nuxeo specific fixtures)
-        - conftest.py
+        - conftest.py (Nuxeo server specific fixtures)
         - test_local_creations.py
         - test_synchronization.py
-    - integration
-        - ??? (for the future)
-    - unit
-        - conftest.py (maybe unecessary)
+    - /integration (for the future)
+    - /unit
+        - conftest.py (fixtures needed locally)
         - test_report.py
         - tet_utils.py
 ```
@@ -63,7 +61,3 @@ Where:
 - `test/unit` are real unit tests, with no requirements but the Nuxeo Drive code.
 
 It will speed tests because only `tests/functional` will require a server connection and it will help future parallelization.
-
-## Notes
-
-TODO?

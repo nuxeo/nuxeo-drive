@@ -6,7 +6,7 @@ import pytest
 
 import nxdrive.utils
 
-from ..conftest import jenkins_only
+from ..markers import jenkins_only
 
 
 def test_encrypt_decrypt():

@@ -83,6 +83,6 @@ class MockEngineDAO(EngineDAO):
         return self._get_adjacent_sync_file(ref, "<", "DESC", sync_mode)
 
 
-@pytest.fixture()
+@pytest.fixture
 def engine_dao():
     return MockEngineDAO
