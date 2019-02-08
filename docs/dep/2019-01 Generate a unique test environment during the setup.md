@@ -61,3 +61,155 @@ Where:
 - `test/unit` are real unit tests, with no requirements but the Nuxeo Drive code.
 
 It will speed tests because only `tests/functional` will require a server connection and it will help future parallelization.
+
+## Examples
+
+Converting `test_bind_server.py` to the proposed new format will convert this code:
+
+```python
+# coding: utf-8
+import os
+import tempfile
+import unittest
+from pathlib import Path
+
+import pytest
+
+from nxdrive.exceptions import FolderAlreadyUsed
+from nxdrive.manager import Manager
+from nxdrive.options import Options
+from nxdrive.utils import normalized_path
+from .common import TEST_DEFAULT_DELAY, clean_dir
+
+
+class BindServerTest(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = Path(os.environ.get("WORKSPACE", "")) / "tmp"
+        self.addCleanup(clean_dir, self.tmpdir)
+        self.tmpdir.mkdir(parents=True, exist_ok=True)
+
+        self.local_test_folder = normalized_path(
+            tempfile.mkdtemp("-nxdrive-temp-config", dir=self.tmpdir)
+        )
+        self.nxdrive_conf_folder = self.local_test_folder / "nuxeo-drive-conf"
+
+    def tearDown(self):
+        Manager._singleton = None
+
+    @Options.mock()
+    def test_bind_local_folder_on_config_folder(self):
+        Options.delay = TEST_DEFAULT_DELAY
+        Options.nxdrive_home = self.nxdrive_conf_folder
+        self.manager = Manager()
+
+        with pytest.raises(FolderAlreadyUsed):
+            self.manager.bind_server(
+                self.nxdrive_conf_folder,
+                pytest.nuxeo_url,
+                pytest.user,
+                pytest.password,
+                start_engine=False,
+            )
+            self.addCleanup(self.manager.unbind_all)
+            self.addCleanup(self.manager.dispose_all)
+
+```
+
+To this one, more concise and readable:
+
+```python
+# coding: utf-8
+import pytest
+
+from nxdrive.exceptions import FolderAlreadyUsed
+
+
+def test_bind_local_folder_already_used(manager, tempdir, nuxeo_url, user_factory):
+    conf_folder = tempdir / "nuxeo-conf"
+    user = user_factory()
+
+    # First bind: OK
+    manager.bind_server(
+        conf_folder,
+        nuxeo_url,
+        user.uid,
+        user.password,
+        start_engine=False,
+    )
+
+    # Second bind: Error
+    with pytest.raises(FolderAlreadyUsed):
+        manager.bind_server(
+            conf_folder,
+            nuxeo_url,
+            user.uid,
+            user.password,
+            start_engine=False,
+        )
+```
+
+We defined several fixtures: `manager`, `tempdir`, `nuxeo_url` and `user_factory`.
+
+And they are defined as:
+
+```python
+@pytest.fixture(scope="session")
+def nuxeo_url():
+    """Retrieve the Nuxeo URL."""
+    return os.getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo").split("#")[0]
+
+
+@pytest.fixture
+def tempdir(tmpdir):
+    """Use the original *tmpdir* fixture and convert to a Path with automatic clean-up."""
+    path = Path(tmpdir)
+    try:
+        yield path
+    finally:
+        with suppress(OSError):
+            rmtree(path)
+
+
+@pytest.fixture
+def manager(tempdir):
+    """Manager instance with automatic clean-up."""
+    with Manager(home=tempdir) as man:
+        yield man
+
+
+@pytest.fixture
+def user_factory(server, faker):
+    """User creation factory with automatic clean-up."""
+    _user = None
+    fake = faker()
+
+    def _create_user(
+        password: str = "Administrator",
+        lastName: str = fake.last_name(),
+        firstName: str = fake.first_name(),
+        email: str = fake.email(),
+        company: str = fake.company(),
+    ):
+        nonlocal _user
+
+        username: str = firstName.lower()
+        user_ = User(
+            properties={
+                'lastName': lastName,
+                'firstName': firstName,
+                'username': username,
+                'email': email,
+                'company': company,
+                'password': password,
+            },
+        )
+        _user = server.users.create(user_)
+        _user.password = password
+        return _user
+
+    try:
+        yield _create_user
+    finally:
+        with suppress(Exception):
+            _user.delete()
+```

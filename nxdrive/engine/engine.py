@@ -441,7 +441,7 @@ class Engine(QObject):
         return LocalWatcher(self, self._dao)
 
     def _get_db_file(self) -> Path:
-        return self.manager.nxdrive_home / f"ndrive_{self.uid}.db"
+        return self.manager.home / f"ndrive_{self.uid}.db"
 
     def get_binder(self) -> "ServerBindingSettings":
         return ServerBindingSettings(  # type: ignore

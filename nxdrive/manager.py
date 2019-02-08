@@ -7,6 +7,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING
 from urllib.parse import urlparse, urlsplit, urlunsplit
+from weakref import proxy
 
 import requests
 from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
@@ -66,36 +67,31 @@ class Manager(QObject):
     reloadIconsSet = pyqtSignal(bool)
     resumed = pyqtSignal()
 
-    _singleton: Optional["Manager"] = None
+    _instances: Dict[Path, "Manager"] = {}
     __device_id = None
     autolock_service: ProcessAutoLockerWorker
 
-    @staticmethod
-    def get() -> Optional["Manager"]:
-        return Manager._singleton
-
-    def __init__(self) -> None:
-        if Manager._singleton:
-            raise RuntimeError("Only one instance of Manager can be created.")
-
+    def __init__(self, home: Path = Options.nxdrive_home) -> None:
         super().__init__()
-        Manager._singleton = self
 
         self._os = get_device()
         self._arch = get_arch()
         self._platform = get_current_os_full()
 
         # Primary attributes to allow initializing the notification center early
-        self.nxdrive_home = normalized_path(Options.nxdrive_home)
-        if not self.nxdrive_home.exists():
-            self.nxdrive_home.mkdir()
+        self.home = normalized_path(home)
+        if not self.home.exists():
+            self.home.mkdir()
+
+        if home not in Manager._instances:
+            Manager._instances[home] = proxy(self)
 
         self._create_dao()
 
         self.notification_service = DefaultNotificationService(self)
         self.osi = AbstractOSIntegration.get(self)
 
-        self.direct_edit_folder = self.nxdrive_home / "edit"
+        self.direct_edit_folder = self.home / "edit"
 
         self._engine_definitions: List[EngineDef] = []
 
@@ -180,10 +176,13 @@ class Manager(QObject):
         return self
 
     def __exit__(self, *_):
+        self.close()
+
+    def close(self):
         try:
             self.stop()
         finally:
-            Manager._singleton = None
+            Manager._instances.pop(self.home, None)
 
     def get_metrics(self) -> Metrics:
         return {
@@ -233,7 +232,7 @@ class Manager(QObject):
         return tracker
 
     def _get_db(self) -> Path:
-        return self.nxdrive_home / "manager.db"
+        return self.home / "manager.db"
 
     def get_dao(self) -> ManagerDAO:  # TODO: Remove
         return self._dao
@@ -347,7 +346,7 @@ class Manager(QObject):
             self.initEngine.emit(self._engines[engine.uid])
 
     def _get_engine_db_file(self, uid: str) -> Path:
-        return self.nxdrive_home / f"ndrive_{uid}.db"
+        return self.home / f"ndrive_{uid}.db"
 
     def _force_autoupdate(self) -> None:
         if not self.updater:
@@ -595,7 +594,7 @@ class Manager(QObject):
             return True
         for engine in self._engine_definitions:
             other = engine.local_folder
-            if path in other.parents or other in path.parents:
+            if path == other or path in other.parents or other in path.parents:
                 return False
         return True
 
@@ -642,7 +641,7 @@ class Manager(QObject):
 
         if not local_folder:
             local_folder = get_default_nuxeo_drive_folder()
-        if local_folder == self.nxdrive_home:
+        if local_folder == self.home:
             # Prevent from binding in the configuration folder
             raise FolderAlreadyUsed()
 

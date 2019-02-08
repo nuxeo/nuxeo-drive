@@ -1,3 +1,4 @@
+faker==1.0.2
 flake8==3.7.5
 mypy==0.660
 # Ignore pytest updates until NXDRIVE-1390 is done

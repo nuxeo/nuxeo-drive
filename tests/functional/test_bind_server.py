@@ -1,45 +1,20 @@
 # coding: utf-8
-import os
-import tempfile
-import unittest
-from pathlib import Path
-
 import pytest
 
 from nxdrive.exceptions import FolderAlreadyUsed
-from nxdrive.manager import Manager
-from nxdrive.options import Options
-from nxdrive.utils import normalized_path
-from .common import TEST_DEFAULT_DELAY, clean_dir
 
 
-class BindServerTest(unittest.TestCase):
-    def setUp(self):
-        self.tmpdir = Path(os.environ.get("WORKSPACE", "")) / "tmp"
-        self.addCleanup(clean_dir, self.tmpdir)
-        self.tmpdir.mkdir(parents=True, exist_ok=True)
+def test_bind_local_folder_already_used(manager, tempdir, nuxeo_url, user_factory):
+    conf_folder = tempdir / "nuxeo-conf"
+    user = user_factory()
 
-        self.local_test_folder = normalized_path(
-            tempfile.mkdtemp("-nxdrive-temp-config", dir=self.tmpdir)
+    # First bind: OK
+    manager.bind_server(
+        conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
+    )
+
+    # Second bind: Error
+    with pytest.raises(FolderAlreadyUsed):
+        manager.bind_server(
+            conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
         )
-        self.nxdrive_conf_folder = self.local_test_folder / "nuxeo-drive-conf"
-
-    def tearDown(self):
-        Manager._singleton = None
-
-    @Options.mock()
-    def test_bind_local_folder_on_config_folder(self):
-        Options.delay = TEST_DEFAULT_DELAY
-        Options.nxdrive_home = self.nxdrive_conf_folder
-        self.manager = Manager()
-
-        with pytest.raises(FolderAlreadyUsed):
-            self.manager.bind_server(
-                self.nxdrive_conf_folder,
-                pytest.nuxeo_url,
-                pytest.user,
-                pytest.password,
-                start_engine=False,
-            )
-            self.addCleanup(self.manager.unbind_all)
-            self.addCleanup(self.manager.dispose_all)
