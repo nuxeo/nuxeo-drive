@@ -45,11 +45,9 @@ tests/
     - conftest.py (global fixtures)
     - /functional
         - conftest.py (Nuxeo specific fixtures)
-        - /local_creations
-            - conftest.py
-            - test_invalid_credentials_on_file_upload.py
-            - test_folders_and_children_files.py
-        - /
+        - conftest.py
+        - test_local_creations.py
+        - test_synchronization.py
     - integration
         - ??? (for the future)
     - unit
