@@ -2,8 +2,6 @@
 import os
 from contextlib import suppress
 from logging import getLogger
-from pathlib import Path
-from shutil import rmtree
 
 import pytest
 from faker import Faker
@@ -39,16 +37,6 @@ def version():
     import nxdrive
 
     return nxdrive.__version__
-
-
-@pytest.fixture
-def tempdir(tmpdir):
-    path = Path(tmpdir)
-    try:
-        yield path
-    finally:
-        with suppress(OSError):
-            rmtree(path)
 
 
 @pytest.fixture

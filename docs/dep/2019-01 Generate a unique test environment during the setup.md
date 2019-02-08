@@ -130,21 +130,13 @@ def test_bind_local_folder_already_used(manager, tempdir, nuxeo_url, user_factor
 
     # First bind: OK
     manager.bind_server(
-        conf_folder,
-        nuxeo_url,
-        user.uid,
-        user.password,
-        start_engine=False,
+        conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
     )
 
     # Second bind: Error
     with pytest.raises(FolderAlreadyUsed):
         manager.bind_server(
-            conf_folder,
-            nuxeo_url,
-            user.uid,
-            user.password,
-            start_engine=False,
+            conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
         )
 ```
 

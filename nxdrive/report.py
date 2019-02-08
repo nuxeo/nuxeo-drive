@@ -39,7 +39,7 @@ class Report:
     def __init__(self, manager: "Manager", report_path: Path = None) -> None:
         self._manager = manager
         name = f"report_{datetime.now().strftime('%y%m%d_%H%M%S')}"
-        report_path = report_path or self._manager.nxdrive_home / "reports" / name
+        report_path = report_path or self._manager.home / "reports" / name
 
         if not report_path.parent.exists():
             report_path.parent.mkdir()
@@ -51,7 +51,7 @@ class Report:
         If one log file fails, we just try the next one.
         """
 
-        folder = self._manager.nxdrive_home / "logs"
+        folder = self._manager.home / "logs"
         if not folder.is_dir():
             return
 
@@ -65,7 +65,7 @@ class Report:
                 continue
 
             comp = ZIP_DEFLATED if path.suffix == ".log" else ZIP_STORED
-            rel_path = path.relative_to(self._manager.nxdrive_home)
+            rel_path = path.relative_to(self._manager.home)
             try:
                 myzip.write(str(path), str(rel_path), compress_type=comp)
             except:

@@ -1,6 +1,9 @@
 # coding: utf-8
 import os
 import sys
+from contextlib import suppress
+from pathlib import Path
+from shutil import rmtree
 
 import pytest
 
@@ -30,6 +33,16 @@ def pytest_runtest_makereport():
         # Remove captured logs to free memory
         report.sections = []
         outcome.force_result(report)
+
+
+@pytest.fixture
+def tempdir(tmpdir):
+    path = Path(tmpdir)
+    try:
+        yield path
+    finally:
+        with suppress(OSError):
+            rmtree(path)
 
 
 @pytest.fixture(autouse=True)
