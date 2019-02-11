@@ -3,7 +3,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from ..constants import APP_NAME, MAC, WINDOWS
+from ..constants import APP_NAME, LINUX, MAC, WINDOWS
 from ..objects import DocPair
 
 if TYPE_CHECKING:
@@ -22,6 +22,16 @@ class AbstractOSIntegration:
     @property
     def zoom_factor(self) -> float:
         return self.__zoom_factor
+
+    def open_local_file(self, file_path: str, select: bool = False) -> None:
+        """
+        Launch the local OS program on the given file / folder.
+
+        :param file_path: The file URL to open.
+        :param select: Hightlight the given file_path. Useful when
+                       opening a folder and to select a file.
+        """
+        pass
 
     def register_startup(self) -> bool:
         return False
@@ -82,9 +92,11 @@ class AbstractOSIntegration:
     @staticmethod
     def get(manager: Optional["Manager"]) -> "AbstractOSIntegration":
 
-        integration, nature = AbstractOSIntegration, "None"
+        if LINUX:
+            from .linux.linux import LinuxIntegration
 
-        if MAC:
+            integration, nature = LinuxIntegration, "GNU/Linux"
+        elif MAC:
             from .darwin.darwin import DarwinIntegration
 
             integration, nature = DarwinIntegration, "macOS"
@@ -92,6 +104,8 @@ class AbstractOSIntegration:
             from .windows.windows import WindowsIntegration
 
             integration, nature = WindowsIntegration, "Windows"
+        else:
+            integration, nature = AbstractOSIntegration, "None"
 
         log.debug(f"OS integration type: {nature}")
         return integration(manager)
