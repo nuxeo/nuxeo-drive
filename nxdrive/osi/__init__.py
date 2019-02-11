@@ -15,6 +15,7 @@ log = getLogger(__name__)
 class AbstractOSIntegration:
 
     __zoom_factor = 1.0
+    nature = "Unknown"
 
     def __init__(self, manager: Optional["Manager"]) -> None:
         self._manager = manager
@@ -91,21 +92,19 @@ class AbstractOSIntegration:
 
     @staticmethod
     def get(manager: Optional["Manager"]) -> "AbstractOSIntegration":
-
         if LINUX:
             from .linux.linux import LinuxIntegration
 
-            integration, nature = LinuxIntegration, "GNU/Linux"
+            return LinuxIntegration(manager)
         elif MAC:
             from .darwin.darwin import DarwinIntegration
 
-            integration, nature = DarwinIntegration, "macOS"
+            return DarwinIntegration(manager)
         elif WINDOWS:
             from .windows.windows import WindowsIntegration
 
-            integration, nature = WindowsIntegration, "Windows"
-        else:
-            integration, nature = AbstractOSIntegration, "None"
+            return WindowsIntegration(manager)
 
-        log.debug(f"OS integration type: {nature}")
-        return integration(manager)
+        import sys
+
+        raise RuntimeError(f"OS not supported: {sys.platform!r}")

@@ -540,11 +540,11 @@ class DocRemote(RemoteTest):
         """
         parent = self._check_ref(parent)
         properties = {"dc:title": name}
-        if doc_type is "Note" and content is not None:
+        if doc_type == "Note" and content is not None:
             properties["note:note"] = content
         doc = self.create(parent, doc_type, name=name, properties=properties)
         ref = doc["uid"]
-        if doc_type is not "Note" and content is not None:
+        if doc_type != "Note" and content is not None:
             self.attach_blob(ref, content, name)
         return ref
 
