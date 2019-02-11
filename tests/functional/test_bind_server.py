@@ -4,9 +4,12 @@ import pytest
 from nxdrive.exceptions import FolderAlreadyUsed
 
 
-def test_bind_local_folder_already_used(manager, tempdir, nuxeo_url, user_factory):
-    conf_folder = tempdir / "nuxeo-conf"
+def test_bind_local_folder_already_used(
+    manager_factory, tempdir, nuxeo_url, user_factory
+):
+    conf_folder = tempdir() / "nuxeo-conf"
     user = user_factory()
+    manager = manager_factory(with_engine=False)
 
     # First bind: OK
     manager.bind_server(

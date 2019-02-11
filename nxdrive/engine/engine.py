@@ -837,18 +837,16 @@ class Engine(QObject):
             self.local.lock_ref(ROOT, locker)
 
     def _add_top_level_state(self) -> None:
-        local_info = self.local.get_info(ROOT)
-
         if not self.remote:
             return
 
-        remote_info = self.remote.get_filesystem_root_info()
-
+        local_info = self.local.get_info(ROOT)
         self._dao.insert_local_state(local_info, None)
         row = self._dao.get_state_from_local(ROOT)
         if not row:
             return
 
+        remote_info = self.remote.get_filesystem_root_info()
         self._dao.update_remote_state(
             row, remote_info, remote_parent_path="", versioned=False
         )

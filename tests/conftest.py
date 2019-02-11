@@ -1,19 +1,10 @@
 # coding: utf-8
-import os
 import sys
-from contextlib import suppress
-from pathlib import Path
 from shutil import rmtree
 
 import pytest
 
 pytest_plugins = "tests.pytest_random"
-
-
-# pytest marker to skip tests based on data coming from Jenkins (not public)
-jenkins_only = pytest.mark.skipif(
-    "JENKINS_URL" not in os.environ, reason="Must be ran from Jenkins."
-)
 
 
 @pytest.hookimpl(trylast=True, hookwrapper=True)
@@ -36,13 +27,23 @@ def pytest_runtest_makereport():
 
 
 @pytest.fixture
-def tempdir(tmpdir):
-    path = Path(tmpdir)
-    try:
-        yield path
-    finally:
-        with suppress(OSError):
-            rmtree(path)
+def tempdir(tmp_path):
+    """Use the original *tmp_path* fixture with automatic clean-up."""
+
+    created_folders = []
+    n = 0
+
+    def _make_folder():
+        nonlocal n
+        path = tmp_path / str(n)
+        created_folders.append(path)
+        n += 1
+        return path
+
+    yield _make_folder
+
+    for folder in created_folders:
+        rmtree(folder)
 
 
 @pytest.fixture(autouse=True)

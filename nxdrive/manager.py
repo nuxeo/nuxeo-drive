@@ -173,6 +173,9 @@ class Manager(QObject):
     def __exit__(self, *_):
         self.close()
 
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__} home={self.home!r}>"
+
     def close(self):
         try:
             self.stop()
