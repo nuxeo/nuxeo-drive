@@ -391,7 +391,6 @@ class MetaOptions(type):
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
-                reinit()
                 try:
                     return func(*args, **kwargs)
                 finally:

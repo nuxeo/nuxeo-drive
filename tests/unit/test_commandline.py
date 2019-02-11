@@ -1,6 +1,4 @@
 # coding: utf-8
-import os
-from contextlib import suppress
 from unittest.mock import patch
 
 import pytest
@@ -12,7 +10,7 @@ from nxdrive.utils import normalized_path
 
 
 def create_ini(env: str = "PROD") -> None:
-    with open("config.ini", "w+") as f:
+    with open(Options.nxdrive_home / "config.ini", "w") as f:
         f.writelines(
             f"""
 [DEFAULT]
@@ -30,7 +28,7 @@ delay = 3
 
 
 def create_ini_bad():
-    with open("config.ini", "w+") as f:
+    with open(Options.nxdrive_home / "config.ini", "w") as f:
         f.writelines(
             """
 [DEFAULT]
@@ -45,21 +43,13 @@ delay = 3
         )
 
 
-def clean_ini():
-    with suppress(OSError):
-        os.remove("config.ini")
-
-
 @pytest.fixture
-def cmd():
-    yield CliHandler()
-
-
-@pytest.fixture
-def home(tempdir):
+def cmd(tempdir):
     path = tempdir() / "config"
     path.mkdir(parents=True, exist_ok=True)
     Options.nxdrive_home = normalized_path(path)
+
+    yield CliHandler()
 
 
 def test_redact_payload(cmd):
@@ -69,7 +59,7 @@ def test_redact_payload(cmd):
 
 
 @Options.mock()
-def test_update_site_url(home, cmd):
+def test_update_site_url(cmd):
     argv = ["console", "--update-site-url", "DEBUG_TEST"]
     options = cmd.parse_cli([])
     assert options.update_site_url == Options.update_site_url
@@ -80,17 +70,16 @@ def test_update_site_url(home, cmd):
 
 
 @Options.mock()
-def test_system_default(home, cmd):
+def test_system_default(cmd):
     def get_conf(_):
-        return {"log_level_console": "SYSTEM_TEST"}
+        return {"log_level_console": "TRACE"}
 
-    clean_ini()
     argv = ["console", "--log-level-console", "WARNING"]
 
     with patch.object(AbstractOSIntegration, "get_system_configuration", new=get_conf):
         # Default value
         options = cmd.parse_cli([])
-        assert options.log_level_console == "SYSTEM_TEST"
+        assert options.log_level_console == "TRACE"
 
         # Normal arg
         options = cmd.parse_cli(argv)
@@ -98,8 +87,7 @@ def test_system_default(home, cmd):
 
 
 @Options.mock()
-def test_default_override(home, cmd):
-    clean_ini()
+def test_default_override(cmd):
     argv = ["console", "--log-level-console=WARNING"]
 
     # Default value
@@ -114,7 +102,6 @@ def test_default_override(home, cmd):
     create_ini()
     options = cmd.parse_cli([])
     assert options.log_level_console == "TRACE"
-    clean_ini()
 
     # config.ini override, but arg specified
     options = cmd.parse_cli(argv)
@@ -124,15 +111,14 @@ def test_default_override(home, cmd):
     create_ini(env="DEV")
     options = cmd.parse_cli([])
     assert options.log_level_console == "ERROR"
-    clean_ini()
 
 
 @Options.mock()
-def test_malformatted_line(home, cmd):
-    clean_ini()
-
-    # config.ini override
+def test_malformatted_line(cmd):
     create_ini_bad()
     with pytest.raises(TypeError):
         cmd.parse_cli([])
-    clean_ini()
+
+
+def test_z_last_ensure_options_not_modified():
+    assert str(Options) == "Options()"
