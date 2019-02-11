@@ -1,26 +1,14 @@
 # coding: utf-8
-from binascii import crc32
 from contextlib import suppress
 from pathlib import Path
-from sys import getdefaultencoding
 from typing import Iterator
 
 from ScriptingBridge import SBApplication
 
 from ...objects import Items
+from ...utils import compute_fake_pid_from_path
 
 __all__ = ("get_other_opened_files",)
-
-
-def _compute_pid(path: str) -> int:
-    """
-    We have no way to find the PID of the apps using the opened file.
-    This is a limitation (or a feature) of COM objects.
-    To bypass this, we compute a unique ID for a given path.
-    """
-    if not isinstance(path, bytes):
-        path = path.encode(getdefaultencoding(), errors="ignore")  # type: ignore
-    return crc32(path)
 
 
 def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Items]:
@@ -39,7 +27,8 @@ def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Items]:
         app = SBApplication.applicationWithBundleIdentifier_(identifier)
         for doc in app.documents():
             path = doc.filePath().path()
-            yield _compute_pid(path), Path(path)
+            pid = compute_fake_pid_from_path(path)
+            yield pid, Path(path)
 
 
 def get_other_opened_files() -> Iterator[Items]:
