@@ -126,6 +126,17 @@ Rectangle {
                 onClicked: api.open_report(text)
             }
         }
+
+        Link {
+            id: addonInstallLink
+            text: qsTr(enabled ? "INSTALL_ADDONS" : "ADDONS_INSTALLED") + tl.tr
+            enabled: !osi.addons_installed()
+            color: enabled ? nuxeoBlue : mediumGray
+            visible: isFrozen && WINDOWS
+            onClicked: {
+                addonInstallLink.enabled = !osi.install_addons()
+            }
+        }
     }
 
     ChannelPopup { id: channelPopup }

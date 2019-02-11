@@ -3,6 +3,7 @@ import json
 import os
 import stat
 import unicodedata
+from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Set, TYPE_CHECKING
@@ -39,10 +40,14 @@ def get_filter_folders() -> Set[Path]:
     value = registry.read(OVERLAYS_REGISTRY_KEY)
     if not value:
         return set()
-    overlay_conf = json.loads(value)
-    if not isinstance(overlay_conf, list):
+    overlay_conf = value.get(FILTER_FOLDERS)
+    if not overlay_conf:
         return set()
-    filters = overlay_conf.get(FILTER_FOLDERS, [])
+    filters = None
+    with suppress(Exception):
+        filters = json.loads(overlay_conf)
+    if not isinstance(filters, list):
+        return set()
     return {Path(path) for path in filters}
 
 
@@ -107,10 +112,10 @@ class OverlayHandlerListener(QTcpServer):
         del con
 
     def _handle_content(self, content: str) -> str:
-        content = json.loads(content)
-        if content.get("command", "") == "getFileIconId":
+        data = json.loads(content)
+        if data.get("command", "") == "getFileIconId":
             state = None
-            path = content.get("value")
+            path = data.get("value")
             if not path:
                 return ""
             path = Path(unicodedata.normalize("NFC", force_decode(path)))
@@ -129,6 +134,7 @@ class OverlayHandlerListener(QTcpServer):
             if not state:
                 return ""
             return json.dumps(self._formatted_status(state, path))
+        return ""
 
     def _formatted_status(self, state: DocPair, path: str) -> Dict[str, str]:
         """

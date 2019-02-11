@@ -15,7 +15,7 @@ from . import __version__
 from .autolocker import ProcessAutoLockerWorker
 from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
-from .constants import APP_NAME, MAC, STARTUP_PAGE_CONNECTION_TIMEOUT
+from .constants import APP_NAME, MAC, STARTUP_PAGE_CONNECTION_TIMEOUT, WINDOWS
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .exceptions import EngineTypeMissing, FolderAlreadyUsed, StartupPageConnectionError

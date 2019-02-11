@@ -1,5 +1,6 @@
 ; Create the Windows installer for add-ons.
-#define MyAppName "Nuxeo Drive Add-Ons"
+#define MyAppName "Nuxeo Drive Addons"
+#define MyAppParent "Nuxeo Drive"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Nuxeo"
 
@@ -11,10 +12,10 @@ AppVersion={#MyAppVersion}
 VersionInfoVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppCopyright="© {#MyAppPublisher}. All rights reserved."
-DefaultDirName={param:targetdir|{localappdata}\{#MyAppName}}
+DisableDirPage=yes
+DefaultDirName={param:targetdir|{localappdata}\{#MyAppParent}}
 
 ArchitecturesInstallIn64BitMode=x64
-CreateAppDir=no
 OutputDir=..\..\dist
 OutputBaseFilename=nuxeo-drive-addons
 Compression=lzma
@@ -31,3 +32,6 @@ MinVersion=6.1.7600
 [Registry]
 ; Remove the MAX_PATH limitation
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\FileSystem"; ValueType: dword; ValueName: "LongPathsEnabled"; ValueData: "1"; Flags: createvalueifdoesntexist
+
+[Files]
+Source: "addons-installed.txt"; DestDir: "{app}"; Flags: ignoreversion

@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import sys
+import subprocess
 from contextlib import suppress
 from ctypes import windll  # type: ignore
 from logging import getLogger
@@ -9,6 +10,7 @@ from typing import Any, Dict
 
 import win32api
 import win32file
+from PyQt5.QtCore import pyqtSlot
 from win32com.client import Dispatch
 from win32com.shell import shell, shellcon
 from win32con import LOGPIXELSX
@@ -38,9 +40,10 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @if_frozen
     def _init(self) -> None:
-        watched_folders = {
-            engine.local_folder for engine in self._manager._engine_definitions
-        }
+        if self._manager:
+            watched_folders = {
+                engine.local_folder for engine in self._manager._engine_definitions
+            }
         if watched_folders:
             set_filter_folders(watched_folders)
             enable_overlay()
@@ -64,6 +67,33 @@ class WindowsIntegration(AbstractOSIntegration):
                 log.debug("Cannot get zoom factor (using default 1.0)", exc_info=True)
                 self.__zoom_factor = 1.0
         return self.__zoom_factor
+
+    @pyqtSlot(result=bool)
+    def addons_installed(self) -> bool:
+        """Check if add-ons are installed or not."""
+        return any(
+            [
+                Options.system_wide,
+                (Path(sys.executable).parent / "addons-installed.txt").is_file(),
+            ]
+        )
+
+    @pyqtSlot(result=bool)
+    def install_addons(self, setup: str = "nuxeo-drive-addons.exe") -> bool:
+        """Install addons using the installer shipped within the main installer."""
+        installer = Path(sys.executable).parent / setup
+        if not installer.is_file():
+            log.error(f"Addons installer {installer!r} not found.")
+            return False
+
+        log.debug(f"Installing addons from {installer!r} ...")
+        try:
+            subprocess.run([str(installer)])
+        except Exception:
+            log.exception(f"Unknown error while trying to install addons")
+        else:
+            return self.addons_installed()
+        return False
 
     @staticmethod
     def is_partition_supported(path: Path) -> bool:
