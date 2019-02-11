@@ -10,6 +10,9 @@ log = getLogger(__name__)
 
 
 class LinuxIntegration(AbstractOSIntegration):
+
+    nature = "GNU/Linux"
+
     def open_local_file(self, file_path: str, select: bool = False) -> None:
         if select:
             log.info(

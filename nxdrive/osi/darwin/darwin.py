@@ -45,6 +45,8 @@ log = getLogger(__name__)
 
 class DarwinIntegration(AbstractOSIntegration):
 
+    nature = "macOS"
+
     NXDRIVE_SCHEME = "nxdrive"
     NDRIVE_AGENT_TEMPLATE = (
         '<?xml version="1.0" encoding="UTF-8"?>'

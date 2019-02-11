@@ -5,13 +5,13 @@ from typing import Iterator
 
 from ScriptingBridge import SBApplication
 
-from ...objects import Items
+from ...objects import Item
 from ...utils import compute_fake_pid_from_path
 
 __all__ = ("get_other_opened_files",)
 
 
-def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Items]:
+def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Item]:
     """
     Retrieve documents path of opened files of the given bundle *identifier* (application).
     Where application is one of the Adobe Creative Suite:
@@ -31,7 +31,7 @@ def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Items]:
             yield pid, Path(path)
 
 
-def get_other_opened_files() -> Iterator[Items]:
+def get_other_opened_files() -> Iterator[Item]:
     """
     This is the function that calls other functions specialized in the
     retrieval of opened files that are not listed in the process list.

@@ -92,9 +92,12 @@ def compute_fake_pid_from_path(path: str) -> int:
     from binascii import crc32
     from sys import getdefaultencoding
 
-    if not isinstance(path, bytes):
-        path = path.encode(getdefaultencoding() or "utf-8", errors="ignore")
-    return crc32(path)
+    if isinstance(path, bytes):
+        path_b = path
+    else:
+        path_b = path.encode(getdefaultencoding() or "utf-8", errors="ignore")
+
+    return crc32(path_b)
 
 
 def copy_to_clipboard(text: str) -> None:

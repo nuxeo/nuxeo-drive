@@ -25,6 +25,9 @@ log = getLogger(__name__)
 
 
 class WindowsIntegration(AbstractOSIntegration):
+
+    nature = "Windows"
+
     @property
     def zoom_factor(self) -> float:
         if not self.__zoom_factor:
