@@ -633,7 +633,12 @@ class DirectEdit(Worker):
 
         while not self.watchdog_queue.empty():
             evt = self.watchdog_queue.get()
-            self.handle_watchdog_event(evt)
+            try:
+                self.handle_watchdog_event(evt)
+            except ThreadInterrupt:
+                raise
+            except:
+                log.exception("Watchdog error")
 
     def _execute(self) -> None:
         try:
@@ -698,60 +703,51 @@ class DirectEdit(Worker):
 
     @tooltip("Handle watchdog event")
     def handle_watchdog_event(self, evt: FileSystemEvent) -> None:
-        try:
-            src_path = normalize_event_filename(evt.src_path)
+        src_path = normalize_event_filename(evt.src_path)
 
-            # Event on the folder by itself
-            if src_path.is_dir():
-                return
+        # Event on the folder by itself
+        if src_path.is_dir():
+            return
 
-            if self.local.is_temp_file(src_path.name):
-                return
+        if self.local.is_temp_file(src_path.name):
+            return
 
-            log.debug(f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}")
+        log.debug(f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}")
 
-            if evt.event_type == "moved":
-                src_path = normalize_event_filename(evt.dest_path)
+        if evt.event_type == "moved":
+            src_path = normalize_event_filename(evt.dest_path)
 
-            ref = self.local.get_path(src_path)
-            dir_path = self.local.get_path(src_path.parent)
-            name = self.local.get_remote_id(dir_path, name="nxdirecteditname")
+        ref = self.local.get_path(src_path)
+        dir_path = self.local.get_path(src_path.parent)
+        name = self.local.get_remote_id(dir_path, name="nxdirecteditname")
 
-            if not name:
-                return
+        if not name:
+            return
 
-            editing = self.local.get_remote_id(dir_path, name="nxdirecteditlock")
+        editing = self.local.get_remote_id(dir_path, name="nxdirecteditlock")
 
-            if force_decode(name) != src_path.name:
-                if _is_lock_file(src_path.name):
-                    if (
-                        evt.event_type == "created"
-                        and self.use_autolock
-                        and editing != "1"
-                    ):
-                        """
-                        [Windows 10] The original file is not modified until
-                        we specifically click on the save button. Instead, it
-                        applies changes to the temporary file.
-                        So the auto-lock does not happen because there is no
-                        'modified' event on the original file.
-                        Here we try to address that by checking the lock state
-                        and use the lock if not already done.
-                        """
-                        # Recompute the path from 'dir/temp_file' -> 'dir/file'
-                        path = src_path.parent / name
-                        self.autolock.set_autolock(path, self)
-                    elif evt.event_type == "deleted":
-                        # Free the xattr to let _cleanup() does its work
-                        self.local.remove_remote_id(dir_path, name="nxdirecteditlock")
-                return
+        if force_decode(name) != src_path.name:
+            if _is_lock_file(src_path.name):
+                if evt.event_type == "created" and self.use_autolock and editing != "1":
+                    """
+                    [Windows 10] The original file is not modified until
+                    we specifically click on the save button. Instead, it
+                    applies changes to the temporary file.
+                    So the auto-lock does not happen because there is no
+                    'modified' event on the original file.
+                    Here we try to address that by checking the lock state
+                    and use the lock if not already done.
+                    """
+                    # Recompute the path from 'dir/temp_file' -> 'dir/file'
+                    path = src_path.parent / name
+                    self.autolock.set_autolock(path, self)
+                elif evt.event_type == "deleted":
+                    # Free the xattr to let _cleanup() does its work
+                    self.local.remove_remote_id(dir_path, name="nxdirecteditlock")
+            return
 
-            if self.use_autolock and editing != "1":
-                self.autolock.set_autolock(src_path, self)
+        if self.use_autolock and editing != "1":
+            self.autolock.set_autolock(src_path, self)
 
-            if evt.event_type != "deleted":
-                self._upload_queue.put(ref)
-        except ThreadInterrupt:
-            raise
-        except:
-            log.exception("Watchdog error")
+        if evt.event_type != "deleted":
+            self._upload_queue.put(ref)

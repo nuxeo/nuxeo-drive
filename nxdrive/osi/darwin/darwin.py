@@ -93,6 +93,13 @@ class DarwinIntegration(AbstractOSIntegration):
     def _get_agent_file(self) -> Path:
         return Path(f"~/Library/LaunchAgents/{BUNDLE_IDENTIFIER}.plist").expanduser()
 
+    def open_local_file(self, file_path: str, select: bool = False) -> None:
+        args = ["open"]
+        if select:
+            args += ["-R"]
+        args += [file_path]
+        subprocess.check_call(args)
+
     @if_frozen
     def register_startup(self) -> bool:
         """

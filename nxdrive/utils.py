@@ -20,8 +20,9 @@ if TYPE_CHECKING:
 
 __all__ = (
     "PidLockFile",
-    "current_milli_time",
+    "compute_fake_pid_from_path",
     "copy_to_clipboard",
+    "current_milli_time",
     "decrypt",
     "encrypt",
     "find_icon",
@@ -80,6 +81,20 @@ def cmp(a: Any, b: Any) -> int:
     if b is None:
         return 1
     return (a > b) - (a < b)
+
+
+def compute_fake_pid_from_path(path: str) -> int:
+    """
+    We have no way to find the PID of the apps using the opened file.
+    This is a limitation (or a feature) of COM objects and AppleScript.
+    To bypass this, we compute a "unique" ID for a given path.
+    """
+    from binascii import crc32
+    from sys import getdefaultencoding
+
+    if not isinstance(path, bytes):
+        path = path.encode(getdefaultencoding() or "utf-8", errors="ignore")
+    return crc32(path)
 
 
 def copy_to_clipboard(text: str) -> None:

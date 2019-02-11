@@ -6,7 +6,7 @@ from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
 from sqlite3 import Row
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from dataclasses import dataclass
 from dateutil import parser
@@ -23,6 +23,10 @@ Filters = List[str]
 
 # Metrics
 Metrics = Dict[str, Any]
+
+# Autolocker items
+Item = Tuple[int, Path]
+Items = List[Item]
 
 
 # Data Transfer Object for remote file info
