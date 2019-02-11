@@ -19,7 +19,8 @@ import pytest
 from PyQt5.QtCore import QCoreApplication, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
-from sentry_sdk import configure_scope
+
+# from sentry_sdk import configure_scope
 
 from nxdrive.constants import LINUX, MAC, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
@@ -149,9 +150,6 @@ class UnitTestCase(TestCase):
             pytest.root_remote.deactivate_profile(server_profile)
 
     def setUpApp(self, server_profile=None, register_roots=True):
-        if Manager._singleton:
-            Manager._singleton = None
-
         # Install callback early to be called the last
         self.addCleanup(self._check_cleanup)
 
@@ -321,9 +319,9 @@ class UnitTestCase(TestCase):
         if LINUX:
             client = LocalTest
         elif MAC:
-            from .mac_local_client import MacLocalClient as client
+            from .local_client_darwin import MacLocalClient as client
         elif WINDOWS:
-            from .win_local_client import WindowsLocalClient as client
+            from .local_client_windows import WindowsLocalClient as client
 
         return client(path)
 
@@ -527,17 +525,17 @@ class UnitTestCase(TestCase):
         self.setUpApp()
 
         def launch_test():
-            with configure_scope() as scope:
-                scope.set_tag("test-id", self.id())
+            # with configure_scope() as scope:
+            #    scope.set_tag("test-id", self.id())
 
-                log.debug("UnitTest thread started")
-                pytest.root_remote.log_on_server(">>> testing: " + self.id())
+            log.debug("UnitTest thread started")
+            pytest.root_remote.log_on_server(">>> testing: " + self.id())
 
-                # Note: we cannot use super().run(result) here
-                super(UnitTestCase, self).run(result)
+            # Note: we cannot use super().run(result) here
+            super(UnitTestCase, self).run(result)
 
-                self.app.quit()
-                log.debug("UnitTest thread finished")
+            self.app.quit()
+            log.debug("UnitTest thread finished")
 
         sync_thread = Thread(target=launch_test)
         sync_thread.start()

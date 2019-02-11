@@ -12,7 +12,7 @@ if not self._local_watcher.get_thread().wait(5000):
 AttributeError: 'Engine' object has no attribute '_local_watcher'
     """
 
-    manager, engine, *_ = manager_factory()
+    manager, engine = manager_factory()
 
     # Simulate the database file removal
     db_file = engine._get_db_file()

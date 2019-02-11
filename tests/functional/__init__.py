@@ -1,7 +1,5 @@
 # coding: utf-8
-import logging
 import os
-from time import sleep
 from typing import Any
 
 import nuxeo.client
@@ -57,12 +55,5 @@ def setup_sentry() -> None:
 # TODO: re-enable when the PR is ready to merge
 # setup_sentry()
 
-log = logging.getLogger(__name__)
-
 # Automatically check all operations done with the Python client
 nuxeo.constants.CHECK_PARAMS = True
-
-
-def wait_sync(*args, **kwargs):
-    # TODO: migrate common.py::wait_sync()
-    sleep(15)

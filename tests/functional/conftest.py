@@ -2,6 +2,7 @@
 import os
 from logging import getLogger
 from typing import Callable
+from random import randint
 from uuid import uuid4
 
 import pytest
@@ -47,7 +48,7 @@ def version() -> str:
 
 @pytest.fixture
 def manager_factory(
-    request, tempdir, nuxeo_url, user_factory, workspace_factory, server, set_acls
+    request, tempdir, nuxeo_url, user_factory, server
 ) -> Callable[[], Manager]:
     """Manager instance with automatic clean-up."""
 
@@ -63,27 +64,16 @@ def manager_factory(
         engine = None
 
         if with_engine:
-            if not ws:
-                ws = workspace_factory()
-
             conf_folder = manager.home / "nuxeo-conf"
             user = user_factory()
             manager.bind_server(
                 conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
             )
 
-            set_acls(user.uid, ws.path, readonly=False)
-
-            # Enable the synchronization on the workspace
-            operation = server.operations.new("NuxeoDrive.SetSynchronization")
-            operation.params = {"enable": True}
-            operation.input_obj = ws.path
-            operation.execute(void_op=True)
-
             for uid, engine_ in manager.get_engines().items():
                 engine = engine_
 
-            return manager, engine, engine.local, engine.remote, ws
+            return manager, engine
 
         return manager
 
@@ -119,7 +109,7 @@ def user_factory(request, server, faker):
 
     def _make_user(password: str = "Administrator"):
         first_name, last_name = fake.name().split(" ", 1)
-        username = first_name.lower()
+        username = f"{first_name.lower()}-{randint(1, 99_999)}"
         properties = {
             "lastName": last_name,
             "firstName": first_name,
@@ -160,59 +150,3 @@ def workspace_factory(request, server):
         return ws
 
     yield _make_workspace
-
-
-@pytest.fixture(scope="session")
-def set_acls(server):
-    def set_readonly(user: str, doc_path: str, readonly: bool = True):
-        """
-        Mark a document as RO or RW.
-
-        :param user: Affected username.
-        :param doc_path: The document, either a folder or a file.
-        :param readonly: Set RO if True else RW.
-        """
-        input_obj = f"doc:{doc_path}"
-        if readonly:
-            server.operations.execute(
-                command="Document.SetACE",
-                input_obj=input_obj,
-                user=user,
-                permission="Read",
-                void_op=True,
-            )
-            block_inheritance(server, doc_path, overwrite=False)
-        else:
-            server.operations.execute(
-                command="Document.SetACE",
-                input_obj=input_obj,
-                user=user,
-                permission="ReadWrite",
-                grant=True,
-                void_op=True,
-            )
-
-    yield set_readonly
-
-
-def block_inheritance(server: Nuxeo, ref: str, overwrite: bool = True):
-    input_obj = f"doc:{ref}"
-
-    server.operations.execute(
-        command="Document.SetACE",
-        input_obj=input_obj,
-        user="Administrator",
-        permission="Everything",
-        overwrite=overwrite,
-        void_op=True,
-    )
-
-    server.operations.execute(
-        command="Document.SetACE",
-        input_obj=input_obj,
-        user="Everyone",
-        permission="Everything",
-        grant=False,
-        overwrite=False,
-        void_op=True,
-    )
