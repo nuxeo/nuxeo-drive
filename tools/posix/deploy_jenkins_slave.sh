@@ -167,11 +167,25 @@ launch_tests() {
     if [ "${SPECIFIC_TEST}" = "tests" ]; then
         echo ">>> Checking the style"
         ${PYTHON} -m flake8 .
+
         echo ">>> Checking type annotations"
         ${PYTHON} -m mypy --ignore-missing-imports nxdrive
     fi
-    echo ">>> Launching the tests suite"
-    ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}"
+
+    # echo ">>> Launching the tests suite"
+    # ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}"
+
+    echo ">>> Launching unit tests"
+    ${PYTHON} -b -Wall -m pytest -n 4 tests/unit
+
+    echo ">>> Launching functional tests"
+    ${PYTHON} -b -Wall -m pytest -n 4 tests/functional
+
+    echo ">>> Launching old functional tests"
+    ${PYTHON} -b -Wall -m pytest tests/old_functional
+
+    # echo ">>> Launching integration tests"
+    # ${PYTHON} -b -Wall -m pytest tests/integration
 }
 
 start_nxdrive() {

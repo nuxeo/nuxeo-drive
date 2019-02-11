@@ -219,17 +219,43 @@ function launch_tests {
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
+
 		Write-Output ">>> Checking type annotations"
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
 	}
-	Write-Output ">>> Launching the tests suite"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest $Env:SPECIFIC_TEST
+
+	# Write-Output ">>> Launching the tests suite"
+	# & $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest $Env:SPECIFIC_TEST
+	# if ($lastExitCode -ne 0) {
+	# 	ExitWithCode $lastExitCode
+	# }
+
+	Write-Output ">>> Launching unit tests"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest -n 4 "tests\\unit"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+
+	Write-Output ">>> Launching functional tests"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest -n 4 "tests\\functional"
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+
+	Write-Output ">>> Launching old functional tests"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest "tests\\old_functional"
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+
+	# Write-Output ">>> Launching integration tests"
+	# & $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest "tests\\integration"
+	# if ($lastExitCode -ne 0) {
+	# 	ExitWithCode $lastExitCode
+	# }
 }
 
 function sign($file) {
