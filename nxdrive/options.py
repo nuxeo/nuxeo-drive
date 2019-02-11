@@ -382,11 +382,14 @@ class MetaOptions(type):
 
         """
 
+        import functools
+
         def reinit():
             setattr(MetaOptions, "callbacks", {})
             setattr(MetaOptions, "options", deepcopy(MetaOptions.default_options))
 
         def decorator(func):
+            @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 reinit()
                 try:
