@@ -85,6 +85,7 @@ class Manager(QObject):
 
         self.notification_service = DefaultNotificationService(self)
         self.osi = AbstractOSIntegration.get(self)
+        log.debug(f"OS integration type: {self.osi.nature}")
 
         self.direct_edit_folder = self.home / "edit"
 
