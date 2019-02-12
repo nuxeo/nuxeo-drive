@@ -71,19 +71,19 @@ class WindowsIntegration(AbstractOSIntegration):
     @pyqtSlot(result=bool)
     def addons_installed(self) -> bool:
         """Check if add-ons are installed or not."""
-        return any(
-            [
-                Options.system_wide,
-                (Path(sys.executable).parent / "addons-installed.txt").is_file(),
-            ]
-        )
+        if (
+            Options.system_wide
+            or (Path(sys.executable).parent / "addons-installed.txt").is_file()
+        ):
+            return True
+        return False
 
     @pyqtSlot(result=bool)
     def install_addons(self, setup: str = "nuxeo-drive-addons.exe") -> bool:
         """Install addons using the installer shipped within the main installer."""
         installer = Path(sys.executable).parent / setup
         if not installer.is_file():
-            log.error(f"Addons installer {installer!r} not found.")
+            log.warning(f"Addons installer {installer!r} not found.")
             return False
 
         log.debug(f"Installing addons from {installer!r} ...")

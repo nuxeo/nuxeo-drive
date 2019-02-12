@@ -75,7 +75,7 @@ We move them to the `nuxeo-drive/tools/windows/dll/(x86|x64)` directories.
 During installation, Inno Setup will take care of running `regsvr32` on them so that they are registered with the system and executed by the Explorer.
 
 Drive itself is responsible for:
-- Writing the watched folder(s) in a `FilterFolders` value of the `HKCU/Software/Nuxeo\\Drive\\Overlays` register key. It should be formatted like a JSON array of strings.
+- Writing the watched folder(s) in a `FilterFolders` value of the `HKCU\\Software\\Nuxeo\\Drive\\Overlays` register key. It should be formatted like a JSON array of strings.
 - Writing `1` in an `EnableOverlay` value of the same key.
 - Listening on port 50675 with a TCP socket.
 
