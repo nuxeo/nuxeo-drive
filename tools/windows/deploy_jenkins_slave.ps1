@@ -172,11 +172,11 @@ function install_deps {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-dev.txt
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
 	if (-Not ($install_release)) {
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-dev.txt
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode

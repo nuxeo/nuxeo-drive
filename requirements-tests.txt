@@ -1,5 +1,6 @@
 flake8==3.7.5
 mypy==0.670
+pre-commit==1.14.3
 # Ignore pytest updates until NXDRIVE-1390 is done
 pytest==3.8.2  # pyup: ignore
 pytest-cov==2.6.1

@@ -110,8 +110,8 @@ install_deps() {
     # NXDRIVE-1521: pip 19.0.1 prevents PyInstaller installation
     ${PIP} pip==18.1
     ${PIP} -r requirements.txt
+    ${PIP} -r requirements-dev.txt
     if [ "${INSTALL_RELEASE_ARG:=0}" != "1" ]; then
-        ${PIP} -r requirements-dev.txt
         ${PIP} -r requirements-tests.txt
         pyenv rehash
         pre-commit install
