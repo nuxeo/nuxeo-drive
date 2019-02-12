@@ -44,8 +44,8 @@ delay = 3
 
 
 @pytest.fixture
-def cmd(tempdir):
-    path = tempdir() / "config"
+def cmd(tmp):
+    path = tmp() / "config"
     path.mkdir(parents=True, exist_ok=True)
     Options.nxdrive_home = normalized_path(path)
 

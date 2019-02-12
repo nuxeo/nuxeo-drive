@@ -27,7 +27,7 @@ def pytest_runtest_makereport():
 
 
 @pytest.fixture
-def tempdir(tmp_path):
+def tmp(tmp_path):
     """Use the original *tmp_path* fixture with automatic clean-up."""
 
     created_folders = []

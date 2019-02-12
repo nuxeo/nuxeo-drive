@@ -48,7 +48,7 @@ def version() -> str:
 
 @pytest.fixture
 def manager_factory(
-    request, tempdir, nuxeo_url, user_factory, server
+    request, tmp, nuxeo_url, user_factory, server
 ) -> Callable[[], Manager]:
     """Manager instance with automatic clean-up."""
 
@@ -58,7 +58,7 @@ def manager_factory(
     def _make_manager(home: str = "", with_engine: bool = True):
         nonlocal ws
 
-        manager = Manager(home=home or tempdir())
+        manager = Manager(home=home or tmp())
         request.addfinalizer(manager.close)
         log.debug(f"[FIXTURE] Created {manager}")
         engine = None

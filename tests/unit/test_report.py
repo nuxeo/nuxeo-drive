@@ -5,10 +5,10 @@ from nxdrive.manager import Manager
 from nxdrive.report import Report
 
 
-def test_logs(tempdir):
+def test_logs(tmp):
     log = getLogger(__name__)
 
-    with Manager(home=tempdir()) as manager:
+    with Manager(home=tmp()) as manager:
         log.debug("Strange encoding \xe8 \xe9")
 
         # Crafted problematic logRecord
