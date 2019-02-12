@@ -8,7 +8,7 @@
 
 
 [Setup]
-AppId={{64519FA4-137A-4DC6-BF91-E2B698C02788}
+AppId={{F743CD4F-3AA1-4ED6-8C97-5A7D6211FE1B}
 OutputBaseFilename=nuxeo-drive-{#MyAppVersion}-admin
 PrivilegesRequired=admin
 CreateUninstallRegKey=no
