@@ -613,12 +613,11 @@ FolderType=Generic
     def exists(self, ref: Path) -> bool:
         try:
             return self.abspath(ref).exists()
-        except OSError as exc:
-            if exc.errno == 36:  # Filename too long
-                # On such error, no file can be accessed nor modified,
-                # so this is the same as if it does not exist.
-                return False
-            raise exc
+        except OSError:
+            pass
+        except Exception:
+            log.exception("Unhandled error")
+        return False
 
     def rename(self, ref: Path, to_name: str) -> FileInfo:
         """ Rename a local file or folder. """
