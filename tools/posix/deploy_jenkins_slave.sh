@@ -182,7 +182,7 @@ launch_tests() {
     ${PYTHON} -b -Wall -m pytest -n 4 tests/functional
 
     echo ">>> Launching old functional tests"
-    ${PYTHON} -b -Wall -m pytest tests/old_functional
+    ${PYTHON} -b -Wall -m pytest -v tests/old_functional
 
     # echo ">>> Launching integration tests"
     # ${PYTHON} -b -Wall -m pytest tests/integration

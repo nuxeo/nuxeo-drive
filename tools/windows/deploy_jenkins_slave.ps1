@@ -246,7 +246,7 @@ function launch_tests {
 	}
 
 	Write-Output ">>> Launching old functional tests"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest "tests\\old_functional"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest -v "tests\\old_functional"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
