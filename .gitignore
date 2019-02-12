@@ -19,6 +19,7 @@ htmlcov
 .idea
 *.iml
 *.jsc
+*.log
 lextab.py
 MANIFEST
 .mypy_cache
