@@ -50,6 +50,8 @@ function build_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
 
+	sign_dlls
+
 	Write-Output ">>> [$app_version] Freezing the application"
 	& $Env:STORAGE_DIR\Scripts\pyinstaller ndrive.spec --noconfirm
 	if ($lastExitCode -ne 0) {
@@ -264,6 +266,13 @@ function sign($file) {
 	& $Env:SIGNTOOL_PATH\signtool.exe verify /pa /v "$file"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
+	}
+}
+
+function sign_dlls {
+	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\dll"
+	Get-ChildItem $folder -Recurse -Include *.dll | Foreach-Object {
+		sign $_.FullName
 	}
 }
 
