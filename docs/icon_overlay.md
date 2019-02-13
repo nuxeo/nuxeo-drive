@@ -40,11 +40,8 @@ On Windows 10, you should be able to install all the recent C++ dependencies wit
 The projects are in `tools/windows/NuxeoDriveShellExtensions`.
 The `NuxeoDriveUtil` can be built by itself. The `NuxeoDriveOverlays` needs to be built once per icon.
 
-Each overlay build needs a few changes in `OverlayConstants.h`. We need to set:
-- `OVERLAY_ID` to a unique number (the one that will be returned by Drive for the status).
-- `OVERLAY_GUID` to a unique UID, e.g. `L"{63445D70-24C6-40E3-9F4F-073C7FAE6899}"`.
-- `OVERLAY_NAME` to a meaningful name, e.g. "DriveSyncedOverlay".
-We also need to copy the corresponding icon to `NuxeoDriveOverlays/overlay.ico`.
+There is a function in the deployment script that takes care of all this, just run:
+    powershell .\tools\windows\deploy_jenkins_slave.ps1 --build_dlls
 
 Once DLLs are compiled, we move them to the `nuxeo-drive/tools/windows/dll/(x86|x64)` directories.
 During installation, Inno Setup will take care of running `regsvr32` on them so that they are registered with the system and executed by the Explorer.
