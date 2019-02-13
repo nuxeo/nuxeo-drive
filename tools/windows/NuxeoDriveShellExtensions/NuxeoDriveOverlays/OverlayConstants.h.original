@@ -14,8 +14,8 @@
  */
 
 #define	OVERLAY_ID					[$overlay.id$]
-#define OVERLAY_GUID				L"[$overlay.guid$]"
-#define OVERLAY_NAME				L"[$overlay.name$]"
+#define OVERLAY_GUID				L"{63445D7[$overlay.id$]-24C6-40E3-9F4F-073C7FAE6899}"
+#define OVERLAY_NAME				L"    [$overlay.name$]"
 
 #define REGISTRY_OVERLAY_KEY		L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers"
 #define REGISTRY_CLSID				L"CLSID"
