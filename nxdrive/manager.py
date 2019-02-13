@@ -15,7 +15,7 @@ from . import __version__
 from .autolocker import ProcessAutoLockerWorker
 from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
-from .constants import APP_NAME, MAC, STARTUP_PAGE_CONNECTION_TIMEOUT
+from .constants import APP_NAME, MAC, STARTUP_PAGE_CONNECTION_TIMEOUT, WINDOWS
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .exceptions import EngineTypeMissing, FolderAlreadyUsed, StartupPageConnectionError
@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from .direct_edit import DirectEdit  # noqa
     from .engine.tracker import Tracker  # noqa
     from .osi.darwin.darwin import FinderSyncServer  # noqa
+    from .osi.windows.overlay import OverlayHandlerListener  # noqa
     from .updater import Updater  # noqa
 
 
@@ -172,6 +173,10 @@ class Manager(QObject):
         if MAC:
             self._create_findersync_listener()
 
+        # Create the Explorer DLL listener thread
+        if WINDOWS:
+            self._create_explorer_listener()
+
     def get_metrics(self) -> Metrics:
         return {
             "version": self.version,
@@ -251,6 +256,17 @@ class Manager(QObject):
         self.stopped.connect(self._findersync_listener.close)
 
         return self._findersync_listener
+
+    @if_frozen
+    def _create_explorer_listener(self) -> "OverlayHandlerListener":
+        from .osi.windows.overlay import OverlayHandlerListener  # noqa
+
+        self._explorer_listener = OverlayHandlerListener(self)
+        self._explorer_listener.listening.connect(self.osi._init)
+        self.started.connect(self._explorer_listener._listen)
+        self.stopped.connect(self._explorer_listener.close)
+
+        return self._explorer_listener
 
     @if_frozen
     def refresh_update_status(self) -> None:

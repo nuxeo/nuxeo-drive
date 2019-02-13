@@ -1,6 +1,8 @@
-# GNU/Linux
+# Icon Overlay
 
-## Nautilus
+## GNU/Linux
+
+### Nautilus
 
 Install required Nautilus addons:
 
@@ -15,14 +17,64 @@ Install the extension:
 
     cp nxdrive/overlay/nautilus/file_info_updater.py ~/.local/share/nautilus-python/extensions
 
-# macOS
+## macOS
 
 TODO
 
-# Windows
+## Windows
 
-TODO
+The icons overlay is implemented as a Windows callback service as described in the [official documentation](https://msdn.microsoft.com/en-us/library/windows/desktop/cc144122(v=vs.85).aspx).
 
-Windows Explorer overlay using Python based on [Add my own icon overlays](http://timgolden.me.uk/python/win32_how_do_i/add-my-own-icon-overlays.html)
+The revelant source code can be found in the `tools/windows/setup-admin.iss` file and the `nxdrive/osi/windows` folder.
 
-See [pyoverlay.py](https://github.com/nuxeo/nuxeo-drive/tree/master/nxdrive/overlay/win32/pyoverlay.py)
+### Building
+
+The setup to build the DLLs on Windows 7 is the following:
+- Visual Studio Express 2010
+- The [Windows SDK for Windows 7 and .NET Framework 4](https://www.microsoft.com/en-us/download/details.aspx?id=8279)
+- The [Windows Driver Kit 7.1.0](https://www.microsoft.com/en-us/download/details.aspx?id=11800)
+- The [Visual C++ 2010 SP1 Compiler Update](https://www.microsoft.com/en-us/download/details.aspx?id=4422)
+
+On Windows 10, you should be able to install all the recent C++ dependencies with Visual Studio 2017.
+
+The projects are in `tools/windows/NuxeoDriveShellExtensions`.
+The `NuxeoDriveUtil` can be built by itself. The `NuxeoDriveOverlays` needs to be built once per icon.
+
+There is a function in the deployment script that takes care of all this, just run:
+    powershell .\tools\windows\deploy_jenkins_slave.ps1 --build_dlls
+
+Once DLLs are compiled, we move them to the `nuxeo-drive/tools/windows/dll/(x86|x64)` directories.
+During installation, Inno Setup will take care of running `regsvr32` on them so that they are registered with the system and executed by the Explorer.
+
+Drive itself is responsible for:
+- Writing the watched folder(s) in a `FilterFolders` value of the `HKCU\\Software\\Nuxeo\\Drive\\Overlays` register key. It should be formatted like a JSON array of strings.
+- Writing `1` in an `EnableOverlay` value of the same key.
+- Listening on port 10650 with a TCP socket.
+
+The DLL will asks for status by sending a command in JSON, e.g.
+```
+{
+    "command": "getFileIconId",
+    "value": "C:\\Users\\Windows7\\Documents\\Nuxeo Drive"
+}
+```
+and waits for a response with the status id of the target file, e.g.
+```
+{
+    "value": "1"
+}
+```
+
+### Limitation
+
+There is a known limitation on Windows that [restricts the number of icon overlays to **15**](https://superuser.com/a/1166585/180383) (see also [Image Overlays on MSDN](https://msdn.microsoft.com/en-us/library/windows/desktop/bb761389%28v=vs.85%29.aspx#Image_Overlays)).
+That limitation cannot be bypassed and Microsoft never communicated on the subject about a possible future removal or increase.
+
+In case multiple applications using the overlays are installed (e.g. NextCloud, Dropbox, Google Drive, OneDrive  -- installed by default on Windows 10, etc.) only the 15 first registry entries in alphabetical order in `HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers` will be taken into account.
+
+And so, it is an open war for whom will be the 1st listed by adding spaces in the beginning of the key name. For instance, [as of 2017-01-17](https://stackoverflow.com/q/41697737/1117028), Dropbox is adding 3 spaces before its name to be 1st.
+Nuxeo will not take part of that endless war, we are simply adding key names like `Drive<Status>Overlay`.
+
+To be crystal clear: the more synchronization software you have, the less chance you have to see Nuxeo Drive icons.
+
+If you are in the situation described above, your only option is to remove or rename other registry keys like described here: [Making Icon Overlays Appear In Windows 7 and Windows 10](https://www.interfacett.com/blogs/making-icon-overlays-appear-in-windows-7-and-windows-10/).

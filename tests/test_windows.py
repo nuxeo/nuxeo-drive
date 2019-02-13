@@ -149,7 +149,8 @@ class TestWindows(UnitTestCase):
         key = "Software\\Nuxeo\\Drive"
 
         assert not osi.get_system_configuration()
-        self.addCleanup(registry.delete, key)
+        self.addCleanup(registry.delete_value, key, "update-site-url")
+        self.addCleanup(registry.delete_value, key, "channel")
 
         # Add new parameters
         registry.write(key, {"update-site-url": "http://no.where"})

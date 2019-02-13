@@ -19,6 +19,7 @@ DefaultDirName={param:targetdir|{pf}\{#MyAppName}}
 
 
 #include "setup-common.iss"
+#include "setup-overlay.iss"
 
 
 [Files]
@@ -45,12 +46,6 @@ Root: HKLM; Subkey: "Software\Classes\nxdrive\shell\open\command"; ValueType: ex
 ; Taken from setup-addons.iss (to keep synchronized)
 ; Remove the MAX_PATH limitation
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\FileSystem"; ValueType: dword; ValueName: "LongPathsEnabled"; ValueData: "1"; Flags: createvalueifdoesntexist
-
-; Taken from setup-addons.iss (to keep synchronized)
-; Register the icon overlay
-; The ValueData must be the AppId from setup.iss
-Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\DriveIconOverlay"; Flags: uninsdeletekey
-Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers\DriveIconOverlay"; ValueType: expandsz; ValueData: "{{64519FA4-137A-4DC6-BF91-E2B698C02788}"
 
 
 [Code]

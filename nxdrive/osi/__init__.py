@@ -3,6 +3,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
+from PyQt5.QtCore import QObject, pyqtSlot
+
 from ..constants import APP_NAME, LINUX, MAC, WINDOWS
 from ..objects import DocPair
 
@@ -12,12 +14,13 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-class AbstractOSIntegration:
+class AbstractOSIntegration(QObject):
 
     __zoom_factor = 1.0
     nature = "Unknown"
 
     def __init__(self, manager: Optional["Manager"]) -> None:
+        super().__init__()
         self._manager = manager
 
     @property
@@ -43,6 +46,14 @@ class AbstractOSIntegration:
     @staticmethod
     def is_partition_supported(folder: Path) -> bool:
         return True
+
+    @pyqtSlot(result=bool)
+    def addons_installed(self) -> bool:
+        return False
+
+    @pyqtSlot(result=bool)
+    def install_addons(self) -> bool:
+        return False
 
     def uninstall(self) -> None:
         """

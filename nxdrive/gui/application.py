@@ -234,10 +234,12 @@ class Application(QApplication):
         context.setContextProperty("application", self)
         context.setContextProperty("currentLanguage", self.current_language())
         context.setContextProperty("manager", self.manager)
+        context.setContextProperty("osi", self.osi)
         context.setContextProperty("updater", self.manager.updater)
         context.setContextProperty("ratio", self.ratio)
         context.setContextProperty("update_check_delay", Options.update_check_delay)
         context.setContextProperty("isFrozen", Options.is_frozen)
+        context.setContextProperty("WINDOWS", WINDOWS)
         context.setContextProperty("tl", Translator._singleton)
         context.setContextProperty(
             "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"
