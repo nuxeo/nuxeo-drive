@@ -317,6 +317,9 @@ class Manager(QObject):
         self.suspended.emit()
 
     def stop(self, euid: str = None) -> None:
+        # Make a backup in case something happens
+        self._dao.save_backup()
+
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
