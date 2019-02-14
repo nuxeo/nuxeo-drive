@@ -485,7 +485,7 @@ class Application(QApplication):
             pos_x = screen.right() - self.systray_window.width() - 20
             pos_y = 30
         else:
-            dpi_ratio = self.devicePixelRatio() if WINDOWS else 1
+            dpi_ratio = self.primaryScreen().devicePixelRatio() if WINDOWS else 1
             pos_x = max(
                 0, (icon.x() + icon.width()) / dpi_ratio - self.systray_window.width()
             )
