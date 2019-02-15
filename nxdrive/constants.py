@@ -8,6 +8,7 @@ WINDOWS = platform == "win32"
 
 BUNDLE_IDENTIFIER = "org.nuxeo.drive"
 APP_NAME = "Nuxeo Drive"
+COMPANY = "Nuxeo"
 
 TIMEOUT = 20
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30

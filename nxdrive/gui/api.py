@@ -412,14 +412,6 @@ class QMLDriveApi(QObject):
             log.exception("Report error")
             return "[ERROR] " + str(e)
 
-    @pyqtSlot(bool)
-    def set_tracking(self, value: bool) -> None:
-        self._manager.set_tracking(value)
-
-    @pyqtSlot(result=bool)
-    def get_tracking(self) -> bool:
-        return self._manager.get_tracking()
-
     @pyqtSlot(str)
     def open_remote_server(self, uid: str) -> None:
         self.application.hide_systray()

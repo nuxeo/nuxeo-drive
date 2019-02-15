@@ -198,7 +198,8 @@ class Manager(QObject):
             "channel": self.get_update_channel(),
             "device_id": self.device_id,
             "tracker_id": self.get_tracker_id(),
-            "tracking": self.get_tracking(),
+            "tracking": Options.use_analytics,
+            "sentry": Options.use_sentry,
             "sip_version": SIP_VERSION_STR,
             "qt_version": QT_VERSION_STR,
             "python_version": platform.python_version(),
@@ -469,21 +470,11 @@ class Manager(QObject):
         if self.updater.enable:
             self.refresh_update_status()
 
-    @pyqtSlot(result=bool)
     def get_tracking(self) -> bool:
         """
         Avoid sending statistics when testing or if the user does not allow it.
         """
-        return Options.is_frozen and self._dao.get_bool("tracking", default=True)
-
-    @pyqtSlot(bool)
-    def set_tracking(self, value: bool) -> None:
-        self._dao.store_bool("tracking", value)
-        if value:
-            self._create_tracker()
-        elif self._tracker:
-            self._tracker._thread.quit()
-            self._tracker = None
+        return Options.is_frozen and Options.use_analytics
 
     def get_tracker_id(self) -> str:
         return self._tracker.uid if self._tracker else ""
