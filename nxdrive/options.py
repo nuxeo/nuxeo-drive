@@ -192,6 +192,8 @@ class MetaOptions(type):
             "https://community.nuxeo.com/static/drive-updates",
             "default",
         ),
+        "use_sentry": (True, "default"),
+        "use_analytics": (False, "default"),
     }
 
     default_options = deepcopy(options)
