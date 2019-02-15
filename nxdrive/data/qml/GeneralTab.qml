@@ -43,14 +43,6 @@ Rectangle {
         }
 
         NuxeoSwitch {
-            text: qsTr("TRACKER") + tl.tr
-            enabled: isFrozen
-            checked: manager.get_tracking()
-            onClicked: manager.set_tracking(checked)
-            Layout.leftMargin: -5
-        }
-
-        NuxeoSwitch {
             text: qsTr("USE_LIGHT_ICONS") + tl.tr
             checked: manager.use_light_icons()
             onClicked: manager.set_light_icons(checked)
