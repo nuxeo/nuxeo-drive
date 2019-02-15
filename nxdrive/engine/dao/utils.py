@@ -1,7 +1,7 @@
 # coding: utf-8
 import sqlite3
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timedelta
 from logging import getLogger
 from pathlib import Path
 from shutil import copyfile
@@ -149,11 +149,16 @@ def save_backup(database: Path) -> bool:
     backup_folder = database.with_name("backups")
     backup_folder.mkdir(exist_ok=True)
 
-    backups = sorted(backup_folder.glob(f"{database.name}_*"))
+    yesterday = int((datetime.now() - timedelta(days=1)).timestamp())
+    old_backups = [
+        b
+        for b in backup_folder.glob(f"{database.name}_*")
+        if int(b.name.split("_")[-1]) < yesterday
+    ]
     # Remove older backups
-    while len(backups) > 10:
-        oldest = backups.pop(0)
-        oldest.unlink()
+    for backup in old_backups:
+        log.trace(f"Removing old backup {backup}")
+        backup.unlink()
 
     backup = backup_folder / f"{database.name}_{int(datetime.now().timestamp())}"
     log.debug(f"Creating backup {backup}")

@@ -1,6 +1,8 @@
 # coding: utf-8
-from sqlite3 import DatabaseError
+from datetime import datetime
 from logging import getLogger
+from sqlite3 import DatabaseError
+from time import sleep
 
 import nxdrive.engine.dao.utils
 from nxdrive.engine.dao.sqlite import ConfigurationDAO
@@ -42,3 +44,33 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
     with manager_factory(home=home, with_engine=False) as manager:
         assert (home / "manager.db").exists()
         assert restored
+
+
+def test_delete_old_backups(tmp):
+    home = tmp()
+    backups = home / "backups"
+    backups.mkdir(parents=True, exist_ok=True)
+
+    db = home / "manager.db"
+    db.touch()
+
+    today = int(datetime.now().timestamp())
+    yesterday = today - 86400
+
+    for i in range(3):
+        # Creating 3 files with timestamps of today
+        (backups / f"manager.db_{today - i * 1000}").touch()
+        # And 3 files with timestamps of yesterday
+        (backups / f"manager.db_{yesterday - i * 1000}").touch()
+
+    sleep(1)
+    nxdrive.engine.dao.utils.save_backup(db)
+
+    remaining_backups = sorted(backups.glob("manager.db_*"))
+
+    # # of the previous ones should remain + the new one
+    assert len(remaining_backups) == 4
+    # The oldest should be more recent than the yesterday timestamp
+    assert int(remaining_backups[0].name.split("_")[-1]) > yesterday
+    # The newest should be more recent than the today timestamp
+    assert int(remaining_backups[-1].name.split("_")[-1]) > today
