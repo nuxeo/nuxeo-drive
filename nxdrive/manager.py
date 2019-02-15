@@ -463,7 +463,11 @@ class Manager(QObject):
         """
         Avoid sending statistics when testing or if the user does not allow it.
         """
-        return Options.is_frozen and self._dao.get_bool("tracking", default=True)
+        return (
+            Options.is_frozen
+            and Options.use_analytics
+            and self._dao.get_bool("tracking", default=True)
+        )
 
     @pyqtSlot(bool)
     def set_tracking(self, value: bool) -> None:

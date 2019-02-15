@@ -57,6 +57,8 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `timeout` | 30 | int | Define the socket timeout.
 | `update-check-delay` | 3600 | int | Define the auto-update check delay. 0 means disabled.
 | `update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) | str | Configure a custom update website. See Nuxeo Drive Update Site for more details.
+| `use-analytics` | False | bool | Share anonymous usage analytics to help the developers build the best experience for you.
+| `use-sentry` | True | bool | Allow sharing error reports when something unusual happen.
 
 ### Obsolete Parameters
 
