@@ -651,6 +651,9 @@ class Engine(QObject):
     def stop(self) -> None:
         log.trace(f"Engine {self.uid} stopping")
 
+        # Make a backup in case something happens
+        self._dao.save_backup()
+
         self._stopped = True
 
         # The signal will propagate to all Workers. Each Worker being a QThread,

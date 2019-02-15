@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from .utils import fix_db
+from .utils import fix_db, restore_backup, save_backup
 from ...client.local_client import FileInfo
 from ...constants import ROOT, WINDOWS
 from ...exceptions import UnknownPairState
@@ -145,12 +145,10 @@ class ConfigurationDAO(QObject):
             try:
                 fix_db(self._db)
             except DatabaseError:
-                # The file is too damaged, just recreate it from scratch.
-                # Sync data will not be re-downloaded nor deleted, but a full
-                # scan will be done.
-                new_name = f"{self._db.name}_{int(datetime.now().timestamp())}"
-                self._db.rename(self._db.with_name(new_name))
-                exists = False
+                # The file is too damaged, we'll try and restore a backup.
+                exists = self.restore_backup()
+                if not exists and self._db.is_file():
+                    self._db.unlink()
 
         self.schema_version = self.get_schema_version()
         self.in_tx = None
@@ -176,6 +174,22 @@ class ConfigurationDAO(QObject):
                 "INSERT INTO Configuration (name, value) VALUES (?, ?)",
                 (SCHEMA_VERSION, self.schema_version),
             )
+
+    def restore_backup(self) -> bool:
+        try:
+            with self._lock:
+                return restore_backup(self._db)
+        except Exception:
+            log.exception(f"Unable to restore {self._db}")
+        return False
+
+    def save_backup(self) -> bool:
+        try:
+            with self._lock:
+                return save_backup(self._db)
+        except Exception:
+            log.exception(f"Unable to backup {self._db}")
+        return False
 
     def get_schema_version(self) -> int:
         return 1

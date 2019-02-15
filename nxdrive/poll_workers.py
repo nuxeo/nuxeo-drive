@@ -9,6 +9,31 @@ from .options import Options
 log = logging.getLogger(__name__)
 
 
+class DatabaseBackupWorker(PollWorker):
+    """ Class for making backups of the manager and engine databases. """
+
+    def __init__(self, manager):
+        # Backup every hour
+        super().__init__(60 * 60)
+        self.manager = manager
+
+    @pyqtSlot(result=bool)
+    def _poll(self) -> bool:
+        """ Perform the backups. """
+
+        if not self.manager:
+            return False
+
+        if self.manager._dao:
+            self.manager._dao.save_backup()
+
+        for engine in self.manager._engines.values():
+            if engine._dao:
+                engine._dao.save_backup()
+
+        return True
+
+
 class ServerOptionsUpdater(PollWorker):
     """ Class for checking the server's config.json updates. """
 

@@ -1,11 +1,12 @@
 # coding: utf-8
 import sqlite3
 from contextlib import suppress
+from datetime import datetime, timedelta
 from logging import getLogger
 from pathlib import Path
 from shutil import copyfile
 
-__all__ = ("fix_db",)
+__all__ = ("fix_db", "restore_backup", "save_backup")
 
 log = getLogger(__name__)
 
@@ -97,3 +98,69 @@ def fix_db(database: Path, dump_file: Path = Path("dump.sql")) -> None:
 
     new_size = database.stat().st_size
     log.debug(f"Re-generation completed, saved {(old_size - new_size) / 1024} Kb.")
+
+
+def restore_backup(database: Path) -> bool:
+    """
+    Restore a backup of a given database.
+
+    For example, if the path is ~/.nuxeo-drive/manager.db,
+    it will look for all files matching ~/.nuxeo-drive/backups/manager.db_*
+    and take the one with the most recent timestamp.
+    """
+
+    if not database:
+        return False
+
+    backup_folder = database.with_name("backups")
+    if not backup_folder.is_dir():
+        log.debug("No existing backup folder")
+        return False
+
+    backups = list(backup_folder.glob(f"{database.name}_*"))
+    if not backups:
+        log.debug(f"No backup available for {database}")
+        return False
+
+    latest = max(backups, key=lambda p: int(p.name.split("_")[-1]))
+    log.debug(f"Found a backup candidate, trying to restore {latest}")
+    if database.exists():
+        database.unlink()
+    read(latest, database)
+    return True
+
+
+def save_backup(database: Path) -> bool:
+    """
+    Save a backup of a given database.
+
+    For example, if the path is ~/.nuxeo-drive/manager.db,
+    a corresponding ~/.nuxeo-drive/backups/manager.db_1234567890 file
+    will be created, where the numbers are the current timestamp.
+    """
+
+    if not database or not database.is_file():
+        log.debug("No database to backup")
+        return False
+    if not is_healthy(database):
+        log.debug(f"{database} is corrupted, won't backup")
+        return False
+
+    backup_folder = database.with_name("backups")
+    backup_folder.mkdir(exist_ok=True)
+
+    yesterday = int((datetime.now() - timedelta(days=1)).timestamp())
+    old_backups = [
+        b
+        for b in backup_folder.glob(f"{database.name}_*")
+        if int(b.name.split("_")[-1]) < yesterday
+    ]
+    # Remove older backups
+    for backup in old_backups:
+        log.trace(f"Removing old backup {backup}")
+        backup.unlink()
+
+    backup = backup_folder / f"{database.name}_{int(datetime.now().timestamp())}"
+    log.debug(f"Creating backup {backup}")
+    dump(database, backup)
+    return True
