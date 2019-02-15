@@ -24,7 +24,7 @@ from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
 from .options import Options
-from .options_updater import ServerOptionsUpdater
+from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater
 from .osi import AbstractOSIntegration
 from .updater import updater
 from .updater.constants import Login
@@ -99,6 +99,7 @@ class Manager(QObject):
         }
         self._engines: Dict[str, Union[Engine, EngineNext]] = {}
         self.server_config_updater: Optional[ServerOptionsUpdater] = None
+        self.db_backup_worker: Optional[DatabaseBackupWorker] = None
 
         if Options.proxy_server is not None:
             self.proxy = get_proxy(category="Manual", url=Options.proxy_server)
@@ -157,6 +158,8 @@ class Manager(QObject):
 
         # Create the server's configuration getter verification thread
         self._create_server_config_updater()
+        # Create the server's configuration getter verification thread
+        self._create_db_backup_worker()
 
         # Create the application update verification thread
         self.updater: "Updater" = self._create_updater()
@@ -255,6 +258,11 @@ class Manager(QObject):
         updater_ = updater(self)
         self.started.connect(updater_._thread.start)
         return updater_
+
+    def _create_db_backup_worker(self) -> None:
+        self.db_backup_worker = DatabaseBackupWorker(self)
+        if self.db_backup_worker:
+            self.started.connect(self.db_backup_worker._thread.start)
 
     @if_frozen
     def _create_findersync_listener(self) -> "FinderSyncServer":

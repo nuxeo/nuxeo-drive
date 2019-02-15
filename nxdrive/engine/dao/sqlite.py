@@ -147,6 +147,8 @@ class ConfigurationDAO(QObject):
             except DatabaseError:
                 # The file is too damaged, we'll try and restore a backup.
                 exists = self.restore_backup()
+                if not exists and self._db.is_file():
+                    self._db.unlink()
 
         self.schema_version = self.get_schema_version()
         self.in_tx = None
