@@ -6,7 +6,7 @@ from logging import getLogger
 from pathlib import Path
 from shutil import copyfile
 
-__all__ = ("fix_db",)
+__all__ = ("fix_db", "restore_backup", "save_backup")
 
 log = getLogger(__name__)
 
@@ -117,14 +117,16 @@ def restore_backup(database: Path) -> bool:
         log.debug("No existing backup folder")
         return False
 
-    backups = backup_folder.glob(f"{database.name}_*")
+    backups = list(backup_folder.glob(f"{database.name}_*"))
     if not backups:
         log.debug(f"No backup available for {database}")
         return False
 
-    latest = max(backups, key=lambda p: int(p.name.split("_")[1]))
+    latest = max(backups, key=lambda p: int(p.name.split("_")[-1]))
     log.debug(f"Found a backup candidate, trying to restore {latest}")
-    copyfile(latest, database)
+    if database.exists():
+        database.unlink()
+    read(latest, database)
     return True
 
 
@@ -141,7 +143,7 @@ def save_backup(database: Path) -> bool:
         log.debug("No database to backup")
         return False
     if not is_healthy(database):
-        log.debug("Database is corrupted, won't backup")
+        log.debug(f"{database} is corrupted, won't backup")
         return False
 
     backup_folder = database.with_name("backups")
@@ -155,5 +157,5 @@ def save_backup(database: Path) -> bool:
 
     backup = backup_folder / f"{database.name}_{int(datetime.now().timestamp())}"
     log.debug(f"Creating backup {backup}")
-    copyfile(database, backup)
+    dump(database, backup)
     return True
