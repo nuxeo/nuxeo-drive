@@ -11,11 +11,9 @@ from _pytest.runner import runtestprotocol
 
 
 def get_random(item):
-    random = item.get_marker("randombug")
-    if random:
-        for mark in random._marks:
-            if mark.kwargs.get("condition", True):
-                return mark
+    for random in item.iter_markers("randombug"):
+        if random.kwargs.get("condition", True):
+            return random
     return None
 
 
