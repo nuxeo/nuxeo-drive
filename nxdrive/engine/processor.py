@@ -1229,6 +1229,13 @@ class Processor(EngineWorker):
             self._lock_readonly(local_parent_path)
 
     def _synchronize_remotely_deleted(self, doc_pair: DocPair) -> None:
+        remote_id = self.local.get_remote_id(doc_pair.local_path)
+        if remote_id != doc_pair.remote_ref:
+            log.warning(
+                f"Tried to delete doc at {doc_pair.local_path} but its id "
+                f"{remote_id} doesn't match the remote {doc_pair.remote_ref}"
+            )
+            return
         try:
             if doc_pair.local_state == "unsynchronized":
                 self._dao.remove_state(doc_pair)
