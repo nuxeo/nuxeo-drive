@@ -184,6 +184,8 @@ function install_deps {
 		}
 		# & $Env:STORAGE_DIR\Scripts\pre-commit.exe install
 	}
+	Remove-Item -Path "$Env:STORAGE_DIR\Lib\site-packages\PyQt5\QtBluetooth.pyd" -Verbose
+	Remove-Item -Path "$Env:STORAGE_DIR\Lib\site-packages\PyQt5\Qt\bin\Qt5Bluetooth.dll" -Verbose
 }
 
 function install_python {
