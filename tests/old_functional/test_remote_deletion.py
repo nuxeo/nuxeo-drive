@@ -1,6 +1,7 @@
 # coding: utf-8
 import time
 from logging import getLogger
+from pathlib import Path
 from shutil import copyfile
 from unittest.mock import patch
 
@@ -151,6 +152,24 @@ class TestRemoteDeletion(UnitTestCase):
         assert not local.exists("/Folder 1")
         assert not local.exists("/Folder 1b")
         assert not local.exists("/Folder 1c")
+
+    def test_synchronize_remote_deletion_with_wrong_local_remote_id(self):
+        local = self.local_1
+        remote = self.remote_document_client_1
+        remote.make_file("/", "joe.txt", content=b"Some content")
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        assert local.exists("/joe.txt")
+
+        self.engine_1.suspend()
+        local.set_remote_id(Path("joe.txt"), "wrong-id")
+        remote.delete("/joe.txt")
+
+        self.engine_1.resume()
+        self.wait_sync(wait_for_async=True)
+        assert local.exists("/joe.txt")
 
     def test_synchronize_local_folder_lost_permission(self):
         """Test local folder rename followed by remote deletion"""
