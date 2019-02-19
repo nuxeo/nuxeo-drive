@@ -658,7 +658,7 @@ class DirectEdit(Worker):
                     raise
                 except:
                     log.exception("Unhandled DirectEdit error")
-                sleep(0.01)
+                sleep(0.5)
         except ThreadInterrupt:
             raise
         finally:
