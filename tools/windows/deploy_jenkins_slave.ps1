@@ -59,10 +59,8 @@ function build_installer {
 	sign_dlls
 
 	Write-Output ">>> [$app_version] Freezing the application"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m PyInstaller ndrive.spec --noconfirm
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	# freeze_nuitka
+	freeze_pyinstaller
 
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
 	add_missing_ddls
@@ -232,6 +230,36 @@ function ExitWithCode($retCode) {
 	exit
 }
 
+function freeze_nuitka() {
+	$env:PATH = "C:\mingw64\mingw32\bin;$env:PATH"
+
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m nuitka `
+		--standalone `
+		--follow-imports `
+		--python-flag=nosite,noasserts `
+		--mingw64 `
+		--plugin-enable=qt-plugins=iconengines,imageformats,platforms,platformthemes,qml,styles `
+		--windows-icon=tools\windows\app_icon.ico `
+		--windows-disable-console `
+		--assume-yes-for-downloads `
+		nxdrive
+
+	# TODO: VersionInfo for the final executable
+	# TODO: UPX
+
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+}
+
+function freeze_pyinstaller() {
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m PyInstaller ndrive.spec --noconfirm
+
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+}
+
 function install_deps {
 	if (-Not (check_import "import pip")) {
 		Write-Output ">>> Installing pip"
@@ -337,7 +365,7 @@ function sign($file) {
 
 	Write-Output ">>> Signing $file"
 	& $Env:SIGNTOOL_PATH\signtool.exe sign `
-		/a  `
+		/a `
 		/s MY `
 		/n "$Env:SIGNING_ID" `
 		/d "$Env:APP_NAME" `
