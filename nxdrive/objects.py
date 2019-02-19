@@ -161,10 +161,10 @@ class NuxeoDocumentInfo:
     version: Optional[str]  # Nuxeo version
     state: Optional[str]  # Nuxeo lifecycle state
     is_trashed: bool  # Nuxeo trashed status
-    blobs: Dict[str, Blob]  # Dictionary of blob with their xpath as key
     lock_owner: Optional[str]  # lock owner
     lock_created: Optional[datetime]  # lock creation time
     permissions: List[str]  # permissions
+    properties: Dict[str, Any]  # properties
 
     @staticmethod
     def from_dict(doc: Dict[str, Any], parent_uid: str = None) -> "NuxeoDocumentInfo":
@@ -180,17 +180,7 @@ class NuxeoDocumentInfo:
         except KeyError:
             raise DriveError(f"This document is missing mandatory information: {doc}")
 
-        try:
-            has_data = props["file:content"]["data"]
-        except (KeyError, AttributeError, TypeError):
-            has_data = False
-
         last_update = parser.parse(modified)
-
-        # Check for file:content/data first instead of only the folderish facet (NXDRIVE-1519)
-        blobs: Dict[str, Blob] = {}
-        if has_data or not folderish:
-            blobs = NuxeoDocumentInfo._parse_blobs(props)
 
         # Lock info
         lock_owner = doc.get("lockOwner")
@@ -226,42 +216,46 @@ class NuxeoDocumentInfo:
             version,
             doc.get("state"),
             is_trashed,
-            blobs,
             lock_owner,
             lock_created,
             permissions,
+            props,
         )
 
-    @staticmethod
-    def _parse_blobs(props: Dict[str, Any]) -> Dict[str, Blob]:
-        blobs: Dict[str, Blob] = {}
+    def get_blob(self, xpath: str) -> Optional[Blob]:
+        props = self.properties
 
-        main_blob = props.get("file:content")
-        attachments = props.get("files:files", [])
-        note = props.get("note:note")
+        # Note editing is a special case
+        if xpath == "note:note" and self.doc_type == "Note":
+            note = props.get("note:note")
+            if note:
+                digest = hashlib.sha256()
+                digest.update(note.encode("utf-8"))
+                return Blob.from_dict(
+                    {
+                        "name": props["dc:title"],
+                        "digest": digest.hexdigest(),
+                        "digestAlgorithm": "sha256",
+                        "length": len(note),
+                        "mime-type": props.get("note:mime_type"),
+                        "data": note,
+                    }
+                )
 
-        if main_blob:
-            blobs["file:content"] = Blob.from_dict(main_blob)
+        # Attachments are in a specific array
+        elif xpath.startswith("files:files"):
+            attachments = props.get("files:files")
+            if attachments:
+                idx = int(xpath.split("/")[1])
+                return Blob.from_dict(attachments[idx]["file"])
 
-        for idx, attachment in enumerate(attachments):
-            blobs[f"files:files/{idx}/file"] = Blob.from_dict(attachment["file"])
+        # All other blobs should be directly accessible in the properties
+        # and follow the default formatting. If that is not the case,
+        # we'll let the error rise.
+        elif xpath in props:
+            return Blob.from_dict(props[xpath])
 
-        if note:
-            digest = hashlib.sha256()
-            digest.update(note.encode("utf-8"))
-
-            blobs["note:note"] = Blob.from_dict(
-                {
-                    "name": props["dc:title"],
-                    "digest": digest.hexdigest(),
-                    "digestAlgorithm": "sha256",
-                    "length": len(note),
-                    "mime-type": props.get("note:mime_type"),
-                    "data": note,
-                }
-            )
-
-        return blobs
+        return None
 
 
 class DocPair(Row):

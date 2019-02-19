@@ -249,7 +249,7 @@ class DirectEdit(Worker):
 
         # Close to processor method - should try to refactor ?
         pair = None
-        blob = info.blobs[xpath]
+        blob = info.get_blob(xpath)
         kwargs: Dict[str, Any] = {}
 
         if blob.digest:
@@ -359,14 +359,18 @@ class DirectEdit(Worker):
                 url += "/"
             url += download_url
 
-        xpath = url_info.get("xpath", "file:content")
-        if xpath == "blobholder:0":
+        xpath = url_info.get("xpath")
+        if not xpath:
+            if info.doc_type == "Note":
+                xpath = "note:note"
+            else:
+                xpath = "file:content"
+        elif xpath == "blobholder:0":
             xpath = "file:content"
-        if xpath not in info.blobs and info.doc_type == "Note":
-            xpath = "note:note"
 
-        blob = info.blobs.get(xpath)
+        blob = info.get_blob(xpath)
         if not blob:
+            log.debug(f"No blob associated with xpath {xpath} for file {info.path}")
             return None
 
         filename = blob.name
@@ -564,7 +568,7 @@ class DirectEdit(Worker):
                 # Update the document, should verify
                 # the remote hash NXDRIVE-187
                 remote_info = engine.remote.get_info(uid)
-                remote_blob = remote_info.blobs.get(xpath) if remote_info else None
+                remote_blob = remote_info.get_blob(xpath) if remote_info else None
                 if remote_blob and remote_blob.digest != digest:
                     # Conflict detect
                     log.trace(

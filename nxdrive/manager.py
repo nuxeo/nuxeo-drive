@@ -389,7 +389,7 @@ class Manager(QObject):
             self.osi.open_local_file(file_path)
         except Exception:
             # Log the exception now, will see later if we need to adapt
-            log.exception(f"Failed to find and editor for {file_path!r}")
+            log.exception(f"Failed to find an editor for {file_path!r}")
             return
 
     @property
