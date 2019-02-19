@@ -48,11 +48,72 @@ import sys
 from contextlib import suppress
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Dict, Set, Tuple
+from typing import Any, Callable, Dict, Set, Optional, Tuple
 
 __all__ = ("Options",)
 
 log = logging.getLogger(__name__)
+
+
+def _get_freezer() -> Optional[str]:
+    """Name of the actual module used to freeze the application."""
+    if "__compiled__" in globals():
+        return "nuitka"
+    elif hasattr(sys, "frozen"):
+        return "pyinstaller"
+    return None
+
+
+def _get_frozen_state() -> bool:
+    """Find the current state of the application."""
+    return _get_freezer() is not None
+
+
+def _get_home() -> Path:
+    """
+    Get the user home directory.
+
+    Note about Windows:
+
+        os.path.expanduser("~") and os.getenv("USERPROFILE"|"USERNAME") are not
+        trustable when unicode is in the loop. For instance, if the Windows session
+        name (i.e. the username) is made of kandjis, everything relying on the
+        commands above will fail when packaged with PyInstaller.
+
+        The workaround is to use SHGetFolderPath(), it will return the good value
+        whatever characters the path may contain.
+
+        Another idea would be to use the short version of the path, but we will
+        try it only if we find bugs with the current implementation.
+    """
+    path = "~"
+    if sys.platform == "win32":
+        from win32com.shell import shell, shellcon
+
+        with suppress(Exception):
+            path = shell.SHGetFolderPath(0, shellcon.CSIDL_PROFILE, None, 0)
+
+    return Path(path).expanduser().resolve()
+
+
+def _get_resources_dir() -> Path:
+    """Find the resources directory."""
+    freezer = _get_freezer()
+    if freezer == "nuitka":
+        path = Path(__file__).parent
+    elif freezer == "pyinstaller":
+        path = Path(sys._MEIPASS)
+    else:
+        path = Path(__file__).parent
+    return path / "data"
+
+
+def _is_system_wide() -> bool:
+    # TODO: check OK with Nuitka
+    return (
+        sys.platform == "win32"
+        and Path(sys.executable).with_name("system-wide.txt").is_file()
+    )
 
 
 class MetaOptions(type):
@@ -105,34 +166,8 @@ class MetaOptions(type):
         "manual": 4,
     }
 
-    def __get_home(*_) -> Path:
-        """
-        Get the user home directory.
-
-        Note about Windows:
-
-            os.path.expanduser("~") and os.getenv("USERPROFILE"|"USERNAME") are not
-            trustable when unicode is in the loop. For instance, if the Windows session
-            name (i.e. the username) is made of kandjis, everything relying on the
-            commands above will fail when packaged with PyInstaller.
-
-            The workaround is to use SHGetFolderPath(), it will return the good value
-            whatever characters the path may contain.
-
-            Another idea would be to use the short version of the path, but we will
-            try it only if we find bugs with the current implementation.
-        """
-        path = "~"
-        if sys.platform == "win32":
-            from win32com.shell import shell, shellcon
-
-            with suppress(Exception):
-                path = shell.SHGetFolderPath(0, shellcon.CSIDL_PROFILE, None, 0)
-
-        return Path(path).expanduser().resolve()
-
     # Cache the home directory for later use
-    __home: Path = __get_home()
+    __home: Path = _get_home()
 
     # Options that should not trigger an error
     __ignored_options: Set[str] = {
@@ -165,12 +200,13 @@ class MetaOptions(type):
         "deletion_behavior": ("unsync", "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
+        "freezer": (_get_freezer(), "default"),
         "handshake_timeout": (60, "default"),
         "home": (__home, "default"),
         "ignored_files": (__files, "default"),
         "ignored_prefixes": (__prefixes, "default"),
         "ignored_suffixes": (__suffixes, "default"),
-        "is_frozen": (getattr(sys, "frozen", False), "default"),
+        "is_frozen": (_get_frozen_state(), "default"),
         "locale": ("en", "default"),
         "log_level_console": ("WARNING", "default"),
         "log_level_file": ("INFO", "default"),
@@ -180,17 +216,10 @@ class MetaOptions(type):
         "protocol_url": (None, "default"),
         "proxy_server": (None, "default"),
         "remote_repo": ("default", "default"),
-        "res_dir": (
-            Path(getattr(sys, "_MEIPASS", Path(__file__).parent)) / "data",
-            "default",
-        ),
+        "res_dir": (_get_resources_dir(), "default"),
         "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
-        "system_wide": (
-            sys.platform == "win32"
-            and Path(sys.executable).with_name("system-wide.txt").is_file(),
-            "default",
-        ),
+        "system_wide": (_is_system_wide(), "default"),
         "theme": ("ui5", "default"),
         "timeout": (30, "default"),
         "update_check_delay": (3600, "default"),

@@ -142,6 +142,19 @@ class Application(QApplication):
         # to self.aboutToQuit can run beforehand.
         self.aboutToQuit.connect(self.manager.stop)
 
+    @if_frozen
+    def add_qml_import_path(self, view: QQuickView) -> None:
+        """
+        Manually set the path to the QML folder to fix errors with unicode paths.
+        This is needed only on Windows when packaged with Nuitka.
+        """
+        if Options.freezer != "nuitka":
+            return
+
+        qml_dir = Options.res_dir.parent / "PyQt5" / "Qt" / "qml"
+        log.debug(f"Setting QML import path for {view} to {qml_dir!r}")
+        view.engine().addImportPath(str(qml_dir))
+
     def init_gui(self) -> None:
 
         self.api = QMLDriveApi(self)
@@ -161,12 +174,15 @@ class Application(QApplication):
 
         if WINDOWS:
             self.conflicts_window = QQuickView()
+            self.add_qml_import_path(self.conflicts_window)
             self.conflicts_window.setMinimumWidth(550)
             self.conflicts_window.setMinimumHeight(600)
             self.settings_window = QQuickView()
+            self.add_qml_import_path(self.settings_window)
             self.settings_window.setMinimumWidth(640)
             self.settings_window.setMinimumHeight(520)
             self.systray_window = SystrayWindow()
+            self.add_qml_import_path(self.systray_window)
 
             self._fill_qml_context(self.conflicts_window.rootContext())
             self._fill_qml_context(self.settings_window.rootContext())
