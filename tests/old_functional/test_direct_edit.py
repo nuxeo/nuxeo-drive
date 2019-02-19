@@ -1,6 +1,7 @@
 # coding: utf-8
 import time
 import shutil
+from collections import namedtuple
 from logging import getLogger
 from pathlib import Path
 from threading import Thread
@@ -440,6 +441,15 @@ class TestDirectEdit(UnitTestCase):
         with patch.object(NuxeoDocumentInfo, "from_dict", new=from_dict):
             self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
             assert received
+
+    def test_send_lock_status(self):
+        Engine = namedtuple("Engine", ["local_folder", "engine", "uid", "name"])
+
+        local_path = Path("doc_id_xpath/testfile.txt")
+        self.direct_edit._manager._engine_definitions.insert(
+            0, Engine(Path(), None, "invalid_uid", "bla")
+        )
+        self.direct_edit._send_lock_status(local_path)
 
     def test_url_resolver(self):
         user = "Administrator"
