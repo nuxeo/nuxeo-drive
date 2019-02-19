@@ -5,7 +5,7 @@ https://github.com/GoodRx/universal-analytics-python/archive/0.2.5.zip
 https://github.com/gorakhargosh/watchdog/archive/master.zip
 markdown==3.0.1
 nuxeo==2.0.4
-psutil==5.5.0
+psutil==5.5.1
 pyaml==18.11.0
 pycryptodomex==3.7.3
 # Ignore pyobjc updates until NXDRIVE-1396 is done
@@ -19,5 +19,5 @@ PyQt5==5.11.2  # pyup: ignore
 python-dateutil==2.8.0
 rfc3987==1.3.8
 Send2Trash==1.5.0
-sentry-sdk==0.7.2
+sentry-sdk==0.7.3
 xattr==0.9.6; sys_platform != 'win32'
