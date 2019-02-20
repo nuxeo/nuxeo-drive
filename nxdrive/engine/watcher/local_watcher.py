@@ -729,11 +729,10 @@ class LocalWatcher(EngineWorker):
             # Ignore inner movement
             versioned = False
             remote_parent_ref = client.get_remote_id(rel_parent_path)
-            parent_path = doc_pair.local_path.parent
             if (
                 doc_pair.remote_name == local_info.name
                 and doc_pair.remote_parent_ref == remote_parent_ref
-                and rel_parent_path == parent_path
+                and rel_parent_path == doc_pair.local_path.parent
             ):
                 log.debug(
                     "The pair was moved but it has been canceled manually, "
@@ -929,25 +928,31 @@ class LocalWatcher(EngineWorker):
             log.debug(f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}")
 
         try:
-            src_path = normalize(evt.src_path)
+            # Set action=False to avoid forced normalization before
+            # checking for banned files
+            src_path = normalize(evt.src_path, action=False)
             rel_path = client.get_path(src_path)
             if not rel_path or rel_path == ROOT:
                 self.handle_watchdog_root_event(evt)
                 return
 
-            file_name = src_path.name
-            parent_path = src_path.parent
-            parent_rel_path = client.get_path(parent_path)
+            parent_rel_path = client.get_path(src_path.parent)
             # Don't care about ignored file, unless it is moved
             if evt.event_type != "moved" and client.is_ignored(
-                parent_rel_path, file_name
+                parent_rel_path, src_path.name
             ):
                 log.debug(f"Ignoring action on banned file: {evt!r}")
                 return
 
-            if client.is_temp_file(file_name):
+            if client.is_temp_file(src_path.name):
                 log.debug(f"Ignoring temporary file: {evt!r}")
                 return
+
+            # This time, let action=True to force normalization
+            # and refresh all the variables
+            src_path = normalize(evt.src_path)
+            rel_path = client.get_path(src_path)
+            parent_rel_path = client.get_path(src_path.parent)
 
             doc_pair = dao.get_state_from_local(rel_path)
             if doc_pair is not None:
@@ -1035,7 +1040,7 @@ class LocalWatcher(EngineWorker):
 
             # if the pair is modified and not known consider as created
             if evt.event_type not in ("created", "modified"):
-                log.debug(f"Unhandled case: {evt!r} {rel_path!r} {file_name!r}")
+                log.debug(f"Unhandled case: {evt!r} {rel_path!r} {src_path.name!r}")
                 return
 
             # If doc_pair is not None mean
@@ -1044,7 +1049,7 @@ class LocalWatcher(EngineWorker):
             local_info = client.try_get_info(rel_path)
             if local_info is None:
                 log.trace(
-                    f"Event on a disappeared file: {evt!r} {rel_path!r} {file_name!r}"
+                    f"Event on a disappeared file: {evt!r} {rel_path!r} {src_path.name!r}"
                 )
                 return
 
