@@ -296,6 +296,6 @@ class TestPermissionHierarchy(UnitTestCase):
         assert not remote.get_children_info(readonly)
         children = remote.get_children_info(readwrite)
         assert len(children) == 1
-        blob = children[0].blobs["file:content"]
+        blob = children[0].get_blob("file:content")
         assert blob.name == "file_rw.txt"
         assert blob.digest == hashlib.md5(new_data).hexdigest()
