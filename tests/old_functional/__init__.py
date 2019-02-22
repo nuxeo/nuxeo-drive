@@ -17,6 +17,11 @@ from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
 from nxdrive.options import Options
 from nxdrive.utils import force_encode, safe_filename
 
+from ..functional import setup_sentry
+
+
+setup_sentry()
+
 
 @contextmanager
 def ensure_no_exception():
