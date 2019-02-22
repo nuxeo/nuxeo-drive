@@ -5,13 +5,13 @@ from queue import Queue
 from shutil import copyfile
 from time import sleep
 
-import pytest
 from unittest.mock import patch
 
 from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from . import LocalTest
 from .common import UnitTestCase
+from ..markers import not_windows
 
 
 def copy_queue(queue: Queue) -> Queue:
@@ -261,7 +261,7 @@ class TestWatchers(UnitTestCase):
         assert not remote.exists("/Accentue\u0301.odt")
         assert not remote.exists("/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt")
 
-    @pytest.mark.skipif(WINDOWS, reason="Windows cannot have file ending with a space.")
+    @not_windows(reason="Windows cannot have file ending with a space.")
     def test_watchdog_space_remover(self):
         """
         Test files and folders ending with space.

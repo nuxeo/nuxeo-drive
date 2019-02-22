@@ -13,7 +13,7 @@ from unittest.mock import patch
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import User
 
-from nxdrive.constants import ROOT, WINDOWS
+from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
 from nxdrive.engine.workers import Worker
 from nxdrive.exceptions import Forbidden, NotFound, ThreadInterrupt
@@ -21,6 +21,7 @@ from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import safe_os_filename
 from . import LocalTest, make_tmp_file
 from .common import UnitTestCase
+from ..markers import not_windows
 
 log = getLogger(__name__)
 
@@ -219,7 +220,7 @@ class TestDirectEdit(UnitTestCase):
             self.direct_edit._cleanup()
             assert not self.local.exists(local_path)
 
-    @pytest.mark.skipif(WINDOWS, reason="Watchdog failure")
+    @not_windows(reason="Watchdog failure")
     def test_cleanup_no_local_folder(self):
         """"If local folder does not exist, it should be created."""
 

@@ -1,6 +1,8 @@
 # coding: utf-8
 import time
 
+from nxdrive.constants import WINDOWS
+
 from .common import (
     OS_STAT_MTIME_RESOLUTION,
     REMOTE_MODIFICATION_TIME_RESOLUTION,
@@ -18,6 +20,97 @@ class TestConcurrentSynchronization(UnitTestCase):
             number=number,
             delay=int(delay * 1000),
         )
+
+    def test_concurrent_file_access(self):
+        """Test update/deletion of a locally locked file.
+
+        This is to simulate downstream synchronization of a file opened (thus
+        locked) by any program under Windows, typically MS Word.
+        The file should be blacklisted and not prevent synchronization of other
+        pending items.
+        Once the file is unlocked and the cooldown period is over it should be
+        synchronized.
+        """
+        # Bind the server and root workspace
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Get local and remote clients
+        local = self.local_1
+        remote = self.remote_document_client_1
+
+        # Create file in the remote root workspace
+        remote.make_file("/", "test_update.docx", content=b"Some content to update.")
+        remote.make_file("/", "test_delete.docx", content=b"Some content to delete.")
+
+        # Launch first synchronization
+        self.wait_sync(wait_for_async=True)
+        assert local.exists("/test_update.docx")
+        assert local.exists("/test_delete.docx")
+
+        # Open locally synchronized files to lock them and generate a
+        # WindowsError when trying to update / delete them
+        file1_path = local.get_info("/test_update.docx").filepath
+        file2_path = local.get_info("/test_delete.docx").filepath
+        with open(file1_path, "rb"), open(file2_path, "rb"):
+            # Update /delete existing remote files and create a new remote file
+            # Wait for 1 second to make sure the file's last modification time
+            # will be different from the pair state's last remote update time
+            time.sleep(REMOTE_MODIFICATION_TIME_RESOLUTION)
+            remote.update_content("/test_update.docx", b"Updated content.")
+            remote.delete("/test_delete.docx")
+            remote.make_file("/", "other.docx", content=b"Other content.")
+
+            # Synchronize
+            self.wait_sync(
+                wait_for_async=True, enforce_errors=False, fail_if_timeout=False
+            )
+            if WINDOWS:
+                # As local file are locked, a WindowsError should occur during the
+                # local update process, therefore:
+                # - Opened local files should still exist and not have been
+                #   modified
+                # - Synchronization should not fail: doc pairs should be
+                #   blacklisted and other remote modifications should be
+                #   locally synchronized
+                assert local.exists("/test_update.docx")
+                assert (
+                    local.get_content("/test_update.docx") == b"Some content to update."
+                )
+                assert local.exists("/test_delete.docx")
+                assert (
+                    local.get_content("/test_delete.docx") == b"Some content to delete."
+                )
+                assert local.exists("/other.docx")
+                assert local.get_content("/other.docx") == b"Other content."
+
+                # Synchronize again
+                self.wait_sync(enforce_errors=False, fail_if_timeout=False)
+                # Blacklisted files should be ignored as delay (60 seconds by
+                # default) is not expired, nothing should have changed
+                assert local.exists("/test_update.docx")
+                assert (
+                    local.get_content("/test_update.docx") == b"Some content to update."
+                )
+                assert local.exists("/test_delete.docx")
+                assert (
+                    local.get_content("/test_delete.docx") == b"Some content to delete."
+                )
+
+        if WINDOWS:
+            # Cancel error delay to force retrying synchronization of pairs in error
+            self.queue_manager_1.requeue_errors()
+            self.wait_sync()
+
+            # Previously blacklisted files should be updated / deleted locally,
+            # temporary download file should not be there anymore and there
+            # should be no pending items left
+        else:
+            self.assertNxPart("/", "test_update.docx")
+
+        assert local.exists("/test_update.docx")
+        assert local.get_content("/test_update.docx") == b"Updated content."
+        assert not local.exists("/test_delete.docx")
 
     def test_find_changes_with_many_doc_creations(self):
         local = self.local_1

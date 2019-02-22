@@ -3,13 +3,13 @@ import time
 from pathlib import Path
 from shutil import copyfile
 
-import pytest
 from unittest.mock import Mock, patch
 
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
 from . import DocRemote, LocalTest
 from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, UnitTestCase
+from ..markers import windows_only
 
 
 class TestRemoteMoveAndRename(UnitTestCase):
@@ -585,7 +585,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         assert local.exists("/Test folder")
 
-    @pytest.mark.skipif(not WINDOWS, reason="Windows only.")
+    @windows_only
     def test_synchronize_remote_move_file_while_accessing(self):
         local = self.local_1
         remote = self.remote_1
@@ -645,7 +645,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
         finally:
             self.engine_1.remote.check_suspended = Engine.suspend_client
 
-    @pytest.mark.skipif(not WINDOWS, reason="Windows only.")
+    @windows_only
     def test_synchronize_remote_rename_file_while_accessing(self):
         local = self.local_1
         remote = self.remote_1
