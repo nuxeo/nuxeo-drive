@@ -2,11 +2,9 @@
 import os
 from pathlib import Path
 
-import pytest
-
 from nxdrive.client.local_client import FileInfo
-from nxdrive.constants import MAC
 from .common import UnitTestCase
+from ..markers import not_mac
 
 
 class TestEncoding(UnitTestCase):
@@ -94,7 +92,7 @@ class TestEncoding(UnitTestCase):
 
         assert remote.get_info("/" + filename).name == filename
 
-    @pytest.mark.skipif(MAC, reason="Normalization does not work on macOS")
+    @not_mac(reason="Normalization does not work on macOS")
     def test_fileinfo_normalization(self):
         local = self.local_1
 

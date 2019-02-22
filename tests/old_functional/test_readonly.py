@@ -10,6 +10,7 @@ from nxdrive.constants import WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.exceptions import Forbidden
 from .common import TEST_WORKSPACE_PATH, UnitTestCase
+from ..markers import windows_only
 
 log = getLogger(__name__)
 
@@ -493,7 +494,7 @@ class TestReadOnly(UnitTestCase):
             # We should not have any error
             assert not self.engine_1.get_dao().get_errors(limit=0)
 
-    @pytest.mark.skipif(not WINDOWS, reason="Windows only.")
+    @windows_only
     def test_nxdrive_836(self):
         """
         NXDRIVE-836: Bad behaviors with read-only documents on Windows.

@@ -12,10 +12,11 @@ from time import sleep
 
 import pytest
 
-from nxdrive.constants import LINUX, ROOT, WINDOWS
+from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.exceptions import DuplicationDisabledError, NotFound
 from . import LocalTest
 from .common import UnitTestCase
+from ..markers import not_linux, windows_only
 
 if WINDOWS:
     import win32api
@@ -133,7 +134,7 @@ class StubLocalClient:
                 local.make_file("/", "ABC.txt")
         assert len(local.get_children_info("/")) == sensitive + 1
 
-    @pytest.mark.skipif(not WINDOWS, reason="Windows only.")
+    @windows_only
     def test_windows_short_names(self):
         """
         Test 8.3 file name convention:
@@ -402,7 +403,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
         assert children[0].name == "Pièces Graphiques"
 
 
-@pytest.mark.skipif(LINUX, reason="GNU/Linux uses native LocalClient.")
+@not_linux(reason="GNU/Linux uses native LocalClient.")
 class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
     """
     Test LocalClient using OS-specific commands to make FS operations.

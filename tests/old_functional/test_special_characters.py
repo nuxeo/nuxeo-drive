@@ -1,13 +1,12 @@
 # coding: utf-8
-import pytest
-
 from nxdrive.constants import WINDOWS
 
 from .common import UnitTestCase
+from ..markers import not_windows
 
 
 class TestSpecialCharacters(UnitTestCase):
-    @pytest.mark.skipif(WINDOWS, reason="Explorer prevents using those characters")
+    @not_windows(reason="Explorer prevents using those characters")
     def test_create_local(self):
         local = self.local_1
         remote = self.remote_1
@@ -36,7 +35,7 @@ class TestSpecialCharacters(UnitTestCase):
         info = remote.get_info(f"/{folder_name}/{file_name}")
         assert info.name == new_file_name
 
-    @pytest.mark.skipif(WINDOWS, reason="Explorer prevents using those characters")
+    @not_windows(reason="Explorer prevents using those characters")
     def test_rename_local(self):
         local = self.local_1
         remote = self.remote_1

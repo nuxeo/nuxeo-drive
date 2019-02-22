@@ -1,8 +1,6 @@
 # coding: utf-8
-import pytest
-
-from nxdrive.constants import MAC
 from .common import UnitTestCase
+from ..markers import mac_only
 
 try:
     import xattr
@@ -10,7 +8,7 @@ except ImportError:
     pass
 
 
-@pytest.mark.skipif(not MAC, reason="Relevant on macOS only")
+@mac_only
 class TestMacSpecific(UnitTestCase):
     def test_finder_in_use(self):
         """ Test that if Finder is using the file we postpone the sync. """

@@ -6,6 +6,7 @@ import pytest
 
 from nxdrive.constants import LINUX, MAC
 from .common import UnitTestCase
+from ..markers import not_linux
 
 
 class TestMultipleFiles(UnitTestCase):
@@ -116,10 +117,9 @@ class TestMultipleFiles(UnitTestCase):
             stopped=False,
         )
 
-    @pytest.mark.skipif(
-        LINUX,
+    @not_linux(
         reason="NXDRIVE-471: Not handled under GNU/Linux as "
-        "creation time is not stored",
+        "creation time is not stored"
     )
     def test_move_and_copy_paste_folder_original_location_stopped(self):
         self._move_and_copy_paste_folder(

@@ -8,6 +8,7 @@ from nxdrive.constants import WINDOWS
 from nxdrive.exceptions import Forbidden
 from . import LocalTest
 from .common import UnitTestCase
+from ..markers import windows_only
 
 
 class TestPermissionHierarchy(UnitTestCase):
@@ -30,7 +31,7 @@ class TestPermissionHierarchy(UnitTestCase):
         if self.workspace_uid and self.root_remote.exists(self.workspace_uid):
             self.root_remote.delete(self.workspace_uid, use_trash=False)
 
-    @pytest.mark.skipif(not WINDOWS, reason="Only Windows ignores file permissions.")
+    @windows_only(reason="Only Windows ignores file permissions.")
     def test_permission_awareness_after_resume(self):
         remote = self.remote_document_client_1
         remote2 = self.remote_document_client_2

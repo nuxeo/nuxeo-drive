@@ -1,4 +1,6 @@
 # coding: utf-8
+import shutil
+import time
 from itertools import product
 from pathlib import Path
 from time import sleep
@@ -9,7 +11,7 @@ from nuxeo.exceptions import HTTPError
 
 from nxdrive.engine.dao.sqlite import EngineDAO
 from . import DocRemote, LocalTest
-from .common import UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
 
 
 # TODO NXDRIVE-170: refactor
@@ -528,6 +530,38 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(remote.get_children_info(folder_2)) == 1
         assert len(local.get_children_info("/")) == 4
         assert len(remote.get_children_info(self.workspace_1)) == 4
+
+    def test_local_replace(self):
+        local = LocalTest(self.local_test_folder_1)
+        remote = self.remote_document_client_1
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Create 2 files with the same name but different content
+        # in separate folders
+        local.make_file("/", "test.odt", content=b"Some content.")
+        local.make_folder("/", "folder")
+        shutil.copyfile(
+            self.local_test_folder_1 / "test.odt",
+            self.local_test_folder_1 / "folder" / "test.odt",
+        )
+        local.update_content("/folder/test.odt", content=b"Updated content.")
+
+        # Copy the newest file to the root workspace and synchronize it
+        sync_root = self.local_nxdrive_folder_1 / self.workspace_title
+        test_file = self.local_test_folder_1 / "folder" / "test.odt"
+        shutil.copyfile(test_file, sync_root / "test.odt")
+        self.wait_sync()
+        assert remote.exists("/test.odt")
+        assert remote.get_content("/test.odt") == b"Updated content."
+
+        # Copy the oldest file to the root workspace and synchronize it.
+        # First wait a bit for file time stamps to increase enough.
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
+        shutil.copyfile(self.local_test_folder_1 / "test.odt", sync_root / "test.odt")
+        self.wait_sync()
+        assert remote.exists("/test.odt")
+        assert remote.get_content("/test.odt") == b"Some content."
 
     def test_local_rename_sync_root_folder(self):
         # Use the Administrator to be able to introspect the container of the
