@@ -54,5 +54,4 @@ def setup_sentry() -> None:
     )
 
 
-# TODO: re-enable when the PR is ready to merge
-# setup_sentry()
+setup_sentry()
