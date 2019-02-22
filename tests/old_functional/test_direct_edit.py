@@ -94,7 +94,7 @@ class TestDirectEdit(UnitTestCase):
         # Download file
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             if url is None:
-                self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+                self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             else:
                 self.direct_edit.handle_url(url)
             local_path = Path(f"{doc_id}_{safe_os_filename(xpath)}/{filename}")
@@ -128,7 +128,7 @@ class TestDirectEdit(UnitTestCase):
             document=self.remote._check_ref(doc_id),
             xpath="files:files",
         )
-        scheme, host = pytest.nuxeo_url.split("://")
+        scheme, host = self.nuxeo_url.split("://")
         attachment_xpath = "files:files/0/file"
         url = (
             f"nxdrive://edit/{scheme}/{host}"
@@ -155,7 +155,7 @@ class TestDirectEdit(UnitTestCase):
         xpath = "file:content"
 
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
-            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             local_path = Path(f"{doc_id}_{safe_os_filename(xpath)}/{filename}")
             assert self.local.exists(local_path)
             self.wait_sync(fail_if_timeout=False)
@@ -193,7 +193,7 @@ class TestDirectEdit(UnitTestCase):
 
         # Download file
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
-            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             assert self.local.exists(local_path)
             self.wait_sync(timeout=2, fail_if_timeout=False)
             self.direct_edit.stop()
@@ -240,7 +240,7 @@ class TestDirectEdit(UnitTestCase):
         local_path = f"/{doc_id}_file-content/{filename}"
 
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
-            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             assert self.local.exists(local_path)
             self.wait_sync(timeout=2, fail_if_timeout=False)
             self.direct_edit.stop()
@@ -283,7 +283,7 @@ class TestDirectEdit(UnitTestCase):
         with patch.object(
             Engine, "has_invalid_credentials", new=has_invalid_credentials
         ):
-            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             assert received
 
     def test_locked_file(self):
@@ -296,7 +296,7 @@ class TestDirectEdit(UnitTestCase):
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
         self.remote_document_client_2.lock(doc_id)
         self.direct_edit.directEditLocked.connect(locked_file_signal)
-        self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+        self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
         assert received
 
     def test_forbidden_edit(self):
@@ -320,7 +320,7 @@ class TestDirectEdit(UnitTestCase):
         with patch.object(
             self.manager_1, "open_local_file", new=open_local_file
         ), patch.object(self.engine_1, "remote", new=bad_remote):
-            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             assert received
 
     def test_forbidden_upload(self):
@@ -333,7 +333,7 @@ class TestDirectEdit(UnitTestCase):
         local_path = f"/{doc_id}_file-content/{filename}"
 
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
-            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             self.wait_sync(timeout=2, fail_if_timeout=False)
 
             # Simulate server error
@@ -360,7 +360,7 @@ class TestDirectEdit(UnitTestCase):
         local_path = f"/{doc_id}_file-content/{filename}"
 
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
-            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             self.wait_sync(timeout=2, fail_if_timeout=False)
 
             # Simulate server error
@@ -439,7 +439,7 @@ class TestDirectEdit(UnitTestCase):
         doc_id = self.remote.make_file("/", "RO file.txt", content=b"content")
 
         with patch.object(NuxeoDocumentInfo, "from_dict", new=from_dict):
-            self.direct_edit._prepare_edit(pytest.nuxeo_url, doc_id)
+            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             assert received
 
     def test_send_lock_status(self):
@@ -455,7 +455,7 @@ class TestDirectEdit(UnitTestCase):
         user = "Administrator"
         get_engine = self.direct_edit._get_engine
 
-        assert get_engine(pytest.nuxeo_url, self.user_1)
+        assert get_engine(self.nuxeo_url, self.user_1)
 
         self.manager_1._engine_types["NXDRIVETESTURL"] = MockUrlTestEngine
 
@@ -497,7 +497,7 @@ class TestDirectEdit(UnitTestCase):
         assert not self.direct_edit.handle_url("https://example.org")
 
     def test_url_with_spaces(self):
-        scheme, host = pytest.nuxeo_url.split("://")
+        scheme, host = self.nuxeo_url.split("://")
         filename = "My file with spaces.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
 
@@ -514,7 +514,7 @@ class TestDirectEdit(UnitTestCase):
         self._direct_edit_update(doc_id, filename, b"Test", url=url)
 
     def test_url_with_accents(self):
-        scheme, host = pytest.nuxeo_url.split("://")
+        scheme, host = self.nuxeo_url.split("://")
         filename = "éèáä.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
 
@@ -549,7 +549,7 @@ class TestDirectEdit(UnitTestCase):
         assert user == self.user_1
 
         # Create a complete user
-        remote = pytest.root_remote
+        remote = self.root_remote
         try:
             user = remote.users.create(
                 User(

@@ -15,13 +15,13 @@ from time import sleep
 from typing import Tuple, Union
 from unittest import TestCase
 
-import pytest
 from PyQt5.QtCore import QCoreApplication, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
 # from sentry_sdk import configure_scope
 
+from nxdrive import __version__
 from nxdrive.constants import LINUX, MAC, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.manager import Manager
@@ -42,14 +42,22 @@ FS_ITEM_ID_PREFIX = "defaultFileSystemItemFactory#default#"
 REMOTE_MODIFICATION_TIME_RESOLUTION = 1.0
 
 # 1s resolution on HFS+ on OSX
-# ~0.01s resolution for NTFS
-# 0.001s for EXT4FS
+# ~0.01  sec for NTFS
+#  0.001 sec for EXT4FS
 OS_STAT_MTIME_RESOLUTION = 1.0
 
 log = getLogger(__name__)
 
+DEFAULT_NUXEO_URL = "http://localhost:8080/nuxeo"
 DEFAULT_WAIT_SYNC_TIMEOUT: int = 10
 FILE_CONTENT: bytes = b"Lorem ipsum dolor sit amet ..."
+
+
+def nuxeo_url() -> str:
+    """Retrieve the Nuxeo URL."""
+    url = os.getenv("NXDRIVE_TEST_NUXEO_URL", DEFAULT_NUXEO_URL)
+    url = url.split("#")[0]
+    return url
 
 
 class StubQApplication(QCoreApplication):
@@ -101,10 +109,20 @@ class StubQApplication(QCoreApplication):
 
 
 class UnitTestCase(TestCase):
-    # Save the current path for test files
-    location = normalized_path(__file__).parent.parent
-
     def setUpServer(self, server_profile=None):
+        # To be replaced with fixtures when migrating to 100% pytest
+        self.nuxeo_url = nuxeo_url()  # fixture name: nuxeo_url
+        self.version = __version__  # fixture name: version
+        self.root_remote = DocRemote(
+            self.nuxeo_url,
+            "Administrator",
+            "nxdrive-test-administrator-device",
+            self.version,
+            password="Administrator",
+            base_folder="/",
+            timeout=60,
+        )
+
         # Long timeout for the root client that is responsible for the test
         # environment set: this client is doing the first query on the Nuxeo
         # server and might need to wait for a long time without failing for
@@ -113,10 +131,10 @@ class UnitTestCase(TestCase):
 
         # Activate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
-            pytest.root_remote.activate_profile(server_profile)
+            self.root_remote.activate_profile(server_profile)
 
         # Call the Nuxeo operation to setup the integration test environment
-        credentials = pytest.root_remote.execute(
+        credentials = self.root_remote.execute(
             command="NuxeoDrive.SetupIntegrationTests",
             userNames="user_1, user_2",
             permission="ReadWrite",
@@ -127,11 +145,11 @@ class UnitTestCase(TestCase):
         ]
         self.user_1, self.password_1 = credentials[0]
         self.user_2, self.password_2 = credentials[1]
-        ws_info = pytest.root_remote.fetch("/default-domain/workspaces/")
-        children = pytest.root_remote.get_children(ws_info["uid"])
+        ws_info = self.root_remote.fetch("/default-domain/workspaces/")
+        children = self.root_remote.get_children(ws_info["uid"])
         log.debug("SuperWorkspace info: %r", ws_info)
         log.debug("SuperWorkspace children: %r", children)
-        ws_info = pytest.root_remote.fetch(TEST_WORKSPACE_PATH)
+        ws_info = self.root_remote.fetch(TEST_WORKSPACE_PATH)
         log.debug("Workspace info: %r", ws_info)
         self.workspace = ws_info["uid"]
         self.workspace_title = ws_info["title"]
@@ -143,13 +161,15 @@ class UnitTestCase(TestCase):
     def tearDownServer(self, server_profile=None):
         # Don't need to revoke tokens for the file system remote clients
         # since they use the same users as the remote document clients
-        pytest.root_remote.execute(command="NuxeoDrive.TearDownIntegrationTests")
+        self.root_remote.execute(command="NuxeoDrive.TearDownIntegrationTests")
 
         # Deactivate given profile if needed, eg. permission hierarchy
         if server_profile is not None:
-            pytest.root_remote.deactivate_profile(server_profile)
+            self.root_remote.deactivate_profile(server_profile)
 
     def setUpApp(self, server_profile=None, register_roots=True):
+        self.location = normalized_path(__file__).parent.parent
+
         # Install callback early to be called the last
         self.addCleanup(self._check_cleanup)
 
@@ -218,20 +238,20 @@ class UnitTestCase(TestCase):
         # Document client to be used to create remote test documents
         # and folders
         self.remote_document_client_1 = DocRemote(
-            pytest.nuxeo_url,
+            self.nuxeo_url,
             self.user_1,
             "nxdrive-test-device-1",
-            pytest.version,
+            self.version,
             password=self.password_1,
             base_folder=self.workspace_1,
             upload_tmp_dir=self.upload_tmp_dir,
         )
 
         self.remote_document_client_2 = DocRemote(
-            pytest.nuxeo_url,
+            self.nuxeo_url,
             self.user_2,
             "nxdrive-test-device-2",
-            pytest.version,
+            self.version,
             password=self.password_2,
             base_folder=self.workspace_2,
             upload_tmp_dir=self.upload_tmp_dir,
@@ -240,10 +260,10 @@ class UnitTestCase(TestCase):
         # File system client to be used to create remote test documents
         # and folders
         self.remote_1 = RemoteBase(
-            pytest.nuxeo_url,
+            self.nuxeo_url,
             self.user_1,
             "nxdrive-test-device-1",
-            pytest.version,
+            self.version,
             password=self.password_1,
             base_folder=self.workspace_1,
             upload_tmp_dir=self.upload_tmp_dir,
@@ -251,10 +271,10 @@ class UnitTestCase(TestCase):
         )
 
         self.remote_2 = RemoteBase(
-            pytest.nuxeo_url,
+            self.nuxeo_url,
             self.user_2,
             "nxdrive-test-device-2",
-            pytest.version,
+            self.version,
             password=self.password_2,
             base_folder=self.workspace_2,
             upload_tmp_dir=self.upload_tmp_dir,
@@ -300,10 +320,10 @@ class UnitTestCase(TestCase):
     def get_bad_remote(self):
         """ A Remote client that will raise some error. """
         return RemoteTest(
-            pytest.nuxeo_url,
+            self.nuxeo_url,
             self.user_1,
             "nxdrive-test-administrator-device",
-            pytest.version,
+            self.version,
             password=self.password_1,
             dao=self.engine_1._dao,
         )
@@ -328,7 +348,7 @@ class UnitTestCase(TestCase):
     def _unregister(self, workspace):
         """ Skip HTTP errors when cleaning up the test. """
         try:
-            pytest.root_remote.unregister_as_root(workspace)
+            self.root_remote.unregister_as_root(workspace)
         except (HTTPError, ConnectionError):
             pass
 
@@ -339,7 +359,7 @@ class UnitTestCase(TestCase):
         user = getattr(self, "user_" + number_str)
         password = getattr(self, "password_" + number_str)
         engine = manager.bind_server(
-            local_folder, pytest.nuxeo_url, user, password, start_engine=start_engine
+            local_folder, self.nuxeo_url, user, password, start_engine=start_engine
         )
 
         engine.syncCompleted.connect(self.app.sync_completed)
@@ -529,7 +549,7 @@ class UnitTestCase(TestCase):
             #    scope.set_tag("test-id", self.id())
 
             log.debug("UnitTest thread started")
-            pytest.root_remote.log_on_server(">>> testing: " + self.id())
+            self.root_remote.log_on_server(">>> testing: " + self.id())
 
             # Note: we cannot use super().run(result) here
             super(UnitTestCase, self).run(result)
@@ -650,7 +670,7 @@ class UnitTestCase(TestCase):
 
     def wait(self, retry=3):
         try:
-            pytest.root_remote.wait()
+            self.root_remote.wait()
         except Exception as e:
             log.debug("Exception while waiting for server : %r", e)
             # Not the nicest
@@ -680,7 +700,7 @@ class UnitTestCase(TestCase):
 
     def _set_read_permission(self, user, doc_path, grant):
         input_obj = "doc:" + doc_path
-        remote = pytest.root_remote
+        remote = self.root_remote
         if grant:
             remote.execute(
                 command="Document.SetACE",
@@ -766,7 +786,7 @@ class UnitTestCase(TestCase):
         :param doc_path: The document, either a folder or a file.
         :param grant: Set RO if True else RW.
         """
-        remote = pytest.root_remote
+        remote = self.root_remote
         input_obj = "doc:" + doc_path
         if grant:
             remote.execute(

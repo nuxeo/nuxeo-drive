@@ -36,7 +36,7 @@ class TestRemoteDeletion(UnitTestCase):
         # Get local and remote clients
         local = self.local_1
         remote = self.remote_document_client_1
-        remote_admin = pytest.root_remote
+        remote_admin = self.root_remote
 
         # Create documents in the remote root workspace
         # then synchronize
@@ -191,7 +191,7 @@ class TestRemoteDeletion(UnitTestCase):
         assert local.exists("/Test folder")
         assert local.exists("/Test folder/joe.odt")
         input_obj = "doc:" + self.workspace
-        pytest.root_remote.execute(
+        self.root_remote.execute(
             command="Document.RemoveACL", input_obj=input_obj, acl="local"
         )
         self.wait_sync(

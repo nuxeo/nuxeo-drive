@@ -1,8 +1,6 @@
 # coding: utf-8
 import time
 
-import pytest
-
 from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH, UnitTestCase
 
 
@@ -15,7 +13,7 @@ class TestVersioning(UnitTestCase):
         # Create a file as user 2
         remote.make_file("/", "Test versioning.txt", content=b"This is version 0")
         assert remote.exists("/Test versioning.txt")
-        doc = pytest.root_remote.fetch(TEST_WORKSPACE_PATH + "/Test versioning.txt")
+        doc = self.root_remote.fetch(TEST_WORKSPACE_PATH + "/Test versioning.txt")
         self._assert_version(doc, 0, 0)
 
         # Synchronize it for user 1
@@ -26,7 +24,7 @@ class TestVersioning(UnitTestCase):
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content("/Test versioning.txt", b"Modified content")
         self.wait_sync()
-        doc = pytest.root_remote.fetch(TEST_WORKSPACE_PATH + "/Test versioning.txt")
+        doc = self.root_remote.fetch(TEST_WORKSPACE_PATH + "/Test versioning.txt")
         self._assert_version(doc, 0, 1)
 
         # Update it as user 1 => should NOT be versioned
@@ -34,7 +32,7 @@ class TestVersioning(UnitTestCase):
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content("/Test versioning.txt", b"Content twice modified")
         self.wait_sync()
-        doc = pytest.root_remote.fetch(TEST_WORKSPACE_PATH + "/Test versioning.txt")
+        doc = self.root_remote.fetch(TEST_WORKSPACE_PATH + "/Test versioning.txt")
         self._assert_version(doc, 0, 1)
 
     def test_version_restore(self):
