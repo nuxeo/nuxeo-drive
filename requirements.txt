@@ -16,6 +16,7 @@ pypac==0.12.0
 pypiwin32==223; sys_platform == 'win32'
 # Ignore PyQt5 updates until NXDRIVE-1391 is done
 PyQt5==5.11.2  # pyup: ignore
+PyQt5-sip==4.19.13
 python-dateutil==2.8.0
 rfc3987==1.3.8
 Send2Trash==1.5.0
