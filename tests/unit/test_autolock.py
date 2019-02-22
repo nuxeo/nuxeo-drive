@@ -37,9 +37,6 @@ def autolock(tmpdir):
 
 def test_autolock(autolock, tmpdir):
     """Start the worker and simulate files to (un)lock."""
-    autolock._thread.start()
-    autolock._poll()
-
     # Unlock an orphaned document
     autolock.orphan_unlocked("foo.txt")
 
@@ -64,8 +61,6 @@ def test_autolock(autolock, tmpdir):
 
     with patch.object(nxdrive.autolocker, "get_open_files", new=files):
         autolock._poll()
-
-    autolock.stop()
 
 
 def test_get_opend_file():

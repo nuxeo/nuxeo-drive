@@ -1,8 +1,12 @@
 # coding: utf-8
+import logging
 from contextlib import suppress
 from shutil import rmtree
 
 import pytest
+
+from nxdrive.logging_config import configure
+
 
 pytest_plugins = "tests.pytest_random"
 
@@ -64,3 +68,20 @@ def no_warnings(recwarn):
         ):
             warnings.append(f"{warning.filename}:{warning.lineno} {message}")
     assert not warnings
+
+
+@pytest.fixture(scope="session", autouse=True)
+def configure_logs():
+    """Configure the logging module."""
+
+    formatter = logging.Formatter(
+        "%(thread)-4d %(module)-14s %(levelname).1s %(message)s"
+    )
+    configure(
+        console_level="TRACE",
+        command_name="test",
+        force_configure=True,
+        formatter=formatter,
+    )
+
+    yield

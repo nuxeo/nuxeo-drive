@@ -1,10 +1,8 @@
 # coding: utf-8
-import logging
 import os
 import shutil
 
 from nxdrive.engine.queue_manager import QueueManager
-from nxdrive.logging_config import configure
 from nxdrive.manager import Manager
 
 
@@ -48,19 +46,3 @@ shutil._basename = _basename
 
 # Remove feature for tests
 Manager._create_server_config_updater = lambda *args: None
-
-
-def configure_logger():
-    formatter = logging.Formatter(
-        "%(thread)-4d %(module)-14s %(levelname).1s %(message)s"
-    )
-    configure(
-        console_level="TRACE",
-        command_name="test",
-        force_configure=True,
-        formatter=formatter,
-    )
-
-
-# Configure test logger
-configure_logger()
