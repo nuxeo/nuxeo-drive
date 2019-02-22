@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
 
@@ -559,13 +558,13 @@ class TestSynchronization(UnitTestCase):
         # Set remote folder as readonly for test user
         readonly_folder_path = TEST_WORKSPACE_PATH + "/Readonly folder"
         input_obj = "doc:" + readonly_folder_path
-        pytest.root_remote.execute(
+        self.root_remote.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user=self.user_1,
             permission="Read",
         )
-        pytest.root_remote.block_inheritance(readonly_folder_path, overwrite=False)
+        self.root_remote.block_inheritance(readonly_folder_path, overwrite=False)
 
         # Wait to make sure permission change is detected.
         self.wait_sync(wait_for_async=True)

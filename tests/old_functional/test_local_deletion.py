@@ -118,14 +118,14 @@ class TestLocalDeletion(UnitTestCase):
             "/default-domain/workspaces" "/nuxeo-drive-test-workspace/ToDelete"
         )
         input_obj = "doc:" + folder_path
-        pytest.root_remote.execute(
+        self.root_remote.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user=self.user_1,
             permission="Read",
         )
-        pytest.root_remote.block_inheritance(folder_path, overwrite=False)
-        pytest.root_remote.delete(folder_path)
+        self.root_remote.block_inheritance(folder_path, overwrite=False)
+        self.root_remote.delete(folder_path)
         self.wait_sync(wait_for_async=True)
         assert not remote.exists(file_path)
         assert not local.exists(file_path)
@@ -166,13 +166,13 @@ class TestLocalDeletion(UnitTestCase):
         # Remove rights
         folder_path = "/default-domain/workspaces" "/nuxeo-drive-test-workspace/ToCopy"
         input_obj = "doc:" + folder_path
-        pytest.root_remote.execute(
+        self.root_remote.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user=self.user_1,
             permission="Read",
         )
-        pytest.root_remote.block_inheritance(folder_path, overwrite=False)
+        self.root_remote.block_inheritance(folder_path, overwrite=False)
         # Delete
         local.delete("/ToDelete")
         self.wait_sync(wait_for_async=True)

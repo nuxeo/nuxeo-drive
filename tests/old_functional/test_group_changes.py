@@ -1,7 +1,6 @@
 # coding: utf-8
 from logging import getLogger
 
-import pytest
 from nuxeo.models import Document, Group
 
 from . import DocRemote
@@ -18,7 +17,7 @@ class TestGroupChanges(UnitTestCase):
 
     def setUp(self):
         super().setUp()
-        remote = pytest.root_remote
+        remote = self.root_remote
 
         # Create test workspace
         workspaces_path = "/default-domain/workspaces"
@@ -55,16 +54,16 @@ class TestGroupChanges(UnitTestCase):
         assert "grandParentGroup" in group_names
 
         self.admin_remote = DocRemote(
-            pytest.nuxeo_url,
-            pytest.user,
+            self.nuxeo_url,
+            "Administrator",
             "nxdrive-test-administrator-device",
-            pytest.version,
-            password=pytest.password,
+            self.version,
+            password="Administrator",
             base_folder=self.workspace_path,
         )
 
     def tearDown(self):
-        remote = pytest.root_remote
+        remote = self.root_remote
 
         # Delete test workspace
         self.workspace.delete()
@@ -208,10 +207,10 @@ class TestGroupChanges(UnitTestCase):
 
     def _register_sync_root_user1(self, sync_root_id):
         user1_remote = DocRemote(
-            pytest.nuxeo_url,
+            self.nuxeo_url,
             self.user_1,
             "nxdrive-test-device-1",
-            pytest.version,
+            self.version,
             password=self.password_1,
             base_folder=sync_root_id,
             upload_tmp_dir=self.upload_tmp_dir,

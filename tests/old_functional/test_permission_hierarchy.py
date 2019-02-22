@@ -27,8 +27,8 @@ class TestPermissionHierarchy(UnitTestCase):
 
     def delete_wspace(self):
         # Cleanup user workspace
-        if self.workspace_uid and pytest.root_remote.exists(self.workspace_uid):
-            pytest.root_remote.delete(self.workspace_uid, use_trash=False)
+        if self.workspace_uid and self.root_remote.exists(self.workspace_uid):
+            self.root_remote.delete(self.workspace_uid, use_trash=False)
 
     @pytest.mark.skipif(not WINDOWS, reason="Only Windows ignores file permissions.")
     def test_permission_awareness_after_resume(self):
@@ -194,7 +194,7 @@ class TestPermissionHierarchy(UnitTestCase):
         folder_b_fs = self.local_2.get_remote_id("/Other Docs/Folder A/Folder B")
         folder_a_fs = self.local_2.get_remote_id("/Other Docs/Folder A")
         # Unshare Folder A and share Folder C
-        pytest.root_remote.execute(
+        self.root_remote.execute(
             command="Document.RemoveACL",
             input_obj=f"doc:{test_folder_uid}",
             acl="local",

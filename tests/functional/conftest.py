@@ -5,9 +5,9 @@ from typing import Callable
 from random import randint
 from uuid import uuid4
 
-# import nuxeo
-# import nuxeo.client
-# import nuxeo.operations
+import nuxeo
+import nuxeo.client
+import nuxeo.operations
 import pytest
 from faker import Faker
 from nuxeo.client import Nuxeo
@@ -51,7 +51,6 @@ def server(nuxeo_url):
     server = Nuxeo(host=nuxeo_url, auth=auth)
     server.client.set(schemas=["dublincore"])
 
-    """
     # Save bandwith by caching operations details
     global OPS_CACHE
     if not OPS_CACHE:
@@ -61,7 +60,6 @@ def server(nuxeo_url):
     if not SERVER_INFO:
         SERVER_INFO = server.client.server_info()
         nuxeo.client.NuxeoClient._server_info = SERVER_INFO
-    """
 
     return server
 

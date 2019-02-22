@@ -521,7 +521,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Grant ReadWrite permission on Workspaces for test user
         workspaces_path = "/default-domain/workspaces"
         input_obj = "doc:" + workspaces_path
-        pytest.root_remote.execute(
+        self.root_remote.execute(
             command="Document.SetACE",
             input_obj=input_obj,
             user=self.user_1,
@@ -529,15 +529,15 @@ class TestRemoteMoveAndRename(UnitTestCase):
             grant=True,
         )
 
-        workspaces_info = pytest.root_remote.fetch(workspaces_path)
+        workspaces_info = self.root_remote.fetch(workspaces_path)
         workspaces = workspaces_info["uid"]
 
         # Get remote client with Workspaces as base folder and local client
         remote = DocRemote(
-            pytest.nuxeo_url,
+            self.nuxeo_url,
             self.user_1,
             "nxdrive-test-device-1",
-            pytest.version,
+            self.version,
             password=self.password_1,
             base_folder=workspaces,
             upload_tmp_dir=self.upload_tmp_dir,

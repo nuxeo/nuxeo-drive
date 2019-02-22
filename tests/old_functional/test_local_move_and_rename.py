@@ -533,11 +533,11 @@ class TestLocalMoveAndRename(UnitTestCase):
         # Use the Administrator to be able to introspect the container of the
         # test workspace.
         remote = DocRemote(
-            pytest.nuxeo_url,
-            pytest.user,
+            self.nuxeo_url,
+            "Administrator",
             "nxdrive-test-administrator-device",
-            pytest.version,
-            password=pytest.password,
+            self.version,
+            password="Administrator",
             base_folder=self.workspace,
         )
         folder_1_uid = remote.get_info("/Original Folder 1").uid

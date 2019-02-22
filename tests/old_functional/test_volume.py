@@ -275,14 +275,14 @@ class VolumeTestCase(UnitTestCase):
     def test_remote_scan(self):
         nb_nodes = int(os.environ.get("TEST_REMOTE_SCAN_VOLUME", 20))
         # Random mass import
-        pytest.root_remote.mass_import(TEST_WORKSPACE_PATH, nb_nodes)
+        self.root_remote.mass_import(TEST_WORKSPACE_PATH, nb_nodes)
         # Wait for ES indexing
-        pytest.root_remote.wait_for_async_and_es_indexing()
+        self.root_remote.wait_for_async_and_es_indexing()
         # Synchronize
         self.engine_1.start()
         self.wait_sync(timeout=nb_nodes)
         # Check local tree
-        doc_count = pytest.root_remote.result_set_query(
+        doc_count = self.root_remote.result_set_query(
             "SELECT ecm:uuid FROM Document WHERE ecm:ancestorId = '%s'"
             "   AND ecm:isVersion = 0"
             "   AND ecm:currentLifeCycleState != 'deleted'"

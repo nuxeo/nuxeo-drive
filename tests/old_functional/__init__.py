@@ -17,8 +17,6 @@ from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
 from nxdrive.options import Options
 from nxdrive.utils import force_encode, safe_filename
 
-log = None
-
 
 @contextmanager
 def ensure_no_exception():
@@ -356,13 +354,6 @@ class RemoteTest(RemoteBase):
             "transactionTimeout": tx_timeout,
         }
         headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
-
-        log.info(
-            "Calling random mass importer on %s with %d threads " "and %d nodes",
-            target_path,
-            nb_threads,
-            nb_nodes,
-        )
 
         self.client.request(
             "GET", url, params=params, headers=headers, timeout=tx_timeout

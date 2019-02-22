@@ -2,8 +2,6 @@
 import os
 from unittest.mock import patch
 
-import pytest
-
 from nxdrive.constants import WINDOWS
 
 from .common import UnitTestCase
@@ -76,7 +74,7 @@ class TestLongPath(UnitTestCase):
         self.manager_1.unbind_all()
         self.engine_1 = self.manager_1.bind_server(
             self.local_nxdrive_folder_1,
-            pytest.nuxeo_url,
+            self.nuxeo_url,
             self.user_2,
             self.password_2,
             start_engine=False,
