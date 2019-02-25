@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib.parse import quote
 
 from nuxeo.utils import get_digest_algorithm
+from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
@@ -241,6 +242,7 @@ class DirectEdit(Worker):
         engine: "Engine",
         info: NuxeoDocumentInfo,
         file_path: Path,
+        blob: Blob,
         xpath: str,
         url: str = None,
     ) -> Path:
@@ -249,7 +251,6 @@ class DirectEdit(Worker):
 
         # Close to processor method - should try to refactor ?
         pair = None
-        blob = info.get_blob(xpath)
         kwargs: Dict[str, Any] = {}
 
         if blob.digest:
@@ -270,7 +271,7 @@ class DirectEdit(Worker):
                 log.debug(f"Unsetting readonly flag on copied file {file_out!r}")
                 unset_path_readonly(file_out)
         else:
-            log.debug(f"Downloading file {blob.name!r}")
+            log.debug(f"Downloading file {blob.name!r} from {url!r}")
             if url:
                 engine.remote.download(
                     quote(url, safe="/:"),
@@ -370,7 +371,7 @@ class DirectEdit(Worker):
 
         blob = info.get_blob(xpath)
         if not blob:
-            log.debug(f"No blob associated with xpath {xpath} for file {info.path}")
+            log.warning(f"No blob associated with xpath {xpath} for file {info.path}")
             return None
 
         filename = blob.name
@@ -385,7 +386,7 @@ class DirectEdit(Worker):
         file_path = dir_path / filename
 
         # Download the file
-        tmp_file = self._download(engine, info, file_path, xpath, url=url)
+        tmp_file = self._download(engine, info, file_path, blob, xpath, url=url)
         if tmp_file is None:
             log.error("Download failed")
             return None
