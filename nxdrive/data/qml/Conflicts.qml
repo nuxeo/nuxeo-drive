@@ -5,8 +5,7 @@ import QtQuick.Window 2.2
 
 Rectangle {
     id: conflicts
-    width: 550
-    height: 600
+    anchors.fill: parent
     color: lighterGray
 
     property string engineUid: ""

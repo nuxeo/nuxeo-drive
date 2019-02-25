@@ -5,8 +5,7 @@ import QtQuick.Window 2.2
 
 Item {
     id: settings
-    width: 640
-    height: 520
+    anchors.fill: parent
 
     FontLoader {
         id: iconFont
