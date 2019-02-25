@@ -9,44 +9,78 @@ import Foundation
 
 enum SocketError: Error {
     case socketCreation
+    case socketConnection
     case streamInit
 }
 
-class Socket {
+class Socket : NSObject, StreamDelegate {
     let addr: String
     let port: Int
-    var outputStream : OutputStream
+    var inputStream : InputStream?
+    var outputStream : OutputStream?
+    var connectionTimer : Timer?
+    let CONNECTION_TIMEOUT = 5.0
 
-    init(addr: String, port: Int) throws {
+    init(addr: String, port: Int) {
         self.addr = addr
         self.port = port
-
-        var inp: InputStream?
-        var out: OutputStream?
-        Stream.getStreamsToHost(withName: self.addr,
-                                port: self.port,
-                                inputStream: &inp,
-                                outputStream: &out)
-
-        if out == nil {
-            throw SocketError.streamInit
-        }
-
-        self.outputStream = out!
-        outputStream.open()
-        if outputStream.streamError != nil {
-            throw SocketError.socketCreation
-        }
     }
 
     deinit {
-        outputStream.close()
+        self.disconnect()
+    }
+
+    func connect() throws {
+        Stream.getStreamsToHost(withName: self.addr,
+                                port: self.port,
+                                inputStream: &self.inputStream,
+                                outputStream: &self.outputStream)
+
+        if let instream = self.inputStream, let outstream = self.outputStream {
+            instream.delegate = self
+            outstream.delegate = self
+            instream.schedule(in: .current, forMode: .commonModes)
+            outstream.schedule(in: .current, forMode: .commonModes)
+            instream.open()
+            outstream.open()
+
+            self.connectionTimer = Timer.scheduledTimer(
+                timeInterval: self.CONNECTION_TIMEOUT,
+                target: self,
+                selector: #selector(ensureDiscard),
+                userInfo: nil,
+                repeats: false
+            )
+        }
+    }
+
+    func disconnect() {
+        inputStream?.close()
+        outputStream?.close()
+    }
+
+    func isInValidState(_ stream: Stream?) -> Bool {
+        if stream?.streamStatus == .error {
+            return false
+        }
+        return true
+    }
+
+    @objc func ensureDiscard() {
+        if !isInValidState(inputStream) || !isInValidState(outputStream) {
+            self.disconnect()
+        }
+        self.connectionTimer?.invalidate()
+        self.connectionTimer = nil
     }
 
     func send(_ content: Data) {
         content.withUnsafeBytes {
-            outputStream.write($0, maxLength: content.count)
+            outputStream?.write($0, maxLength: content.count)
         }
+    }
+
+    func stream(_ aStream: Stream, handle eventCode: Stream.Event) {
     }
 }
 
@@ -61,7 +95,8 @@ class SocketCom {
 
     func send(content: Data) {
         do {
-            var socket: Socket? = try Socket(addr: self.addr, port: self.port)
+            var socket: Socket? = Socket(addr: self.addr, port: self.port)
+            try socket!.connect()
             socket!.send(content)
             socket = nil
         } catch {
