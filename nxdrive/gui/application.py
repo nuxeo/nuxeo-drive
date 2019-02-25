@@ -156,7 +156,11 @@ class Application(QApplication):
 
         if WINDOWS:
             self.conflicts_window = QQuickView()
+            self.conflicts_window.setMinimumWidth(550)
+            self.conflicts_window.setMinimumHeight(600)
             self.settings_window = QQuickView()
+            self.settings_window.setMinimumWidth(640)
+            self.settings_window.setMinimumHeight(520)
             self.systray_window = SystrayWindow()
 
             self._fill_qml_context(self.conflicts_window.rootContext())

@@ -124,6 +124,16 @@ Rectangle {
                         onClicked: api.filters_dialog(uid)
                     }
                 }
+
+                ScaledText {
+                    text: qsTr("CONFLICTS_AND_ERRORS") + tl.tr
+                    color: mediumGray
+                }
+
+                Link {
+                    text: qsTr("OPEN_WINDOW") + tl.tr
+                    onClicked: api.show_conflicts_resolution(uid)
+                }
             }
         }
     }

@@ -6,6 +6,8 @@ QtObject {
 
     property var settingsWindow: Window {
         id: settingsWindow
+        minimumWidth: 640
+        minimumHeight: 520
         objectName: "settingsWindow"
         title: qsTr("SETTINGS_WINDOW_TITLE") + tl.tr
         width: settings.width; height: settings.height
@@ -46,7 +48,8 @@ QtObject {
     property var conflictsWindow: Window {
         id: conflictsWindow
         objectName: "conflictsWindow"
-        width: conflicts.width; height: conflicts.height
+        minimumWidth: 550
+        minimumHeight: 600
         visible: false
 
         signal changed(string uid)
