@@ -298,6 +298,10 @@ def main() -> int:
         from nxdrive.commandline import CliHandler
 
         return CliHandler().handle(sys.argv[1:])
+    except SystemExit as exc:
+        if exc.code != 0:
+            show_critical_error()
+        return exc.code
     except:
         show_critical_error()
         return 1
