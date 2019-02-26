@@ -1,15 +1,13 @@
 # coding: utf-8
-import json
 import os
 import psutil
 import stat
 import subprocess
 import sys
-import unicodedata
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional
 
 import xattr
 from Foundation import NSBundle, NSDistributedNotificationCenter
@@ -25,20 +23,18 @@ from LaunchServices import (
     kLSSharedFileListItemBeforeFirst,
 )
 from nuxeo.compat import quote
-from PyQt5.Qt import pyqtSignal
-from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
 
+from .extension import DarwinExtensionListener
 from .. import AbstractOSIntegration
+from ..extension import get_formatted_status
 from ...constants import APP_NAME, BUNDLE_IDENTIFIER
 from ...objects import DocPair
 from ...options import Options
 from ...translator import Translator
-from ...utils import force_decode, if_frozen
+from ...utils import if_frozen
 
-if TYPE_CHECKING:
-    from ...manager import Manager  # noqa
 
-__all__ = ("DarwinIntegration", "FinderSyncServer")
+__all__ = ("DarwinIntegration",)
 
 log = getLogger(__name__)
 
@@ -219,7 +215,7 @@ class DarwinIntegration(AbstractOSIntegration):
                 return
 
             name = f"{BUNDLE_IDENTIFIER}.syncStatus"
-            status = self._formatted_status(state, path)
+            status = get_formatted_status(state, path)
 
             log.trace(f"Sending status to FinderSync for {path!r}: {status}")
             self._send_notification(name, {"statuses": [status]})
@@ -249,35 +245,17 @@ class DarwinIntegration(AbstractOSIntegration):
             for i in range(0, len(states), batch_size):
                 states_batch = states[i : i + batch_size]
                 statuses = [
-                    self._formatted_status(state, path / state.local_name)
+                    get_formatted_status(state, path / state.local_name)
                     for state in states_batch
                 ]
                 log.trace(
                     f"Sending statuses to FinderSync for children of {path!r} "
                     f"(items {i}-{i + len(states_batch) - 1})"
                 )
+                log.trace(statuses)
                 self._send_notification(name, {"statuses": statuses})
         except:
             log.exception("Error while trying to send status to FinderSync")
-
-    def _formatted_status(self, state: DocPair, path: Path) -> Dict[str, str]:
-        status = "unsynced"
-
-        readonly = (path.stat().st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
-        if readonly:
-            status = "locked"
-        elif state:
-            if state.error_count > 0:
-                status = "error"
-            elif state.pair_state == "conflicted":
-                status = "conflicted"
-            elif state.local_state == "synchronized":
-                status = "synced"
-            elif state.pair_state == "unsynchronized":
-                status = "unsynced"
-            elif state.processor != 0:
-                status = "syncing"
-        return {"status": status, "path": str(path)}
 
     @if_frozen
     def register_contextual_menu(self) -> None:
@@ -332,75 +310,5 @@ class DarwinIntegration(AbstractOSIntegration):
                 return item
         return None
 
-
-class FinderSyncServer(QTcpServer):
-    """
-    Server listening to the FinderSync extension.
-
-    This TCP server is instantiated during the Manager.__init__(),
-    and starts listening once the signal Manager.started() is emitted.
-
-    It handles requests coming from any FinderSync instance.
-    These requests are JSON-formatted and follow this pattern:
-    {
-        "cmd": "<command>",
-        "<key>": "<value>",  # parameters
-        ...
-    }
-
-    Currently accepted commands are:
-    - "get-status" with the parameter "path" to specify which
-      file's status to retrieve,
-    - "trigger-watch" to get all the local folders to watch.
-    """
-
-    listening = pyqtSignal()
-
-    def __init__(self, manager: "Manager", *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.manager = manager
-        self.host = "localhost"
-        self.port = 50675
-        self.newConnection.connect(self.handle_connection)
-
-    def handle_connection(self) -> None:
-        """ Called when a FinderSync instance is connecting. """
-        con: QTcpSocket = self.nextPendingConnection()
-        if not con or not con.waitForConnected():
-            log.error(f"Unable to open FinderSync server socket: {con.errorString()}")
-            return
-
-        if con.waitForReadyRead():
-            content = con.readAll()
-            log.trace(f"FinderSync request: {content}")
-            self._handle_content(force_decode(content.data()))
-
-            con.disconnectFromHost()
-            con.waitForDisconnected()
-            del con
-
-    def _listen(self) -> None:
-        """
-        Called once the Manager.started() is emitted.
-
-        Starts listening and emits a signal so that the extension can be started.
-        """
-        self.listen(QHostAddress(self.host), self.port)
-        log.debug(f"Listening to FinderSync on {self.host}:{self.port}")
-        self.listening.emit()
-
-    def _handle_content(self, content: str) -> None:
-        """
-        If the incoming connection successfully transmitted data,
-        run the corresponding commands.
-        """
-        data = json.loads(content)
-        cmd = data.get("cmd", None)
-
-        if cmd == "get-status":
-            if "path" in data:
-                path = Path(unicodedata.normalize("NFC", force_decode(data["path"])))
-                self.manager.send_sync_status(path)
-        elif cmd == "trigger-watch":
-            for engine in self.manager._engine_definitions:
-                self.manager.osi.watch_folder(engine.local_folder)
+    def get_extension_listener(self) -> DarwinExtensionListener:
+        return DarwinExtensionListener(self._manager)
