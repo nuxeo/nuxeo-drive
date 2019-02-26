@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSlot
 
+from .extension import ExtensionListener
 from ..constants import APP_NAME, LINUX, MAC, WINDOWS
 from ..objects import DocPair
 
@@ -79,6 +80,9 @@ class AbstractOSIntegration(QObject):
 
     def send_content_sync_status(self, states: List[DocPair], path: Path) -> None:
         pass
+
+    def get_extension_listener(self) -> Optional[ExtensionListener]:
+        return None
 
     def register_contextual_menu(self) -> None:
         pass

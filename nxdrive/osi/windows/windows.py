@@ -16,11 +16,12 @@ from win32com.shell import shell, shellcon
 from win32con import LOGPIXELSX
 
 from . import registry
-from .overlay import (
+from .extension import (
     disable_overlay,
     enable_overlay,
     get_filter_folders,
     set_filter_folders,
+    WindowsExtensionListener,
 )
 from .. import AbstractOSIntegration
 from ...constants import APP_NAME, CONFIG_REGISTRY_KEY
@@ -44,9 +45,9 @@ class WindowsIntegration(AbstractOSIntegration):
             watched_folders = {
                 engine.local_folder for engine in self._manager._engine_definitions
             }
-        if watched_folders:
-            set_filter_folders(watched_folders)
-            enable_overlay()
+            if watched_folders:
+                set_filter_folders(watched_folders)
+                enable_overlay()
 
     @if_frozen
     def _cleanup(self) -> None:
@@ -237,3 +238,6 @@ class WindowsIntegration(AbstractOSIntegration):
         current_filters = get_filter_folders()
         current_filters.remove(folder)
         set_filter_folders(current_filters)
+
+    def get_extension_listener(self) -> WindowsExtensionListener:
+        return WindowsExtensionListener(self._manager)

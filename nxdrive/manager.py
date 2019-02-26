@@ -16,7 +16,7 @@ from . import __version__
 from .autolocker import ProcessAutoLockerWorker
 from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
-from .constants import APP_NAME, MAC, STARTUP_PAGE_CONNECTION_TIMEOUT, WINDOWS
+from .constants import APP_NAME, STARTUP_PAGE_CONNECTION_TIMEOUT
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .exceptions import EngineTypeMissing, FolderAlreadyUsed, StartupPageConnectionError
@@ -24,8 +24,8 @@ from .logging_config import FILE_HANDLER
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
 from .options import Options
-from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater
 from .osi import AbstractOSIntegration
+from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater
 from .updater import updater
 from .updater.constants import Login
 from .utils import (
@@ -43,8 +43,6 @@ if TYPE_CHECKING:
     from .client.proxy import Proxy  # noqa
     from .direct_edit import DirectEdit  # noqa
     from .engine.tracker import Tracker  # noqa
-    from .osi.darwin.darwin import FinderSyncServer  # noqa
-    from .osi.windows.overlay import OverlayHandlerListener  # noqa
     from .updater import Updater  # noqa
 
 
@@ -167,13 +165,8 @@ class Manager(QObject):
         # Setup analytics tracker
         self._tracker = self._create_tracker()
 
-        # Create the FinderSync listener thread
-        if MAC:
-            self._create_findersync_listener()
-
-        # Create the Explorer DLL listener thread
-        if WINDOWS:
-            self._create_explorer_listener()
+        # Create the FinderSync/Explorer listener thread
+        self._create_extension_listener()
 
     def __enter__(self):
         return self
@@ -266,26 +259,14 @@ class Manager(QObject):
             self.started.connect(self.db_backup_worker._thread.start)
 
     @if_frozen
-    def _create_findersync_listener(self) -> "FinderSyncServer":
-        from .osi.darwin.darwin import FinderSyncServer  # noqa
+    def _create_extension_listener(self) -> None:
 
-        self._findersync_listener = FinderSyncServer(self)
-        self._findersync_listener.listening.connect(self.osi._init)
-        self.started.connect(self._findersync_listener._listen)
-        self.stopped.connect(self._findersync_listener.close)
-
-        return self._findersync_listener
-
-    @if_frozen
-    def _create_explorer_listener(self) -> "OverlayHandlerListener":
-        from .osi.windows.overlay import OverlayHandlerListener  # noqa
-
-        self._explorer_listener = OverlayHandlerListener(self)
-        self._explorer_listener.listening.connect(self.osi._init)
-        self.started.connect(self._explorer_listener._listen)
-        self.stopped.connect(self._explorer_listener.close)
-
-        return self._explorer_listener
+        self._extension_listener = self.osi.get_extension_listener()
+        if not self._extension_listener:
+            return
+        self._extension_listener.listening.connect(self.osi._init)
+        self.started.connect(self._extension_listener._listen)
+        self.stopped.connect(self._extension_listener.close)
 
     @if_frozen
     def refresh_update_status(self) -> None:
@@ -765,7 +746,7 @@ class Manager(QObject):
             # Only send status if we picked the right
             # engine and if we're not targeting the root
             if engine.local_folder not in path.parents:
-                return
+                continue
 
             r_path = path.relative_to(engine.local_folder)
             dao = engine._dao

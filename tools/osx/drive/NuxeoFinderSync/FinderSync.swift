@@ -27,16 +27,16 @@ class FinderSync: FIFinderSync {
 
     let fileStatus = FileStatus()
     let addr = "127.0.0.1"
-    let port: Int = 50675
+    let port: Int = 10650
     var socket: SocketCom?
 
     let badges: [(image: NSImage, label: String, identifier: String)] = [
-        (image: #imageLiteral(resourceName: "badge_synced.png"), label: "Synchronized", identifier: "synced"),
-        (image: #imageLiteral(resourceName: "badge_syncing.png"), label: "Syncing", identifier: "syncing"),
-        (image: #imageLiteral(resourceName: "badge_conflicted.png"), label: "Conflicted", identifier: "conflicted"),
-        (image: #imageLiteral(resourceName: "badge_error.png"), label: "In Error", identifier: "error"),
-        (image: #imageLiteral(resourceName: "badge_locked.png"), label: "Locked", identifier: "locked"),
-        (image: #imageLiteral(resourceName: "badge_unsynced.png"), label: "Not Synchronized", identifier: "unsynced")
+        (image: #imageLiteral(resourceName: "badge_synced.png"), label: "Synchronized", identifier: "1"),
+        (image: #imageLiteral(resourceName: "badge_syncing.png"), label: "Syncing", identifier: "2"),
+        (image: #imageLiteral(resourceName: "badge_conflicted.png"), label: "Conflicted", identifier: "3"),
+        (image: #imageLiteral(resourceName: "badge_error.png"), label: "In Error", identifier: "4"),
+        (image: #imageLiteral(resourceName: "badge_locked.png"), label: "Locked", identifier: "5"),
+        (image: #imageLiteral(resourceName: "badge_unsynced.png"), label: "Not Synchronized", identifier: "6")
 
     ]
 
@@ -101,7 +101,7 @@ class FinderSync: FIFinderSync {
         if let statuses = notification.userInfo!["statuses"] as! Array<Dictionary<String, String>>? {
             for item in statuses {
                 let path = item["path"]!
-                let status = item["status"]!
+                let status = item["value"]!
                 fileStatus.insertStatus(status, for: path)
                 setSyncStatus(path: path, status: status)
             }
@@ -213,7 +213,7 @@ class FinderSync: FIFinderSync {
     func getSyncStatus(target: URL?) {
         // Called by requestBadgeIdentifier to ask Drive for a status
         //NSLog("getSyncStatus: target: \(target!.path)")
-        if let payload = preparePayload(["cmd": "get-status", "path": target!.path]) {
+        if let payload = preparePayload(["command": "get-status", "value": target!.path]) {
             self.socket!.send(content: payload)
         }
     }
@@ -221,7 +221,7 @@ class FinderSync: FIFinderSync {
     func triggerWatch() {
         // Called on startup to ask Drive for the folders to watch
         //NSLog("triggerWatch")
-        if let payload = preparePayload(["cmd": "trigger-watch"]) {
+        if let payload = preparePayload(["command": "trigger-watch"]) {
             self.socket!.send(content: payload)
         }
     }
