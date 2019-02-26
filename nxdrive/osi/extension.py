@@ -104,7 +104,7 @@ class ExtensionListener(QTcpServer):
         """ Called on the parsed payload, runs the handler associated with the command. """
         try:
             data = json.loads(content)
-        except:
+        except Exception:
             log.debug(f"Unable to parse JSON: {content}")
             return None
 
@@ -121,9 +121,8 @@ class ExtensionListener(QTcpServer):
 
     def get_engine(self, path: Path) -> Optional[Engine]:
         for engine in self.manager._engines.values():
-            if engine.local_folder not in path.parents:
-                continue
-            return engine
+            if engine.local_folder in path.parents:
+                return engine
         return None
 
 
