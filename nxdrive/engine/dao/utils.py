@@ -48,7 +48,7 @@ def read(dump_file: Path, database: Path) -> None:
 
     log.debug(f"Restoring {dump_file!r} into the database {database!r} ...")
     with sqlite3.connect(str(database)) as con:
-        con.executescript(dump_file.read_text())
+        con.executescript(dump_file.read_text(encoding="utf-8"))
     log.debug("Restoration done with success.")
 
 
