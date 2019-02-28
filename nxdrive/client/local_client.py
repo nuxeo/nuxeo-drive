@@ -471,7 +471,7 @@ FolderType=Generic
         if remote_digest_algorithm == self._digest_func:
             return False
 
-        file_info = self.get_info(local_path)
+        file_info = self.try_get_info(local_path)
         if not file_info:
             return False
         digest = file_info.get_digest(digest_func=remote_digest_algorithm)
@@ -524,7 +524,7 @@ FolderType=Generic
             try:
                 info = self.get_info(child_ref)
             except NotFound:
-                log.exception(
+                log.warning(
                     "The child file has been deleted in the mean time"
                     " or while reading some of its attributes"
                 )
