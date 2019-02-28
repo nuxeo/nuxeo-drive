@@ -31,7 +31,9 @@ def dump(database: Path, dump_file: Path) -> None:
     """
 
     log.debug(f"Dumping the database {database!r} into {dump_file!r}...")
-    with sqlite3.connect(str(database)) as con, dump_file.open(mode="w") as f:
+    with sqlite3.connect(str(database)) as con, dump_file.open(
+        mode="w", encoding="utf-8"
+    ) as f:
         for line in con.iterdump():
             f.write(f"{line}\n")
     log.debug("Dump finished with success.")
