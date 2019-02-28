@@ -31,7 +31,7 @@ class NotificationDelegator(NSObject):
         self, center: NSUserNotificationCenter, notification: NSMutableDictionary
     ) -> None:
         info = notification.userInfo()
-        if "uuid" not in info:
+        if info and "uuid" not in info:
             return
         notifications = self._manager.notification_service.get_notifications()
         if (
@@ -75,7 +75,6 @@ def notify(
     notification.setSubtitle_(subtitle)
     notification.setInformativeText_(info_text)
     user_info = user_info or {}
-    user_info = NSMutableDictionary.alloc().init().setDictionary_(user_info)
     notification.setUserInfo_(user_info)
     if sound:
         notification.setSoundName_("NSUserNotificationDefaultSoundName")
