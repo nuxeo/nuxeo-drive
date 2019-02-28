@@ -178,6 +178,7 @@ class NotificationService(QObject):
         self.newNotification.emit(notification)
 
     def trigger_notification(self, uid: str) -> None:
+        log.debug(f"Trigger notification: {uid} = {self._notifications.get(uid)}")
         if uid not in self._notifications:
             return
         notification = self._notifications[uid]
@@ -448,7 +449,8 @@ class InvalidCredentialNotification(Notification):
     def __init__(self, engine_uid: str) -> None:
         super().__init__(
             "INVALID_CREDENTIALS",
-            title=Translator.get("INVALID_CREDENTIALS"),
+            title=Translator.get("AUTH_EXPIRED"),
+            description=Translator.get("AUTH_UPDATE_ACTION"),
             engine_uid=engine_uid,
             level=Notification.LEVEL_ERROR,
             flags=(

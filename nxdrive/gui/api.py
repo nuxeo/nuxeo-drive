@@ -822,6 +822,8 @@ class QMLDriveApi(QObject):
 
             engine.update_token(token)
             self.application.set_icon_state("idle")
+            self.application.show_settings(section="Accounts")
+            self.setMessage.emit("CONNECTION_SUCCESS", "success")
 
         except requests.ConnectionError as e:
             log.exception("HTTP Error")
@@ -829,7 +831,7 @@ class QMLDriveApi(QObject):
                 error = "CONNECTION_REFUSED"
             else:
                 error = "CONNECTION_ERROR"
-        except:
+        except Exception:
             log.exception(
                 "Unexpected error while trying to update token for account "
                 f"[{engine.local_folder}, {engine.server_url}, {engine.remote_user}]"
