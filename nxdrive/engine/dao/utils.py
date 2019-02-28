@@ -31,7 +31,9 @@ def dump(database: Path, dump_file: Path) -> None:
     """
 
     log.debug(f"Dumping the database {database!r} into {dump_file!r}...")
-    with sqlite3.connect(str(database)) as con, dump_file.open(mode="w") as f:
+    with sqlite3.connect(str(database)) as con, dump_file.open(
+        mode="w", encoding="utf-8"
+    ) as f:
         for line in con.iterdump():
             f.write(f"{line}\n")
     log.debug("Dump finished with success.")
@@ -46,7 +48,7 @@ def read(dump_file: Path, database: Path) -> None:
 
     log.debug(f"Restoring {dump_file!r} into the database {database!r} ...")
     with sqlite3.connect(str(database)) as con:
-        con.executescript(dump_file.read_text())
+        con.executescript(dump_file.read_text(encoding="utf-8"))
     log.debug("Restoration done with success.")
 
 
