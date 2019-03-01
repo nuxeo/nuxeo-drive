@@ -207,7 +207,7 @@ class UnitTestCase(TestCase):
         self.manager_1 = Manager(home=self.nxdrive_conf_folder_1)
         self.connected = False
         i18n_path = self.location / "resources" / "i18n"
-        Translator(self.manager_1, i18n_path)
+        Translator(i18n_path)
         self.manager_2 = Manager(home=self.nxdrive_conf_folder_2)
 
         self.setUpServer(server_profile)

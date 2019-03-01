@@ -290,11 +290,7 @@ class Application(QApplication):
 
     def _init_translator(self) -> None:
         locale = Options.force_locale or Options.locale
-        Translator(
-            self.manager,
-            find_resource("i18n"),
-            self.manager.get_config("locale", locale),
-        )
+        Translator(find_resource("i18n"), self.manager.get_config("locale", locale))
         # Make sure that a language change changes external values like
         # the text in the contextual menu
         Translator.on_change(self._handle_language_change)
@@ -993,6 +989,7 @@ class Application(QApplication):
             self.tray_icon.show()
 
     def _handle_language_change(self) -> None:
+        self.manager.set_config("locale", Translator.locale())
         if not MAC:
             self.tray_icon.setContextMenu(self.tray_icon.get_context_menu())
         self.osi.register_contextual_menu()
