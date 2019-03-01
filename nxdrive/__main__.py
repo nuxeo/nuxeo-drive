@@ -8,7 +8,7 @@ import sys
 from contextlib import suppress
 from typing import Any, Set
 
-from nxdrive.constants import APP_NAME, COMPANY
+from nxdrive.constants import APP_NAME, COMPANY, MAC
 from nxdrive.options import Options
 
 
@@ -105,6 +105,41 @@ def ask_for_metrics_approval() -> None:
 
     # The user did not choose yet, display a message box
     show_metrics_acceptance()
+
+
+def check_executable_path() -> None:
+    """ Check that the app runs from the right path, and quit if not. """
+    import re
+    import sys
+    from pathlib import Path
+
+    path = sys.executable
+    m = re.match(r"(.*\.app).*", path)
+    path = Path(m.group(1) if m else path)
+
+    if not Options.is_frozen or path == Path(f"/Applications/{APP_NAME}.app"):
+        return True
+
+    from nxdrive.translator import Translator
+    from nxdrive.utils import find_icon, find_resource
+
+    from PyQt5.QtGui import QPixmap
+    from PyQt5.QtWidgets import QApplication, QMessageBox
+
+    app = QApplication([])
+    app.setQuitOnLastWindowClosed(True)
+
+    Translator(find_resource("i18n"))
+    content = Translator.get("RUNNING_FROM_WRONG_PATH", [str(path), f"{APP_NAME}.app"])
+
+    icon = QPixmap(str(find_icon("app_icon.svg")))
+    msg = QMessageBox()
+    msg.setIconPixmap(icon)
+    msg.setText(content)
+    msg.setWindowTitle(APP_NAME)
+    msg.addButton(Translator.get("QUIT"), QMessageBox.AcceptRole)
+    msg.exec_()
+    return False
 
 
 def before_send(event: Any, hint: Any) -> Any:
@@ -290,6 +325,9 @@ def main() -> int:
         raise RuntimeError(f"{APP_NAME} requires Python 3.6+")
 
     try:
+        if MAC and not check_executable_path():
+            return 1
+
         ask_for_metrics_approval()
         # Setup Sentry even if the user did not allow it because it can be tweaked
         # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
