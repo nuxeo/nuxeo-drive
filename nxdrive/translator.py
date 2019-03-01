@@ -5,12 +5,9 @@ import re
 from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Tuple
 
 from PyQt5.QtCore import QTranslator, pyqtProperty, pyqtSignal, pyqtSlot
-
-if TYPE_CHECKING:
-    from .manager import Manager  # noqa
 
 __all__ = ("Translator",)
 
@@ -21,10 +18,9 @@ class Translator(QTranslator):
     _singleton = None
     _current_lang: str = ""
 
-    def __init__(self, manager: "Manager", path: Path, lang: str = None) -> None:
+    def __init__(self, path: Path, lang: str = None) -> None:
         super().__init__()
         self._labels: Dict[str, Dict[str, str]] = {}
-        self._manager = manager
 
         # Load from JSON
         for translation in path.iterdir():
@@ -110,7 +106,6 @@ class Translator(QTranslator):
         else:
             if self._current_lang != lang:
                 self._current_lang = lang
-                self._manager.set_config("locale", lang)
                 self.languageChanged.emit()
 
     def _locale(self) -> str:
