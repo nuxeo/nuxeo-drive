@@ -217,7 +217,7 @@ class Manager(QObject):
         self.autolock_service = ProcessAutoLockerWorker(
             30, self._dao, folder=self.direct_edit_folder
         )
-        self.started.connect(self.autolock_service._thread.start)
+        self.started.connect(self.autolock_service.thread.start)
         return self.autolock_service
 
     def _create_tracker(self) -> Optional["Tracker"]:
@@ -228,7 +228,7 @@ class Manager(QObject):
 
         tracker = Tracker(self)
         # Start the tracker when we launch
-        self.started.connect(tracker._thread.start)
+        self.started.connect(tracker.thread.start)
         return tracker
 
     def _get_db(self) -> Path:
@@ -246,17 +246,17 @@ class Manager(QObject):
 
         self.server_config_updater = ServerOptionsUpdater(self)
         if self.server_config_updater:
-            self.started.connect(self.server_config_updater._thread.start)
+            self.started.connect(self.server_config_updater.thread.start)
 
     def _create_updater(self) -> "Updater":  # type: ignore
         updater_ = updater(self)
-        self.started.connect(updater_._thread.start)
+        self.started.connect(updater_.thread.start)
         return updater_
 
     def _create_db_backup_worker(self) -> None:
         self.db_backup_worker = DatabaseBackupWorker(self)
         if self.db_backup_worker:
-            self.started.connect(self.db_backup_worker._thread.start)
+            self.started.connect(self.db_backup_worker.thread.start)
 
     @if_frozen
     def _create_extension_listener(self) -> None:
@@ -277,7 +277,7 @@ class Manager(QObject):
         from .direct_edit import DirectEdit  # noqa
 
         self.direct_edit = DirectEdit(self, self.direct_edit_folder, url)
-        self.started.connect(self.direct_edit._thread.start)
+        self.started.connect(self.direct_edit.thread.start)
         self.autolock_service.direct_edit = self.direct_edit
         return self.direct_edit
 

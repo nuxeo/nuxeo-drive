@@ -203,7 +203,7 @@ class QMLDriveApi(QObject):
             result["action"] = None
         else:
             result["action"] = self._export_action(action)
-        result["thread_id"] = worker._thread_id
+        result["thread_id"] = worker.thread_id
         result["name"] = worker._name
         result["paused"] = worker.is_paused()
         result["started"] = worker.is_started()

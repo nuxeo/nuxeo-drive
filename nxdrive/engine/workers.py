@@ -23,26 +23,27 @@ log = getLogger(__name__)
 class Worker(QObject):
     """" Utility class that handle one thread. """
 
-    _thread: QThread = None
-    _continue = False
-    _action = None
-    _name = None
-    _thread_id: Optional[int] = None
-    _pause = False
-
     def __init__(self, thread: QThread = None, **kwargs: Any) -> None:
         super().__init__()
         if thread is None:
             thread = QThread()
         self.moveToThread(thread)
+
         thread.worker = self
-        self._thread = thread
+        self.thread = thread
+
         self._name = kwargs.get("name", type(self).__name__)
+
         self._running = False
-        self._thread.finished.connect(self._finished)
+        self._continue = False
+        self._action: Optional[Action] = None
+        self.thread_id: Optional[int] = None
+        self._pause = False
+
+        self.thread.finished.connect(self._finished)
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__} ID={self._thread_id}>"
+        return f"<{type(self).__name__} id={self.thread_id}>"
 
     def is_started(self) -> bool:
         return self._continue
@@ -54,7 +55,8 @@ class Worker(QObject):
         """
         Start the worker thread
         """
-        self._thread.start()
+        self.thread.start()
+        log.trace(f"Thread START for {self!r}")
 
     def stop(self) -> None:
         """
@@ -65,12 +67,12 @@ class Worker(QObject):
 
         self.quit()
 
-        if self._thread.isRunning():
-            self._thread.wait(5000)
+        if self.thread.isRunning():
+            self.thread.wait(5000)
 
-        if self._thread.isRunning():
-            log.error(f"Thread {self._thread_id} is not responding - terminate it")
-            self._thread.terminate()
+        if self.thread.isRunning():
+            log.error(f"Thread ZOMBIE for {self!r}")
+            self.thread.terminate()
 
     def resume(self) -> None:
         """ Resume the thread. """
@@ -85,20 +87,11 @@ class Worker(QObject):
 
         self._pause = True
 
-    def get_thread(self) -> QThread:
-        """ Return worker internal thread. """
-
-        return self._thread
-
     def quit(self) -> None:
         """ Order the stop of the thread. Return before thread is stopped. """
 
         self._continue = False
-        self._thread.quit()
-
-    def get_thread_id(self) -> Optional[int]:
-        """ Get the thread ID. """
-        return self._thread_id
+        self.thread.quit()
 
     def _interact(self) -> None:
         """
@@ -128,12 +121,12 @@ class Worker(QObject):
             sleep(0.01)
 
     def _finished(self) -> None:
-        log.trace(f"Thread {self._name}({self._thread_id}) finished")
+        log.trace(f"Thread END for {self!r})")
 
     @property
     def action(self) -> Action:
         if self._action is None:
-            self._action = Action.get_current_action(self._thread_id)
+            self._action = Action.get_current_action(self.thread_id)
             if self._action is None:
                 self._action = IdleAction()
         return self._action
@@ -151,7 +144,7 @@ class Worker(QObject):
 
         metrics = {
             "name": self._name,
-            "thread_id": self._thread_id,
+            "thread_id": self.thread_id,
             "action": self.action,
         }
         with suppress(AttributeError):
@@ -167,19 +160,21 @@ class Worker(QObject):
 
         if self._running:
             return
+
         self._running = True
         self._continue = True
         self._pause = False
-        self._thread_id = current_thread().ident
+        self.thread_id = current_thread().ident
+
         try:
             try:
                 self._execute()
             except ThreadInterrupt:
-                log.debug(f"Thread {self._name}({self._thread_id}) interrupted")
-            except:
-                log.exception(f"Thread {self._name}({self._thread_id}) exception")
+                log.debug(f"Thread INTERRUPT for {self!r}")
+            except Exception:
+                log.exception(f"Thread EXCEPTION for {self!r}")
         finally:
-            self._thread.exit(0)
+            self.quit()
             self._running = False
 
 
@@ -225,7 +220,7 @@ class PollWorker(Worker):
     ) -> None:
         super().__init__(thread=thread, **kwargs)
         # Be sure to run on start
-        self._thread.started.connect(self.run)
+        self.thread.started.connect(self.run)
         self._check_interval = check_interval
         # Check at start
         self._next_check = 0

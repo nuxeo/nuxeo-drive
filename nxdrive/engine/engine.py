@@ -174,8 +174,8 @@ class Engine(QObject):
 
     def __repr__(self) -> str:
         return (
-            f"{type(self).__name__}"
-            f"<name={self.name!r}, offline={self._offline_state!r}, "
+            f"<{type(self).__name__} "
+            f"name={self.name!r}, offline={self._offline_state!r}, "
             f"uid={self.uid!r}, type={self.type!r}>"
         )
 
@@ -491,7 +491,7 @@ class Engine(QObject):
         if isinstance(worker, Processor):
             worker.pairSync.connect(self.newSync)
 
-        thread = worker.get_thread()
+        thread = worker.thread
         if start_connect:
             thread.started.connect(worker.run)
         self._stop.connect(worker.quit)
@@ -558,9 +558,9 @@ class Engine(QObject):
 
     def _thread_finished(self) -> None:
         for thread in self._threads:
-            if thread == self._local_watcher.get_thread():
+            if thread == self._local_watcher.thread:
                 continue
-            if thread == self._remote_watcher.get_thread():
+            if thread == self._remote_watcher.thread:
                 continue
             if thread.isFinished():
                 self._threads.remove(thread)
@@ -666,13 +666,13 @@ class Engine(QObject):
                 thread.terminate()
 
         with suppress(AttributeError):
-            thread = self._local_watcher.get_thread()
+            thread = self._local_watcher.thread
             if not thread.wait(5000):
                 log.error(f"Thread {thread} is not responding - terminate it")
                 thread.terminate()
 
         with suppress(AttributeError):
-            thread = self._remote_watcher.get_thread()
+            thread = self._remote_watcher.thread
             if not thread.wait(5000):
                 log.error(f"Thread {thread} is not responding - terminate it")
                 thread.terminate()
@@ -682,12 +682,12 @@ class Engine(QObject):
                 thread.wait(5000)
 
         with suppress(AttributeError):
-            thread = self._remote_watcher.get_thread()
+            thread = self._remote_watcher.thread
             if not thread.isRunning():
                 thread.wait(5000)
 
         with suppress(AttributeError):
-            thread = self._local_watcher.get_thread()
+            thread = self._local_watcher.thread
             if not thread.isRunning():
                 thread.wait(5000)
 
@@ -871,7 +871,7 @@ class Engine(QObject):
             if (
                 hasattr(thread, "worker")
                 and isinstance(thread.worker, Processor)
-                and thread.worker.get_thread_id() == thread_id
+                and thread.worker.thread_id == thread_id
                 and not thread.worker.is_started()
             ):
                 raise ThreadInterrupt()

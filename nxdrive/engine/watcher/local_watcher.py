@@ -622,35 +622,22 @@ class LocalWatcher(EngineWorker):
         self._root_observer = root_observer
 
     def _stop_watchdog(self) -> None:
-        if self._observer is not None:
-            log.info("Stopping FS Observer thread")
-            try:
-                self._observer.stop()
-            except Exception:
-                log.exception("Cannot stop FS observer")
-
-            # Wait for all observers to stop
-            try:
-                self._observer.join()
-            except Exception:
-                log.exception("Cannot join FS observer ")
-
+        log.info("Stopping the FS Observer thread")
+        try:
+            self._observer.stop()
+            self._observer.join()
+        except Exception:
+            log.warning("Cannot stop the FS observer")
+        finally:
             del self._observer
 
-        if self._root_observer is not None:
-            log.info("Stopping FS root Observer thread")
-            try:
-                self._root_observer.stop()
-            except Exception:
-                log.exception("Cannot stop FS root observer")
-
-            # Wait for all observers to stop
-            try:
-                self._root_observer.join()
-            except Exception:
-                log.exception("Cannot join FS root observer")
-
-            # Delete all observers
+        log.info("Stopping the FS root Observer thread")
+        try:
+            self._root_observer.stop()
+            self._root_observer.join()
+        except Exception:
+            log.warning("Cannot stop the FS root observer")
+        finally:
             del self._root_observer
 
     def _handle_watchdog_delete(self, doc_pair: DocPair) -> None:
@@ -766,7 +753,7 @@ class LocalWatcher(EngineWorker):
 
         acquired_pair = None
         try:
-            acquired_pair = dao.acquire_state(self.get_thread_id(), doc_pair.id)
+            acquired_pair = dao.acquire_state(self.thread_id, doc_pair.id)
             if acquired_pair is not None:
                 self._handle_watchdog_event_on_known_acquired_pair(
                     acquired_pair, evt, rel_path
@@ -776,7 +763,7 @@ class LocalWatcher(EngineWorker):
         except sqlite3.OperationalError:
             log.trace(f"Don't update as cannot acquire {doc_pair!r}")
         finally:
-            dao.release_state(self.get_thread_id())
+            dao.release_state(self.thread_id)
             if acquired_pair is not None:
                 refreshed_pair = dao.get_state_from_id(acquired_pair.id)
                 if refreshed_pair is not None:

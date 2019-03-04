@@ -40,7 +40,7 @@ class Processor(OldProcessor):
             [
                 DOWNLOAD_TMP_FILE_PREFIX,
                 doc_pair.remote_digest,
-                str(self._thread_id),
+                str(self.thread_id),
                 DOWNLOAD_TMP_FILE_SUFFIX,
             ]
         )
