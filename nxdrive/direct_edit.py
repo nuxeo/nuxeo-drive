@@ -86,7 +86,7 @@ class DirectEdit(Worker):
         self._last_action_timing = -1
         self.watchdog_queue: Queue = Queue()
 
-        self._thread.started.connect(self.run)
+        self.thread.started.connect(self.run)
         self.autolock.orphanLocks.connect(self._autolock_orphans)
 
     @pyqtSlot(object)
@@ -686,25 +686,14 @@ class DirectEdit(Worker):
         self._observer.start()
 
     def _stop_watchdog(self) -> None:
-        if not self._observer:
-            return
-
-        if self._observer.is_alive():
-            log.info("Stopping FS observer thread")
-            try:
-                self._observer.stop()
-            except:
-                log.exception("Cannot stop the FS observer")
-
-        if self._observer and self._observer._started.is_set():
-            log.info("Wait for the FS oobserver to stop")
-            try:
-                self._observer.join()
-            except:
-                log.exception("Cannot join the FS observer")
-
-        # Delete the observer
-        self._observer = None
+        log.info("Stopping the FS observer thread")
+        try:
+            self._observer.stop()
+            self._observer.join()
+        except Exception:
+            log.warning("Cannot stop the FS observer")
+        finally:
+            self._observer = None
 
     @tooltip("Handle watchdog event")
     def handle_watchdog_event(self, evt: FileSystemEvent) -> None:

@@ -8,7 +8,7 @@ def test_crash_no_engine_database(manager_factory):
 ERROR nxdrive.engine.engine Setting invalid credentials, reason is: found no password nor token in engine configuration
 Traceback (most recent call last):
 File "engine/engine.py", line 661, in stop
-if not self._local_watcher.get_thread().wait(5000):
+if not self._local_watcher.thread.wait(5000):
 AttributeError: 'Engine' object has no attribute '_local_watcher'
     """
 
