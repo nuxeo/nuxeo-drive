@@ -67,6 +67,7 @@ class Engine(QObject):
     syncResumed = pyqtSignal()
     rootDeleted = pyqtSignal()
     rootMoved = pyqtSignal(str)
+    docDeleted = pyqtSignal(Path)
     uiChanged = pyqtSignal()
     noSpaceLeftOnDevice = pyqtSignal()
     invalidAuthentication = pyqtSignal()
@@ -137,6 +138,7 @@ class Engine(QObject):
         # Launch remote_watcher after first local scan
         self._local_watcher.rootDeleted.connect(self.rootDeleted)
         self._local_watcher.rootMoved.connect(self.rootMoved)
+        self._local_watcher.docDeleted.connect(self.docDeleted)
         self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
         self._queue_manager = self._create_queue_manager(processors)
 
@@ -276,6 +278,34 @@ class Engine(QObject):
         self._dao.remove_filter(path)
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
+
+    def delete_doc(self, path: Path, mode: str) -> None:
+        """ Delete doc after prompting the user for the mode. """
+        log.info("Deleting doc")
+        doc_pair = self._dao.get_state_from_local(path)
+        if mode == "delete_server":
+            # Delete on server
+            log.info("Deleting on server")
+            doc_pair.update_state("deleted", doc_pair.remote_state)
+            if doc_pair.remote_state == "unknown":
+                self._dao.remove_state(doc_pair)
+            else:
+                self._dao.delete_local_state(doc_pair)
+        elif mode == "unsync":
+            # Add document to filters
+            log.info("Unsynchronizing")
+            self._dao.remove_state(doc_pair)
+            self._dao.add_filter(
+                doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
+            )
+
+    def rollback_delete(self, path: Path) -> None:
+        """ Re-synchronize a document when a deletion is cancelled. """
+        doc_pair = self._dao.get_state_from_local(path)
+        self._dao.remove_state_children(doc_pair)
+        self._dao.force_remote_creation(doc_pair)
+        if doc_pair.folderish:
+            self._remote_watcher._scan_remote(doc_pair)
 
     def get_metadata_url(self, remote_ref: str, edit: bool = False) -> str:
         """

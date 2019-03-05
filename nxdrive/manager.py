@@ -136,9 +136,12 @@ class Manager(QObject):
                 self.set_config("client_version", self.version)
 
             # Add auto-lock on edit
-            res = self._dao.get_config("direct_edit_auto_lock")
-            if res is None:
+            if self._dao.get_config("direct_edit_auto_lock") is None:
                 self._dao.store_bool("direct_edit_auto_lock", True)
+
+        # Set default trash behavior
+        if not self.get_config("deletion_behavior"):
+            self.set_config("deletion_behavior", "unsync")
 
         # Create DirectEdit
         self._create_autolock_service()

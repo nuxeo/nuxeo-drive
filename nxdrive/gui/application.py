@@ -402,6 +402,48 @@ class Application(QApplication):
             engine.set_local_folder(new_path)
             engine.start()
 
+    def show_deletion_prompt(self, path: Path, mode: str) -> bool:
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Question)
+        msg.setWindowIcon(self.icon)
+
+        cb = QCheckBox(Translator.get("DONT_ASK_AGAIN"))
+        msg.setCheckBox(cb)
+        if mode == "delete_server":
+            descr = "DELETION_BEHAVIOR_CONFIRM_DELETE"
+            confirm_text = "DELETE_FOR_EVERYONE"
+            msg.addButton(Translator.get("SEE_SYNC_OPTIONS"), QMessageBox.RejectRole)
+        elif mode == "unsync":
+            descr = "DELETION_BEHAVIOR_CONFIRM_UNSYNC"
+            confirm_text = "UNSYNC"
+
+        msg.setText(Translator.get(descr, [str(path)]))
+        msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
+        confirm = msg.addButton(Translator.get(confirm_text), QMessageBox.AcceptRole)
+        msg.exec_()
+
+        res = msg.clickedButton()
+        if cb.isChecked():
+            self.manager._dao.store_bool("show_deletion_prompt", False)
+
+        return res == confirm
+
+    @pyqtSlot(Path)
+    def _doc_deleted(self, path: Path) -> None:
+        engine: Engine = self.sender()
+        mode = self.manager._dao.get_config("deletion_behavior")
+        delete = True
+
+        if self.manager._dao.get_bool("show_deletion_prompt", default=True):
+            delete = self.show_deletion_prompt(path, mode)
+
+        if delete:
+            # Delete or filter out the document
+            engine.delete_doc(path, mode)
+        else:
+            # Re-sync the document
+            engine.rollback_delete(path)
+
     @pyqtSlot(object)
     def dropped_engine(self, engine: "Engine") -> None:
         # Update icon in case the engine dropped was syncing
@@ -612,6 +654,7 @@ class Application(QApplication):
         engine.online.connect(self.change_systray_icon)
         engine.rootDeleted.connect(self._root_deleted)
         engine.rootMoved.connect(self._root_moved)
+        engine.docDeleted.connect(self._doc_deleted)
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
         self.change_systray_icon()
 

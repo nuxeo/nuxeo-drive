@@ -106,6 +106,12 @@ Rectangle {
         }
 
         Link {
+            id: deletionPopupLink
+            text: qsTr("DELETION_BEHAVIOR_CHANGE_SETTINGS") + tl.tr
+            onClicked: deletionPopup.open()
+        }
+
+        Link {
             id: reportCreationLink
             text: qsTr("CREATE_REPORT") + tl.tr
             onClicked: {
@@ -140,4 +146,5 @@ Rectangle {
     ChannelPopup { id: channelPopup }
     ProxyPopup { id: proxyPopup }
     LogLevelPopup { id: logLevelPopup }
+    DeletionPopup { id: deletionPopup }
 }

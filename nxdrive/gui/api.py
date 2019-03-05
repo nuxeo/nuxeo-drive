@@ -766,6 +766,14 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("PROXY_APPLIED", "success")
             return True
 
+    @pyqtSlot(result=str)
+    def get_deletion_behavior(self) -> str:
+        return self._manager.get_config("deletion_behavior")
+
+    @pyqtSlot(str)
+    def set_deletion_behavior(self, behavior: str) -> None:
+        self._manager.set_config("deletion_behavior", behavior)
+
     @pyqtSlot(str, result=bool)
     def has_invalid_credentials(self, uid: str) -> bool:
         engine = self._get_engine(uid)

@@ -50,6 +50,7 @@ class LocalWatcher(EngineWorker):
     localScanFinished = pyqtSignal()
     rootMoved = pyqtSignal(str)
     rootDeleted = pyqtSignal()
+    docDeleted = pyqtSignal(Path)
 
     def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao)
@@ -647,11 +648,10 @@ class LocalWatcher(EngineWorker):
             log.info("No existing FS root observer reference")
 
     def _handle_watchdog_delete(self, doc_pair: DocPair) -> None:
-        doc_pair.update_state("deleted", doc_pair.remote_state)
-        if doc_pair.remote_state == "unknown":
-            self._dao.remove_state(doc_pair)
-        else:
-            self._dao.delete_local_state(doc_pair)
+        # Ask for deletion confirmation if needed
+        abspath = self.local.abspath(doc_pair.local_path)
+        if abspath.parent.exists():
+            self.docDeleted.emit(doc_pair.local_path)
 
     def _handle_watchdog_event_on_known_pair(
         self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
