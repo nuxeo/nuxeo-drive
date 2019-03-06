@@ -281,12 +281,13 @@ class Engine(QObject):
 
     def delete_doc(self, path: Path) -> None:
         """ Delete doc after prompting the user for the mode. """
-        log.info("Deleting doc")
         mode = self.manager._dao.get_config("deletion_behavior", "unsync")
         doc_pair = self._dao.get_state_from_local(path)
+        if not doc_pair:
+            log.debug(f"Unable to delete non-existant doc {path}")
+            return
         if mode == "delete_server":
             # Delete on server
-            log.info("Deleting on server")
             doc_pair.update_state("deleted", doc_pair.remote_state)
             if doc_pair.remote_state == "unknown":
                 self._dao.remove_state(doc_pair)
@@ -294,7 +295,6 @@ class Engine(QObject):
                 self._dao.delete_local_state(doc_pair)
         elif mode == "unsync":
             # Add document to filters
-            log.info("Unsynchronizing")
             self._dao.remove_state(doc_pair)
             self._dao.add_filter(
                 doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
@@ -303,6 +303,9 @@ class Engine(QObject):
     def rollback_delete(self, path: Path) -> None:
         """ Re-synchronize a document when a deletion is cancelled. """
         doc_pair = self._dao.get_state_from_local(path)
+        if not doc_pair:
+            log.debug(f"Unable to rollback delete on non-existant doc {path}")
+            return
         self._dao.remove_state_children(doc_pair)
         self._dao.force_remote_creation(doc_pair)
         if doc_pair.folderish:
