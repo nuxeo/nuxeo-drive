@@ -107,15 +107,15 @@ def ask_for_metrics_approval() -> None:
     show_metrics_acceptance()
 
 
-def check_executable_path() -> None:
+def check_executable_path() -> bool:
     """ Check that the app runs from the right path, and quit if not. """
     import re
     import sys
     from pathlib import Path
 
-    path = sys.executable
-    m = re.match(r"(.*\.app).*", path)
-    path = Path(m.group(1) if m else path)
+    exe_path = sys.executable
+    m = re.match(r"(.*\.app).*", exe_path)
+    path = Path(m.group(1) if m else exe_path)
 
     if not Options.is_frozen or path == Path(f"/Applications/{APP_NAME}.app"):
         return True
