@@ -1,4 +1,6 @@
 # coding: utf-8
+from unittest.mock import patch
+
 from .common import UnitTestCase
 
 
@@ -192,3 +194,11 @@ class TestRemoteChanges(UnitTestCase):
         assert change["eventId"] == "documentUnlocked"
         assert change["docUuid"] == doc_id
         assert change["fileSystemItemName"] == "TestLocking.txt"
+
+    def test_wrong_server_reply(self):
+        def get_changes(*args, **kwargs):
+            return {"wrong": "dict"}
+
+        with patch.object(self.engine_1.remote, "get_changes", new=get_changes):
+            # Should not throw an exception
+            assert not self.engine_1._remote_watcher._get_changes()
