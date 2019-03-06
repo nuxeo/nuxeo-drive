@@ -622,23 +622,29 @@ class LocalWatcher(EngineWorker):
         self._root_observer = root_observer
 
     def _stop_watchdog(self) -> None:
-        log.info("Stopping the FS Observer thread")
-        try:
-            self._observer.stop()
-            self._observer.join()
-        except Exception:
-            log.warning("Cannot stop the FS observer")
-        finally:
-            del self._observer
+        if self._observer:
+            log.info("Stopping the FS Observer thread")
+            try:
+                self._observer.stop()
+                self._observer.join()
+            except Exception:
+                log.warning("Cannot stop the FS observer")
+            finally:
+                del self._observer
+        else:
+            log.info("No existing FS observer reference")
 
-        log.info("Stopping the FS root Observer thread")
-        try:
-            self._root_observer.stop()
-            self._root_observer.join()
-        except Exception:
-            log.warning("Cannot stop the FS root observer")
-        finally:
-            del self._root_observer
+        if self._root_observer:
+            log.info("Stopping the FS root Observer thread")
+            try:
+                self._root_observer.stop()
+                self._root_observer.join()
+            except Exception:
+                log.warning("Cannot stop the FS root observer")
+            finally:
+                del self._root_observer
+        else:
+            log.info("No existing FS root observer reference")
 
     def _handle_watchdog_delete(self, doc_pair: DocPair) -> None:
         doc_pair.update_state("deleted", doc_pair.remote_state)
