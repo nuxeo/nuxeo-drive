@@ -199,6 +199,7 @@
     "RESOLVE": "Lös",
     "RESUME": "Återuppta",
     "ROOT_USED_WITH_OTHER_BINDING": "Den här mappen har använts av %1; innehållet kommer att raderas. Vill du fortsätta? Om du inte vill det klickar du på Avbryt och väljer en annan mapp.",
+    "RUNNING_FROM_WRONG_PATH": "You are running this app from „%1“. However, for all features to run normally, the application must be named „%2“ and located in the „/Applications“ directory.",
     "SCRIPT_ADDR": "Skriptadress",
     "SECTION_ABOUT": "Om",
     "SECTION_ACCOUNTS": "Konton",

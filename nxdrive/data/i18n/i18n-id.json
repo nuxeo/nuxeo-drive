@@ -199,6 +199,7 @@
     "RESOLVE": "Menyelesaikan",
     "RESUME": "Lanjut",
     "ROOT_USED_WITH_OTHER_BINDING": "Folder ini telah digunakan oleh {{ username }}, isinya akan dihapus. Apakah anda ingin melanjutkan? Jika tidak, klik Batal dan pilih folder lain.",
+    "RUNNING_FROM_WRONG_PATH": "You are running this app from „%1“. However, for all features to run normally, the application must be named „%2“ and located in the „/Applications“ directory.",
     "SCRIPT_ADDR": "Alamat skrip",
     "SECTION_ABOUT": "Tentang",
     "SECTION_ACCOUNTS": "Akun",
