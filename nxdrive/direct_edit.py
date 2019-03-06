@@ -150,7 +150,7 @@ class DirectEdit(Worker):
         """
 
         if not self.local.exists(ROOT):
-            self._folder.mkdir()
+            self._folder.mkdir(exist_ok=True)
             return
 
         def purge(path):
@@ -183,7 +183,7 @@ class DirectEdit(Worker):
                     )
                     self._upload_queue.put(ref)
                     continue
-            except:
+            except Exception:
                 log.exception("Unhandled clean-up error")
                 continue
 
@@ -523,7 +523,7 @@ class DirectEdit(Worker):
                 self.autolock.documentUnlocked.emit(os.path.basename(ref))
             except ThreadInterrupt:
                 raise
-            except:
+            except Exception:
                 # Try again in 30s
                 log.exception(f"Cannot {action} document {ref!r}")
                 self.directEditLockError.emit(action, os.path.basename(ref), uid)
@@ -620,7 +620,7 @@ class DirectEdit(Worker):
                 continue
             except ThreadInterrupt:
                 raise
-            except:
+            except Exception:
                 # Try again in 30s
                 log.exception(f"DirectEdit unhandled error for ref {ref!r}")
                 self._error_queue.push(ref, ref)
@@ -642,7 +642,7 @@ class DirectEdit(Worker):
                 self.handle_watchdog_event(evt)
             except ThreadInterrupt:
                 raise
-            except:
+            except Exception:
                 log.exception("Watchdog error")
 
     def _execute(self) -> None:
@@ -658,10 +658,10 @@ class DirectEdit(Worker):
                 try:
                     self._handle_queues()
                 except NotFound:
-                    pass
+                    continue
                 except ThreadInterrupt:
                     raise
-                except:
+                except Exception:
                     log.exception("Unhandled DirectEdit error")
                 sleep(0.5)
         except ThreadInterrupt:
