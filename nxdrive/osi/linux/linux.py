@@ -21,4 +21,4 @@ class LinuxIntegration(AbstractOSIntegration):
             )
 
         # xdg-open should be supported by recent Gnome, KDE, Xfce
-        subprocess.Popen(["xdg-open", file_path])
+        subprocess.check_call(["xdg-open", file_path])
