@@ -327,6 +327,10 @@ class TwoUsersTest(TestCase):
         if register_roots:
             remote.register_as_root(self.workspace)
 
+        # Force deletion behavior to real deletion for all tests
+        manager._dao.update_config("deletion_behavior", "delete_server")
+        manager._dao.store_bool("show_deletion_prompt", False)
+
         # And now persist in attributes
         setattr(self, f"manager_{number}", manager)
         setattr(self, f"local_test_folder_{number}", local_test_folder)
