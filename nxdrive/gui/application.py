@@ -402,13 +402,15 @@ class Application(QApplication):
             engine.set_local_folder(new_path)
             engine.start()
 
-    def show_deletion_prompt(self, path: Path, mode: str) -> bool:
+    def confirm_deletion(self, path: Path) -> bool:
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Question)
         msg.setWindowIcon(self.icon)
 
         cb = QCheckBox(Translator.get("DONT_ASK_AGAIN"))
         msg.setCheckBox(cb)
+
+        mode = self.manager._dao.get_config("deletion_behavior", "unsync")
         if mode == "delete_server":
             descr = "DELETION_BEHAVIOR_CONFIRM_DELETE"
             confirm_text = "DELETE_FOR_EVERYONE"
@@ -431,9 +433,7 @@ class Application(QApplication):
     @pyqtSlot(Path)
     def _doc_deleted(self, path: Path) -> None:
         engine: Engine = self.sender()
-        mode = self.manager._dao.get_config("deletion_behavior", "unsync")
-
-        if self.show_deletion_prompt(path, mode):
+        if self.confirm_deletion(path):
             # Delete or filter out the document
             engine.delete_doc(path)
         else:
