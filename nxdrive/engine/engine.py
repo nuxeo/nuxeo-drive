@@ -279,9 +279,10 @@ class Engine(QObject):
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
 
-    def delete_doc(self, path: Path, mode: str) -> None:
+    def delete_doc(self, path: Path) -> None:
         """ Delete doc after prompting the user for the mode. """
         log.info("Deleting doc")
+        mode = self.manager._dao.get_config("deletion_behavior", "unsync")
         doc_pair = self._dao.get_state_from_local(path)
         if mode == "delete_server":
             # Delete on server

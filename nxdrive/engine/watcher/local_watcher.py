@@ -651,7 +651,10 @@ class LocalWatcher(EngineWorker):
         # Ask for deletion confirmation if needed
         abspath = self.local.abspath(doc_pair.local_path)
         if abspath.parent.exists():
-            self.docDeleted.emit(doc_pair.local_path)
+            if self.engine.manager._dao.get_bool("show_deletion_prompt", default=True):
+                self.docDeleted.emit(doc_pair.local_path)
+            else:
+                self.engine.delete_doc(doc_pair.local_path)
 
     def _handle_watchdog_event_on_known_pair(
         self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path

@@ -431,15 +431,11 @@ class Application(QApplication):
     @pyqtSlot(Path)
     def _doc_deleted(self, path: Path) -> None:
         engine: Engine = self.sender()
-        mode = self.manager._dao.get_config("deletion_behavior")
-        delete = True
+        mode = self.manager._dao.get_config("deletion_behavior", "unsync")
 
-        if self.manager._dao.get_bool("show_deletion_prompt", default=True):
-            delete = self.show_deletion_prompt(path, mode)
-
-        if delete:
+        if self.show_deletion_prompt(path, mode):
             # Delete or filter out the document
-            engine.delete_doc(path, mode)
+            engine.delete_doc(path)
         else:
             # Re-sync the document
             engine.rollback_delete(path)
