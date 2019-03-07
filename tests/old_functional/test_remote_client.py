@@ -8,12 +8,11 @@ import pytest
 
 from nxdrive.exceptions import NotFound
 from . import LocalTest, make_tmp_file
-from .common import FS_ITEM_ID_PREFIX, UnitTestCase
+from .common import FS_ITEM_ID_PREFIX, OneUserTest, TwoUsersTest
 
 
-class TestRemoteFileSystemClient(UnitTestCase):
+class TestRemoteFileSystemClient(OneUserTest):
     def setUp(self):
-        super().setUp()
         # Bind the test workspace as sync root for user 1
         remote_doc = self.remote_document_client_1
         remote = self.remote_1
@@ -430,52 +429,6 @@ class TestRemoteFileSystemClient(UnitTestCase):
         doc_type = remote_doc.get_info(doc_uid).doc_type
         assert doc_type == "Picture"
 
-    def test_modification_flags_locked_document(self):
-        remote = self.remote_1
-        fs_item_id = remote.make_file(
-            self.workspace_id, "Document 1.txt", content=b"Content of doc 1."
-        ).uid
-
-        # Check flags for a document that isn't locked
-        info = remote.get_fs_info(fs_item_id)
-        assert info.can_rename
-        assert info.can_update
-        assert info.can_delete
-        assert info.lock_owner is None
-        assert info.lock_created is None
-
-        # Check flags for a document locked by the current user
-        doc_uid = fs_item_id.rsplit("#", 1)[1]
-        remote.lock(doc_uid)
-        info = remote.get_fs_info(fs_item_id)
-        assert info.can_rename
-        assert info.can_update
-        assert info.can_delete
-        lock_info_available = remote.get_fs_item(fs_item_id).get("lockInfo") is not None
-        if lock_info_available:
-            assert info.lock_owner == self.user_1
-            assert info.lock_created is not None
-        remote.unlock(doc_uid)
-
-        # Check flags for a document locked by another user
-        self.remote_2.lock(doc_uid)
-        info = remote.get_fs_info(fs_item_id)
-        assert not info.can_rename
-        assert not info.can_update
-        assert not info.can_delete
-        if lock_info_available:
-            assert info.lock_owner == self.user_2
-            assert info.lock_created is not None
-
-        # Check flags for a document unlocked by another user
-        self.remote_2.unlock(doc_uid)
-        info = remote.get_fs_info(fs_item_id)
-        assert info.can_rename
-        assert info.can_update
-        assert info.can_delete
-        assert info.lock_owner is None
-        assert info.lock_created is None
-
     def test_unregister_nested_roots(self):
         # Check that registering a parent folder of an existing root
         # automatically unregister sub folders to avoid synchronization
@@ -526,3 +479,61 @@ class TestRemoteFileSystemClient(UnitTestCase):
         if hasher is None:
             raise RuntimeError(f"Unknown digest algorithm: {algorithm}")
         return hasher(content).hexdigest()
+
+
+class TestRemoteFileSystemClient2(TwoUsersTest):
+    def setUp(self):
+        # Bind the test workspace as sync root for user 1
+        remote_doc = self.remote_document_client_1
+        remote = self.remote_1
+        remote_doc.register_as_root(self.workspace)
+
+        # Fetch the id of the workspace folder item
+        info = remote.get_filesystem_root_info()
+        self.workspace_id = remote.get_fs_children(info.uid)[0].uid
+
+    def test_modification_flags_locked_document(self):
+        remote = self.remote_1
+        fs_item_id = remote.make_file(
+            self.workspace_id, "Document 1.txt", content=b"Content of doc 1."
+        ).uid
+
+        # Check flags for a document that isn't locked
+        info = remote.get_fs_info(fs_item_id)
+        assert info.can_rename
+        assert info.can_update
+        assert info.can_delete
+        assert info.lock_owner is None
+        assert info.lock_created is None
+
+        # Check flags for a document locked by the current user
+        doc_uid = fs_item_id.rsplit("#", 1)[1]
+        remote.lock(doc_uid)
+        info = remote.get_fs_info(fs_item_id)
+        assert info.can_rename
+        assert info.can_update
+        assert info.can_delete
+        lock_info_available = remote.get_fs_item(fs_item_id).get("lockInfo") is not None
+        if lock_info_available:
+            assert info.lock_owner == self.user_1
+            assert info.lock_created is not None
+        remote.unlock(doc_uid)
+
+        # Check flags for a document locked by another user
+        self.remote_2.lock(doc_uid)
+        info = remote.get_fs_info(fs_item_id)
+        assert not info.can_rename
+        assert not info.can_update
+        assert not info.can_delete
+        if lock_info_available:
+            assert info.lock_owner == self.user_2
+            assert info.lock_created is not None
+
+        # Check flags for a document unlocked by another user
+        self.remote_2.unlock(doc_uid)
+        info = remote.get_fs_info(fs_item_id)
+        assert info.can_rename
+        assert info.can_update
+        assert info.can_delete
+        assert info.lock_owner is None
+        assert info.lock_created is None

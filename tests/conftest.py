@@ -1,11 +1,9 @@
 # coding: utf-8
-import logging
+
+import shutil
 from contextlib import suppress
-from shutil import rmtree
 
 import pytest
-
-from nxdrive.logging_config import configure
 
 
 pytest_plugins = "tests.pytest_random"
@@ -47,7 +45,7 @@ def tmp(tmp_path):
     yield _make_folder
 
     with suppress(OSError):
-        rmtree(tmp_path)
+        shutil.rmtree(tmp_path)
 
 
 @pytest.fixture(autouse=True)
@@ -70,18 +68,29 @@ def no_warnings(recwarn):
     assert not warnings
 
 
-@pytest.fixture(scope="session", autouse=True)
-def configure_logs():
-    """Configure the logging module."""
+@pytest.fixture(autouse=True)
+def cleanup_attrs(request):
+    """
+    Delete any attribute added in the test.
+    It will help keeping the memory usage at a descent level.
+    """
 
-    formatter = logging.Formatter(
-        "%(thread)-4d %(module)-14s %(levelname).1s %(message)s"
-    )
-    configure(
-        console_level="TRACE",
-        command_name="test",
-        force_configure=True,
-        formatter=formatter,
-    )
+    # .instance for tests methods
+    # .node     for tests functions
+    test_case = request.instance or request.node
+    attr_orig = set(test_case.__dict__.keys())
 
     yield
+
+    # Note: if the test failed, this part will not be executed.
+
+    attr_added = set(test_case.__dict__.keys()) - attr_orig
+    if not attr_added:
+        return
+
+    for attr in attr_added:
+        if attr.startswith("engine_"):
+            engine = getattr(test_case, attr)
+            if engine.remote:
+                engine.remote.client._session.close()
+        delattr(test_case, attr)

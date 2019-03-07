@@ -1,8 +1,8 @@
 # coding: utf-8
-from .common import UnitTestCase
+from .common import OneUserTest
 
 
-class TestCopy(UnitTestCase):
+class TestCopy(OneUserTest):
     def test_synchronize_remote_copy(self):
         local = self.local_1
         remote = self.remote_document_client_1

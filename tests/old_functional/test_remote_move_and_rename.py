@@ -1,18 +1,19 @@
 # coding: utf-8
+import os.path
 import time
 from pathlib import Path
 from shutil import copyfile
-
 from unittest.mock import Mock, patch
 
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
+
 from . import DocRemote, LocalTest
-from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, UnitTestCase
+from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, SYNC_ROOT_FAC_ID, OneUserTest
 from ..markers import windows_only
 
 
-class TestRemoteMoveAndRename(UnitTestCase):
+class TestRemoteMoveAndRename(OneUserTest):
     def setUp(self):
         """
         Sets up the following remote hierarchy:
@@ -30,7 +31,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         remote = self.remote_1
 
-        self.workspace_id = "defaultSyncRootFolderItemFactory#default#" + self.workspace
+        self.workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         self.workspace_path = Path(self.workspace_title)
 
         self.file_1_id = remote.make_file(
@@ -338,7 +339,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
 
         # The content of the renamed folder is left unchanged
         assert local.exists(
-            "/Original Folder 2" "/Original Fold\xe9r 1" "/Original File 1.1.odt"
+            "/Original Folder 2/Original Fold\xe9r 1/Original File 1.1.odt"
         )
         file_1_1_local_info = local.get_info(
             "/Original Folder 2/Original Fold\xe9r 1/Original File 1.1.odt"
@@ -357,9 +358,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         assert file_1_1_state.local_name == "Original File 1.1.odt"
 
         # Check child name
-        assert local.exists(
-            "/Original Folder 2" "/Original Fold\xe9r 1" "/Sub-Folder 1.1"
-        )
+        assert local.exists("/Original Folder 2/Original Fold\xe9r 1/Sub-Folder 1.1")
         folder_1_1_local_info = local.get_info(
             "/Original Folder 2/Original Fold\xe9r 1/Sub-Folder 1.1"
         )
@@ -435,7 +434,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # The client folder has been renamed
-        assert not local.exists("/Nuxeo Drive Test Workspace")
+        assert not local.exists(f"/{self.workspace_title}")
         assert local.exists("/Renamed Nuxeo Drive Test Workspace")
 
         renamed_workspace_path = (
@@ -445,7 +444,7 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # The content of the renamed folder is left unchanged
         # Check child name
         assert local.exists(
-            "/Renamed Nuxeo Drive Test Workspace" "/Original Fil\xe9 1.odt"
+            "/Renamed Nuxeo Drive Test Workspace/Original Fil\xe9 1.odt"
         )
         file_1_local_info = local.get_info(
             "/Renamed Nuxeo Drive Test Workspace/Original Fil\xe9 1.odt"
@@ -547,16 +546,14 @@ class TestRemoteMoveAndRename(UnitTestCase):
         # Create a non synchronized folder
         unsync_folder = remote.make_folder("/", "Non synchronized folder")
 
+        ws_basename = os.path.basename(self.ws.path)
         try:
             # Move 'Original Fold\xe9r 1' to Non synchronized folder
             remote.move(
-                "/nuxeo-drive-test-workspace/Original Fold\xe9r 1",
-                "/Non synchronized folder",
+                f"/{ws_basename}/Original Fold\xe9r 1", "/Non synchronized folder"
             )
-            assert not remote.exists(
-                "/nuxeo-drive-test-workspace" "/Original Fold\xe9r 1"
-            )
-            assert remote.exists("/Non synchronized folder" "/Original Fold\xe9r 1")
+            assert not remote.exists(f"/{ws_basename}/Original Fold\xe9r 1")
+            assert remote.exists("/Non synchronized folder/Original Fold\xe9r 1")
 
             # Synchronize: the folder move is detected as a deletion
             self.wait_sync(wait_for_async=True)
@@ -571,19 +568,14 @@ class TestRemoteMoveAndRename(UnitTestCase):
             remote.delete(unsync_folder, use_trash=False)
 
 
-class TestSyncRemoteMoveAndRename(UnitTestCase):
+class TestSyncRemoteMoveAndRename(OneUserTest):
     def setUp(self):
-        local = self.local_1
-        remote = self.remote_1
-
-        # Create documents in the remote root workspace
-        self.workspace_id = "defaultSyncRootFolderItemFactory#default#" + self.workspace
+        self.workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         self.workspace_path = Path(self.workspace_title)
-        self.folder_id = remote.make_folder(self.workspace_id, "Test folder").uid
+        self.folder_id = self.remote_1.make_folder(self.workspace_id, "Test folder").uid
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        assert local.exists("/Test folder")
 
     @windows_only
     def test_synchronize_remote_move_file_while_accessing(self):
@@ -710,7 +702,6 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
 
     def _remote_rename_while_upload(self):
         local = self.local_1
-        remote = self.remote_1
 
         def check_suspended(*_):
             """ Add delay when upload and download. """
@@ -726,7 +717,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
             copyfile(self.location / "resources" / "testFile.pdf", file_path)
 
             # Rename remote folder then synchronize
-            remote.rename(self.folder_id, "Test folder renamed")
+            self.remote_1.rename(self.folder_id, "Test folder renamed")
 
             self.wait_sync(wait_for_async=True)
             assert not local.exists("/Test folder")
@@ -735,7 +726,7 @@ class TestSyncRemoteMoveAndRename(UnitTestCase):
             assert local.exists("/Test folder renamed/testFile2.pdf")
 
 
-class TestRemoteMove(UnitTestCase):
+class TestRemoteMove(OneUserTest):
     def test_remote_create_and_move(self):
         """
         NXDRIVE-880: folder created and moved on the server does
@@ -764,7 +755,7 @@ class TestRemoteMove(UnitTestCase):
         assert len(local.get_children_info("/a3/a1")) == 5
 
 
-class TestRemoteFiles(UnitTestCase):
+class TestRemoteFiles(OneUserTest):
     def test_remote_create_files_upper_lower_cases(self):
         """
         Check that remote (lower|upper)case renaming is taken
@@ -790,7 +781,7 @@ class TestRemoteFiles(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Check - server
-        children = remote.get_children_info(self.workspace_1)
+        children = remote.get_children_info(self.workspace)
         assert len(children) == 1
         assert children[0].get_blob("file:content").name == filename_upper
 
@@ -807,7 +798,7 @@ class TestRemoteFiles(UnitTestCase):
         remote = self.remote_1
         local = self.local_1
         engine = self.engine_1
-        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+        workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
 
         # Create innocent folders, upper case
         folder1 = remote.make_folder(workspace_id, "AA_1").uid
@@ -838,7 +829,7 @@ class TestRemoteFiles(UnitTestCase):
 
         # Check - server
         children = list(
-            sorted(remote.get_children_info(self.workspace_1), key=lambda x: x.name)
+            sorted(remote.get_children_info(self.workspace), key=lambda x: x.name)
         )
         assert len(children) == 2
         assert folder1_uid.endswith(children[0].uid)

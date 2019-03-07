@@ -3,10 +3,10 @@ import errno
 import os
 from unittest.mock import patch
 
-from .common import UnitTestCase
+from .common import OneUserTest
 
 
-class TestLocalStorageSpaceIssue(UnitTestCase):
+class TestLocalStorageSpaceIssue(OneUserTest):
     def test_local_invalid_timestamp(self):
         # Synchronize root workspace
         self.engine_1.start()
@@ -17,7 +17,7 @@ class TestLocalStorageSpaceIssue(UnitTestCase):
         os.utime(self.local_1.abspath("/Test.txt"), (0, 999999999999999))
         self.engine_1.start()
         self.wait_sync()
-        children = self.remote_document_client_1.get_children_info(self.workspace_1)
+        children = self.remote_document_client_1.get_children_info(self.workspace)
         assert len(children) == 1
         assert children[0].name == "Test.txt"
 

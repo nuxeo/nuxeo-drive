@@ -4,8 +4,7 @@ import shutil
 from collections import namedtuple
 from logging import getLogger
 from pathlib import Path
-from threading import Thread
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 from urllib.error import URLError
 
 import pytest
@@ -15,13 +14,13 @@ from nuxeo.models import User
 
 from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
-from nxdrive.engine.workers import Worker
 from nxdrive.exceptions import Forbidden, NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import safe_os_filename
 from . import LocalTest, make_tmp_file
-from .common import UnitTestCase
+from .common import OneUserTest, TwoUsersTest
 from ..markers import not_windows
+from ..utils import random_png
 
 log = getLogger(__name__)
 
@@ -37,15 +36,17 @@ def open_local_file(*args, **kwargs):
 class MockUrlTestEngine(Engine):
     def __init__(self, url):
         self._url = url
+        self._stopped = True
         self._invalid_credentials = False
 
     def get_binder(self):
         return ServerBindingSettings(self._url, None, "Administrator", ROOT, True)
 
 
-class TestDirectEdit(UnitTestCase):
-    def setUpApp(self, *args):
-        super().setUpApp()
+class DirectEditSetup:
+    @pytest.fixture(autouse=True)
+    def setup_teardown(self):
+        # Test setup
         self.direct_edit = self.manager_1.direct_edit
         self.direct_edit.directEditUploadCompleted.connect(self.app.sync_completed)
         self.direct_edit.directEditStarting.connect(direct_edit_is_starting)
@@ -54,36 +55,16 @@ class TestDirectEdit(UnitTestCase):
         self.remote = self.remote_document_client_1
         self.local = LocalTest(self.nxdrive_conf_folder_1 / "edit")
 
-    def tearDownApp(self):
+        yield
+
+        # Test teardown
+        self.direct_edit._stop_watchdog()
         self.direct_edit.stop()
         with pytest.raises(ThreadInterrupt):
             self.direct_edit.stop_client()
-        super().tearDownApp()
 
-    def setUp(self):
-        def stop_direct_edit(worker: Worker) -> None:
-            """A way to stop the Direct Edit worker."""
-            while worker.running:
-                time.sleep(0.1)
-            worker.quit()
 
-        def execute(worker: Worker):
-            """The ._execute() method is in an endless loop, it will be stopped by stop_direct_edit()."""
-            with pytest.raises(ThreadInterrupt):
-                worker._execute()
-
-        self.direct_edit.running = True
-
-        self.thread_stop = Thread(target=stop_direct_edit, args=(self.direct_edit,))
-        self.thread_execute = Thread(target=execute, args=(self.direct_edit,))
-        self.thread_stop.start()
-        self.thread_execute.start()
-
-    def tearDown(self):
-        self.direct_edit.running = False
-        self.thread_stop.join()
-        self.thread_execute.join()
-
+class TestDirectEdit(OneUserTest, DirectEditSetup):
     def _direct_edit_update(
         self,
         doc_id: str,
@@ -187,6 +168,9 @@ class TestDirectEdit(UnitTestCase):
         assert binder.initialized
         assert binder.local_folder
 
+        # Trigger the thread stop manually
+        self.direct_edit.stop()
+
     def test_cleanup(self):
         filename = "Mode op\xe9ratoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
@@ -233,7 +217,7 @@ class TestDirectEdit(UnitTestCase):
     def test_cleanup_document_not_found(self):
         """"If a file does not exist on the server, it should be deleted locally."""
 
-        def extract_edit_info(ref: str) -> Tuple[str, "Engine", str, str]:
+        def extract_edit_info(ref: Path):
             raise NotFound()
 
         filename = "Mode op\xe9ratoire.txt"
@@ -259,8 +243,11 @@ class TestDirectEdit(UnitTestCase):
             self.wait_sync(timeout=2, fail_if_timeout=False)
             assert not self.local.exists(local_path)
 
-    def test_direct_edit(self):
+    def test_direct_edit_metrics(self):
         assert isinstance(self.direct_edit.get_metrics(), dict)
+
+        # Trigger the thread stop manually
+        self.direct_edit.stop()
 
     def test_filename_encoding(self):
         filename = "Mode op\xe9ratoire.txt"
@@ -286,19 +273,6 @@ class TestDirectEdit(UnitTestCase):
         ):
             self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             assert received
-
-    def test_locked_file(self):
-        def locked_file_signal(self, *args, **kwargs):
-            nonlocal received
-            received = True
-
-        received = False
-        filename = "Mode operatoire.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
-        self.remote_document_client_2.lock(doc_id)
-        self.direct_edit.directEditLocked.connect(locked_file_signal)
-        self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
-        assert received
 
     def test_forbidden_edit(self):
         """
@@ -407,7 +381,7 @@ class TestDirectEdit(UnitTestCase):
         """ Ensure we can DirectEdit documents that have the Folderish facet. """
 
         filename = "picture-as-folder.png"
-        content = self.generate_random_png(size=42)
+        content = random_png(size=42)
         doc_id = self.remote.make_file(
             "/", filename, content=content, doc_type="Picture"
         )
@@ -417,7 +391,7 @@ class TestDirectEdit(UnitTestCase):
             command="Document.AddFacet", input_obj=doc_id, facet="Folderish"
         )
 
-        content_updated = self.generate_random_png(size=24)
+        content_updated = random_png(size=24)
         self._direct_edit_update(doc_id, filename, content_updated)
 
     def test_permission_readonly(self):
@@ -494,6 +468,9 @@ class TestDirectEdit(UnitTestCase):
         assert not self.direct_edit.handle_url(None)
         assert not self.direct_edit.handle_url("")
 
+        # Trigger the thread stop manually
+        self.direct_edit.stop()
+
     def test_handle_url_malformed(self):
         assert not self.direct_edit.handle_url("https://example.org")
 
@@ -545,10 +522,6 @@ class TestDirectEdit(UnitTestCase):
             self._direct_edit_update("", "", b"", url=url)
 
     def test_user_name(self):
-        # user_1 is drive_user_1, no more informations
-        user = self.engine_1.get_user_full_name(self.user_1)
-        assert user == self.user_1
-
         # Create a complete user
         remote = self.root_remote
         try:
@@ -574,3 +547,18 @@ class TestDirectEdit(UnitTestCase):
         # Unknown user
         username = self.engine_1.get_user_full_name("unknown")
         assert username == "unknown"
+
+
+class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
+    def test_locked_file(self):
+        def locked_file_signal(self, *args, **kwargs):
+            nonlocal received
+            received = True
+
+        received = False
+        filename = "Mode operatoire.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        self.remote_document_client_2.lock(doc_id)
+        self.direct_edit.directEditLocked.connect(locked_file_signal)
+        self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+        assert received

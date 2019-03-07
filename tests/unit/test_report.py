@@ -31,4 +31,3 @@ def test_logs(tmp):
         path_managed = manager.generate_report()
         assert path_managed.is_file()
         assert path_managed.suffix == ".zip"
-        assert path == path_managed

@@ -11,15 +11,17 @@ situation. It cannot be used for a multithreaded apartment (MTA) situation.
 For MTA, you still must use SHFileOperation.
 """
 
+import logging
 import time
 from pathlib import Path
 from typing import Union
 
 from win32com.shell import shell, shellcon
 
-from . import LocalTest, log
+from . import LocalTest
 
 RawPath = Union[Path, str]
+log = logging.getLogger(__name__)
 
 
 class WindowsLocalClient(LocalTest):

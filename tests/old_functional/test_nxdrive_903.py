@@ -29,10 +29,10 @@ instead of disabling the network card.
 
 import os.path
 
-from .common import UnitTestCase
+from .common import TwoUsersTest
 
 
-class Test(UnitTestCase):
+class Test(TwoUsersTest):
     def test_nxdrive_903(self):
         remote = self.remote_document_client_1
         local_1, local_2 = self.local_1, self.local_2

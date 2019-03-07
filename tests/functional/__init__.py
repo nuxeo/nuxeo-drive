@@ -2,12 +2,6 @@
 import os
 from typing import Any
 
-import nuxeo.constants
-
-
-# Automatically check all operations done with the Python client
-nuxeo.constants.CHECK_PARAMS = True
-
 
 def before_send(event: Any, hint: Any) -> Any:
     """
@@ -39,16 +33,14 @@ def setup_sentry() -> None:
     sentry_dsn = os.getenv(
         "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
     )
-    if not sentry_dsn:
-        return
 
     import sentry_sdk
-    from nxdrive import __version__ as version
+    from nxdrive import __version__
 
     sentry_sdk.init(
         dsn=sentry_dsn,
-        environment="testing",
-        release=version,
+        environment=os.getenv("SENTRY_ENV", "testing"),
+        release=__version__,
         attach_stacktrace=True,
         before_send=before_send,
     )

@@ -1,5 +1,5 @@
 # coding: utf-8
-from .common import UnitTestCase
+from .common import OneUserTest
 from ..markers import mac_only
 
 try:
@@ -9,7 +9,7 @@ except ImportError:
 
 
 @mac_only
-class TestMacSpecific(UnitTestCase):
+class TestMacSpecific(OneUserTest):
     def test_finder_in_use(self):
         """ Test that if Finder is using the file we postpone the sync. """
 

@@ -1,23 +1,27 @@
 # coding: utf-8
 from contextlib import suppress
 
-from .common import UnitTestCase
+import pytest
+
+from .common import OneUserTest
 
 
-class TestCollection(UnitTestCase):
-    def tearDown(self):
-        with suppress(AttributeError):
-            # Happened when the test fails at setUp()
+class TestCollection(OneUserTest):
+    @pytest.fixture(autouse=True)
+    def teardown(self):
+        yield
+
+        with suppress(Exception):
+            # Happened when the test fails at setup_method()
             self.remote_document_client_1.delete(
                 self.collection["uid"], use_trash=False
             )
-        super().tearDown()
 
     def test_collection_synchronization(self):
         remote = self.remote_1
 
         # Remove synchronization root
-        remote.unregister_as_root(self.workspace_1)
+        remote.unregister_as_root(self.workspace)
 
         # Create a document "Fiiile" in a folder "Test"
         folder = self.remote_document_client_1.make_folder("/", "Test")

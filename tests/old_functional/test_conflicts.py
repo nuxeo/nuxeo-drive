@@ -4,15 +4,12 @@ import time
 
 import pytest
 
-from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, SYNC_ROOT_FAC_ID, TwoUsersTest
 
 
-class TestConflicts(UnitTestCase):
+class TestConflicts(TwoUsersTest):
     def setUp(self):
-        super().setUp()
-        self.workspace_id = "defaultSyncRootFolderItemFactory#" "default#{}".format(
-            self.workspace
-        )
+        self.workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         self.file_id = self.remote_1.make_file(
             self.workspace_id, "test.txt", content=b"Some content"
         ).uid
@@ -96,8 +93,7 @@ class TestConflicts(UnitTestCase):
         remote = self.remote_1
 
         self.engine_1.suspend()
-        workspace = "defaultSyncRootFolderItemFactory#default#{}".format(self.workspace)
-        folder = remote.make_folder(workspace, "ABC").uid
+        folder = remote.make_folder(self.workspace_id, "ABC").uid
         self.engine_1.resume()
         self.wait_sync(wait_for_async=True)
 

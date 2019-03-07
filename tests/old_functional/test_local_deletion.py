@@ -5,12 +5,11 @@ import pytest
 
 from nxdrive.constants import WINDOWS
 from nxdrive.options import Options
-from .common import UnitTestCase
+from .common import OneUserTest
 
 
-class TestLocalDeletion(UnitTestCase):
+class TestLocalDeletion(OneUserTest):
     def setUp(self):
-        super().setUp()
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
@@ -114,9 +113,7 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync()
 
         # Remove rights
-        folder_path = (
-            "/default-domain/workspaces" "/nuxeo-drive-test-workspace/ToDelete"
-        )
+        folder_path = f"{self.ws.path}/ToDelete"
         input_obj = "doc:" + folder_path
         self.root_remote.execute(
             command="Document.SetACE",
@@ -164,7 +161,7 @@ class TestLocalDeletion(UnitTestCase):
         self.wait_sync()
 
         # Remove rights
-        folder_path = "/default-domain/workspaces" "/nuxeo-drive-test-workspace/ToCopy"
+        folder_path = f"{self.ws.path}/ToCopy"
         input_obj = "doc:" + folder_path
         self.root_remote.execute(
             command="Document.SetACE",

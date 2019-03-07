@@ -1,13 +1,14 @@
 # coding: utf-8
 import shutil
-
 from unittest.mock import patch
 
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
-from .common import UnitTestCase
+
+from .common import TwoUsersTest
+from ..utils import random_png
 
 
-class TestLocalShareMoveFolders(UnitTestCase):
+class TestLocalShareMoveFolders(TwoUsersTest):
 
     NUMBER_OF_LOCAL_IMAGE_FILES = 10
 
@@ -17,6 +18,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         2. Create folder a2 in Nuxeo Drive Test Workspace sycn root
         3. Add 10 image files in a1
         """
+
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
@@ -34,7 +36,7 @@ class TestLocalShareMoveFolders(UnitTestCase):
         for file_num in range(1, num + 1):
             file_name = "file%03d.png" % file_num
             file_path = abs_folder_path_1 / file_name
-            self.generate_random_png(file_path)
+            random_png(file_path)
 
         self.engine_1.start()
         self.wait_sync(timeout=60, wait_win=True)

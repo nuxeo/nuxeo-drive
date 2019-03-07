@@ -1,11 +1,11 @@
 # coding: utf-8
 from nxdrive.constants import WINDOWS
 
-from .common import UnitTestCase
+from .common import OneUserTest
 from ..markers import not_windows
 
 
-class TestSpecialCharacters(UnitTestCase):
+class TestSpecialCharacters(OneUserTest):
     @not_windows(reason="Explorer prevents using those characters")
     def test_create_local(self):
         local = self.local_1

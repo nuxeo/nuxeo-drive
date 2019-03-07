@@ -2,7 +2,7 @@ appdirs==1.4.3
 dataclasses==0.6
 distro==1.4.0; sys_platform == 'linux'
 https://github.com/GoodRx/universal-analytics-python/archive/77ce628c56de1ba51a9bf0774794fd687f785803.zip
-https://github.com/gorakhargosh/watchdog/archive/11cb8d5ac57f162beb5c0eea13dcabc4dfdb9d63.zip
+https://github.com/gorakhargosh/watchdog/archive/9852970c0535335d2a5ca58062fb02dffc4f9b73.zip
 # nuxeo==2.0.5
 https://github.com/nuxeo/nuxeo-python-client/archive/c8a7a274cb40c6447d929bb4b8460e76b212ff7c.zip
 markdown==3.0.1

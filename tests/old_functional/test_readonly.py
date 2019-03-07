@@ -1,69 +1,33 @@
 # coding: utf-8
 import shutil
-import time
 from logging import getLogger
 from pathlib import Path
 
 import pytest
 
 from nxdrive.constants import WINDOWS
-from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
 from nxdrive.exceptions import Forbidden
-from .common import TEST_WORKSPACE_PATH, UnitTestCase
+from .common import FS_ITEM_ID_PREFIX, SYNC_ROOT_FAC_ID, OneUserTest, TwoUsersTest
 from ..markers import windows_only
 
 log = getLogger(__name__)
 
 
-class TestReadOnly(UnitTestCase):
+def touch(path: Path):
+    if WINDOWS:
+        path.parent.mkdir(exist_ok=True)
+    try:
+        path.write_bytes(b"Test")
+    except OSError:
+        log.exception("Enable to touch")
+        return False
+    return True
+
+
+class TestReadOnly(OneUserTest):
     def setUp(self):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-
-    @staticmethod
-    def touch(path: Path):
-        if WINDOWS and not path.parent.is_dir():
-            path.parent.mkdir()
-        try:
-            path.write_bytes(b"Test")
-        except OSError:
-            log.exception("Enable to touch")
-            return False
-        return True
-
-    def test_document_locked(self):
-        """ Check locked documents: they are read-only. """
-
-        remote = self.remote_document_client_1
-        remote.make_folder("/", "Test locking")
-        remote.make_file("/Test locking", "myDoc.odt", content=b"Some content")
-        filepath = "/Test locking/myDoc.odt"
-
-        self.wait_sync(wait_for_async=True)
-
-        # Check readonly flag is not set for a document that isn't locked
-        user1_file_path = self.sync_root_folder_1 / filepath.lstrip("/")
-        assert user1_file_path.exists()
-        assert self.touch(user1_file_path)
-        self.wait_sync()
-
-        # Check readonly flag is not set for a document locked by the
-        # current user
-        remote.lock(filepath)
-        self.wait_sync(wait_for_async=True)
-        assert self.touch(user1_file_path)
-        remote.unlock(filepath)
-        self.wait_sync(wait_for_async=True)
-
-        # Check readonly flag is set for a document locked by another user
-        self.remote_document_client_2.lock(filepath)
-        self.wait_sync(wait_for_async=True)
-        assert not self.touch(user1_file_path)
-
-        # Check readonly flag is unset for a document unlocked by another user
-        self.remote_document_client_2.unlock(filepath)
-        self.wait_sync(wait_for_async=True)
-        assert self.touch(user1_file_path)
 
     def test_file_add(self):
         """
@@ -74,7 +38,7 @@ class TestReadOnly(UnitTestCase):
         remote = self.remote_document_client_1
 
         # Try to create the file
-        state = self.touch(self.local_nxdrive_folder_1 / "test.txt")
+        state = touch(self.local_nxdrive_folder_1 / "test.txt")
 
         if not WINDOWS:
             # The creation must have failed
@@ -101,7 +65,7 @@ class TestReadOnly(UnitTestCase):
         # Create documents and sync
         folder = remote.make_folder("/", "folder")
         remote.make_file(folder, "foo.txt", content=b"42")
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH + "/folder")
+        self.set_readonly(self.user_1, f"{self.ws.path}/folder")
         self.wait_sync(wait_for_async=True)
         assert remote.exists("/folder")
         assert remote.exists("/folder/foo.txt")
@@ -125,7 +89,7 @@ class TestReadOnly(UnitTestCase):
 
         folder = remote.make_folder("/", "test-ro")
         remote.make_file(folder, "test.txt", content=b"42")
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH + "/test-ro")
+        self.set_readonly(self.user_1, f"{self.ws.path}/test-ro")
         self.wait_sync(wait_for_async=True)
         assert local.exists("/test-ro/test.txt")
         assert not self.engine_1.get_dao().get_filters()
@@ -133,9 +97,7 @@ class TestReadOnly(UnitTestCase):
         # Delete the file and check if is re-downloaded
         local.unset_readonly("/test-ro")
         local.delete("/test-ro/test.txt")
-        if WINDOWS:
-            time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
-        self.wait_sync()
+        self.wait_sync(wait_win=True)
         assert not local.exists("/test-ro/test.txt")
 
         # Check that it is filtered
@@ -159,15 +121,13 @@ class TestReadOnly(UnitTestCase):
 
         # folder-src is the source from where documents will be moved, RO
         # folder-dst is the destination where documents will be moved, RO
-        src = local.make_folder("/", "folder-src")
-        dst = local.make_folder("/", "folder-dst")
-        local.make_file("/folder-src", "here.txt", content=b"stay here")
-        self.wait_sync()
+        src = remote.make_folder("/", "folder-src")
+        dst = remote.make_folder("/", "folder-dst")
+        remote.make_file(src, "here.txt", content=b"stay here")
+        self.set_readonly(self.user_1, self.ws.path)
+        self.wait_sync(wait_for_async=True)
         assert remote.exists("/folder-src/here.txt")
         assert remote.exists("/folder-dst")
-
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH)
-        self.wait_sync(wait_for_async=True)
 
         doc_abs = local.abspath(src) / "here.txt"
         dst_abs = local.abspath(dst)
@@ -178,8 +138,7 @@ class TestReadOnly(UnitTestCase):
         else:
             # The move happens
             shutil.move(doc_abs, dst_abs)
-            time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
-            self.wait_sync()
+            self.wait_sync(wait_win=True)
 
             # Check that nothing has changed
             assert not local.exists("/folder-src/here.txt")
@@ -209,15 +168,13 @@ class TestReadOnly(UnitTestCase):
 
         # folder-ro is the source from where documents will be moved, RO
         # folder-rw is the destination where documents will be moved, RW
-        src = local.make_folder("/", "folder-ro")
-        dst = local.make_folder("/", "folder-rw")
-        local.make_file("/folder-ro", "here.txt", content=b"stay here")
-        self.wait_sync()
-        assert remote.exists("/folder-ro/here.txt")
-        assert remote.exists("/folder-rw")
-
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH + "/folder-ro")
+        src = remote.make_folder("/", "folder-ro")
+        dst = remote.make_folder("/", "folder-rw")
+        remote.make_file(src, "here.txt", content=b"stay here")
+        self.set_readonly(self.user_1, f"{self.ws.path}/folder-ro")
         self.wait_sync(wait_for_async=True)
+        assert local.exists("/folder-ro/here.txt")
+        assert local.exists("/folder-rw")
 
         doc_abs = local.abspath(src) / "here.txt"
         dst_abs = local.abspath(dst)
@@ -228,8 +185,7 @@ class TestReadOnly(UnitTestCase):
         else:
             # The move happens
             shutil.move(doc_abs, dst_abs)
-            time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
-            self.wait_sync()
+            self.wait_sync(wait_win=True)
 
             # Check that nothing has changed
             assert not local.exists("/folder-ro/here.txt")
@@ -257,15 +213,12 @@ class TestReadOnly(UnitTestCase):
         remote = self.remote_document_client_1
 
         # Create documents and sync
-        folder = local.make_folder("/", "folder")
-        local.make_file("/folder", "foo.txt", content=b"42")
-        self.wait_sync()
-        assert remote.exists("/folder")
-        assert remote.exists("/folder/foo.txt")
-
-        # Set read-only
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH + "/folder")
+        folder = remote.make_folder("/", "folder")
+        remote.make_file(folder, "foo.txt", content=b"42")
+        self.set_readonly(self.user_1, f"{self.ws.path}/folder")
         self.wait_sync(wait_for_async=True)
+        assert local.exists("/folder")
+        assert local.exists("/folder/foo.txt")
 
         # Locally rename the file
         doc = local.abspath(folder) / "foo.txt"
@@ -295,10 +248,10 @@ class TestReadOnly(UnitTestCase):
 
         if not WINDOWS:
             # The creation must have failed
-            assert not self.touch(folder)
+            assert not touch(folder)
         else:
             # The folder and its child are locally created
-            self.touch(folder)
+            touch(folder)
 
             # Sync and check that it is ignored
             self.wait_sync(wait_for_async=True)
@@ -319,7 +272,7 @@ class TestReadOnly(UnitTestCase):
 
         folder = remote.make_folder("/", "test-ro")
         remote.make_folder(folder, "foo")
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH + "/test-ro")
+        self.set_readonly(self.user_1, f"{self.ws.path}/test-ro")
         self.wait_sync(wait_for_async=True)
         assert local.exists("/test-ro/foo")
         assert not self.engine_1.get_dao().get_filters()
@@ -327,9 +280,7 @@ class TestReadOnly(UnitTestCase):
         # Delete the file and check if is re-downloaded
         local.unset_readonly("/test-ro")
         local.delete("/test-ro/foo")
-        if WINDOWS:
-            time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
-        self.wait_sync()
+        self.wait_sync(wait_win=True)
         assert not local.exists("/test-ro/foo")
 
         # Check that it is filtered
@@ -357,7 +308,7 @@ class TestReadOnly(UnitTestCase):
         folder_ro2 = remote.make_folder("/", "folder-dst")
         remote.make_file(folder_ro1, "here.txt", content=b"stay here")
         remote.make_file(folder_ro2, "there.txt", content=b"stay here too")
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH)
+        self.set_readonly(self.user_1, self.ws.path)
         self.wait_sync(wait_for_async=True)
         assert local.exists("/folder-src/here.txt")
         assert remote.exists("/folder-dst")
@@ -371,8 +322,7 @@ class TestReadOnly(UnitTestCase):
         else:
             # The move happens
             shutil.move(src, dst)
-            time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
-            self.wait_sync()
+            self.wait_sync(wait_win=True)
 
             # Check that nothing has changed
             assert not local.exists("/folder-src")
@@ -406,7 +356,7 @@ class TestReadOnly(UnitTestCase):
         folder_ro2 = remote.make_folder("/", "folder-dst")
         remote.make_file(folder_ro1, "here.txt", content=b"stay here")
         remote.make_file(folder_ro2, "there.txt", content=b"stay here too")
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH)
+        self.set_readonly(self.user_1, self.ws.path)
         self.wait_sync(wait_for_async=True)
         assert local.exists("/folder-src/here.txt")
         assert remote.exists("/folder-dst")
@@ -420,8 +370,7 @@ class TestReadOnly(UnitTestCase):
         else:
             # The move happens
             shutil.move(src, dst)
-            time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
-            self.wait_sync()
+            self.wait_sync(wait_win=True)
 
             # Check that nothing has changed
             assert not local.exists("/folder-src")
@@ -438,13 +387,12 @@ class TestReadOnly(UnitTestCase):
             # Check that it is filtered
             assert self.engine_1.get_dao().get_filters()
             doc_pair = remote.get_info(folder_ro1)
-            root_path = (
+            ref = (
                 "/org.nuxeo.drive.service.impl"
                 ".DefaultTopLevelFolderItemFactory#"
-                "/defaultSyncRootFolderItemFactory#default#"
-                "{}/defaultFileSystemItemFactory#default#{}"
+                f"/{SYNC_ROOT_FAC_ID}"
+                f"{doc_pair.root}/{FS_ITEM_ID_PREFIX}{doc_pair.uid}"
             )
-            ref = root_path.format(doc_pair.root, doc_pair.uid)
             assert self.engine_1.get_dao().is_filter(ref)
 
     @pytest.mark.skip(True, reason="TODO NXDRIVE-740")
@@ -461,13 +409,10 @@ class TestReadOnly(UnitTestCase):
         remote = self.remote_document_client_1
 
         # Create documents and sync
-        folder = local.make_folder("/", "foo")
-        self.wait_sync()
-        assert remote.exists("/foo")
-
-        # Set read-only
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH)
+        folder = remote.make_folder("/", "foo")
+        self.set_readonly(self.user_1, self.ws.path)
         self.wait_sync(wait_for_async=True)
+        assert local.exists("/foo")
 
         # Check can_delete flag in pair state
         state = self.get_dao_state_from_engine_1("/foo")
@@ -522,7 +467,7 @@ Expected Result: Files should sync with the server.
         remote.make_folder("/", "ReadFolder")
         remote.make_folder("/", "MEFolder")
         remote.make_file("/ReadFolder", "shareme.doc", content=b"Scheherazade")
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH + "/ReadFolder")
+        self.set_readonly(self.user_1, f"{self.ws.path}/ReadFolder")
         self.wait_sync(wait_for_async=True)
 
         # Checks
@@ -534,11 +479,10 @@ Expected Result: Files should sync with the server.
         src = local.abspath("/ReadFolder/shareme.doc")
         dst = local.abspath("/MEFolder")
         shutil.move(src, dst)
-        time.sleep((WIN_MOVE_RESOLUTION_PERIOD // 1000) + 1)
-        self.wait_sync()
+        self.wait_sync(wait_win=True)
 
         # Remove read-only
-        self.set_readonly(self.user_1, TEST_WORKSPACE_PATH + "/ReadFolder", grant=False)
+        self.set_readonly(self.user_1, f"{self.ws.path}/ReadFolder", grant=False)
         self.wait_sync(wait_for_async=True)
         local.unset_readonly("/MEFolder/shareme.doc")
 
@@ -547,3 +491,41 @@ Expected Result: Files should sync with the server.
         assert remote.exists("/MEFolder/shareme.doc")
         assert not self.engine_1.get_dao().get_errors(limit=0)
         assert not self.engine_1.get_dao().get_unsynchronizeds()
+
+
+class TestReadOnly2(TwoUsersTest):
+    def test_document_locked(self):
+        """ Check locked documents: they are read-only. """
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        remote = self.remote_document_client_1
+        remote.make_folder("/", "Test locking")
+        remote.make_file("/Test locking", "myDoc.odt", content=b"Some content")
+        filepath = "/Test locking/myDoc.odt"
+
+        self.wait_sync(wait_for_async=True)
+
+        # Check readonly flag is not set for a document that isn't locked
+        user1_file_path = self.sync_root_folder_1 / filepath.lstrip("/")
+        assert user1_file_path.exists()
+        assert touch(user1_file_path)
+        self.wait_sync()
+
+        # Check readonly flag is not set for a document locked by the
+        # current user
+        remote.lock(filepath)
+        self.wait_sync(wait_for_async=True)
+        assert touch(user1_file_path)
+        remote.unlock(filepath)
+        self.wait_sync(wait_for_async=True)
+
+        # Check readonly flag is set for a document locked by another user
+        self.remote_document_client_2.lock(filepath)
+        self.wait_sync(wait_for_async=True)
+        assert not touch(user1_file_path)
+
+        # Check readonly flag is unset for a document unlocked by another user
+        self.remote_document_client_2.unlock(filepath)
+        self.wait_sync(wait_for_async=True)
+        assert touch(user1_file_path)

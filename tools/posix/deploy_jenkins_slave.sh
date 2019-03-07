@@ -176,13 +176,13 @@ launch_tests() {
     # ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}"
 
     echo ">>> Launching unit tests"
-    ${PYTHON} -b -Wall -m pytest -n 4 tests/unit
+    ${PYTHON} -b -Wall -m pytest tests/unit
 
     echo ">>> Launching functional tests"
-    ${PYTHON} -b -Wall -m pytest -n 4 tests/functional
+    ${PYTHON} -b -Wall -m pytest tests/functional
 
     echo ">>> Launching old functional tests"
-    ${PYTHON} -b -Wall -m pytest -v tests/old_functional
+    ${PYTHON} -b -Wall -m pytest tests/old_functional
 
     # echo ">>> Launching integration tests"
     # ${PYTHON} -b -Wall -m pytest tests/integration
