@@ -22,7 +22,7 @@ from .watcher.remote_watcher import RemoteWatcher
 from .workers import Worker
 from ..client.local_client import LocalClient
 from ..client.remote_client import Remote
-from ..constants import MAC, ROOT, WINDOWS
+from ..constants import MAC, ROOT, WINDOWS, DelAction
 from ..exceptions import (
     InvalidDriveException,
     PairInterrupt,
@@ -279,21 +279,23 @@ class Engine(QObject):
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
 
-    def delete_doc(self, path: Path) -> None:
+    def delete_doc(self, path: Path, mode: DelAction = None) -> None:
         """ Delete doc after prompting the user for the mode. """
-        mode = self.manager._dao.get_config("deletion_behavior", "unsync")
+        if not mode:
+            mode = self.manager.get_deletion_behavior()
+
         doc_pair = self._dao.get_state_from_local(path)
         if not doc_pair:
             log.debug(f"Unable to delete non-existant doc {path}")
             return
-        if mode == "delete_server":
+        if mode is DelAction.DEL_SERVER:
             # Delete on server
             doc_pair.update_state("deleted", doc_pair.remote_state)
             if doc_pair.remote_state == "unknown":
                 self._dao.remove_state(doc_pair)
             else:
                 self._dao.delete_local_state(doc_pair)
-        elif mode == "unsync":
+        elif mode is DelAction.UNSYNC:
             # Add document to filters
             self._dao.remove_state(doc_pair)
             self._dao.add_filter(

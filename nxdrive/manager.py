@@ -16,7 +16,7 @@ from . import __version__
 from .autolocker import ProcessAutoLockerWorker
 from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
-from .constants import APP_NAME, STARTUP_PAGE_CONNECTION_TIMEOUT
+from .constants import APP_NAME, STARTUP_PAGE_CONNECTION_TIMEOUT, DelAction
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .exceptions import EngineTypeMissing, FolderAlreadyUsed, StartupPageConnectionError
@@ -139,7 +139,7 @@ class Manager(QObject):
             if self._dao.get_config("direct_edit_auto_lock") is None:
                 self._dao.store_bool("direct_edit_auto_lock", True)
 
-        # Set default trash behavior
+        # Set default deletion behavior
         if not self.get_config("deletion_behavior"):
             self.set_config("deletion_behavior", "unsync")
 
@@ -485,6 +485,12 @@ class Manager(QObject):
         self.proxy = proxy
         log.debug(f"Effective proxy: {proxy!r}")
         return ""
+
+    def get_deletion_behavior(self) -> DelAction:
+        return DelAction(self.get_config("deletion_behavior", default="unsync"))
+
+    def set_deletion_behavior(self, behavior: DelAction) -> None:
+        self.set_config("deletion_behavior", behavior.value)
 
     def _get_default_server_type(self) -> str:  # TODO: Move to constants.py
         return "NXDRIVE"

@@ -1,4 +1,5 @@
 # coding: utf-8
+from enum import Enum
 from pathlib import Path
 from sys import platform
 
@@ -27,3 +28,11 @@ TOKEN_PERMISSION = "ReadWrite"
 
 # The registry key from the HKCU hive where to look for local configuration on Windows
 CONFIG_REGISTRY_KEY = "Software\\Nuxeo\\Drive"
+
+
+class DelAction(Enum):
+    """ Used to figure out which login endpoint is used for a given server. """
+
+    DEL_SERVER = "delete_server"
+    UNSYNC = "unsync"
+    ROLLBACK = "rollback"
