@@ -606,7 +606,7 @@ class RemoteWatcher(EngineWorker):
             if status == 504:
                 log.warning(f"Gateaway timeout: {exc}")
             else:
-                log.error(err)
+                log.warning(err)
         except ThreadInterrupt:
             raise
         except:
@@ -617,15 +617,25 @@ class RemoteWatcher(EngineWorker):
             Action.finish_action()
         return False
 
-    def _get_changes(self) -> Dict[str, Any]:
+    def _get_changes(self) -> Optional[Dict[str, Any]]:
         """Fetch incremental change summary from the server"""
         summary = self.engine.remote.get_changes(
             self._last_root_definitions, self._last_event_log_id
         )
+        if not isinstance(summary, dict):
+            log.warning("Change summary is not a valid dictionary.")
+            return None
 
-        root_defs = summary["activeSynchronizationRootDefinitions"]
+        root_defs = summary.get("activeSynchronizationRootDefinitions")
+        if root_defs is None:
+            log.warning(
+                "Change summary is missing the root definitions, "
+                "We'll skip its processing."
+            )
+            return None
+
         self._last_root_definitions = root_defs
-        self._last_sync_date = int(summary["syncDate"])
+        self._last_sync_date = int(summary.get("syncDate", 0))
         # If available, read 'upperBound' key as last event log id
         # according to the new implementation of the audit change finder,
         # see https://jira.nuxeo.com/browse/NXP-14826.
@@ -660,14 +670,17 @@ class RemoteWatcher(EngineWorker):
     def _update_remote_states(self) -> None:
         """Incrementally update the state of documents from a change summary"""
         summary = self._get_changes()
-        if summary["hasTooManyChanges"]:
+        if not summary:
+            return
+
+        if summary.get("hasTooManyChanges"):
             log.debug("Forced full scan by server")
             remote_path = "/"
             self._dao.add_path_to_scan(remote_path)
             self._dao.update_config("remote_need_full_scan", remote_path)
             return
 
-        if not summary["fileSystemChanges"]:
+        if not summary.get("fileSystemChanges"):
             self._metrics["empty_polls"] += 1
             self.noChangesFound.emit()
             return

@@ -1,4 +1,6 @@
 # coding: utf-8
+from unittest.mock import patch
+
 from .common import UnitTestCase
 
 
@@ -192,3 +194,27 @@ class TestRemoteChanges(UnitTestCase):
         assert change["eventId"] == "documentUnlocked"
         assert change["docUuid"] == doc_id
         assert change["fileSystemItemName"] == "TestLocking.txt"
+
+    def test_wrong_server_reply(self):
+        """
+        A response that is not a dictionary or that does not contain
+        the right entries should not raise an exception.
+        It should not modify the attributes we use to track the last
+        synchronization either.
+        """
+
+        def not_dict(*args, **kwargs):
+            return "not dict"
+
+        def wrong_dict(*args, **kwargs):
+            return {"wrong": "dict"}
+
+        sync_date = self.engine_1._remote_watcher._last_sync_date
+
+        with patch.object(self.engine_1.remote, "get_changes", new=not_dict):
+            assert not self.engine_1._remote_watcher._get_changes()
+            assert self.engine_1._remote_watcher._last_sync_date == sync_date
+
+        with patch.object(self.engine_1.remote, "get_changes", new=wrong_dict):
+            assert not self.engine_1._remote_watcher._get_changes()
+            assert self.engine_1._remote_watcher._last_sync_date == sync_date
