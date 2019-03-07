@@ -7,11 +7,11 @@ from .common import (
     OS_STAT_MTIME_RESOLUTION,
     REMOTE_MODIFICATION_TIME_RESOLUTION,
     TEST_DEFAULT_DELAY,
-    UnitTestCase,
+    TwoUsersTest,
 )
 
 
-class TestConcurrentSynchronization(UnitTestCase):
+class TestConcurrentSynchronization(TwoUsersTest):
     def create_docs(self, parent, number, name_pattern=None, delay=1.0):
         return self.root_remote.execute(
             command="NuxeoDrive.CreateTestDocuments",

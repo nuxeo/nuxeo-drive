@@ -7,7 +7,8 @@ later when Drive becomes online.
 import shutil
 
 from nxdrive.constants import MAC, WINDOWS
-from .common import FILE_CONTENT, UnitTestCase
+
+from .common import FILE_CONTENT, OneUserTest
 
 if WINDOWS:
     from win32com.shell import shell, shellcon
@@ -18,7 +19,7 @@ else:
         import Cocoa
 
 
-class TestOfflineChangesSync(UnitTestCase):
+class TestOfflineChangesSync(OneUserTest):
     """
     All changes made in local PC while drive is offline should sync later when
     drive comes back online.
@@ -39,9 +40,6 @@ class TestOfflineChangesSync(UnitTestCase):
             self.folder1_remote, "File1.txt", FILE_CONTENT
         )
         self.wait_sync(wait_for_async=True)
-
-        # Verify that the folder and file are sync'd (download) successfully
-        assert self.local.exists("/Folder1/File1.txt")
 
     @staticmethod
     def copy_with_xattr(src, dst):

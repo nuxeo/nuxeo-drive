@@ -15,8 +15,9 @@ import pytest
 from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.exceptions import DuplicationDisabledError, NotFound
 from . import LocalTest
-from .common import UnitTestCase
+from .common import OneUserTest
 from ..markers import not_linux, windows_only
+from ..utils import random_png
 
 if WINDOWS:
     import win32api
@@ -303,7 +304,7 @@ The final tree must be:
         local = self.local_1
         remote = self.remote_document_client_1
         folder = "l" * 90
-        folders = [self.workspace_1]
+        folders = [self.workspace]
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
@@ -313,7 +314,7 @@ The final tree must be:
             folders.append(remote.make_folder(folders[-1], folder))
 
         # Create a file in it
-        remote.make_file(folders[-1], "stone.png", self.generate_random_png())
+        remote.make_file(folders[-1], "stone.png", random_png())
         picture = "/" + "/".join([folder] * 3) + "/stone.png"
         assert remote.exists(picture)
 
@@ -332,7 +333,7 @@ The final tree must be:
         path = "/" + "/".join([folder] * 3)
         local.make_folder(path, "Par îçi")
         path += "/Par îçi"
-        local.make_file(path, "alive.png", self.generate_random_png())
+        local.make_file(path, "alive.png", random_png())
         picture = path + "/alive.png"
         assert local.exists(picture)
 
@@ -356,7 +357,7 @@ The final tree must be:
         assert child[0].name == "alive.png"
 
 
-class TestLocalClientNative(StubLocalClient, UnitTestCase):
+class TestLocalClientNative(StubLocalClient, OneUserTest):
     """
     Test LocalClient using native Python commands to make FS operations.
     This will simulate Drive actions.
@@ -387,7 +388,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
         remote = self.remote_document_client_1
 
         # Step 1: remotely create an accentued folder
-        root = remote.make_folder(self.workspace_1, "Projet Hémodialyse")
+        root = remote.make_folder(self.workspace, "Projet Hémodialyse")
         folder = remote.make_folder(root, "Pièces graphiques")
 
         self.wait_sync(wait_for_async=True)
@@ -404,7 +405,7 @@ class TestLocalClientNative(StubLocalClient, UnitTestCase):
 
 
 @not_linux(reason="GNU/Linux uses native LocalClient.")
-class TestLocalClientSimulation(StubLocalClient, UnitTestCase):
+class TestLocalClientSimulation(StubLocalClient, OneUserTest):
     """
     Test LocalClient using OS-specific commands to make FS operations.
     This will simulate user actions on:

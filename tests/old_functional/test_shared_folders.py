@@ -2,10 +2,11 @@
 from pathlib import Path
 
 from . import LocalTest
-from .common import TEST_WORKSPACE_PATH, UnitTestCase
+from .common import TwoUsersTest
+from ..utils import random_png
 
 
-class TestSharedFolders(UnitTestCase):
+class TestSharedFolders(TwoUsersTest):
     def test_move_sync_root_child_to_user_workspace(self):
         """See https://jira.nuxeo.com/browse/NXP-14870"""
         uid = None
@@ -89,7 +90,7 @@ class TestSharedFolders(UnitTestCase):
         remote_1.unregister_as_root(self.workspace)
 
         # Remove ReadWrite permission for user_1 on the test workspace
-        test_workspace = "doc:" + TEST_WORKSPACE_PATH
+        test_workspace = f"doc:{self.ws.path}"
         self.root_remote.execute(
             command="Document.SetACE",
             input_obj=test_workspace,
@@ -101,7 +102,7 @@ class TestSharedFolders(UnitTestCase):
         # Create initial folders and files as user_2
         folder = remote_2.make_folder("/", "Folder01")
         subfolder_1 = remote_2.make_folder(folder, "SubFolder01")
-        remote_2.make_file(subfolder_1, "Image01.png", self.generate_random_png())
+        remote_2.make_file(subfolder_1, "Image01.png", random_png())
         file_id = remote_2.make_file(folder, "File01.txt", content=b"plaintext")
 
         # Grant Read permission for user_1 on the test folder and register
@@ -201,7 +202,7 @@ class TestSharedFolders(UnitTestCase):
 
         # Create initial folder and file
         folder = remote.make_folder("/", "Final")
-        remote.make_file("/Final", "Aerial04.png", self.generate_random_png())
+        remote.make_file("/Final", "Aerial04.png", random_png())
 
         # First checks, everything should be online for every one
         self.wait_sync(wait_for_async=True)
@@ -219,7 +220,7 @@ class TestSharedFolders(UnitTestCase):
 
         # Make changes
         folder_conflicted = local.make_folder("/", "Finished")
-        local.make_file(folder_conflicted, "Aerial04.png", self.generate_random_png())
+        local.make_file(folder_conflicted, "Aerial04.png", random_png())
         remote.update(folder, properties={"dc:title": "Finished"})
 
         # Restart clients and wait

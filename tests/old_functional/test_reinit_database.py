@@ -3,10 +3,10 @@ import time
 from pathlib import Path
 
 from .common import OS_STAT_MTIME_RESOLUTION
-from .common import UnitTestCase
+from .common import OneUserTest
 
 
-class TestReinitDatabase(UnitTestCase):
+class TestReinitDatabase(OneUserTest):
     def setUp(self):
         self.local = self.local_1
         self.remote = self.remote_document_client_1
@@ -21,7 +21,6 @@ class TestReinitDatabase(UnitTestCase):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        # Verify that everything is synchronized
         assert self.local.exists("/Test folder")
         assert self.local.exists("/Test folder/Test.txt")
 

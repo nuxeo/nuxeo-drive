@@ -1,15 +1,15 @@
 # coding: utf-8
 from unittest.mock import patch
 
-from .common import UnitTestCase
+import pytest
+
+from .common import SYNC_ROOT_FAC_ID, OneUserTest
 
 
-class TestRemoteChanges(UnitTestCase):
-    def setUpApp(self, *args):
-        super().setUpApp(register_roots=False)
+class TestRemoteChanges(OneUserTest):
+    def setup_method(self, method):
+        super().setup_method(method, register_roots=False)
 
-    def setUp(self):
-        super().setUp()
         self.last_event_log_id = 0
         self.last_root_definitions = ""
         # Initialize last event log id (lower bound)
@@ -25,6 +25,7 @@ class TestRemoteChanges(UnitTestCase):
         self.last_root_definitions = summary["activeSynchronizationRootDefinitions"]
         return summary
 
+    @pytest.mark.randombug("NXDRIVE-1565: Needed for the server is lagging")
     def test_changes_without_active_roots(self):
         summary = self.get_changes()
         assert not summary["hasTooManyChanges"]
@@ -47,6 +48,7 @@ class TestRemoteChanges(UnitTestCase):
             second_event_log_id = summary["upperBound"]
             assert second_event_log_id >= first_event_log_id
 
+    @pytest.mark.randombug("NXDRIVE-1565: Needed for the server is lagging")
     def test_changes_root_registrations(self):
         # Lets create some folders in Nuxeo
         remote = self.remote_document_client_1
@@ -106,8 +108,7 @@ class TestRemoteChanges(UnitTestCase):
         summary = self.get_changes()
 
         assert not summary["hasTooManyChanges"]
-        raw_root_defs = summary["activeSynchronizationRootDefinitions"]
-        assert not raw_root_defs
+        assert not summary["activeSynchronizationRootDefinitions"]
         assert len(summary["fileSystemChanges"]) == 2
 
         change = summary["fileSystemChanges"][0]
@@ -125,10 +126,10 @@ class TestRemoteChanges(UnitTestCase):
         # Let's do nothing and refetch the changes
         summary = self.get_changes()
         assert not summary["hasTooManyChanges"]
-        raw_root_defs = summary["activeSynchronizationRootDefinitions"]
-        assert not raw_root_defs
+        assert not summary["activeSynchronizationRootDefinitions"]
         assert not len(summary["fileSystemChanges"])
 
+    @pytest.mark.randombug("NXDRIVE-1565: Needed for the server is lagging")
     def test_sync_root_parent_registration(self):
         # Create a folder
         remote = self.remote_document_client_1
@@ -144,34 +145,32 @@ class TestRemoteChanges(UnitTestCase):
         change = summary["fileSystemChanges"][0]
         assert change["eventId"] == "rootRegistered"
         assert change["fileSystemItemName"] == "Folder 1"
-        assert (
-            change["fileSystemItemId"]
-            == "defaultSyncRootFolderItemFactory#default#%s" % folder_1
-        )
+        assert change["fileSystemItemId"] == f"{SYNC_ROOT_FAC_ID}{folder_1}"
 
         # Mark parent folder as a sync root, should unregister Folder 1
         remote.register_as_root(self.workspace)
+
         summary = self.get_changes()
         assert len(summary["fileSystemChanges"]) == 2
 
         for change in summary["fileSystemChanges"]:
             if change["eventId"] == "rootRegistered":
-                assert change["fileSystemItemName"] == "Nuxeo Drive Test Workspace"
+                assert change["fileSystemItemName"] == self.workspace_title
                 assert (
-                    change["fileSystemItemId"]
-                    == "defaultSyncRootFolderItemFactory#default#%s" % self.workspace
+                    change["fileSystemItemId"] == f"{SYNC_ROOT_FAC_ID}{self.workspace}"
                 )
                 assert change["fileSystemItem"] is not None
             elif change["eventId"] == "deleted":
                 assert not change["fileSystemItemName"]
-                assert change["fileSystemItemId"] == "default#%s" % folder_1
+                assert change["fileSystemItemId"] == f"default#{folder_1}"
                 assert not change["fileSystemItem"]
             else:
-                self.fail("Unexpected event %r" % change["eventId"])
+                self.fail(f"Unexpected event: {change['eventId']!r}")
 
+    @pytest.mark.randombug("NXDRIVE-1565: Needed for the server is lagging")
     def test_lock_unlock_events(self):
         remote = self.remote_document_client_1
-        remote.register_as_root(self.workspace_1)
+        remote.register_as_root(self.workspace)
         doc_id = remote.make_file(
             self.workspace, "TestLocking.txt", content=b"File content"
         )

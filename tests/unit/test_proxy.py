@@ -1,5 +1,4 @@
 # coding: utf-8
-from contextlib import suppress
 from unittest.mock import patch
 from pathlib import Path
 
@@ -43,8 +42,8 @@ def config_dao():
 
 
 @pytest.fixture
-def pac_file(js):
-    pac = Path("proxy.pac")
+def pac_file(tmp_path, js):
+    pac = tmp_path / "proxy.pac"
     pac.write_text(js)
 
     uri = pac.resolve().as_uri()
@@ -53,8 +52,7 @@ def pac_file(js):
 
     yield uri
 
-    with suppress(Exception):
-        pac.unlink()
+    pac.unlink()
 
 
 def test_manual_proxy():
@@ -93,7 +91,7 @@ def test_mock_autoconfigurl_windows(pac_file):
     with _patch_winreg_qve(return_value=(pac_file, "foo")):
         proxy = get_proxy(category="Automatic")
         assert isinstance(proxy, AutomaticProxy)
-        assert proxy._pac_file
+        assert proxy._pac_file is not None
         settings = proxy.settings("http://nuxeo.com")
         assert settings["http"] == settings["https"] == "http://localhost:8899"
         settings = proxy.settings("http://example.com")

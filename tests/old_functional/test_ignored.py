@@ -1,8 +1,8 @@
 # coding: utf-8
-from .common import UnitTestCase
+from .common import OneUserTest
 
 
-class TestIgnored(UnitTestCase):
+class TestIgnored(OneUserTest):
     def test_ignore_file(self):
         local = self.local_1
         remote = self.remote_document_client_1

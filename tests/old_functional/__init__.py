@@ -23,6 +23,45 @@ from ..functional import setup_sentry
 setup_sentry()
 
 
+def patch_nxdrive_objects():
+    """Some feature are not needed or are better disabled when testing."""
+
+    # Need to do this one first because importing Manager will already import
+    # nxdrive.engine.dao.utils and so changing the behavior of save_backup()
+    # will not work.
+    import nxdrive.engine.dao.utils
+
+    nxdrive.engine.dao.utils.save_backup = lambda *args: True
+
+    from nxdrive.manager import Manager
+    from nxdrive.engine.queue_manager import QueueManager
+
+    Manager._create_server_config_updater = lambda *args: None
+
+    def dispose_all(self) -> None:
+        for engine in self.get_engines().values():
+            engine.dispose_db()
+        self.dispose_db()
+
+    def unbind_all(self) -> None:
+        if not self._engines:
+            self.load()
+        for engine in self._engine_definitions:
+            self.unbind_engine(engine.uid)
+
+    def requeue_errors(self) -> None:
+        with self._error_lock:
+            for doc_pair in self._on_error_queue.values():
+                doc_pair.error_next_try = 0
+
+    Manager.dispose_all = dispose_all
+    Manager.unbind_all = unbind_all
+    QueueManager.requeue_errors = requeue_errors
+
+
+patch_nxdrive_objects()
+
+
 @contextmanager
 def ensure_no_exception():
     """
@@ -379,10 +418,6 @@ class RemoteTest(RemoteBase):
 
     def result_set_query(self, query):
         return self.execute(command="Repository.ResultSetQuery", query=query)
-
-    def log_on_server(self, message, level="WARN"):
-        """ Log the current test server side.  Helpful for debugging. """
-        return self.execute(command="Log", message=message, level=level.lower())
 
     def wait(self):
         self.execute(command="NuxeoDrive.WaitForElasticsearchCompletion")

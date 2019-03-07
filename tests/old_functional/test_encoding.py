@@ -3,11 +3,11 @@ import os
 from pathlib import Path
 
 from nxdrive.client.local_client import FileInfo
-from .common import UnitTestCase
+from .common import OneUserTest
 from ..markers import not_mac
 
 
-class TestEncoding(UnitTestCase):
+class TestEncoding(OneUserTest):
     def test_filename_with_accents_from_server(self):
         local = self.local_1
         remote = self.remote_document_client_1

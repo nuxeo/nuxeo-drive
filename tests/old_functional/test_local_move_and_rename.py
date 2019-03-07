@@ -11,24 +11,27 @@ from nuxeo.exceptions import HTTPError
 
 from nxdrive.engine.dao.sqlite import EngineDAO
 from . import DocRemote, LocalTest
-from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
 
 
 # TODO NXDRIVE-170: refactor
 
 
-class TestLocalMoveAndRename(UnitTestCase):
-    # Sets up the following local hierarchy:
-    # Nuxeo Drive Test Workspace
-    #    |-- Original File 1.txt
-    #    |-- Original File 2.txt
-    #    |-- Original Folder 1
-    #    |       |-- Sub-Folder 1.1
-    #    |       |-- Sub-Folder 1.2
-    #    |       |-- Original File 1.1.txt
-    #    |-- Original Folder 2
-    #    |       |-- Original File 3.txt
+class TestLocalMoveAndRename(OneUserTest):
     def setUp(self):
+        """
+        Sets up the following local hierarchy:
+        Nuxeo Drive Test Workspace
+           |-- Original File 1.txt
+           |-- Original File 2.txt
+           |-- Original Folder 1
+           |       |-- Sub-Folder 1.1
+           |       |-- Sub-Folder 1.2
+           |       |-- Original File 1.1.txt
+           |-- Original Folder 2
+           |       |-- Original File 3.txt
+        """
+
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         local = self.local_1
@@ -76,7 +79,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             info = remote.get_info("/New Folder")
             assert info.name == "Renamed Folder"
             assert len(local.get_children_info("/")) == 5
-            assert len(remote.get_children_info(self.workspace_1)) == 5
+            assert len(remote.get_children_info(self.workspace)) == 5
 
     def test_local_rename_file_while_creating(self):
         local = self.engine_1.local
@@ -102,7 +105,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             info = remote.get_info("/File.txt")
             assert info.name == "Renamed File.txt"
             assert len(local.get_children_info("/")) == 5
-            assert len(remote.get_children_info(self.workspace_1)) == 5
+            assert len(remote.get_children_info(self.workspace)) == 5
 
     @pytest.mark.randombug("NXDRIVE-811", condition=True, mode="REPEAT")
     def test_local_rename_file_while_creating_before_marker(self):
@@ -128,7 +131,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             info = remote.get_info("/File.txt")
             assert info.name == "Renamed File.txt"
             assert len(local.get_children_info("/")) == 5
-            assert len(remote.get_children_info(self.workspace_1)) == 5
+            assert len(remote.get_children_info(self.workspace)) == 5
 
     def test_local_rename_file_while_creating_after_marker(self):
         marker = False
@@ -155,7 +158,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             info = remote.get_info("/File.txt")
             assert info.name == "Renamed File.txt"
             assert len(local.get_children_info("/")) == 5
-            assert len(remote.get_children_info(self.workspace_1)) == 5
+            assert len(remote.get_children_info(self.workspace)) == 5
 
     def test_replace_file(self):
         local = self.local_1
@@ -218,7 +221,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(local.get_children_info("/Original Folder 1")) == 3
         assert len(remote.get_children_info(info_1_1.parent_uid)) == 3
         assert len(local.get_children_info("/")) == 4
-        assert len(remote.get_children_info(self.workspace_1)) == 4
+        assert len(remote.get_children_info(self.workspace)) == 4
 
     def test_local_rename_file_uppercase_stopped(self):
         local = self.local_1
@@ -293,7 +296,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(local.get_children_info("/Original Folder 1")) == 4
         assert len(remote.get_children_info(info.parent_uid)) == 4
         assert len(local.get_children_info("/")) == 3
-        assert len(remote.get_children_info(self.workspace_1)) == 3
+        assert len(remote.get_children_info(self.workspace)) == 3
 
     def test_local_move_and_rename_file(self):
         local = self.local_1
@@ -319,7 +322,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(local.get_children_info("/Original Folder 1")) == 4
         assert len(remote.get_children_info(info.parent_uid)) == 4
         assert len(local.get_children_info("/")) == 3
-        assert len(remote.get_children_info(self.workspace_1)) == 3
+        assert len(remote.get_children_info(self.workspace)) == 3
 
     def test_local_rename_folder(self):
         local = self.local_1
@@ -354,7 +357,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(local.get_children_info("/Renamed Folder 1 \xe9")) == 3
         assert len(remote.get_children_info(file_info.parent_uid)) == 3
         assert len(local.get_children_info("/")) == 4
-        assert len(remote.get_children_info(self.workspace_1)) == 4
+        assert len(remote.get_children_info(self.workspace)) == 4
 
     def test_local_rename_folder_while_suspended(self):
         local = self.local_1
@@ -397,7 +400,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(local.get_children_info("/Renamed Folder 1 \xe9")) == count
         assert len(remote.get_children_info(folder_1)) == count
         assert len(local.get_children_info("/")) == 4
-        assert len(remote.get_children_info(self.workspace_1)) == 4
+        assert len(remote.get_children_info(self.workspace)) == 4
 
     def test_local_rename_file_after_create(self):
         # Office 2010 and >, create a tmp file with 8 chars
@@ -415,7 +418,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         # Path don't change on Nuxeo
         assert local.get_remote_id("/Renamed File.txt")
         assert len(local.get_children_info("/")) == 5
-        assert len(remote.get_children_info(self.workspace_1)) == 5
+        assert len(remote.get_children_info(self.workspace)) == 5
 
     def test_local_rename_file_after_create_detected(self):
         # MS Office 2010+ creates a tmp file with 8 chars
@@ -447,7 +450,7 @@ class TestLocalMoveAndRename(UnitTestCase):
             # Path doesn't change on Nuxeo
             assert local.get_remote_id("/Renamed File.txt")
             assert len(local.get_children_info("/")) == 5
-            assert len(remote.get_children_info(self.workspace_1)) == 5
+            assert len(remote.get_children_info(self.workspace)) == 5
 
     def test_local_move_folder(self):
         local = self.local_1
@@ -484,7 +487,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(local.get_children_info("/Original Folder 2/Original Folder 1")) == 3
         assert len(remote.get_children_info(folder_1)) == 3
         assert len(local.get_children_info("/")) == 3
-        assert len(remote.get_children_info(self.workspace_1)) == 3
+        assert len(remote.get_children_info(self.workspace)) == 3
 
     def test_concurrent_local_rename_folder(self):
         local = self.local_1
@@ -529,7 +532,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(local.get_children_info("/Renamed Folder 2")) == 1
         assert len(remote.get_children_info(folder_2)) == 1
         assert len(local.get_children_info("/")) == 4
-        assert len(remote.get_children_info(self.workspace_1)) == 4
+        assert len(remote.get_children_info(self.workspace)) == 4
 
     def test_local_replace(self):
         local = LocalTest(self.local_test_folder_1)
@@ -590,7 +593,7 @@ class TestLocalMoveAndRename(UnitTestCase):
         folder_1_info = remote.get_info(folder_1_uid)
         assert folder_1_info.name == "Original Folder 1"
         assert folder_1_info.parent_uid == self.workspace
-        assert len(remote.get_children_info(self.workspace_1)) == 4
+        assert len(remote.get_children_info(self.workspace)) == 4
 
     def test_local_move_with_remote_error(self):
         local = self.local_1
@@ -621,14 +624,14 @@ class TestLocalMoveAndRename(UnitTestCase):
         assert len(local.get_children_info("/OSErrorTest")) == 3
         assert len(remote.get_children_info(folder_1.uid)) == 3
         assert len(local.get_children_info("/")) == 4
-        assert len(remote.get_children_info(self.workspace_1)) == 4
+        assert len(remote.get_children_info(self.workspace)) == 4
 
     # TODO: implement me once canDelete is checked in the synchronizer
     # def test_local_move_sync_root_folder(self):
     #    pass
 
 
-class TestLocalMove(UnitTestCase):
+class TestLocalMove(TwoUsersTest):
     def test_nxdrive_1033(self):
         """
 1. Connect Drive in 2 PC's with same account (Drive-01, Drive-02)
@@ -682,22 +685,22 @@ are well taken into account.
         self.wait_sync(wait_for_async=True)
 
         # Create documents
-        files = ["test_file_%d.odt" % i for i in range(1, 21)]
+        files = [f"test_file_{i + 1}.odt" for i in range(20)]
         srcname = "Folder 01"
         folder = local1.make_folder("/", srcname)
-        srcname = "/" + srcname
+        srcname = f"/{srcname}"
         for filename in files:
             local1.make_file(srcname, filename, content=filename.encode("utf-8"))
 
         # Checks
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
         for local, filename in product((local1, local2), files):
-            assert local.exists(srcname + "/" + filename)
+            assert local.exists(f"{srcname}/{filename}")
 
         # Step 4
         dstname = "8 78"
         dst = local1.make_folder(srcname, dstname)
-        dstname = "/" + dstname
+        dstname = f"/{dstname}"
         for child in local1.get_children_info(folder):
             if not child.folderish:
                 local1.move(child.path, dst)
@@ -715,12 +718,14 @@ are well taken into account.
             assert not dao.get_filters()
             assert not dao.get_unsynchronizeds()
 
-        for remote, ws in zip(
-            (self.remote_document_client_1, self.remote_document_client_2),
-            (self.workspace_1, self.workspace_2),
-        ):
+        for dao in {self.engine_1.get_dao(), self.engine_2.get_dao()}:
+            assert not dao.get_errors(limit=0)
+            assert not dao.get_filters()
+            assert not dao.get_unsynchronizeds()
+
+        for remote in (self.remote_document_client_1, self.remote_document_client_2):
             # '/'
-            children = remote.get_children_info(ws)
+            children = remote.get_children_info(self.workspace)
             assert len(children) == 1
 
             # srcname

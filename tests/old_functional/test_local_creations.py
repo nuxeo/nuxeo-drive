@@ -7,10 +7,10 @@ import pytest
 
 from nxdrive.constants import MAC, WINDOWS
 from nuxeo.exceptions import Unauthorized
-from .common import FILE_CONTENT, UnitTestCase
+from .common import FILE_CONTENT, SYNC_ROOT_FAC_ID, OneUserTest
 
 
-class TestLocalCreations(UnitTestCase):
+class TestLocalCreations(OneUserTest):
     def test_invalid_credentials_on_file_upload(self):
         local = self.local_1
         engine = self.engine_1
@@ -35,7 +35,7 @@ class TestLocalCreations(UnitTestCase):
             errors = dao.get_errors()
             assert len(errors) == 1
             assert errors[0].last_error == "INVALID_CREDENTIALS"
-            assert not self.remote_1.get_children_info(self.workspace_1)
+            assert not self.remote_1.get_children_info(self.workspace)
 
         # When the credentials are restored, retrying the sync should work
         errors = dao.get_errors()
@@ -43,7 +43,7 @@ class TestLocalCreations(UnitTestCase):
         self.wait_sync()
 
         assert not dao.get_errors()
-        children = self.remote_1.get_children_info(self.workspace_1)
+        children = self.remote_1.get_children_info(self.workspace)
         assert len(children) == 1
         assert children[0].name == file
         children = local.get_children_info("/")
@@ -144,7 +144,7 @@ class TestLocalCreations(UnitTestCase):
         self.wait_sync()
 
         # Checks
-        children = remote.get_children_info(self.workspace_1)
+        children = remote.get_children_info(self.workspace)
         assert len(children) == 1
         assert children[0].name == folder_upper
         children = local.get_children_info("/")
@@ -181,7 +181,7 @@ class TestLocalCreations(UnitTestCase):
         self.wait_sync()
 
         # Checks
-        children = remote.get_children_info(self.workspace_1)
+        children = remote.get_children_info(self.workspace)
         assert len(children) == 1
         assert children[0].name == filename_upper
         children = local.get_children_info("/")
@@ -255,7 +255,7 @@ class TestLocalCreations(UnitTestCase):
         local = self.local_1
         engine = self.engine_1
 
-        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+        workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         name = "東京スカイツリー.jpg"
         filepath = self.location / "resources" / name
         remote.stream_file(workspace_id, filepath)
@@ -276,7 +276,7 @@ class TestLocalCreations(UnitTestCase):
         local = self.local_1
         engine = self.engine_1
 
-        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+        workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         name = "こんにちは.jpg"
         filepath = self.location / "resources" / name
         remote.stream_file(workspace_id, filepath)
@@ -298,7 +298,7 @@ class TestLocalCreations(UnitTestCase):
         engine = self.engine_1
         sleep_time = 3
 
-        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+        workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         filename = "abc.txt"
         file_id = remote.make_file(workspace_id, filename, content=b"1234").uid
         after_ctime = time.time()
@@ -334,7 +334,7 @@ class TestLocalCreations(UnitTestCase):
         engine = self.engine_1
         sleep_time = 3
 
-        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+        workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         name = "東京スカイツリー.jpg"
         filename = self.location / "resources" / name
         file_id = remote.stream_file(workspace_id, filename).uid
@@ -372,7 +372,7 @@ class TestLocalCreations(UnitTestCase):
         engine = self.engine_1
         sleep_time = 3
 
-        workspace_id = f"defaultSyncRootFolderItemFactory#default#{self.workspace}"
+        workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
         name = "こんにちは.jpg"
         filename = self.location / "resources" / name
         file_id = remote.stream_file(workspace_id, filename).uid

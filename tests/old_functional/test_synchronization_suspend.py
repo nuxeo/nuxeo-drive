@@ -1,10 +1,10 @@
 # coding: utf-8
 
 from nxdrive.constants import WINDOWS
-from .common import UnitTestCase
+from .common import OneUserTest
 
 
-class TestSynchronizationSuspend(UnitTestCase):
+class TestSynchronizationSuspend(OneUserTest):
     def test_basic_synchronization_suspend(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -25,7 +25,7 @@ class TestSynchronizationSuspend(UnitTestCase):
         local.make_folder("/", "Folder 4")
         local.make_file("/Folder 4", "Test.txt", content=b"Plop")
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-        assert len(remote.get_children_info(self.workspace_1)) == 4
+        assert len(remote.get_children_info(self.workspace)) == 4
         assert self.engine_1.get_queue_manager().is_paused()
 
     def test_synchronization_local_watcher_paused_when_offline(self):
@@ -59,7 +59,7 @@ class TestSynchronizationSuspend(UnitTestCase):
         self.wait_sync(fail_if_timeout=False)
 
         # Checks
-        assert len(remote.get_children_info(self.workspace_1)) == 1
+        assert len(remote.get_children_info(self.workspace)) == 1
         assert engine.get_queue_manager().is_paused()
 
         # Restore network connection
@@ -67,7 +67,7 @@ class TestSynchronizationSuspend(UnitTestCase):
 
         # Wait for sync and check synced files
         self.wait_sync(wait_for_async=True)
-        assert len(remote.get_children_info(self.workspace_1)) == 2
+        assert len(remote.get_children_info(self.workspace)) == 2
         assert not engine.get_queue_manager().is_paused()
 
     def test_synchronization_end_with_children_ignore_parent(self):
@@ -94,4 +94,4 @@ class TestSynchronizationSuspend(UnitTestCase):
         local.make_file("/.hidden/normal", "Test.txt", content=b"Plop")
         # Should not try to sync therefor it should not timeout
         self.wait_sync(wait_for_async=True)
-        assert len(remote.get_children_info(self.workspace_1)) == 4
+        assert len(remote.get_children_info(self.workspace)) == 4

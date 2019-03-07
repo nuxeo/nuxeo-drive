@@ -5,11 +5,11 @@ from pathlib import Path
 import pytest
 
 from nxdrive.constants import LINUX, MAC
-from .common import UnitTestCase
+from .common import OneUserTest
 from ..markers import not_linux
 
 
-class TestMultipleFiles(UnitTestCase):
+class TestMultipleFiles(OneUserTest):
 
     NUMBER_OF_LOCAL_FILES = 10
     SYNC_TIMEOUT = 20  # in seconds
@@ -20,19 +20,21 @@ class TestMultipleFiles(UnitTestCase):
         2. create folder 'Nuxeo Drive Test Workspace/a2'
         2. create folder 'Nuxeo Drive Test Workspace/a3'
         """
-        super().setUp()
 
         self.engine_1.start()
         self.wait_sync()
         local = self.local_1
-        # create  folder a1
+
+        # Create  folder a1
         self.folder_path_1 = local.make_folder("/", "a1")
-        # add 100 files in folder 'Nuxeo Drive Test Workspace/a1'
+
+        # Add 100 files in folder 'Nuxeo Drive Test Workspace/a1'
         for file_num in range(1, self.NUMBER_OF_LOCAL_FILES + 1):
             local.make_file(
                 self.folder_path_1, "local%04d.txt" % file_num, content=b"content"
             )
-        # create  folder a2
+
+        # Create  folder a2
         self.folder_path_2 = local.make_folder("/", "a2")
         self.folder_path_3 = Path("a3")
         self.wait_sync(wait_for_async=True, timeout=self.SYNC_TIMEOUT)

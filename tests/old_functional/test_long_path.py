@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from nxdrive.constants import WINDOWS
 
-from .common import UnitTestCase
+from .common import OneUserTest
 
 
 # Number of chars in path "C:\...\Nuxeo..." is approx 96 chars
@@ -15,10 +15,8 @@ FOLDER_D = "D" * 50
 FILE = "F" * 255 + ".txt"
 
 
-class TestLongPath(UnitTestCase):
+class TestLongPath(OneUserTest):
     def setUp(self):
-        super().setUp()
-
         self.remote_1 = self.remote_document_client_1
         self.folder_a = self.remote_1.make_folder("/", FOLDER_A)
         self.folder_b = self.remote_1.make_folder(self.folder_a, FOLDER_B)
@@ -27,7 +25,6 @@ class TestLongPath(UnitTestCase):
 
     def tearDown(self):
         self.remote_1.delete(self.folder_a, use_trash=False)
-        super().tearDown()
 
     def test_long_path(self):
         self.engine_1.start()
@@ -75,8 +72,8 @@ class TestLongPath(UnitTestCase):
         self.engine_1 = self.manager_1.bind_server(
             self.local_nxdrive_folder_1,
             self.nuxeo_url,
-            self.user_2,
-            self.password_2,
+            self.user_1,
+            self.password_1,
             start_engine=False,
         )
 
@@ -84,7 +81,7 @@ class TestLongPath(UnitTestCase):
         self.engine_1.stop()
 
 
-class TestLongFileName(UnitTestCase):
+class TestLongFileName(OneUserTest):
     def test_long_file_name(self):
         def error(*_):
             nonlocal received

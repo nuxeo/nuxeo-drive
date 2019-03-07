@@ -2,10 +2,11 @@
 import shutil
 from pathlib import Path
 
-from .common import UnitTestCase
+from .common import OneUserTest
+from ..utils import random_png
 
 
-class TestLocalMoveFolders(UnitTestCase):
+class TestLocalMoveFolders(OneUserTest):
 
     NUMBER_OF_LOCAL_IMAGE_FILES = 10
 
@@ -31,7 +32,7 @@ class TestLocalMoveFolders(UnitTestCase):
         for path in {self.folder_path_1, self.folder_path_2}:
             for name in names:
                 file_path = local.abspath(path) / name
-                self.generate_random_png(file_path)
+                random_png(file_path)
 
         self.engine_1.start()
         self.wait_sync(timeout=30, wait_win=True)

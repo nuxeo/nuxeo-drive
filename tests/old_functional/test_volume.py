@@ -10,7 +10,8 @@ import pytest
 
 from nxdrive.constants import ROOT
 
-from .common import TEST_WORKSPACE_PATH, UnitTestCase
+from .common import OneUserTest
+from ..utils import random_png
 
 log = getLogger(__name__)
 
@@ -19,7 +20,7 @@ log = getLogger(__name__)
     "TEST_VOLUME" not in os.environ,
     reason="Deactivate if not launched on purpose with TEST_VOLUME set",
 )
-class VolumeTestCase(UnitTestCase):
+class VolumeTestCase(OneUserTest):
 
     NUMBER_OF_LOCAL_FILES = 10
     SYNC_TIMEOUT = 100  # in seconds
@@ -48,7 +49,7 @@ class VolumeTestCase(UnitTestCase):
                 folderobj["childs"][filename]["name"] = filename
                 if not self.fake:
                     file_path = os.path.join(abspath, filename)
-                    self.generate_random_png(file_path)
+                    random_png(file_path)
                 self.items += 1
 
     def create(self, stopped=True, wait_for_sync=True):
@@ -275,7 +276,7 @@ class VolumeTestCase(UnitTestCase):
     def test_remote_scan(self):
         nb_nodes = int(os.environ.get("TEST_REMOTE_SCAN_VOLUME", 20))
         # Random mass import
-        self.root_remote.mass_import(TEST_WORKSPACE_PATH, nb_nodes)
+        self.root_remote.mass_import(self.ws.path, nb_nodes)
         # Wait for ES indexing
         self.root_remote.wait_for_async_and_es_indexing()
         # Synchronize

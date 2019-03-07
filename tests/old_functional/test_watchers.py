@@ -7,10 +7,9 @@ from time import sleep
 
 from unittest.mock import patch
 
-from nxdrive.constants import ROOT, WINDOWS
-from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
+from nxdrive.constants import ROOT
 from . import LocalTest
-from .common import UnitTestCase
+from .common import OneUserTest
 from ..markers import not_windows
 
 
@@ -20,7 +19,7 @@ def copy_queue(queue: Queue) -> Queue:
     return result
 
 
-class TestWatchers(UnitTestCase):
+class TestWatchers(OneUserTest):
     def get_local_client(self, path):
         if self._testMethodName in {
             "test_local_scan_encoding",
@@ -28,6 +27,41 @@ class TestWatchers(UnitTestCase):
         }:
             return LocalTest(path)
         return super().get_local_client(path)
+
+    def make_local_tree(self, root=None, local_client=None):
+        nb_files, nb_folders = 6, 4
+        if not local_client:
+            local_client = LocalTest(self.engine_1.local_folder)
+        if not root:
+            root = Path(self.workspace_title)
+            if not local_client.exists(root):
+                local_client.make_folder(Path(), self.workspace_title)
+                nb_folders += 1
+        # create some folders
+        folder_1 = local_client.make_folder(root, "Folder 1")
+        folder_1_1 = local_client.make_folder(folder_1, "Folder 1.1")
+        folder_1_2 = local_client.make_folder(folder_1, "Folder 1.2")
+        folder_2 = local_client.make_folder(root, "Folder 2")
+
+        # create some files
+        local_client.make_file(
+            folder_2, "Duplicated File.txt", content=b"Some content."
+        )
+
+        local_client.make_file(folder_1, "File 1.txt", content=b"aaa")
+        local_client.make_file(folder_1_1, "File 2.txt", content=b"bbb")
+        local_client.make_file(folder_1_2, "File 3.txt", content=b"ccc")
+        local_client.make_file(folder_2, "File 4.txt", content=b"ddd")
+        local_client.make_file(root, "File 5.txt", content=b"eee")
+        return nb_files, nb_folders
+
+    def get_full_queue(self, queue, dao=None):
+        if dao is None:
+            dao = self.engine_1.get_dao()
+        result = []
+        while queue:
+            result.append(dao.get_state_from_id(queue.pop().id))
+        return result
 
     def test_local_scan(self):
         files, folders = self.make_local_tree()
@@ -104,9 +138,7 @@ class TestWatchers(UnitTestCase):
     def _delete_folder_1(self):
         path = Path("Folder 1")
         self.local_1.delete_final(path)
-        if WINDOWS:
-            sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000 + 1)
-        self.wait_sync(timeout=1, fail_if_timeout=False)
+        self.wait_sync(timeout=1, fail_if_timeout=False, wait_win=True)
 
         timeout = 5
         while not self.engine_1._local_watcher.empty_events():

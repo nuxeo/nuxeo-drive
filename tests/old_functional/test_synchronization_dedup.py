@@ -4,10 +4,10 @@ Test behaviors when the server allows duplicates and not the client.
 """
 from pathlib import Path
 
-from .common import UnitTestCase
+from .common import OneUserTest
 
 
-class TestSynchronizationDedup(UnitTestCase):
+class TestSynchronizationDedup(OneUserTest):
     def test_children_of_folder_in_dedup_error(self):
         """
         NXDRIVE-1037: Children of a folder that is in DEDUP error should be
@@ -20,12 +20,12 @@ class TestSynchronizationDedup(UnitTestCase):
         engine.start()
 
         # Step 1: create Unisys folder (1st)
-        remote.make_folder(self.workspace_1, "Unisys")
+        remote.make_folder(self.workspace, "Unisys")
         self.wait_sync(wait_for_async=True)
         assert local.exists("/Unisys")
 
         # Step 2: create Unisys folder (2nd)
-        unisys2 = remote.make_folder(self.workspace_1, "Unisys")
+        unisys2 = remote.make_folder(self.workspace, "Unisys")
         self.wait_sync(wait_for_async=True)
 
         # Check DEDUP error
@@ -48,7 +48,7 @@ class TestSynchronizationDedup(UnitTestCase):
         assert not engine.get_dao().get_syncing_count()
 
 
-class TestSynchronizationDedupCaseSensitive(UnitTestCase):
+class TestSynchronizationDedupCaseSensitive(OneUserTest):
     def test_file_sync_under_dedup_shared_folders_rename_dupe_remotely(self):
         """ NXDRIVE-842: do not sync duplicate conflicted folder content. """
 

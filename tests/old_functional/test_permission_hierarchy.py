@@ -1,5 +1,6 @@
 # coding: utf-8
 import hashlib
+from contextlib import suppress
 from pathlib import Path
 
 import pytest
@@ -7,29 +8,71 @@ import pytest
 from nxdrive.constants import WINDOWS
 from nxdrive.exceptions import Forbidden
 from . import LocalTest
-from .common import UnitTestCase
+from .common import OneUserTest, TwoUsersTest
 from ..markers import windows_only
 
 
-class TestPermissionHierarchy(UnitTestCase):
-    def setUpApp(self, **kwargs):
-        super().setUpApp(server_profile="permission")
+class TestPermissionHierarchy(OneUserTest):
+    def setup_method(self, method):
+        super().setup_method(method, register_roots=False, server_profile="permission")
 
-    def setUp(self):
+        self.local_1 = LocalTest(self.local_nxdrive_folder_1)
+
+        # Make sure user workspace is created and fetch its UID
+        res = self.remote_document_client_1.make_file_in_user_workspace(
+            b"contents", "USFile.txt"
+        )
+        self.workspace_uid = res["parentRef"]
+
+    def teardown_method(self, method):
+        with suppress(Exception):
+            self.root_remote.delete(self.workspace_uid, use_trash=False)
+        super().teardown_method(method)
+
+    def test_sync_delete_root(self):
+        # Create test folder in user workspace as test user
+        remote = self.remote_document_client_1
+        test_folder_uid = remote.make_folder(self.workspace_uid, "test_folder")
+        # Create a document in the test folder
+        remote.make_file(test_folder_uid, "test_file.txt", content=b"Some content.")
+
+        # Register test folder as a sync root
+        remote.register_as_root(test_folder_uid)
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Check locally synchronized content
+        root = Path("My Docs/test_folder")
+        assert self.local_1.exists(root)
+        assert self.local_1.exists(root / "test_file.txt")
+
+        # Delete test folder
+        remote.delete(test_folder_uid)
+        self.wait_sync(wait_for_async=True)
+
+        # Check locally synchronized content
+        assert not self.local_1.exists(root)
+        assert not self.local_1.get_children_info("/My Docs")
+
+
+class TestPermissionHierarchy2(TwoUsersTest):
+    def setup_method(self, method):
+        super().setup_method(method, register_roots=False, server_profile="permission")
+
         self.local_1 = LocalTest(self.local_nxdrive_folder_1)
         self.local_2 = LocalTest(self.local_nxdrive_folder_2)
 
         # Make sure user workspace is created and fetch its UID
         res = self.remote_document_client_1.make_file_in_user_workspace(
-            b"File in user workspace", "USFile.txt"
+            b"contents", "USFile.txt"
         )
         self.workspace_uid = res["parentRef"]
-        self.addCleanup(self.delete_wspace)
 
-    def delete_wspace(self):
-        # Cleanup user workspace
-        if self.workspace_uid and self.root_remote.exists(self.workspace_uid):
+    def teardown_method(self, method):
+        with suppress(Exception):
             self.root_remote.delete(self.workspace_uid, use_trash=False)
+        super().teardown_method(method)
 
     @windows_only(reason="Only Windows ignores file permissions.")
     def test_permission_awareness_after_resume(self):
@@ -94,37 +137,6 @@ class TestPermissionHierarchy(UnitTestCase):
         assert len(children) == 1
         assert children[0].name == "file.txt"
 
-    def test_sync_delete_root(self):
-        # Create test folder in user workspace as test user
-        remote = self.remote_document_client_1
-        test_folder_uid = remote.make_folder(self.workspace_uid, "test_folder")
-        # Create a document in the test folder
-        remote.make_file(test_folder_uid, "test_file.txt", content=b"Some content.")
-
-        # Register test folder as a sync root
-        remote.register_as_root(test_folder_uid)
-
-        # Start engine
-        self.engine_1.start()
-
-        # Wait for synchronization
-        self.wait_sync(wait_for_async=True)
-
-        # Check locally synchronized content
-        root = Path("My Docs/test_folder")
-        assert self.local_1.exists(root)
-        assert self.local_1.exists(root / "test_file.txt")
-
-        # Delete test folder
-        remote.delete(test_folder_uid)
-
-        # Wait for synchronization
-        self.wait_sync(wait_for_async=True)
-
-        # Check locally synchronized content
-        assert not self.local_1.exists(root)
-        assert not self.local_1.get_children_info("/My Docs")
-
     def test_sync_delete_shared_folder(self):
         remote = self.remote_document_client_1
         self.engine_1.start()
@@ -154,16 +166,14 @@ class TestPermissionHierarchy(UnitTestCase):
         children = self.local_1.get_children_info("/My Docs")
         assert len(children) == 1
 
+    @pytest.mark.randombug("NXDRIVE-1582")
     def test_sync_unshared_folder(self):
         # Register user workspace as a sync root for user1
         remote = self.remote_document_client_1
         remote2 = self.remote_document_client_2
         remote.register_as_root(self.workspace_uid)
 
-        # Start engine
         self.engine_2.start()
-
-        # Wait for synchronization
         self.wait_sync(
             wait_for_async=True, wait_for_engine_2=True, wait_for_engine_1=False
         )
@@ -183,7 +193,6 @@ class TestPermissionHierarchy(UnitTestCase):
 
         # Register test folder as a sync root for user2
         remote2.register_as_root(test_folder_uid)
-        # Wait for synchronization
         self.wait_sync(
             wait_for_async=True, wait_for_engine_2=True, wait_for_engine_1=False
         )
@@ -213,15 +222,16 @@ class TestPermissionHierarchy(UnitTestCase):
         assert not self.remote_2.get_fs_item(folder_a_fs)
         assert not self.remote_2.get_fs_item(folder_b_fs)
 
-    @pytest.mark.xfail(
-        WINDOWS,
-        reason="Following the NXDRIVE-836 fix, this test always fails because "
-        "when moving a file from a RO folder to a RW folder will end up"
-        " being a simple file creation. As we cannot know events order,"
-        " we cannot understand a local move is being made just before "
-        "a security update. To bo fixed with the engine refactoring.",
-    )
     def test_sync_move_permission_removal(self):
+        if WINDOWS:
+            pytest.xfail(
+                "Following the NXDRIVE-836 fix, this test always fails because "
+                "when moving a file from a RO folder to a RW folder will end up"
+                " being a simple file creation. As we cannot know events order,"
+                " we cannot understand a local move is being made just before "
+                "a security update. To bo fixed with the engine refactoring."
+            )
+
         remote = self.remote_document_client_1
         remote2 = self.remote_document_client_2
         local = self.local_2
@@ -282,9 +292,10 @@ class TestPermissionHierarchy(UnitTestCase):
         )
 
         # Status check
-        assert not self.engine_2.get_dao().get_errors(limit=0)
-        assert not self.engine_2.get_dao().get_filters()
-        assert not self.engine_2.get_dao().get_unsynchronizeds()
+        dao = self.engine_2.get_dao()
+        assert not dao.get_errors(limit=0)
+        assert not dao.get_filters()
+        assert not dao.get_unsynchronizeds()
 
         # Local checks
         assert not local.exists(root / "ReadFolder/file_ro.txt")

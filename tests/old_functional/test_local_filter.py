@@ -1,9 +1,9 @@
 # coding: utf-8
 
-from .common import UnitTestCase
+from .common import FS_ITEM_ID_PREFIX, SYNC_ROOT_FAC_ID, OneUserTest
 
 
-class TestLocalFilter(UnitTestCase):
+class TestLocalFilter(OneUserTest):
     def test_synchronize_local_filter(self):
         """Test that filtering remote documents is impacted client side
 
@@ -43,10 +43,9 @@ class TestLocalFilter(UnitTestCase):
         root_path = (
             "/org.nuxeo.drive.service.impl."
             "DefaultTopLevelFolderItemFactory#/"
-            "defaultSyncRootFolderItemFactory#default#"
+            f"{SYNC_ROOT_FAC_ID}{doc.root}"
         )
-        root_path = root_path + doc.root
-        doc_path = root_path + "/defaultFileSystemItemFactory#default#" + doc.uid
+        doc_path = f"{root_path}/{FS_ITEM_ID_PREFIX}{doc.uid}"
 
         self.engine_1.add_filter(doc_path)
         self.wait_sync()
@@ -131,16 +130,9 @@ class TestLocalFilter(UnitTestCase):
         root_path = (
             "/org.nuxeo.drive.service.impl."
             "DefaultTopLevelFolderItemFactory#/"
-            "defaultSyncRootFolderItemFactory#default#"
+            f"{SYNC_ROOT_FAC_ID}{doc.root}"
         )
-        root_path = root_path + doc.root
-        doc_path_filtered = (
-            root_path
-            + "/defaultFileSystemItemFactory#default#"
-            + doc.uid
-            + "/defaultFileSystemItemFactory#default#"
-            + filtered_doc.uid
-        )
+        doc_path_filtered = f"{root_path}/{FS_ITEM_ID_PREFIX}{doc.uid}/{FS_ITEM_ID_PREFIX}{filtered_doc.uid}"
 
         self.engine_1.add_filter(doc_path_filtered)
         self.wait_sync()
@@ -192,10 +184,9 @@ class TestLocalFilter(UnitTestCase):
         root_path = (
             "/org.nuxeo.drive.service.impl."
             "DefaultTopLevelFolderItemFactory#/"
-            "defaultSyncRootFolderItemFactory#default#"
+            f"{SYNC_ROOT_FAC_ID}{doc.root}"
         )
-        root_path = root_path + doc.root
-        doc_path = root_path + "/defaultFileSystemItemFactory#default#" + doc.uid
+        doc_path = f"{root_path}/{FS_ITEM_ID_PREFIX}{doc.uid}"
 
         self.engine_1.add_filter(doc_path)
         self.wait_sync()

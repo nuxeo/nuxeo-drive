@@ -31,12 +31,12 @@ from requests import ConnectionError
 
 from nxdrive.client.remote_client import Remote
 from nxdrive.objects import RemoteFileInfo
-from .common import TEST_DEFAULT_DELAY, UnitTestCase
+from .common import TEST_DEFAULT_DELAY, TwoUsersTest
 
 log = getLogger(__name__)
 
 
-class TestBulkRemoteChanges(UnitTestCase):
+class TestBulkRemoteChanges(TwoUsersTest):
     """
     Test Bulk Remote Changes when network error happen in get_children_info()
     will simulate network error when required.  test_many_changes method will

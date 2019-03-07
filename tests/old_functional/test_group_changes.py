@@ -3,219 +3,142 @@ from logging import getLogger
 
 from nuxeo.models import Document, Group
 
-from . import DocRemote
-from .common import UnitTestCase
+from .common import OneUserTest, TEST_WS_DIR, root_remote, salt
 
 log = getLogger(__name__)
 
 
-class TestGroupChanges(UnitTestCase):
+class TestGroupChanges(OneUserTest):
     """
     Test that changes on groups are detected by Drive.
     See https://jira.nuxeo.com/browse/NXP-14830.
     """
 
     def setUp(self):
-        super().setUp()
-        remote = self.root_remote
+        self.group1 = salt("group1")
+        self.group2 = salt("group2")
+        self.parent_group = salt("parentGroup")
+        self.grand_parent_group = salt("grandParentGroup")
+        self.new_groups = (
+            Group(groupname=self.group1, memberUsers=[self.user_1]),
+            Group(groupname=self.group2, memberUsers=[self.user_1]),
+            Group(groupname=self.parent_group, memberGroups=[self.group1]),
+            Group(groupname=self.grand_parent_group, memberGroups=[self.parent_group]),
+        )
+        for group in self.new_groups:
+            self.root_remote.groups.create(group)
 
         # Create test workspace
-        workspaces_path = "/default-domain/workspaces"
-        workspace_name = "groupChangesTestWorkspace"
-        self.workspace_path = workspaces_path + "/" + workspace_name
-
-        self.workspace = remote.documents.create(
+        workspace_name = salt("groupChangesTestWorkspace")
+        self.workspace_group = self.root_remote.documents.create(
             Document(
                 name=workspace_name,
                 type="Workspace",
-                properties={"dc:title": "Group Changes Test Workspace"},
+                properties={"dc:title": workspace_name},
             ),
-            parent_path=workspaces_path,
+            parent_path=TEST_WS_DIR,
         )
+        self.workspace_path = self.workspace_group.path
 
-        # Create test groups
-        group_names = self.get_group_names()
-        for group in ("group1", "group2", "parentGroup", "grandParentGroup"):
-            if group in group_names:
-                remote.groups.delete(group)
+        self.admin_remote = root_remote(base_folder=self.workspace_path)
 
-        for group in [
-            Group(groupname="group1", memberUsers=["driveuser_1"]),
-            Group(groupname="group2", memberUsers=["driveuser_1"]),
-            Group(groupname="parentGroup", memberGroups=["group1"]),
-            Group(groupname="grandParentGroup", memberGroups=["parentGroup"]),
-        ]:
-            remote.groups.create(group)
-
-        group_names = self.get_group_names()
-        assert "group1" in group_names
-        assert "group2" in group_names
-        assert "parentGroup" in group_names
-        assert "grandParentGroup" in group_names
-
-        self.admin_remote = DocRemote(
-            self.nuxeo_url,
-            "Administrator",
-            "nxdrive-test-administrator-device",
-            self.version,
-            password="Administrator",
-            base_folder=self.workspace_path,
-        )
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
 
     def tearDown(self):
-        remote = self.root_remote
+        self.workspace_group.delete()
+        for group in reversed(self.new_groups):
+            self.root_remote.groups.delete(group.groupname)
 
-        # Delete test workspace
-        self.workspace.delete()
-
-        # Delete test groups
-        remote.groups.delete("grandParentGroup")
-        remote.groups.delete("parentGroup")
-        remote.groups.delete("group2")
-        remote.groups.delete("group1")
-
-        group_names = self.get_group_names()
-        assert "group1" not in group_names
-        assert "group2" not in group_names
-        assert "parentGroup" not in group_names
-        assert "grandParentGroup" not in group_names
-
-        super().tearDown()
-
-    def get_group_names(self):
-        return [
-            entry["groupname"]
-            for entry in self.remote_1.client.request(
-                "GET", (self.remote_1.client.api_path + "/groups/search?q=*")
-            ).json()["entries"]
-        ]
+    def set_ace(self, user, doc):
+        log.debug(f"Grant ReadWrite permission to  {user} on {doc}")
+        self.admin_remote.execute(
+            command="Document.SetACE",
+            input_obj=f"doc:{doc}",
+            user=user,
+            permission="ReadWrite",
+        )
 
     def test_group_changes_on_sync_root(self):
         """
         Test changes on a group that has access to a synchronization root.
         """
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
-
         log.debug("Create syncRoot folder")
         sync_root_id = self.admin_remote.make_folder("/", "syncRoot")
 
-        log.debug("Grant ReadWrite permission to group1 on syncRoot")
-        self.admin_remote.execute(
-            command="Document.SetACE",
-            input_obj=f"doc:{sync_root_id}",
-            user="group1",
-            permission="ReadWrite",
-        )
+        self.set_ace(self.group1, sync_root_id)
 
         log.debug("Register syncRoot for driveuser_1")
-        self._register_sync_root_user1(sync_root_id)
+        self.remote_1.register_as_root(sync_root_id)
 
         log.debug("Check that syncRoot is created locally")
         self.wait_sync(wait_for_async=True)
         assert self.local_root_client_1.exists("/syncRoot")
 
-        self._test_group_changes("/syncRoot", "group1")
+        self._test_group_changes("/syncRoot", self.group1)
 
     def test_group_changes_on_sync_root_child(self):
         """
         Test changes on a group that has access
         to a child of a synchronization root.
         """
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
-
         log.debug("Create syncRoot folder")
         sync_root_id = self.admin_remote.make_folder("/", "syncRoot")
 
         log.debug("Create child folder")
         child_id = self.admin_remote.make_folder("/syncRoot", "child")
 
-        log.debug("Grant ReadWrite permission to group1 on syncRoot")
-        self.admin_remote.execute(
-            command="Document.SetACE",
-            input_obj=f"doc:{sync_root_id}",
-            user="group1",
-            permission="ReadWrite",
-        )
-
-        log.debug("Grant ReadWrite permission to group2 on child")
-        self.admin_remote.execute(
-            command="Document.SetACE",
-            input_obj=f"doc:{child_id}",
-            user="group2",
-            permission="ReadWrite",
-        )
+        self.set_ace(self.group1, sync_root_id)
+        self.set_ace(self.group2, child_id)
 
         log.debug("Block inheritance on child")
         self.admin_remote.block_inheritance(child_id, overwrite=False)
 
         log.debug("Register syncRoot for driveuser_1")
-        self._register_sync_root_user1(sync_root_id)
+        self.remote_1.register_as_root(sync_root_id)
 
         log.debug("Check that syncRoot and child are created locally")
         self.wait_sync(wait_for_async=True)
         assert self.local_root_client_1.exists("/syncRoot")
         assert self.local_root_client_1.exists("/syncRoot/child")
 
-        self._test_group_changes("/syncRoot/child", "group2")
+        self._test_group_changes("/syncRoot/child", self.group2)
 
     def test_group_changes_on_sync_root_parent(self):
         """
         Test changes on a group that has access
         to the parent of a synchronization root.
         """
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
-
         log.debug("Create parent folder")
         parent_id = self.admin_remote.make_folder("/", "parent")
 
         log.debug("Create syncRoot folder")
         sync_root_id = self.admin_remote.make_folder("/parent", "syncRoot")
 
-        log.debug("Grant ReadWrite permission to group1 on parent")
-        self.admin_remote.execute(
-            command="Document.SetACE",
-            input_obj=f"doc:{parent_id}",
-            user="group1",
-            permission="ReadWrite",
-        )
+        self.set_ace(self.group1, parent_id)
 
         log.debug("Register syncRoot for driveuser_1")
-        self._register_sync_root_user1(sync_root_id)
+        self.remote_1.register_as_root(sync_root_id)
 
         log.debug("Check that syncRoot is created locally")
         self.wait_sync(wait_for_async=True)
         assert self.local_root_client_1.exists("/syncRoot")
 
-        self._test_group_changes("/syncRoot", "group1")
+        self._test_group_changes("/syncRoot", self.group1)
 
     def test_changes_with_parent_group(self):
         """
         Test changes on the parent group of a group
         that has access to a synchronization root.
         """
-        self._test_group_changes_with_ancestor_groups("parentGroup")
+        self._test_group_changes_with_ancestor_groups(self.parent_group)
 
     def test_changes_with_grand_parent_group(self):
         """
         Test changes on the grandparent group of a group
         that has access to a synchronization root.
         """
-        self._test_group_changes_with_ancestor_groups("grandParentGroup")
-
-    def _register_sync_root_user1(self, sync_root_id):
-        user1_remote = DocRemote(
-            self.nuxeo_url,
-            self.user_1,
-            "nxdrive-test-device-1",
-            self.version,
-            password=self.password_1,
-            base_folder=sync_root_id,
-            upload_tmp_dir=self.upload_tmp_dir,
-        )
-        user1_remote.register_as_root(sync_root_id)
+        self._test_group_changes_with_ancestor_groups(self.grand_parent_group)
 
     def _test_group_changes(self, folder_path, group_name, need_parent=False):
         """
@@ -244,7 +167,7 @@ class TestGroupChanges(UnitTestCase):
         assert not local.exists(folder_path)
 
         log.debug("Add driveuser_1 to %s", group_name)
-        group.memberUsers = ["driveuser_1"]
+        group.memberUsers = [self.user_1]
         group.save()
 
         log.debug("Check that %s is created locally", folder_path)
@@ -259,7 +182,7 @@ class TestGroupChanges(UnitTestCase):
         assert not local.exists(folder_path)
 
         log.debug("Create %s", group_name)
-        remote.groups.create(Group(groupname=group_name, memberUsers=["driveuser_1"]))
+        remote.groups.create(Group(groupname=group_name, memberUsers=[self.user_1]))
 
         if need_parent:
             log.debug(
@@ -272,7 +195,7 @@ class TestGroupChanges(UnitTestCase):
             assert not local.exists(folder_path)
 
             log.trace("Add %s as a subgroup of parentGroup", group_name)
-            group = remote.groups.get("parentGroup")
+            group = remote.groups.get(self.parent_group)
             group.memberGroups = [group_name]
             group.save()
 
@@ -285,26 +208,16 @@ class TestGroupChanges(UnitTestCase):
         Test changes on a descendant group of the given group
         that has access to a synchronization root.
         """
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
-
         log.debug("Create syncRoot folder")
         sync_root_id = self.admin_remote.make_folder("/", "syncRoot")
 
-        log.debug("Grant ReadWrite permission to %s on syncRoot", ancestor_group)
-
-        self.admin_remote.execute(
-            command="Document.SetACE",
-            input_obj=f"doc:{sync_root_id}",
-            user=ancestor_group,
-            permission="ReadWrite",
-        )
+        self.set_ace(ancestor_group, sync_root_id)
 
         log.debug("Register syncRoot for driveuser_1")
-        self._register_sync_root_user1(sync_root_id)
+        self.remote_1.register_as_root(sync_root_id)
 
         log.debug("Check that syncRoot is created locally")
         self.wait_sync(wait_for_async=True)
         assert self.local_root_client_1.exists("/syncRoot")
 
-        self._test_group_changes("/syncRoot", "group1", need_parent=True)
+        self._test_group_changes("/syncRoot", self.group1, need_parent=True)

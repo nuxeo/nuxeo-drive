@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH, UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest
 
 
-class TestSecurityUpdates(UnitTestCase):
+class TestSecurityUpdates(OneUserTest):
     def test_synchronize_denying_read_access(self):
         """Test that denying Read access server side is impacted client side
 
@@ -42,28 +42,24 @@ class TestSecurityUpdates(UnitTestCase):
 
         # Remove Read permission for test user on a regular folder
         # then synchronize
-        self._set_read_permission(
-            self.user_1, TEST_WORKSPACE_PATH + "/Test folder", False
-        )
+        self._set_read_permission(self.user_1, f"{self.ws.path}/Test folder", False)
         self.wait_sync(wait_for_async=True)
         assert not local.exists("/Test folder")
 
         # Add Read permission back for test user then synchronize
-        self._set_read_permission(
-            self.user_1, TEST_WORKSPACE_PATH + "/Test folder", True
-        )
+        self._set_read_permission(self.user_1, f"{self.ws.path}/Test folder", True)
         self.wait_sync(wait_for_async=True)
         assert local.exists("/Test folder")
         assert local.exists("/Test folder/joe.txt")
 
         # Remove Read permission for test user on a sync root
         # then synchronize
-        self._set_read_permission(self.user_1, TEST_WORKSPACE_PATH, False)
+        self._set_read_permission(self.user_1, self.ws.path, False)
         self.wait_sync(wait_for_async=True)
         assert not local.exists("/")
 
         # Add Read permission back for test user then synchronize
-        self._set_read_permission(self.user_1, TEST_WORKSPACE_PATH, True)
+        self._set_read_permission(self.user_1, self.ws.path, True)
         self.wait_sync(wait_for_async=True)
         assert local.exists("/")
         assert local.exists("/Test folder")
@@ -123,7 +119,7 @@ class TestSecurityUpdates(UnitTestCase):
 
         # Remove Read permission for test user on a regular folder
         # and make some local and remote changes concurrently then synchronize
-        test_folder_path = TEST_WORKSPACE_PATH + "/Test folder"
+        test_folder_path = f"{self.ws.path}/Test folder"
         self._set_read_permission(self.user_1, test_folder_path, False)
         # Local changes
         time.sleep(OS_STAT_MTIME_RESOLUTION)
@@ -186,7 +182,7 @@ class TestSecurityUpdates(UnitTestCase):
         self._check_pair_state("/Test folder/local.odt", "unsynchronized")
         self._check_pair_state("/Test folder/Local sub folder 2", "unsynchronized")
         self._check_pair_state(
-            "/Test folder/Local sub folder 2" "/local sub file 2.txt", "unsynchronized"
+            "/Test folder/Local sub folder 2/local sub file 2.txt", "unsynchronized"
         )
         # Remote check
         test_folder_uid = root_remote.get_info(test_folder_path).uid
@@ -202,19 +198,17 @@ class TestSecurityUpdates(UnitTestCase):
         assert root_remote.exists(test_folder_path + "/Sub folder 1/sub file 1.txt")
         assert root_remote.exists(test_folder_path + "/Remote sub folder 2")
         assert root_remote.exists(
-            test_folder_path + "/Remote sub folder 2" "/remote sub file 2.txt"
+            f"{test_folder_path}/Remote sub folder 2/remote sub file 2.txt"
         )
 
         assert not root_remote.exists(test_folder_path + "/local.odt")
         assert not root_remote.exists(test_folder_path + "/Local sub folder 2")
         assert not root_remote.exists(
-            test_folder_path + "/Local sub folder 1" "/local sub file 2.txt"
+            f"{test_folder_path}/Local sub folder 1/local sub file 2.txt"
         )
 
         # Add Read permission back for test user then synchronize
-        self._set_read_permission(
-            self.user_1, TEST_WORKSPACE_PATH + "/Test folder", True
-        )
+        self._set_read_permission(self.user_1, f"{self.ws.path}/Test folder", True)
         self.wait_sync(wait_for_async=True)
         # Remote documents should be merged with locally modified content
         # which should be unmarked as 'unsynchronized' and therefore
@@ -264,13 +258,13 @@ class TestSecurityUpdates(UnitTestCase):
                 local_version = info
         assert remote_version is not None
         assert local_version is not None
-        remote_version_ref_length = len(remote_version.path) - len(TEST_WORKSPACE_PATH)
+        remote_version_ref_length = len(remote_version.path) - len(self.ws.path)
         remote_version_ref = remote_version.path[-remote_version_ref_length:]
         assert remote.exists(remote_version_ref)
         assert (
             remote.get_content(remote_version_ref) == b"Some remotely updated content"
         )
-        local_version_ref_length = len(local_version.path) - len(TEST_WORKSPACE_PATH)
+        local_version_ref_length = len(local_version.path) - len(self.ws.path)
         local_version_ref = local_version.path[-local_version_ref_length:]
         assert remote.exists(local_version_ref)
         assert remote.get_content(local_version_ref) == b"Some locally updated content"

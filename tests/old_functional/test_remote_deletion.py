@@ -8,13 +8,13 @@ from unittest.mock import patch
 import pytest
 
 from nxdrive.engine.engine import Engine
-from .common import OS_STAT_MTIME_RESOLUTION, UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
 
 
 log = getLogger(__name__)
 
 
-class TestRemoteDeletion(UnitTestCase):
+class TestRemoteDeletion(OneUserTest):
     def test_synchronize_remote_deletion(self):
         """Test that deleting remote documents is impacted client side
 
@@ -112,7 +112,7 @@ class TestRemoteDeletion(UnitTestCase):
                 # Delete remote file while downloading
                 try:
                     remote.delete("/Test folder/testFile.pdf")
-                except:
+                except Exception:
                     log.exception("Cannot trash")
                 else:
                     self.engine_1.has_delete = True
@@ -171,34 +171,6 @@ class TestRemoteDeletion(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         assert local.exists("/joe.txt")
 
-    def test_synchronize_local_folder_lost_permission(self):
-        """Test local folder rename followed by remote deletion"""
-        # Bind the server and root workspace
-
-        # Get local and remote clients
-        self.engine_2.start()
-        local = self.local_2
-        remote = self.remote_document_client_2
-
-        # Create a folder with a child file in the remote root workspace
-        # then synchronize
-        test_folder_uid = remote.make_folder("/", "Test folder")
-        remote.make_file(test_folder_uid, "joe.odt", content=b"Some content")
-
-        self.wait_sync(
-            wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True
-        )
-        assert local.exists("/Test folder")
-        assert local.exists("/Test folder/joe.odt")
-        input_obj = "doc:" + self.workspace
-        self.root_remote.execute(
-            command="Document.RemoveACL", input_obj=input_obj, acl="local"
-        )
-        self.wait_sync(
-            wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True
-        )
-        assert not local.exists("/Test folder")
-
     def test_synchronize_local_folder_rename_remote_deletion(self):
         """Test local folder rename followed by remote deletion"""
         # Bind the server and root workspace
@@ -232,3 +204,33 @@ class TestRemoteDeletion(UnitTestCase):
         self.wait_sync(wait_for_async=True)
         assert not remote.exists("/Test folder renamed")
         assert not local.exists("/Test folder renamed")
+
+
+class TestRemoteDeletion2(TwoUsersTest):
+    def test_synchronize_local_folder_lost_permission(self):
+        """Test local folder rename followed by remote deletion"""
+        # Bind the server and root workspace
+
+        # Get local and remote clients
+        self.engine_2.start()
+        local = self.local_2
+        remote = self.remote_document_client_2
+
+        # Create a folder with a child file in the remote root workspace
+        # then synchronize
+        test_folder_uid = remote.make_folder("/", "Test folder")
+        remote.make_file(test_folder_uid, "joe.odt", content=b"Some content")
+
+        self.wait_sync(
+            wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True
+        )
+        assert local.exists("/Test folder")
+        assert local.exists("/Test folder/joe.odt")
+        input_obj = "doc:" + self.workspace
+        self.root_remote.execute(
+            command="Document.RemoveACL", input_obj=input_obj, acl="local"
+        )
+        self.wait_sync(
+            wait_for_async=True, wait_for_engine_1=False, wait_for_engine_2=True
+        )
+        assert not local.exists("/Test folder")

@@ -1,10 +1,10 @@
 # coding: utf-8
 import shutil
 
-from .common import FILE_CONTENT, UnitTestCase
+from .common import FILE_CONTENT, OneUserTest
 
 
-class TestLocalCopyPaste(UnitTestCase):
+class TestLocalCopyPaste(OneUserTest):
 
     NUMBER_OF_LOCAL_TEXT_FILES = 10
     NUMBER_OF_LOCAL_IMAGE_FILES = 10
@@ -19,8 +19,6 @@ class TestLocalCopyPaste(UnitTestCase):
     """
 
     def setUp(self):
-        super().setUp()
-
         remote = self.remote_1
         local = self.local_1
         self.engine_1.start()
@@ -36,7 +34,7 @@ class TestLocalCopyPaste(UnitTestCase):
         # NXDRIVE-477 If created after files are created inside A,
         # creation of B isn't detected wy Watchdog!
         # Reproducible with watchdemo, need to investigate.
-        # That's why we are now using local scan for setUp.
+        # That's why we are now using local scan for setup_method().
         local.make_folder("/", "B")
         self.folder_path_2 = "/B"
 

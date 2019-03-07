@@ -3,20 +3,16 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-from nuxeo.exceptions import HTTPError
 from requests import ConnectionError
+from nuxeo.exceptions import HTTPError
 
 from nxdrive.constants import ROOT, WINDOWS
+from nxdrive.exceptions import Forbidden
 from . import LocalTest, ensure_no_exception
-from .common import OS_STAT_MTIME_RESOLUTION, TEST_WORKSPACE_PATH, UnitTestCase
+from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
 
 
-class TestSynchronization(UnitTestCase):
-    def get_local_client(self, path):
-        if self._testMethodName == "test_synchronize_deep_folders":
-            return LocalTest(path)
-        return super().get_local_client(path)
-
+class TestSynchronization(OneUserTest):
     def test_binding_initialization_and_first_sync(self):
         local = self.local_1
         remote = self.remote_document_client_1
@@ -143,22 +139,15 @@ class TestSynchronization(UnitTestCase):
         self.wait_sync(wait_for_async=True)
 
         # Simulate bad responses
-        bad_remote = self.get_bad_remote()
-        errors = [
-            HTTPError(status=401, message="Mock"),
-            HTTPError(status=403, message="Mock"),
-        ]
+        with patch.object(self.engine_1, "remote", new=self.get_bad_remote()):
+            self.engine_1.remote.request_token()
+            self.engine_1.remote.make_server_call_raise(Forbidden())
+            self.wait_sync(wait_for_async=True, fail_if_timeout=False)
+            assert self.engine_1.is_offline()
 
-        with patch.object(self.engine_1, "remote", new=bad_remote):
-            for error in errors:
-                self.engine_1.remote.request_token()
-                self.engine_1.remote.make_server_call_raise(error)
-                self.wait_sync(wait_for_async=True, fail_if_timeout=False)
-                assert self.engine_1.is_offline()
-
-                self.engine_1.set_offline(value=False)
-                self.engine_1.set_invalid_credentials(value=False)
-                self.engine_1.resume()
+            self.engine_1.set_offline(value=False)
+            self.engine_1.set_invalid_credentials(value=False)
+            self.engine_1.resume()
 
     def test_synchronization_modification_on_created_file(self):
         # Regression test: a file is created locally, then modification is
@@ -399,71 +388,6 @@ class TestSynchronization(UnitTestCase):
         for state in children:
             assert state.pair_state == "synchronized"
 
-    def test_conflict_detection(self):
-        # Fetch the workspace sync root
-        local = self.local_1
-        dao = self.engine_1.get_dao()
-        workspace_path = Path(self.workspace_title)
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
-        assert local.exists("/")
-
-        # Let's create a file on the client and synchronize it.
-        local_path = local.make_file("/", "Some File.doc", content=b"Original content.")
-        self.wait_sync()
-
-        # Let's modify it concurrently but with the same content (digest)
-        self.engine_1.suspend()
-        time.sleep(OS_STAT_MTIME_RESOLUTION)
-        local.update_content(local_path, b"Same new content.")
-
-        remote_2 = self.remote_document_client_2
-        remote_2.update_content("/Some File.doc", b"Same new content.")
-        self.engine_1.resume()
-
-        # Let's synchronize and check the conflict handling: automatic
-        # resolution will work for this case
-        self.wait_sync(wait_for_async=True)
-        assert not self.engine_1.get_conflicts()
-        children = dao.get_states_from_partial_local(workspace_path)
-        assert len(children) == 1
-        assert children[0].pair_state == "synchronized"
-
-        local_children = local.get_children_info("/")
-        assert len(local_children) == 1
-        assert local_children[0].name == "Some File.doc"
-        assert local.get_content(local_path) == b"Same new content."
-        remote_1 = self.remote_document_client_1
-        remote_children = remote_1.get_children_info(self.workspace)
-        assert len(remote_children) == 1
-        assert remote_children[0].get_blob("file:content").name == "Some File.doc"
-        assert remote_1.get_content("/Some File.doc") == b"Same new content."
-
-        # Let's trigger another conflict that cannot be resolved
-        # automatically:
-        self.engine_1.suspend()
-        time.sleep(OS_STAT_MTIME_RESOLUTION)
-        local.update_content(local_path, b"Local new content.")
-
-        remote_2.update_content("/Some File.doc", b"Remote new content.")
-        self.engine_1.resume()
-
-        # Let's synchronize and check the conflict handling
-        self.wait_sync(wait_for_async=True)
-        assert len(self.engine_1.get_conflicts()) == 1
-        children = dao.get_states_from_partial_local(workspace_path)
-        assert len(children) == 1
-        assert children[0].pair_state == "conflicted"
-
-        local_children = local.get_children_info("/")
-        assert len(local_children) == 1
-        assert local_children[0].name == "Some File.doc"
-        assert local.get_content(local_path) == b"Local new content."
-        remote_children = remote_1.get_children_info(self.workspace)
-        assert len(remote_children) == 1
-        assert remote_children[0].get_blob("file:content").name == "Some File.doc"
-        assert remote_1.get_content("/Some File.doc") == b"Remote new content."
-
     def test_create_content_in_readonly_area(self):
         dao = self.engine_1.get_dao()
         self.engine_1.start()
@@ -556,14 +480,8 @@ class TestSynchronization(UnitTestCase):
         assert readonly_folder_state.remote_can_create_child
 
         # Set remote folder as readonly for test user
-        readonly_folder_path = TEST_WORKSPACE_PATH + "/Readonly folder"
-        input_obj = "doc:" + readonly_folder_path
-        self.root_remote.execute(
-            command="Document.SetACE",
-            input_obj=input_obj,
-            user=self.user_1,
-            permission="Read",
-        )
+        readonly_folder_path = f"{self.ws.path}/Readonly folder"
+        self._set_read_permission(self.user_1, readonly_folder_path, True)
         self.root_remote.block_inheritance(readonly_folder_path, overwrite=False)
 
         # Wait to make sure permission change is detected.
@@ -676,6 +594,7 @@ class TestSynchronization(UnitTestCase):
             self.engine_1.stop()
 
             pair = dao.get_state_from_local(path)
+            assert pair
             assert pair.error_count
             assert pair.pair_state == "remotely_created"
 
@@ -774,15 +693,175 @@ class TestSynchronization(UnitTestCase):
         remote.make_file(target, "bFile.txt", content=b"File B Content")
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
-        assert local.exists("/Nuxeo Drive Test Workspace")
+        assert local.exists(f"/{self.workspace_title}")
         if WINDOWS:
-            assert local.exists("/Nuxeo Drive Test Workspace/trial/")
-            assert local.exists("/Nuxeo Drive Test Workspace/trial/aFile.txt")
-            assert local.exists("/Nuxeo Drive Test Workspace/trial/bFile.txt")
+            assert local.exists(f"/{self.workspace_title}/trial/")
+            assert local.exists(f"/{self.workspace_title}/trial/aFile.txt")
+            assert local.exists(f"/{self.workspace_title}/trial/bFile.txt")
         else:
-            assert local.exists("/Nuxeo Drive Test Workspace/trial /")
-            assert local.exists("/Nuxeo Drive Test Workspace/trial /aFile.txt")
-            assert local.exists("/Nuxeo Drive Test Workspace/trial /bFile.txt")
+            assert local.exists(f"/{self.workspace_title}/trial /")
+            assert local.exists(f"/{self.workspace_title}/trial /aFile.txt")
+            assert local.exists(f"/{self.workspace_title}/trial /bFile.txt")
+
+    def test_409_conflict(self):
+        """
+        Test concurrent upload with files having the same first characters.
+        """
+
+        remote = self.remote_document_client_1
+        local = self.local_1
+        engine = self.engine_1
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+        assert local.exists("/")
+
+        def _raise_for_second_file_only(*args, **kwargs):
+            return kwargs.get("filename").endswith("2.txt")
+
+        # Simulate a server conflict on file upload
+        bad_remote = self.get_bad_remote()
+        error = HTTPError(status=409, message="Mock Conflict")
+        bad_remote.make_upload_raise(error)
+        bad_remote.raise_on = _raise_for_second_file_only
+
+        with patch.object(self.engine_1, "remote", new=bad_remote):
+            # Create 2 files locally
+            base = "A" * 40
+            file1 = base + "1.txt"
+            file2 = base + "2.txt"
+            local.make_file("/", file1, content=b"foo")
+            local.make_file("/", file2, content=b"bar")
+
+            self.wait_sync(fail_if_timeout=False)
+
+            # Checks
+            assert engine.get_dao()._queue_manager.get_errors_count() == 1
+            children = remote.get_children_info(self.workspace)
+            assert len(children) == 1
+            assert children[0].name == file1
+
+        # Starting here, default behavior is restored
+        self.wait_sync()
+
+        # Checks
+        children = remote.get_children_info(self.workspace)
+        assert len(children) == 2
+        assert children[0].name == file1
+        assert children[1].name == file2
+
+    def test_local_modify_offline(self):
+        local = self.local_1
+        engine = self.engine_1
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        local.make_folder("/", "Test")
+        local.make_file("/Test", "Test.txt", content=b"Some content")
+        self.wait_sync()
+
+        engine.stop()
+        local.update_content("/Test/Test.txt", b"Another content")
+
+        engine.start()
+        self.wait_sync()
+        assert not engine.get_dao().get_errors()
+
+    def test_unsynchronize_accentued_document(self):
+        remote = self.remote_document_client_1
+        local = self.local_1
+        engine = self.engine_1
+        engine.start()
+
+        # Create the folder
+        root_name = "Été indien"
+        root = remote.make_folder(self.workspace, root_name)
+        self.wait_sync(wait_for_async=True)
+        assert local.exists("/" + root_name)
+
+        # Remove the folder
+        remote.delete(root)
+        self.wait_sync(wait_for_async=True)
+        assert not local.exists("/" + root_name)
+
+    def test_synchronize_document_with_pattern(self):
+        """
+        Simple test to ensure there is no issue with files like "$AAA000$.doc".
+        Related to NXDRIVE-1287.
+        """
+        name = "$NAB184$.doc"
+        self.remote_document_client_1.make_file("/", name, content=b"42")
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        assert self.local_1.exists(f"/{name}")
+
+
+class TestSynchronization2(TwoUsersTest):
+    def test_conflict_detection(self):
+        # Fetch the workspace sync root
+        local = self.local_1
+        dao = self.engine_1.get_dao()
+        workspace_path = Path(self.workspace_title)
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        assert local.exists("/")
+
+        # Let's create a file on the client and synchronize it.
+        local_path = local.make_file("/", "Some File.doc", content=b"Original content.")
+        self.wait_sync()
+
+        # Let's modify it concurrently but with the same content (digest)
+        self.engine_1.suspend()
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
+        local.update_content(local_path, b"Same new content.")
+
+        remote_2 = self.remote_document_client_2
+        remote_2.update_content("/Some File.doc", b"Same new content.")
+        self.engine_1.resume()
+
+        # Let's synchronize and check the conflict handling: automatic
+        # resolution will work for this case
+        self.wait_sync(wait_for_async=True)
+        assert not self.engine_1.get_conflicts()
+        children = dao.get_states_from_partial_local(workspace_path)
+        assert len(children) == 1
+        assert children[0].pair_state == "synchronized"
+
+        local_children = local.get_children_info("/")
+        assert len(local_children) == 1
+        assert local_children[0].name == "Some File.doc"
+        assert local.get_content(local_path) == b"Same new content."
+        remote_1 = self.remote_document_client_1
+        remote_children = remote_1.get_children_info(self.workspace)
+        assert len(remote_children) == 1
+        assert remote_children[0].get_blob("file:content").name == "Some File.doc"
+        assert remote_1.get_content("/Some File.doc") == b"Same new content."
+
+        # Let's trigger another conflict that cannot be resolved
+        # automatically:
+        self.engine_1.suspend()
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
+        local.update_content(local_path, b"Local new content.")
+
+        remote_2.update_content("/Some File.doc", b"Remote new content.")
+        self.engine_1.resume()
+
+        # Let's synchronize and check the conflict handling
+        self.wait_sync(wait_for_async=True)
+        assert len(self.engine_1.get_conflicts()) == 1
+        children = dao.get_states_from_partial_local(workspace_path)
+        assert len(children) == 1
+        assert children[0].pair_state == "conflicted"
+
+        local_children = local.get_children_info("/")
+        assert len(local_children) == 1
+        assert local_children[0].name == "Some File.doc"
+        assert local.get_content(local_path) == b"Local new content."
+        remote_children = remote_1.get_children_info(self.workspace)
+        assert len(remote_children) == 1
+        assert remote_children[0].get_blob("file:content").name == "Some File.doc"
+        assert remote_1.get_content("/Some File.doc") == b"Remote new content."
 
     def test_rename_and_create_same_folder_not_running(self):
         """
@@ -944,95 +1023,3 @@ class TestSynchronization(UnitTestCase):
         assert local_1.get_content("/Folder01/File02.txt") == b"42"
         assert local_1.exists("/Folder01/File01.txt")
         assert local_1.get_content("/Folder01/File01.txt") == b"42.42"
-
-    def test_409_conflict(self):
-        """
-        Test concurrent upload with files having the same first characters.
-        """
-
-        remote = self.remote_document_client_1
-        local = self.local_1
-        engine = self.engine_1
-
-        engine.start()
-        self.wait_sync(wait_for_async=True)
-
-        def _raise_for_second_file_only(*args, **kwargs):
-            return kwargs.get("filename").endswith("2.txt")
-
-        # Simulate a server conflict on file upload
-        bad_remote = self.get_bad_remote()
-        error = HTTPError(status=409, message="Mock Conflict")
-        bad_remote.make_upload_raise(error)
-        bad_remote.raise_on = _raise_for_second_file_only
-
-        with patch.object(self.engine_1, "remote", new=bad_remote):
-            # Create 2 files locally
-            base = "A" * 40
-            file1 = base + "1.txt"
-            file2 = base + "2.txt"
-            local.make_file("/", file1, content=b"foo")
-            local.make_file("/", file2, content=b"bar")
-
-            self.wait_sync(fail_if_timeout=False)
-
-            # Checks
-            assert engine.get_dao()._queue_manager.get_errors_count() == 1
-            children = remote.get_children_info(self.workspace)
-            assert len(children) == 1
-            assert children[0].name == file1
-
-        # Starting here, default behavior is restored
-        self.wait_sync()
-
-        # Checks
-        children = remote.get_children_info(self.workspace)
-        assert len(children) == 2
-        assert children[0].name == file1
-        assert children[1].name == file2
-
-    def test_local_modify_offline(self):
-        local = self.local_1
-        engine = self.engine_1
-
-        engine.start()
-        self.wait_sync(wait_for_async=True)
-
-        local.make_folder("/", "Test")
-        local.make_file("/Test", "Test.txt", content=b"Some content")
-        self.wait_sync()
-
-        engine.stop()
-        local.update_content("/Test/Test.txt", b"Another content")
-
-        engine.start()
-        self.wait_sync()
-        assert not engine.get_dao().get_errors()
-
-    def test_unsynchronize_accentued_document(self):
-        remote = self.remote_document_client_1
-        local = self.local_1
-        engine = self.engine_1
-        engine.start()
-
-        # Create the folder
-        root_name = "Été indien"
-        root = remote.make_folder(self.workspace, root_name)
-        self.wait_sync(wait_for_async=True)
-        assert local.exists("/" + root_name)
-
-        # Remove the folder
-        remote.delete(root)
-        self.wait_sync(wait_for_async=True)
-        assert not local.exists("/" + root_name)
-
-    def test_synchronize_document_with_pattern(self):
-        """
-        Simple test to ensure there is no issue with files like "$AAA000$.doc".
-        Related to NXDRIVE-1287.
-        """
-        name = "$NAB184$.doc"
-        self.remote_document_client_1.make_file("/", name, content=b"42")
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
-        assert self.local_1.exists(f"/{name}")
