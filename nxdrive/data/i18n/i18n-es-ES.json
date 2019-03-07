@@ -199,6 +199,7 @@
     "RESOLVE": "Resolver",
     "RESUME": "Reanudar",
     "ROOT_USED_WITH_OTHER_BINDING": "Esta carpeta la ha utilizado %1, su contenido se eliminará. ¿Desea continuar? Si no es así, haga clic en Cancelar y elija otra carpeta.",
+    "RUNNING_FROM_WRONG_PATH": "You are running this app from „%1“. However, for all features to run normally, the application must be named „%2“ and located in the „/Applications“ directory.",
     "SCRIPT_ADDR": "Dirección del script",
     "SECTION_ABOUT": "Acerca de",
     "SECTION_ACCOUNTS": "Cuentas",

@@ -199,6 +199,7 @@
     "RESOLVE": "Oplossen",
     "RESUME": "Hervatten",
     "ROOT_USED_WITH_OTHER_BINDING": "Deze map is gebruikt door {{ username }}, de inhoud ervan wordt gewist. Wilt u doorgaan? Zo niet, klik dan op Annuleren en selecteer een andere map.",
+    "RUNNING_FROM_WRONG_PATH": "You are running this app from „%1“. However, for all features to run normally, the application must be named „%2“ and located in the „/Applications“ directory.",
     "SCRIPT_ADDR": "Scriptadres",
     "SECTION_ABOUT": "Over",
     "SECTION_ACCOUNTS": "Accounts",

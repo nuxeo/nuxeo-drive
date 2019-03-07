@@ -199,6 +199,7 @@
     "RESOLVE": "解決する",
     "RESUME": "再開",
     "ROOT_USED_WITH_OTHER_BINDING": "このフォルダは%1が使用していました。フォルダの内容は削除されます。続けますか？「いいえ」の場合、「キャンセル」をクリックして、別のフォルダを選択してください。",
+    "RUNNING_FROM_WRONG_PATH": "You are running this app from „%1“. However, for all features to run normally, the application must be named „%2“ and located in the „/Applications“ directory.",
     "SCRIPT_ADDR": "スクリプトのアドレス",
     "SECTION_ABOUT": "概要",
     "SECTION_ACCOUNTS": "アカウント",
