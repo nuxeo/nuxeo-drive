@@ -1,5 +1,4 @@
 # coding: utf-8
-from contextlib import suppress
 from pathlib import Path
 from typing import Iterator
 
@@ -23,12 +22,15 @@ def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Item]:
         - Illustrator: https://www.adobe.com/devnet/illustrator/scripting.html
         - Photoshop: https://www.adobe.com/devnet/photoshop/scripting.html
     """
-    with suppress(Exception):
-        app = SBApplication.applicationWithBundleIdentifier_(identifier)
-        for doc in app.documents():
-            path = doc.filePath().path()
-            pid = compute_fake_pid_from_path(path)
-            yield pid, Path(path)
+    app = SBApplication.applicationWithBundleIdentifier_(identifier)
+
+    if not app or not app.isRunning():
+        return
+
+    for doc in app.documents():
+        path = doc.filePath().path()
+        pid = compute_fake_pid_from_path(path)
+        yield pid, Path(path)
 
 
 def get_other_opened_files() -> Iterator[Item]:
