@@ -1,6 +1,11 @@
 fail_fast: true
 
 repos:
+-   repo: https://github.com/ambv/black
+    rev: stable
+    hooks:
+    - id: black
+      language_version: python3.6
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: master
     hooks:
@@ -11,8 +16,3 @@ repos:
     - id: requirements-txt-fixer
     - id: check-ast
     - id: no-commit-to-branch
--   repo: https://github.com/ambv/black
-    rev: stable
-    hooks:
-    - id: black
-      language_version: python3.6
