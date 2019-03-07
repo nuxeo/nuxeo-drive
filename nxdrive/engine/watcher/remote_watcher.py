@@ -622,12 +622,15 @@ class RemoteWatcher(EngineWorker):
         summary = self.engine.remote.get_changes(
             self._last_root_definitions, self._last_event_log_id
         )
+        if not isinstance(summary, dict):
+            log.warning("Change summary is not a valid dictionary.")
+            return None
 
         root_defs = summary.get("activeSynchronizationRootDefinitions")
         if root_defs is None:
             log.warning(
-                "Change summary is missing the 'activeSynchronizationRootDefinitions' "
-                "entry, it might be badly formatted."
+                "Change summary is missing the root definitions, "
+                "We'll skip its processing."
             )
             return None
 

@@ -196,9 +196,25 @@ class TestRemoteChanges(UnitTestCase):
         assert change["fileSystemItemName"] == "TestLocking.txt"
 
     def test_wrong_server_reply(self):
-        def get_changes(*args, **kwargs):
+        """
+        A response that is not a dictionary or that does not contain
+        the right entries should not raise an exception.
+        It should not modify the attributes we use to track the last
+        synchronization either.
+        """
+
+        def not_dict(*args, **kwargs):
+            return "not dict"
+
+        def wrong_dict(*args, **kwargs):
             return {"wrong": "dict"}
 
-        with patch.object(self.engine_1.remote, "get_changes", new=get_changes):
-            # Should not throw an exception
+        sync_date = self.engine_1._remote_watcher._last_sync_date
+
+        with patch.object(self.engine_1.remote, "get_changes", new=not_dict):
             assert not self.engine_1._remote_watcher._get_changes()
+            assert self.engine_1._remote_watcher._last_sync_date == sync_date
+
+        with patch.object(self.engine_1.remote, "get_changes", new=wrong_dict):
+            assert not self.engine_1._remote_watcher._get_changes()
+            assert self.engine_1._remote_watcher._last_sync_date == sync_date
