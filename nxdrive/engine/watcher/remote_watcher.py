@@ -606,7 +606,7 @@ class RemoteWatcher(EngineWorker):
             if status == 504:
                 log.warning(f"Gateaway timeout: {exc}")
             else:
-                log.error(err)
+                log.warning(err)
         except ThreadInterrupt:
             raise
         except:
