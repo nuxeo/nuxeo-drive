@@ -33,7 +33,7 @@ class Tracker(Worker):
     def __init__(self, manager: "Manager", uid: str = "UA-81135-23") -> None:
         super().__init__()
         self._manager = manager
-        self._thread.started.connect(self.run)
+        self.thread.started.connect(self.run)
         self.uid = uid
         self.app_name = APP_NAME.replace(" ", "")
         self.arch = get_arch()
@@ -124,7 +124,7 @@ class Tracker(Worker):
     @pyqtSlot(object)
     def _send_directedit_open(self, blob: Blob) -> None:
         _, extension = os.path.splitext(blob.name)
-        if extension is None:
+        if not extension:
             extension = "unknown"
 
         self.send_event(
@@ -137,7 +137,7 @@ class Tracker(Worker):
     @pyqtSlot(object)
     def _send_directedit_edit(self, blob: Blob) -> None:
         _, extension = os.path.splitext(blob.name)
-        if extension is None:
+        if not extension:
             extension = "unknown"
 
         self.send_event(
