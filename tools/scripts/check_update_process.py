@@ -52,6 +52,7 @@ def create_versions(dst, version):
     Note that we removed the following section with NXDRIVE-1419:
 
     min_all:
+        "7.10": "7.10-HF47"
         "8.10": "8.10-HF38"
         "9.10": "9.10-HF20"
         "10.3": "10.3-SNAPSHOT"
@@ -59,7 +60,7 @@ def create_versions(dst, version):
     """
     yml = f"""
 "{version}":
-    min: "8.10"
+    min: "7.10"
     type: alpha
     checksum:
         algo: sha256

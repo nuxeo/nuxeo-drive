@@ -9,14 +9,13 @@ The **only requirement** is to always have the Nuxeo Drive addon up-to-date.
 
 The current Nuxeo Drive version supports:
 
+- Nuxeo Platform 7.10
 - Nuxeo Platform 8.10
 - Nuxeo Platform 9.10
-- Nuxeo Platform 10.10
 - Nuxeo Platform SNAPSHOT
 
 History:
 
-- `2019-xx-xx` (v4.1.0): dropped support for Nuxeo Platform 7.10
 - `2018-01-29` (v3.0.4): dropped support for Nuxeo Platform 6.10
 
 ## OS

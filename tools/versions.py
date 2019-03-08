@@ -89,13 +89,14 @@ def create(version, category):
     Note that we removed the following section with NXDRIVE-1419:
 
     min_all:
+        "7.10": "7.10-HF47"
         "8.10": "8.10-HF38"
         "9.10": "9.10-HF20"
         "10.3": "10.3-SNAPSHOT"
         "10.10": "10.10-SNAPSHOT"
     """
     yml = """{}:
-    min: "8.10"
+    min: "7.10"
     type: {}
     checksum:
         algo: sha256
