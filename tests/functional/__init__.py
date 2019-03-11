@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import sys
 from typing import Any
 
 
@@ -34,12 +35,19 @@ def setup_sentry() -> None:
         "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
     )
 
+    # Force a Sentry env while working on a specific ticket
+    sentry_env = os.getenv("SENTRY_ENV", "testing")
+    if "JENKINS_URL" not in os.environ and sentry_env == "testing":
+        sys.exit(
+            "You muse set SENTRY_ENV to the working issue, e.g.: SENTRY_ENV='NXDRIVE-42'."
+        )
+
     import sentry_sdk
     from nxdrive import __version__
 
     sentry_sdk.init(
         dsn=sentry_dsn,
-        environment=os.getenv("SENTRY_ENV", "testing"),
+        environment=sentry_env,
         release=__version__,
         attach_stacktrace=True,
         before_send=before_send,
