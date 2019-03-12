@@ -216,8 +216,6 @@ function install_python {
 
 function launch_tests {
 	# Launch the tests suite
-	$Env:MYPYPATH = "$Env:WORKSPACE_DRIVE\tools\stubs"
-
 	if ($Env:SPECIFIC_TEST -eq "tests") {
 		Write-Output ">>> Checking the style"
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
@@ -226,41 +224,18 @@ function launch_tests {
 		}
 
 		Write-Output ">>> Checking type annotations"
+		$Env:MYPYPATH = "$Env:WORKSPACE_DRIVE\tools\stubs"
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
 	}
 
-	# Write-Output ">>> Launching the tests suite"
-	# & $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest $Env:SPECIFIC_TEST
-	# if ($lastExitCode -ne 0) {
-	# 	ExitWithCode $lastExitCode
-	# }
-
-	Write-Output ">>> Launching unit tests"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest "tests\\unit"
+	Write-Output ">>> Launching the tests suite"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $Env:SPECIFIC_TEST
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-
-	Write-Output ">>> Launching functional tests"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest "tests\\functional"
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-
-	Write-Output ">>> Launching old functional tests"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest "tests\\old_functional"
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
-
-	# Write-Output ">>> Launching integration tests"
-	# & $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -b -Wall -m pytest "tests\\integration"
-	# if ($lastExitCode -ne 0) {
-	# 	ExitWithCode $lastExitCode
-	# }
 }
 
 function sign($file) {

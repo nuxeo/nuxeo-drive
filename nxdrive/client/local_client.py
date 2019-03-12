@@ -105,7 +105,7 @@ class FileInfo:
         if self.folderish:
             return None
 
-        digest_func = digest_func or self._digest_func
+        digest_func = str(digest_func or self._digest_func)
         h = get_digest_hash(digest_func)
         if h is None:
             raise UnknownDigest(digest_func)

@@ -14,7 +14,7 @@ def test_tracker_instance_and_attrs(manager_factory):
 
 
 def test_tracker_send_methods(manager_factory, monkeypatch):
-    def send(**kwargs):
+    def send(*args, **kwargs):
         pass
 
     # We need an engine to test custom dimensions (here it is unused and so we use "_")

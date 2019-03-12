@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import shutil
+import sys
 from contextlib import suppress
 
 import pytest
@@ -57,14 +58,14 @@ def no_warnings(recwarn):
     warnings = []
     for warning in recwarn:  # pragma: no cover
         message = str(warning.message)
-        # ImportWarning: Not importing directory '...' missing __init__(.py)
-        if not (
-            isinstance(warning.message, ImportWarning)
-            and message.startswith("Not importing directory ")
-            and " missing __init__" in message
-            and "sentry_sdk" in message
-        ):
-            warnings.append(f"{warning.filename}:{warning.lineno} {message}")
+
+        if "sentry_sdk" in warning.filename:
+            continue
+
+        warn = f"{warning.filename}:{warning.lineno} {message}"
+        print(warn, file=sys.stderr)
+        warnings.append(warn)
+
     assert not warnings
 
 
