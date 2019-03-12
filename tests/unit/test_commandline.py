@@ -19,7 +19,7 @@ def create_ini(env: str = "PROD") -> None:
 env = {env}
 
 [PROD]
-log-level_console = TRACE
+log-level_console = DEBUG
 debug = False
 
 [DEV]
@@ -37,7 +37,7 @@ def create_ini_bad():
 env = bad
 
 [bad]
-log-level-console = TRACE
+log-level-console = DEBUG
  debug = False
 
 delay = 3
@@ -80,7 +80,7 @@ def test_defaults(cmd):
 
     # Default value
     options = cmd.parse_cli([])
-    assert options.log_level_console == "INFO"
+    assert options.log_level_console == "WARNING"
 
     # Normal arg
     options = cmd.parse_cli(argv)
@@ -88,7 +88,7 @@ def test_defaults(cmd):
 
 
 def get_conf(_):
-    return {"log_level_console": "TRACE"}
+    return {"log_level_console": "DEBUG"}
 
 
 @Options.mock()
@@ -98,7 +98,7 @@ def test_system_default_windows(cmd):
 
     with patch.object(WindowsIntegration, "get_system_configuration", new=get_conf):
         options = cmd.parse_cli([])
-        assert options.log_level_console == "TRACE"
+        assert options.log_level_console == "DEBUG"
 
 
 @Options.mock()
@@ -108,29 +108,29 @@ def test_system_default_mac(cmd):
 
     with patch.object(DarwinIntegration, "get_system_configuration", new=get_conf):
         options = cmd.parse_cli([])
-        assert options.log_level_console == "TRACE"
+        assert options.log_level_console == "DEBUG"
 
 
 @Options.mock()
 def test_default_override(cmd):
-    argv = ["console", "--log-level-console=WARNING"]
+    argv = ["console", "--log-level-console=INFO"]
 
     # Default value
     options = cmd.parse_cli([])
-    assert options.log_level_console == "INFO"
+    assert options.log_level_console == "WARNING"
 
     # Normal arg
     options = cmd.parse_cli(argv)
-    assert options.log_level_console == "WARNING"
+    assert options.log_level_console == "INFO"
 
     # config.ini override
     create_ini()
     options = cmd.parse_cli([])
-    assert options.log_level_console == "TRACE"
+    assert options.log_level_console == "DEBUG"
 
     # config.ini override, but arg specified
     options = cmd.parse_cli(argv)
-    assert options.log_level_console == "WARNING"
+    assert options.log_level_console == "INFO"
 
     # other usage section
     create_ini(env="DEV")

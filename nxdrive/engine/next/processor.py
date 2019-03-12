@@ -64,10 +64,10 @@ class Processor(OldProcessor):
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os_path.with_name(doc_pair.remote_name)
-            log.debug(f"Replacing local file {os_path!r} by {new_os_path!r}.")
+            log.info(f"Replacing local file {os_path!r} by {new_os_path!r}.")
         else:
             new_os_path = os_path
-        log.debug(f"Updating content of local file {os_path!r}.")
+        log.info(f"Updating content of local file {os_path!r}.")
         tmp_file = self._download_content(doc_pair, new_os_path)
         # Delete original file and rename tmp file
         self.local.delete_final(doc_pair.local_path)
@@ -90,7 +90,7 @@ class Processor(OldProcessor):
         tmp_file = None
         try:
             if doc_pair.folderish:
-                log.debug(
+                log.info(
                     f"Creating local folder {name!r} in "
                     f"{self.local.abspath(parent_pair.local_path)!r}"
                 )
@@ -100,7 +100,7 @@ class Processor(OldProcessor):
             else:
                 path, os_path, name = self.local.get_new_file(local_parent_path, name)
                 tmp_file = self._download_content(doc_pair, os_path)
-                log.debug(
+                log.info(
                     f"Creating local file {name!r} in "
                     f"{self.local.abspath(parent_pair.local_path)!r}"
                 )

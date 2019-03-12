@@ -202,7 +202,7 @@ class BaseUpdater(PollWorker):
                 login_type |= self.manager._get_server_login_type(url, _raise=False)
 
             channel = self.manager.get_update_channel()
-            log.debug(
+            log.info(
                 f"Getting update status for version {self.manager.version}"
                 f" (channel={channel}) on server {self.server_ver}"
             )
@@ -253,7 +253,7 @@ class BaseUpdater(PollWorker):
             UPDATE_STATUS_UPDATE_AVAILABLE,
             UPDATE_STATUS_WRONG_CHANNEL,
         ):
-            log.debug("You are up-to-date!")
+            log.info("You are up-to-date!")
             return
 
         if self.status == UPDATE_STATUS_WRONG_CHANNEL:
@@ -319,7 +319,7 @@ class BaseUpdater(PollWorker):
                 func.update(chunk)
         computed = func.hexdigest()
 
-        log.trace(
+        log.debug(
             f"Integrity check [{algo.upper()}] for {filename!r}: "
             f"good={checksum!r}, found={computed!r}"
         )

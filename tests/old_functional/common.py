@@ -89,7 +89,7 @@ class StubQApplication(QCoreApplication):
     @pyqtSlot()
     def sync_completed(self):
         uid = getattr(self.sender(), "uid", None)
-        log.debug("Sync Completed slot for: %s", uid)
+        log.info("Sync Completed slot for: %s", uid)
         if uid:
             self._test._wait_sync[uid] = False
         else:
@@ -99,20 +99,20 @@ class StubQApplication(QCoreApplication):
     @pyqtSlot()
     def remote_scan_completed(self):
         uid = self.sender().engine.uid
-        log.debug("Remote scan completed for engine %s", uid)
+        log.info("Remote scan completed for engine %s", uid)
         self._test._wait_remote_scan[uid] = False
         self._test._wait_sync[uid] = False
 
     @pyqtSlot(int)
     def remote_changes_found(self, change_count):
         uid = self.sender().engine.uid
-        log.debug("Remote changes slot for: %s", uid)
+        log.info("Remote changes slot for: %s", uid)
         self._test._remote_changes_count[uid] = change_count
 
     @pyqtSlot()
     def no_remote_changes_found(self):
         uid = self.sender().engine.uid
-        log.trace("No remote changes slot for %s", uid)
+        log.debug("No remote changes slot for %s", uid)
         self._test._no_remote_changes[uid] = True
 
     @pyqtSlot(int, bool)
@@ -130,7 +130,7 @@ class TwoUsersTest(TestCase):
     ):
         """ Setup method that will be invoked for every test method of a class."""
 
-        log.debug("TEST master setup start")
+        log.info("TEST master setup start")
 
         self.current_test = test_method.__name__
 
@@ -179,7 +179,7 @@ class TwoUsersTest(TestCase):
     def teardown_method(self, test_method):
         """ Clean-up method. """
 
-        log.debug("TEST master teardown start")
+        log.info("TEST master teardown start")
 
         self.generate_report()
 
@@ -202,7 +202,7 @@ class TwoUsersTest(TestCase):
 
         clean_dir(self.tmpdir)
 
-        log.debug("TEST master teardown end")
+        log.info("TEST master teardown end")
 
     def run(self, result=None):
         """
@@ -212,7 +212,7 @@ class TwoUsersTest(TestCase):
         let signals transit in the QApplication.
         """
 
-        log.debug("TEST run start")
+        log.info("TEST run start")
 
         def launch_test():
             with configure_scope() as scope:
@@ -240,7 +240,7 @@ class TwoUsersTest(TestCase):
         sync_thread.start()
         self.app.exec_()
         sync_thread.join(30)
-        log.debug("TEST run end")
+        log.info("TEST run end")
 
     def _create_user(self, number: int) -> User:
         def _company_domain(company_: str) -> str:
@@ -443,7 +443,7 @@ class TwoUsersTest(TestCase):
             log.warning(f"Exception while waiting for server: {e!r}")
             # Not the nicest
             if retry > 0:
-                log.debug("Retry to wait")
+                log.info("Retry to wait")
                 self.wait(retry - 1)
 
     def wait_sync(
@@ -456,14 +456,14 @@ class TwoUsersTest(TestCase):
         wait_win=False,
         enforce_errors=True,
     ):
-        log.debug("Wait for sync")
+        log.info("Wait for sync")
 
         # First wait for server if needed
         if wait_for_async:
             self.wait()
 
         if wait_win and WINDOWS:
-            log.trace("Waiting for Windows delete resolution")
+            log.debug("Waiting for Windows delete resolution")
             sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000)
 
         engine_1 = self.engine_1.uid
@@ -502,7 +502,7 @@ class TwoUsersTest(TestCase):
             if not wait_for_async:
                 return
 
-            log.debug(
+            log.info(
                 "Sync completed, "
                 f"wait_remote_scan={self._wait_remote_scan}, "
                 f"remote_changes_count={self._remote_changes_count}, "
@@ -535,7 +535,7 @@ class TwoUsersTest(TestCase):
                 }
                 self._remote_changes_count = {engine_1: 0, engine_2: 0}
                 self._no_remote_changes = {engine_1: False, engine_2: False}
-                log.debug(
+                log.info(
                     "Ended wait for sync, setting "
                     "wait_remote_scan values to True, "
                     "remote_changes_count values to 0 and "
@@ -544,7 +544,7 @@ class TwoUsersTest(TestCase):
                 return
 
         if not fail_if_timeout:
-            log.debug("Wait for sync timeout")
+            log.info("Wait for sync timeout")
             return
 
         count1 = self.engine_1.get_dao().get_syncing_count()
@@ -702,14 +702,14 @@ class OneUserTest(TwoUsersTest):
         wait_win=False,
         enforce_errors=True,
     ):
-        log.debug("Wait for sync")
+        log.info("Wait for sync")
 
         # First wait for server if needed
         if wait_for_async:
             self.wait()
 
         if wait_win and WINDOWS:
-            log.trace("Waiting for Windows delete resolution")
+            log.debug("Waiting for Windows delete resolution")
             sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000)
 
         engine_1 = self.engine_1.uid
@@ -738,7 +738,7 @@ class OneUserTest(TwoUsersTest):
             if not wait_for_async:
                 return
 
-            log.debug(
+            log.info(
                 "Sync completed, "
                 f"wait_remote_scan={self._wait_remote_scan}, "
                 f"remote_changes_count={self._remote_changes_count}, "
@@ -763,7 +763,7 @@ class OneUserTest(TwoUsersTest):
                 self._wait_remote_scan = {engine_1: wait_for_engine_1}
                 self._remote_changes_count = {engine_1: 0}
                 self._no_remote_changes = {engine_1: False}
-                log.debug(
+                log.info(
                     "Ended wait for sync, setting "
                     "wait_remote_scan values to True, "
                     "remote_changes_count values to 0 and "
@@ -772,7 +772,7 @@ class OneUserTest(TwoUsersTest):
                 return
 
         if not fail_if_timeout:
-            log.debug("Wait for sync timeout")
+            log.info("Wait for sync timeout")
             return
 
         count = self.engine_1.get_dao().get_syncing_count()

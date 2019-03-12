@@ -91,10 +91,10 @@ class DirectEdit(Worker):
 
     @pyqtSlot(object)
     def _autolock_orphans(self, locks: List[Path]) -> None:
-        log.trace(f"Orphans lock: {locks!r}")
+        log.debug(f"Orphans lock: {locks!r}")
         for lock in locks:
             if self._folder in lock.parents:
-                log.debug(f"Should unlock {lock!r}")
+                log.info(f"Should unlock {lock!r}")
                 if not lock.exists():
                     self.autolock.orphan_unlocked(lock)
                     continue
@@ -127,7 +127,7 @@ class DirectEdit(Worker):
         if not url:
             return
 
-        log.debug(f"DirectEdit load: {url!r}")
+        log.info(f"DirectEdit load: {url!r}")
 
         info = parse_protocol_url(url)
 
@@ -156,7 +156,7 @@ class DirectEdit(Worker):
         def purge(path):
             shutil.rmtree(self.local.abspath(path), ignore_errors=True)
 
-        log.debug("Cleanup DirectEdit folder")
+        log.info("Cleanup DirectEdit folder")
 
         for child in self.local.get_children_info(ROOT):
             children = self.local.get_children_info(child.path)
@@ -262,16 +262,16 @@ class DirectEdit(Worker):
             pair = engine.get_dao().get_valid_duplicate_file(blob.digest)
         if pair:
             existing_file_path = engine.local.abspath(pair.local_path)
-            log.debug(
+            log.info(
                 f"Local file matches remote digest {blob.digest!r}, "
                 f"copying it from {existing_file_path!r}"
             )
             shutil.copy(existing_file_path, file_out)
             if pair.is_readonly():
-                log.debug(f"Unsetting readonly flag on copied file {file_out!r}")
+                log.info(f"Unsetting readonly flag on copied file {file_out!r}")
                 unset_path_readonly(file_out)
         else:
-            log.debug(f"Downloading file {blob.name!r} from {url!r}")
+            log.info(f"Downloading file {blob.name!r} from {url!r}")
             if url:
                 engine.remote.download(
                     quote(url, safe="/:"),
@@ -315,14 +315,14 @@ class DirectEdit(Worker):
             # Retrieve the user full name, will be cached
             owner = engine.get_user_full_name(info.lock_owner)
 
-            log.debug(
+            log.info(
                 f"Doc {info.name!r} was locked by {owner} ({info.lock_owner}) "
                 f"on {info.lock_created}, edit not allowed"
             )
             self.directEditLocked.emit(info.name, owner, info.lock_created)
             return None
         elif info.permissions and "Write" not in info.permissions:
-            log.debug(f"Doc {info.name!r} is readonly for you, edit not allowed")
+            log.info(f"Doc {info.name!r} is readonly for you, edit not allowed")
             self.directEditReadonly.emit(info.name)
             return None
 
@@ -382,7 +382,7 @@ class DirectEdit(Worker):
         dir_path = self._folder / folder_name
         dir_path.mkdir(exist_ok=True)
 
-        log.debug(f"Editing {filename!r}")
+        log.info(f"Editing {filename!r}")
         file_path = dir_path / filename
 
         # Download the file
@@ -431,7 +431,7 @@ class DirectEdit(Worker):
     def edit(
         self, server_url: str, doc_id: str, user: str = None, download_url: str = None
     ) -> None:
-        log.debug(f"Editing doc {doc_id!r} on {server_url!r}")
+        log.info(f"Editing doc {doc_id!r} on {server_url!r}")
         try:
             # Download the file
             file_path = self._prepare_edit(
@@ -489,7 +489,7 @@ class DirectEdit(Worker):
                 break
 
             ref, action = item
-            log.trace(f"Handling DirectEdit lock queue: action={action}, ref={ref!r}")
+            log.debug(f"Handling DirectEdit lock queue: action={action}, ref={ref!r}")
             uid = ""
             dir_path = os.path.dirname(ref)
 
@@ -512,7 +512,7 @@ class DirectEdit(Worker):
 
                 if purge or action == "unlock_orphan":
                     path = self.local.abspath(ref)
-                    log.trace(f"Remove orphan: {path!r}")
+                    log.debug(f"Remove orphan: {path!r}")
                     self.autolock.orphan_unlocked(path)
                     shutil.rmtree(path, ignore_errors=True)
                     continue
@@ -544,11 +544,11 @@ class DirectEdit(Worker):
             except Empty:
                 break
 
-            log.trace(f"Handling DirectEdit queue ref: {ref!r}")
+            log.debug(f"Handling DirectEdit queue ref: {ref!r}")
 
             uid, engine, algorithm, digest, xpath = self._extract_edit_info(ref)
             if not xpath:
-                log.debug(
+                log.info(
                     f"DirectEdit on {ref} has no xpath, defaulting to 'file:content'"
                 )
                 xpath = "file:content"
@@ -560,7 +560,7 @@ class DirectEdit(Worker):
                     continue
 
                 start_time = current_milli_time()
-                log.trace(
+                log.debug(
                     f"Local digest: {current_digest} is different from the recorded "
                     f"one: {digest} - modification detected for {ref!r}"
                 )
@@ -572,7 +572,7 @@ class DirectEdit(Worker):
                 remote_blob = remote_info.get_blob(xpath) if remote_info else None
                 if remote_blob and remote_blob.digest != digest:
                     # Conflict detect
-                    log.trace(
+                    log.debug(
                         f"Remote digest: {remote_blob.digest} is different from the "
                         f"recorded  one: {digest} - conflict detected for {ref!r}"
                     )
@@ -580,7 +580,7 @@ class DirectEdit(Worker):
                     continue
 
                 os_path = self.local.abspath(ref)
-                log.debug(f"Uploading file {os_path!r}")
+                log.info(f"Uploading file {os_path!r}")
 
                 if xpath == "note:note":
                     kwargs: Dict[str, Any] = {"applyVersioningPolicy": True}
@@ -679,7 +679,7 @@ class DirectEdit(Worker):
 
     @tooltip("Setup watchdog")
     def _setup_watchdog(self) -> None:
-        log.debug(f"Watching FS modification on {self._folder!r}")
+        log.info(f"Watching FS modification on {self._folder!r}")
         self._event_handler = DriveFSEventHandler(self)
         self._observer = Observer()
         self._observer.schedule(self._event_handler, str(self._folder), recursive=True)
@@ -706,7 +706,7 @@ class DirectEdit(Worker):
         if self.local.is_temp_file(src_path.name):
             return
 
-        log.debug(f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}")
+        log.info(f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}")
 
         if evt.event_type == "moved":
             src_path = normalize_event_filename(evt.dest_path)

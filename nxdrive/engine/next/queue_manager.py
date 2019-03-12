@@ -23,7 +23,7 @@ class QueueManager(OldQueueManager):
 
     def postpone_pair(self, doc_pair: DocPair, interval: int = 60) -> None:
         doc_pair.error_next_try = interval + int(time.time())
-        log.debug(f"Blacklisting pair for {interval}s: {doc_pair!r}")
+        log.info(f"Blacklisting pair for {interval}s: {doc_pair!r}")
         with self._error_lock:
             self._on_error_queue[doc_pair.id] = doc_pair
             if not self._error_timer.isActive():

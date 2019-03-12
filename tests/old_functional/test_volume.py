@@ -73,17 +73,17 @@ class VolumeTestCase(OneUserTest):
         self.tree = dict()
         self.tree["childs"] = dict()
         self.tree["path"] = ROOT
-        log.debug(f"Generating in: {self.local_1.abspath(ROOT)}")
+        log.info(f"Generating in: {self.local_1.abspath(ROOT)}")
         self.create_tree(self.num_folders, self.num_files, self.depth, self.tree)
 
-        log.debug(f"Generated done in: {self.local_1.abspath(ROOT)}")
+        log.info(f"Generated done in: {self.local_1.abspath(ROOT)}")
         if not self.fake:
             if not stopped:
-                log.debug("*** engine1 starting")
+                log.info("*** engine1 starting")
                 self.engine_1.start()
             if wait_for_sync:
                 self.wait_sync(timeout=self.items * 10)
-                log.debug("*** engine 1 synced")
+                log.info("*** engine 1 synced")
 
     def get_name(self, folder: bool, depth: int, number: int):
         if folder:
@@ -168,12 +168,12 @@ class VolumeTestCase(OneUserTest):
         # Move root 2 in, first subchild of 1
         root_2 = self.get_path(True, 1, 2)
         child = self.get_path(True, self.depth, 1)
-        log.debug(f"Will move {root_2} into {child}")
+        log.info(f"Will move {root_2} into {child}")
         if not self.fake:
             shutil.move(self.local_1.abspath(root_2), self.local_1.abspath(child))
         root_1 = self.get_path(True, 1, 1)
         root_3 = self.get_path(True, 1, 3)
-        log.debug(f"Will move {root_1} into {root_3}")
+        log.info(f"Will move {root_1} into {root_3}")
         if not self.fake:
             shutil.move(self.local_1.abspath(root_1), self.local_1.abspath(root_3))
         # Update paths
@@ -212,7 +212,7 @@ class VolumeTestCase(OneUserTest):
         # Copy root 2 in, first subchild of 1
         root_2 = self.get_path(True, 1, 2)
         child = self.get_path(True, self.depth, 1)
-        log.debug(f"Will copy {root_2} into {child}")
+        log.info(f"Will copy {root_2} into {child}")
         if not self.fake:
             shutil.copytree(
                 self.local_1.abspath(root_2),
@@ -223,15 +223,15 @@ class VolumeTestCase(OneUserTest):
         # new copies
         root_4 = self.get_path(True, 1, self.num_folders + 1)
         root_5 = self.get_path(True, 1, self.num_folders + 2)
-        log.debug(f"Will copy {root_1} into {root_3}")
+        log.info(f"Will copy {root_1} into {root_3}")
         if not self.fake:
             shutil.copytree(
                 self.local_1.abspath(root_1),
                 self.local_1.abspath(root_3 + self.get_name(True, 1, 1)),
             )
 
-            log.debug(f"Will copy {root_3} into {root_4}")
-            log.debug(f"Will copy {root_3} into {root_5}")
+            log.info(f"Will copy {root_3} into {root_4}")
+            log.info(f"Will copy {root_3} into {root_5}")
             shutil.copytree(self.local_1.abspath(root_3), self.local_1.abspath(root_4))
             shutil.copytree(self.local_1.abspath(root_3), self.local_1.abspath(root_5))
         # Update paths

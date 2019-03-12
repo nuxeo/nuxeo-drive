@@ -9,7 +9,7 @@ def test_logs(tmp):
     log = getLogger(__name__)
 
     with Manager(home=tmp()) as manager:
-        log.debug("Strange encoding \xe8 \xe9")
+        log.info("Strange encoding \xe8 \xe9")
 
         # Crafted problematic logRecord
         try:

@@ -115,7 +115,7 @@ class Tracker(Worker):
             dimensions["dimension8"] = engine.remote.client.server_version
 
         self._tracker.set(dimensions)
-        log.trace(self.fmt_event.format(**kwargs))
+        log.debug(self.fmt_event.format(**kwargs))
         try:
             self._tracker.send("event", **kwargs)
         except:
@@ -173,7 +173,7 @@ class Tracker(Worker):
         for _, engine in self._manager.get_engines().items():
             for key, value in engine.get_metrics().items():
                 if not isinstance(value, int):
-                    log.trace(f"Skip non integer Statistics(Engine) {key}: {value!r}")
+                    log.debug(f"Skip non integer Statistics(Engine) {key}: {value!r}")
                     continue
 
                 self.send_event(

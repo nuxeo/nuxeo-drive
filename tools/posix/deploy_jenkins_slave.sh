@@ -167,7 +167,6 @@ launch_tests() {
         ${PYTHON} -m flake8 .
 
         echo ">>> Checking type annotations"
-        export MYPYPATH="${WORKSPACE_DRIVE}/tools/stubs"
         ${PYTHON} -m mypy --ignore-missing-imports nxdrive
     fi
 

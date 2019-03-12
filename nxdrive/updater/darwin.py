@@ -33,11 +33,11 @@ class Updater(BaseUpdater):
         # Unload the Finder Sync extension
         self.manager.osi._cleanup()
 
-        log.debug(f"Mounting {filename!r}")
+        log.info(f"Mounting {filename!r}")
         mount_info = subprocess.check_output(["hdiutil", "mount", filename])
         lines = mount_info.splitlines()
         mount_dir = force_decode(lines[-1].split(b"\t")[-1])
-        log.debug(f"Mounted in {mount_dir!r}")
+        log.info(f"Mounted in {mount_dir!r}")
 
         self._backup()
         self._set_progress(70)
@@ -51,7 +51,7 @@ class Updater(BaseUpdater):
         finally:
             self._cleanup(filename)
             self._set_progress(90)
-            log.debug(f"Unmounting {mount_dir!r}")
+            log.info(f"Unmounting {mount_dir!r}")
             subprocess.check_call(["hdiutil", "unmount", mount_dir])
 
         # Check if the new application exists
@@ -77,7 +77,7 @@ class Updater(BaseUpdater):
         if not os.path.isdir(src):
             return
 
-        log.debug(f"Moving {src!r} -> {dst!r}")
+        log.info(f"Moving {src!r} -> {dst!r}")
         shutil.move(src, dst)
 
     def _cleanup(self, filename: str) -> None:
@@ -87,19 +87,19 @@ class Updater(BaseUpdater):
         path = f"/Applications/{APP_NAME}.app.old"
         with suppress(OSError):
             shutil.rmtree(path)
-            log.debug(f"Deleted {path!r}")
+            log.info(f"Deleted {path!r}")
 
         # The temporary DMG
         with suppress(OSError):
             os.remove(filename)
-            log.debug(f"Deleted {filename!r}")
+            log.info(f"Deleted {filename!r}")
 
     def _copy(self, mount_dir: str) -> None:
         """ Copy the new application content to /Applications. """
 
         src = f"{mount_dir}/{APP_NAME}.app"
         dst = f"/Applications/{APP_NAME}.app"
-        log.debug(f"Copying {src!r} -> {dst!r}")
+        log.info(f"Copying {src!r} -> {dst!r}")
         shutil.copytree(src, dst)
 
     def _restart(self) -> None:
@@ -108,5 +108,5 @@ class Updater(BaseUpdater):
         """
 
         cmd = f'sleep 5 ; open "/Applications/{APP_NAME}.app"'
-        log.debug(f"Launching the new {APP_NAME} version in 5 seconds ...")
+        log.info(f"Launching the new {APP_NAME} version in 5 seconds ...")
         subprocess.Popen(cmd, shell=True, close_fds=True)

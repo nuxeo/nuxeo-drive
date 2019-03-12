@@ -19,7 +19,7 @@ def create(key: str) -> bool:
     """
     try:
         with winreg.CreateKey(HKCU, key):
-            log.debug(f"Created {key!r}")
+            log.info(f"Created {key!r}")
             return True
     except OSError:
         log.exception(f"Couldn't create {key!r}")
@@ -42,7 +42,7 @@ def delete(key: str) -> bool:
                 else:
                     delete(f"{key}\\{subkey}")
             winreg.DeleteKey(HKCU, key)
-            log.debug(f"Deleted {key!r}")
+            log.info(f"Deleted {key!r}")
             return True
     except FileNotFoundError:
         return True
@@ -60,7 +60,7 @@ def delete_value(key: str, value: str) -> bool:
     try:
         with winreg.OpenKey(HKCU, key, 0, winreg.KEY_SET_VALUE) as handle:
             winreg.DeleteValue(handle, value)
-            log.debug(f"Deleted {value!r} value from {key!r}")
+            log.info(f"Deleted {value!r} value from {key!r}")
             return True
     except FileNotFoundError:
         return True
@@ -118,7 +118,7 @@ def write(key: str, content: Union[str, Dict[Optional[str], str]]) -> bool:
         with winreg.CreateKeyEx(HKCU, key) as handle:
             for name, data in content.items():
                 winreg.SetValueEx(handle, name, 0, winreg.REG_SZ, data)
-            log.debug(f"Wrote {key!r}: {content!r}")
+            log.info(f"Wrote {key!r}: {content!r}")
     except OSError:
         log.exception(f"Couldn't write {key!r}")
         return False

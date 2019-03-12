@@ -155,10 +155,10 @@ The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crow
 
 1. Generate a bug report in the **Advanced** tab of the **Settings** panel of the Nuxeo Drive client.
 
-    You can also log TRACE information directly in the console by using the following command-line:
+    You can also log DEBUG information directly in the console by using the following command-line:
 
     ```shell
-    ndrive --log-level-console=TRACE
+    ndrive --log-level-console=DEBUG
     ```
 
 2. Create a GitHub issue mentionning the version of the Nuxeo Platform, your operating system name and version (e.g. Windows 7), the steps to reproduce the error and a copy of the logs.
@@ -166,7 +166,7 @@ The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crow
 3. For long running sessions, it is better to dump the debug information in a log file. This can be done with the following command:
 
     ```shell
-    ndrive --log-level-file=TRACE
+    ndrive --log-level-file=DEBUG
     ```
 
     By default the location of the log file is: `~/.nuxeo-drive/logs/` where `~` stands for the location of the user folder. For instance:

@@ -168,7 +168,7 @@ class Remote(Nuxeo):
     def download(
         self, url: str, file_out: Path = None, digest: str = None, **kwargs: Any
     ) -> Path:
-        log.trace(
+        log.debug(
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
         )
 
@@ -232,7 +232,7 @@ class Remote(Nuxeo):
                 action.transfer_duration = upload_duration
                 # Use upload duration * 2 as Nuxeo transaction timeout
                 tx_timeout = max(TX_TIMEOUT, upload_duration * 2)
-                log.trace(
+                log.debug(
                     f"Using {tx_timeout} seconds [max({TX_TIMEOUT}, "
                     f"2 * upload time={upload_duration})] as Nuxeo "
                     f"transaction timeout for batch execution of {command!r} "
@@ -241,7 +241,7 @@ class Remote(Nuxeo):
 
                 if upload_duration > 0:
                     size = os.stat(file_path).st_size
-                    log.trace(
+                    log.debug(
                         f"Speed for {size} bytes is {upload_duration} sec: "
                         f"{size / upload_duration} bytes/sec"
                     )
@@ -320,7 +320,7 @@ class Remote(Nuxeo):
                 if not self.is_filtered(info.path):
                     filtered_infos.append(info)
                 else:
-                    log.debug(f"Filtering out item {info!r}")
+                    log.info(f"Filtering out item {info!r}")
             return filtered_infos
         return infos
 

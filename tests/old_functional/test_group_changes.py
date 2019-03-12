@@ -51,7 +51,7 @@ class TestGroupChanges(OneUserTest):
             self.root_remote.groups.delete(group.groupname)
 
     def set_ace(self, user, doc):
-        log.debug(f"Grant ReadWrite permission to  {user} on {doc}")
+        log.info(f"Grant ReadWrite permission to  {user} on {doc}")
         self.admin_remote.execute(
             command="Document.SetACE",
             input_obj=f"doc:{doc}",
@@ -63,15 +63,15 @@ class TestGroupChanges(OneUserTest):
         """
         Test changes on a group that has access to a synchronization root.
         """
-        log.debug("Create syncRoot folder")
+        log.info("Create syncRoot folder")
         sync_root_id = self.admin_remote.make_folder("/", "syncRoot")
 
         self.set_ace(self.group1, sync_root_id)
 
-        log.debug("Register syncRoot for driveuser_1")
+        log.info("Register syncRoot for driveuser_1")
         self.remote_1.register_as_root(sync_root_id)
 
-        log.debug("Check that syncRoot is created locally")
+        log.info("Check that syncRoot is created locally")
         self.wait_sync(wait_for_async=True)
         assert self.local_root_client_1.exists("/syncRoot")
 
@@ -82,22 +82,22 @@ class TestGroupChanges(OneUserTest):
         Test changes on a group that has access
         to a child of a synchronization root.
         """
-        log.debug("Create syncRoot folder")
+        log.info("Create syncRoot folder")
         sync_root_id = self.admin_remote.make_folder("/", "syncRoot")
 
-        log.debug("Create child folder")
+        log.info("Create child folder")
         child_id = self.admin_remote.make_folder("/syncRoot", "child")
 
         self.set_ace(self.group1, sync_root_id)
         self.set_ace(self.group2, child_id)
 
-        log.debug("Block inheritance on child")
+        log.info("Block inheritance on child")
         self.admin_remote.block_inheritance(child_id, overwrite=False)
 
-        log.debug("Register syncRoot for driveuser_1")
+        log.info("Register syncRoot for driveuser_1")
         self.remote_1.register_as_root(sync_root_id)
 
-        log.debug("Check that syncRoot and child are created locally")
+        log.info("Check that syncRoot and child are created locally")
         self.wait_sync(wait_for_async=True)
         assert self.local_root_client_1.exists("/syncRoot")
         assert self.local_root_client_1.exists("/syncRoot/child")
@@ -109,18 +109,18 @@ class TestGroupChanges(OneUserTest):
         Test changes on a group that has access
         to the parent of a synchronization root.
         """
-        log.debug("Create parent folder")
+        log.info("Create parent folder")
         parent_id = self.admin_remote.make_folder("/", "parent")
 
-        log.debug("Create syncRoot folder")
+        log.info("Create syncRoot folder")
         sync_root_id = self.admin_remote.make_folder("/parent", "syncRoot")
 
         self.set_ace(self.group1, parent_id)
 
-        log.debug("Register syncRoot for driveuser_1")
+        log.info("Register syncRoot for driveuser_1")
         self.remote_1.register_as_root(sync_root_id)
 
-        log.debug("Check that syncRoot is created locally")
+        log.info("Check that syncRoot is created locally")
         self.wait_sync(wait_for_async=True)
         assert self.local_root_client_1.exists("/syncRoot")
 
@@ -148,7 +148,7 @@ class TestGroupChanges(OneUserTest):
             - Delete the group.
             - Create the group including the test user.
         """
-        log.debug(
+        log.info(
             "Test changes on %s for %s with need_parent=%r",
             group_name,
             folder_path,
@@ -157,35 +157,35 @@ class TestGroupChanges(OneUserTest):
         remote = self.admin_remote
         local = self.local_root_client_1
 
-        log.debug("Remove driveuser_1 from %s", group_name)
+        log.info("Remove driveuser_1 from %s", group_name)
         group = remote.groups.get(group_name)
         group.memberUsers = []
         group.save()
 
-        log.debug("Check that %s is deleted locally", folder_path)
+        log.info("Check that %s is deleted locally", folder_path)
         self.wait_sync(wait_for_async=True)
         assert not local.exists(folder_path)
 
-        log.debug("Add driveuser_1 to %s", group_name)
+        log.info("Add driveuser_1 to %s", group_name)
         group.memberUsers = [self.user_1]
         group.save()
 
-        log.debug("Check that %s is created locally", folder_path)
+        log.info("Check that %s is created locally", folder_path)
         self.wait_sync(wait_for_async=True)
         assert local.exists(folder_path)
 
-        log.debug("Delete %s", group_name)
+        log.info("Delete %s", group_name)
         remote.groups.delete(group_name)
 
-        log.debug("Check that %s is deleted locally", folder_path)
+        log.info("Check that %s is deleted locally", folder_path)
         self.wait_sync(wait_for_async=True)
         assert not local.exists(folder_path)
 
-        log.debug("Create %s", group_name)
+        log.info("Create %s", group_name)
         remote.groups.create(Group(groupname=group_name, memberUsers=[self.user_1]))
 
         if need_parent:
-            log.debug(
+            log.info(
                 "%s should not be created locally since "
                 "the newly created group has not been added yet "
                 "as a subgroup of parentGroup",
@@ -194,12 +194,12 @@ class TestGroupChanges(OneUserTest):
             self.wait_sync(wait_for_async=True)
             assert not local.exists(folder_path)
 
-            log.trace("Add %s as a subgroup of parentGroup", group_name)
+            log.debug("Add %s as a subgroup of parentGroup", group_name)
             group = remote.groups.get(self.parent_group)
             group.memberGroups = [group_name]
             group.save()
 
-        log.debug("Check that %s is created locally", folder_path)
+        log.info("Check that %s is created locally", folder_path)
         self.wait_sync(wait_for_async=True)
         assert local.exists(folder_path)
 
@@ -208,15 +208,15 @@ class TestGroupChanges(OneUserTest):
         Test changes on a descendant group of the given group
         that has access to a synchronization root.
         """
-        log.debug("Create syncRoot folder")
+        log.info("Create syncRoot folder")
         sync_root_id = self.admin_remote.make_folder("/", "syncRoot")
 
         self.set_ace(ancestor_group, sync_root_id)
 
-        log.debug("Register syncRoot for driveuser_1")
+        log.info("Register syncRoot for driveuser_1")
         self.remote_1.register_as_root(sync_root_id)
 
-        log.debug("Check that syncRoot is created locally")
+        log.info("Check that syncRoot is created locally")
         self.wait_sync(wait_for_async=True)
         assert self.local_root_client_1.exists("/syncRoot")
 

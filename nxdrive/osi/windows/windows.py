@@ -65,7 +65,7 @@ class WindowsIntegration(AbstractOSIntegration):
                 # See https://technet.microsoft.com/en-us/library/dn528846.aspx
                 self.__zoom_factor = dpi / 96.0
             except:
-                log.debug("Cannot get zoom factor (using default 1.0)", exc_info=True)
+                log.info("Cannot get zoom factor (using default 1.0)", exc_info=True)
                 self.__zoom_factor = 1.0
         return self.__zoom_factor
 
@@ -87,7 +87,7 @@ class WindowsIntegration(AbstractOSIntegration):
             log.warning(f"Addons installer {installer!r} not found.")
             return False
 
-        log.debug(f"Installing addons from {installer!r} ...")
+        log.info(f"Installing addons from {installer!r} ...")
         try:
             subprocess.run([str(installer)])
         except Exception:
@@ -127,7 +127,7 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @if_frozen
     def register_contextual_menu(self) -> None:
-        log.debug("Registering contextual menu")
+        log.info("Registering contextual menu")
 
         # Register a submenu for both files (*) and folders (directory)
         for item in ("*", "directory"):
@@ -174,7 +174,7 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @if_frozen
     def unregister_contextual_menu(self) -> None:
-        log.debug("Unregistering contextual menu")
+        log.info("Unregistering contextual menu")
 
         for item in ("*", "directory"):
             registry.delete(f"Software\\Classes\\{item}\\shell\\{APP_NAME}")
@@ -214,7 +214,7 @@ class WindowsIntegration(AbstractOSIntegration):
         except:
             log.exception(f"Could not create the favorite for {path!r}")
         else:
-            log.debug(f"Registered new favorite in Explorer for {path!r}")
+            log.info(f"Registered new favorite in Explorer for {path!r}")
 
     def _get_folder_link(self, name: str = None) -> Path:
         return Options.home / "Links" / f"{name or APP_NAME}.lnk"
@@ -228,13 +228,13 @@ class WindowsIntegration(AbstractOSIntegration):
         )
 
     def watch_folder(self, folder: Path) -> None:
-        log.debug(f"Explorer now watching {folder!r}")
+        log.info(f"Explorer now watching {folder!r}")
         current_filters = get_filter_folders()
         current_filters.add(folder)
         set_filter_folders(current_filters)
 
     def unwatch_folder(self, folder: Path) -> None:
-        log.debug(f"Explorer now ignoring {folder!r}")
+        log.info(f"Explorer now ignoring {folder!r}")
         current_filters = get_filter_folders()
         current_filters.remove(folder)
         set_filter_folders(current_filters)
