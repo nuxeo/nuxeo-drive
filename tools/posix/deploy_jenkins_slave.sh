@@ -162,30 +162,17 @@ install_python() {
 }
 
 launch_tests() {
-    export MYPYPATH="${WORKSPACE_DRIVE}/tools/stubs"
-
     if [ "${SPECIFIC_TEST}" = "tests" ]; then
         echo ">>> Checking the style"
         ${PYTHON} -m flake8 .
 
         echo ">>> Checking type annotations"
+        export MYPYPATH="${WORKSPACE_DRIVE}/tools/stubs"
         ${PYTHON} -m mypy --ignore-missing-imports nxdrive
     fi
 
-    # echo ">>> Launching the tests suite"
-    # ${PYTHON} -b -Wall -m pytest "${SPECIFIC_TEST}"
-
-    echo ">>> Launching unit tests"
-    ${PYTHON} -b -Wall -m pytest tests/unit
-
-    echo ">>> Launching functional tests"
-    ${PYTHON} -b -Wall -m pytest tests/functional
-
-    echo ">>> Launching old functional tests"
-    ${PYTHON} -b -Wall -m pytest tests/old_functional
-
-    # echo ">>> Launching integration tests"
-    # ${PYTHON} -b -Wall -m pytest tests/integration
+    echo ">>> Launching the tests suite"
+    ${PYTHON} -bb -Wall -m pytest "${SPECIFIC_TEST}"
 }
 
 start_nxdrive() {

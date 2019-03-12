@@ -607,7 +607,7 @@ class TwoUsersTest(TestCase):
 
         # Track any exception that could happen, specially those we would not
         # see if the test succeed.
-        for _, error in vars(self._outcome).get("errors"):
+        for _, error in getattr(self._outcome, "errors", []):
             exception = str(error[1]).lower()
             message = str(error[2]).lower()
             if "mock" not in exception and "mock" not in message:

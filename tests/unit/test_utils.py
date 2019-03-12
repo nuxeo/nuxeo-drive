@@ -224,7 +224,7 @@ def test_get_value(raw_value, expected_value):
         # Incomplete URL
         (
             "https://intranet-preprod.nuxeocloud.com",
-            "https://intranet-preprod.nuxeocloud.com",
+            "https://intranet-preprod.nuxeocloud.com/nuxeo",
         ),
         # Bad IP
         ("1.2.3.4", ""),
