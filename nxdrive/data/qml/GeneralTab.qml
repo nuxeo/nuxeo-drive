@@ -100,6 +100,12 @@ Rectangle {
         }
 
         Link {
+            id: logLevelPopupLink
+            text: qsTr("LOG_LEVEL_CHANGE_SETTINGS") + tl.tr
+            onClicked: logLevelPopup.open()
+        }
+
+        Link {
             id: reportCreationLink
             text: qsTr("CREATE_REPORT") + tl.tr
             onClicked: {
@@ -133,4 +139,5 @@ Rectangle {
 
     ChannelPopup { id: channelPopup }
     ProxyPopup { id: proxyPopup }
+    LogLevelPopup { id: logLevelPopup }
 }
