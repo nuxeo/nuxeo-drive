@@ -288,11 +288,12 @@ class BaseUpdater(PollWorker):
         self._set_progress(progress)
 
     def get_version_channel(self, version: str) -> str:
-        try:
-            return self.versions.get(version).get("type")
-        except KeyError:
+        info = self.versions.get(version)
+        if info:
+            return info.get("type", "")
+        else:
             log.debug(f"No version {version} in record.")
-            return ""
+        return ""
 
     def _install(self, version: str, filename: str) -> None:
         """
