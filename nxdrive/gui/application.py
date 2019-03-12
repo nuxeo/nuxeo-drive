@@ -41,7 +41,7 @@ from ..notification import Notification
 from ..options import Options
 from ..translator import Translator
 from ..updater.constants import (
-    UPDATE_STATUS_DOWNGRADE_NEEDED,
+    UPDATE_STATUS_INCOMPATIBLE_SERVER,
     UPDATE_STATUS_UNAVAILABLE_SITE,
     UPDATE_STATUS_UP_TO_DATE,
 )
@@ -126,6 +126,7 @@ class Application(QApplication):
         # Application update
         self.manager.updater.appUpdated.connect(self.quit)
         self.manager.updater.serverIncompatible.connect(self._server_incompatible)
+        self.manager.updater.wrongChannel.connect(self._wrong_channel)
 
         # Display release notes on new version
         if self.manager.old_version != self.manager.version:
@@ -650,7 +651,7 @@ class Application(QApplication):
         status, version = self.manager.updater.status, self.manager.updater.version
 
         msg = ("AUTOUPDATE_UPGRADE", "AUTOUPDATE_DOWNGRADE")[
-            status == UPDATE_STATUS_DOWNGRADE_NEEDED
+            status == UPDATE_STATUS_INCOMPATIBLE_SERVER
         ]
         description = Translator.get(msg, [version])
         flags = Notification.FLAG_BUBBLE | Notification.FLAG_UNIQUE
@@ -690,6 +691,39 @@ class Application(QApplication):
         res = msg.clickedButton()
         if downgrade_version and res == downgrade:
             self.manager.updater.update(downgrade_version)
+
+    @pyqtSlot()
+    def _wrong_channel(self) -> None:
+        if self.manager.prompted_wrong_channel:
+            log.debug(
+                "Not prompting for wrong channel, already showed it since startup"
+            )
+            return
+        self.manager.prompted_wrong_channel = True
+
+        version = self.manager.version
+        downgrade_version = self.manager.updater.version or ""
+        version_channel = self.manager.updater.get_version_channel(version)
+        current_channel = self.manager.get_update_channel()
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowIcon(self.icon)
+        msg.setText(
+            Translator.get("WRONG_CHANNEL", [version, version_channel, current_channel])
+        )
+        switch_channel = msg.addButton(
+            Translator.get("USE_CHANNEL", [version_channel]), QMessageBox.AcceptRole
+        )
+        downgrade = msg.addButton(
+            Translator.get("DOWNGRADE_TO", [downgrade_version]), QMessageBox.AcceptRole
+        )
+        msg.exec_()
+
+        res = msg.clickedButton()
+        if downgrade_version and res == downgrade:
+            self.manager.updater.update(downgrade_version)
+        elif res == switch_channel:
+            self.manager.set_update_channel(version_channel)
 
     @pyqtSlot()
     def message_clicked(self) -> None:

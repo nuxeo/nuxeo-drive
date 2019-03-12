@@ -250,6 +250,7 @@ class Manager(QObject):
 
     def _create_updater(self) -> "Updater":  # type: ignore
         updater_ = updater(self)
+        self.prompted_wrong_channel = False
         self.started.connect(updater_.thread.start)
         return updater_
 
@@ -447,6 +448,7 @@ class Manager(QObject):
     @pyqtSlot(str)
     def set_update_channel(self, value: str) -> None:
         self.set_config("channel", value)
+        self.prompted_wrong_channel = False
         # Trigger update status refresh
         if self.updater.enable:
             self.refresh_update_status()

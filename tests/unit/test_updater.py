@@ -2,7 +2,7 @@
 import pytest
 
 from nxdrive.updater.constants import (
-    UPDATE_STATUS_DOWNGRADE_NEEDED,
+    UPDATE_STATUS_INCOMPATIBLE_SERVER,
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UP_TO_DATE,
     Login,
@@ -53,13 +53,19 @@ VERSIONS = {
         # Unexisting version
         ("3.1.2", "0.0.0", "release", "", ""),
         ("3.1.2", "foo", "release", "", ""),
-        ("3.1.2", "8.10-SNAPSHOT", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "3.0.1"),
+        (
+            "3.1.2",
+            "8.10-SNAPSHOT",
+            "release",
+            UPDATE_STATUS_INCOMPATIBLE_SERVER,
+            "3.0.1",
+        ),
         ("3.1.2", "10.3", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
         # Version is up-to-date
         ("4.0.1", "7.10-HF44", "release", UPDATE_STATUS_UP_TO_DATE, ""),
         # Downgrade needed
-        ("3.1.3", "7.10-HF10", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "3.1.1"),
-        ("4.0.1", "7.10-HF49", "release", UPDATE_STATUS_DOWNGRADE_NEEDED, "4.0.0"),
+        ("3.1.3", "7.10-HF10", "release", UPDATE_STATUS_INCOMPATIBLE_SERVER, "3.1.1"),
+        ("4.0.1", "7.10-HF49", "release", UPDATE_STATUS_INCOMPATIBLE_SERVER, "4.0.0"),
         # Update available
         ("1.4.0622", "7.10", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.0.1"),
         ("3.0.1", "7.10-HF11", "release", UPDATE_STATUS_UPDATE_AVAILABLE, "3.1.3"),
@@ -79,7 +85,7 @@ VERSIONS = {
     ],
 )
 def test_get_update_status(current, server, nature, action_required, new):
-    """get_update_status calls get_latest_compatible_version, 2 tests in one!"""
+    """get_update_status calls get_latest_version and get_compatible_versions, 2 tests in one!"""
     action, version = get_update_status(current, VERSIONS, nature, server, Login.NEW)
     assert action == action_required
     assert version == new
