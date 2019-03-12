@@ -30,13 +30,13 @@ def dump(database: Path, dump_file: Path) -> None:
     in the sqlite3 shell.
     """
 
-    log.debug(f"Dumping the database {database!r} into {dump_file!r}...")
+    log.info(f"Dumping the database {database!r} into {dump_file!r}...")
     with sqlite3.connect(str(database)) as con, dump_file.open(
         mode="w", encoding="utf-8"
     ) as f:
         for line in con.iterdump():
             f.write(f"{line}\n")
-    log.debug("Dump finished with success.")
+    log.info("Dump finished with success.")
 
 
 def read(dump_file: Path, database: Path) -> None:
@@ -46,10 +46,10 @@ def read(dump_file: Path, database: Path) -> None:
     in the sqlite3 shell.
     """
 
-    log.debug(f"Restoring {dump_file!r} into the database {database!r} ...")
+    log.info(f"Restoring {dump_file!r} into the database {database!r} ...")
     with sqlite3.connect(str(database)) as con:
         con.executescript(dump_file.read_text(encoding="utf-8"))
-    log.debug("Restoration done with success.")
+    log.info("Restoration done with success.")
 
 
 def fix_db(database: Path, dump_file: Path = Path("dump.sql")) -> None:
@@ -66,7 +66,7 @@ def fix_db(database: Path, dump_file: Path = Path("dump.sql")) -> None:
     if is_healthy(database):
         return
 
-    log.debug(f"Re-generating the whole database content of {database!r}...")
+    log.info(f"Re-generating the whole database content of {database!r}...")
 
     # Dump
     try:
@@ -99,7 +99,7 @@ def fix_db(database: Path, dump_file: Path = Path("dump.sql")) -> None:
             dump_file.unlink()
 
     new_size = database.stat().st_size
-    log.debug(f"Re-generation completed, saved {(old_size - new_size) / 1024} Kb.")
+    log.info(f"Re-generation completed, saved {(old_size - new_size) / 1024} Kb.")
 
 
 def restore_backup(database: Path) -> bool:
@@ -116,16 +116,16 @@ def restore_backup(database: Path) -> bool:
 
     backup_folder = database.with_name("backups")
     if not backup_folder.is_dir():
-        log.debug("No existing backup folder")
+        log.info("No existing backup folder")
         return False
 
     backups = list(backup_folder.glob(f"{database.name}_*"))
     if not backups:
-        log.debug(f"No backup available for {database}")
+        log.info(f"No backup available for {database}")
         return False
 
     latest = max(backups, key=lambda p: int(p.name.split("_")[-1]))
-    log.debug(f"Found a backup candidate, trying to restore {latest}")
+    log.info(f"Found a backup candidate, trying to restore {latest}")
     if database.exists():
         database.unlink()
     read(latest, database)
@@ -142,10 +142,10 @@ def save_backup(database: Path) -> bool:
     """
 
     if not database or not database.is_file():
-        log.debug("No database to backup")
+        log.info("No database to backup")
         return False
     if not is_healthy(database):
-        log.debug(f"{database} is corrupted, won't backup")
+        log.info(f"{database} is corrupted, won't backup")
         return False
 
     backup_folder = database.with_name("backups")
@@ -159,10 +159,10 @@ def save_backup(database: Path) -> bool:
     ]
     # Remove older backups
     for backup in old_backups:
-        log.trace(f"Removing old backup {backup}")
+        log.debug(f"Removing old backup {backup}")
         backup.unlink()
 
     backup = backup_folder / f"{database.name}_{int(datetime.now().timestamp())}"
-    log.debug(f"Creating backup {backup}")
+    log.info(f"Creating backup {backup}")
     dump(database, backup)
     return True

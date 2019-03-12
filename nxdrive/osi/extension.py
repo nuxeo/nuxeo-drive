@@ -63,7 +63,7 @@ class ExtensionListener(QTcpServer):
         Starts listening and emits a signal so that the extension can be started.
         """
         self.listen(QHostAddress(self.host), self.port)
-        log.debug(f"Listening to {self.explorer_name} on {self.host}:{self.port}")
+        log.info(f"Listening to {self.explorer_name} on {self.host}:{self.port}")
         self.listening.emit()
 
     def _handle_connection(self) -> None:
@@ -82,7 +82,7 @@ class ExtensionListener(QTcpServer):
             try:
                 content = self._parse_payload(payload.data())
             except:
-                log.debug(f"Unable to decode payload: {payload}")
+                log.info(f"Unable to decode payload: {payload}")
             else:
                 response = self._handle_content(content)
                 if response:
@@ -105,7 +105,7 @@ class ExtensionListener(QTcpServer):
         try:
             data = json.loads(content)
         except Exception:
-            log.debug(f"Unable to parse JSON: {content}")
+            log.info(f"Unable to parse JSON: {content}")
             return None
 
         cmd = data.get("command")
@@ -113,7 +113,7 @@ class ExtensionListener(QTcpServer):
 
         handler = self.handlers.get(cmd)
         if not handler:
-            log.debug(f"No handler for the listener command {cmd}")
+            log.info(f"No handler for the listener command {cmd}")
             return None
 
         response = handler(value)

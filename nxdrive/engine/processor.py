@@ -66,7 +66,7 @@ class Processor(EngineWorker):
         self.remote = self.engine.remote
 
     def _unlock_soft_path(self, path: Path) -> None:
-        log.trace(f"Soft unlocking {path!r}")
+        log.debug(f"Soft unlocking {path!r}")
         path = Path(str(path).lower())
         with Processor.path_locker:
             if self.engine.uid not in Processor.soft_locks:
@@ -80,11 +80,11 @@ class Processor(EngineWorker):
                 Processor.readonly_locks[self.engine.uid] = dict()
 
             if path in Processor.readonly_locks[self.engine.uid]:
-                log.trace(f"Readonly unlock: increase count on {path!r}")
+                log.debug(f"Readonly unlock: increase count on {path!r}")
                 Processor.readonly_locks[self.engine.uid][path][0] += 1
             else:
                 lock = self.local.unlock_ref(path)
-                log.trace(f"Readonly unlock: unlock on {path!r} with {lock}")
+                log.debug(f"Readonly unlock: unlock on {path!r} with {lock}")
                 Processor.readonly_locks[self.engine.uid][path] = [1, lock]
 
     def _lock_readonly(self, path: Path) -> None:
@@ -93,21 +93,21 @@ class Processor(EngineWorker):
                 Processor.readonly_locks[self.engine.uid] = dict()
 
             if path not in Processor.readonly_locks[self.engine.uid]:
-                log.debug(f"Readonly lock: cannot find reference on {path!r}")
+                log.info(f"Readonly lock: cannot find reference on {path!r}")
                 return
 
             Processor.readonly_locks[self.engine.uid][path][0] -= 1
             idx, lock = Processor.readonly_locks[self.engine.uid][path]
 
-            log.trace(f"Readonly lock: update lock count on {path!r} to {idx}")
+            log.debug(f"Readonly lock: update lock count on {path!r} to {idx}")
 
             if idx <= 0:
                 self.local.lock_ref(path, lock)
-                log.trace(f"Readonly lock: relocked {path!r} with {lock}")
+                log.debug(f"Readonly lock: relocked {path!r} with {lock}")
                 del Processor.readonly_locks[self.engine.uid][path]
 
     def _lock_soft_path(self, path: Path) -> Path:
-        log.trace(f"Soft locking {path!r}")
+        log.debug(f"Soft locking {path!r}")
         path = Path(str(path).lower())
         with Processor.path_locker:
             if self.engine.uid not in Processor.soft_locks:
@@ -131,7 +131,7 @@ class Processor(EngineWorker):
                 doc_pair.pair_state.startswith("parent_"),
             )
         ):
-            log.trace(f"Skip pair in non-processable state: {doc_pair!r}")
+            log.debug(f"Skip pair in non-processable state: {doc_pair!r}")
             return False
         return True
 
@@ -151,23 +151,23 @@ class Processor(EngineWorker):
                         and state.pair_state == "locally_moved"
                         and not state.remote_can_rename
                     ):
-                        log.debug(
+                        log.info(
                             "A local rename on a read-only folder is allowed "
                             " on Windows, but it should not. Skipping."
                         )
                         continue
 
-                    log.trace(f"Cannot acquire state for item {item!r} ({state!r})")
+                    log.debug(f"Cannot acquire state for item {item!r} ({state!r})")
                     self._postpone_pair(item, "Pair in use", interval=3)
                 continue
 
             if not doc_pair:
-                log.trace(f"Did not acquire state, dropping {item!r}")
+                log.debug(f"Did not acquire state, dropping {item!r}")
                 continue
 
             soft_lock = None
             try:
-                log.debug(f"Executing processor on {doc_pair!r}({doc_pair.version})")
+                log.info(f"Executing processor on {doc_pair!r}({doc_pair.version})")
                 self._current_doc_pair = doc_pair
                 if not self.check_pair_state(doc_pair):
                     continue
@@ -188,7 +188,7 @@ class Processor(EngineWorker):
                             doc_pair.local_path, "com.apple.FinderInfo"
                         )
                         if "brokMACS" in finder_info:
-                            log.trace(f"Skip as pair is in use by Finder: {doc_pair!r}")
+                            log.debug(f"Skip as pair is in use by Finder: {doc_pair!r}")
                             self._postpone_pair(
                                 doc_pair, "Finder using file", interval=3
                             )
@@ -245,7 +245,7 @@ class Processor(EngineWorker):
                 handler_name = f"_synchronize_{doc_pair.pair_state}"
                 sync_handler = getattr(self, handler_name, None)
                 if not sync_handler:
-                    log.debug(
+                    log.info(
                         f"Unhandled pair_state {doc_pair.pair_state!r} for {doc_pair!r}"
                     )
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
@@ -256,7 +256,7 @@ class Processor(EngineWorker):
                     "handler": doc_pair.pair_state,
                     "start_time": current_milli_time(),
                 }
-                log.trace(f"Calling {handler_name}() on doc pair {doc_pair!r}")
+                log.debug(f"Calling {handler_name}() on doc pair {doc_pair!r}")
 
                 try:
                     soft_lock = self._lock_soft_path(doc_pair.local_path)
@@ -276,7 +276,7 @@ class Processor(EngineWorker):
                     self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
                     continue
                 except (ConnectionError, PairInterrupt, ParentNotSynced) as exc:
-                    log.debug(
+                    log.info(
                         f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue"
                     )
                     sleep(1)
@@ -287,7 +287,7 @@ class Processor(EngineWorker):
                         # We saw it happened once a migration is done.
                         # Nuxeo kept the document reference but it does
                         # not exist physically anywhere.
-                        log.debug(f"The document does not exist anymore: {doc_pair!r}")
+                        log.info(f"The document does not exist anymore: {doc_pair!r}")
                         self._dao.remove_state(doc_pair)
                     elif exc.status == 409:  # Conflict
                         # It could happen on multiple files drag'n drop
@@ -307,13 +307,13 @@ class Processor(EngineWorker):
                     self.increase_error(doc_pair, "CORRUPT", exception=exc)
                     continue
                 except NotFound as exc:
-                    log.debug(
+                    log.info(
                         f"The document or its parent does not exist anymore: {doc_pair!r}"
                     )
                     self.giveup_error(doc_pair, "NOT_FOUND", exception=exc)
                     continue
                 except UnknownDigest as exc:
-                    log.debug(
+                    log.info(
                         f"The document's digest has no corresponding algorithm: {doc_pair!r}"
                     )
                     self.giveup_error(doc_pair, "UNKNOWN_DIGEST", exception=exc)
@@ -339,7 +339,7 @@ class Processor(EngineWorker):
                         WindowsError: [Error 2] The specified file is not found
                         WindowsError: [Error 3] The system cannot find the file specified
                         """
-                        log.debug(f"The document does not exist anymore:{doc_pair!r}")
+                        log.info(f"The document does not exist anymore:{doc_pair!r}")
                         self._dao.remove_state(doc_pair)
                     elif error in {36, 111, 121, 124, 206, 1223}:
                         """
@@ -427,10 +427,10 @@ class Processor(EngineWorker):
             if self.local.is_equal_digests(
                 doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
             ):
-                log.debug("Auto-resolve conflict has digest are the same")
+                log.info("Auto-resolve conflict has digest are the same")
                 self._dao.synchronize_state(doc_pair)
         elif self.local.get_remote_id(doc_pair.local_path) == doc_pair.remote_ref:
-            log.debug("Auto-resolve conflict has folder has same remote_id")
+            log.info("Auto-resolve conflict has folder has same remote_id")
             self._dao.synchronize_state(doc_pair)
 
     def _update_speed_metrics(self) -> None:
@@ -441,7 +441,7 @@ class Processor(EngineWorker):
             if duration <= 0:
                 return
             speed = (action.size / duration) * 1000
-            log.trace(f"Transfer speed {speed / 1024} ko/s")
+            log.debug(f"Transfer speed {speed / 1024} ko/s")
             self._current_metrics["speed"] = speed
 
     def _synchronize_if_not_remotely_dirty(
@@ -453,7 +453,7 @@ class Processor(EngineWorker):
         ):
             modified = self._dao.get_state_from_local(doc_pair.local_path)
             if modified:
-                log.debug(
+                log.info(
                     f"Forcing remotely_modified for pair={modified!r} "
                     f"with info={remote_info!r}"
                 )
@@ -485,7 +485,7 @@ class Processor(EngineWorker):
         if doc_pair.local_digest == UNACCESSIBLE_HASH:
             # Try to update
             info = self.local.get_info(doc_pair.local_path)
-            log.trace(f"Modification of postponed local file: {doc_pair!r}")
+            log.debug(f"Modification of postponed local file: {doc_pair!r}")
             doc_pair.local_digest = info.get_digest()
 
             if doc_pair.local_digest == UNACCESSIBLE_HASH:
@@ -500,7 +500,7 @@ class Processor(EngineWorker):
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
                     self._postpone_pair(doc_pair, "Unaccessible hash")
                     return
-                log.debug(f"Updating remote document {doc_pair.local_name!r}")
+                log.info(f"Updating remote document {doc_pair.local_name!r}")
                 fs_item_info = self.remote.stream_update(
                     doc_pair.remote_ref,
                     self.local.abspath(doc_pair.local_path),
@@ -513,7 +513,7 @@ class Processor(EngineWorker):
                 self._dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
                 # TODO refresh_client
             else:
-                log.debug(
+                log.info(
                     f"Skip update of remote document {doc_pair.local_name!r} "
                     "as it is read-only."
                 )
@@ -521,7 +521,7 @@ class Processor(EngineWorker):
                     self.local.delete(doc_pair.local_path)
                     self._dao.mark_descendants_remotely_created(doc_pair)
                 else:
-                    log.debug(f"Set pair unsynchronized: {doc_pair!r}")
+                    log.info(f"Set pair unsynchronized: {doc_pair!r}")
                     try:
                         fs_info: Optional[RemoteFileInfo] = self.remote.get_fs_info(
                             doc_pair.remote_ref
@@ -555,7 +555,7 @@ class Processor(EngineWorker):
     ) -> None:
         """ Wait 60 sec for it. """
 
-        log.trace(f"Postpone action on document({reason}): {doc_pair!r}")
+        log.debug(f"Postpone action on document({reason}): {doc_pair!r}")
         doc_pair.error_count = 1
         self.engine.get_queue_manager().push_error(
             doc_pair, exception=None, interval=interval
@@ -579,11 +579,11 @@ class Processor(EngineWorker):
             if ignore:
                 # Might be a tierce software temporary file
                 if not delay:
-                    log.debug(f"Ignoring generated tmp file: {name!r}")
+                    log.info(f"Ignoring generated tmp file: {name!r}")
                     return
                 if doc_pair.error_count == 0:
                     # Save the error_count to not ignore next time
-                    log.debug(f"Delaying generated tmp file like: {name!r}")
+                    log.info(f"Delaying generated tmp file like: {name!r}")
                     self.increase_error(doc_pair, "Can be a temporary file")
                     return
 
@@ -591,11 +591,11 @@ class Processor(EngineWorker):
         # Find the parent pair to find the ref of the remote folder to
         # create the document
         parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
-        log.trace(f"Entered _synchronize_locally_created, parent_pair={parent_pair!r}")
+        log.debug(f"Entered _synchronize_locally_created, parent_pair={parent_pair!r}")
 
         if parent_pair is None:
             # Try to get it from xattr
-            log.trace("Fallback to xattr")
+            log.debug("Fallback to xattr")
             if self.local.exists(doc_pair.local_parent_path):
                 ref = self.local.get_remote_id(doc_pair.local_parent_path)
                 if ref:
@@ -628,7 +628,7 @@ class Processor(EngineWorker):
             if not info:
                 # The document has an invalid remote ID.
                 # Continue the document creation after purging the ID.
-                log.debug(f"Removing xattr(s) on {doc_pair.local_path!r}")
+                log.info(f"Removing xattr(s) on {doc_pair.local_path!r}")
                 func = ("remove_remote_id", "clean_xattr_folder_recursive")[
                     doc_pair.folderish
                 ]
@@ -638,7 +638,7 @@ class Processor(EngineWorker):
         if remote_ref and info:
             try:
                 if uid and info.is_trashed:
-                    log.debug(f"Untrash from the client: {doc_pair!r}")
+                    log.info(f"Untrash from the client: {doc_pair!r}")
                     self.remote.undelete(uid)
                     remote_parent_path = (
                         parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
@@ -667,7 +667,7 @@ class Processor(EngineWorker):
                     return
 
                 fs_item_info = self.remote.get_fs_info(remote_ref)
-                log.trace(
+                log.debug(
                     "Compare parents: "
                     f"{fs_item_info.parent_uid!r} | {parent_pair.remote_ref!r}"
                 )
@@ -696,7 +696,7 @@ class Processor(EngineWorker):
                 # undelete will fail if you dont have the rights
                 if e.status not in {401, 403}:
                     raise e
-                log.trace(
+                log.debug(
                     "Create new document as current known document "
                     f"is not accessible: {remote_ref}"
                 )
@@ -705,7 +705,7 @@ class Processor(EngineWorker):
                 # It happens when locally untrashing a folder
                 # containing files. Just ignore the error and proceed
                 # to the document creation.
-                log.debug(f"Removing xattr on {doc_pair.local_path!r}")
+                log.info(f"Removing xattr on {doc_pair.local_path!r}")
                 self.local.remove_remote_id(doc_pair.local_path)
 
         parent_ref: str = parent_pair.remote_ref
@@ -714,7 +714,7 @@ class Processor(EngineWorker):
                 parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
             )
             if doc_pair.folderish:
-                log.debug(
+                log.info(
                     f"Creating remote folder {name!r} "
                     f"in folder {parent_pair.remote_name!r}"
                 )
@@ -725,7 +725,7 @@ class Processor(EngineWorker):
             else:
                 # TODO Check if the file is already on the server with the
                 # TODO good digest
-                log.debug(
+                log.info(
                     f"Creating remote document {name!r} "
                     f"in folder {parent_pair.remote_name!r}"
                 )
@@ -740,7 +740,7 @@ class Processor(EngineWorker):
                     return
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
                     doc_pair.local_digest = local_info.get_digest()
-                    log.trace(f"Creation of postponed local file: {doc_pair!r}")
+                    log.debug(f"Creation of postponed local file: {doc_pair!r}")
                     self._dao.update_local_state(
                         doc_pair, local_info, versioned=False, queue=False
                     )
@@ -771,7 +771,7 @@ class Processor(EngineWorker):
                     versioned=False,
                     queue=False,
                 )
-            log.trace(f"Put remote_ref in {remote_ref}")
+            log.debug(f"Put remote_ref in {remote_ref}")
             try:
                 if not remote_id_done:
                     self.local.set_remote_id(doc_pair.local_path, remote_ref)
@@ -795,7 +795,7 @@ class Processor(EngineWorker):
                 self.local.delete(doc_pair.local_path)
                 self._dao.remove_state(doc_pair)
             else:
-                log.debug(f"Set pair unsynchronized: {doc_pair!r}")
+                log.info(f"Set pair unsynchronized: {doc_pair!r}")
                 self._dao.unsynchronize_state(doc_pair, "READONLY")
                 self.engine.newReadonly.emit(
                     doc_pair.local_name, parent_pair.remote_name
@@ -809,7 +809,7 @@ class Processor(EngineWorker):
             return
 
         if doc_pair.remote_can_delete:
-            log.debug(
+            log.info(
                 "Deleting or unregistering remote document "
                 f"{doc_pair.remote_name!r} ({doc_pair.remote_ref})"
             )
@@ -819,13 +819,13 @@ class Processor(EngineWorker):
                 )
             self._dao.remove_state(doc_pair)
         else:
-            log.debug(
+            log.info(
                 f"{doc_pair.local_path!r} can not be remotely deleted: "
                 "either it is readonly or it is a virtual folder that "
                 "does not exist in the server hierarchy"
             )
             if doc_pair.remote_state != "deleted":
-                log.debug(
+                log.info(
                     f"Marking {doc_pair!r} as filter since remote document "
                     f"{doc_pair.remote_name!r} ({doc_pair.remote_ref}]) "
                     "can not be deleted"
@@ -863,13 +863,13 @@ class Processor(EngineWorker):
                     self._handle_failed_remote_rename(doc_pair, doc_pair)
                     return
 
-                log.debug(f"Renaming remote document according to local {doc_pair!r}")
+                log.info(f"Renaming remote document according to local {doc_pair!r}")
                 remote_info = self.remote.rename(
                     doc_pair.remote_ref, doc_pair.local_name
                 )
                 self._refresh_remote(doc_pair, remote_info=remote_info)
             except Exception as e:
-                log.debug(str(e))
+                log.info(str(e))
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
                 return
 
@@ -889,7 +889,7 @@ class Processor(EngineWorker):
                 and not parent_pair.pair_state == "unsynchronized"
                 and parent_pair.remote_can_create_child
             ):
-                log.debug(f"Moving remote file according to local : {doc_pair!r}")
+                log.info(f"Moving remote file according to local : {doc_pair!r}")
                 # Bug if move in a parent with no rights / partial move
                 # if rename at the same time
                 parent_path = (
@@ -961,10 +961,10 @@ class Processor(EngineWorker):
         os_path = self.local.abspath(doc_pair.local_path)
         if is_renaming:
             new_os_path = os_path.with_name(safe_filename(doc_pair.remote_name))
-            log.debug(f"Replacing local file {os_path!r} by {new_os_path!r}")
+            log.info(f"Replacing local file {os_path!r} by {new_os_path!r}")
         else:
             new_os_path = os_path
-        log.debug(f"Updating content of local file {os_path!r}")
+        log.info(f"Updating content of local file {os_path!r}")
         self.tmp_file: Optional[Path] = self._download_content(doc_pair, new_os_path)
 
         # Delete original file and rename tmp file
@@ -988,12 +988,12 @@ class Processor(EngineWorker):
         if name is None:
             name = doc_pair.local_name
         # Auto resolve duplicate
-        log.debug(f"Search for dupe pair with {name!r} {doc_pair.remote_parent_ref}")
+        log.info(f"Search for dupe pair with {name!r} {doc_pair.remote_parent_ref}")
         dupe_pair = self._dao.get_dedupe_pair(
             name, doc_pair.remote_parent_ref, doc_pair.id
         )
         if dupe_pair is not None:
-            log.debug(f"Dupe pair found {dupe_pair!r}")
+            log.info(f"Dupe pair found {dupe_pair!r}")
             self._dao.reset_error(dupe_pair)
 
     def _synchronize_remotely_modified(self, doc_pair: DocPair) -> None:
@@ -1019,7 +1019,7 @@ class Processor(EngineWorker):
                     return
 
                 if not is_move and not is_renaming:
-                    log.debug(
+                    log.info(
                         "No local impact of metadata update on document "
                         f"{doc_pair.remote_name!r}"
                     )
@@ -1035,11 +1035,11 @@ class Processor(EngineWorker):
                         old_path = doc_pair.local_path
                         new_path = new_parent_pair.local_path / moved_name
                         if old_path == new_path:
-                            log.debug(f"Wrong guess for move: {doc_pair!r}")
+                            log.info(f"Wrong guess for move: {doc_pair!r}")
                             self._is_remote_move(doc_pair)
                             self._dao.synchronize_state(doc_pair)
 
-                        log.debug(
+                        log.info(
                             f"DOC_PAIR({doc_pair!r}): "
                             f"old_path[exists={self.local.exists(old_path)!r},"
                             f"id={self.local.get_remote_id(old_path)!r}]: {old_path!r},"
@@ -1049,7 +1049,7 @@ class Processor(EngineWorker):
 
                         old_path_abs = self.local.abspath(old_path)
                         new_path_abs = self.local.abspath(new_path)
-                        log.debug(
+                        log.info(
                             f"Moving local {file_or_folder} "
                             f"{old_path_abs!r} to {new_path_abs!r}"
                         )
@@ -1067,7 +1067,7 @@ class Processor(EngineWorker):
                         )
                         self._dao.update_remote_parent_path(doc_pair, new_parent_path)
                     else:
-                        log.debug(
+                        log.info(
                             f"Renaming local {file_or_folder} "
                             f"{self.local.abspath(doc_pair.local_path)!r} "
                             f"to {doc_pair.remote_name!r}"
@@ -1122,7 +1122,7 @@ class Processor(EngineWorker):
         remote_path = f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
         if self.remote.is_filtered(remote_path):
             nature = ("file", "folder")[doc_pair.folderish]
-            log.trace(f"Skip filtered {nature} {doc_pair.local_path!r}")
+            log.debug(f"Skip filtered {nature} {doc_pair.local_path!r}")
             self._dao.remove_state(doc_pair)
             return
 
@@ -1145,7 +1145,7 @@ class Processor(EngineWorker):
             path = doc_pair.local_path
             remote_ref = self.local.get_remote_id(doc_pair.local_path)
             if remote_ref and remote_ref == doc_pair.remote_ref:
-                log.debug(
+                log.info(
                     f"remote_ref (xattr) = {remote_ref}, "
                     f"doc_pair.remote_ref = {doc_pair.remote_ref} "
                     "=> setting conflicted state"
@@ -1166,9 +1166,7 @@ class Processor(EngineWorker):
         self._refresh_local_state(doc_pair, self.local.get_info(path))
         self._handle_readonly(doc_pair)
         if not self._dao.synchronize_state(doc_pair):
-            log.debug(
-                f"Pair is not in synchronized state (version issue): {doc_pair!r}"
-            )
+            log.info(f"Pair is not in synchronized state (version issue): {doc_pair!r}")
             # Need to check if this is a remote or local change
             new_pair = self._dao.get_state_from_id(doc_pair.id)
             if not new_pair:
@@ -1191,14 +1189,14 @@ class Processor(EngineWorker):
         self._unlock_readonly(local_parent_path)
         try:
             if doc_pair.folderish:
-                log.debug(
+                log.info(
                     f"Creating local folder {name!r} "
                     f"in {self.local.abspath(local_parent_path)!r}"
                 )
                 return self.local.make_folder(local_parent_path, name)
 
             path, os_path, name = self.local.get_new_file(local_parent_path, name)
-            log.debug(
+            log.info(
                 f"Creating local file {name!r} "
                 f"in {self.local.abspath(local_parent_path)!r}"
             )
@@ -1241,7 +1239,7 @@ class Processor(EngineWorker):
                 self._dao.remove_state(doc_pair)
                 return
             if doc_pair.local_state != "deleted":
-                log.debug(
+                log.info(
                     f"Deleting locally {self.local.abspath(doc_pair.local_path)!r}"
                 )
                 if doc_pair.folderish:
@@ -1272,20 +1270,20 @@ class Processor(EngineWorker):
         # need to handle this case to put the database back to a consistent
         # state.
         # This is tracked by https://jira.nuxeo.com/browse/NXP-13216
-        log.debug("Inconsistency should not happens anymore")
-        log.debug(
+        log.info("Inconsistency should not happens anymore")
+        log.info(
             f"Detected inconsistent doc pair {doc_pair!r}, deleting it hoping the "
             "synchronizer will fix this case at next iteration"
         )
         self._dao.remove_state(doc_pair)
         if doc_pair.local_path:
-            log.debug(
+            log.info(
                 f"Since the local path is set: {doc_pair.local_path!r}, "
                 "the synchronizer will probably consider this as a local creation at "
                 "next iteration and create the file or folder remotely"
             )
         else:
-            log.debug(
+            log.info(
                 "Since the local path is _not_ set, the synchronizer will "
                 "probably do nothing at next iteration"
             )
@@ -1318,7 +1316,7 @@ class Processor(EngineWorker):
         state = bool(
             local_parent and remote_parent and local_parent.id != remote_parent.id
         )
-        log.debug(
+        log.info(
             f"is_remote_move={state!r}: name={doc_pair.remote_name!r}, "
             f"local={local_parent!r}, remote={remote_parent!r}"
         )
@@ -1376,8 +1374,8 @@ class Processor(EngineWorker):
             return
 
         if doc_pair.is_readonly():
-            log.debug(f"Setting {doc_pair.local_path!r} as readonly")
+            log.info(f"Setting {doc_pair.local_path!r} as readonly")
             self.local.set_readonly(doc_pair.local_path)
         else:
-            log.debug(f"Unsetting {doc_pair.local_path!r} as readonly")
+            log.info(f"Unsetting {doc_pair.local_path!r} as readonly")
             self.local.unset_readonly(doc_pair.local_path)

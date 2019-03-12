@@ -83,7 +83,7 @@ class Manager(QObject):
 
         self.notification_service = DefaultNotificationService(self)
         self.osi = AbstractOSIntegration.get(self)
-        log.debug(f"OS integration type: {self.osi.nature}")
+        log.info(f"OS integration type: {self.osi.nature}")
 
         self.direct_edit_folder = self.home / "edit"
 
@@ -108,7 +108,7 @@ class Manager(QObject):
 
         # Set the logs levels option
         if FILE_HANDLER:
-            FILE_HANDLER.setLevel(Options.log_level_file)
+            FILE_HANDLER.setLevel(self.get_log_level())
 
         # Force language
         if Options.force_locale is not None:
@@ -292,7 +292,7 @@ class Manager(QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug(f"Resume engine {uid}")
+            log.info(f"Resume engine {uid}")
             engine.resume()
         self.resumed.emit()
 
@@ -303,7 +303,7 @@ class Manager(QObject):
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.debug(f"Suspend engine {uid}")
+            log.info(f"Suspend engine {uid}")
             engine.suspend()
         self.suspended.emit()
 
@@ -315,7 +315,7 @@ class Manager(QObject):
             if euid is not None and euid != uid:
                 continue
             if engine.is_started():
-                log.debug(f"Stop engine {uid}")
+                log.info(f"Stop engine {uid}")
                 engine.stop()
         self.osi._cleanup()
         self.dispose_db()
@@ -327,7 +327,7 @@ class Manager(QObject):
             if euid is not None and euid != uid:
                 continue
             if not self._pause:
-                log.debug(f"Launch engine {uid}")
+                log.info(f"Launch engine {uid}")
                 try:
                     engine.start()
                 except:
@@ -366,7 +366,7 @@ class Manager(QObject):
     def open_local_file(self, file_path: str, select: bool = False) -> None:
         """Launch the local OS program on the given file / folder."""
         file_path = force_decode(file_path)
-        log.debug(f"Launching editor on {file_path!r}")
+        log.info(f"Launching editor on {file_path!r}")
         try:
             self.osi.open_local_file(file_path)
         except Exception:
@@ -470,7 +470,7 @@ class Manager(QObject):
 
         save_proxy(proxy, self._dao)
         self.proxy = proxy
-        log.trace(f"Effective proxy: {proxy!r}")
+        log.debug(f"Effective proxy: {proxy!r}")
         return ""
 
     def _get_default_server_type(self) -> str:  # TODO: Move to constants.py
@@ -495,7 +495,7 @@ class Manager(QObject):
             "User-Agent": f"{APP_NAME}/{self.version}",
         }
 
-        log.debug(f"Proxy configuration for startup page connection: {self.proxy}")
+        log.info(f"Proxy configuration for startup page connection: {self.proxy}")
         try:
             with requests.get(
                 url,
@@ -513,7 +513,7 @@ class Manager(QObject):
             if _raise:
                 raise StartupPageConnectionError()
         else:
-            log.debug(f"Status code for {url} = {status}")
+            log.info(f"Status code for {url} = {status}")
             if status == 404:
                 # We know the new endpoint is unavailable,
                 # so we need to use the old login.
@@ -595,7 +595,7 @@ class Manager(QObject):
                 # Last part of the URL is the engine type
                 engine_type = url.split("#")[1]
                 binder = binder._replace(url=url.split("#")[0])
-                log.debug(
+                log.info(
                     f"Engine type has been specified in the URL: {engine_type} will be used"
                 )
 
@@ -679,9 +679,9 @@ class Manager(QObject):
             if engine.is_syncing():
                 syncing_engines.append(uid)
         if syncing_engines:
-            log.debug(f"Some engines are currently synchronizing: {syncing_engines}")
+            log.info(f"Some engines are currently synchronizing: {syncing_engines}")
             return True
-        log.debug("No engine currently synchronizing")
+        log.info("No engine currently synchronizing")
         return False
 
     def get_root_id(self, path: Path) -> str:
@@ -697,7 +697,7 @@ class Manager(QObject):
     def ctx_access_online(self, path: Path) -> None:
         """ Open the user's browser to a remote document. """
 
-        log.debug(f"Opening metadata window for {path!r}")
+        log.info(f"Opening metadata window for {path!r}")
         try:
             url = self.get_metadata_infos(path)
         except ValueError:
@@ -718,7 +718,7 @@ class Manager(QObject):
     def ctx_edit_metadata(self, path: Path) -> None:
         """ Open the user's browser to a remote document's metadata. """
 
-        log.debug(f"Opening metadata window for {path!r}")
+        log.info(f"Opening metadata window for {path!r}")
         try:
             url = self.get_metadata_infos(path, edit=True)
         except ValueError:

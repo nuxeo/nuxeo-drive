@@ -56,7 +56,7 @@ class Worker(QObject):
         Start the worker thread
         """
         self.thread.start()
-        log.trace(f"Thread START for {self!r}")
+        log.debug("Thread START")
 
     def stop(self) -> None:
         """
@@ -71,7 +71,7 @@ class Worker(QObject):
             self.thread.wait(5000)
 
         if self.thread.isRunning():
-            log.error(f"Thread ZOMBIE for {self!r}")
+            log.warning("Thread ZOMBIE")
             self.thread.terminate()
 
     def resume(self) -> None:
@@ -121,7 +121,7 @@ class Worker(QObject):
             sleep(0.01)
 
     def _finished(self) -> None:
-        log.trace(f"Thread END for {self!r})")
+        log.debug("Thread END")
 
     @property
     def action(self) -> Action:
@@ -170,9 +170,9 @@ class Worker(QObject):
             try:
                 self._execute()
             except ThreadInterrupt:
-                log.debug(f"Thread INTERRUPT for {self!r}")
+                log.debug("Thread INTERRUPT")
             except Exception:
-                log.exception(f"Thread EXCEPTION for {self!r}")
+                log.exception("Thread EXCEPTION")
         finally:
             self.quit()
             self._running = False
@@ -190,7 +190,7 @@ class EngineWorker(Worker):
         self, doc_pair: DocPair, error: str, exception: Exception = None
     ) -> None:
         details = str(exception) if exception else None
-        log.debug(f"Give up for error [{error}] ({details}) for {doc_pair!r}")
+        log.info(f"Give up for error [{error}] ({details}) for {doc_pair!r}")
         self._dao.increase_error(
             doc_pair,
             error,
@@ -209,7 +209,7 @@ class EngineWorker(Worker):
                 details = getattr(exception, "message")
             except AttributeError:
                 details = str(exception)
-        log.debug(f"Increasing error [{error}] ({details}) for {doc_pair!r}")
+        log.info(f"Increasing error [{error}] ({details}) for {doc_pair!r}")
         self._dao.increase_error(doc_pair, error, details=details)
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 

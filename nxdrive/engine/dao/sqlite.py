@@ -117,7 +117,7 @@ class AutoRetryCursor(Cursor):
             try:
                 return super().execute(*args, **kwargs)
             except OperationalError as exc:
-                log.debug(
+                log.info(
                     f"Retry locked database #{count}, args={args!r}, kwargs={kwargs!r}"
                 )
                 if count > 5:
@@ -136,7 +136,7 @@ class ConfigurationDAO(QObject):
 
     def __init__(self, db: Path) -> None:
         super().__init__()
-        log.debug(f"Create DAO on {db!r}")
+        log.info(f"Create DAO on {db!r}")
         self._db = db
         exists = self._db.is_file()
 
@@ -242,7 +242,7 @@ class ConfigurationDAO(QObject):
         )
 
     def _create_main_conn(self) -> None:
-        log.debug(
+        log.info(
             f"Create main connexion on {self._db!r} "
             f"(dir_exists={self._db.parent.exists()}, "
             f"file_exists={self._db.exists()})"
@@ -257,7 +257,7 @@ class ConfigurationDAO(QObject):
         self._connections.append(self._conn)
 
     def dispose(self) -> None:
-        log.debug(f"Disposing SQLite database {self.get_db()!r}")
+        log.info(f"Disposing SQLite database {self.get_db()!r}")
         if hasattr(self, "_connections"):
             for con in self._connections:
                 con.close()
@@ -276,7 +276,7 @@ class ConfigurationDAO(QObject):
         # If in transaction
         if self.in_tx is not None:
             if current_thread().ident != self.in_tx:
-                log.trace("In transaction wait for read connection")
+                log.debug("In transaction wait for read connection")
                 # Wait for the thread in transaction to finished
                 with self._tx_lock:
                     pass
@@ -925,13 +925,13 @@ class EngineDAO(ConfigurationDAO):
     ) -> None:
         if self._queue_manager and pair_state not in {"synchronized", "unsynchronized"}:
             if pair_state == "conflicted":
-                log.trace(f"Emit newConflict with: {row_id}, pair={pair!r}")
+                log.debug(f"Emit newConflict with: {row_id}, pair={pair!r}")
                 self.newConflict.emit(row_id)
             else:
-                log.trace(f"Push to queue: {pair_state}, pair={pair!r}")
+                log.debug(f"Push to queue: {pair_state}, pair={pair!r}")
                 self._queue_manager.push_ref(row_id, folderish, pair_state)
         else:
-            log.trace(f"Will not push pair: {pair_state}, pair={pair!r}")
+            log.debug(f"Will not push pair: {pair_state}, pair={pair!r}")
 
     def _get_pair_state(self, row: DocPair) -> str:
         state = PAIR_STATES.get((row.local_state, row.remote_state))
@@ -962,12 +962,12 @@ class EngineDAO(ConfigurationDAO):
         self, row: DocPair, info: FileInfo, versioned: bool = True, queue: bool = True
     ) -> None:
         row.pair_state = self._get_pair_state(row)
-        log.trace(f"Updating local state for row={row!r} with info={info!r}")
+        log.debug(f"Updating local state for row={row!r} with info={info!r}")
 
         version = ""
         if versioned:
             version = ", version = version + 1"
-            log.trace(f"Increasing version to {row.version + 1} for pair {row!r}")
+            log.debug(f"Increasing version to {row.version + 1} for pair {row!r}")
 
         parent_path = info.path.parent
         with self._lock:
@@ -1075,7 +1075,7 @@ class EngineDAO(ConfigurationDAO):
             f"AND error_count < {threshold}"
         )
         if self._items_count != count:
-            log.trace(
+            log.debug(
                 f"Cache Syncing count incorrect should be {count} was {self._items_count}"
             )
             self._items_count = count
@@ -1230,7 +1230,7 @@ class EngineDAO(ConfigurationDAO):
                     + self._get_recursive_remote_condition(doc_pair)
                 )
 
-                log.trace(f"Update remote_parent_path {query!r}")
+                log.debug(f"Update remote_parent_path {query!r}")
                 c.execute(query)
             c.execute(
                 "UPDATE States SET remote_parent_path = ? WHERE id = ?",
@@ -1366,7 +1366,7 @@ class EngineDAO(ConfigurationDAO):
                 "   AND " + self._get_to_sync_condition(),
                 (row.remote_ref, row.local_path),
             ).fetchall()
-            log.debug(f"Queuing {len(children)} children of {row}")
+            log.info(f"Queuing {len(children)} children of {row}")
             for child in children:
                 self._queue_pair_state(child.id, child.folderish, child.pair_state)
 
@@ -1501,7 +1501,7 @@ class EngineDAO(ConfigurationDAO):
     ) -> bool:
         if version is None:
             version = row.version
-        log.trace(
+        log.debug(
             f"Try to synchronize state for [local_path={row.local_path!r}, "
             f"remote_name={row.remote_name!r}, version={row.version}] "
             f"with version={version} and dynamic_states={dynamic_states!r}"
@@ -1576,16 +1576,16 @@ class EngineDAO(ConfigurationDAO):
             result = c.rowcount == 1
 
         if not result:
-            log.trace(f"Was not able to synchronize state: {row!r}")
+            log.debug(f"Was not able to synchronize state: {row!r}")
             c = self._get_read_connection().cursor()
             row2: DocPair = c.execute(
                 "SELECT * FROM States WHERE id = ?", (row.id,)
             ).fetchone()
             if row2 is None:
-                log.trace("No more row")
+                log.debug("No more row")
             else:
-                log.trace(f"Current row={row2!r} (version={row2.version!r})")
-            log.trace(f"Previous row={row!r} (version={row.version!r})")
+                log.debug(f"Current row={row2!r} (version={row2.version!r})")
+            log.debug(f"Previous row={row!r} (version={row.version!r})")
         elif row.folderish:
             self.queue_children(row)
 
@@ -1623,13 +1623,13 @@ class EngineDAO(ConfigurationDAO):
                     row.remote_state = "synchronized"
                     row.pair_state = self._get_pair_state(row)
                 if info.digest == row.remote_digest and not force_update:
-                    log.trace(
+                    log.debug(
                         "Not updating remote state (not dirty) "
                         f"for row={row!r} with info={info!r}"
                     )
                     return
 
-        log.trace(
+        log.debug(
             f"Updating remote state for row={row!r} with info={info!r} "
             f"(force={force_update!r})"
         )
@@ -1672,7 +1672,7 @@ class EngineDAO(ConfigurationDAO):
 
             if versioned:
                 query += ", version = version+1"
-                log.trace(f"Increasing version to {row.version + 1} for pair {row!r}")
+                log.debug(f"Increasing version to {row.version + 1} for pair {row!r}")
 
             query += " WHERE id = ?"
             c.execute(
@@ -1766,7 +1766,7 @@ class EngineDAO(ConfigurationDAO):
             return
 
         path = self._clean_filter_path(path)
-        log.trace(f"Add filter on {path!r}")
+        log.debug(f"Add filter on {path!r}")
 
         with self._lock:
             con = self._get_write_connection()
@@ -1787,7 +1787,7 @@ class EngineDAO(ConfigurationDAO):
 
     def remove_filter(self, path: str) -> None:
         path = self._clean_filter_path(path)
-        log.trace(f"Remove filter on {path!r}")
+        log.debug(f"Remove filter on {path!r}")
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()

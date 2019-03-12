@@ -113,14 +113,14 @@ class Report:
     def generate(self) -> None:
         """ Create the ZIP report with all interesting files. """
 
-        log.debug(f"Create report {self._zipfile!r}")
-        log.debug(f"Manager metrics: {self._manager.get_metrics()!r}")
+        log.info(f"Create report {self._zipfile!r}")
+        log.info(f"Manager metrics: {self._manager.get_metrics()!r}")
         dao = self._manager.get_dao()
         with ZipFile(self._zipfile, mode="w", allowZip64=True) as zip_:
             # Databases
             self.copy_db(zip_, dao)
             for engine in self._manager.get_engines().values():
-                log.debug(f"Engine metrics: {engine.get_metrics()!r}")
+                log.info(f"Engine metrics: {engine.get_metrics()!r}")
                 self.copy_db(zip_, engine.get_dao())
 
             # Logs

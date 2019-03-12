@@ -166,8 +166,8 @@ class MetaOptions(type):
         "ignored_suffixes": (__suffixes, "default"),
         "is_frozen": (getattr(sys, "frozen", False), "default"),
         "locale": ("en", "default"),
-        "log_level_console": ("INFO", "default"),
-        "log_level_file": ("DEBUG", "default"),
+        "log_level_console": ("WARNING", "default"),
+        "log_level_file": ("INFO", "default"),
         "max_errors": (3, "default"),
         "max_sync_step": (10, "default"),
         "nxdrive_home": (__home / ".nuxeo-drive", "default"),
@@ -330,7 +330,7 @@ class MetaOptions(type):
             setter = setter.lower()
             if MetaOptions._setters[setter] >= MetaOptions._setters[old_setter]:
                 MetaOptions.options[item] = new_value, setter
-                log.debug(
+                log.info(
                     f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]"
                 )
 

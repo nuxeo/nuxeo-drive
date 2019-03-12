@@ -224,7 +224,6 @@ function launch_tests {
 		}
 
 		Write-Output ">>> Checking type annotations"
-		$Env:MYPYPATH = "$Env:WORKSPACE_DRIVE\tools\stubs"
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode

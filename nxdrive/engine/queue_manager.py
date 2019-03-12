@@ -98,12 +98,12 @@ class QueueManager(QObject):
         self._dao.register_queue_manager(self)
 
     def init_processors(self) -> None:
-        log.trace("Init processors")
+        log.debug("Init processors")
         self.newItem.connect(self.launch_processors)
         self.queueProcessing.emit()
 
     def shutdown_processors(self) -> None:
-        log.trace("Shutdown processors")
+        log.debug("Shutdown processors")
         with suppress(TypeError):
             # TypeError: disconnect() failed between 'newItem' and 'launch_processors'
             self.newItem.disconnect(self.launch_processors)
@@ -114,7 +114,7 @@ class QueueManager(QObject):
         self._max_processors = max_file_processors - 2
 
     def resume(self) -> None:
-        log.debug("Resuming queue")
+        log.info("Resuming queue")
         self.enable_local_file_queue(True, False)
         self.enable_local_folder_queue(True, False)
         self.enable_remote_file_queue(True, False)
@@ -132,7 +132,7 @@ class QueueManager(QObject):
         )
 
     def suspend(self) -> None:
-        log.debug("Suspending queue")
+        log.info("Suspending queue")
         self.enable_local_file_queue(False)
         self.enable_local_folder_queue(False)
         self.enable_remote_file_queue(False)
@@ -171,14 +171,14 @@ class QueueManager(QObject):
 
     def push(self, state: Union[DocPair, QueueItem]) -> None:
         if state.pair_state is None:
-            log.trace(f"Don't push an empty pair_state: {state!r}")
+            log.debug(f"Don't push an empty pair_state: {state!r}")
             return
-        log.trace(f"Pushing {state!r}")
+        log.debug(f"Pushing {state!r}")
         row_id = state.id
         if state.pair_state.startswith("locally"):
             if state.folderish:
                 self._local_folder_queue.put(state)
-                log.trace(
+                log.debug(
                     "Pushed to _local_folder_queue, now of size: "
                     f"{self._local_folder_queue.qsize()}"
                 )
@@ -186,7 +186,7 @@ class QueueManager(QObject):
                 if "deleted" in state.pair_state:
                     self._engine.cancel_action_on(state.id)
                 self._local_file_queue.put(state)
-                log.trace(
+                log.debug(
                     "Pushed to _local_file_queue, now of size: "
                     f"{self._local_file_queue.qsize()}"
                 )
@@ -194,7 +194,7 @@ class QueueManager(QObject):
         elif state.pair_state.startswith("remotely"):
             if state.folderish:
                 self._remote_folder_queue.put(state)
-                log.trace(
+                log.debug(
                     f"Pushed to _remote_folder_queue, now of size: "
                     f"{self._remote_folder_queue.qsize()}"
                 )
@@ -202,14 +202,14 @@ class QueueManager(QObject):
                 if "deleted" in state.pair_state:
                     self._engine.cancel_action_on(state.id)
                 self._remote_file_queue.put(state)
-                log.trace(
+                log.debug(
                     "Pushed to _remote_file_queue, now of size: "
                     f"{self._remote_file_queue.qsize()}"
                 )
             self.newItem.emit(row_id)
         else:
             # deleted and conflicted
-            log.debug(f"Not processable state: {state!r}")
+            log.info(f"Not processable state: {state!r}")
 
     @pyqtSlot()
     def _on_error_timer(self) -> None:
@@ -221,9 +221,7 @@ class QueueManager(QObject):
                         doc_pair.id, doc_pair.folderish, doc_pair.pair_state
                     )
                     del self._on_error_queue[doc_pair.id]
-                    log.debug(
-                        f"End of blacklist period, pushing doc_pair: {doc_pair!r}"
-                    )
+                    log.info(f"End of blacklist period, pushing doc_pair: {doc_pair!r}")
                     self.push(queue_item)
             if not self._on_error_queue:
                 self._error_timer.stop()
@@ -251,7 +249,7 @@ class QueueManager(QObject):
             and getattr(exception, "winerror", None) == err_code
         ):
             strerror = exception.strerror if hasattr(exception, "strerror") else ""
-            log.debug(
+            log.info(
                 "Detected WindowsError with code "  # type: ignore
                 f"{exception.winerror}: {strerror!r}, "
                 "won't increase next try interval"
@@ -259,12 +257,12 @@ class QueueManager(QObject):
             error_count = 1
         if error_count > self._error_threshold:
             self.newErrorGiveUp.emit(doc_pair.id)
-            log.debug(f"Giving up on pair : {doc_pair!r}")
+            log.info(f"Giving up on pair : {doc_pair!r}")
             return
         if interval is None:
             interval = self._error_interval * error_count
         doc_pair.error_next_try = interval + int(time.time())
-        log.debug(f"Blacklisting pair for {interval}s: {doc_pair!r}")
+        log.info(f"Blacklisting pair for {interval}s: {doc_pair!r}")
         with self._error_lock:
             emit_sig = False
             if doc_pair.id not in self._on_error_queue:
@@ -430,7 +428,7 @@ class QueueManager(QObject):
         else:
             result = path in doc_pair.local_path.parents
         if result:
-            log.trace(f"Worker({worker.get_metrics()!r}) is processing: {path!r}")
+            log.debug(f"Worker({worker.get_metrics()!r}) is processing: {path!r}")
         return result
 
     def interrupt_processors_on(self, path: Path, exact_match: bool = True) -> None:

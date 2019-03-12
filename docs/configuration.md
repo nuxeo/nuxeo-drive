@@ -48,8 +48,8 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `ignored_suffixes` | ... | list | File suffixes to ignore while syncing.
 | `locale` | en | str | Set up the language if not already defined. This can also be set up by the user from the Settings window.
 | `log-filename` | None | str | The name of the log file.
-| `log-level-console` | INFO | str | Define level for console log. Can be TRACE, DEBUG, INFO, WARNING, ERROR.
-| `log-level-file` | DEBUG | str | Define level for file log. Can be TRACE, DEBUG, INFO, WARNING, ERROR.
+| `log-level-console` | WARNING | str | Define level for console log. Can be DEBUG, INFO, WARNING, ERROR. TRACE level has been deprecated since 4.1.0, and will be treated as DEBUG.
+| `log-level-file` | INFO | str | Define level for file log. Can be DEBUG, INFO, WARNING, ERROR. TRACE level has been deprecated since 4.1.0, and will be treated as DEBUG.
 | `max-errors` | 3 | int | Define the maximum number of retries before considering the file as in error.
 | `nofscheck` | False | bool | Disable the standard check for binding, to allow installation on network filesystem.
 | `proxy-server` | None | str | Define the address of the proxy server (e.g. `http://proxy.example.com:3128`). This can also be set up by the user from the Settings window.
@@ -72,7 +72,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 
 ## Command Line Arguments
 
-When used as a command line argument you need to prefix with the long argument modifier `--`, e.g.: `--log-level-file=TRACE`.
+When used as a command line argument you need to prefix with the long argument modifier `--`, e.g.: `--log-level-file=DEBUG`.
 
 ## Configuration File
 
@@ -89,7 +89,7 @@ update-check-delay = 0
 [custom]
 ca_bundle = C:\certificates\terena-ssl.crt
 debug = False
-log-level-file = TRACE
+log-level-file = DEBUG
 ignored_suffixes =
     .bak
     .tmp

@@ -34,7 +34,7 @@ def configure_logs():
         "%(thread)-4d %(module)-14s %(levelname).1s %(message)s"
     )
     configure(
-        console_level="TRACE",
+        console_level="DEBUG",
         command_name="test",
         force_configure=True,
         formatter=formatter,

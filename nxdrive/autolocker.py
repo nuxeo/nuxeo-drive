@@ -81,10 +81,10 @@ class ProcessAutoLockerWorker(PollWorker):
         for pid, path in get_open_files():
             found_in_watched_folder = False
             if self._folder in path.parents:
-                log.debug(f"Found in watched folder: {path!r} (PID={pid})")
+                log.info(f"Found in watched folder: {path!r} (PID={pid})")
                 found_in_watched_folder = True
             elif path in self._autolocked:
-                log.debug(f"Found in auto-locked: {path!r} (PID={pid})")
+                log.info(f"Found in auto-locked: {path!r} (PID={pid})")
             else:
                 # All documents are not interesting!
                 continue
@@ -129,7 +129,7 @@ class ProcessAutoLockerWorker(PollWorker):
     def _lock_file(self, item: Item) -> None:
         """Lock a given document."""
         pid, path = item
-        log.debug(f"Locking file {path!r} (PID={pid!r})")
+        log.info(f"Locking file {path!r} (PID={pid!r})")
         if path in self._lockers:
             locker = self._lockers[path]
             locker.autolock_lock(path)
@@ -138,7 +138,7 @@ class ProcessAutoLockerWorker(PollWorker):
 
     def _unlock_file(self, path: Path) -> None:
         """Unlock a given document."""
-        log.debug(f"Unlocking file {path!r}")
+        log.info(f"Unlocking file {path!r}")
         if path in self._lockers:
             locker = self._lockers[path]
             locker.autolock_unlock(path)

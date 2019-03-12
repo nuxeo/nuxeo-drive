@@ -165,7 +165,7 @@ class NotificationService(QObject):
             return result
 
     def send_notification(self, notification: Notification) -> None:
-        log.debug(f"Sending {notification!r}")
+        log.info(f"Sending {notification!r}")
         notification._time = int(time.time())
         with self._lock:
             if notification.is_persistent():
@@ -178,7 +178,7 @@ class NotificationService(QObject):
         self.newNotification.emit(notification)
 
     def trigger_notification(self, uid: str) -> None:
-        log.debug(f"Trigger notification: {uid} = {self._notifications.get(uid)}")
+        log.info(f"Trigger notification: {uid} = {self._notifications.get(uid)}")
         if uid not in self._notifications:
             return
         notification = self._notifications[uid]
@@ -504,7 +504,7 @@ class DefaultNotificationService(NotificationService):
 
     def _directEditLockError(self, lock: str, filename: str, ref: str) -> None:
         if lock not in ("lock", "unlock"):
-            log.debug(f"DirectEdit LockError not handled: {lock}")
+            log.info(f"DirectEdit LockError not handled: {lock}")
             return
         self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
 

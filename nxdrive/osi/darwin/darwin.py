@@ -66,7 +66,7 @@ class DarwinIntegration(AbstractOSIntegration):
 
     @if_frozen
     def _init(self) -> None:
-        log.debug("Telling plugInKit to use the FinderSync")
+        log.info("Telling plugInKit to use the FinderSync")
         try:
             subprocess.run(
                 ["pluginkit", "-e", "use", "-i", self.FINDERSYNC_ID], check=True
@@ -74,13 +74,13 @@ class DarwinIntegration(AbstractOSIntegration):
             subprocess.run(["pluginkit", "-a", self.FINDERSYNC_PATH], check=True)
             for p in psutil.process_iter(attrs=["name", "pid"]):
                 if p.info["name"] == "NuxeoFinderSync":
-                    log.debug(f"FinderSync is running with pid {p.info['pid']}")
+                    log.info(f"FinderSync is running with pid {p.info['pid']}")
         except subprocess.CalledProcessError:
             log.exception("Error while starting FinderSync")
 
     @if_frozen
     def _cleanup(self) -> None:
-        log.debug("Telling plugInKit to ignore the FinderSync")
+        log.info("Telling plugInKit to ignore the FinderSync")
         try:
             subprocess.run(
                 ["pluginkit", "-e", "ignore", "-i", self.FINDERSYNC_ID], check=True
@@ -110,11 +110,11 @@ class DarwinIntegration(AbstractOSIntegration):
 
         parent = agent.parent
         if not parent.exists():
-            log.debug(f"Making launch agent folder {parent!r}")
+            log.info(f"Making launch agent folder {parent!r}")
             parent.mkdir(parents=True)
 
         exe = os.path.realpath(sys.executable)
-        log.debug(f"Registering {exe!r} for startup in {agent!r}")
+        log.info(f"Registering {exe!r} for startup in {agent!r}")
         agent.write_text(self.NDRIVE_AGENT_TEMPLATE % exe, encoding="utf-8")
         return True
 
@@ -122,7 +122,7 @@ class DarwinIntegration(AbstractOSIntegration):
     def unregister_startup(self) -> bool:
         agent = self._get_agent_file()
         if agent.is_file():
-            log.debug(f"Unregistering startup agent {agent!r}")
+            log.info(f"Unregistering startup agent {agent!r}")
             agent.unlink()
             return True
         return False
@@ -132,13 +132,13 @@ class DarwinIntegration(AbstractOSIntegration):
         """Register the URL scheme listener using PyObjC"""
         bundle_id = NSBundle.mainBundle().bundleIdentifier()
         if bundle_id == "org.python.python":
-            log.debug(
+            log.info(
                 "Skipping URL scheme registration as this program "
                 " was launched from the Python OSX app bundle"
             )
             return
         LSSetDefaultHandlerForURLScheme(self.NXDRIVE_SCHEME, bundle_id)
-        log.debug(
+        log.info(
             f"Registered bundle {bundle_id!r} for URL scheme {self.NXDRIVE_SCHEME!r}"
         )
 
@@ -194,12 +194,12 @@ class DarwinIntegration(AbstractOSIntegration):
 
     @if_frozen
     def watch_folder(self, folder: Path) -> None:
-        log.debug(f"FinderSync now watching {folder!r}")
+        log.info(f"FinderSync now watching {folder!r}")
         self._set_monitoring("watch", folder)
 
     @if_frozen
     def unwatch_folder(self, folder: Path) -> None:
-        log.debug(f"FinderSync now ignoring {folder!r}")
+        log.info(f"FinderSync now ignoring {folder!r}")
         self._set_monitoring("unwatch", folder)
 
     @if_frozen
@@ -217,7 +217,7 @@ class DarwinIntegration(AbstractOSIntegration):
             name = f"{BUNDLE_IDENTIFIER}.syncStatus"
             status = get_formatted_status(state, path)
 
-            log.trace(f"Sending status to FinderSync for {path!r}: {status}")
+            log.debug(f"Sending status to FinderSync for {path!r}: {status}")
             self._send_notification(name, {"statuses": [status]})
         except:
             log.exception("Error while trying to send status to FinderSync")
@@ -248,11 +248,11 @@ class DarwinIntegration(AbstractOSIntegration):
                     get_formatted_status(state, path / state.local_name)
                     for state in states_batch
                 ]
-                log.trace(
+                log.debug(
                     f"Sending statuses to FinderSync for children of {path!r} "
                     f"(items {i}-{i + len(states_batch) - 1})"
                 )
-                log.trace(statuses)
+                log.debug(statuses)
                 self._send_notification(name, {"statuses": statuses})
         except:
             log.exception("Error while trying to send status to FinderSync")
@@ -261,7 +261,7 @@ class DarwinIntegration(AbstractOSIntegration):
     def register_contextual_menu(self) -> None:
         name = f"{BUNDLE_IDENTIFIER}.setConfig"
 
-        log.trace(f"Sending menu to FinderSync")
+        log.debug(f"Sending menu to FinderSync")
         entries = [Translator.get(f"CONTEXT_MENU_{i}") for i in range(1, 4)]
         self._send_notification(name, {"entries": entries})
 
@@ -284,7 +284,7 @@ class DarwinIntegration(AbstractOSIntegration):
             favorites, kLSSharedFileListItemBeforeFirst, path.name, None, url, {}, []
         )
         if item:
-            log.debug(f"Registered new favorite in Finder for: {path!r}")
+            log.info(f"Registered new favorite in Finder for: {path!r}")
 
     def unregister_folder_link(self, path: Path) -> None:
         favorites = self._get_favorite_list()

@@ -301,12 +301,12 @@ class Application(QApplication):
 
     @pyqtSlot(str, Path, str)
     def _direct_edit_conflict(self, filename: str, ref: Path, digest: str) -> None:
-        log.trace(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
+        log.debug(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
         try:
             if filename in self._conflicts_modals:
-                log.trace(f"Filename already in _conflicts_modals: {filename!r}")
+                log.debug(f"Filename already in _conflicts_modals: {filename!r}")
                 return
-            log.trace(f"Putting filename in _conflicts_modals: {filename!r}")
+            log.debug(f"Putting filename in _conflicts_modals: {filename!r}")
             self._conflicts_modals[filename] = True
 
             msg = QMessageBox()
@@ -341,7 +341,7 @@ class Application(QApplication):
     @pyqtSlot()
     def _root_deleted(self) -> None:
         engine = self.sender()
-        log.debug(f"Root has been deleted for engine: {engine.uid}")
+        log.info(f"Root has been deleted for engine: {engine.uid}")
 
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
@@ -374,7 +374,7 @@ class Application(QApplication):
     @pyqtSlot(str)
     def _root_moved(self, new_path: Path) -> None:
         engine = self.sender()
-        log.debug(f"Root has been moved for engine: {engine.uid} to {new_path!r}")
+        log.info(f"Root has been moved for engine: {engine.uid} to {new_path!r}")
         info = [engine.local_folder, str(new_path)]
 
         msg = QMessageBox()
@@ -819,7 +819,7 @@ class Application(QApplication):
         """ Display release notes of a given version. """
 
         channel = self.manager.get_update_channel()
-        log.debug(f"Showing release notes, version={version!r} channel={channel}")
+        log.info(f"Showing release notes, version={version!r} channel={channel}")
 
         # For now, we do care about beta only
         if channel != "beta":
@@ -1053,7 +1053,7 @@ class Application(QApplication):
         path = normalized_path(info.get("filepath", ""))
         manager = self.manager
 
-        log.debug(f"Event URL={url}, info={info!r}")
+        log.info(f"Event URL={url}, info={info!r}")
 
         # Event fired by a context menu item
         func = {
@@ -1097,9 +1097,9 @@ class Application(QApplication):
         server.newConnection.connect(self._handle_connection)
         try:
             server.listen(named_pipe)
-            log.debug(f"Listening for nxdrive:// calls on {server.fullServerName()}")
+            log.info(f"Listening for nxdrive:// calls on {server.fullServerName()}")
         except:
-            log.debug(
+            log.info(
                 f"Unable to start local server on {named_pipe}: {server.errorString()}"
             )
 
@@ -1113,7 +1113,7 @@ class Application(QApplication):
         con: QLocalSocket = None
         try:
             con = self._nxdrive_listener.nextPendingConnection()
-            log.debug("Receiving socket connection for nxdrive protocol handling")
+            log.info("Receiving socket connection for nxdrive protocol handling")
             if not con or not con.waitForConnected():
                 log.error(f"Unable to open server socket: {con.errorString()}")
                 return
@@ -1127,7 +1127,7 @@ class Application(QApplication):
             con.waitForDisconnected()
         finally:
             del con
-        log.debug("Successfully closed server socket")
+        log.info("Successfully closed server socket")
 
     def update_status(self, engine: "Engine") -> None:
         """

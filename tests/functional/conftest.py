@@ -86,7 +86,7 @@ def manager_factory(
     def _make_manager(home: str = "", with_engine: bool = True):
         manager = Manager(home=home or tmp())
         request.addfinalizer(manager.close)
-        log.debug(f"[FIXTURE] Created {manager}")
+        log.info(f"[FIXTURE] Created {manager}")
 
         if with_engine:
             conf_folder = manager.home / "nuxeo-conf"
@@ -130,7 +130,7 @@ def user_factory(request, server, faker):
 
         user = server.users.create(User(properties=properties))
         request.addfinalizer(user.delete)
-        log.debug(f"[FIXTURE] Created {user}")
+        log.info(f"[FIXTURE] Created {user}")
 
         # Convenient attributes
         for k, v in properties.items():
@@ -150,7 +150,7 @@ def workspace_factory(request, server):
         new_ws = Document(name=title, type="Workspace", properties={"dc:title": title})
         ws = server.documents.create(new_ws, parent_path="/default-domain/workspaces")
         request.addfinalizer(ws.delete)
-        log.debug(f"[FIXTURE] Created {ws}")
+        log.info(f"[FIXTURE] Created {ws}")
 
         # Convenient attributes
         for k, v in ws.properties.items():

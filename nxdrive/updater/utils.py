@@ -58,7 +58,7 @@ def get_compatible_versions(
     # This is the case when there is no bound account.
     version_regex = r"^\d+(\.\d+)+(-HF\d+|)(-SNAPSHOT|)(-I.*|)$"
     if not server_ver or not re.match(version_regex, server_ver, re.I):
-        log.debug("No bound account, skipping the update check.")
+        log.info("No bound account, skipping the update check.")
         return {}
 
     # Remove HF and SNAPSHOT
@@ -72,7 +72,7 @@ def get_compatible_versions(
     }
 
     if not candidates:  # ¯\_(ツ)_/¯
-        log.debug("No version found for that server version.")
+        log.info("No version found for that server version.")
 
     return candidates
 
@@ -103,7 +103,7 @@ def get_update_status(
     """Given a Drive version, determine the definitive status of the application."""
 
     if current_version not in versions:
-        log.debug(
+        log.info(
             "Unknown version: this is the case when the current packaged application "
             "has a version unknown on the server, typically the development one. "
             "Ignoring updates."
@@ -112,7 +112,7 @@ def get_update_status(
 
     has_browser_login = Login.OLD not in login_type
     if Login.UNKNOWN in login_type and has_browser_login:
-        log.debug(
+        log.info(
             "Unable to retrieve server login compatibility info. Ignoring updates."
         )
         return "", ""

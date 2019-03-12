@@ -14,8 +14,6 @@ from .options import Options
 __all__ = ("configure", "get_handler")
 
 FILE_HANDLER = None
-TRACE = 5
-TRACE_ADDED = False
 
 # Default formatter
 FORMAT = Formatter(
@@ -33,27 +31,6 @@ _logging_context = dict()
 is_logging_configured = False
 
 
-def add_trace_level() -> None:
-    """ Add 'trace' level to all loggers. """
-
-    global TRACE_ADDED
-    if TRACE_ADDED:
-        return
-
-    logging.addLevelName(TRACE, "TRACE")
-    setattr(logging, "TRACE", TRACE)
-
-    def trace(self, message, *args, **kws):
-        if self.isEnabledFor(TRACE):
-            self._log(TRACE, message, args, **kws)
-
-    setattr(logging.Logger, "trace", trace)
-    TRACE_ADDED = True
-
-
-add_trace_level()
-
-
 class CustomMemoryHandler(BufferingHandler):
     def __init__(self, capacity: int = constants.MAX_LOG_DISPLAYED) -> None:
         super().__init__(capacity)
@@ -66,7 +43,9 @@ class CustomMemoryHandler(BufferingHandler):
         """
         self.acquire()
         try:
-            return self.buffer[:size] if size > 0 else self.buffer[size:]
+            if size > 0:
+                return self.buffer[:size]  # type: ignore
+            return self.buffer[size:]  # type: ignore
         finally:
             self.release()
 
@@ -104,10 +83,19 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         os.remove(dfn)
 
 
+def no_trace(level: str) -> str:
+    if level.upper() == "TRACE":
+        logging.getLogger().warning(
+            "TRACE level is deprecated since 4.1.0. Please use DEBUG instead."
+        )
+        level = "DEBUG"
+    return level
+
+
 def configure(
     log_filename: str = None,
-    file_level: str = "TRACE",
-    console_level: str = "INFO",
+    file_level: str = "DEBUG",
+    console_level: str = "WARNING",
     command_name: str = None,
     force_configure: bool = False,
     formatter: Formatter = None,
@@ -121,10 +109,8 @@ def configure(
 
         _logging_context["command"] = command_name
 
-        if not file_level:
-            file_level = "TRACE"
-        file_level = getattr(logging, file_level.upper())
-        console_level = getattr(logging, console_level.upper())
+        file_level = getattr(logging, no_trace(file_level).upper())
+        console_level = getattr(logging, no_trace(console_level).upper())
 
         # Find the minimum level to avoid filtering by the root logger itself
         root_logger = logging.getLogger()
@@ -152,7 +138,7 @@ def configure(
             file_handler = TimedCompressedRotatingFileHandler(
                 log_filename, when="midnight", backupCount=30
             )
-            file_handler.set_name("file")
+            file_handler.set_name("file")  # type: ignore
             file_handler.setLevel(file_level)
             file_handler.setFormatter(formatter)
             FILE_HANDLER = file_handler
@@ -160,28 +146,31 @@ def configure(
 
         # Add memory logger to allow instant report
         memory_handler = CustomMemoryHandler()
-        memory_handler.setLevel(TRACE)
-        memory_handler.set_name("memory")
+        memory_handler.setLevel(getattr(logging, "DEBUG"))
+        memory_handler.set_name("memory")  # type: ignore
         memory_handler.setFormatter(formatter)
         root_logger.addHandler(memory_handler)
 
 
 def get_handler(logger: logging.Logger, name: str):
     for handler in logger.handlers:
-        if name == handler.get_name():
+        if name == handler.get_name():  # type: ignore
             return handler
     return None
 
 
 def update_logger_console(log_level: str) -> None:
     logging.getLogger().setLevel(
-        min(getattr(logging, log_level), logging.getLogger().getEffectiveLevel())
+        min(
+            getattr(logging, no_trace(log_level)),
+            logging.getLogger().getEffectiveLevel(),
+        )
     )
 
 
 def update_logger_file(log_level: str) -> None:
     if FILE_HANDLER:
-        FILE_HANDLER.setLevel(log_level)
+        FILE_HANDLER.setLevel(no_trace(log_level))
 
 
 # Install logs callbacks

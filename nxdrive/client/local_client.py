@@ -80,7 +80,7 @@ class FileInfo:
 
         # NXDRIVE-188: normalize name on the file system if not normalized
         if not MAC and filepath.exists() and self.filepath != filepath:
-            log.debug(f"Forcing normalization of {filepath!r} to {self.filepath!r}")
+            log.info(f"Forcing normalization of {filepath!r} to {self.filepath!r}")
             filepath.rename(self.filepath)
 
         self.folderish = folderish  # True if a Folder
@@ -221,7 +221,7 @@ class LocalClient:
 
     def remove_remote_id(self, ref: Path, name: str = "ndrive") -> None:
         path = self.abspath(ref)
-        log.trace(f"Removing xattr {name!r} from {path!r}")
+        log.debug(f"Removing xattr {name!r} from {path!r}")
         locker = unlock_path(path, False)
         func = (
             self._remove_remote_id_windows if WINDOWS else self._remove_remote_id_unix
@@ -336,7 +336,7 @@ FolderType=Generic
         if not isinstance(remote_id, bytes):
             remote_id = unicodedata.normalize("NFC", remote_id).encode("utf-8")
 
-        log.trace(f"Setting xattr {name!r} with value {remote_id!r} on {path!r}")
+        log.debug(f"Setting xattr {name!r} with value {remote_id!r} on {path!r}")
         locker = unlock_path(path, False)
         if WINDOWS:
             path_alt = f"{path}:{name}"
@@ -379,7 +379,7 @@ FolderType=Generic
     def get_remote_id(self, ref: Path, name: str = "ndrive") -> str:
         path = self.abspath(ref)
         value = self.get_path_remote_id(path, name)
-        log.trace(f"Getting xattr {name!r} from {path!r}: {value!r}")
+        log.debug(f"Getting xattr {name!r} from {path!r}: {value!r}")
         return value
 
     @staticmethod
@@ -517,7 +517,7 @@ FolderType=Generic
 
         for child in sorted(os_path.iterdir()):
             if self.is_ignored(ref, child.name) or self.is_temp_file(child.name):
-                log.debug(f"Ignoring banned file {child.name!r} in {os_path!r}")
+                log.info(f"Ignoring banned file {child.name!r} in {os_path!r}")
                 continue
 
             child_ref = ref / child.name
@@ -564,7 +564,7 @@ FolderType=Generic
         if not os_path.exists():
             return
 
-        log.trace(f"Trashing {os_path!r}")
+        log.debug(f"Trashing {os_path!r}")
         locker = self.unlock_ref(os_path, is_abs=True)
         try:
             send2trash(str(os_path))
@@ -691,7 +691,7 @@ FolderType=Generic
         """
         filepath = safe_long_path(filepath)
 
-        log.trace(
+        log.debug(
             f"Setting file dates for {filepath!r} (ctime={ctime!r}, mtime={mtime!r})"
         )
 

@@ -478,12 +478,12 @@ class CliHandler:
 
         self._configure_logger(command, options)
 
-        log.debug(f"Command line: argv={argv!r}, options={options!r}")
+        log.info(f"Command line: argv={argv!r}, options={options!r}")
         log.info(f"Running on version {self.get_version()}")
 
         if QSslSocket:
             has_ssl_support = QSslSocket.supportsSsl()
-            log.debug(f"SSL support: {has_ssl_support!r}")
+            log.info(f"SSL support: {has_ssl_support!r}")
             if not has_ssl_support:
                 options.ca_bundle = None
                 options.ssl_no_verify = True
@@ -533,7 +533,7 @@ class CliHandler:
         app = self._get_application(console=console)
         exit_code = app.exec_()
         lock.unlock()
-        log.debug(f"{APP_NAME} exited with code {exit_code}")
+        log.info(f"{APP_NAME} exited with code {exit_code}")
         return exit_code
 
     def redact_payload(self, payload: bytes) -> bytes:
@@ -550,7 +550,7 @@ class CliHandler:
         from PyQt5.QtNetwork import QLocalSocket
 
         named_pipe = f"{BUNDLE_IDENTIFIER}.protocol.{pid}"
-        log.debug(
+        log.info(
             f"Opening a local socket to the running instance on {named_pipe} "
             f"(payload={self.redact_payload(payload)})"
         )
@@ -568,7 +568,7 @@ class CliHandler:
             client.waitForDisconnected()
         finally:
             del client
-        log.debug("Successfully closed client socket")
+        log.info("Successfully closed client socket")
 
     def clean_folder(self, options: Namespace) -> int:
         from .client.local_client import LocalClient
@@ -636,7 +636,7 @@ class CliHandler:
 
     def bind_root(self, options: Namespace) -> int:
         for engine in self.manager.get_engines().values():
-            log.trace(f"Comparing: {engine.local_folder!r} to {options.local_folder!r}")
+            log.debug(f"Comparing: {engine.local_folder!r} to {options.local_folder!r}")
             if engine.local_folder == options.local_folder:
                 engine.remote.register_as_root(options.remote_root)
                 return 0
@@ -655,7 +655,7 @@ class CliHandler:
     def _install_faulthandler() -> None:
         """ Utility to help debug segfaults. """
         segfault_filename = Options.nxdrive_home / "logs" / "segfault.log"
-        log.debug(f"Enabling faulthandler in {segfault_filename!r}")
+        log.info(f"Enabling faulthandler in {segfault_filename!r}")
 
         with segfault_filename.open(mode="a", encoding="utf-8") as fh:
             fh.write(f"\n\n\n>>> {datetime.now()}\n")

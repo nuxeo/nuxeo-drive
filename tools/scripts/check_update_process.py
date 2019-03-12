@@ -129,7 +129,7 @@ def launch_drive():
         cmd = [expanduser("~\\AppData\\Local\\Nuxeo Drive\\ndrive.exe")]
 
     cmd += [
-        "--log-level-console=TRACE",
+        "--log-level-console=DEBUG",
         "--update-site-url=http://localhost:8000",
         "--channel=alpha",
     ]

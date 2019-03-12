@@ -132,7 +132,7 @@ class SimpleWatcher(LocalWatcher):
                 return
             self.watchdog_queue = Queue()
             self._setup_watchdog()
-            log.debug("Watchdog setup finished")
+            log.info("Watchdog setup finished")
             self._scan()
 
             # Check windows de-queue and folder scan

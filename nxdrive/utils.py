@@ -442,7 +442,7 @@ def normalize_event_filename(filename: str, action: bool = True) -> Path:
         ]
     ):
         # We can have folders ending with spaces
-        log.debug(f"Forcing space normalization: {path!r} -> {stripped!r}")
+        log.info(f"Forcing space normalization: {path!r} -> {stripped!r}")
         path.rename(stripped)
         path = stripped
 
@@ -454,7 +454,7 @@ def normalize_event_filename(filename: str, action: bool = True) -> Path:
         path = normalized_path(path).with_name(path.name)
 
     if not MAC and action and path != normalized and path.exists():
-        log.debug(f"Forcing normalization: {path!r} -> {normalized!r}")
+        log.info(f"Forcing normalization: {path!r} -> {normalized!r}")
         path.rename(normalized)
 
     return normalized
@@ -696,7 +696,7 @@ def guess_server_url(
         new_url = urlunsplit(new_url_parts).rstrip("/")
         try:
             rfc3987.parse(new_url, rule="URI")
-            log.trace(f"Testing URL {new_url!r}")
+            log.debug(f"Testing URL {new_url!r}")
             full_url = f"{new_url}/{login_page}"
             if proxy:
                 kwargs["proxies"] = proxy.settings(url=full_url)
