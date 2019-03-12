@@ -5,9 +5,10 @@ from logging import getLogger
 from typing import Any, Dict, Optional, Tuple
 
 from .constants import (
-    UPDATE_STATUS_DOWNGRADE_NEEDED,
+    UPDATE_STATUS_INCOMPATIBLE_SERVER,
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UP_TO_DATE,
+    UPDATE_STATUS_WRONG_CHANNEL,
     Login,
 )
 from ..utils import version_le, version_lt
@@ -20,11 +21,36 @@ Version = Dict[str, Any]
 Versions = Dict[str, Version]
 
 
-def get_latest_compatible_version(
-    versions: Versions, nature: str, server_ver: Optional[str], has_browser_login: bool
-) -> Tuple[str, Version]:
+def is_version_compatible(
+    version: Version, server: str, has_browser_login: bool
+) -> bool:
     """
-    Find the latest version sorted by type and the current Nuxeo version.
+    Check Drive <-> server version compatibility.
+
+    Try first the min_all and max_all keys that contain all server versions.
+    Fallback on min and max keys that contain only one server version:
+        the oldest supported.
+    """
+    if not has_browser_login and not version_lt(version, "4"):
+        return False
+
+    ver_min = (version.get("min_all", {}).get(server) or version.get("min", "")).upper()
+    if not ver_min or version_lt(server, ver_min):
+        return False
+
+    ver_max = (version.get("max_all", {}).get(server) or version.get("max", "")).upper()
+
+    if ver_max and version_lt(ver_max, server):
+        return False
+
+    return True
+
+
+def get_compatible_versions(
+    versions: Versions, server_ver: Optional[str], has_browser_login: bool
+) -> Versions:
+    """
+    Find all Drive versions compatible with the current server instance.
     """
 
     # If no server_version, then we cannot know in advance if Drive
@@ -33,55 +59,38 @@ def get_latest_compatible_version(
     version_regex = r"^\d+(\.\d+)+(-HF\d+|)(-SNAPSHOT|)(-I.*|)$"
     if not server_ver or not re.match(version_regex, server_ver, re.I):
         log.debug("No bound account, skipping the update check.")
-        return "", {}
+        return {}
 
     # Remove HF and SNAPSHOT
     base_server_ver = server_ver.split("-")[0]
 
-    # Skip not revelant release type
-    versions = {
+    # Filter version candidates
+    candidates = {
         version: info
         for version, info in versions.items()
-        if info.get("type", "").lower() in (nature, "release")
+        if is_version_compatible(info, base_server_ver, has_browser_login)
     }
-
-    if not versions:
-        log.debug("No version found in that channel.")
-        return "", {}
-
-    # Filter version candidates
-    candidates = {}
-    for version, info in versions.items():
-        # Check for new login compatibility
-        if not has_browser_login and not version_lt(version, "4"):
-            continue
-
-        # Try first the min_all and max_all keys that contain all server versions.
-        # Fallback on min and max keys that contain only one server version: the oldest supported.
-        ver_min = (
-            info.get("min_all", {}).get(base_server_ver) or info.get("min", "")
-        ).upper()
-        ver_max = (
-            info.get("max_all", {}).get(base_server_ver) or info.get("max", "")
-        ).upper()
-
-        if any(
-            [
-                not ver_min,
-                version_lt(server_ver, ver_min),
-                ver_max and version_lt(ver_max, server_ver),
-            ]
-        ):
-            continue
-
-        candidates[version] = info
 
     if not candidates:  # ¯\_(ツ)_/¯
         log.debug("No version found for that server version.")
-        return "", {}
 
-    highest = str(max(map(LooseVersion, candidates.keys())))
-    return highest, candidates[highest]  # ᕦ(ò_óˇ)ᕤ
+    return candidates
+
+
+def get_latest_version(versions: Versions, nature: str) -> str:
+    """ Get the most recent version of a given channel. """
+    versions_list = [
+        version
+        for version, info in versions.items()
+        if info.get("type", "").lower() in (nature, "release")
+    ]
+
+    if not versions_list:
+        log.debug(f"No version found in {nature} channel.")
+        return ""
+
+    highest = str(max(map(LooseVersion, versions_list)))
+    return highest  # ᕦ(ò_óˇ)ᕤ
 
 
 def get_update_status(
@@ -101,16 +110,16 @@ def get_update_status(
         )
         return "", ""
 
-    if Login.UNKNOWN in login_type and Login.OLD not in login_type:
+    has_browser_login = Login.OLD not in login_type
+    if Login.UNKNOWN in login_type and has_browser_login:
         log.debug(
             "Unable to retrieve server login compatibility info. Ignoring updates."
         )
         return "", ""
 
     # Find the latest available version
-    latest, info = get_latest_compatible_version(
-        versions, nature, server_version, Login.OLD not in login_type
-    )
+    versions = get_compatible_versions(versions, server_version, has_browser_login)
+    latest = get_latest_version(versions, nature)
 
     if not latest:
         status = "", ""
@@ -118,7 +127,9 @@ def get_update_status(
         status = UPDATE_STATUS_UP_TO_DATE, ""
     elif not version_le(latest, current_version):
         status = UPDATE_STATUS_UPDATE_AVAILABLE, latest
+    elif current_version in versions.keys():
+        status = UPDATE_STATUS_WRONG_CHANNEL, latest
     else:
-        status = UPDATE_STATUS_DOWNGRADE_NEEDED, latest
+        status = UPDATE_STATUS_INCOMPATIBLE_SERVER, latest
 
     return status

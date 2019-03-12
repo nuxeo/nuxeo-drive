@@ -256,7 +256,7 @@ Rectangle {
         SystrayStatus {
             id: updateState
             state: "up_to_date"
-            visible: state != "up_to_date" && state != "unavailable_site"
+            visible: !(state == "up_to_date" || state == "unavailable_site" || state == "wrong_channel")
             color: lightBlue
             textColor: "white"
             icon: MdiFont.Icon.update
@@ -283,7 +283,7 @@ Rectangle {
                     }
                 },
                 State {
-                    name: "downgrade_needed"
+                    name: "incompatible_server"
                     PropertyChanges {
                         target: updatePopup
                         version: api.get_update_version()

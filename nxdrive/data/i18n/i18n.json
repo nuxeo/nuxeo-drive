@@ -241,11 +241,13 @@
     "UPDATING_VERSION": "Updating to %1",
     "UPGRADE_AVAILABLE": "New upgrade %1 is available",
     "URL": "URL",
+    "USE_CHANNEL": "Use channel %1",
     "USE_LIGHT_ICONS": "Use the light icons set",
     "USERNAME": "Username",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Web Authentication",
     "WELCOME_MESSAGE": "Set your account and synchronize your files with the Nuxeo Platform.",
     "WINDOWS_ERROR_TITLE": "Document error",
     "WINDOWS_ERROR_OPENED_FILE": "The file „%1“ is open by another software. Please close it before Nuxeo Drive can process the deletion from your local storage.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "The folder „%1“ or its children is locked by another software. Please close it before Nuxeo Drive can process the deletion from your local storage."
+    "WINDOWS_ERROR_OPENED_FOLDER": "The folder „%1“ or its children is locked by another software. Please close it before Nuxeo Drive can process the deletion from your local storage.",
+    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?"
 }

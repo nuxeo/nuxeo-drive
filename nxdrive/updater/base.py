@@ -13,11 +13,12 @@ from PyQt5.QtWidgets import QApplication
 
 from . import UpdateError
 from .constants import (
-    UPDATE_STATUS_DOWNGRADE_NEEDED,
+    UPDATE_STATUS_INCOMPATIBLE_SERVER,
     UPDATE_STATUS_UNAVAILABLE_SITE,
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UPDATING,
     UPDATE_STATUS_UP_TO_DATE,
+    UPDATE_STATUS_WRONG_CHANNEL,
     Login,
 )
 from .utils import get_update_status
@@ -48,6 +49,9 @@ class BaseUpdater(PollWorker):
 
     # Used when the server doesn't have the new browser login
     serverIncompatible = pyqtSignal()
+
+    # Used when on a version that exists only in another channel
+    wrongChannel = pyqtSignal()
 
     versions: Dict[str, Any] = {}
 
@@ -231,7 +235,7 @@ class BaseUpdater(PollWorker):
             }
             if versions:
                 version = max(versions.keys())
-                self._set_status(UPDATE_STATUS_DOWNGRADE_NEEDED, version)
+                self._set_status(UPDATE_STATUS_INCOMPATIBLE_SERVER, version)
         self.serverIncompatible.emit()
 
     def _handle_status(self) -> None:
@@ -245,15 +249,20 @@ class BaseUpdater(PollWorker):
             return
 
         if self.status not in (
-            UPDATE_STATUS_DOWNGRADE_NEEDED,
+            UPDATE_STATUS_INCOMPATIBLE_SERVER,
             UPDATE_STATUS_UPDATE_AVAILABLE,
+            UPDATE_STATUS_WRONG_CHANNEL,
         ):
             log.debug("You are up-to-date!")
             return
 
+        if self.status == UPDATE_STATUS_WRONG_CHANNEL:
+            self.wrongChannel.emit()
+            return
+
         self.updateAvailable.emit()
 
-        if self.status == UPDATE_STATUS_DOWNGRADE_NEEDED:
+        if self.status == UPDATE_STATUS_INCOMPATIBLE_SERVER:
             # In case of a downgrade, stop the engines
             # and try to install the older version.
             self.manager.stop()
@@ -277,6 +286,13 @@ class BaseUpdater(PollWorker):
         self.status = status
         self.version = version
         self._set_progress(progress)
+
+    def get_version_channel(self, version: str) -> str:
+        try:
+            return self.versions.get(version).get("type")
+        except KeyError:
+            log.debug(f"No version {version} in record.")
+            return ""
 
     def _install(self, version: str, filename: str) -> None:
         """
