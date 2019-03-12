@@ -404,6 +404,14 @@ class QMLDriveApi(QObject):
     def set_update_channel(self, value: str) -> None:
         self._manager.set_update_channel(value)
 
+    @pyqtSlot(str)
+    def set_log_level(self, value: str) -> None:
+        self._manager.set_log_level(value)
+
+    @pyqtSlot(result=str)
+    def get_log_level(self) -> str:
+        return self._manager.get_log_level()
+
     @pyqtSlot(result=str)
     def generate_report(self) -> str:
         try:

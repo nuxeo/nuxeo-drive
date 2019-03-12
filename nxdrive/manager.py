@@ -453,6 +453,16 @@ class Manager(QObject):
         if self.updater.enable:
             self.refresh_update_status()
 
+    @pyqtSlot(result=str)
+    def get_log_level(self) -> str:
+        return self._dao.get_config("log_level_file", default=Options.log_level_file)
+
+    @pyqtSlot(str)
+    def set_log_level(self, value: str) -> None:
+        if value == "DEBUG":
+            log.warning("Setting log level to DEBUG, sensitive data may be logged.")
+        self.set_config("log_level_file", value)
+
     def get_tracking(self) -> bool:
         """
         Avoid sending statistics when testing or if the user does not allow it.
