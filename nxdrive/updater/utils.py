@@ -22,7 +22,7 @@ Versions = Dict[str, Version]
 
 
 def is_version_compatible(
-    version: Version, server: str, has_browser_login: bool
+    version_id: str, version: Version, server: str, has_browser_login: bool
 ) -> bool:
     """
     Check Drive <-> server version compatibility.
@@ -31,7 +31,7 @@ def is_version_compatible(
     Fallback on min and max keys that contain only one server version:
         the oldest supported.
     """
-    if not has_browser_login and not version_lt(version, "4"):
+    if not has_browser_login and not version_lt(version_id, "4"):
         return False
 
     ver_min = (version.get("min_all", {}).get(server) or version.get("min", "")).upper()
@@ -68,7 +68,7 @@ def get_compatible_versions(
     candidates = {
         version: info
         for version, info in versions.items()
-        if is_version_compatible(info, base_server_ver, has_browser_login)
+        if is_version_compatible(version, info, base_server_ver, has_browser_login)
     }
 
     if not candidates:  # ¯\_(ツ)_/¯
