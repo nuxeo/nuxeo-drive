@@ -1,4 +1,12 @@
 custom.target=.
 
-# Disable blobs fulltext extraction
+# Disable fulltext extraction
 nuxeo.vcs.fulltext.disabled=true
+nuxeo.vcs.fulltext.search.disabled=true
+
+# Disable the Nuxeo Stream Audit Writer implementation
+nuxeo.stream.audit.enabled=false
+
+# Connections tweak
+nuxeo.vcs.max-pool-size=30
+nuxeo.vcs.blocking-timeout-millis=200
