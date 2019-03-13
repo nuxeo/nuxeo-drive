@@ -286,7 +286,7 @@ class Engine(QObject):
 
         doc_pair = self._dao.get_state_from_local(path)
         if not doc_pair:
-            log.debug(f"Unable to delete non-existant doc {path}")
+            log.info(f"Unable to delete non-existant doc {path}")
             return
         if mode is DelAction.DEL_SERVER:
             # Delete on server
@@ -306,7 +306,7 @@ class Engine(QObject):
         """ Re-synchronize a document when a deletion is cancelled. """
         doc_pair = self._dao.get_state_from_local(path)
         if not doc_pair:
-            log.debug(f"Unable to rollback delete on non-existant doc {path}")
+            log.info(f"Unable to rollback delete on non-existant doc {path}")
             return
         if doc_pair.folderish:
             self._dao.remove_state_children(doc_pair)
