@@ -308,7 +308,8 @@ class Engine(QObject):
         if not doc_pair:
             log.debug(f"Unable to rollback delete on non-existant doc {path}")
             return
-        self._dao.remove_state_children(doc_pair)
+        if doc_pair.folderish:
+            self._dao.remove_state_children(doc_pair)
         self._dao.force_remote_creation(doc_pair)
         if doc_pair.folderish:
             self._remote_watcher._scan_remote(doc_pair)

@@ -1298,12 +1298,11 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
-            if doc_pair.folderish:
-                if remote_recursion:
-                    condition = self._get_recursive_remote_condition(doc_pair)
-                else:
-                    condition = self._get_recursive_condition(doc_pair)
-                c.execute("DELETE FROM States " + condition)
+            if remote_recursion:
+                condition = self._get_recursive_remote_condition(doc_pair)
+            else:
+                condition = self._get_recursive_condition(doc_pair)
+            c.execute("DELETE FROM States " + condition)
 
     def get_state_from_local(self, path: Path) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
