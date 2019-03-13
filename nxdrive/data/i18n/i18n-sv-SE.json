@@ -126,6 +126,9 @@
     "LOCKED_FILE": "Kan inte uppdatera „%1“ eftersom det har låsts av %2 den %3",
     "LOCK_NOTIFICATION_DESCRIPTION": "Dokumentet „%1“ har låsts",
     "LOCK_NOTIFICATION_TITLE": "Autolås",
+    "LOG_LEVEL": "Log level",
+    "LOG_LEVEL_CHANGE_SETTINGS": "Change log level settings",
+    "LOG_LEVEL_DEBUG_WARNING": "Setting the level to „DEBUG“ will most certainly log sensitive data in your log file. This data can be your login token, which can be used to access and interact with your account on your Nuxeo instance.",
     "LONG_PATH_ERROR_TITLE": "Filename too long",
     "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "Manuell",
@@ -241,11 +244,13 @@
     "UPDATING_VERSION": "Uppdaterar till %1",
     "UPGRADE_AVAILABLE": "Det finns en ny uppgradering %1",
     "URL": "Webbadress",
+    "USE_CHANNEL": "Use channel %1",
     "USE_LIGHT_ICONS": "Använd uppsättningen ljusikoner",
     "USERNAME": "Användarnamn",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive – webbautentisering",
     "WELCOME_MESSAGE": "Ange konto och synkronisera dina filer med Nuxeo Platform.",
     "WINDOWS_ERROR_TITLE": "Dokumentfel",
     "WINDOWS_ERROR_OPENED_FILE": "Filen „%1“ har öppnats av ett annat program. Stäng den innan Nuxeo Drive kan bearbeta den här borttagningen från den lokala lagringsplatsen.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "Mappen „%1“ eller dess underordnade mappar har låsts av ett annat program. Stäng den innan Nuxeo Drive kan bearbeta den här borttagningen från den lokala lagringsplatsen."
+    "WINDOWS_ERROR_OPENED_FOLDER": "Mappen „%1“ eller dess underordnade mappar har låsts av ett annat program. Stäng den innan Nuxeo Drive kan bearbeta den här borttagningen från den lokala lagringsplatsen.",
+    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?"
 }

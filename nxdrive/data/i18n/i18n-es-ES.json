@@ -126,6 +126,9 @@
     "LOCKED_FILE": "No se puede actualizar „%1“, ya que %2 lo ha bloqueado en %3",
     "LOCK_NOTIFICATION_DESCRIPTION": "El documento „%1“ se ha bloqueado",
     "LOCK_NOTIFICATION_TITLE": "Bloqueo automático",
+    "LOG_LEVEL": "Log level",
+    "LOG_LEVEL_CHANGE_SETTINGS": "Change log level settings",
+    "LOG_LEVEL_DEBUG_WARNING": "Setting the level to „DEBUG“ will most certainly log sensitive data in your log file. This data can be your login token, which can be used to access and interact with your account on your Nuxeo instance.",
     "LONG_PATH_ERROR_TITLE": "Filename too long",
     "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "Manual",
@@ -241,11 +244,13 @@
     "UPDATING_VERSION": "Actualizando a %1",
     "UPGRADE_AVAILABLE": "La nueva actualización %1 está disponible",
     "URL": "URL",
+    "USE_CHANNEL": "Use channel %1",
     "USE_LIGHT_ICONS": "Usar el conjunto de iconos claros",
     "USERNAME": "Nombre de usuario",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Autenticación web",
     "WELCOME_MESSAGE": "Establezca su cuenta y sincronice sus archivos con Nuxeo Platform.",
     "WINDOWS_ERROR_TITLE": "Error de documento",
     "WINDOWS_ERROR_OPENED_FILE": "Hay otro software que tiene abierto el archivo „%1“. Ciérrelo antes de que Nuxeo Drive pueda procesar la eliminación desde su almacenamiento local.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "La carpeta „%1“ o sus hijos están bloqueados por otro software. Ciérrelo antes de que Nuxeo Drive pueda procesar la eliminación desde su almacenamiento local."
+    "WINDOWS_ERROR_OPENED_FOLDER": "La carpeta „%1“ o sus hijos están bloqueados por otro software. Ciérrelo antes de que Nuxeo Drive pueda procesar la eliminación desde su almacenamiento local.",
+    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?"
 }
