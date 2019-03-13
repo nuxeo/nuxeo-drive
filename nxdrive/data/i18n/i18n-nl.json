@@ -126,6 +126,9 @@
     "LOCKED_FILE": "Kan '{{ name }}' niet bijwerken omdat het door {{ lock_owner }} op {{ lock_created }} is vergrendeld",
     "LOCK_NOTIFICATION_DESCRIPTION": "Het document '{{ name }}' is vergrendeld",
     "LOCK_NOTIFICATION_TITLE": "Automatische vergrendeling",
+    "LOG_LEVEL": "Log level",
+    "LOG_LEVEL_CHANGE_SETTINGS": "Change log level settings",
+    "LOG_LEVEL_DEBUG_WARNING": "Setting the level to „DEBUG“ will most certainly log sensitive data in your log file. This data can be your login token, which can be used to access and interact with your account on your Nuxeo instance.",
     "LONG_PATH_ERROR_TITLE": "Filename too long",
     "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "Handmatig",
@@ -241,11 +244,13 @@
     "UPDATING_VERSION": "Bezig met bijwerken naar {{ version }}",
     "UPGRADE_AVAILABLE": "Er is een nieuwe upgrade {{ version }} beschikbaar",
     "URL": "URL",
+    "USE_CHANNEL": "Use channel %1",
     "USE_LIGHT_ICONS": "Gebruik de ingestelde lichtpictogrammen",
     "USERNAME": "Gebruikersnaam",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Webverificatie",
     "WELCOME_MESSAGE": "Stel uw account in en synchroniseer uw bestanden met het Nuxeo-platform.",
     "WINDOWS_ERROR_TITLE": "Documentfout",
     "WINDOWS_ERROR_OPENED_FILE": "Het bestand '{{ name }}' is in gebruik door een ander programma. Sluit dit af voordat Nuxeo Drive het uit uw lokale opslag kan verwijderen.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "De map '{{ name }}' of onderliggende mappen ervan zijn vergrendeld door een ander programma. Sluit dit af voordat Nuxeo Drive het uit uw lokale opslag kan verwijderen."
+    "WINDOWS_ERROR_OPENED_FOLDER": "De map '{{ name }}' of onderliggende mappen ervan zijn vergrendeld door een ander programma. Sluit dit af voordat Nuxeo Drive het uit uw lokale opslag kan verwijderen.",
+    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?"
 }

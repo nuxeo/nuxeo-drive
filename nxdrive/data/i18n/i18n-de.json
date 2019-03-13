@@ -126,6 +126,9 @@
     "LOCKED_FILE": "„%1“ kann nicht aktualisiert werden, da die Datei von %2 am %3 gesperrt wurde",
     "LOCK_NOTIFICATION_DESCRIPTION": "Das Dokument „%1“ wurde gesperrt",
     "LOCK_NOTIFICATION_TITLE": "Automatische Sperrung",
+    "LOG_LEVEL": "Log level",
+    "LOG_LEVEL_CHANGE_SETTINGS": "Change log level settings",
+    "LOG_LEVEL_DEBUG_WARNING": "Setting the level to „DEBUG“ will most certainly log sensitive data in your log file. This data can be your login token, which can be used to access and interact with your account on your Nuxeo instance.",
     "LONG_PATH_ERROR_TITLE": "Filename too long",
     "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "Manuell",
@@ -241,11 +244,13 @@
     "UPDATING_VERSION": "Update auf %1 wird ausgeführt",
     "UPGRADE_AVAILABLE": "Neues Upgrade %1 verfügbar",
     "URL": "URL",
+    "USE_CHANNEL": "Use channel %1",
     "USE_LIGHT_ICONS": "Lichtsymbole verwenden",
     "USERNAME": "Benutzername",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive – Web-Authentifizierung",
     "WELCOME_MESSAGE": "Richten Sie Ihre Konten ein und synchronisieren Sie Ihre Dateien mit der Nuxeo Platform.",
     "WINDOWS_ERROR_TITLE": "Dokumentenfehler",
     "WINDOWS_ERROR_OPENED_FILE": "Die Datei „%1“ ist in einer anderen Software geöffnet. Schließen Sie diese, damit Nuxeo Drive sie aus dem lokalen Speicher löschen kann.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "Der Ordner „%1“ oder ihm untergeordnete Elemente wurden von einer anderen Software gesperrt. Schließen Sie diese, damit Nuxeo Drive sie aus dem lokalen Speicher löschen kann."
+    "WINDOWS_ERROR_OPENED_FOLDER": "Der Ordner „%1“ oder ihm untergeordnete Elemente wurden von einer anderen Software gesperrt. Schließen Sie diese, damit Nuxeo Drive sie aus dem lokalen Speicher löschen kann.",
+    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?"
 }

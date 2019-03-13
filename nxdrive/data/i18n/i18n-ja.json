@@ -126,6 +126,9 @@
     "LOCKED_FILE": "„%1“は、%3に%2によってロックされたため、更新できません",
     "LOCK_NOTIFICATION_DESCRIPTION": "文書 „%1“ はロックされています",
     "LOCK_NOTIFICATION_TITLE": "オートロック",
+    "LOG_LEVEL": "Log level",
+    "LOG_LEVEL_CHANGE_SETTINGS": "Change log level settings",
+    "LOG_LEVEL_DEBUG_WARNING": "Setting the level to „DEBUG“ will most certainly log sensitive data in your log file. This data can be your login token, which can be used to access and interact with your account on your Nuxeo instance.",
     "LONG_PATH_ERROR_TITLE": "Filename too long",
     "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "手動",
@@ -241,11 +244,13 @@
     "UPDATING_VERSION": "%1へアップグレード",
     "UPGRADE_AVAILABLE": "新しいアップグレード%1が利用できます",
     "URL": "URL",
+    "USE_CHANNEL": "Use channel %1",
     "USE_LIGHT_ICONS": "ライトのアイコンを使用する",
     "USERNAME": "ユーザ名",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Web認証",
     "WELCOME_MESSAGE": "アカウントを設定し、ファイルをNuxeo Platformと同期化します。",
     "WINDOWS_ERROR_TITLE": "文書エラー",
     "WINDOWS_ERROR_OPENED_FILE": "ファイル„%1“は別のソフトウェアによって開かれています。Nuxeo Driveがローカルストレージからの削除を処理できるよう、まずファイルを閉じてください。",
-    "WINDOWS_ERROR_OPENED_FOLDER": "フォルダ„%1“ またはその子が別のソフトウェアによってロックされています。Nuxeo Driveがローカルストレージからの削除を処理できるよう、まずファイルを閉じてください。"
+    "WINDOWS_ERROR_OPENED_FOLDER": "フォルダ„%1“ またはその子が別のソフトウェアによってロックされています。Nuxeo Driveがローカルストレージからの削除を処理できるよう、まずファイルを閉じてください。",
+    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?"
 }

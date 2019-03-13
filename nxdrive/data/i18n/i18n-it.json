@@ -126,6 +126,9 @@
     "LOCKED_FILE": "Impossibile aggiornare „%1“ perché è stato bloccato da %2 il %3",
     "LOCK_NOTIFICATION_DESCRIPTION": "Il documento „%1“ è stato bloccato",
     "LOCK_NOTIFICATION_TITLE": "Blocco automatico",
+    "LOG_LEVEL": "Log level",
+    "LOG_LEVEL_CHANGE_SETTINGS": "Change log level settings",
+    "LOG_LEVEL_DEBUG_WARNING": "Setting the level to „DEBUG“ will most certainly log sensitive data in your log file. This data can be your login token, which can be used to access and interact with your account on your Nuxeo instance.",
     "LONG_PATH_ERROR_TITLE": "Nome del file troppo lungo",
     "LONG_PATH_ERROR_MSG": "Il documento „%1“ non può essere elaborato perché il suo nome file o percorso completo è troppo lungo.",
     "MANUAL": "Manuale",
@@ -241,11 +244,13 @@
     "UPDATING_VERSION": "Aggiornamento a %1",
     "UPGRADE_AVAILABLE": "Nuovo aggiornamento a %1 disponibile",
     "URL": "URL",
+    "USE_CHANNEL": "Use channel %1",
     "USE_LIGHT_ICONS": "Utilizza il set di icone chiare",
     "USERNAME": "Nome utente",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Nuxeo Drive - Autenticazione Web",
     "WELCOME_MESSAGE": "Impostare l’account e sincronizzare i file con Nuxeo Platform.",
     "WINDOWS_ERROR_TITLE": "Errore del documento",
     "WINDOWS_ERROR_OPENED_FILE": "Il file „%1“ è utilizzato da un altro programma software. Chiudere il programma per consentire a Nuxeo Drive di elaborare l’eliminazione dall’archivio locale.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "La cartella „%1“ o i suoi figli sono bloccati da un altro programma software. Chiudere il programma per consentire a Nuxeo Drive di elaborare l’eliminazione dall’archivio locale."
+    "WINDOWS_ERROR_OPENED_FOLDER": "La cartella „%1“ o i suoi figli sono bloccati da un altro programma software. Chiudere il programma per consentire a Nuxeo Drive di elaborare l’eliminazione dall’archivio locale.",
+    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?"
 }

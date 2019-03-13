@@ -126,6 +126,9 @@
     "LOCKED_FILE": "Tidak bisa diperbarui ,,{{ name }}\" seperti yang dikunci oleh {{ lock_owner }} di {{ lock_created }}",
     "LOCK_NOTIFICATION_DESCRIPTION": "Dokumen ,,{{ name }}\" telah terkunci",
     "LOCK_NOTIFICATION_TITLE": "Kunci otomatis",
+    "LOG_LEVEL": "Log level",
+    "LOG_LEVEL_CHANGE_SETTINGS": "Change log level settings",
+    "LOG_LEVEL_DEBUG_WARNING": "Setting the level to „DEBUG“ will most certainly log sensitive data in your log file. This data can be your login token, which can be used to access and interact with your account on your Nuxeo instance.",
     "LONG_PATH_ERROR_TITLE": "Filename too long",
     "LONG_PATH_ERROR_MSG": "The document „%1“ cannot be processed because its filename or full path is too long.",
     "MANUAL": "Manual",
@@ -241,11 +244,13 @@
     "UPDATING_VERSION": "Memperbarui ke {{ version }}",
     "UPGRADE_AVAILABLE": "Pembaruan baru {{ version }} tersedia",
     "URL": "URL",
+    "USE_CHANNEL": "Use channel %1",
     "USE_LIGHT_ICONS": "Use the light icons set",
     "USERNAME": "Nama Pengguna",
     "WEB_AUTHENTICATION_WINDOW_TITLE": "Drive Nuxeo - Otentikasi Web",
     "WELCOME_MESSAGE": "Tetapkan akun anda dan sinkronkan berkas anda dengan Platform Nuxeo.",
     "WINDOWS_ERROR_TITLE": "Kesalahan Dokumen",
     "WINDOWS_ERROR_OPENED_FILE": "Berkas ,,{{ name }}\" terbuka dengan perangkat lunak lain Harap tutup sebelum Nuxeo Drive dapat memproses penghapusan dari penyimpanan lokal znda.",
-    "WINDOWS_ERROR_OPENED_FOLDER": "Foldernya ,,{{ name }}\" atau anak-anak yang dikunci oleh perangkat lunak lain. Harap tutup sebelum Nuxeo Drive dapat memproses penghapusan dari penyimpanan lokal anda."
+    "WINDOWS_ERROR_OPENED_FOLDER": "Foldernya ,,{{ name }}\" atau anak-anak yang dikunci oleh perangkat lunak lain. Harap tutup sebelum Nuxeo Drive dapat memproses penghapusan dari penyimpanan lokal anda.",
+    "WRONG_CHANNEL": "You are running version %1 which is from the „%2“ channel, but your current channel is „%3“. Do you want to downgrade to the latest version of your current channel, or switch channels?"
 }
