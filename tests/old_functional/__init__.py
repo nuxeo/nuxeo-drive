@@ -17,11 +17,6 @@ from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
 from nxdrive.options import Options
 from nxdrive.utils import force_encode, safe_filename
 
-from ..functional import setup_sentry
-
-
-setup_sentry()
-
 
 def patch_nxdrive_objects():
     """Some feature are not needed or are better disabled when testing."""
