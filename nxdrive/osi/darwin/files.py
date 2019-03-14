@@ -2,12 +2,25 @@
 from pathlib import Path
 from typing import Iterator
 
+from AppKit import NSWorkspace
 from ScriptingBridge import SBApplication
 
 from ...objects import Item
 from ...utils import compute_fake_pid_from_path
 
 __all__ = ("get_other_opened_files",)
+
+
+def _is_running(identifier: str) -> bool:
+    """
+    Check if a given application bundle identifier is found in
+    the list of opened applications, meaning it is running.
+    """
+    shared_workspace = NSWorkspace.sharedWorkspace()
+    for running_app in shared_workspace.launchedApplications():
+        if identifier == str(running_app.allValues()[2]):
+            return True
+    return False
 
 
 def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Item]:
@@ -22,6 +35,9 @@ def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Item]:
         - Illustrator: https://www.adobe.com/devnet/illustrator/scripting.html
         - Photoshop: https://www.adobe.com/devnet/photoshop/scripting.html
     """
+    if not _is_running(identifier):
+        return
+
     app = SBApplication.applicationWithBundleIdentifier_(identifier)
 
     if not app or not app.isRunning():
