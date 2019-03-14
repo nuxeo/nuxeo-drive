@@ -85,6 +85,11 @@ def manager_factory(
 
     def _make_manager(home: str = "", with_engine: bool = True):
         manager = Manager(home=home or tmp())
+
+        # Force deletion behavior to real deletion for all tests
+        manager._dao.update_config("deletion_behavior", "delete_server")
+        manager._dao.store_bool("show_deletion_prompt", False)
+
         request.addfinalizer(manager.close)
         log.info(f"[FIXTURE] Created {manager}")
 

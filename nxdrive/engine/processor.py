@@ -928,7 +928,7 @@ class Processor(EngineWorker):
         """
         log.warning("Inconsistency should not happens anymore")
         log.warning(
-            f"Detected inconsistent doc pair {doc_pair!r}, deleting it hoping thev"
+            f"Detected inconsistent doc pair {doc_pair!r}, deleting it hoping the "
             "synchronizer will fix this case at next iteration"
         )
         self._dao.remove_state(doc_pair)

@@ -1292,6 +1292,18 @@ class EngineDAO(ConfigurationDAO):
                     condition = self._get_recursive_condition(doc_pair)
                 c.execute("DELETE FROM States " + condition)
 
+    def remove_state_children(
+        self, doc_pair: DocPair, remote_recursion: bool = False
+    ) -> None:
+        with self._lock:
+            con = self._get_write_connection()
+            c = con.cursor()
+            if remote_recursion:
+                condition = self._get_recursive_remote_condition(doc_pair)
+            else:
+                condition = self._get_recursive_condition(doc_pair)
+            c.execute("DELETE FROM States " + condition)
+
     def get_state_from_local(self, path: Path) -> Optional[DocPair]:
         c = self._get_read_connection().cursor()
         return c.execute(
@@ -1431,6 +1443,9 @@ class EngineDAO(ConfigurationDAO):
 
     def force_remote(self, row: DocPair) -> bool:
         return self._force_sync(row, "synchronized", "modified", "remotely_modified")
+
+    def force_remote_creation(self, row: DocPair) -> bool:
+        return self._force_sync(row, "unknown", "created", "remotely_created")
 
     def force_local(self, row: DocPair) -> bool:
         return self._force_sync(row, "resolved", "unknown", "locally_resolved")

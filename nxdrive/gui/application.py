@@ -33,6 +33,7 @@ from ..constants import (
     MAC,
     TOKEN_PERMISSION,
     WINDOWS,
+    DelAction,
 )
 from ..engine.activity import Action, FileAction
 from ..engine.engine import Engine
@@ -402,6 +403,65 @@ class Application(QApplication):
             engine.set_local_folder(new_path)
             engine.start()
 
+    def confirm_deletion(self, path: Path) -> DelAction:
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Question)
+        msg.setWindowIcon(self.icon)
+
+        cb = QCheckBox(Translator.get("DONT_ASK_AGAIN"))
+        msg.setCheckBox(cb)
+
+        mode = self.manager.get_deletion_behavior()
+        unsync = None
+        if mode is DelAction.DEL_SERVER:
+            descr = "DELETION_BEHAVIOR_CONFIRM_DELETE"
+            confirm_text = "DELETE_FOR_EVERYONE"
+            unsync = msg.addButton(
+                Translator.get("JUST_UNSYNC"), QMessageBox.RejectRole
+            )
+        elif mode is DelAction.UNSYNC:
+            descr = "DELETION_BEHAVIOR_CONFIRM_UNSYNC"
+            confirm_text = "UNSYNC"
+
+        msg.setText(
+            Translator.get(descr, [str(path), Translator.get("SELECT_SYNC_FOLDERS")])
+        )
+        msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
+        confirm = msg.addButton(Translator.get(confirm_text), QMessageBox.AcceptRole)
+        msg.exec_()
+
+        res = msg.clickedButton()
+        if cb.isChecked():
+            self.manager._dao.store_bool("show_deletion_prompt", False)
+
+        if res == confirm:
+            return mode
+        if res == unsync:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Question)
+            msg.setWindowIcon(self.icon)
+            msg.setText(Translator.get("DELETION_BEHAVIOR_SWITCH"))
+            msg.addButton(Translator.get("NO"), QMessageBox.RejectRole)
+            confirm = msg.addButton(Translator.get("YES"), QMessageBox.AcceptRole)
+            msg.exec_()
+            res = msg.clickedButton()
+            if res == confirm:
+                self.manager.set_deletion_behavior(DelAction.UNSYNC)
+            return DelAction.UNSYNC
+        return DelAction.ROLLBACK
+
+    @pyqtSlot(Path)
+    def _doc_deleted(self, path: Path) -> None:
+        engine: Engine = self.sender()
+        mode = self.confirm_deletion(path)
+
+        if mode is DelAction.ROLLBACK:
+            # Re-sync the document
+            engine.rollback_delete(path)
+        else:
+            # Delete or filter out the document
+            engine.delete_doc(path, mode)
+
     @pyqtSlot(object)
     def dropped_engine(self, engine: "Engine") -> None:
         # Update icon in case the engine dropped was syncing
@@ -612,6 +672,7 @@ class Application(QApplication):
         engine.online.connect(self.change_systray_icon)
         engine.rootDeleted.connect(self._root_deleted)
         engine.rootMoved.connect(self._root_moved)
+        engine.docDeleted.connect(self._doc_deleted)
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
         self.change_systray_icon()
 

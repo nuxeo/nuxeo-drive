@@ -157,6 +157,7 @@ class MetaOptions(type):
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
+        "deletion_behavior": ("unsync", "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
         "handshake_timeout": (60, "default"),
