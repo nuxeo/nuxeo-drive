@@ -20,7 +20,7 @@ from .constants import APP_NAME, STARTUP_PAGE_CONNECTION_TIMEOUT
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .exceptions import EngineTypeMissing, FolderAlreadyUsed, StartupPageConnectionError
-from .logging_config import FILE_HANDLER
+from .logging_config import FILE_HANDLER, no_trace
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
 from .options import Options
@@ -108,7 +108,7 @@ class Manager(QObject):
 
         # Set the logs levels option
         if FILE_HANDLER:
-            FILE_HANDLER.setLevel(self.get_log_level())
+            FILE_HANDLER.setLevel(no_trace(self.get_log_level()))
 
         # Force language
         if Options.force_locale is not None:
