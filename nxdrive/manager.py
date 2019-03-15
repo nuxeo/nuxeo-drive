@@ -108,7 +108,7 @@ class Manager(QObject):
 
         # Set the logs levels option
         if FILE_HANDLER:
-            FILE_HANDLER.setLevel(no_trace(self.get_log_level()))
+            FILE_HANDLER.setLevel(self.get_log_level())
 
         # Force language
         if Options.force_locale is not None:
@@ -458,7 +458,9 @@ class Manager(QObject):
 
     @pyqtSlot(result=str)
     def get_log_level(self) -> str:
-        return self._dao.get_config("log_level_file", default=Options.log_level_file)
+        return no_trace(
+            self._dao.get_config("log_level_file", default=Options.log_level_file)
+        )
 
     @pyqtSlot(str)
     def set_log_level(self, value: str) -> None:
