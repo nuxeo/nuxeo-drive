@@ -334,6 +334,7 @@ class MetaOptions(type):
                 log.info(
                     f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]"
                 )
+                log.debug(repr(Options))
 
                 # Callback for that option
                 with suppress(KeyError):

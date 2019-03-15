@@ -13,7 +13,7 @@ from typing import List, TYPE_CHECKING, Union
 
 from . import __version__
 from .constants import APP_NAME, BUNDLE_IDENTIFIER
-from .logging_config import configure
+from .logging_config import configure, no_trace
 from .options import Options
 from .osi import AbstractOSIntegration
 from .utils import (
@@ -452,6 +452,9 @@ class CliHandler:
         filename = options.log_filename
         if not filename:
             filename = os.path.join(folder_log, "nxdrive.log")
+
+        for logger in {"log_level_file", "log_level_console"}:
+            setattr(options, logger, no_trace(getattr(options, logger)))
 
         configure(
             log_filename=filename,
