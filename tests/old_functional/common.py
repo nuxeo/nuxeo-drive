@@ -215,14 +215,11 @@ class TwoUsersTest(TestCase):
         log.info("TEST run start")
 
         def launch_test():
-            with configure_scope() as scope:
-                scope.set_tag("test-id", self.current_test)
+            # Note: we cannot use super().run(result) here
+            super(TwoUsersTest, self).run(result)
 
-                # Note: we cannot use super().run(result) here
-                super(TwoUsersTest, self).run(result)
-
-                with suppress(Exception):
-                    self.app.quit()
+            with suppress(Exception):
+                self.app.quit()
 
         # Ensure to kill the app if it is taking too long.
         # We need to do that because sometimes a thread get blocked and so the test suite.
@@ -237,9 +234,13 @@ class TwoUsersTest(TestCase):
 
         # Start the app and let signals transit between threads!
         sync_thread = Thread(target=launch_test)
-        sync_thread.start()
-        self.app.exec_()
-        sync_thread.join(30)
+
+        with configure_scope() as scope:
+            scope.set_tag("test", self.current_test)
+            sync_thread.start()
+            self.app.exec_()
+            sync_thread.join(30)
+
         log.info("TEST run end")
 
     def _create_user(self, number: int) -> User:
