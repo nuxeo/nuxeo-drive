@@ -1,4 +1,4 @@
-faker==1.0.2
+faker==1.0.4
 flake8==3.7.7
 mypy==0.670
 pre-commit==1.14.4
