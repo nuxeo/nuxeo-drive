@@ -7,6 +7,8 @@ from time import sleep
 import nxdrive.engine.dao.utils
 from nxdrive.engine.dao.sqlite import ConfigurationDAO
 
+from .. import ensure_no_exception
+
 log = getLogger(__name__)
 
 
@@ -29,9 +31,16 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
     def buggy_db(database, *args, **kwargs):
         if database.name.startswith("manager"):
             database.unlink()
-            raise DatabaseError()
+            raise DatabaseError("Mock")
 
     monkeypatch.setattr("nxdrive.engine.dao.sqlite.fix_db", buggy_db)
+
+    # Before NXDRIVE-1574, there was an error when restoring the DB:
+    #    AttributeError: 'ManagerDAO' object has no attribute '_lock'
+    # This should not be the case anymore.
+
+    with ensure_no_exception(), manager_factory(home=home, with_engine=False):
+        assert (home / "manager.db").exists()
 
     def restore_db(self):
         nonlocal restored
