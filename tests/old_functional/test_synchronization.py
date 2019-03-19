@@ -8,8 +8,9 @@ from nuxeo.exceptions import HTTPError
 
 from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.exceptions import Forbidden
-from . import LocalTest, ensure_no_exception
+from . import LocalTest
 from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
+from .. import ensure_no_exception
 
 
 class TestSynchronization(OneUserTest):

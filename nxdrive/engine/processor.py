@@ -384,8 +384,7 @@ class Processor(EngineWorker):
                     continue
                 except Exception as exc:
                     # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
-                    type_, value, traceback = sys.exc_info()
-                    sys.excepthook(type_, value, traceback)  # type: ignore
+                    sys.excepthook(*sys.exc_info())  # type: ignore
 
                     self._handle_pair_handler_exception(doc_pair, handler_name, exc)
                     continue

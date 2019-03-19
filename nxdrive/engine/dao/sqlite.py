@@ -3,6 +3,7 @@
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
 import os
+import sys
 from sqlite3 import (
     connect,
     Connection,
@@ -136,10 +137,13 @@ class ConfigurationDAO(QObject):
 
     def __init__(self, db: Path) -> None:
         super().__init__()
-        log.info(f"Create DAO on {db!r}")
-        self._db = db
-        exists = self._db.is_file()
 
+        self._db = db
+        self._lock = RLock()
+
+        log.info(f"Create {type(self).__name__} on {self._db!r}")
+
+        exists = self._db.is_file()
         if exists:
             # Fix potential file corruption
             try:
@@ -153,7 +157,6 @@ class ConfigurationDAO(QObject):
         self.schema_version = self.get_schema_version()
         self.in_tx = None
         self._tx_lock = RLock()
-        self._lock = RLock()
         self._conn: Optional[Connection] = None
         self._connections: List[Connection] = []
         self._conns = local()
@@ -181,6 +184,7 @@ class ConfigurationDAO(QObject):
                 return restore_backup(self._db)
         except Exception:
             log.exception(f"Unable to restore {self._db}")
+            sys.excepthook(*sys.exc_info())  # type: ignore
         return False
 
     def save_backup(self) -> bool:
@@ -189,6 +193,7 @@ class ConfigurationDAO(QObject):
                 return save_backup(self._db)
         except Exception:
             log.exception(f"Unable to backup {self._db}")
+            sys.excepthook(*sys.exc_info())  # type: ignore
         return False
 
     def get_schema_version(self) -> int:
