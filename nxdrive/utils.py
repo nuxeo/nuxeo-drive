@@ -565,8 +565,8 @@ def get_certificate_details(hostname: str = "", cert_data: str = "") -> Dict[str
             return ssl._ssl._test_decode_cert(cert_file)  # type: ignore
         finally:
             cert_file.unlink()
-    except:
-        log.exception("Error while retreiving the SSL certificate")
+    except Exception:
+        log.warning("Error while retreiving the SSL certificate", exc_info=True)
         return {}
 
 

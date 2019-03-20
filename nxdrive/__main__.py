@@ -183,12 +183,6 @@ def setup_sentry() -> None:
     if not sentry_dsn:
         return
 
-    sentry_env: str = os.getenv("SENTRY_ENV", "production")
-    assert sentry_env in {
-        "production",
-        "testing",
-    }, "Bad SENTRY_ENV value (production or testing)"
-
     import sentry_sdk
 
     version = None
@@ -199,7 +193,7 @@ def setup_sentry() -> None:
 
     sentry_sdk.init(
         dsn=sentry_dsn,
-        environment=sentry_env,
+        environment=os.getenv("SENTRY_ENV", "production"),
         release=version,
         attach_stacktrace=True,
         before_send=before_send,

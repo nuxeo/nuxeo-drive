@@ -211,6 +211,8 @@
     "REPORT_GENERATED": "Report available at:",
     "REQUIRES_AUTHENTICATION": "Proxy server requires authentication",
     "RESOLVE": "Resolve",
+    "RESTART_NEEDED": "Restart needed",
+    "RESTART_NEEDED_MSG": "You need to restart %1 to continue using it.",
     "RESUME": "Resume",
     "ROOT_USED_WITH_OTHER_BINDING": "This folder has been used by %1, its content will be deleted. Do you want to continue? If no, click on Cancel and choose another folder.",
     "RUNNING_FROM_WRONG_PATH": "You are running this app from „%1“. However, for all features to run normally, the application must be named „%2“ and located in the „/Applications“ directory.",

@@ -64,7 +64,7 @@ class BaseUpdater(PollWorker):
         self.enable = getattr(self, "_can_update", Options.is_frozen)
         self.status = UPDATE_STATUS_UP_TO_DATE
         self.version: str = ""
-        self.progress = .0
+        self.progress = 0.0
         self.update_site = Options.update_site_url.rstrip("/")
 
         if not self.enable:
@@ -265,7 +265,8 @@ class BaseUpdater(PollWorker):
         if self.status == UPDATE_STATUS_INCOMPATIBLE_SERVER:
             # In case of a downgrade, stop the engines
             # and try to install the older version.
-            self.manager.stop()
+            self.manager.restart_needed = True
+            self.manager.suspend()
             self.serverIncompatible.emit()
             return
 
