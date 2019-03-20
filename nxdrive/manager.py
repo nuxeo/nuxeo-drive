@@ -79,6 +79,10 @@ class Manager(QObject):
         if self.home not in Manager._instances:
             Manager._instances[self.home] = proxy(self)
 
+        # Used to tell other components they cannot do their work
+        # if this attribute is set to True (like DirectEdit or resuming engines)
+        self.restart_needed = False
+
         self._create_dao()
 
         self.notification_service = DefaultNotificationService(self)

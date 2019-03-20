@@ -193,6 +193,14 @@ Rectangle {
 
             states: [
                 State {
+                    name: "restart"
+                    PropertyChanges {
+                        target: syncState
+                        icon: MdiFont.Icon.pause
+                        text: qsTr("RESTART_NEEDED") + tl.tr
+                    }
+                },
+                State {
                     name: "suspended"
                     PropertyChanges {
                         target: syncState

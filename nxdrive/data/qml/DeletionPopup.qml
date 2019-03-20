@@ -7,6 +7,7 @@ NuxeoPopup {
 
     title: qsTr("DELETION_BEHAVIOR_CHANGE_SETTINGS") + tl.tr
     width: 400
+    height: 200
     topPadding: 60
     bottomPadding: 50
     leftPadding: 50

@@ -1103,6 +1103,14 @@ class Application(QApplication):
             log.exception(f"Error handling URL event {url!r}")
             return False
 
+    def _show_msgbox_restart_needed(self) -> None:
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText(Translator.get("RESTART_NEEDED_MSG", values=[APP_NAME]))
+        msg.setWindowTitle(APP_NAME)
+        msg.addButton(Translator.get("OK"), QMessageBox.AcceptRole)
+        msg.exec_()
+
     def _handle_nxdrive_url(self, url: str) -> bool:
         """ Handle an nxdrive protocol URL. """
 
@@ -1125,6 +1133,10 @@ class Application(QApplication):
         if func:
             func(path)
         elif "edit" in cmd:
+            if self.manager.restart_needed:
+                self._show_msgbox_restart_needed()
+                return False
+
             manager.direct_edit.edit(
                 info["server_url"],
                 info["doc_id"],
@@ -1201,7 +1213,9 @@ class Application(QApplication):
         self.refresh_conflicts(engine.uid)
 
         # Check synchronization state
-        if engine.is_paused():
+        if self.manager.restart_needed:
+            sync_state = "restart"
+        elif engine.is_paused():
             sync_state = "suspended"
         elif engine.is_syncing():
             sync_state = "syncing"

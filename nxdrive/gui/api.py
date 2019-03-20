@@ -856,6 +856,10 @@ class QMLDriveApi(QObject):
 
     # Systray section
 
+    @pyqtSlot(result=bool)
+    def restart_needed(self) -> bool:
+        return self._manager.restart_needed
+
     @pyqtSlot(bool)
     def suspend(self, start: bool) -> None:
         if start:
