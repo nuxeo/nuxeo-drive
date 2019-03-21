@@ -29,25 +29,22 @@ def show_metrics_acceptance() -> None:
         QVBoxLayout,
     )
 
+    from nxdrive.translator import Translator
+    from nxdrive.utils import find_icon, find_resource
+
+    Translator(find_resource("i18n"))
+    tr = Translator.get
+
     app = QApplication([])
     app.setQuitOnLastWindowClosed(True)
 
     dialog = QDialog()
-    dialog.setWindowTitle(f"{APP_NAME} - Improving Together")
+    dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", [APP_NAME]))
+    dialog.setWindowIcon(QIcon(str(find_icon("app_icon.svg"))))
     dialog.setStyleSheet("background-color: #ffffff;")
     layout = QVBoxLayout()
 
-    with suppress(Exception):
-        from nxdrive.utils import find_icon
-
-        dialog.setWindowIcon(QIcon(str(find_icon("app_icon.svg"))))
-
-    text = (
-        f"At {COMPANY}, we care about your privacy. However, to improve your experience,"
-        " it is crucial to share technical information with the developers, in case we ever need to help you."
-        " <span style='font-weight:bold;'>No sensitive data will ever be shared</span>."
-    )
-    info = QLabel(text)
+    info = QLabel(tr("SHARE_METRICS_MSG", [COMPANY]))
     info.setTextFormat(Qt.RichText)
     info.setWordWrap(True)
     layout.addWidget(info)
@@ -59,16 +56,12 @@ def show_metrics_acceptance() -> None:
         Options.use_sentry = bool(state)
 
     # Checkboxes
-    em_analytics = QCheckBox(
-        "Allow sharing error reports when something unusual happens"
-    )
+    em_analytics = QCheckBox(tr("SHARE_METRICS_ERROR_REPORTING"))
     em_analytics.setChecked(True)
     em_analytics.stateChanged.connect(errors_choice)
     layout.addWidget(em_analytics)
 
-    cb_analytics = QCheckBox(
-        "Share anonymous usage analytics to help the developers build the best experience for you"
-    )
+    cb_analytics = QCheckBox(tr("SHARE_METRICS_ANALYTICS"))
     cb_analytics.stateChanged.connect(analytics_choice)
     layout.addWidget(cb_analytics)
 
@@ -184,17 +177,12 @@ def setup_sentry() -> None:
         return
 
     import sentry_sdk
-
-    version = None
-    with suppress(ImportError):
-        from nxdrive import __version__
-
-        version = __version__
+    from nxdrive import __version__
 
     sentry_sdk.init(
         dsn=sentry_dsn,
         environment=os.getenv("SENTRY_ENV", "production"),
-        release=version,
+        release=__version__,
         attach_stacktrace=True,
         before_send=before_send,
     )
@@ -216,32 +204,31 @@ def show_critical_error() -> None:
         QVBoxLayout,
     )
 
+    from nxdrive.translator import Translator
+    from nxdrive.utils import find_icon, find_resource
+
+    Translator(find_resource("i18n"))
+    tr = Translator.get
+
     app = QApplication([])
     app.setQuitOnLastWindowClosed(True)
 
     dialog = QDialog()
-    dialog.setWindowTitle(f"{APP_NAME} - Fatal error")
+    dialog.setWindowTitle(tr("FATAL_ERROR_TITLE", [APP_NAME]))
+    dialog.setWindowIcon(QIcon(str(find_icon("app_icon.svg"))))
     dialog.resize(600, 400)
     layout = QVBoxLayout()
     css = "font-family: monospace; font-size: 12px;"
     details = []
 
-    with suppress(Exception):
-        from nxdrive.utils import find_icon
-
-        dialog.setWindowIcon(QIcon(find_icon("app_icon.svg")))
-
     # Display a little message to apologize
-    text = f"""Ooops! Unfortunately, a fatal error occurred and {APP_NAME} has stopped.
-Please share the following informations with {COMPANY} support: we’ll do our best to fix it!
-"""
-    info = QLabel(text)
+    info = QLabel(tr("FATAL_ERROR_MSG", [APP_NAME, COMPANY]))
     info.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
     layout.addWidget(info)
 
     # Display CLI arguments
     if sys.argv[1:]:
-        text = "Command line arguments:"
+        text = tr("FATAL_ERROR_CLI_ARGS")
         label_cli = QLabel(text)
         label_cli.setAlignment(Qt.AlignVCenter)
         cli_args = QTextEdit()
@@ -255,7 +242,7 @@ Please share the following informations with {COMPANY} support: we’ll do our b
         layout.addWidget(cli_args)
 
     # Display the exception
-    text = "Exception:"
+    text = tr("FATAL_ERROR_EXCEPTION")
     label_exc = QLabel(text)
     label_exc.setAlignment(Qt.AlignVCenter)
     exception = QTextEdit()
@@ -275,19 +262,20 @@ Please share the following informations with {COMPANY} support: we’ll do our b
         raw_lines = Report.export_logs(-20)
         lines = b"\n".join(raw_lines).decode(errors="replace")
 
-        text = "Logs before the crash:"
-        label_log = QLabel(text)
-        details.append(section(text, lines))
-        label_log.setAlignment(Qt.AlignVCenter)
-        layout.addWidget(label_log)
+        if lines:
+            text = tr("FATAL_ERROR_LOGS")
+            label_log = QLabel(text)
+            details.append(section(text, lines))
+            label_log.setAlignment(Qt.AlignVCenter)
+            layout.addWidget(label_log)
 
-        logs = QTextEdit()
-        logs.setStyleSheet(css)
-        logs.setReadOnly(True)
-        logs.setLineWrapColumnOrWidth(4096)
-        logs.setLineWrapMode(QTextEdit.FixedPixelWidth)
-        logs.setText(lines)
-        layout.addWidget(logs)
+            logs = QTextEdit()
+            logs.setStyleSheet(css)
+            logs.setReadOnly(True)
+            logs.setLineWrapColumnOrWidth(4096)
+            logs.setLineWrapMode(QTextEdit.FixedPixelWidth)
+            logs.setText(lines)
+            layout.addWidget(logs)
 
     # Buttons
     buttons = QDialogButtonBox()
@@ -298,13 +286,15 @@ Please share the following informations with {COMPANY} support: we’ll do our b
     def copy() -> None:
         """Copy details to the clipboard and change the text of the button. """
         copy_to_clipboard("\n".join(details))
-        copy_paste.setText("Details copied!")
+        copy_paste.setText(tr("FATAL_ERROR_DETAILS_COPIED"))
 
     # "Copy details" button
     with suppress(Exception):
         from nxdrive.utils import copy_to_clipboard
 
-        copy_paste = buttons.addButton("Copy details", QDialogButtonBox.ActionRole)
+        copy_paste = buttons.addButton(
+            tr("FATAL_ERROR_DETAILS_COPY"), QDialogButtonBox.ActionRole
+        )
         copy_paste.clicked.connect(copy)
 
     dialog.setLayout(layout)
