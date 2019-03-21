@@ -555,6 +555,14 @@ def get_certificate_details(hostname: str = "", cert_data: str = "") -> Dict[str
 
     import ssl
 
+    defaults = {
+        "subject": [],
+        "issuer": [],
+        "caIssuers": [],
+        "serialNumber": "N/A",
+        "notAfter": "N/A",
+        "notBefore": "N/A",
+    }
     cert_file = Path("c.crt")
 
     try:
@@ -562,12 +570,14 @@ def get_certificate_details(hostname: str = "", cert_data: str = "") -> Dict[str
         cert_file.write_text(certificate, encoding="utf-8")
         try:
             # Taken from https://stackoverflow.com/a/50072461/1117028
-            return ssl._ssl._test_decode_cert(cert_file)  # type: ignore
+            details = ssl._ssl._test_decode_cert(cert_file)  # type: ignore
+            defaults.update(details)
         finally:
             cert_file.unlink()
     except Exception:
         log.warning("Error while retreiving the SSL certificate", exc_info=True)
-        return {}
+
+    return defaults
 
 
 def encrypt(
