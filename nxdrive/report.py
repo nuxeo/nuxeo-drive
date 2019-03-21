@@ -97,6 +97,9 @@ class Report:
         """
 
         handler = get_handler(getLogger(), "memory")
+        if not handler:
+            return
+
         log_buffer = handler.get_buffer(lines)
 
         for record in log_buffer:
