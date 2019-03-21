@@ -9,6 +9,22 @@ import nxdrive.utils
 from ..markers import jenkins_only
 
 
+BAD_HOSTNAMES = [
+    "expired.badssl.com",
+    "wrong.host.badssl.com",
+    "self-signed.badssl.com",
+    "untrusted-root.badssl.com",
+    "revoked.badssl.com",
+    "pinning-test.badssl.com",
+    "no-common-name.badssl.com",
+    "no-subject.badssl.com",
+    "incomplete-chain.badssl.com",
+    "sha1-intermediate.badssl.com",
+    "client-cert-missing.badssl.com",
+    "invalid-expected-sct.badssl.com",
+]
+
+
 @pytest.mark.parametrize(
     "path, pid",
     [
@@ -150,8 +166,9 @@ JROlHjdA3/jyqD4WuFzzXzWwF6zta0l/hqF9BtGmQRR9qXC2+fsQ4mhUK8C9vhCH
     assert cert_details == cert_details_expected
 
 
-def test_get_certificate_details_from_hostname():
-    cert_details = nxdrive.utils.get_certificate_details(hostname="example.org")
+@pytest.mark.parametrize("hostname", BAD_HOSTNAMES)
+def test_get_certificate_details_from_hostname(hostname):
+    cert_details = nxdrive.utils.get_certificate_details(hostname=hostname)
     for key in {
         "caIssuers",
         "issuer",
@@ -175,14 +192,15 @@ def test_get_current_os_full():
     assert ver
 
 
-def test_retrieve_ssl_certificate_unknown():
+@pytest.mark.parametrize("hostname", BAD_HOSTNAMES)
+def test_retrieve_ssl_certificate_unknown(hostname):
     from ssl import SSLError
 
     func = nxdrive.utils.get_certificate_details
-    assert func(hostname="example42.org") == {}
+    assert func(hostname=hostname)
 
     with pytest.raises(SSLError):
-        nxdrive.utils.retrieve_ssl_certificate("example.org", port=80)
+        nxdrive.utils.retrieve_ssl_certificate(hostname, port=80)
 
 
 @pytest.mark.parametrize(
