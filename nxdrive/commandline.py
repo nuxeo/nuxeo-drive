@@ -113,7 +113,7 @@ class CliHandler:
 
         common_parser.add_argument(
             "--channel",
-            default=None,
+            default="release",
             choices=("alpha", "beta", "release"),
             help="Update channel",
         )
