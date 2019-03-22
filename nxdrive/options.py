@@ -136,18 +136,16 @@ class MetaOptions(type):
     __home: Path = __get_home()
 
     # Options that should not trigger an error
-    __ignored_options: Set[str] = set(
-        [
-            # From the CLI parser
-            "command",
-            "file",
-            "log_filename",
-            # From the Manager
-            "client_version",
-            "light_icons",
-            "original_version",
-        ]
-    )
+    __ignored_options: Set[str] = {
+        # From the CLI parser
+        "command",
+        "file",
+        "log_filename",
+        # From the Manager
+        "client_version",
+        "light_icons",
+        "original_version",
+    }
 
     # Default options
     options: Dict[str, Tuple[Any, str]] = {
@@ -263,6 +261,7 @@ class MetaOptions(type):
         `file` and `section` are used for a better exception message.
 
         Any `list` will be converted to a sorted `tuple`.
+        And any `tuple` will be appended to the current sequence instead of erasing old values.
         Any `bytes` value will be decoded.
 
         If the type of the new value differs from the original one,
@@ -296,7 +295,7 @@ class MetaOptions(type):
         else:
             if isinstance(new_value, list):
                 # Need a tuple when JSON sends a simple list
-                new_value = tuple(sorted(new_value))
+                new_value = tuple(sorted({*old_value, *new_value}))
             elif isinstance(new_value, bytes):
                 # No option needs bytes
                 new_value = new_value.decode("utf-8")
@@ -329,17 +328,19 @@ class MetaOptions(type):
 
             # Only update if the setter has rights to
             setter = setter.lower()
-            if MetaOptions._setters[setter] >= MetaOptions._setters[old_setter]:
-                MetaOptions.options[item] = new_value, setter
-                log.info(
-                    f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]"
-                )
-                log.debug(repr(Options))
+            if MetaOptions._setters[setter] < MetaOptions._setters[old_setter]:
+                return
 
-                # Callback for that option
-                with suppress(KeyError):
-                    callback = MetaOptions.callbacks[item]
-                    callback(new_value)
+            MetaOptions.options[item] = new_value, setter
+            log.info(
+                f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]"
+            )
+            log.debug(repr(Options))
+
+            # Callback for that option
+            with suppress(KeyError):
+                callback = MetaOptions.callbacks[item]
+                callback(new_value)
 
     @staticmethod
     def update(
