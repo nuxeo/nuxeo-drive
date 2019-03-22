@@ -69,10 +69,12 @@ check_vars() {
     # Check required variables
     if [ "${PYTHON_DRIVE_VERSION:=unset}" = "unset" ]; then
         export PYTHON_DRIVE_VERSION="3.6.7"  # XXX_PYTHON
-    elif [ "${WORKSPACE:=unset}" = "unset" ]; then
+    fi
+    if [ "${WORKSPACE:=unset}" = "unset" ]; then
         echo "WORKSPACE not defined. Aborting."
         exit 1
-    elif [ "${OSI:=unset}" = "unset" ]; then
+    fi
+    if [ "${OSI:=unset}" = "unset" ]; then
         echo "OSI not defined. Aborting."
         echo "Please do not call this script directly. Use the good one from 'tools/OS/deploy_jenkins_slave.sh'."
         exit 1
