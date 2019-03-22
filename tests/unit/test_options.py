@@ -157,6 +157,31 @@ def test_error():
 
 
 @Options.mock()
+def test_list_conversion_and_original_values_updated():
+    assert isinstance(Options.ignored_suffixes, tuple)
+    assert "azerty" not in Options.ignored_suffixes
+    current_len = len(Options.ignored_suffixes)
+
+    Options.set("ignored_suffixes", ["azerty"], setter="manual")
+    assert isinstance(Options.ignored_suffixes, tuple)
+    assert "azerty" in Options.ignored_suffixes
+    assert len(Options.ignored_suffixes) == current_len + 1
+
+    new_values = {
+        "ignored_files": ["bim", "bam", "boom", "zzzzzzzzzz"],
+        "force_locale": "zh",
+    }
+    Options.update(new_values, setter="manual")
+    assert isinstance(Options.ignored_files, tuple)
+    assert "bim" in Options.ignored_files
+    assert "bam" in Options.ignored_files
+    assert "boom" in Options.ignored_files
+    assert len(Options.ignored_files) > 4
+    # Check it is sorted
+    assert Options.ignored_files[-1] == "zzzzzzzzzz"
+
+
+@Options.mock()
 def test_repr():
     assert repr(Options)
 
