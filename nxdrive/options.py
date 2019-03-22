@@ -153,7 +153,7 @@ class MetaOptions(type):
     options: Dict[str, Tuple[Any, str]] = {
         "browser_startup_page": ("drive_browser_login.jsp", "default"),
         "ca_bundle": (None, "default"),
-        "channel": (None, "default"),
+        "channel": ("release", "default"),
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),

@@ -125,10 +125,14 @@ class Manager(QObject):
             beta = self.get_config("beta_channel")
             if beta is not None:
                 if beta:
-                    Options.set("channel", "beta", setter="manual")
+                    Options.set("channel", "beta", setter="local")
+                else:
+                    Options.set("channel", "release", setter="local")
                 self._dao.delete_config("beta_channel")
-            else:
-                Options.set("channel", self.get_update_channel(), setter="manual")
+
+            Options.set("channel", self.get_update_channel(), setter="local")
+            if self.get_config("channel") != Options.channel:
+                self.set_config("channel", Options.channel)
 
             # Keep a trace of installed versions
             if not self.get_config("original_version"):
