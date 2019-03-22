@@ -229,7 +229,7 @@ class WindowsIntegration(AbstractOSIntegration):
     def _watch_or_ignore(self, folder: Path, action: str) -> None:
         log.debug(f"Making Explorer {action} {folder!r}")
 
-        paths = {engine.local_folder for _, engine in self._manager._engines.items()}
+        paths = {engine.local_folder for engine in self._manager._engines.values()}
 
         if action == "watch":
             paths.add(folder)
