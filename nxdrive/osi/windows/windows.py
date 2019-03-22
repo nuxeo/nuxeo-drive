@@ -237,7 +237,7 @@ class WindowsIntegration(AbstractOSIntegration):
             paths.remove(folder)
 
         set_filter_folders(paths)
-        log.info(f"Explorer now {action} {folder!r}")
+        log.info(f"{folder!r} is now in Explorer {action} list")
 
     def watch_folder(self, folder: Path) -> None:
         self._watch_or_ignore(folder, "watch")
