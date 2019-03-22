@@ -67,7 +67,7 @@ def create_versions(dst, version):
         dmg: {checksum}
         exe: {checksum}
     """
-    with open(os.path.join(dst, "versions.yml"), "w") as versions:
+    with open(os.path.join(dst, "versions.yml"), "a") as versions:
         versions.write(yml)
 
 
@@ -292,6 +292,9 @@ def main():
         dst_file = os.path.join(path, installer)
         print(">>> Moving", src_file, "->", path)
         shutil.move(src_file, dst_file)
+
+        # Append the versions.yml file
+        create_versions(root, previous)
 
         # Install Drive on the computer
         install_drive(dst_file)
