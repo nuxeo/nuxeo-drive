@@ -1,7 +1,6 @@
 # coding: utf-8
 import json
 import unicodedata
-from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -26,21 +25,6 @@ def enable_overlay() -> None:
 
 def disable_overlay() -> None:
     registry.write(OVERLAYS_REGISTRY_KEY, {ENABLE_OVERLAY: "0"})
-
-
-def get_filter_folders() -> Set[Path]:
-    value = registry.read(OVERLAYS_REGISTRY_KEY)
-    if not value:
-        return set()
-    overlay_conf = value.get(FILTER_FOLDERS)
-    if not overlay_conf:
-        return set()
-    filters = None
-    with suppress(Exception):
-        filters = json.loads(overlay_conf)
-    if not isinstance(filters, list):
-        return set()
-    return {Path(path) for path in filters}
 
 
 def set_filter_folders(paths: Set[Path]) -> None:
