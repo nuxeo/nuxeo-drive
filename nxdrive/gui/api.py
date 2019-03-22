@@ -140,7 +140,7 @@ class QMLDriveApi(QObject):
         if date_time:
             # As date_time is in UTC
             result["last_sync_date"] = Translator.format_datetime(
-                date_time + tzlocal()._dst_offset  # type: ignore
+                date_time + tzlocal().utcoffset(date_time)  # type: ignore
             )
 
         result["name"] = state.local_name
@@ -186,13 +186,12 @@ class QMLDriveApi(QObject):
 
     def _export_action(self, action: Action) -> Dict[str, Any]:
         result: Dict[str, Any] = dict()
-        result["name"] = action.type
-        percent = action.get_percent()
-        if percent:
-            result["percent"] = percent
+        result["uid"] = action.uid
+        result["last_transfer"] = action.type
+        result["progress"] = action.get_percent()
         if isinstance(action, FileAction):
             result["size"] = action.size
-            result["filename"] = action.filename
+            result["name"] = action.filename
             result["filepath"] = str(action.filepath)
         return result
 
@@ -321,20 +320,6 @@ class QMLDriveApi(QObject):
     def app_update(self, version: str) -> None:
         """ Start the udpate to the specified version. """
         self._manager.updater.update(version)
-
-    @pyqtSlot(str, result=str)
-    def get_actions(self, uid: str) -> str:
-        engine = self._get_engine(uid)
-        result = []
-        if engine:
-            for count, thread in enumerate(engine.get_threads(), 1):
-                action = thread.worker.action
-                # The filter should be configurable
-                if isinstance(action, FileAction):
-                    result.append(self._export_action(action))
-                if count == 4:
-                    break
-        return self._json(result)
 
     @pyqtSlot(str, result=str)
     def get_threads(self, uid: str) -> str:

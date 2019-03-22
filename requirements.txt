@@ -4,7 +4,7 @@ distro==1.4.0; sys_platform == 'linux'
 https://github.com/GoodRx/universal-analytics-python/archive/77ce628c56de1ba51a9bf0774794fd687f785803.zip
 https://github.com/gorakhargosh/watchdog/archive/8b94506c3156a3b66faef7aac9a139f603772506.zip
 # nuxeo==2.0.5
-https://github.com/nuxeo/nuxeo-python-client/archive/c8a7a274cb40c6447d929bb4b8460e76b212ff7c.zip
+https://github.com/nuxeo/nuxeo-python-client/archive/fa7f39454ca5eb5ded2f2a6d02d1b551521dc266.zip
 markdown==3.0.1
 psutil==5.6.1
 pyaml==18.11.0

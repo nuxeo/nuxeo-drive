@@ -12,8 +12,9 @@ from PyQt5.QtCore import (
     pyqtSlot,
 )
 
+from nxdrive.utils import force_decode
+
 if TYPE_CHECKING:
-    from .api import QMLDriveApi  # noqa
     from .application import Application  # noqa
     from ..engine.engine import Engine  # noqa
 
@@ -165,6 +166,92 @@ class EngineModel(QAbstractListModel):
         self.statusChanged.emit(engine)
 
 
+class ActionModel(QAbstractListModel):
+    fileChanged = pyqtSignal()
+
+    ID = Qt.UserRole + 1
+    NAME = Qt.UserRole + 2
+    LAST_TRANSFER = Qt.UserRole + 3
+    PROGRESS = Qt.UserRole + 4
+
+    def __init__(self, parent: QObject = None) -> None:
+        super(ActionModel, self).__init__(parent)
+        self.actions: List[Dict[str, Any]] = []
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return {
+            self.ID: b"uid",
+            self.NAME: b"name",
+            self.LAST_TRANSFER: b"last_transfer",
+            self.PROGRESS: b"progress",
+        }
+
+    @pyqtProperty("int", notify=fileChanged)
+    def count(self):
+        return self.rowCount()
+
+    def rowCount(self, parent: QModelIndex = QModelIndex(), **kwargs: Any) -> int:
+        return len(self.actions)
+
+    def add_action(
+        self, action: Dict[str, Any], parent: QModelIndex = QModelIndex()
+    ) -> None:
+        self.beginInsertRows(parent, 0, 0)
+        self.actions.insert(0, action)
+        self.fileChanged.emit()
+        self.endInsertRows()
+
+    def data(self, index: QModelIndex, role: int = NAME) -> Any:
+        row = self.actions[index.row()]
+        if role == self.ID:
+            return row["uid"]
+        elif role == self.NAME:
+            return row["name"]
+        elif role == self.LAST_TRANSFER:
+            return row["last_transfer"]
+        elif role == self.PROGRESS:
+            return row["progress"]
+        return ""
+
+    def headerData(self, p_int, Qt_Orientation, role=None):
+        return ""
+
+    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+        if role is None:
+            return
+        key = force_decode(self.roleNames()[role])
+        self.actions[index.row()][key] = value
+        self.dataChanged.emit(index, index, [role])
+
+    def setHeaderData(self, p_int, Qt_Orientation, Any, role=None):
+        pass
+
+    def remove_action(
+        self, action: Dict[str, Any], parent: QModelIndex = QModelIndex()
+    ) -> bool:
+        try:
+            for i, item in enumerate(self.actions):
+                if item["uid"] == action["uid"]:
+                    self.beginRemoveRows(parent, i, i)
+                    self.actions.remove(self.actions[i])
+                    self.fileChanged.emit()
+                    self.endRemoveRows()
+                    break
+            return True
+        except:
+            return False
+
+    @pyqtSlot(dict)
+    def set_progress(self, action: Dict[str, Any]) -> None:
+        for i, item in enumerate(self.actions):
+            if item["uid"] == action["uid"]:
+                self.setData(self.createIndex(i, 0), action["progress"], self.PROGRESS)
+                break
+
+    def flags(self, index: QModelIndex):
+        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+
 class FileModel(QAbstractListModel):
     fileChanged = pyqtSignal()
 
@@ -258,6 +345,19 @@ class FileModel(QAbstractListModel):
             return row["state"]
         return ""
 
+    def headerData(self, p_int, Qt_Orientation, role=None):
+        return ""
+
+    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+        if role is None:
+            return
+        key = force_decode(self.roleNames()[role])
+        self.files[index.row()][key] = value
+        self.dataChanged.emit(index, index, [role])
+
+    def setHeaderData(self, p_int, Qt_Orientation, Any, role=None):
+        pass
+
     @pyqtSlot(int, int)
     def removeRows(
         self, row: int, count: int, parent: QModelIndex = QModelIndex()
@@ -272,16 +372,32 @@ class FileModel(QAbstractListModel):
         except:
             return False
 
+    def insertRows(
+        self, files: List[Dict[str, Any]], row: int, parent: QModelIndex = QModelIndex()
+    ) -> None:
+        try:
+            self.beginInsertRows(parent, row, row + len(files) - 1)
+            for f in files[::-1]:
+                self.files.insert(row, f)
+            self.fileChanged.emit()
+            self.endInsertRows()
+            return True
+        except:
+            return False
+
     def empty(self) -> None:
         count = self.rowCount()
         self.removeRows(0, count)
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, parent: QModelIndex = QModelIndex(), **kwargs: Any) -> int:
         return len(self.files)
 
     @pyqtProperty("int", notify=fileChanged)
     def count(self) -> int:
         return self.rowCount()
+
+    def flags(self, index: QModelIndex):
+        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
 
 class LanguageModel(QAbstractListModel):

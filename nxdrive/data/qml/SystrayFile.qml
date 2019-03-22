@@ -6,47 +6,52 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: control
     property variant fileData: model
-    width: parent.width; height: 50
+    width: parent.width; height: 55
 
-    RowLayout {
+    ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: 0
 
-        ColumnLayout {
+        RowLayout {
             Layout.fillWidth: true; Layout.fillHeight: true
-            Layout.leftMargin: 20; Layout.topMargin: 5; Layout.bottomMargin: 5
+            spacing: 10
 
-            ScaledText {
-                text: name
-                Layout.fillWidth: true
-                pointSize: 14
-                elide: Text.ElideRight
-            }
+            ColumnLayout {
+                Layout.fillWidth: true; Layout.fillHeight: true
+                Layout.leftMargin: 20; Layout.topMargin: 5
 
-            RowLayout {
-                IconLabel {
-                    size: 16
-                    icon: last_transfer == "upload" ? MdiFont.Icon.upload : MdiFont.Icon.download
-                }
                 ScaledText {
-                    text: last_sync_date
-                    pointSize: 10
-                    color: mediumGray
+                    text: name
+                    Layout.fillWidth: true
+                    pointSize: 14
+                    elide: Text.ElideRight
+                }
+
+                RowLayout {
+                    IconLabel {
+                        size: 16
+                        icon: last_transfer == "upload" ? MdiFont.Icon.upload : MdiFont.Icon.download
+                    }
+                    ScaledText {
+                        text: last_sync_date
+                        pointSize: 10
+                        color: mediumGray
+                    }
                 }
             }
-        }
 
-        IconLabel {
-            z: 20; Layout.alignment: Qt.AlignRight; Layout.rightMargin: 0
-            icon: MdiFont.Icon.openInNew
-            onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
-        }
+            IconLabel {
+                z: 20; Layout.alignment: Qt.AlignRight; Layout.rightMargin: 0
+                icon: MdiFont.Icon.openInNew
+                onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
+            }
 
-        IconLabel {
-            z: 20; size: 24
-            Layout.alignment: Qt.AlignLeft; Layout.rightMargin: 10
-            icon: MdiFont.Icon.pencil
-            onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
+            IconLabel {
+                z: 20; size: 24
+                Layout.alignment: Qt.AlignLeft; Layout.rightMargin: 10
+                icon: MdiFont.Icon.pencil
+                onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
+            }
         }
     }
 }

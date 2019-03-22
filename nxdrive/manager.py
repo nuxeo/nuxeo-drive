@@ -11,7 +11,6 @@ import requests
 from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
 from PyQt5.sip import SIP_VERSION_STR
 
-
 from . import __version__
 from .autolocker import ProcessAutoLockerWorker
 from .client.local_client import LocalClient
