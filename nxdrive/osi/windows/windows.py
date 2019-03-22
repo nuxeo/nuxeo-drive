@@ -19,7 +19,6 @@ from . import registry
 from .extension import (
     disable_overlay,
     enable_overlay,
-    get_filter_folders,
     set_filter_folders,
     WindowsExtensionListener,
 )
@@ -227,17 +226,24 @@ class WindowsIntegration(AbstractOSIntegration):
             None,
         )
 
+    def _watch_or_ignore(self, folder: Path, action: str) -> None:
+        log.debug(f"Making Explorer {action} {folder!r}")
+
+        paths = {engine.local_folder for engine in self._manager._engines.values()}
+
+        if action == "watch":
+            paths.add(folder)
+        else:
+            paths.remove(folder)
+
+        set_filter_folders(paths)
+        log.info(f"{folder!r} is now in Explorer {action} list")
+
     def watch_folder(self, folder: Path) -> None:
-        log.info(f"Explorer now watching {folder!r}")
-        current_filters = get_filter_folders()
-        current_filters.add(folder)
-        set_filter_folders(current_filters)
+        self._watch_or_ignore(folder, "watch")
 
     def unwatch_folder(self, folder: Path) -> None:
-        log.info(f"Explorer now ignoring {folder!r}")
-        current_filters = get_filter_folders()
-        current_filters.remove(folder)
-        set_filter_folders(current_filters)
+        self._watch_or_ignore(folder, "ignore")
 
     def get_extension_listener(self) -> WindowsExtensionListener:
         return WindowsExtensionListener(self._manager)
