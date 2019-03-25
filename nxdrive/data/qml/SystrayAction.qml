@@ -6,7 +6,8 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: control
     property variant fileData: model
-    width: parent.width; height: 55
+    visible: progress > 0 && progress < 100
+    width: parent.width; height: visible ? 55 : 0
 
     ColumnLayout {
         anchors.fill: parent

@@ -155,7 +155,7 @@ Rectangle {
 
             Timer {
                 id: refreshTimer
-                interval: 200; running: true; repeat: false
+                interval: 500; running: true; repeat: false
                 onTriggered: {
                     systray.getLastFiles(accountSelect.getRole("uid"))
                     systrayContainer.syncingCount = api.get_syncing_count(accountSelect.getRole("uid"))

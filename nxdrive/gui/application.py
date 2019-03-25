@@ -220,7 +220,7 @@ class Application(QApplication):
 
     @pyqtSlot(Action)
     def action_started(self, action: Action) -> None:
-        self.action_model.add_action(self.api._export_action(action))
+        self.refresh_actions()
 
     @pyqtSlot(Action)
     def action_progressing(self, action: Action) -> None:
@@ -228,7 +228,7 @@ class Application(QApplication):
 
     @pyqtSlot(Action)
     def action_done(self, action: Action) -> None:
-        self.action_model.remove_action(self.api._export_action(action))
+        self.refresh_actions()
 
     def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
         if not engines:
@@ -1246,6 +1246,13 @@ class Application(QApplication):
         self._window_root(self.systray_window).setStatus.emit(
             sync_state, error_state, update_state
         )
+
+    @pyqtSlot()
+    def refresh_actions(self) -> None:
+        actions = self.api.get_actions()
+        if actions != self.action_model.actions:
+            self.action_model.set_actions(actions)
+        self.action_model.fileChanged.emit()
 
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:

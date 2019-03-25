@@ -321,6 +321,18 @@ class QMLDriveApi(QObject):
         """ Start the udpate to the specified version. """
         self._manager.updater.update(version)
 
+    @pyqtSlot(result=list)
+    def get_actions(self) -> List[Dict[str, Any]]:
+        result = []
+
+        if not self._manager.get_engines():
+            return result
+
+        for thread, action in Action.actions.copy().items():
+            if isinstance(action, FileAction):
+                result.append(self._export_action(action))
+        return result
+
     @pyqtSlot(str, result=str)
     def get_threads(self, uid: str) -> str:
         engine = self._get_engine(uid)

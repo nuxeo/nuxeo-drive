@@ -201,6 +201,17 @@ class ActionModel(QAbstractListModel):
         self.fileChanged.emit()
         self.endInsertRows()
 
+    def set_actions(
+        self, actions: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+    ) -> None:
+        self.beginRemoveRows(parent, 0, len(self.actions) - 1)
+        self.actions.clear()
+        self.endRemoveRows()
+        self.beginInsertRows(parent, 0, len(actions) - 1)
+        self.actions.extend(actions)
+        self.fileChanged.emit()
+        self.endInsertRows()
+
     def data(self, index: QModelIndex, role: int = NAME) -> Any:
         row = self.actions[index.row()]
         if role == self.ID:
