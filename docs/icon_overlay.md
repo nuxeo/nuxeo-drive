@@ -30,6 +30,7 @@ The revelant source code can be found in the `tools/windows/setup-admin.iss` fil
 ### Building
 
 The setup to build the DLLs on Windows 7 is the following:
+
 - Visual Studio Express 2010
 - The [Windows SDK for Windows 7 and .NET Framework 4](https://www.microsoft.com/en-us/download/details.aspx?id=8279)
 - The [Windows Driver Kit 7.1.0](https://www.microsoft.com/en-us/download/details.aspx?id=11800)
@@ -47,19 +48,23 @@ Once DLLs are compiled, we move them to the `nuxeo-drive/tools/windows/dll/(x86|
 During installation, Inno Setup will take care of running `regsvr32` on them so that they are registered with the system and executed by the Explorer.
 
 Drive itself is responsible for:
+
 - Writing the watched folder(s) in a `FilterFolders` value of the `HKCU\\Software\\Nuxeo\\Drive\\Overlays` register key. It should be formatted like a JSON array of strings.
 - Writing `1` in an `EnableOverlay` value of the same key.
 - Listening on port 10650 with a TCP socket.
 
 The DLL will asks for status by sending a command in JSON, e.g.
-```
+
+```json
 {
     "command": "getFileIconId",
     "value": "C:\\Users\\Windows7\\Documents\\Nuxeo Drive"
 }
 ```
+
 and waits for a response with the status id of the target file, e.g.
-```
+
+```json
 {
     "value": "1"
 }
