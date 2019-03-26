@@ -1197,7 +1197,8 @@ class Application(QApplication):
                 self._handle_nxdrive_url(url)
 
             con.disconnectFromServer()
-            con.waitForDisconnected()
+            if con.state() == QLocalSocket.ConnectedState:
+                con.waitForDisconnected()
         finally:
             del con
         log.info("Successfully closed server socket")

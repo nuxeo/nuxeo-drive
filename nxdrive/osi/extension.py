@@ -89,7 +89,8 @@ class ExtensionListener(QTcpServer):
                     con.write(self._format_response(response))
 
         con.disconnectFromHost()
-        con.waitForDisconnected()
+        if con.state() == QTcpSocket.ConnectedState:
+            con.waitForDisconnected()
         del con
 
     def _parse_payload(self, payload: bytes) -> str:
