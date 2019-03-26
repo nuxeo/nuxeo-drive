@@ -391,7 +391,7 @@ class DirectEdit(Worker):
         try:
             tmp_file = self._download(engine, info, file_path, blob, xpath, url=url)
             if tmp_file is None:
-                log.error("Download failed")
+                log.warning("Download failed")
                 return None
         finally:
             FileAction.finish_action()

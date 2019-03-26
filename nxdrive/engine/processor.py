@@ -11,7 +11,7 @@ from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal
-from nuxeo.exceptions import CorruptedFile, HTTPError, Unauthorized
+from nuxeo.exceptions import CorruptedFile, HTTPError, Unauthorized, UploadError
 from requests import ConnectionError
 
 from .activity import Action
@@ -300,6 +300,10 @@ class Processor(EngineWorker):
                         error = f"{handler_name}_http_error_{exc.status}"
                         self._handle_pair_handler_exception(doc_pair, error, exc)
                     continue
+                except UploadError as exc:
+                    log.info(exc)
+                    log.warning(f"Delaying conflicted document: {doc_pair!r}")
+                    self._postpone_pair(doc_pair, "Upload")
                 except DuplicationDisabledError:
                     self.giveup_error(doc_pair, "DEDUP")
                     continue

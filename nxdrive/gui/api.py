@@ -328,7 +328,7 @@ class QMLDriveApi(QObject):
         if not self._manager.get_engines():
             return result
 
-        for thread, action in Action.actions.copy().items():
+        for action in Action.actions.copy().values():
             if isinstance(action, FileAction):
                 result.append(self._export_action(action))
         return result

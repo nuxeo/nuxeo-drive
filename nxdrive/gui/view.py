@@ -12,7 +12,7 @@ from PyQt5.QtCore import (
     pyqtSlot,
 )
 
-from nxdrive.utils import force_decode
+from ..utils import force_decode
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -137,7 +137,7 @@ class EngineModel(QAbstractListModel):
                 self.engines_uid.pop(row)
             self.endRemoveRows()
             return True
-        except:
+        except Exception:
             return False
 
     def empty(self) -> None:
@@ -249,7 +249,7 @@ class ActionModel(QAbstractListModel):
                     self.endRemoveRows()
                     break
             return True
-        except:
+        except Exception:
             return False
 
     @pyqtSlot(dict)
@@ -380,7 +380,7 @@ class FileModel(QAbstractListModel):
             self.fileChanged.emit()
             self.endRemoveRows()
             return True
-        except:
+        except Exception:
             return False
 
     def insertRows(
@@ -393,7 +393,7 @@ class FileModel(QAbstractListModel):
             self.fileChanged.emit()
             self.endInsertRows()
             return True
-        except:
+        except Exception:
             return False
 
     def empty(self) -> None:
@@ -455,7 +455,7 @@ class LanguageModel(QAbstractListModel):
                 self.languages.pop(row)
             self.endRemoveRows()
             return True
-        except:
+        except Exception:
             return False
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:

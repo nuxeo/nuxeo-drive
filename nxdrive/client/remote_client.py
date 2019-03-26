@@ -12,7 +12,7 @@ from urllib.parse import unquote
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
-from nuxeo.exceptions import HTTPError, UploadError
+from nuxeo.exceptions import HTTPError
 from nuxeo.models import FileBlob
 from PyQt5.QtWidgets import QApplication
 
@@ -231,11 +231,9 @@ class Remote(Nuxeo):
 
                 uploader = batch.get_uploader(blob, chunked=True)
 
-                try:
-                    for _ in uploader.iter_upload():
-                        action.progress += uploader.chunk_size
-                except UploadError:
-                    log.deb
+                # If there is an UploadError, we catch it from the processor
+                for _ in uploader.iter_upload():
+                    action.progress += uploader.chunk_size
 
                 upload_result = uploader.response
                 blob.fd.close()
@@ -307,7 +305,9 @@ class Remote(Nuxeo):
             )
             file_out = file_path.with_name(name)
 
-        FileAction("Download", file_out, file_name, 0, QApplication.instance())
+        FileAction(
+            "Download", file_out, file_name, size=0, reporter=QApplication.instance()
+        )
         try:
             tmp_file = self.download(
                 download_url, file_out=file_out, digest=fs_item_info.digest, **kwargs
