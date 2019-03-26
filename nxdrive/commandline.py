@@ -553,7 +553,7 @@ class CliHandler:
         from PyQt5.QtNetwork import QLocalSocket
 
         named_pipe = f"{BUNDLE_IDENTIFIER}.protocol.{pid}"
-        log.info(
+        log.debug(
             f"Opening a local socket to the running instance on {named_pipe} "
             f"(payload={self.redact_payload(payload)})"
         )
@@ -568,10 +568,11 @@ class CliHandler:
             client.write(QByteArray(payload))
             client.waitForBytesWritten()
             client.disconnectFromServer()
-            client.waitForDisconnected()
+            if client.state() == QLocalSocket.ConnectedState:
+                client.waitForDisconnected()
         finally:
             del client
-        log.info("Successfully closed client socket")
+        log.debug("Successfully closed client socket")
 
     def clean_folder(self, options: Namespace) -> int:
         from .client.local_client import LocalClient
