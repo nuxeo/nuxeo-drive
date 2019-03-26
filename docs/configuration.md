@@ -67,6 +67,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `beta-update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) (str) | 4.0.2 | None | None
 | `beta-channel` | False (bool) | 4.0.2 | `channel` | release (str)
 | `consider-ssl-errors` | True (bool) | 4.0.1 | `ssl-no-verify` | False (bool)
+| `debug` | False (bool) | 4.0.0 | None | None
 | `proxy-exceptions` | None (str) | 4.0.0 | None | None
 | `proxy-type` | None (str) | 4.0.0 | None | None
 
