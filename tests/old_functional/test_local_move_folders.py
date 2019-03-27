@@ -150,3 +150,40 @@ class TestLocalMoveFolders(OneUserTest):
             folder_remote_ref
         )
         assert folder_pair_state.pair_state == "conflicted"
+
+    def test_local_move_folder(self):
+        """
+        A simple test to ensure we do not create useless URLs.
+        This is to handle cases when the user creates a new folder,
+        it has the default name set to the local system:
+            "New folder"
+            "Nouveau dossier (2)"
+            ...
+        The folder is created directly and it generates useless URLs.
+        So we move the document to get back good URLs. As the document has been
+        renamed above, the document's title is aleady the good one.
+        """
+        local = self.local_1
+        remote = self.remote_1
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        name_orig = "Nouveau dossier (42)"
+        name_new = "C'est le vrai nom pârdi !"
+
+        local.make_folder("/", name_orig)
+        self.wait_sync()
+
+        child = remote.get_children_info(self.workspace)[0]
+        assert child.name == name_orig
+        assert child.path.endswith(name_orig)
+
+        # Rename to fix the meaningfulness URL
+        local.rename(f"/{name_orig}", name_new)
+        self.wait_sync()
+
+        assert remote.exists(f"/{name_new}")
+        child = remote.get_children_info(self.workspace)[0]
+        assert child.name == name_new
+        assert child.path.endswith(name_new)

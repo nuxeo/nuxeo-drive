@@ -247,6 +247,7 @@ class Remote(Nuxeo):
 
                 # If there is an UploadError, we catch it from the processor
                 for _ in uploader.iter_upload():
+                    # Here 0 may happen when doing a single upload
                     action.progress += uploader.chunk_size or 0
 
                 upload_result = uploader.response
@@ -447,6 +448,14 @@ class Remote(Nuxeo):
                 command="NuxeoDrive.Move", srcId=fs_item_id, destId=new_parent_id
             )
         )
+
+    def move2(self, fs_item_id: str, parent_ref: str, name: str) -> Dict[str, Any]:
+        """Move a document using the Document.Move operation."""
+        if "#" in fs_item_id:
+            fs_item_id = fs_item_id.split("#")[-1]
+        if "#" in parent_ref:
+            parent_ref = parent_ref.split("#")[-1]
+        return self.documents.move(fs_item_id, parent_ref, name=name)
 
     def get_fs_item(
         self, fs_item_id: str, parent_fs_item_id: str = None
