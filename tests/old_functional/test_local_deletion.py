@@ -22,8 +22,8 @@ class TestLocalDeletion(OneUserTest):
         self.wait_sync()
         assert remote.exists("/" + file1)
 
-        old_info = remote.get_info("/" + file1, use_trash=True)
-        abs_path = local.abspath("/" + file1)
+        old_info = remote.get_info(f"/{file1}")
+        abs_path = local.abspath(f"/{file1}")
 
         # Pretend we had trash the file
         shutil.move(abs_path, self.local_test_folder_1 / file1)
@@ -44,10 +44,10 @@ class TestLocalDeletion(OneUserTest):
 
         local.make_file("/", file1, content=b"This is a content")
         self.wait_sync()
-        assert remote.exists("/" + file1)
-        uid = local.get_remote_id("/" + file1)
-        old_info = remote.get_info("/" + file1, use_trash=True)
-        abs_path = local.abspath("/" + file1)
+        assert remote.exists(f"/{file1}")
+        uid = local.get_remote_id(f"/{file1}")
+        old_info = remote.get_info(f"/{file1}")
+        abs_path = local.abspath(f"/{file1}")
         # Pretend we had trash the file
         shutil.move(abs_path, self.local_test_folder_1 / file2)
         self.wait_sync(wait_for_async=True)
@@ -75,7 +75,7 @@ class TestLocalDeletion(OneUserTest):
         local.make_file("/ToDelete", file1, content=b"This is a content")
         self.wait_sync()
         assert remote.exists(file_path)
-        old_info = remote.get_info(file_path, use_trash=True)
+        old_info = remote.get_info(file_path)
         abs_path = local.abspath(file_path)
         # Pretend we had trash the file
         shutil.move(abs_path, self.local_test_folder_1 / file1)
@@ -88,9 +88,9 @@ class TestLocalDeletion(OneUserTest):
         # See if it untrash or recreate
         shutil.move(self.local_test_folder_1 / file1, local.abspath("/"))
         self.wait_sync()
-        new_info = remote.get_info(old_info.uid, use_trash=True)
+        new_info = remote.get_info(old_info.uid)
         assert new_info.state == "project"
-        assert local.exists("/" + file1)
+        assert local.exists(f"/{file1}")
         # Because remote_document_client_1 was used
         assert local.get_remote_id("/").endswith(new_info.parent_uid)
 
@@ -106,7 +106,7 @@ class TestLocalDeletion(OneUserTest):
         local.make_file("/ToDelete", file1, content=b"This is a content")
         self.wait_sync()
         assert remote.exists(file_path)
-        old_info = remote.get_info(file_path, use_trash=True)
+        old_info = remote.get_info(file_path)
         abs_path = local.abspath(file_path)
         # Pretend we had trash the file
         shutil.move(abs_path, self.local_test_folder_1 / file1)
@@ -153,7 +153,7 @@ class TestLocalDeletion(OneUserTest):
         local.make_file("/ToDelete", file1, content=b"This is a content")
         self.wait_sync()
         assert remote.exists(file_path)
-        remote.get_info(file_path, use_trash=True)
+        remote.get_info(file_path)
         abs_path = local.abspath(file_path)
 
         # Pretend we had trash the file
@@ -192,7 +192,7 @@ class TestLocalDeletion(OneUserTest):
         local.make_file("/ToDelete", file1, content=b"This is a content")
         self.wait_sync()
         assert remote.exists(file_path)
-        old_info = remote.get_info(file_path, use_trash=True)
+        old_info = remote.get_info(file_path)
         abs_path = local.abspath(file_path)
 
         # Pretend we had trash the file
@@ -208,7 +208,7 @@ class TestLocalDeletion(OneUserTest):
         shutil.move(self.local_test_folder_1 / file1, local.abspath("/ToDelete"))
         self.wait_sync()
         assert remote.exists(old_info.uid)
-        new_info = remote.get_info(old_info.uid, use_trash=True)
+        new_info = remote.get_info(old_info.uid)
         assert remote.exists(new_info.parent_uid)
         assert local.exists(file_path)
 
@@ -222,7 +222,7 @@ class TestLocalDeletion(OneUserTest):
         local.make_file("/ToDelete", file1, content=b"This is a content")
         self.wait_sync()
         assert remote.exists(file_path)
-        old_info = remote.get_info(file_path, use_trash=True)
+        old_info = remote.get_info(file_path)
         abs_path = local.abspath(file_path)
         # Pretend we had trash the file
         shutil.move(abs_path, self.local_test_folder_1 / file1)

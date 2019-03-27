@@ -143,16 +143,10 @@ class Remote(Nuxeo):
         """
         ref = self._escape(self._check_ref(ref))
         id_prop = "ecm:path" if ref.startswith("/") else "ecm:uuid"
-
         trash = self._get_trash_condition() if use_trash else ""
         version = "" if include_versions else "AND ecm:isVersion = 0"
 
-        query = "SELECT * FROM Document WHERE %s = '%s' %s %s LIMIT 1" % (
-            id_prop,
-            ref,
-            trash,
-            version,
-        )
+        query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} {version} LIMIT 1"
         results = self.query(query)
         return len(results["entries"]) == 1
 
@@ -488,7 +482,12 @@ class Remote(Nuxeo):
                 ref = self._base_folder_path + ref
         return ref
 
-    def query(self, query: str) -> Dict[str, Any]:  # TODO: use Nuxeo.client.query()
+    def query(self, query: str) -> Dict[str, Any]:
+        """
+        Note: We cannot use this code because it does not handle unicode characters in the query.
+
+            >>> return self.client.query(query)
+        """
         return self.execute(command="Document.Query", query=query)
 
     def get_info(
@@ -496,17 +495,17 @@ class Remote(Nuxeo):
         ref: str,
         raise_if_missing: bool = True,
         fetch_parent_uid: bool = True,
-        use_trash: bool = True,
         include_versions: bool = False,
     ) -> Optional[NuxeoDocumentInfo]:
-        if not self.exists(ref, use_trash=use_trash, include_versions=include_versions):
+        try:
+            doc = self.fetch(self._check_ref(ref))
+        except NotFound:
             if raise_if_missing:
                 raise NotFound(
-                    f"Could not find {self._check_ref(ref)} on {self.client.host}"
+                    f"Could not find {self._check_ref(ref)!r} on {self.client.host}"
                 )
             return None
 
-        doc = self.fetch(self._check_ref(ref))
         parent_uid = None
         if fetch_parent_uid:
             parent_uid = self.fetch(os.path.dirname(doc["path"]))["uid"]
