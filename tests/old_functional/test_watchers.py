@@ -256,12 +256,12 @@ class TestWatchers(OneUserTest):
         self.wait_sync(wait_for_async=True)
         self.engine_1.stop()
         assert (
-            remote.get_info("/Accentue\u0301.odt").name
+            remote.get_info("/Accentue\u0301 avec un e\u0302 et un \xe9.odt").name
             == "Accentu\xe9 avec un \xea et un \xe9.odt"
         )
-        assert remote.get_info("/P\xf4le applicatif").name == "P\xf4le appliqu\xe9"
+        assert remote.get_info("/P\xf4le applique\u0301").name == "P\xf4le appliqu\xe9"
         assert (
-            remote.get_info("/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt").name
+            remote.get_info("/P\xf4le appliqu\xe9/avoir et e\u0302tre.odt").name
             == "avoir et \xeatre.odt"
         )
         # Check content update
@@ -276,11 +276,14 @@ class TestWatchers(OneUserTest):
         self.engine_1.start()
         self.wait_sync()
         self.engine_1.stop()
-        assert remote.get_content("/Accentue\u0301.odt") == b"Updated content"
+        assert (
+            remote.get_content("/Accentue\u0301 avec un e\u0302 et un \xe9.odt")
+            == b"Updated content"
+        )
         # NXDRIVE-389: Will be Content and not Updated content
         # it is not consider as synced, so conflict is generated
         assert (
-            remote.get_content("/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt")
+            remote.get_content("/P\xf4le appliqu\xe9/avoir et e\u0302tre.odt")
             == b"Updated content"
         )
 
@@ -291,7 +294,9 @@ class TestWatchers(OneUserTest):
         self.wait_sync()
         self.engine_1.stop()
         assert not remote.exists("/Accentue\u0301.odt")
+        assert not remote.exists("/Accentu\xe9 avec un \xea et un \xe9.odt")
         assert not remote.exists("/P\xf4le applicatif/e\u0302tre ou ne pas \xeatre.odt")
+        assert not remote.exists("/P\xf4le applicatif/avoir et e\u0302tre.odt")
 
     @not_windows(reason="Windows cannot have file ending with a space.")
     def test_watchdog_space_remover(self):
@@ -313,7 +318,7 @@ class TestWatchers(OneUserTest):
         local.rename("/Accentu\xe9.odt", "Accentu\xe9 avec un \xea et un \xe9.odt ")
         self.wait_sync()
         assert (
-            remote.get_info("/Accentue\u0301.odt").name
+            remote.get_info("/Accentu\xe9 avec un \xea et un \xe9.odt").name
             == "Accentu\xe9 avec un \xea et un \xe9.odt"
         )
 
@@ -351,11 +356,11 @@ class TestWatchers(OneUserTest):
         )
         self.wait_sync()
         assert (
-            remote.get_info("/Accentue\u0301.odt").name
+            remote.get_info("/Accentue\u0301 avec un e\u0302 et un \xe9.odt").name
             == "Accentu\xe9 avec un \xea et un \xe9.odt"
         )
-        assert remote.get_info("/P\xf4le applicatif").name == "P\xf4le appliqu\xe9"
-        info = remote.get_info("/Sub folder/e\u0302tre ou ne pas \xeatre.odt")
+        assert remote.get_info("/P\xf4le applique\u0301").name == "P\xf4le appliqu\xe9"
+        info = remote.get_info("/Sub folder/avoir et e\u0302tre.odt")
         assert info.name == "avoir et \xeatre.odt"
 
         # Check content update
@@ -364,8 +369,11 @@ class TestWatchers(OneUserTest):
         )
         local.update_content("/Sub folder/avoir et \xeatre.odt", b"Updated content")
         self.wait_sync()
-        assert remote.get_content("/Accentue\u0301.odt") == b"Updated content"
-        content = remote.get_content("/Sub folder/e\u0302tre ou ne pas \xeatre.odt")
+        assert (
+            remote.get_content("/Accentue\u0301 avec un e\u0302 et un \xe9.odt")
+            == b"Updated content"
+        )
+        content = remote.get_content("/Sub folder/avoir et e\u0302tre.odt")
         assert content == b"Updated content"
 
         # Check delete
@@ -373,6 +381,8 @@ class TestWatchers(OneUserTest):
         local.delete_final("/Sub folder/avoir et \xeatre.odt")
         self.wait_sync()
         assert not remote.exists("/Accentue\u0301.odt")
+        assert not remote.exists("/Accentue\u0301 avec un e\u0302 et un \xe9.odt")
+        assert not remote.exists("/Sub folder/avoir et e\u0302tre.odt")
         assert not remote.exists("/Sub folder/e\u0302tre ou ne pas \xeatre.odt")
 
     def test_watcher_remote_id_setter(self):

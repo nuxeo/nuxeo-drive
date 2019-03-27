@@ -95,15 +95,16 @@ class TestOfflineChangesSync(OneUserTest):
         # Verify that local changes are uploaded to server successfully
         if self.remote.exists("/Folder1/File1 - Copy.txt"):
             # '/Folder1/File1 - Copy.txt' is uploaded to server.
-            # So original file named should be changed as 'File_renamed.txt'
             remote_info = self.remote.get_info(self.file1_remote)
-            assert remote_info.name == "File1_renamed.txt"
+            assert remote_info.name == "File1 - Copy.txt"
         else:
             # Original file is renamed as 'File1 - Copy.txt'.
             # This is a bug only if Drive is online during copy + rename
             assert self.remote.exists("/Folder1/File1_renamed.txt")
             remote_info = self.remote.get_info(self.file1_remote)
-            assert remote_info.name == "File1 - Copy.txt"
+            assert remote_info.name == "File1_renamed.txt"
+
+        assert not self.remote.exists("/Folder1/File1.txt")
 
     def test_copy_paste_normal(self):
         """
@@ -134,10 +135,13 @@ class TestOfflineChangesSync(OneUserTest):
             # '/Folder1/File1 - Copy.txt' is uploaded to server.
             # So original file named should be changed as 'File_renamed.txt'
             remote_info = self.remote.get_info(self.file1_remote)
-            assert remote_info.name == "File1_renamed.txt"
+            assert remote_info.name == "File1 - Copy.txt"
+
         else:
             # Original file is renamed as 'File1 - Copy.txt'.
             # This is a bug only if Drive is online during copy + rename
             assert self.remote.exists("/Folder1/File1_renamed.txt")
             remote_info = self.remote.get_info(self.file1_remote)
-            assert remote_info.name == "File1 - Copy.txt"
+            assert remote_info.name == "File1_renamed.txt"
+
+        assert not self.remote.exists("/Folder1/File1.txt")
