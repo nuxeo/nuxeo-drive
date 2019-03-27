@@ -196,7 +196,7 @@ class RemoteBase(Remote):
         return self.execute(command="Document.GetChildren", input_obj=f"doc:{ref}")
 
     def get_children_info(self, ref: str, limit: int = 1000) -> List[NuxeoDocumentInfo]:
-        ref = self._check_ref(ref)
+        ref = self._escape(self._check_ref(ref))
         types = {"File", "Note", "Workspace", "Folder", "Picture"}
 
         query = (

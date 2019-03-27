@@ -122,6 +122,10 @@ class Remote(Nuxeo):
                 raise NotFound(stack)
             raise e
 
+    def _escape(self, path) -> str:
+        """Escape any single quote with an antislash to further use in a NXQL query."""
+        return path.replace("'", r"\'")
+
     def exists(
         self, ref: str, use_trash: bool = True, include_versions: bool = False
     ) -> bool:
@@ -133,7 +137,7 @@ class Remote(Nuxeo):
         :param include_versions:
         :rtype: bool
         """
-        ref = self._check_ref(ref)
+        ref = self._escape(self._check_ref(ref))
         id_prop = "ecm:path" if ref.startswith("/") else "ecm:uuid"
 
         trash = self._get_trash_condition() if use_trash else ""
@@ -470,8 +474,7 @@ class Remote(Nuxeo):
         if not self.exists(ref, use_trash=use_trash, include_versions=include_versions):
             if raise_if_missing:
                 raise NotFound(
-                    "Could not find '%s' on '%s'"
-                    % (self._check_ref(ref), self.client.host)
+                    f"Could not find {self._check_ref(ref)} on {self.client.host}"
                 )
             return None
 
