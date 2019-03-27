@@ -1224,14 +1224,14 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             if doc_pair.folderish:
-                count = str(
-                    len(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}") + 1
+                count = len(
+                    self._escape(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}")
                 )
-                path = f"{new_path}/{doc_pair.remote_ref}"
+                path = self._escape(f"{new_path}/{doc_pair.remote_ref}")
                 query = (
                     "UPDATE States"
                     f"  SET remote_parent_path = '{path}'"
-                    f"      || substr(remote_parent_path, {count})"
+                    f"      || substr(remote_parent_path, {count + 1})"
                     + self._get_recursive_remote_condition(doc_pair)
                 )
 
@@ -1249,16 +1249,14 @@ class EngineDAO(ConfigurationDAO):
             con = self._get_write_connection()
             c = con.cursor()
             if doc_pair.folderish:
-                path = f"/{(new_path / new_name).as_posix()}"
-                count = str(len(doc_pair.local_path.as_posix()) + 2)
+                path = self._escape(f"/{(new_path / new_name).as_posix()}")
+                count = len(self._escape(doc_pair.local_path.as_posix()))
                 query = (
                     "UPDATE States"
                     f"  SET local_parent_path = '{path}'"
-                    f"      || substr(local_parent_path, {count}),"
+                    f"      || substr(local_parent_path, {count + 2}),"
                     f"         local_path = '{path}'"
-                    "       || substr(local_path, "
-                    + count
-                    + ") "
+                    f"      || substr(local_path, {count + 2}) "
                     + self._get_recursive_condition(doc_pair)
                 )
                 c.execute(query)
