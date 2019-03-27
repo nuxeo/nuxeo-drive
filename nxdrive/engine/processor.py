@@ -619,7 +619,7 @@ class Processor(EngineWorker):
             # If same hash don't do anything and reconcile
             uid = remote_ref.split("#")[-1]
             info = self.remote.get_info(
-                uid, raise_if_missing=False, fetch_parent_uid=False, use_trash=False
+                uid, raise_if_missing=False, fetch_parent_uid=False
             )
             log.warning(
                 f"This document {doc_pair!r} has remote_ref {remote_ref}, info={info!r}"

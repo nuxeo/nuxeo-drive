@@ -207,7 +207,7 @@ class RemoteBase(Remote):
             "       AND ecm:isVersion = 0"
             "       ORDER BY dc:title, dc:created LIMIT %d"
         ) % (ref, "', '".join(types), self._get_trash_condition(), limit)
-        entries = self.query(query)["entries"]
+        entries = self.client.query(query)["entries"]
         return self._filtered_results(entries)
 
     def get_content(self, fs_item_id: str, **kwargs: Any) -> Path:
