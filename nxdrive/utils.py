@@ -655,50 +655,41 @@ def compute_urls(url: str) -> Iterator[str]:
         Handle that kind of `url`:
 
         >>> urlsplit('192.168.0.42:8080/nuxeo')
-        SplitResult(scheme='192.168.0.42', netloc='', path='8080/nuxeo', ...)
+        SplitResult(scheme='', netloc='', path='192.168.0.42:8080/nuxeo', ...)
         """
-        domain = ":".join([parts.scheme, parts.path.strip("/")])
+        domain = parts.netloc
+        path = parts.path
     else:
-        domain = parts.path.strip("/")
+        if "/" in parts.path:
+            domain, path = parts.path.split("/", 1)
+        else:
+            domain = parts.path
+            path = ""
 
-    # URLs to test
-    urls = [
-        # First, test the given URL
-        parts,
-        # URL/nuxeo
-        (
-            parts.scheme,
-            parts.netloc,
-            parts.path + "/nuxeo",
-            parts.query,
-            parts.fragment,
-        ),
-        # URL:8080/nuxeo
-        (
-            parts.scheme,
-            parts.netloc + ":8080",
-            parts.path + "/nuxeo",
-            parts.query,
-            parts.fragment,
-        ),
-        # https://domain.com/nuxeo
-        ("https", domain, "nuxeo", "", ""),
-        ("https", domain + ":8080", "nuxeo", "", ""),
-        # https://domain.com
-        ("https", domain, "", "", ""),
-        # http://domain.com/nuxeo
-        ("http", domain, "nuxeo", "", ""),
-        # http://domain.com:8080/nuxeo
-        ("http", domain + ":8080", "nuxeo", "", ""),
-        # http://domain.com
-        ("http", domain, "", "", ""),
-    ]
+    urls = []
+    for scheme, port in (("https", 443), ("http", 8080)):
+        urls.extend(
+            [
+                # scheme://URL/nuxeo
+                (scheme, domain, path, parts.query, parts.fragment),
+                # scheme://URL:port/nuxeo
+                (scheme, f"{domain}:{port}", path, parts.query, parts.fragment),
+                # scheme://domain.com/nuxeo
+                (scheme, domain, "nuxeo", "", ""),
+                (scheme, f"{domain}:{port}", "nuxeo", "", ""),
+                (scheme, domain, path, "", ""),
+                (scheme, f"{domain}:{port}", path, "", ""),
+                # scheme://domain.com
+                (scheme, domain, "", "", ""),
+            ]
+        )
 
     for new_url_parts in urls:
         # Join and remove trailing slash(es)
-        new_url = urlunsplit(new_url_parts).rstrip("/")
+        new_url = urlunsplit(new_url_parts)
         # Remove any double slashes but ones from the protocol
-        yield re.sub(r"[^:](/{2,})", "/", new_url)
+        scheme, url = new_url.split("://")
+        yield f'{scheme}://{re.sub(r"(/{2,})", "/", url.strip("/"))}'
 
 
 def guess_server_url(
@@ -716,7 +707,6 @@ def guess_server_url(
     :param int timeout: Timeout for each and every request.
     :return: The complete URL.
     """
-
     import requests
     import rfc3987
 
@@ -736,16 +726,18 @@ def guess_server_url(
             with requests.get(full_url, **kwargs) as resp:
                 resp.raise_for_status()
                 if resp.status_code == 200:
+                    log.debug(f"Found URL: {new_url}")
                     return new_url
         except requests.HTTPError as exc:
             if exc.response.status_code in {401, 403}:
                 # When there is only Web-UI installed, the code is 401.
+                log.debug(f"Found URL: {new_url}")
                 return new_url
         except SSLError as exc:
             if "CERTIFICATE_VERIFY_FAILED" in str(exc):
                 raise InvalidSSLCertificate()
         except (ValueError, requests.RequestException):
-            pass
+            log.debug(f"Bad URL: {new_url}")
         except Exception:
             log.exception("Unhandled error")
 

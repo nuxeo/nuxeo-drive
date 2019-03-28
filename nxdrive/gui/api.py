@@ -483,7 +483,7 @@ class QMLDriveApi(QObject):
                 return
             params = urlencode({"updateToken": True})
 
-            url = self._guess_server_url(engine.server_url)
+            url = engine.server_url
             login_type = self._manager._get_server_login_type(url)
             if login_type is Login.OLD:
                 # We might have to downgrade because the
@@ -519,11 +519,8 @@ class QMLDriveApi(QObject):
         return ""
 
     def _get_authentication_url(self, server_url: str) -> str:
-        url = self._guess_server_url(server_url)
-        if not url:
+        if not server_url:
             raise ValueError("No URL found for Nuxeo server")
-
-        server_url = url
 
         if not Options.is_frozen:
             return server_url
@@ -607,13 +604,12 @@ class QMLDriveApi(QObject):
     def bind_server(
         self,
         local_folder: str,
-        url: str,
+        server_url: str,
         username: str,
         password: str = None,
         name: str = None,
         **kwargs: Any,
     ) -> None:
-        server_url = self._guess_server_url(url)
         if not server_url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
@@ -671,15 +667,12 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str)
     def web_authentication(self, server_url: str, local_folder: str) -> None:
         # Handle the server URL
-        url = self._guess_server_url(server_url)
-        if not url:
+        server_url = self._guess_server_url(server_url)
+        if not server_url:
             self.setMessage.emit("CONNECTION_ERROR", "error")
             return
 
-        parts = urlsplit(url)
-        server_url = urlunsplit(
-            (parts.scheme, parts.netloc, parts.path, parts.query, parts.fragment)
-        )
+        parts = urlsplit(server_url)
 
         # Handle the engine
         engine_type = parts.fragment or self._manager._get_default_server_type()
@@ -692,16 +685,12 @@ class QMLDriveApi(QObject):
                 raise FolderAlreadyUsed()
 
             # Connect to startup page
-            url = self._guess_server_url(server_url)
-            login_type = self._manager._get_server_login_type(url)
+            login_type = self._manager._get_server_login_type(server_url)
             url = self._get_authentication_url(server_url)
 
             if login_type is not Login.OLD:
                 # Page should exists, let's open authentication dialog
-                log.info(
-                    f"Web authentication is available on server {server_url}, "
-                    f"opening login window with URL {url}"
-                )
+                log.info(f"Web authentication is available on server {server_url}")
             else:
                 # Startup page is not available
                 log.info(

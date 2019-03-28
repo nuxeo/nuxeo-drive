@@ -238,6 +238,7 @@ def test_get_value(raw_value, expected_value):
         "https://example.org:8080",
         "https://example.org:8080/nuxeo",
         "https://example.org:8080/nuxeo/",
+        "https://example.org:8080/nuxeo?param=value",
         "https://example.org:8080/////nuxeo////submarine//",
     ],
 )
