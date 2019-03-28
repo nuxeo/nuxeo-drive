@@ -226,6 +226,28 @@ def test_get_value(raw_value, expected_value):
 
 
 @pytest.mark.parametrize(
+    "url",
+    [
+        "http://example.org/",
+        "http://example.org//",
+        "http://example.org",
+        "http://example.org:8080",
+        "http://example.org:8080//nuxeo",
+        "http://example.org:8080/nuxeo/",
+        "https://example.org",
+        "https://example.org:8080",
+        "https://example.org:8080/nuxeo",
+        "https://example.org:8080/nuxeo/",
+        "https://example.org:8080/////nuxeo////submarine//",
+    ],
+)
+def test_compute_urls(url):
+    for generated_url in nxdrive.utils.compute_urls(url):
+        # There should be only one "//" in each URL
+        assert generated_url.count("//") == 1
+
+
+@pytest.mark.parametrize(
     "url, result",
     [
         ("localhost", "http://localhost:8080/nuxeo"),
