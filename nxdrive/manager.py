@@ -19,7 +19,7 @@ from .constants import APP_NAME, STARTUP_PAGE_CONNECTION_TIMEOUT, DelAction
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .exceptions import EngineTypeMissing, FolderAlreadyUsed, StartupPageConnectionError
-from .logging_config import FILE_HANDLER, no_trace
+from .logging_config import DEFAULT_LEVEL_FILE
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
 from .options import Options
@@ -110,8 +110,7 @@ class Manager(QObject):
         log.info(f"Proxy configuration is {self.proxy!r}")
 
         # Set the logs levels option
-        if FILE_HANDLER:
-            FILE_HANDLER.setLevel(self.get_log_level())
+        Options.log_level_file = self.get_log_level()
 
         # Force language
         if Options.force_locale is not None:
@@ -465,9 +464,10 @@ class Manager(QObject):
 
     @pyqtSlot(result=str)
     def get_log_level(self) -> str:
-        return no_trace(
-            self._dao.get_config("log_level_file", default=Options.log_level_file)
-        )
+        level = self._dao.get_config("log_level_file")
+        if not level:
+            level = Options.log_level_file or DEFAULT_LEVEL_FILE
+        return level
 
     @pyqtSlot(str)
     def set_log_level(self, value: str) -> None:

@@ -124,7 +124,6 @@ class MetaOptions(type):
         """
         path = "~"
         if sys.platform == "win32":
-            from contextlib import suppress
             from win32com.shell import shell, shellcon
 
             with suppress(Exception):
@@ -198,8 +197,14 @@ class MetaOptions(type):
 
     default_options = deepcopy(options)
 
+    # Callbacks for the new option's value.
+    # It will be called before doing anything to ease value validating.
+    # Callable signature must be: (new_value: Any) -> bool
+    # It must return a boolean.
+    checkers: Dict[str, Callable] = {}
+
     # Callbacks for any option change.
-    # Callable signature must be: (new_value: str) -> None
+    # Callable signature must be: (new_value: Any) -> None
     # The return value is not checked.
     callbacks: Dict[str, Callable] = {}
 
@@ -313,6 +318,15 @@ class MetaOptions(type):
             if new_value == old_value:
                 return
 
+            # Check the new value meets our requirements, if any
+            check = MetaOptions.checkers.get(item, None)
+            if callable(check) and not check(new_value):
+                log.error(
+                    f"Callback check for {item!r} denied modification."
+                    f" Value is still {old_value!r}."
+                )
+                return
+
             # We allow to set something when the default is None
             if not isinstance(new_value, type_orig) and not isinstance(
                 old_value, type(None)
@@ -338,8 +352,8 @@ class MetaOptions(type):
             log.debug(repr(Options))
 
             # Callback for that option
-            with suppress(KeyError):
-                callback = MetaOptions.callbacks[item]
+            callback = MetaOptions.callbacks.get(item)
+            if callable(callback):
                 callback(new_value)
 
     @staticmethod
