@@ -10,6 +10,7 @@ from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib.parse import quote
 
+from PyQt5.QtWidgets import QApplication
 from nuxeo.utils import get_digest_algorithm
 from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -18,7 +19,7 @@ from watchdog.observers import Observer
 
 from .client.local_client import LocalClient
 from .constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX, ROOT, WINDOWS
-from .engine.activity import tooltip
+from .engine.activity import tooltip, FileAction
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
@@ -386,10 +387,14 @@ class DirectEdit(Worker):
         file_path = dir_path / filename
 
         # Download the file
-        tmp_file = self._download(engine, info, file_path, blob, xpath, url=url)
-        if tmp_file is None:
-            log.error("Download failed")
-            return None
+        FileAction("Download", file_path, size=0, reporter=QApplication.instance())
+        try:
+            tmp_file = self._download(engine, info, file_path, blob, xpath, url=url)
+            if tmp_file is None:
+                log.warning("Download failed")
+                return None
+        finally:
+            FileAction.finish_action()
 
         # Set the remote_id
         dir_path = self.local.get_path(dir_path)

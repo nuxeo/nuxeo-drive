@@ -169,6 +169,9 @@ def section(header: str, content: str) -> str:
 def setup_sentry() -> None:
     """ Setup Sentry. """
 
+    if os.getenv("SKIP_SENTRY", "0") == "1":
+        return
+
     # TODO: Replace the testing DSN by "DSN_PLACEHOLDER" that will be replaced at when generating installers.
     sentry_dsn: str = os.getenv(
         "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"

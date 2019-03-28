@@ -58,7 +58,7 @@ from ..utils import (
 )
 from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
-from .view import EngineModel, FileModel, LanguageModel
+from .view import EngineModel, FileModel, LanguageModel, ActionModel
 
 if MAC:
     from ..osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
@@ -146,6 +146,7 @@ class Application(QApplication):
         self.conflicts_model = FileModel()
         self.errors_model = FileModel()
         self.engine_model = EngineModel(self)
+        self.action_model = ActionModel()
         self.file_model = FileModel()
         self.ignoreds_model = FileModel()
         self.language_model = LanguageModel()
@@ -217,6 +218,18 @@ class Application(QApplication):
             self._window_root(self.systray_window).updateProgress
         )
 
+    @pyqtSlot(Action)
+    def action_started(self, action: Action) -> None:
+        self.refresh_actions()
+
+    @pyqtSlot(Action)
+    def action_progressing(self, action: Action) -> None:
+        self.action_model.set_progress(self.api._export_action(action))
+
+    @pyqtSlot(Action)
+    def action_done(self, action: Action) -> None:
+        self.refresh_actions()
+
     def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
         if not engines:
             return
@@ -233,6 +246,7 @@ class Application(QApplication):
         context.setContextProperty("ConflictsModel", self.conflicts_model)
         context.setContextProperty("ErrorsModel", self.errors_model)
         context.setContextProperty("EngineModel", self.engine_model)
+        context.setContextProperty("ActionModel", self.action_model)
         context.setContextProperty("FileModel", self.file_model)
         context.setContextProperty("IgnoredsModel", self.ignoreds_model)
         context.setContextProperty("languageModel", self.language_model)
@@ -1233,11 +1247,20 @@ class Application(QApplication):
             sync_state, error_state, update_state
         )
 
+    @pyqtSlot()
+    def refresh_actions(self) -> None:
+        actions = self.api.get_actions()
+        if actions != self.action_model.actions:
+            self.action_model.set_actions(actions)
+        self.action_model.fileChanged.emit()
+
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:
         files = self.api.get_last_files(uid, 10, "")
-        self.file_model.empty()
-        self.file_model.addFiles(files)
+        if files != self.file_model.files:
+            self.file_model.empty()
+            self.file_model.addFiles(files)
+        self.file_model.fileChanged.emit()
 
     def current_language(self) -> Optional[str]:
         lang = Translator.locale()

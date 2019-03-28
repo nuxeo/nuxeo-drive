@@ -27,7 +27,10 @@ Rectangle {
 
     Connections {
         target: systrayWindow
-        onVisibleChanged: contextMenu.visible = false
+        onVisibleChanged: {
+            contextMenu.visible = false
+            fileList.contentY = 0
+        }
     }
 
     onSetStatus:  {
@@ -152,7 +155,7 @@ Rectangle {
 
             Timer {
                 id: refreshTimer
-                interval: 1000; running: true; repeat: false
+                interval: 500; running: true; repeat: false
                 onTriggered: {
                     systray.getLastFiles(accountSelect.getRole("uid"))
                     systrayContainer.syncingCount = api.get_syncing_count(accountSelect.getRole("uid"))
@@ -160,28 +163,51 @@ Rectangle {
                 }
             }
 
-            ListView {
-                id: recentFiles
+            Flickable {
+                id: fileList
                 anchors.fill: parent
-
                 clip: true
-                delegate: SystrayFile {}
-                footer: Rectangle {
-                    id: recentFooter
-                    width: parent.width
-                    height: systrayContainer.extraCount > 0 ? 30 : 0
-                    visible: systrayContainer.extraCount > 0
-                    Text {
-                        text: qsTr("EXTRA_FILE_COUNT").arg(systrayContainer.extraCount) + tl.tr
-                        anchors.centerIn: parent
-                        color: mediumGray
-                    }
+                contentHeight: actions.height + recentFiles.height + 15
+                ScrollBar.vertical: ScrollBar {}
+
+                ListView {
+                    id: actions
+                    width: parent.width; height: contentHeight
+                    spacing: 15
+                    visible: ActionModel.count > 0
+                    interactive: false
+                    highlight: Rectangle { color: lighterGray }
+
+                    model: ActionModel
+                    delegate: SystrayAction {}
                 }
 
-                model: FileModel
-                highlight: Rectangle { color: lighterGray }
+                ListView {
+                    id: recentFiles
+                    width: parent.width; height: contentHeight
+                    anchors {
+                        top: parent.top
+                        topMargin: actions.height
+                    }
+                    spacing: 15
+                    visible: FileModel.count > 0
+                    interactive: false
+                    highlight: Rectangle { color: lighterGray }
 
-                ScrollBar.vertical: ScrollBar {}
+                    model: FileModel
+                    delegate: SystrayFile {}
+                    footer: Rectangle {
+                        id: recentFooter
+                        width: parent.width
+                        height: systrayContainer.extraCount > 0 ? 30 : 0
+                        visible: systrayContainer.extraCount > 0
+                        Text {
+                            text: qsTr("EXTRA_FILE_COUNT").arg(systrayContainer.extraCount) + tl.tr
+                            anchors.centerIn: parent
+                            color: mediumGray
+                        }
+                    }
+                }
             }
         }
 
