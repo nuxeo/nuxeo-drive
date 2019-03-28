@@ -68,7 +68,7 @@ check_import() {
 check_vars() {
     # Check required variables
     if [ "${PYTHON_DRIVE_VERSION:=unset}" = "unset" ]; then
-        export PYTHON_DRIVE_VERSION="3.6.7"  # XXX_PYTHON
+        export PYTHON_DRIVE_VERSION="3.6.8"  # XXX_PYTHON
     fi
     if [ "${WORKSPACE:=unset}" = "unset" ]; then
         echo "WORKSPACE not defined. Aborting."
