@@ -8,7 +8,17 @@ import re
 import stat
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Pattern, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    Optional,
+    Pattern,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 from urllib.parse import urlsplit, urlunsplit
 
 from .constants import APP_NAME, MAC, WINDOWS
@@ -21,6 +31,7 @@ if TYPE_CHECKING:
 __all__ = (
     "PidLockFile",
     "compute_fake_pid_from_path",
+    "compute_urls",
     "copy_to_clipboard",
     "current_milli_time",
     "decrypt",
@@ -629,26 +640,12 @@ def _lazysecret(secret: bytes, blocksize: int = 32, padding: bytes = b"}") -> by
     return secret
 
 
-def guess_server_url(
-    url: str,
-    login_page: str = Options.startup_page,
-    proxy: "Proxy" = None,
-    timeout: int = 5,
-) -> str:
+def compute_urls(url: str) -> Iterator[str]:
     """
-    Guess the complete server URL given an URL (either an IP address,
-    a simple domain name or an already complete URL).
-
-    :param url: The server URL (IP, domain name, full URL).
-    :param login_page: The Drive login page.
-    :param int timeout: Timeout for each and every request.
-    :return: The complete URL.
+    Compute several predefined URLs for a given URL.
+    Each URL is sanitized and yield'ed.
     """
-
-    import requests
-    import rfc3987
-
-    from requests.exceptions import SSLError
+    import re
 
     parts = urlsplit(url)
 
@@ -689,7 +686,6 @@ def guess_server_url(
         ("https", domain + ":8080", "nuxeo", "", ""),
         # https://domain.com
         ("https", domain, "", "", ""),
-        # https://domain.com:8080/nuxeo
         # http://domain.com/nuxeo
         ("http", domain, "nuxeo", "", ""),
         # http://domain.com:8080/nuxeo
@@ -698,12 +694,39 @@ def guess_server_url(
         ("http", domain, "", "", ""),
     ]
 
+    for new_url_parts in urls:
+        # Join and remove trailing slash(es)
+        new_url = urlunsplit(new_url_parts).rstrip("/")
+        # Remove any double slashes but ones from the protocol
+        yield re.sub(r"[^:](/{2,})", "/", new_url)
+
+
+def guess_server_url(
+    url: str,
+    login_page: str = Options.startup_page,
+    proxy: "Proxy" = None,
+    timeout: int = 5,
+) -> str:
+    """
+    Guess the complete server URL given an URL (either an IP address,
+    a simple domain name or an already complete URL).
+
+    :param url: The server URL (IP, domain name, full URL).
+    :param login_page: The Drive login page.
+    :param int timeout: Timeout for each and every request.
+    :return: The complete URL.
+    """
+
+    import requests
+    import rfc3987
+
+    from requests.exceptions import SSLError
+
     kwargs: Dict[str, Any] = {
         "timeout": timeout,
         "verify": Options.ca_bundle or not Options.ssl_no_verify,
     }
-    for new_url_parts in urls:
-        new_url = urlunsplit(new_url_parts).rstrip("/")
+    for new_url in compute_urls(url):
         try:
             rfc3987.parse(new_url, rule="URI")
             log.debug(f"Testing URL {new_url!r}")
