@@ -13,13 +13,15 @@ from .options import Options
 
 __all__ = ("configure", "get_handler")
 
-FILE_HANDLER = None
-
 # Default formatter
 FORMAT = Formatter(
     "%(asctime)s %(process)d %(thread)d %(levelname)-8s %(name)-18s %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+
+LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR"}
+DEFAULT_LEVEL_CONSOLE = "WARNING"
+DEFAULT_LEVEL_FILE = "INFO"
 
 # Singleton logging context for each process.
 # Alternatively we could use the setproctitle to handle the command name
@@ -84,7 +86,8 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
 
 
 def no_trace(level: str) -> str:
-    if level.upper() == "TRACE":
+    level = level.upper()
+    if level == "TRACE":
         logging.getLogger().warning(
             "TRACE level is deprecated since 4.1.0. Please use DEBUG instead."
         )
@@ -94,85 +97,104 @@ def no_trace(level: str) -> str:
 
 def configure(
     log_filename: str = None,
-    file_level: str = "DEBUG",
-    console_level: str = "WARNING",
+    file_level: str = DEFAULT_LEVEL_FILE,
+    console_level: str = DEFAULT_LEVEL_CONSOLE,
     command_name: str = None,
     force_configure: bool = False,
     formatter: Formatter = None,
 ) -> None:
 
     global is_logging_configured
-    global FILE_HANDLER
 
-    if not is_logging_configured or force_configure:
-        is_logging_configured = True
+    if is_logging_configured and not force_configure:
+        return
 
-        _logging_context["command"] = command_name
+    is_logging_configured = True
+    _logging_context["command"] = command_name
+    formatter = formatter or FORMAT
 
-        file_level = getattr(logging, no_trace(file_level).upper())
-        console_level = getattr(logging, no_trace(console_level).upper())
+    # Set to the minimum level to avoid filtering by the root logger itself
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
 
-        # Find the minimum level to avoid filtering by the root logger itself
-        root_logger = logging.getLogger()
-        min_level = min(file_level, console_level)
-        root_logger.setLevel(min_level)
-
-        # Define the formatter
-        formatter = formatter or FORMAT
-
-        # Define a Handler which writes INFO messages or higher to the
-        # sys.stderr
-        console_handler_name = "console"
-        console_handler = get_handler(root_logger, console_handler_name)
-        if not console_handler:
-            console_handler = logging.StreamHandler()
-            console_handler.set_name(console_handler_name)
-            console_handler.setFormatter(formatter)
-        console_handler.setLevel(console_level)
-
-        # Add the console handler to the root logger and all descendants
-        root_logger.addHandler(console_handler)
-
-        # Define a Handler for file based log with rotation if needed
-        if log_filename:
-            file_handler = TimedCompressedRotatingFileHandler(
-                log_filename, when="midnight", backupCount=30
-            )
-            file_handler.set_name("file")  # type: ignore
-            file_handler.setLevel(file_level)
-            file_handler.setFormatter(formatter)
-            FILE_HANDLER = file_handler
-            root_logger.addHandler(file_handler)
-
-        # Add memory logger to allow instant report
+    # Add memory logger to allow instant report
+    memory_handler = get_handler("memory")
+    if not memory_handler:
         memory_handler = CustomMemoryHandler()
-        memory_handler.setLevel(getattr(logging, "DEBUG"))
         memory_handler.set_name("memory")  # type: ignore
         memory_handler.setFormatter(formatter)
+        memory_handler.setLevel(logging.DEBUG)
         root_logger.addHandler(memory_handler)
 
+    # Define a Handler which writes messages to sys.stderr
+    console_level = get_level(console_level, DEFAULT_LEVEL_CONSOLE)
+    console_handler = get_handler("nxdrive_console")
+    if not console_handler:
+        console_handler = logging.StreamHandler()
+        console_handler.set_name("nxdrive_console")  # type: ignore
+        console_handler.setFormatter(formatter)
+        console_handler.setLevel(console_level)
+        root_logger.addHandler(console_handler)
+    else:
+        console_handler.setLevel(console_level)
 
-def get_handler(logger: logging.Logger, name: str):
-    for handler in logger.handlers:
-        if name == handler.get_name():  # type: ignore
+    # Define a handler for file based log with rotation if needed
+    file_level = get_level(file_level, DEFAULT_LEVEL_FILE)
+    file_handler = get_handler("nxdrive_file")
+    if log_filename:
+        file_handler = TimedCompressedRotatingFileHandler(
+            log_filename, when="midnight", backupCount=30
+        )
+        file_handler.set_name("nxdrive_file")  # type: ignore
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(file_level)
+        root_logger.addHandler(file_handler)
+    elif file_handler:
+        file_handler.setLevel(file_level)
+
+
+def get_handler(name: str):
+    for handler in logging.getLogger().handlers:
+        if handler.get_name() == name:  # type: ignore
             return handler
     return None
 
 
-def update_logger_console(log_level: str) -> None:
-    logging.getLogger().setLevel(
-        min(
-            getattr(logging, no_trace(log_level)),
-            logging.getLogger().getEffectiveLevel(),
-        )
-    )
+def get_level(level: str, default: str) -> str:
+    try:
+        check_level(level)
+        return no_trace(level)
+    except ValueError as exc:
+        logging.getLogger().warning(str(exc))
+        return default
 
 
-def update_logger_file(log_level: str) -> None:
-    if FILE_HANDLER:
-        FILE_HANDLER.setLevel(no_trace(log_level))
+def check_level(level: str) -> bool:
+    """Handle bad logging level."""
+    try:
+        level = no_trace(level)
+        logging._nameToLevel[level]
+    except (AttributeError, ValueError, KeyError):
+        err = f"Unknown logging level {level!r}, need to be one of {LOG_LEVELS}."
+        raise ValueError(err)
+    else:
+        return level
+
+
+def update_logger_console(level: str) -> None:
+    handler = get_handler("nxdrive_console")
+    if handler:
+        handler.setLevel(level)
+
+
+def update_logger_file(level: str) -> None:
+    handler = get_handler("nxdrive_file")
+    if handler:
+        handler.setLevel(level)
 
 
 # Install logs callbacks
+Options.checkers["log_level_console"] = check_level
+Options.checkers["log_level_file"] = check_level
 Options.callbacks["log_level_console"] = update_logger_console
 Options.callbacks["log_level_file"] = update_logger_file

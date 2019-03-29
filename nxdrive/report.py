@@ -96,7 +96,7 @@ class Report:
         :return bytes: bytes needed by zipfile.writestr()
         """
 
-        handler = get_handler(getLogger(), "memory")
+        handler = get_handler("memory")
         if not handler:
             return
 

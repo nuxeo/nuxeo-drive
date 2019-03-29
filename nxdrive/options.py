@@ -124,7 +124,6 @@ class MetaOptions(type):
         """
         path = "~"
         if sys.platform == "win32":
-            from contextlib import suppress
             from win32com.shell import shell, shellcon
 
             with suppress(Exception):
@@ -198,8 +197,15 @@ class MetaOptions(type):
 
     default_options = deepcopy(options)
 
+    # Callbacks for the new option's value.
+    # It will be called before doing anything to ease value validating.
+    # Callable signature must be: (new_value: Any) -> Any
+    # It must return the new value, updated or not.
+    # To invalidate the new value, raise a ValueError.
+    checkers: Dict[str, Callable] = {}
+
     # Callbacks for any option change.
-    # Callable signature must be: (new_value: str) -> None
+    # Callable signature must be: (new_value: Any) -> None
     # The return value is not checked.
     callbacks: Dict[str, Callable] = {}
 
@@ -291,7 +297,7 @@ class MetaOptions(type):
             if fail_on_error:
                 raise RuntimeError(err)
             else:
-                log.error(err)
+                log.warning(err)
         else:
             if isinstance(new_value, list):
                 # Need a tuple when JSON sends a simple list
@@ -310,6 +316,19 @@ class MetaOptions(type):
                 with suppress(ValueError, TypeError):
                     new_value = int(new_value)
 
+            # Check the new value meets our requirements, if any
+            check = MetaOptions.checkers.get(item, None)
+            if callable(check):
+                try:
+                    new_value = check(new_value)
+                except ValueError as exc:
+                    log.warning(str(exc))
+                    log.warning(
+                        f"Callback check for {item!r} denied modification."
+                        f" Value is still {old_value!r}."
+                    )
+                    return
+
             if new_value == old_value:
                 return
 
@@ -324,7 +343,7 @@ class MetaOptions(type):
                 if fail_on_error:
                     raise TypeError(err)
                 else:
-                    log.error(err)
+                    log.warning(err)
 
             # Only update if the setter has rights to
             setter = setter.lower()
@@ -338,8 +357,8 @@ class MetaOptions(type):
             log.debug(repr(Options))
 
             # Callback for that option
-            with suppress(KeyError):
-                callback = MetaOptions.callbacks[item]
+            callback = MetaOptions.callbacks.get(item)
+            if callable(callback):
                 callback(new_value)
 
     @staticmethod

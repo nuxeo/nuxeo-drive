@@ -13,7 +13,7 @@ from typing import List, TYPE_CHECKING, Union
 
 from . import __version__
 from .constants import APP_NAME, BUNDLE_IDENTIFIER
-from .logging_config import configure, no_trace
+from .logging_config import configure
 from .options import Options
 from .osi import AbstractOSIntegration
 from .utils import (
@@ -366,9 +366,6 @@ class CliHandler:
         # tolerant to missing subcommand
         has_command = False
 
-        # Pre-configure the logging to catch early errors
-        configure(console_level="DEBUG", command_name="early")
-
         filtered_args = []
         for arg in argv:
             if arg.startswith("nxdrive://"):
@@ -453,9 +450,6 @@ class CliHandler:
         if not filename:
             filename = os.path.join(folder_log, "nxdrive.log")
 
-        for logger in {"log_level_file", "log_level_console"}:
-            setattr(options, logger, no_trace(getattr(options, logger)))
-
         configure(
             log_filename=filename,
             file_level=options.log_level_file,
@@ -469,6 +463,10 @@ class CliHandler:
 
     def handle(self, argv: List[str]) -> int:
         """ Parse options, setup logs and manager and dispatch execution. """
+
+        # Pre-configure the logging to catch early errors
+        configure(console_level="DEBUG", command_name="early")
+
         options = self.parse_cli(argv)
 
         if getattr(options, "local_folder", ""):
