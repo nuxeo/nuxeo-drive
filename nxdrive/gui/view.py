@@ -385,7 +385,7 @@ class FileModel(QAbstractListModel):
 
     def insertRows(
         self, files: List[Dict[str, Any]], row: int, parent: QModelIndex = QModelIndex()
-    ) -> None:
+    ) -> bool:
         try:
             self.beginInsertRows(parent, row, row + len(files) - 1)
             for f in files[::-1]:

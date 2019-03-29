@@ -323,7 +323,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=list)
     def get_actions(self) -> List[Dict[str, Any]]:
-        result = []
+        result: List[Dict[str, Any]] = []
 
         if not self._manager.get_engines():
             return result
