@@ -131,7 +131,7 @@ class FileAction(Action):
         self._progress = value
         self.progressing.emit(self)
 
-    def get_percent(self) -> Optional[float]:
+    def get_percent(self) -> float:
         if self.size <= 0 or not self.progress:
             return .0
         if self.progress > self.size:
