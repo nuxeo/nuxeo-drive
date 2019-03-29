@@ -12,94 +12,6 @@ from nxdrive.constants import APP_NAME, COMPANY, MAC
 from nxdrive.options import Options
 
 
-STATE_FILE = Options.nxdrive_home / "metrics.state"
-
-
-def show_metrics_acceptance() -> None:
-    """ Display a "friendly" dialog box to ask user for metrics approval. """
-
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QIcon
-    from PyQt5.QtWidgets import (
-        QApplication,
-        QCheckBox,
-        QDialog,
-        QDialogButtonBox,
-        QLabel,
-        QVBoxLayout,
-    )
-
-    from nxdrive.translator import Translator
-    from nxdrive.utils import find_icon, find_resource
-
-    Translator(find_resource("i18n"))
-    tr = Translator.get
-
-    app = QApplication([])
-    app.setQuitOnLastWindowClosed(True)
-
-    dialog = QDialog()
-    dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", [APP_NAME]))
-    dialog.setWindowIcon(QIcon(str(find_icon("app_icon.svg"))))
-    dialog.setStyleSheet("background-color: #ffffff;")
-    layout = QVBoxLayout()
-
-    info = QLabel(tr("SHARE_METRICS_MSG", [COMPANY]))
-    info.setTextFormat(Qt.RichText)
-    info.setWordWrap(True)
-    layout.addWidget(info)
-
-    def analytics_choice(state) -> None:
-        Options.use_analytics = bool(state)
-
-    def errors_choice(state) -> None:
-        Options.use_sentry = bool(state)
-
-    # Checkboxes
-    em_analytics = QCheckBox(tr("SHARE_METRICS_ERROR_REPORTING"))
-    em_analytics.setChecked(True)
-    em_analytics.stateChanged.connect(errors_choice)
-    layout.addWidget(em_analytics)
-
-    cb_analytics = QCheckBox(tr("SHARE_METRICS_ANALYTICS"))
-    cb_analytics.stateChanged.connect(analytics_choice)
-    layout.addWidget(cb_analytics)
-
-    # Buttons
-    buttons = QDialogButtonBox()
-    buttons.setStandardButtons(QDialogButtonBox.Apply)
-    buttons.clicked.connect(dialog.close)
-    layout.addWidget(buttons)
-    dialog.setLayout(layout)
-    dialog.resize(400, 200)
-    dialog.show()
-    app.exec_()
-
-    states = []
-    if Options.use_analytics:
-        states.append("analytics")
-    if Options.use_sentry:
-        states.append("sentry")
-    STATE_FILE.write_text("\n".join(states))
-
-
-def ask_for_metrics_approval() -> None:
-    """Should we setup and use Sentry and/or Google Analytics?"""
-
-    # Check the user choice first
-    Options.nxdrive_home.mkdir(parents=True, exist_ok=True)
-
-    if STATE_FILE.is_file():
-        lines = STATE_FILE.read_text().splitlines()
-        Options.use_sentry = "sentry" in lines
-        Options.use_analytics = "analytics" in lines
-        # Abort now, the user already decided to use Sentry or not
-        return
-
-    # The user did not choose yet, display a message box
-    show_metrics_acceptance()
-
-
 def check_executable_path() -> bool:
     """ Check that the app runs from the right path, and quit if not. """
     import re
@@ -315,7 +227,6 @@ def main() -> int:
         if MAC and not check_executable_path():
             return 1
 
-        ask_for_metrics_approval()
         # Setup Sentry even if the user did not allow it because it can be tweaked
         # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
         setup_sentry()

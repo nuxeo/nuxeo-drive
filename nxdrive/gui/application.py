@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,
+    QLabel,
     QMessageBox,
     QSystemTrayIcon,
     QTextEdit,
@@ -29,6 +30,7 @@ from PyQt5.QtWidgets import (
 from ..constants import (
     APP_NAME,
     BUNDLE_IDENTIFIER,
+    COMPANY,
     LINUX,
     MAC,
     TOKEN_PERMISSION,
@@ -95,6 +97,8 @@ class Application(QApplication):
         self._init_translator()
         self.setQuitOnLastWindowClosed(False)
 
+        self.ask_for_metrics_approval()
+
         self._conflicts_modals: Dict[str, bool] = dict()
         self.current_notification: Optional[Notification] = None
         self.default_tooltip = APP_NAME
@@ -106,9 +110,6 @@ class Application(QApplication):
         self.init_gui()
 
         self.manager.dropEngine.connect(self.dropped_engine)
-
-        # This is a windowless application mostly using the system tray
-        self.setQuitOnLastWindowClosed(False)
 
         self.setup_systray()
         self.manager.reloadIconsSet.connect(self.load_icons_set)
@@ -1105,7 +1106,6 @@ class Application(QApplication):
 
     def event(self, event: QEvent) -> bool:
         """ Handle URL scheme events under macOS. """
-
         url = getattr(event, "url", None)
         if not url:
             # This is not an event for us!
@@ -1268,3 +1268,70 @@ class Application(QApplication):
             if tag == lang:
                 return name
         return None
+
+    def show_metrics_acceptance(self) -> None:
+        """ Display a "friendly" dialog box to ask user for metrics approval. """
+
+        tr = Translator.get
+
+        dialog = QDialog()
+        dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", [APP_NAME]))
+        dialog.setWindowIcon(self.icon)
+        dialog.setStyleSheet("background-color: #ffffff;")
+        layout = QVBoxLayout()
+
+        info = QLabel(tr("SHARE_METRICS_MSG", [COMPANY]))
+        info.setTextFormat(Qt.RichText)
+        info.setWordWrap(True)
+        layout.addWidget(info)
+
+        def analytics_choice(state) -> None:
+            Options.use_analytics = bool(state)
+
+        def errors_choice(state) -> None:
+            Options.use_sentry = bool(state)
+
+        # Checkboxes
+        em_analytics = QCheckBox(tr("SHARE_METRICS_ERROR_REPORTING"))
+        em_analytics.setChecked(True)
+        em_analytics.stateChanged.connect(errors_choice)
+        layout.addWidget(em_analytics)
+
+        cb_analytics = QCheckBox(tr("SHARE_METRICS_ANALYTICS"))
+        cb_analytics.stateChanged.connect(analytics_choice)
+        layout.addWidget(cb_analytics)
+
+        # Buttons
+        buttons = QDialogButtonBox()
+        buttons.setStandardButtons(QDialogButtonBox.Apply)
+        buttons.clicked.connect(dialog.close)
+        layout.addWidget(buttons)
+        dialog.setLayout(layout)
+        dialog.resize(400, 200)
+        dialog.show()
+        dialog.exec_()
+
+        states = []
+        if Options.use_analytics:
+            states.append("analytics")
+        if Options.use_sentry:
+            states.append("sentry")
+
+        (Options.nxdrive_home / "metrics.state").write_text("\n".join(states))
+
+    def ask_for_metrics_approval(self) -> None:
+        """Should we setup and use Sentry and/or Google Analytics?"""
+
+        # Check the user choice first
+        Options.nxdrive_home.mkdir(parents=True, exist_ok=True)
+
+        STATE_FILE = Options.nxdrive_home / "metrics.state"
+        if STATE_FILE.is_file():
+            lines = STATE_FILE.read_text().splitlines()
+            Options.use_sentry = "sentry" in lines
+            Options.use_analytics = "analytics" in lines
+            # Abort now, the user already decided to use Sentry or not
+            return
+
+        # The user did not choose yet, display a message box
+        self.show_metrics_acceptance()
