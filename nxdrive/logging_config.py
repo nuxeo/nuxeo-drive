@@ -106,7 +106,7 @@ def configure(
 
     global is_logging_configured
 
-    if not (is_logging_configured or force_configure):
+    if is_logging_configured and not force_configure:
         return
 
     is_logging_configured = True
@@ -167,7 +167,7 @@ def get_level(level: str, default: str) -> str:
 
 
 def check_level(level: str) -> bool:
-    """Handle badle logging level."""
+    """Handle bad logging level."""
     try:
         level = no_trace(level)
         assert level in logging._nameToLevel
