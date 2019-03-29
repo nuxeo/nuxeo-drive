@@ -199,8 +199,9 @@ class MetaOptions(type):
 
     # Callbacks for the new option's value.
     # It will be called before doing anything to ease value validating.
-    # Callable signature must be: (new_value: Any) -> bool
-    # It must return a boolean.
+    # Callable signature must be: (new_value: Any) -> Any
+    # It must return the new value, updated or not.
+    # To invalidate the new value, raise a ValueError.
     checkers: Dict[str, Callable] = {}
 
     # Callbacks for any option change.
@@ -315,16 +316,20 @@ class MetaOptions(type):
                 with suppress(ValueError, TypeError):
                     new_value = int(new_value)
 
-            if new_value == old_value:
-                return
-
             # Check the new value meets our requirements, if any
             check = MetaOptions.checkers.get(item, None)
-            if callable(check) and not check(new_value):
-                log.error(
-                    f"Callback check for {item!r} denied modification."
-                    f" Value is still {old_value!r}."
-                )
+            if callable(check):
+                try:
+                    new_value = check(new_value)
+                except ValueError as exc:
+                    log.error(str(exc))
+                    log.error(
+                        f"Callback check for {item!r} denied modification."
+                        f" Value is still {old_value!r}."
+                    )
+                    return
+
+            if new_value == old_value:
                 return
 
             # We allow to set something when the default is None

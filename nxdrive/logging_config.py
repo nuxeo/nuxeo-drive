@@ -161,21 +161,24 @@ def get_handler(name: str):
 
 
 def get_level(level: str, default: str) -> str:
-    if check_level(level):
+    try:
+        check_level(level)
         return no_trace(level)
-    return default
+    except ValueError as exc:
+        logging.getLogger().warning(str(exc))
+        return default
 
 
 def check_level(level: str) -> bool:
     """Handle bad logging level."""
     try:
         level = no_trace(level)
-        assert level in logging._nameToLevel
-    except (AssertionError, AttributeError, ValueError, TypeError):
+        logging._nameToLevel[level]
+    except (AttributeError, ValueError, KeyError):
         err = f"Unknown logging level {level!r}, need to be one of {LOG_LEVELS}."
-        logging.getLogger().warning(err)
-        return False
-    return True
+        raise ValueError(err)
+    else:
+        return level
 
 
 def update_logger_console(level: str) -> None:
