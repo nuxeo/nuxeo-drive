@@ -297,7 +297,7 @@ class MetaOptions(type):
             if fail_on_error:
                 raise RuntimeError(err)
             else:
-                log.error(err)
+                log.warning(err)
         else:
             if isinstance(new_value, list):
                 # Need a tuple when JSON sends a simple list
@@ -322,8 +322,8 @@ class MetaOptions(type):
                 try:
                     new_value = check(new_value)
                 except ValueError as exc:
-                    log.error(str(exc))
-                    log.error(
+                    log.warning(str(exc))
+                    log.warning(
                         f"Callback check for {item!r} denied modification."
                         f" Value is still {old_value!r}."
                     )
@@ -343,7 +343,7 @@ class MetaOptions(type):
                 if fail_on_error:
                     raise TypeError(err)
                 else:
-                    log.error(err)
+                    log.warning(err)
 
             # Only update if the setter has rights to
             setter = setter.lower()
