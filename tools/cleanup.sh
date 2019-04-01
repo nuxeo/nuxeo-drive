@@ -15,7 +15,7 @@ main() {
 
     number=0
     older_than=21
-    path="/var/www/community.nuxeo.com/static/drive-updates/"
+    path="/var/www/community.nuxeo.com/static/drive-updates"
     cmd=$(git tag -l "alpha-*" --sort=-taggerdate | tail -n +${older_than})
 
     echo ">>> Installing requirements"
@@ -38,7 +38,7 @@ main() {
     python tools/versions.py --check || exit 1
 
     echo ">>> Uploading versions.yml"
-    rsync -vz versions.yml nuxeo@lethe.nuxeo.com:${path}
+    rsync -vz versions.yml nuxeo@lethe.nuxeo.com:${path}/
 
     echo ">>> Removing binaries, tags and branches:"
     for release in ${cmd}; do
