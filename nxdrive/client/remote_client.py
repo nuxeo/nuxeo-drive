@@ -229,7 +229,7 @@ class Remote(Nuxeo):
                 if mime_type:
                     blob.mimetype = mime_type
 
-                uploader = batch.get_uploader(blob, chunked=True)
+                uploader = batch.get_uploader(blob, chunked=Options.chunk_upload)
 
                 # If there is an UploadError, we catch it from the processor
                 for _ in uploader.iter_upload():
