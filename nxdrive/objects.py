@@ -65,10 +65,19 @@ class RemoteFileInfo:
 
         folderish = fs_item.get("folder", False)
 
-        timestamp = fs_item.get("lastModificationDate")
-        last_update = datetime.fromtimestamp(timestamp // 1000) if timestamp else None
-        timestamp = fs_item.get("creationDate")
-        creation = datetime.fromtimestamp(timestamp // 1000) if timestamp else None
+        def to_date(timestamp: Optional[int]) -> Optional[datetime]:
+            if not isinstance(timestamp, int):
+                return None
+
+            try:
+                return datetime.fromtimestamp(timestamp // 1000)
+            except (OSError, OverflowError):
+                # OSError: [Errno 22] Invalid argument (Windows 7, see NXDRIVE-1600)
+                # OverflowError: timestamp out of range for platform time_t
+                return None
+
+        last_update = to_date(fs_item.get("lastModificationDate"))
+        creation = to_date(fs_item.get("creationDate"))
 
         if folderish:
             digest = None
