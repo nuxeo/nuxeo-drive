@@ -486,8 +486,11 @@ class CliHandler:
             has_ssl_support = QSslSocket.supportsSsl()
             log.info(f"SSL support: {has_ssl_support!r}")
             if not has_ssl_support:
-                options.ca_bundle = None
-                options.ssl_no_verify = True
+                if Options.is_frozen:
+                    raise RuntimeError("No SSL support, packaging must have failed.")
+                else:
+                    options.ca_bundle = None
+                    options.ssl_no_verify = True
 
         # We cannot use fail_on_error=True because options is a namespace
         # and contains a lot of inexistant Options values.
