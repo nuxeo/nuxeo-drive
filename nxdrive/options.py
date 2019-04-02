@@ -151,7 +151,9 @@ class MetaOptions(type):
         "browser_startup_page": ("drive_browser_login.jsp", "default"),
         "ca_bundle": (None, "default"),
         "channel": ("release", "default"),
-        "chunk_upload": (False, "default"),
+        "chunk_limit": (20, "default"),
+        "chunk_size": (20, "default"),
+        "chunk_upload": (True, "default"),
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
@@ -431,3 +433,24 @@ class Options(metaclass=MetaOptions):
     def __init__(self) -> None:
         """ Prevent class instances. """
         raise RuntimeError("Instantiation is not allowed.")
+
+
+#
+# Validators
+#
+
+
+def validate_chunk_limit(value: int) -> int:
+    if 0 < value:
+        return value
+    raise ValueError("Chunk limit must be above 0")
+
+
+def validate_chunk_size(value: int) -> int:
+    if 0 < value < 20:
+        return value
+    raise ValueError("Chunk size must be between 1 and 20 (Mio)")
+
+
+Options.checkers["chunk_limit"] = validate_chunk_limit
+Options.checkers["chunk_size"] = validate_chunk_size

@@ -79,6 +79,9 @@ class Remote(Nuxeo):
             }
         )
 
+        # Make request to login.jsp to retrieve the JSESSIONID
+        self.client.request("GET", "login.jsp")
+
         self.set_proxy(proxy)
 
         if dao:
@@ -229,11 +232,24 @@ class Remote(Nuxeo):
                 if mime_type:
                     blob.mimetype = mime_type
 
-                uploader = batch.get_uploader(blob, chunked=Options.chunk_upload)
+                # By default, Options.chunk_size is 20, so chunks will be 20Mio.
+                # It can be set to a value between 1 and 20 through the config.ini
+                chunk_size = Options.chunk_size * 1024 * 1024
+                # For the upload to be chunked, the Options.chunk_upload must be True
+                # and the blob must be bigger than Options.chunk_limit, which by default
+                # is equal to Options.chunk_size.
+                chunked = (
+                    Options.chunk_upload
+                    and blob.size > Options.chunk_limit * 1024 * 1024
+                )
+
+                uploader = batch.get_uploader(
+                    blob, chunked=chunked, chunk_size=chunk_size
+                )
 
                 # If there is an UploadError, we catch it from the processor
                 for _ in uploader.iter_upload():
-                    action.progress += uploader.chunk_size
+                    action.progress += uploader.chunk_size or 0
 
                 upload_result = uploader.response
                 blob.fd.close()
