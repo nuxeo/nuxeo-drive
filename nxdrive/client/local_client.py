@@ -511,7 +511,7 @@ FolderType=Generic
 
         return result
 
-    def get_children_info(self, ref: Path) -> List[FileInfo]:
+    def _get_children_info(self, ref: Path) -> List[FileInfo]:
         os_path = self.abspath(ref)
         result = []
 
@@ -533,6 +533,13 @@ FolderType=Generic
                 result.append(info)
 
         return result
+
+    def get_children_info(self, ref: Path) -> List[FileInfo]:
+        try:
+            return self._get_children_info(ref)
+        except FileNotFoundError as exc:
+            log.warning(str(exc))
+            return []
 
     def unlock_ref(
         self, ref: Path, unlock_parent: bool = True, is_abs: bool = False
