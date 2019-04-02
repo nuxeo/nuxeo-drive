@@ -177,7 +177,7 @@ class Remote(Nuxeo):
 
         current_action = Action.get_current_action()
         if isinstance(current_action, FileAction) and resp:
-            current_action.size = int(resp.headers.get("Content-Length", 0))
+            current_action.size = int(resp.headers.get("Content-Length", None) or 0)
 
         if file_out:
             check_suspended = kwargs.pop("check_suspended", self.check_suspended)
@@ -252,8 +252,8 @@ class Remote(Nuxeo):
                 if upload_duration > 0:
                     size = os.stat(file_path).st_size
                     log.debug(
-                        f"Speed for {size} bytes is {upload_duration} sec: "
-                        f"{size / upload_duration} bytes/sec"
+                        f"Speed for {size / 1000} kilobytes is {upload_duration} sec:"
+                        f" {size / upload_duration / 1024} Kib/s"
                     )
 
                 headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
