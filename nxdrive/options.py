@@ -441,13 +441,13 @@ class Options(metaclass=MetaOptions):
 
 
 def validate_chunk_limit(value: int) -> int:
-    if 0 < value:
+    if value > 0:
         return value
     raise ValueError("Chunk limit must be above 0")
 
 
 def validate_chunk_size(value: int) -> int:
-    if 0 < value < 20:
+    if 0 < value <= 20:
         return value
     raise ValueError("Chunk size must be between 1 and 20 (Mio)")
 
