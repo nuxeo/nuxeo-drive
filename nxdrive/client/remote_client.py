@@ -80,7 +80,7 @@ class Remote(Nuxeo):
         )
 
         # Make request to login.jsp to retrieve the JSESSIONID
-        self.client.request("GET", "login.jsp")
+        self.client.request("GET", "login.jsp", default=None)
 
         self.set_proxy(proxy)
 
