@@ -364,6 +364,7 @@ class RemoteWatcher(EngineWorker):
 
             log.debug(f"Scanning remote child: {child_info!r}")
             new_pair = False
+            child_pair = None
             if child_info.uid in children:
                 child_pair = children.pop(child_info.uid)
                 if self._check_modified(child_pair, child_info):
@@ -378,7 +379,11 @@ class RemoteWatcher(EngineWorker):
                 if match_pair:
                     child_pair, new_pair = match_pair
 
-            if (new_pair or force_recursion) and child_info.folderish:
+            if not child_pair:
+                log.error(
+                    f"child_pair is None, it should not happen (NXDRIVE-1571, child_info={child_info!r})."
+                )
+            elif (new_pair or force_recursion) and child_info.folderish:
                 to_scan.append((child_pair, child_info))
 
         # Delete remaining
