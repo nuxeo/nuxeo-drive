@@ -41,11 +41,23 @@ class FiltersDialog(QDialog):
         self.vertical_layout.addWidget(self.tree_view)
         self.vertical_layout.addWidget(self.no_root_label)
 
+        # Select/Unselect roots
+        self.select_all_state = True
+        self.select_all_text = (
+            Translator.get("UNSELECT_ALL"),
+            Translator.get("SELECT_ALL"),
+        )
+
         self.button_box = QDialogButtonBox(self)
         self.button_box.setOrientation(Qt.Horizontal)
         buttons = QDialogButtonBox.Ok
         if not self.syncing:
             buttons |= QDialogButtonBox.Cancel
+            self.select_all_button = self.button_box.addButton(
+                self.select_all_text[self.select_all_state], QDialogButtonBox.ActionRole
+            )
+            self.select_all_button.clicked.connect(self._toggle_roots_selection)
+
         self.button_box.setStandardButtons(buttons)
         self.vertical_layout.addWidget(self.button_box)
         self.button_box.accepted.connect(self.accept)
@@ -123,3 +135,17 @@ class FiltersDialog(QDialog):
 
         if not self._engine.is_started():
             self._engine.start()
+
+    def _toggle_roots_selection(self, _: Qt.CheckState) -> None:
+        """Select/Unselect all roots."""
+        state = Qt.Checked if self.select_all_state else Qt.Unchecked
+
+        roots = sorted(self.tree_view.client.roots, key=lambda x: x.get_path())
+        for num, root in enumerate(roots):
+            index = self.tree_view.model().index(num, 0)
+            item = self.tree_view.model().itemFromIndex(index)
+            item.setCheckState(state)
+            self.tree_view.update_item_changed(item)
+
+        self.select_all_state = not self.select_all_state
+        self.select_all_button.setText(self.select_all_text[self.select_all_state])
