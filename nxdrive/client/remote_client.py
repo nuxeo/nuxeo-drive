@@ -79,6 +79,9 @@ class Remote(Nuxeo):
             }
         )
 
+        # Make request to login.jsp to retrieve the JSESSIONID
+        self.client.request("GET", "login.jsp", default=None)
+
         self.set_proxy(proxy)
 
         if dao:
@@ -123,6 +126,10 @@ class Remote(Nuxeo):
                 raise NotFound(stack)
             raise e
 
+    def _escape(self, path) -> str:
+        """Escape any single quote with an antislash to further use in a NXQL query."""
+        return path.replace("'", r"\'")
+
     def exists(
         self, ref: str, use_trash: bool = True, include_versions: bool = False
     ) -> bool:
@@ -134,18 +141,12 @@ class Remote(Nuxeo):
         :param include_versions:
         :rtype: bool
         """
-        ref = self._check_ref(ref)
+        ref = self._escape(self._check_ref(ref))
         id_prop = "ecm:path" if ref.startswith("/") else "ecm:uuid"
-
         trash = self._get_trash_condition() if use_trash else ""
         version = "" if include_versions else "AND ecm:isVersion = 0"
 
-        query = "SELECT * FROM Document WHERE %s = '%s' %s %s LIMIT 1" % (
-            id_prop,
-            ref,
-            trash,
-            version,
-        )
+        query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} {version} LIMIT 1"
         results = self.query(query)
         return len(results["entries"]) == 1
 
@@ -177,7 +178,7 @@ class Remote(Nuxeo):
 
         current_action = Action.get_current_action()
         if isinstance(current_action, FileAction) and resp:
-            current_action.size = int(resp.headers.get("Content-Length", 0))
+            current_action.size = int(resp.headers.get("Content-Length", None) or 0)
 
         if file_out:
             check_suspended = kwargs.pop("check_suspended", self.check_suspended)
@@ -229,11 +230,25 @@ class Remote(Nuxeo):
                 if mime_type:
                     blob.mimetype = mime_type
 
-                uploader = batch.get_uploader(blob, chunked=True)
+                # By default, Options.chunk_size is 20, so chunks will be 20Mio.
+                # It can be set to a value between 1 and 20 through the config.ini
+                chunk_size = Options.chunk_size * 1024 * 1024
+                # For the upload to be chunked, the Options.chunk_upload must be True
+                # and the blob must be bigger than Options.chunk_limit, which by default
+                # is equal to Options.chunk_size.
+                chunked = (
+                    Options.chunk_upload
+                    and blob.size > Options.chunk_limit * 1024 * 1024
+                )
+
+                uploader = batch.get_uploader(
+                    blob, chunked=chunked, chunk_size=chunk_size
+                )
 
                 # If there is an UploadError, we catch it from the processor
                 for _ in uploader.iter_upload():
-                    action.progress += uploader.chunk_size
+                    # Here 0 may happen when doing a single upload
+                    action.progress += uploader.chunk_size or 0
 
                 upload_result = uploader.response
                 blob.fd.close()
@@ -252,8 +267,8 @@ class Remote(Nuxeo):
                 if upload_duration > 0:
                     size = os.stat(file_path).st_size
                     log.debug(
-                        f"Speed for {size} bytes is {upload_duration} sec: "
-                        f"{size / upload_duration} bytes/sec"
+                        f"Speed for {size / 1000} kilobytes is {upload_duration} sec:"
+                        f" {size / upload_duration / 1024} Kib/s"
                     )
 
                 headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
@@ -434,6 +449,14 @@ class Remote(Nuxeo):
             )
         )
 
+    def move2(self, fs_item_id: str, parent_ref: str, name: str) -> Dict[str, Any]:
+        """Move a document using the Document.Move operation."""
+        if "#" in fs_item_id:
+            fs_item_id = fs_item_id.split("#")[-1]
+        if "#" in parent_ref:
+            parent_ref = parent_ref.split("#")[-1]
+        return self.documents.move(fs_item_id, parent_ref, name=name)
+
     def get_fs_item(
         self, fs_item_id: str, parent_fs_item_id: str = None
     ) -> Optional[Dict[str, Any]]:
@@ -468,7 +491,12 @@ class Remote(Nuxeo):
                 ref = self._base_folder_path + ref
         return ref
 
-    def query(self, query: str) -> Dict[str, Any]:  # TODO: use Nuxeo.client.query()
+    def query(self, query: str) -> Dict[str, Any]:
+        """
+        Note: We cannot use this code because it does not handle unicode characters in the query.
+
+            >>> return self.client.query(query)
+        """
         return self.execute(command="Document.Query", query=query)
 
     def get_info(
@@ -476,18 +504,17 @@ class Remote(Nuxeo):
         ref: str,
         raise_if_missing: bool = True,
         fetch_parent_uid: bool = True,
-        use_trash: bool = True,
         include_versions: bool = False,
     ) -> Optional[NuxeoDocumentInfo]:
-        if not self.exists(ref, use_trash=use_trash, include_versions=include_versions):
+        try:
+            doc = self.fetch(self._check_ref(ref))
+        except NotFound:
             if raise_if_missing:
                 raise NotFound(
-                    "Could not find '%s' on '%s'"
-                    % (self._check_ref(ref), self.client.host)
+                    f"Could not find {self._check_ref(ref)!r} on {self.client.host}"
                 )
             return None
 
-        doc = self.fetch(self._check_ref(ref))
         parent_uid = None
         if fetch_parent_uid:
             parent_uid = self.fetch(os.path.dirname(doc["path"]))["uid"]

@@ -29,10 +29,10 @@ class TestSpecialCharacters(OneUserTest):
         local.rename(f"/{new_folder_name}/{file_name}", new_file_name)
 
         self.wait_sync()
-        # Paths don't change server-side
-        info = remote.get_info(f"/{folder_name}")
+        # Paths is updated server-side
+        info = remote.get_info(f"/{new_folder_name}")
         assert info.name == new_folder_name
-        info = remote.get_info(f"/{folder_name}/{file_name}")
+        info = remote.get_info(f"/{new_folder_name}/{new_file_name}")
         assert info.name == new_file_name
 
     @not_windows(reason="Explorer prevents using those characters")
@@ -61,10 +61,10 @@ class TestSpecialCharacters(OneUserTest):
         self.wait_sync()
         new_folder_name = "- * ? < > |"
         new_file_name = "| > < ? * -.txt"
-        # Paths don't change server-side
-        info = remote.get_info(f"/{folder_name}")
+        # Paths is updated server-side
+        info = remote.get_info(f"/{new_folder_name}")
         assert info.name == new_folder_name
-        info = remote.get_info(f"/{folder_name}/{file_name}")
+        info = remote.get_info(f"/{new_folder_name}/{new_file_name}")
         assert info.name == new_file_name
 
     def test_create_remote(self):

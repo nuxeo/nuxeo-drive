@@ -17,9 +17,17 @@ def _is_running(identifier: str) -> bool:
     the list of opened applications, meaning it is running.
     """
     shared_workspace = NSWorkspace.sharedWorkspace()
-    for running_app in shared_workspace.launchedApplications():
-        if identifier == str(running_app.allValues()[2]):
+    if not shared_workspace:
+        return False
+
+    running_apps = shared_workspace.runningApplications()
+    if not running_apps:
+        return False
+
+    for app in running_apps:
+        if str(app.bundleIdentifier()) == identifier:
             return True
+
     return False
 
 

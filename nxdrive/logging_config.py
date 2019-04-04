@@ -169,7 +169,7 @@ def get_level(level: str, default: str) -> str:
         return default
 
 
-def check_level(level: str) -> bool:
+def check_level(level: str) -> str:
     """Handle bad logging level."""
     try:
         level = no_trace(level)

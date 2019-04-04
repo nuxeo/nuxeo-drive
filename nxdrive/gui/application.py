@@ -37,7 +37,7 @@ from ..constants import (
     WINDOWS,
     DelAction,
 )
-from ..engine.activity import Action, FileAction
+from ..engine.activity import Action
 from ..engine.engine import Engine
 from ..gui.folders_dialog import FiltersDialog
 from ..notification import Notification
@@ -225,7 +225,7 @@ class Application(QApplication):
 
     @pyqtSlot(Action)
     def action_progressing(self, action: Action) -> None:
-        self.action_model.set_progress(self.api._export_action(action))
+        self.action_model.set_progress(action.export())
 
     @pyqtSlot(Action)
     def action_done(self, action: Action) -> None:
@@ -879,16 +879,7 @@ class Application(QApplication):
         else:
             return self.default_tooltip
 
-        if isinstance(action, FileAction):
-            if action.get_percent() is not None:
-                return (
-                    f"{self.default_tooltip} - {action.type} - "
-                    f"{action.filename} - {action.get_percent()}%"
-                )
-            return f"{self.default_tooltip} - {action.type} - {action.filename}"
-        elif action.get_percent() is not None:
-            return f"{self.default_tooltip} - {action.type} - {action.get_percent()}%"
-        return f"{self.default_tooltip} - {action.type}"
+        return f"{self.default_tooltip} - {action!r}"
 
     @if_frozen
     def show_release_notes(self, version: str) -> None:

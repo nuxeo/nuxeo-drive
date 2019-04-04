@@ -199,7 +199,7 @@ class TestRemoteDeletion(OneUserTest):
         assert remote.get_info(test_folder_uid).name == "Test folder renamed"
 
         # Delete remote folder then synchronize
-        remote.delete("/Test folder")
+        remote.delete("/Test folder renamed")
 
         self.wait_sync(wait_for_async=True)
         assert not remote.exists("/Test folder renamed")

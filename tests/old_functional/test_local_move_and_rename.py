@@ -75,8 +75,8 @@ class TestLocalMoveAndRename(OneUserTest):
             assert local.exists("/Renamed Folder")
             assert not local.exists("/New Folder")
 
-            # Path doesn't change on Nuxeo
-            info = remote.get_info("/New Folder")
+            # Path is updated on Nuxeo
+            info = remote.get_info("/Renamed Folder")
             assert info.name == "Renamed Folder"
             assert len(local.get_children_info("/")) == 5
             assert len(remote.get_children_info(self.workspace)) == 5
@@ -101,8 +101,8 @@ class TestLocalMoveAndRename(OneUserTest):
             assert local.exists("/Renamed File.txt")
             assert not local.exists("/File.txt")
 
-            # Path doesn't change on Nuxeo
-            info = remote.get_info("/File.txt")
+            # Path is updated on Nuxeo
+            info = remote.get_info("/Renamed File.txt")
             assert info.name == "Renamed File.txt"
             assert len(local.get_children_info("/")) == 5
             assert len(remote.get_children_info(self.workspace)) == 5
@@ -127,8 +127,8 @@ class TestLocalMoveAndRename(OneUserTest):
             assert local.exists("/Renamed File.txt")
             assert not local.exists("/File.txt")
 
-            # Path doesn't change on Nuxeo
-            info = remote.get_info("/File.txt")
+            # Path is updated on Nuxeo
+            info = remote.get_info("/Renamed File.txt")
             assert info.name == "Renamed File.txt"
             assert len(local.get_children_info("/")) == 5
             assert len(remote.get_children_info(self.workspace)) == 5
@@ -154,8 +154,8 @@ class TestLocalMoveAndRename(OneUserTest):
             assert local.exists("/Renamed File.txt")
             assert not local.exists("/File.txt")
 
-            # Path doesn't change on Nuxeo
-            info = remote.get_info("/File.txt")
+            # Path is updated on Nuxeo
+            info = remote.get_info("/Renamed File.txt")
             assert info.name == "Renamed File.txt"
             assert len(local.get_children_info("/")) == 5
             assert len(remote.get_children_info(self.workspace)) == 5

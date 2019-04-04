@@ -67,8 +67,10 @@ class QMLDriveApi(QObject):
         )
 
     def _json_default(self, obj: Any) -> Any:
-        if isinstance(obj, Action):
-            return self._export_action(obj)
+        export = getattr(obj, "export", None)
+        if callable(export):
+            return export()
+
         if isinstance(obj, Engine):
             return self._export_engine(obj)
         if isinstance(obj, Notification):
@@ -184,24 +186,13 @@ class QMLDriveApi(QObject):
         result["last_error_details"] = state.last_error_details or ""
         return result
 
-    def _export_action(self, action: Action) -> Dict[str, Any]:
-        result: Dict[str, Any] = dict()
-        result["uid"] = action.uid
-        result["last_transfer"] = action.type
-        result["progress"] = action.get_percent()
-        if isinstance(action, FileAction):
-            result["size"] = action.size
-            result["name"] = action.filename
-            result["filepath"] = str(action.filepath)
-        return result
-
     def _export_worker(self, worker: Worker) -> Dict[str, Any]:
         result: Dict[str, Any] = dict()
         action = worker.action
         if action is None:
             result["action"] = None
         else:
-            result["action"] = self._export_action(action)
+            result["action"] = action.export()
         result["thread_id"] = worker.thread_id
         result["name"] = worker._name
         result["paused"] = worker.is_paused()
@@ -328,9 +319,9 @@ class QMLDriveApi(QObject):
         if not self._manager.get_engines():
             return result
 
-        for action in Action.actions.copy().values():
+        for action in Action.get_actions().values():
             if isinstance(action, FileAction):
-                result.append(self._export_action(action))
+                result.append(action.export())
         return result
 
     @pyqtSlot(str, result=str)

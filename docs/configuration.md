@@ -39,6 +39,9 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | Parameter | Default Value | Type | Description
 |---|---|---|---
 | `ca-bundle` | None | str | File or directory with certificates of trusted CAs. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
+| `chunk_limit` | 20 | int | Size in Mio above which files will be uploaded in chunks (if `chunk_upload` is `True`). Has to be above 0.
+| `chunk_size` | 20 | int | Size of the chunks in Mio. Has to be above 0 and lower or equal to 20.
+| `chunk_upload` | True | bool | Activate the upload in chunks for files bigger than `chunk_limit`.
 | `debug` | False | bool | Activate the debug window, and debug mode.
 | `delay` | 30 | int | Define the delay before each remote check.
 | `force-locale` | None | str | Force the reset to the language.

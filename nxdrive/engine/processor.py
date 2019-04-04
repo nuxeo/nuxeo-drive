@@ -623,7 +623,7 @@ class Processor(EngineWorker):
             # If same hash don't do anything and reconcile
             uid = remote_ref.split("#")[-1]
             info = self.remote.get_info(
-                uid, raise_if_missing=False, fetch_parent_uid=False, use_trash=False
+                uid, raise_if_missing=False, fetch_parent_uid=False
             )
             log.warning(
                 f"This document {doc_pair!r} has remote_ref {remote_ref}, info={info!r}"
@@ -860,6 +860,14 @@ class Processor(EngineWorker):
 
         remote_info = None
         self._search_for_dedup(doc_pair, doc_pair.remote_name)
+
+        parent_ref = self.local.get_remote_id(doc_pair.local_parent_path)
+        if not parent_ref:
+            parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
+            parent_ref = parent_pair.remote_ref if parent_pair else ""
+        else:
+            parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
+
         if doc_pair.local_name != doc_pair.remote_name:
             try:
                 if not doc_pair.remote_can_rename:
@@ -870,18 +878,24 @@ class Processor(EngineWorker):
                 remote_info = self.remote.rename(
                     doc_pair.remote_ref, doc_pair.local_name
                 )
+
+                if parent_ref and parent_ref == doc_pair.remote_parent_ref:
+                    # Handle cases when the user creates a new folder, it has the default name
+                    # set to the local system: "New folder", "Nouveau dossier (2)" ...
+                    # The folder is created directly and it generates useless URLs.
+                    # So we move the document to get back good URLs.
+                    # The trick here is that we move the document inside the same
+                    # parent folder but with a different name.
+                    log.info(f"Moving remote document according to local {doc_pair!r}")
+                    self.remote.move2(
+                        doc_pair.remote_ref, parent_ref, doc_pair.local_name
+                    )
+
                 self._refresh_remote(doc_pair, remote_info=remote_info)
             except Exception as e:
-                log.info(str(e))
+                log.error(str(e))
                 self._handle_failed_remote_rename(doc_pair, doc_pair)
                 return
-
-        parent_ref = self.local.get_remote_id(doc_pair.local_parent_path)
-        if not parent_ref:
-            parent_pair = self._dao.get_state_from_local(doc_pair.local_parent_path)
-            parent_ref = parent_pair.remote_ref if parent_pair else ""
-        else:
-            parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
 
         if not parent_pair:
             raise ValueError("Should have a parent pair")

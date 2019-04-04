@@ -38,6 +38,7 @@ class TestVersioning2(TwoUsersTest):
 
         # Create a file as user 2
         remote.make_file("/", "Test versioning.txt", content=b"This is version 0")
+        self.wait_sync()
         assert remote.exists("/Test versioning.txt")
         doc = self.root_remote.fetch(f"{self.ws.path}/Test versioning.txt")
         self._assert_version(doc, 0, 0)
