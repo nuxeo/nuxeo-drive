@@ -99,6 +99,7 @@ class FiltersDialog(QDialog):
 
     def _handle_no_roots(self) -> None:
         self.no_root_label.setVisible(True)
+        self.select_all_button.setVisible(False)
         self.tree_view.setVisible(False)
         self.tree_view.resize(0, 0)
         self.setGeometry(self.x() + 50, self.y() + 150, 400, 200)
