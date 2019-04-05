@@ -104,8 +104,8 @@ class Client:
 class FilteredFsClient(Client):
     def __init__(self, fs_client: Remote, filters: Filters = None) -> None:
         self.fs_client = fs_client
-        filters = filters or []
-        self.filters = filters
+        self.filters = filters or []
+        self.roots: List[FsFileInfo] = []
 
     def get_item_state(self, path: str) -> int:
         if not path.endswith("/"):
@@ -128,7 +128,9 @@ class FilteredFsClient(Client):
 
         root_info = self.fs_client.get_filesystem_root_info()
         for sync_root in self.fs_client.get_fs_children(root_info.uid, filtered=False):
-            yield FsFileInfo(sync_root, state=self.get_item_state(sync_root.path))
+            root = FsFileInfo(sync_root, state=self.get_item_state(sync_root.path))
+            self.roots.append(root)
+            yield root
 
 
 class FolderTreeview(QTreeView):
