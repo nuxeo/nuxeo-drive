@@ -56,7 +56,7 @@ class FiltersDialog(QDialog):
             self.select_all_button = self.button_box.addButton(
                 self.select_all_text[self.select_all_state], QDialogButtonBox.ActionRole
             )
-            self.select_all_button.clicked.connect(self._toggle_roots_selection)
+            self.select_all_button.clicked.connect(self._select_unselect_all_roots)
 
         self.button_box.setStandardButtons(buttons)
         self.vertical_layout.addWidget(self.button_box)
@@ -136,7 +136,7 @@ class FiltersDialog(QDialog):
         if not self._engine.is_started():
             self._engine.start()
 
-    def _toggle_roots_selection(self, _: Qt.CheckState) -> None:
+    def _select_unselect_all_roots(self, _: Qt.CheckState) -> None:
         """Select/Unselect all roots."""
         state = Qt.Checked if self.select_all_state else Qt.Unchecked
 
