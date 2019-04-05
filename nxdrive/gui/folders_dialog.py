@@ -144,8 +144,9 @@ class FiltersDialog(QDialog):
         for num, root in enumerate(roots):
             index = self.tree_view.model().index(num, 0)
             item = self.tree_view.model().itemFromIndex(index)
-            item.setCheckState(state)
-            self.tree_view.update_item_changed(item)
+            if item.checkState() != state:
+                item.setCheckState(state)
+                self.tree_view.update_item_changed(item)
 
         self.select_all_state = not self.select_all_state
         self.select_all_button.setText(self.select_all_text[self.select_all_state])
