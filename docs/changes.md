@@ -9,7 +9,7 @@
 - [4.0.4](changes/4.0.4.md)
 - [4.1.0](changes/4.1.0.md)
 - [4.1.1](changes/4.1.1.md)
-- [4.1.1](changes/4.1.2.md)
+- [4.1.2](changes/4.1.2.md)
 
 ## 3.x
 
