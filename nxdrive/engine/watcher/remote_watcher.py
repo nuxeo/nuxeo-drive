@@ -893,13 +893,13 @@ class RemoteWatcher(EngineWorker):
 
                         if lock_update:
                             locked_pair = self._dao.get_state_from_id(doc_pair.id)
-                            try:
-                                if locked_pair:
+                            if locked_pair:
+                                try:
                                     self._handle_readonly(locked_pair)
-                            except OSError as exc:
-                                log.debug(
-                                    f"Cannot handle readonly for {locked_pair!r} ({exc!r})"
-                                )
+                                except OSError as exc:
+                                    log.warning(
+                                        f"Cannot handle readonly for {locked_pair!r} ({exc!r})"
+                                    )
 
                 pair = self._dao.get_state_from_id(doc_pair.id)
                 if pair and pair.last_error != "DEDUP":

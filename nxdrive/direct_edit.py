@@ -7,7 +7,7 @@ from pathlib import Path
 from queue import Empty, Queue
 from time import sleep
 from threading import Lock
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib.parse import quote
 
 from PyQt5.QtWidgets import QApplication
@@ -24,7 +24,7 @@ from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
 from .exceptions import Forbidden, NotFound, ThreadInterrupt, UnknownDigest
-from .objects import Metrics, NuxeoDocumentInfo
+from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .utils import (
     current_milli_time,
     force_decode,
@@ -56,8 +56,8 @@ def _is_lock_file(name: str) -> bool:
 class DirectEdit(Worker):
     localScanFinished = pyqtSignal()
     directEditUploadCompleted = pyqtSignal(str)
-    openDocument = pyqtSignal(object)
-    editDocument = pyqtSignal(object)
+    openDocument = pyqtSignal(str)
+    editDocument = pyqtSignal(str)
     directEditLockError = pyqtSignal(str, str, str)
     directEditConflict = pyqtSignal(str, Path, str)
     directEditError = pyqtSignal(str, list)
@@ -167,7 +167,7 @@ class DirectEdit(Worker):
 
             ref = children[0].path
             try:
-                _, _, func, digest, _ = self._extract_edit_info(ref)
+                details = self._extract_edit_info(ref)
             except NotFound:
                 # Engine is not known anymore
                 purge(child.path)
@@ -176,8 +176,8 @@ class DirectEdit(Worker):
             try:
                 # Don't update if digest are the same
                 info = self.local.get_info(ref)
-                current_digest = info.get_digest(digest_func=func)
-                if current_digest != digest:
+                current_digest = info.get_digest(digest_func=details.digest_func)
+                if current_digest != details.digest:
                     log.warning(
                         "Document has been modified and "
                         "not synchronized, add to upload queue"
@@ -430,7 +430,7 @@ class DirectEdit(Worker):
         tmp_file.rename(file_path)
 
         self._last_action_timing = current_milli_time() - start_time
-        self.openDocument.emit(blob)
+        self.openDocument.emit(filename)
         return file_path
 
     def edit(
@@ -454,7 +454,7 @@ class DirectEdit(Worker):
             else:
                 raise e
 
-    def _extract_edit_info(self, ref: Path) -> Tuple[str, "Engine", str, str, str]:
+    def _extract_edit_info(self, ref: Path) -> DirectEditDetails:
         dir_path = ref.parent
         server_url = self.local.get_remote_id(dir_path, name="nxdirectedit")
         if not server_url:
@@ -477,7 +477,18 @@ class DirectEdit(Worker):
             raise NotFound()
 
         xpath = self.local.get_remote_id(dir_path, name="nxdirecteditxpath")
-        return uid, engine, digest_algorithm, digest, xpath
+        editing = self.local.get_remote_id(dir_path, name="nxdirecteditlock") == "1"
+
+        details = DirectEditDetails(
+            uid=uid,
+            engine=engine,
+            digest_func=digest_algorithm,
+            digest=digest,
+            xpath=xpath,
+            editing=editing,
+        )
+        log.debug(f"DirectEdit {details}")
+        return details
 
     def force_update(self, ref: Path, digest: str) -> None:
         dir_path = ref.parent
@@ -499,9 +510,10 @@ class DirectEdit(Worker):
             dir_path = os.path.dirname(ref)
 
             try:
-                uid, engine, _, _, _ = self._extract_edit_info(ref)
+                details = self._extract_edit_info(ref)
+                remote = details.engine.remote
                 if action == "lock":
-                    engine.remote.lock(uid)
+                    remote.lock(details.uid)
                     self.local.set_remote_id(dir_path, b"1", name="nxdirecteditlock")
                     # Emit the lock signal only when the lock is really set
                     self._send_lock_status(ref)
@@ -509,7 +521,7 @@ class DirectEdit(Worker):
                     continue
 
                 try:
-                    engine.remote.unlock(uid)
+                    remote.unlock(details.uid)
                 except NotFound:
                     purge = True
                 else:
@@ -551,38 +563,39 @@ class DirectEdit(Worker):
 
             log.debug(f"Handling DirectEdit queue ref: {ref!r}")
 
-            uid, engine, algorithm, digest, xpath = self._extract_edit_info(ref)
+            details = self._extract_edit_info(ref)
+            xpath = details.xpath
+            engine = details.engine
+            remote = engine.remote
+
             if not xpath:
-                log.info(
-                    f"DirectEdit on {ref} has no xpath, defaulting to 'file:content'"
-                )
                 xpath = "file:content"
-            # Don't update if digest are the same
+                log.info(f"DirectEdit on {ref!r} has no xpath, defaulting to {xpath!r}")
+
             try:
+                # Don't update if digest are the same
                 info = self.local.get_info(ref)
-                current_digest = info.get_digest(digest_func=algorithm)
-                if not current_digest or current_digest == digest:
+                current_digest = info.get_digest(digest_func=details.digest_func)
+                if not current_digest or current_digest == details.digest:
                     continue
 
                 start_time = current_milli_time()
                 log.debug(
                     f"Local digest: {current_digest} is different from the recorded "
-                    f"one: {digest} - modification detected for {ref!r}"
+                    f"one: {details.digest} - modification detected for {ref!r}"
                 )
 
-                # TO_REVIEW Should check if server-side blob has changed ?
-                # Update the document, should verify
-                # the remote hash NXDRIVE-187
-                remote_info = engine.remote.get_info(uid)
-                remote_blob = remote_info.get_blob(xpath) if remote_info else None
-                if remote_blob and remote_blob.digest != digest:
-                    # Conflict detect
-                    log.debug(
-                        f"Remote digest: {remote_blob.digest} is different from the "
-                        f"recorded  one: {digest} - conflict detected for {ref!r}"
-                    )
-                    self.directEditConflict.emit(ref.name, ref, remote_blob.digest)
-                    continue
+                if not details.editing:
+                    # Check the remote hash to prevent data loss
+                    remote_info = remote.get_info(details.uid)
+                    remote_blob = remote_info.get_blob(xpath) if remote_info else None
+                    if remote_blob and remote_blob.digest != details.digest:
+                        log.debug(
+                            f"Remote digest: {remote_blob.digest} is different from the "
+                            f"recorded  one: {details.digest} - conflict detected for {ref!r}"
+                        )
+                        self.directEditConflict.emit(ref.name, ref, remote_blob.digest)
+                        continue
 
                 os_path = self.local.abspath(ref)
                 log.info(f"Uploading file {os_path!r}")
@@ -594,10 +607,10 @@ class DirectEdit(Worker):
                     kwargs = {"xpath": xpath}
                     cmd = "Blob.AttachOnDocument"
 
-                engine.remote.upload(
+                remote.upload(
                     os_path,
                     command=cmd,
-                    document=engine.remote._check_ref(uid),
+                    document=remote._check_ref(details.uid),
                     **kwargs,
                 )
 
@@ -608,7 +621,7 @@ class DirectEdit(Worker):
                 )
                 self._last_action_timing = current_milli_time() - start_time
                 self.directEditUploadCompleted.emit(os_path.name)
-                self.editDocument.emit(remote_blob)
+                self.editDocument.emit(ref.name)
             except NotFound:
                 # Not found on the server, just skip it
                 continue
@@ -723,11 +736,11 @@ class DirectEdit(Worker):
         if not name:
             return
 
-        editing = self.local.get_remote_id(dir_path, name="nxdirecteditlock")
+        editing = self.local.get_remote_id(dir_path, name="nxdirecteditlock") == "1"
 
         if force_decode(name) != src_path.name:
             if _is_lock_file(src_path.name):
-                if evt.event_type == "created" and self.use_autolock and editing != "1":
+                if evt.event_type == "created" and self.use_autolock and not editing:
                     """
                     [Windows 10] The original file is not modified until
                     we specifically click on the save button. Instead, it
@@ -745,7 +758,7 @@ class DirectEdit(Worker):
                     self.local.remove_remote_id(dir_path, name="nxdirecteditlock")
             return
 
-        if self.use_autolock and editing != "1":
+        if self.use_autolock and not editing:
             self.autolock.set_autolock(src_path, self)
 
         if evt.event_type != "deleted":
