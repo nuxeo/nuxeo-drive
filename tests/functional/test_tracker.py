@@ -1,4 +1,3 @@
-from nuxeo.models import Blob
 from nxdrive.engine.tracker import Tracker
 
 
@@ -26,15 +25,12 @@ def test_tracker_send_methods(manager_factory, monkeypatch):
         "speed": 42,
         "handler": "test_tracker_send_methods",
     }
-    blob = Blob(
-        uploaded=False, name="Jean-Michel Jarre - Oxygen", size=42, mimetype="audio/ogg"
-    )
 
     with manager:
         tracker = Tracker(manager, uid="")
         monkeypatch.setattr(tracker._tracker, "send", send)
 
-        tracker._send_directedit_open(blob)
-        tracker._send_directedit_edit(blob)
+        tracker._send_directedit_open("Jean-Michel Jarre - Oxygen")
+        tracker._send_directedit_edit("Jean-Michel Jarre - Oxygen.ogg")
         tracker._send_sync_event(metrics)
         tracker._send_stats()

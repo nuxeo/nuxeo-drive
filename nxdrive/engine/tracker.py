@@ -11,7 +11,6 @@ from UniversalAnalytics import Tracker as UATracker
 
 from .workers import Worker
 from ..constants import APP_NAME, MAC, WINDOWS
-from ..objects import Blob
 from ..utils import get_arch, get_current_os
 
 if MAC:
@@ -121,9 +120,9 @@ class Tracker(Worker):
         except:
             log.exception("Error sending analytics")
 
-    @pyqtSlot(object)
-    def _send_directedit_open(self, blob: Blob) -> None:
-        _, extension = os.path.splitext(blob.name)
+    @pyqtSlot(str)
+    def _send_directedit_open(self, name: str) -> None:
+        _, extension = os.path.splitext(name)
         if not extension:
             extension = "unknown"
 
@@ -134,9 +133,9 @@ class Tracker(Worker):
             value=self._manager.direct_edit.get_metrics()["last_action_timing"],
         )
 
-    @pyqtSlot(object)
-    def _send_directedit_edit(self, blob: Blob) -> None:
-        _, extension = os.path.splitext(blob.name)
+    @pyqtSlot(str)
+    def _send_directedit_edit(self, name: str) -> None:
+        _, extension = os.path.splitext(name)
         if not extension:
             extension = "unknown"
 
