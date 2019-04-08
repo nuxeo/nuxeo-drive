@@ -83,7 +83,7 @@ def setup_sentry() -> None:
     sentry_env = os.getenv("SENTRY_ENV", "testing")
     if "JENKINS_URL" not in os.environ and sentry_env == "testing":
         sys.exit(
-            "You muse set SENTRY_ENV to the working issue, e.g.: SENTRY_ENV='NXDRIVE-42'."
+            "You must set SENTRY_ENV to the working issue, e.g.: SENTRY_ENV='NXDRIVE-42'."
         )
 
     import sentry_sdk
