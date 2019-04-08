@@ -245,10 +245,13 @@ class Remote(Nuxeo):
                     blob, chunked=chunked, chunk_size=chunk_size
                 )
 
-                # If there is an UploadError, we catch it from the processor
-                for _ in uploader.iter_upload():
-                    # Here 0 may happen when doing a single upload
-                    action.progress += uploader.chunk_size or 0
+                if uploader.chunked:
+                    # If there is an UploadError, we catch it from the processor
+                    for _ in uploader.iter_upload():
+                        # Here 0 may happen when doing a single upload
+                        action.progress += uploader.chunk_size or 0
+                else:
+                    uploader.upload()
 
                 upload_result = uploader.response
                 blob.fd.close()
