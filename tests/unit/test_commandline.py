@@ -141,8 +141,11 @@ def test_default_override(cmd):
 @Options.mock()
 def test_malformatted_line(cmd):
     create_ini_bad()
-    with pytest.raises(TypeError):
-        cmd.parse_cli([])
+    cmd.parse_cli([])
+    # The malformed line will display a warning:
+    # Unknown logging level ('=', 'DEBUG', 'False', 'debug'), need to be one of ...
+    # Callback check for 'log_level_console' denied modification. Value is still 'WARNING'.
+    assert Options.log_level_console == "WARNING"
 
 
 def test_z_last_ensure_options_not_modified():
