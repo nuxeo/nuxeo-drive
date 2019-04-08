@@ -218,6 +218,7 @@ class WindowsIntegration(AbstractOSIntegration):
     def _get_folder_link(self, name: str = None) -> Path:
         return Options.home / "Links" / f"{name or APP_NAME}.lnk"
 
+    @if_frozen
     def send_sync_status(self, state: DocPair, path: Path) -> None:
         shell.SHChangeNotify(
             shellcon.SHCNE_UPDATEITEM,
@@ -242,9 +243,11 @@ class WindowsIntegration(AbstractOSIntegration):
         set_filter_folders(paths)
         log.info(f"{folder!r} is now in Explorer {action} list")
 
+    @if_frozen
     def watch_folder(self, folder: Path) -> None:
         self._watch_or_ignore(folder, "watch")
 
+    @if_frozen
     def unwatch_folder(self, folder: Path) -> None:
         self._watch_or_ignore(folder, "ignore")
 
