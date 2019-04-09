@@ -2,7 +2,6 @@
 
 import shutil
 import sys
-from contextlib import suppress
 
 import pytest
 
@@ -45,8 +44,7 @@ def tmp(tmp_path):
 
     yield _make_folder
 
-    with suppress(OSError):
-        shutil.rmtree(tmp_path)
+    shutil.rmtree(tmp_path, ignore_errors=True)
 
 
 @pytest.fixture(autouse=True)

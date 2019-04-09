@@ -16,12 +16,12 @@
 set -e
 
 # Global variables
-PYTHON="python -E -s"
+PYTHON="python -Xutf8 -E -s"
 PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 
 build_installer() {
     echo ">>> Building the release package"
-    pyinstaller ndrive.spec --clean --noconfirm
+    ${PYTHON} -m PyInstaller ndrive.spec --clean --noconfirm
 
     # Do some clean-up
     ${PYTHON} tools/cleanup_application_tree.py dist/ndrive
@@ -40,6 +40,11 @@ build_installer() {
     find dist/ndrive -depth -type d -empty -delete
     if [ "${OSI}" = "osx" ]; then
         find dist/*.app -depth -type d -empty -delete
+    fi
+
+    # Stop now if we only want the application to be frozen (for integration tests)
+    if [ "${FREEZE_ONLY:=0}" = "1" ]; then
+        exit 0
     fi
 
     cd dist
@@ -180,12 +185,12 @@ start_nxdrive() {
     echo ">>> Starting Nuxeo Drive"
 
     export PYTHONPATH="${WORKSPACE_DRIVE}"
-    python -m nxdrive
+    ${PYTHON} -m nxdrive
 }
 
 verify_python() {
     local version="$1"
-    local cur_version=$(python --version 2>&1 | head -n 1 | awk '{print $2}')
+    local cur_version=$(${PYTHON} --version 2>&1 | head -n 1 | awk '{print $2}')
 
     echo ">>> Verifying Python version in use"
 
