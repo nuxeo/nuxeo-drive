@@ -13,14 +13,15 @@ param (
 	[switch]$install = $false,
 	[switch]$install_release = $false,
 	[switch]$start = $false,
-	[switch]$tests = $false
+	[switch]$tests = $false,
+	[switch]$tests_integration = $false
 )
 
 # Stop the execution on the first error
 $ErrorActionPreference = "Stop"
 
 # Global variables
-$global:PYTHON_OPT = "-E", "-s"
+$global:PYTHON_OPT = "-Xutf8", "-E", "-s"
 $global:PIP_OPT = "-m", "pip", "install", "--upgrade", "--upgrade-strategy=only-if-needed"
 
 # Imports
@@ -54,7 +55,7 @@ function build_installer {
 	sign_dlls
 
 	Write-Output ">>> [$app_version] Freezing the application"
-	& $Env:STORAGE_DIR\Scripts\pyinstaller ndrive.spec --noconfirm
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m PyInstaller ndrive.spec --noconfirm
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -62,6 +63,12 @@ function build_installer {
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\cleanup_application_tree.py "dist\ndrive"
 	add_missing_ddls
 	sign "dist\ndrive\ndrive.exe"
+
+	# Stop now if we only want the application to be frozen (for integration tests)
+	if ($Env:FREEZE_ONLY) {
+		ExitWithCode 0
+	}
+
 	zip_files "dist\nuxeo-drive-windows.zip" "dist\ndrive"
 
 	build "$app_version" "tools\windows\setup-addons.iss"
@@ -203,7 +210,7 @@ function install_python {
 
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-	& $Env:PYTHON_DIR\python.exe -m venv --copies "$Env:STORAGE_DIR"
+	& $Env:PYTHON_DIR\python.exe $global:PYTHON_OPT -m venv --copies "$Env:STORAGE_DIR"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -232,6 +239,16 @@ function launch_tests {
 
 	Write-Output ">>> Launching the tests suite"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $Env:SPECIFIC_TEST
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+
+	Write-Output ">>> Freezing the application for integration tests"
+	$Env.FREEZE_ONLY = 1
+	build_installer
+
+	Write-Output ">>> Launching integration tests"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pytest -n0 "tests/integration/windows"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -350,7 +367,7 @@ function sign_dlls {
 function start_nxdrive {
 	# Start Nuxeo Drive
 	$Env:PYTHONPATH = "$Env:WORKSPACE_DRIVE"
-	& $Env:STORAGE_DIR\Scripts\python.exe -m nxdrive
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m nxdrive
 }
 
 function zip_files($filename, $src) {
