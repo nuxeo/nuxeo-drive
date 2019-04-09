@@ -108,7 +108,7 @@ class Engine(QObject):
 
         # Stop if invalid credentials
         self.invalidAuthentication.connect(self.stop)
-        self.timeout = 30
+        self.timeout = Options.handshake_timeout
         self.manager = manager
 
         self.local_folder = Path(definition.local_folder)
@@ -465,10 +465,7 @@ class Engine(QObject):
         return self._dao.get_config("remote_token")
 
     def _create_queue_manager(self, processors: int) -> QueueManager:
-        kwargs = {}
-        if Options.debug:
-            kwargs["max_file_processors"] = 2
-
+        kwargs = {"max_file_processors": 2 if Options.debug else processors}
         return QueueManager(self, self._dao, **kwargs)
 
     def _create_remote_watcher(self, delay: int) -> RemoteWatcher:

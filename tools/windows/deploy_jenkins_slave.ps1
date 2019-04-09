@@ -13,8 +13,7 @@ param (
 	[switch]$install = $false,
 	[switch]$install_release = $false,
 	[switch]$start = $false,
-	[switch]$tests = $false,
-	[switch]$tests_integration = $false
+	[switch]$tests = $false
 )
 
 # Stop the execution on the first error
@@ -48,6 +47,11 @@ function build($app_version, $script) {
 	}
 }
 
+function build_dll($project, $platform) {
+	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\NuxeoDriveShellExtensions"
+	& $Env:MSBUILD_PATH\MSBuild.exe $folder\NuxeoDriveShellExtensions.sln /t:$project /p:Configuration=Release /p:Platform=$platform
+}
+
 function build_installer {
 	# Build the installer
 	$app_version = (Get-Content nxdrive/__init__.py) -match "__version__" -replace '"', "" -replace "__version__ = ", ""
@@ -79,6 +83,69 @@ function build_installer {
 
 	build "$app_version" "tools\windows\setup-admin.iss"
 	sign "dist\nuxeo-drive-$app_version-admin.exe"
+}
+
+function build_overlays {
+	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\NuxeoDriveShellExtensions"
+	$util_dll = "NuxeoDriveUtil"
+	$overlay_dll = "NuxeoDriveOverlays"
+
+	# List of DLLs to build
+	$overlays = @(
+		@{Name='NuxeoDriveSynced'; Id='1'; Icon='badge_synced'},
+		@{Name='NuxeoDriveSyncing'; Id='2'; Icon='badge_syncing'},
+		@{Name='NuxeoDriveConflicted'; Id='3'; Icon='badge_conflicted'},
+		@{Name='NuxeoDriveError'; Id='4'; Icon='badge_error'},
+		@{Name='NuxeoDriveLocked'; Id='5'; Icon='badge_locked'},
+		@{Name='NuxeoDriveUnsynced'; Id='6'; Icon='badge_unsynced'}
+	)
+
+	$x64Path = "%name%_x64.dll"
+	$Win32Path = "%name%_x86.dll"
+
+	if (-Not ($Env:MSBUILD_PATH)) {
+		$Env:MSBUILD_PATH = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin"
+	}
+	if (-Not (Test-Path -Path $Env:MSBUILD_PATH)) {
+		Write-Output ">>> No MSBuild.exe accessible"
+		ExitWithCode $lastExitCode
+	}
+
+	$OverlayConstants = "$folder\$overlay_dll\OverlayConstants.h"
+	$OverlayConstantsOriginal = "$OverlayConstants.original"
+	$Resources = "$folder\$overlay_dll\DriveOverlay.rc"
+	$ResourcesOriginal = "$Resources.original"
+
+	# Start build chain
+	">>> Building $util_dll DLL"
+	build_dll $util_dll "x64"
+	build_dll $util_dll "Win32"
+
+	foreach ($overlay in $overlays) {
+		$id = $overlay["Id"]
+		$name = $overlay["Name"]
+		$icon = $overlay["Icon"]
+
+		Write-Output ">>> Building $name DLL"
+		# Fill templates with the right data
+		(Get-Content $OverlayConstantsOriginal).replace('[$overlay.id$]', $id).replace('[$overlay.name$]', $name) | Set-Content $OverlayConstants
+		(Get-Content $ResourcesOriginal).replace('[$overlay.icon$]', $icon) | Set-Content $Resources
+
+		# Compile for x64 and Win32 and rename to the right status
+		build_dll $overlay_dll "x64"
+		build_dll $overlay_dll "Win32"
+
+		$Oldx64Name = $x64Path.replace('%name%', $overlay_dll)
+		$Newx64Name = $x64Path.replace('%name%', $name)
+		$OldWin32Name = $Win32Path.replace('%name%', $overlay_dll)
+		$NewWin32Name = $Win32Path.replace('%name%', $name)
+
+		Rename-Item -Path $folder\Release\x64\$Oldx64Name -NewName $Newx64Name
+		Rename-Item -Path $folder\Release\Win32\$OldWin32Name -NewName $NewWin32Name
+	}
+
+	# Delete everything that is not a DLL
+	Get-ChildItem -Path $folder\Release -Recurse -File -Exclude *.dll | Foreach ($_) {Remove-Item $_.Fullname}
 }
 
 function check_import($import) {
@@ -287,74 +354,6 @@ function sign($file) {
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-}
-
-function build_dll($project, $platform) {
-	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\NuxeoDriveShellExtensions"
-	& $Env:MSBUILD_PATH\MSBuild.exe $folder\NuxeoDriveShellExtensions.sln /t:$project /p:Configuration=Release /p:Platform=$platform
-}
-
-function build_overlays {
-	$folder = "$Env:WORKSPACE_DRIVE\tools\windows\NuxeoDriveShellExtensions"
-	$util_dll = "NuxeoDriveUtil"
-	$overlay_dll = "NuxeoDriveOverlays"
-
-	# List of DLLs to build
-	$overlays = @(
-		@{Name='NuxeoDriveSynced'; Id='1'; Icon='badge_synced'},
-		@{Name='NuxeoDriveSyncing'; Id='2'; Icon='badge_syncing'},
-		@{Name='NuxeoDriveConflicted'; Id='3'; Icon='badge_conflicted'},
-		@{Name='NuxeoDriveError'; Id='4'; Icon='badge_error'},
-		@{Name='NuxeoDriveLocked'; Id='5'; Icon='badge_locked'},
-		@{Name='NuxeoDriveUnsynced'; Id='6'; Icon='badge_unsynced'}
-	)
-
-	$x64Path = "%name%_x64.dll"
-	$Win32Path = "%name%_x86.dll"
-
-	if (-Not ($Env:MSBUILD_PATH)) {
-		$Env:MSBUILD_PATH = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin"
-	}
-	if (-Not (Test-Path -Path $Env:MSBUILD_PATH)) {
-		Write-Output ">>> No MSBuild.exe accessible"
-		ExitWithCode $lastExitCode
-	}
-
-	$OverlayConstants = "$folder\$overlay_dll\OverlayConstants.h"
-	$OverlayConstantsOriginal = "$OverlayConstants.original"
-	$Resources = "$folder\$overlay_dll\DriveOverlay.rc"
-	$ResourcesOriginal = "$Resources.original"
-
-	# Start build chain
-	">>> Building $util_dll DLL"
-	build_dll $util_dll "x64"
-	build_dll $util_dll "Win32"
-
-	foreach ($overlay in $overlays) {
-		$id = $overlay["Id"]
-		$name = $overlay["Name"]
-		$icon = $overlay["Icon"]
-
-		Write-Output ">>> Building $name DLL"
-		# Fill templates with the right data
-		(Get-Content $OverlayConstantsOriginal).replace('[$overlay.id$]', $id).replace('[$overlay.name$]', $name) | Set-Content $OverlayConstants
-		(Get-Content $ResourcesOriginal).replace('[$overlay.icon$]', $icon) | Set-Content $Resources
-
-		# Compile for x64 and Win32 and rename to the right status
-		build_dll $overlay_dll "x64"
-		build_dll $overlay_dll "Win32"
-
-		$Oldx64Name = $x64Path.replace('%name%', $overlay_dll)
-		$Newx64Name = $x64Path.replace('%name%', $name)
-		$OldWin32Name = $Win32Path.replace('%name%', $overlay_dll)
-		$NewWin32Name = $Win32Path.replace('%name%', $name)
-
-		Rename-Item -Path $folder\Release\x64\$Oldx64Name -NewName $Newx64Name
-		Rename-Item -Path $folder\Release\Win32\$OldWin32Name -NewName $NewWin32Name
-	}
-
-	# Delete everything that is not a DLL
-	Get-ChildItem -Path $folder\Release -Recurse -File -Exclude *.dll | Foreach ($_) {Remove-Item $_.Fullname}
 }
 
 function sign_dlls {

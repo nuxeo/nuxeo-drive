@@ -122,14 +122,14 @@ class CliHandler:
             "--debug",
             default=Options.debug,
             action="store_true",
-            help="Fire a debugger (ipdb or pdb) one uncaught error",
+            help="Fire a debugger one uncaught error and enable REST API parameter checks.",
         )
 
         common_parser.add_argument(
             "--nofscheck",
             default=Options.nofscheck,
             action="store_true",
-            help="Fire a debugger (ipdb or pdb) one uncaught error",
+            help="Disable the standard check for binding, to allow installation on network filesystem.",
         )
 
         common_parser.add_argument("--proxy-server", help="Define proxy server")
@@ -153,14 +153,6 @@ class CliHandler:
             default=Options.delay,
             type=int,
             help="Delay in seconds for remote polling",
-        )
-
-        common_parser.add_argument(
-            "--max-sync-step",
-            default=Options.max_sync_step,
-            type=int,
-            help="Number of consecutive sync operations to perform "
-            "without refreshing the internal state DB",
         )
 
         common_parser.add_argument(
@@ -469,8 +461,11 @@ class CliHandler:
 
         options = self.parse_cli(argv)
 
+        # Convert options that need to be Path
         if getattr(options, "local_folder", ""):
             options.local_folder = normalized_path(options.local_folder)
+        if getattr(options, "nxdrive_home", ""):
+            options.nxdrive_home = normalized_path(options.nxdrive_home)
 
         command = getattr(options, "command", "launch")
         handler = getattr(self, command, None)
