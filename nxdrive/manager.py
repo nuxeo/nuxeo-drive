@@ -3,7 +3,7 @@ import platform
 import uuid
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 from urllib.parse import urlparse, urlsplit, urlunsplit
 from weakref import CallableProxyType, proxy
 
@@ -92,13 +92,8 @@ class Manager(QObject):
 
         self._engine_definitions: List[EngineDef] = []
 
-        from .engine.next.engine_next import EngineNext
-
-        self._engine_types: Dict[str, Type[Engine]] = {
-            "NXDRIVE": Engine,
-            "NXDRIVENEXT": EngineNext,
-        }
-        self._engines: Dict[str, Union[Engine, EngineNext]] = {}
+        self._engine_types: Dict[str, Type[Engine]] = {"NXDRIVE": Engine}
+        self._engines: Dict[str, Engine] = {}
         self.server_config_updater: Optional[ServerOptionsUpdater] = None
         self.db_backup_worker: Optional[DatabaseBackupWorker] = None
 

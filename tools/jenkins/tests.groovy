@@ -25,7 +25,7 @@ properties([
         [$class: 'StringParameterDefinition',
             name: 'ENGINE',
             defaultValue: 'NXDRIVE',
-            description: 'The engine to use (another possible value is <code>NXDRIVENEXT</code>)'],
+            description: 'The engine to use.'],
         [$class: 'BooleanParameterDefinition',
             name: 'CLEAN_WORKSPACE',
             defaultValue: false,
