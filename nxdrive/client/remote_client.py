@@ -56,7 +56,7 @@ class Remote(Nuxeo):
         base_folder: str = None,
         dao: "EngineDAO" = None,
         repository: str = Options.remote_repo,
-        timeout: int = TIMEOUT,
+        timeout: int = Options.timeout,
         **kwargs: Any,
     ) -> None:
         auth = TokenAuth(token) if token else (user_id, password)

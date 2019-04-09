@@ -170,7 +170,6 @@ class MetaOptions(type):
         "log_level_console": ("WARNING", "default"),
         "log_level_file": ("INFO", "default"),
         "max_errors": (3, "default"),
-        "max_sync_step": (10, "default"),
         "nxdrive_home": (__home / ".nuxeo-drive", "default"),
         "nofscheck": (False, "default"),
         "protocol_url": (None, "default"),

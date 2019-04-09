@@ -699,9 +699,6 @@ class Application(QApplication):
         self.change_systray_icon()
 
     def init_checks(self) -> None:
-        if Options.debug:
-            self.show_debug_window()
-
         for _, engine in self.manager.get_engines().items():
             self._connect_engine(engine)
 

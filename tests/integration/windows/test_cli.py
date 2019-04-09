@@ -133,6 +133,7 @@ def test_argument_nxdrive_home(exe, tmp, folder):
         "--beta-update-site-url='http://example.org'",
         "--beta-channel",
         "--consider-ssl-errors",
+        "--max-sync-step=42",
         "--proxy-exceptions=unknwown",
         "--proxy-type=none",
     ],

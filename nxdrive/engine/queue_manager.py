@@ -11,6 +11,7 @@ from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 
 from .processor import Processor
 from ..objects import DocPair, Metrics
+from ..options import Options
 
 if TYPE_CHECKING:
     from .dao.sqlite import EngineDAO  # noqa
@@ -65,7 +66,7 @@ class QueueManager(QObject):
         self._local_file_thread = None
         self._remote_folder_thread = None
         self._remote_file_thread = None
-        self._error_threshold = 3
+        self._error_threshold = Options.max_errors
         self._error_interval = 60
         self.set_max_processors(max_file_processors)
         self._processors_pool: List[QThread] = list()

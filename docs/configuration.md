@@ -71,6 +71,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `beta-channel` | False (bool) | 4.0.2 | `channel` | release (str)
 | `consider-ssl-errors` | True (bool) | 4.0.1 | `ssl-no-verify` | False (bool)
 | `debug` | False (bool) | 4.0.0 | None | None
+| `max-sync-step` | 10 (int) | 4.1.3 | none | None
 | `proxy-exceptions` | None (str) | 4.0.0 | None | None
 | `proxy-type` | None (str) | 4.0.0 | None | None
 
