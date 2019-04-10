@@ -917,16 +917,17 @@ class PidLockFile:
     def _get_sync_pid_filepath(self, process_name: str = None) -> Path:
         if process_name is None:
             process_name = self.key
-        return self.folder / f"nxdrive_{process_name}.pid"
+        return safe_long_path(self.folder / f"nxdrive_{process_name}.pid")
 
     def unlock(self) -> None:
         if not self.locked:
             return
+
         # Clean pid file
         pid_filepath = self._get_sync_pid_filepath()
         try:
             pid_filepath.unlink()
-        except Exception as e:
+        except OSError as e:
             log.warning(
                 f"Failed to remove stalled PID file: {pid_filepath!r} "
                 f"for stopped process {os.getpid()}: {e!r}"
@@ -935,7 +936,7 @@ class PidLockFile:
     def check_running(self, process_name: str = None) -> Optional[int]:
         """Check whether another sync process is already runnning
 
-        If nxdrive.pid file already exists and the pid points to a running
+        If the lock file already exists and the pid points to a running
         nxdrive program then return the pid. Return None otherwise.
         """
 
@@ -944,29 +945,31 @@ class PidLockFile:
 
         if process_name is None:
             process_name = self.key
+
         pid_filepath = self._get_sync_pid_filepath(process_name=process_name)
-        if pid_filepath.exists():
-            pid = int(safe_long_path(pid_filepath).read_text().strip())
-            with suppress(ValueError, psutil.NoSuchProcess):
-                p = psutil.Process(pid)
-                # If process has been created after the lock file
-                # Changed from getctime() to getmtime() because of Windows
-                # file system tunneling
-                if p.create_time() > pid_filepath.stat().st_mtime:
-                    raise ValueError
-                return pid
-            pid = os.getpid()
+
+        if pid_filepath.is_file():
+            try:
+                pid = int(pid_filepath.read_text().strip())
+            except ValueError as exc:
+                log.warning(f"The PID file has invalid data: {exc}")
+                pid = None
+            else:
+                with suppress(ValueError, psutil.NoSuchProcess):
+                    # If process has been created after the lock file.
+                    # Changed from getctime() to getmtime() because of Windows
+                    # file system tunneling.
+                    if psutil.Process(pid).create_time() > pid_filepath.stat().st_mtime:
+                        raise ValueError()
+
+                    return pid
+
             # This is a pid file that is empty or pointing to either a
             # stopped process or a non-nxdrive process: let's delete it if
             # possible
             try:
                 pid_filepath.unlink()
-                if pid is None:
-                    msg = f"Removed old empty PID file {pid_filepath!r}"
-                else:
-                    msg = f"Removed old PID file {pid_filepath!r} for stopped process {pid}"
-                log.info(msg)
-            except Exception as e:
+            except OSError as e:
                 if pid is not None:
                     msg = (
                         f"Failed to remove stalled PID file: {pid_filepath!r} "
@@ -974,11 +977,19 @@ class PidLockFile:
                     )
                     log.warning(msg)
                     return pid
+
                 msg = (
                     f"Failed to remove empty stalled PID file {pid_filepath!r}: "
                     f"{e!r}"
                 )
                 log.warning(msg)
+            else:
+                if pid is None:
+                    msg = f"Removed old empty PID file {pid_filepath!r}"
+                else:
+                    msg = f"Removed old PID file {pid_filepath!r} for stopped process {pid}"
+                log.info(msg)
+
         self.locked = True
         return None
 
@@ -989,7 +1000,11 @@ class PidLockFile:
             return pid
 
         # Write the pid of this process
-        pid_filepath = self._get_sync_pid_filepath(process_name=self.key)
         pid = os.getpid()
-        safe_long_path(pid_filepath).write_text(str(pid))
+        if not isinstance(pid, int):
+            raise RuntimeError(f"Invalid PID: {pid!r}")
+
+        pid_filepath = self._get_sync_pid_filepath(process_name=self.key)
+        pid_filepath.write_text(str(pid))
+
         return None
