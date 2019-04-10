@@ -596,6 +596,12 @@ class Application(QApplication):
 
         self.filters_dlg = FiltersDialog(self, engine)
         self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
+
+        # Close the settings window at the same time of the filters one
+        if hasattr(self, "close_settings_too"):
+            self.filters_dlg.destroyed.connect(self.settings_window.close)
+            delattr(self, "close_settings_too")
+
         self.filters_dlg.show()
         self._show_window(self.settings_window)
 

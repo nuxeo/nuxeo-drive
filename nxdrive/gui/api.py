@@ -587,6 +587,9 @@ class QMLDriveApi(QObject):
             starts=False,
         )
 
+        # Flag to close the settings window when the filters dialog is closed
+        self.application.close_settings_too = True
+
         # Display the filters window to let the user choose what to sync
         self.filters_dialog(engine.uid)
         self.setMessage.emit("CONNECTION_SUCCESS", "success")
