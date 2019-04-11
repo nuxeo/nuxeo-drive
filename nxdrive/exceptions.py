@@ -129,6 +129,13 @@ class StartupPageConnectionError(DriveError):
     pass
 
 
+class TransferPaused(DriveError):
+    """ A transfer has been paused, the file's processing should stop. """
+
+    def __init__(self, transfer_id: int) -> None:
+        self.transfer_id = transfer_id
+
+
 class UnknownDigest(ValueError):
     """ The digest doesn't fit any known algorithms. """
 

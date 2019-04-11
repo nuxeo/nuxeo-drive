@@ -208,6 +208,37 @@ class QMLDriveApi(QObject):
                 result.append(action.export())
         return result
 
+    @pyqtSlot(result=list)
+    def get_transfers(self) -> List[Dict[str, Any]]:
+        result: List[Dict[str, Any]] = []
+
+        engines = self._manager.get_engines().values()
+
+        for engine in engines:
+            for transfer in engine.get_dao().get_transfers():
+                result.append(transfer.export())
+        return result
+
+    @pyqtSlot(str, str, float)
+    def pause_transfer(self, engine_uid: str, uid: int, progress: float) -> None:
+        log.warning(f"Pausing transfer for engine {engine_uid}, transfer {uid}")
+        engine = self._get_engine(engine_uid)
+        if not engine:
+            return
+        engine.get_dao().pause_transfer(uid, progress)
+
+    @pyqtSlot(str, str)
+    def resume_transfer(self, engine_uid: str, uid: int) -> None:
+        log.warning(f"Resume transfer for engine {engine_uid}, transfer {uid}")
+        engine = self._get_engine(engine_uid)
+        if not engine:
+            return
+        dao = engine.get_dao()
+        dao.resume_transfer(uid)
+        transfer = dao.get_transfer(uid=uid)
+        doc_pair = dao.get_state_from_id(transfer.doc_pair)
+        engine.get_queue_manager().push(doc_pair)
+
     @pyqtSlot(str, result=str)
     def get_threads(self, uid: str) -> str:
         engine = self._get_engine(uid)

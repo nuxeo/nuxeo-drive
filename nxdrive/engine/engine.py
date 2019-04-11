@@ -80,6 +80,7 @@ class Engine(QObject):
     newSync = pyqtSignal(object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
+    transferUpdated = pyqtSignal()
     offline = pyqtSignal()
     online = pyqtSignal()
 
@@ -170,6 +171,7 @@ class Engine(QObject):
         # Try to resolve conflict on startup
         for conflict in self._dao.get_conflicts():
             self.conflict_resolver(conflict.id, emit=False)
+        self._dao.transferUpdated.connect(self.transferUpdated)
 
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)

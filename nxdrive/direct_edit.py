@@ -693,7 +693,7 @@ class DirectEdit(Worker):
                     kwargs: Dict[str, Any] = {"applyVersioningPolicy": True}
                     cmd = "NuxeoDrive.AttachBlob"
                 else:
-                    kwargs = {"xpath": xpath}
+                    kwargs = {"xpath": xpath, "void_op": True}
                     cmd = "Blob.AttachOnDocument"
 
                 remote.upload(

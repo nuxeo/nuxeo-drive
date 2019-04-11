@@ -6,6 +6,7 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: control
     property variant fileData: model
+    property bool paused: status == "PAUSED"
     visible: progress > 0 && progress < 100
     width: parent.width; height: visible ? 55 : 0
 
@@ -13,22 +14,39 @@ Rectangle {
         anchors.fill: parent
         spacing: 0
 
-        ColumnLayout {
+        RowLayout {
             Layout.fillWidth: true; Layout.fillHeight: true
-            Layout.leftMargin: 20; Layout.rightMargin: 20
-            Layout.topMargin: 5
+            spacing: 10
 
-            ScaledText {
-                text: name
-                Layout.fillWidth: true
-                pointSize: 14
-                elide: Text.ElideRight
+            ColumnLayout {
+                Layout.fillWidth: true; Layout.fillHeight: true
+                Layout.leftMargin: 20; Layout.rightMargin: 20
+                Layout.topMargin: 5
+
+                ScaledText {
+                    text: name
+                    Layout.fillWidth: true
+                    pointSize: 14
+                    elide: Text.ElideRight
+                }
+
+                // RowLayout {
+                //     IconLabel {
+                //         size: 16
+                //         icon: transfer_type == "Upload" ? MdiFont.Icon.upload : MdiFont.Icon.download
+                //     }
+                // }
             }
 
-            RowLayout {
-                IconLabel {
-                    size: 16
-                    icon: last_transfer == "Upload" ? MdiFont.Icon.upload : MdiFont.Icon.download
+            IconLabel {
+                z: 20; Layout.alignment: Qt.AlignRight; Layout.rightMargin: 10
+                icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
+                onClicked: {
+                    if (paused) {
+                        api.resume_transfer(accountSelect.getRole("uid"), uid)
+                    } else {
+                        api.pause_transfer(accountSelect.getRole("uid"), uid, progress)
+                    }
                 }
             }
         }
