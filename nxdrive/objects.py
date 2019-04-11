@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from dateutil import parser
 from dateutil.tz import tzlocal
 
+from nxdrive.constants import TransferStatus
 from .exceptions import DriveError
 from .translator import Translator
 from .utils import get_date_from_sqlite, get_timestamp_from_date
@@ -398,3 +399,44 @@ class EngineDef(Row):
             if name == "local_folder":
                 return Path(self[name])
             return self[name]
+
+
+class Transfer(Row):
+    uid: int
+    path: Path
+    batch: str
+    idx: int
+    chunk_size: int
+    status: TransferStatus
+    progress: float
+    doc_pair: int
+
+    def __getattr__(self, name: str) -> Optional[Union[int, str, Path, TransferStatus]]:
+        with suppress(IndexError):
+            if name == "path":
+                return Path(self[name])
+            if name == "status":
+                return TransferStatus(self[name])
+            if name == "uid":
+                return self["id"]
+            return self[name]
+
+    def __repr__(self) -> str:
+        return (
+            f"<{type(self).__name__} "
+            f"batch={self.batch}, "
+            f"idx={self.idx}, "
+            f"status={self.status.name}>"
+        )
+
+    def export(self) -> Dict[str, Any]:
+        return {
+            "uid": self.uid,
+            "path": self.path,
+            "name": self.path.name,
+            "batch": self.batch,
+            "idx": self.idx,
+            "chunk_size": self.chunk_size,
+            "status": self.status.name,
+            "progress": self.progress or 0,
+        }

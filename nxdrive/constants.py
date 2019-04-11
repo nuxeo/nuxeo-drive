@@ -1,6 +1,6 @@
 # coding: utf-8
 import errno
-from enum import Enum
+from enum import Enum, auto
 from pathlib import Path
 from sys import platform
 
@@ -55,3 +55,12 @@ class DelAction(Enum):
     DEL_SERVER = "delete_server"
     UNSYNC = "unsync"
     ROLLBACK = "rollback"
+
+
+class TransferStatus(Enum):
+    """ Used to represent an upload/download status. """
+
+    ONGOING = auto()
+    PAUSED = auto()
+    CANCELLED = auto()
+    DONE = auto()

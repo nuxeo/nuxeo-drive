@@ -24,10 +24,10 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 from .utils import fix_db, restore_backup, save_backup
 from ...client.local_client import FileInfo
-from ...constants import NO_SPACE_ERRORS, ROOT, WINDOWS
+from ...constants import NO_SPACE_ERRORS, ROOT, WINDOWS, TransferStatus
 from ...exceptions import UnknownPairState
 from ...notification import Notification
-from ...objects import DocPair, DocPairs, Filters, RemoteFileInfo, EngineDef
+from ...objects import DocPair, DocPairs, Filters, RemoteFileInfo, EngineDef, Transfer
 
 if TYPE_CHECKING:
     from ..queue_manager import QueueManager  # noqa
@@ -592,6 +592,7 @@ class EngineDAO(ConfigurationDAO):
     _queue_manager: Optional["QueueManager"] = None
 
     newConflict = pyqtSignal(object)
+    transferUpdated = pyqtSignal()
 
     def __init__(self, db: Path, state_factory: Type[DocPair] = None) -> None:
         if state_factory:
@@ -605,7 +606,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 4
+        return 5
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -646,6 +647,22 @@ class EngineDAO(ConfigurationDAO):
             self._migrate_state(cursor)
             cursor.execute("UPDATE States SET creation_date = last_remote_updated")
             self.store_int(SCHEMA_VERSION, 4)
+        if version < 5:
+            self._migrate_state(cursor)
+            cursor.execute(
+                "CREATE TABLE if not exists Transfers ("
+                "    id         INTEGER     NOT NULL,"
+                "    path       INTEGER     UNIQUE,"
+                "    batch      VARCHAR,"
+                "    idx        INTEGER,"
+                "    chunk_size INTEGER,"
+                "    status     INTEGER,"
+                "    progress   REAL,"
+                "    doc_pair   INTEGER     UNIQUE,"
+                "    PRIMARY KEY (id)"
+                ")"
+            )
+            self.store_int(SCHEMA_VERSION, 5)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
@@ -1828,6 +1845,86 @@ class EngineDAO(ConfigurationDAO):
             c.execute("DELETE FROM Filters WHERE path LIKE ?", (f"{path}%",))
             self._filters = self.get_filters()
             self._items_count = self.get_syncing_count()
+
+    def get_transfers(self) -> List[Transfer]:
+        con = self._get_read_connection()
+        backup = con.row_factory
+        con.row_factory = Transfer
+        c = con.cursor()
+        try:
+            return c.execute("SELECT * FROM Transfers").fetchall()
+        finally:
+            con.row_factory = backup
+
+    def get_transfer(
+        self, uid: int = None, path: Path = None, doc_pair: int = None
+    ) -> Optional[Transfer]:
+        con = self._get_read_connection()
+        backup = con.row_factory
+        con.row_factory = Transfer
+        c = con.cursor()
+        if uid:
+            key, value = "id", uid
+        elif path:
+            key, value = "path", path
+        elif doc_pair:
+            key, value = "doc_pair", doc_pair
+        else:
+            return None
+        try:
+            return c.execute(
+                f"SELECT * FROM Transfers WHERE {key} = ?", (value,)
+            ).fetchone()
+        finally:
+            con.row_factory = backup
+
+    def set_transfer(
+        self,
+        path: Path,
+        batch: str,
+        index: int,
+        chunk_size: int,
+        status: TransferStatus,
+    ) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "REPLACE INTO Transfers (path, batch, idx, chunk_size, status) VALUES (?, ?, ?, ?, ?)",
+                (path, batch, index, chunk_size, status.value),
+            )
+        self.transferUpdated.emit()
+
+    def pause_transfer(self, uid: int, progress: float) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Transfers SET status = ?, progress = ? WHERE id = ?",
+                (TransferStatus.PAUSED.value, progress, uid),
+            )
+        self.transferUpdated.emit()
+
+    def resume_transfer(self, uid: int) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Transfers SET status = ? WHERE id = ?",
+                (TransferStatus.ONGOING.value, uid),
+            )
+        self.transferUpdated.emit()
+
+    def set_transfer_doc(self, transfer_id: int, doc_pair_id: int) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Transfers SET doc_pair = ? WHERE id = ?",
+                (doc_pair_id, transfer_id),
+            )
+
+    def remove_transfer(self, path: Path) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute("DELETE FROM Transfers WHERE path = ?", (path,))
+        self.transferUpdated.emit()
 
     @staticmethod
     def _escape(text: str) -> str:

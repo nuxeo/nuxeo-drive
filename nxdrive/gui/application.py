@@ -61,7 +61,7 @@ from ..utils import (
 )
 from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
-from .view import EngineModel, FileModel, LanguageModel, ActionModel
+from .view import EngineModel, FileModel, LanguageModel, TransferModel
 
 if MAC:
     from ..osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
@@ -161,7 +161,7 @@ class Application(QApplication):
         self.conflicts_model = FileModel()
         self.errors_model = FileModel()
         self.engine_model = EngineModel(self)
-        self.action_model = ActionModel()
+        self.transfer_model = TransferModel()
         self.file_model = FileModel()
         self.ignoreds_model = FileModel()
         self.language_model = LanguageModel()
@@ -227,6 +227,7 @@ class Application(QApplication):
         if self.manager.get_engines():
             current_uid = self.engine_model.engines_uid[0]
             self.get_last_files(current_uid)
+            self.refresh_transfers()
             self.update_status(self.manager._engines[current_uid])
 
         self.manager.updater.updateAvailable.connect(
@@ -236,17 +237,17 @@ class Application(QApplication):
             self._window_root(self.systray_window).updateProgress
         )
 
-    @pyqtSlot(Action)
-    def action_started(self, action: Action) -> None:
-        self.refresh_actions()
+    # @pyqtSlot(Action)
+    # def action_started(self, action: Action) -> None:
+    #     self.refresh_transfers()
 
     @pyqtSlot(Action)
     def action_progressing(self, action: Action) -> None:
-        self.action_model.set_progress(action.export())
+        self.transfer_model.set_progress(action.export())
 
-    @pyqtSlot(Action)
-    def action_done(self, action: Action) -> None:
-        self.refresh_actions()
+    # @pyqtSlot(Action)
+    # def action_done(self, action: Action) -> None:
+    #     self.refresh_transfers()
 
     def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
         if not engines:
@@ -264,7 +265,7 @@ class Application(QApplication):
         context.setContextProperty("ConflictsModel", self.conflicts_model)
         context.setContextProperty("ErrorsModel", self.errors_model)
         context.setContextProperty("EngineModel", self.engine_model)
-        context.setContextProperty("ActionModel", self.action_model)
+        context.setContextProperty("TransferModel", self.transfer_model)
         context.setContextProperty("FileModel", self.file_model)
         context.setContextProperty("IgnoredsModel", self.ignoreds_model)
         context.setContextProperty("languageModel", self.language_model)
@@ -735,6 +736,7 @@ class Application(QApplication):
         engine.docDeleted.connect(self._doc_deleted)
         engine.fileAlreadyExists.connect(self._file_already_exists)
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
+        engine.transferUpdated.connect(self.refresh_transfers)
         self.change_systray_icon()
 
     def init_checks(self) -> None:
@@ -1284,9 +1286,17 @@ class Application(QApplication):
     @pyqtSlot()
     def refresh_actions(self) -> None:
         actions = self.api.get_actions()
-        if actions != self.action_model.actions:
-            self.action_model.set_actions(actions)
-        self.action_model.fileChanged.emit()
+        if actions != self.transfer_model.actions:
+            self.transfer_model.set_actions(actions)
+        self.transfer_model.fileChanged.emit()
+
+    @pyqtSlot()
+    def refresh_transfers(self) -> None:
+        transfers = self.api.get_transfers()
+        log.info(transfers)
+        if transfers != self.transfer_model.actions:
+            self.transfer_model.set_actions(transfers)
+        self.transfer_model.fileChanged.emit()
 
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:
@@ -1311,7 +1321,7 @@ class Application(QApplication):
         dialog = QDialog()
         dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", [APP_NAME]))
         dialog.setWindowIcon(self.icon)
-        dialog.setStyleSheet("background-color: #ffffff;")
+        # dialog.setStyleSheet("background-color: #ffffff;")
         layout = QVBoxLayout()
 
         info = QLabel(tr("SHARE_METRICS_MSG", [COMPANY]))

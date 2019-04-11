@@ -174,11 +174,11 @@ Rectangle {
                     id: actions
                     width: parent.width; height: contentHeight
                     spacing: 15
-                    visible: ActionModel.count > 0
+                    visible: TransferModel.count > 0
                     interactive: false
                     highlight: Rectangle { color: lighterGray }
 
-                    model: ActionModel
+                    model: TransferModel
                     delegate: SystrayAction {}
                 }
 

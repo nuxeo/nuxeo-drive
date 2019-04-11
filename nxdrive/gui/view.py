@@ -129,6 +129,88 @@ class EngineModel(QAbstractListModel):
         self.statusChanged.emit(engine)
 
 
+class TransferModel(QAbstractListModel):
+    fileChanged = pyqtSignal()
+
+    ID = Qt.UserRole + 1
+    NAME = Qt.UserRole + 2
+    STATUS = Qt.UserRole + 3
+    PROGRESS = Qt.UserRole + 4
+
+    def __init__(self, parent: QObject = None) -> None:
+        super(TransferModel, self).__init__(parent)
+        self.actions: List[Dict[str, Any]] = []
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return {
+            self.ID: b"uid",
+            self.NAME: b"name",
+            self.STATUS: b"status",
+            self.PROGRESS: b"progress",
+        }
+
+    @pyqtProperty("int", notify=fileChanged)
+    def count(self):
+        return self.rowCount()
+
+    def rowCount(self, parent: QModelIndex = QModelIndex(), **kwargs: Any) -> int:
+        return len(self.actions)
+
+    def add_action(
+        self, action: Dict[str, Any], parent: QModelIndex = QModelIndex()
+    ) -> None:
+        self.beginInsertRows(parent, 0, 0)
+        self.actions.insert(0, action)
+        self.fileChanged.emit()
+        self.endInsertRows()
+
+    def set_actions(
+        self, actions: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+    ) -> None:
+        self.beginRemoveRows(parent, 0, len(self.actions) - 1)
+        self.actions.clear()
+        self.endRemoveRows()
+        self.beginInsertRows(parent, 0, len(actions) - 1)
+        self.actions.extend(actions)
+        self.fileChanged.emit()
+        self.endInsertRows()
+
+    def data(self, index: QModelIndex, role: int = NAME) -> Any:
+        row = self.actions[index.row()]
+        if role == self.ID:
+            return row["uid"]
+        elif role == self.NAME:
+            return row["name"]
+        elif role == self.STATUS:
+            return row["status"]
+        elif role == self.PROGRESS:
+            return row["progress"]
+        return ""
+
+    def headerData(self, p_int, Qt_Orientation, role=None):
+        return ""
+
+    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+        if role is None:
+            return
+        key = force_decode(self.roleNames()[role])
+        self.actions[index.row()][key] = value
+        self.dataChanged.emit(index, index, [role])
+
+    def setHeaderData(self, p_int, Qt_Orientation, Any, role=None):
+        pass
+
+    @pyqtSlot(dict)
+    def set_progress(self, action: Dict[str, Any]) -> None:
+        for i, item in enumerate(self.actions):
+            if str(item["path"]) == action["filepath"]:
+                self.setData(self.createIndex(i, 0), action["progress"], self.PROGRESS)
+                break
+
+    def flags(self, index: QModelIndex):
+        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+
 class ActionModel(QAbstractListModel):
     fileChanged = pyqtSignal()
 

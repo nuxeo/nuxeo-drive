@@ -23,6 +23,7 @@ from ..constants import (
     NO_SPACE_ERRORS,
     UNACCESSIBLE_HASH,
     WINDOWS,
+    TransferStatus,
 )
 from ..exceptions import (
     DuplicationDisabledError,
@@ -31,6 +32,7 @@ from ..exceptions import (
     ParentNotSynced,
     ThreadInterrupt,
     UnknownDigest,
+    TransferPaused,
 )
 from ..objects import DocPair, RemoteFileInfo
 from ..utils import (
@@ -242,6 +244,10 @@ class Processor(EngineWorker):
                     # in the current synchronization
                     doc_pair.local_parent_path = parent_pair.local_path
 
+                transfer = self.engine.get_dao().get_transfer(doc_pair=doc_pair.id)
+                if transfer and transfer.status is not TransferStatus.ONGOING:
+                    continue
+
                 handler_name = f"_synchronize_{doc_pair.pair_state}"
                 sync_handler = getattr(self, handler_name, None)
                 if not sync_handler:
@@ -310,8 +316,12 @@ class Processor(EngineWorker):
                     continue
                 except UploadError as exc:
                     log.info(exc)
-                    log.warning(f"Delaying conflicted document: {doc_pair!r}")
+                    log.warning(f"Delaying failed upload: {doc_pair!r}")
                     self._postpone_pair(doc_pair, "Upload")
+                except TransferPaused as exc:
+                    log.info(exc)
+                    self.engine.get_dao().set_transfer_doc(exc.transfer_id, doc_pair.id)
+                    # self._postpone_pair(doc_pair, "PAUSED")
                 except DuplicationDisabledError:
                     self.giveup_error(doc_pair, "DEDUP")
                     continue
