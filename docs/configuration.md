@@ -36,32 +36,32 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 
 ### Available Parameters
 
-| Parameter | Default Value | Type | Description
-|---|---|---|---
-| `ca-bundle` | None | str | File or directory with certificates of trusted CAs. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
-| `chunk_limit` | 20 | int | Size in Mio above which files will be uploaded in chunks (if `chunk_upload` is `True`). Has to be above 0.
-| `chunk_size` | 20 | int | Size of the chunks in Mio. Has to be above 0 and lower or equal to 20.
-| `chunk_upload` | True | bool | Activate the upload in chunks for files bigger than `chunk_limit`.
-| `debug` | False | bool | Activate the debug window, and debug mode.
-| `delay` | 30 | int | Define the delay before each remote check.
-| `force-locale` | None | str | Force the reset to the language.
-| `handshake-timeout` | 60 | int | Define the handshake timeout.
-| `ignored_files` | ... | list | File names to ignore while syncing.
-| `ignored_prefixes` | ... | list | File prefixes to ignore while syncing.
-| `ignored_suffixes` | ... | list | File suffixes to ignore while syncing.
-| `locale` | en | str | Set up the language if not already defined. This can also be set up by the user from the Settings window.
-| `log-filename` | None | str | The name of the log file.
-| `log-level-console` | WARNING | str | Define level for console log. Can be DEBUG, INFO, WARNING, ERROR. TRACE level has been deprecated since 4.1.0, and will be treated as DEBUG.
-| `log-level-file` | INFO | str | Define level for file log. Can be DEBUG, INFO, WARNING, ERROR. TRACE level has been deprecated since 4.1.0, and will be treated as DEBUG.
-| `max-errors` | 3 | int | Define the maximum number of retries before considering the file as in error.
-| `nofscheck` | False | bool | Disable the standard check for binding, to allow installation on network filesystem.
-| `proxy-server` | None | str | Define the address of the proxy server (e.g. `http://proxy.example.com:3128`). This can also be set up by the user from the Settings window.
-| `ssl-no-verify` | False | bool | Define if SSL errors should be ignored. Highly unadvised to enable this option.
-| `timeout` | 30 | int | Define the socket timeout.
-| `update-check-delay` | 3600 | int | Define the auto-update check delay. 0 means disabled.
-| `update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) | str | Configure a custom update website. See Nuxeo Drive Update Site for more details.
-| `use-analytics` | False | bool | Share anonymous usage analytics to help the developers build the best experience for you.
-| `use-sentry` | True | bool | Allow sharing error reports when something unusual happen.
+| Parameter | Default Value | Type | Version Added | Description
+|---|---|---|---|---
+| `ca-bundle` | None | str | 4.0.2 | File or directory with certificates of trusted CAs. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
+| `channel` | release | str | 4.0.2 | Update channel. Can be release, beta or alpha.
+| `chunk_limit` | 20 | int | 4.1.2 | Size in Mio above which files will be uploaded in chunks (if `chunk_upload` is `True`). Has to be above 0.
+| `chunk_size` | 20 | int | 4.1.2 | Size of the chunks in Mio. Has to be above 0 and lower or equal to 20.
+| `chunk_upload` | True | bool | 4.1.2 | Activate the upload in chunks for files bigger than `chunk_limit`.
+| `delay` | 30 | int | 2 | Define the delay before each remote check.
+| `force-locale` | None | str | 2 | Force the reset to the language.
+| `handshake-timeout` | 60 | int | 2 | Define the handshake timeout.
+| `ignored-files` | ... | list | 2.4.1 | File names to ignore while syncing.
+| `ignored-prefixes` | ... | list | 2.4.1 | File prefixes to ignore while syncing.
+| `ignored-suffixes` | ... | list | 2.4.1 | File suffixes to ignore while syncing.
+| `locale` | en | str | 2 | Set up the language if not already defined. This can also be set up by the user from the Settings window.
+| `log-filename` | None | str | 2 | The name of the log file.
+| `log-level-console` | WARNING | str | 2 | Define level for console log. Can be DEBUG, INFO, WARNING, ERROR. TRACE level has been deprecated since 4.1.0, and will be treated as DEBUG.
+| `log-level-file` | INFO | str | 2 | Define level for file log. Can be DEBUG, INFO, WARNING, ERROR. TRACE level has been deprecated since 4.1.0, and will be treated as DEBUG.
+| `max-errors` | 3 | int | 2 | Define the maximum number of retries before considering the file as in error.
+| `nofscheck` | False | bool | 2.0.911 | Disable the standard check for binding, to allow installation on network filesystem.
+| `proxy-server` | None | str | 2 | Define the address of the proxy server (e.g. `http://proxy.example.com:3128`). This can also be set up by the user from the Settings window.
+| `ssl-no-verify` | False | bool | 4.0.1 | Define if SSL errors should be ignored. Highly unadvised to enable this option.
+| `timeout` | 30 | int | 2 | Define the socket timeout.
+| `update-check-delay` | 3600 | int | 2 | Define the auto-update check delay. 0 means disabled.
+| `update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) | str | 2 | Configure a custom update website. See Nuxeo Drive Update Site for more details.
+| `use-analytics` | False | bool | 4.1.0 | Share anonymous usage analytics to help the developers build the best experience for you.
+| `use-sentry` | True | bool | 4.1.0 | Allow sharing error reports when something unusual happen.
 
 ### Obsolete Parameters
 
@@ -71,7 +71,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `beta-channel` | False (bool) | 4.0.2 | `channel` | release (str)
 | `consider-ssl-errors` | True (bool) | 4.0.1 | `ssl-no-verify` | False (bool)
 | `debug` | False (bool) | 4.0.0 | None | None
-| `max-sync-step` | 10 (int) | 4.1.3 | none | None
+| `max-sync-step` | 10 (int) | 4.1.3 | None | None
 | `proxy-exceptions` | None (str) | 4.0.0 | None | None
 | `proxy-type` | None (str) | 4.0.0 | None | None
 
