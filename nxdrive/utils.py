@@ -950,7 +950,7 @@ class PidLockFile:
 
         if pid_filepath.is_file():
             try:
-                pid = int(pid_filepath.read_text().strip())
+                pid: Optional[int] = int(pid_filepath.read_text().strip())
             except ValueError as exc:
                 log.warning(f"The PID file has invalid data: {exc}")
                 pid = None
