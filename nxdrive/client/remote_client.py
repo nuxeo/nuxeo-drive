@@ -25,6 +25,7 @@ from ..constants import (
     TIMEOUT,
     TOKEN_PERMISSION,
     TX_TIMEOUT,
+    BATCH_SIZE,
 )
 from ..engine.activity import Action, FileAction
 from ..exceptions import Forbidden, NotFound
@@ -355,7 +356,7 @@ class Remote(Nuxeo):
         return infos
 
     def scroll_descendants(
-        self, fs_item_id: str, scroll_id: Optional[str], batch_size: int = 100
+        self, fs_item_id: str, scroll_id: Optional[str], batch_size: int = BATCH_SIZE
     ) -> Dict[str, Any]:
         res = self.execute(
             command="NuxeoDrive.ScrollDescendants",
