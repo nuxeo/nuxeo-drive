@@ -218,6 +218,16 @@ class TestSynchronization(OneUserTest):
         assert local.exists("/Folder 2")
         assert local.exists("/File 5.txt")
 
+    def test_docpair_export(self):
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        dao = self.engine_1.get_dao()
+        children = dao.get_local_children("/")
+        assert children
+        doc_pair = children[0]
+        assert doc_pair.export()
+
     def test_synchronization_skip_errors(self):
         local = self.local_1
         dao = self.engine_1.get_dao()

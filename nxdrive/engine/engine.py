@@ -181,6 +181,36 @@ class Engine(QObject):
             f"uid={self.uid!r}, type={self.type!r}>"
         )
 
+    def export(self) -> Dict[str, Any]:
+        bind = self.get_binder()
+        return {
+            "uid": self.uid,
+            "type": self.type,
+            "name": self.name,
+            "offline": self.is_offline(),
+            "metrics": self.get_metrics(),
+            "started": self.is_started(),
+            "syncing": self.is_syncing(),
+            "paused": self.is_paused(),
+            "local_folder": str(self.local_folder),
+            "queue": self.get_queue_manager().get_metrics(),
+            "web_authentication": bind.web_authentication,
+            "server_url": bind.server_url,
+            "default_ui": self.wui,
+            "ui": self.force_ui or self.wui,
+            "username": bind.username,
+            "need_password_update": bind.pwd_update_required,
+            "initialized": bind.initialized,
+            "server_version": bind.server_version,
+            "threads": self._get_threads(),
+        }
+
+    def _get_threads(self) -> List[Dict[str, Any]]:
+        result = []
+        for thread in self.get_threads():
+            result.append(thread.worker.export())
+        return result
+
     @pyqtSlot(object)
     def _check_sync_start(self, row_id: str = None) -> None:
         if not self._sync_started:

@@ -6,12 +6,16 @@ from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
 from sqlite3 import Row
+from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from dataclasses import dataclass
 from dateutil import parser
+from dateutil.tz import tzlocal
 
 from .exceptions import DriveError
+from .translator import Translator
+from .utils import get_date_from_sqlite, get_timestamp_from_date
 
 # Settings passed to Manager.bind_server()
 Binder = namedtuple(
@@ -326,6 +330,39 @@ class DocPair(Row):
             if name == "remote_ref":
                 return self[name] or ""
             return self[name]
+
+    def export(self) -> Dict[str, Any]:
+        result: Dict[str, Any] = {
+            "state": self.pair_state,
+            "last_sync_date": "",
+            "last_sync_direction": "upload",
+            "name": self.local_name or self.remote_name,
+            "remote_name": self.remote_name,
+            "last_error": self.last_error,
+            "local_path": str(self.local_path),
+            "local_parent_path": str(self.local_parent_path),
+            "remote_ref": self.remote_ref,
+            "folderish": self.folderish,
+            "id": self.id,
+        }
+
+        if self.last_local_updated or "" > self.last_remote_updated or "":
+            result["last_sync_direction"] = "download"
+        result["last_transfer"] = self.last_transfer or result["last_sync_direction"]
+
+        # Last sync in sec
+        current_time = int(time())
+        date_time = get_date_from_sqlite(self.last_sync_date)
+        sync_time = get_timestamp_from_date(date_time)
+        result["last_sync"] = current_time - sync_time
+
+        if date_time:
+            # As date_time is in UTC
+            result["last_sync_date"] = Translator.format_datetime(
+                date_time + tzlocal().utcoffset(date_time)  # type: ignore
+            )
+
+        return result
 
     def is_readonly(self) -> bool:
         if self.folderish:

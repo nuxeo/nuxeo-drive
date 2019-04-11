@@ -3,7 +3,7 @@ from contextlib import suppress
 from logging import getLogger
 from threading import current_thread
 from time import sleep, time
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
 
@@ -44,6 +44,16 @@ class Worker(QObject):
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} id={self.thread_id}>"
+
+    def export(self) -> Dict[str, Any]:
+        action = self.action
+        return {
+            "action": action.export() if action else None,
+            "thread_id": self.thread_id,
+            "name": self._name,
+            "paused": self.is_paused(),
+            "started": self.is_started(),
+        }
 
     def is_started(self) -> bool:
         return self._continue

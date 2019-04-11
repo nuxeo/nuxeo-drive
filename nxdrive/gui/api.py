@@ -1,17 +1,13 @@
 # coding: utf-8
-import calendar
 import json
-from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from os import getenv
 from os.path import abspath
-from time import time
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
 import requests
-from dateutil.tz import tzlocal
 from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
@@ -20,7 +16,6 @@ from ..client.proxy import get_proxy
 from ..constants import APP_NAME, TOKEN_PERMISSION
 from ..engine.activity import Action, FileAction
 from ..engine.engine import Engine
-from ..engine.workers import Worker
 from ..exceptions import (
     FolderAlreadyUsed,
     InvalidDriveException,
@@ -36,6 +31,7 @@ from ..translator import Translator
 from ..updater.constants import Login
 from ..utils import (
     force_decode,
+    get_date_from_sqlite,
     get_device,
     get_default_nuxeo_drive_folder,
     guess_server_url,
@@ -70,139 +66,41 @@ class QMLDriveApi(QObject):
         export = getattr(obj, "export", None)
         if callable(export):
             return export()
-
-        if isinstance(obj, Engine):
-            return self._export_engine(obj)
-        if isinstance(obj, Notification):
-            return self._export_notification(obj)
-        if isinstance(obj, DocPair):
-            return self._export_state(obj)
-        if isinstance(obj, Worker):
-            return self._export_worker(obj)
-        return obj
+        else:
+            log.error(f"Object {obj} has no export() method.")
+            return obj
 
     def _json(self, obj: Any) -> Any:
         # Avoid to fail on non serializable object
         return json.dumps(obj, default=self._json_default)
 
-    def _export_engine(self, engine: Engine) -> Dict[str, Any]:
-        if not engine:
-            return {}
-
-        bind = engine.get_binder()
-        return {
-            "uid": engine.uid,
-            "type": engine.type,
-            "name": engine.name,
-            "offline": engine.is_offline(),
-            "metrics": engine.get_metrics(),
-            "started": engine.is_started(),
-            "syncing": engine.is_syncing(),
-            "paused": engine.is_paused(),
-            "local_folder": str(engine.local_folder),
-            "queue": engine.get_queue_manager().get_metrics(),
-            "web_authentication": bind.web_authentication,
-            "server_url": bind.server_url,
-            "default_ui": engine.wui,
-            "ui": engine.force_ui or engine.wui,
-            "username": bind.username,
-            "need_password_update": bind.pwd_update_required,
-            "initialized": bind.initialized,
-            "server_version": bind.server_version,
-            "threads": self._get_threads(engine),
-        }
-
-    def get_date_from_sqlite(self, d: str) -> Optional[datetime]:
-        format_date = "%Y-%m-%d %H:%M:%S"
-        try:
-            return datetime.strptime(str(d.split(".")[0]), format_date)
-        except BaseException:
-            return None
-
-    def get_timestamp_from_date(self, d: datetime = None) -> int:
-        if not d:
-            return 0
-        return int(calendar.timegm(d.timetuple()))
-
-    def _export_state(self, state: DocPair = None) -> Dict[str, Any]:
-        if state is None:
-            return {}
-
-        result: Dict[str, Any] = dict(
-            state=state.pair_state, last_sync_date="", last_sync_direction="upload"
-        )
-
-        # Last sync in sec
-        current_time = int(time())
-        date_time = self.get_date_from_sqlite(state.last_sync_date)
-        sync_time = self.get_timestamp_from_date(date_time)
-        if state.last_local_updated or "" > state.last_remote_updated or "":
-            result["last_sync_direction"] = "download"
-        result["last_sync"] = current_time - sync_time
-        if date_time:
-            # As date_time is in UTC
-            result["last_sync_date"] = Translator.format_datetime(
-                date_time + tzlocal().utcoffset(date_time)  # type: ignore
-            )
-
-        result["name"] = state.local_name
-        if state.local_name is None:
-            result["name"] = state.remote_name
-        result["remote_name"] = state.remote_name
-        result["last_error"] = state.last_error
-        result["local_path"] = str(state.local_path)
-        result["local_parent_path"] = str(state.local_parent_path)
-        result["remote_ref"] = state.remote_ref
-        result["folderish"] = state.folderish
-        result["last_transfer"] = state.last_transfer
-        if result["last_transfer"] is None:
-            result["last_transfer"] = result["last_sync_direction"]
-        result["id"] = state.id
-        return result
-
     def _export_formatted_state(
         self, uid: str, state: DocPair = None
     ) -> Dict[str, Any]:
-        engine = self._get_engine(uid)
-        if not state or not engine:
+        if not state:
             return {}
 
-        result = self._export_state(state)
+        engine = self._get_engine(uid)
+        if not engine:
+            return {}
+
+        result = state.export()
         result["last_contributor"] = (
             ""
             if state.last_remote_modifier is None
             else engine.get_user_full_name(state.last_remote_modifier, cache_only=True)
         )
-        date_time = self.get_date_from_sqlite(state.last_remote_updated)
+        date_time = get_date_from_sqlite(state.last_remote_updated)
         result["last_remote_update"] = (
             Translator.format_datetime(date_time) if date_time else ""
         )
-        date_time = self.get_date_from_sqlite(state.last_local_updated)
+        date_time = get_date_from_sqlite(state.last_local_updated)
         result["last_local_update"] = (
             Translator.format_datetime(date_time) if date_time else ""
         )
         result["remote_can_update"] = state.remote_can_update
         result["remote_can_rename"] = state.remote_can_rename
         result["last_error_details"] = state.last_error_details or ""
-        return result
-
-    def _export_worker(self, worker: Worker) -> Dict[str, Any]:
-        result: Dict[str, Any] = dict()
-        action = worker.action
-        if action is None:
-            result["action"] = None
-        else:
-            result["action"] = action.export()
-        result["thread_id"] = worker.thread_id
-        result["name"] = worker._name
-        result["paused"] = worker.is_paused()
-        result["started"] = worker.is_started()
-        return result
-
-    def _get_threads(self, engine: Engine) -> List[Dict[str, Any]]:
-        result = []
-        for thread in engine.get_threads():
-            result.append(self._export_worker(thread.worker))
         return result
 
     def _get_engine(self, uid: str) -> Optional[Engine]:
@@ -217,7 +115,7 @@ class QMLDriveApi(QObject):
         result = []
         if engine is not None:
             for state in engine.get_last_files(number, direction, duration):
-                result.append(self._export_state(state))
+                result.append(state.export())
         return result
 
     @pyqtSlot(str, result=int)
@@ -262,23 +160,10 @@ class QMLDriveApi(QObject):
     def discard_notification(self, id_) -> None:
         self._manager.notification_service.discard_notification(id_)
 
-    @staticmethod
-    def _export_notification(notif: Notification) -> Dict[str, Any]:
-        return {
-            "level": notif.level,
-            "uid": notif.uid,
-            "title": notif.title,
-            "description": notif.description,
-            "discardable": notif.is_discardable(),
-            "discard": notif.is_discard(),
-            "systray": notif.is_systray(),
-            "replacements": notif.get_replacements(),
-        }
-
     def _export_notifications(
         self, notifs: Dict[str, Notification]
     ) -> List[Dict[str, Any]]:
-        return [self._export_notification(notif) for notif in notifs.values()]
+        return [notif.export() for notif in notifs.values()]
 
     @pyqtSlot(str, result=str)
     def get_notifications(self, engine_uid: str) -> str:
@@ -327,7 +212,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, result=str)
     def get_threads(self, uid: str) -> str:
         engine = self._get_engine(uid)
-        return self._json(self._get_threads(engine) if engine else [])
+        return self._json(engine._get_threads() if engine else [])
 
     @pyqtSlot(str, str)
     def show_metadata(self, uid: str, ref: str) -> None:
