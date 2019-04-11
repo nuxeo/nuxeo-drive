@@ -11,7 +11,7 @@ from requests import ConnectionError, Timeout
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
-from ...constants import ROOT, WINDOWS
+from ...constants import BATCH_SIZE, ROOT, WINDOWS
 from ...exceptions import Forbidden, NotFound, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
 from ...utils import current_milli_time, safe_filename
@@ -221,7 +221,6 @@ class RemoteWatcher(EngineWorker):
 
         to_process = []
         scroll_id = None
-        batch_size = 100
         t1 = None
 
         while "Scrolling":
@@ -235,11 +234,11 @@ class RemoteWatcher(EngineWorker):
 
             # Scroll through a batch of descendants
             log.debug(
-                f"Scrolling through at most [{batch_size}] descendants "
+                f"Scrolling through at most [{BATCH_SIZE}] descendants "
                 f"of {remote_info.name!r} ({remote_info.uid})"
             )
             scroll_res = self.engine.remote.scroll_descendants(
-                remote_info.uid, scroll_id, batch_size=batch_size
+                remote_info.uid, scroll_id, batch_size=BATCH_SIZE
             )
             t1 = datetime.now()
             elapsed = self._get_elapsed_time_milliseconds(t0, t1)
@@ -247,13 +246,13 @@ class RemoteWatcher(EngineWorker):
             if not descendants_info:
                 log.debug(
                     "Remote scroll request retrieved no descendants "
-                    f"of {remote_info.name!r} ({remote_info.uid}), took {elapsed} ms"
+                    f"for {remote_info.name!r} ({remote_info.uid}), took {elapsed} ms"
                 )
                 break
 
             log.debug(
                 f"Remote scroll request retrieved {len(descendants_info)} descendants "
-                f"of {remote_info.name!r} ({remote_info.uid}), took {elapsed} ms"
+                f"for {remote_info.name!r} ({remote_info.uid}), took {elapsed} ms"
             )
             scroll_id = scroll_res["scroll_id"]
 
@@ -292,6 +291,10 @@ class RemoteWatcher(EngineWorker):
                     continue
 
                 self._find_remote_child_match_or_create(parent_pair, descendant_info)
+
+            if len(descendants_info) < BATCH_SIZE:
+                log.debug(f"Less descendants than {BATCH_SIZE}, finishing scroll.")
+                break
 
             # Check if synchronization thread was suspended
             self._interact()
