@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from logging import getLogger
 from threading import Lock
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -85,6 +85,18 @@ class Notification:
             self.uid = uid
         elif uuid:
             self.uid = uuid
+
+    def export(self) -> Dict[str, Any]:
+        return {
+            "level": self.level,
+            "uid": self.uid,
+            "title": self.title,
+            "description": self.description,
+            "discardable": self.is_discardable(),
+            "discard": self.is_discard(),
+            "systray": self.is_systray(),
+            "replacements": self.get_replacements(),
+        }
 
     def is_remove_on_discard(self) -> bool:
         return bool(self.flags & Notification.FLAG_REMOVE_ON_DISCARD)

@@ -6,6 +6,7 @@ to speed-up command line calls without loading everything at startup.
 import os
 import re
 import stat
+from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from typing import (
@@ -44,7 +45,9 @@ __all__ = (
     "get_certificate_details",
     "get_current_os",
     "get_current_os_full",
+    "get_date_from_sqlite",
     "get_device",
+    "get_timestamp_from_date",
     "guess_server_url",
     "if_frozen",
     "is_generated_tmp_file",
@@ -127,6 +130,23 @@ def copy_to_clipboard(text: str) -> None:
         cb = QApplication.clipboard()
         cb.clear(mode=cb.Clipboard)
         cb.setText(text, mode=cb.Clipboard)
+
+
+def get_date_from_sqlite(d: str) -> Optional[datetime]:
+    format_date = "%Y-%m-%d %H:%M:%S"
+    try:
+        return datetime.strptime(str(d.split(".")[0]), format_date)
+    except Exception:
+        return None
+
+
+def get_timestamp_from_date(self, d: datetime = None) -> int:
+    if not d:
+        return 0
+
+    import calendar
+
+    return int(calendar.timegm(d.timetuple()))
 
 
 def current_milli_time() -> int:
