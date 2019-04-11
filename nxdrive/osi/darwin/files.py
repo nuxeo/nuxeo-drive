@@ -52,7 +52,12 @@ def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Item]:
         return
 
     for doc in app.documents():
-        path = doc.filePath().path()
+        file_path = doc.filePath()
+        if not file_path:
+            # The document is not yet saved and so has no path
+            continue
+
+        path = file_path.path()
         pid = compute_fake_pid_from_path(path)
         yield pid, Path(path)
 
