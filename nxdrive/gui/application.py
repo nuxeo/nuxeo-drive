@@ -1105,11 +1105,12 @@ class Application(QApplication):
         if not url:
             # This is not an event for us!
             return super().event(event)
+
+        final_url = unquote(event.url().toString())
         try:
-            final_url = unquote(event.url().toString())
             return self._handle_nxdrive_url(final_url)
         except:
-            log.exception(f"Error handling URL event {url!r}")
+            log.exception(f"Error handling URL event {final_url!r}")
             return False
 
     def _show_msgbox_restart_needed(self) -> None:
