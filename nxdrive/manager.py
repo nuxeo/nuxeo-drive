@@ -345,12 +345,14 @@ class Manager(QObject):
         self._engine_definitions = self._engine_definitions or self._dao.get_engines()
         self._engines = {}
 
-        for engine in self._engine_definitions:
+        for engine in self._engine_definitions.copy():
             if engine.engine not in self._engine_types:
                 log.error(f"Cannot find {engine.engine} engine type anymore")
+                self._engine_definitions.remove(engine)
                 continue
             elif not self._get_engine_db_file(engine.uid).is_file():
                 log.warning(f"Cannot find {engine.uid} engine database file anymore")
+                self._engine_definitions.remove(engine)
                 continue
 
             self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
@@ -665,6 +667,10 @@ class Manager(QObject):
         # the systray menu
         self._pause = False
 
+        # Backup the database
+        if self.db_backup_worker:
+            self.db_backup_worker.force_poll()
+
         return self._engines[uid]
 
     def unbind_engine(self, uid: str) -> None:
@@ -681,6 +687,10 @@ class Manager(QObject):
         del self._engines[uid]
         self.dropEngine.emit(uid)
         self._engine_definitions = self._dao.get_engines()
+
+        # Backup the database
+        if self.db_backup_worker:
+            self.db_backup_worker.force_poll()
 
     def dispose_db(self) -> None:
         if self._dao:

@@ -15,7 +15,7 @@ AttributeError: 'Engine' object has no attribute '_local_watcher'
     manager, engine = manager_factory()
 
     with manager:
-        # There is no bound engine
+        # There is 1 bound engine
         assert manager._engines
 
         # Simulate the database file removal
@@ -33,3 +33,19 @@ AttributeError: 'Engine' object has no attribute '_local_watcher'
         os.rename(f"{db_file}.or", db_file)
         manager.load()
         assert manager._engines
+
+
+def test_mananger_engine_removal(manager_factory):
+    """NXDIVE-1618: Remove inexistant engines from the Manager engines list."""
+
+    manager, engine = manager_factory()
+
+    # Remove the database file
+    os.remove(engine._get_db_file())
+
+    with manager:
+        # Trigger engines reload as it is done in __init__()
+        manager.load()
+
+        # There should be no engine
+        assert not manager.get_engines()
