@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib.parse import quote
 
 from PyQt5.QtWidgets import QApplication
+from nuxeo.exceptions import HTTPError
 from nuxeo.utils import get_digest_algorithm
 from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -312,7 +313,7 @@ class DirectEdit(Worker):
         )
         info = NuxeoDocumentInfo.from_dict(doc)
 
-        if doc.get("isVersion"):
+        if info.is_version:
             self.directEditError.emit(
                 "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid]
             )
@@ -594,6 +595,12 @@ class DirectEdit(Worker):
                 if not details.editing:
                     # Check the remote hash to prevent data loss
                     remote_info = remote.get_info(details.uid)
+                    if remote_info.is_version:
+                        log.warning(
+                            f"Unable to process DirectEdit on {remote_info.name} "
+                            f"({details.uid}) because it is a version."
+                        )
+                        continue
                     remote_blob = remote_info.get_blob(xpath) if remote_info else None
                     if remote_blob and remote_blob.digest != details.digest:
                         log.debug(
@@ -644,7 +651,17 @@ class DirectEdit(Worker):
                 continue
             except ThreadInterrupt:
                 raise
-            except Exception:
+            except Exception as e:
+                if (
+                    isinstance(e, HTTPError)
+                    and e.status == 500
+                    and "Cannot set property on a version" in e.message
+                ):
+                    log.warning(
+                        f"Unable to process DirectEdit on {ref} "
+                        f"({details}) because it is a version."
+                    )
+                    continue
                 # Try again in 30s
                 log.exception(f"DirectEdit unhandled error for ref {ref!r}")
                 self._error_queue.push(ref, ref)
