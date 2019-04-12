@@ -346,13 +346,14 @@ class Application(QApplication):
     @pyqtSlot(str, list)
     def _direct_edit_error(self, message: str, values: List[str]) -> None:
         """ Display a simple Direct Edit error message. """
-
+        msg_text = self.translate(message, values)
+        log.warning(f"DirectEdit error message: '{msg_text}', values={values}")
         msg = QMessageBox()
         msg.setWindowTitle(f"Direct Edit - {APP_NAME}")
         msg.setWindowIcon(self.icon)
         msg.setIcon(QMessageBox.Warning)
         msg.setTextFormat(Qt.RichText)
-        msg.setText(self.translate(message, values))
+        msg.setText(msg_text)
         msg.exec_()
 
     @pyqtSlot()

@@ -312,6 +312,12 @@ class DirectEdit(Worker):
         )
         info = NuxeoDocumentInfo.from_dict(doc)
 
+        if doc.get("isVersion"):
+            self.directEditError.emit(
+                "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid]
+            )
+            return None
+
         if info.lock_owner and info.lock_owner != engine.remote_user:
             # Retrieve the user full name, will be cached
             owner = engine.get_user_full_name(info.lock_owner)
