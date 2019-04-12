@@ -14,7 +14,12 @@ from nuxeo.models import User
 
 from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
-from nxdrive.exceptions import Forbidden, NotFound, ThreadInterrupt
+from nxdrive.exceptions import (
+    DocumentAlreadyLocked,
+    Forbidden,
+    NotFound,
+    ThreadInterrupt,
+)
 from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import safe_os_filename
 from . import LocalTest, make_tmp_file
@@ -548,6 +553,17 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
         username = self.engine_1.get_user_full_name("unknown")
         assert username == "unknown"
 
+    def test_double_lock_same_user(self):
+        filename = "Mode opératoire¹.txt"
+        uid = self.remote.make_file("/", filename, content=b"Some content.")
+
+        # First time: OK
+        assert self.direct_edit._lock(self.remote, uid)
+
+        # Second time: OK but the function returns False
+        # (and no error)
+        assert not self.direct_edit._lock(self.remote, uid)
+
 
 class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
     def test_locked_file(self):
@@ -562,3 +578,15 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
         self.direct_edit.directEditLocked.connect(locked_file_signal)
         self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
         assert received
+
+    def test_double_lock_different_user(self):
+        filename = "Mode opératoire².txt"
+        uid = self.remote.make_file("/", filename, content=b"Some content.")
+
+        # Lock the document with user 1
+        assert self.direct_edit._lock(self.remote, uid)
+
+        # Try to lock with another username, it should fail
+        with patch.object(self.remote, "user_id", new=self.user_2):
+            with pytest.raises(DocumentAlreadyLocked):
+                assert not self.direct_edit._lock(self.remote, uid)

@@ -7,6 +7,13 @@ class DriveError(Exception):
     pass
 
 
+class DocumentAlreadyLocked(DriveError):
+    """ In DirectEdit, a document is locked by someone else. """
+
+    def __init__(self, username: str) -> None:
+        self.username = username
+
+
 class DuplicationDisabledError(ValueError):
     """
     Exception raised when de-duplication is disabled and there is a

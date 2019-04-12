@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import re
 import shutil
 from datetime import datetime
 from logging import getLogger
@@ -11,6 +12,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib.parse import quote
 
 from PyQt5.QtWidgets import QApplication
+from nuxeo.exceptions import HTTPError
 from nuxeo.utils import get_digest_algorithm
 from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -18,12 +20,19 @@ from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
 
 from .client.local_client import LocalClient
+from .client.remote_client import Remote
 from .constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX, ROOT, WINDOWS
 from .engine.activity import tooltip, FileAction
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
-from .exceptions import Forbidden, NotFound, ThreadInterrupt, UnknownDigest
+from .exceptions import (
+    DocumentAlreadyLocked,
+    Forbidden,
+    NotFound,
+    ThreadInterrupt,
+    UnknownDigest,
+)
 from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .utils import (
     current_milli_time,
@@ -497,6 +506,29 @@ class DirectEdit(Worker):
         )
         self._upload_queue.put(ref)
 
+    def _lock(self, remote: Remote, uid: str) -> bool:
+        """Lock a document."""
+        try:
+            remote.lock(uid)
+        except HTTPError as exc:
+            # TODO: handle 409 when NXP-24359 done
+            if exc.status == 500:
+                username = re.findall(r"Document already locked by (.+):", exc.message)
+                if username:
+                    if username[0] == remote.user_id:
+                        # Already locked by the same user
+                        log.debug("You already locked that document!")
+                        return False
+                    else:
+                        # Already locked by someone else
+                        raise DocumentAlreadyLocked(username[0])
+            raise exc
+        else:
+            # Document locked!
+            return True
+
+        return False
+
     def _handle_lock_queue(self) -> None:
         while "items":
             try:
@@ -513,7 +545,7 @@ class DirectEdit(Worker):
                 details = self._extract_edit_info(ref)
                 remote = details.engine.remote
                 if action == "lock":
-                    remote.lock(details.uid)
+                    self._lock(remote, details.uid)
                     self.local.set_remote_id(dir_path, b"1", name="nxdirecteditlock")
                     # Emit the lock signal only when the lock is really set
                     self._send_lock_status(ref)
@@ -540,6 +572,9 @@ class DirectEdit(Worker):
                 self.autolock.documentUnlocked.emit(os.path.basename(ref))
             except ThreadInterrupt:
                 raise
+            except DocumentAlreadyLocked as exc:
+                log.warning(f"Document {ref!r} already locked by {exc.username}")
+                self.directEditLockError.emit(action, os.path.basename(ref), uid)
             except Exception:
                 # Try again in 30s
                 log.exception(f"Cannot {action} document {ref!r}")
