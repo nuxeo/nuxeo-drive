@@ -18,7 +18,13 @@ from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
 from .constants import APP_NAME, STARTUP_PAGE_CONNECTION_TIMEOUT, DelAction
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
-from .exceptions import EngineTypeMissing, FolderAlreadyUsed, StartupPageConnectionError
+from .exceptions import (
+    EngineTypeMissing,
+    FolderAlreadyUsed,
+    InvalidDriveException,
+    RootAlreadyBindWithDifferentAccount,
+    StartupPageConnectionError,
+)
 from .logging_config import DEFAULT_LEVEL_FILE
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
@@ -650,7 +656,10 @@ class Manager(QObject):
                 self, engine_def, binder=binder
             )
         except Exception as exc:
-            log.exception("Engine error")
+            if not isinstance(
+                exc, (InvalidDriveException, RootAlreadyBindWithDifferentAccount)
+            ):
+                log.exception("Engine error")
             self._engines.pop(uid, None)
             self._dao.delete_engine(uid)
             # TODO Remove the DB?

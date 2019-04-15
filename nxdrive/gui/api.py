@@ -503,6 +503,8 @@ class QMLDriveApi(QObject):
                 **kwargs,
             )
         except RootAlreadyBindWithDifferentAccount as e:
+            log.warning(Translator.get("FOLDER_USED"))
+
             # Ask for the user
             values = [e.username, e.url]
             msgbox = QMessageBox(
@@ -541,6 +543,8 @@ class QMLDriveApi(QObject):
             log.exception("Unexpected error")
             # Map error here
             error = "CONNECTION_UNKNOWN"
+
+        log.warning(Translator.get(error))
         self.setMessage.emit(error, "error")
 
     @pyqtSlot(str, str)

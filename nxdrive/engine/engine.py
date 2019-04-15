@@ -799,6 +799,20 @@ class Engine(QObject):
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
 
+        # Check first if the folder is on a supported FS
+        if check_fs:
+            new_folder = not self.local_folder.is_dir()
+            if new_folder:
+                self.local_folder.mkdir(parents=True)
+            try:
+                self._check_fs(self.local_folder)
+            except InvalidDriveException as exc:
+                if new_folder:
+                    with suppress(OSError):
+                        self.local.unset_readonly(self.local_folder)
+                        self.local_folder.rmdir()
+                raise exc
+
         # Persist the user preference about the SSL behavior.
         # It can be tweaked via ca-bundle or ssl-no-verify options. But also
         # from the ponctual bypass-ssl window prompted at the account creation.
@@ -806,17 +820,6 @@ class Engine(QObject):
         self._ca_bundle = Options.ca_bundle
 
         self.remote = self.init_remote()
-
-        if check_fs:
-            try:
-                self.local_folder.mkdir(parents=True, exist_ok=True)
-                self._check_fs(self.local_folder)
-            except (InvalidDriveException, RootAlreadyBindWithDifferentAccount):
-                with suppress(OSError):
-                    self.local.unset_readonly(self.local_folder)
-                    self.local_folder.rmdir()
-            except OSError:
-                raise
 
         if check_credentials and self._remote_token is None:
             self._remote_token = self.remote.request_token()
