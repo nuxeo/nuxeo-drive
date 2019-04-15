@@ -75,6 +75,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR": "Ontgrendelingsprobleem",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Het document '{{ name }}' is niet ontgrendeld",
     "DIRECT_EDIT_UPDATED_FILE": "Het bestand '{{ name }}' is bijgewerkt",
+    "DIRECT_EDIT_VERSION": "You are trying to perform a DirectEdit on version %1 of „%2“. It is not the current version of the document, so it is readonly and cannot be edited.",
     "DISCONNECT": "Account verwijderen",
     "DISCONNECTING": "Bezig verbinding te verbreken ...",
     "DRIVE_ROOT_DELETED": "De synchronisatiemap '{{ folder }}' van Nuxeo Drive is verwijderd. Wilt u de verbinding met de server verbreken of wilt u deze opnieuw aanmaken?",
