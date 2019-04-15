@@ -131,23 +131,19 @@ class Remote(Nuxeo):
         """Escape any single quote with an antislash to further use in a NXQL query."""
         return path.replace("'", r"\'")
 
-    def exists(
-        self, ref: str, use_trash: bool = True, include_versions: bool = False
-    ) -> bool:
+    def exists(self, ref: str, use_trash: bool = True) -> bool:
         """
         Check if a document exists on the server.
 
         :param ref: Document reference (UID).
         :param use_trash: Filter documents inside the trash.
-        :param include_versions:
         :rtype: bool
         """
         ref = self._escape(self._check_ref(ref))
         id_prop = "ecm:path" if ref.startswith("/") else "ecm:uuid"
         trash = self._get_trash_condition() if use_trash else ""
-        version = "" if include_versions else "AND ecm:isVersion = 0"
 
-        query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} {version} LIMIT 1"
+        query = f"SELECT * FROM Document WHERE {id_prop} = '{ref}' {trash} AND ecm:isVersion = 0 LIMIT 1"
         results = self.query(query)
         return len(results["entries"]) == 1
 
@@ -504,11 +500,7 @@ class Remote(Nuxeo):
         return self.execute(command="Document.Query", query=query)
 
     def get_info(
-        self,
-        ref: str,
-        raise_if_missing: bool = True,
-        fetch_parent_uid: bool = True,
-        include_versions: bool = False,
+        self, ref: str, raise_if_missing: bool = True, fetch_parent_uid: bool = True
     ) -> Optional[NuxeoDocumentInfo]:
         try:
             doc = self.fetch(self._check_ref(ref))

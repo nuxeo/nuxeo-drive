@@ -179,6 +179,7 @@ class NuxeoDocumentInfo:
     version: Optional[str]  # Nuxeo version
     state: Optional[str]  # Nuxeo lifecycle state
     is_trashed: bool  # Nuxeo trashed status
+    is_version: bool  # is it a version of a document
     lock_owner: Optional[str]  # lock owner
     lock_created: Optional[datetime]  # lock creation time
     permissions: List[str]  # permissions
@@ -212,6 +213,9 @@ class NuxeoDocumentInfo:
         # Trashed
         is_trashed = doc.get("isTrashed", doc.get("state") == "deleted")
 
+        # Is version of document
+        is_version = doc.get("isVersion")
+
         # XXX: we need another roundtrip just to fetch the parent uid...
 
         # Normalize using NFC to make the tests more intuitive
@@ -234,6 +238,7 @@ class NuxeoDocumentInfo:
             version,
             doc.get("state"),
             is_trashed,
+            is_version,
             lock_owner,
             lock_created,
             permissions,

@@ -321,6 +321,12 @@ class DirectEdit(Worker):
         )
         info = NuxeoDocumentInfo.from_dict(doc)
 
+        if info.is_version:
+            self.directEditError.emit(
+                "DIRECT_EDIT_VERSION", [info.version, info.name, info.uid]
+            )
+            return None
+
         if info.lock_owner and info.lock_owner != engine.remote_user:
             # Retrieve the user full name, will be cached
             owner = engine.get_user_full_name(info.lock_owner)
@@ -623,6 +629,12 @@ class DirectEdit(Worker):
                 if not details.editing:
                     # Check the remote hash to prevent data loss
                     remote_info = remote.get_info(details.uid)
+                    if remote_info.is_version:
+                        log.warning(
+                            f"Unable to process DirectEdit on {remote_info.name} "
+                            f"({details.uid}) because it is a version."
+                        )
+                        continue
                     remote_blob = remote_info.get_blob(xpath) if remote_info else None
                     if remote_blob and remote_blob.digest != details.digest:
                         log.debug(
@@ -673,7 +685,17 @@ class DirectEdit(Worker):
                 continue
             except ThreadInterrupt:
                 raise
-            except Exception:
+            except Exception as e:
+                if (
+                    isinstance(e, HTTPError)
+                    and e.status == 500
+                    and "Cannot set property on a version" in e.message
+                ):
+                    log.warning(
+                        f"Unable to process DirectEdit on {ref} "
+                        f"({details}) because it is a version."
+                    )
+                    continue
                 # Try again in 30s
                 log.exception(f"DirectEdit unhandled error for ref {ref!r}")
                 self._error_queue.push(ref, ref)
