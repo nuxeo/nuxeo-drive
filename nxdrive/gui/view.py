@@ -34,6 +34,7 @@ class EngineModel(QAbstractListModel):
     URL_ROLE = Qt.UserRole + 6
     UI_ROLE = Qt.UserRole + 7
     FORCE_UI_ROLE = Qt.UserRole + 8
+    ACCOUNT_ROLE = Qt.UserRole + 9
 
     def __init__(self, application: "Application", parent: QObject = None) -> None:
         super(EngineModel, self).__init__(parent)
@@ -50,6 +51,7 @@ class EngineModel(QAbstractListModel):
             self.URL_ROLE: b"url",
             self.UI_ROLE: b"ui",
             self.FORCE_UI_ROLE: b"forceUi",
+            self.ACCOUNT_ROLE: b"account",
         }
 
     def nameRoles(self) -> Dict[bytes, int]:
@@ -62,6 +64,7 @@ class EngineModel(QAbstractListModel):
             b"url": self.URL_ROLE,
             b"ui": self.UI_ROLE,
             b"forceUi": self.FORCE_UI_ROLE,
+            b"account": self.ACCOUNT_ROLE,
         }
 
     def addEngine(self, uid: str, parent: QModelIndex = QModelIndex()) -> None:
@@ -102,6 +105,8 @@ class EngineModel(QAbstractListModel):
             return row.wui
         elif role == self.FORCE_UI_ROLE:
             return row.force_ui or row.wui
+        elif role == self.ACCOUNT_ROLE:
+            return f"{row.remote_user} • {row.name}"
         return None
 
     @pyqtSlot(int, str, result=str)
@@ -126,6 +131,8 @@ class EngineModel(QAbstractListModel):
             return row.wui
         elif role == "forceUi":
             return row.force_ui or row.wui
+        elif role == "account":
+            return f"{row.remote_user} • {row.name}"
         return ""
 
     def removeRows(
