@@ -26,6 +26,10 @@ def patch_nxdrive_objects():
 
     nxdrive.engine.dao.utils.save_backup = lambda *args: True
 
+    from nxdrive.gui.application import Application
+
+    Application.init_nxdrive_listener = lambda *args: None
+
     from nxdrive.manager import Manager
     from nxdrive.engine.queue_manager import QueueManager
 

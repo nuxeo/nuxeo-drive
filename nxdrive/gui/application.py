@@ -1161,7 +1161,6 @@ class Application(QApplication):
             return False
         return True
 
-    @if_frozen
     def init_nxdrive_listener(self) -> None:
         """
         Set up a QLocalServer to listen to nxdrive protocol calls.
@@ -1190,7 +1189,6 @@ class Application(QApplication):
         self._nxdrive_listener = server
         self.aboutToQuit.connect(self._nxdrive_listener.close)
 
-    @if_frozen
     def _handle_connection(self) -> None:
         """ Retrieve the connection with other instances and handle the incoming data. """
 
