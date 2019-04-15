@@ -214,7 +214,7 @@ class NuxeoDocumentInfo:
         is_trashed = doc.get("isTrashed", doc.get("state") == "deleted")
 
         # Is version of document
-        is_version = doc.get("isVersion")
+        is_version = doc.get("isVersion", False)
 
         # XXX: we need another roundtrip just to fetch the parent uid...
 
