@@ -5,7 +5,7 @@ import QtQuick.Layouts 1.3
 NuxeoComboBox {
     id: control
     model: EngineModel
-    textRole: "username"
+    textRole: "account"
 
     TextMetrics { id: textMetrics; font: control.font }
     Component.onCompleted: {
