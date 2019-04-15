@@ -68,6 +68,7 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     ("created", "modified"): "conflicted",
     ("moved", "unknown"): "conflicted",
     ("moved", "moved"): "conflicted",
+    ("moved", "created"): "conflicted",
     # conflict cases that have been manually resolved
     ("resolved", "unknown"): "locally_resolved",
     ("resolved", "synchronized"): "synchronized",
