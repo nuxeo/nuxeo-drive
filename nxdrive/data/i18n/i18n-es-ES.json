@@ -75,6 +75,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR": "Problema de desbloqueo",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "El documento „%1“ no se ha desbloqueado",
     "DIRECT_EDIT_UPDATED_FILE": "El archivo „%1“ se ha actualizado",
+    "DIRECT_EDIT_VERSION": "You are trying to perform a DirectEdit on version %1 of „%2“. It is not the current version of the document, so it is readonly and cannot be edited.",
     "DISCONNECT": "Eliminar cuenta",
     "DISCONNECTING": "Desconectando...",
     "DRIVE_ROOT_DELETED": "La carpeta de sincronización „%1“ de Nuxeo Drive se ha eliminado. ¿Desea desconectarse del servidor o volver a crear la carpeta?",

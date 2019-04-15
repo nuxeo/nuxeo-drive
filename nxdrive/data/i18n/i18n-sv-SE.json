@@ -75,6 +75,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR": "Problem med upplåsning",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Dokumentet „%1“ låstes inte upp",
     "DIRECT_EDIT_UPDATED_FILE": "Filen „%1“ har uppdaterats",
+    "DIRECT_EDIT_VERSION": "You are trying to perform a DirectEdit on version %1 of „%2“. It is not the current version of the document, so it is readonly and cannot be edited.",
     "DISCONNECT": "Ta bort konto",
     "DISCONNECTING": "Kopplar ner ...",
     "DRIVE_ROOT_DELETED": "Synkroniseringsmappen ”%1” för Nuxeo Drive har tagits bort. Vill du koppla från servern eller vill du återskapa den?",

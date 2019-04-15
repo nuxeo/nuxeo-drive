@@ -75,6 +75,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR": "ロック解除の問題",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "文書「„%1“」はロック解除されませんでした",
     "DIRECT_EDIT_UPDATED_FILE": "ファイル「„%1“」が更新されました",
+    "DIRECT_EDIT_VERSION": "You are trying to perform a DirectEdit on version %1 of „%2“. It is not the current version of the document, so it is readonly and cannot be edited.",
     "DISCONNECT": "アカウントを削除",
     "DISCONNECTING": "接続を切断中...",
     "DRIVE_ROOT_DELETED": "Nuxeo Driveの同期化フォルダ「„%1“」が削除されました。サーバから切断しますか？それとも再作成しますか？",

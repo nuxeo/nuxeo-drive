@@ -75,6 +75,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR": "Unlocking issue",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "The document „%1“ was not unlocked",
     "DIRECT_EDIT_UPDATED_FILE": "The file „%1“ has been updated",
+    "DIRECT_EDIT_VERSION": "You are trying to perform a DirectEdit on version %1 of „%2“. It is not the current version of the document, so it is readonly and cannot be edited.",
     "DISCONNECT": "Remove account",
     "DISCONNECTING": "Disconnecting ...",
     "DRIVE_ROOT_DELETED": "The synchronization folder „%1“ of Nuxeo Drive has been deleted. Would you like to disconnect from the server or do you want to recreate it?",

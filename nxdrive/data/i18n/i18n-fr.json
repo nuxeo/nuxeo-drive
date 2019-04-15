@@ -75,6 +75,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR": "Problème de déverrouillage",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Le document „%1“ n'a pu être déverrouillé",
     "DIRECT_EDIT_UPDATED_FILE": "Le fichier „%1“ a été mis à jour",
+    "DIRECT_EDIT_VERSION": "You are trying to perform a DirectEdit on version %1 of „%2“. It is not the current version of the document, so it is readonly and cannot be edited.",
     "DISCONNECT": "Supprimer le compte",
     "DISCONNECTING": "Déconnexion...",
     "DRIVE_ROOT_DELETED": "Le dossier de synchronisation „%1“ a été supprimé. Souhaitez-vous vous déconnecter ou le recréer ?",

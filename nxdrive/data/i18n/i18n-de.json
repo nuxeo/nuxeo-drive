@@ -75,6 +75,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR": "Problem mit dem Entsperren",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Das Dokument „%1“ wurde nicht entsperrt",
     "DIRECT_EDIT_UPDATED_FILE": "Die Datei „%1“ wurde aktualisiert",
+    "DIRECT_EDIT_VERSION": "You are trying to perform a DirectEdit on version %1 of „%2“. It is not the current version of the document, so it is readonly and cannot be edited.",
     "DISCONNECT": "Konto löschen",
     "DISCONNECTING": "Verbindung wird getrennt ...",
     "DRIVE_ROOT_DELETED": "Der Synchronisationsordner „%1“ von Nuxeo Drive wurde gelöscht. Möchten Sie die Verbindung mit dem Server trennen oder möchten Sie sie wiederherstellen?",

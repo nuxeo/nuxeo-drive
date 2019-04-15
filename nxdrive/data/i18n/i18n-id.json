@@ -75,6 +75,7 @@
     "DIRECT_EDIT_UNLOCK_ERROR": "Masalah Membuka Kunci",
     "DIRECT_EDIT_UNLOCK_ERROR_DESCRIPTION": "Dokumen ,,{{ name }}\" tidak terkunci",
     "DIRECT_EDIT_UPDATED_FILE": "Berkas ,,{{ name }}\" telah diperbarui",
+    "DIRECT_EDIT_VERSION": "You are trying to perform a DirectEdit on version %1 of „%2“. It is not the current version of the document, so it is readonly and cannot be edited.",
     "DISCONNECT": "Hapus Akun",
     "DISCONNECTING": "Memutus sambungan ...",
     "DRIVE_ROOT_DELETED": "Folder sinkronisasi ,,{{ folder }}\" dari Nuxeo Drive telah dihapus. Apakah anda ingin memutuskan sambungan dari server atau ingin membuat ulang?",
