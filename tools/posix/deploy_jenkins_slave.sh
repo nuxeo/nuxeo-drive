@@ -20,6 +20,8 @@ PYTHON="python -Xutf8 -E -s"
 PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 
 build_installer() {
+    local version
+
     echo ">>> Building the release package"
     ${PYTHON} -m PyInstaller ndrive.spec --clean --noconfirm
 
@@ -47,8 +49,9 @@ build_installer() {
         exit 0
     fi
 
+    version="$(${PYTHON} -m nxdrive --version)"
     cd dist
-    zip -9 -r "nuxeo-drive-${OSI}.zip" "ndrive"
+    zip -9 -r "nuxeo-drive-${OSI}-${version}.zip" "ndrive"
     cd -
 
     create_package

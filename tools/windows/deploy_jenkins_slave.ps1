@@ -73,7 +73,7 @@ function build_installer {
 		ExitWithCode 0
 	}
 
-	zip_files "dist\nuxeo-drive-windows.zip" "dist\ndrive"
+	zip_files "dist\nuxeo-drive-windows-$app_version.zip" "dist\ndrive"
 
 	build "$app_version" "tools\windows\setup-addons.iss"
 	sign "dist\nuxeo-drive-addons.exe"
