@@ -331,6 +331,47 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
                     == b"Initial content."
                 )
 
+    def test_direct_edit_version(self):
+        from nuxeo.models import BufferBlob
+
+        filename = "versionedfile.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
+
+        self.remote.execute(
+            command="Document.CreateVersion",
+            input_obj=f"doc:{doc_id}",
+            increment="Major",
+        )
+        blob = BufferBlob(data="Updated content.", name=filename, mimetype="text/plain")
+        batch = self.remote.uploads.batch()
+        batch.upload(blob)
+        self.remote.execute(
+            command="Blob.AttachOnDocument", document=doc_id, input_obj=batch.get(0)
+        )
+        self.remote.execute(
+            command="Document.CreateVersion",
+            input_obj=f"doc:{doc_id}",
+            increment="Major",
+        )
+        versions = self.remote.execute(
+            command="Document.GetVersions", input_obj=f"doc:{doc_id}"
+        )
+        entries = versions["entries"]
+        assert len(entries) == 2
+
+        version_to_edit = None
+        for entry in entries:
+            if entry.get("properties").get("uid:major_version") == 1:
+                version_to_edit = entry
+
+        assert version_to_edit
+        doc_id = version_to_edit["uid"]
+
+        with patch.object(self.manager_1, "open_local_file", new=open_local_file):
+            assert not self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+            local_path = Path(f"/{doc_id}_file-content/{filename}")
+            assert not self.local.exists(local_path)
+
     def test_network_loss(self):
         """ Updates should be sent when the network is up again. """
         filename = "networkless file.txt"
