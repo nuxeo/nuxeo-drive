@@ -51,6 +51,7 @@ class LocalWatcher(EngineWorker):
     rootMoved = pyqtSignal(str)
     rootDeleted = pyqtSignal()
     docDeleted = pyqtSignal(Path)
+    fileAlreadyExists = pyqtSignal(Path, Path)
 
     def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao)
@@ -1176,7 +1177,27 @@ class LocalWatcher(EngineWorker):
             return
         except ThreadInterrupt:
             raise
-        except:
+        except OSError as exc:
+            if exc.errno == 17:
+                # FileExistsError, this is probably a normalization renaming gone wrong.
+                if evt.event_type == "created":
+                    # Creations generate both a modified event and a created event,
+                    # we don't want to display two messages.
+                    return
+                log.warning(f"Cannot synchronize both files with same name: {exc}")
+                normpath = normalize(evt.src_path, action=False)
+                if normpath.exists():
+                    self.fileAlreadyExists.emit(normpath, Path(evt.src_path))
+                    return
+                dst_path = getattr(evt, "dest_path")
+                if not dst_path:
+                    return
+                normpath = normalize(dst_path, action=False)
+                if normpath.exists():
+                    self.fileAlreadyExists.emit(normpath, Path(dst_path))
+                    return
+            log.exception("Watchdog exception")
+        except Exception:
             log.exception("Watchdog exception")
 
     def _schedule_win_folder_scan(self, doc_pair: DocPair) -> None:

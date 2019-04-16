@@ -68,6 +68,7 @@ class Engine(QObject):
     rootDeleted = pyqtSignal()
     rootMoved = pyqtSignal(str)
     docDeleted = pyqtSignal(Path)
+    fileAlreadyExists = pyqtSignal(Path, Path)
     uiChanged = pyqtSignal()
     noSpaceLeftOnDevice = pyqtSignal()
     invalidAuthentication = pyqtSignal()
@@ -141,6 +142,8 @@ class Engine(QObject):
         self._local_watcher.docDeleted.connect(self.docDeleted)
         self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
         self._queue_manager = self._create_queue_manager(processors)
+
+        self._local_watcher.fileAlreadyExists.connect(self.fileAlreadyExists)
 
         # Launch queue processors after first remote_watcher pass
         self._remote_watcher.initiate.connect(self._queue_manager.init_processors)

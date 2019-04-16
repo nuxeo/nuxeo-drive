@@ -57,6 +57,7 @@ from ..utils import (
     normalized_path,
     parse_protocol_url,
     short_name,
+    normalize_event_filename,
 )
 from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
@@ -479,6 +480,21 @@ class Application(QApplication):
             # Delete or filter out the document
             engine.delete_doc(path, mode)
 
+    @pyqtSlot(Path, Path)
+    def _file_already_exists(self, oldpath: Path, newpath: Path) -> None:
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setWindowIcon(self.icon)
+        msg.setText(Translator.get("FILE_ALREADY_EXISTS", values=[str(oldpath)]))
+        replace = msg.addButton(Translator.get("REPLACE"), QMessageBox.AcceptRole)
+        msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
+        msg.exec_()
+        if msg.clickedButton() == replace:
+            oldpath.unlink()
+            normalize_event_filename(newpath)
+        else:
+            newpath.unlink()
+
     @pyqtSlot(object)
     def dropped_engine(self, engine: "Engine") -> None:
         # Update icon in case the engine dropped was syncing
@@ -696,6 +712,7 @@ class Application(QApplication):
         engine.rootDeleted.connect(self._root_deleted)
         engine.rootMoved.connect(self._root_moved)
         engine.docDeleted.connect(self._doc_deleted)
+        engine.fileAlreadyExists.connect(self._file_already_exists)
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
         self.change_systray_icon()
 
