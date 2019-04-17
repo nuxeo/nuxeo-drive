@@ -19,7 +19,7 @@ timestamps {
         withEnv(["WORKSPACE=${pwd()}"]) {
             stage('Checkout') {
                 deleteDir()
-                git credentialsId: credential_id, url: 'ssh://git@github.com/nuxeo/nuxeo-drive.git', branch: 'master'
+                git credentialsId: credential_id, url: 'ssh://git@github.com:nuxeo/nuxeo-drive.git', branch: 'master'
             }
 
             stage('Clean-up') {
