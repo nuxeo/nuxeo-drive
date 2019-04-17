@@ -320,6 +320,7 @@ class DocPair(Row):
         return (
             f"<{type(self).__name__}[{self.id!r}]"
             f" local_path={self.local_path!r},"
+            f" local_parent_path={self.local_parent_path!r},"
             f" remote_ref={self.remote_ref!r},"
             f" local_state={self.local_state!r},"
             f" remote_state={self.remote_state!r},"
@@ -331,7 +332,7 @@ class DocPair(Row):
     def __getattr__(self, name: str) -> Optional[Union[str, Path]]:
         with suppress(IndexError):
             if name in {"local_path", "local_parent_path"}:
-                return Path(self[name].lstrip("/"))
+                return Path((self[name] or "").lstrip("/"))
             if name == "remote_ref":
                 return self[name] or ""
             return self[name]

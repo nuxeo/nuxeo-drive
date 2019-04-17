@@ -688,6 +688,11 @@ class Application(QApplication):
                 token = ""
             finally:
                 del nuxeo
+
+            # Check we have a token and not a HTML response
+            if "\n" in token:
+                token = ""
+
             self.api.handle_token(token, user)
             dialog.close()
 
@@ -717,7 +722,7 @@ class Application(QApplication):
         self.change_systray_icon()
 
     def init_checks(self) -> None:
-        for _, engine in self.manager.get_engines().items():
+        for engine in self.manager.get_engines().values():
             self._connect_engine(engine)
 
         self.manager.newEngine.connect(self._connect_engine)
@@ -735,7 +740,7 @@ class Application(QApplication):
             for engine in self.manager.get_engines().values():
                 # Prompt for settings if needed
                 if engine.has_invalid_credentials():
-                    self.show_settings("Accounts_" + engine.uid)
+                    self.show_settings("Accounts")  # f"Account_{engine.uid}"
                     break
 
         self.manager.start()

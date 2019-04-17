@@ -140,6 +140,11 @@ class MetaOptions(type):
         "command",
         "file",
         "log_filename",
+        # From the CLI: bind-server sub-command
+        "password",
+        "nuxeo_url",
+        "local_folder",
+        "username",
         # From the Manager
         "client_version",
         "light_icons",

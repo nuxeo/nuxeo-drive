@@ -801,6 +801,7 @@ class Engine(QObject):
         self._remote_password = binder.password
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
+        self.remote = None  # type: ignore
 
         # Check first if the folder is on a supported FS
         if check_fs:
@@ -822,9 +823,8 @@ class Engine(QObject):
         self._ssl_verify = not Options.ssl_no_verify
         self._ca_bundle = Options.ca_bundle
 
-        self.remote = self.init_remote()
-
         if check_credentials and self._remote_token is None:
+            self.remote = self.init_remote()
             self._remote_token = self.remote.request_token()
 
         if self._remote_token is not None:

@@ -129,10 +129,29 @@ Rectangle {
                     text: qsTr("CONFLICTS_AND_ERRORS") + tl.tr
                     color: mediumGray
                 }
-
                 Link {
                     text: qsTr("OPEN_WINDOW") + tl.tr
                     onClicked: api.show_conflicts_resolution(uid)
+                }
+
+                ScaledText {
+                    id: invalidCredsLabel
+                    visible: api.has_invalid_credentials(uid)
+                    text: qsTr("AUTH_EXPIRED") + tl.tr
+                    color: mediumRed
+                }
+                Link {
+                    id: invalidCredsAction
+                    visible: api.has_invalid_credentials(uid)
+                    text: qsTr("AUTH_UPDATE_ACTION") + tl.tr
+                    color: red
+                    onClicked: {
+                        api.web_update_token(uid);
+                        if (!api.has_invalid_credentials(uid)) {
+                            invalidCredsLabel.visible = false;
+                            invalidCredsAction.visible = false;
+                        }
+                    }
                 }
             }
         }
