@@ -233,11 +233,7 @@ class QMLDriveApi(QObject):
         engine = self._get_engine(engine_uid)
         if not engine:
             return
-        dao = engine.get_dao()
-        dao.resume_transfer(uid)
-        transfer = dao.get_transfer(uid=uid)
-        doc_pair = dao.get_state_from_id(transfer.doc_pair)
-        engine.get_queue_manager().push(doc_pair)
+        engine.resume_transfer(uid)
 
     @pyqtSlot(str, result=str)
     def get_threads(self, uid: str) -> str:

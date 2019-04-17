@@ -1882,6 +1882,18 @@ class EngineDAO(ConfigurationDAO):
         finally:
             con.row_factory = backup
 
+    def get_transfers_with_status(self, status: TransferStatus) -> List[Transfer]:
+        con = self._get_read_connection()
+        backup = con.row_factory
+        con.row_factory = Transfer
+        c = con.cursor()
+        try:
+            return c.execute(
+                "SELECT * FROM Transfers WHERE status = ?", (status.value,)
+            ).fetchall()
+        finally:
+            con.row_factory = backup
+
     def get_transfer(
         self, uid: int = None, path: Path = None, doc_pair: int = None
     ) -> Optional[Transfer]:
@@ -1926,6 +1938,15 @@ class EngineDAO(ConfigurationDAO):
             c.execute(
                 "UPDATE Transfers SET status = ?, progress = ? WHERE id = ?",
                 (TransferStatus.PAUSED.value, progress, uid),
+            )
+        self.transferUpdated.emit()
+
+    def suspend_transfers(self) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Transfers SET status = ? WHERE status = ?",
+                (TransferStatus.SUSPENDED.value, TransferStatus.ONGOING.value),
             )
         self.transferUpdated.emit()
 

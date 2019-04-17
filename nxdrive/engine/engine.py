@@ -22,7 +22,7 @@ from .watcher.remote_watcher import RemoteWatcher
 from .workers import Worker
 from ..client.local_client import LocalClient
 from ..client.remote_client import Remote
-from ..constants import CONNECTION_ERROR, MAC, ROOT, WINDOWS, DelAction
+from ..constants import CONNECTION_ERROR, MAC, ROOT, WINDOWS, DelAction, TransferStatus
 from ..exceptions import (
     InvalidDriveException,
     PairInterrupt,
@@ -429,12 +429,26 @@ class Engine(QObject):
                 thread.worker.resume()
             else:
                 thread.start()
+        self.resume_suspended_transfers()
         self.syncResumed.emit()
+
+    def resume_transfer(self, uid: int) -> None:
+        self._dao.resume_transfer(uid)
+        transfer = self._dao.get_transfer(uid=uid)
+        doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
+        self.get_queue_manager().push(doc_pair)
+
+    def resume_suspended_transfers(self) -> None:
+        for transfer in self._dao.get_transfers_with_status(TransferStatus.SUSPENDED):
+            self._dao.resume_transfer(transfer.uid)
+            doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
+            self.get_queue_manager().push(doc_pair)
 
     def suspend(self) -> None:
         if self._pause:
             return
         self._pause = True
+        self._dao.suspend_transfers()
         self._queue_manager.suspend()
         for thread in self._threads:
             thread.worker.suspend()
@@ -662,6 +676,8 @@ class Engine(QObject):
         # Launch the server confg file updater
         if self.manager.server_config_updater:
             self.manager.server_config_updater.force_poll()
+
+        self.resume_suspended_transfers()
 
         self._stopped = False
         Processor.soft_locks = {}
