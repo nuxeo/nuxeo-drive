@@ -617,9 +617,11 @@ class Manager(QObject):
         binder: Binder,
         starts: bool = True,
     ) -> "Engine":
-        """Bind a local folder to a remote nuxeo server"""
+        """Bind a local folder to a remote server."""
+
         if name is None:
             name = self._get_engine_name(binder.url)
+
         if hasattr(binder, "url"):
             url = binder.url
             if "#" in url:
@@ -630,25 +632,22 @@ class Manager(QObject):
                     f"Engine type has been specified in the URL: {engine_type} will be used"
                 )
 
-        if not self.check_local_folder_available(local_folder):
-            raise FolderAlreadyUsed()
-
         if engine_type not in self._engine_types:
             raise EngineTypeMissing()
+
+        if not local_folder:
+            local_folder = get_default_nuxeo_drive_folder()
+        elif local_folder == self.home:
+            # Prevent from binding in the configuration folder
+            raise FolderAlreadyUsed()
+        elif not self.check_local_folder_available(local_folder):
+            raise FolderAlreadyUsed()
 
         if not self._engines:
             self.load()
 
-        if not local_folder:
-            local_folder = get_default_nuxeo_drive_folder()
-        if local_folder == self.home:
-            # Prevent from binding in the configuration folder
-            raise FolderAlreadyUsed()
-
         uid = uuid.uuid1().hex
 
-        # Watch folder in the file explorer
-        self.osi.watch_folder(local_folder)
         # TODO Check that engine is not inside another or same position
         engine_def = self._dao.add_engine(engine_type, local_folder, uid, name)
         try:
@@ -666,10 +665,16 @@ class Manager(QObject):
             raise exc
 
         self._engine_definitions.append(engine_def)
+
         # As new engine was just bound, refresh application update status
         self.refresh_update_status()
+
         if starts:
             self._engines[uid].start()
+
+        # Watch folder in the file explorer
+        self.osi.watch_folder(local_folder)
+
         self.newEngine.emit(self._engines[uid])
 
         # NXDRIVE-978: Update the current state to reflect the change in

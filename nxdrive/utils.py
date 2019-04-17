@@ -448,7 +448,7 @@ def normalized_path(path: Union[bytes, str, Path]) -> Path:
     return Path(path).expanduser().resolve()
 
 
-def normalize_event_filename(filename: str, action: bool = True) -> Path:
+def normalize_event_filename(filename: Union[str, Path], action: bool = True) -> Path:
     """
     Normalize a file name.
 
