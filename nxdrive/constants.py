@@ -62,5 +62,6 @@ class TransferStatus(Enum):
 
     ONGOING = auto()
     PAUSED = auto()
+    SUSPENDED = auto()
     CANCELLED = auto()
     DONE = auto()
