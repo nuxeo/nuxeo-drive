@@ -1,4 +1,5 @@
 # coding: utf-8
+import errno
 import re
 import sqlite3
 from logging import getLogger
@@ -1178,7 +1179,7 @@ class LocalWatcher(EngineWorker):
         except ThreadInterrupt:
             raise
         except OSError as exc:
-            if exc.errno == 17:
+            if exc.errno == errno.EEXIST:
                 # FileExistsError, this is probably a normalization renaming gone wrong.
                 if evt.event_type == "created":
                     # Creations generate both a modified event and a created event,
