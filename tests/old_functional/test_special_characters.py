@@ -108,12 +108,10 @@ class TestSpecialCharacters(OneUserTest):
         with patch.object(
             self.engine_1._local_watcher, "fileAlreadyExists", new=AlreadyExistsSignal()
         ):
-            with local.abspath(folder / good_norm).open("wb") as f:
-                f.write(b"ababababa")
+            local.abspath(folder / good_norm).write_text("ababababa")
             self.wait_sync(wait_for_async=True)
 
-            with local.abspath(folder / bad_norm).open("wb") as f:
-                f.write(b"cdcdcdcdc")
+            local.abspath(folder / bad_norm).write_text("cdcdcdcdc")
             self.wait_sync(wait_for_async=True)
 
             assert called
