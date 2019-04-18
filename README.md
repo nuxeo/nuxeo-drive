@@ -12,7 +12,7 @@ Note: this documentation follows the Drive version of the master branch, which c
 
 ```shell
 # For Drive 2.1.113 go to:
-https://github.com/nuxeo/nuxeo-drive/release-2.1.113/README.md
+https://github.com/nuxeo/nuxeo-drive/tree/release-2.1.113
 ```
 
 ## License
@@ -110,11 +110,13 @@ The desktop synchronization client can also be operated from the command-line:
     ```shell
     alias ndrive="/Applications/Nuxeo\ Drive.app/Contents/MacOS/ndrive"
     ```
-2. Launch Nuxeo Drive (no automatic background mode yet, this will come in future versions):
+
+2. Launch Nuxeo Drive:
 
     ```shell
     ndrive
     ```
+
     Under Windows you can launch `ndrive.exe` instead to avoid keeping the cmd console open while Nuxeo Drive is running instead.
 
 3. The first time you run this command a dialog window will open asking for the URL of the Nuxeo server and your user credentials.
@@ -122,8 +124,9 @@ The desktop synchronization client can also be operated from the command-line:
     Alternatively you can bind to a Nuxeo server with your user credentials using the following commandline arguments:
 
     ```shell
-    ndrive bind-server nuxeo-username https://server:port/nuxeo --password secret
+    ndrive bind-server nuxeo-username https://server:port/nuxeo [--password="secret"] [--local-folder="~/Nuxeo Drive"]
     ```
+
     This will create a new folder called Nuxeo Drive in your home folder on GNU/Linux & macOS and under the Documents folder on Windows.
 
 4. Go to your Nuxeo with your browser, navigate to workspaces or folder where you have permission to create new documents.
@@ -134,6 +137,7 @@ The desktop synchronization client can also be operated from the command-line:
     ```shell
     ndrive bind-root "/default-domain/workspaces/My Workspace"
     ```
+
     You can now create office documents and folders locally or inside Nuxeo and watch them getting synchronized both ways automatically.
 
 ## Localization
@@ -171,9 +175,9 @@ The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crow
 
     By default the location of the log file is: `~/.nuxeo-drive/logs/` where `~` stands for the location of the user folder. For instance:
 
-    * Under Windows 7 and 8: `C:\Users\username\.nuxeo-drive\logs`
-    * Under macOS: `/Users/username/.nuxeo-drive/logs`
-    * Under GNU/Linux: `/home/username/.nuxeo-drive/logs`
+    * GNU/Linux: `/home/username/.nuxeo-drive/logs`
+    * macOS: `/Users/username/.nuxeo-drive/logs`
+    * Windows: `C:\Users\username\.nuxeo-drive\logs`
 
 ## Roadmap
 

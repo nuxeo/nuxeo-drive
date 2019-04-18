@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 from logging import getLogger
 from typing import Callable
 from random import randint
@@ -14,7 +13,6 @@ from nuxeo.client import Nuxeo
 from nuxeo.documents import Document
 from nuxeo.users import User
 
-import nxdrive
 from nxdrive.manager import Manager
 
 
@@ -22,21 +20,7 @@ from nxdrive.manager import Manager
 OPS_CACHE = None
 SERVER_INFO = None
 
-DEFAULT_NUXEO_URL = "http://localhost:8080/nuxeo"
 log = getLogger(__name__)
-
-
-@pytest.fixture(scope="session")
-def version() -> str:
-    return nxdrive.__version__
-
-
-@pytest.fixture(scope="session")
-def nuxeo_url() -> str:
-    """Retrieve the Nuxeo URL."""
-    url = os.getenv("NXDRIVE_TEST_NUXEO_URL", DEFAULT_NUXEO_URL)
-    url = url.split("#")[0]
-    return url
 
 
 @pytest.fixture(scope="session")

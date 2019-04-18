@@ -1,38 +1,17 @@
+from logging import getLogger
+
 import pytest
 
-from nxdrive.constants import APP_NAME
+from .utils import fatal_error_dlg, main_window, share_metrics_dlg
 
 
-def fatal_error_dlg(app) -> bool:
-    # Check if the fatal error dialog is prompted.
-    # XXX: Keep synced with FATAL_ERROR_TITLE.
-    dlg = app.window(title=f"{APP_NAME} - Fatal error")
-    if dlg.exists():
-        dlg.close()
-        return True
-    return False
-
-
-def main_window(app):
-    # Assert the main windows is showed and return it.
-    dlg = app.window(title=APP_NAME).wait("visible")
-    return dlg
-
-
-def share_metrics_dlg(app) -> bool:
-    # Check if the pop-up to share metrics is prompted and close it.
-    # XXX: Keep synced with SHARE_METRICS_TITLE.
-    dlg = app.window(title=f"{APP_NAME} - Share debug info with developers")
-    if dlg.exists():
-        dlg.close()
-        return True
-    return False
+log = getLogger(__name__)
 
 
 def test_start_app(exe):
     with exe() as app:
         assert not fatal_error_dlg(app)
-        assert share_metrics_dlg
+        assert share_metrics_dlg(app)
 
         # There should be the main window
         main = main_window(app)
@@ -44,13 +23,13 @@ def test_start_app(exe):
 )
 def test_invalid_argument(exe, arg):
     with exe(args=arg) as app:
-        assert fatal_error_dlg(app)
+        assert fatal_error_dlg(app, with_details=False)
 
 
 @pytest.mark.parametrize("arg", ["--log-level-file=42", "--delay=foo"])
 def test_invalid_argument_value(exe, arg):
     with exe(args=arg) as app:
-        assert fatal_error_dlg(app)
+        assert fatal_error_dlg(app, with_details=False)
 
 
 @pytest.mark.parametrize(
@@ -74,11 +53,11 @@ def test_invalid_argument_value(exe, arg):
         "--log-level-console=INFO",
         "--log-level-console=WARNING",
         "--log-level-console=ERROR",
-        # --log-filename tested elsewhere
+        # --log-filename tested in test_argument_log_filename()
         "--locale=es",
         "--max-errors=42",
         "--nofscheck",
-        # --nxdrive-home tested elsewhere
+        # --nxdrive-home tested in test_argument_nxdrive_home()
         "--proxy-server=https://Alice:password@example.org:8888",
         "--ssl-no-verify",
         "--timeout=42",
@@ -92,7 +71,7 @@ def test_valid_argument_value(exe, arg):
     """Test all CLI arguments but those requiring a folder."""
     with exe(args=arg) as app:
         assert not fatal_error_dlg(app)
-        share_metrics_dlg
+        share_metrics_dlg(app)
 
 
 @pytest.mark.parametrize(
@@ -107,7 +86,7 @@ def test_argument_log_filename(exe, tmp, file):
 
     with exe(args=arg) as app:
         assert not fatal_error_dlg(app)
-        share_metrics_dlg
+        share_metrics_dlg(app)
 
     assert log.is_file()
 
@@ -122,7 +101,7 @@ def test_argument_nxdrive_home(exe, tmp, folder):
 
     with exe(args=arg) as app:
         assert not fatal_error_dlg(app)
-        share_metrics_dlg
+        share_metrics_dlg(app)
 
     assert home.is_dir()
 
@@ -141,4 +120,4 @@ def test_argument_nxdrive_home(exe, tmp, folder):
 def test_removed_argument(exe, arg):
     """Test removed/obsolete CLI arguments."""
     with exe(args=arg) as app:
-        assert fatal_error_dlg(app)
+        assert fatal_error_dlg(app, with_details=False)

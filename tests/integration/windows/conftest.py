@@ -1,9 +1,13 @@
 from contextlib import contextmanager
+from logging import getLogger
 
 import pytest
 
 from nxdrive.options import Options
 from pywinauto.application import Application
+
+
+log = getLogger(__name__)
 
 
 def pytest_addoption(parser):
@@ -30,10 +34,12 @@ def exe(final_exe, tmp):
 
     @contextmanager
     def execute(cmd=final_exe, args=None):
+        log.info(f"Starting {cmd!r} with args={args!r}")
+
         if args:
             cmd += " " + args
 
-        app = Application().start(cmd)
+        app = Application(backend="uia").start(cmd, timeout=30)
         try:
             yield app
         finally:

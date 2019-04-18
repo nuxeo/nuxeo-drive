@@ -4,6 +4,7 @@ We are using lazy imports (understand imports in functions) specifically here
 to speed-up command line calls without loading everything at startup.
 """
 import os
+import os.path
 import re
 import stat
 from datetime import datetime
@@ -54,6 +55,7 @@ __all__ = (
     "lock_path",
     "normalize_event_filename",
     "normalized_path",
+    "normalize_and_expand_path",
     "parse_edit_protocol",
     "parse_protocol_url",
     "retrieve_ssl_certificate",
@@ -446,6 +448,11 @@ def normalized_path(path: Union[bytes, str, Path]) -> Path:
     if not isinstance(path, Path):
         path = force_decode(path)
     return Path(path).expanduser().resolve()
+
+
+def normalize_and_expand_path(path: str) -> Path:
+    """ Return absolute, normalized file path with expanded environment variables. """
+    return normalized_path(os.path.expandvars(path))
 
 
 def normalize_event_filename(filename: Union[str, Path], action: bool = True) -> Path:
@@ -860,21 +867,18 @@ def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str
 
 
 def set_path_readonly(path: Path) -> None:
-    current = path.stat().st_mode
     if path.is_dir():
         # Need to add
         right = stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IRUSR
-        if current & ~right != 0:
-            path.chmod(right)
     else:
         # Already in read only
         right = stat.S_IRGRP | stat.S_IRUSR
-        if current & ~right != 0:
-            path.chmod(right)
+
+    if path.stat().st_mode & ~right != 0:
+        path.chmod(right)
 
 
 def unset_path_readonly(path: Path) -> None:
-    current = path.stat().st_mode
     if path.is_dir():
         right = (
             stat.S_IXUSR
@@ -884,32 +888,36 @@ def unset_path_readonly(path: Path) -> None:
             | stat.S_IWGRP
             | stat.S_IWUSR
         )
-        if current & right != right:
-            path.chmod(right)
     else:
         right = stat.S_IRGRP | stat.S_IRUSR | stat.S_IWGRP | stat.S_IWUSR
-        if current & right != right:
-            path.chmod(right)
+
+    if path.stat().st_mode & right != right:
+        path.chmod(right)
 
 
 def unlock_path(path: Path, unlock_parent: bool = True) -> int:
     result = 0
+
     if unlock_parent:
         parent_path = path.parent
         if parent_path.exists() and not os.access(parent_path, os.W_OK):
             unset_path_readonly(parent_path)
             result |= 2
+
     if path.exists() and not os.access(path, os.W_OK):
         unset_path_readonly(path)
         result |= 1
+
     return result
 
 
 def lock_path(path: Path, locker: int) -> None:
     if locker == 0:
         return
+
     if locker & 1 == 1:
         set_path_readonly(path)
+
     if locker & 2 == 2:
         set_path_readonly(path.parent)
 

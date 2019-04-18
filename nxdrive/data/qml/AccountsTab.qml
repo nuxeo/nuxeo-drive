@@ -138,7 +138,7 @@ Rectangle {
                     id: invalidCredsLabel
                     visible: api.has_invalid_credentials(uid)
                     text: qsTr("AUTH_EXPIRED") + tl.tr
-                    color: mediumRed
+                    color: red
                 }
                 Link {
                     id: invalidCredsAction
