@@ -5,6 +5,7 @@ from PyQt5.QtCore import pyqtSlot
 
 from .engine.workers import PollWorker
 from .options import Options
+from .utils import normalize_and_expand_path
 
 log = logging.getLogger(__name__)
 
@@ -59,6 +60,12 @@ class ServerOptionsUpdater(PollWorker):
                 beta = conf.pop("beta_channel", False)
                 if beta:
                     conf["channel"] = "beta"
+
+                if "nxdrive_home" in conf:
+                    # Expand potential envars
+                    conf["nxdrive_home"] = normalize_and_expand_path(
+                        conf["nxdrive_home"]
+                    )
 
                 # We cannot use fail_on_error=True because the server may
                 # be outdated and still have obsolete options.

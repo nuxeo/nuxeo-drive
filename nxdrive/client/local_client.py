@@ -545,7 +545,7 @@ FolderType=Generic
         self, ref: Path, unlock_parent: bool = True, is_abs: bool = False
     ) -> int:
         path = ref if is_abs else self.abspath(ref)
-        return unlock_path(path, unlock_parent)
+        return unlock_path(path, unlock_parent=unlock_parent)
 
     def lock_ref(self, ref: Path, locker: int, is_abs: bool = False) -> None:
         path = ref if is_abs else self.abspath(ref)

@@ -1,5 +1,5 @@
 # coding: utf-8
-
+import os
 import shutil
 import sys
 
@@ -7,6 +7,9 @@ import pytest
 
 
 pytest_plugins = "tests.pytest_random"
+
+
+DEFAULT_NUXEO_URL = "http://localhost:8080/nuxeo"
 
 
 @pytest.hookimpl(trylast=True, hookwrapper=True)
@@ -93,3 +96,18 @@ def cleanup_attrs(request):
             if engine.remote:
                 engine.remote.client._session.close()
         delattr(test_case, attr)
+
+
+@pytest.fixture(scope="session")
+def version() -> str:
+    import nxdrive
+
+    return nxdrive.__version__
+
+
+@pytest.fixture(scope="session")
+def nuxeo_url() -> str:
+    """Retrieve the Nuxeo URL."""
+    url = os.getenv("NXDRIVE_TEST_NUXEO_URL", DEFAULT_NUXEO_URL)
+    url = url.split("#")[0]
+    return url

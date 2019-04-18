@@ -9,7 +9,6 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
-from pathlib import Path
 from typing import List, TYPE_CHECKING, Union
 
 from . import __version__
@@ -22,6 +21,7 @@ from .utils import (
     get_default_nuxeo_drive_folder,
     get_value,
     normalized_path,
+    normalize_and_expand_path,
 )
 
 try:
@@ -54,7 +54,7 @@ Possible commands:
 - unbind-server
 - bind-root
 - unbind-root
-- clean_folder
+- clean-folder
 - access-online
 - copy-share-link
 - edit-metadata
@@ -308,8 +308,8 @@ class CliHandler:
 
         # Clean the folder
         clean_parser = subparsers.add_parser(
-            "clean_folder",
-            help="Remove all ndrive attributes from this folder and children.",
+            "clean-folder",
+            help="Remove recursively extended attributes from a given folder.",
             parents=[common_parser],
         )
         clean_parser.add_argument("--local-folder", help="Local folder to clean.")
@@ -454,10 +454,6 @@ class CliHandler:
     def uninstall(self, options: Namespace = None) -> None:
         AbstractOSIntegration.get(None).uninstall()
 
-    def normalize_path(self, path: str) -> Path:
-        """Convert options that need to be Path and expand environment variables."""
-        return normalized_path(os.path.expandvars(path))
-
     def handle(self, argv: List[str]) -> int:
         """ Parse options, setup logs and manager and dispatch execution. """
 
@@ -467,9 +463,9 @@ class CliHandler:
         options = self.parse_cli(argv)
 
         if hasattr(options, "local_folder"):
-            options.local_folder = self.normalize_path(options.local_folder)
+            options.local_folder = normalize_and_expand_path(options.local_folder)
         if hasattr(options, "nxdrive_home"):
-            options.nxdrive_home = self.normalize_path(options.nxdrive_home)
+            options.nxdrive_home = normalize_and_expand_path(options.nxdrive_home)
 
         command = getattr(options, "command", "launch")
         handler = getattr(self, command, None)
@@ -635,16 +631,15 @@ class CliHandler:
             if engine.local_folder == options.local_folder:
                 self.manager.unbind_engine(uid)
                 return 0
-        log.error(f"No engine registered for local folder {options.local_folder!r}")
+        log.warning(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
     def bind_root(self, options: Namespace) -> int:
         for engine in self.manager.get_engines().values():
-            log.debug(f"Comparing: {engine.local_folder!r} to {options.local_folder!r}")
             if engine.local_folder == options.local_folder:
                 engine.remote.register_as_root(options.remote_root)
                 return 0
-        log.error(f"No engine registered for local folder {options.local_folder!r}")
+        log.warning(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
     def unbind_root(self, options: Namespace) -> int:
@@ -652,7 +647,7 @@ class CliHandler:
             if engine.local_folder == options.local_folder:
                 engine.remote.unregister_as_root(options.remote_root)
                 return 0
-        log.error(f"No engine registered for local folder {options.local_folder!r}")
+        log.warning(f"No engine registered for local folder {options.local_folder!r}")
         return 1
 
     @staticmethod
