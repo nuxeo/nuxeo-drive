@@ -385,7 +385,7 @@ class QMLDriveApi(QObject):
         try:
             return guess_server_url(server_url, proxy=self._manager.proxy)
         except InvalidSSLCertificate as exc:
-            log.critical(exc)
+            log.warning(exc)
             parts = urlsplit(server_url)
             hostname = parts.netloc or parts.path
             if self.application.accept_unofficial_ssl_cert(hostname):
