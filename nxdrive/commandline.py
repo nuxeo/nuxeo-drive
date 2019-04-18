@@ -9,6 +9,7 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from typing import List, TYPE_CHECKING, Union
 
 from . import __version__
@@ -453,6 +454,10 @@ class CliHandler:
     def uninstall(self, options: Namespace = None) -> None:
         AbstractOSIntegration.get(None).uninstall()
 
+    def normalize_path(self, path: str) -> Path:
+        """Convert options that need to be Path and expand environment variables."""
+        return normalized_path(os.path.expandvars(path))
+
     def handle(self, argv: List[str]) -> int:
         """ Parse options, setup logs and manager and dispatch execution. """
 
@@ -461,11 +466,10 @@ class CliHandler:
 
         options = self.parse_cli(argv)
 
-        # Convert options that need to be Path
-        if getattr(options, "local_folder", ""):
-            options.local_folder = normalized_path(options.local_folder)
-        if getattr(options, "nxdrive_home", ""):
-            options.nxdrive_home = normalized_path(options.nxdrive_home)
+        if hasattr(options, "local_folder"):
+            options.local_folder = self.normalize_path(options.local_folder)
+        if hasattr(options, "nxdrive_home"):
+            options.nxdrive_home = self.normalize_path(options.nxdrive_home)
 
         command = getattr(options, "command", "launch")
         handler = getattr(self, command, None)
