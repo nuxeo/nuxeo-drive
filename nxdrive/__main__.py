@@ -3,6 +3,7 @@
 In this file we cannot use a relative import here, else Drive will not start when packaged.
 See https://github.com/pyinstaller/pyinstaller/issues/2560
 """
+import io
 import os
 import sys
 from contextlib import suppress
@@ -103,7 +104,7 @@ def setup_sentry() -> None:
     )
 
 
-def show_critical_error() -> None:
+def show_critical_error(out) -> None:
     """ Display a "friendly" dialog box on fatal error. """
 
     import traceback
@@ -131,7 +132,7 @@ def show_critical_error() -> None:
     dialog = QDialog()
     dialog.setWindowTitle(tr("FATAL_ERROR_TITLE", [APP_NAME]))
     dialog.setWindowIcon(QIcon(str(find_icon("app_icon.svg"))))
-    dialog.resize(600, 400)
+    dialog.resize(800, 600)
     layout = QVBoxLayout()
     css = "font-family: monospace; font-size: 12px;"
     details = []
@@ -168,6 +169,20 @@ def show_critical_error() -> None:
     exception.setText(exc_formatted)
     layout.addWidget(label_exc)
     layout.addWidget(exception)
+
+    # Display the console output
+    output = out.getvalue()
+    if output:
+        text = tr("FATAL_ERROR_OUTPUT")
+        label_err = QLabel(text)
+        label_err.setAlignment(Qt.AlignVCenter)
+        err = QTextEdit()
+        err.setStyleSheet(css)
+        err.setReadOnly(True)
+        details.append(section(text, output))
+        err.setText(output)
+        layout.addWidget(label_err)
+        layout.addWidget(err)
 
     # Display last lines from the memory log
     with suppress(Exception):
@@ -217,30 +232,54 @@ def show_critical_error() -> None:
     app.exec_()
 
 
+class RedirectStdStreams:
+    def __init__(self, stdout=None, stderr=None):
+        self._stdout = stdout or sys.stdout
+        self._stderr = stderr or sys.stderr
+
+    def __enter__(self):
+        self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
+        self.old_stdout.flush()
+        self.old_stderr.flush()
+        sys.stdout, sys.stderr = self._stdout, self._stderr
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._stdout.flush()
+        self._stderr.flush()
+        sys.stdout, sys.stderr = self.old_stdout, self.old_stderr
+
+
 def main() -> int:
     """ Entry point. """
 
-    if sys.version_info < (3, 6):
-        raise RuntimeError(f"{APP_NAME} requires Python 3.6+")
+    with io.StringIO() as out:
+        ret = 0
 
-    try:
-        if MAC and not check_executable_path():
-            return 1
+        with RedirectStdStreams(stdout=out, stderr=out):
+            try:
+                if sys.version_info < (3, 6):
+                    raise RuntimeError(f"{APP_NAME} requires Python 3.6+")
 
-        # Setup Sentry even if the user did not allow it because it can be tweaked
-        # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
-        setup_sentry()
+                if MAC and not check_executable_path():
+                    ret = 1
 
-        from nxdrive.commandline import CliHandler
+                # Setup Sentry even if the user did not allow it because it can be tweaked
+                # later via the "use-sentry" parameter. It will be useless if Sentry is not installed first.
+                setup_sentry()
 
-        return CliHandler().handle(sys.argv[1:])
-    except SystemExit as exc:
-        if exc.code != 0:
-            show_critical_error()
-        return exc.code
-    except:
-        show_critical_error()
-        return 1
+                from nxdrive.commandline import CliHandler
+
+                ret = CliHandler().handle(sys.argv[1:])
+            except SystemExit as exc:
+                if exc.code != 0:
+                    show_critical_error(out)
+                ret = exc.code
+            except:
+                show_critical_error(out)
+                ret = 1
+
+        print(out.getvalue(), flush=True)
+        return ret
 
 
 sys.exit((main()))
