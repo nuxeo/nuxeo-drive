@@ -29,6 +29,7 @@ from .constants import (
     DOWNLOAD_TMP_FILE_SUFFIX,
     ROOT,
     WINDOWS,
+    TransferStatus,
 )
 from .engine.activity import tooltip, FileAction
 from .engine.blacklist_queue import BlacklistQueue
@@ -106,6 +107,7 @@ class DirectEdit(Worker):
 
         self.thread.started.connect(self.run)
         self.autolock.orphanLocks.connect(self._autolock_orphans)
+        self._manager.directEdit.connect(self.edit)
 
     @pyqtSlot(object)
     def _autolock_orphans(self, locks: List[Path]) -> None:
@@ -442,8 +444,12 @@ class DirectEdit(Worker):
 
         # Download the file
         FileAction("Download", file_path, size=0, reporter=QApplication.instance())
+        engine.get_dao().set_transfer(
+            file_path, None, None, None, TransferStatus.ONGOING
+        )
         try:
             tmp_file = self._download(engine, info, file_path, blob, xpath, url=url)
+            engine.get_dao().remove_transfer(file_path)
             if tmp_file is None:
                 log.warning("Download failed")
                 return None
@@ -490,6 +496,7 @@ class DirectEdit(Worker):
         self.openDocument.emit(filename)
         return file_path
 
+    @pyqtSlot(str, str, str, str)
     def edit(
         self, server_url: str, doc_id: str, user: str = None, download_url: str = None
     ) -> None:

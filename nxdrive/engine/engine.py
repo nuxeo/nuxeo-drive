@@ -405,8 +405,8 @@ class Engine(QObject):
         # TODO Implement a TemporaryWorker
 
         def run():
-            self.manager.direct_edit.edit(
-                self.server_url, doc_ref, user=self.remote_user
+            self.manager.directEdit.emit(
+                self.server_url, doc_ref, self.remote_user, None
             )
 
         self._edit_thread = Thread(target=run)

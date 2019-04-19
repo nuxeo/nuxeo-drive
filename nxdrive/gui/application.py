@@ -1189,11 +1189,8 @@ class Application(QApplication):
                 self._show_msgbox_restart_needed()
                 return False
 
-            manager.direct_edit.edit(
-                info["server_url"],
-                info["doc_id"],
-                user=info["user"],
-                download_url=info["download_url"],
+            manager.directEdit.emit(
+                info["server_url"], info["doc_id"], info["user"], info["download_url"]
             )
         elif cmd == "token":
             self.api.handle_token(info["token"], info["username"])
@@ -1290,19 +1287,11 @@ class Application(QApplication):
         )
 
     @pyqtSlot()
-    def refresh_actions(self) -> None:
-        actions = self.api.get_actions()
-        if actions != self.transfer_model.actions:
-            self.transfer_model.set_actions(actions)
-        self.transfer_model.fileChanged.emit()
-
-    @pyqtSlot()
     def refresh_transfers(self) -> None:
         transfers = self.api.get_transfers()
-        log.info(transfers)
-        if transfers != self.transfer_model.actions:
-            self.transfer_model.set_actions(transfers)
-        self.transfer_model.fileChanged.emit()
+        if transfers != self.transfer_model.transfers:
+            self.transfer_model.set_transfers(transfers)
+            self.transfer_model.fileChanged.emit()
 
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:
@@ -1310,7 +1299,7 @@ class Application(QApplication):
         if files != self.file_model.files:
             self.file_model.empty()
             self.file_model.addFiles(files)
-        self.file_model.fileChanged.emit()
+            self.file_model.fileChanged.emit()
 
     def current_language(self) -> Optional[str]:
         lang = Translator.locale()

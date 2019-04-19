@@ -6,7 +6,7 @@ import "icon-font/Icon.js" as MdiFont
 Rectangle {
     id: control
     property variant fileData: model
-    property bool paused: status == "PAUSED"
+    property bool paused: status == "PAUSED" || status == "SUSPENDED"
     visible: progress > 0 && progress < 100
     width: parent.width; height: visible ? 55 : 0
 
