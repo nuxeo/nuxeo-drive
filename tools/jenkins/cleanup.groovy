@@ -4,7 +4,7 @@
 // Pipeline properties
 properties([
     disableConcurrentBuilds(),
-    pipelineTriggers([]),
+    pipelineTriggers([[$class: 'TimerTrigger', spec: '0 8 * * *']]),  // cronjob like everyday at 08:00am
     [$class: 'BuildDiscarderProperty', strategy:
         [$class: 'LogRotator', daysToKeepStr: '60', numToKeepStr: '60', artifactNumToKeepStr: '1']],
     [$class: 'SchedulerPreference', preferEvenload: true],
@@ -19,7 +19,7 @@ timestamps {
         withEnv(["WORKSPACE=${pwd()}"]) {
             stage('Checkout') {
                 deleteDir()
-                git credentialsId: credential_id, url: 'ssh://git@github.com:nuxeo/nuxeo-drive.git', branch: 'master'
+                git credentialsId: credential_id, url: 'git@github.com:nuxeo/nuxeo-drive.git', branch: 'master'
             }
 
             stage('Clean-up') {

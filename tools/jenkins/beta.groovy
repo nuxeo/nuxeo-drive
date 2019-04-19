@@ -30,7 +30,7 @@ timestamps {
         try {
             stage('Checkout') {
                 deleteDir()
-                git credentialsId: credential_id, url: 'ssh://git@github.com:nuxeo/nuxeo-drive.git', branch: env.BRANCH_NAME
+                git credentialsId: credential_id, url: 'git@github.com:nuxeo/nuxeo-drive.git', branch: env.BRANCH_NAME
             }
 
             stage('Create') {
