@@ -70,6 +70,7 @@ class Manager(QObject):
     suspended = pyqtSignal()
     reloadIconsSet = pyqtSignal(bool)
     resumed = pyqtSignal()
+    directEdit = pyqtSignal(str, str, str, str)
 
     _instances: Dict[Path, CallableProxyType] = {}
     __device_id = None

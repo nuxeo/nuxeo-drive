@@ -356,10 +356,13 @@ class Remote(Nuxeo):
         FileAction(
             "Download", file_out, file_name, size=0, reporter=QApplication.instance()
         )
+
+        self._dao.set_transfer(file_path, None, None, None, TransferStatus.ONGOING)
         try:
             tmp_file = self.download(
                 download_url, file_out=file_out, digest=fs_item_info.digest, **kwargs
             )
+            self._dao.remove_transfer(file_path)
         except Exception as e:
             with suppress(FileNotFoundError):
                 file_out.unlink()
