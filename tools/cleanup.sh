@@ -6,17 +6,13 @@
 #
 
 main() {
-    local cmd
-    local number
     local older_than
     local path
     local release
     local version
 
-    number=0
     older_than=21
     path="/var/www/community.nuxeo.com/static/drive-updates"
-    cmd=$(git tag -l "alpha-*" --sort=-taggerdate | tail -n +${older_than})
 
     echo ">>> Installing requirements"
     python -m pip install --user pyaml==17.12.1
@@ -28,11 +24,11 @@ main() {
     python tools/versions.py --check || exit 1
 
     echo ">>> Removing alpha versions older than ${older_than} days"
-    for release in ${cmd}; do
+    while IFS= read release; do
         version="$(echo ${release} | sed s'/alpha-//')"
         echo " - ${version}"
         python tools/versions.py --delete "${version}"
-    done
+    done < <(git tag -l "alpha-*" --sort=-taggerdate | tail -n +${older_than})
 
     echo ">>> Checking versions.yml integrity"
     python tools/versions.py --check || exit 1
@@ -41,14 +37,14 @@ main() {
     rsync -vz versions.yml nuxeo@lethe.nuxeo.com:${path}/
 
     echo ">>> Removing binaries, tags and branches:"
-    for release in ${cmd}; do
+    while IFS= read release; do
         version="$(echo ${release} | sed s'/alpha-//')"
         echo " - ${version}"
         ssh -T nuxeo@lethe.nuxeo.com "rm -vf ${path}/alpha/*${version}*" || true
         git tag --delete "${release}" || true
         git push --delete origin "wip-${release}" || true  # branch
         git push --delete origin "${release}" || true  # tag
-    done
+    done < <(git tag -l "alpha-*" --sort=-taggerdate | tail -n +${older_than})
 }
 
 main
