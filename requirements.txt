@@ -7,7 +7,7 @@ https://github.com/gorakhargosh/watchdog/archive/8b94506c3156a3b66faef7aac9a139f
 https://github.com/nuxeo/nuxeo-python-client/archive/a20376027af5e195404f49548c34d9d7e2ee381b.zip
 markdown==3.1
 psutil==5.6.1
-pyaml==18.11.0
+pyaml==19.4.1
 pycryptodomex==3.8.1
 # Ignore pyobjc updates until NXDRIVE-1396 is done
 pyobjc-framework-Cocoa==4.2.2; sys_platform == 'darwin'  # pyup: ignore
