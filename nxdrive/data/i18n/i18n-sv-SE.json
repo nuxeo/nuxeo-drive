@@ -112,6 +112,7 @@
     "FATAL_ERROR_DETAILS_COPY": "Copy details",
     "FATAL_ERROR_LOGS": "Logs before the crash:",
     "FATAL_ERROR_MSG": "Ooops! Unfortunately, a fatal error occurred and %1 has stopped.<br>Please share the following informations with %2 support: we’ll do our best to fix it!",
+    "FATAL_ERROR_OUTPUT": "Console output:",
     "FATAL_ERROR_TITLE": "%1 - Fatal error",
     "FEEDBACK_LINK": "Saknas något? Dela med dig av din feedback här.",
     "FILE_ALREADY_EXISTS": "There is already a file named „%1“ in  this folder. Do you want to replace it with the one you're moving?",
