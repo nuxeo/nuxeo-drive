@@ -21,7 +21,7 @@ Current support:
 
 History:
 
-- `2018-01-29` (v3.0.4): dropped support for Nuxeo Platform 6.10
+- `2018-01-29` (v3.0.4): dropped support for Nuxeo Platform 6.0
 
 ## Client
 
