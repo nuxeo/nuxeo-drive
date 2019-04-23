@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 #
 # Launch several QA tests. Sync with SonarCloud.
 #

@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/bash -eu
 #
 # Create a new release, it means:
 #     - creating a new alpha or beta;

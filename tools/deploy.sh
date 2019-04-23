@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/bash -eu
 #
 # Deploy a release: it means moving artifacts from the staging site to the production's one and
 # converting GitHub pre-release to release.
