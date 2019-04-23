@@ -1,26 +1,31 @@
 # Support
 
-Here is a page where you can see the OS vendors and versions as well as the browsers we are currently supporting; but also the Python version we are currently using.
+This page is targeting the current Nuxeo Drive release. You can check for older releases by adapting the current URL (replace `$VERSION` with the desired version, e.g.: 4.1.2):
 
-## Nuxeo Platform
+```
+https://github.com/nuxeo/nuxeo-drive/blob/release-$VERSION/docs/support.md
+```
 
-Nuxeo Drive supports all versions currently supported by Nuxeo.
+## Server
+
+Nuxeo Drive always supports all versions [currently supported](https://www.nuxeo.com/legal/supported-versions/) by Nuxeo (at the time of each release).
 The **only requirement** is to always have the Nuxeo Drive addon up-to-date.
 
-The current Nuxeo Drive version supports:
+Current support:
 
 - Nuxeo Platform 7.10
 - Nuxeo Platform 8.10
 - Nuxeo Platform 9.10
+- Nuxeo Platform 10.10
 - Nuxeo Platform SNAPSHOT
 
 History:
 
 - `2018-01-29` (v3.0.4): dropped support for Nuxeo Platform 6.10
 
-## OS
+## Client
 
-List of officially supported platform vendors and versions:
+Officially supported platform vendors and versions:
 
 - macOS >= 10.11, 64 bits
 - Windows 7, both 32 and 64 bits
@@ -43,21 +48,19 @@ You can find out how we are doing it by reading [deployment.md](https://github.c
 
 _Note_: this is a temporary situation, official support with packages is on the way.
 
-## Browsers
-
-### Known limitations
+### Known Browsers Limitations
 
 With the Safari browser, the DirectEdit feature can be unstable (see [NXDRIVE-972](https://jira.nuxeo.com/browse/NXDRIVE-972)).
 We recommend using recent versions of Firefox or Chrome for the best experience.
 
-## Python
+### Python
 
 Nuxeo Drive is not a module but a whole package containing its own Python version and all dependencies.
 If you want to use the module version as a basic module for your own software, please keep in mind that we do not offer support for dropped Python versions.
 
-It may evolve quickly without notification as we are following the Python development cycle for the current used branch.
+It may evolve quickly without notification as we are following the Python development cycle.
 
-As of now, we are using the __Python 3.7__ (but it is kept compatible with Python 3.6).
+As of now, we are using the __Python 3.6.8__.
 
 History:
 
@@ -65,7 +68,7 @@ History:
 - `2014-??-??`: dropped support for Python 2.6
 
 
-## Translations
+### Translations
 
 Nuxeo Drive is translated in several languages. For now, officially supported ones are:
 
