@@ -70,6 +70,7 @@ class Engine(QObject):
     docDeleted = pyqtSignal(Path)
     fileAlreadyExists = pyqtSignal(Path, Path)
     uiChanged = pyqtSignal()
+    authChanged = pyqtSignal()
     noSpaceLeftOnDevice = pyqtSignal()
     invalidAuthentication = pyqtSignal()
     newConflict = pyqtSignal(object)
@@ -523,12 +524,15 @@ class Engine(QObject):
     def set_invalid_credentials(self, value: bool = True, reason: str = None) -> None:
         changed = self._invalid_credentials is not value
         self._invalid_credentials = value
-        if value and changed:
+        if not changed:
+            return
+        if value:
             msg = "Setting invalid credentials"
             if reason:
                 msg += f", reason is: {reason}"
             log.warning(msg)
             self.invalidAuthentication.emit()
+        self.authChanged.emit()
 
     def has_invalid_credentials(self) -> bool:
         return self._invalid_credentials

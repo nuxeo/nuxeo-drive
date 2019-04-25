@@ -25,6 +25,7 @@ class EngineModel(QAbstractListModel):
     engineChanged = pyqtSignal()
     statusChanged = pyqtSignal(object)
     uiChanged = pyqtSignal()
+    authChanged = pyqtSignal()
 
     UID_ROLE = Qt.UserRole + 1
     TYPE_ROLE = Qt.UserRole + 2
@@ -167,6 +168,7 @@ class EngineModel(QAbstractListModel):
         engine.syncStarted.connect(self._relay_engine_events)
         engine.syncSuspended.connect(self._relay_engine_events)
         engine.uiChanged.connect(self.uiChanged)
+        engine.authChanged.connect(self.authChanged)
 
     def _relay_engine_events(self):
         engine = self.sender()

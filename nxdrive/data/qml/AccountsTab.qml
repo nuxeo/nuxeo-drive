@@ -55,6 +55,8 @@ Rectangle {
                 columns: 2
                 columnSpacing: 50
                 rowSpacing: 20
+                property bool authenticated: !api.has_invalid_credentials(uid)
+
                 ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
                 ScaledText { text: url }
 
@@ -74,6 +76,7 @@ Rectangle {
                             webUiButton.checked = (forceUi == "web")
                             jsfUiButton.checked = (forceUi == "jsf")
                         }
+                        onAuthChanged: authenticated = !api.has_invalid_credentials(uid)
                     }
                     id: uiSelect
 
@@ -135,23 +138,15 @@ Rectangle {
                 }
 
                 ScaledText {
-                    id: invalidCredsLabel
-                    visible: api.has_invalid_credentials(uid)
+                    visible: !authenticated
                     text: qsTr("AUTH_EXPIRED") + tl.tr
                     color: red
                 }
                 Link {
-                    id: invalidCredsAction
-                    visible: api.has_invalid_credentials(uid)
+                    visible: !authenticated
                     text: qsTr("AUTH_UPDATE_ACTION") + tl.tr
                     color: red
-                    onClicked: {
-                        api.web_update_token(uid);
-                        if (!api.has_invalid_credentials(uid)) {
-                            invalidCredsLabel.visible = false;
-                            invalidCredsAction.visible = false;
-                        }
-                    }
+                    onClicked: api.web_update_token(uid)
                 }
             }
         }
