@@ -1163,6 +1163,7 @@ class Application(QApplication):
         msg.addButton(Translator.get("OK"), QMessageBox.AcceptRole)
         msg.exec_()
 
+    @pyqtSlot(str)
     def _handle_nxdrive_url(self, url: str) -> bool:
         """ Handle an nxdrive protocol URL. """
 

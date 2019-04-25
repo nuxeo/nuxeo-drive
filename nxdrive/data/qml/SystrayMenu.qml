@@ -55,5 +55,12 @@ ShadowRectangle {
                 application.quit()
             }
         }
+
+        SystrayMenuItem {
+            text: "DIRECT EDIT"
+            onClicked: {
+                application._handle_nxdrive_url("nxdrive://edit/http/localhost:8080/nuxeo/user/Administrator/repo/default/nxdocid/4071267e-e4e9-4f15-b794-c13810d0371c/filename/M82%20copy4.tif/downloadUrl/nxfile/default/4071267e-e4e9-4f15-b794-c13810d0371c/file:content/M82%20copy4.tif")
+            }
+        }
     }
 }

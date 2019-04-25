@@ -28,6 +28,7 @@ from ..exceptions import (
     PairInterrupt,
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
+    DownloadPaused,
 )
 from ..objects import DocPairs, Binder, Metrics, EngineDef
 from ..options import Options
@@ -437,9 +438,25 @@ class Engine(QObject):
         doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
         self.get_queue_manager().push(doc_pair)
 
+    def resume_download(self, uid: int) -> None:
+        self._dao.resume_download(uid)
+        transfer = self._dao.get_download(uid=uid)
+        doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
+        self.get_queue_manager().push(doc_pair)
+
+    def resume_upload(self, uid: int) -> None:
+        self._dao.resume_upload(uid)
+        transfer = self._dao.get_upload(uid=uid)
+        doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
+        self.get_queue_manager().push(doc_pair)
+
     def resume_suspended_transfers(self) -> None:
-        for transfer in self._dao.get_transfers_with_status(TransferStatus.SUSPENDED):
-            self._dao.resume_transfer(transfer.uid)
+        for transfer in self._dao.get_downloads_with_status(TransferStatus.SUSPENDED):
+            self._dao.resume_download(transfer.uid)
+            doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
+            self.get_queue_manager().push(doc_pair)
+        for transfer in self._dao.get_uploads_with_status(TransferStatus.SUSPENDED):
+            self._dao.resume_upload(transfer.uid)
             doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
             self.get_queue_manager().push(doc_pair)
 
@@ -447,7 +464,8 @@ class Engine(QObject):
         if self._pause:
             return
         self._pause = True
-        self._dao.suspend_transfers()
+        self._dao.suspend_downloads()
+        self._dao.suspend_uploads()
         self._queue_manager.suspend()
         for thread in self._threads:
             thread.worker.suspend()
@@ -1003,19 +1021,20 @@ class Engine(QObject):
                 raise ThreadInterrupt()
 
         # Get action
-        current_file = None
+        current = None
         action = Action.get_current_action()
         if isinstance(action, FileAction):
-            current_file = self.local.get_path(action.filepath)
-        if (
-            current_file is not None
-            and self._folder_lock is not None
-            and self._folder_lock in current_file.parents
-        ):
-            log.info(
-                f"PairInterrupt {current_file!r} because lock on {self._folder_lock!r}"
-            )
+            current = self.local.get_path(action.filepath)
+
+        if current and self._folder_lock and self._folder_lock in current.parents:
+            log.info(f"PairInterrupt {current!r} because lock on {self._folder_lock!r}")
             raise PairInterrupt()
+
+        download = self._dao.get_download(
+            path=action.filepath.with_name(action.filename)
+        )
+        if download and download.status != TransferStatus.ONGOING:
+            raise DownloadPaused(download.uid)
 
     def create_processor(self, item_getter: Callable, **kwargs: Any) -> Processor:
         return Processor(self, item_getter, **kwargs)

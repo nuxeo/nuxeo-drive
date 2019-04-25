@@ -9,7 +9,7 @@ from sqlite3 import Row
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dateutil import parser
 from dateutil.tz import tzlocal
 
@@ -401,42 +401,29 @@ class EngineDef(Row):
             return self[name]
 
 
-class Transfer(Row):
-    uid: int
+@dataclass
+class Transfer:
+    uid: Optional[int]
     path: Path
-    batch: str
-    idx: int
-    chunk_size: int
+    name: str = field(init=False)
     status: TransferStatus
-    progress: float
-    doc_pair: int
+    progress: float = 0.0
+    doc_pair: Optional[int] = None
 
-    def __getattr__(self, name: str) -> Optional[Union[int, str, Path, TransferStatus]]:
-        with suppress(IndexError):
-            if name == "path":
-                return Path(self[name])
-            if name == "status":
-                return TransferStatus(self[name])
-            if name == "uid":
-                return self["id"]
-            return self[name]
+    def __post_init__(self) -> None:
+        self.name = self.path.name
 
-    def __repr__(self) -> str:
-        return (
-            f"<{type(self).__name__} "
-            f"batch={self.batch}, "
-            f"idx={self.idx}, "
-            f"status={self.status.name}>"
-        )
 
-    def export(self) -> Dict[str, Any]:
-        return {
-            "uid": self.uid,
-            "path": self.path,
-            "name": self.path.name,
-            "batch": self.batch,
-            "idx": self.idx,
-            "chunk_size": self.chunk_size,
-            "status": self.status.name,
-            "progress": self.progress or 0,
-        }
+@dataclass
+class Download(Transfer):
+    transfer_type: str = field(init=False, default="download")
+    tmpname: Optional[str] = None
+    url: Optional[str] = None
+
+
+@dataclass
+class Upload(Transfer):
+    transfer_type: str = field(init=False, default="upload")
+    batch: Optional[str] = None
+    idx: Optional[int] = None
+    chunk_size: Optional[int] = None

@@ -7,6 +7,7 @@ from os.path import abspath
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
+from dataclasses import asdict
 from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
@@ -215,25 +216,43 @@ class QMLDriveApi(QObject):
         engines = self._manager.get_engines().values()
 
         for engine in engines:
-            for transfer in engine.get_dao().get_transfers():
-                result.append(transfer.export())
+            for transfer in engine.get_dao().get_downloads():
+                result.append(asdict(transfer))
+            for transfer in engine.get_dao().get_uploads():
+                result.append(asdict(transfer))
         return result
 
     @pyqtSlot(str, str, float)
-    def pause_transfer(self, engine_uid: str, uid: int, progress: float) -> None:
-        log.warning(f"Pausing transfer for engine {engine_uid}, transfer {uid}")
+    def pause_download(self, engine_uid: str, uid: int, progress: float) -> None:
+        log.warning(f"Pausing download for engine {engine_uid}, download {uid}")
         engine = self._get_engine(engine_uid)
         if not engine:
             return
-        engine.get_dao().pause_transfer(uid, progress)
+        engine.get_dao().pause_download(uid)
+
+    @pyqtSlot(str, str, float)
+    def pause_upload(self, engine_uid: str, uid: int, progress: float) -> None:
+        log.warning(f"Pausing upload for engine {engine_uid}, upload {uid}")
+        engine = self._get_engine(engine_uid)
+        if not engine:
+            return
+        engine.get_dao().pause_upload(uid)
 
     @pyqtSlot(str, str)
-    def resume_transfer(self, engine_uid: str, uid: int) -> None:
-        log.warning(f"Resume transfer for engine {engine_uid}, transfer {uid}")
+    def resume_download(self, engine_uid: str, uid: int) -> None:
+        log.warning(f"Resume download for engine {engine_uid}, download {uid}")
         engine = self._get_engine(engine_uid)
         if not engine:
             return
-        engine.resume_transfer(uid)
+        engine.resume_download(uid)
+
+    @pyqtSlot(str, str)
+    def resume_upload(self, engine_uid: str, uid: int) -> None:
+        log.warning(f"Resume upload for engine {engine_uid}, upload {uid}")
+        engine = self._get_engine(engine_uid)
+        if not engine:
+            return
+        engine.resume_upload(uid)
 
     @pyqtSlot(str, result=str)
     def get_threads(self, uid: str) -> str:

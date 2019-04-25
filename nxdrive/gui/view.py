@@ -136,6 +136,7 @@ class TransferModel(QAbstractListModel):
     NAME = Qt.UserRole + 2
     STATUS = Qt.UserRole + 3
     PROGRESS = Qt.UserRole + 4
+    TYPE = Qt.UserRole + 5
 
     def __init__(self, parent: QObject = None) -> None:
         super(TransferModel, self).__init__(parent)
@@ -145,6 +146,7 @@ class TransferModel(QAbstractListModel):
             self.NAME: b"name",
             self.STATUS: b"status",
             self.PROGRESS: b"progress",
+            self.TYPE: b"transfer_type",
         }
 
     def roleNames(self) -> Dict[int, bytes]:
@@ -170,6 +172,8 @@ class TransferModel(QAbstractListModel):
 
     def data(self, index: QModelIndex, role: int = NAME) -> Any:
         row = self.transfers[index.row()]
+        if role == self.STATUS:
+            return row["status"].name
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
