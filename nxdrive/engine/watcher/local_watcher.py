@@ -17,7 +17,7 @@ from watchdog.observers import Observer
 
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
-from ...client.local_client import FileInfo, LocalClient
+from ...client.local_client import FileInfo
 from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, ROOT, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
@@ -658,117 +658,140 @@ class LocalWatcher(EngineWorker):
             else:
                 self.engine.delete_doc(doc_pair.local_path)
 
+    def _handle_delete_on_known_pair(self, doc_pair: DocPair) -> None:
+        """Handle watchdog deleted event on a known doc pair."""
+        if WINDOWS:
+            # Delay on Windows the delete event
+            log.info(f"Add pair to delete events: {doc_pair!r}")
+            with self.lock:
+                self._delete_events[doc_pair.remote_ref] = (
+                    current_milli_time(),
+                    doc_pair,
+                )
+            return
+
+        # In case of case sensitive can be an issue
+        if self.local.exists(doc_pair.local_path):
+            remote_id = self.local.get_remote_id(doc_pair.local_path)
+            if not remote_id or remote_id == doc_pair.remote_ref:
+                # This happens on update, don't do anything
+                return
+
+        self._handle_watchdog_delete(doc_pair)
+
+    def _handle_move_on_known_pair(
+        self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
+    ) -> None:
+        """Handle a watchdog move event on a known doc pair."""
+
+        # Ignore move to Office tmp file
+        dest_filename = basename(evt.dest_path)
+
+        ignore, _ = is_generated_tmp_file(dest_filename)
+        if ignore:
+            log.info(f"Ignoring generated temporary file: {evt.dest_path!r}")
+            return
+
+        dao, client = self._dao, self.local
+        src_path = normalize(evt.dest_path)
+        rel_path = client.get_path(src_path)
+
+        pair = dao.get_state_from_local(rel_path)
+        remote_ref = client.get_remote_id(rel_path)
+        if pair is not None and pair.remote_ref == remote_ref:
+            local_info = client.try_get_info(rel_path)
+            if local_info:
+                digest = local_info.get_digest()
+                # Drop event if digest hasn't changed, can be the case
+                # if only file permissions have been updated
+                if not doc_pair.folderish and pair.local_digest == digest:
+                    log.debug(
+                        f"Dropping watchdog event [{evt.event_type}] as digest "
+                        f"has not changed for {rel_path!r}"
+                    )
+                    # If pair are the same don't drop it.  It can happen
+                    # in case of server rename on a document.
+                    if doc_pair.id != pair.id:
+                        dao.remove_state(doc_pair)
+                    return
+
+                pair.local_digest = digest
+                pair.local_state = "modified"
+                dao.update_local_state(pair, local_info)
+                dao.remove_state(doc_pair)
+                log.info(
+                    f"Substitution file: remove pair({doc_pair!r}) "
+                    f"mark({pair!r}) as modified"
+                )
+                return
+
+        local_info = client.try_get_info(rel_path)
+        if not local_info:
+            return
+
+        if is_text_edit_tmp_file(local_info.name):
+            log.info(
+                f"Ignoring move to TextEdit tmp file {local_info.name!r} "
+                f"for {doc_pair!r}"
+            )
+            return
+
+        old_local_path = None
+        rel_parent_path = client.get_path(src_path.parent) or ROOT
+
+        # Ignore inner movement
+        versioned = False
+        remote_parent_ref = client.get_remote_id(rel_parent_path)
+        if (
+            doc_pair.remote_name == local_info.name
+            and doc_pair.remote_parent_ref == remote_parent_ref
+            and rel_parent_path == doc_pair.local_path.parent
+        ):
+            log.info(
+                "The pair was moved but it has been canceled manually, "
+                f"setting state to synchronized: {doc_pair!r}"
+            )
+            doc_pair.local_state = "synchronized"
+        else:
+            log.info(f"Detect move for {local_info.name!r} ({doc_pair!r})")
+            if doc_pair.local_state != "created":
+                doc_pair.local_state = "moved"
+                old_local_path = doc_pair.local_path
+                versioned = True
+
+        dao.update_local_state(doc_pair, local_info, versioned=versioned)
+
+        if (
+            WINDOWS
+            and old_local_path is not None
+            and self._windows_folder_scan_delay > 0
+            and old_local_path in self._folder_scan_events
+        ):
+            with self.lock:
+                log.info(
+                    "Update folders to scan queue: move "
+                    f"from {old_local_path!r} to {rel_path!r}"
+                )
+                self._folder_scan_events.pop(old_local_path, None)
+                t = mktime(local_info.last_modification_time.timetuple())
+                self._folder_scan_events[rel_path] = t, doc_pair
+
     def _handle_watchdog_event_on_known_pair(
         self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
     ) -> None:
         log.debug(f"Watchdog event {evt!r} on known pair {doc_pair!r}")
-        dao, client = self._dao, self.local
-
-        if evt.event_type == "moved":
-            # Ignore move to Office tmp file
-            dest_filename = basename(evt.dest_path)
-            prefix = LocalClient.CASE_RENAME_PREFIX
-
-            if dest_filename.startswith(prefix) or rel_path.name.startswith(prefix):
-                log.info(f"Ignoring case rename {evt.src_path!r} to {evt.dest_path!r}")
-                return
-
-            ignore, _ = is_generated_tmp_file(dest_filename)
-            if ignore:
-                log.info(f"Ignoring generated temporary file: {evt.dest_path!r}")
-                return
-
-            src_path = normalize(evt.dest_path)
-            rel_path = client.get_path(src_path)
-
-            pair = dao.get_state_from_local(rel_path)
-            remote_ref = client.get_remote_id(rel_path)
-            if pair is not None and pair.remote_ref == remote_ref:
-                local_info = client.try_get_info(rel_path)
-                if local_info:
-                    digest = local_info.get_digest()
-                    # Drop event if digest hasn't changed, can be the case
-                    # if only file permissions have been updated
-                    if not doc_pair.folderish and pair.local_digest == digest:
-                        log.debug(
-                            f"Dropping watchdog event [{evt.event_type}] as digest "
-                            f"has not changed for {rel_path!r}"
-                        )
-                        # If pair are the same don't drop it.  It can happen
-                        # in case of server rename on a document.
-                        if doc_pair.id != pair.id:
-                            dao.remove_state(doc_pair)
-                        return
-
-                    pair.local_digest = digest
-                    pair.local_state = "modified"
-                    dao.update_local_state(pair, local_info)
-                    dao.remove_state(doc_pair)
-                    log.info(
-                        f"Substitution file: remove pair({doc_pair!r}) "
-                        f"mark({pair!r}) as modified"
-                    )
-                    return
-
-            local_info = client.try_get_info(rel_path)
-            if not local_info:
-                return
-
-            if is_text_edit_tmp_file(local_info.name):
-                log.info(
-                    f"Ignoring move to TextEdit tmp file {local_info.name!r} "
-                    f"for {doc_pair!r}"
-                )
-                return
-
-            old_local_path = None
-            rel_parent_path = client.get_path(src_path.parent) or ROOT
-
-            # Ignore inner movement
-            versioned = False
-            remote_parent_ref = client.get_remote_id(rel_parent_path)
-            if (
-                doc_pair.remote_name == local_info.name
-                and doc_pair.remote_parent_ref == remote_parent_ref
-                and rel_parent_path == doc_pair.local_path.parent
-            ):
-                log.info(
-                    "The pair was moved but it has been canceled manually, "
-                    f"setting state to synchronized: {doc_pair!r}"
-                )
-                doc_pair.local_state = "synchronized"
-            else:
-                log.info(f"Detect move for {local_info.name!r} ({doc_pair!r})")
-                if doc_pair.local_state != "created":
-                    doc_pair.local_state = "moved"
-                    old_local_path = doc_pair.local_path
-                    versioned = True
-
-            dao.update_local_state(doc_pair, local_info, versioned=versioned)
-
-            if (
-                WINDOWS
-                and old_local_path is not None
-                and self._windows_folder_scan_delay > 0
-            ):
-                with self.lock:
-                    if old_local_path in self._folder_scan_events:
-                        log.info(
-                            "Update folders to scan queue: move "
-                            f"from {old_local_path!r} to {rel_path!r}"
-                        )
-                        del self._folder_scan_events[old_local_path]
-                        t = mktime(local_info.last_modification_time.timetuple())
-                        self._folder_scan_events[rel_path] = t, doc_pair
-            return
-
+        dao = self._dao
         acquired_pair = None
+
         try:
             acquired_pair = dao.acquire_state(self.thread_id, doc_pair.id)
             if acquired_pair is not None:
-                self._handle_watchdog_event_on_known_acquired_pair(
-                    acquired_pair, evt, rel_path
-                )
+                if evt.event_type == "deleted":
+                    self._handle_delete_on_known_pair(doc_pair)
+                else:
+                    self._handle_watchdog_event_on_known_acquired_pair(
+                        acquired_pair, evt, rel_path
+                    )
             else:
                 log.debug(f"Don't update as in process {doc_pair!r}")
         except sqlite3.OperationalError:
@@ -792,29 +815,9 @@ class LocalWatcher(EngineWorker):
     def _handle_watchdog_event_on_known_acquired_pair(
         self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
     ) -> None:
-        dao, client = self._dao, self.local
-
-        if evt.event_type == "deleted":
-            if WINDOWS:
-                # Delay on Windows the delete event
-                log.info(f"Add pair to delete events: {doc_pair!r}")
-                with self.lock:
-                    self._delete_events[doc_pair.remote_ref] = (
-                        current_milli_time(),
-                        doc_pair,
-                    )
-                return
-
-            # In case of case sensitive can be an issue
-            if client.exists(doc_pair.local_path):
-                remote_id = client.get_remote_id(doc_pair.local_path)
-                if not remote_id or remote_id == doc_pair.remote_ref:
-                    # This happens on update, don't do anything
-                    return
-            self._handle_watchdog_delete(doc_pair)
-            return
-
+        client = self.local
         local_info = client.try_get_info(rel_path)
+
         if evt.event_type == "created":
             # NXDRIVE-471 case maybe
             remote_ref = client.get_remote_id(rel_path)
@@ -825,65 +828,73 @@ class LocalWatcher(EngineWorker):
                 )
                 if not local_info or local_info.get_digest() == doc_pair.local_digest:
                     return
-                else:
-                    log.info(
-                        "Created event on a known pair with no remote_ref "
-                        f"but with different digest: {doc_pair!r}"
-                    )
+
+                log.info(
+                    "Created event on a known pair with no remote_ref "
+                    f"but with different digest: {doc_pair!r}"
+                )
             else:
                 # NXDRIVE-509
                 log.info(
                     f"Created event on a known pair with a remote_ref: {doc_pair!r}"
                 )
 
-        if local_info:
-            # Unchanged folder
-            if doc_pair.folderish:
-                # Unchanged folder, only update last_local_updated
+        if not local_info:
+            return
+
+        dao = self._dao
+
+        # Unchanged folder
+        if doc_pair.folderish:
+            # Unchanged folder, only update last_local_updated
+            dao.update_local_modification_time(doc_pair, local_info)
+            return
+
+        if doc_pair.local_state == "synchronized":
+            digest = local_info.get_digest()
+            # Unchanged digest, can be the case if only the last
+            # modification time or file permissions have been updated
+            if doc_pair.local_digest == digest:
+                log.info(
+                    f"Digest has not changed for {rel_path!r} (watchdog event "
+                    f"[{evt.event_type}]), only update last_local_updated"
+                )
+                if not local_info.remote_ref:
+                    client.set_remote_id(rel_path, doc_pair.remote_ref)
                 dao.update_local_modification_time(doc_pair, local_info)
                 return
 
-            if doc_pair.local_state == "synchronized":
-                digest = local_info.get_digest()
-                # Unchanged digest, can be the case if only the last
-                # modification time or file permissions have been updated
-                if doc_pair.local_digest == digest:
-                    log.info(
-                        f"Digest has not changed for {rel_path!r} (watchdog event "
-                        f"[{evt.event_type}]), only update last_local_updated"
-                    )
-                    if not local_info.remote_ref:
-                        client.set_remote_id(rel_path, doc_pair.remote_ref)
-                    dao.update_local_modification_time(doc_pair, local_info)
-                    return
+            doc_pair.local_digest = digest
+            doc_pair.local_state = "modified"
 
-                doc_pair.local_digest = digest
-                doc_pair.local_state = "modified"
+        if (
+            evt.event_type == "modified"
+            and doc_pair.remote_ref
+            and doc_pair.remote_ref != local_info.remote_ref
+        ):
+            original_pair = dao.get_normal_state_from_remote(local_info.remote_ref)
+            original_info = None
+            if original_pair:
+                original_info = client.try_get_info(original_pair.local_path)
+
             if (
-                evt.event_type == "modified"
-                and doc_pair.remote_ref
-                and doc_pair.remote_ref != local_info.remote_ref
+                MAC
+                and original_info
+                and original_info.remote_ref == local_info.remote_ref
             ):
-                original_pair = dao.get_normal_state_from_remote(local_info.remote_ref)
-                original_info = None
-                if original_pair:
-                    original_info = client.try_get_info(original_pair.local_path)
-                if (
-                    MAC
-                    and original_info
-                    and original_info.remote_ref == local_info.remote_ref
-                ):
-                    log.info(
-                        "MacOS has postponed overwriting of xattr, "
-                        f"need to reset remote_ref for {doc_pair!r}"
-                    )
-                    # We are in a copy/paste situation with OS overriding
-                    # the xattribute
-                    client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
-                # This happens on overwrite through Windows Explorer
-                if not original_info:
-                    client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
-            dao.update_local_state(doc_pair, local_info)
+                log.info(
+                    "MacOS has postponed overwriting of xattr, "
+                    f"need to reset remote_ref for {doc_pair!r}"
+                )
+                # We are in a copy/paste situation with OS overriding
+                # the xattribute
+                client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
+
+            # This happens on overwrite through Windows Explorer
+            if not original_info:
+                client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
+
+        dao.update_local_state(doc_pair, local_info)
 
     def handle_watchdog_root_event(self, evt: FileSystemEvent) -> None:
         if evt.event_type == "moved":
@@ -985,7 +996,10 @@ class LocalWatcher(EngineWorker):
                     doc_pair.remote_state = "unknown"
                     dao.update_local_state(doc_pair, client.get_info(rel_path))
 
-                self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
+                if evt.event_type == "moved":
+                    self._handle_move_on_known_pair(doc_pair, evt, rel_path)
+                else:
+                    self._handle_watchdog_event_on_known_pair(doc_pair, evt, rel_path)
                 return
 
             if evt.event_type == "deleted":
@@ -1016,9 +1030,7 @@ class LocalWatcher(EngineWorker):
                             log.info(f"Pair re-moved detected for {doc_pair!r}")
 
                             # Can be a move inside a folder that has also moved
-                            self._handle_watchdog_event_on_known_pair(
-                                doc_pair, evt, rel_path
-                            )
+                            self._handle_move_on_known_pair(doc_pair, evt, rel_path)
                             return
 
                     rel_parent_path = client.get_path(src_path.parent)

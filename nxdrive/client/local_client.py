@@ -128,7 +128,6 @@ class FileInfo:
 class LocalClient:
     """ Client API implementation for the local file system. """
 
-    CASE_RENAME_PREFIX = "driveCaseRename_"
     _case_sensitive = None
 
     def __init__(self, base_folder: Path, **kwargs: Any) -> None:
@@ -641,7 +640,9 @@ FolderType=Generic
                 and old_name.lower() == new_name.lower()
                 and not self.is_case_sensitive()
             ):
-                # Must use a temp rename as FS is not case sensitive
+                # The filesystem is not sensitive, so we cannot rename
+                # from "a" to "A". We need to use a temporary filename
+                # inbetween, which allows us to do "a" -> <tempname> -> "A".
                 temp_path = normalized_path(tempfile.gettempdir()) / str(uuid.uuid4())
                 source_os_path.rename(temp_path)
                 source_os_path = temp_path
