@@ -32,7 +32,8 @@ from ..exceptions import (
     ParentNotSynced,
     ThreadInterrupt,
     UnknownDigest,
-    TransferPaused,
+    DownloadPaused,
+    UploadPaused,
 )
 from ..objects import DocPair, RemoteFileInfo
 from ..utils import (
@@ -244,7 +245,9 @@ class Processor(EngineWorker):
                     # in the current synchronization
                     doc_pair.local_parent_path = parent_pair.local_path
 
-                transfer = self.engine.get_dao().get_transfer(doc_pair=doc_pair.id)
+                transfer = self.engine.get_dao().get_download(doc_pair=doc_pair.id)
+                if not transfer:
+                    transfer = self.engine.get_dao().get_upload(doc_pair=doc_pair.id)
                 if transfer and transfer.status is not TransferStatus.ONGOING:
                     continue
 
@@ -323,10 +326,12 @@ class Processor(EngineWorker):
                     log.info(exc)
                     log.warning(f"Delaying failed upload: {doc_pair!r}")
                     self._postpone_pair(doc_pair, "Upload")
-                except TransferPaused as exc:
+                except DownloadPaused as exc:
                     log.info(exc)
-                    self.engine.get_dao().set_transfer_doc(exc.transfer_id, doc_pair.id)
-                    # self._postpone_pair(doc_pair, "PAUSED")
+                    self.engine.get_dao().set_download_doc(exc.transfer_id, doc_pair.id)
+                except UploadPaused as exc:
+                    log.info(exc)
+                    self.engine.get_dao().set_upload_doc(exc.transfer_id, doc_pair.id)
                 except DuplicationDisabledError:
                     self.giveup_error(doc_pair, "DEDUP")
                     continue

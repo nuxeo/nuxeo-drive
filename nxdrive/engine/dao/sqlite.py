@@ -27,7 +27,16 @@ from ...client.local_client import FileInfo
 from ...constants import NO_SPACE_ERRORS, ROOT, WINDOWS, TransferStatus
 from ...exceptions import UnknownPairState
 from ...notification import Notification
-from ...objects import DocPair, DocPairs, Filters, RemoteFileInfo, EngineDef, Transfer
+from ...objects import (
+    DocPair,
+    DocPairs,
+    Filters,
+    RemoteFileInfo,
+    EngineDef,
+    Transfer,
+    Download,
+    Upload,
+)
 
 if TYPE_CHECKING:
     from ..queue_manager import QueueManager  # noqa
@@ -650,16 +659,28 @@ class EngineDAO(ConfigurationDAO):
         if version < 5:
             self._migrate_state(cursor)
             cursor.execute(
-                "CREATE TABLE if not exists Transfers ("
-                "    id         INTEGER     NOT NULL,"
+                "CREATE TABLE if not exists Downloads ("
+                "    uid        INTEGER     NOT NULL,"
                 "    path       INTEGER     UNIQUE,"
-                "    batch      VARCHAR,"
-                "    idx        INTEGER,"
-                "    chunk_size INTEGER,"
                 "    status     INTEGER,"
                 "    progress   REAL,"
                 "    doc_pair   INTEGER     UNIQUE,"
-                "    PRIMARY KEY (id)"
+                "    tmpname    VARCHAR,"
+                "    url        VARCHAR,"
+                "    PRIMARY KEY (uid)"
+                ")"
+            )
+            cursor.execute(
+                "CREATE TABLE if not exists Uploads ("
+                "    uid        INTEGER     NOT NULL,"
+                "    path       INTEGER     UNIQUE,"
+                "    status     INTEGER,"
+                "    progress   REAL,"
+                "    doc_pair   INTEGER     UNIQUE,"
+                "    batch      VARCHAR,"
+                "    idx        INTEGER,"
+                "    chunk_size INTEGER,"
+                "    PRIMARY KEY (uid)"
                 ")"
             )
             self.store_int(SCHEMA_VERSION, 5)
@@ -1882,95 +1903,237 @@ class EngineDAO(ConfigurationDAO):
         finally:
             con.row_factory = backup
 
-    def get_transfers_with_status(self, status: TransferStatus) -> List[Transfer]:
+    def get_downloads(self) -> List[Download]:
         con = self._get_read_connection()
-        backup = con.row_factory
-        con.row_factory = Transfer
         c = con.cursor()
-        try:
-            return c.execute(
-                "SELECT * FROM Transfers WHERE status = ?", (status.value,)
-            ).fetchall()
-        finally:
-            con.row_factory = backup
+        return [
+            Download(
+                res.uid,
+                Path(res.path),
+                TransferStatus(res.status),
+                res.progress,
+                res.doc_pair,
+                res.tmpname,
+                res.url,
+            )
+            for res in c.execute("SELECT * FROM Downloads").fetchall()
+        ]
 
-    def get_transfer(
-        self, uid: int = None, path: Path = None, doc_pair: int = None
-    ) -> Optional[Transfer]:
+    def get_uploads(self) -> List[Upload]:
         con = self._get_read_connection()
-        backup = con.row_factory
-        con.row_factory = Transfer
+        c = con.cursor()
+        return [
+            Upload(
+                res.uid,
+                Path(res.path),
+                TransferStatus(res.status),
+                res.progress,
+                res.doc_pair,
+                res.batch,
+                res.idx,
+                res.chunk_size,
+            )
+            for res in c.execute("SELECT * FROM Uploads").fetchall()
+        ]
+
+    def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
+        con = self._get_read_connection()
+        c = con.cursor()
+        return [
+            Download(
+                res.uid,
+                Path(res.path),
+                TransferStatus(res.status),
+                res.progress,
+                res.doc_pair,
+                res.tmpname,
+                res.url,
+            )
+            for res in c.execute(
+                "SELECT * FROM Downloads WHERE status = ?", (status.value,)
+            ).fetchall()
+        ]
+
+    def get_uploads_with_status(self, status: TransferStatus) -> List[Upload]:
+        con = self._get_read_connection()
+        c = con.cursor()
+        return [
+            Upload(
+                res.uid,
+                Path(res.path),
+                TransferStatus(res.status),
+                res.progress,
+                res.doc_pair,
+                res.batch,
+                res.idx,
+                res.chunk_size,
+            )
+            for res in c.execute(
+                "SELECT * FROM Uploads WHERE status = ?", (status.value,)
+            ).fetchall()
+        ]
+
+    def get_download(
+        self, uid: int = None, path: Path = None, doc_pair: int = None
+    ) -> Optional[Download]:
+        con = self._get_read_connection()
         c = con.cursor()
         if uid:
-            key, value = "id", uid
+            key, value = "uid", uid
         elif path:
             key, value = "path", path
         elif doc_pair:
             key, value = "doc_pair", doc_pair
         else:
             return None
-        try:
-            return c.execute(
-                f"SELECT * FROM Transfers WHERE {key} = ?", (value,)
-            ).fetchone()
-        finally:
-            con.row_factory = backup
+        res = c.execute(f"SELECT * FROM Downloads WHERE {key} = ?", (value,)).fetchone()
+        return (
+            Download(
+                res.uid,
+                Path(res.path),
+                TransferStatus(res.status),
+                res.progress,
+                res.doc_pair,
+                res.tmpname,
+                res.url,
+            )
+            if res
+            else None
+        )
 
-    def set_transfer(
-        self,
-        path: Path,
-        batch: str,
-        index: int,
-        chunk_size: int,
-        status: TransferStatus,
-    ) -> None:
+    def get_upload(
+        self, uid: int = None, path: Path = None, doc_pair: int = None
+    ) -> Optional[Upload]:
+        con = self._get_read_connection()
+        c = con.cursor()
+        if uid:
+            key, value = "uid", uid
+        elif path:
+            key, value = "path", path
+        elif doc_pair:
+            key, value = "doc_pair", doc_pair
+        else:
+            return None
+        res = c.execute(f"SELECT * FROM Uploads WHERE {key} = ?", (value,)).fetchone()
+        return (
+            Upload(
+                res.uid,
+                Path(res.path),
+                TransferStatus(res.status),
+                res.progress,
+                res.doc_pair,
+                res.batch,
+                res.idx,
+                res.chunk_size,
+            )
+            if res
+            else None
+        )
+
+    def save_download(self, download: Download) -> None:
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "REPLACE INTO Transfers (path, batch, idx, chunk_size, status) VALUES (?, ?, ?, ?, ?)",
-                (path, batch, index, chunk_size, status.value),
+                "REPLACE INTO Downloads (path, status, tmpname, url) VALUES (?, ?, ?, ?)",
+                (download.path, download.status.value, download.tmpname, download.url),
             )
         self.transferUpdated.emit()
 
-    def pause_transfer(self, uid: int, progress: float) -> None:
+    def save_upload(self, upload: Upload) -> None:
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "UPDATE Transfers SET status = ?, progress = ? WHERE id = ?",
-                (TransferStatus.PAUSED.value, progress, uid),
+                "REPLACE INTO Uploads (path, status, batch, idx, chunk_size) VALUES (?, ?, ?, ?, ?)",
+                (
+                    upload.path,
+                    upload.status.value,
+                    upload.batch,
+                    upload.idx,
+                    upload.chunk_size,
+                ),
             )
         self.transferUpdated.emit()
 
-    def suspend_transfers(self) -> None:
+    def pause_download(self, uid: int) -> None:
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "UPDATE Transfers SET status = ? WHERE status = ?",
+                "UPDATE Downloads SET status = ? WHERE uid = ?",
+                (TransferStatus.PAUSED.value, uid),
+            )
+        self.transferUpdated.emit()
+
+    def pause_upload(self, uid: int) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Uploads SET status = ? WHERE uid = ?",
+                (TransferStatus.PAUSED.value, uid),
+            )
+        self.transferUpdated.emit()
+
+    def suspend_downloads(self) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Downloads SET status = ? WHERE status = ?",
                 (TransferStatus.SUSPENDED.value, TransferStatus.ONGOING.value),
             )
         self.transferUpdated.emit()
 
-    def resume_transfer(self, uid: int) -> None:
+    def suspend_uploads(self) -> None:
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "UPDATE Transfers SET status = ? WHERE id = ?",
+                "UPDATE Uploads SET status = ? WHERE status = ?",
+                (TransferStatus.SUSPENDED.value, TransferStatus.ONGOING.value),
+            )
+        self.transferUpdated.emit()
+
+    def resume_download(self, uid: int) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Downloads SET status = ? WHERE uid = ?",
                 (TransferStatus.ONGOING.value, uid),
             )
         self.transferUpdated.emit()
 
-    def set_transfer_doc(self, transfer_id: int, doc_pair_id: int) -> None:
+    def resume_upload(self, uid: int) -> None:
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "UPDATE Transfers SET doc_pair = ? WHERE id = ?",
-                (doc_pair_id, transfer_id),
+                "UPDATE Uploads SET status = ? WHERE uid = ?",
+                (TransferStatus.ONGOING.value, uid),
             )
+        self.transferUpdated.emit()
 
-    def remove_transfer(self, path: Path) -> None:
+    def set_download_doc(self, download_uid: int, doc_pair_uid: int) -> None:
         with self._lock:
             c = self._get_write_connection().cursor()
-            c.execute("DELETE FROM Transfers WHERE path = ?", (path,))
+            c.execute(
+                "UPDATE Downloads SET doc_pair = ? WHERE uid = ?",
+                (doc_pair_uid, download_uid),
+            )
+
+    def set_upload_doc(self, upload_uid: int, doc_pair_uid: int) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Uploads SET doc_pair = ? WHERE uid = ?",
+                (doc_pair_uid, upload_uid),
+            )
+
+    def remove_download(self, path: Path) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute("DELETE FROM Downloads WHERE path = ?", (path,))
+        self.transferUpdated.emit()
+
+    def remove_upload(self, path: Path) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute("DELETE FROM Uploads WHERE path = ?", (path,))
         self.transferUpdated.emit()
 
     @staticmethod

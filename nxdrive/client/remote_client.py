@@ -29,9 +29,15 @@ from ..constants import (
     TX_TIMEOUT,
     TransferStatus,
 )
-from ..engine.activity import Action, FileAction
-from ..exceptions import Forbidden, NotFound, ScrollDescendantsError, TransferPaused
-from ..objects import NuxeoDocumentInfo, RemoteFileInfo
+from ..engine.activity import Action, DownloadAction, FileAction, UploadAction
+from ..exceptions import (
+    DownloadPaused,
+    Forbidden,
+    NotFound,
+    ScrollDescendantsError,
+    UploadPaused,
+)
+from ..objects import NuxeoDocumentInfo, RemoteFileInfo, Download, Upload
 from ..options import Options
 from ..utils import get_device, lock_path, unlock_path, version_le
 
@@ -171,14 +177,22 @@ class Remote(Nuxeo):
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
         )
 
-        resp = self.client.request("GET", url.replace(self.client.host, ""))
+        headers = None
+        if file_out.exists():
+            start = file_out.stat().st_size
+            headers = {"Range": f"bytes={start}-"}
+        resp = self.client.request(
+            "GET", url.replace(self.client.host, ""), headers=headers
+        )
 
         current_action = Action.get_current_action()
-        if isinstance(current_action, FileAction) and resp:
+        if isinstance(current_action, DownloadAction) and resp:
             current_action.size = int(resp.headers.get("Content-Length", None) or 0)
+            if file_out.exists():
+                current_action.progress = file_out.stat().st_size
 
         if file_out:
-            check_suspended = kwargs.pop("check_suspended", self.check_suspended)
+            callback = kwargs.pop("check_suspended", self.check_suspended)
             locker = unlock_path(file_out)
             try:
                 self.operations.save_to_file(
@@ -187,7 +201,7 @@ class Remote(Nuxeo):
                     file_out,
                     digest=digest,
                     chunk_size=FILE_BUFFER_SIZE,
-                    check_suspended=check_suspended,
+                    callback=callback,
                 )
             finally:
                 lock_path(file_out, locker)
@@ -213,9 +227,7 @@ class Remote(Nuxeo):
         """
         with self.upload_lock:
             tick = time.time()
-            action = FileAction(
-                "Upload", file_path, filename, reporter=QApplication.instance()
-            )
+            action = UploadAction(file_path, filename, reporter=QApplication.instance())
             blob = FileBlob(str(file_path))
             if filename:
                 blob.name = filename
@@ -225,17 +237,17 @@ class Remote(Nuxeo):
 
                 batch = chunk_size = None
                 # See if there is already a transfer for this file
-                transfer = self._dao.get_transfer(path=file_path)
-                if transfer:
-                    log.debug(f"Retrieved transfer for {file_path}: {transfer}")
-                    if transfer.status is not TransferStatus.ONGOING:
-                        raise TransferPaused(transfer.uid)
+                upload = self._dao.get_upload(path=file_path)
+                if upload:
+                    log.debug(f"Retrieved transfer for {file_path}: {upload}")
+                    if upload.status is not TransferStatus.ONGOING:
+                        raise UploadPaused(upload.uid)
                     # Check if the associated batch still exists server-side
                     with suppress(Exception):
-                        self.uploads.get(transfer.batch, transfer.idx)
-                        batch = Batch(batchId=transfer.batch, service=self.uploads)
-                        batch._upload_idx = transfer.idx
-                        chunk_size = transfer.chunk_size
+                        self.uploads.get(upload.batch, upload.idx)
+                        batch = Batch(batchId=upload.batch, service=self.uploads)
+                        batch._upload_idx = upload.idx
+                        chunk_size = upload.chunk_size
 
                 if not batch:
                     # Create a new batch and save it in the DB
@@ -252,14 +264,17 @@ class Remote(Nuxeo):
                     and blob.size > Options.chunk_limit * 1024 * 1024
                 )
 
-                if not transfer:
-                    self._dao.set_transfer(
+                if not upload:
+                    upload = Upload(
+                        None,
                         file_path,
-                        batch.uid,
-                        batch._upload_idx,
-                        chunk_size,
                         TransferStatus.ONGOING,
+                        batch=batch.uid,
+                        idx=batch._upload_idx,
+                        chunk_size=chunk_size,
                     )
+                upload.batch = batch.uid
+                self._dao.save_upload(upload)
 
                 uploader: Uploader = batch.get_uploader(
                     blob, chunked=chunked, chunk_size=chunk_size
@@ -271,15 +286,15 @@ class Remote(Nuxeo):
                     for _ in uploader.iter_upload():
                         # Here 0 may happen when doing a single upload
                         action.progress += uploader.chunk_size or 0
-                        transfer = self._dao.get_transfer(path=file_path)
-                        if transfer.status is not TransferStatus.ONGOING:
-                            raise TransferPaused(transfer.uid)
+                        upload = self._dao.get_upload(path=file_path)
+                        if upload.status is not TransferStatus.ONGOING:
+                            raise UploadPaused(upload.uid)
                 else:
                     uploader.upload()
 
                 blob.fd.close()
 
-                self._dao.remove_transfer(file_path)
+                self._dao.remove_upload(file_path)
 
                 upload_duration = int(time.time() - tick)
                 action.transfer_duration = upload_duration
@@ -339,27 +354,40 @@ class Remote(Nuxeo):
         )
         download_url = self.client.host + fs_item_info.download_url
         file_name = file_path.name
-        if file_out is None:
-            name = "".join(
-                [
-                    DOWNLOAD_TMP_FILE_PREFIX,
-                    file_name,
-                    str(current_thread().ident),
-                    DOWNLOAD_TMP_FILE_SUFFIX,
-                ]
+
+        download = self._dao.get_download(path=file_path)
+
+        if not download:
+            if not file_out:
+                name = "".join(
+                    [
+                        DOWNLOAD_TMP_FILE_PREFIX,
+                        file_name,
+                        str(current_thread().ident),
+                        DOWNLOAD_TMP_FILE_SUFFIX,
+                    ]
+                )
+                file_out = file_path.with_name(name)
+
+            download = Download(
+                None,
+                path=file_path,
+                status=TransferStatus.ONGOING,
+                tmpname=str(file_out),
+                url=download_url,
             )
-            file_out = file_path.with_name(name)
+            self._dao.save_download(download)
+        else:
+            file_out = Path(download.tmpname)
 
-        FileAction(
-            "Download", file_out, file_name, size=0, reporter=QApplication.instance()
-        )
-
-        self._dao.set_transfer(file_path, None, None, None, TransferStatus.ONGOING)
+        DownloadAction(file_out, file_name, reporter=QApplication.instance())
         try:
             tmp_file = self.download(
                 download_url, file_out=file_out, digest=fs_item_info.digest, **kwargs
             )
-            self._dao.remove_transfer(file_path)
+            self._dao.remove_download(file_path)
+        except DownloadPaused:
+            raise
         except Exception as e:
             with suppress(FileNotFoundError):
                 file_out.unlink()

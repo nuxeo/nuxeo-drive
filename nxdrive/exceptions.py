@@ -136,6 +136,18 @@ class TransferPaused(DriveError):
         self.transfer_id = transfer_id
 
 
+class DownloadPaused(TransferPaused):
+    """ A download has been paused, the file's processing should stop. """
+
+    pass
+
+
+class UploadPaused(TransferPaused):
+    """ An upload has been paused, the file's processing should stop. """
+
+    pass
+
+
 class UnknownDigest(ValueError):
     """ The digest doesn't fit any known algorithms. """
 

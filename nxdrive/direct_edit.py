@@ -31,7 +31,7 @@ from .constants import (
     WINDOWS,
     TransferStatus,
 )
-from .engine.activity import tooltip, FileAction
+from .engine.activity import tooltip, DownloadAction, FileAction
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
@@ -42,7 +42,7 @@ from .exceptions import (
     ThreadInterrupt,
     UnknownDigest,
 )
-from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
+from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo, Download
 from .utils import (
     current_milli_time,
     force_decode,
@@ -443,13 +443,14 @@ class DirectEdit(Worker):
         file_path = dir_path / filename
 
         # Download the file
-        FileAction("Download", file_path, size=0, reporter=QApplication.instance())
-        engine.get_dao().set_transfer(
-            file_path, None, None, None, TransferStatus.ONGOING
+        DownloadAction(file_path, reporter=QApplication.instance())
+        download = Download(
+            None, path=file_path, status=TransferStatus.ONGOING, url=url
         )
+        engine.get_dao().save_download(download)
         try:
             tmp_file = self._download(engine, info, file_path, blob, xpath, url=url)
-            engine.get_dao().remove_transfer(file_path)
+            engine.get_dao().remove_download(file_path)
             if tmp_file is None:
                 log.warning("Download failed")
                 return None

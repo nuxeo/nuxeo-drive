@@ -7,7 +7,14 @@ from typing import Any, Dict, Optional
 
 from PyQt5.QtCore import pyqtSignal, QObject
 
-__all__ = ("Action", "FileAction", "IdleAction", "tooltip")
+__all__ = (
+    "Action",
+    "DownloadAction",
+    "FileAction",
+    "IdleAction",
+    "UploadAction",
+    "tooltip",
+)
 
 
 class Action(QObject):
@@ -99,14 +106,14 @@ class FileAction(Action):
         action_type: str,
         filepath: Path,
         filename: str = None,
-        size: float = None,
+        size: float = 0.0,
         reporter: Any = None,
     ) -> None:
         super().__init__(action_type=action_type)
 
         self.filepath = filepath
         self.filename = filename or filepath.name
-        self.size = size if size is not None else filepath.stat().st_size
+        self.size = size
 
         self.start_time = monotonic()
         self.end_time = 0.0
@@ -160,6 +167,32 @@ class FileAction(Action):
         if percent > 0.0:
             return f"{self.type}({self.filename!r}[{self.size}]-{percent})"
         return f"{self.type}({self.filename!r}[{self.size}])"
+
+
+class DownloadAction(FileAction):
+    action_type = "Download"
+
+    def __init__(
+        self, filepath: Path, filename: str = None, reporter: Any = None
+    ) -> None:
+        super(DownloadAction, self).__init__(
+            self.action_type, filepath, filename=filename, reporter=reporter
+        )
+
+
+class UploadAction(FileAction):
+    action_type = "Upload"
+
+    def __init__(
+        self, filepath: Path, filename: str = None, reporter: Any = None
+    ) -> None:
+        super(UploadAction, self).__init__(
+            self.action_type,
+            filepath,
+            filename=filename,
+            size=filepath.stat().st_size,
+            reporter=reporter,
+        )
 
 
 def tooltip(doing: str):
