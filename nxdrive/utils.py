@@ -674,6 +674,10 @@ def compute_urls(url: str) -> Iterator[str]:
     """
     import re
 
+    # Remove any whitespace character
+    # (space, tab, carriage return, new line, vertical tab, form feed)
+    url = re.sub(r"\s+", "", url)
+
     parts = urlsplit(url)
 
     # IP address or domain name only
