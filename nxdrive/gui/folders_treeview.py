@@ -3,15 +3,15 @@ from logging import getLogger
 from threading import Thread
 from typing import Iterator, List
 
-from PyQt5.QtCore import QModelIndex, QObject, QVariant, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QMovie, QPalette, QStandardItem, QStandardItemModel
-from PyQt5.QtWidgets import QDialog, QLabel, QTreeView, QWidget
+from PyQt5.QtCore import QModelIndex, QObject, QVariant, Qt, pyqtSignal
+from PyQt5.QtGui import QStandardItem, QStandardItemModel
+from PyQt5.QtWidgets import QDialog, QTreeView
 
 from ..client.remote_client import Remote
 from ..objects import Filters, RemoteFileInfo
-from ..utils import find_icon
+from ..translator import Translator
 
-__all__ = ("FilteredFsClient", "FolderTreeview", "Overlay")
+__all__ = ("FolderTreeview", "FsClient")
 
 log = getLogger(__name__)
 
@@ -63,7 +63,7 @@ class FileInfo:
     def get_id(self) -> str:
         return ""
 
-    def has_children(self) -> bool:
+    def folderish(self) -> bool:
         return False
 
     def is_hidden(self) -> bool:
@@ -93,15 +93,11 @@ class FsFileInfo(FileInfo):
     def get_id(self) -> str:
         return self.fs_info.uid
 
-    def has_children(self) -> bool:
+    def folderish(self) -> bool:
         return self.fs_info.folderish
 
 
-class Client:
-    pass
-
-
-class FilteredFsClient(Client):
+class FsClient:
     def __init__(self, fs_client: Remote, filters: Filters = None) -> None:
         self.fs_client = fs_client
         self.filters = filters or []
@@ -135,26 +131,20 @@ class FilteredFsClient(Client):
 
 class FolderTreeview(QTreeView):
 
-    showHideLoadingOverlay = pyqtSignal(bool)
     noRoots = pyqtSignal(bool)
 
-    def __init__(self, parent: QDialog, client: FilteredFsClient) -> None:
+    def __init__(self, parent: QDialog, client: FsClient) -> None:
         # parent is FiltersDialog
         super().__init__(parent)
         self.client = client
         self.cache: List[str] = []
         self.root_item = QStandardItemModel()
         self.root_item.itemChanged.connect(self.itemChanged)
-        self.showHideLoadingOverlay.connect(self.setLoad)
         self.setModel(self.root_item)
         self.setHeaderHidden(True)
 
         # Keep track of dirty items
         self.dirty_items: List[QStandardItemModel] = []
-        # Add widget overlay for loading
-        self.overlay = Overlay(self)
-        self.overlay.move(1, 0)
-        self.overlay.hide()
 
         self.load_children()
 
@@ -248,13 +238,22 @@ class FolderTreeview(QTreeView):
 
         if parent_item:
             if parent_item.get_id() in self.cache:
-                self.showHideLoadingOverlay.emit(False)
+                self.setLoad(False)
                 return
 
             self.cache.append(parent_item.get_id())
 
-        # Clear previous items
-        children = list(self.client.get_children(parent_item))
+        try:
+            children = list(self.client.get_children(parent_item))
+        except Exception:
+            path = parent_item.get_path() if parent_item else "root"
+            log.warning(f"Error while retrieving filters on {path!r}", exc_info=True)
+            self.setLoad(False)
+            parent.removeRows(0, parent.rowCount())
+            parent.appendRow(
+                QStandardItem(Translator.get("LOADING_ERROR") + " \U0001F937")
+            )
+            return
 
         if not parent_item and not children:
             self.noRoots.emit(True)
@@ -272,34 +271,23 @@ class FolderTreeview(QTreeView):
             subitem.setEditable(False)
             subitem.setData(QVariant(child), Qt.UserRole)
 
-            # Create a fake loading item for now
-            if child.has_children():
-                loaditem = QStandardItem("")
+            if child.folderish():
+                # Add "Loading..." entry in advance for when the user
+                # will click to expand it.
+                loaditem = QStandardItem(Translator.get("LOADING"))
                 loaditem.setSelectable(False)
                 subitem.appendRow(loaditem)
+
             parent.appendRow(subitem)
 
-        self.showHideLoadingOverlay.emit(False)
+        self.setLoad(False)
 
-    @pyqtSlot(bool)
-    def setLoad(self, value: bool) -> None:
-        (self.overlay.hide, self.overlay.show)[value]()
+    def setLoad(self, busy: bool) -> None:
+        if busy:
+            self.setCursor(Qt.BusyCursor)
+        else:
+            self.unsetCursor()
 
     def resizeEvent(self, event: QObject) -> None:
-        self.overlay.resize(event.size())
         event.accept()
         self.setColumnWidth(0, self.width())
-
-
-class Overlay(QWidget):
-    def __init__(self, parent: QTreeView = None) -> None:
-        QLabel.__init__(self, parent)
-        palette = QPalette(self.palette())
-        palette.setColor(palette.Background, Qt.transparent)
-        self.setPalette(palette)
-        self.movie = QMovie(str(find_icon("loader.gif")))
-        self.movie.frameChanged.connect(self.redraw)
-        self.movie.start()
-
-    def redraw(self, _) -> None:
-        self.repaint()
