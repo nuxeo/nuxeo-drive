@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import re
 from unittest.mock import patch
 
 import pytest
@@ -240,12 +241,21 @@ def test_get_value(raw_value, expected_value):
         "https://example.org:8080/nuxeo/",
         "https://example.org:8080/nuxeo?param=value",
         "https://example.org:8080/////nuxeo////submarine//",
+        "http://example.org/\n:8080/nuxeo",
+        "http://example.org/\t:8080/nuxeo",
+        """http://example.org/
+        :8080/nuxeo""",
     ],
 )
 def test_compute_urls(url):
+    no_whitespace = re.compile(r"\s+")
+
     for generated_url in nxdrive.utils.compute_urls(url):
         # There should be only one "//" in each URL
         assert generated_url.count("//") == 1
+
+        # There should be no whitespace
+        assert not no_whitespace.findall(generated_url)
 
 
 @pytest.mark.parametrize(
