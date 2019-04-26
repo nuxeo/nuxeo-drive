@@ -114,6 +114,7 @@ class Engine(QObject):
         self.manager = manager
 
         self.local_folder = Path(definition.local_folder)
+        self.folder = str(self.local_folder)
         self.local = self.local_cls(self.local_folder)
 
         self.uid = definition.uid
@@ -484,6 +485,7 @@ class Engine(QObject):
         self.wui = self._dao.get_config("ui", default="jsf")
         self.force_ui = self._dao.get_config("force_ui")
         self.remote_user = self._dao.get_config("remote_user")
+        self.account = f"{self.remote_user} • {self.name}"
         self._remote_password = self._dao.get_config("remote_password")
         self._remote_token = self._dao.get_config("remote_token")
         self._ssl_verify = self._dao.get_bool("ssl_verify", default=True)
@@ -802,6 +804,7 @@ class Engine(QObject):
         check_fs = not (Options.nofscheck or binder.no_fscheck)
         self.server_url = self._normalize_url(binder.url)
         self.remote_user = binder.username
+        self.account = f"{self.remote_user} • {self.name}"
         self._remote_password = binder.password
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None
