@@ -1,9 +1,16 @@
 # coding: utf-8
 from logging import getLogger
-from threading import Thread
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
-from PyQt5.QtCore import QModelIndex, QObject, QVariant, Qt, pyqtSignal
+from PyQt5.QtCore import (
+    QModelIndex,
+    QObject,
+    QRunnable,
+    QThreadPool,
+    QVariant,
+    Qt,
+    pyqtSignal,
+)
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import QDialog, QTreeView
 
@@ -139,7 +146,7 @@ class FolderTreeview(QTreeView):
         self.client = client
         self.cache: List[str] = []
         self.root_item = QStandardItemModel()
-        self.root_item.itemChanged.connect(self.itemChanged)
+        self.root_item.itemChanged.connect(self.resolve_item)
         self.setModel(self.root_item)
         self.setHeaderHidden(True)
 
@@ -148,7 +155,7 @@ class FolderTreeview(QTreeView):
 
         self.load_children()
 
-        self.expanded.connect(self.itemExpanded)
+        self.expanded.connect(self.expand_item)
 
     def item_check_parent(self, item: QObject) -> None:
         sum_states = sum(
@@ -196,10 +203,10 @@ class FolderTreeview(QTreeView):
             child.setCheckState(state)
             self.resolve_item_down_changed(child)
 
-    def itemChanged(self, item: QObject) -> None:
+    def resolve_item(self, item: QObject) -> None:
         # Disconnect from signal to update the tree has we want
         self.setEnabled(False)
-        self.root_item.itemChanged.disconnect(self.itemChanged)
+        self.root_item.itemChanged.disconnect(self.resolve_item)
 
         # Don't allow partial by the user
         self.update_item_changed(item)
@@ -207,59 +214,79 @@ class FolderTreeview(QTreeView):
         self.resolve_item_up_changed(item)
 
         # Reconnect to get any user update
-        self.root_item.itemChanged.connect(self.itemChanged)
+        self.root_item.itemChanged.connect(self.resolve_item)
         self.setEnabled(True)
 
-    def itemExpanded(self, index: QModelIndex) -> None:
+    def expand_item(self, index: QModelIndex) -> None:
         index = self.model().index(index.row(), 0, index.parent())
         item = self.model().itemFromIndex(index)
         self.load_children(item)
 
     def load_children(self, item: QStandardItemModel = None) -> None:
-        if self.client is None:
-            self.setLoad(False)
+        if not self.client:
+            self.set_loading_cursor(False)
             return
 
-        self.setLoad(True)
-        load_thread = Thread(target=self.load_children_thread, args=(item,))
-        load_thread.start()
+        self.set_loading_cursor(True)
+        loader = ContentLoader(self, item)
+        QThreadPool.globalInstance().start(loader)
 
     def sort_children(self, children: List[FsFileInfo]) -> List[FsFileInfo]:
         # Put in a specific method to be able to override if needed
         # NXDRIVE-12: Sort child alphabetically
         return sorted(children, key=lambda x: x.get_label().lower())
 
-    def load_children_thread(self, parent: QStandardItemModel = None) -> None:
-        if not parent:
-            parent = self.model().invisibleRootItem()
-            parent_item = None
+    def set_loading_cursor(self, busy: bool) -> None:
+        if busy:
+            self.setCursor(Qt.BusyCursor)
         else:
-            parent_item = parent.data(Qt.UserRole)
+            self.unsetCursor()
 
-        if parent_item:
-            if parent_item.get_id() in self.cache:
-                self.setLoad(False)
+    def resizeEvent(self, event: QObject) -> None:
+        event.accept()
+        self.setColumnWidth(0, self.width())
+
+
+class ContentLoader(QRunnable):
+    def __init__(self, tree: FolderTreeview, item: QStandardItemModel = None) -> None:
+        super(ContentLoader, self).__init__()
+        self.tree = tree
+        self.item = item or self.tree.model().invisibleRootItem()
+        self.info: Optional[FsFileInfo] = None
+        if item:
+            self.info = self.item.data(Qt.UserRole)
+
+    def run(self) -> None:
+        item, info = self.item, self.info
+        if info:
+            if info.get_id() in self.tree.cache:
+                self.tree.set_loading_cursor(False)
                 return
 
-            self.cache.append(parent_item.get_id())
+            self.tree.cache.append(info.get_id())
 
         try:
-            children = list(self.client.get_children(parent_item))
+            children = list(self.tree.client.get_children(info))
         except Exception:
-            path = parent_item.get_path() if parent_item else "root"
+            path = info.get_path() if info else "root"
             log.warning(f"Error while retrieving filters on {path!r}", exc_info=True)
-            self.setLoad(False)
-            parent.removeRows(0, parent.rowCount())
-            parent.appendRow(
+            self.tree.set_loading_cursor(False)
+            item.removeRows(0, item.rowCount())
+            item.appendRow(
                 QStandardItem(Translator.get("LOADING_ERROR") + " \U0001F937")
             )
             return
 
-        if not parent_item and not children:
-            self.noRoots.emit(True)
+        if not info and not children:
+            self.tree.noRoots.emit(True)
 
-        parent.removeRows(0, parent.rowCount())
-        for child in self.sort_children(children):
+        self.fill_tree(children)
+        self.tree.set_loading_cursor(False)
+
+    def fill_tree(self, children: List[FsFileInfo]) -> None:
+
+        self.item.removeRows(0, self.item.rowCount())
+        for child in self.tree.sort_children(children):
             subitem = QStandardItem(child.get_label())
             if child.checkable():
                 subitem.setCheckable(True)
@@ -278,16 +305,4 @@ class FolderTreeview(QTreeView):
                 loaditem.setSelectable(False)
                 subitem.appendRow(loaditem)
 
-            parent.appendRow(subitem)
-
-        self.setLoad(False)
-
-    def setLoad(self, busy: bool) -> None:
-        if busy:
-            self.setCursor(Qt.BusyCursor)
-        else:
-            self.unsetCursor()
-
-    def resizeEvent(self, event: QObject) -> None:
-        event.accept()
-        self.setColumnWidth(0, self.width())
+            self.item.appendRow(subitem)
