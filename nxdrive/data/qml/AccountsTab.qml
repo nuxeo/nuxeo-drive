@@ -56,9 +56,10 @@ Rectangle {
                 columnSpacing: 50
                 rowSpacing: 20
                 property bool authenticated: !api.has_invalid_credentials(uid)
+                property string forceUi: force_ui || wui
 
                 ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
-                ScaledText { text: url }
+                ScaledText { text: server_url }
 
                 ScaledText {
                     text: qsTr("SERVER_UI") + tl.tr
@@ -71,8 +72,8 @@ Rectangle {
                     Connections {
                         target: EngineModel
                         onUiChanged: {
-                            webUiButton.defaultUi = (ui == "web")
-                            jsfUiButton.defaultUi = (ui == "jsf")
+                            webUiButton.defaultUi = (wui == "web")
+                            jsfUiButton.defaultUi = (wui == "jsf")
                             webUiButton.checked = (forceUi == "web")
                             jsfUiButton.checked = (forceUi == "jsf")
                         }
@@ -84,7 +85,7 @@ Rectangle {
                     spacing: 0
                     NuxeoRadioButton {
                         id: webUiButton
-                        property bool defaultUi: (ui == "web")
+                        property bool defaultUi: (wui == "web")
 
                         text: "Web UI" + (defaultUi ? uiSelect.suffix : "")
                         onClicked: api.set_server_ui(uid, "web")
@@ -95,7 +96,7 @@ Rectangle {
                     }
                     NuxeoRadioButton {
                         id: jsfUiButton
-                        property bool defaultUi: (ui == "jsf")
+                        property bool defaultUi: (wui == "jsf")
 
                         text: "JSF UI" + (defaultUi ? uiSelect.suffix : "")
                         onClicked: api.set_server_ui(uid, "jsf")

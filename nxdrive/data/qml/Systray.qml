@@ -100,7 +100,7 @@ Rectangle {
                     ScaledText {
                         id: accountUrl
                         Layout.maximumWidth: parent.width
-                        text: accountSelect.getRole("url")
+                        text: accountSelect.getRole("server_url")
                         elide: Text.ElideRight
                         pointSize: 10
                         color: mediumGray

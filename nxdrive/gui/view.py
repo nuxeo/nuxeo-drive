@@ -29,44 +29,32 @@ class EngineModel(QAbstractListModel):
 
     UID_ROLE = Qt.UserRole + 1
     TYPE_ROLE = Qt.UserRole + 2
-    SERVER_ROLE = Qt.UserRole + 3
-    FOLDER_ROLE = Qt.UserRole + 4
-    USERNAME_ROLE = Qt.UserRole + 5
-    URL_ROLE = Qt.UserRole + 6
-    UI_ROLE = Qt.UserRole + 7
-    FORCE_UI_ROLE = Qt.UserRole + 8
-    ACCOUNT_ROLE = Qt.UserRole + 9
+    FOLDER_ROLE = Qt.UserRole + 3
+    URL_ROLE = Qt.UserRole + 4
+    UI_ROLE = Qt.UserRole + 5
+    FORCE_UI_ROLE = Qt.UserRole + 6
+    ACCOUNT_ROLE = Qt.UserRole + 7
 
     def __init__(self, application: "Application", parent: QObject = None) -> None:
         super(EngineModel, self).__init__(parent)
         self.application = application
         self.engines_uid: List[str] = []
-
-    def roleNames(self) -> Dict[int, bytes]:
-        return {
+        self.names = {
             self.UID_ROLE: b"uid",
             self.TYPE_ROLE: b"type",
-            self.SERVER_ROLE: b"server",
             self.FOLDER_ROLE: b"folder",
-            self.USERNAME_ROLE: b"username",
-            self.URL_ROLE: b"url",
-            self.UI_ROLE: b"ui",
-            self.FORCE_UI_ROLE: b"forceUi",
+            self.URL_ROLE: b"server_url",
+            self.UI_ROLE: b"wui",
+            self.FORCE_UI_ROLE: b"force_ui",
             self.ACCOUNT_ROLE: b"account",
         }
+        self.roles = {value: key for key, value in self.names.items()}
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return self.names
 
     def nameRoles(self) -> Dict[bytes, int]:
-        return {
-            b"uid": self.UID_ROLE,
-            b"type": self.TYPE_ROLE,
-            b"server": self.SERVER_ROLE,
-            b"folder": self.FOLDER_ROLE,
-            b"username": self.USERNAME_ROLE,
-            b"url": self.URL_ROLE,
-            b"ui": self.UI_ROLE,
-            b"forceUi": self.FORCE_UI_ROLE,
-            b"account": self.ACCOUNT_ROLE,
-        }
+        return self.roles
 
     def addEngine(self, uid: str, parent: QModelIndex = QModelIndex()) -> None:
         if uid in self.engines_uid:
@@ -84,64 +72,30 @@ class EngineModel(QAbstractListModel):
             self.removeRows(idx, 1)
             self.engineChanged.emit()
 
-    def data(self, index: QModelIndex, role: int = UID_ROLE) -> Any:
+    def data(self, index: QModelIndex, role: int = UID_ROLE) -> str:
         index = index.row()
         if index < 0 or index >= self.count:
-            return None
+            return ""
+
         uid = self.engines_uid[index]
-        row = self.application.manager._engines[uid]
-        if role == self.UID_ROLE:
-            return row.uid
-        elif role == self.TYPE_ROLE:
-            return row.type
-        elif role == self.SERVER_ROLE:
-            return row.name
-        elif role == self.FOLDER_ROLE:
-            return str(row.local_folder)
-        elif role == self.USERNAME_ROLE:
-            return row.remote_user
-        elif role == self.URL_ROLE:
-            return row.server_url
-        elif role == self.UI_ROLE:
-            return row.wui
-        elif role == self.FORCE_UI_ROLE:
-            return row.force_ui or row.wui
-        elif role == self.ACCOUNT_ROLE:
-            return f"{row.remote_user} • {row.name}"
-        return None
+        engine = self.application.manager._engines[uid]
+        return getattr(engine, self.names[role].decode())
 
     @pyqtSlot(int, str, result=str)
     def get(self, index: int, role: str = "uid") -> str:
         if index < 0 or index >= self.count:
             return ""
+
         uid = self.engines_uid[index]
-        row = self.application.manager._engines[uid]
-        if role == "uid":
-            return row.uid
-        elif role == "type":
-            return row.type
-        elif role == "server":
-            return row.name
-        elif role == "folder":
-            return str(row.local_folder)
-        elif role == "username":
-            return row.remote_user
-        elif role == "url":
-            return row.server_url
-        elif role == "ui":
-            return row.wui
-        elif role == "forceUi":
-            return row.force_ui or row.wui
-        elif role == "account":
-            return f"{row.remote_user} • {row.name}"
-        return ""
+        engine = self.application.manager._engines[uid]
+        return getattr(engine, role)
 
     def removeRows(
         self, row: int, count: int, parent: QModelIndex = QModelIndex()
     ) -> bool:
         try:
             self.beginRemoveRows(parent, row, row + count - 1)
-            for i in range(count):
+            for _ in range(count):
                 self.engines_uid.pop(row)
             self.endRemoveRows()
             return True
@@ -233,18 +187,12 @@ class ActionModel(QAbstractListModel):
             return row["progress"]
         return ""
 
-    def headerData(self, p_int, Qt_Orientation, role=None):
-        return ""
-
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
         if role is None:
             return
         key = force_decode(self.roleNames()[role])
         self.actions[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
-
-    def setHeaderData(self, p_int, Qt_Orientation, Any, role=None):
-        pass
 
     def remove_action(
         self, action: Dict[str, Any], parent: QModelIndex = QModelIndex()
@@ -275,48 +223,41 @@ class ActionModel(QAbstractListModel):
 class FileModel(QAbstractListModel):
     fileChanged = pyqtSignal()
 
-    ID = Qt.UserRole + 1
-    DETAILS = Qt.UserRole + 2
-    FOLDERISH = Qt.UserRole + 3
-    LAST_CONTRIBUTOR = Qt.UserRole + 4
-    LAST_ERROR = Qt.UserRole + 5
-    LAST_LOCAL_UDPATE = Qt.UserRole + 6
-    LAST_REMOTE_UDPATE = Qt.UserRole + 7
-    LAST_SYNC_DATE = Qt.UserRole + 8
-    LAST_TRANSFER = Qt.UserRole + 9
-    LOCAL_PARENT_PATH = Qt.UserRole + 10
-    LOCAL_PATH = Qt.UserRole + 11
-    NAME = Qt.UserRole + 12
-    REMOTE_CAN_RENAME = Qt.UserRole + 13
-    REMOTE_CAN_UPDATE = Qt.UserRole + 14
-    REMOTE_NAME = Qt.UserRole + 15
-    REMOTE_REF = Qt.UserRole + 16
-    STATE = Qt.UserRole + 17
+    DETAILS = Qt.UserRole + 1
+    FOLDERISH = Qt.UserRole + 2
+    LAST_CONTRIBUTOR = Qt.UserRole + 3
+    LAST_ERROR = Qt.UserRole + 4
+    LAST_REMOTE_UPDATE = Qt.UserRole + 5
+    LAST_SYNC_DATE = Qt.UserRole + 6
+    LAST_TRANSFER = Qt.UserRole + 7
+    LOCAL_PARENT_PATH = Qt.UserRole + 8
+    LOCAL_PATH = Qt.UserRole + 9
+    NAME = Qt.UserRole + 10
+    REMOTE_NAME = Qt.UserRole + 11
+    REMOTE_REF = Qt.UserRole + 12
+    STATE = Qt.UserRole + 13
 
     def __init__(self, parent: QObject = None) -> None:
         super(FileModel, self).__init__(parent)
         self.files: List[Dict[str, Any]] = []
-
-    def roleNames(self) -> Dict[int, bytes]:
-        return {
-            self.ID: b"id",
+        self.names = {
             self.DETAILS: b"last_error_details",
             self.FOLDERISH: b"folderish",
             self.LAST_CONTRIBUTOR: b"last_contributor",
             self.LAST_ERROR: b"last_error",
-            self.LAST_LOCAL_UDPATE: b"last_local_update",
-            self.LAST_REMOTE_UDPATE: b"last_remote_update",
+            self.LAST_REMOTE_UPDATE: b"last_remote_update",
             self.LAST_SYNC_DATE: b"last_sync_date",
             self.LAST_TRANSFER: b"last_transfer",
             self.LOCAL_PARENT_PATH: b"local_parent_path",
             self.LOCAL_PATH: b"local_path",
             self.NAME: b"name",
-            self.REMOTE_CAN_RENAME: b"remote_can_rename",
-            self.REMOTE_CAN_UPDATE: b"remote_can_update",
             self.REMOTE_NAME: b"remote_name",
             self.REMOTE_REF: b"remote_ref",
             self.STATE: b"state",
         }
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return self.names
 
     def addFiles(
         self, files: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
@@ -329,44 +270,11 @@ class FileModel(QAbstractListModel):
 
     def data(self, index: QModelIndex, role: int = NAME) -> Any:
         row = self.files[index.row()]
-        if role == self.ID:
-            return row["id"]
-        elif role == self.DETAILS:
-            return row["last_error_details"]
-        elif role == self.FOLDERISH:
-            return row["folderish"]
-        elif role == self.LAST_CONTRIBUTOR:
-            return row["last_contributor"]
-        elif role == self.LAST_ERROR:
-            return row["last_error"]
-        elif role == self.LAST_LOCAL_UDPATE:
-            return row["last_local_update"]
-        elif role == self.LAST_REMOTE_UDPATE:
-            return row["last_remote_update"]
-        elif role == self.LAST_SYNC_DATE:
-            return row["last_sync_date"]
-        elif role == self.LAST_TRANSFER:
-            return row["last_transfer"]
-        elif role == self.LOCAL_PARENT_PATH:
+        if role == self.LOCAL_PARENT_PATH:
             return str(row["local_parent_path"])
         elif role == self.LOCAL_PATH:
             return str(row["local_path"])
-        elif role == self.NAME:
-            return row["name"]
-        elif role == self.REMOTE_CAN_RENAME:
-            return row["remote_can_rename"]
-        elif role == self.REMOTE_CAN_UPDATE:
-            return row["remote_can_update"]
-        elif role == self.REMOTE_NAME:
-            return row["remote_name"]
-        elif role == self.REMOTE_REF:
-            return row["remote_ref"]
-        elif role == self.STATE:
-            return row["state"]
-        return ""
-
-    def headerData(self, p_int, Qt_Orientation, role=None):
-        return ""
+        return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
         if role is None:
@@ -375,16 +283,13 @@ class FileModel(QAbstractListModel):
         self.files[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
 
-    def setHeaderData(self, p_int, Qt_Orientation, Any, role=None):
-        pass
-
     @pyqtSlot(int, int)
     def removeRows(
         self, row: int, count: int, parent: QModelIndex = QModelIndex()
     ) -> bool:
         try:
             self.beginRemoveRows(parent, row, row + count - 1)
-            for i in range(count):
+            for _ in range(count):
                 self.files.pop(row)
             self.fileChanged.emit()
             self.endRemoveRows()
@@ -460,7 +365,7 @@ class LanguageModel(QAbstractListModel):
     ) -> bool:
         try:
             self.beginRemoveRows(parent, row, row + count - 1)
-            for i in range(count):
+            for _ in range(count):
                 self.languages.pop(row)
             self.endRemoveRows()
             return True
