@@ -54,7 +54,7 @@ def test_already_locked(tmp):
     lock_file = folder / "nxdrive_qt.pid"
 
     # Inexistant pid
-    lock_file.write_text("3857965416")
+    lock_file.write_text("3857965")
 
     lock = PidLockFile(folder, "qt")
     pid = lock.lock()

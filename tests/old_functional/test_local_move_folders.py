@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 
 from .common import OneUserTest
+from .. import ensure_no_exception
 from ..utils import random_png
 
 
@@ -187,3 +188,21 @@ class TestLocalMoveFolders(OneUserTest):
         child = remote.get_children_info(self.workspace)[0]
         assert child.name == name_new
         assert child.path.endswith(name_new)
+
+    def test_local_move_root_folder_with_unicode(self):
+        local = self.local_1
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        assert local.exists("/")
+
+        with ensure_no_exception():
+            # Rename the root folder
+            root_path = local.base_folder.parent
+            local.unlock_ref(root_path, is_abs=True)
+            root_path.rename(root_path.with_name("root moved, 👆!"))
+
+            self.wait_sync()
+
+        assert not local.exists("/")

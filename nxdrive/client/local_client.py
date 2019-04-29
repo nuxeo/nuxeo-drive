@@ -135,7 +135,7 @@ class LocalClient:
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.check_suspended = kwargs.pop("check_suspended", None)
-        self.base_folder = base_folder
+        self.base_folder = base_folder.resolve()
 
         self.is_case_sensitive()
 
@@ -731,19 +731,18 @@ FolderType=Generic
             d_mtime = mktime(strptime(str(mtime), "%Y-%m-%d %H:%M:%S"))
             os.utime(filepath, (d_mtime, d_mtime))
 
-    def get_path(self, abspath: Path) -> Path:
+    def get_path(self, target: Path) -> Path:
         """ Relative path to the local client from an absolute OS path. """
-        base = self.base_folder.resolve()
-        target = abspath.resolve().with_name(abspath.name)
-
-        if base not in target.parents:
+        try:
+            return target.resolve().relative_to(self.base_folder)
+        except ValueError:
+            # From the doc: if the operation is not possible (because
+            # this is not a subpath of the other path), raise ValueError.
             return ROOT
-        return target.relative_to(base)
 
     def abspath(self, ref: Path) -> Path:
         """ Absolute path on the operating system. """
-        path = self.base_folder / ref
-        return safe_long_path(path)
+        return safe_long_path(self.base_folder / ref)
 
     def _abspath_deduped(
         self, parent: Path, orig_name: str, old_name: str = None
@@ -756,4 +755,5 @@ FolderType=Generic
         os_path = self.abspath(parent / name)
         if old_name == name or not os_path.exists():
             return os_path, name
+
         raise DuplicationDisabledError("De-duplication is disabled")

@@ -406,7 +406,7 @@ class Application(QApplication):
         msg.addButton(Translator.get("OK"), QMessageBox.AcceptRole)
         msg.exec_()
 
-    @pyqtSlot(str)
+    @pyqtSlot(Path)
     def _root_moved(self, new_path: Path) -> None:
         engine = self.sender()
         log.info(f"Root has been moved for engine: {engine.uid} to {new_path!r}")

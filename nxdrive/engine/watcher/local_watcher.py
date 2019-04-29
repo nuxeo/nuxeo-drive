@@ -2,6 +2,7 @@
 import errno
 import re
 import sqlite3
+import sys
 from logging import getLogger
 from pathlib import Path
 from os.path import basename
@@ -49,7 +50,7 @@ def is_text_edit_tmp_file(name: str) -> bool:
 
 class LocalWatcher(EngineWorker):
     localScanFinished = pyqtSignal()
-    rootMoved = pyqtSignal(str)
+    rootMoved = pyqtSignal(Path)
     rootDeleted = pyqtSignal()
     docDeleted = pyqtSignal(Path)
     fileAlreadyExists = pyqtSignal(Path, Path)
@@ -898,8 +899,9 @@ class LocalWatcher(EngineWorker):
 
     def handle_watchdog_root_event(self, evt: FileSystemEvent) -> None:
         if evt.event_type == "moved":
-            log.warning(f"Root has been moved to {evt.dest_path!r}")
-            self.rootMoved.emit(normalize(evt.dest_path))
+            dst = normalize(evt.dest_path)
+            log.warning(f"Root has been moved to {dst!r}")
+            self.rootMoved.emit(dst)
         elif evt.event_type == "deleted":
             log.warning("Root has been deleted")
             self.rootDeleted.emit()
@@ -908,40 +910,40 @@ class LocalWatcher(EngineWorker):
     def handle_watchdog_event(self, evt: FileSystemEvent) -> None:
         dao, client = self._dao, self.local
 
-        # Ignore *.nxpart
         dst_path = getattr(evt, "dest_path", "")
+
+        # Ignore *.nxpart
         if evt.src_path.endswith(DOWNLOAD_TMP_FILE_SUFFIX) or dst_path.endswith(
             DOWNLOAD_TMP_FILE_SUFFIX
         ):
             return
 
         self._metrics["last_event"] = current_milli_time()
-        if evt.event_type == "moved":
-            log.info(
-                f"Handling watchdog event [{evt.event_type}] "
-                f"on {evt.src_path!r} to {dst_path!r}"
-            )
-            # Ignore normalization of the filename on the file system
-            # See https://jira.nuxeo.com/browse/NXDRIVE-188
-            filename = normalize(evt.src_path, action=False)
 
-            if force_decode(dst_path) in (
-                str(filename),
-                force_decode(evt.src_path.strip()),
-            ):
-                log.info(
-                    f"Ignoring move from {evt.src_path!r} to normalized {dst_path!r}"
-                )
-                return
-        else:
-            log.info(f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}")
+        evt_log = f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}"
+        if dst_path:
+            evt_log += f" to {dst_path!r}"
+        log.info(evt_log)
 
         try:
             # Set action=False to avoid forced normalization before
             # checking for banned files
             src_path = normalize(evt.src_path, action=False)
-            rel_path = client.get_path(src_path)
-            if not rel_path or rel_path == ROOT:
+
+            if evt.event_type == "moved":
+                # Ignore normalization of the filename on the file system
+                # See https://jira.nuxeo.com/browse/NXDRIVE-188
+
+                if force_decode(dst_path) in (
+                    str(src_path),
+                    force_decode(evt.src_path.strip()),
+                ):
+                    log.info(
+                        f"Ignoring move from {evt.src_path!r} to normalized {dst_path!r}"
+                    )
+                    return
+
+            if client.get_path(src_path) == ROOT:
                 self.handle_watchdog_root_event(evt)
                 return
 
@@ -1209,8 +1211,10 @@ class LocalWatcher(EngineWorker):
                 if normpath.exists():
                     self.fileAlreadyExists.emit(normpath, Path(dst_path))
                     return
-            log.exception("Watchdog exception")
+            log.exception("Watchdog OS exception")
         except Exception:
+            # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
+            sys.excepthook(*sys.exc_info())  # type: ignore
             log.exception("Watchdog exception")
 
     def _schedule_win_folder_scan(self, doc_pair: DocPair) -> None:
@@ -1269,5 +1273,12 @@ class DriveFSRootEventHandler(PatternMatchingEventHandler):
     def on_any_event(self, event: FileSystemEvent) -> None:
         if basename(event.src_path) != self.name:
             return
-        self.counter += 1
-        self.watcher.handle_watchdog_root_event(event)
+
+        try:
+            self.watcher.handle_watchdog_root_event(event)
+        except Exception:
+            # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
+            sys.excepthook(*sys.exc_info())  # type: ignore
+            log.exception("Watchdog ROOT exception")
+        else:
+            self.counter += 1

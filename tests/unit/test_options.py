@@ -234,7 +234,7 @@ def test_str():
 @Options.mock()
 def test_str_utf8():
     Options.startup_page = "\xeat\xea"
-    assert str(Options) == "Options(startup_page[manual]='\xeat\xea')"
+    assert "startup_page[manual]='\xeat\xea'" in str(Options)
 
     Options.startup_page = "été"
-    assert str(Options) == "Options(startup_page[manual]='\xe9t\xe9')"
+    assert "startup_page[manual]='\xe9t\xe9'" in str(Options)
