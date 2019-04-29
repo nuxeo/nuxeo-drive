@@ -867,6 +867,7 @@ class Engine(QObject):
                 if (self.server_url, self.remote_user) != (server_url, user):
                     raise RootAlreadyBindWithDifferentAccount(user, server_url)
 
+    @if_frozen
     def _check_https(self) -> None:
         if self.server_url.startswith("https"):
             return
