@@ -131,6 +131,7 @@ class Engine(QObject):
         self._load_configuration()
 
         if not binder:
+            self._check_https()
             self.remote = self.init_remote()
 
         self._local_watcher = self._create_local_watcher()
@@ -865,6 +866,26 @@ class Engine(QObject):
                 server_url, user, *_ = root_id.split("|")
                 if (self.server_url, self.remote_user) != (server_url, user):
                     raise RootAlreadyBindWithDifferentAccount(user, server_url)
+
+    @if_frozen
+    def _check_https(self) -> None:
+        if self.server_url.startswith("https"):
+            return
+
+        try:
+            url = self.server_url.replace("http://", "https://")
+            proxies = self.manager.proxy.settings(url=url)
+            import requests
+
+            requests.get(url, proxies=proxies)
+            self.server_url = url
+            self._dao.update_config("server_url", self.server_url)
+            log.info(f"Updated server url to {self.server_url}")
+        except Exception:
+            log.warning(
+                f"Server at {self.server_url} doesn't seem to handle HTTPS, keeping HTTP",
+                exc_info=True,
+            )
 
     def _check_root(self) -> None:
         root = self._dao.get_state_from_local(ROOT)
