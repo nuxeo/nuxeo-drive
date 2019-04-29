@@ -143,6 +143,8 @@
     "LAST_CONTRIBUTOR": "Letzter Bearbeiter: %1",
     "LAST_SYNCHRONIZED": "Letzte Synchronisation: %1",
     "LICENSE": "Lizenz",
+    "LOADING": "Loading …",
+    "LOADING_ERROR": "Loading error",
     "LOCKED": "Gesperrtes Dokument",
     "LOCKED_FILE": "„%1“ kann nicht aktualisiert werden, da die Datei von %2 am %3 gesperrt wurde",
     "LOCK_NOTIFICATION_DESCRIPTION": "Das Dokument „%1“ wurde gesperrt",
