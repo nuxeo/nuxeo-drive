@@ -830,9 +830,10 @@ class Engine(QObject):
         self._ssl_verify = not Options.ssl_no_verify
         self._ca_bundle = Options.ca_bundle
 
-        if check_credentials and self._remote_token is None:
+        if check_credentials:
             self.remote = self.init_remote()
-            self._remote_token = self.remote.request_token()
+            if not self._remote_token:
+                self._remote_token = self.remote.request_token()
 
         if self._remote_token is not None:
             # The server supports token based identification: do not store the
