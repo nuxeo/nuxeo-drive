@@ -66,7 +66,7 @@ class Engine(QObject):
     syncSuspended = pyqtSignal()
     syncResumed = pyqtSignal()
     rootDeleted = pyqtSignal()
-    rootMoved = pyqtSignal(str)
+    rootMoved = pyqtSignal(Path)
     docDeleted = pyqtSignal(Path)
     fileAlreadyExists = pyqtSignal(Path, Path)
     uiChanged = pyqtSignal()

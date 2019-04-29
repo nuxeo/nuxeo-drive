@@ -1,3 +1,4 @@
+import os.path
 from pathlib import Path
 
 from nxdrive.engine.activity import Action, FileAction, IdleAction
@@ -67,7 +68,7 @@ def test_file_action_with_values():
     details = action.export()
     assert details["size"] == 42
     assert details["name"] == "test.odt"
-    assert details["filepath"] == "fake/test.odt"
+    assert details["filepath"] == f"fake{os.path.sep}test.odt"
 
 
 def test_idle_action():

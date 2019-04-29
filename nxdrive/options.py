@@ -102,7 +102,7 @@ def _get_resources_dir() -> Path:
     if freezer == "nuitka":
         path = Path(__file__).parent
     elif freezer == "pyinstaller":
-        path = Path(sys._MEIPASS)
+        path = Path(getattr(sys, "_MEIPASS"))
     else:
         path = Path(__file__).parent
     return path / "data"

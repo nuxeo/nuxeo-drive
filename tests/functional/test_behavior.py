@@ -1,5 +1,7 @@
 import os
 
+from ..markers import not_windows
+
 
 def test_crash_no_engine_database(manager_factory):
     """
@@ -35,6 +37,7 @@ AttributeError: 'Engine' object has no attribute '_local_watcher'
         assert manager._engines
 
 
+@not_windows(reason="PermissionError when trying to delete the file.")
 def test_mananger_engine_removal(manager_factory):
     """NXDIVE-1618: Remove inexistant engines from the Manager engines list."""
 
