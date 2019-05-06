@@ -317,33 +317,60 @@ function install_python {
 }
 
 function launch_tests {
-	# Launch the tests suite
-	if ($Env:SPECIFIC_TEST -eq "tests") {
-		Write-Output ">>> Checking the style"
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
+	if ($Env:SPECIFIC_TEST -ne "tests") {
+		Write-Output ">>> Launching the tests suite"
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $Env:SPECIFIC_TEST
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
-
-		Write-Output ">>> Checking type annotations"
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
+		return
 	}
 
-	Write-Output ">>> Launching the tests suite"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $Env:SPECIFIC_TEST
+	Write-Output ">>> Checking the style"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
 
+	Write-Output ">>> Checking type annotations"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+
+	Write-Output ">>> Launching unit tests"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest "tests\unit"
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+
+	Write-Output ">>> Launching functional tests"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest "tests\functional"
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+
+	Write-Output ">>> Launching synchronization functional tests, file by file"
+	$files = Get-ChildItem "tests\old_functional" -Filter test_*.py
+	$total = $files.count
+	$number = 1
+	$files |  Foreach-Object {
+		$test_file = "tests\old_functional\$_"
+		Write-Output ""
+		Write-Output ">>> [$number/$total] Testing $test_file ..."
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $test_file -q --durations=3
+		#if ($lastExitCode -ne 0) {
+		#	ExitWithCode $lastExitCode
+		#}
+		$number = $number + 1
+	}
+
 	Write-Output ">>> Freezing the application for integration tests"
-	$Env.FREEZE_ONLY = 1
+	$Env:FREEZE_ONLY = 1
 	build_installer
 
 	Write-Output ">>> Launching integration tests"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pytest -n0 "tests/integration/windows"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pytest -n0 "tests\integration\windows"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
