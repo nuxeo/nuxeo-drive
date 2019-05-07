@@ -1,12 +1,14 @@
 # coding: utf-8
-import errno
+import random
 import os
 from unittest.mock import patch
+
+from nxdrive.constants import NO_SPACE_ERRORS
 
 from .common import OneUserTest
 
 
-class TestLocalStorageSpaceIssue(OneUserTest):
+class TestLocalStorageIssue(OneUserTest):
     def test_local_invalid_timestamp(self):
         # Synchronize root workspace
         self.engine_1.start()
@@ -34,9 +36,14 @@ class TestLocalStorageSpaceIssue(OneUserTest):
         # Create a file in the remote root workspace
         remote.make_file("/", "test_KO.odt", content=b"Some large content.")
 
-        # Synchronize simulating a "No space left on device" error
+        # We pick a random error because there is no facility
+        # to parametrize a method from a class derived from
+        # something other than object.
+        errno = random.choice(NO_SPACE_ERRORS)
+        error = OSError(errno, f"(Mock) {os.strerror(errno)}")
+
+        # Synchronize simulating a disk space related error
         bad_remote = self.get_bad_remote()
-        error = OSError(errno.ENOSPC, "(Mock) No space left on device")
         bad_remote.make_download_raise(error)
 
         with patch.object(self.engine_1, "remote", new=bad_remote):
@@ -78,7 +85,7 @@ class TestLocalStorageSpaceIssue(OneUserTest):
         assert errors[0].remote_name == "test_KO.odt"
 
         # Retry to synchronize blacklisted file still simulating
-        # a "No space left on device" error
+        # the same disk space related error
         with patch.object(self.engine_1, "remote", new=bad_remote):
             # Re-queue pairs in error
             self.queue_manager_1.requeue_errors()

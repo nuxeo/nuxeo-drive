@@ -22,7 +22,7 @@ from .constants import (
     Login,
 )
 from .utils import get_update_status
-from ..constants import APP_NAME
+from ..constants import APP_NAME, NO_SPACE_ERRORS
 from ..engine.workers import PollWorker
 from ..options import Options
 from ..utils import version_lt
@@ -52,6 +52,9 @@ class BaseUpdater(PollWorker):
 
     # Used when on a version that exists only in another channel
     wrongChannel = pyqtSignal()
+
+    # Used to alert the user there is no more space to update the app
+    noSpaceLeftOnDevice = pyqtSignal()
 
     versions: Dict[str, Any] = {}
 
@@ -128,7 +131,18 @@ class BaseUpdater(PollWorker):
 
         log.info(f"Starting application update process to version {version}")
         self._set_status(UPDATE_STATUS_UPDATING, version=version, progress=10)
-        self._install(version, self._download(version))
+        try:
+            self._install(version, self._download(version))
+        except OSError as exc:
+            self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE)
+            if exc.errno in NO_SPACE_ERRORS:
+                log.warning("Update failed, disk space needed", exc_info=True)
+                self.noSpaceLeftOnDevice.emit()
+            else:
+                raise
+        except Exception:
+            self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE)
+            log.exception("Update failed")
 
     #
     # Private methods, should not try to override

@@ -1,5 +1,4 @@
 # coding: utf-8
-import errno
 import shutil
 import sqlite3
 import sys
@@ -21,6 +20,7 @@ from ..constants import (
     DOWNLOAD_TMP_FILE_PREFIX,
     DOWNLOAD_TMP_FILE_SUFFIX,
     MAC,
+    NO_SPACE_ERRORS,
     UNACCESSIBLE_HASH,
     WINDOWS,
 )
@@ -408,10 +408,10 @@ class Processor(EngineWorker):
     def _handle_pair_handler_exception(
         self, doc_pair: DocPair, handler_name: str, e: Exception
     ) -> None:
-        if isinstance(e, OSError) and e.errno == errno.ENOSPC:
+        if isinstance(e, OSError) and e.errno in NO_SPACE_ERRORS:
             self.engine.suspend()
-            log.warning("No space left on device!")
-            self.increase_error(doc_pair, "NO_SPACE_LEFT_ON_DEVICE")
+            log.warning("No space left on device!", exc_info=True)
+            self.engine.get_queue_manager().push(doc_pair)
             self.engine.noSpaceLeftOnDevice.emit()
         else:
             log.exception("Unknown error")

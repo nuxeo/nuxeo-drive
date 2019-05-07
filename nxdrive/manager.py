@@ -15,7 +15,12 @@ from . import __version__
 from .autolocker import ProcessAutoLockerWorker
 from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
-from .constants import APP_NAME, STARTUP_PAGE_CONNECTION_TIMEOUT, DelAction
+from .constants import (
+    APP_NAME,
+    NO_SPACE_ERRORS,
+    STARTUP_PAGE_CONNECTION_TIMEOUT,
+    DelAction,
+)
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .exceptions import (
@@ -381,10 +386,14 @@ class Manager(QObject):
         log.info(f"Launching editor on {file_path!r}")
         try:
             self.osi.open_local_file(file_path)
+        except OSError as exc:
+            if exc.errno in NO_SPACE_ERRORS:
+                log.warning("Cannot open local file, disk space needed", exc_info=True)
+                raise
+            log.exception(f"[OS] Failed to find an editor for {file_path!r}")
         except Exception:
             # Log the exception now, will see later if we need to adapt
             log.exception(f"Failed to find an editor for {file_path!r}")
-            return
 
     @property
     def device_id(self) -> str:

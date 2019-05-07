@@ -1,4 +1,5 @@
 # coding: utf-8
+import errno
 from enum import Enum
 from pathlib import Path
 from sys import platform
@@ -29,6 +30,19 @@ TOKEN_PERMISSION = "ReadWrite"
 
 # The registry key from the HKCU hive where to look for local configuration on Windows
 CONFIG_REGISTRY_KEY = "Software\\Nuxeo\\Drive"
+
+# OSError indicating a lack of disk space
+# >>> import errno, os
+# >>> for no, label in sorted(errno.errorcode.items()):
+# >>>     print(f"{label} (n°{no}): {os.strerror(no)}")
+NO_SPACE_ERRORS = {
+    errno.EDQUOT,  # Disk quota exceeded
+    errno.EFBIG,  # File too large
+    errno.ENOMEM,  # Cannot allocate memory
+    errno.ENOSPC,  # No space left on device
+    errno.ENOBUFS,  # No buffer space available
+    errno.ERANGE,  # Result too large
+}
 
 
 class DelAction(Enum):

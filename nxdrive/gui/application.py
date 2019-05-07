@@ -749,6 +749,7 @@ class Application(QApplication):
             self._handle_notification_action
         )
         self.manager.updater.updateAvailable.connect(self._update_notification)
+        self.manager.updater.noSpaceLeftOnDevice.connect(self._no_space_left)
 
         if not self.manager.get_engines():
             self.show_settings()

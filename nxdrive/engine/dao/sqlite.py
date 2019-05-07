@@ -24,7 +24,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 from .utils import fix_db, restore_backup, save_backup
 from ...client.local_client import FileInfo
-from ...constants import ROOT, WINDOWS
+from ...constants import NO_SPACE_ERRORS, ROOT, WINDOWS
 from ...exceptions import UnknownPairState
 from ...notification import Notification
 from ...objects import DocPair, DocPairs, Filters, RemoteFileInfo, EngineDef
@@ -183,6 +183,13 @@ class ConfigurationDAO(QObject):
         try:
             with self._lock:
                 return restore_backup(self._db)
+        except OSError as exc:
+            if exc.errno in NO_SPACE_ERRORS:
+                # We cannot do anything without more disk space!
+                log.warning(f"[OS] Unable to restore {self._db}", exc_info=True)
+                raise
+            log.exception(f"[OS] Unable to restore {self._db}")
+            sys.excepthook(*sys.exc_info())  # type: ignore
         except Exception:
             log.exception(f"Unable to restore {self._db}")
             sys.excepthook(*sys.exc_info())  # type: ignore
@@ -192,6 +199,14 @@ class ConfigurationDAO(QObject):
         try:
             with self._lock:
                 return save_backup(self._db)
+        except OSError as exc:
+            if exc.errno in NO_SPACE_ERRORS:
+                # Not being able to create a backup is critical,
+                # but we should not make the application to stop either
+                log.warning(f"[OS] Unable to backup {self._db}", exc_info=True)
+            else:
+                log.exception(f"[OS] Unable to backup {self._db}")
+                sys.excepthook(*sys.exc_info())  # type: ignore
         except Exception:
             log.exception(f"Unable to backup {self._db}")
             sys.excepthook(*sys.exc_info())  # type: ignore
