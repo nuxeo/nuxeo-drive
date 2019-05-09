@@ -3,7 +3,7 @@ from nxdrive.manager import Manager
 
 
 def test_autolock(tmp):
-    with Manager(home=tmp()) as manager:
+    with Manager(tmp()) as manager:
         dao = manager.get_dao()
         dao.lock_path("/test_1", 1, "doc_id_1")
         dao.lock_path("/test_2", 2, "doc_id_2")
@@ -33,7 +33,7 @@ def test_notifications(tmp):
     notif = Notification("warning", flags=Notification.FLAG_DISCARDABLE)
     notif2 = Notification("plop")
 
-    with Manager(home=tmp()) as manager:
+    with Manager(tmp()) as manager:
         dao = manager.get_dao()
         dao.insert_notification(notif)
         dao.insert_notification(notif2)

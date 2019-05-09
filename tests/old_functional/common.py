@@ -291,7 +291,7 @@ class TwoUsersTest(TestCase):
         local_nxdrive_folder.mkdir(parents=True)
         nxdrive_conf_folder = local_test_folder / "conf"
         nxdrive_conf_folder.mkdir()
-        manager = Manager(home=nxdrive_conf_folder)
+        manager = Manager(nxdrive_conf_folder)
         user = getattr(self, f"user_{number}")
         password = getattr(self, f"password_{number}")
         engine = self.bind_engine(
