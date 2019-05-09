@@ -598,36 +598,40 @@ class Engine(QObject):
 
     @pyqtSlot()
     def _check_last_sync(self) -> None:
-        empty_events = self._local_watcher.empty_events()
+        if not self._sync_started:
+            return
+
+        watcher = self._local_watcher
+        empty_events = watcher.empty_events()
         blacklist_size = self._queue_manager.get_errors_count()
         qm_size = self._queue_manager.get_overall_size()
-        qm_active = self._queue_manager.active()
-        active_status = "active" if qm_active else "inactive"
+        active_status = "active" if self._queue_manager.active() else "inactive"
         empty_polls = self._remote_watcher.get_metrics()["empty_polls"]
-        if not WINDOWS:
-            win_info = "not Windows"
-        else:
+        win_info = ""
+
+        if WINDOWS:
             win_info = (
-                "Windows with win queue size = "
-                f"{self._local_watcher.get_win_queue_size()} and win folder "
-                f"scan size = {self._local_watcher.get_win_folder_scan_size()}"
+                f". Windows [queue_size={watcher.get_win_queue_size()}, "
+                f" folder_scan_size={watcher.get_win_folder_scan_size()}]"
             )
+
         log.info(
-            f"Checking sync completed [{self.uid}]: queue manager is {active_status}, "
-            f"overall size = {qm_size}, empty polls count = {empty_polls}, "
-            f"local watcher empty events = {empty_events}, "
-            f"blacklist = {blacklist_size}, {win_info}"
+            f"Checking sync for engine {self.uid}: queue manager is {active_status} (size={qm_size}), "
+            f"empty remote polls count is {empty_polls}, local watcher empty events is {empty_events}, "
+            f"blacklist size is {blacklist_size} and syncing count is {self._dao.get_syncing_count()}"
+            f"{win_info}"
         )
-        local_metrics = self._local_watcher.get_metrics()
-        if qm_size == 0 and not qm_active and empty_polls > 0 and empty_events:
-            if blacklist_size != 0:
-                self.syncPartialCompleted.emit()
-                return
+
+        if qm_size > 0 or not empty_events:
+            return
+
+        if blacklist_size:
+            log.debug(f"Emitting syncPartialCompleted for engine {self.uid}")
+            self.syncPartialCompleted.emit()
+        else:
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
-            if local_metrics["last_event"] == 0:
-                log.debug("No watchdog event detected but sync is completed")
-            self._sync_started = False
             log.debug(f"Emitting syncCompleted for engine {self.uid}")
+            self._sync_started = False
             self.syncCompleted.emit()
 
     def _thread_finished(self) -> None:
