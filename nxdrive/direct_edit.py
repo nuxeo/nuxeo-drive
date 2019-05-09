@@ -1,5 +1,5 @@
 # coding: utf-8
-import os
+import errno
 import re
 import shutil
 from datetime import datetime
@@ -462,7 +462,7 @@ class DirectEdit(Worker):
             if file_path:
                 self._manager.open_local_file(file_path)
         except OSError as e:
-            if e.errno == 13:
+            if e.errno == errno.EACCES:
                 # Open file anyway
                 if e.filename is not None:
                     self._manager.open_local_file(e.filename)
@@ -545,17 +545,16 @@ class DirectEdit(Worker):
             ref, action = item
             log.debug(f"Handling DirectEdit lock queue: action={action}, ref={ref!r}")
             uid = ""
-            dir_path = os.path.dirname(ref)
 
             try:
                 details = self._extract_edit_info(ref)
                 remote = details.engine.remote
                 if action == "lock":
                     self._lock(remote, details.uid)
-                    self.local.set_remote_id(dir_path, b"1", name="nxdirecteditlock")
+                    self.local.set_remote_id(ref.parent, b"1", name="nxdirecteditlock")
                     # Emit the lock signal only when the lock is really set
                     self._send_lock_status(ref)
-                    self.autolock.documentLocked.emit(os.path.basename(ref))
+                    self.autolock.documentLocked.emit(ref.name)
                     continue
 
                 try:
@@ -572,19 +571,19 @@ class DirectEdit(Worker):
                     shutil.rmtree(path, ignore_errors=True)
                     continue
 
-                self.local.remove_remote_id(dir_path, name="nxdirecteditlock")
+                self.local.remove_remote_id(ref.parent, name="nxdirecteditlock")
                 # Emit the signal only when the unlock is done
                 self._send_lock_status(ref)
-                self.autolock.documentUnlocked.emit(os.path.basename(ref))
+                self.autolock.documentUnlocked.emit(ref.name)
             except ThreadInterrupt:
                 raise
             except DocumentAlreadyLocked as exc:
                 log.warning(f"Document {ref!r} already locked by {exc.username}")
-                self.directEditLockError.emit(action, os.path.basename(ref), uid)
+                self.directEditLockError.emit(action, ref.name, uid)
             except Exception:
                 # Try again in 30s
                 log.exception(f"Cannot {action} document {ref!r}")
-                self.directEditLockError.emit(action, os.path.basename(ref), uid)
+                self.directEditLockError.emit(action, ref.name, uid)
 
     def _send_lock_status(self, ref: str) -> None:
         manager = self._manager
@@ -596,7 +595,7 @@ class DirectEdit(Worker):
                 manager.osi.send_sync_status(state, path)
 
     def _handle_upload_queue(self) -> None:
-        while not self._upload_queue.empty():
+        while "items":
             try:
                 ref = self._upload_queue.get_nowait()
             except Empty:
