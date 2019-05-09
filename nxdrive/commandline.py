@@ -500,7 +500,7 @@ class CliHandler:
     def get_manager(self) -> "Manager":
         from .manager import Manager  # noqa
 
-        return Manager()
+        return Manager(Options.nxdrive_home)
 
     def _get_application(
         self, console: bool = False

@@ -70,7 +70,7 @@ class Manager(QObject):
     __device_id = None
     autolock_service: ProcessAutoLockerWorker
 
-    def __init__(self, home: Path = Options.nxdrive_home) -> None:
+    def __init__(self, home: Path) -> None:
         super().__init__()
 
         self._os = get_device()

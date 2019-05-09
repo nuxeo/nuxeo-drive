@@ -1,7 +1,7 @@
 # Generate a unique test environment during the setup
 
 - Created: 2019-01-31
-- Last-Modified: 2019-02-12
+- Last-Modified: 2019-05-09
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
           Léa Klein <lklein@uxeo.com>
 - Status: ongoing implementation
@@ -166,7 +166,7 @@ def tempdir(tmpdir):
 @pytest.fixture
 def manager(tempdir):
     """Manager instance with automatic clean-up."""
-    with Manager(home=tempdir) as man:
+    with Manager(tempdir) as man:
         yield man
 
 
