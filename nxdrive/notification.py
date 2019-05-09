@@ -235,12 +235,15 @@ class ErrorNotification(Notification):
 
 
 class LockNotification(Notification):
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: str, lock: bool = True) -> None:
         values = [short_name(filename)]
+        prefix = "" if lock else "UN"
         super().__init__(
-            "LOCK",
-            title=Translator.get("LOCK_NOTIFICATION_TITLE", values),
-            description=Translator.get("LOCK_NOTIFICATION_DESCRIPTION", values),
+            f"{prefix}LOCK",
+            title=Translator.get("AUTOLOCK"),
+            description=Translator.get(
+                f"{prefix}LOCK_NOTIFICATION_DESCRIPTION", values
+            ),
             flags=(
                 Notification.FLAG_VOLATILE
                 | Notification.FLAG_BUBBLE
@@ -493,6 +496,7 @@ class DefaultNotificationService(NotificationService):
             self._directEditUpdated
         )
         self._manager.autolock_service.documentLocked.connect(self._lockDocument)
+        self._manager.autolock_service.documentUnlocked.connect(self._unlockDocument)
 
     def _connect_engine(self, engine: "Engine") -> None:
         engine.newConflict.connect(self._newConflict)
@@ -513,6 +517,9 @@ class DefaultNotificationService(NotificationService):
 
     def _lockDocument(self, filename: str) -> None:
         self.send_notification(LockNotification(filename))
+
+    def _unlockDocument(self, filename: str) -> None:
+        self.send_notification(LockNotification(filename, lock=False))
 
     def _directEditLockError(self, lock: str, filename: str, ref: str) -> None:
         if lock not in ("lock", "unlock"):
