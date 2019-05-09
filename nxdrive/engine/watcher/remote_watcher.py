@@ -67,12 +67,13 @@ class RemoteWatcher(EngineWorker):
         try:
             while True:
                 self._interact()
-                now = current_milli_time()
-                if self._next_check < now:
-                    self._next_check = now + self.server_interval * 1000
+                if self._next_check < current_milli_time():
                     if self._handle_changes(first_pass):
                         first_pass = False
-                sleep(0.01)
+                    self._next_check = (
+                        current_milli_time() + self.server_interval * 1000
+                    )
+                sleep(0.5)
         except ThreadInterrupt:
             self.remoteWatcherStopped.emit()
             raise
