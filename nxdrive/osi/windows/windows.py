@@ -215,8 +215,8 @@ class WindowsIntegration(AbstractOSIntegration):
             shortcut.WorkingDirectory = str(path.parent)
             shortcut.IconLocation = str(path)
             shortcut.save()
-        except:
-            log.exception(f"Could not create the favorite for {path!r}")
+        except Exception:
+            log.warning(f"Could not create the favorite for {path!r}", exc_info=1)
         else:
             log.info(f"Registered new favorite in Explorer for {path!r}")
 
