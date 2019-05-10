@@ -34,11 +34,18 @@ def is_version_compatible(
     if not has_browser_login and not version_lt(version_id, "4"):
         return False
 
-    ver_min = (version.get("min_all", {}).get(server) or version.get("min", "")).upper()
+    # Remove HF and SNAPSHOT
+    base_server = server.split("-")[0]
+
+    ver_min = (
+        version.get("min_all", {}).get(base_server) or version.get("min", "")
+    ).upper()
     if not ver_min or version_lt(server, ver_min):
         return False
 
-    ver_max = (version.get("max_all", {}).get(server) or version.get("max", "")).upper()
+    ver_max = (
+        version.get("max_all", {}).get(base_server) or version.get("max", "")
+    ).upper()
 
     if ver_max and version_lt(ver_max, server):
         return False
@@ -61,14 +68,11 @@ def get_compatible_versions(
         log.info("No bound account, skipping the update check.")
         return {}
 
-    # Remove HF and SNAPSHOT
-    base_server_ver = server_ver.split("-")[0]
-
     # Filter version candidates
     candidates = {
         version: info
         for version, info in versions.items()
-        if is_version_compatible(version, info, base_server_ver, has_browser_login)
+        if is_version_compatible(version, info, server_ver, has_browser_login)
     }
 
     if not candidates:  # ¯\_(ツ)_/¯
