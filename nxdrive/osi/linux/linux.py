@@ -14,6 +14,7 @@ class LinuxIntegration(AbstractOSIntegration):
     nature = "GNU/Linux"
 
     def open_local_file(self, file_path: str, select: bool = False) -> None:
+        """Note that this function must _not_ block the execution."""
         if select:
             log.info(
                 "The Select/Highlight feature is not yet implemented, please vote "
@@ -21,4 +22,4 @@ class LinuxIntegration(AbstractOSIntegration):
             )
 
         # xdg-open should be supported by recent Gnome, KDE, Xfce
-        subprocess.check_call(["xdg-open", file_path])
+        subprocess.Popen(["xdg-open", file_path])
