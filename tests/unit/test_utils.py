@@ -183,8 +183,10 @@ def test_get_certificate_details_from_hostname(hostname):
 
 def test_get_current_os():
     ver = nxdrive.utils.get_current_os()
-    assert isinstance(ver, str)
+    assert isinstance(ver, tuple)
     assert ver
+    assert isinstance(ver[0], str)
+    assert isinstance(ver[1], str)
 
 
 def test_get_current_os_full():
