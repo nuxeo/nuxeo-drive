@@ -85,8 +85,16 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
             yield from move_contents_to_resources(path)
         else:
             sibbling = Path(str(path).replace("MacOS", "Resources"))
+
+            # Create the parent if it does not exist yet
+            sibbling.parent.mkdir(parents=True, exist_ok=True)
+
+            # Make the move
             shutil.move(path, sibbling)
-            yield sibbling
+
+            # Yield the DLL if it is one
+            if sibbling.name.endswith(".dylib"):
+                yield sibbling
 
 
 def main(args: List[str]) -> int:

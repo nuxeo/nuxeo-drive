@@ -18,7 +18,7 @@ nuxeo.constants.CHECK_PARAMS = True
 def _basename(path: str) -> str:
     """
     Patch shutil._basename for pathlib compatibility.
-    TODO: remove when https://bugs.python.org/issue32689 is fixed (Python 3.7.3 or newer)
+    TODO: remove when https://bugs.python.org/issue32689 is fixed (Python 3.7.4 or newer)
     """
     if isinstance(path, os.PathLike):
         return path.name
