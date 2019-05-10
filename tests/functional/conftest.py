@@ -68,7 +68,7 @@ def manager_factory(
     """Manager instance with automatic clean-up."""
 
     def _make_manager(home: str = "", with_engine: bool = True):
-        manager = Manager(home=home or tmp())
+        manager = Manager(home or tmp())
 
         # Force deletion behavior to real deletion for all tests
         manager._dao.update_config("deletion_behavior", "delete_server")

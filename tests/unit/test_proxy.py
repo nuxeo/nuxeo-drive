@@ -121,10 +121,10 @@ def test_mock_autoconfigurl_mac(pac_file):
 
 
 @Options.mock()
-def test_cli_args():
+def test_cli_args(tmp):
     url = "http://username:password@localhost:8899"
     Options.set("proxy_server", url, setter="cli")
-    with Manager() as manager:
+    with Manager(tmp()) as manager:
         proxy = manager.proxy
         assert isinstance(proxy, ManualProxy)
         assert proxy.url == url

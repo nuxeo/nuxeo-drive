@@ -120,11 +120,13 @@ class WindowsIntegration(AbstractOSIntegration):
         }
 
     def open_local_file(self, file_path: str, select: bool = False) -> None:
+        """Note that this function must _not_ block the execution."""
         if select:
             win32api.ShellExecute(
                 None, "open", "explorer.exe", f"/select,{file_path}", None, 1
             )
         else:
+            # startfile() returns as soon as the associated application is launched.
             os.startfile(file_path)  # type: ignore
 
     @if_frozen
