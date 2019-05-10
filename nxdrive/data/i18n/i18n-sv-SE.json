@@ -143,6 +143,8 @@
     "LAST_CONTRIBUTOR": "Senaste bidragare: %1",
     "LAST_SYNCHRONIZED": "Senaste synkronisering: %1",
     "LICENSE": "Licens",
+    "LOADING": "Loading …",
+    "LOADING_ERROR": "Loading error",
     "LOCKED": "Låst dokument",
     "LOCKED_FILE": "Kan inte uppdatera „%1“ eftersom det har låsts av %2 den %3",
     "LOCK_NOTIFICATION_DESCRIPTION": "Dokumentet „%1“ har låsts",

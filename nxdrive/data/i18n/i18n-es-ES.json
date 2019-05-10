@@ -143,6 +143,8 @@
     "LAST_CONTRIBUTOR": "Último colaborador: %1",
     "LAST_SYNCHRONIZED": "Última sincronización: %1",
     "LICENSE": "Licencia",
+    "LOADING": "Loading …",
+    "LOADING_ERROR": "Loading error",
     "LOCKED": "Documento bloqueado",
     "LOCKED_FILE": "No se puede actualizar „%1“, ya que %2 lo ha bloqueado en %3",
     "LOCK_NOTIFICATION_DESCRIPTION": "El documento „%1“ se ha bloqueado",

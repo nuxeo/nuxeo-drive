@@ -143,6 +143,8 @@
     "LAST_CONTRIBUTOR": "Laatste medewerker: {{ contributor }}",
     "LAST_SYNCHRONIZED": "Laatste keer gesynchroniseerd: {{ date }}",
     "LICENSE": "Licentie",
+    "LOADING": "Loading …",
+    "LOADING_ERROR": "Loading error",
     "LOCKED": "Vergrendeld document",
     "LOCKED_FILE": "Kan '{{ name }}' niet bijwerken omdat het door {{ lock_owner }} op {{ lock_created }} is vergrendeld",
     "LOCK_NOTIFICATION_DESCRIPTION": "Het document '{{ name }}' is vergrendeld",

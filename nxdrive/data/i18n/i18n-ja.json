@@ -143,6 +143,8 @@
     "LAST_CONTRIBUTOR": "最終投稿者： %1",
     "LAST_SYNCHRONIZED": "最後の同期：%1",
     "LICENSE": "ライセンス",
+    "LOADING": "Loading …",
+    "LOADING_ERROR": "Loading error",
     "LOCKED": "ロックされている文書",
     "LOCKED_FILE": "„%1“は、%3に%2によってロックされたため、更新できません",
     "LOCK_NOTIFICATION_DESCRIPTION": "文書 „%1“ はロックされています",
