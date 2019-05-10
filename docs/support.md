@@ -60,10 +60,13 @@ If you want to use the module version as a basic module for your own software, p
 
 It may evolve quickly without notification as we are following the Python development cycle.
 
-As of now, we are using the __Python 3.6.8__.
+[//]: # (XXX_PYTHON)
+
+As of now, we are using the __Python 3.7.3__.
 
 History:
 
+- `2019-06-17` (v4.1.4): dropped support for Python 3.6
 - `2018-10-30` (v4.0.0): dropped support for Python 2.7
 - `2014-??-??`: dropped support for Python 2.6
 

@@ -87,7 +87,7 @@ check_import() {
 check_vars() {
     # Check required variables
     if [ "${PYTHON_DRIVE_VERSION:=unset}" = "unset" ]; then
-        export PYTHON_DRIVE_VERSION="3.6.8"  # XXX_PYTHON
+        export PYTHON_DRIVE_VERSION="3.7.3"  # XXX_PYTHON
     fi
     if [ "${WORKSPACE:=unset}" = "unset" ]; then
         echo "WORKSPACE not defined. Aborting."
@@ -130,10 +130,6 @@ check_vars() {
 
 install_deps() {
     echo ">>> Installing requirements"
-    # Do not delete, it fixes "Could not import setuptools which is required to install from a source distribution."
-    ${PIP} setuptools
-    # NXDRIVE-1521: pip 19.0.1 prevents PyInstaller installation
-    ${PIP} pip==18.1
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-dev.txt
     if [ "${INSTALL_RELEASE_ARG:=0}" != "1" ]; then

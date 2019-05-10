@@ -1,5 +1,4 @@
 appdirs==1.4.3
-dataclasses==0.6
 distro==1.4.0; sys_platform == 'linux'
 https://github.com/GoodRx/universal-analytics-python/archive/77ce628c56de1ba51a9bf0774794fd687f785803.zip
 https://github.com/gorakhargosh/watchdog/archive/8b94506c3156a3b66faef7aac9a139f603772506.zip
@@ -16,8 +15,10 @@ pypac==0.12.0
 pypiwin32==223; sys_platform == 'win32'
 # Ignore PyQt5 updates until NXDRIVE-1391 is done
 PyQt5==5.11.2  # pyup: ignore
+# NXDRIVE-1560: issue with codesign on macOS and sip > 4.19.13
 PyQt5-sip==4.19.13
 python-dateutil==2.8.0
+requests==2.22.0
 rfc3987==1.3.8
 Send2Trash==1.5.0
 sentry-sdk==0.9.0

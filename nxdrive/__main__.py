@@ -70,8 +70,9 @@ def main() -> int:
     ret = 0
 
     try:
-        if sys.version_info < (3, 6):
-            raise RuntimeError(f"{APP_NAME} requires Python 3.6+")
+        # XXX_PYTHON
+        if sys.version_info < (3, 7):
+            raise RuntimeError(f"{APP_NAME} requires Python 3.7+")
 
         if not check_executable_path():
             return 1
