@@ -92,11 +92,12 @@ class DarwinIntegration(AbstractOSIntegration):
         return Path(f"~/Library/LaunchAgents/{BUNDLE_IDENTIFIER}.plist").expanduser()
 
     def open_local_file(self, file_path: str, select: bool = False) -> None:
+        """Note that this function must _not_ block the execution."""
         args = ["open"]
         if select:
             args += ["-R"]
         args += [file_path]
-        subprocess.check_call(args)
+        subprocess.Popen(args)
 
     @if_frozen
     def register_startup(self) -> bool:

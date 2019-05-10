@@ -32,6 +32,8 @@ class AbstractOSIntegration(QObject):
         """
         Launch the local OS program on the given file / folder.
 
+        Note that this function must _not_ block the execution.
+
         :param file_path: The file URL to open.
         :param select: Hightlight the given file_path. Useful when
                        opening a folder and to select a file.
