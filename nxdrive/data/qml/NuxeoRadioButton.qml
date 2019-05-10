@@ -5,11 +5,13 @@ RadioButton {
     id: control
     property string color: nuxeoBlue
     property int size: 4
+    property int leftOffset: size * 4 + spacing
+    leftPadding: leftOffset
 
     indicator: Rectangle {
         implicitWidth: control.size * 4
         implicitHeight: control.size * 4
-        x: control.leftPadding
+        x: control.leftPadding - leftOffset
         y: parent.height / 2 - height / 2
         radius: control.size * 2
         border {
@@ -32,7 +34,6 @@ RadioButton {
         text: control.text
         opacity: enabled ? 1.0 : 0.3
         verticalAlignment: Text.AlignVCenter
-        leftPadding: control.indicator.width + control.spacing
     }
 
     MouseArea {

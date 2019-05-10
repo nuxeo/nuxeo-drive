@@ -9,11 +9,13 @@ Switch {
     property string uncheckedColor: enabled ? mediumGray : lightGray
     property string textColor: enabled ? darkGray : lightGray
     property int size: 8
+    property int leftOffset: size * 4 + spacing
+    leftPadding: leftOffset
 
     indicator: Rectangle {
         implicitWidth: size * 4
         implicitHeight: size * 2
-        x: control.leftPadding
+        x: control.leftPadding - leftOffset
         y: parent.height / 2 - height / 2
         radius: size
         color: control.checked ? checkedColor : "white"
@@ -41,7 +43,6 @@ Switch {
         text: control.text
         opacity: enabled ? 1.0 : 0.3
         verticalAlignment: Text.AlignVCenter
-        leftPadding: control.indicator.width + control.spacing
     }
 
     MouseArea {
