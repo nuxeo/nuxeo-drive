@@ -4,6 +4,7 @@ In this file we cannot use a relative import here, else Drive will not start whe
 See https://github.com/pyinstaller/pyinstaller/issues/2560
 """
 import os
+import platform
 import sys
 from contextlib import suppress
 from typing import Any, Set
@@ -84,7 +85,6 @@ def setup_sentry() -> None:
     if os.getenv("SKIP_SENTRY", "0") == "1":
         return
 
-    # TODO: Replace the testing DSN by "DSN_PLACEHOLDER" that will be replaced at when generating installers.
     sentry_dsn: str = os.getenv(
         "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
     )
@@ -234,8 +234,20 @@ def main() -> int:
         setup_sentry()
 
         from nxdrive.commandline import CliHandler
+        from nxdrive.utils import get_current_os
+        from sentry_sdk import configure_scope
 
-        ret = CliHandler().handle(sys.argv[1:])
+        with configure_scope() as scope:
+            # Append OS and Python versions to all events
+            os_name, os_version = get_current_os()
+            scope._contexts.update(
+                {
+                    "runtime": {"name": "Python", "version": platform.python_version()},
+                    "os": {"name": os_name, "version": os_version},
+                }
+            )
+
+            ret = CliHandler().handle(sys.argv[1:])
     except SystemExit as exc:
         if exc.code != 0:
             show_critical_error()

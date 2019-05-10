@@ -36,7 +36,7 @@ class Tracker(Worker):
         self.uid = uid
         self.app_name = APP_NAME.replace(" ", "")
         self.arch = get_arch()
-        self.current_os = get_current_os()
+        self.current_os = " ".join(get_current_os())
         self._tracker = UATracker.create(
             uid, client_id=self._manager.device_id, user_agent=self.user_agent
         )

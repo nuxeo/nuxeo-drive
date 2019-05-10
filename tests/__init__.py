@@ -74,7 +74,6 @@ def setup_sentry() -> None:
     if os.getenv("SKIP_SENTRY", "0") == "1":
         return
 
-    # TODO: Remove the testing DSN
     sentry_dsn = os.getenv(
         "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
     )

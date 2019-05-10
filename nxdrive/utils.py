@@ -165,7 +165,7 @@ def get_arch() -> str:
     return f"{calcsize('P') * 8}-bit"
 
 
-def get_current_os() -> str:
+def get_current_os() -> Tuple[str, str]:
     """ Detect the OS version. """
 
     device = get_device()
@@ -188,7 +188,7 @@ def get_current_os() -> str:
         # Ex: Windows 7
         version = win32_ver()[0]
 
-    return f"{device} {version}".strip()
+    return (device, version.strip())
 
 
 def get_current_os_full() -> Tuple[Any, ...]:
