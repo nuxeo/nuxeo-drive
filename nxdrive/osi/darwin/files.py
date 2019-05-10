@@ -51,7 +51,11 @@ def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Item]:
     if not app or not app.isRunning():
         return
 
-    for doc in app.documents():
+    documents = app.documents()
+    if not documents:
+        return
+
+    for doc in documents:
         file_path = doc.filePath()
         if not file_path:
             # The document is not yet saved and so has no path
