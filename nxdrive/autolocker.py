@@ -155,9 +155,9 @@ def get_open_files() -> Iterator[Item]:
     """
 
     for proc in psutil.process_iter():
-        with suppress(psutil.Error, OSError, MemoryError):
+        with suppress(Exception):
             for handler in proc.open_files():
-                with suppress(PermissionError):
+                with suppress(Exception):
                     yield proc.pid, Path(handler.path)
 
     yield from get_other_opened_files()
