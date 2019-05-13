@@ -1,4 +1,5 @@
 # coding: utf-8
+from typing import Any
 
 
 class DriveError(Exception):
@@ -101,6 +102,19 @@ class RootAlreadyBindWithDifferentAccount(DriveError):
     def __init__(self, username: str, url: str) -> None:
         self.username = username
         self.url = url
+
+
+class ScrollDescendantsError(DriveError):
+    """ Rasied when NuxeoDrive.ScrollDescendants returns something we cannot work with. """
+
+    def __init__(self, response: Any) -> None:
+        self.response = response
+
+    def __repr__(self) -> str:
+        return f"ScrollDescendants returned a bad value: {self.response!r}"
+
+    def __str__(self) -> str:
+        return repr(self)
 
 
 class StartupPageConnectionError(DriveError):
