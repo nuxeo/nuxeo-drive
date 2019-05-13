@@ -150,12 +150,9 @@ class TestRemoteFileSystemClient(OneUserTest):
 
         # Check workspace descendants in one breath, ordered by remote path
         scroll_res = remote.scroll_descendants(self.workspace_id, None)
-        assert scroll_res is not None
-        assert scroll_res.get("scroll_id") is not None
-        descendants = sorted(
-            scroll_res.get("descendants"), key=operator.attrgetter("name")
-        )
-        assert descendants is not None
+        assert isinstance(scroll_res, dict)
+        assert "scroll_id" in scroll_res
+        descendants = sorted(scroll_res["descendants"], key=operator.attrgetter("name"))
         assert len(descendants) == 4
 
         # File 1.txt
@@ -182,11 +179,9 @@ class TestRemoteFileSystemClient(OneUserTest):
             scroll_res = remote.scroll_descendants(
                 self.workspace_id, scroll_id=scroll_id, batch_size=2
             )
-            assert scroll_res is not None
-            scroll_id = scroll_res.get("scroll_id")
-            assert scroll_id is not None
-            partial_descendants = scroll_res.get("descendants")
-            assert partial_descendants is not None
+            assert isinstance(scroll_res, dict)
+            scroll_id = scroll_res["scroll_id"]
+            partial_descendants = scroll_res["descendants"]
             if not partial_descendants:
                 break
             descendants.extend(partial_descendants)

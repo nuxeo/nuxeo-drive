@@ -2,7 +2,8 @@
 import os
 from datetime import datetime
 from logging import getLogger
-from time import sleep
+from operator import attrgetter, itemgetter
+from time import monotonic, sleep
 from typing import Any, Dict, Optional, Set, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -12,7 +13,7 @@ from requests import ConnectionError, Timeout
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
 from ...constants import BATCH_SIZE, ROOT, WINDOWS
-from ...exceptions import Forbidden, NotFound, ThreadInterrupt
+from ...exceptions import Forbidden, NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
 from ...utils import current_milli_time, safe_filename
 
@@ -225,12 +226,12 @@ class RemoteWatcher(EngineWorker):
         t1 = None
 
         while "Scrolling":
-            t0 = datetime.now()
+            t0 = monotonic()
             if t1 is not None:
-                elapsed = self._get_elapsed_time_milliseconds(t1, t0)
+                elapsed = t0 - t1
                 log.debug(
                     f"Local processing of descendants "
-                    f"of {remote_info.name!r} ({remote_info.uid}) took {elapsed} ms"
+                    f"of {remote_info.name!r} ({remote_info.uid}) took {elapsed:.2} sec"
                 )
 
             # Scroll through a batch of descendants
@@ -241,24 +242,22 @@ class RemoteWatcher(EngineWorker):
             scroll_res = self.engine.remote.scroll_descendants(
                 remote_info.uid, scroll_id, batch_size=BATCH_SIZE
             )
-            t1 = datetime.now()
-            elapsed = self._get_elapsed_time_milliseconds(t0, t1)
+
+            t1 = monotonic()
+            elapsed = t1 - t0
             descendants_info = scroll_res["descendants"]
-            if not descendants_info:
-                log.debug(
-                    "Remote scroll request retrieved no descendants "
-                    f"for {remote_info.name!r} ({remote_info.uid}), took {elapsed} ms"
-                )
-                break
 
             log.debug(
                 f"Remote scroll request retrieved {len(descendants_info)} descendants "
-                f"for {remote_info.name!r} ({remote_info.uid}), took {elapsed} ms"
+                f"for {remote_info.name!r} ({remote_info.uid}), took {elapsed:.2} sec"
             )
+            if not descendants_info:
+                break
+
             scroll_id = scroll_res["scroll_id"]
 
             # Results are not necessarily sorted
-            descendants_info = sorted(descendants_info, key=lambda x: x.path)
+            descendants_info = sorted(descendants_info, key=attrgetter("path"))
 
             # Handle descendants
             for descendant_info in descendants_info:
@@ -301,8 +300,8 @@ class RemoteWatcher(EngineWorker):
             self._interact()
 
         if to_process:
-            t0 = datetime.now()
-            to_process = sorted(to_process, key=lambda x: x.path)
+            t0 = monotonic()
+            to_process = sorted(to_process, key=attrgetter("path"))
             log.debug(
                 f"Processing [{len(to_process)}] postponed descendants of "
                 f"{remote_info.name!r} ({remote_info.uid})"
@@ -320,18 +319,13 @@ class RemoteWatcher(EngineWorker):
 
                 self._find_remote_child_match_or_create(parent_pair, descendant_info)
 
-            t1 = datetime.now()
-            elapsed = self._get_elapsed_time_milliseconds(t0, t1)
-            log.debug(f"Postponed descendants processing took {elapsed} ms")
+            t1 = monotonic()
+            elapsed = t1 - t0
+            log.debug(f"Postponed descendants processing took {elapsed:.2} sec")
 
         # Delete remaining
         for deleted in descendants.values():
             self._dao.delete_remote_state(deleted)
-
-    @staticmethod
-    def _get_elapsed_time_milliseconds(t0: datetime, t1: datetime) -> float:
-        delta = t1 - t0
-        return delta.seconds * 1000 + delta.microseconds / 1000
 
     def _scan_remote_recursive(
         self,
@@ -604,6 +598,8 @@ class RemoteWatcher(EngineWorker):
             # in debug mode or when running the test suite.
             log.critical("Oops! Bad query parameter", exc_info=True)
             raise
+        except ScrollDescendantsError as exc:
+            log.warning(exc)
         except (ConnectionError, Timeout, OSError) as exc:
             log.warning(f"Network error: {exc}")
         except Forbidden:
@@ -696,7 +692,7 @@ class RemoteWatcher(EngineWorker):
 
         # Fetch all events and consider the most recent first
         sorted_changes = sorted(
-            summary["fileSystemChanges"], key=lambda x: x["eventDate"], reverse=True
+            summary["fileSystemChanges"], key=itemgetter("eventDate"), reverse=True
         )
 
         n_changes = len(sorted_changes)
@@ -950,7 +946,7 @@ class RemoteWatcher(EngineWorker):
                     )
 
         # Sort by path the deletion to only mark parent
-        sorted_deleted = sorted(delete_queue, key=lambda x: x.local_path)
+        sorted_deleted = sorted(delete_queue, key=attrgetter("local_path"))
         delete_processed: DocPairs = []
         for delete_pair in sorted_deleted:
             # Mark as deleted

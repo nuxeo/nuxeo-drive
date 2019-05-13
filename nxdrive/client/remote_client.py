@@ -28,7 +28,7 @@ from ..constants import (
     BATCH_SIZE,
 )
 from ..engine.activity import Action, FileAction
-from ..exceptions import Forbidden, NotFound
+from ..exceptions import Forbidden, NotFound, ScrollDescendantsError
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo
 from ..options import Options
 from ..utils import get_device, lock_path, unlock_path, version_le
@@ -360,6 +360,9 @@ class Remote(Nuxeo):
             scrollId=scroll_id,
             batchSize=batch_size,
         )
+        if not isinstance(res, dict) or not res:
+            raise ScrollDescendantsError(res)
+
         return {
             "scroll_id": res["scrollId"],
             "descendants": [
