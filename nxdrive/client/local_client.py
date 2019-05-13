@@ -17,6 +17,7 @@ from time import mktime, strptime
 from typing import Any, List, Optional, Tuple, Union
 
 from send2trash import send2trash
+from send2trash.exceptions import TrashPermissionError
 
 from nuxeo.utils import get_digest_algorithm, get_digest_hash
 
@@ -574,6 +575,11 @@ FolderType=Generic
         locker = self.unlock_ref(os_path, is_abs=True)
         try:
             send2trash(str(os_path))
+        except TrashPermissionError:
+            log.warning(
+                f"Trash not possible, deleting permanently {os_path!r}", exc_info=True
+            )
+            self.delete_final(ref)
         except OSError as exc:
             log.warning(f"Cannot trash {os_path!r}")
             with suppress(Exception):
