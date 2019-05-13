@@ -108,8 +108,8 @@ def show_critical_error() -> None:
 
     import traceback
 
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QIcon
+    from PyQt5.QtCore import Qt, QUrl
+    from PyQt5.QtGui import QDesktopServices, QIcon
     from PyQt5.QtWidgets import (
         QApplication,
         QDialog,
@@ -192,10 +192,20 @@ def show_critical_error() -> None:
             logs.setText(lines)
             layout.addWidget(logs)
 
+    def open_update_site() -> None:
+        """Open the update web site."""
+        with suppress(Exception):
+            QDesktopServices.openUrl(QUrl(Options.update_site_url))
+
     # Buttons
     buttons = QDialogButtonBox()
     buttons.setStandardButtons(QDialogButtonBox.Ok)
     buttons.accepted.connect(dialog.close)
+    update_button = buttons.addButton(
+        tr("FATAL_ERROR_UPDATE_BTN"), QDialogButtonBox.ActionRole
+    )
+    update_button.setToolTip(tr("FATAL_ERROR_UPDATE_TOOLTIP", [APP_NAME]))
+    update_button.clicked.connect(open_update_site)
     layout.addWidget(buttons)
 
     def copy() -> None:
