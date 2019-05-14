@@ -16,7 +16,7 @@ class TestLocalStorageIssue(OneUserTest):
         assert self.local_1.exists("/")
         self.engine_1.stop()
         self.local_1.make_file("/", "Test.txt", content=b"plop")
-        os.utime(self.local_1.abspath("/Test.txt"), (0, 999999999999999))
+        os.utime(self.local_1.abspath("/Test.txt"), (0, 999_999_999_999_999))
         self.engine_1.start()
         self.wait_sync()
         children = self.remote_document_client_1.get_children_info(self.workspace)
@@ -39,7 +39,7 @@ class TestLocalStorageIssue(OneUserTest):
         # We pick a random error because there is no facility
         # to parametrize a method from a class derived from
         # something other than object.
-        errno = random.choice(NO_SPACE_ERRORS)
+        errno = random.choice(list(NO_SPACE_ERRORS))
         error = OSError(errno, f"(Mock) {os.strerror(errno)}")
 
         # Synchronize simulating a disk space related error

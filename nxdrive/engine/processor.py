@@ -411,7 +411,7 @@ class Processor(EngineWorker):
         if isinstance(e, OSError) and e.errno in NO_SPACE_ERRORS:
             self.engine.suspend()
             log.warning("No space left on device!", exc_info=True)
-            self.engine.get_queue_manager().push(doc_pair)
+            self.increase_error(doc_pair, "NO_SPACE_LEFT_ON_DEVICE")
             self.engine.noSpaceLeftOnDevice.emit()
         else:
             log.exception("Unknown error")
