@@ -607,7 +607,8 @@ class Engine(QObject):
         empty_events = watcher.empty_events()
         blacklist_size = self._queue_manager.get_errors_count()
         qm_size = self._queue_manager.get_overall_size()
-        active_status = "active" if self._queue_manager.active() else "inactive"
+        qm_active = self._queue_manager.active()
+        active_status = "active" if qm_active else "inactive"
         empty_polls = self._remote_watcher.get_metrics()["empty_polls"]
         win_info = ""
 
@@ -624,7 +625,7 @@ class Engine(QObject):
             f"{win_info}"
         )
 
-        if qm_size > 0 or not empty_events:
+        if qm_size > 0 or not empty_events or qm_active:
             return
 
         if blacklist_size:
