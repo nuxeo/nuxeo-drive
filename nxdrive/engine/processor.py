@@ -448,11 +448,10 @@ class Processor(EngineWorker):
         action = Action.get_last_file_action()
         if action:
             duration = action.end_time - action.start_time
-            # Too fast for clock resolution
             if duration <= 0:
                 return
-            speed = (action.size / duration) * 1000
-            log.debug(f"Transfer speed {speed / 1024} ko/s")
+            speed = action.size / duration / 1024
+            log.debug(f"Transfer speed {speed:.2f} kib/s")
             self._current_metrics["speed"] = speed
 
     def _synchronize_if_not_remotely_dirty(

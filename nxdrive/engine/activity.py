@@ -2,11 +2,10 @@
 import uuid
 from pathlib import Path
 from threading import current_thread
+from time import monotonic
 from typing import Any, Dict, Optional
 
 from PyQt5.QtCore import pyqtSignal, QObject
-
-from ..utils import current_milli_time
 
 __all__ = ("Action", "FileAction", "IdleAction", "tooltip")
 
@@ -109,8 +108,8 @@ class FileAction(Action):
         self.filename = filename or filepath.name
         self.size = size if size is not None else filepath.stat().st_size
 
-        self.start_time = current_milli_time()
-        self.end_time = 0
+        self.start_time = monotonic()
+        self.end_time = 0.0
         self.transfer_duration = 0.0
 
         self._connect_reporter(reporter)
@@ -142,7 +141,7 @@ class FileAction(Action):
 
     def finish(self) -> None:
         super().finish()
-        self.end_time = current_milli_time()
+        self.end_time = monotonic()
         self.done.emit(self)
 
     def export(self) -> Dict[str, Any]:
