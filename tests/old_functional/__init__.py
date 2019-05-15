@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
@@ -93,6 +94,12 @@ def force_path(ref: RawPath) -> Path:
 class LocalTest(LocalClient):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def copy(self, srcref: RawPath, dstref: RawPath) -> None:
+        """Make a copy of the file (with xattr included)."""
+        remote_id = self.get_remote_id(srcref)
+        shutil.copy2(self.abspath(srcref), self.abspath(dstref))
+        self.set_remote_id(dstref, remote_id)
 
     def get_content(self, ref: RawPath) -> bytes:
         ref = force_path(ref)

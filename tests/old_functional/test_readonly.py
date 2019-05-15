@@ -122,15 +122,15 @@ class TestReadOnly(OneUserTest):
         # folder-src is the source from where documents will be moved, RO
         # folder-dst is the destination where documents will be moved, RO
         src = remote.make_folder("/", "folder-src")
-        dst = remote.make_folder("/", "folder-dst")
+        remote.make_folder("/", "folder-dst")
         remote.make_file(src, "here.txt", content=b"stay here")
         self.set_readonly(self.user_1, self.ws.path)
         self.wait_sync(wait_for_async=True)
         assert remote.exists("/folder-src/here.txt")
         assert remote.exists("/folder-dst")
 
-        doc_abs = local.abspath(src) / "here.txt"
-        dst_abs = local.abspath(dst)
+        doc_abs = local.abspath("/folder-src") / "here.txt"
+        dst_abs = local.abspath("/folder-dst")
         if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
@@ -169,15 +169,15 @@ class TestReadOnly(OneUserTest):
         # folder-ro is the source from where documents will be moved, RO
         # folder-rw is the destination where documents will be moved, RW
         src = remote.make_folder("/", "folder-ro")
-        dst = remote.make_folder("/", "folder-rw")
+        remote.make_folder("/", "folder-rw")
         remote.make_file(src, "here.txt", content=b"stay here")
         self.set_readonly(self.user_1, f"{self.ws.path}/folder-ro")
         self.wait_sync(wait_for_async=True)
         assert local.exists("/folder-ro/here.txt")
         assert local.exists("/folder-rw")
 
-        doc_abs = local.abspath(src) / "here.txt"
-        dst_abs = local.abspath(dst)
+        doc_abs = local.abspath("/folder-ro") / "here.txt"
+        dst_abs = local.abspath("/folder-rw")
         if not WINDOWS:
             # The move should fail
             with pytest.raises(OSError):
@@ -221,8 +221,8 @@ class TestReadOnly(OneUserTest):
         assert local.exists("/folder/foo.txt")
 
         # Locally rename the file
-        doc = local.abspath(folder) / "foo.txt"
-        dst = local.abspath(folder) / "bar.txt"
+        doc = local.abspath("/folder") / "foo.txt"
+        dst = local.abspath("/folder") / "bar.txt"
         if not WINDOWS:
             # The rename should fail
             with pytest.raises(OSError):
@@ -409,7 +409,7 @@ class TestReadOnly(OneUserTest):
         remote = self.remote_document_client_1
 
         # Create documents and sync
-        folder = remote.make_folder("/", "foo")
+        remote.make_folder("/", "foo")
         self.set_readonly(self.user_1, self.ws.path)
         self.wait_sync(wait_for_async=True)
         assert local.exists("/foo")
@@ -419,7 +419,7 @@ class TestReadOnly(OneUserTest):
         assert not state.remote_can_delete
 
         # Locally rename the folder
-        src = local.abspath(folder)
+        src = local.abspath("/foo")
         dst = src.with_name("bar")
         if not WINDOWS:
             # The rename should fail

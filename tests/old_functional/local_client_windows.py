@@ -28,6 +28,16 @@ class WindowsLocalClient(LocalTest):
     def __init__(self, base_folder, **kwargs):
         super().__init__(base_folder, **kwargs)
 
+    def copy(self, srcref: RawPath, dstref: RawPath) -> None:
+        """Make a copy of the file (with xattr included)."""
+        src = str(self.abspath(srcref))
+        dst = str(self.abspath(dstref))
+        res = shell.SHFileOperation(
+            (0, shellcon.FO_COPY, src, dst, shellcon.FOF_NOCONFIRMATION, None, None)
+        )
+        if res[0] != 0:
+            raise OSError(res, locals())
+
     def delete_final(self, ref: RawPath) -> None:
         path = str(self.abspath(ref))
         res = shell.SHFileOperation(

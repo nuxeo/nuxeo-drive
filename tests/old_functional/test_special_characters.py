@@ -78,8 +78,8 @@ class TestSpecialCharacters(OneUserTest):
 
         folder = remote.make_folder("/", "/ * ? < > |")
         remote.make_file(folder, "| > < ? * /.txt", content=b"This is a test file")
+        self.wait_sync(wait_for_async=True)
 
-        self.wait_sync()
         folder_name = "- - - - - -" if WINDOWS else "- * ? < > |"
         file_name = "- - - - - -.txt" if WINDOWS else "| > < ? * -.txt"
         assert local.exists(f"/{folder_name}")

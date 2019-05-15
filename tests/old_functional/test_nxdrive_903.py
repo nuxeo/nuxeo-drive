@@ -84,8 +84,8 @@ class Test(TwoUsersTest):
             new_folder = local_1.rename(folder, name + "-renamed")
             new_folders.append(new_folder)
             new_files[new_folder] = []
-            for file_ in files[folder]:
-                name = file_.name
+            for file in files[folder]:
+                name = file.name
                 new_name = os.path.splitext(name)[0] + "-renamed.txt"
                 new_file = local_1.rename(new_folder / name, new_name)
                 new_files[new_folder].append(new_file)
@@ -103,7 +103,7 @@ class Test(TwoUsersTest):
 
         # Steps 19 -> 21
         engine_2.resume()
-        self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
+        self.wait_sync(wait_for_async=True, wait_for_engine_2=True, timeout=60)
 
         # Ensure there is no postponed nor documents in error
         assert not engine_2.get_dao().get_error_count(threshold=0)
@@ -117,7 +117,7 @@ class Test(TwoUsersTest):
         # Get a dict of all synchronized files sorted by folders
         # to have a better view of what is synced as expected
         states = {
-            folder: [local_2.exists(file_) for file_ in new_files[folder]]
+            folder: [local_2.exists(file) for file in new_files[folder]]
             for folder in new_folders
         }
         needed = {folder: [True] * nb_files for folder in new_folders}
