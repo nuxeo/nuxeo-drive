@@ -545,13 +545,14 @@ class Manager(QObject):
                 verify=Options.ca_bundle or not Options.ssl_no_verify,
             ) as resp:
                 status = resp.status_code
-        except:
-            log.exception(
+        except Exception as e:
+            log.warning(
                 f"Error while trying to connect to {APP_NAME} "
-                f"startup page with URL {url}"
+                f"startup page with URL {url}",
+                exc_info=True,
             )
             if _raise:
-                raise StartupPageConnectionError()
+                raise StartupPageConnectionError() from e
         else:
             log.info(f"Status code for {url} = {status}")
             if status == 404:

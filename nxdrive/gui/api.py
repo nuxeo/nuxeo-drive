@@ -7,13 +7,12 @@ from os.path import abspath
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
-import requests
 from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 
 from ..client.proxy import get_proxy
-from ..constants import APP_NAME, TOKEN_PERMISSION
+from ..constants import APP_NAME, CONNECTION_ERROR, TOKEN_PERMISSION
 from ..engine.activity import Action, FileAction
 from ..engine.engine import Engine
 from ..exceptions import (
@@ -534,8 +533,8 @@ class QMLDriveApi(QObject):
             error = "FOLDER_USED"
         except HTTPError:
             error = "CONNECTION_ERROR"
-        except ConnectionError as e:
-            if e.errno == 61:
+        except CONNECTION_ERROR as e:
+            if getattr(e, "errno") == 61:
                 error = "CONNECTION_REFUSED"
             else:
                 error = "CONNECTION_ERROR"
@@ -708,9 +707,9 @@ class QMLDriveApi(QObject):
             self.application.show_settings(section="Accounts")
             self.setMessage.emit("CONNECTION_SUCCESS", "success")
 
-        except requests.ConnectionError as e:
+        except CONNECTION_ERROR as e:
             log.exception("HTTP Error")
-            if e.errno == 61:
+            if getattr(e, "errno") == 61:
                 error = "CONNECTION_REFUSED"
             else:
                 error = "CONNECTION_ERROR"

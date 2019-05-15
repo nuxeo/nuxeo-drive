@@ -11,12 +11,12 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal
 from nuxeo.exceptions import CorruptedFile, HTTPError, Unauthorized, UploadError
-from requests import ConnectionError
 
 from .activity import Action
 from .workers import EngineWorker
 from ..client.local_client import FileInfo
 from ..constants import (
+    CONNECTION_ERROR,
     DOWNLOAD_TMP_FILE_PREFIX,
     DOWNLOAD_TMP_FILE_SUFFIX,
     MAC,
@@ -275,13 +275,18 @@ class Processor(EngineWorker):
                 except Unauthorized:
                     self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
                     continue
-                except (ConnectionError, PairInterrupt, ParentNotSynced) as exc:
+                except (PairInterrupt, ParentNotSynced) as exc:
                     log.info(
                         f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue"
                     )
                     sleep(1)
                     self.engine.get_queue_manager().push(doc_pair)
                     continue
+                except CONNECTION_ERROR:
+                    # TODO:
+                    #  Add detection for server unavailability to stop all sync
+                    #  instead of putting files in error
+                    self._postpone_pair(doc_pair, "CONNECTION_ERROR")
                 except HTTPError as exc:
                     if exc.status == 404:
                         # We saw it happened once a migration is done.
@@ -296,6 +301,9 @@ class Processor(EngineWorker):
                         self._postpone_pair(doc_pair, "Conflict")
                     elif exc.status == 500:
                         self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
+                    elif exc.status in {502, 503}:
+                        log.warning("Server is unavailable", exc_info=True)
+                        self._postpone_pair(doc_pair, "Server unavailable")
                     else:
                         error = f"{handler_name}_http_error_{exc.status}"
                         self._handle_pair_handler_exception(doc_pair, error, exc)

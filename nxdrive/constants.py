@@ -4,6 +4,8 @@ from enum import Enum
 from pathlib import Path
 from sys import platform
 
+from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
+
 LINUX = platform == "linux"
 MAC = platform == "darwin"
 WINDOWS = platform == "win32"
@@ -43,6 +45,8 @@ NO_SPACE_ERRORS = {
     errno.ENOBUFS,  # No buffer space available
     errno.ERANGE,  # Result too large
 }
+
+CONNECTION_ERROR = (ChunkedEncodingError, ConnectionError, Timeout)
 
 
 class DelAction(Enum):

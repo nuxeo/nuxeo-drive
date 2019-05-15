@@ -22,7 +22,7 @@ from .constants import (
     Login,
 )
 from .utils import get_update_status
-from ..constants import APP_NAME, NO_SPACE_ERRORS
+from ..constants import APP_NAME, CONNECTION_ERROR, NO_SPACE_ERRORS
 from ..engine.workers import PollWorker
 from ..options import Options
 from ..utils import version_lt
@@ -140,6 +140,8 @@ class BaseUpdater(PollWorker):
                 self.noSpaceLeftOnDevice.emit()
             else:
                 raise
+        except CONNECTION_ERROR:
+            log.warning("Error during update request", exc_info=True)
         except Exception:
             self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE)
             log.exception("Update failed")
@@ -173,6 +175,8 @@ class BaseUpdater(PollWorker):
                     if i % 100 == 0:
                         self._set_progress(self.progress + incr * 50)
                     i += 1
+        except CONNECTION_ERROR:
+            raise
         except Exception as exc:
             raise UpdateError(f"Impossible to get {url!r}: {exc}")
 
@@ -285,10 +289,7 @@ class BaseUpdater(PollWorker):
             return
 
         if self.manager.get_auto_update():
-            try:
-                self.update(self.version)
-            except UpdateError:
-                log.exception("Auto-update error")
+            self.update(self.version)
 
     def _set_progress(self, progress: Union[int, float]) -> None:
         self.progress = progress
