@@ -11,12 +11,12 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal
 from nuxeo.exceptions import CorruptedFile, HTTPError, Unauthorized, UploadError
-from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
 from .activity import Action
 from .workers import EngineWorker
 from ..client.local_client import FileInfo
 from ..constants import (
+    CONNECTION_ERROR,
     DOWNLOAD_TMP_FILE_PREFIX,
     DOWNLOAD_TMP_FILE_SUFFIX,
     MAC,
@@ -282,11 +282,11 @@ class Processor(EngineWorker):
                     sleep(1)
                     self.engine.get_queue_manager().push(doc_pair)
                     continue
-                except (ChunkedEncodingError, ConnectionError, Timeout) as exc:
+                except CONNECTION_ERROR:
                     # TODO:
                     #  Add detection for server unavailability to stop all sync
                     #  instead of putting files in error
-                    self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
+                    self._postpone_pair(doc_pair, "CONNECTION_ERROR")
                 except HTTPError as exc:
                     if exc.status == 404:
                         # We saw it happened once a migration is done.

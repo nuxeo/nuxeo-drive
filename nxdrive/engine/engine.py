@@ -23,7 +23,7 @@ from .watcher.remote_watcher import RemoteWatcher
 from .workers import Worker
 from ..client.local_client import LocalClient
 from ..client.remote_client import Remote
-from ..constants import MAC, ROOT, WINDOWS, DelAction
+from ..constants import CONNECTION_ERROR, MAC, ROOT, WINDOWS, DelAction
 from ..exceptions import (
     InvalidDriveException,
     PairInterrupt,
@@ -446,7 +446,7 @@ class Engine(QObject):
         except HTTPError:
             # Token already revoked
             pass
-        except (requests.ConnectionError, requests.Timeout):
+        except CONNECTION_ERROR:
             log.warning("Unable to revoke the token", exc_info=True)
         except Exception:
             log.exception("Unbind error")

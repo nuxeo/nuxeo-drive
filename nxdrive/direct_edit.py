@@ -16,13 +16,18 @@ from nuxeo.exceptions import HTTPError
 from nuxeo.utils import get_digest_algorithm
 from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
-from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
 
 from .client.local_client import LocalClient
 from .client.remote_client import Remote
-from .constants import DOWNLOAD_TMP_FILE_PREFIX, DOWNLOAD_TMP_FILE_SUFFIX, ROOT, WINDOWS
+from .constants import (
+    CONNECTION_ERROR,
+    DOWNLOAD_TMP_FILE_PREFIX,
+    DOWNLOAD_TMP_FILE_SUFFIX,
+    ROOT,
+    WINDOWS,
+)
 from .engine.activity import tooltip, FileAction
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
@@ -409,7 +414,7 @@ class DirectEdit(Worker):
             if tmp_file is None:
                 log.warning("Download failed")
                 return None
-        except (ChunkedEncodingError, ConnectionError, Timeout):
+        except CONNECTION_ERROR:
             log.warning("Unable to perform direct edit", exc_info=True)
             return None
         finally:

@@ -8,11 +8,10 @@ from typing import Any, Dict, Optional, Set, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from nuxeo.exceptions import BadQuery, HTTPError
-from requests import ConnectionError, Timeout
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
-from ...constants import BATCH_SIZE, ROOT, WINDOWS
+from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
 from ...exceptions import Forbidden, NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
 from ...utils import current_milli_time, safe_filename
@@ -600,7 +599,7 @@ class RemoteWatcher(EngineWorker):
             raise
         except ScrollDescendantsError as exc:
             log.warning(exc)
-        except (ConnectionError, Timeout, OSError) as exc:
+        except (CONNECTION_ERROR, OSError) as exc:
             log.warning(f"Network error: {exc}")
         except Forbidden:
             self.engine.set_invalid_credentials()
