@@ -739,8 +739,15 @@ FolderType=Generic
 
     def get_path(self, target: Path) -> Path:
         """ Relative path to the local client from an absolute OS path. """
+        # Overwriting the name because .resolve() can change its casing
+        # depending on what exists, e.g.:
+        # - target.name == "ABCDE.txt"
+        # - "abcde.txt" exists on the filesystem
+        # -> target.resolve() will set target.name as "abcde.txt"
+        target = target.resolve().with_name(target.name)
+
         try:
-            return target.resolve().relative_to(self.base_folder)
+            return target.relative_to(self.base_folder)
         except ValueError:
             # From the doc: if the operation is not possible (because
             # this is not a subpath of the other path), raise ValueError.
