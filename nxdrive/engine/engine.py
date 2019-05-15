@@ -9,7 +9,6 @@ from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 from urllib.parse import urlsplit
 
-import requests
 from dataclasses import dataclass
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
@@ -882,6 +881,7 @@ class Engine(QObject):
         try:
             url = self.server_url.replace("http://", "https://")
             proxies = self.manager.proxy.settings(url=url)
+            import requests
 
             requests.get(url, proxies=proxies)
             self.server_url = url
