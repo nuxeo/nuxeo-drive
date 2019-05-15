@@ -302,7 +302,7 @@ class Processor(EngineWorker):
                     elif exc.status == 500:
                         self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
                     elif exc.status in {502, 503}:
-                        log.warning(f"Server is unavailable", exc_info=True)
+                        log.warning("Server is unavailable", exc_info=True)
                         self._postpone_pair(doc_pair, "Server unavailable")
                     else:
                         error = f"{handler_name}_http_error_{exc.status}"

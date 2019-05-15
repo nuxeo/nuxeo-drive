@@ -415,7 +415,7 @@ class DirectEdit(Worker):
                 log.warning("Download failed")
                 return None
         except CONNECTION_ERROR:
-            log.warning("Unable to perform direct edit", exc_info=True)
+            log.warning("Unable to perform DirectEdit", exc_info=True)
             return None
         finally:
             FileAction.finish_action()
