@@ -599,7 +599,7 @@ class RemoteWatcher(EngineWorker):
             raise
         except ScrollDescendantsError as exc:
             log.warning(exc)
-        except (CONNECTION_ERROR, OSError) as exc:
+        except (*CONNECTION_ERROR, OSError) as exc:
             log.warning(f"Network error: {exc}")
         except Forbidden:
             self.engine.set_invalid_credentials()
