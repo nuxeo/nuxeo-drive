@@ -57,16 +57,16 @@ class TestLocalCreations(OneUserTest):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        local.make_folder("/" + self.workspace_title, "A")
-        folder_path_1 = self.workspace_title + "/A"
+        local.make_folder(f"/{self.workspace_title}", "A")
+        folder_path_1 = f"{self.workspace_title}/A"
 
         test_doc_path = self.location / "resources" / "cat.jpg"
-        abs_folder_path_1 = local.abspath("/" + folder_path_1)
+        abs_folder_path_1 = local.abspath(f"/{folder_path_1}")
         dst_path = abs_folder_path_1 / "cat.jpg"
         shutil.copyfile(test_doc_path, dst_path)
 
         self.wait_sync(timeout=100)
-        uid = local.get_remote_id("/" + folder_path_1 + "/cat.jpg")
+        uid = local.get_remote_id(f"/{folder_path_1}/cat.jpg")
         assert remote.fs_exists(uid)
 
     def test_local_create_folders_and_children_files(self):
@@ -88,15 +88,15 @@ class TestLocalCreations(OneUserTest):
         local.make_folder("/", "A")
 
         # Add text files into A
-        for file_num in range(1, len_text_files + 1):
-            filename = "file_%02d.txt" % file_num
+        for file_num in range(len_text_files):
+            filename = f"file_{file_num + 1:02d}.txt"
             local.make_file("/A", filename, content=FILE_CONTENT)
 
         # Add pictures into A
         test_doc_path = self.location / "resources" / "cat.jpg"
         abs_folder_path_1 = local.abspath("/A")
-        for file_num in range(len_text_files + 1, total_files + 1):
-            filename = "file_%02d.jpg" % file_num
+        for file_num in range(len_text_files, total_files):
+            filename = f"file_{file_num + 1:02d}.jpg"
             dst_path = abs_folder_path_1 / filename
             shutil.copyfile(test_doc_path, dst_path)
 
@@ -135,12 +135,12 @@ class TestLocalCreations(OneUserTest):
         self.wait_sync(wait_for_async=True)
 
         # Check
-        assert remote.exists("/" + folder)
-        assert local.exists("/" + folder)
+        assert remote.exists(f"/{folder}")
+        assert local.exists(f"/{folder}")
 
         # Locally rename to upper case.  A possible infinite loop can occur.
         folder_upper = folder.upper()
-        local.rename("/" + folder, folder_upper)
+        local.rename(f"/{folder}", folder_upper)
         self.wait_sync()
 
         # Checks
@@ -172,12 +172,12 @@ class TestLocalCreations(OneUserTest):
         self.wait_sync(wait_for_async=True)
 
         # Check
-        assert remote.exists("/" + filename)
-        assert local.exists("/" + filename)
+        assert remote.exists(f"/{filename}")
+        assert local.exists(f"/{filename}")
 
         # Locally rename to upper case.  A possible infinite loop can occur.
         filename_upper = filename.upper()
-        local.rename("/" + filename, filename_upper)
+        local.rename(f"/{filename}", filename_upper)
         self.wait_sync()
 
         # Checks
@@ -205,10 +205,10 @@ class TestLocalCreations(OneUserTest):
         self.wait_sync()
 
         # Check
-        assert remote.exists("/" + folder1)
-        assert remote.exists("/" + folder2)
-        assert local.exists("/" + folder1)
-        assert local.exists("/" + folder2)
+        assert remote.exists(f"/{folder1}")
+        assert remote.exists(f"/{folder2}")
+        assert local.exists(f"/{folder1}")
+        assert local.exists(f"/{folder2}")
 
     def test_local_modification_date(self):
         """ Check that the files have the Platform modification date. """
@@ -268,7 +268,7 @@ class TestLocalCreations(OneUserTest):
 
         filename = f"/{name}"
         assert local.exists(filename)
-        assert local.abspath(filename).stat().st_mtime < remote_mtime
+        assert local.abspath(filename).stat().st_mtime < remote_mtime + 0.5
 
     def test_local_modification_date_hiraganas_file(self):
         """ Check that Hiraganas files have the Platform modification date. """
@@ -289,7 +289,7 @@ class TestLocalCreations(OneUserTest):
 
         filename = f"/{name}"
         assert local.exists(filename)
-        assert local.abspath(filename).stat().st_mtime < remote_mtime
+        assert local.abspath(filename).stat().st_mtime < remote_mtime + 0.5
 
     def test_local_creation_date(self):
         """ Check that the files have the Platform modification date. """
@@ -325,7 +325,7 @@ class TestLocalCreations(OneUserTest):
             assert local_ctime < after_ctime
             assert local_ctime + sleep_time <= local_mtime
 
-        assert local_mtime < after_mtime
+        assert local_mtime < after_mtime + 0.5
 
     def test_local_creation_date_kanjis_file(self):
         """ Check that Kanjis files have the Platform modification date. """
@@ -363,7 +363,7 @@ class TestLocalCreations(OneUserTest):
             assert local_ctime < after_ctime
             assert local_ctime + sleep_time <= local_mtime
 
-        assert local_mtime < after_mtime
+        assert local_mtime < after_mtime + 0.5
 
     def test_local_creation_date_hiraganas_file(self):
         """ Check that Hiraganas files have the Platform modification date. """
@@ -401,4 +401,4 @@ class TestLocalCreations(OneUserTest):
             assert local_ctime < after_ctime
             assert local_ctime + sleep_time <= local_mtime
 
-        assert local_mtime < after_mtime
+        assert local_mtime < after_mtime + 0.5

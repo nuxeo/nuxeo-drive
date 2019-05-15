@@ -19,6 +19,7 @@ class MacLocalClient(LocalTest):
         self.fm = Cocoa.NSFileManager.defaultManager()
 
     def copy(self, srcref: str, dstref: str) -> None:
+        """Make a copy of the file (with xattr included)."""
         src = self.abspath(srcref)
         dst = self.abspath(dstref)
         if not dst.exists() and not dst.parent.exists():

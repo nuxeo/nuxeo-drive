@@ -602,6 +602,7 @@ FolderType=Generic
             if not error:
                 error = exc_info[1]
 
+        log.debug(f"Permanently deleting {ref!r}")
         locker = 0
         parent_ref = None
         try:
