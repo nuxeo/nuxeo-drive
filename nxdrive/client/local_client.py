@@ -464,12 +464,11 @@ FolderType=Generic
             return True
 
         if remote_digest_algorithm is None:
+            if not remote_digest:
+                return False
             remote_digest_algorithm = get_digest_algorithm(remote_digest)
             if not remote_digest_algorithm:
                 raise UnknownDigest(str(remote_digest))
-
-        if remote_digest_algorithm == self._digest_func:
-            return False
 
         file_info = self.try_get_info(local_path)
         if not file_info:
