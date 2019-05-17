@@ -61,7 +61,7 @@ def faker() -> Callable[[], Faker]:
     return _faker
 
 
-@pytest.fixture
+@pytest.fixture()
 def manager_factory(
     request, tmp, nuxeo_url, user_factory, server
 ) -> Callable[[], Manager]:
@@ -95,7 +95,7 @@ def manager_factory(
     yield _make_manager
 
 
-@pytest.fixture
+@pytest.fixture()
 def user_factory(request, server, faker):
     """User creation factory with automatic clean-up."""
 
@@ -130,7 +130,7 @@ def user_factory(request, server, faker):
     yield _make_user
 
 
-@pytest.fixture
+@pytest.fixture()
 def workspace_factory(request, server):
     """Workspace creation factory with automatic clean-up."""
 

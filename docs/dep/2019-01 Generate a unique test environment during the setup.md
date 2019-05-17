@@ -1,7 +1,7 @@
 # Generate a unique test environment during the setup
 
 - Created: 2019-01-31
-- Last-Modified: 2019-05-09
+- Last-Modified: 2019-05-17
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
           Léa Klein <lklein@uxeo.com>
 - Status: ongoing implementation
@@ -68,7 +68,6 @@ It will speed tests because only `tests/functional` will require a server connec
 Converting `test_bind_server.py` to the proposed new format will convert this code:
 
 ```python
-# coding: utf-8
 import os
 import tempfile
 import unittest
@@ -119,7 +118,6 @@ class BindServerTest(unittest.TestCase):
 To this one, more concise and readable:
 
 ```python
-# coding: utf-8
 import pytest
 
 from nxdrive.exceptions import FolderAlreadyUsed
@@ -152,7 +150,7 @@ def nuxeo_url():
     return os.getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo").split("#")[0]
 
 
-@pytest.fixture
+@pytest.fixture()
 def tempdir(tmpdir):
     """Use the original *tmpdir* fixture and convert to a Path with automatic clean-up."""
     path = Path(tmpdir)
@@ -163,14 +161,14 @@ def tempdir(tmpdir):
             rmtree(path)
 
 
-@pytest.fixture
+@pytest.fixture()
 def manager(tempdir):
     """Manager instance with automatic clean-up."""
     with Manager(tempdir) as man:
         yield man
 
 
-@pytest.fixture
+@pytest.fixture()
 def user_factory(server, faker):
     """User creation factory with automatic clean-up."""
     _user = None

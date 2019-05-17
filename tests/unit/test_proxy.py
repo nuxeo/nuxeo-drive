@@ -32,7 +32,7 @@ def js():
     """
 
 
-@pytest.fixture
+@pytest.fixture()
 def config_dao():
     db = Path("tmp.db")
     dao = ConfigurationDAO(db)
@@ -41,7 +41,7 @@ def config_dao():
     db.unlink()
 
 
-@pytest.fixture
+@pytest.fixture()
 def pac_file(tmp_path, js):
     pac = tmp_path / "proxy.pac"
     pac.write_text(js)

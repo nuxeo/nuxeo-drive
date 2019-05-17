@@ -31,7 +31,7 @@ def pytest_runtest_makereport():
         outcome.force_result(report)
 
 
-@pytest.fixture
+@pytest.fixture()
 def tmp(tmp_path):
     """Use the original *tmp_path* fixture with automatic clean-up."""
 

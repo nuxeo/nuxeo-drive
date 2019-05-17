@@ -18,7 +18,7 @@ def pytest_addoption(parser):
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def final_exe(request):
     return request.config.getoption("--executable")
 
