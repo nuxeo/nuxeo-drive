@@ -14,6 +14,12 @@ class DocumentAlreadyLocked(DriveError):
     def __init__(self, username: str) -> None:
         self.username = username
 
+    def __repr__(self) -> str:
+        return f"Document already locked by {self.username!r}"
+
+    def __str__(self) -> str:
+        return repr(self)
+
 
 class DuplicationDisabledError(ValueError):
     """
