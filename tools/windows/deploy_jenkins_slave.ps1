@@ -316,13 +316,22 @@ function install_python {
 	}
 }
 
-function launch_tests {
-	if ($Env:SPECIFIC_TEST -ne "tests") {
-		Write-Output ">>> Launching the tests suite"
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $Env:SPECIFIC_TEST
+function launch_test($path, $pytest_args) {
+	# Launch tests on a specific path. On failure, retry failed tests.
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest --cache-clear $pytest_args "$path"
+	if ($lastExitCode -ne 0) {
+		# Re-run failures
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest --last-failed --last-failed-no-failures none
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
+	}
+}
+
+function launch_tests {
+	if ($Env:SPECIFIC_TEST -ne "tests") {
+		Write-Output ">>> Launching the tests suite"
+		launch_test "$Env:SPECIFIC_TEST"
 		return
 	}
 
@@ -333,22 +342,16 @@ function launch_tests {
 	}
 
 	Write-Output ">>> Checking type annotations"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --ignore-missing-imports nxdrive
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy nxdrive
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
 
 	Write-Output ">>> Launching unit tests"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest "tests\unit"
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	launch_test "tests\unit"
 
 	Write-Output ">>> Launching functional tests"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest "tests\functional"
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	launch_test "tests\functional"
 
 	Write-Output ">>> Launching synchronization functional tests, file by file"
 	$files = Get-ChildItem "tests\old_functional" -Filter test_*.py
@@ -358,10 +361,7 @@ function launch_tests {
 		$test_file = "tests\old_functional\$_"
 		Write-Output ""
 		Write-Output ">>> [$number/$total] Testing $test_file ..."
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $test_file -q --durations=3
-		#if ($lastExitCode -ne 0) {
-		#	ExitWithCode $lastExitCode
-		#}
+		launch_test "$test_file" "-q" "--durations=3"
 		$number = $number + 1
 	}
 
@@ -370,10 +370,7 @@ function launch_tests {
 	build_installer
 
 	Write-Output ">>> Launching integration tests"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pytest -n0 "tests\integration\windows"
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
-	}
+	launch_test "tests\integration\windows" "-n0"
 }
 
 function sign($file) {

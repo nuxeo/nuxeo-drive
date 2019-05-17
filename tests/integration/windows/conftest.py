@@ -3,8 +3,6 @@ from logging import getLogger
 
 import pytest
 
-from pywinauto.application import Application
-
 
 log = getLogger(__name__)
 
@@ -26,6 +24,10 @@ def final_exe(request):
 @pytest.fixture()
 def exe(final_exe, tmp):
     """Run the application with optional arguments."""
+
+    # Use the import there to prevent pytest --last-failed to crash
+    # when running on non Windows platforms
+    from pywinauto.application import Application
 
     path = tmp() / "config"
     path.mkdir(parents=True, exist_ok=True)
