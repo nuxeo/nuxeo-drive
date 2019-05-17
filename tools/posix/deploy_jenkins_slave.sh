@@ -171,10 +171,19 @@ install_python() {
     pyenv global "${version}"
 }
 
+launch_test() {
+    # Launch tests on a specific path. On failure, retry failed tests.
+    local cmd="${PYTHON} -bb -Wall -m pytest"
+    local path="${1}"
+    local pytest_args="${2:-}"
+
+    ${cmd} --cache-clear ${pytest_args} "${path}" || ${cmd} --last-failed --last-failed-no-failures none
+}
+
 launch_tests() {
     if [ "${SPECIFIC_TEST}" != "tests" ]; then
-        echo ">>> Launching the tests suite"
-        ${PYTHON} -bb -Wall -m pytest "${SPECIFIC_TEST}"
+        echo ">>> Launching the specific tests"
+        launch_test "${SPECIFIC_TEST}"
         return
     fi
 
@@ -182,13 +191,13 @@ launch_tests() {
     ${PYTHON} -m flake8 .
 
     echo ">>> Checking type annotations"
-    ${PYTHON} -m mypy --ignore-missing-imports nxdrive
+    ${PYTHON} -m mypy nxdrive
 
     echo ">>> Launching unit tests"
-    ${PYTHON} -bb -Wall -m pytest "tests/unit"
+    launch_test "tests/unit"
 
     echo ">>> Launching functional tests"
-    ${PYTHON} -bb -Wall -m pytest "tests/functional"
+    launch_test "tests/functional"
 
     echo ">>> Launching synchronization functional tests, file by file"
     total="$(find tests/old_functional -name "test_*.py" | wc -l)"
@@ -196,7 +205,7 @@ launch_tests() {
     for test_file in $(find tests/old_functional -name "test_*.py"); do
         echo ""
         echo ">>> [${number}/${total}] Testing ${test_file} ..."
-        ${PYTHON} -bb -Wall -m pytest "${test_file}" -q --durations=3 || true
+        launch_test "${test_file}" "-q --durations=3"
         number=$(( number + 1 ))
     done
 }
