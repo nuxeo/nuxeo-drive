@@ -16,6 +16,7 @@ from nuxeo.exceptions import HTTPError
 from nuxeo.utils import get_digest_algorithm
 from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from requests import codes
 from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
 
@@ -526,8 +527,9 @@ class DirectEdit(Worker):
         try:
             remote.lock(uid)
         except HTTPError as exc:
-            # TODO: handle 409 when NXP-24359 done
-            if exc.status == 500:
+            if exc.status in (codes.CONFLICT, codes.INTERNAL_SERVER_ERROR):
+                # CONFLICT if NXP-24359 is part of the current server HF
+                # else INTERNAL_SERVER_ERROR is raised on double lock.
                 username = re.findall(r"Document already locked by (.+):", exc.message)
                 if username:
                     if username[0] == remote.user_id:

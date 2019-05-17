@@ -629,5 +629,6 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
 
         # Try to lock with another username, it should fail
         with patch.object(self.remote, "user_id", new=self.user_2):
-            with pytest.raises(DocumentAlreadyLocked):
+            with pytest.raises(DocumentAlreadyLocked) as exc:
                 assert not self.direct_edit._lock(self.remote, uid)
+            assert str(exc.value) == f"Document already locked by {self.user_1!r}"
