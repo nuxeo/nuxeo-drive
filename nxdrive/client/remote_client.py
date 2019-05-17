@@ -147,18 +147,19 @@ class Remote(Nuxeo):
         results = self.query(query)
         return len(results["entries"]) == 1
 
-    def request_token(self, revoke: bool = False) -> str:
+    def request_token(self, revoke: bool = False) -> Optional[str]:
         """Request and return a new token for the user"""
-        return self.client.request_auth_token(
+        token = self.client.request_auth_token(
             device_id=self.device_id,
             app_name=APP_NAME,
             permission=TOKEN_PERMISSION,
             device=get_device(),
             revoke=revoke,
         )
+        return None if "\n" in token else token
 
-    def revoke_token(self) -> str:
-        return self.request_token(revoke=True)
+    def revoke_token(self) -> None:
+        self.request_token(revoke=True)
 
     def update_token(self, token: str) -> None:
         self.auth = TokenAuth(token)
