@@ -842,6 +842,8 @@ class Engine(QObject):
             self.remote = self.init_remote()
             if not self._remote_token:
                 self._remote_token = self.remote.request_token()
+                if not self._remote_token:
+                    self.remote = None
 
         if self._remote_token is not None:
             # The server supports token based identification: do not store the
