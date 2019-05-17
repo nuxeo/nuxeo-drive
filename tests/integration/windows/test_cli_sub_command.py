@@ -46,6 +46,8 @@ def test_bind_server(nuxeo_url, exe, args):
     Test only with no access to the server to prevent useless binds.
     Real binds are tested in test_unbind_server().
     """
+    if "--password" in args:
+        pytest.xfail("NXDRIVE-1645")
     assert bind(exe, args.format(user="Administrator", url=nuxeo_url))
 
 

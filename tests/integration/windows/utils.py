@@ -36,8 +36,8 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
 
 
 def main_window(app):
-    # Return the main windows when visible.
-    return app.window(title=APP_NAME).wait("visible")
+    # Return the main window.
+    return app.top_window()
 
 
 def share_metrics_dlg(app) -> bool:
