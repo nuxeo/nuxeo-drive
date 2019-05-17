@@ -150,8 +150,8 @@ class TestSharedFolders(TwoUsersTest):
         self.wait()
 
         # Make changes
-        local_1.rename("/Folder01/File01.txt", "File01_renamed.txt")
-        local_1.delete("/Folder01/SubFolder01/Image01.png")
+        LocalTest.rename(local_1, "/Folder01/File01.txt", "File01_renamed.txt")
+        LocalTest.delete(local_1, "/Folder01/SubFolder01/Image01.png")
 
         # Bind or start engine and wait for sync
         if unbind:
