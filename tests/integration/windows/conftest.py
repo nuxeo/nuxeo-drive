@@ -3,7 +3,6 @@ from logging import getLogger
 
 import pytest
 
-from nxdrive.options import Options
 from pywinauto.application import Application
 
 
@@ -30,16 +29,16 @@ def exe(final_exe, tmp):
 
     path = tmp() / "config"
     path.mkdir(parents=True, exist_ok=True)
-    Options.nxdrive_home = path
 
     @contextmanager
-    def execute(cmd=final_exe, args=None):
+    def execute(cmd: str = final_exe, args: str = ""):
+        if "--nxdrive-home" not in args:
+            args += f' --nxdrive-home="{path}"'
+        args = args.strip()
+
         log.info(f"Starting {cmd!r} with args={args!r}")
 
-        if args:
-            cmd += " " + args
-
-        app = Application(backend="uia").start(cmd, timeout=30)
+        app = Application(backend="uia").start(f"{cmd} {args}")
         try:
             yield app
         finally:
