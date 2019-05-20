@@ -89,3 +89,12 @@ def test_get_update_status(current, server, nature, action_required, new):
     action, version = get_update_status(current, VERSIONS, nature, server, Login.NEW)
     assert action == action_required
     assert version == new
+
+
+def test_get_update_status_versions_is_none():
+    """BaseUpdater.versions may be set to None, before NXDRIVE-1682."""
+    # No version
+    current, server, nature, action_required, new = "3.1.2", "", "release", "", ""
+    action, version = get_update_status(current, None, nature, server, Login.NONE)
+    assert action == action_required
+    assert version == new
