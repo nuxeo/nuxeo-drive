@@ -14,7 +14,7 @@ from ..workers import EngineWorker
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
 from ...exceptions import Forbidden, NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
-from ...utils import current_milli_time, safe_filename
+from ...utils import safe_filename
 
 if TYPE_CHECKING:
     from ..dao.sqlite import EngineDAO  # noqa
@@ -38,6 +38,7 @@ class RemoteWatcher(EngineWorker):
         super().__init__(engine, dao)
         self.server_interval = delay
 
+        self.empty_polls = 0
         self._next_check = 0
         self._last_sync_date: int = self._dao.get_int("remote_last_sync_date")
         self._last_event_log_id: int = self._dao.get_int("remote_last_event_log_id")
@@ -47,11 +48,6 @@ class RemoteWatcher(EngineWorker):
         self._last_remote_full_scan: Optional[datetime] = self._dao.get_config(
             "remote_last_full_scan"
         )
-        self._metrics = {
-            "last_remote_scan_time": -1,
-            "last_remote_update_time": -1,
-            "empty_polls": 0,
-        }
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
@@ -60,19 +56,25 @@ class RemoteWatcher(EngineWorker):
         metrics["last_root_definitions"] = self._last_root_definitions
         metrics["last_remote_full_scan"] = self._last_remote_full_scan
         metrics["next_polling"] = self._next_check
-        return {**metrics, **self._metrics}
+        return metrics
 
     def _execute(self) -> None:
         first_pass = True
+        now = monotonic
+        handle_changes = self._handle_changes
+        interact = self._interact
+        delay = self.server_interval
+
         try:
-            while True:
-                self._interact()
-                if self._next_check < current_milli_time():
-                    if self._handle_changes(first_pass):
+            while "working":
+                if now() > self._next_check:
+                    if handle_changes(first_pass):
                         first_pass = False
-                    self._next_check = (
-                        current_milli_time() + self.server_interval * 1000
-                    )
+
+                    # Plan the next execution
+                    self._next_check = now() + delay
+
+                interact()
                 sleep(0.5)
         except ThreadInterrupt:
             self.remoteWatcherStopped.emit()
@@ -82,11 +84,13 @@ class RemoteWatcher(EngineWorker):
     def _scan_remote(self, from_state: DocPair = None):
         """Recursively scan the bound remote folder looking for updates"""
         log.debug("Remote full scan")
-        start_ms = current_milli_time()
+        start = monotonic()
+
         try:
             from_state = from_state or self._dao.get_state_from_local(ROOT)
             if not from_state:
                 return
+
             remote_info = self.engine.remote.get_fs_info(from_state.remote_ref)
             self._dao.update_remote_state(
                 from_state,
@@ -97,17 +101,17 @@ class RemoteWatcher(EngineWorker):
             log.info(f"Marking {from_state!r} as remotely deleted")
             # Should unbind ?
             # from_state.update_remote(None)
-            self._metrics["last_remote_scan_time"] = current_milli_time() - start_ms
             return
 
         self._get_changes()
-        # recursive update
+
+        # Recursive update
         self._do_scan_remote(from_state, remote_info)
         self._last_remote_full_scan = datetime.utcnow()
         self._dao.update_config("remote_last_full_scan", self._last_remote_full_scan)
         self._dao.clean_scanned()
-        self._metrics["last_remote_scan_time"] = current_milli_time() - start_ms
-        log.info(f"Remote scan finished in {self._metrics['last_remote_scan_time']}ms")
+
+        log.info(f"Remote scan finished in {monotonic() - start:.02f} sec")
         self.remoteScanFinished.emit()
 
     @pyqtSlot(str)
@@ -556,6 +560,7 @@ class RemoteWatcher(EngineWorker):
         self._dao.clean_scanned()
 
     def _check_offline(self) -> bool:
+        """Return True if the engine is offline."""
         if not self.engine.is_offline():
             return False
 
@@ -566,8 +571,11 @@ class RemoteWatcher(EngineWorker):
         return not online
 
     def _handle_changes(self, first_pass: bool = False) -> bool:
+        if self._check_offline():
+            return
+
         log.debug(f"Handle remote changes, first_pass={first_pass!r}")
-        self._check_offline()
+
         try:
             if not self._last_remote_full_scan:
                 self._scan_remote()
@@ -619,6 +627,7 @@ class RemoteWatcher(EngineWorker):
             return True
         finally:
             Action.finish_action()
+
         return False
 
     def _get_changes(self) -> Optional[Dict[str, Any]]:
@@ -685,7 +694,7 @@ class RemoteWatcher(EngineWorker):
             return
 
         if not summary.get("fileSystemChanges"):
-            self._metrics["empty_polls"] += 1
+            self.empty_polls += 1
             self.noChangesFound.emit()
             return
 
@@ -694,10 +703,8 @@ class RemoteWatcher(EngineWorker):
             summary["fileSystemChanges"], key=itemgetter("eventDate"), reverse=True
         )
 
-        n_changes = len(sorted_changes)
-        self._metrics["last_changes"] = n_changes
-        self._metrics["empty_polls"] = 0
-        self.changesFound.emit(n_changes)
+        self.empty_polls = 0
+        self.changesFound.emit(len(sorted_changes))
 
         # Scan events and update the related pair states
         refreshed: Set[str] = set()
