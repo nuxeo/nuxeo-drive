@@ -609,7 +609,7 @@ class Engine(QObject):
         qm_size = self._queue_manager.get_overall_size()
         qm_active = self._queue_manager.active()
         active_status = "active" if qm_active else "inactive"
-        empty_polls = self._remote_watcher.get_metrics()["empty_polls"]
+        empty_polls = self._remote_watcher.empty_polls
         win_info = ""
 
         if WINDOWS:
