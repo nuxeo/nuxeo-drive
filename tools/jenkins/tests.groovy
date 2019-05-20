@@ -212,9 +212,9 @@ for (def x in slaves.keySet()) {
             // Trigger the job on all OSes
             def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
             def job_name = "Drive-tests-${label}-${suffix}"
-            build job: job_name, parameters: params + [
-                [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: env.BRANCH_NAME],
-                [$class: 'StringParameterValue', name: 'OPERATING_SYSTEM', value: label]]
+            params.add([$class: 'StringParameterValue', name: 'BRANCH_NAME', value: env.BRANCH_NAME])
+            params.add([$class: 'StringParameterValue', name: 'OPERATING_SYSTEM', value: label])
+            build job: job_name, parameters: params
 
             if (job.result == "SUCESS") {
                 successes += 1
