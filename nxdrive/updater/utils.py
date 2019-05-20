@@ -106,6 +106,12 @@ def get_update_status(
 ) -> Tuple[str, str]:
     """Given a Drive version, determine the definitive status of the application."""
 
+    if not isinstance(versions, dict):
+        log.warning(
+            f"versions has invalid type: {type(versions).__name__}, dict required"
+        )
+        return "", ""
+
     if current_version not in versions:
         log.info(
             "Unknown version: this is the case when the current packaged application "

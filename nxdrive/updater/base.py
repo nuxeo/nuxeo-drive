@@ -203,6 +203,8 @@ class BaseUpdater(PollWorker):
         except yaml.YAMLError as exc:
             raise UpdateError(f"Parsing error: {exc}")
         else:
+            if not isinstance(versions, dict):
+                versions = {}
             self.versions = versions
 
     def _get_update_status(self) -> None:
