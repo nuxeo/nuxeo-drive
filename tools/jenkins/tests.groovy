@@ -221,7 +221,7 @@ for (def x in slaves.keySet()) {
                 [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: env.BRANCH_NAME]
             ]
 
-            if (job.result == "SUCESS") {
+            if (job.result == "SUCCESS") {
                 successes += 1
             }
         }
