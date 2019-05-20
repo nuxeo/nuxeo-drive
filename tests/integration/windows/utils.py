@@ -1,7 +1,6 @@
 from logging import getLogger
 from time import sleep
 
-import win32clipboard
 from nxdrive.constants import APP_NAME
 
 
@@ -10,6 +9,10 @@ log = getLogger(__name__)
 
 def copy_clipboard() -> str:
     """Get content of the clip board."""
+    # Use the import there to prevent pytest --last-failed to crash
+    # when running on non Windows platforms
+    import win32clipboard
+
     win32clipboard.OpenClipboard()
     details = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
     win32clipboard.CloseClipboard()
