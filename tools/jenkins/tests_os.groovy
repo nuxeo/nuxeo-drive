@@ -29,10 +29,10 @@ properties([
             name: 'CLEAN_WORKSPACE',
             defaultValue: false,
             description: 'Clean the entire workspace before doing anything.'],
-        [$class: 'ChoiceParameterDefinition',
-            name: 'OPERATING_SYSTEM',
-            choices: 'linux\nmacos\nwindows',
-            description: 'OS to run the tests on.']
+        [$class: 'StringParameterDefinition',
+            name: 'BRANCH_NAME',
+            defaultValue: 'master',
+            description: 'The branch to checkout.']
     ]]
 ])
 
@@ -65,7 +65,7 @@ def skip_tests(reason) {
 }
 
 // Do not launch anything if we are on a Work In Progress branch
-if (env.BRANCH_NAME.startsWith('wip-')) {
+if (params.BRANCH_NAME.startsWith('wip-')) {
     skip_tests('WIP')
     return
 }
@@ -84,7 +84,7 @@ def checkout_custom() {
     checkout(
         changelog: build_changeset,
         scm: [$class: 'GitSCM',
-        branches: [[name: env.BRANCH_NAME]],
+        branches: [[name: params.BRANCH_NAME]],
         browser: [$class: 'GithubWeb', repoUrl: repos_url],
         doGenerateSubmoduleConfigurations: false,
         extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'sources']],
@@ -98,7 +98,7 @@ if (currentBuild.result == "ABORTED") {
 }
 
 // We have a specific operating system
-def label = params.OPERATING_SYSTEM
+def label = (env.JOB_NAME =~ /Drive-tests-(\w+)-\w+/)[0][1]
 def slave = slaves.get(label)
 def osi = names.get(label)
 

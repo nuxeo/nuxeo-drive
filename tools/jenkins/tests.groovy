@@ -218,8 +218,7 @@ for (def x in slaves.keySet()) {
                 [$class: 'StringParameterValue', name: 'RANDOM_BUG_MODE', value: params.RANDOM_BUG_MODE],
                 [$class: 'StringParameterValue', name: 'ENGINE', value: params.ENGINE],
                 [$class: 'BooleanParameterValue', name: 'CLEAN_WORKSPACE', value: params.CLEAN_WORKSPACE],
-                [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: env.BRANCH_NAME],
-                [$class: 'StringParameterValue', name: 'OPERATING_SYSTEM', value: label]
+                [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: env.BRANCH_NAME]
             ]
 
             if (job.result == "SUCESS") {
