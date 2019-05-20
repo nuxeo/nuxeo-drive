@@ -211,7 +211,7 @@ for (def x in slaves.keySet()) {
         stage("Trigger ${name}") {
             // Trigger the job on all OSes
             def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
-            def job_name = "Drive-tests-${label}-${suffix}"
+            def job_name = "../Drive OS tests jobs/Drive-tests-${label}-${suffix}"
             build job: job_name, parameters: [
                 [$class: 'StringParameterValue', name: 'SPECIFIC_TEST', value: params.SPECIFIC_TEST],
                 [$class: 'StringParameterValue', name: 'PYTEST_ADDOPTS', value: params.PYTEST_ADDOPTS],
