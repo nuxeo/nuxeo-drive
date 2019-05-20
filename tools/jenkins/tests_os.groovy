@@ -29,14 +29,10 @@ properties([
             name: 'CLEAN_WORKSPACE',
             defaultValue: false,
             description: 'Clean the entire workspace before doing anything.'],
-        [$class: 'BooleanParameterDefinition',
-            name: 'ENABLE_SONAR',
-            defaultValue: true,
-            description: 'Run SonarCloud.io analysis.'],
-        [$class: 'StringParameterDefinition',
+        [$class: 'ChoiceParameterDefinition',
             name: 'OPERATING_SYSTEM',
-            defaultValue: '',
-            description: 'OS to run the tests on. Values allowed:<ul><li>macos</li><li>linux</li><li>windows</li></ul>']
+            choices: 'linux\nmacos\nwindows',
+            description: 'OS to run the tests on.']
     ]]
 ])
 
