@@ -59,7 +59,7 @@ ShadowRectangle {
         SystrayMenuItem {
             text: "DIRECT EDIT"
             onClicked: {
-                application._handle_nxdrive_url("nxdrive://edit/http/localhost:8080/nuxeo/user/Administrator/repo/default/nxdocid/4071267e-e4e9-4f15-b794-c13810d0371c/filename/M82%20copy4.tif/downloadUrl/nxfile/default/4071267e-e4e9-4f15-b794-c13810d0371c/file:content/M82%20copy4.tif")
+                application._handle_nxdrive_url("nxdrive://edit/http/localhost:8080/nuxeo/user/Administrator/repo/default/nxdocid/3a9afcef-976f-402d-b0fd-9f432ef8f8ca/filename/Helix_Nebula.tif/downloadUrl/nxfile/default/3a9afcef-976f-402d-b0fd-9f432ef8f8ca/file:content/Helix_Nebula.tif")
             }
         }
     }

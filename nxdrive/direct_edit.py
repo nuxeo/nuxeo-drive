@@ -324,14 +324,14 @@ class DirectEdit(Worker):
                     quote(url, safe="/:"),
                     file_out=file_out,
                     digest=blob.digest,
-                    check_suspended=self.stop_client,
+                    callback=self.stop_client,
                 )
             else:
                 engine.remote.get_blob(
                     info,
                     xpath=xpath,
                     file_out=file_out,
-                    check_suspended=self.stop_client,
+                    callback=self.stop_client,
                     **kwargs,
                 )
         return file_out
