@@ -61,7 +61,7 @@ class Remote(Nuxeo):
         password: str = None,
         token: str = None,
         proxy: Proxy = None,
-        check_suspended: Callable = None,
+        download_callback: Callable = None,
         base_folder: str = None,
         dao: "EngineDAO" = None,
         repository: str = Options.remote_repo,
@@ -101,7 +101,7 @@ class Remote(Nuxeo):
         self.device_id = device_id
         self.user_id = user_id
         self.version = version
-        self.check_suspended = check_suspended
+        self.download_callback = download_callback
         self._has_new_trash_service = not version_le(self.client.server_version, "10.1")
 
         self.upload_lock = Lock()
@@ -182,6 +182,7 @@ class Remote(Nuxeo):
 
         headers = None
         if file_out.exists():
+            # Retrieve current size of .nxpart to know where to start the download
             start = file_out.stat().st_size
             headers = {"Range": f"bytes={start}-"}
         resp = self.client.request(
@@ -195,14 +196,13 @@ class Remote(Nuxeo):
                 current_action.progress = file_out.stat().st_size
 
         if file_out:
-            callback = kwargs.pop("check_suspended", self.check_suspended)
+            callback = kwargs.pop("callback", self.download_callback)
             locker = unlock_path(file_out)
             try:
                 self.operations.save_to_file(
                     current_action,
                     resp,
                     file_out,
-                    digest=digest,
                     chunk_size=FILE_BUFFER_SIZE,
                     callback=callback,
                 )
@@ -292,6 +292,9 @@ class Remote(Nuxeo):
                         upload = self._dao.get_upload(path=file_path)
                         if upload.status is not TransferStatus.ONGOING:
                             raise UploadPaused(upload.uid)
+                        from time import sleep
+
+                        sleep(0.5)
                 else:
                     uploader.upload()
 

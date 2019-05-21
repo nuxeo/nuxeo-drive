@@ -448,7 +448,8 @@ class Engine(QObject):
         self._dao.resume_upload(uid)
         transfer = self._dao.get_upload(uid=uid)
         doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
-        self.get_queue_manager().push(doc_pair)
+        if doc_pair:
+            self.get_queue_manager().push(doc_pair)
 
     def resume_suspended_transfers(self) -> None:
         for transfer in self._dao.get_downloads_with_status(TransferStatus.SUSPENDED):
@@ -836,7 +837,7 @@ class Engine(QObject):
             "password": self._remote_password,
             "timeout": self.timeout,
             "token": self._remote_token,
-            "check_suspended": self.suspend_client,
+            "download_callback": self.suspend_client,
             "dao": self._dao,
             "proxy": self.manager.proxy,
             "verify": verify,
