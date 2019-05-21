@@ -40,20 +40,21 @@ Rectangle {
             }
 
             IconLabel {
+                visible: !is_direct_edit
                 z: 20; Layout.alignment: Qt.AlignRight; Layout.rightMargin: 10
                 icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
                 onClicked: {
                     if (paused) {
                         if (download) {
-                            api.resume_download(accountSelect.getRole("uid"), uid)
+                            api.resume_download(engine, uid)
                         } else {
-                            api.resume_upload(accountSelect.getRole("uid"), uid)
+                            api.resume_upload(engine, uid)
                         }
                     } else {
                         if (download) {
-                            api.pause_download(accountSelect.getRole("uid"), uid, progress)
+                            api.pause_download(engine, uid, progress)
                         } else {
-                            api.pause_upload(accountSelect.getRole("uid"), uid, progress)
+                            api.pause_upload(engine, uid, progress)
                         }
                     }
                 }

@@ -660,26 +660,30 @@ class EngineDAO(ConfigurationDAO):
             self._migrate_state(cursor)
             cursor.execute(
                 "CREATE TABLE if not exists Downloads ("
-                "    uid        INTEGER     NOT NULL,"
-                "    path       INTEGER     UNIQUE,"
-                "    status     INTEGER,"
-                "    progress   REAL,"
-                "    doc_pair   INTEGER     UNIQUE,"
-                "    tmpname    VARCHAR,"
-                "    url        VARCHAR,"
+                "    uid            INTEGER     NOT NULL,"
+                "    path           INTEGER     UNIQUE,"
+                "    status         INTEGER,"
+                "    engine         VARCHAR     DEFAULT NULL,"
+                "    is_direct_edit INTEGER     DEFAULT 0,"
+                "    progress       REAL,"
+                "    doc_pair       INTEGER     UNIQUE,"
+                "    tmpname        VARCHAR,"
+                "    url            VARCHAR,"
                 "    PRIMARY KEY (uid)"
                 ")"
             )
             cursor.execute(
                 "CREATE TABLE if not exists Uploads ("
-                "    uid        INTEGER     NOT NULL,"
-                "    path       INTEGER     UNIQUE,"
-                "    status     INTEGER,"
-                "    progress   REAL,"
-                "    doc_pair   INTEGER     UNIQUE,"
-                "    batch      VARCHAR,"
-                "    idx        INTEGER,"
-                "    chunk_size INTEGER,"
+                "    uid            INTEGER     NOT NULL,"
+                "    path           INTEGER     UNIQUE,"
+                "    status         INTEGER,"
+                "    engine         VARCHAR     DEFAULT NULL,"
+                "    is_direct_edit INTEGER     DEFAULT 0,"
+                "    progress       REAL,"
+                "    doc_pair       INTEGER     UNIQUE,"
+                "    batch          VARCHAR,"
+                "    idx            INTEGER,"
+                "    chunk_size     INTEGER,"
                 "    PRIMARY KEY (uid)"
                 ")"
             )
@@ -1911,10 +1915,12 @@ class EngineDAO(ConfigurationDAO):
                 res.uid,
                 Path(res.path),
                 TransferStatus(res.status),
-                res.progress,
-                res.doc_pair,
-                res.tmpname,
-                res.url,
+                engine=res.engine,
+                is_direct_edit=res.is_direct_edit,
+                progress=res.progress,
+                doc_pair=res.doc_pair,
+                tmpname=res.tmpname,
+                url=res.url,
             )
             for res in c.execute("SELECT * FROM Downloads").fetchall()
         ]
@@ -1927,115 +1933,66 @@ class EngineDAO(ConfigurationDAO):
                 res.uid,
                 Path(res.path),
                 TransferStatus(res.status),
-                res.progress,
-                res.doc_pair,
-                res.batch,
-                res.idx,
-                res.chunk_size,
+                engine=res.engine,
+                is_direct_edit=res.is_direct_edit,
+                progress=res.progress,
+                doc_pair=res.doc_pair,
+                batch=res.batch,
+                idx=res.idx,
+                chunk_size=res.chunk_size,
             )
             for res in c.execute("SELECT * FROM Uploads").fetchall()
         ]
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
-        con = self._get_read_connection()
-        c = con.cursor()
-        return [
-            Download(
-                res.uid,
-                Path(res.path),
-                TransferStatus(res.status),
-                res.progress,
-                res.doc_pair,
-                res.tmpname,
-                res.url,
-            )
-            for res in c.execute(
-                "SELECT * FROM Downloads WHERE status = ?", (status.value,)
-            ).fetchall()
-        ]
+        return [d for d in self.get_downloads() if d.status == status]
 
     def get_uploads_with_status(self, status: TransferStatus) -> List[Upload]:
-        con = self._get_read_connection()
-        c = con.cursor()
-        return [
-            Upload(
-                res.uid,
-                Path(res.path),
-                TransferStatus(res.status),
-                res.progress,
-                res.doc_pair,
-                res.batch,
-                res.idx,
-                res.chunk_size,
-            )
-            for res in c.execute(
-                "SELECT * FROM Uploads WHERE status = ?", (status.value,)
-            ).fetchall()
-        ]
+        return [u for u in self.get_uploads() if u.status == status]
 
     def get_download(
         self, uid: int = None, path: Path = None, doc_pair: int = None
     ) -> Optional[Download]:
-        con = self._get_read_connection()
-        c = con.cursor()
         if uid:
-            key, value = "uid", uid
+            key: str = "uid"
+            value: Any = uid
         elif path:
             key, value = "path", path
         elif doc_pair:
             key, value = "doc_pair", doc_pair
         else:
             return None
-        res = c.execute(f"SELECT * FROM Downloads WHERE {key} = ?", (value,)).fetchone()
-        return (
-            Download(
-                res.uid,
-                Path(res.path),
-                TransferStatus(res.status),
-                res.progress,
-                res.doc_pair,
-                res.tmpname,
-                res.url,
-            )
-            if res
-            else None
-        )
+        res = [d for d in self.get_downloads() if getattr(d, key) == value]
+        return res[0] if res else None
 
     def get_upload(
         self, uid: int = None, path: Path = None, doc_pair: int = None
     ) -> Optional[Upload]:
-        con = self._get_read_connection()
-        c = con.cursor()
         if uid:
-            key, value = "uid", uid
+            key: str = "uid"
+            value: Any = uid
         elif path:
             key, value = "path", path
         elif doc_pair:
             key, value = "doc_pair", doc_pair
         else:
             return None
-        res = c.execute(f"SELECT * FROM Uploads WHERE {key} = ?", (value,)).fetchone()
-        return (
-            Upload(
-                res.uid,
-                Path(res.path),
-                TransferStatus(res.status),
-                res.progress,
-                res.doc_pair,
-                res.batch,
-                res.idx,
-                res.chunk_size,
-            )
-            if res
-            else None
-        )
+        res = [u for u in self.get_uploads() if getattr(u, key) == value]
+        return res[0] if res else None
 
     def save_download(self, download: Download) -> None:
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "REPLACE INTO Downloads (path, status, tmpname, url) VALUES (?, ?, ?, ?)",
-                (download.path, download.status.value, download.tmpname, download.url),
+                "REPLACE INTO Downloads (path, status, engine, is_direct_edit, tmpname, url) VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    download.path,
+                    download.status.value,
+                    download.engine,
+                    download.is_direct_edit,
+                    download.tmpname,
+                    download.url,
+                ),
             )
         self.transferUpdated.emit()
 
@@ -2043,10 +2000,14 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "REPLACE INTO Uploads (path, status, batch, idx, chunk_size) VALUES (?, ?, ?, ?, ?)",
+                "REPLACE INTO Uploads "
+                "(path, status, engine, is_direct_edit, batch, idx, chunk_size) "
+                "VALUES (?, ?, ?, ?, ?)",
                 (
                     upload.path,
                     upload.status.value,
+                    upload.engine,
+                    upload.is_direct_edit,
                     upload.batch,
                     upload.idx,
                     upload.chunk_size,
@@ -2108,20 +2069,24 @@ class EngineDAO(ConfigurationDAO):
             )
         self.transferUpdated.emit()
 
-    def set_download_doc(self, download_uid: int, doc_pair_uid: int) -> None:
+    def set_download_doc(
+        self, download_uid: int, engine_uid: str, doc_pair_uid: int
+    ) -> None:
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "UPDATE Downloads SET doc_pair = ? WHERE uid = ?",
-                (doc_pair_uid, download_uid),
+                "UPDATE Downloads SET doc_pair = ?, engine = ? WHERE uid = ?",
+                (doc_pair_uid, engine_uid, download_uid),
             )
 
-    def set_upload_doc(self, upload_uid: int, doc_pair_uid: int) -> None:
+    def set_upload_doc(
+        self, upload_uid: int, engine_uid: str, doc_pair_uid: int
+    ) -> None:
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "UPDATE Uploads SET doc_pair = ? WHERE uid = ?",
-                (doc_pair_uid, upload_uid),
+                "UPDATE Uploads SET doc_pair = ?, engine = ? WHERE uid = ?",
+                (doc_pair_uid, engine_uid, upload_uid),
             )
 
     def remove_download(self, path: Path) -> None:
