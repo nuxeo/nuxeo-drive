@@ -1984,7 +1984,9 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "REPLACE INTO Downloads (path, status, engine, is_direct_edit, tmpname, url) VALUES (?, ?, ?, ?, ?, ?)",
+                "REPLACE INTO Downloads "
+                "(path, status, engine, is_direct_edit, tmpname, url) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
                 (
                     download.path,
                     download.status.value,
@@ -2002,7 +2004,7 @@ class EngineDAO(ConfigurationDAO):
             c.execute(
                 "REPLACE INTO Uploads "
                 "(path, status, engine, is_direct_edit, batch, idx, chunk_size) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     upload.path,
                     upload.status.value,
