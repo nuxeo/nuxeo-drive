@@ -23,8 +23,10 @@ from typing import (
 )
 from urllib.parse import urlsplit, urlunsplit
 
-from .constants import APP_NAME, MAC, WINDOWS
-from .exceptions import InvalidSSLCertificate
+from nuxeo.utils import get_digest_hash
+
+from .constants import APP_NAME, FILE_BUFFER_SIZE, MAC, UNACCESSIBLE_HASH, WINDOWS
+from .exceptions import InvalidSSLCertificate, UnknownDigest
 from .options import Options
 
 if TYPE_CHECKING:
@@ -1040,3 +1042,24 @@ class PidLockFile:
         pid_filepath.write_text(str(pid))
 
         return None
+
+
+def compute_digest(path: Path, digest_func: str, callback: Callable = None) -> str:
+    """ Lazy computation of the digest. """
+    h = get_digest_hash(digest_func)
+    if h is None:
+        raise UnknownDigest(digest_func)
+
+    try:
+        with safe_long_path(path).open(mode="rb") as f:
+            while True:
+                # Check if synchronization thread was suspended
+                if callback:
+                    callback(f"Digest computation: {path}")
+                buf = f.read(FILE_BUFFER_SIZE)
+                if not buf:
+                    break
+                h.update(buf)
+    except OSError:
+        return UNACCESSIBLE_HASH
+    return h.hexdigest()

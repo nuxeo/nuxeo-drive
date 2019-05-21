@@ -12,10 +12,11 @@ from urllib.parse import unquote
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
-from nuxeo.exceptions import HTTPError
+from nuxeo.exceptions import CorruptedFile, HTTPError
 from nuxeo.models import FileBlob, Batch
-from PyQt5.QtWidgets import QApplication
 from nuxeo.uploads import Uploader
+from nuxeo.utils import get_digest_algorithm
+from PyQt5.QtWidgets import QApplication
 
 from .proxy import Proxy
 from ..constants import (
@@ -39,7 +40,7 @@ from ..exceptions import (
 )
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo, Download, Upload
 from ..options import Options
-from ..utils import get_device, lock_path, unlock_path, version_le
+from ..utils import compute_digest, get_device, lock_path, unlock_path, version_le
 
 if TYPE_CHECKING:
     from ..engine.dao.sqlite import EngineDAO  # noqa
@@ -206,6 +207,13 @@ class Remote(Nuxeo):
                     chunk_size=FILE_BUFFER_SIZE,
                     callback=callback,
                 )
+                if digest:
+                    digester = get_digest_algorithm(digest)
+                    computed_digest = compute_digest(file_out, digester)
+                    if digest != computed_digest:
+                        # Temp file and Download table entry will be deleted
+                        # by the calling method
+                        raise CorruptedFile(file_out, digest, computed_digest)
             finally:
                 lock_path(file_out, locker)
                 del resp
@@ -399,6 +407,7 @@ class Remote(Nuxeo):
         except DownloadPaused:
             raise
         except Exception as e:
+            self._dao.remove_download(file_path)
             with suppress(FileNotFoundError):
                 file_out.unlink()
             raise e
