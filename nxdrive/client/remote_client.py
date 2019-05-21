@@ -267,11 +267,15 @@ class Remote(Nuxeo):
                     and blob.size > Options.chunk_limit * 1024 * 1024
                 )
 
+                engine_uid = params.pop("engine_uid", None)
+                is_direct_edit = params.pop("is_direct_edit", False)
                 if not upload:
                     upload = Upload(
                         None,
                         file_path,
                         TransferStatus.ONGOING,
+                        engine=engine_uid,
+                        is_direct_edit=is_direct_edit,
                         batch=batch.uid,
                         idx=batch._upload_idx,
                         chunk_size=chunk_size,

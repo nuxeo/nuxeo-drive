@@ -137,6 +137,8 @@ class TransferModel(QAbstractListModel):
     STATUS = Qt.UserRole + 3
     PROGRESS = Qt.UserRole + 4
     TYPE = Qt.UserRole + 5
+    ENGINE = Qt.UserRole + 6
+    IS_DIRECT_EDIT = Qt.UserRole + 7
 
     def __init__(self, parent: QObject = None) -> None:
         super(TransferModel, self).__init__(parent)
@@ -147,6 +149,8 @@ class TransferModel(QAbstractListModel):
             self.STATUS: b"status",
             self.PROGRESS: b"progress",
             self.TYPE: b"transfer_type",
+            self.ENGINE: b"engine",
+            self.IS_DIRECT_EDIT: b"is_direct_edit",
         }
 
     def roleNames(self) -> Dict[int, bytes]:

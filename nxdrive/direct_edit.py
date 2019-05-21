@@ -413,7 +413,12 @@ class DirectEdit(Worker):
         # Download the file
         DownloadAction(file_path, reporter=QApplication.instance())
         download = Download(
-            None, path=file_path, status=TransferStatus.ONGOING, url=url
+            None,
+            path=file_path,
+            status=TransferStatus.ONGOING,
+            url=url,
+            is_direct_edit=True,
+            engine=engine.uid,
         )
         engine.get_dao().save_download(download)
         try:
@@ -676,6 +681,8 @@ class DirectEdit(Worker):
                     os_path,
                     command=cmd,
                     document=remote._check_ref(details.uid),
+                    engine_uid=engine.uid,
+                    is_direct_edit=True,
                     **kwargs,
                 )
 
