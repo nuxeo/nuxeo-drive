@@ -116,7 +116,7 @@ node(slave) {
                         dir('sources') {
                             deleteDir()
                         }
-                        github_status('PENDING')
+                        //github_status('PENDING')
                         checkout_custom()
                     } catch(e) {
                         currentBuild.result = 'UNSTABLE'
@@ -178,7 +178,7 @@ node(slave) {
                 // We use catchError to not let notifiers and recorders change the current build status
                 catchError {
                     // Update GitHub status whatever the result
-                    github_status(currentBuild.result)
+                    //github_status(currentBuild.result)
 
                     archiveArtifacts artifacts: 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt, .coverage', fingerprint: true, allowEmptyArchive: true
                 }

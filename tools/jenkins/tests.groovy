@@ -71,15 +71,6 @@ if (env.BRANCH_NAME.startsWith('wip-')) {
     return
 }
 
-def github_status(status) {
-    step([$class: 'GitHubCommitStatusSetter',
-        reposSource: [$class: 'ManuallyEnteredRepositorySource', url: repos_url],
-        contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/qa.nuxeo.com'],
-        statusResultSource: [$class: 'ConditionalStatusResultSource',
-            results: [[$class: 'AnyBuildResult',
-                message: status_msg.get(status), state: status]]]])
-}
-
 def checkout_custom() {
     build_changeset = currentBuild.changeSets.isEmpty()
     checkout(
