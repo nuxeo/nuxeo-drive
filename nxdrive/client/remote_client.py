@@ -190,7 +190,7 @@ class Remote(Nuxeo):
 
         current_action = Action.get_current_action()
         if isinstance(current_action, DownloadAction) and resp:
-            current_action.size = int(resp.headers.get("Content-Length", None) or 0)
+            current_action.size = int(resp.headers.get("Content-Length", 0) or 0)
             with suppress(FileNotFoundError):
                 current_action.progress = file_out.stat().st_size
 
