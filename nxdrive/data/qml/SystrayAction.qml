@@ -44,16 +44,13 @@ Rectangle {
                 z: 20; Layout.alignment: Qt.AlignRight; Layout.rightMargin: 10
                 icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
                 onClicked: {
-                    var nature = download ? "download" : "upload",
-                        engine = engine ? engine : accountSelect.getRole("uid")
+                    // engine is set for DirectEdit transfers only
+                    var engine_uid = engine || accountSelect.getRole("uid")
+                    var nature = download ? "download" : "upload"
                     if (paused) {
-                        if (download) {
-                            api.resume_download(engine, uid)
-                        } else {
-                            api.resume_upload(engine, uid)
-                        }
+                        api.resume_transfer(nature, engine_uid, uid)
                     } else {
-                        api.pause_transfer(nature, engine, uid, progress)
+                        api.pause_transfer(nature, engine_uid, uid, progress)
                     }
                 }
             }

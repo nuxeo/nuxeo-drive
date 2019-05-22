@@ -233,21 +233,14 @@ class QMLDriveApi(QObject):
             return
         engine.get_dao().pause_transfer(nature, transfer_uid)
 
-    @pyqtSlot(str, str)
-    def resume_download(self, engine_uid: str, uid: int) -> None:
-        log.warning(f"Resume download for engine {engine_uid}, download {uid}")
+    @pyqtSlot(str, str, int)
+    def resume_transfer(self, nature: str, engine_uid: str, uid: int) -> None:
+        """Resume a given transfer. *nature* is either downloads or upload."""
+        log.info(f"Resume {nature} {uid} for engine {engine_uid!r}")
         engine = self._get_engine(engine_uid)
         if not engine:
             return
-        engine.resume_download(uid)
-
-    @pyqtSlot(str, str)
-    def resume_upload(self, engine_uid: str, uid: int) -> None:
-        log.warning(f"Resume upload for engine {engine_uid}, upload {uid}")
-        engine = self._get_engine(engine_uid)
-        if not engine:
-            return
-        engine.resume_upload(uid)
+        engine.resume_transfer(nature, uid)
 
     @pyqtSlot(str, result=str)
     def get_threads(self, uid: str) -> str:

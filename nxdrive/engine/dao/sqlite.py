@@ -2049,20 +2049,12 @@ class EngineDAO(ConfigurationDAO):
             )
         self.transferUpdated.emit()
 
-    def resume_download(self, uid: int) -> None:
+    def resume_transfer(self, nature: str, uid: int) -> None:
+        table = f"{nature.title()}s"  # Downloads/Uploads
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "UPDATE Downloads SET status = ? WHERE uid = ?",
-                (TransferStatus.ONGOING.value, uid),
-            )
-        self.transferUpdated.emit()
-
-    def resume_upload(self, uid: int) -> None:
-        with self._lock:
-            c = self._get_write_connection().cursor()
-            c.execute(
-                "UPDATE Uploads SET status = ? WHERE uid = ?",
+                f"UPDATE {table} SET status = ? WHERE uid = ?",
                 (TransferStatus.ONGOING.value, uid),
             )
         self.transferUpdated.emit()

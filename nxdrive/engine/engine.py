@@ -433,30 +433,10 @@ class Engine(QObject):
         self.resume_suspended_transfers()
         self.syncResumed.emit()
 
-    def resume_transfer(self, uid: int) -> None:
-        self._dao.resume_transfer(uid)
-        transfer = self._dao.get_transfer(uid=uid)
-        if not transfer or transfer.doc_pair is None:
-            return
-
-        doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
-        if doc_pair:
-            self.get_queue_manager().push(doc_pair)
-
-    def resume_download(self, uid: int) -> None:
-        self._dao.resume_download(uid)
-        transfer = self._dao.get_download(uid=uid)
-        if not transfer or transfer.doc_pair is None:
-            return
-
-        doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
-        if doc_pair:
-            self.get_queue_manager().push(doc_pair)
-
-    def resume_upload(self, uid: int) -> None:
-        self._dao.resume_upload(uid)
-        transfer = self._dao.get_upload(uid=uid)
-        if not transfer or transfer.doc_pair is None:
+    def resume_transfer(self, nature: str, uid: int) -> None:
+        self._dao.resume_transfer(nature, uid)
+        transfer = getattr(self._dao, f"get_{nature}")(uid=uid)
+        if not transfer or not transfer.doc_pair:
             return
 
         doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
@@ -468,7 +448,7 @@ class Engine(QObject):
             if download.uid is None:
                 continue
 
-            self._dao.resume_download(download.uid)
+            self._dao.resume_transfer("download", download.uid)
             if download.doc_pair is None:
                 continue
 
@@ -480,7 +460,7 @@ class Engine(QObject):
             if upload.uid is None:
                 continue
 
-            self._dao.resume_upload(upload.uid)
+            self._dao.resume_transfer("upload", upload.uid)
             if upload.doc_pair is None:
                 continue
 
