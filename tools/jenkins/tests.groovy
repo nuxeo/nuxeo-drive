@@ -241,6 +241,20 @@ timeout(240) {
             }
         }
 
+        checkout_custom()
+        dir('sources') {
+            def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
+            for (def label in slaves.keySet()) {
+                step([$class: "CopyArtifact", filter: ".coverage", projectName: "Drive-tests-${label}-${suffix}"])
+                sh "mv .coverage .coverage.${label}"
+                echo "Retrieved .coverage.${label}"
+            }
+
+            sh "./tools/qa.sh"
+            archiveArtifacts artifacts: 'coverage.xml', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'pylint-report.txt', fingerprint: true, allowEmptyArchive: true
+        }
+
         if (env.ENABLE_SONAR && currentBuild.result == "SUCCESS" && env.SPECIFIC_TEST == '') {
             node('SLAVE') {
                 stage('SonarQube Analysis') {
