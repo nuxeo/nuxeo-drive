@@ -12,7 +12,7 @@ properties([
     [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
         [$class: 'StringParameterDefinition',
             name: 'SPECIFIC_TEST',
-            defaultValue: 'unit/test_options.py',
+            defaultValue: '',
             description: 'Specific test to launch. The syntax must be the same as <a href="http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id">pytest markers</a>. We have those folders:<ul><li>Unit tests: <code>unit</code></li><li>Functional tests: <code>functional</code></li><li>Old functional tests: <code>old_functional</code></li><li>Integration tests: <code>integration</code></li></ul>Examples:<ul><li>All tests from a file: <code>units/test_utils.py</code></li><li>Test a single function: <code>functional/test_updater.py::test_get_update_status</code></li><li>All tests from a class: <code>old_functional/test_watchers.py::TestWatchers</code></li><li>Test a single method: <code>old_functional/test_watchers.py::TestWatchers::test_local_scan_error</code></li></ul>'],
         [$class: 'StringParameterDefinition',
             name: 'PYTEST_ADDOPTS',
@@ -150,9 +150,13 @@ def run_sonar() {
 
         def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
         for (def label in slaves.keySet()) {
-            step([$class: "CopyArtifact", filter: ".coverage", projectName: "Drive-tests-${label}-${suffix}"])
-            sh "mv .coverage .coverage.${label}"
-            echo "Retrieved .coverage.${label}"
+            try {
+                copyArtifacts projectName: "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}", filter: "sources/.coverage", target: ".."
+                sh "mv .coverage .coverage.${label}"
+                echo "Retrieved .coverage.${label}"
+            } catch (e) {
+                currentBuild.result = 'UNSTABLE'
+            }
         }
 
         sh "./tools/qa.sh"
@@ -221,51 +225,27 @@ for (def x in slaves.keySet()) {
 
 timeout(240) {
     timestamps {
-        // try {
-        //     parallel builders
-        // } finally {
-        //     // Update revelant Jira issues only if we are working on the master branch
-        //     if (env.BRANCH_NAME == 'master') {
-        //         node('SLAVE') {
-        //             step([$class: 'JiraIssueUpdater',
-        //                 issueSelector: [$class: 'DefaultIssueSelector'],
-        //                 scm: scm])
-        //         }
-        //     }
-        //     if (successes == 3) {
-        //         currentBuild.result = "SUCCESS"
-        //     } else if (successes == 0) {
-        //         currentBuild.result = "FAILURE"
-        //     } else {
-        //         currentBuild.result = "UNSTABLE"
-        //     }
-        // }
-
-        node('SLAVE') {
-            stage('Coverage merge') {
-                checkout_custom()
-                dir('sources') {
-                    def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
-                    for (def label in slaves.keySet()) {
-                        try {
-                            copyArtifacts projectName: "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}", filter: "sources/.coverage", target: ".."
-                            sh "ls -al ."
-                            sh "mv .coverage .coverage.${label}"
-                            echo "Retrieved .coverage.${label}"
-                        } catch (e) {
-                            echo "${e}"
-                            currentBuild.result = 'UNSTABLE'
-                        }
-                    }
-
-                    sh "./tools/qa.sh"
-                    archiveArtifacts artifacts: 'coverage.xml', fingerprint: true, allowEmptyArchive: true
-                    archiveArtifacts artifacts: 'pylint-report.txt', fingerprint: true, allowEmptyArchive: true
+        try {
+            parallel builders
+        } finally {
+            // Update revelant Jira issues only if we are working on the master branch
+            if (env.BRANCH_NAME == 'master') {
+                node('SLAVE') {
+                    step([$class: 'JiraIssueUpdater',
+                        issueSelector: [$class: 'DefaultIssueSelector'],
+                        scm: scm])
                 }
+            }
+            if (successes == 3) {
+                currentBuild.result = "SUCCESS"
+            } else if (successes == 0) {
+                currentBuild.result = "FAILURE"
+            } else {
+                currentBuild.result = "UNSTABLE"
             }
         }
 
-        if (env.ENABLE_SONAR && currentBuild.result == "SUCCESS" && env.SPECIFIC_TEST == '') {
+        if (env.ENABLE_SONAR && currentBuild.result != "FAILURE" && env.SPECIFIC_TEST == '') {
             node('SLAVE') {
                 stage('SonarQube Analysis') {
                     try {
