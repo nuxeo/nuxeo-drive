@@ -222,21 +222,15 @@ class QMLDriveApi(QObject):
                 result.append(asdict(transfer))
         return result
 
-    @pyqtSlot(str, str, float)
-    def pause_download(self, engine_uid: str, uid: int, progress: float) -> None:
-        log.warning(f"Pausing download for engine {engine_uid}, download {uid}")
+    @pyqtSlot(str, str, str, float)
+    def pause_transfer(
+        self, nature: str, engine_uid: str, uid: int, progress: float
+    ) -> None:
+        log.info(f"Pausing {nature} for engine {engine_uid}, {nature} {uid}")
         engine = self._get_engine(engine_uid)
         if not engine:
             return
-        engine.get_dao().pause_download(uid)
-
-    @pyqtSlot(str, str, float)
-    def pause_upload(self, engine_uid: str, uid: int, progress: float) -> None:
-        log.warning(f"Pausing upload for engine {engine_uid}, upload {uid}")
-        engine = self._get_engine(engine_uid)
-        if not engine:
-            return
-        engine.get_dao().pause_upload(uid)
+        engine.get_dao().pause_transfer(nature, uid)
 
     @pyqtSlot(str, str)
     def resume_download(self, engine_uid: str, uid: int) -> None:
