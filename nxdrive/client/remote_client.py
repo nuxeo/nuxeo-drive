@@ -178,11 +178,14 @@ class Remote(Nuxeo):
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
         )
 
-        headers = None
-        if file_out.exists():
+        try:
             # Retrieve current size of .nxpart to know where to start the download
             start = file_out.stat().st_size
+        except FileNotFoundError:
+            headers = None
+        else:
             headers = {"Range": f"bytes={start}-"}
+
         resp = self.client.request(
             "GET", url.replace(self.client.host, ""), headers=headers
         )
@@ -190,7 +193,7 @@ class Remote(Nuxeo):
         current_action = Action.get_current_action()
         if isinstance(current_action, DownloadAction) and resp:
             current_action.size = int(resp.headers.get("Content-Length", None) or 0)
-            if file_out.exists():
+            with suppress(FileNotFoundError):
                 current_action.progress = file_out.stat().st_size
 
         if file_out:
@@ -204,6 +207,7 @@ class Remote(Nuxeo):
                     chunk_size=FILE_BUFFER_SIZE,
                     callback=callback,
                 )
+
                 if digest:
                     digester = get_digest_algorithm(digest)
                     computed_digest = compute_digest(file_out, digester)
@@ -241,8 +245,8 @@ class Remote(Nuxeo):
                 blob.name = filename
             if mime_type:
                 blob.mimetype = mime_type
-            try:
 
+            try:
                 batch = chunk_size = None
                 # See if there is already a transfer for this file
                 upload = self._dao.get_upload(path=file_path)
@@ -250,6 +254,7 @@ class Remote(Nuxeo):
                     log.debug(f"Retrieved transfer for {file_path}: {upload}")
                     if upload.status is not TransferStatus.ONGOING:
                         raise UploadPaused(upload.uid)
+
                     # Check if the associated batch still exists server-side
                     with suppress(Exception):
                         self.uploads.get(upload.batch, upload.idx)
@@ -264,6 +269,7 @@ class Remote(Nuxeo):
                 # By default, Options.chunk_size is 20, so chunks will be 20Mio.
                 # It can be set to a value between 1 and 20 through the config.ini
                 chunk_size = chunk_size or Options.chunk_size * 1024 * 1024
+
                 # For the upload to be chunked, the Options.chunk_upload must be True
                 # and the blob must be bigger than Options.chunk_limit, which by default
                 # is equal to Options.chunk_size.
