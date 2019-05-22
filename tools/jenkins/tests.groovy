@@ -248,7 +248,7 @@ timeout(240) {
                     def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
                     for (def label in slaves.keySet()) {
                         try {
-                            step([$class: "CopyArtifact", filter: ".coverage", projectName: "Drive-tests-${label}-${suffix}"])
+                            copyArtifacts projectName: "Drive-tests-${label}-${suffix}", filter: "sources/.coverage", target: "."
                             sh "mv .coverage .coverage.${label}"
                             echo "Retrieved .coverage.${label}"
                         } catch (e) {
