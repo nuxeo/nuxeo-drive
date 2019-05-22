@@ -203,22 +203,16 @@ for (def x in slaves.keySet()) {
             // Trigger the job on all OSes
             def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
             def job_name = "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}"
-            try {
-                build job: job_name, propagate: false, parameters: [
-                    [$class: 'StringParameterValue', name: 'SPECIFIC_TEST', value: params.SPECIFIC_TEST],
-                    [$class: 'StringParameterValue', name: 'PYTEST_ADDOPTS', value: params.PYTEST_ADDOPTS],
-                    [$class: 'StringParameterValue', name: 'RANDOM_BUG_MODE', value: params.RANDOM_BUG_MODE],
-                    [$class: 'StringParameterValue', name: 'ENGINE', value: params.ENGINE],
-                    [$class: 'BooleanParameterValue', name: 'CLEAN_WORKSPACE', value: params.CLEAN_WORKSPACE],
-                    [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: env.BRANCH_NAME]
-                ]
-            } catch (e) {
-                echo e
-            } finally {
-                if (job.result == "SUCCESS") {
-                    successes += 1
-                }
-                echo "Successes=${successes}"
+            def test_job = build job: job_name, propagate: false, parameters: [
+                [$class: 'StringParameterValue', name: 'SPECIFIC_TEST', value: params.SPECIFIC_TEST],
+                [$class: 'StringParameterValue', name: 'PYTEST_ADDOPTS', value: params.PYTEST_ADDOPTS],
+                [$class: 'StringParameterValue', name: 'RANDOM_BUG_MODE', value: params.RANDOM_BUG_MODE],
+                [$class: 'StringParameterValue', name: 'ENGINE', value: params.ENGINE],
+                [$class: 'BooleanParameterValue', name: 'CLEAN_WORKSPACE', value: params.CLEAN_WORKSPACE],
+                [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: env.BRANCH_NAME]
+            ]
+            if (test_job.result == "SUCCESS") {
+                successes += 1
             }
         }
     }
