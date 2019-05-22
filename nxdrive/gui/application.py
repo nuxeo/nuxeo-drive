@@ -1155,7 +1155,12 @@ class Application(QApplication):
         msg.addButton(Translator.get("OK"), QMessageBox.AcceptRole)
         msg.exec_()
 
-    @pyqtSlot(str)
+    @pyqtSlot(result=str)
+    def nxdrive_url_env(self) -> str:
+        """Get the NXDRIVE_URL envar value, empty string if not defined."""
+        return os.getenv("NXDRIVE_URL", "")
+
+    @pyqtSlot(str, result=bool)
     def _handle_nxdrive_url(self, url: str) -> bool:
         """ Handle an nxdrive protocol URL. """
 

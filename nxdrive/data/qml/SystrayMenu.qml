@@ -57,9 +57,11 @@ ShadowRectangle {
         }
 
         SystrayMenuItem {
-            text: "DIRECT EDIT"
+            // If the NXDRIVE_URL envar is set, use it (for testing purpose only!)
+            visible: application.nxdrive_url_env() != ""
+            text: "nxdrive://"
             onClicked: {
-                application._handle_nxdrive_url("nxdrive://edit/http/localhost:8080/nuxeo/user/Administrator/repo/default/nxdocid/3a9afcef-976f-402d-b0fd-9f432ef8f8ca/filename/Helix_Nebula.tif/downloadUrl/nxfile/default/3a9afcef-976f-402d-b0fd-9f432ef8f8ca/file:content/Helix_Nebula.tif")
+                application._handle_nxdrive_url(application.nxdrive_url_env())
             }
         }
     }
