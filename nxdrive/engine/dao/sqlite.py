@@ -2074,16 +2074,11 @@ class EngineDAO(ConfigurationDAO):
                 (doc_pair_uid, engine_uid, upload_uid),
             )
 
-    def remove_download(self, path: Path) -> None:
+    def remove_transfer(self, nature: str, path: Path) -> None:
+        table = f"{nature.title()}s"  # Downloads/Uploads
         with self._lock:
             c = self._get_write_connection().cursor()
-            c.execute("DELETE FROM Downloads WHERE path = ?", (path,))
-        self.transferUpdated.emit()
-
-    def remove_upload(self, path: Path) -> None:
-        with self._lock:
-            c = self._get_write_connection().cursor()
-            c.execute("DELETE FROM Uploads WHERE path = ?", (path,))
+            c.execute(f"DELETE FROM {table} WHERE path = ?", (path,))
         self.transferUpdated.emit()
 
     @staticmethod

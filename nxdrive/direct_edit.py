@@ -455,7 +455,7 @@ class DirectEdit(Worker):
         engine.get_dao().save_download(download)
         try:
             tmp_file = self._download(engine, info, file_path, blob, xpath, url=url)
-            engine.get_dao().remove_download(file_path)
+            engine.get_dao().remove_transfer("download", file_path)
             if tmp_file is None:
                 log.warning("Download failed")
                 return None

@@ -312,7 +312,7 @@ class Remote(Nuxeo):
 
                 blob.fd.close()
 
-                self._dao.remove_upload(file_path)
+                self._dao.remove_transfer("upload", file_path)
 
                 upload_duration = int(time.time() - tick)
                 action.transfer_duration = upload_duration
@@ -404,11 +404,11 @@ class Remote(Nuxeo):
             tmp_file = self.download(
                 download_url, file_out, digest=fs_item_info.digest, **kwargs
             )
-            self._dao.remove_download(file_path)
+            self._dao.remove_transfer("download", file_path)
         except DownloadPaused:
             raise
         except Exception as e:
-            self._dao.remove_download(file_path)
+            self._dao.remove_transfer("download", file_path)
             with suppress(FileNotFoundError):
                 file_out.unlink()
             raise e
