@@ -172,7 +172,7 @@ node(slave) {
                     // Update GitHub status whatever the result
                     //github_status(currentBuild.result)
 
-                    archiveArtifacts artifacts: 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt, .coverage', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt, sources/.coverage', fingerprint: true, allowEmptyArchive: true
                 }
             }
         }
