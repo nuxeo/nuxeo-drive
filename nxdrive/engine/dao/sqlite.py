@@ -1957,9 +1957,9 @@ class EngineDAO(ConfigurationDAO):
     def get_download(
         self, uid: int = None, path: Path = None, doc_pair: int = None
     ) -> Optional[Download]:
+        value: Any
         if uid:
-            key: str = "uid"
-            value: Any = uid
+            key, value = "uid", uid
         elif path:
             key, value = "path", path
         elif doc_pair:
@@ -1972,9 +1972,9 @@ class EngineDAO(ConfigurationDAO):
     def get_upload(
         self, uid: int = None, path: Path = None, doc_pair: int = None
     ) -> Optional[Upload]:
+        value: Any
         if uid:
-            key: str = "uid"
-            value: Any = uid
+            key, value = "uid", uid
         elif path:
             key, value = "path", path
         elif doc_pair:
