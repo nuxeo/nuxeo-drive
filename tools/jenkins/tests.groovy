@@ -248,7 +248,7 @@ timeout(240) {
                     def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
                     for (def label in slaves.keySet()) {
                         try {
-                            copyArtifacts projectName: "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}", filter: ".coverage", target: "."
+                            copyArtifacts projectName: "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}", filter: "sources/.coverage", target: ".."
                             sh "ls -al ."
                             sh "mv .coverage .coverage.${label}"
                             echo "Retrieved .coverage.${label}"
