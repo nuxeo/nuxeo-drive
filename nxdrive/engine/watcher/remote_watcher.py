@@ -39,7 +39,7 @@ class RemoteWatcher(EngineWorker):
         self.server_interval = delay
 
         self.empty_polls = 0
-        self._next_check = 0
+        self._next_check = 0.0
         self._last_sync_date: int = self._dao.get_int("remote_last_sync_date")
         self._last_event_log_id: int = self._dao.get_int("remote_last_event_log_id")
         self._last_root_definitions = self._dao.get_config(
@@ -572,7 +572,7 @@ class RemoteWatcher(EngineWorker):
 
     def _handle_changes(self, first_pass: bool = False) -> bool:
         if self._check_offline():
-            return
+            return False
 
         log.debug(f"Handle remote changes, first_pass={first_pass!r}")
 
