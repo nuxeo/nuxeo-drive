@@ -245,10 +245,12 @@ class Processor(EngineWorker):
                     # in the current synchronization
                     doc_pair.local_parent_path = parent_pair.local_path
 
-                transfer = self.engine.get_dao().get_download(doc_pair=doc_pair.id)
-                if not transfer:
-                    transfer = self.engine.get_dao().get_upload(doc_pair=doc_pair.id)
-                if transfer and transfer.status is not TransferStatus.ONGOING:
+                # Skip files in process
+                download = self.engine.get_dao().get_download(doc_pair=doc_pair.id)
+                if download and download.status is not TransferStatus.ONGOING:
+                    continue
+                upload = self.engine.get_dao().get_upload(doc_pair=doc_pair.id)
+                if upload and upload.status is not TransferStatus.ONGOING:
                     continue
 
                 handler_name = f"_synchronize_{doc_pair.pair_state}"
@@ -327,12 +329,12 @@ class Processor(EngineWorker):
                     log.warning(f"Delaying failed upload: {doc_pair!r}")
                     self._postpone_pair(doc_pair, "Upload")
                 except DownloadPaused as exc:
-                    log.info(exc)
+                    log.info(f"Pausing download {exc.transfer_id!r}")
                     self.engine.get_dao().set_download_doc(
                         exc.transfer_id, self.engine.uid, doc_pair.id
                     )
                 except UploadPaused as exc:
-                    log.info(exc)
+                    log.info(f"Pausing upload {exc.transfer_id!r}")
                     self.engine.get_dao().set_upload_doc(
                         exc.transfer_id, self.engine.uid, doc_pair.id
                     )
@@ -994,7 +996,10 @@ class Processor(EngineWorker):
             return file_out
 
         tmp_file = self.remote.stream_content(
-            doc_pair.remote_ref, file_path, parent_fs_item_id=doc_pair.remote_parent_ref
+            doc_pair.remote_ref,
+            file_path,
+            parent_fs_item_id=doc_pair.remote_parent_ref,
+            engine_uid=self.engine.uid,
         )
         self._update_speed_metrics()
         return tmp_file

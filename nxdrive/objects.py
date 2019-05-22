@@ -408,7 +408,7 @@ class Transfer:
     path: Path
     name: str = field(init=False)
     status: TransferStatus
-    engine: str = None
+    engine: str
     is_direct_edit: bool = False
     progress: float = 0.0
     doc_pair: Optional[int] = None

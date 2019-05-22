@@ -322,7 +322,7 @@ class DirectEdit(Worker):
             if url:
                 engine.remote.download(
                     quote(url, safe="/:"),
-                    file_out=file_out,
+                    file_out,
                     digest=blob.digest,
                     callback=self.stop_client,
                 )

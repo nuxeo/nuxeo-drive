@@ -172,19 +172,17 @@ class Remote(Nuxeo):
         self.client.auth = self.auth
 
     def download(
-        self, url: str, file_out: Path = None, digest: str = None, **kwargs: Any
+        self, url: str, file_out: Path, digest: str = None, **kwargs: Any
     ) -> Path:
         log.debug(
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
         )
 
+        # Retrieve current size of .nxpart to know where to start the download
         try:
-            # Retrieve current size of .nxpart to know where to start the download
-            start = file_out.stat().st_size
+            headers = {"Range": f"bytes={file_out.stat().st_size}-"}
         except FileNotFoundError:
-            headers = None
-        else:
-            headers = {"Range": f"bytes={start}-"}
+            headers = {}
 
         resp = self.client.request(
             "GET", url.replace(self.client.host, ""), headers=headers
@@ -253,7 +251,7 @@ class Remote(Nuxeo):
                 if upload:
                     log.debug(f"Retrieved transfer for {file_path}: {upload}")
                     if upload.status is not TransferStatus.ONGOING:
-                        raise UploadPaused(upload.uid)
+                        raise UploadPaused(upload.uid or -1)
 
                     # Check if the associated batch still exists server-side
                     with suppress(Exception):
@@ -305,8 +303,10 @@ class Remote(Nuxeo):
                         # Here 0 may happen when doing a single upload
                         action.progress += uploader.chunk_size or 0
                         upload = self._dao.get_upload(path=file_path)
-                        if upload.status is not TransferStatus.ONGOING:
-                            raise UploadPaused(upload.uid)
+                        if upload and upload.status is not TransferStatus.ONGOING:
+                            raise UploadPaused(upload.uid or -1)
+
+                        time.sleep(0.5)
                 else:
                     uploader.upload()
 
@@ -375,33 +375,34 @@ class Remote(Nuxeo):
 
         download = self._dao.get_download(path=file_path)
 
-        if not download:
-            if not file_out:
-                name = "".join(
-                    [
-                        DOWNLOAD_TMP_FILE_PREFIX,
-                        file_name,
-                        str(current_thread().ident),
-                        DOWNLOAD_TMP_FILE_SUFFIX,
-                    ]
-                )
-                file_out = file_path.with_name(name)
+        if not file_out:
+            name = "".join(
+                [
+                    DOWNLOAD_TMP_FILE_PREFIX,
+                    file_name,
+                    str(current_thread().ident),
+                    DOWNLOAD_TMP_FILE_SUFFIX,
+                ]
+            )
+            file_out = file_path.with_name(name)
 
+        if not download:
             download = Download(
                 None,
                 path=file_path,
                 status=TransferStatus.ONGOING,
                 tmpname=str(file_out),
                 url=download_url,
+                engine=kwargs.pop("engine_uid", None),
             )
             self._dao.save_download(download)
-        else:
+        elif download.tmpname:
             file_out = Path(download.tmpname)
 
         DownloadAction(file_out, file_name, reporter=QApplication.instance())
         try:
             tmp_file = self.download(
-                download_url, file_out=file_out, digest=fs_item_info.digest, **kwargs
+                download_url, file_out, digest=fs_item_info.digest, **kwargs
             )
             self._dao.remove_download(file_path)
         except DownloadPaused:

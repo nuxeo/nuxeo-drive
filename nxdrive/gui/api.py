@@ -216,21 +216,22 @@ class QMLDriveApi(QObject):
         engines = self._manager.get_engines().values()
 
         for engine in engines:
-            for transfer in engine.get_dao().get_downloads():
-                result.append(asdict(transfer))
-            for transfer in engine.get_dao().get_uploads():
-                result.append(asdict(transfer))
+            for download in engine.get_dao().get_downloads():
+                result.append(asdict(download))
+            for upload in engine.get_dao().get_uploads():
+                result.append(asdict(upload))
         return result
 
-    @pyqtSlot(str, str, str, float)
+    @pyqtSlot(str, str, int, float)
     def pause_transfer(
-        self, nature: str, engine_uid: str, uid: int, progress: float
+        self, nature: str, engine_uid: str, transfer_uid: int, progress: float
     ) -> None:
-        log.info(f"Pausing {nature} for engine {engine_uid}, {nature} {uid}")
+        """Pause a given transfer. *nature* is either downloads or upload."""
+        log.info(f"Pausing {nature} {transfer_uid} for engine {engine_uid!r}")
         engine = self._get_engine(engine_uid)
         if not engine:
             return
-        engine.get_dao().pause_transfer(nature, uid)
+        engine.get_dao().pause_transfer(nature, transfer_uid)
 
     @pyqtSlot(str, str)
     def resume_download(self, engine_uid: str, uid: int) -> None:

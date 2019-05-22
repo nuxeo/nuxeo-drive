@@ -436,31 +436,57 @@ class Engine(QObject):
     def resume_transfer(self, uid: int) -> None:
         self._dao.resume_transfer(uid)
         transfer = self._dao.get_transfer(uid=uid)
+        if not transfer or transfer.doc_pair is None:
+            return
+
         doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
-        self.get_queue_manager().push(doc_pair)
+        if doc_pair:
+            self.get_queue_manager().push(doc_pair)
 
     def resume_download(self, uid: int) -> None:
         self._dao.resume_download(uid)
         transfer = self._dao.get_download(uid=uid)
+        if not transfer or transfer.doc_pair is None:
+            return
+
         doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
-        self.get_queue_manager().push(doc_pair)
+        if doc_pair:
+            self.get_queue_manager().push(doc_pair)
 
     def resume_upload(self, uid: int) -> None:
         self._dao.resume_upload(uid)
         transfer = self._dao.get_upload(uid=uid)
+        if not transfer or transfer.doc_pair is None:
+            return
+
         doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
         if doc_pair:
             self.get_queue_manager().push(doc_pair)
 
     def resume_suspended_transfers(self) -> None:
-        for transfer in self._dao.get_downloads_with_status(TransferStatus.SUSPENDED):
-            self._dao.resume_download(transfer.uid)
-            doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
-            self.get_queue_manager().push(doc_pair)
-        for transfer in self._dao.get_uploads_with_status(TransferStatus.SUSPENDED):
-            self._dao.resume_upload(transfer.uid)
-            doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
-            self.get_queue_manager().push(doc_pair)
+        for download in self._dao.get_downloads_with_status(TransferStatus.SUSPENDED):
+            if download.uid is None:
+                continue
+
+            self._dao.resume_download(download.uid)
+            if download.doc_pair is None:
+                continue
+
+            doc_pair = self._dao.get_state_from_id(download.doc_pair)
+            if doc_pair:
+                self.get_queue_manager().push(doc_pair)
+
+        for upload in self._dao.get_uploads_with_status(TransferStatus.SUSPENDED):
+            if upload.uid is None:
+                continue
+
+            self._dao.resume_upload(upload.uid)
+            if upload.doc_pair is None:
+                continue
+
+            doc_pair = self._dao.get_state_from_id(upload.doc_pair)
+            if doc_pair:
+                self.get_queue_manager().push(doc_pair)
 
     def suspend(self) -> None:
         if self._pause:
@@ -1004,6 +1030,10 @@ class Engine(QObject):
         # The root should also be sync
 
     def suspend_client(self, message: str = None) -> None:
+        import time
+
+        time.sleep(0.5)
+
         if self.is_paused() or self._stopped:
             raise ThreadInterrupt()
 
@@ -1028,11 +1058,14 @@ class Engine(QObject):
             log.info(f"PairInterrupt {current!r} because lock on {self._folder_lock!r}")
             raise PairInterrupt()
 
+        if not action:
+            return
+
         download = self._dao.get_download(
             path=action.filepath.with_name(action.filename)
         )
         if download and download.status != TransferStatus.ONGOING:
-            raise DownloadPaused(download.uid)
+            raise DownloadPaused(download.uid or -1)
 
     def create_processor(self, item_getter: Callable, **kwargs: Any) -> Processor:
         return Processor(self, item_getter, **kwargs)

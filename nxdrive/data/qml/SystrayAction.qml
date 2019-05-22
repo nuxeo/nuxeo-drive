@@ -44,7 +44,8 @@ Rectangle {
                 z: 20; Layout.alignment: Qt.AlignRight; Layout.rightMargin: 10
                 icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
                 onClicked: {
-                    var nature = download ? "download" : "upload"
+                    var nature = download ? "download" : "upload",
+                        engine = engine ? engine : accountSelect.getRole("uid")
                     if (paused) {
                         if (download) {
                             api.resume_download(engine, uid)
