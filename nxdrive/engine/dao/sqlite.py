@@ -1900,8 +1900,8 @@ class EngineDAO(ConfigurationDAO):
     def get_transfers(self) -> List[Transfer]:
         con = self._get_read_connection()
         backup = con.row_factory
-        con.row_factory = Transfer
         c = con.cursor()
+        con.row_factory = Transfer
         try:
             return c.execute("SELECT * FROM Transfers").fetchall()
         finally:

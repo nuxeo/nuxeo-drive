@@ -307,9 +307,6 @@ class Remote(Nuxeo):
                         upload = self._dao.get_upload(path=file_path)
                         if upload.status is not TransferStatus.ONGOING:
                             raise UploadPaused(upload.uid)
-                        from time import sleep
-
-                        sleep(0.5)
                 else:
                     uploader.upload()
 

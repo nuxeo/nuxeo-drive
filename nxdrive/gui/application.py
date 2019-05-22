@@ -237,17 +237,9 @@ class Application(QApplication):
             self._window_root(self.systray_window).updateProgress
         )
 
-    # @pyqtSlot(Action)
-    # def action_started(self, action: Action) -> None:
-    #     self.refresh_transfers()
-
     @pyqtSlot(Action)
     def action_progressing(self, action: Action) -> None:
         self.transfer_model.set_progress(action.export())
-
-    # @pyqtSlot(Action)
-    # def action_done(self, action: Action) -> None:
-    #     self.refresh_transfers()
 
     def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
         if not engines:
@@ -1317,7 +1309,6 @@ class Application(QApplication):
         dialog = QDialog()
         dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", [APP_NAME]))
         dialog.setWindowIcon(self.icon)
-        # dialog.setStyleSheet("background-color: #ffffff;")
         layout = QVBoxLayout()
 
         info = QLabel(tr("SHARE_METRICS_MSG", [COMPANY]))
