@@ -12,7 +12,7 @@ properties([
     [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
         [$class: 'StringParameterDefinition',
             name: 'SPECIFIC_TEST',
-            defaultValue: '',
+            defaultValue: 'unit/test_options.py',
             description: 'Specific test to launch. The syntax must be the same as <a href="http://doc.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id">pytest markers</a>. We have those folders:<ul><li>Unit tests: <code>unit</code></li><li>Functional tests: <code>functional</code></li><li>Old functional tests: <code>old_functional</code></li><li>Integration tests: <code>integration</code></li></ul>Examples:<ul><li>All tests from a file: <code>units/test_utils.py</code></li><li>Test a single function: <code>functional/test_updater.py::test_get_update_status</code></li><li>All tests from a class: <code>old_functional/test_watchers.py::TestWatchers</code></li><li>Test a single method: <code>old_functional/test_watchers.py::TestWatchers::test_local_scan_error</code></li></ul>'],
         [$class: 'StringParameterDefinition',
             name: 'PYTEST_ADDOPTS',
