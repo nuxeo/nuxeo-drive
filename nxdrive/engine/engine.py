@@ -472,8 +472,7 @@ class Engine(QObject):
         if self._pause:
             return
         self._pause = True
-        self._dao.suspend_downloads()
-        self._dao.suspend_uploads()
+        self._dao.suspend_transfers()
         self._queue_manager.suspend()
         for thread in self._threads:
             thread.worker.suspend()

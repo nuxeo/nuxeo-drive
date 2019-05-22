@@ -2031,18 +2031,13 @@ class EngineDAO(ConfigurationDAO):
             )
         self.transferUpdated.emit()
 
-    def suspend_downloads(self) -> None:
+    def suspend_transfers(self) -> None:
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE Downloads SET status = ? WHERE status = ?",
                 (TransferStatus.SUSPENDED.value, TransferStatus.ONGOING.value),
             )
-        self.transferUpdated.emit()
-
-    def suspend_uploads(self) -> None:
-        with self._lock:
-            c = self._get_write_connection().cursor()
             c.execute(
                 "UPDATE Uploads SET status = ? WHERE status = ?",
                 (TransferStatus.SUSPENDED.value, TransferStatus.ONGOING.value),
