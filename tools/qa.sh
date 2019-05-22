@@ -9,6 +9,7 @@ code_coverage() {
     echo ">>> [QA] Code coverage"
     python -m coverage combine
     python -m coverage xml -i
+    python -m coverage html -i
 }
 
 code_quality() {
