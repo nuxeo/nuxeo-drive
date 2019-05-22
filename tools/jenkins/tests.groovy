@@ -221,25 +221,25 @@ for (def x in slaves.keySet()) {
 
 timeout(240) {
     timestamps {
-        try {
-            parallel builders
-        } finally {
-            // Update revelant Jira issues only if we are working on the master branch
-            if (env.BRANCH_NAME == 'master') {
-                node('SLAVE') {
-                    step([$class: 'JiraIssueUpdater',
-                        issueSelector: [$class: 'DefaultIssueSelector'],
-                        scm: scm])
-                }
-            }
-            if (successes == 3) {
-                currentBuild.result = "SUCCESS"
-            } else if (successes == 0) {
-                currentBuild.result = "FAILURE"
-            } else {
-                currentBuild.result = "UNSTABLE"
-            }
-        }
+        // try {
+        //     parallel builders
+        // } finally {
+        //     // Update revelant Jira issues only if we are working on the master branch
+        //     if (env.BRANCH_NAME == 'master') {
+        //         node('SLAVE') {
+        //             step([$class: 'JiraIssueUpdater',
+        //                 issueSelector: [$class: 'DefaultIssueSelector'],
+        //                 scm: scm])
+        //         }
+        //     }
+        //     if (successes == 3) {
+        //         currentBuild.result = "SUCCESS"
+        //     } else if (successes == 0) {
+        //         currentBuild.result = "FAILURE"
+        //     } else {
+        //         currentBuild.result = "UNSTABLE"
+        //     }
+        // }
 
         node('SLAVE') {
             stage('Coverage merge') {
@@ -249,9 +249,11 @@ timeout(240) {
                     for (def label in slaves.keySet()) {
                         try {
                             copyArtifacts projectName: "Drive-tests-${label}-${suffix}", filter: "sources/.coverage", target: "."
+                            sh "ls -al ."
                             sh "mv .coverage .coverage.${label}"
                             echo "Retrieved .coverage.${label}"
                         } catch (e) {
+                            echo e
                             currentBuild.result = 'UNSTABLE'
                         }
                     }
