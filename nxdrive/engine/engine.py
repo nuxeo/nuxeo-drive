@@ -1009,10 +1009,6 @@ class Engine(QObject):
         # The root should also be sync
 
     def suspend_client(self, message: str = None) -> None:
-        import time
-
-        time.sleep(0.5)
-
         if self.is_paused() or self._stopped:
             raise ThreadInterrupt()
 

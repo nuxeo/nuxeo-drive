@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from dateutil import parser
 from dateutil.tz import tzlocal
 
-from nxdrive.constants import TransferStatus
+from .constants import TransferStatus
 from .exceptions import DriveError
 from .translator import Translator
 from .utils import get_date_from_sqlite, get_timestamp_from_date
