@@ -163,14 +163,6 @@ node(slave) {
                             currentBuild.result = 'FAILURE'
                             throw e
                         }
-
-                        try {
-                            echo "Retrieve coverage statistics"
-                        } catch(e) {
-                            echo e
-                            currentBuild.result = 'UNSTABLE'
-                            throw e
-                        }
                     }
                     currentBuild.result = 'SUCCESS'
                 }

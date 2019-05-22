@@ -203,7 +203,7 @@ for (def x in slaves.keySet()) {
             // Trigger the job on all OSes
             def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
             def job_name = "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}"
-            build job: job_name, parameters: [
+            build job: job_name, propagate: false, parameters: [
                 [$class: 'StringParameterValue', name: 'SPECIFIC_TEST', value: params.SPECIFIC_TEST],
                 [$class: 'StringParameterValue', name: 'PYTEST_ADDOPTS', value: params.PYTEST_ADDOPTS],
                 [$class: 'StringParameterValue', name: 'RANDOM_BUG_MODE', value: params.RANDOM_BUG_MODE],
