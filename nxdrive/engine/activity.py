@@ -113,7 +113,7 @@ class FileAction(Action):
 
         self.filepath = filepath
         self.filename = filename or filepath.name
-        self.size = size
+        self.size = size or filepath.stat().st_size
 
         self.start_time = monotonic()
         self.end_time = 0.0
