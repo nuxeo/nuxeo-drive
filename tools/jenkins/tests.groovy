@@ -211,6 +211,7 @@ for (def x in slaves.keySet()) {
                 [$class: 'BooleanParameterValue', name: 'CLEAN_WORKSPACE', value: params.CLEAN_WORKSPACE],
                 [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: env.BRANCH_NAME]
             ]
+            echo "${name} tests: ${test_job.result}"
             if (test_job.result == "SUCCESS") {
                 successes += 1
             }
