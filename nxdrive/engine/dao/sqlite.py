@@ -657,36 +657,7 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("UPDATE States SET creation_date = last_remote_updated")
             self.store_int(SCHEMA_VERSION, 4)
         if version < 5:
-            self._migrate_state(cursor)
-            cursor.execute(
-                "CREATE TABLE if not exists Downloads ("
-                "    uid            INTEGER     NOT NULL,"
-                "    path           INTEGER     UNIQUE,"
-                "    status         INTEGER,"
-                "    engine         VARCHAR     DEFAULT NULL,"
-                "    is_direct_edit INTEGER     DEFAULT 0,"
-                "    progress       REAL,"
-                "    doc_pair       INTEGER     UNIQUE,"
-                "    tmpname        VARCHAR,"
-                "    url            VARCHAR,"
-                "    PRIMARY KEY (uid)"
-                ")"
-            )
-            cursor.execute(
-                "CREATE TABLE if not exists Uploads ("
-                "    uid            INTEGER     NOT NULL,"
-                "    path           INTEGER     UNIQUE,"
-                "    status         INTEGER,"
-                "    engine         VARCHAR     DEFAULT NULL,"
-                "    is_direct_edit INTEGER     DEFAULT 0,"
-                "    progress       REAL,"
-                "    doc_pair       INTEGER     UNIQUE,"
-                "    batch          VARCHAR,"
-                "    idx            INTEGER,"
-                "    chunk_size     INTEGER,"
-                "    PRIMARY KEY (uid)"
-                ")"
-            )
+            self._create_transfer_tables(cursor)
             self.store_int(SCHEMA_VERSION, 5)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
@@ -694,6 +665,38 @@ class EngineDAO(ConfigurationDAO):
             self._create_state_table(cursor, force)
         else:
             super()._create_table(cursor, name, force)
+
+    @staticmethod
+    def _create_transfer_tables(cursor: Cursor):
+        cursor.execute(
+            "CREATE TABLE if not exists Downloads ("
+            "    uid            INTEGER     NOT NULL,"
+            "    path           INTEGER     UNIQUE,"
+            "    status         INTEGER,"
+            "    engine         VARCHAR     DEFAULT NULL,"
+            "    is_direct_edit INTEGER     DEFAULT 0,"
+            "    progress       REAL,"
+            "    doc_pair       INTEGER     UNIQUE,"
+            "    tmpname        VARCHAR,"
+            "    url            VARCHAR,"
+            "    PRIMARY KEY (uid)"
+            ")"
+        )
+        cursor.execute(
+            "CREATE TABLE if not exists Uploads ("
+            "    uid            INTEGER     NOT NULL,"
+            "    path           INTEGER     UNIQUE,"
+            "    status         INTEGER,"
+            "    engine         VARCHAR     DEFAULT NULL,"
+            "    is_direct_edit INTEGER     DEFAULT 0,"
+            "    progress       REAL,"
+            "    doc_pair       INTEGER     UNIQUE,"
+            "    batch          VARCHAR,"
+            "    idx            INTEGER,"
+            "    chunk_size     INTEGER,"
+            "    PRIMARY KEY (uid)"
+            ")"
+        )
 
     @staticmethod
     def _create_state_table(cursor: Cursor, force: bool = False) -> None:
@@ -749,6 +752,7 @@ class EngineDAO(ConfigurationDAO):
                 ")"
             )
         self._create_state_table(cursor)
+        self._create_transfer_tables(cursor)
 
     def acquire_state(self, thread_id: Optional[int], row_id: int) -> Optional[DocPair]:
         if thread_id is not None and self.acquire_processor(thread_id, row_id):
