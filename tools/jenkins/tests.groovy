@@ -247,9 +247,13 @@ timeout(240) {
                 dir('sources') {
                     def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
                     for (def label in slaves.keySet()) {
-                        step([$class: "CopyArtifact", filter: ".coverage", projectName: "Drive-tests-${label}-${suffix}"])
-                        sh "mv .coverage .coverage.${label}"
-                        echo "Retrieved .coverage.${label}"
+                        try {
+                            step([$class: "CopyArtifact", filter: ".coverage", projectName: "Drive-tests-${label}-${suffix}"])
+                            sh "mv .coverage .coverage.${label}"
+                            echo "Retrieved .coverage.${label}"
+                        } catch (e) {
+                            currentBuild.result = 'UNSTABLE'
+                        }
                     }
 
                     sh "./tools/qa.sh"
