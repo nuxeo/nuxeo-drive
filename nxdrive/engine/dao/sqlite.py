@@ -2054,24 +2054,15 @@ class EngineDAO(ConfigurationDAO):
             )
         self.transferUpdated.emit()
 
-    def set_download_doc(
-        self, download_uid: int, engine_uid: str, doc_pair_uid: int
+    def set_transfer_doc(
+        self, nature: str, transfer_uid: int, engine_uid: str, doc_pair_uid: int
     ) -> None:
+        table = f"{nature.title()}s"  # Downloads/Uploads
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                "UPDATE Downloads SET doc_pair = ?, engine = ? WHERE uid = ?",
-                (doc_pair_uid, engine_uid, download_uid),
-            )
-
-    def set_upload_doc(
-        self, upload_uid: int, engine_uid: str, doc_pair_uid: int
-    ) -> None:
-        with self._lock:
-            c = self._get_write_connection().cursor()
-            c.execute(
-                "UPDATE Uploads SET doc_pair = ?, engine = ? WHERE uid = ?",
-                (doc_pair_uid, engine_uid, upload_uid),
+                f"UPDATE {table} SET doc_pair = ?, engine = ? WHERE uid = ?",
+                (doc_pair_uid, engine_uid, transfer_uid),
             )
 
     def remove_transfer(self, nature: str, path: Path) -> None:

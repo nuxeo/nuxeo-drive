@@ -330,13 +330,13 @@ class Processor(EngineWorker):
                     self._postpone_pair(doc_pair, "Upload")
                 except DownloadPaused as exc:
                     log.info(f"Pausing download {exc.transfer_id!r}")
-                    self.engine.get_dao().set_download_doc(
-                        exc.transfer_id, self.engine.uid, doc_pair.id
+                    self.engine.get_dao().set_transfer_doc(
+                        "download", exc.transfer_id, self.engine.uid, doc_pair.id
                     )
                 except UploadPaused as exc:
                     log.info(f"Pausing upload {exc.transfer_id!r}")
-                    self.engine.get_dao().set_upload_doc(
-                        exc.transfer_id, self.engine.uid, doc_pair.id
+                    self.engine.get_dao().set_transfer_doc(
+                        "upload", exc.transfer_id, self.engine.uid, doc_pair.id
                     )
                 except DuplicationDisabledError:
                     self.giveup_error(doc_pair, "DEDUP")
