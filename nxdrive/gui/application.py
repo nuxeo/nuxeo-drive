@@ -1156,7 +1156,7 @@ class Application(QApplication):
         msg.exec_()
 
     @pyqtSlot(result=str)
-    def nxdrive_url_env(self) -> str:
+    def _nxdrive_url_env(self) -> str:
         """Get the NXDRIVE_URL envar value, empty string if not defined."""
         return os.getenv("NXDRIVE_URL", "")
 

@@ -246,8 +246,8 @@ class Remote(Nuxeo):
             if mime_type:
                 blob.mimetype = mime_type
 
+            batch = chunk_size = None
             try:
-                batch = chunk_size = None
                 # See if there is already a transfer for this file
                 upload = self._dao.get_upload(path=file_path)
                 if upload:
@@ -268,7 +268,7 @@ class Remote(Nuxeo):
 
                 # By default, Options.chunk_size is 20, so chunks will be 20Mio.
                 # It can be set to a value between 1 and 20 through the config.ini
-                chunk_size = chunk_size or Options.chunk_size * 1024 * 1024
+                chunk_size = (chunk_size or Options.chunk_size) * 1024 * 1024
 
                 # For the upload to be chunked, the Options.chunk_upload must be True
                 # and the blob must be bigger than Options.chunk_limit, which by default
