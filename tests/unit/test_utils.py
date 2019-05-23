@@ -286,6 +286,7 @@ def test_compute_urls(url):
     ],
 )
 @jenkins_only
+@pytest.mark.skip(reason="NXDRIVE-1686 must be resolved")
 def test_guess_server_url(url, result):
     assert nxdrive.utils.guess_server_url(url) == result
 

@@ -37,24 +37,16 @@ properties([
     ]]
 ])
 
-def skip_tests(reason) {
-    echo reason
-    currentBuild.description = "Skipped: " + reason
-    currentBuild.result = "ABORTED"
-}
-
-// Do not launch anything if we are on a Work In Progress branch
-if (env.BRANCH_NAME.startsWith('wip-')) {
-    skip_tests('WIP')
-    return
-}
-
 // Jenkins slaves we will build on
-slaves = ['OSXSLAVE-DRIVE', 'SLAVE', 'WINSLAVE']
-labels = [
-    'OSXSLAVE-DRIVE': 'macOS',
-    'SLAVE': 'GNU/Linux',
-    'WINSLAVE': 'Windows'
+slaves = [
+    'macos': 'OSXSLAVE-DRIVE',
+    'linux': 'SLAVE',
+    'windows': 'WINSLAVE'
+]
+names = [
+    'macos': 'macOS',
+    'linux': 'GNU/Linux',
+    'windows': 'Windows'
 ]
 builders = [:]
 
@@ -67,13 +59,16 @@ status_msg = [
     'SUCCESS': 'Successfully built on Nuxeo CI'
 ]
 
-def github_status(status) {
-    step([$class: 'GitHubCommitStatusSetter',
-        reposSource: [$class: 'ManuallyEnteredRepositorySource', url: repos_url],
-        contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: 'ci/qa.nuxeo.com'],
-        statusResultSource: [$class: 'ConditionalStatusResultSource',
-            results: [[$class: 'AnyBuildResult',
-                message: status_msg.get(status), state: status]]]])
+def skip_tests(reason) {
+    echo reason
+    currentBuild.description = "Skipped: ${reason}"
+    currentBuild.result = "ABORTED"
+}
+
+// Do not launch anything if we are on a Work In Progress branch
+if (env.BRANCH_NAME.startsWith('wip-')) {
+    skip_tests('WIP')
+    return
 }
 
 def checkout_custom() {
@@ -137,6 +132,57 @@ def has_code_changes() {
     return false
 }
 
+def run_sonar() {
+    checkout_custom()
+
+    def jdk = tool name: 'java-11-openjdk'
+    env.JAVA_HOME = "${jdk}"
+    def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+
+    dir('sources') {
+        def drive_version = sh(
+            script: """
+                    python -c 'import nxdrive; print(nxdrive.__version__)'; \
+                    cd .. \
+                    """,
+            returnStdout: true).trim()
+        echo "Testing Drive ${drive_version}"
+
+        def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
+        for (def label in slaves.keySet()) {
+            try {
+                copyArtifacts projectName: "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}", filter: "sources/.coverage", target: ".."
+                sh "mv .coverage .coverage.${label}"
+                echo "Retrieved .coverage.${label}"
+            } catch (e) {
+                currentBuild.result = 'UNSTABLE'
+            }
+        }
+
+        sh "./tools/qa.sh"
+        archiveArtifacts artifacts: 'coverage.xml', fingerprint: true, allowEmptyArchive: true
+        archiveArtifacts artifacts: 'pylint-report.txt', fingerprint: true, allowEmptyArchive: true
+
+        withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
+            withEnv(["WORKSPACE=${pwd()}"]) {
+                sh """
+                ${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar \
+                    -Dsonar.login=${SONARCLOUD_PWD} \
+                    -Dsonar.branch.name=${env.BRANCH_NAME} \
+                    -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client \
+                    -Dsonar.projectBaseDir="${env.WORKSPACE}" \
+                    -Dsonar.projectVersion="${drive_version}" \
+                    -Dsonar.sources=../nxdrive \
+                    -Dsonar.tests=../tests \
+                    -Dsonar.python.coverage.reportPath=coverage.xml \
+                    -Dsonar.python.pylint.reportPath=pylint-report.txt \
+                    -Dsonar.exclusions=ftest/pom.xml
+                """
+            }
+        }
+    }
+}
+
 stage("Code diff check") {
     if (!has_code_changes()) {
         skip_tests("No code changes")
@@ -148,100 +194,30 @@ if (currentBuild.result == "ABORTED") {
     return
 }
 
-for (def x in slaves) {
+def successes = 0
+
+for (def x in slaves.keySet()) {
     // Need to bind the label variable before the closure - can't do 'for (slave in slaves)'
-    def slave = x
-    def osi = labels.get(slave)
+    def label = x
+    def name = names.get(label)
 
     // Create a map to pass in to the 'parallel' step so we can fire all the builds at once
-    builders[slave] = {
-        node(slave) {
-            timeout(240) {
-                withEnv(["WORKSPACE=${pwd()}"]) {
-                    // TODO: Remove the Windows part when https://github.com/pypa/pip/issues/3055 is resolved
-                    if (params.CLEAN_WORKSPACE || osi == "Windows") {
-                        deleteDir()
-                    }
-
-                    try {
-                        stage(osi + ' Checkout') {
-                            try {
-                                dir('sources') {
-                                    deleteDir()
-                                }
-                                github_status('PENDING')
-                                checkout_custom()
-                            } catch(e) {
-                                currentBuild.result = 'UNSTABLE'
-                                throw e
-                            }
-                        }
-
-                        stage(osi + ' Tests') {
-                            // Launch the tests suite
-                            //if (currentBuild.result == 'UNSTABLE' || currentBuild.result == 'FAILURE') {
-                            //    echo 'Stopping early: apparently another slave did not try its best ...'
-                            //    return
-                            //}
-
-                            def jdk = tool name: 'java-11-openjdk'
-                            env.JAVA_HOME = "${jdk}"
-                            def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                            def platform_opt = "-Dplatform=${slave.toLowerCase()}"
-
-                            // This is a dirty hack to bypass PGSQL errors, see NXDRIVE-1370 for more information.
-                            // We cannot unset hardcoded envars but we can generate a random string ourselves.
-                            // Note: that string must start with a letter.
-                            def uid = "rand" + UUID.randomUUID().toString().replace('-', '')
-                            env.NX_DB_NAME = uid
-                            env.NX_DB_USER = uid
-                            echo "Using a random string for the database name and user: ${uid}"
-
-                            dir('sources') {
-                                // Set up the report name folder
-                                env.REPORT_PATH = env.WORKSPACE + '/sources'
-
-                                try {
-                                    if (osi == 'macOS') {
-                                        // Adjust the PATH
-                                        def env_vars = [
-                                            'PATH+LOCALBIN=/usr/local/bin',
-                                            'PATH+SBIN=/usr/sbin',
-                                        ]
-                                        withEnv(env_vars) {
-                                            sh "mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
-                                        }
-                                    } else if (osi == 'GNU/Linux') {
-                                        sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
-                                    } else {
-                                        bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
-                                    }
-                                } catch(e) {
-                                    currentBuild.result = 'FAILURE'
-                                    throw e
-                                }
-
-                                try {
-                                    echo "Retrieve coverage statistics"
-                                    stash includes: '.coverage', name: "coverage_${slave}"
-                                } catch(e) {
-                                    echo e
-                                    currentBuild.result = 'UNSTABLE'
-                                    throw e
-                                }
-                            }
-                            currentBuild.result = 'SUCCESS'
-                        }
-                    } finally {
-                        // We use catchError to not let notifiers and recorders change the current build status
-                        catchError {
-                            // Update GitHub status whatever the result
-                            github_status(currentBuild.result)
-
-                            archiveArtifacts artifacts: 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt', fingerprint: true, allowEmptyArchive: true
-                        }
-                    }
-                }
+    builders[label] = {
+        stage("Trigger ${name}") {
+            // Trigger the job on all OSes
+            def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
+            def job_name = "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}"
+            def test_job = build job: job_name, propagate: false, parameters: [
+                [$class: 'StringParameterValue', name: 'SPECIFIC_TEST', value: params.SPECIFIC_TEST],
+                [$class: 'StringParameterValue', name: 'PYTEST_ADDOPTS', value: params.PYTEST_ADDOPTS],
+                [$class: 'StringParameterValue', name: 'RANDOM_BUG_MODE', value: params.RANDOM_BUG_MODE],
+                [$class: 'StringParameterValue', name: 'ENGINE', value: params.ENGINE],
+                [$class: 'BooleanParameterValue', name: 'CLEAN_WORKSPACE', value: params.CLEAN_WORKSPACE],
+                [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: env.BRANCH_NAME]
+            ]
+            echo "${name} tests: ${test_job.result}"
+            if (test_job.result == "SUCCESS") {
+                successes += 1
             }
         }
     }
@@ -260,55 +236,20 @@ timeout(240) {
                         scm: scm])
                 }
             }
+            if (successes == 3) {
+                currentBuild.result = "SUCCESS"
+            } else if (successes == 0) {
+                currentBuild.result = "FAILURE"
+            } else {
+                currentBuild.result = "UNSTABLE"
+            }
         }
 
-        if (env.ENABLE_SONAR && currentBuild.result != 'UNSTABLE' && env.SPECIFIC_TEST == '') {
+        if (env.ENABLE_SONAR && currentBuild.result != "FAILURE" && env.SPECIFIC_TEST == '') {
             node('SLAVE') {
                 stage('SonarQube Analysis') {
                     try {
-                        checkout_custom()
-
-                        def jdk = tool name: 'java-11-openjdk'
-                        env.JAVA_HOME = "${jdk}"
-                        def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-
-                        dir('sources') {
-                            def drive_version = sh(
-                                script: """
-                                        python -c 'import nxdrive; print(nxdrive.__version__)'; \
-                                        cd .. \
-                                        """,
-                                returnStdout: true).trim()
-                            echo "Testing Drive ${drive_version}"
-
-                            for (def slave in slaves) {
-                                unstash "coverage_${slave}"
-                                sh "mv .coverage .coverage.${slave}"
-                                echo "Unstashed .coverage.${slave}"
-                            }
-
-                            sh "./tools/qa.sh"
-                            archiveArtifacts artifacts: 'coverage.xml', fingerprint: true, allowEmptyArchive: true
-                            archiveArtifacts artifacts: 'pylint-report.txt', fingerprint: true, allowEmptyArchive: true
-
-                            withCredentials([usernamePassword(credentialsId: 'c4ced779-af65-4bce-9551-4e6c0e0dcfe5', passwordVariable: 'SONARCLOUD_PWD', usernameVariable: '')]) {
-                                withEnv(["WORKSPACE=${pwd()}"]) {
-                                    sh """
-                                    ${mvnHome}/bin/mvn -f ftest/pom.xml sonar:sonar \
-                                        -Dsonar.login=${SONARCLOUD_PWD} \
-                                        -Dsonar.branch.name=${env.BRANCH_NAME} \
-                                        -Dsonar.projectKey=org.nuxeo:nuxeo-drive-client \
-                                        -Dsonar.projectBaseDir="${env.WORKSPACE}" \
-                                        -Dsonar.projectVersion="${drive_version}" \
-                                        -Dsonar.sources=../nxdrive \
-                                        -Dsonar.tests=../tests \
-                                        -Dsonar.python.coverage.reportPath=coverage.xml \
-                                        -Dsonar.python.pylint.reportPath=pylint-report.txt \
-                                        -Dsonar.exclusions=ftest/pom.xml
-                                    """
-                                }
-                            }
-                        }
+                        run_sonar()
                     } catch(e) {
                         currentBuild.result = 'UNSTABLE'
                         throw e
