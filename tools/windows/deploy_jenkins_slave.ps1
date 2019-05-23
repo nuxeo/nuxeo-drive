@@ -318,13 +318,10 @@ function install_python {
 
 function launch_test($path, $pytest_args) {
 	# Launch tests on a specific path. On failure, retry failed tests.
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest --cache-clear $pytest_args "$path"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $pytest_args "$path"
 	if ($lastExitCode -ne 0) {
 		# Re-run failures
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest --last-failed --last-failed-no-failures none
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
 	}
 }
 
@@ -354,6 +351,8 @@ function launch_tests {
 	launch_test "tests\functional"
 
 	Write-Output ">>> Launching synchronization functional tests, file by file"
+	Write-Output "    (first, run for each test file, failures are ignored to have"
+	Write-Output "     a whole picture of errors)"
 	$files = Get-ChildItem "tests\old_functional" -Filter test_*.py
 	$total = $files.count
 	$number = 1
@@ -363,6 +362,12 @@ function launch_tests {
 		Write-Output ">>> [$number/$total] Testing $test_file ..."
 		launch_test "$test_file" "-q" "--durations=3"
 		$number = $number + 1
+	}
+
+	Write-Output ">>> Re-rerun failed tests"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest --last-failed --last-failed-no-failures none
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
 	}
 
 	Write-Output ">>> Freezing the application for integration tests"
