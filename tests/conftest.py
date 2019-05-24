@@ -62,6 +62,10 @@ def no_warnings(recwarn):
 
         if "sentry_sdk" in warning.filename:
             continue
+        elif "WaitForInputIdle" in message:
+            # Happen while testing the integration on Windows, we can skip it:
+            # "Application is not loaded correctly (WaitForInputIdle failed)""
+            continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
         print(warn, file=sys.stderr)

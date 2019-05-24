@@ -489,15 +489,15 @@ class Engine(QObject):
         self.force_ui = self._dao.get_config("force_ui")
         self.remote_user = self._dao.get_config("remote_user")
         self.account = f"{self.remote_user} • {self.name}"
-        self._remote_password = self._dao.get_config("remote_password")
         self._remote_token = self._dao.get_config("remote_token")
         self._ssl_verify = self._dao.get_bool("ssl_verify", default=True)
         if Options.ssl_no_verify:
             self._ssl_verify = False
         self._ca_bundle = Options.ca_bundle or self._dao.get_config("ca_bundle")
-        if self._remote_password is None and self._remote_token is None:
+
+        if self._remote_token is None:
             self.set_invalid_credentials(
-                reason="found no password nor token in engine configuration"
+                reason="found no token in engine configuration"
             )
 
     def get_remote_token(self) -> Optional[str]:
@@ -797,7 +797,9 @@ class Engine(QObject):
             verify = self._ssl_verify
 
         kwargs = {
-            "password": self._remote_password,
+            # The password is only set when binding an account for the 1st time,
+            # then only the token will be available and used
+            "password": getattr(self, "_remote_password", None),
             "timeout": self.timeout,
             "token": self._remote_token,
             "check_suspended": self.suspend_client,
@@ -845,16 +847,10 @@ class Engine(QObject):
                 if not self._remote_token:
                     self.remote = None  # type: ignore
 
-        if self._remote_token is not None:
-            # The server supports token based identification: do not store the
-            # password in the DB
-            self._remote_password = None
-
         # Save the configuration
         self._dao.store_bool("web_authentication", self._web_authentication)
         self._dao.update_config("server_url", self.server_url)
         self._dao.update_config("remote_user", self.remote_user)
-        self._dao.update_config("remote_password", self._remote_password)
         self._dao.update_config("remote_token", self._remote_token)
         self._dao.store_bool("ssl_verify", self._ssl_verify)
         self._dao.update_config("ca_bundle", self._ca_bundle)
