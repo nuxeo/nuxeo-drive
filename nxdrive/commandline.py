@@ -64,6 +64,7 @@ To get options for a specific command:
   ndrive command --help
 
 """
+DEFAULT_LOCAL_FOLDER = get_default_nuxeo_drive_folder()
 
 
 class CliHandler:
@@ -218,7 +219,7 @@ class CliHandler:
             "--local-folder",
             help="Local folder that will host the list of synchronized "
             "workspaces with a remote Nuxeo server.",
-            default=get_default_nuxeo_drive_folder(),
+            default=DEFAULT_LOCAL_FOLDER,
         )
         bind_server_parser.add_argument(
             "username", help="User account to connect to Nuxeo"
@@ -242,7 +243,7 @@ class CliHandler:
             help="Local folder that hosts the list of synchronized "
             "workspaces with a remote Nuxeo server.",
             type=str,
-            default=get_default_nuxeo_drive_folder(),
+            default=DEFAULT_LOCAL_FOLDER,
         )
 
         # Bind root folders
@@ -261,7 +262,7 @@ class CliHandler:
             help="Local folder that will host the list of synchronized "
             "workspaces with a remote Nuxeo server. Must be bound with the "
             '"bind-server" command.',
-            default=get_default_nuxeo_drive_folder(),
+            default=DEFAULT_LOCAL_FOLDER,
         )
         bind_root_parser.add_argument(
             "--remote-repo",
@@ -286,7 +287,7 @@ class CliHandler:
             help="Local folder that will host the list of synchronized "
             "workspaces with a remote Nuxeo server. Must be bound with the "
             '"bind-server" command.',
-            default=get_default_nuxeo_drive_folder(),
+            default=DEFAULT_LOCAL_FOLDER,
         )
         unbind_root_parser.add_argument(
             "--remote-repo",
@@ -614,7 +615,7 @@ class CliHandler:
         else:
             password = options.password
         if not options.local_folder:
-            options.local_folder = get_default_nuxeo_drive_folder()
+            options.local_folder = DEFAULT_LOCAL_FOLDER
 
         self.manager.bind_server(
             options.local_folder,
