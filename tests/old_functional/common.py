@@ -86,35 +86,6 @@ class StubQApplication(QCoreApplication):
         self.bindEngine.connect(self.bind_engine)
         self.unbindEngine.connect(self.unbind_engine)
 
-    @pyqtSlot()
-    def sync_completed(self):
-        uid = getattr(self.sender(), "uid", None)
-        log.info("Sync Completed slot for: %s", uid)
-        if uid:
-            self._test._wait_sync[uid] = False
-        else:
-            for uid in self._test._wait_sync.keys():
-                self._test._wait_sync[uid] = False
-
-    @pyqtSlot()
-    def remote_scan_completed(self):
-        uid = self.sender().engine.uid
-        log.info("Remote scan completed for engine %s", uid)
-        self._test._wait_remote_scan[uid] = False
-        self._test._wait_sync[uid] = False
-
-    @pyqtSlot(int)
-    def remote_changes_found(self, change_count):
-        uid = self.sender().engine.uid
-        log.info("Remote changes slot for: %s", uid)
-        self._test._remote_changes_count[uid] = change_count
-
-    @pyqtSlot()
-    def no_remote_changes_found(self):
-        uid = self.sender().engine.uid
-        log.debug("No remote changes slot for %s", uid)
-        self._test._no_remote_changes[uid] = True
-
     @pyqtSlot(int, bool)
     def bind_engine(self, number, start_engine):
         self._test.bind_engine(number, start_engine=start_engine)
@@ -158,11 +129,6 @@ class TwoUsersTest(TestCase):
         self.connected = False
 
         self.app = StubQApplication([], self)
-
-        self._wait_sync = {}
-        self._wait_remote_scan = {}
-        self._remote_changes_count = {}
-        self._no_remote_changes = {}
 
         self.report_path = os.getenv("REPORT_PATH")
 
@@ -390,19 +356,6 @@ class TwoUsersTest(TestCase):
             folder, self.nuxeo_url, user, password, start_engine=start_engine
         )
 
-        engine.syncCompleted.connect(self.app.sync_completed)
-        engine._remote_watcher.remoteScanFinished.connect(
-            self.app.remote_scan_completed
-        )
-        engine._remote_watcher.changesFound.connect(self.app.remote_changes_found)
-        engine._remote_watcher.noChangesFound.connect(self.app.no_remote_changes_found)
-
-        engine_uid = engine.uid
-        self._wait_sync[engine_uid] = True
-        self._wait_remote_scan[engine_uid] = True
-        self._remote_changes_count[engine_uid] = 0
-        self._no_remote_changes[engine_uid] = False
-
         setattr(self, f"engine_{number}", engine)
         return engine
 
@@ -461,7 +414,7 @@ class TwoUsersTest(TestCase):
         wait_win=False,
         enforce_errors=True,
     ):
-        log.info("Wait for sync")
+        log.debug("Wait for sync")
 
         # First wait for server if needed
         if wait_for_async:
@@ -471,89 +424,45 @@ class TwoUsersTest(TestCase):
             log.debug("Waiting for Windows delete resolution")
             sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000)
 
-        engine_1 = self.engine_1.uid
-        engine_2 = self.engine_2.uid
-
-        self._wait_sync = {engine_1: wait_for_engine_1, engine_2: wait_for_engine_2}
-        self._no_remote_changes = {
-            engine_1: not wait_for_engine_1,
-            engine_2: not wait_for_engine_2,
-        }
+        engine_1 = self.engine_1
+        engine_2 = self.engine_2
 
         if enforce_errors:
             if not self.connected:
-                self.engine_1.syncPartialCompleted.connect(
-                    self.engine_1.get_queue_manager().requeue_errors
+                engine_1.syncPartialCompleted.connect(
+                    engine_1.get_queue_manager().requeue_errors
                 )
-                self.engine_2.syncPartialCompleted.connect(
-                    self.engine_1.get_queue_manager().requeue_errors
+                engine_2.syncPartialCompleted.connect(
+                    engine_2.get_queue_manager().requeue_errors
                 )
                 self.connected = True
         elif self.connected:
-            self.engine_1.syncPartialCompleted.disconnect(
-                self.engine_1.get_queue_manager().requeue_errors
+            engine_1.syncPartialCompleted.disconnect(
+                engine_1.get_queue_manager().requeue_errors
             )
-            self.engine_2.syncPartialCompleted.disconnect(
-                self.engine_1.get_queue_manager().requeue_errors
+            engine_2.syncPartialCompleted.disconnect(
+                engine_2.get_queue_manager().requeue_errors
             )
             self.connected = False
 
         for _ in range(timeout):
             sleep(1)
-
-            if sum(self._wait_sync.values()):
+            if engine_1.is_syncing() or engine_2.is_syncing():
                 continue
-
-            if not wait_for_async:
+            elif not wait_for_async:
                 return
-
-            log.info(
-                "Sync completed, "
-                f"wait_remote_scan={self._wait_remote_scan}, "
-                f"remote_changes_count={self._remote_changes_count}, "
-                f"no_remote_changes={self._no_remote_changes}"
-            )
-
-            wait_remote_scan = False
-            if wait_for_engine_1:
-                wait_remote_scan |= self._wait_remote_scan[engine_1]
-            if wait_for_engine_2:
-                wait_remote_scan |= self._wait_remote_scan[engine_2]
-
-            is_remote_changes = True
-            is_change_summary_over = True
-            if wait_for_engine_1:
-                is_remote_changes &= self._remote_changes_count[engine_1] > 0
-                is_change_summary_over &= self._no_remote_changes[engine_1]
-            if wait_for_engine_2:
-                is_remote_changes &= self._remote_changes_count[engine_2] > 0
-                is_change_summary_over &= self._no_remote_changes[engine_2]
-
-            if (
-                not wait_remote_scan
-                and not is_remote_changes
-                and is_change_summary_over
+            elif (
+                engine_1._remote_watcher.remote_scan_ended
+                and engine_2._remote_watcher.remote_scan_ended
             ):
-                self._wait_remote_scan = {
-                    engine_1: wait_for_engine_1,
-                    engine_2: wait_for_engine_2,
-                }
-                self._remote_changes_count = {engine_1: 0, engine_2: 0}
-                self._no_remote_changes = {engine_1: False, engine_2: False}
-                log.info(
-                    "Ended wait for sync, setting "
-                    "wait_remote_scan values to True, "
-                    "remote_changes_count values to 0 and "
-                    "no_remote_changes values to False"
-                )
                 return
 
         if not fail_if_timeout:
-            log.info("Wait for sync timeout")
+            log.debug("Wait for sync timeout")
             return
 
-        count1 = self.engine_1.get_dao().get_syncing_count()
-        count2 = self.engine_2.get_dao().get_syncing_count()
+        count1 = engine_1.get_dao().get_syncing_count()
+        count2 = engine_2.get_dao().get_syncing_count()
         err = "Wait for sync timeout has expired"
         if wait_for_engine_1 and count1:
             err += f" for engine 1 (syncing_count={count1})"
@@ -707,7 +616,7 @@ class OneUserTest(TwoUsersTest):
         wait_win=False,
         enforce_errors=True,
     ):
-        log.info("Wait for sync")
+        log.debug("Wait for sync")
 
         # First wait for server if needed
         if wait_for_async:
@@ -717,71 +626,35 @@ class OneUserTest(TwoUsersTest):
             log.debug("Waiting for Windows delete resolution")
             sleep(WIN_MOVE_RESOLUTION_PERIOD / 1000)
 
-        engine_1 = self.engine_1.uid
-
-        self._wait_sync = {engine_1: wait_for_engine_1}
-        self._no_remote_changes = {engine_1: not wait_for_engine_1}
+        engine = self.engine_1
 
         if enforce_errors:
             if not self.connected:
-                self.engine_1.syncPartialCompleted.connect(
-                    self.engine_1.get_queue_manager().requeue_errors
+                engine.syncPartialCompleted.connect(
+                    engine.get_queue_manager().requeue_errors
                 )
                 self.connected = True
         elif self.connected:
-            self.engine_1.syncPartialCompleted.disconnect(
-                self.engine_1.get_queue_manager().requeue_errors
+            engine.syncPartialCompleted.disconnect(
+                engine.get_queue_manager().requeue_errors
             )
             self.connected = False
 
         for _ in range(timeout):
             sleep(1)
-
-            if sum(self._wait_sync.values()):
+            if engine.is_syncing():
                 continue
-
-            if not wait_for_async:
+            elif not wait_for_async:
                 return
-
-            log.info(
-                "Sync completed, "
-                f"wait_remote_scan={self._wait_remote_scan}, "
-                f"remote_changes_count={self._remote_changes_count}, "
-                f"no_remote_changes={self._no_remote_changes}"
-            )
-
-            wait_remote_scan = False
-            if wait_for_engine_1:
-                wait_remote_scan |= self._wait_remote_scan[engine_1]
-
-            is_remote_changes = True
-            is_change_summary_over = True
-            if wait_for_engine_1:
-                is_remote_changes &= self._remote_changes_count[engine_1] > 0
-                is_change_summary_over &= self._no_remote_changes[engine_1]
-
-            if (
-                not wait_remote_scan
-                and not is_remote_changes
-                and is_change_summary_over
-            ):
-                self._wait_remote_scan = {engine_1: wait_for_engine_1}
-                self._remote_changes_count = {engine_1: 0}
-                self._no_remote_changes = {engine_1: False}
-                log.info(
-                    "Ended wait for sync, setting "
-                    "wait_remote_scan values to True, "
-                    "remote_changes_count values to 0 and "
-                    "no_remote_changes values to False"
-                )
+            elif engine._remote_watcher.remote_scan_ended:
                 return
 
         if not fail_if_timeout:
-            log.info("Wait for sync timeout")
+            log.debug("Wait for sync timeout")
             return
 
-        count = self.engine_1.get_dao().get_syncing_count()
+        count = engine.get_dao().get_syncing_count()
         err = "Wait for sync timeout has expired"
-        if wait_for_engine_1 and count:
+        if count:
             err += f" for engine 1 (syncing_count={count})"
         log.warning(err)

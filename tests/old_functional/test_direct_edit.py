@@ -53,7 +53,7 @@ class DirectEditSetup:
     def setup_teardown(self):
         # Test setup
         self.direct_edit = self.manager_1.direct_edit
-        self.direct_edit.directEditUploadCompleted.connect(self.app.sync_completed)
+        self.direct_edit.directEditUploadCompleted.connect(self.engine_1.sync_is_over)
         self.direct_edit.directEditStarting.connect(direct_edit_is_starting)
         self.direct_edit.start()
 

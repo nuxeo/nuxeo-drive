@@ -139,6 +139,10 @@ class Engine(QObject):
         self._remote_watcher = self._create_remote_watcher(Options.delay)
         self.create_thread(worker=self._remote_watcher, start_connect=False)
 
+        # Used to know the current sync status via self.is_syncing()
+        self.syncStarted.connect(self.sync_has_started)
+        self.syncCompleted.connect(self.sync_is_over)
+
         # Launch remote_watcher after first local scan
         self._local_watcher.rootDeleted.connect(self.rootDeleted)
         self._local_watcher.rootMoved.connect(self.rootMoved)
@@ -187,6 +191,16 @@ class Engine(QObject):
             f"uid={self.uid!r}, type={self.type!r}>"
         )
 
+    @pyqtSlot(object)
+    def sync_has_started(self, _: Any) -> None:
+        log.debug(f"Emitting syncStarted for engine {self.uid}")
+        self._sync_started = True
+
+    @pyqtSlot()
+    def sync_is_over(self) -> None:
+        log.debug(f"Emitting syncCompleted for engine {self.uid}")
+        self._sync_started = False
+
     def export(self) -> Dict[str, Any]:
         bind = self.get_binder()
         return {
@@ -219,10 +233,9 @@ class Engine(QObject):
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id: str = None) -> None:
-        if not self._sync_started:
+        if not self.is_syncing():
             queue_size = self._queue_manager.get_overall_size()
             if queue_size > 0:
-                self._sync_started = True
                 self.syncStarted.emit(queue_size)
 
     def reinit(self) -> None:
@@ -600,7 +613,7 @@ class Engine(QObject):
 
     @pyqtSlot()
     def _check_last_sync(self) -> None:
-        if not self._sync_started:
+        if not self.is_syncing():
             return
 
         watcher = self._local_watcher
@@ -633,8 +646,6 @@ class Engine(QObject):
             self.syncPartialCompleted.emit()
         else:
             self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
-            log.debug(f"Emitting syncCompleted for engine {self.uid}")
-            self._sync_started = False
             self.syncCompleted.emit()
 
     def _thread_finished(self) -> None:

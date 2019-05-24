@@ -49,6 +49,20 @@ class RemoteWatcher(EngineWorker):
             "remote_last_full_scan"
         )
 
+        # Siganl used in tests to know when the remote scanning is over
+        self.remote_scan_ended = False
+        self.initiate.connect(self.start_of_scan)
+        self.updated.connect(self.start_of_scan)
+        self.remoteScanFinished.connect(self.end_of_scan)
+
+    @pyqtSlot()
+    def start_of_scan(self) -> None:
+        self.remote_scan_ended = False
+
+    @pyqtSlot()
+    def end_of_scan(self) -> None:
+        self.remote_scan_ended = True
+
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()
         metrics["last_remote_sync_date"] = self._last_sync_date
