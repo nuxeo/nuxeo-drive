@@ -512,7 +512,7 @@ class Application(QApplication):
             newpath.unlink()
 
     @pyqtSlot(object)
-    def dropped_engine(self, engine: "Engine") -> None:
+    def dropped_engine(self, engine: Engine) -> None:
         # Update icon in case the engine dropped was syncing
         self.change_systray_icon()
 
@@ -570,7 +570,7 @@ class Application(QApplication):
         self.ignoreds_model.addFiles(self.api.get_unsynchronizeds(uid))
 
     @pyqtSlot()
-    def show_conflicts_resolution(self, engine: "Engine") -> None:
+    def show_conflicts_resolution(self, engine: Engine) -> None:
         """ Display the conflicts/errors window. """
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
@@ -622,7 +622,7 @@ class Application(QApplication):
         self.filters_dlg = None
 
     @pyqtSlot()
-    def show_filters(self, engine: "Engine") -> None:
+    def show_filters(self, engine: Engine) -> None:
         if self.filters_dlg:
             self.filters_dlg.close()
             self.filters_dlg = None
@@ -722,7 +722,7 @@ class Application(QApplication):
         dialog.exec_()
 
     @pyqtSlot(object)
-    def _connect_engine(self, engine: "Engine") -> None:
+    def _connect_engine(self, engine: Engine) -> None:
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
         engine.invalidAuthentication.connect(self.change_systray_icon)
@@ -1251,15 +1251,18 @@ class Application(QApplication):
             del con
         log.info("Successfully closed server socket")
 
-    def update_status(self, engine: "Engine") -> None:
+    def update_status(self, engine: Engine) -> None:
         """
         Update the systray status for synchronization,
         conflicts/errors and software updates.
         """
         sync_state = error_state = update_state = ""
 
+        if not isinstance(engine, Engine):
+            log.error(f"Need an Engine, got {engine!r}")
+            return
+
         update_state = self.manager.updater.status
-        self.refresh_conflicts(engine.uid)
 
         # Check synchronization state
         if self.manager.restart_needed:
