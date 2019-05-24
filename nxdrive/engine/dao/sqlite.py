@@ -600,7 +600,7 @@ class EngineDAO(ConfigurationDAO):
         super().__init__(db)
 
         self._items_count = 0
-        self._items_count = self.get_syncing_count()
+        self.get_syncing_count()
         self._filters = self.get_filters()
         self.reinit_processors()
 
@@ -1097,7 +1097,7 @@ class EngineDAO(ConfigurationDAO):
         )
         if self._items_count != count:
             log.debug(
-                f"Cache Syncing count incorrect should be {count} was {self._items_count}"
+                f"Cache syncing count updated from {self._items_count} to {count}"
             )
             self._items_count = count
         return count
@@ -1477,9 +1477,9 @@ class EngineDAO(ConfigurationDAO):
                 "UPDATE States SET pair_state = ? WHERE id = ?", ("conflicted", row.id)
             )
             self.newConflict.emit(row.id)
-        if c.rowcount == 1:
-            self._items_count -= 1
-            return True
+            if c.rowcount == 1:
+                self._items_count -= 1
+                return True
         return False
 
     def unsynchronize_state(
@@ -1817,7 +1817,7 @@ class EngineDAO(ConfigurationDAO):
             # TODO: Add this path as remotely_deleted?
 
             self._filters = self.get_filters()
-            self._items_count = self.get_syncing_count()
+            self.get_syncing_count()
 
     def remove_filter(self, path: str) -> None:
         path = self._clean_filter_path(path)
@@ -1827,7 +1827,7 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute("DELETE FROM Filters WHERE path LIKE ?", (f"{path}%",))
             self._filters = self.get_filters()
-            self._items_count = self.get_syncing_count()
+            self.get_syncing_count()
 
     @staticmethod
     def _escape(text: str) -> str:
