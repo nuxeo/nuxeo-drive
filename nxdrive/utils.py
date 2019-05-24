@@ -221,7 +221,7 @@ def get_device() -> str:
     return device
 
 
-def get_default_nuxeo_drive_folder() -> Path:
+def get_default_local_folder() -> Path:
     """
     Find a reasonable location for the root Nuxeo Drive folder
 

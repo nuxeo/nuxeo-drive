@@ -32,7 +32,7 @@ from ..utils import (
     force_decode,
     get_date_from_sqlite,
     get_device,
-    get_default_nuxeo_drive_folder,
+    get_default_local_folder,
     guess_server_url,
     normalized_path,
 )
@@ -421,8 +421,8 @@ class QMLDriveApi(QObject):
     # Settings section
 
     @pyqtSlot(result=str)
-    def default_nuxeo_drive_folder(self) -> str:
-        return str(get_default_nuxeo_drive_folder())
+    def default_local_folder(self) -> str:
+        return str(get_default_local_folder())
 
     @pyqtSlot(result=str)
     def default_server_url_value(self) -> str:

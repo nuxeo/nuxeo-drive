@@ -18,7 +18,7 @@ from .options import Options
 from .osi import AbstractOSIntegration
 from .utils import (
     force_encode,
-    get_default_nuxeo_drive_folder,
+    get_default_local_folder,
     get_value,
     normalized_path,
     normalize_and_expand_path,
@@ -64,7 +64,7 @@ To get options for a specific command:
   ndrive command --help
 
 """
-DEFAULT_LOCAL_FOLDER = get_default_nuxeo_drive_folder()
+DEFAULT_LOCAL_FOLDER = get_default_local_folder()
 
 
 class CliHandler:
