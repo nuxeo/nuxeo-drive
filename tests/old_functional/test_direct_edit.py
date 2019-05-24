@@ -504,6 +504,9 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
         assert get_engine("https://localhost:443/nuxeo/", user=user)
         assert get_engine("https://localhost/nuxeo", user=user)
 
+        # Trigger the thread stop manually
+        self.direct_edit.stop()
+
     def test_self_locked_file(self):
         filename = "Mode operatoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
@@ -519,6 +522,9 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
 
     def test_handle_url_malformed(self):
         assert not self.direct_edit.handle_url("https://example.org")
+
+        # Trigger the thread stop manually
+        self.direct_edit.stop()
 
     def test_url_with_spaces(self):
         scheme, host = self.nuxeo_url.split("://")
@@ -601,9 +607,8 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
         # First time: OK
         assert self.direct_edit._lock(self.remote, uid)
 
-        # Second time: OK but the function returns False
-        # (and no error)
-        assert not self.direct_edit._lock(self.remote, uid)
+        # Second time: OK
+        assert self.direct_edit._lock(self.remote, uid)
 
 
 class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
@@ -627,8 +632,7 @@ class TestDirectEditLock(TwoUsersTest, DirectEditSetup):
         # Lock the document with user 1
         assert self.direct_edit._lock(self.remote, uid)
 
-        # Try to lock with another username, it should fail
-        with patch.object(self.remote, "user_id", new=self.user_2):
-            with pytest.raises(DocumentAlreadyLocked) as exc:
-                assert not self.direct_edit._lock(self.remote, uid)
-            assert str(exc.value) == f"Document already locked by {self.user_1!r}"
+        # Try to lock with user 2, it must fail
+        with pytest.raises(DocumentAlreadyLocked) as exc:
+            self.direct_edit._lock(self.remote_2, uid)
+        assert str(exc.value) == f"Document already locked by {self.user_1!r}"

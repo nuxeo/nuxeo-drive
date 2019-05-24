@@ -177,7 +177,7 @@ launch_test() {
     local path="${1}"
     local pytest_args="${2:-}"
 
-    ${cmd} --cache-clear ${pytest_args} "${path}" || ${cmd} --last-failed --last-failed-no-failures none
+    ${cmd} ${pytest_args} "${path}" || ${cmd} --last-failed --last-failed-no-failures none || true
 }
 
 launch_tests() {
@@ -200,6 +200,8 @@ launch_tests() {
     launch_test "tests/functional"
 
     echo ">>> Launching synchronization functional tests, file by file"
+    echo "    (first, run for each test file, failures are ignored to have"
+    echo "     a whole picture of errors)"
     total="$(find tests/old_functional -name "test_*.py" | wc -l)"
     number=1
     for test_file in $(find tests/old_functional -name "test_*.py"); do
@@ -208,6 +210,9 @@ launch_tests() {
         launch_test "${test_file}" "-q --durations=3"
         number=$(( number + 1 ))
     done
+
+    echo ">>> Re-rerun failed tests"
+    ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures  || exit 1
 }
 
 start_nxdrive() {

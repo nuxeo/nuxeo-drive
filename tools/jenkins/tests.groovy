@@ -160,6 +160,7 @@ def run_sonar() {
         }
 
         sh "./tools/qa.sh"
+        archiveArtifacts artifacts: 'htmlcov', fingerprint: true, allowEmptyArchive: true
         archiveArtifacts artifacts: 'coverage.xml', fingerprint: true, allowEmptyArchive: true
         archiveArtifacts artifacts: 'pylint-report.txt', fingerprint: true, allowEmptyArchive: true
 
