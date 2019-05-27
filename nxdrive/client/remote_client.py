@@ -36,6 +36,7 @@ from ..exceptions import (
     Forbidden,
     NotFound,
     ScrollDescendantsError,
+    ThreadInterrupt,
     UploadPaused,
 )
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo, Download, Upload
@@ -374,6 +375,8 @@ class Remote(Nuxeo):
         file_name = file_path.name
 
         download = self._dao.get_download(path=file_path)
+        engine_uid = kwargs.pop("engine_uid", None)
+        doc_pair_id = kwargs.pop("doc_pair_id", None)
 
         if not file_out:
             name = "".join(
@@ -393,7 +396,7 @@ class Remote(Nuxeo):
                 status=TransferStatus.ONGOING,
                 tmpname=str(file_out),
                 url=download_url,
-                engine=kwargs.pop("engine_uid", None),
+                engine=engine_uid,
             )
             self._dao.save_download(download)
         elif download.tmpname:
@@ -404,7 +407,16 @@ class Remote(Nuxeo):
             tmp_file = self.download(
                 download_url, file_out, digest=fs_item_info.digest, **kwargs
             )
-            self._dao.remove_transfer("download", file_path)
+        except ThreadInterrupt:
+            # We handle ThreadInterrupt to stop there and pause the current
+            # download, if any. If we do not do that, the global Exception
+            # will be taken a few lines after and the temporary downloaded
+            # file will be removed. This is problematic when suspending the
+            # application: we will loose current downloads and when resuming
+            # we will restart the whole download at 0.
+            log.info(f"Pausing download {download.id!r}")
+            self._dao.set_transfer_doc("download", download.id, engine_uid, doc_pair_id)
+            raise
         except DownloadPaused:
             raise
         except Exception as e:
@@ -412,6 +424,8 @@ class Remote(Nuxeo):
             with suppress(FileNotFoundError):
                 file_out.unlink()
             raise e
+        else:
+            self._dao.remove_transfer("download", file_path)
         finally:
             FileAction.finish_action()
         return tmp_file

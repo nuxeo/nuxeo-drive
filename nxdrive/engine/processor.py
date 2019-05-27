@@ -996,6 +996,7 @@ class Processor(EngineWorker):
             file_path,
             parent_fs_item_id=doc_pair.remote_parent_ref,
             engine_uid=self.engine.uid,
+            doc_pair_id=doc_pair.id,
         )
         self._update_speed_metrics()
         return tmp_file
