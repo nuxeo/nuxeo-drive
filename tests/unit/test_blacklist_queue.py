@@ -1,12 +1,12 @@
 # coding: utf-8
-from time import sleep, time
+from time import monotonic, sleep
 
 from nxdrive.engine.blacklist_queue import BlacklistItem, BlacklistQueue
 
 
 def increase(item: BlacklistItem, next_try: int = None) -> None:
     item.count += 1
-    cur_time = int(time())
+    cur_time = monotonic()
     if next_try is not None:
         item._next_try = next_try + cur_time
     else:
@@ -28,12 +28,12 @@ def repush(
 def test_delay():
     sleep_time = 3
 
-    # Push two items with a delay of 1s
-    queue = BlacklistQueue(delay=1)
+    # Push two items with a delay of 2s
+    queue = BlacklistQueue(delay=2)
     queue.push("1", "Item1")
     queue.push("2", "Item2")
 
-    # Verify no item is returned back before 1s
+    # Verify no item is returned back before 2s
     assert not list(queue.get())
     sleep(sleep_time)
 
@@ -51,7 +51,7 @@ def test_delay():
     assert not list(queue.get())
     sleep(sleep_time)
 
-    # We should get the repushed item after 1s wait
+    # We should get the repushed item after 2s wait
     item = next(queue.get())
     assert item.get() == "Item2"
     assert item.uid == "2"
