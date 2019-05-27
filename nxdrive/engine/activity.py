@@ -1,5 +1,6 @@
 # coding: utf-8
 import uuid
+from contextlib import suppress
 from pathlib import Path
 from threading import current_thread
 from time import monotonic
@@ -113,7 +114,10 @@ class FileAction(Action):
 
         self.filepath = filepath
         self.filename = filename or filepath.name
-        self.size = size or filepath.stat().st_size
+        if not size:
+            with suppress(OSError):
+                size = filepath.stat().st_size
+        self.size = size
 
         self.start_time = monotonic()
         self.end_time = 0.0

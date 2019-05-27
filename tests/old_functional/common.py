@@ -314,6 +314,7 @@ class TwoUsersTest(TestCase):
             password=getattr(self, f"password_{number}"),
             base_folder=self.workspace,
             upload_tmp_dir=self.upload_tmp_dir,
+            dao=engine._dao,
         )
         remote = RemoteBase(
             self.nuxeo_url,
