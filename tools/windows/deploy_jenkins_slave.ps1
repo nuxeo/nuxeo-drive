@@ -68,7 +68,7 @@ function build_installer {
 
 	# Stop now if we only want the application to be frozen (for integration tests)
 	if ($Env:FREEZE_ONLY) {
-		ExitWithCode 0
+		return 0
 	}
 
 	zip_files "dist\nuxeo-drive-windows-$app_version.zip" "dist\ndrive"
@@ -366,8 +366,10 @@ function launch_tests {
 
 	Write-Output ">>> Re-rerun failed tests"
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest --last-failed --last-failed-no-failures none
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
+	# The above command will exit with error code 5 if there is no failure to rerun
+	$ret = $lastExitCode
+	if ($ret -ne 0 -and $ret -ne 5) {
+		ExitWithCode $ret
 	}
 
 	Write-Output ">>> Freezing the application for integration tests"
