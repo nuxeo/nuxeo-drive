@@ -12,7 +12,7 @@ NuxeoPopup {
     title: qsTr("NEW_ENGINE") + tl.tr
 
     onOpened: {
-        folderInput.text = api.default_nuxeo_drive_folder()
+        folderInput.text = api.default_local_folder()
         urlInput.focus = true
     }
 

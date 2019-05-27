@@ -43,7 +43,7 @@ from .utils import (
     force_decode,
     get_arch,
     get_current_os_full,
-    get_default_nuxeo_drive_folder,
+    get_default_local_folder,
     get_device,
     if_frozen,
     normalized_path,
@@ -646,7 +646,7 @@ class Manager(QObject):
             raise EngineTypeMissing()
 
         if not local_folder:
-            local_folder = get_default_nuxeo_drive_folder()
+            local_folder = get_default_local_folder()
         elif local_folder == self.home:
             # Prevent from binding in the configuration folder
             raise FolderAlreadyUsed()
