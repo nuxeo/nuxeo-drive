@@ -181,6 +181,8 @@ launch_test() {
 }
 
 launch_tests() {
+    local ret
+
     if [ "${SPECIFIC_TEST}" != "tests" ]; then
         echo ">>> Launching the specific tests"
         launch_test "${SPECIFIC_TEST}"
@@ -212,7 +214,14 @@ launch_tests() {
     done
 
     echo ">>> Re-rerun failed tests"
-    ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures  || exit 1
+    set +e
+    ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none
+    # The above command will exit with error code 5 if there is no failure to rerun
+    ret=$?
+    set -e
+    if [ $ret -ne 0 ] && [ $ret -ne 5 ]; then
+        exit 1
+    fi
 }
 
 start_nxdrive() {
