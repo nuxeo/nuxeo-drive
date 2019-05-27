@@ -173,17 +173,17 @@ class Remote(Nuxeo):
         self.client.auth = self.auth
 
     def download(
-        self, url: str, file_out: Path, digest: str = None, **kwargs: Any
+        self, url: str, file_out: Path = None, digest: str = None, **kwargs: Any
     ) -> Path:
         log.debug(
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
         )
 
-        # Retrieve current size of .nxpart to know where to start the download
-        try:
-            headers = {"Range": f"bytes={file_out.stat().st_size}-"}
-        except FileNotFoundError:
-            headers = {}
+        headers = {}
+        if file_out:
+            # Retrieve current size of .nxpart to know where to start the download
+            with suppress(FileNotFoundError):
+                headers = {"Range": f"bytes={file_out.stat().st_size}-"}
 
         resp = self.client.request(
             "GET", url.replace(self.client.host, ""), headers=headers
@@ -192,8 +192,9 @@ class Remote(Nuxeo):
         current_action = Action.get_current_action()
         if isinstance(current_action, DownloadAction) and resp:
             current_action.size = int(resp.headers.get("Content-Length", 0) or 0)
-            with suppress(FileNotFoundError):
-                current_action.progress = file_out.stat().st_size
+            if file_out:
+                with suppress(FileNotFoundError):
+                    current_action.progress = file_out.stat().st_size
 
         if file_out:
             callback = kwargs.pop("callback", self.download_callback)
