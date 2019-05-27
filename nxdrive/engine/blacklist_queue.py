@@ -14,10 +14,10 @@ class BlacklistItem:
         self._item = item
         self._interval = next_try
 
-        self._next_try = self._interval + int(time.time())
+        self._next_try = self._interval + time.monotonic()
         self.count = 1
 
-    def check(self, cur_time: int) -> bool:
+    def check(self, cur_time: float) -> bool:
         return cur_time > self._next_try
 
     def get(self):
@@ -38,9 +38,9 @@ class BlacklistQueue:
             self._queue[item.uid] = item
 
     def get(self) -> Generator[BlacklistItem, None, None]:
-        cur_time = int(time.time())
+        cur_time = time.monotonic()
         with self._lock:
-            for item in list(self._queue.values()):
+            for item in self._queue.copy().values():
                 if item.check(cur_time):
                     del self._queue[item.uid]
                     yield item
