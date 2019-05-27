@@ -212,7 +212,7 @@ launch_tests() {
     done
 
     echo ">>> Re-rerun failed tests"
-    ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures  || exit 1
+    ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none || exit 1
 }
 
 start_nxdrive() {
