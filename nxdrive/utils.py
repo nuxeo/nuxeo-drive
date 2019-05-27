@@ -221,7 +221,7 @@ def get_device() -> str:
     return device
 
 
-def get_default_nuxeo_drive_folder() -> Path:
+def get_default_local_folder() -> Path:
     """
     Find a reasonable location for the root Nuxeo Drive folder
 
@@ -238,7 +238,7 @@ def get_default_nuxeo_drive_folder() -> Path:
             folder = normalized_path(
                 shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, None, 0)
             )
-        except:
+        except Exception:
             """
             In some cases (not really sure how this happens) the current user
             is not allowed to access its 'My Documents' folder path through
@@ -253,9 +253,10 @@ def get_default_nuxeo_drive_folder() -> Path:
             the Explorer and cmd / powershell but visible from Python.
             First try regular location for documents under Windows 7 and up
             """
-            log.error(
+            log.warning(
                 "Access denied to the API SHGetFolderPath,"
-                " falling back on manual detection"
+                " falling back on manual detection",
+                exc_info=True,
             )
             folder = normalized_path(Options.home) / "Documents"
     else:
