@@ -415,8 +415,10 @@ class Remote(Nuxeo):
             # file will be removed. This is problematic when suspending the
             # application: we will loose current downloads and when resuming
             # we will restart the whole download at 0.
-            log.info(f"Pausing download {download.id!r}")
-            self._dao.set_transfer_doc("download", download.id, engine_uid, doc_pair_id)
+            log.info(f"Pausing download {download.uid!r}")
+            self._dao.set_transfer_doc(
+                "download", download.uid, engine_uid, doc_pair_id
+            )
             raise
         except DownloadPaused:
             raise
