@@ -12,7 +12,7 @@ from ..markers import not_linux
 class TestMultipleFiles(OneUserTest):
 
     NUMBER_OF_LOCAL_FILES = 10
-    SYNC_TIMEOUT = 20  # in seconds
+    SYNC_TIMEOUT = 5  # in seconds
 
     def setUp(self):
         """
