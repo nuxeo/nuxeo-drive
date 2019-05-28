@@ -26,7 +26,7 @@ def repush(
 
 
 def test_delay():
-    sleep_time = 3
+    sleep_time = 4
 
     # Push two items with a delay of 2s
     queue = BlacklistQueue(delay=2)
