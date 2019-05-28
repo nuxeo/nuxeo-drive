@@ -690,7 +690,7 @@ class LocalWatcher(EngineWorker):
 
         ignore, _ = is_generated_tmp_file(dest_filename)
         if ignore:
-            log.info(f"Ignoring generated temporary file: {evt.dest_path!r}")
+            log.info(f"Ignoring file: {evt.dest_path!r}")
             return
 
         dao, client = self._dao, self.local
@@ -699,7 +699,7 @@ class LocalWatcher(EngineWorker):
 
         pair = dao.get_state_from_local(rel_path)
         remote_ref = client.get_remote_id(rel_path)
-        if pair is not None and pair.remote_ref == remote_ref:
+        if pair and pair.remote_ref == remote_ref:
             local_info = client.try_get_info(rel_path)
             if local_info:
                 digest = local_info.get_digest()
@@ -738,7 +738,7 @@ class LocalWatcher(EngineWorker):
             return
 
         old_local_path = None
-        rel_parent_path = client.get_path(src_path.parent) or ROOT
+        rel_parent_path = client.get_path(src_path.parent)
 
         # Ignore inner movement
         versioned = False
@@ -1059,10 +1059,8 @@ class LocalWatcher(EngineWorker):
             # the creation has been catched by scan
             # As Windows send a delete / create event for reparent
             local_info = client.try_get_info(rel_path)
-            if local_info is None:
-                log.debug(
-                    f"Event on a disappeared file: {evt!r} {rel_path!r} {src_path.name!r}"
-                )
+            if not local_info:
+                log.debug(f"Event on a disappeared file: {evt!r}")
                 return
 
             # This might be a move but Windows don't emit this event...
