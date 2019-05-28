@@ -26,7 +26,7 @@ To declare a beta, use this schema:
 """
 
 __author__ = "Nuxeo"
-__version__ = "4.1.3"
+__version__ = "4.1.4"
 __copyright__ = """
     Copyright Nuxeo (https://www.nuxeo.com) and others.
 
