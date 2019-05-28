@@ -128,7 +128,7 @@ def restore_backup(database: Path) -> bool:
     log.info(f"Found a backup candidate, trying to restore {latest}")
     if database.exists():
         database.unlink()
-    read(latest, database)
+    copyfile(latest, database)
     return True
 
 
@@ -164,5 +164,5 @@ def save_backup(database: Path) -> bool:
 
     backup = backup_folder / f"{database.name}_{int(datetime.now().timestamp())}"
     log.info(f"Creating backup {backup}")
-    dump(database, backup)
+    copyfile(database, backup)
     return True
