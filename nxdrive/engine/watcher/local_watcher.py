@@ -1263,6 +1263,12 @@ class DriveFSEventHandler(PatternMatchingEventHandler):
         )
 
     def on_any_event(self, event: FileSystemEvent) -> None:
+        # Skip synthetic events: they weren't actually broadcast by the OS,
+        # but are presumed to have happened based on other, actual events.
+        if event.is_synthetic:
+            log.debug(f"Dropping synthetic event: {event!r}")
+            return
+
         self.counter += 1
         log.debug(f"Queueing watchdog: {event!r}")
         self.watcher.watchdog_queue.put(event)
