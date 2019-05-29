@@ -405,6 +405,12 @@ class TwoUsersTest(TestCase):
         self._no_remote_changes[engine_uid] = False
 
         setattr(self, f"engine_{number}", engine)
+
+        # If there are Remotes, update their DAO as the old one is no more revelant
+        for remote in (f"remote_document_client_{number}", f"remote_{number}"):
+            if hasattr(self, remote):
+                getattr(self, remote)._dao = engine._dao
+
         return engine
 
     def unbind_engine(self, number: int) -> None:
