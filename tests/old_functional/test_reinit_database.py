@@ -28,6 +28,9 @@ class TestReinitDatabase(OneUserTest):
         self.unbind_engine(1)
         self.bind_engine(1, start_engine=False)
 
+        # Update the Remote's DAO as its old one was removed when we unbound the engine
+        self.remote._dao = self.engine_1._dao
+
     def _check_states(self):
         rows = self.engine_1.get_dao().get_states_from_partial_local(Path())
         for row in rows:
