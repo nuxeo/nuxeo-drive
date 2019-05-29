@@ -653,11 +653,15 @@ class LocalWatcher(EngineWorker):
     def _handle_watchdog_delete(self, doc_pair: DocPair) -> None:
         # Ask for deletion confirmation if needed
         abspath = self.local.abspath(doc_pair.local_path)
-        if abspath.parent.exists():
-            if self.engine.manager._dao.get_bool("show_deletion_prompt", default=True):
-                self.docDeleted.emit(doc_pair.local_path)
-            else:
-                self.engine.delete_doc(doc_pair.local_path)
+        if not abspath.parent.exists():
+            log.debug(f"Deleted event on inexistant file: {abspath!r}")
+            return
+
+        log.debug(f"Deleting file: {abspath!r}")
+        if self.engine.manager._dao.get_bool("show_deletion_prompt", default=True):
+            self.docDeleted.emit(doc_pair.local_path)
+        else:
+            self.engine.delete_doc(doc_pair.local_path)
 
     def _handle_delete_on_known_pair(self, doc_pair: DocPair) -> None:
         """Handle watchdog deleted event on a known doc pair."""
@@ -761,6 +765,10 @@ class LocalWatcher(EngineWorker):
                 versioned = True
 
         dao.update_local_state(doc_pair, local_info, versioned=versioned)
+
+        # Update local paths of all children
+        if doc_pair.folderish:
+            dao.replace_local_paths(doc_pair.local_path, local_info.path)
 
         if (
             WINDOWS

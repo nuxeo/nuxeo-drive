@@ -1235,6 +1235,28 @@ class EngineDAO(ConfigurationDAO):
             f"    OR remote_parent_path = '{path}'"
         )
 
+    def replace_local_paths(self, old_path: Path, new_path: Path) -> None:
+        """
+        Replace all local path occurrences of *old_path* to *new_path*.
+        Paths are modified to only impact exactly a full folder path
+        (including starting and ending slashes).
+        """
+
+        old = f"/{old_path.as_posix()}/"
+        new = f"/{new_path.as_posix()}/"
+        log.debug(f"Updating all local paths from {old!r} to {new!r}")
+
+        with self._lock:
+            con = self._get_write_connection()
+            c = con.cursor()
+            query = (
+                "UPDATE States"
+                "  SET local_parent_path = replace(local_parent_path, ?, ?),"
+                "      local_path = replace(local_path, ? , ?) "
+                "WHERE local_parent_path LIKE ? OR local_path LIKE ?"
+            )
+            c.execute(query, (old, new, old, new, f"{old}%", f"{old}%"))
+
     def update_remote_parent_path(self, doc_pair: DocPair, new_path: str) -> None:
         with self._lock:
             con = self._get_write_connection()
@@ -1669,7 +1691,7 @@ class EngineDAO(ConfigurationDAO):
         )
 
         if (
-            row.pair_state not in {"conflicted", "remotely_created"}
+            row.pair_state not in ("conflicted", "remotely_created")
             and row.folderish
             and row.local_name
             and row.local_name != info.name
