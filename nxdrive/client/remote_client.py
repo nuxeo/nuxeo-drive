@@ -456,6 +456,9 @@ class Remote(Nuxeo):
             fs_item_id = fs_item_id.split("#")[-1]
         if "#" in parent_ref:
             parent_ref = parent_ref.split("#")[-1]
+        if not parent_ref:
+            log.info("Parent uid is empty, not performing move2.")
+            return {}
         return self.documents.move(fs_item_id, parent_ref, name=name)
 
     def get_fs_item(
