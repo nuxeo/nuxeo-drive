@@ -188,6 +188,12 @@ class ConfigurationDAO(QObject):
                 (SCHEMA_VERSION, self.schema_version),
             )
 
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__} db={self._db!r}, exists={self._db.exists()}>"
+
+    def __str__(self) -> str:
+        return repr(self)
+
     def restore_backup(self) -> bool:
         try:
             with self._lock:
