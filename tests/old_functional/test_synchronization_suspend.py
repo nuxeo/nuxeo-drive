@@ -1,7 +1,8 @@
 # coding: utf-8
+import pytest
+from nxdrive.constants import LINUX, WINDOWS
 
-from nxdrive.constants import WINDOWS
-from .common import OneUserTest
+from .common import OneUserTest, SYNC_ROOT_FAC_ID
 
 
 class TestSynchronizationSuspend(OneUserTest):
@@ -95,3 +96,62 @@ class TestSynchronizationSuspend(OneUserTest):
         # Should not try to sync therefor it should not timeout
         self.wait_sync(wait_for_async=True)
         assert len(remote.get_children_info(self.workspace)) == 4
+
+    @pytest.mark.xfail(LINUX, reason="NXDRIVE-1690", strict=True)
+    def test_folder_renaming_while_offline(self):
+        """
+        Scenario:
+            - create a folder with a subfolder and a file, on the server
+            - launch Drive
+            - wait for sync completion
+            - pause Drive
+            - locally rename the parent folder
+            - locally rename the sub folder
+            - locally delete the file
+            - resume Drive
+
+        Result before NXDRIVE-695:
+            - sub folder is renamed on the server
+            - the deleted file is not removed on the server (incorrect)
+        """
+
+        local = self.local_1
+        remote = self.remote_1
+        engine = self.engine_1
+
+        # Create a folder with a subfolder and a file on the server
+        folder = remote.make_folder(f"{SYNC_ROOT_FAC_ID}{self.workspace}", "folder").uid
+        subfolder = remote.make_folder(folder, "subfolder").uid
+        remote.make_file(subfolder, "file.txt", content=b"42")
+
+        # Start the sync
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Checks
+        assert remote.exists("/folder/subfolder/file.txt")
+        assert local.exists("/folder/subfolder/file.txt")
+
+        # Suspend the sync
+        engine.suspend()
+        assert engine.is_paused()
+
+        # Rename the parent folder and its subfolder; delete the file
+        local.rename("/folder", "folder-renamed")
+        local.rename("/folder-renamed/subfolder", "subfolder-renamed")
+        local.delete("/folder-renamed/subfolder-renamed/file.txt")
+
+        # Resume the sync
+        engine.resume()
+        assert not engine.is_paused()
+        self.wait_sync()
+
+        # Local checks
+        assert local.exists("/folder-renamed/subfolder-renamed")
+        assert not local.exists("/folder-renamed/subfolder-renamed/file.txt")
+        assert not local.exists("/folder")
+
+        # Remote checks
+        assert remote.exists("/folder-renamed/subfolder-renamed")
+        assert not remote.exists("/folder-renamed/subfolder-renamed/file.txt")
+        assert not remote.exists("/folder")

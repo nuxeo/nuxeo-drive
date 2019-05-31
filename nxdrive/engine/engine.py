@@ -324,6 +324,7 @@ class Engine(QObject):
         if not doc_pair:
             log.info(f"Unable to delete non-existant doc {path}")
             return
+
         if mode is DelAction.DEL_SERVER:
             # Delete on server
             doc_pair.update_state("deleted", doc_pair.remote_state)

@@ -19,7 +19,7 @@ from watchdog.observers import Observer
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
 from ...client.local_client import FileInfo
-from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, ROOT, WINDOWS
+from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, LINUX, MAC, ROOT, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
 from ...options import Options
@@ -653,11 +653,15 @@ class LocalWatcher(EngineWorker):
     def _handle_watchdog_delete(self, doc_pair: DocPair) -> None:
         # Ask for deletion confirmation if needed
         abspath = self.local.abspath(doc_pair.local_path)
-        if abspath.parent.exists():
-            if self.engine.manager._dao.get_bool("show_deletion_prompt", default=True):
-                self.docDeleted.emit(doc_pair.local_path)
-            else:
-                self.engine.delete_doc(doc_pair.local_path)
+        if not abspath.parent.exists():
+            log.debug(f"Deleted event on inexistant file: {abspath!r}")
+            return
+
+        log.debug(f"Deleting file: {abspath!r}")
+        if self.engine.manager._dao.get_bool("show_deletion_prompt", default=True):
+            self.docDeleted.emit(doc_pair.local_path)
+        else:
+            self.engine.delete_doc(doc_pair.local_path)
 
     def _handle_delete_on_known_pair(self, doc_pair: DocPair) -> None:
         """Handle watchdog deleted event on a known doc pair."""
@@ -690,7 +694,7 @@ class LocalWatcher(EngineWorker):
 
         ignore, _ = is_generated_tmp_file(dest_filename)
         if ignore:
-            log.info(f"Ignoring generated temporary file: {evt.dest_path!r}")
+            log.info(f"Ignoring file: {evt.dest_path!r}")
             return
 
         dao, client = self._dao, self.local
@@ -699,7 +703,7 @@ class LocalWatcher(EngineWorker):
 
         pair = dao.get_state_from_local(rel_path)
         remote_ref = client.get_remote_id(rel_path)
-        if pair is not None and pair.remote_ref == remote_ref:
+        if pair and pair.remote_ref == remote_ref:
             local_info = client.try_get_info(rel_path)
             if local_info:
                 digest = local_info.get_digest()
@@ -738,7 +742,7 @@ class LocalWatcher(EngineWorker):
             return
 
         old_local_path = None
-        rel_parent_path = client.get_path(src_path.parent) or ROOT
+        rel_parent_path = client.get_path(src_path.parent)
 
         # Ignore inner movement
         versioned = False
@@ -761,6 +765,17 @@ class LocalWatcher(EngineWorker):
                 versioned = True
 
         dao.update_local_state(doc_pair, local_info, versioned=versioned)
+
+        # Reflect local path changes of all impacted children in the database
+        if doc_pair.folderish:
+            if LINUX:
+                # This does not make it on GNU/Linux, and it would break
+                # test_move_and_copy_paste_folder_original_location_from_child_stopped().
+                # The call to dao.replace_local_paths() is revelant on macOS and Windows only.
+                # See NXDRIVE-1690 for more informations.
+                return
+
+            dao.replace_local_paths(doc_pair.local_path, local_info.path)
 
         if (
             WINDOWS
@@ -1059,10 +1074,8 @@ class LocalWatcher(EngineWorker):
             # the creation has been catched by scan
             # As Windows send a delete / create event for reparent
             local_info = client.try_get_info(rel_path)
-            if local_info is None:
-                log.debug(
-                    f"Event on a disappeared file: {evt!r} {rel_path!r} {src_path.name!r}"
-                )
+            if not local_info:
+                log.debug(f"Event on a disappeared file: {evt!r}")
                 return
 
             # This might be a move but Windows don't emit this event...

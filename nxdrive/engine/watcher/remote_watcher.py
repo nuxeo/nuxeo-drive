@@ -831,20 +831,11 @@ class RemoteWatcher(EngineWorker):
                                 new_info.lock_created,
                                 new_info.can_scroll_descendants,
                             )
-                        # Perform a regular document update on a document
-                        # that has been updated, renamed or moved
-                        log.info(
-                            f"Refreshing remote state info for "
-                            f"doc_pair={doc_pair_repr!r}, "
-                            f"event_id={event_id!r}, "
-                            f"new_info={new_info!r} "
-                            f"(force_recursion={event_id == 'securityUpdated'})"
-                        )
 
                         # Force remote state update in case of a
                         # locked / unlocked event since lock info is not
                         # persisted, so not part of the dirty check
-                        lock_update = event_id in {"documentLocked", "documentUnlocked"}
+                        lock_update = event_id in ("documentLocked", "documentUnlocked")
 
                         # Perform a regular document update on a document
                         # that has been updated, renamed or moved
