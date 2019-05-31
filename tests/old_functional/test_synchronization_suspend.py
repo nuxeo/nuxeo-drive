@@ -107,7 +107,7 @@ class TestSynchronizationSuspend(OneUserTest):
             - pause Drive
             - locally rename the parent folder
             - locally rename the sub folder
-            - locally relete the file
+            - locally delete the file
             - resume Drive
 
         Result before NXDRIVE-695:

@@ -19,7 +19,7 @@ from watchdog.observers import Observer
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
 from ...client.local_client import FileInfo
-from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, MAC, ROOT, WINDOWS
+from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, LINUX, MAC, ROOT, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
 from ...options import Options
@@ -766,8 +766,15 @@ class LocalWatcher(EngineWorker):
 
         dao.update_local_state(doc_pair, local_info, versioned=versioned)
 
-        # Update local paths of all children
+        # Reflect local path changes of all impacted children in the database
         if doc_pair.folderish:
+            if LINUX:
+                # This does not make it on GNU/Linux, and it would break
+                # test_move_and_copy_paste_folder_original_location_from_child_stopped().
+                # The call to dao.replace_local_paths() is revelant on macOS and Windows only.
+                # See NXDRIVE-1690 for more informations.
+                return
+
             dao.replace_local_paths(doc_pair.local_path, local_info.path)
 
         if (
