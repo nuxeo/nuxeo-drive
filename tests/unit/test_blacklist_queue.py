@@ -6,7 +6,7 @@ from nxdrive.engine.blacklist_queue import BlacklistItem, BlacklistQueue
 
 def increase(item: BlacklistItem, next_try: int = None) -> None:
     item.count += 1
-    cur_time = monotonic()
+    cur_time = int(monotonic())
     if next_try is not None:
         item._next_try = next_try + cur_time
     else:
