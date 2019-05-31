@@ -716,7 +716,7 @@ class DirectEdit(Worker):
 
         # Unqueue any errors
         for item in self._error_queue.get():
-            self._upload_queue.put(item.get())
+            self._upload_queue.put(item.name)
 
         # Handle the upload queue
         self._handle_upload_queue()
