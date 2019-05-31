@@ -98,7 +98,11 @@ class FileInfo:
         self.name = self.filepath.name
 
     def __repr__(self) -> str:
-        return f"FileInfo<path={self.filepath!r}, remote_ref={self.remote_ref!r}>"
+        return (
+            f"FileInfo<path={self.path!r}, filepath={self.filepath!r},"
+            f" name={self.name!r}, folderish={self.folderish!r},"
+            f" size={self.size}, remote_ref={self.remote_ref!r}>"
+        )
 
     def get_digest(self, digest_func: str = None) -> Optional[str]:
         """ Lazy computation of the digest. """
