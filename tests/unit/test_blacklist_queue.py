@@ -28,12 +28,12 @@ def repush(
 def test_delay():
     sleep_time = 3
 
-    # Push two items with a delay of 2s
-    queue = BlacklistQueue(delay=2)
+    # Push two items with a delay of 1s
+    queue = BlacklistQueue(delay=1)
     queue.push("1", "Item1")
     queue.push("2", "Item2")
 
-    # Verify no item is returned back before 2s
+    # Verify no item is returned back before 1s
     assert not list(queue.get())
     sleep(sleep_time)
 
@@ -51,7 +51,7 @@ def test_delay():
     assert not list(queue.get())
     sleep(sleep_time)
 
-    # We should get the repushed item after 2s wait
+    # We should get the repushed item after 1s wait
     item = next(queue.get())
     assert item.get() == "Item2"
     assert item.uid == "2"
