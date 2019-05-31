@@ -4,9 +4,10 @@ import time
 from unittest.mock import patch
 
 import pytest
-
-from nxdrive.constants import MAC, WINDOWS
 from nuxeo.exceptions import Unauthorized
+from nxdrive.constants import MAC, WINDOWS
+from pathlib import Path
+
 from .common import FILE_CONTENT, SYNC_ROOT_FAC_ID, OneUserTest
 
 
@@ -402,3 +403,36 @@ class TestLocalCreations(OneUserTest):
             assert local_ctime + sleep_time <= local_mtime
 
         assert local_mtime < after_mtime + 0.5
+
+    def test_local_file_creation_on_file_not_found(self):
+        """
+        When the NotFound error is raised during the processing of a file that has a valid uid,
+        it seems that the code to synchronize locally created file doesn't discard the entry
+        from the processing queue. Instead, it adds it back in. We end up with the processor
+        looping over the same NotFound file over and over again.
+
+        This happened when editing a Bar.md file with XCode, which briefly created Bar~.md
+        during the save process. The Bar~.md apparently has the same xattrs, and it causes the loop.
+        """
+        local = self.local_1
+        remote = self.remote_1
+        engine = self.engine_1
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Create a file to have a valid UID
+        local.make_file("/", "Bar.md", content=b"bla bla bla")
+        self.wait_sync()
+        assert remote.exists("/Bar.md")
+
+        # Craft the "Bar~.md" file creation based on real data from "Bar.md"
+        info = local.get_info("/Bar.md")
+        info.name = "Bar~.md"
+        info.path = Path(self.workspace_title) / "Bar~.md"
+        info.filepath = info.filepath.with_name("Bar~.md")
+        engine._dao.insert_local_state(info, parent_path=f"/{self.workspace_title}")
+
+        # Wait and check
+        self.wait_sync()
+        assert not engine.get_errors()

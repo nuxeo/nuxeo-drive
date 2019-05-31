@@ -272,6 +272,11 @@ class Processor(EngineWorker):
                     self.pairSync.emit(self._current_metrics)
                 except ThreadInterrupt:
                     raise
+                except NotFound:
+                    log.warning(
+                        f"The document or its parent does not exist anymore: {doc_pair!r}"
+                    )
+                    continue
                 except Unauthorized:
                     self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
                     continue
@@ -317,12 +322,6 @@ class Processor(EngineWorker):
                     continue
                 except CorruptedFile as exc:
                     self.increase_error(doc_pair, "CORRUPT", exception=exc)
-                    continue
-                except NotFound as exc:
-                    log.info(
-                        f"The document or its parent does not exist anymore: {doc_pair!r}"
-                    )
-                    self.giveup_error(doc_pair, "NOT_FOUND", exception=exc)
                     continue
                 except UnknownDigest as exc:
                     log.info(

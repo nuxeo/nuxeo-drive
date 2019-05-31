@@ -826,6 +826,7 @@ class EngineDAO(ConfigurationDAO):
     def insert_local_state(self, info: FileInfo, parent_path: Optional[Path]) -> int:
         pair_state = PAIR_STATES[("created", "unknown")]
         digest = info.get_digest()
+
         with self._lock:
             con = self._get_write_connection()
             c = con.cursor()
@@ -850,12 +851,15 @@ class EngineDAO(ConfigurationDAO):
             parent = c.execute(
                 "SELECT * FROM States WHERE local_path = ?", (parent_path,)
             ).fetchone()
+
             # Don't queue if parent is not yet created
             if (parent is None and parent_path is None) or (
                 parent and parent.pair_state != "locally_created"
             ):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
+
             self._items_count += 1
+
         return row_id
 
     def get_last_files(
