@@ -12,7 +12,7 @@ from PyQt5.QtCore import (
     pyqtSlot,
 )
 
-from ..utils import force_decode
+from ..utils import force_decode, sizeof_fmt
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -236,6 +236,7 @@ class FileModel(QAbstractListModel):
     REMOTE_NAME = Qt.UserRole + 11
     REMOTE_REF = Qt.UserRole + 12
     STATE = Qt.UserRole + 13
+    SIZE = Qt.UserRole + 14
 
     def __init__(self, parent: QObject = None) -> None:
         super(FileModel, self).__init__(parent)
@@ -254,6 +255,7 @@ class FileModel(QAbstractListModel):
             self.REMOTE_NAME: b"remote_name",
             self.REMOTE_REF: b"remote_ref",
             self.STATE: b"state",
+            self.SIZE: b"size",
         }
 
     def roleNames(self) -> Dict[int, bytes]:
@@ -274,6 +276,11 @@ class FileModel(QAbstractListModel):
             return str(row["local_parent_path"])
         elif role == self.LOCAL_PATH:
             return str(row["local_path"])
+        elif role == self.SIZE:
+            size = row["size"]
+            if size == 0:
+                return ""
+            return f"({sizeof_fmt(size)})"
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:

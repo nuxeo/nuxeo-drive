@@ -350,6 +350,7 @@ class DocPair(Row):
             "remote_ref": self.remote_ref,
             "folderish": self.folderish,
             "id": self.id,
+            "size": self.size,
         }
 
         if self.last_local_updated or "" > self.last_remote_updated or "":
