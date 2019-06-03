@@ -37,6 +37,11 @@ Rectangle {
                         pointSize: 10
                         color: mediumGray
                     }
+                    ScaledText {
+                        text: size
+                        pointSize: 10
+                        color: mediumGray
+                    }
                 }
             }
 

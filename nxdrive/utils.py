@@ -62,6 +62,7 @@ __all__ = (
     "safe_filename",
     "safe_long_path",
     "set_path_readonly",
+    "sizeof_fmt",
     "short_name",
     "simplify_url",
     "unlock_path",
@@ -925,6 +926,32 @@ def lock_path(path: Path, locker: int) -> None:
 
     if locker & 2 == 2:
         set_path_readonly(path.parent)
+
+
+def sizeof_fmt(num: int, suffix: str = "o") -> str:
+    """
+    Human readable version of file size.
+    Supports:
+        - all currently known binary prefixes (https://en.wikipedia.org/wiki/Binary_prefix)
+        - negative and positive numbers
+        - numbers larger than 1,000 Yobibytes
+        - arbitrary units
+
+    Examples:
+
+        >>> sizeof_fmt(168963795964)
+        "157.4 Gio"
+        >>> sizeof_fmt(168963795964, suffix="B")
+        "157.4 GiB"
+
+    Source: https://stackoverflow.com/a/1094933/1117028
+    """
+    val = float(num)
+    for unit in ("", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"):
+        if abs(val) < 1024.0:
+            return f"{val:3.1f} {unit}{suffix}"
+        val /= 1024.0
+    return f"{val:.1f} Yi{suffix}"
 
 
 def short_name(name: Union[bytes, str]) -> str:

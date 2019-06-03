@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import re
+from math import pow
 from unittest.mock import patch
 
 import pytest
@@ -329,6 +330,34 @@ def test_simplify_url(url, result):
 )
 def test_safe_filename(invalid, valid):
     assert nxdrive.utils.safe_filename(invalid) == valid
+
+
+@pytest.mark.parametrize(
+    "size, result",
+    [
+        (0, "0.0 o"),
+        (1, "1.0 o"),
+        (-1024, "-1.0 Kio"),
+        (1024, "1.0 Kio"),
+        (1024 * 1024, "1.0 Mio"),
+        (pow(1024, 2), "1.0 Mio"),
+        (pow(1024, 3), "1.0 Gio"),
+        (pow(1024, 4), "1.0 Tio"),
+        (pow(1024, 5), "1.0 Pio"),
+        (pow(1024, 6), "1.0 Eio"),
+        (pow(1024, 7), "1.0 Zio"),
+        (pow(1024, 8), "1.0 Yio"),
+        (pow(1024, 9), "1024.0 Yio"),
+        (pow(1024, 10), "1048576.0 Yio"),
+        (168963795964, "157.4 Gio"),
+    ],
+)
+def test_sizeof_fmt(size, result):
+    assert nxdrive.utils.sizeof_fmt(size) == result
+
+
+def test_sizeof_fmt_arg():
+    assert nxdrive.utils.sizeof_fmt(168963795964, suffix="B") == "157.4 GiB"
 
 
 @pytest.mark.parametrize(
