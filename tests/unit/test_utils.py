@@ -194,6 +194,20 @@ def test_get_current_os_full():
     assert ver
 
 
+def test_is_valid_uid():
+    func = nxdrive.utils.is_valid_uid
+
+    # Valid
+    assert func("37b1502b-26ff-430f-9f20-4bd0d803191e")
+
+    # Invalid
+    assert not func("37b1502b-26ff-430f-9f20-4bd0d803191z")  # z is not hexa
+    assert not func("37b1502b-26ff-430f-9f20-4bd0d803191ee")  # 1 extra char
+    assert not func("is this a real file name.jpeg")
+    assert not func("")
+    assert not func(None)
+
+
 @pytest.mark.parametrize("hostname", BAD_HOSTNAMES)
 def test_retrieve_ssl_certificate_unknown(hostname):
     from ssl import SSLError
@@ -349,7 +363,7 @@ def test_safe_filename(invalid, valid):
         (pow(1024, 8), "1.0 Yio"),
         (pow(1024, 9), "1024.0 Yio"),
         (pow(1024, 10), "1048576.0 Yio"),
-        (168963795964, "157.4 Gio"),
+        (168_963_795_964, "157.4 Gio"),
     ],
 )
 def test_sizeof_fmt(size, result):
@@ -357,7 +371,7 @@ def test_sizeof_fmt(size, result):
 
 
 def test_sizeof_fmt_arg():
-    assert nxdrive.utils.sizeof_fmt(168963795964, suffix="B") == "157.4 GiB"
+    assert nxdrive.utils.sizeof_fmt(168_963_795_964, suffix="B") == "157.4 GiB"
 
 
 @pytest.mark.parametrize(

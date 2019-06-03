@@ -23,7 +23,7 @@ from typing import (
 )
 from urllib.parse import urlsplit, urlunsplit
 
-from .constants import APP_NAME, MAC, WINDOWS
+from .constants import APP_NAME, DOC_UID_REG, MAC, WINDOWS
 from .exceptions import InvalidSSLCertificate
 from .options import Options
 
@@ -52,6 +52,7 @@ __all__ = (
     "guess_server_url",
     "if_frozen",
     "is_generated_tmp_file",
+    "is_valid_uid",
     "lock_path",
     "normalize_event_filename",
     "normalized_path",
@@ -336,6 +337,15 @@ def is_generated_tmp_file(name: str) -> Tuple[bool, Optional[bool]]:
         return ignore, do_not_delay
 
     return do_not_ignore, no_delay_effect
+
+
+def is_valid_uid(uid: str, pattern: Pattern = re.compile(f"^{DOC_UID_REG}$")) -> bool:
+    """Return True if the given *uid* is a valid document UID."""
+    # Prevent TypeError when given uid is None
+    if not uid:
+        return False
+
+    return bool(pattern.match(uid))
 
 
 def version_compare(x: str, y: str) -> int:
@@ -824,7 +834,7 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         # Event to acquire the login token from the server
         (
             r"nxdrive://(?P<cmd>token)/"
-            r"(?P<token>[0-F]{8}-[0-F]{4}-[0-F]{4}-[0-F]{4}-[0-F]{12})/"
+            fr"(?P<token>{DOC_UID_REG})/"
             r"user/(?P<username>.*)"
         ),
     )

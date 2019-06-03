@@ -44,6 +44,7 @@ from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .utils import (
     current_milli_time,
     force_decode,
+    is_valid_uid,
     normalize_event_filename,
     parse_protocol_url,
     safe_os_filename,
@@ -170,12 +171,25 @@ class DirectEdit(Worker):
             self._folder.mkdir(exist_ok=True)
             return
 
-        def purge(path):
-            shutil.rmtree(self.local.abspath(path), ignore_errors=True)
+        def purge(rel_path: Path) -> None:
+            """Helper to skip errors while deleting a folder and its content."""
+            path = self.local.abspath(rel_path)
+            log.debug(f"Removing {path!r}")
+            shutil.rmtree(path, ignore_errors=True)
 
         log.info("Cleanup DirectEdit folder")
 
         for child in self.local.get_children_info(ROOT):
+            # We need a folder and its name must be a valid UID
+            if not child.folderish:
+                log.debug(f"Skipping clean-up of {child.path!r} (not a folder)")
+                continue
+
+            # We also need a valid folder name (it is a document's UID)
+            if not is_valid_uid(child.name):
+                log.debug(f"Skipping clean-up of {child.path!r} (invalid folder name)")
+                continue
+
             children = self.local.get_children_info(child.path)
             if not children:
                 purge(child.path)
@@ -204,7 +218,7 @@ class DirectEdit(Worker):
                 log.exception("Unhandled clean-up error")
                 continue
 
-            # Place for handle reopened of interrupted Edit
+            # Place for handle reopened of interrupted DirectEdit
             purge(child.path)
 
     def __get_engine(self, url: str, user: str = None) -> Optional["Engine"]:

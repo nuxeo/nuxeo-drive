@@ -1,6 +1,5 @@
 # coding: utf-8
 import time
-import shutil
 from collections import namedtuple
 from logging import getLogger
 from pathlib import Path
@@ -24,7 +23,6 @@ from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import safe_os_filename
 from . import LocalTest, make_tmp_file
 from .common import OneUserTest, TwoUsersTest
-from ..markers import not_windows
 from ..utils import random_png
 
 log = getLogger(__name__)
@@ -209,18 +207,8 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
             self.direct_edit._cleanup()
             assert not self.local.exists(local_path)
 
-    @not_windows(reason="Watchdog failure")
-    def test_cleanup_no_local_folder(self):
-        """"If local folder does not exist, it should be created."""
-
-        shutil.rmtree(self.direct_edit._folder)
-        assert not self.direct_edit._folder.is_dir()
-
-        self.direct_edit._cleanup()
-        assert self.direct_edit._folder.is_dir()
-
     def test_cleanup_document_not_found(self):
-        """"If a file does not exist on the server, it should be deleted locally."""
+        """If a file does not exist on the server, it should be deleted locally."""
 
         def extract_edit_info(ref: Path):
             raise NotFound()
@@ -247,12 +235,6 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
             self.direct_edit.start()
             self.wait_sync(timeout=2, fail_if_timeout=False)
             assert not self.local.exists(local_path)
-
-    def test_direct_edit_metrics(self):
-        assert isinstance(self.direct_edit.get_metrics(), dict)
-
-        # Trigger the thread stop manually
-        self.direct_edit.stop()
 
     def test_filename_encoding(self):
         filename = "Mode op\xe9ratoire.txt"
