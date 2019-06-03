@@ -651,6 +651,8 @@ class LocalWatcher(EngineWorker):
             log.info("No existing FS root observer reference")
 
     def _handle_watchdog_delete(self, doc_pair: DocPair) -> None:
+        self.remove_void_transfers(doc_pair)
+
         # Ask for deletion confirmation if needed
         abspath = self.local.abspath(doc_pair.local_path)
         if not abspath.parent.exists():
@@ -763,6 +765,8 @@ class LocalWatcher(EngineWorker):
                 doc_pair.local_state = "moved"
                 old_local_path = doc_pair.local_path
                 versioned = True
+
+        self.remove_void_transfers(doc_pair)
 
         dao.update_local_state(doc_pair, local_info, versioned=versioned)
 
@@ -910,6 +914,9 @@ class LocalWatcher(EngineWorker):
             if not original_info:
                 client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
 
+        self.remove_void_transfers(doc_pair)
+
+        # Update state
         dao.update_local_state(doc_pair, local_info)
 
     def handle_watchdog_root_event(self, evt: FileSystemEvent) -> None:

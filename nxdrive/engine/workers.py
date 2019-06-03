@@ -223,6 +223,11 @@ class EngineWorker(Worker):
         self._dao.increase_error(doc_pair, error, details=details)
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
+    def remove_void_transfers(self, doc_pair: DocPair) -> None:
+        """ Remove paused uploads and downloads on the target doc pair. """
+        self._dao.remove_transfer("download", self.local.abspath(doc_pair.local_path))
+        self._dao.remove_transfer("upload", self.local.abspath(doc_pair.local_path))
+
 
 class PollWorker(Worker):
     def __init__(
