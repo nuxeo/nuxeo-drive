@@ -782,6 +782,7 @@ class EngineDAO(ConfigurationDAO):
             c.execute(
                 "UPDATE States  SET processor = 0 WHERE processor = ?", (processor_id,)
             )
+        log.debug(f"Released processor {processor_id}")
         return c.rowcount > 0
 
     def acquire_processor(self, thread_id: int, row_id: int) -> bool:
@@ -1712,7 +1713,7 @@ class EngineDAO(ConfigurationDAO):
         queue: bool = True,
         force_update: bool = False,
         no_digest: bool = False,
-    ) -> None:
+    ) -> bool:
         row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
@@ -1739,7 +1740,7 @@ class EngineDAO(ConfigurationDAO):
                         "Not updating remote state (not dirty) "
                         f"for row={row!r} with info={info!r}"
                     )
-                    return
+                    return False
 
         log.debug(
             f"Updating remote state for row={row!r} with info={info!r} "
@@ -1816,6 +1817,7 @@ class EngineDAO(ConfigurationDAO):
                     parent and parent.pair_state != "remotely_created"
                 ) or parent is None:
                     self._queue_pair_state(row.id, info.folderish, row.pair_state)
+        return True
 
     def _clean_filter_path(self, path: str) -> str:
         if not path.endswith("/"):
