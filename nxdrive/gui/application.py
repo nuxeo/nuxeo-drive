@@ -1272,6 +1272,9 @@ class Application(QApplication):
         elif engine.is_syncing():
             sync_state = "syncing"
 
+        # Recompute conflicts and errors to have the right count in the `if` below
+        self.refresh_conflicts(engine.uid)
+
         # Check error state
         if engine.has_invalid_credentials():
             error_state = "auth_expired"
