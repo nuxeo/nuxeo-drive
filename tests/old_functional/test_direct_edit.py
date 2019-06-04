@@ -10,7 +10,6 @@ from unittest.mock import patch
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import User
 
-from nxdrive.engine.engine import Engine
 from nxdrive.exceptions import (
     DocumentAlreadyLocked,
     Forbidden,
@@ -213,26 +212,6 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
         filename = "Mode op\xe9ratoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
         self._direct_edit_update(doc_id, filename, b"Test")
-
-    def test_invalid_credentials(self):
-        """Opening a document without being authenticated is not allowed."""
-
-        def has_invalid_credentials(self) -> bool:
-            return True
-
-        def error_signal(self, *args, **kwargs):
-            nonlocal received
-            received = True
-
-        received = False
-        self.direct_edit.directEditError.connect(error_signal)
-        doc_id = self.remote.make_file("/", "file.txt", content=b"content")
-
-        with patch.object(
-            Engine, "has_invalid_credentials", new=has_invalid_credentials
-        ):
-            self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
-            assert received
 
     def test_forbidden_edit(self):
         """

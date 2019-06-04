@@ -347,6 +347,10 @@ class DirectEdit(Worker):
             log.warning(msg)
             self.directEditForbidden.emit(doc_id, engine.hostname, engine.remote_user)
             return None
+        except NotFound:
+            values = [doc_id, engine.hostname]
+            self.directEditError.emit("DIRECT_EDIT_NOT_FOUND", values)
+            return None
 
         doc.update(
             {
