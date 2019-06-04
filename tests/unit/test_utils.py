@@ -349,7 +349,7 @@ def test_safe_filename(invalid, valid):
         (pow(1024, 8), "1.0 Yio"),
         (pow(1024, 9), "1024.0 Yio"),
         (pow(1024, 10), "1048576.0 Yio"),
-        (168963795964, "157.4 Gio"),
+        (168_963_795_964, "157.4 Gio"),
     ],
 )
 def test_sizeof_fmt(size, result):
@@ -357,7 +357,7 @@ def test_sizeof_fmt(size, result):
 
 
 def test_sizeof_fmt_arg():
-    assert nxdrive.utils.sizeof_fmt(168963795964, suffix="B") == "157.4 GiB"
+    assert nxdrive.utils.sizeof_fmt(168_963_795_964, suffix="B") == "157.4 GiB"
 
 
 @pytest.mark.parametrize(

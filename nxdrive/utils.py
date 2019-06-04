@@ -23,7 +23,7 @@ from typing import (
 )
 from urllib.parse import urlsplit, urlunsplit
 
-from .constants import APP_NAME, MAC, WINDOWS
+from .constants import APP_NAME, DOC_UID_REG, MAC, WINDOWS
 from .exceptions import InvalidSSLCertificate
 from .options import Options
 
@@ -524,17 +524,19 @@ def safe_filename(
     return re.sub(pattern, replacement, name)
 
 
-def safe_os_filename(name: str) -> str:
+def safe_os_filename(name: str, pattern: Pattern = re.compile(r"([/:])")) -> str:
     """
     Replace characters that are forbidden in file or folder names by the OS.
 
-    On Windows, they are  " | * / : < > ? \\
-    On Unix, they are  / :
+    On Windows, they are:
+        " | * / : < > ? \\
+    On Unix, they are:
+        / :
     """
     if WINDOWS:
         return safe_filename(name)
     else:
-        return safe_filename(name, pattern=re.compile(r"([/:])"))
+        return safe_filename(name, pattern=pattern)
 
 
 def safe_long_path(path: Path) -> Path:
@@ -824,7 +826,7 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         # Event to acquire the login token from the server
         (
             r"nxdrive://(?P<cmd>token)/"
-            r"(?P<token>[0-F]{8}-[0-F]{4}-[0-F]{4}-[0-F]{4}-[0-F]{12})/"
+            fr"(?P<token>{DOC_UID_REG})/"
             r"user/(?P<username>.*)"
         ),
     )

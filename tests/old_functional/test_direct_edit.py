@@ -1,7 +1,5 @@
 # coding: utf-8
 import time
-import shutil
-from collections import namedtuple
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict
@@ -12,8 +10,7 @@ from unittest.mock import patch
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import User
 
-from nxdrive.constants import ROOT
-from nxdrive.engine.engine import Engine, ServerBindingSettings
+from nxdrive.engine.engine import Engine
 from nxdrive.exceptions import (
     DocumentAlreadyLocked,
     Forbidden,
@@ -24,7 +21,6 @@ from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import safe_os_filename
 from . import LocalTest, make_tmp_file
 from .common import OneUserTest, TwoUsersTest
-from ..markers import not_windows
 from ..utils import random_png
 
 log = getLogger(__name__)
@@ -36,16 +32,6 @@ def direct_edit_is_starting(*args, **kwargs):
 
 def open_local_file(*args, **kwargs):
     log.info("Opening local file: args=%r, kwargs=%r", args, kwargs)
-
-
-class MockUrlTestEngine(Engine):
-    def __init__(self, url):
-        self._url = url
-        self._stopped = True
-        self._invalid_credentials = False
-
-    def get_binder(self):
-        return ServerBindingSettings(self._url, None, "Administrator", ROOT, True)
 
 
 class DirectEditSetup:
@@ -161,21 +147,6 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
             doc_info = self.remote.get_info(doc_id)
             assert self.remote.get_blob(doc_info, xpath=xpath) == content
 
-    def test_binder(self):
-        engine = list(self.manager_1._engines.items())[0][1]
-        binder = engine.get_binder()
-        assert repr(binder)
-        assert not binder.server_version
-        assert not binder.password
-        assert not binder.pwd_update_required
-        assert binder.server_url
-        assert binder.username
-        assert binder.initialized
-        assert binder.local_folder
-
-        # Trigger the thread stop manually
-        self.direct_edit.stop()
-
     def test_cleanup(self):
         filename = "Mode op\xe9ratoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
@@ -209,18 +180,8 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
             self.direct_edit._cleanup()
             assert not self.local.exists(local_path)
 
-    @not_windows(reason="Watchdog failure")
-    def test_cleanup_no_local_folder(self):
-        """"If local folder does not exist, it should be created."""
-
-        shutil.rmtree(self.direct_edit._folder)
-        assert not self.direct_edit._folder.is_dir()
-
-        self.direct_edit._cleanup()
-        assert self.direct_edit._folder.is_dir()
-
     def test_cleanup_document_not_found(self):
-        """"If a file does not exist on the server, it should be deleted locally."""
+        """If a file does not exist on the server, it should be deleted locally."""
 
         def extract_edit_info(ref: Path):
             raise NotFound()
@@ -247,12 +208,6 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
             self.direct_edit.start()
             self.wait_sync(timeout=2, fail_if_timeout=False)
             assert not self.local.exists(local_path)
-
-    def test_direct_edit_metrics(self):
-        assert isinstance(self.direct_edit.get_metrics(), dict)
-
-        # Trigger the thread stop manually
-        self.direct_edit.stop()
 
     def test_filename_encoding(self):
         filename = "Mode op\xe9ratoire.txt"
@@ -463,68 +418,11 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
             self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             assert received
 
-    def test_send_lock_status(self):
-        Engine = namedtuple("Engine", ["local_folder", "engine", "uid", "name"])
-
-        local_path = Path("doc_id_xpath/testfile.txt")
-        self.direct_edit._manager._engine_definitions.insert(
-            0, Engine(Path(), None, "invalid_uid", "bla")
-        )
-        self.direct_edit._send_lock_status(local_path)
-
-    def test_url_resolver(self):
-        user = "Administrator"
-        get_engine = self.direct_edit._get_engine
-
-        assert get_engine(self.nuxeo_url, self.user_1)
-
-        self.manager_1._engine_types["NXDRIVETESTURL"] = MockUrlTestEngine
-
-        # HTTP explicit
-        self.manager_1._engines["0"] = MockUrlTestEngine("http://localhost:80/nuxeo")
-        assert not get_engine("http://localhost:8080/nuxeo", user=user)
-        assert get_engine("http://localhost:80/nuxeo", user=user)
-        assert get_engine("http://localhost/nuxeo/", user=user)
-
-        # HTTP implicit
-        self.manager_1._engines["0"] = MockUrlTestEngine("http://localhost/nuxeo")
-        assert not get_engine("http://localhost:8080/nuxeo", user=user)
-        assert get_engine("http://localhost:80/nuxeo/", user=user)
-        assert get_engine("http://localhost/nuxeo", user=user)
-
-        # HTTPS explicit
-        self.manager_1._engines["0"] = MockUrlTestEngine("https://localhost:443/nuxeo")
-        assert not get_engine("http://localhost:8080/nuxeo", user=user)
-        assert get_engine("https://localhost:443/nuxeo", user=user)
-        assert get_engine("https://localhost/nuxeo/", user=user)
-
-        # HTTPS implicit
-        self.manager_1._engines["0"] = MockUrlTestEngine("https://localhost/nuxeo")
-        assert not get_engine("http://localhost:8080/nuxeo", user=user)
-        assert get_engine("https://localhost:443/nuxeo/", user=user)
-        assert get_engine("https://localhost/nuxeo", user=user)
-
-        # Trigger the thread stop manually
-        self.direct_edit.stop()
-
     def test_self_locked_file(self):
         filename = "Mode operatoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
         self.remote.lock(doc_id)
         self._direct_edit_update(doc_id, filename, b"Test")
-
-    def test_handle_url_empty(self):
-        assert not self.direct_edit.handle_url(None)
-        assert not self.direct_edit.handle_url("")
-
-        # Trigger the thread stop manually
-        self.direct_edit.stop()
-
-    def test_handle_url_malformed(self):
-        assert not self.direct_edit.handle_url("https://example.org")
-
-        # Trigger the thread stop manually
-        self.direct_edit.stop()
 
     def test_url_with_spaces(self):
         scheme, host = self.nuxeo_url.split("://")
