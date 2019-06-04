@@ -58,15 +58,19 @@ Rectangle {
                 property bool authenticated: !api.has_invalid_credentials(uid)
                 property string forceUi: force_ui || wui
 
+                // Server URL
                 ScaledText { text: qsTr("URL") + tl.tr; color: mediumGray }
-                ScaledText { text: server_url }
+                Link {
+                    text: server_url
+                    onClicked: api.open_remote_server(accountSelect.getRole("uid"))
+                }
 
+                // Server UI (Web-UI or JSF)
                 ScaledText {
                     text: qsTr("SERVER_UI") + tl.tr
                     color: mediumGray
                     Layout.alignment: Qt.AlignTop
                 }
-
                 ColumnLayout {
 
                     Connections {
@@ -107,15 +111,19 @@ Rectangle {
                     }
                 }
 
+                // Local folder
                 ScaledText { text: qsTr("ENGINE_FOLDER") + tl.tr; color: mediumGray }
-                ScaledText { text: folder }
+                Link {
+                    text: folder
+                    onClicked: api.open_local(accountSelect.getRole("uid"), "/")
+                }
 
+                // Filters
                 ScaledText {
                     text: qsTr("SELECTIVE_SYNC") + tl.tr
                     color: mediumGray
                     Layout.alignment: Qt.AlignTop
                 }
-
                 ColumnLayout {
                     ScaledText {
                         text: qsTr("SELECTIVE_SYNC_DESCR") + tl.tr
@@ -129,6 +137,7 @@ Rectangle {
                     }
                 }
 
+                // Conflicts/Errors
                 ScaledText {
                     text: qsTr("CONFLICTS_AND_ERRORS") + tl.tr
                     color: mediumGray
@@ -138,6 +147,7 @@ Rectangle {
                     onClicked: api.show_conflicts_resolution(uid)
                 }
 
+                // Bad or outdated credentials
                 ScaledText {
                     visible: !authenticated
                     text: qsTr("AUTH_EXPIRED") + tl.tr
