@@ -147,21 +147,6 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
             doc_info = self.remote.get_info(doc_id)
             assert self.remote.get_blob(doc_info, xpath=xpath) == content
 
-    def test_binder(self):
-        engine = list(self.manager_1._engines.items())[0][1]
-        binder = engine.get_binder()
-        assert repr(binder)
-        assert not binder.server_version
-        assert not binder.password
-        assert not binder.pwd_update_required
-        assert binder.server_url
-        assert binder.username
-        assert binder.initialized
-        assert binder.local_folder
-
-        # Trigger the thread stop manually
-        self.direct_edit.stop()
-
     def test_cleanup(self):
         filename = "Mode op\xe9ratoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")

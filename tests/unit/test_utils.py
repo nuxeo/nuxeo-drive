@@ -194,20 +194,6 @@ def test_get_current_os_full():
     assert ver
 
 
-def test_is_valid_uid():
-    func = nxdrive.utils.is_valid_uid
-
-    # Valid
-    assert func("37b1502b-26ff-430f-9f20-4bd0d803191e")
-
-    # Invalid
-    assert not func("37b1502b-26ff-430f-9f20-4bd0d803191z")  # z is not hexa
-    assert not func("37b1502b-26ff-430f-9f20-4bd0d803191ee")  # 1 extra char
-    assert not func("is this a real file name.jpeg")
-    assert not func("")
-    assert not func(None)
-
-
 @pytest.mark.parametrize("hostname", BAD_HOSTNAMES)
 def test_retrieve_ssl_certificate_unknown(hostname):
     from ssl import SSLError

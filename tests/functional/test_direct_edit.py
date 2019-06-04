@@ -26,6 +26,21 @@ def direct_edit(manager_factory):
         yield manager.direct_edit
 
 
+def test_binder(manager_factory):
+    manager, engine = manager_factory()
+
+    with manager:
+        binder = engine.get_binder()
+        assert repr(binder)
+        assert not binder.server_version
+        assert not binder.password
+        assert not binder.pwd_update_required
+        assert binder.server_url
+        assert binder.username
+        assert binder.initialized
+        assert binder.local_folder
+
+
 def test_cleanup_no_local_folder(direct_edit):
     """If local folder does not exist, it should be created."""
 
@@ -63,10 +78,6 @@ def test_cleanup_bad_folder_name(direct_edit):
     assert folder.is_dir()
 
 
-def test_direct_edit_metrics(direct_edit):
-    assert isinstance(direct_edit.get_metrics(), dict)
-
-
 def test_handle_url_empty(direct_edit):
     assert not direct_edit.handle_url(None)
     assert not direct_edit.handle_url("")
@@ -74,6 +85,27 @@ def test_handle_url_empty(direct_edit):
 
 def test_handle_url_malformed(direct_edit):
     assert not direct_edit.handle_url("https://example.org")
+
+
+def test_is_valid_folder_name(direct_edit):
+    func = direct_edit._is_valid_folder_name
+
+    # Valid
+    assert func("37b1502b-26ff-430f-9f20-4bd0d803191e_")
+    assert func("37b1502b-26ff-430f-9f20-4bd0d803191e_file-")
+    assert func("37b1502b-26ff-430f-9f20-4bd0d803191e_file-content")
+
+    # Invalid
+    assert not func("37b1502b-26ff-430f-9f20-4bd0d803191e")  # missing xpath
+    assert not func("37b1502b-26ff-430f-9f20-4bd0d803191z")  # z is not hexadecimal
+    assert not func("37b1502b-26ff-430f-9f20-4bd0d803191ee")  # 1 extra char (not _)
+    assert not func("is this a real file name.jpeg")
+    assert not func("")
+    assert not func(None)
+
+
+def test_metrics(direct_edit):
+    assert isinstance(direct_edit.get_metrics(), dict)
 
 
 def test_send_lock_status(direct_edit):

@@ -52,7 +52,6 @@ __all__ = (
     "guess_server_url",
     "if_frozen",
     "is_generated_tmp_file",
-    "is_valid_uid",
     "lock_path",
     "normalize_event_filename",
     "normalized_path",
@@ -337,15 +336,6 @@ def is_generated_tmp_file(name: str) -> Tuple[bool, Optional[bool]]:
         return ignore, do_not_delay
 
     return do_not_ignore, no_delay_effect
-
-
-def is_valid_uid(uid: str, pattern: Pattern = re.compile(f"^{DOC_UID_REG}$")) -> bool:
-    """Return True if the given *uid* is a valid document UID."""
-    # Prevent TypeError when given uid is None
-    if not uid:
-        return False
-
-    return bool(pattern.match(uid))
 
 
 def version_compare(x: str, y: str) -> int:

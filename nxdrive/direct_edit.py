@@ -8,7 +8,7 @@ from pathlib import Path
 from queue import Empty, Queue
 from time import sleep
 from threading import Lock
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, TYPE_CHECKING
 from urllib.parse import quote
 
 from PyQt5.QtWidgets import QApplication
@@ -24,6 +24,7 @@ from .client.local_client import LocalClient
 from .client.remote_client import Remote
 from .constants import (
     CONNECTION_ERROR,
+    DOC_UID_REG,
     DOWNLOAD_TMP_FILE_PREFIX,
     DOWNLOAD_TMP_FILE_SUFFIX,
     ROOT,
@@ -44,7 +45,6 @@ from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .utils import (
     current_milli_time,
     force_decode,
-    is_valid_uid,
     normalize_event_filename,
     parse_protocol_url,
     safe_os_filename,
@@ -159,6 +159,20 @@ class DirectEdit(Worker):
             download_url=info["download_url"],
         )
 
+    def _is_valid_folder_name(
+        self, name: str, pattern: Pattern = re.compile(f"^{DOC_UID_REG}_")
+    ) -> bool:
+        """
+        Return True if the given *name* is a valid document UID followed by the xpath.
+        As we cannot guess the xpath used, we just check the name starts with "UID_".
+        Example: 19bf2a19-e95b-4cfb-8fd7-b45e1d7d022f_file-content
+        """
+        # Prevent TypeError when the given name is None
+        if not name:
+            return False
+
+        return bool(pattern.match(name))
+
     @tooltip("Clean up folder")
     def _cleanup(self) -> None:
         """
@@ -180,13 +194,13 @@ class DirectEdit(Worker):
         log.info("Cleanup DirectEdit folder")
 
         for child in self.local.get_children_info(ROOT):
-            # We need a folder and its name must be a valid UID
+            # We need a folder
             if not child.folderish:
                 log.debug(f"Skipping clean-up of {child.path!r} (not a folder)")
                 continue
 
-            # We also need a valid folder name (it is a document's UID)
-            if not is_valid_uid(child.name):
+            # We also need a valid folder name
+            if not self._is_valid_folder_name(child.name):
                 log.debug(f"Skipping clean-up of {child.path!r} (invalid folder name)")
                 continue
 
