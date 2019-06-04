@@ -2,6 +2,7 @@ import shutil
 from collections import namedtuple
 from pathlib import Path
 from typing import List
+from unittest.mock import patch
 
 import pytest
 
@@ -107,6 +108,33 @@ def test_handle_url_empty(direct_edit):
 
 def test_handle_url_malformed(direct_edit):
     assert not direct_edit.handle_url("https://example.org")
+
+
+def test_invalid_credentials(manager_factory):
+    """Opening a document without being authenticated is not allowed."""
+
+    manager, engine = manager_factory()
+    doc_uid = "0000"
+
+    def has_invalid_credentials(self) -> bool:
+        return True
+
+    def error_signal(label: str, values: List) -> None:
+        nonlocal received
+        assert label == "DIRECT_EDIT_INVALID_CREDS"
+        assert values == [engine.remote_user, engine.server_url]
+        received = True
+
+    with manager:
+        direct_edit = manager.direct_edit
+        received = False
+        direct_edit.directEditError.connect(error_signal)
+
+        with patch.object(
+            Engine, "has_invalid_credentials", new=has_invalid_credentials
+        ):
+            direct_edit._prepare_edit(engine.server_url, doc_uid)
+            assert received
 
 
 def test_is_valid_folder_name(direct_edit):
