@@ -1,6 +1,7 @@
 import shutil
 from collections import namedtuple
 from pathlib import Path
+from typing import List
 
 import pytest
 
@@ -76,6 +77,27 @@ def test_cleanup_bad_folder_name(direct_edit):
 
     # The folder should still be present as it is ignored by the clean-up
     assert folder.is_dir()
+
+
+def test_document_not_found(manager_factory):
+    """Trying to DirectEdit'ing a inexistant document should display a notification."""
+
+    manager, engine = manager_factory()
+    doc_uid = "0000"
+
+    def error_signal(label: str, values: List) -> None:
+        nonlocal received
+        assert label == "DIRECT_EDIT_NOT_FOUND"
+        assert values == [doc_uid, engine.hostname]
+        received = True
+
+    with manager:
+        direct_edit = manager.direct_edit
+        received = False
+        direct_edit.directEditError.connect(error_signal)
+
+        direct_edit._prepare_edit(engine.server_url, doc_uid)
+        assert received
 
 
 def test_handle_url_empty(direct_edit):
