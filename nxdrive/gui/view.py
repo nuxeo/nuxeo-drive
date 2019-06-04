@@ -223,25 +223,27 @@ class ActionModel(QAbstractListModel):
 class FileModel(QAbstractListModel):
     fileChanged = pyqtSignal()
 
-    DETAILS = Qt.UserRole + 1
-    FOLDERISH = Qt.UserRole + 2
-    LAST_CONTRIBUTOR = Qt.UserRole + 3
-    LAST_ERROR = Qt.UserRole + 4
-    LAST_REMOTE_UPDATE = Qt.UserRole + 5
-    LAST_SYNC_DATE = Qt.UserRole + 6
-    LAST_TRANSFER = Qt.UserRole + 7
-    LOCAL_PARENT_PATH = Qt.UserRole + 8
-    LOCAL_PATH = Qt.UserRole + 9
-    NAME = Qt.UserRole + 10
-    REMOTE_NAME = Qt.UserRole + 11
-    REMOTE_REF = Qt.UserRole + 12
-    STATE = Qt.UserRole + 13
-    SIZE = Qt.UserRole + 14
+    ID = Qt.UserRole + 1
+    DETAILS = Qt.UserRole + 2
+    FOLDERISH = Qt.UserRole + 3
+    LAST_CONTRIBUTOR = Qt.UserRole + 4
+    LAST_ERROR = Qt.UserRole + 5
+    LAST_REMOTE_UPDATE = Qt.UserRole + 6
+    LAST_SYNC_DATE = Qt.UserRole + 7
+    LAST_TRANSFER = Qt.UserRole + 8
+    LOCAL_PARENT_PATH = Qt.UserRole + 9
+    LOCAL_PATH = Qt.UserRole + 10
+    NAME = Qt.UserRole + 11
+    REMOTE_NAME = Qt.UserRole + 12
+    REMOTE_REF = Qt.UserRole + 13
+    STATE = Qt.UserRole + 14
+    SIZE = Qt.UserRole + 15
 
     def __init__(self, parent: QObject = None) -> None:
         super(FileModel, self).__init__(parent)
         self.files: List[Dict[str, Any]] = []
         self.names = {
+            self.ID: b"id",
             self.DETAILS: b"last_error_details",
             self.FOLDERISH: b"folderish",
             self.LAST_CONTRIBUTOR: b"last_contributor",
