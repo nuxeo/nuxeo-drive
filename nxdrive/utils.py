@@ -534,17 +534,19 @@ def safe_filename(
     return re.sub(pattern, replacement, name)
 
 
-def safe_os_filename(name: str) -> str:
+def safe_os_filename(name: str, pattern: Pattern = re.compile(r"([/:])")) -> str:
     """
     Replace characters that are forbidden in file or folder names by the OS.
 
-    On Windows, they are  " | * / : < > ? \\
-    On Unix, they are  / :
+    On Windows, they are:
+        " | * / : < > ? \\
+    On Unix, they are:
+        / :
     """
     if WINDOWS:
         return safe_filename(name)
     else:
-        return safe_filename(name, pattern=re.compile(r"([/:])"))
+        return safe_filename(name, pattern=pattern)
 
 
 def safe_long_path(path: Path) -> Path:
