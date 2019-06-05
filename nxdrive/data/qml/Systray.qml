@@ -20,9 +20,24 @@ Rectangle {
     signal updateAvailable()
     signal updateProgress(int progress)
 
+    function updateCounts() {
+        systrayContainer.syncingCount = api.get_syncing_count(accountSelect.getRole("uid"))
+        systrayContainer.extraCount = api.get_last_files_count(accountSelect.getRole("uid")) - 10
+    }
+
     Connections {
         target: EngineModel
         onEngineChanged: accountSelect.currentIndex = EngineModel.count - 1
+    }
+
+    Connections {
+        target: TransferModel
+        onFileChanged: updateCounts()
+    }
+
+    Connections {
+        target: FileModel
+        onFileChanged: updateCounts()
     }
 
     Connections {
@@ -92,9 +107,11 @@ Rectangle {
 
                     AccountsComboBox {
                         id: accountSelect
-                        // When picking an account, run the refresh timer (without repeat)
-                        // to update the last files list.
-                        onActivated: refreshTimer.running = true
+                        // When picking an account, refresh the file list.
+                        onActivated: {
+                            api.get_last_files(accountSelect.getRole("uid"))
+                            updateCounts()
+                        }
                     }
 
                     ScaledText {
@@ -152,16 +169,6 @@ Rectangle {
 
         Rectangle {
             Layout.fillWidth: true; Layout.fillHeight: true
-
-            Timer {
-                id: refreshTimer
-                interval: 500; running: true; repeat: false
-                onTriggered: {
-                    systray.getLastFiles(accountSelect.getRole("uid"))
-                    systrayContainer.syncingCount = api.get_syncing_count(accountSelect.getRole("uid"))
-                    systrayContainer.extraCount = api.get_last_files_count(accountSelect.getRole("uid")) - 10
-                }
-            }
 
             Flickable {
                 id: fileList
@@ -243,7 +250,6 @@ Rectangle {
                         textVisible: systrayContainer.syncingCount > 0
                         anim: true
                     }
-                    PropertyChanges { target: refreshTimer; repeat: true; running: true }
                 }
             ]
         }

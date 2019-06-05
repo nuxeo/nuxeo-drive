@@ -78,7 +78,8 @@ class Engine(QObject):
     newReadonly = pyqtSignal(object, object)
     deleteReadonly = pyqtSignal(object)
     newLocked = pyqtSignal(object, object, object)
-    newSync = pyqtSignal(object)
+    newSyncStarted = pyqtSignal(object)
+    newSyncEnded = pyqtSignal(object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
     transferUpdated = pyqtSignal()
@@ -606,7 +607,8 @@ class Engine(QObject):
             worker = Worker(self, name=name)
 
         if isinstance(worker, Processor):
-            worker.pairSync.connect(self.newSync)
+            worker.pairSyncStarted.connect(self.newSyncStarted)
+            worker.pairSyncEnded.connect(self.newSyncEnded)
 
         thread = worker.thread
         if start_connect:

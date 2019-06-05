@@ -728,6 +728,8 @@ class Application(QApplication):
         engine.docDeleted.connect(self._doc_deleted)
         engine.fileAlreadyExists.connect(self._file_already_exists)
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
+        engine.newSyncStarted.connect(self.refresh_files)
+        engine.newSyncEnded.connect(self.refresh_files)
         engine.transferUpdated.connect(self.refresh_transfers)
         self.change_systray_icon()
 
@@ -1291,6 +1293,13 @@ class Application(QApplication):
         if transfers != self.transfer_model.transfers:
             self.transfer_model.set_transfers(transfers)
             self.transfer_model.fileChanged.emit()
+
+    @pyqtSlot()
+    def refresh_files(self) -> None:
+        engine = self.sender()
+        if not isinstance(engine, Engine):
+            return
+        self.get_last_files(engine.uid)
 
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:

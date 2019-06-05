@@ -53,7 +53,8 @@ log = getLogger(__name__)
 
 
 class Processor(EngineWorker):
-    pairSync = pyqtSignal(object)
+    pairSyncStarted = pyqtSignal(object)
+    pairSyncEnded = pyqtSignal(object)
     path_locker = Lock()
     soft_locks: Dict[str, Dict[Path, bool]] = dict()
     readonly_locks: Dict[str, Dict[Path, List[int]]] = dict()
@@ -271,6 +272,7 @@ class Processor(EngineWorker):
                 }
                 log.debug(f"Calling {handler_name}() on doc pair {doc_pair!r}")
 
+                self.pairSyncStarted.emit(self._current_metrics)
                 soft_lock = self._lock_soft_path(doc_pair.local_path)
                 sync_handler(doc_pair)
                 self._current_metrics["end_time"] = current_milli_time()
@@ -281,7 +283,7 @@ class Processor(EngineWorker):
                         pair, self.local.abspath(pair.local_path)
                     )
 
-                self.pairSync.emit(self._current_metrics)
+                self.pairSyncEnded.emit(self._current_metrics)
             except ThreadInterrupt:
                 self.engine.get_queue_manager().push(doc_pair)
                 raise
