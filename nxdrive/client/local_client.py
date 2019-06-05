@@ -335,6 +335,10 @@ FolderType=Generic
                 with open(path_alt, "wb") as f:
                     f.write(remote_id)
 
+                    # Force write of file to disk
+                    f.flush()
+                    os.fsync(f.fileno())
+
                 # Avoid time modified change
                 os.utime(path, (stat_.st_atime, stat_.st_mtime))
             except FileNotFoundError:
@@ -346,6 +350,11 @@ FolderType=Generic
                 unset_path_readonly(path)
                 with open(path_alt, "wb") as f:
                     f.write(remote_id)
+
+                    # Force write of file to disk
+                    f.flush()
+                    os.fsync(f.fileno())
+
                 set_path_readonly(path)
             finally:
                 lock_path(path, locker)

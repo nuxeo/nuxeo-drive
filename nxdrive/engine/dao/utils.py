@@ -1,4 +1,5 @@
 # coding: utf-8
+from os import fsync
 import sqlite3
 from contextlib import suppress
 from datetime import datetime, timedelta
@@ -36,6 +37,11 @@ def dump(database: Path, dump_file: Path) -> None:
     ) as f:
         for line in con.iterdump():
             f.write(f"{line}\n")
+
+        # Force write of file to disk
+        f.flush()
+        fsync(f.fileno())
+
     log.info("Dump finished with success.")
 
 
