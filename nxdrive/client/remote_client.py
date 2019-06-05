@@ -30,7 +30,13 @@ from ..constants import (
     TX_TIMEOUT,
     TransferStatus,
 )
-from ..engine.activity import Action, DownloadAction, FileAction, UploadAction
+from ..engine.activity import (
+    Action,
+    DownloadAction,
+    FileAction,
+    UploadAction,
+    VerificationAction,
+)
 from ..exceptions import (
     DownloadPaused,
     Forbidden,
@@ -210,7 +216,20 @@ class Remote(Nuxeo):
 
                 if digest:
                     digester = get_digest_algorithm(digest)
-                    computed_digest = compute_digest(file_out, digester)
+
+                    FileAction.finish_action()
+                    verif_action = VerificationAction(
+                        current_action.filepath,
+                        current_action.filename,
+                        reporter=QApplication.instance(),
+                    )
+
+                    def callback(path):
+                        verif_action.progress += FILE_BUFFER_SIZE
+
+                    computed_digest = compute_digest(
+                        file_out, digester, callback=callback
+                    )
                     if digest != computed_digest:
                         # Temp file and Download table entry will be deleted
                         # by the calling method

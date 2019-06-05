@@ -58,6 +58,7 @@ Rectangle {
 
         NuxeoProgressBar {
             id: progressBar
+            color: verifying ? lightGreen : lightBlue
             Layout.fillWidth: true; Layout.alignment: Qt.AlignRight
             Layout.leftMargin: 15; Layout.rightMargin: 15
             height: 5

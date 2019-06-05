@@ -139,6 +139,7 @@ class TransferModel(QAbstractListModel):
     TYPE = Qt.UserRole + 5
     ENGINE = Qt.UserRole + 6
     IS_DIRECT_EDIT = Qt.UserRole + 7
+    VERIFYING = Qt.UserRole + 8
 
     def __init__(self, parent: QObject = None) -> None:
         super(TransferModel, self).__init__(parent)
@@ -151,6 +152,7 @@ class TransferModel(QAbstractListModel):
             self.TYPE: b"transfer_type",
             self.ENGINE: b"engine",
             self.IS_DIRECT_EDIT: b"is_direct_edit",
+            self.VERIFYING: b"verifying",
         }
 
     def roleNames(self) -> Dict[int, bytes]:
@@ -178,6 +180,8 @@ class TransferModel(QAbstractListModel):
         row = self.transfers[index.row()]
         if role == self.STATUS:
             return row["status"].name
+        if role == self.VERIFYING:
+            return row.get("verifying", False)
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
@@ -191,7 +195,10 @@ class TransferModel(QAbstractListModel):
     def set_progress(self, action: Dict[str, Any]) -> None:
         for i, item in enumerate(self.transfers):
             if item["name"] == action["name"]:
-                self.setData(self.createIndex(i, 0), action["progress"], self.PROGRESS)
+                idx = self.createIndex(i, 0)
+                self.setData(idx, action["progress"], self.PROGRESS)
+                if action["action_type"] == "Verification":
+                    self.setData(idx, True, self.VERIFYING)
                 break
 
     def flags(self, index: QModelIndex):

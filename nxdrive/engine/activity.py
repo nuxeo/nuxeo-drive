@@ -82,7 +82,7 @@ class Action(QObject):
     def export(self) -> Dict[str, Any]:
         return {
             "uid": self.uid,
-            "last_transfer": self.type,
+            "action_type": self.type,
             "progress": self.get_percent(),
         }
 
@@ -191,6 +191,21 @@ class UploadAction(FileAction):
         self, filepath: Path, filename: str = None, reporter: Any = None
     ) -> None:
         super(UploadAction, self).__init__(
+            self.action_type,
+            filepath,
+            filename=filename,
+            size=filepath.stat().st_size,
+            reporter=reporter,
+        )
+
+
+class VerificationAction(FileAction):
+    action_type = "Verification"
+
+    def __init__(
+        self, filepath: Path, filename: str = None, reporter: Any = None
+    ) -> None:
+        super(VerificationAction, self).__init__(
             self.action_type,
             filepath,
             filename=filename,

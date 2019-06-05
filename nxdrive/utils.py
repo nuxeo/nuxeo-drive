@@ -25,7 +25,14 @@ from urllib.parse import urlsplit, urlunsplit
 
 from nuxeo.utils import get_digest_hash
 
-from .constants import APP_NAME, DOC_UID_REG, FILE_BUFFER_SIZE, MAC, UNACCESSIBLE_HASH, WINDOWS
+from .constants import (
+    APP_NAME,
+    DOC_UID_REG,
+    FILE_BUFFER_SIZE,
+    MAC,
+    UNACCESSIBLE_HASH,
+    WINDOWS,
+)
 from .exceptions import InvalidSSLCertificate, UnknownDigest
 from .options import Options
 
@@ -1085,7 +1092,7 @@ def compute_digest(path: Path, digest_func: str, callback: Callable = None) -> s
             while True:
                 # Check if synchronization thread was suspended
                 if callback:
-                    callback(f"Digest computation: {path}")
+                    callback(path)
                 buf = f.read(FILE_BUFFER_SIZE)
                 if not buf:
                     break

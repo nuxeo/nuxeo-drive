@@ -289,6 +289,7 @@ class Application(QApplication):
             "darkBlue": "#1F28BF",
             "nuxeoBlue": "#0066FF",
             "lightBlue": "#00ADED",
+            "lightGreen": "#A9D843",
             "teal": "#73D2CF",
             "purple": "#8400FF",
             "red": "#C02828",
