@@ -175,6 +175,10 @@ class BaseUpdater(PollWorker):
                     if i % 100 == 0:
                         self._set_progress(self.progress + incr * 50)
                     i += 1
+
+                # Force write of file to disk
+                tmp.flush()
+                os.fsync(tmp.fileno())
         except CONNECTION_ERROR:
             raise
         except Exception as exc:
