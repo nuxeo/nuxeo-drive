@@ -70,6 +70,7 @@
     "DIRECT_EDIT_LOCKED_FILE": "Kan '{{ name }}' niet bewerken omdat het door {{ lock_owner }} op {{ lock_created }} is vergrendeld.",
     "DIRECT_EDIT_LOCK_ERROR": "Vergrendelingsprobleem",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "Het document '{{ name }}' is niet vergrendeld",
+    "DIRECT_EDIT_NOT_FOUND": "Document „%1“ not found on %2",
     "DIRECT_EDIT_READONLY_FILE": "Kan '{{ name }}' niet bewerken omdat het alleen-lezen is",
     "DIRECT_EDIT_STARTING_TITLE": "Openen vanaf %1",
     "DIRECT_EDIT_STARTING_MSG": "„%1“ wordt lokaal geopend ...",

@@ -70,6 +70,7 @@
     "DIRECT_EDIT_LOCKED_FILE": "„%1“ ne peut pas être édité car il est verrouillé par %2 depuis le %3",
     "DIRECT_EDIT_LOCK_ERROR": "Problème de verrouillage",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "Le document „%1“ n'a pu être verrouillé",
+    "DIRECT_EDIT_NOT_FOUND": "Document „%1“ not found on %2",
     "DIRECT_EDIT_READONLY_FILE": "„%1“ ne peut pas être édité car il est en lecture seule",
     "DIRECT_EDIT_STARTING_TITLE": "Ouverture depuis %1",
     "DIRECT_EDIT_STARTING_MSG": "„%1“ est ouvert localement...",

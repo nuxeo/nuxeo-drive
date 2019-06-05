@@ -70,6 +70,7 @@
     "DIRECT_EDIT_LOCKED_FILE": "No se puede editar „%1“, ya que %2 lo ha bloqueado en %3",
     "DIRECT_EDIT_LOCK_ERROR": "Problema de bloqueo",
     "DIRECT_EDIT_LOCK_ERROR_DESCRIPTION": "El documento „%1“ no se ha bloqueado",
+    "DIRECT_EDIT_NOT_FOUND": "Document „%1“ not found on %2",
     "DIRECT_EDIT_READONLY_FILE": "No se puede editar „%1“ porque es de solo lectura",
     "DIRECT_EDIT_STARTING_TITLE": "Abrir desde %1",
     "DIRECT_EDIT_STARTING_MSG": "„%1“ se está abriendo localmente...",
