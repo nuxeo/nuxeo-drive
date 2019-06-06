@@ -1276,7 +1276,6 @@ class Application(QApplication):
         self.refresh_conflicts(engine.uid)
 
         # Check error state
-        self.refresh_conflicts(engine.uid)
         if engine.has_invalid_credentials():
             error_state = "auth_expired"
         elif self.conflicts_model.count:

@@ -186,7 +186,7 @@ Rectangle {
                     highlight: Rectangle { color: lighterGray }
 
                     model: TransferModel
-                    delegate: SystrayAction {}
+                    delegate: SystrayTransfer {}
                 }
 
                 ListView {

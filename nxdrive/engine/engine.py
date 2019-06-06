@@ -435,6 +435,7 @@ class Engine(QObject):
         self.syncResumed.emit()
 
     def resume_transfer(self, nature: str, uid: int) -> None:
+        """ Resume a single transfer with its nature and uid. """
         self._dao.resume_transfer(nature, uid)
         transfer = getattr(self._dao, f"get_{nature}")(uid=uid)
         if not transfer or not transfer.doc_pair:
@@ -445,6 +446,7 @@ class Engine(QObject):
             self.get_queue_manager().push(doc_pair)
 
     def resume_suspended_transfers(self) -> None:
+        """ Resume all suspended transfers. """
         for download in self._dao.get_downloads_with_status(TransferStatus.SUSPENDED):
             if download.uid is None:
                 continue
@@ -1038,6 +1040,7 @@ class Engine(QObject):
         if not action:
             return
 
+        # Get the current download and check if it is still ongoing
         download = self._dao.get_download(
             path=action.filepath.with_name(action.filename)
         )

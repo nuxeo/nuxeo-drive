@@ -215,25 +215,7 @@ class Remote(Nuxeo):
                 )
 
                 if digest:
-                    digester = get_digest_algorithm(digest)
-
-                    FileAction.finish_action()
-                    verif_action = VerificationAction(
-                        current_action.filepath,
-                        current_action.filename,
-                        reporter=QApplication.instance(),
-                    )
-
-                    def callback(path):
-                        verif_action.progress += FILE_BUFFER_SIZE
-
-                    computed_digest = compute_digest(
-                        file_out, digester, callback=callback
-                    )
-                    if digest != computed_digest:
-                        # Temp file and Download table entry will be deleted
-                        # by the calling method
-                        raise CorruptedFile(file_out, digest, computed_digest)
+                    self.check_integrity(digest, current_action)
             finally:
                 lock_path(file_out, locker)
                 del resp
@@ -242,6 +224,29 @@ class Remote(Nuxeo):
             result = resp.content
             del resp
             return result
+
+    def check_integrity(self, digest: str, download_action: DownloadAction) -> None:
+        """
+        Check the integrity of a downloaded file.
+
+        Update the progress of the verification during the computation of the digest.
+        """
+        digester = get_digest_algorithm(digest)
+        filepath = download_action.filepath
+
+        FileAction.finish_action()
+        verif_action = VerificationAction(
+            filepath, download_action.filename, reporter=QApplication.instance()
+        )
+
+        def callback(_):
+            verif_action.progress += FILE_BUFFER_SIZE
+
+        computed_digest = compute_digest(filepath, digester, callback=callback)
+        if digest != computed_digest:
+            # Temp file and Download table entry will be deleted
+            # by the calling method
+            raise CorruptedFile(filepath, digest, computed_digest)
 
     def upload(
         self,
@@ -300,6 +305,7 @@ class Remote(Nuxeo):
                 engine_uid = params.pop("engine_uid", None)
                 is_direct_edit = params.pop("is_direct_edit", False)
                 if not upload:
+                    # Add an upload entry in the database
                     upload = Upload(
                         None,
                         file_path,
@@ -326,13 +332,12 @@ class Remote(Nuxeo):
                         upload = self._dao.get_upload(path=file_path)
                         if upload and upload.status is not TransferStatus.ONGOING:
                             raise UploadPaused(upload.uid or -1)
-
-                        time.sleep(0.5)
                 else:
                     uploader.upload()
 
                 blob.fd.close()
 
+                # Transfer is completed, remove it from the database
                 self._dao.remove_transfer("upload", file_path)
 
                 upload_duration = int(time.time() - tick)
@@ -394,6 +399,7 @@ class Remote(Nuxeo):
         download_url = self.client.host + fs_item_info.download_url
         file_name = file_path.name
 
+        # Retrieve ongoing download if it exists
         download = self._dao.get_download(path=file_path)
         engine_uid = kwargs.pop("engine_uid", None)
         doc_pair_id = kwargs.pop("doc_pair_id", None)
@@ -410,6 +416,7 @@ class Remote(Nuxeo):
             file_out = file_path.with_name(name)
 
         if not download:
+            # Add a new download entry in the database
             download = Download(
                 None,
                 path=file_path,
@@ -447,6 +454,7 @@ class Remote(Nuxeo):
                 file_out.unlink()
             raise e
         else:
+            # Download completed, remove it from the database
             self._dao.remove_transfer("download", file_path)
         finally:
             FileAction.finish_action()

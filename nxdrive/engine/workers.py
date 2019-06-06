@@ -224,7 +224,7 @@ class EngineWorker(Worker):
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
     def remove_void_transfers(self, doc_pair: DocPair) -> None:
-        """ Remove paused uploads and downloads on the target doc pair. """
+        """ Remove uploads and downloads on the target doc pair. """
         if doc_pair.folderish:
             # Folderish documents don't use transfers
             return

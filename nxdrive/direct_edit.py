@@ -442,8 +442,8 @@ class DirectEdit(Worker):
         log.info(f"Editing {filename!r}")
         file_path = dir_path / filename
 
-        # Download the file
         DownloadAction(file_path, reporter=QApplication.instance())
+        # Add a new download entry in the database
         download = Download(
             None,
             path=file_path,
@@ -454,7 +454,9 @@ class DirectEdit(Worker):
         )
         engine.get_dao().save_download(download)
         try:
+            # Download the file
             tmp_file = self._download(engine, info, file_path, blob, xpath, url=url)
+            # Download completed, remove it from the database
             engine.get_dao().remove_transfer("download", file_path)
             if tmp_file is None:
                 log.warning("Download failed")

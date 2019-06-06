@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "PidLockFile",
+    "compute_digest",
     "compute_fake_pid_from_path",
     "compute_urls",
     "copy_to_clipboard",
@@ -1090,7 +1091,6 @@ def compute_digest(path: Path, digest_func: str, callback: Callable = None) -> s
     try:
         with safe_long_path(path).open(mode="rb") as f:
             while True:
-                # Check if synchronization thread was suspended
                 if callback:
                     callback(path)
                 buf = f.read(FILE_BUFFER_SIZE)
