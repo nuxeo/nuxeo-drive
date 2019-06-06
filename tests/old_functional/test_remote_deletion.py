@@ -80,12 +80,12 @@ class TestRemoteDeletion(OneUserTest):
         remote = self.remote_document_client_1
         self.engine_1.start()
 
-        def check_suspended(*_):
+        def callback(*_):
             """ Add delay when upload and download. """
             time.sleep(1)
             Engine.suspend_client(self.engine_1)
 
-        with patch.object(self.engine_1.remote, "check_suspended", new=check_suspended):
+        with patch.object(self.engine_1.remote, "download_callback", new=callback):
             # Create documents in the remote root workspace
             remote.make_folder("/", "Test folder")
             self.wait_sync(wait_for_async=True)
@@ -106,7 +106,7 @@ class TestRemoteDeletion(OneUserTest):
         local = self.local_1
         remote = self.remote_document_client_1
 
-        def check_suspended(*_):
+        def callback(*_):
             """ Add delay when upload and download. """
             if not self.engine_1.has_delete:
                 # Delete remote file while downloading
@@ -124,7 +124,7 @@ class TestRemoteDeletion(OneUserTest):
 
         filepath = self.location / "resources" / "testFile.pdf"
 
-        with patch.object(self.engine_1.remote, "check_suspended", new=check_suspended):
+        with patch.object(self.engine_1.remote, "download_callback", new=callback):
             remote.make_folder("/", "Test folder")
             remote.make_file("/Test folder", "testFile.pdf", filepath.read_bytes())
 

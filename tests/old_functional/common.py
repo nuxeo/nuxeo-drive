@@ -493,7 +493,7 @@ class TwoUsersTest(TestCase):
                     self.engine_1.get_queue_manager().requeue_errors
                 )
                 self.engine_2.syncPartialCompleted.connect(
-                    self.engine_1.get_queue_manager().requeue_errors
+                    self.engine_2.get_queue_manager().requeue_errors
                 )
                 self.connected = True
         elif self.connected:
@@ -501,7 +501,7 @@ class TwoUsersTest(TestCase):
                 self.engine_1.get_queue_manager().requeue_errors
             )
             self.engine_2.syncPartialCompleted.disconnect(
-                self.engine_1.get_queue_manager().requeue_errors
+                self.engine_2.get_queue_manager().requeue_errors
             )
             self.connected = False
 

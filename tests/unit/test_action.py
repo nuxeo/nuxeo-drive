@@ -17,7 +17,7 @@ def test_action():
 
     # Will test .get_percent()
     details = action.export()
-    assert details["last_transfer"] == "Testing"
+    assert details["action_type"] == "Testing"
     assert details["progress"] == 0.0
     assert isinstance(details["uid"], str)
 
@@ -46,7 +46,7 @@ def test_file_action(tmp):
 
     # Will test .get_percent()
     details = action.export()
-    assert details["last_transfer"] == "Mocking"
+    assert details["action_type"] == "Mocking"
     assert details["progress"] == 0.0
     assert isinstance(details["uid"], str)
     assert details["size"] == size
