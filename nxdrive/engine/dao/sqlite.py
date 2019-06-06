@@ -2008,6 +2008,7 @@ class EngineDAO(ConfigurationDAO):
                     download.url,
                 ),
             )
+            download.uid = c.lastrowid
         self.transferUpdated.emit()
 
     def save_upload(self, upload: Upload) -> None:
@@ -2027,6 +2028,7 @@ class EngineDAO(ConfigurationDAO):
                     upload.chunk_size,
                 ),
             )
+            upload.uid = c.lastrowid
         self.transferUpdated.emit()
 
     def pause_transfer(self, nature: str, uid: int) -> None:
