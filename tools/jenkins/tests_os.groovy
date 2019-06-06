@@ -168,7 +168,7 @@ node(slave) {
                 }
             } finally {
                 // We use catchError to not let notifiers and recorders change the current build status
-                catchError {
+                catchError(buildResult: null, message: "Error during archiving", stageResult: null) {
                     // Update GitHub status whatever the result
                     //github_status(currentBuild.result)
 
