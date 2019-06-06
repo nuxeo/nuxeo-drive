@@ -146,7 +146,10 @@ def test_get_arch():
     with patch.object(struct, "calcsize", return_value=12):
         assert nxdrive.utils.get_arch() == f"{12 * 8}-bit"
 
-    assert nxdrive.utils.get_arch() in {"32-bit", "64-bit"}
+    # Clear the LRU cache to revert previous cached value
+    nxdrive.utils.get_arch.cache_clear()
+
+    assert nxdrive.utils.get_arch() in ("32-bit", "64-bit")
 
 
 def test_get_certificate_details_from_file():
