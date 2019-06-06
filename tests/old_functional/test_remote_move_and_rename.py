@@ -611,7 +611,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         new_folder_id = remote.make_folder(self.folder_id, "New folder").uid
         self.wait_sync(wait_for_async=True)
 
-        def _suspend_check(*_):
+        def callback(*_):
             """ Add delay when upload and download. """
             if self.engine_1.file_id and not self.engine_1.has_rename:
                 # Rename remote file while downloading
@@ -624,7 +624,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         self.engine_1.file_id = None
 
         try:
-            self.engine_1.remote.check_suspended = _suspend_check
+            self.engine_1.remote.download_callback = callback
             content = (self.location / "resources" / "testFile.pdf").read_bytes()
             self.engine_1.file_id = remote.make_file(
                 self.folder_id, "testFile.pdf", content=content
@@ -635,7 +635,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
             assert not local.exists("/Test folder/testFile.pdf")
             assert local.exists("/Test folder/New folder/testFile.pdf")
         finally:
-            self.engine_1.remote.check_suspended = Engine.suspend_client
+            self.engine_1.remote.download_callback = Engine.suspend_client
 
     @windows_only
     def test_synchronize_remote_rename_file_while_accessing(self):
@@ -667,7 +667,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         local = self.local_1
         remote = self.remote_document_client_1
 
-        def check_suspended(*_):
+        def callback(*_):
             """ Add delay when upload and download. """
             if not self.engine_1.has_rename:
                 # Rename remote file while downloading
@@ -679,7 +679,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         self.engine_1.has_rename = False
 
         with patch.object(
-            self.engine_1.remote, "check_suspended", new_callable=check_suspended
+            self.engine_1.remote, "download_callback", new_callable=callback
         ):
             content = (self.location / "resources" / "testFile.pdf").read_bytes()
             remote.make_file("/Test folder", "testFile.pdf", content=content)
@@ -703,13 +703,13 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
     def _remote_rename_while_upload(self):
         local = self.local_1
 
-        def check_suspended(*_):
+        def callback(*_):
             """ Add delay when upload and download. """
             if not local.exists("/Test folder renamed"):
                 time.sleep(1)
             Engine.suspend_client(self.engine_1)
 
-        with patch.object(self.engine_1.remote, "check_suspended", new=check_suspended):
+        with patch.object(self.engine_1.remote, "download_callback", new=callback):
             # Create a document by streaming a binary file
             file_path = local.abspath("/Test folder") / "testFile.pdf"
             copyfile(self.location / "resources" / "testFile.pdf", file_path)

@@ -190,7 +190,7 @@ function check_vars {
 		$Env:ISCC_PATH = "C:\Program Files (x86)\Inno Setup 5"
 	}
 	if (-Not ($Env:SKIP)) {
-		$Env:ISCC_SKIPPATH = ""
+		$Env:SKIP = ""
 	}
 	if (-Not ($Env:PYTHON_DIR)) {
 		$ver_major, $ver_minor = $Env:PYTHON_DRIVE_VERSION.split('.')[0,1]
