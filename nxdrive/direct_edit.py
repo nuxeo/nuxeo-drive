@@ -29,8 +29,9 @@ from .constants import (
     DOWNLOAD_TMP_FILE_SUFFIX,
     ROOT,
     WINDOWS,
+    TransferStatus,
 )
-from .engine.activity import tooltip, FileAction
+from .engine.activity import tooltip, DownloadAction, FileAction
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
@@ -41,7 +42,7 @@ from .exceptions import (
     ThreadInterrupt,
     UnknownDigest,
 )
-from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
+from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo, Download
 from .utils import (
     current_milli_time,
     force_decode,
@@ -106,6 +107,7 @@ class DirectEdit(Worker):
 
         self.thread.started.connect(self.run)
         self.autolock.orphanLocks.connect(self._autolock_orphans)
+        self._manager.directEdit.connect(self.edit)
 
     @pyqtSlot(object)
     def _autolock_orphans(self, locks: List[Path]) -> None:
@@ -320,16 +322,16 @@ class DirectEdit(Worker):
             if url:
                 engine.remote.download(
                     quote(url, safe="/:"),
-                    file_out=file_out,
+                    file_out,
                     digest=blob.digest,
-                    check_suspended=self.stop_client,
+                    callback=self.stop_client,
                 )
             else:
                 engine.remote.get_blob(
                     info,
                     xpath=xpath,
                     file_out=file_out,
-                    check_suspended=self.stop_client,
+                    callback=self.stop_client,
                     **kwargs,
                 )
         return file_out
@@ -440,10 +442,22 @@ class DirectEdit(Worker):
         log.info(f"Editing {filename!r}")
         file_path = dir_path / filename
 
-        # Download the file
-        FileAction("Download", file_path, size=0, reporter=QApplication.instance())
+        DownloadAction(file_path, reporter=QApplication.instance())
+        # Add a new download entry in the database
+        download = Download(
+            None,
+            path=file_path,
+            status=TransferStatus.ONGOING,
+            url=url,
+            is_direct_edit=True,
+            engine=engine.uid,
+        )
+        engine.get_dao().save_download(download)
         try:
+            # Download the file
             tmp_file = self._download(engine, info, file_path, blob, xpath, url=url)
+            # Download completed, remove it from the database
+            engine.get_dao().remove_transfer("download", file_path)
             if tmp_file is None:
                 log.warning("Download failed")
                 return None
@@ -490,6 +504,7 @@ class DirectEdit(Worker):
         self.openDocument.emit(filename)
         return file_path
 
+    @pyqtSlot(str, str, str, str)
     def edit(
         self, server_url: str, doc_id: str, user: str = None, download_url: str = None
     ) -> None:
@@ -693,13 +708,15 @@ class DirectEdit(Worker):
                     kwargs: Dict[str, Any] = {"applyVersioningPolicy": True}
                     cmd = "NuxeoDrive.AttachBlob"
                 else:
-                    kwargs = {"xpath": xpath}
+                    kwargs = {"xpath": xpath, "void_op": True}
                     cmd = "Blob.AttachOnDocument"
 
                 remote.upload(
                     os_path,
                     command=cmd,
                     document=remote._check_ref(details.uid),
+                    engine_uid=engine.uid,
+                    is_direct_edit=True,
                     **kwargs,
                 )
 

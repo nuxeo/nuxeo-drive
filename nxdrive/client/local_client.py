@@ -19,21 +19,20 @@ from typing import Any, List, Optional, Tuple, Union
 from send2trash import send2trash
 from send2trash.exceptions import TrashPermissionError
 
-from nuxeo.utils import get_digest_algorithm, get_digest_hash
+from nuxeo.utils import get_digest_algorithm
 
 from ..constants import (
     DOWNLOAD_TMP_FILE_PREFIX,
     DOWNLOAD_TMP_FILE_SUFFIX,
-    FILE_BUFFER_SIZE,
     LINUX,
     MAC,
     ROOT,
-    UNACCESSIBLE_HASH,
     WINDOWS,
 )
 from ..exceptions import DuplicationDisabledError, NotFound, UnknownDigest
 from ..options import Options
 from ..utils import (
+    compute_digest,
     force_decode,
     lock_path,
     normalized_path,
@@ -73,7 +72,7 @@ class FileInfo:
     ) -> None:
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.check_suspended = kwargs.pop("check_suspended", None)
+        self.digest_callback = kwargs.pop("digest_callback", None)
         self.size = kwargs.pop("size", 0)
         filepath = root / path
         self.path = Path(unicodedata.normalize("NFC", str(path)))
@@ -111,25 +110,7 @@ class FileInfo:
             return None
 
         digest_func = str(digest_func or self._digest_func)
-        h = get_digest_hash(digest_func)
-        if h is None:
-            raise UnknownDigest(digest_func)
-
-        try:
-            with safe_long_path(self.filepath).open(mode="rb") as f:
-                while True:
-                    # Check if synchronization thread was suspended
-                    if self.check_suspended:
-                        self.check_suspended(f"Digest computation: {self.filepath}")
-                    buf = f.read(FILE_BUFFER_SIZE)
-                    if not buf:
-                        break
-                    h.update(buf)
-        except (OSError, MemoryError):
-            # MemoryError happens randomly, dunno why but this is
-            # not an issue as the hash will be recomputed later
-            return UNACCESSIBLE_HASH
-        return h.hexdigest()
+        return compute_digest(self.filepath, digest_func, callback=self.digest_callback)
 
 
 class LocalClient:
@@ -141,7 +122,7 @@ class LocalClient:
         self._digest_func = kwargs.pop("digest_func", "md5")
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
-        self.check_suspended = kwargs.pop("check_suspended", None)
+        self.digest_callback = kwargs.pop("digest_callback", None)
         self.base_folder = base_folder.resolve()
 
         self.is_case_sensitive()
@@ -437,7 +418,7 @@ FolderType=Generic
             folderish,
             mtime,
             digest_func=self._digest_func,
-            check_suspended=self.check_suspended,
+            digest_callback=self.digest_callback,
             remote_ref=remote_ref,
             size=size,
         )

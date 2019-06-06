@@ -92,11 +92,12 @@ class RemoteWatcher(EngineWorker):
                 return
 
             remote_info = self.engine.remote.get_fs_info(from_state.remote_ref)
-            self._dao.update_remote_state(
+            if self._dao.update_remote_state(
                 from_state,
                 remote_info,
                 remote_parent_path=from_state.remote_parent_path,
-            )
+            ):
+                self.remove_void_transfers(from_state)
         except NotFound:
             log.info(f"Marking {from_state!r} as remotely deleted")
             # Should unbind ?
@@ -279,7 +280,8 @@ class RemoteWatcher(EngineWorker):
                     descendant_pair = descendants.pop(descendant_info.uid)
                     if self._check_modified(descendant_pair, descendant_info):
                         descendant_pair.remote_state = "modified"
-                    self._dao.update_remote_state(descendant_pair, descendant_info)
+                    if self._dao.update_remote_state(descendant_pair, descendant_info):
+                        self.remove_void_transfers(descendant_pair)
                     continue
 
                 parent_pair = self._dao.get_normal_state_from_remote(
@@ -370,9 +372,10 @@ class RemoteWatcher(EngineWorker):
                 child_pair = children.pop(child_info.uid)
                 if self._check_modified(child_pair, child_info):
                     child_pair.remote_state = "modified"
-                self._dao.update_remote_state(
+                if self._dao.update_remote_state(
                     child_pair, child_info, remote_parent_path=remote_parent_path
-                )
+                ):
+                    self.remove_void_transfers(child_pair)
             else:
                 match_pair = self._find_remote_child_match_or_create(
                     doc_pair, child_info
@@ -475,6 +478,7 @@ class RemoteWatcher(EngineWorker):
                     if child_pair.local_path != local_path:
                         child_pair.local_state = "moved"
                         child_pair.remote_state = "unknown"
+                        self.remove_void_transfers(child_pair)
                         local_info = self.engine.local.get_info(child_pair.local_path)
                         self._dao.update_local_state(child_pair, local_info)
                         self._dao.update_remote_state(
@@ -527,9 +531,10 @@ class RemoteWatcher(EngineWorker):
                             self._dao.queue_children(child_pair)
                 else:
                     child_pair.remote_state = "modified"
-                    self._dao.update_remote_state(
+                    if self._dao.update_remote_state(
                         child_pair, child_info, remote_parent_path=remote_parent_path
-                    )
+                    ):
+                        self.remove_void_transfers(child_pair)
                 child_pair = self._dao.get_state_from_id(child_pair.id, from_write=True)
                 return (child_pair, False) if child_pair else None
         row_id = self._dao.insert_remote_state(
@@ -758,6 +763,7 @@ class RemoteWatcher(EngineWorker):
                         if doc_pair.last_error == "DEDUP":
                             log.info(f"Delete pair from duplicate: {doc_pair!r}")
                             self._dao.remove_state(doc_pair, remote_recursion=True)
+                            self.remove_void_transfers(doc_pair)
                             continue
                         log.info(f"Push doc_pair {doc_pair_repr!r} in delete queue")
                         delete_queue.append(doc_pair)
@@ -860,12 +866,13 @@ class RemoteWatcher(EngineWorker):
                         remote_parent_path = os.path.dirname(new_info.path)
                         # TODO Add modify local_path and local_parent_path
                         # if needed
-                        self._dao.update_remote_state(
+                        if self._dao.update_remote_state(
                             doc_pair,
                             new_info,
                             remote_parent_path=remote_parent_path,
                             force_update=lock_update,
-                        )
+                        ):
+                            self.remove_void_transfers(doc_pair)
 
                         if doc_pair.folderish:
                             if (

@@ -23,6 +23,7 @@ from ..constants import (
     NO_SPACE_ERRORS,
     UNACCESSIBLE_HASH,
     WINDOWS,
+    TransferStatus,
 )
 from ..exceptions import (
     DuplicationDisabledError,
@@ -31,6 +32,8 @@ from ..exceptions import (
     ParentNotSynced,
     ThreadInterrupt,
     UnknownDigest,
+    DownloadPaused,
+    UploadPaused,
 )
 from ..objects import DocPair, RemoteFileInfo
 from ..utils import (
@@ -50,7 +53,8 @@ log = getLogger(__name__)
 
 
 class Processor(EngineWorker):
-    pairSync = pyqtSignal(object)
+    pairSyncStarted = pyqtSignal(object)
+    pairSyncEnded = pyqtSignal(object)
     path_locker = Lock()
     soft_locks: Dict[str, Dict[Path, bool]] = dict()
     readonly_locks: Dict[str, Dict[Path, List[int]]] = dict()
@@ -242,6 +246,16 @@ class Processor(EngineWorker):
                     # in the current synchronization
                     doc_pair.local_parent_path = parent_pair.local_path
 
+                # Skip files in process
+                download = self.engine.get_dao().get_download(doc_pair=doc_pair.id)
+                if download and download.status is not TransferStatus.ONGOING:
+                    log.info(f"Download is paused for {doc_pair!r}")
+                    continue
+                upload = self.engine.get_dao().get_upload(doc_pair=doc_pair.id)
+                if upload and upload.status is not TransferStatus.ONGOING:
+                    log.info(f"Upload is paused for {doc_pair!r}")
+                    continue
+
                 handler_name = f"_synchronize_{doc_pair.pair_state}"
                 sync_handler = getattr(self, handler_name, None)
                 if not sync_handler:
@@ -258,154 +272,153 @@ class Processor(EngineWorker):
                 }
                 log.debug(f"Calling {handler_name}() on doc pair {doc_pair!r}")
 
-                try:
-                    soft_lock = self._lock_soft_path(doc_pair.local_path)
-                    sync_handler(doc_pair)
-                    self._current_metrics["end_time"] = current_milli_time()
+                self.pairSyncStarted.emit(self._current_metrics)
+                soft_lock = self._lock_soft_path(doc_pair.local_path)
+                sync_handler(doc_pair)
+                self._current_metrics["end_time"] = current_milli_time()
 
-                    pair = self._dao.get_state_from_id(doc_pair.id)
-                    if pair and "deleted" not in pair.pair_state:
-                        self.engine.manager.osi.send_sync_status(
-                            pair, self.local.abspath(pair.local_path)
-                        )
-
-                    self.pairSync.emit(self._current_metrics)
-                except ThreadInterrupt:
-                    raise
-                except NotFound:
-                    log.warning(
-                        f"The document or its parent does not exist anymore: {doc_pair!r}"
+                pair = self._dao.get_state_from_id(doc_pair.id)
+                if pair and "deleted" not in pair.pair_state:
+                    self.engine.manager.osi.send_sync_status(
+                        pair, self.local.abspath(pair.local_path)
                     )
-                    continue
-                except Unauthorized:
-                    self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
-                    continue
-                except (PairInterrupt, ParentNotSynced) as exc:
-                    log.info(
-                        f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue"
-                    )
-                    sleep(1)
-                    self.engine.get_queue_manager().push(doc_pair)
-                    continue
-                except CONNECTION_ERROR:
-                    # TODO:
-                    #  Add detection for server unavailability to stop all sync
-                    #  instead of putting files in error
-                    self._postpone_pair(doc_pair, "CONNECTION_ERROR")
-                except HTTPError as exc:
-                    if exc.status == 404:
-                        # We saw it happened once a migration is done.
-                        # Nuxeo kept the document reference but it does
-                        # not exist physically anywhere.
-                        log.info(f"The document does not exist anymore: {doc_pair!r}")
-                        self._dao.remove_state(doc_pair)
-                    elif exc.status == 409:  # Conflict
-                        # It could happen on multiple files drag'n drop
-                        # starting with identical characters.
-                        log.warning(f"Delaying conflicted document: {doc_pair!r}")
-                        self._postpone_pair(doc_pair, "Conflict")
-                    elif exc.status == 500:
-                        self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
-                    elif exc.status in {502, 503}:
-                        log.warning("Server is unavailable", exc_info=True)
-                        self._postpone_pair(doc_pair, "Server unavailable")
-                    else:
-                        error = f"{handler_name}_http_error_{exc.status}"
-                        self._handle_pair_handler_exception(doc_pair, error, exc)
-                    continue
-                except UploadError as exc:
-                    log.info(exc)
-                    log.warning(f"Delaying conflicted document: {doc_pair!r}")
-                    self._postpone_pair(doc_pair, "Upload")
-                except DuplicationDisabledError:
-                    self.giveup_error(doc_pair, "DEDUP")
-                    continue
-                except CorruptedFile as exc:
-                    self.increase_error(doc_pair, "CORRUPT", exception=exc)
-                    continue
-                except UnknownDigest as exc:
-                    log.info(
-                        f"The document's digest has no corresponding algorithm: {doc_pair!r}"
-                    )
-                    self.giveup_error(doc_pair, "UNKNOWN_DIGEST", exception=exc)
-                    continue
-                except PermissionError:
-                    """
-                    WindowsError: [Error 32] The process cannot access the
-                    file because it is being used by another process
-                    """
-                    log.info(
-                        "Document used by another software, delaying "
-                        f"action({doc_pair.pair_state}) "
-                        f"on {doc_pair.local_path!r}, ref={doc_pair.remote_ref!r}"
-                    )
-                    self.engine.errorOpenedFile.emit(doc_pair)
-                    self._postpone_pair(doc_pair, "Used by another process")
-                except OSError as exc:
-                    # Try to handle different kind of Windows error
-                    error = getattr(exc, "winerror", exc.errno)
 
-                    if error in {2, 3}:
-                        """
-                        WindowsError: [Error 2] The specified file is not found
-                        WindowsError: [Error 3] The system cannot find the file specified
-                        """
-                        log.info(f"The document does not exist anymore:{doc_pair!r}")
-                        self._dao.remove_state(doc_pair)
-                    elif error in {36, 111, 121, 124, 206, 1223}:
-                        """
-                        OSError: [Errno 36] Filename too long
-                        Cause: on GNU/Linux, filename is restricted to 255 chars
-                        or even worse: 143 if using encryptFS
-
-                        WindowsError: [Error 111] ??? (seems related to deep
-                        tree)
-                        Cause: short paths are disabled on Windows
-
-                        WindowsError: [Error 121] The source or destination
-                        path exceeded or would exceed MAX_PATH.
-                        Cause: short paths are disabled on Windows
-
-                        WindowsError: [Error 124] The path in the source or
-                        destination or both was invalid.
-                        Cause: dealing with different drives, ie when the sync
-                        folder is not on the same drive as Nuxeo Drive one
-
-                        WindowsError: [Error 206] The filename or extension is
-                        too long.
-                        Cause: even the full short path is too long
-
-                        OSError: Couldn't perform operation. Error code: 1223
-                        Seems related to long paths
-                        """
-                        self._dao.remove_filter(
-                            doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
-                        )
-                        self.engine.longPathError.emit(doc_pair)
-                    elif hasattr(exc, "trash_issue"):
-                        """
-                        Special value to handle trash issues from filters on
-                        Windows when there is one or more files opened by
-                        another software blocking any action.
-                        """
-                        self.engine.errorOpenedFile.emit(doc_pair)
-                        self._postpone_pair(doc_pair, "Trashing not possible")
-                    else:
-                        self._handle_pair_handler_exception(doc_pair, handler_name, exc)
-                    continue
-                except Exception as exc:
-                    # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
-                    sys.excepthook(*sys.exc_info())  # type: ignore
-
-                    self._handle_pair_handler_exception(doc_pair, handler_name, exc)
-                    continue
+                self.pairSyncEnded.emit(self._current_metrics)
             except ThreadInterrupt:
                 self.engine.get_queue_manager().push(doc_pair)
                 raise
+            except NotFound:
+                log.warning(
+                    f"The document or its parent does not exist anymore: {doc_pair!r}"
+                )
+                continue
+            except Unauthorized:
+                self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
+                continue
+            except (PairInterrupt, ParentNotSynced) as exc:
+                log.info(f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue")
+                sleep(1)
+                self.engine.get_queue_manager().push(doc_pair)
+                continue
+            except CONNECTION_ERROR:
+                # TODO:
+                #  Add detection for server unavailability to stop all sync
+                #  instead of putting files in error
+                self._postpone_pair(doc_pair, "CONNECTION_ERROR")
+            except HTTPError as exc:
+                if exc.status == 404:
+                    # We saw it happened once a migration is done.
+                    # Nuxeo kept the document reference but it does
+                    # not exist physically anywhere.
+                    log.info(f"The document does not exist anymore: {doc_pair!r}")
+                    self._dao.remove_state(doc_pair)
+                elif exc.status == 409:  # Conflict
+                    # It could happen on multiple files drag'n drop
+                    # starting with identical characters.
+                    log.warning(f"Delaying conflicted document: {doc_pair!r}")
+                    self._postpone_pair(doc_pair, "Conflict")
+                elif exc.status == 500:
+                    self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
+                elif exc.status in {502, 503}:
+                    log.warning("Server is unavailable", exc_info=True)
+                    self._postpone_pair(doc_pair, "Server unavailable")
+                else:
+                    error = f"{handler_name}_http_error_{exc.status}"
+                    self._handle_pair_handler_exception(doc_pair, error, exc)
+                continue
+            except UploadError as exc:
+                log.info(exc)
+                log.warning(f"Delaying failed upload: {doc_pair!r}")
+                self._postpone_pair(doc_pair, "Upload")
+            except (DownloadPaused, UploadPaused) as exc:
+                nature = "download" if isinstance(exc, DownloadPaused) else "upload"
+                log.info(f"Pausing {nature} {exc.transfer_id!r}")
+                self.engine.get_dao().set_transfer_doc(
+                    nature, exc.transfer_id, self.engine.uid, doc_pair.id
+                )
+                continue
+            except DuplicationDisabledError:
+                self.giveup_error(doc_pair, "DEDUP")
+                continue
+            except CorruptedFile as exc:
+                self.increase_error(doc_pair, "CORRUPT", exception=exc)
+                continue
+            except UnknownDigest as exc:
+                log.info(
+                    f"The document's digest has no corresponding algorithm: {doc_pair!r}"
+                )
+                self.giveup_error(doc_pair, "UNKNOWN_DIGEST", exception=exc)
+                continue
+            except PermissionError:
+                """
+                WindowsError: [Error 32] The process cannot access the
+                file because it is being used by another process
+                """
+                log.info(
+                    "Document used by another software, delaying "
+                    f"action({doc_pair.pair_state}) "
+                    f"on {doc_pair.local_path!r}, ref={doc_pair.remote_ref!r}"
+                )
+                self.engine.errorOpenedFile.emit(doc_pair)
+                self._postpone_pair(doc_pair, "Used by another process")
+            except OSError as exc:
+                # Try to handle different kind of Windows error
+                error = getattr(exc, "winerror", exc.errno)
+
+                if error in {2, 3}:
+                    """
+                    WindowsError: [Error 2] The specified file is not found
+                    WindowsError: [Error 3] The system cannot find the file specified
+                    """
+                    log.info(f"The document does not exist anymore:{doc_pair!r}")
+                    self._dao.remove_state(doc_pair)
+                elif error in {36, 111, 121, 124, 206, 1223}:
+                    """
+                    OSError: [Errno 36] Filename too long
+                    Cause: on GNU/Linux, filename is restricted to 255 chars
+                    or even worse: 143 if using encryptFS
+
+                    WindowsError: [Error 111] ??? (seems related to deep
+                    tree)
+                    Cause: short paths are disabled on Windows
+
+                    WindowsError: [Error 121] The source or destination
+                    path exceeded or would exceed MAX_PATH.
+                    Cause: short paths are disabled on Windows
+
+                    WindowsError: [Error 124] The path in the source or
+                    destination or both was invalid.
+                    Cause: dealing with different drives, ie when the sync
+                    folder is not on the same drive as Nuxeo Drive one
+
+                    WindowsError: [Error 206] The filename or extension is
+                    too long.
+                    Cause: even the full short path is too long
+
+                    OSError: Couldn't perform operation. Error code: 1223
+                    Seems related to long paths
+                    """
+                    self._dao.remove_filter(
+                        doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
+                    )
+                    self.engine.longPathError.emit(doc_pair)
+                elif hasattr(exc, "trash_issue"):
+                    """
+                    Special value to handle trash issues from filters on
+                    Windows when there is one or more files opened by
+                    another software blocking any action.
+                    """
+                    self.engine.errorOpenedFile.emit(doc_pair)
+                    self._postpone_pair(doc_pair, "Trashing not possible")
+                else:
+                    self._handle_pair_handler_exception(doc_pair, handler_name, exc)
+                continue
             except Exception as exc:
-                log.exception("Pair error")
-                self.increase_error(doc_pair, "EXCEPTION", exception=exc)
-                raise exc
+                # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
+                sys.excepthook(*sys.exc_info())  # type: ignore
+
+                self._handle_pair_handler_exception(doc_pair, handler_name, exc)
+                continue
             finally:
                 if soft_lock:
                     self._unlock_soft_path(soft_lock)
@@ -975,7 +988,11 @@ class Processor(EngineWorker):
             return file_out
 
         tmp_file = self.remote.stream_content(
-            doc_pair.remote_ref, file_path, parent_fs_item_id=doc_pair.remote_parent_ref
+            doc_pair.remote_ref,
+            file_path,
+            parent_fs_item_id=doc_pair.remote_parent_ref,
+            engine_uid=self.engine.uid,
+            doc_pair_id=doc_pair.id,
         )
         self._update_speed_metrics()
         return tmp_file

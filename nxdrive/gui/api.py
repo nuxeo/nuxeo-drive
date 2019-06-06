@@ -7,6 +7,7 @@ from os.path import abspath
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
+from dataclasses import asdict
 from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
@@ -207,6 +208,39 @@ class QMLDriveApi(QObject):
             if isinstance(action, FileAction):
                 result.append(action.export())
         return result
+
+    @pyqtSlot(result=list)
+    def get_transfers(self) -> List[Dict[str, Any]]:
+        result: List[Dict[str, Any]] = []
+
+        engines = self._manager.get_engines().values()
+
+        for engine in engines:
+            for download in engine.get_dao().get_downloads():
+                result.append(asdict(download))
+            for upload in engine.get_dao().get_uploads():
+                result.append(asdict(upload))
+        return result
+
+    @pyqtSlot(str, str, int, float)
+    def pause_transfer(
+        self, nature: str, engine_uid: str, transfer_uid: int, progress: float
+    ) -> None:
+        """Pause a given transfer. *nature* is either downloads or upload."""
+        log.info(f"Pausing {nature} {transfer_uid} for engine {engine_uid!r}")
+        engine = self._get_engine(engine_uid)
+        if not engine:
+            return
+        engine.get_dao().pause_transfer(nature, transfer_uid)
+
+    @pyqtSlot(str, str, int)
+    def resume_transfer(self, nature: str, engine_uid: str, uid: int) -> None:
+        """Resume a given transfer. *nature* is either downloads or upload."""
+        log.info(f"Resume {nature} {uid} for engine {engine_uid!r}")
+        engine = self._get_engine(engine_uid)
+        if not engine:
+            return
+        engine.resume_transfer(nature, uid)
 
     @pyqtSlot(str, result=str)
     def get_threads(self, uid: str) -> str:

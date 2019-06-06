@@ -26,6 +26,67 @@ BAD_HOSTNAMES = [
 
 
 @pytest.mark.parametrize(
+    "size, digest_func, result",
+    [
+        (0, "md5", "d41d8cd98f00b204e9800998ecf8427e"),  # 0b
+        (1, "md5", "cfcd208495d565ef66e7dff9f98764da"),
+        (10, "md5", "f1b708bba17f1ce948dc979f4d7092bc"),
+        (100, "md5", "c88a1ec806fc879d1dcc0a666a8d7e36"),
+        (1000, "md5", "88bb69a5d5e02ec7af5f68d82feb1f1d"),
+        (1_000_000, "md5", "2f54d66538c094bf229e89ed0667b6fd"),  # 1Mb
+        (50_000_000, "md5", "863f3ed728e4ef9afa7de307f09f1bd1"),  # 50Mb
+    ],
+)
+def test_compute_digest(tmp, size, digest_func, result):
+    func = nxdrive.utils.compute_digest
+
+    folder = tmp()
+    folder.mkdir()
+
+    file = folder / f"{size}.bin"
+    file.touch()
+    file.write_bytes(b"0" * size)
+
+    assert func(file, digest_func) == result
+
+
+def test_compute_digest_with_callback(tmp):
+    from nxdrive.constants import FILE_BUFFER_SIZE
+
+    folder = tmp()
+    folder.mkdir()
+
+    file = folder / "file.bin"
+    file.touch()
+    file.write_bytes(b"0" * 4 * FILE_BUFFER_SIZE)
+
+    def callback(*_):
+        nonlocal called
+        called += 1
+
+    called = 0
+    nxdrive.utils.compute_digest(file, "md5", callback=callback)
+    assert called == 5
+
+
+def test_compute_digest_unknown():
+    from nxdrive.exceptions import UnknownDigest
+
+    with pytest.raises(UnknownDigest):
+        nxdrive.utils.compute_digest("no_file", "unknown_digest_func")
+
+
+def test_compute_digest_error(tmp):
+    from nxdrive.constants import UNACCESSIBLE_HASH
+
+    folder = tmp()
+    folder.mkdir()
+
+    digest = nxdrive.utils.compute_digest(folder / "ghost file.secret", "md5")
+    assert digest == UNACCESSIBLE_HASH
+
+
+@pytest.mark.parametrize(
     "path, pid",
     [
         ("/Users/Bob/Documents/Sans%20titre-1.psd", 1_868_982_964),

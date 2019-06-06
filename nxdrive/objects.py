@@ -9,10 +9,11 @@ from sqlite3 import Row
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dateutil import parser
 from dateutil.tz import tzlocal
 
+from .constants import TransferStatus
 from .exceptions import DriveError
 from .translator import Translator
 from .utils import get_date_from_sqlite, get_timestamp_from_date
@@ -399,3 +400,33 @@ class EngineDef(Row):
             if name == "local_folder":
                 return Path(self[name])
             return self[name]
+
+
+@dataclass
+class Transfer:
+    uid: Optional[int]
+    path: Path
+    name: str = field(init=False)
+    status: TransferStatus
+    engine: str
+    is_direct_edit: bool = False
+    progress: float = 0.0
+    doc_pair: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        self.name = self.path.name
+
+
+@dataclass
+class Download(Transfer):
+    transfer_type: str = field(init=False, default="download")
+    tmpname: Optional[str] = None
+    url: Optional[str] = None
+
+
+@dataclass
+class Upload(Transfer):
+    transfer_type: str = field(init=False, default="upload")
+    batch: Optional[str] = None
+    idx: Optional[int] = None
+    chunk_size: Optional[int] = None

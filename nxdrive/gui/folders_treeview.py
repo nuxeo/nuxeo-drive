@@ -249,7 +249,7 @@ class FolderTreeview(QTreeView):
 
 class ContentLoader(QRunnable):
     def __init__(self, tree: FolderTreeview, item: QStandardItemModel = None) -> None:
-        super(ContentLoader, self).__init__()
+        super().__init__()
         self.tree = tree
         self.item = item or self.tree.model().invisibleRootItem()
         self.info: Optional[FsFileInfo] = None

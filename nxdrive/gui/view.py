@@ -36,7 +36,7 @@ class EngineModel(QAbstractListModel):
     ACCOUNT_ROLE = Qt.UserRole + 7
 
     def __init__(self, application: "Application", parent: QObject = None) -> None:
-        super(EngineModel, self).__init__(parent)
+        super().__init__(parent)
         self.application = application
         self.engines_uid: List[str] = []
         self.names = {
@@ -129,91 +129,76 @@ class EngineModel(QAbstractListModel):
         self.statusChanged.emit(engine)
 
 
-class ActionModel(QAbstractListModel):
+class TransferModel(QAbstractListModel):
     fileChanged = pyqtSignal()
 
     ID = Qt.UserRole + 1
     NAME = Qt.UserRole + 2
-    LAST_TRANSFER = Qt.UserRole + 3
+    STATUS = Qt.UserRole + 3
     PROGRESS = Qt.UserRole + 4
+    TYPE = Qt.UserRole + 5
+    ENGINE = Qt.UserRole + 6
+    IS_DIRECT_EDIT = Qt.UserRole + 7
+    VERIFYING = Qt.UserRole + 8
 
     def __init__(self, parent: QObject = None) -> None:
-        super(ActionModel, self).__init__(parent)
-        self.actions: List[Dict[str, Any]] = []
-
-    def roleNames(self) -> Dict[int, bytes]:
-        return {
+        super().__init__(parent)
+        self.transfers: List[Dict[str, Any]] = []
+        self.names = {
             self.ID: b"uid",
             self.NAME: b"name",
-            self.LAST_TRANSFER: b"last_transfer",
+            self.STATUS: b"status",
             self.PROGRESS: b"progress",
+            self.TYPE: b"transfer_type",
+            self.ENGINE: b"engine",
+            self.IS_DIRECT_EDIT: b"is_direct_edit",
+            self.VERIFYING: b"verifying",
         }
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return self.names
 
     @pyqtProperty("int", notify=fileChanged)
     def count(self):
         return self.rowCount()
 
     def rowCount(self, parent: QModelIndex = QModelIndex(), **kwargs: Any) -> int:
-        return len(self.actions)
+        return len(self.transfers)
 
-    def add_action(
-        self, action: Dict[str, Any], parent: QModelIndex = QModelIndex()
+    def set_transfers(
+        self, transfers: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
     ) -> None:
-        self.beginInsertRows(parent, 0, 0)
-        self.actions.insert(0, action)
-        self.fileChanged.emit()
-        self.endInsertRows()
-
-    def set_actions(
-        self, actions: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
-    ) -> None:
-        self.beginRemoveRows(parent, 0, len(self.actions) - 1)
-        self.actions.clear()
+        self.beginRemoveRows(parent, 0, len(self.transfers) - 1)
+        self.transfers.clear()
         self.endRemoveRows()
-        self.beginInsertRows(parent, 0, len(actions) - 1)
-        self.actions.extend(actions)
+        self.beginInsertRows(parent, 0, len(transfers) - 1)
+        self.transfers.extend(transfers)
         self.fileChanged.emit()
         self.endInsertRows()
 
     def data(self, index: QModelIndex, role: int = NAME) -> Any:
-        row = self.actions[index.row()]
-        if role == self.ID:
-            return row["uid"]
-        elif role == self.NAME:
-            return row["name"]
-        elif role == self.LAST_TRANSFER:
-            return row["last_transfer"]
-        elif role == self.PROGRESS:
-            return row["progress"]
-        return ""
+        row = self.transfers[index.row()]
+        if role == self.STATUS:
+            return row["status"].name
+        if role == self.VERIFYING:
+            return row.get("verifying", False)
+        return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
         if role is None:
             return
         key = force_decode(self.roleNames()[role])
-        self.actions[index.row()][key] = value
+        self.transfers[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
-
-    def remove_action(
-        self, action: Dict[str, Any], parent: QModelIndex = QModelIndex()
-    ) -> bool:
-        try:
-            for i, item in enumerate(self.actions):
-                if item["uid"] == action["uid"]:
-                    self.beginRemoveRows(parent, i, i)
-                    self.actions.remove(self.actions[i])
-                    self.fileChanged.emit()
-                    self.endRemoveRows()
-                    break
-            return True
-        except Exception:
-            return False
 
     @pyqtSlot(dict)
     def set_progress(self, action: Dict[str, Any]) -> None:
-        for i, item in enumerate(self.actions):
-            if item["uid"] == action["uid"]:
-                self.setData(self.createIndex(i, 0), action["progress"], self.PROGRESS)
+        for i, item in enumerate(self.transfers):
+            if item["name"] == action["name"]:
+                idx = self.createIndex(i, 0)
+                self.setData(idx, action["progress"], self.PROGRESS)
+                if action["action_type"] == "Verification":
+                    self.setData(idx, True, self.VERIFYING)
                 break
 
     def flags(self, index: QModelIndex):
@@ -240,7 +225,7 @@ class FileModel(QAbstractListModel):
     SIZE = Qt.UserRole + 15
 
     def __init__(self, parent: QObject = None) -> None:
-        super(FileModel, self).__init__(parent)
+        super().__init__(parent)
         self.files: List[Dict[str, Any]] = []
         self.names = {
             self.ID: b"id",
@@ -339,7 +324,7 @@ class LanguageModel(QAbstractListModel):
     TAG_ROLE = Qt.UserRole + 2
 
     def __init__(self, parent: QObject = None) -> None:
-        super(LanguageModel, self).__init__(parent)
+        super().__init__(parent)
         self.languages: List[Tuple[str, str]] = []
 
     def roleNames(self) -> Dict[int, bytes]:

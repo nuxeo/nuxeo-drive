@@ -24,10 +24,19 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 from .utils import fix_db, restore_backup, save_backup
 from ...client.local_client import FileInfo
-from ...constants import NO_SPACE_ERRORS, ROOT, WINDOWS
+from ...constants import NO_SPACE_ERRORS, ROOT, WINDOWS, TransferStatus
 from ...exceptions import UnknownPairState
 from ...notification import Notification
-from ...objects import DocPair, DocPairs, Filters, RemoteFileInfo, EngineDef
+from ...objects import (
+    DocPair,
+    DocPairs,
+    Filters,
+    RemoteFileInfo,
+    EngineDef,
+    Transfer,
+    Download,
+    Upload,
+)
 
 if TYPE_CHECKING:
     from ..queue_manager import QueueManager  # noqa
@@ -178,6 +187,12 @@ class ConfigurationDAO(QObject):
                 "INSERT INTO Configuration (name, value) VALUES (?, ?)",
                 (SCHEMA_VERSION, self.schema_version),
             )
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__} db={self._db!r}, exists={self._db.exists()}>"
+
+    def __str__(self) -> str:
+        return repr(self)
 
     def restore_backup(self) -> bool:
         try:
@@ -592,6 +607,7 @@ class EngineDAO(ConfigurationDAO):
     _queue_manager: Optional["QueueManager"] = None
 
     newConflict = pyqtSignal(object)
+    transferUpdated = pyqtSignal()
 
     def __init__(self, db: Path, state_factory: Type[DocPair] = None) -> None:
         if state_factory:
@@ -605,7 +621,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 4
+        return 5
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -646,12 +662,47 @@ class EngineDAO(ConfigurationDAO):
             self._migrate_state(cursor)
             cursor.execute("UPDATE States SET creation_date = last_remote_updated")
             self.store_int(SCHEMA_VERSION, 4)
+        if version < 5:
+            self._create_transfer_tables(cursor)
+            self.store_int(SCHEMA_VERSION, 5)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
             self._create_state_table(cursor, force)
         else:
             super()._create_table(cursor, name, force)
+
+    @staticmethod
+    def _create_transfer_tables(cursor: Cursor):
+        cursor.execute(
+            "CREATE TABLE if not exists Downloads ("
+            "    uid            INTEGER     NOT NULL,"
+            "    path           INTEGER     UNIQUE,"
+            "    status         INTEGER,"
+            "    engine         VARCHAR     DEFAULT NULL,"
+            "    is_direct_edit INTEGER     DEFAULT 0,"
+            "    progress       REAL,"
+            "    doc_pair       INTEGER     UNIQUE,"
+            "    tmpname        VARCHAR,"
+            "    url            VARCHAR,"
+            "    PRIMARY KEY (uid)"
+            ")"
+        )
+        cursor.execute(
+            "CREATE TABLE if not exists Uploads ("
+            "    uid            INTEGER     NOT NULL,"
+            "    path           INTEGER     UNIQUE,"
+            "    status         INTEGER,"
+            "    engine         VARCHAR     DEFAULT NULL,"
+            "    is_direct_edit INTEGER     DEFAULT 0,"
+            "    progress       REAL,"
+            "    doc_pair       INTEGER     UNIQUE,"
+            "    batch          VARCHAR,"
+            "    idx            INTEGER,"
+            "    chunk_size     INTEGER,"
+            "    PRIMARY KEY (uid)"
+            ")"
+        )
 
     @staticmethod
     def _create_state_table(cursor: Cursor, force: bool = False) -> None:
@@ -707,6 +758,7 @@ class EngineDAO(ConfigurationDAO):
                 ")"
             )
         self._create_state_table(cursor)
+        self._create_transfer_tables(cursor)
 
     def acquire_state(self, thread_id: Optional[int], row_id: int) -> Optional[DocPair]:
         if thread_id is not None and self.acquire_processor(thread_id, row_id):
@@ -730,6 +782,7 @@ class EngineDAO(ConfigurationDAO):
             c.execute(
                 "UPDATE States  SET processor = 0 WHERE processor = ?", (processor_id,)
             )
+        log.debug(f"Released processor {processor_id}")
         return c.rowcount > 0
 
     def acquire_processor(self, thread_id: int, row_id: int) -> bool:
@@ -1660,7 +1713,7 @@ class EngineDAO(ConfigurationDAO):
         queue: bool = True,
         force_update: bool = False,
         no_digest: bool = False,
-    ) -> None:
+    ) -> bool:
         row.pair_state = self._get_pair_state(row)
         if remote_parent_path is None:
             remote_parent_path = row.remote_parent_path
@@ -1687,7 +1740,7 @@ class EngineDAO(ConfigurationDAO):
                         "Not updating remote state (not dirty) "
                         f"for row={row!r} with info={info!r}"
                     )
-                    return
+                    return False
 
         log.debug(
             f"Updating remote state for row={row!r} with info={info!r} "
@@ -1764,6 +1817,7 @@ class EngineDAO(ConfigurationDAO):
                     parent and parent.pair_state != "remotely_created"
                 ) or parent is None:
                     self._queue_pair_state(row.id, info.folderish, row.pair_state)
+        return True
 
     def _clean_filter_path(self, path: str) -> str:
         if not path.endswith("/"):
@@ -1854,6 +1908,177 @@ class EngineDAO(ConfigurationDAO):
             c.execute("DELETE FROM Filters WHERE path LIKE ?", (f"{path}%",))
             self._filters = self.get_filters()
             self._items_count = self.get_syncing_count()
+
+    def get_transfers(self) -> List[Transfer]:
+        con = self._get_read_connection()
+        backup = con.row_factory
+        c = con.cursor()
+        con.row_factory = Transfer
+        try:
+            return c.execute("SELECT * FROM Transfers").fetchall()
+        finally:
+            con.row_factory = backup
+
+    def get_downloads(self) -> List[Download]:
+        con = self._get_read_connection()
+        c = con.cursor()
+        return [
+            Download(
+                res.uid,
+                Path(res.path),
+                TransferStatus(res.status),
+                engine=res.engine,
+                is_direct_edit=res.is_direct_edit,
+                progress=res.progress,
+                doc_pair=res.doc_pair,
+                tmpname=res.tmpname,
+                url=res.url,
+            )
+            for res in c.execute("SELECT * FROM Downloads").fetchall()
+        ]
+
+    def get_uploads(self) -> List[Upload]:
+        con = self._get_read_connection()
+        c = con.cursor()
+        return [
+            Upload(
+                res.uid,
+                Path(res.path),
+                TransferStatus(res.status),
+                engine=res.engine,
+                is_direct_edit=res.is_direct_edit,
+                progress=res.progress,
+                doc_pair=res.doc_pair,
+                batch=res.batch,
+                idx=res.idx,
+                chunk_size=res.chunk_size,
+            )
+            for res in c.execute("SELECT * FROM Uploads").fetchall()
+        ]
+
+    def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
+        return [d for d in self.get_downloads() if d.status == status]
+
+    def get_uploads_with_status(self, status: TransferStatus) -> List[Upload]:
+        return [u for u in self.get_uploads() if u.status == status]
+
+    def get_download(
+        self, uid: int = None, path: Path = None, doc_pair: int = None
+    ) -> Optional[Download]:
+        value: Any
+        if uid:
+            key, value = "uid", uid
+        elif path:
+            key, value = "path", path
+        elif doc_pair:
+            key, value = "doc_pair", doc_pair
+        else:
+            return None
+        res = [d for d in self.get_downloads() if getattr(d, key) == value]
+        return res[0] if res else None
+
+    def get_upload(
+        self, uid: int = None, path: Path = None, doc_pair: int = None
+    ) -> Optional[Upload]:
+        value: Any
+        if uid:
+            key, value = "uid", uid
+        elif path:
+            key, value = "path", path
+        elif doc_pair:
+            key, value = "doc_pair", doc_pair
+        else:
+            return None
+        res = [u for u in self.get_uploads() if getattr(u, key) == value]
+        return res[0] if res else None
+
+    def save_download(self, download: Download) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "REPLACE INTO Downloads "
+                "(path, status, engine, is_direct_edit, tmpname, url) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    download.path,
+                    download.status.value,
+                    download.engine,
+                    download.is_direct_edit,
+                    download.tmpname,
+                    download.url,
+                ),
+            )
+        self.transferUpdated.emit()
+
+    def save_upload(self, upload: Upload) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "REPLACE INTO Uploads "
+                "(path, status, engine, is_direct_edit, batch, idx, chunk_size) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    upload.path,
+                    upload.status.value,
+                    upload.engine,
+                    upload.is_direct_edit,
+                    upload.batch,
+                    upload.idx,
+                    upload.chunk_size,
+                ),
+            )
+        self.transferUpdated.emit()
+
+    def pause_transfer(self, nature: str, uid: int) -> None:
+        table = f"{nature.title()}s"  # Downloads/Uploads
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                f"UPDATE {table} SET status = ? WHERE uid = ?",
+                (TransferStatus.PAUSED.value, uid),
+            )
+        self.transferUpdated.emit()
+
+    def suspend_transfers(self) -> None:
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Downloads SET status = ? WHERE status = ?",
+                (TransferStatus.SUSPENDED.value, TransferStatus.ONGOING.value),
+            )
+            c.execute(
+                "UPDATE Uploads SET status = ? WHERE status = ?",
+                (TransferStatus.SUSPENDED.value, TransferStatus.ONGOING.value),
+            )
+        self.transferUpdated.emit()
+
+    def resume_transfer(self, nature: str, uid: int) -> None:
+        table = f"{nature.title()}s"  # Downloads/Uploads
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                f"UPDATE {table} SET status = ? WHERE uid = ?",
+                (TransferStatus.ONGOING.value, uid),
+            )
+        self.transferUpdated.emit()
+
+    def set_transfer_doc(
+        self, nature: str, transfer_uid: int, engine_uid: str, doc_pair_uid: int
+    ) -> None:
+        table = f"{nature.title()}s"  # Downloads/Uploads
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                f"UPDATE {table} SET doc_pair = ?, engine = ? WHERE uid = ?",
+                (doc_pair_uid, engine_uid, transfer_uid),
+            )
+
+    def remove_transfer(self, nature: str, path: Path) -> None:
+        table = f"{nature.title()}s"  # Downloads/Uploads
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(f"DELETE FROM {table} WHERE path = ?", (path,))
+        self.transferUpdated.emit()
 
     @staticmethod
     def _escape(text: str) -> str:

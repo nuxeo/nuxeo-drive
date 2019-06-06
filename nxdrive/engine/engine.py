@@ -22,12 +22,13 @@ from .watcher.remote_watcher import RemoteWatcher
 from .workers import Worker
 from ..client.local_client import LocalClient
 from ..client.remote_client import Remote
-from ..constants import CONNECTION_ERROR, MAC, ROOT, WINDOWS, DelAction
+from ..constants import CONNECTION_ERROR, MAC, ROOT, WINDOWS, DelAction, TransferStatus
 from ..exceptions import (
     InvalidDriveException,
     PairInterrupt,
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
+    DownloadPaused,
 )
 from ..objects import DocPairs, Binder, Metrics, EngineDef
 from ..options import Options
@@ -77,9 +78,11 @@ class Engine(QObject):
     newReadonly = pyqtSignal(object, object)
     deleteReadonly = pyqtSignal(object)
     newLocked = pyqtSignal(object, object, object)
-    newSync = pyqtSignal(object)
+    newSyncStarted = pyqtSignal(object)
+    newSyncEnded = pyqtSignal(object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
+    transferUpdated = pyqtSignal()
     offline = pyqtSignal()
     online = pyqtSignal()
 
@@ -170,6 +173,7 @@ class Engine(QObject):
         # Try to resolve conflict on startup
         for conflict in self._dao.get_conflicts():
             self.conflict_resolver(conflict.id, emit=False)
+        self._dao.transferUpdated.connect(self.transferUpdated)
 
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
@@ -403,8 +407,8 @@ class Engine(QObject):
         # TODO Implement a TemporaryWorker
 
         def run():
-            self.manager.direct_edit.edit(
-                self.server_url, doc_ref, user=self.remote_user
+            self.manager.directEdit.emit(
+                self.server_url, doc_ref, self.remote_user, None
             )
 
         self._edit_thread = Thread(target=run)
@@ -427,12 +431,51 @@ class Engine(QObject):
                 thread.worker.resume()
             else:
                 thread.start()
+        self.resume_suspended_transfers()
         self.syncResumed.emit()
+
+    def resume_transfer(self, nature: str, uid: int) -> None:
+        """ Resume a single transfer with its nature and uid. """
+        self._dao.resume_transfer(nature, uid)
+        transfer = getattr(self._dao, f"get_{nature}")(uid=uid)
+        if not transfer or not transfer.doc_pair:
+            return
+
+        doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
+        if doc_pair:
+            self.get_queue_manager().push(doc_pair)
+
+    def resume_suspended_transfers(self) -> None:
+        """ Resume all suspended transfers. """
+        for download in self._dao.get_downloads_with_status(TransferStatus.SUSPENDED):
+            if download.uid is None:
+                continue
+
+            self._dao.resume_transfer("download", download.uid)
+            if download.doc_pair is None:
+                continue
+
+            doc_pair = self._dao.get_state_from_id(download.doc_pair)
+            if doc_pair:
+                self.get_queue_manager().push(doc_pair)
+
+        for upload in self._dao.get_uploads_with_status(TransferStatus.SUSPENDED):
+            if upload.uid is None:
+                continue
+
+            self._dao.resume_transfer("upload", upload.uid)
+            if upload.doc_pair is None:
+                continue
+
+            doc_pair = self._dao.get_state_from_id(upload.doc_pair)
+            if doc_pair:
+                self.get_queue_manager().push(doc_pair)
 
     def suspend(self) -> None:
         if self._pause:
             return
         self._pause = True
+        self._dao.suspend_transfers()
         self._queue_manager.suspend()
         for thread in self._threads:
             thread.worker.suspend()
@@ -566,7 +609,8 @@ class Engine(QObject):
             worker = Worker(self, name=name)
 
         if isinstance(worker, Processor):
-            worker.pairSync.connect(self.newSync)
+            worker.pairSyncStarted.connect(self.newSyncStarted)
+            worker.pairSyncEnded.connect(self.newSyncEnded)
 
         thread = worker.thread
         if start_connect:
@@ -660,6 +704,8 @@ class Engine(QObject):
         # Launch the server confg file updater
         if self.manager.server_config_updater:
             self.manager.server_config_updater.force_poll()
+
+        self.resume_suspended_transfers()
 
         self._stopped = False
         Processor.soft_locks = {}
@@ -803,7 +849,7 @@ class Engine(QObject):
             "password": getattr(self, "_remote_password", None),
             "timeout": self.timeout,
             "token": self._remote_token,
-            "check_suspended": self.suspend_client,
+            "download_callback": self.suspend_client,
             "dao": self._dao,
             "proxy": self.manager.proxy,
             "verify": verify,
@@ -982,19 +1028,24 @@ class Engine(QObject):
                 raise ThreadInterrupt()
 
         # Get action
-        current_file = None
+        current = None
         action = Action.get_current_action()
         if isinstance(action, FileAction):
-            current_file = self.local.get_path(action.filepath)
-        if (
-            current_file is not None
-            and self._folder_lock is not None
-            and self._folder_lock in current_file.parents
-        ):
-            log.info(
-                f"PairInterrupt {current_file!r} because lock on {self._folder_lock!r}"
-            )
+            current = self.local.get_path(action.filepath)
+
+        if current and self._folder_lock and self._folder_lock in current.parents:
+            log.info(f"PairInterrupt {current!r} because lock on {self._folder_lock!r}")
             raise PairInterrupt()
+
+        if not action:
+            return
+
+        # Get the current download and check if it is still ongoing
+        download = self._dao.get_download(
+            path=action.filepath.with_name(action.filename)
+        )
+        if download and download.status != TransferStatus.ONGOING:
+            raise DownloadPaused(download.uid or -1)
 
     def create_processor(self, item_getter: Callable, **kwargs: Any) -> Processor:
         return Processor(self, item_getter, **kwargs)

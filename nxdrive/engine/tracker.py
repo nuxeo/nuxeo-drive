@@ -60,7 +60,7 @@ class Tracker(Worker):
 
     @pyqtSlot(object)
     def connect_engine(self, engine: "Engine") -> None:
-        engine.newSync.connect(self._send_sync_event)
+        engine.newSyncEnded.connect(self._send_sync_event)
 
     @property
     def current_locale(self) -> str:

@@ -55,5 +55,14 @@ ShadowRectangle {
                 application.quit()
             }
         }
+
+        SystrayMenuItem {
+            // If the NXDRIVE_URL envar is set, use it (for testing purpose only!)
+            visible: application._nxdrive_url_env() != ""
+            text: "nxdrive://"
+            onClicked: {
+                application._handle_nxdrive_url(application._nxdrive_url_env())
+            }
+        }
     }
 }

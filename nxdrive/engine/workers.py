@@ -223,6 +223,16 @@ class EngineWorker(Worker):
         self._dao.increase_error(doc_pair, error, details=details)
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
+    def remove_void_transfers(self, doc_pair: DocPair) -> None:
+        """ Remove uploads and downloads on the target doc pair. """
+        if doc_pair.folderish:
+            # Folderish documents don't use transfers
+            return
+
+        fullpath = self.engine.local.abspath(doc_pair.local_path)
+        for transfer in {"download", "upload"}:
+            self._dao.remove_transfer(transfer, fullpath)
+
 
 class PollWorker(Worker):
     def __init__(

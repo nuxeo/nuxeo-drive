@@ -61,7 +61,7 @@ from ..utils import (
 )
 from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow
-from .view import EngineModel, FileModel, LanguageModel, ActionModel
+from .view import EngineModel, FileModel, LanguageModel, TransferModel
 
 if MAC:
     from ..osi.darwin.pyNotificationCenter import setup_delegator, NotificationDelegator
@@ -161,7 +161,7 @@ class Application(QApplication):
         self.conflicts_model = FileModel()
         self.errors_model = FileModel()
         self.engine_model = EngineModel(self)
-        self.action_model = ActionModel()
+        self.transfer_model = TransferModel()
         self.file_model = FileModel()
         self.ignoreds_model = FileModel()
         self.language_model = LanguageModel()
@@ -227,6 +227,7 @@ class Application(QApplication):
         if self.manager.get_engines():
             current_uid = self.engine_model.engines_uid[0]
             self.get_last_files(current_uid)
+            self.refresh_transfers()
             self.update_status(self.manager._engines[current_uid])
 
         self.manager.updater.updateAvailable.connect(
@@ -237,16 +238,8 @@ class Application(QApplication):
         )
 
     @pyqtSlot(Action)
-    def action_started(self, action: Action) -> None:
-        self.refresh_actions()
-
-    @pyqtSlot(Action)
     def action_progressing(self, action: Action) -> None:
-        self.action_model.set_progress(action.export())
-
-    @pyqtSlot(Action)
-    def action_done(self, action: Action) -> None:
-        self.refresh_actions()
+        self.transfer_model.set_progress(action.export())
 
     def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
         if not engines:
@@ -264,7 +257,7 @@ class Application(QApplication):
         context.setContextProperty("ConflictsModel", self.conflicts_model)
         context.setContextProperty("ErrorsModel", self.errors_model)
         context.setContextProperty("EngineModel", self.engine_model)
-        context.setContextProperty("ActionModel", self.action_model)
+        context.setContextProperty("TransferModel", self.transfer_model)
         context.setContextProperty("FileModel", self.file_model)
         context.setContextProperty("IgnoredsModel", self.ignoreds_model)
         context.setContextProperty("languageModel", self.language_model)
@@ -296,6 +289,7 @@ class Application(QApplication):
             "darkBlue": "#1F28BF",
             "nuxeoBlue": "#0066FF",
             "lightBlue": "#00ADED",
+            "lightGreen": "#A9D843",
             "teal": "#73D2CF",
             "purple": "#8400FF",
             "red": "#C02828",
@@ -735,6 +729,9 @@ class Application(QApplication):
         engine.docDeleted.connect(self._doc_deleted)
         engine.fileAlreadyExists.connect(self._file_already_exists)
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
+        engine.newSyncStarted.connect(self.refresh_files)
+        engine.newSyncEnded.connect(self.refresh_files)
+        engine.transferUpdated.connect(self.refresh_transfers)
         self.change_systray_icon()
 
     def init_checks(self) -> None:
@@ -1161,6 +1158,12 @@ class Application(QApplication):
         msg.addButton(Translator.get("OK"), QMessageBox.AcceptRole)
         msg.exec_()
 
+    @pyqtSlot(result=str)
+    def _nxdrive_url_env(self) -> str:
+        """Get the NXDRIVE_URL envar value, empty string if not defined."""
+        return os.getenv("NXDRIVE_URL", "")
+
+    @pyqtSlot(str, result=bool)
     def _handle_nxdrive_url(self, url: str) -> bool:
         """ Handle an nxdrive protocol URL. """
 
@@ -1187,11 +1190,8 @@ class Application(QApplication):
                 self._show_msgbox_restart_needed()
                 return False
 
-            manager.direct_edit.edit(
-                info["server_url"],
-                info["doc_id"],
-                user=info["user"],
-                download_url=info["download_url"],
+            manager.directEdit.emit(
+                info["server_url"], info["doc_id"], info["user"], info["download_url"]
             )
         elif cmd == "token":
             self.api.handle_token(info["token"], info["username"])
@@ -1288,11 +1288,18 @@ class Application(QApplication):
         )
 
     @pyqtSlot()
-    def refresh_actions(self) -> None:
-        actions = self.api.get_actions()
-        if actions != self.action_model.actions:
-            self.action_model.set_actions(actions)
-        self.action_model.fileChanged.emit()
+    def refresh_transfers(self) -> None:
+        transfers = self.api.get_transfers()
+        if transfers != self.transfer_model.transfers:
+            self.transfer_model.set_transfers(transfers)
+            self.transfer_model.fileChanged.emit()
+
+    @pyqtSlot()
+    def refresh_files(self) -> None:
+        engine = self.sender()
+        if not isinstance(engine, Engine):
+            return
+        self.get_last_files(engine.uid)
 
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:
@@ -1300,7 +1307,7 @@ class Application(QApplication):
         if files != self.file_model.files:
             self.file_model.empty()
             self.file_model.addFiles(files)
-        self.file_model.fileChanged.emit()
+            self.file_model.fileChanged.emit()
 
     def current_language(self) -> Optional[str]:
         lang = Translator.locale()
@@ -1317,7 +1324,6 @@ class Application(QApplication):
         dialog = QDialog()
         dialog.setWindowTitle(tr("SHARE_METRICS_TITLE", [APP_NAME]))
         dialog.setWindowIcon(self.icon)
-        dialog.setStyleSheet("background-color: #ffffff;")
         layout = QVBoxLayout()
 
         info = QLabel(tr("SHARE_METRICS_MSG", [COMPANY]))
