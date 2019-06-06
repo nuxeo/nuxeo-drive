@@ -951,7 +951,7 @@ class Application(QApplication):
             return
 
         dialog = QDialog()
-        dialog.setWindowTitle(f"{APP_NAME} {version} - Release notes")
+        dialog.setWindowTitle(Translator.get("RELEASE_NOTES_TITLE", [APP_NAME]))
         dialog.setWindowIcon(self.icon)
 
         dialog.resize(600, 400)
