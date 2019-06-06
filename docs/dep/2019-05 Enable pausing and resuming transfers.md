@@ -4,7 +4,7 @@
 - Last-Modified: 2019-05-22
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
           Léa Klein <lklein@nuxeo.com>
-- Status: ongoing implementation
+- Status: implemented
 - Related-Ticket: [NXDRIVE-1380](https://jira.nuxeo.com/browse/NXDRIVE-1380)
 
 ## Abstract
