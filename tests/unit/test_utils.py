@@ -260,10 +260,16 @@ def test_generated_tempory_file(name, state):
 def test_get_arch():
     import struct
 
+    # Clear the LRU cache to allow testing a different value
+    nxdrive.utils.get_arch.cache_clear()
+
     with patch.object(struct, "calcsize", return_value=12):
         assert nxdrive.utils.get_arch() == f"{12 * 8}-bit"
 
-    assert nxdrive.utils.get_arch() in {"32-bit", "64-bit"}
+    # Clear the LRU cache to revert previous cached value
+    nxdrive.utils.get_arch.cache_clear()
+
+    assert nxdrive.utils.get_arch() in ("32-bit", "64-bit")
 
 
 def test_get_certificate_details_from_file():
@@ -427,8 +433,15 @@ def test_get_default_local_folder():
 
 def test_get_device_unknown():
     """For unknown platforms, we just remove spaces."""
+
+    # Clear the LRU cache to allow testing a different value
+    nxdrive.utils.get_device.cache_clear()
+
     with patch.object(sys, "platform", "The Black Star"):
         assert nxdrive.utils.get_device() == "TheBlackStar"
+
+    # Clear the LRU cache to revert previous cached value
+    nxdrive.utils.get_device.cache_clear()
 
 
 def test_get_timestamp_from_date():
