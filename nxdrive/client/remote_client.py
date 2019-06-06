@@ -185,7 +185,7 @@ class Remote(Nuxeo):
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
         )
 
-        headers = {}
+        headers: Dict[str, str] = {}
         if file_out:
             # Retrieve current size of .nxpart to know where to start the download
             with suppress(FileNotFoundError):
@@ -214,7 +214,7 @@ class Remote(Nuxeo):
                     callback=callback,
                 )
 
-                if digest:
+                if digest and isinstance(current_action, DownloadAction):
                     self.check_integrity(digest, current_action)
             finally:
                 lock_path(file_out, locker)
@@ -443,7 +443,7 @@ class Remote(Nuxeo):
             # we will restart the whole download at 0.
             log.info(f"Pausing download {download.uid!r}")
             self._dao.set_transfer_doc(
-                "download", download.uid, engine_uid, doc_pair_id
+                "download", download.uid or -1, engine_uid, doc_pair_id
             )
             raise
         except DownloadPaused:
