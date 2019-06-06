@@ -12,6 +12,16 @@
 #
 # See /docs/deployment.md for more information.
 #
+# ---
+#
+# You can tweak tests checks by setting the SKIP envar:
+#    - SKIP=flake8 to skip code style
+#    - SKIP=mypy to skip type annotations
+#    - SKIP=rerun to not rerun failed test(s)
+#    - SKIP=all to skip all (equivalent to flake8,mypy,rerun)
+#
+# There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
+#
 
 set -e
 
@@ -87,6 +97,9 @@ check_vars() {
         echo "Please do not call this script directly. Use the good one from 'tools/OS/deploy_jenkins_slave.sh'."
         exit 1
     fi
+    if [ "${SKIP:=unset}" = "unset" ]; then
+        export SKIP=""
+    fi
     if [ "${WORKSPACE_DRIVE:=unset}" = "unset" ]; then
         if [ -d "${WORKSPACE}/sources" ]; then
             export WORKSPACE_DRIVE="${WORKSPACE}/sources"
@@ -102,6 +115,7 @@ check_vars() {
     echo "    WORKSPACE            = ${WORKSPACE}"
     echo "    WORKSPACE_DRIVE      = ${WORKSPACE_DRIVE}"
     echo "    STORAGE_DIR          = ${STORAGE_DIR}"
+    echo "    SKIP                 = ${SKIP}"
 
     cd "${WORKSPACE_DRIVE}"
 
@@ -177,23 +191,33 @@ launch_test() {
     local path="${1}"
     local pytest_args="${2:-}"
 
-    ${cmd} ${pytest_args} "${path}" || ${cmd} --last-failed --last-failed-no-failures none || true
+    ${cmd} ${pytest_args} "${path}" && return
+
+    if [[ "${SKIP}" = *"rerun"* ]] || [[ "${SKIP}" = *"all"* ]]; then
+        # Do not fail on error as all failures will be re-run another time at the end
+        ${cmd} --last-failed --last-failed-no-failures none || true
+    fi
 }
 
 launch_tests() {
     local ret
 
+    # If a specific test is asked, just run it and bypass all over checks
     if [ "${SPECIFIC_TEST}" != "tests" ]; then
         echo ">>> Launching the specific tests"
         launch_test "${SPECIFIC_TEST}"
         return
     fi
 
-    echo ">>> Checking the style"
-    ${PYTHON} -m flake8 .
+    if [[ ! "${SKIP}" = *"flake8"* ]] && [[ ! "${SKIP}" = *"all"* ]]; then
+        echo ">>> Checking the style"
+        ${PYTHON} -m flake8 .
+    fi
 
-    echo ">>> Checking type annotations"
-    ${PYTHON} -m mypy nxdrive
+    if [[ ! "${SKIP}" = *"mypy"* ]] && [[ ! "${SKIP}" = *"all"* ]]; then
+        echo ">>> Checking type annotations"
+        ${PYTHON} -m mypy nxdrive
+    fi
 
     echo ">>> Launching unit tests"
     launch_test "tests/unit"
@@ -213,14 +237,16 @@ launch_tests() {
         number=$(( number + 1 ))
     done
 
-    echo ">>> Re-rerun failed tests"
-    set +e
-    ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none
-    # The above command will exit with error code 5 if there is no failure to rerun
-    ret=$?
-    set -e
-    if [ $ret -ne 0 ] && [ $ret -ne 5 ]; then
-        exit 1
+    if [[ ! "${SKIP}" = *"rerun"* ]] && [[ ! "${SKIP}" = *"all"* ]]; then
+        echo ">>> Re-rerun failed tests"
+        set +e
+        ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none
+        # The above command will exit with error code 5 if there is no failure to rerun
+        ret=$?
+        set -e
+        if [ $ret -ne 0 ] && [ $ret -ne 5 ]; then
+            exit 1
+        fi
     fi
 }
 
