@@ -2,6 +2,9 @@
 """
 We are using lazy imports (understand imports in functions) specifically here
 to speed-up command line calls without loading everything at startup.
+
+Most of functions are pure enough to be decorated with a LRU cache.
+Each *maxsize* is adjusted depending of the heavy use of the decorated function.
 """
 import os
 import os.path
@@ -9,6 +12,8 @@ import re
 import stat
 from copy import deepcopy
 from datetime import datetime
+from distutils.version import StrictVersion
+from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
 from threading import get_ident
@@ -41,50 +46,6 @@ from .options import Options
 if TYPE_CHECKING:
     from .proxy import Proxy  # noqa
 
-__all__ = (
-    "PidLockFile",
-    "compute_digest",
-    "compute_fake_pid_from_path",
-    "compute_urls",
-    "current_milli_time",
-    "current_thread_id",
-    "decrypt",
-    "encrypt",
-    "find_icon",
-    "find_resource",
-    "find_suitable_tmp_dir",
-    "force_decode",
-    "force_encode",
-    "ga_user_agent",
-    "get_arch",
-    "get_certificate_details",
-    "get_current_os",
-    "get_current_os_full",
-    "get_date_from_sqlite",
-    "get_device",
-    "get_timestamp_from_date",
-    "get_tree_size",
-    "get_tree_list",
-    "guess_server_url",
-    "if_frozen",
-    "is_generated_tmp_file",
-    "lock_path",
-    "normalize_event_filename",
-    "normalized_path",
-    "normalize_and_expand_path",
-    "parse_edit_protocol",
-    "parse_protocol_url",
-    "retrieve_ssl_certificate",
-    "safe_filename",
-    "safe_long_path",
-    "set_path_readonly",
-    "sizeof_fmt",
-    "short_name",
-    "simplify_url",
-    "unlock_path",
-    "unset_path_readonly",
-    "version_le",
-)
 
 DEFAULTS_CERT_DETAILS = {
     "subject": [],
@@ -100,10 +61,13 @@ DEVICE_DESCRIPTIONS = {"darwin": "macOS", "linux": "GNU/Linux", "win32": "Window
 log = getLogger(__name__)
 
 
-def cmp(a: Any, b: Any) -> int:
+def cmp(a: Union[None, str, StrictVersion], b: Union[None, str, StrictVersion]) -> int:
     """
     cmp() does not exist anymore in Python 3.
-    `a` and `b` can be None, str or StrictVersion.
+
+    Note: this function cannot be decorated with lru_cache() because when
+    *a* or *b* is a *StrictVersion* object, it is not hashable.
+    And callers are cached anyway.
     """
     if a is None:
         if b is None:
@@ -114,6 +78,7 @@ def cmp(a: Any, b: Any) -> int:
     return (a > b) - (a < b)
 
 
+@lru_cache(maxsize=2048)
 def compute_fake_pid_from_path(path: str) -> int:
     """
     We have no way to find the PID of the apps using the opened file.
@@ -132,7 +97,10 @@ def compute_fake_pid_from_path(path: str) -> int:
 
 
 def current_thread_id() -> int:
-    """Return the thread identifier of the current thread. This is a nonzero integer."""
+    """Return the thread identifier of the current thread. This is a nonzero integer.
+
+    Note: this function cannot be decorated with lru_cache().
+    """
     # TODO: use get_native_id() in Python 3.8 (XXX_PYTHON)
     return get_ident()
 
@@ -144,6 +112,8 @@ def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path) -> Path:
     to prevent false FS events.
 
     Raise ValueError if the sync folder is at the root of the partition/filesystem.
+
+    Note: this function cannot be decorated with lru_cache().
     """
     try:
         if WINDOWS:
@@ -178,6 +148,7 @@ def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path) -> Path:
         return home_folder
 
 
+@lru_cache(maxsize=1024)
 def get_date_from_sqlite(d: str) -> Optional[datetime]:
     format_date = "%Y-%m-%d %H:%M:%S"
     try:
@@ -186,6 +157,7 @@ def get_date_from_sqlite(d: str) -> Optional[datetime]:
         return None
 
 
+@lru_cache(maxsize=1024)
 def get_timestamp_from_date(d: datetime = None) -> int:
     if not d:
         return 0
@@ -196,11 +168,16 @@ def get_timestamp_from_date(d: datetime = None) -> int:
 
 
 def current_milli_time() -> int:
+    """Return the current time in milliseconds.
+
+    Note: this function cannot be decorated with lru_cache().
+    """
     from time import time
 
     return int(round(time() * 1000))
 
 
+@lru_cache(maxsize=1)
 def get_arch() -> str:
     """ Detect the OS architecture. """
 
@@ -209,6 +186,7 @@ def get_arch() -> str:
     return f"{calcsize('P') * 8}-bit"
 
 
+@lru_cache(maxsize=1)
 def get_current_os() -> Tuple[str, str]:
     """ Detect the OS version. """
 
@@ -235,6 +213,7 @@ def get_current_os() -> Tuple[str, str]:
     return (device, version.strip())
 
 
+@lru_cache(maxsize=1)
 def get_current_os_full() -> Tuple[Any, ...]:
     """ Detect the full OS version for log debugging. """
 
@@ -254,6 +233,7 @@ def get_current_os_full() -> Tuple[Any, ...]:
         return win32_ver()
 
 
+@lru_cache(maxsize=1)
 def ga_user_agent() -> str:
     """Try to create a UA that is parsable by Google Analytics processor."""
     osi = get_current_os_full()
@@ -266,6 +246,7 @@ def ga_user_agent() -> str:
     return " ".join(osi).strip()
 
 
+@lru_cache(maxsize=1)
 def get_device() -> str:
     """ Retrieve the device type. """
 
@@ -285,6 +266,8 @@ def get_default_local_folder() -> Path:
 
     Under Windows, try to locate My Documents as a home folder, using the
     win32com shell API if allowed, else falling back on a manual detection.
+
+    Note: this function cannot be decorated with lru_cache().
     """
 
     if WINDOWS:
@@ -330,6 +313,8 @@ def get_tree_list(
     Each entry will yield a tuple (remote_path, local_path).
     This order is important as it will be used in get_tree_list_sorted()
     to retrieve the sorted list to trait.
+
+    Note: this function cannot be decorated with lru_cache().
     """
     with os.scandir(path) as it:
         for entry in it:
@@ -342,7 +327,10 @@ def get_tree_list(
 
 
 def get_tree_size(path: Path) -> int:
-    """Compute the total files size from a given folder *path*."""
+    """Compute the total files size from a given folder *path*.
+
+    Note: this function cannot be decorated with lru_cache().
+    """
     size = 0
     with os.scandir(path) as it:
         for entry in it:
@@ -353,12 +341,13 @@ def get_tree_size(path: Path) -> int:
     return size
 
 
+@lru_cache(maxsize=32)
 def get_value(value: str) -> Union[bool, float, str, Tuple[str, ...]]:
     """ Get parsed value for commandline/registry input. """
 
-    if value.lower() in {"true", "1", "on", "yes", "oui"}:
+    if value.lower() in ("true", "1", "on", "yes", "oui"):
         return True
-    elif value.lower() in {"false", "0", "off", "no", "non"}:
+    elif value.lower() in ("false", "0", "off", "no", "non"):
         return False
     elif "\n" in value:
         return tuple(sorted(value.split()))
@@ -372,6 +361,8 @@ def get_value(value: str) -> Union[bool, float, str, Tuple[str, ...]]:
 def increment_local_folder(basefolder: Path, name: str) -> Path:
     """Increment the number for a possible local folder.
     Example: "Nuxeo Drive" > "Nuxeo Drive 2" > "Nuxeo Drive 3"
+
+    Note: this function cannot be decorated with lru_cache().
     """
     folder = basefolder / name
     num = 2
@@ -383,6 +374,7 @@ def increment_local_folder(basefolder: Path, name: str) -> Path:
     return folder
 
 
+@lru_cache(maxsize=32)
 def is_hexastring(value: str) -> bool:
     try:
         int(value, 16)
@@ -396,6 +388,9 @@ def is_generated_tmp_file(name: str) -> Tuple[bool, Optional[bool]]:
     Try to guess temporary files generated by tierce softwares.
     Returns a tuple to know what kind of tmp file it is to
     filter later on Processor._synchronize_locally_created().
+
+    Note: this function cannot be decorated with lru_cache() because
+    Options is used and values may change the time the app is running.
 
     :return tuple: (bool: is tmp file, bool: need to recheck later)
     """
@@ -428,6 +423,7 @@ def is_generated_tmp_file(name: str) -> Tuple[bool, Optional[bool]]:
     return do_not_ignore, no_delay_effect
 
 
+@lru_cache(maxsize=128)
 def version_compare(x: str, y: str) -> int:
     """
     Compare version numbers using the usual x.y.z pattern.
@@ -508,10 +504,9 @@ def version_compare(x: str, y: str) -> int:
     return 0
 
 
+@lru_cache(maxsize=128)
 def version_compare_client(x: str, y: str) -> int:
     """ Try to compare SemVer and fallback to version_compare on error. """
-
-    from distutils.version import StrictVersion
 
     # Ignore date based versions, they will be treated as normal versions
     if x and "-I" in x:
@@ -525,11 +520,13 @@ def version_compare_client(x: str, y: str) -> int:
         return version_compare(x, y)
 
 
+@lru_cache(maxsize=128)
 def version_le(x: str, y: str) -> bool:
     """ x <= y """
     return version_compare_client(x, y) <= 0
 
 
+@lru_cache(maxsize=128)
 def version_lt(x: str, y: str) -> bool:
     """ x < y """
     return version_compare_client(x, y) < 0
@@ -538,6 +535,8 @@ def version_lt(x: str, y: str) -> bool:
 def normalized_path(path: Union[bytes, str, Path], cls: Callable = Path) -> Path:
     """Return absolute, normalized file path.
     The *cls* argument is used in tests, it must be a class or subclass of Path.
+
+    Note: this function cannot be decorated with lru_cache().
     """
     if not isinstance(path, Path):
         path = force_decode(path)
@@ -551,13 +550,20 @@ def normalized_path(path: Union[bytes, str, Path], cls: Callable = Path) -> Path
 
 
 def normalize_and_expand_path(path: str) -> Path:
-    """ Return absolute, normalized file path with expanded environment variables. """
+    """Return absolute, normalized file path with expanded environment variables.
+
+    Note: this function cannot be decorated with lru_cache().
+    """
     return normalized_path(os.path.expandvars(path))
 
 
 def normalize_event_filename(filename: Union[str, Path], action: bool = True) -> Path:
     """
     Normalize a file name.
+
+    Note: we cannot decorate the function with lru_cache() because it as
+    several side effects. We need to find a way to decouple the normalization
+    and actions to do on the OS.
 
     :param unicode filename: The file name to normalize.
     :param bool action: Apply changes on the file system.
@@ -599,8 +605,12 @@ def normalize_event_filename(filename: Union[str, Path], action: bool = True) ->
 
 
 def if_frozen(func) -> Callable:
-    """Decorator to enable the call of a function/method
-    only if the application is frozen."""
+    """
+    Decorator to enable the call of a function/method
+    only if the application is frozen.
+
+    Note: this function must not be decorated with lru_cache().
+    """
 
     def wrapper(*args: Any, **kwargs: Any) -> Union[bool, Callable]:
         """Inner function to do the check and abort the call
@@ -612,6 +622,7 @@ def if_frozen(func) -> Callable:
     return wrapper
 
 
+@lru_cache(maxsize=4096)
 def safe_filename(name: str, replacement: str = "-") -> str:
     """Replace forbidden characters (at the OS and Nuxeo levels) for a given *name*.
     See benchmarks/test_safe_filename.py for the best implementation.
@@ -648,6 +659,8 @@ def safe_rename(src: Path, dst: Path) -> None:
     """
     Safely rename files on Windows.
 
+    Note: this function cannot be decorated with lru_cache().
+
     As said here https://docs.python.org/3/library/pathlib.html#pathlib.Path.rename
     Unix systems will silently replace the destination if it is an existing file,
     if the user has permissions.
@@ -666,27 +679,32 @@ def safe_rename(src: Path, dst: Path) -> None:
             raise
 
 
+@lru_cache(maxsize=16)
 def find_resource(folder: str, filename: str = "") -> Path:
     """ Find the FS path of a directory in various OS binary packages. """
     return normalized_path(Options.res_dir) / folder / filename
 
 
+@lru_cache(maxsize=16)
 def find_icon(icon: str) -> Path:
     return find_resource("icons", icon)
 
 
+@lru_cache(maxsize=4096, typed=True)
 def force_decode(string: Union[bytes, str]) -> str:
     if isinstance(string, bytes):
         string = string.decode("utf-8")
     return string
 
 
+@lru_cache(maxsize=4096, typed=True)
 def force_encode(data: Union[bytes, str]) -> bytes:
     if isinstance(data, str):
         data = data.encode("utf-8")
     return data
 
 
+@lru_cache(maxsize=4)
 def retrieve_ssl_certificate(hostname: str, port: int = 443) -> str:
     """Retreive the SSL certificate from a given hostname."""
 
@@ -699,6 +717,7 @@ def retrieve_ssl_certificate(hostname: str, port: int = 443) -> str:
             return ssl.DER_cert_to_PEM_cert(cert_data)
 
 
+@lru_cache(maxsize=4)
 def get_certificate_details(hostname: str = "", cert_data: str = "") -> Dict[str, Any]:
     """
     Get SSL certificate details from a given certificate content or hostname.
@@ -730,6 +749,7 @@ def get_certificate_details(hostname: str = "", cert_data: str = "") -> Dict[str
     return defaults
 
 
+@lru_cache(maxsize=4, typed=True)
 def encrypt(
     plaintext: Union[bytes, str], secret: Union[bytes, str], lazy: bool = True
 ) -> bytes:
@@ -747,6 +767,7 @@ def encrypt(
     return base64.b64encode(iv + encobj.encrypt(plaintext))
 
 
+@lru_cache(maxsize=4, typed=True)
 def decrypt(
     ciphertext: Union[bytes, str], secret: Union[bytes, str], lazy: bool = True
 ) -> Optional[bytes]:
@@ -770,8 +791,9 @@ def decrypt(
         return None
 
 
+@lru_cache(maxsize=4)
 def _lazysecret(secret: bytes, blocksize: int = 32, padding: bytes = b"}") -> bytes:
-    """Pad secret if not legal AES block size (16, 24, 32)"""
+    """Pad secret if not legal AES block size (16, 24, 32)."""
     length = len(secret)
     if length > blocksize:
         return secret[: -(length - blocksize)]
@@ -780,6 +802,7 @@ def _lazysecret(secret: bytes, blocksize: int = 32, padding: bytes = b"}") -> by
     return secret
 
 
+@lru_cache(maxsize=4)
 def compute_urls(url: str) -> Iterator[str]:
     """
     Compute several predefined URLs for a given URL.
@@ -846,6 +869,8 @@ def guess_server_url(
     Guess the complete server URL given an URL (either an IP address,
     a simple domain name or an already complete URL).
 
+    Note: this function cannot be decorated with lru_cache().
+
     :param url: The server URL (IP, domain name, full URL).
     :param login_page: The Drive login page.
     :param int timeout: Timeout for each and every request.
@@ -890,6 +915,7 @@ def guess_server_url(
     return url
 
 
+@lru_cache(maxsize=4)
 def simplify_url(url: str) -> str:
     """ Simplify port if possible and trim trailing slashes. """
 
@@ -904,6 +930,7 @@ def simplify_url(url: str) -> str:
     return urlunsplit(new_parts).rstrip("/")
 
 
+@lru_cache(maxsize=16)
 def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
     """
     Parse URL for which Drive is registered as a protocol handler.
@@ -962,7 +989,13 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
 
 
 def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str, str]:
-    """ Parse a `nxdrive://edit` URL for quick editing of Nuxeo documents. """
+    """
+    Parse a `nxdrive://edit` URL for quick editing of Nuxeo documents.
+
+    Note: no need to decorate the function with lru_cache() as the caller
+    already is.
+    """
+
     scheme = parsed_url["scheme"]
     if scheme not in ("http", "https"):
         raise ValueError(
@@ -1038,6 +1071,7 @@ def lock_path(path: Path, locker: int) -> None:
         set_path_readonly(path.parent)
 
 
+@lru_cache(maxsize=4096)
 def sizeof_fmt(num: Union[float, int], suffix: str = "B") -> str:
     """
     Human readable version of file size.
@@ -1064,6 +1098,7 @@ def sizeof_fmt(num: Union[float, int], suffix: str = "B") -> str:
     return f"{val:,.1f} Yi{suffix}"
 
 
+@lru_cache(maxsize=32, typed=True)
 def short_name(name: Union[bytes, str]) -> str:
     """
     Shortening a given `name` for notifications, as the text is limited to 200 characters on Windows:
@@ -1174,7 +1209,10 @@ class PidLockFile:
 
 
 def compute_digest(path: Path, digest_func: str, callback: Callable = None) -> str:
-    """ Lazy computation of the digest. """
+    """Lazy computation of the digest.
+
+    Note: this function must not be decorated with lru_cache().
+    """
     h = get_digest_hash(digest_func)
     if not h:
         raise UnknownDigest(digest_func)

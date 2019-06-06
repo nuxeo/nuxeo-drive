@@ -72,6 +72,9 @@ def no_warnings(recwarn):
             # Happen while testing the integration on Windows, we can skip it:
             # "Application is not loaded correctly (WaitForInputIdle failed)"
             continue
+        elif "type=SocketKind.SOCK_STREAM" in message:
+            # Socket leaks on macOS, may need investigations
+            continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
         print(warn, file=sys.stderr)
