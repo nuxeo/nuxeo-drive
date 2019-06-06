@@ -179,7 +179,7 @@ class DownloadAction(FileAction):
     def __init__(
         self, filepath: Path, filename: str = None, reporter: Any = None
     ) -> None:
-        super(DownloadAction, self).__init__(
+        super().__init__(
             self.action_type, filepath, filename=filename, reporter=reporter
         )
 
@@ -190,7 +190,7 @@ class UploadAction(FileAction):
     def __init__(
         self, filepath: Path, filename: str = None, reporter: Any = None
     ) -> None:
-        super(UploadAction, self).__init__(
+        super().__init__(
             self.action_type,
             filepath,
             filename=filename,
@@ -205,7 +205,7 @@ class VerificationAction(FileAction):
     def __init__(
         self, filepath: Path, filename: str = None, reporter: Any = None
     ) -> None:
-        super(VerificationAction, self).__init__(
+        super().__init__(
             self.action_type,
             filepath,
             filename=filename,

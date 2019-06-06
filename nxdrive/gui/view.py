@@ -36,7 +36,7 @@ class EngineModel(QAbstractListModel):
     ACCOUNT_ROLE = Qt.UserRole + 7
 
     def __init__(self, application: "Application", parent: QObject = None) -> None:
-        super(EngineModel, self).__init__(parent)
+        super().__init__(parent)
         self.application = application
         self.engines_uid: List[str] = []
         self.names = {
@@ -142,7 +142,7 @@ class TransferModel(QAbstractListModel):
     VERIFYING = Qt.UserRole + 8
 
     def __init__(self, parent: QObject = None) -> None:
-        super(TransferModel, self).__init__(parent)
+        super().__init__(parent)
         self.transfers: List[Dict[str, Any]] = []
         self.names = {
             self.ID: b"uid",
@@ -225,7 +225,7 @@ class FileModel(QAbstractListModel):
     SIZE = Qt.UserRole + 15
 
     def __init__(self, parent: QObject = None) -> None:
-        super(FileModel, self).__init__(parent)
+        super().__init__(parent)
         self.files: List[Dict[str, Any]] = []
         self.names = {
             self.ID: b"id",
@@ -324,7 +324,7 @@ class LanguageModel(QAbstractListModel):
     TAG_ROLE = Qt.UserRole + 2
 
     def __init__(self, parent: QObject = None) -> None:
-        super(LanguageModel, self).__init__(parent)
+        super().__init__(parent)
         self.languages: List[Tuple[str, str]] = []
 
     def roleNames(self) -> Dict[int, bytes]:
