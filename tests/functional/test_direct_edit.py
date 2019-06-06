@@ -178,30 +178,30 @@ def test_url_resolver(manager_factory, nuxeo_url):
         user = engine.remote_user
         get_engine = direct_edit._get_engine
 
-        assert get_engine(nuxeo_url, user)
+        # Engine found, even with uppercase username
+        assert get_engine(nuxeo_url, user=user)
+        assert get_engine(nuxeo_url, user=user.upper())
 
-        manager._engine_types["NXDRIVETESTURL"] = MockUrlTestEngine
+        # No engine found
+        assert not get_engine(nuxeo_url, user="user-not-found")
+        assert not get_engine("server-url-not-found", user=user)
 
         # HTTP explicit
         manager._engines["0"] = MockUrlTestEngine("http://localhost:80/nuxeo", user)
-        assert not get_engine("http://localhost:8080/nuxeo", user=user)
         assert get_engine("http://localhost:80/nuxeo", user=user)
         assert get_engine("http://localhost/nuxeo/", user=user)
 
         # HTTP implicit
         manager._engines["0"] = MockUrlTestEngine("http://localhost/nuxeo", user)
-        assert not get_engine("http://localhost:8080/nuxeo", user=user)
         assert get_engine("http://localhost:80/nuxeo/", user=user)
         assert get_engine("http://localhost/nuxeo", user=user)
 
         # HTTPS explicit
         manager._engines["0"] = MockUrlTestEngine("https://localhost:443/nuxeo", user)
-        assert not get_engine("http://localhost:8080/nuxeo", user=user)
         assert get_engine("https://localhost:443/nuxeo", user=user)
         assert get_engine("https://localhost/nuxeo/", user=user)
 
         # HTTPS implicit
         manager._engines["0"] = MockUrlTestEngine("https://localhost/nuxeo", user)
-        assert not get_engine("http://localhost:8080/nuxeo", user=user)
         assert get_engine("https://localhost:443/nuxeo/", user=user)
         assert get_engine("https://localhost/nuxeo", user=user)
