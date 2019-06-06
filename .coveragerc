@@ -1,3 +1,9 @@
 [run]
 concurrency = multiprocessing
 parallel = true
+
+[paths]
+source =
+    .
+    **/sources
+    **\sources
