@@ -77,6 +77,14 @@ If you get an error message complaining about the lack of signature for this scr
     test_local_client.py::TestLocalClient (a whole class)
     test_local_client.py::TestLocalClient::test_make_documents (only one method)
 ```
+- `SKIP` is used to tweak tests checks:
+```
+    - SKIP=flake8 to skip code style
+    - SKIP=mypy to skip type annotations
+    - SKIP=rerun to not rerun failed test(s)
+    - SKIP=integration to not run integration tests on Windows
+    - SKIP=all to skip all (equivalent to flake8,mypy,rerun,integration)
+```
 
 #### MacOS Specific
 

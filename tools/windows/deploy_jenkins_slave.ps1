@@ -7,6 +7,18 @@
 #     -tests: launch the tests suite
 #
 # See /docs/deployment.md for more informations.
+#
+# ---
+#
+# You can tweak tests checks by setting the SKIP envar:
+#    - SKIP=flake8 to skip code style
+#    - SKIP=mypy to skip type annotations
+#    - SKIP=rerun to not rerun failed test(s)
+#    - SKIP=integration to not run integration tests on Windows
+#    - SKIP=all to skip all (equivalent to flake8,mypy,rerun,integration)
+#
+# There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
+#
 param (
 	[switch]$build = $false,
 	[switch]$build_dlls = $false,
@@ -177,6 +189,9 @@ function check_vars {
 	if (-Not ($Env:ISCC_PATH)) {
 		$Env:ISCC_PATH = "C:\Program Files (x86)\Inno Setup 5"
 	}
+	if (-Not ($Env:SKIP)) {
+		$Env:ISCC_SKIPPATH = ""
+	}
 	if (-Not ($Env:PYTHON_DIR)) {
 		$ver_major, $ver_minor = $Env:PYTHON_DRIVE_VERSION.split('.')[0,1]
 		$Env:PYTHON_DIR = "C:\Python$ver_major$ver_minor-32"
@@ -190,6 +205,7 @@ function check_vars {
 	Write-Output "    STORAGE_DIR          = $Env:STORAGE_DIR"
 	Write-Output "    PYTHON_DIR           = $Env:PYTHON_DIR"
 	Write-Output "    ISCC_PATH            = $Env:ISCC_PATH"
+	Write-Output "    SKIP                 = $Env:SKIP"
 
 	Set-Location "$Env:WORKSPACE_DRIVE"
 
@@ -319,29 +335,39 @@ function install_python {
 function launch_test($path, $pytest_args) {
 	# Launch tests on a specific path. On failure, retry failed tests.
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $pytest_args "$path"
-	if ($lastExitCode -ne 0) {
-		# Re-run failures
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest --last-failed --last-failed-no-failures none
+	if ($lastExitCode -eq 0) {
+		return
+	}
+
+	if (-not ($Env:SKIP -match 'rerun' -or $Env:SKIP -match 'all')) {
+		# Do not fail on error as all failures will be re-run another time at the end
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
+			--last-failed --last-failed-no-failures none
 	}
 }
 
 function launch_tests {
+	# If a specific test is asked, just run it and bypass all over checks
 	if ($Env:SPECIFIC_TEST -ne "tests") {
 		Write-Output ">>> Launching the tests suite"
 		launch_test "$Env:SPECIFIC_TEST"
 		return
 	}
 
-	Write-Output ">>> Checking the style"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
+	if (-not ($Env:SKIP -match 'flake8' -or $Env:SKIP -match 'all')) {
+		Write-Output ">>> Checking the style"
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
 	}
 
-	Write-Output ">>> Checking type annotations"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy nxdrive
-	if ($lastExitCode -ne 0) {
-		ExitWithCode $lastExitCode
+	if (-not ($Env:SKIP -match 'mypy' -or $Env:SKIP -match 'all')) {
+		Write-Output ">>> Checking type annotations"
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy nxdrive
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
 	}
 
 	Write-Output ">>> Launching unit tests"
@@ -364,20 +390,25 @@ function launch_tests {
 		$number = $number + 1
 	}
 
-	Write-Output ">>> Re-rerun failed tests"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest --last-failed --last-failed-no-failures none
-	# The above command will exit with error code 5 if there is no failure to rerun
-	$ret = $lastExitCode
-	if ($ret -ne 0 -and $ret -ne 5) {
-		ExitWithCode $ret
+	if (-not ($Env:SKIP -match 'rerun' -or $Env:SKIP -match 'all')) {
+		Write-Output ">>> Re-rerun failed tests"
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
+			--last-failed --last-failed-no-failures none
+		# The above command will exit with error code 5 if there is no failure to rerun
+		$ret = $lastExitCode
+		if ($ret -ne 0 -and $ret -ne 5) {
+			ExitWithCode $ret
+		}
 	}
 
-	Write-Output ">>> Freezing the application for integration tests"
-	$Env:FREEZE_ONLY = 1
-	build_installer
+	if (-not ($Env:SKIP -match 'integration' -or $Env:SKIP -match 'all')) {
+		Write-Output ">>> Freezing the application for integration tests"
+		$Env:FREEZE_ONLY = 1
+		build_installer
 
-	Write-Output ">>> Launching integration tests"
-	launch_test "tests\integration\windows" "-n0"
+		Write-Output ">>> Launching integration tests"
+		launch_test "tests\integration\windows" "-n0"
+	}
 }
 
 function sign($file) {
