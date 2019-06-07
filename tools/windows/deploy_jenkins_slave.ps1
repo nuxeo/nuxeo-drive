@@ -348,6 +348,7 @@ function launch_test($path, $pytest_args) {
 }
 
 function launch_tests {
+    $junit_folder = "tools\jenkins\junit\xml"
 	# If a specific test is asked, just run it and bypass all over checks
 	if ($Env:SPECIFIC_TEST -ne "tests") {
 		Write-Output ">>> Launching the tests suite"
@@ -377,10 +378,10 @@ function launch_tests {
 	}
 
 	Write-Output ">>> Launching unit tests"
-	launch_test "tests\unit"
+	launch_test "tests\unit" "--junitxml=$junit_folder\test_unit.xml"
 
 	Write-Output ">>> Launching functional tests"
-	launch_test "tests\functional"
+	launch_test "tests\functional" "--junitxml=$junit_folder\test_functional.xml"
 
 	Write-Output ">>> Launching synchronization functional tests, file by file"
 	Write-Output "    (first, run for each test file, failures are ignored to have"
@@ -392,20 +393,23 @@ function launch_tests {
 		$test_file = "tests\old_functional\$_"
 		Write-Output ""
 		Write-Output ">>> [$number/$total] Testing $test_file ..."
-		launch_test "$test_file" "-q" "--durations=3"
+		launch_test "$test_file" "-q" "--durations=3 --junitxml=$junit_folder\$test_file.xml"
 		$number = $number + 1
 	}
 
 	if (-not ($Env:SKIP -match 'rerun' -or $Env:SKIP -match 'all')) {
 		Write-Output ">>> Re-rerun failed tests"
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
-			--last-failed --last-failed-no-failures none
+			--last-failed --last-failed-no-failures none --junitxml=$junit_folder\final.xml
 		# The above command will exit with error code 5 if there is no failure to rerun
 		$ret = $lastExitCode
-		if ($ret -ne 0 -and $ret -ne 5) {
-			ExitWithCode $ret
-		}
 	}
+
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\jenkins\junit\merge.py
+
+    if ($ret -ne 0 -and $ret -ne 5) {
+        ExitWithCode $ret
+    }
 
 	if (-not ($Env:SKIP -match 'integration' -or $Env:SKIP -match 'all')) {
 		Write-Output ">>> Freezing the application for integration tests"
