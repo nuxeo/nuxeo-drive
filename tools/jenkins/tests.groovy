@@ -3,7 +3,6 @@
 
 // Pipeline properties
 properties([
-    disableConcurrentBuilds(),
     pipelineTriggers([[$class: 'GitHubPushTrigger']]),
     [$class: 'BuildDiscarderProperty', strategy:
         [$class: 'LogRotator', daysToKeepStr: '60', numToKeepStr: '60', artifactNumToKeepStr: '1']],
