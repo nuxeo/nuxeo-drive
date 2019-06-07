@@ -83,7 +83,8 @@ If you get an error message complaining about the lack of signature for this scr
     - SKIP=mypy to skip type annotations
     - SKIP=rerun to not rerun failed test(s)
     - SKIP=integration to not run integration tests on Windows
-    - SKIP=all to skip all (equivalent to flake8,mypy,rerun,integration)
+    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,integration)
+    - SKIP=tests tu run only code checks
 ```
 
 #### MacOS Specific

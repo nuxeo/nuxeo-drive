@@ -18,7 +18,8 @@
 #    - SKIP=flake8 to skip code style
 #    - SKIP=mypy to skip type annotations
 #    - SKIP=rerun to not rerun failed test(s)
-#    - SKIP=all to skip all (equivalent to flake8,mypy,rerun)
+#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun)
+#    - SKIP=tests tu run only code checks
 #
 # There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
 #
@@ -217,6 +218,11 @@ launch_tests() {
     if [[ ! "${SKIP}" = *"mypy"* ]] && [[ ! "${SKIP}" = *"all"* ]]; then
         echo ">>> Checking type annotations"
         ${PYTHON} -m mypy nxdrive
+    fi
+
+    if [[ "${SKIP}" = *"tests"* ]]; then
+        # Skip all test cases
+        return
     fi
 
     echo ">>> Launching unit tests"
