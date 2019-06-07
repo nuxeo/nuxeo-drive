@@ -3,7 +3,6 @@
 
 // Pipeline properties
 properties([
-    disableConcurrentBuilds(),
     [$class: 'BuildDiscarderProperty', strategy:
         [$class: 'LogRotator', daysToKeepStr: '60', numToKeepStr: '60', artifactNumToKeepStr: '1']],
     [$class: 'SchedulerPreference', preferEvenload: true],
