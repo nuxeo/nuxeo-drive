@@ -221,6 +221,7 @@
     "READONLY": "Document en lecture seule",
     "READONLY_FILE": "„%1“ ne peut pas être mis à jour car il est en lecture seule",
     "READONLY_FOLDER": "„%1“ ne peut pas être créé dans le dossier „%2“ en lecture seule",
+    "RELEASE_NOTES_TITLE": "%1 - Release notes",
     "RECENTLY_UPDATED": "Derniers fichiers mis à jour",
     "REPLACE": "Replace",
     "REPORT_GENERATED": "Rapport disponible :",

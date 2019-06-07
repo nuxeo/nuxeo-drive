@@ -221,6 +221,7 @@
     "READONLY": "Documento di sola lettura",
     "READONLY_FILE": "Impossibile aggiornare „%1“ perché è di sola lettura",
     "READONLY_FOLDER": "Impossibile caricare „%1“ nella cartella di sola lettura „%2“",
+    "RELEASE_NOTES_TITLE": "%1 - Release notes",
     "RECENTLY_UPDATED": "Aggiornato di recente",
     "REPLACE": "Replace",
     "REPORT_GENERATED": "Rapporto disponibile in:",

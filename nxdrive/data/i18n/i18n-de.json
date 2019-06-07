@@ -221,6 +221,7 @@
     "READONLY": "Schreibgeschütztes Dokument",
     "READONLY_FILE": "„%1“ kann nicht aktualisiert werden, da schreibgeschützt",
     "READONLY_FOLDER": "„%1“ konnte nicht in schreibgeschützten Ordner „%2“ hochgeladen werden",
+    "RELEASE_NOTES_TITLE": "%1 - Release notes",
     "RECENTLY_UPDATED": "Kürzlich aktualisiert",
     "REPLACE": "Replace",
     "REPORT_GENERATED": "Bericht ist verfügbar unter:",

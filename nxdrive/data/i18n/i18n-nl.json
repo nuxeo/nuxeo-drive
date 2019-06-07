@@ -221,6 +221,7 @@
     "READONLY": "Alleen-lezendocument",
     "READONLY_FILE": "Kan '{{ name }}' niet bijwerken omdat het alleen-lezen is",
     "READONLY_FOLDER": "'{{ name }}' kon niet naar de alleen-lezenmap '{{ folder }}' worden geüpload.",
+    "RELEASE_NOTES_TITLE": "%1 - Release notes",
     "RECENTLY_UPDATED": "Onlangs bijgewerkt",
     "REPLACE": "Replace",
     "REPORT_GENERATED": "Rapport beschikbaar op:",

@@ -221,6 +221,7 @@
     "READONLY": "Skrivskyddat dokument",
     "READONLY_FILE": "Kan inte uppdatera „%1“ eftersom det är skrivskyddat",
     "READONLY_FOLDER": "„%1“ kunde inte laddas upp till den skrivskyddade mappen „%2“",
+    "RELEASE_NOTES_TITLE": "%1 - Release notes",
     "RECENTLY_UPDATED": "Nyligen uppdaterad",
     "REPLACE": "Replace",
     "REPORT_GENERATED": "Rapport tillgänglig på:",
