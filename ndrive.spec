@@ -27,7 +27,16 @@ icon = {
     "win32": os.path.join(tools, "windows", "app_icon.ico"),
 }[sys.platform]
 
-hiddenimports = []
+hiddenimports = [
+    "sentry_sdk.integrations.argv",
+    "sentry_sdk.integrations.atexit",
+    "sentry_sdk.integrations.dedupe",
+    "sentry_sdk.integrations.excepthook",
+    "sentry_sdk.integrations.logging",
+    "sentry_sdk.integrations.modules",
+    "sentry_sdk.integrations.stdlib",
+    "sentry_sdk.integrations.threading",
+]
 excludes = [
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-remove-tkinter-tcl
     "FixTk",
