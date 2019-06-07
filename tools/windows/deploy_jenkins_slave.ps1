@@ -15,7 +15,8 @@
 #    - SKIP=mypy to skip type annotations
 #    - SKIP=rerun to not rerun failed test(s)
 #    - SKIP=integration to not run integration tests on Windows
-#    - SKIP=all to skip all (equivalent to flake8,mypy,rerun,integration)
+#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,integration)
+#    - SKIP=tests tu run only code checks
 #
 # There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
 #
@@ -368,6 +369,11 @@ function launch_tests {
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
+	}
+
+	if ($Env:SKIP -match 'tests') {
+		# Skip all test cases
+		return
 	}
 
 	Write-Output ">>> Launching unit tests"
