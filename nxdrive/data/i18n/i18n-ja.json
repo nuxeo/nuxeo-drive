@@ -221,6 +221,7 @@
     "READONLY": "読み取り専用文書",
     "READONLY_FILE": "„%1“は読み取り専用なので、更新できません",
     "READONLY_FOLDER": "„%1“ は、読み取り専用フォルダ„%2“にアップロードできませんでした",
+    "RELEASE_NOTES_TITLE": "%1 - Release notes",
     "RECENTLY_UPDATED": "最近の更新",
     "REPLACE": "Replace",
     "REPORT_GENERATED": "レポートの場所：",

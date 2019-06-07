@@ -221,6 +221,7 @@
     "READONLY": "Dokumen hanya sekali baca",
     "READONLY_FILE": "Tidak dapat memperbarui ,,{{ name }}\" seperti hanya sekali baca",
     "READONLY_FOLDER": ",,{{ name }}\" tidak dapat diunggah ke folder hanya-baca ,,{{ folder }}\"",
+    "RELEASE_NOTES_TITLE": "%1 - Release notes",
     "RECENTLY_UPDATED": "Baru saja diperbarui",
     "REPLACE": "Replace",
     "REPORT_GENERATED": "Laporan tersedia di:",
