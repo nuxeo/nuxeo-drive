@@ -31,7 +31,7 @@ from .constants import (
     WINDOWS,
     TransferStatus,
 )
-from .engine.activity import tooltip, DownloadAction, FileAction
+from .engine.activity import tooltip, DownloadAction
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
@@ -288,14 +288,11 @@ class DirectEdit(Worker):
         self,
         engine: "Engine",
         info: NuxeoDocumentInfo,
-        file_path: Path,
+        file_out: Path,
         blob: Blob,
         xpath: str,
         url: str = None,
     ) -> Path:
-        filename = DOWNLOAD_TMP_FILE_PREFIX + file_path.name + DOWNLOAD_TMP_FILE_SUFFIX
-        file_out = file_path.parent / filename
-
         # Close to processor method - should try to refactor ?
         pair = None
         kwargs: Dict[str, Any] = {}
@@ -441,8 +438,12 @@ class DirectEdit(Worker):
 
         log.info(f"Editing {filename!r}")
         file_path = dir_path / filename
+        file_out = (
+            file_path.parent
+            / f"{DOWNLOAD_TMP_FILE_PREFIX}{file_path.name}{DOWNLOAD_TMP_FILE_SUFFIX}"
+        )
 
-        DownloadAction(file_path, reporter=QApplication.instance())
+        DownloadAction(file_out, file_path.name, reporter=QApplication.instance())
         # Add a new download entry in the database
         download = Download(
             None,
@@ -455,7 +456,7 @@ class DirectEdit(Worker):
         engine.get_dao().save_download(download)
         try:
             # Download the file
-            tmp_file = self._download(engine, info, file_path, blob, xpath, url=url)
+            tmp_file = self._download(engine, info, file_out, blob, xpath, url=url)
             # Download completed, remove it from the database
             engine.get_dao().remove_transfer("download", file_path)
             if tmp_file is None:
@@ -465,7 +466,7 @@ class DirectEdit(Worker):
             log.warning("Unable to perform DirectEdit", exc_info=True)
             return None
         finally:
-            FileAction.finish_action()
+            DownloadAction.finish_action()
 
         # Set the remote_id
         dir_path = self.local.get_path(dir_path)
