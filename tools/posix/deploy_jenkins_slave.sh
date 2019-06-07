@@ -202,6 +202,7 @@ launch_test() {
 
 launch_tests() {
     local ret
+    local junit_folder="tools/jenkins/junit/xml"
 
     # If a specific test is asked, just run it and bypass all over checks
     if [ "${SPECIFIC_TEST}" != "tests" ]; then
@@ -226,10 +227,10 @@ launch_tests() {
     fi
 
     echo ">>> Launching unit tests"
-    launch_test "tests/unit"
+    launch_test "tests/unit" "--junitxml=${junit_folder}/test_unit.xml"
 
     echo ">>> Launching functional tests"
-    launch_test "tests/functional"
+    launch_test "tests/functional" "--junitxml=${junit_folder}/test_functional.xml"
 
     echo ">>> Launching synchronization functional tests, file by file"
     echo "    (first, run for each test file, failures are ignored to have"
@@ -239,20 +240,24 @@ launch_tests() {
     for test_file in $(find tests/old_functional -name "test_*.py"); do
         echo ""
         echo ">>> [${number}/${total}] Testing ${test_file} ..."
-        launch_test "${test_file}" "-q --durations=3"
+        launch_test "${test_file}" "-q --durations=3 --junitxml=${junit_folder}/${test_file}.xml"
         number=$(( number + 1 ))
     done
 
     if [[ ! "${SKIP}" = *"rerun"* ]] && [[ ! "${SKIP}" = *"all"* ]]; then
         echo ">>> Re-rerun failed tests"
         set +e
-        ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none
+        ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none --junitxml=${junit_folder}/final.xml
         # The above command will exit with error code 5 if there is no failure to rerun
         ret=$?
         set -e
-        if [ $ret -ne 0 ] && [ $ret -ne 5 ]; then
-            exit 1
-        fi
+    fi
+
+    # Do not fail on junit merge
+    python tools/jenkins/junit/merge.py || true
+
+    if [ $ret -ne 0 ] && [ $ret -ne 5 ]; then
+        exit 1
     fi
 }
 
