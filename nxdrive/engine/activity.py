@@ -67,14 +67,12 @@ class Action(QObject):
     @staticmethod
     def finish_action() -> None:
         thread_id = current_thread().ident
-        if not thread_id:
-            return
-
-        action = Action.actions.pop(thread_id, None)
-        if action:
-            action.finish()
-            if isinstance(action, FileAction):
-                Action.lastFileActions[thread_id] = action
+        if thread_id:
+            action = Action.actions.pop(thread_id, None)
+            if action:
+                action.finish()
+                if isinstance(action, FileAction):
+                    Action.lastFileActions[thread_id] = action
 
     def finish(self) -> None:
         self.finished = True

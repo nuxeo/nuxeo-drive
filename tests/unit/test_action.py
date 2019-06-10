@@ -1,7 +1,15 @@
 import os.path
 from pathlib import Path
 
-from nxdrive.engine.activity import Action, FileAction, IdleAction
+from nxdrive.engine.activity import (
+    Action,
+    DownloadAction,
+    FileAction,
+    IdleAction,
+    UploadAction,
+    VerificationAction,
+    tooltip,
+)
 
 
 def test_action():
@@ -12,14 +20,19 @@ def test_action():
 
     actions = Action.get_actions()
     assert len(actions) == 1
-    assert list(actions.values())[0] == action
-    assert Action.get_current_action() == action
+    assert list(actions.values())[0] is action
+    assert Action.get_current_action() is action
 
     # Will test .get_percent()
     details = action.export()
     assert details["action_type"] == "Testing"
     assert details["progress"] == 0.0
     assert isinstance(details["uid"], str)
+
+    # Test progress property setter
+    action.progress = 100.0
+    details = action.export()
+    assert details["progress"] == 100.0
 
     Action.finish_action()
     actions = Action.get_actions()
@@ -33,6 +46,15 @@ def test_action_with_values():
     details = action.export()
     assert details["progress"] == 42.222
     Action.finish_action()
+
+
+def test_download_action():
+    filepath = Path("fake/test.odt")
+    action = DownloadAction(filepath)
+    assert action.type == "Download"
+
+    Action.finish_action()
+    assert action.finished
 
 
 def test_file_action(tmp):
@@ -53,10 +75,22 @@ def test_file_action(tmp):
     assert details["name"] == filepath.name
     assert details["filepath"] == str(filepath)
 
-    assert Action.get_current_action() == action
+    assert Action.get_last_file_action() is None
+    assert Action.get_current_action() is action
+
+    # Test repr() when size is None
+    action.size = None
+    assert repr(action) == "Mocking('test.txt')"
+
+    # Test repr() when .get_percent() > 0
+    action.size = 42
+    action.progress = 4.2
+    assert repr(action) == "Mocking('test.txt'[42]-10.0)"
 
     Action.finish_action()
     assert action.finished
+
+    assert Action.get_last_file_action() is action
 
 
 def test_file_action_with_values():
@@ -64,13 +98,95 @@ def test_file_action_with_values():
     action = FileAction("Mocking", filepath, size=42)
     assert action.type == "Mocking"
 
+    # Test repr() when .get_percent() equals 0
+    assert repr(action) == "Mocking('test.odt'[42])"
+
     # Will test .get_percent()
     details = action.export()
     assert details["size"] == 42
     assert details["name"] == "test.odt"
     assert details["filepath"] == f"fake{os.path.sep}test.odt"
 
+    # Test progress property setter when .progress < .size
+    action.progress = 24.5
+    details = action.export()
+    assert details["progress"] == 24.5 * 100 / 42.0
+
+    # Test progress property setter when .progress >= .size
+    action.progress = 222.0
+    details = action.export()
+    assert details["progress"] == 100.0
+
+
+def test_file_action_signals():
+    """Try to mimic QThread signals to test ._connect_reporter()."""
+
+    class Reporter:
+        def action_started(self):
+            pass
+
+        def action_progressing(self):
+            pass
+
+        def action_done(self):
+            pass
+
+    filepath = Path("fake/test.odt")
+    action = FileAction("Mocking", filepath, size=42, reporter=Reporter())
+
+    Action.finish_action()
+    assert action.finished
+
 
 def test_idle_action():
     action = IdleAction()
+    assert repr(action) == "Idle"
     assert action.type == "Idle"
+
+    Action.finish_action()
+    assert action.finished
+
+
+def test_tooltip():
+    @tooltip("Testing tooltip!")
+    def function(a, b=1):
+        # There should be 1 action, automatically created by the decorator
+        action = Action.get_current_action()
+        assert action
+        assert action.type == "Testing tooltip!"
+
+        return a * b
+
+    # There is no Action right now
+    assert Action.get_current_action() is None
+
+    function(4.2, b=10)
+
+    # There should be no action now that the function has been called
+    assert Action.get_current_action() is None
+
+
+def test_upload_action(tmp):
+    folder = tmp()
+    folder.mkdir()
+    filepath = folder / "test-upload.txt"
+    filepath.write_bytes(b"This is Sparta!")
+
+    action = UploadAction(filepath)
+    assert action.type == "Upload"
+
+    Action.finish_action()
+    assert action.finished
+
+
+def test_verification_action(tmp):
+    folder = tmp()
+    folder.mkdir()
+    filepath = folder / "test.txt"
+    filepath.write_bytes(b"This is Sparta!")
+
+    action = VerificationAction(filepath)
+    assert action.type == "Verification"
+
+    Action.finish_action()
+    assert action.finished
