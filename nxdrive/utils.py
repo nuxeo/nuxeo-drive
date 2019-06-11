@@ -1099,6 +1099,8 @@ def compute_digest(path: Path, digest_func: str, callback: Callable = None) -> s
                 if not buf:
                     break
                 h.update(buf)
-    except OSError:
+    except (OSError, MemoryError):
+        # MemoryError happens randomly, dunno why but this is
+        # not an issue as the hash will be recomputed later
         return UNACCESSIBLE_HASH
     return h.hexdigest()
