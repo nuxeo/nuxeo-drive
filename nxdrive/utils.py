@@ -505,7 +505,7 @@ def normalize_event_filename(filename: Union[str, Path], action: bool = True) ->
 
     if not MAC and action and path != normalized and path.exists():
         log.info(f"Forcing normalization: {path!r} -> {normalized!r}")
-        path.rename(normalized)
+        safe_rename(path, normalized)
 
     return normalized
 
@@ -560,6 +560,28 @@ def safe_long_path(path: Path) -> Path:
     if WINDOWS:
         path = Path(f"\\\\?\\{normalized_path(path)}")
     return path
+
+
+def safe_rename(src: Path, dst: Path) -> None:
+    """
+    Safely rename files on Windows.
+
+    As said here https://docs.python.org/3/library/pathlib.html#pathlib.Path.rename
+    Unix systems will silently replace the destination if it is an existing file,
+    if the user has permissions.
+    This function is here to ensure Windows keeps the same behavior as the other OSes.
+    In case the user doesn't have the fitting permissions to delete the destination or
+    rename the file after deletion, we let the error raise.
+    """
+    try:
+        src.rename(dst)
+    except FileExistsError:
+        if dst.is_file():
+            log.info(f"Deleting {dst} to rename {src} in its place")
+            dst.unlink()
+            src.rename(dst)
+        else:
+            raise
 
 
 def find_resource(folder: str, filename: str = "") -> Path:
