@@ -58,7 +58,7 @@ def test_cleanup_file(direct_edit):
 
     file = direct_edit._folder / "this is a file.txt"
     file.touch()
-    file.write_text("bla" * 3)
+    file.write_text("bla" * 3, encoding="utf-8")
     assert file.is_file()
 
     direct_edit._cleanup()

@@ -56,7 +56,9 @@ class TestLocalDeletion(OneUserTest):
         (self.local_test_folder_1 / file2).write_bytes(b"New content")
         if WINDOWS:
             # Python API overwrite the tag by default
-            (self.local_test_folder_1 / f"{file2}:ndrive").write_text(uid)
+            (self.local_test_folder_1 / f"{file2}:ndrive").write_text(
+                uid, encoding="utf-8"
+            )
         # See if it untrash or recreate
         shutil.move(self.local_test_folder_1 / file2, local.abspath("/"))
         self.wait_sync(wait_for_async=True)

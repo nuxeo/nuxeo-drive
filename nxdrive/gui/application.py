@@ -1363,7 +1363,9 @@ class Application(QApplication):
         if Options.use_sentry:
             states.append("sentry")
 
-        (Options.nxdrive_home / "metrics.state").write_text("\n".join(states))
+        (Options.nxdrive_home / "metrics.state").write_text(
+            "\n".join(states), encoding="utf-8"
+        )
 
     def ask_for_metrics_approval(self) -> None:
         """Should we setup and use Sentry and/or Google Analytics?"""
@@ -1373,7 +1375,7 @@ class Application(QApplication):
 
         STATE_FILE = Options.nxdrive_home / "metrics.state"
         if STATE_FILE.is_file():
-            lines = STATE_FILE.read_text().splitlines()
+            lines = STATE_FILE.read_text(encoding="utf-8").splitlines()
             Options.use_sentry = "sentry" in lines
             Options.use_analytics = "analytics" in lines
             # Abort now, the user already decided to use Sentry or not

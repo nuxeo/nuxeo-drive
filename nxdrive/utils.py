@@ -1022,7 +1022,9 @@ class PidLockFile:
 
         if pid_filepath.is_file():
             try:
-                pid: Optional[int] = int(pid_filepath.read_text().strip())
+                pid: Optional[int] = int(
+                    pid_filepath.read_text(encoding="utf-8").strip()
+                )
             except ValueError as exc:
                 log.warning(f"The PID file has invalid data: {exc}")
                 pid = None
@@ -1077,7 +1079,7 @@ class PidLockFile:
             raise RuntimeError(f"Invalid PID: {pid!r}")
 
         pid_filepath = self._get_sync_pid_filepath(process_name=self.key)
-        pid_filepath.write_text(str(pid))
+        pid_filepath.write_text(str(pid), encoding="utf-8")
 
         return None
 
