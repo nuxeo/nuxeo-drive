@@ -48,6 +48,7 @@ names = [
     'windows': 'Windows'
 ]
 builders = [:]
+downstream_jobs = [:]
 
 // GitHub stuff
 repos_url = 'https://github.com/nuxeo/nuxeo-drive'
@@ -150,7 +151,11 @@ def run_sonar() {
         def suffix = (env.BRANCH_NAME == 'master') ? 'master' : 'dynamic'
         for (def label in slaves.keySet()) {
             try {
-                copyArtifacts projectName: "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}", filter: "sources/.coverage", target: ".."
+                copyArtifacts(
+                    projectName: "../Drive-OS-test-jobs/Drive-tests-${label}-${suffix}",
+                    filter: "sources/.coverage", target: "..",
+                    selector: specific("${downstream_jobs[label].number}")
+                )
                 sh "mv .coverage .coverage.${label}"
                 echo "Retrieved .coverage.${label}"
             } catch (e) {
@@ -215,6 +220,7 @@ for (def x in slaves.keySet()) {
                 [$class: 'BooleanParameterValue', name: 'CLEAN_WORKSPACE', value: params.CLEAN_WORKSPACE],
                 [$class: 'StringParameterValue', name: 'BRANCH_NAME', value: env.BRANCH_NAME]
             ]
+            downstream_jobs[label] = test_job
             echo "${name} tests: ${test_job.result}"
             if (test_job.result == "SUCCESS") {
                 successes += 1
