@@ -194,14 +194,14 @@ launch_test() {
 
     ${cmd} ${pytest_args} "${path}" && return
 
-    if [[ "${SKIP}" = *"rerun"* ]] || [[ "${SKIP}" = *"all"* ]]; then
+    if should_run "rerun"; then
         # Do not fail on error as all failures will be re-run another time at the end
         ${cmd} --last-failed --last-failed-no-failures none || true
     fi
 }
 
 launch_tests() {
-    local ret
+    local ret=0
     local junit_folder="tools/jenkins/junit/xml"
 
     # If a specific test is asked, just run it and bypass all over checks
@@ -211,17 +211,17 @@ launch_tests() {
         return
     fi
 
-    if [[ ! "${SKIP}" = *"flake8"* ]] && [[ ! "${SKIP}" = *"all"* ]]; then
+    if should_run "flake8"; then
         echo ">>> Checking the style"
         ${PYTHON} -m flake8 .
     fi
 
-    if [[ ! "${SKIP}" = *"mypy"* ]] && [[ ! "${SKIP}" = *"all"* ]]; then
+    if should_run "mypy"; then
         echo ">>> Checking type annotations"
         ${PYTHON} -m mypy nxdrive
     fi
 
-    if [[ "${SKIP}" = *"tests"* ]]; then
+    if should_skip "tests"; then
         # Skip all test cases
         return
     fi
@@ -244,7 +244,7 @@ launch_tests() {
         number=$(( number + 1 ))
     done
 
-    if [[ ! "${SKIP}" = *"rerun"* ]] && [[ ! "${SKIP}" = *"all"* ]]; then
+    if should_run "rerun"; then
         echo ">>> Re-rerun failed tests"
         set +e
         ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none --junitxml=${junit_folder}/final.xml
@@ -259,6 +259,44 @@ launch_tests() {
     if [ $ret -ne 0 ] && [ $ret -ne 5 ]; then
         exit 1
     fi
+}
+
+should_run() {
+    # Return 0 if we should run the given action.
+    local action
+
+    action="$1"
+
+    if should_skip "${action}"; then
+        return 1
+    else
+        return 0
+    fi
+
+}
+
+should_skip() {
+    # Return 0 if we should skip the given action.
+    local action
+    local ret
+
+    action="$1"
+
+    if [ "${SKIP}" = "all" ]; then
+        if [ "${action}" = "tests" ]; then
+            # "all" does not affect "tests"
+            ret=1
+        else
+            ret=0
+        fi
+    else
+        case "${SKIP}" in
+            *"${action}"*) ret=0 ;;
+            *)             ret=1 ;;
+        esac
+    fi
+
+    return ${ret}
 }
 
 start_nxdrive() {
