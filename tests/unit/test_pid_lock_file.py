@@ -54,7 +54,7 @@ def test_already_locked(tmp):
     lock_file = folder / "nxdrive_qt.pid"
 
     # Inexistant pid
-    lock_file.write_text("3857965")
+    lock_file.write_text("3857965", encoding="utf-8")
 
     lock = PidLockFile(folder, "qt")
     pid = lock.lock()
@@ -68,7 +68,7 @@ def test_already_locked_same_process(tmp):
     lock_file = folder / "nxdrive_qt.pid"
 
     # Save the current pid
-    lock_file.write_text(str(os.getpid()))
+    lock_file.write_text(str(os.getpid()), encoding="utf-8")
 
     lock = PidLockFile(folder, "qt")
     pid = lock.lock()
@@ -82,7 +82,7 @@ def test_bad_lock_file_content(tmp):
     lock_file = folder / "nxdrive_qt.pid"
 
     # Craft a bad lock file
-    lock_file.write_text("BOOM")
+    lock_file.write_text("BOOM", encoding="utf-8")
 
     lock = PidLockFile(folder, "qt")
     pid = lock.lock()

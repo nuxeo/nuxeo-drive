@@ -44,7 +44,7 @@ def config_dao():
 @pytest.fixture()
 def pac_file(tmp_path, js):
     pac = tmp_path / "proxy.pac"
-    pac.write_text(js)
+    pac.write_text(js, encoding="utf-8")
 
     uri = pac.resolve().as_uri()
     if WINDOWS:
