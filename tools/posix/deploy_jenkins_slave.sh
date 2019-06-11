@@ -186,17 +186,28 @@ install_python() {
     pyenv global "${version}"
 }
 
+junit_arg() {
+    local junit="tools/jenkins/junit/xml"
+    local path="$1"
+    local run="$2"
+
+    if [ "${run}" != "" ]; then
+        run=".${run}"
+    fi
+    echo "--junitxml=${junit}/${path}${run}.xml"
+}
+
 launch_test() {
     # Launch tests on a specific path. On failure, retry failed tests.
     local cmd="${PYTHON} -bb -Wall -m pytest"
     local path="${1}"
     local pytest_args="${2:-}"
 
-    ${cmd} ${pytest_args} "${path}" && return
+    ${cmd} ${pytest_args} `junit_arg ${path} 1` "${path}" && return
 
     if should_run "rerun"; then
         # Do not fail on error as all failures will be re-run another time at the end
-        ${cmd} --last-failed --last-failed-no-failures none || true
+        ${cmd} --last-failed --last-failed-no-failures none `junit_arg ${path} 2`  || true
     fi
 }
 
@@ -227,10 +238,10 @@ launch_tests() {
     fi
 
     echo ">>> Launching unit tests"
-    launch_test "tests/unit" "--junitxml=${junit_folder}/test_unit.xml"
+    launch_test "tests/unit"
 
     echo ">>> Launching functional tests"
-    launch_test "tests/functional" "--junitxml=${junit_folder}/test_functional.xml"
+    launch_test "tests/functional"
 
     echo ">>> Launching synchronization functional tests, file by file"
     echo "    (first, run for each test file, failures are ignored to have"
@@ -240,14 +251,14 @@ launch_tests() {
     for test_file in $(find tests/old_functional -name "test_*.py"); do
         echo ""
         echo ">>> [${number}/${total}] Testing ${test_file} ..."
-        launch_test "${test_file}" "-q --durations=3 --junitxml=${junit_folder}/${test_file}.xml"
+        launch_test "${test_file}" "-q --durations=3"
         number=$(( number + 1 ))
     done
 
     if should_run "rerun"; then
         echo ">>> Re-rerun failed tests"
         set +e
-        ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none --junitxml=${junit_folder}/final.xml
+        ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none `junit_arg "final"`
         # The above command will exit with error code 5 if there is no failure to rerun
         ret=$?
         set -e

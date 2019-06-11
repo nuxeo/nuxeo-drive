@@ -172,7 +172,7 @@ node(slave) {
                     //github_status(currentBuild.result)
 
                     junit 'sources/tools/jenkins/junit/xml/junit.xml'
-                    archiveArtifacts artifacts: 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt, sources/.coverage', fingerprint: true, allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'sources/ftest/target*/tomcat/log/*.log, sources/*.zip, *yappi.txt, sources/.coverage, sources/tools/jenkins/junit/xml/**.xml', fingerprint: true, allowEmptyArchive: true
                 }
             }
         }

@@ -333,22 +333,33 @@ function install_python {
 	}
 }
 
+function junit_arg($path, $run) {
+	$junit = "tools\jenkins\junit\xml"
+
+	if ($run) {
+		$run = ".$run"
+	}
+    return "--junitxml=$junit\$path$run.xml"
+}
+
 function launch_test($path, $pytest_args) {
 	# Launch tests on a specific path. On failure, retry failed tests.
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $pytest_args "$path"
+	$junitxml = junit_arg $path 1
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $pytest_args $junitxml "$path"
 	if ($lastExitCode -eq 0) {
 		return
 	}
 
 	if (-not ($Env:SKIP -match 'rerun' -or $Env:SKIP -match 'all')) {
 		# Do not fail on error as all failures will be re-run another time at the end
+		$junitxml = junit_arg $path 2
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
-			--last-failed --last-failed-no-failures none
+			--last-failed --last-failed-no-failures none $junitxml
 	}
 }
 
 function launch_tests {
-    $junit_folder = "tools\jenkins\junit\xml"
+	$junit_folder = "tools\jenkins\junit\xml"
 	# If a specific test is asked, just run it and bypass all over checks
 	if ($Env:SPECIFIC_TEST -ne "tests") {
 		Write-Output ">>> Launching the tests suite"
@@ -378,10 +389,10 @@ function launch_tests {
 	}
 
 	Write-Output ">>> Launching unit tests"
-	launch_test "tests\unit" "--junitxml=$junit_folder\test_unit.xml"
+	launch_test "tests\unit"
 
 	Write-Output ">>> Launching functional tests"
-	launch_test "tests\functional" "--junitxml=$junit_folder\test_functional.xml"
+	launch_test "tests\functional"
 
 	Write-Output ">>> Launching synchronization functional tests, file by file"
 	Write-Output "    (first, run for each test file, failures are ignored to have"
@@ -393,14 +404,15 @@ function launch_tests {
 		$test_file = "tests\old_functional\$_"
 		Write-Output ""
 		Write-Output ">>> [$number/$total] Testing $test_file ..."
-		launch_test "$test_file" "-q" "--durations=3 --junitxml=$junit_folder\$test_file.xml"
+		launch_test "$test_file" "-q" "--durations=3"
 		$number = $number + 1
 	}
 
 	if (-not ($Env:SKIP -match 'rerun' -or $Env:SKIP -match 'all')) {
 		Write-Output ">>> Re-rerun failed tests"
+		$junitxml = junit_arg "final"
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
-			--last-failed --last-failed-no-failures none --junitxml=$junit_folder\final.xml
+			--last-failed --last-failed-no-failures none $junitxml
 		# The above command will exit with error code 5 if there is no failure to rerun
 		$ret = $lastExitCode
 	}
