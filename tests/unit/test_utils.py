@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 import nxdrive.utils
-
+from nxdrive.constants import WINDOWS
 
 BAD_HOSTNAMES = [
     "expired.badssl.com",
@@ -391,6 +391,27 @@ def test_simplify_url(url, result):
 )
 def test_safe_filename(invalid, valid):
     assert nxdrive.utils.safe_filename(invalid) == valid
+
+
+def test_safe_rename(tmp):
+    folder = tmp()
+    folder.mkdir()
+
+    src = folder / "abcde.txt"
+    dst = folder / "fghij.txt"
+
+    src.write_bytes(b"qwerty")
+    dst.write_bytes(b"asdfgh")
+
+    if WINDOWS:
+        with pytest.raises(FileExistsError):
+            src.rename(dst)
+
+    nxdrive.utils.safe_rename(src, dst)
+
+    assert not src.exists()
+    assert dst.exists()
+    assert dst.read_bytes() == b"qwerty"
 
 
 @pytest.mark.parametrize(
