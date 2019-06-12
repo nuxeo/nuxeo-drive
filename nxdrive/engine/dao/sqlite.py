@@ -782,8 +782,8 @@ class EngineDAO(ConfigurationDAO):
             c.execute(
                 "UPDATE States  SET processor = 0 WHERE processor = ?", (processor_id,)
             )
-        log.debug(f"Released processor {processor_id}")
-        return c.rowcount > 0
+            log.debug(f"Released processor {processor_id}")
+            return c.rowcount > 0
 
     def acquire_processor(self, thread_id: int, row_id: int) -> bool:
         with self._lock:
@@ -796,7 +796,7 @@ class EngineDAO(ConfigurationDAO):
                 "   AND processor IN (0, ?)",
                 (thread_id, row_id, thread_id),
             )
-        return c.rowcount == 1
+            return c.rowcount == 1
 
     def _reinit_states(self, cursor: Cursor) -> None:
         cursor.execute("DROP TABLE States")
@@ -913,7 +913,7 @@ class EngineDAO(ConfigurationDAO):
 
             self._items_count += 1
 
-        return row_id
+            return row_id
 
     def get_last_files(
         self, number: int, direction: str = "", duration: int = None
@@ -1462,7 +1462,7 @@ class EngineDAO(ConfigurationDAO):
             ):
                 self._queue_pair_state(row_id, info.folderish, pair_state)
             self._items_count += 1
-        return row_id
+            return row_id
 
     def queue_children(self, row: DocPair) -> None:
         with self._lock:
@@ -1496,8 +1496,8 @@ class EngineDAO(ConfigurationDAO):
                 " WHERE id = ?",
                 (error, error_date, incr, details, row.id),
             )
-        row.last_error = error
-        row.error_count += incr
+            row.last_error = error
+            row.error_count += incr
 
     def reset_error(self, row: DocPair, last_error: str = None) -> None:
         with self._lock:
@@ -1514,8 +1514,8 @@ class EngineDAO(ConfigurationDAO):
             )
             self._queue_pair_state(row.id, row.folderish, row.pair_state)
             self._items_count += 1
-        row.last_error = None
-        row.error_count = 0
+            row.last_error = None
+            row.error_count = 0
 
     def _force_sync(self, row: DocPair, local: str, remote: str, pair: str) -> bool:
         with self._lock:
@@ -1652,11 +1652,10 @@ class EngineDAO(ConfigurationDAO):
                     version,
                 ),
             )
-        result = c.rowcount == 1
+            result = c.rowcount == 1
 
-        # Retry without version for folder
-        if not result and row.folderish:
-            with self._lock:
+            # Retry without version for folder
+            if not result and row.folderish:
                 con = self._get_write_connection()
                 c = con.cursor()
                 c.execute(
@@ -1688,21 +1687,21 @@ class EngineDAO(ConfigurationDAO):
                 )
             result = c.rowcount == 1
 
-        if not result:
-            log.debug(f"Was not able to synchronize state: {row!r}")
-            c = self._get_read_connection().cursor()
-            row2: DocPair = c.execute(
-                "SELECT * FROM States WHERE id = ?", (row.id,)
-            ).fetchone()
-            if row2 is None:
-                log.debug("No more row")
-            else:
-                log.debug(f"Current row={row2!r} (version={row2.version!r})")
-            log.debug(f"Previous row={row!r} (version={row.version!r})")
-        elif row.folderish:
-            self.queue_children(row)
+            if not result:
+                log.debug(f"Was not able to synchronize state: {row!r}")
+                c = self._get_read_connection().cursor()
+                row2: DocPair = c.execute(
+                    "SELECT * FROM States WHERE id = ?", (row.id,)
+                ).fetchone()
+                if row2 is None:
+                    log.debug("No more row")
+                else:
+                    log.debug(f"Current row={row2!r} (version={row2.version!r})")
+                log.debug(f"Previous row={row!r} (version={row.version!r})")
+            elif row.folderish:
+                self.queue_children(row)
 
-        return result
+            return result
 
     def update_remote_state(
         self,

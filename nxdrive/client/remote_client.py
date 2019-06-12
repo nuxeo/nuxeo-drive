@@ -106,7 +106,15 @@ class Remote(Nuxeo):
         self.device_id = device_id
         self.user_id = user_id
         self.version = version
+
+        # Callback function used for downloads.
         self.download_callback = download_callback
+
+        # Callback function used for chunked uploads.
+        # It will be forwarded to Batch.get_uploader() on the Nuxeo Python Client side.
+        # Defaults to None for now as it is only used for tests.
+        self.upload_callback: Optional[Callable] = None
+
         self._has_new_trash_service = not version_le(self.client.server_version, "10.1")
 
         self.upload_lock = Lock()
@@ -320,7 +328,10 @@ class Remote(Nuxeo):
                 self._dao.save_upload(upload)
 
                 uploader: Uploader = batch.get_uploader(
-                    blob, chunked=chunked, chunk_size=chunk_size
+                    blob,
+                    chunked=chunked,
+                    chunk_size=chunk_size,
+                    callback=self.upload_callback,
                 )
                 action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
 
@@ -334,8 +345,6 @@ class Remote(Nuxeo):
                             raise UploadPaused(upload.uid or -1)
                 else:
                     uploader.upload()
-
-                blob.fd.close()
 
                 # Transfer is completed, remove it from the database
                 self._dao.remove_transfer("upload", file_path)
@@ -354,8 +363,7 @@ class Remote(Nuxeo):
                 if upload_duration > 0:
                     size = file_path.stat().st_size
                     log.debug(
-                        f"Speed for {size / 1000} kilobytes is {upload_duration} sec:"
-                        f" {size / upload_duration / 1024} Kib/s"
+                        f"Size: {size / 1024:,.2f} Kib, speed: {size / upload_duration / 1024:,.2f} Kib/s"
                     )
 
                 headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}

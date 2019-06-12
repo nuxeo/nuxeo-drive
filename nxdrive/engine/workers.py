@@ -230,8 +230,8 @@ class EngineWorker(Worker):
             return
 
         fullpath = self.engine.local.abspath(doc_pair.local_path)
-        for transfer in {"download", "upload"}:
-            self._dao.remove_transfer(transfer, fullpath)
+        for nature in ("download", "upload"):
+            self._dao.remove_transfer(nature, fullpath)
 
 
 class PollWorker(Worker):
