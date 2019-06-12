@@ -38,6 +38,7 @@ from ..utils import (
     normalized_path,
     safe_long_path,
     safe_os_filename,
+    safe_rename,
     set_path_readonly,
     unlock_path,
     unset_path_readonly,
@@ -81,7 +82,7 @@ class FileInfo:
         # NXDRIVE-188: normalize name on the file system if not normalized
         if not MAC and filepath.exists() and self.filepath != filepath:
             log.info(f"Forcing normalization of {filepath!r} to {self.filepath!r}")
-            filepath.rename(self.filepath)
+            safe_rename(filepath, self.filepath)
 
         self.folderish = folderish  # True if a Folder
         self.remote_ref = kwargs.pop("remote_ref", "")
@@ -655,7 +656,7 @@ FolderType=Generic
                     parent, new_name, old_name
                 )
             if old_name != new_name:
-                source_os_path.rename(target_os_path)
+                safe_rename(source_os_path, target_os_path)
             if WINDOWS:
                 # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
                 ctypes.windll.kernel32.SetFileAttributesW(  # type: ignore
@@ -679,7 +680,7 @@ FolderType=Generic
         parent = target_os_path.parent
         new_locker = self.unlock_ref(parent, unlock_parent=False, is_abs=True)
         try:
-            filename.rename(target_os_path)
+            safe_rename(filename, target_os_path)
             new_ref = new_parent_ref / new_name
             return self.get_info(new_ref)
         finally:
