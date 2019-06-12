@@ -463,7 +463,7 @@ class Processor(EngineWorker):
             if duration <= 0:
                 return
             speed = action.size / duration / 1024
-            log.debug(f"Transfer speed {speed:.2f} kib/s")
+            log.debug(f"Transfer speed {speed:,.2f} Kib/s")
             self._current_metrics["speed"] = speed
 
     def _synchronize_if_not_remotely_dirty(

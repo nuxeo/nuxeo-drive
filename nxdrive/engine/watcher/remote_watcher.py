@@ -331,6 +331,7 @@ class RemoteWatcher(EngineWorker):
         # Delete remaining
         for deleted in descendants.values():
             self._dao.delete_remote_state(deleted)
+            self.remove_void_transfers(deleted)
 
     def _scan_remote_recursive(
         self,
@@ -393,6 +394,7 @@ class RemoteWatcher(EngineWorker):
         # Delete remaining
         for deleted in children.values():
             self._dao.delete_remote_state(deleted)
+            self.remove_void_transfers(deleted)
 
         for pair, info in to_scan:
             # TODO Optimize by multithreading this too ?
@@ -782,6 +784,7 @@ class RemoteWatcher(EngineWorker):
                             "denying Read access, marking it as deleted"
                         )
                         self._dao.delete_remote_state(doc_pair)
+                        self.remove_void_transfers(doc_pair)
                     else:
                         log.warning(f"Unknown event: {event_id!r}")
                 else:
@@ -805,6 +808,7 @@ class RemoteWatcher(EngineWorker):
                         # delete from local sync root
                         log.info(f"Marking doc_pair {doc_pair_repr!r} as deleted")
                         self._dao.delete_remote_state(doc_pair)
+                        self.remove_void_transfers(doc_pair)
                     else:
                         """
                         Make new_info consistent with actual doc pair parent
@@ -970,6 +974,7 @@ class RemoteWatcher(EngineWorker):
             delete_processed.append(delete_pair)
             log.info(f"Marking doc_pair {delete_pair!r} as deleted")
             self._dao.delete_remote_state(delete_pair)
+            self.remove_void_transfers(delete_pair)
 
     def filtered(self, info: Optional[RemoteFileInfo]) -> bool:
         """ Check if a remote document is locally ignored. """
