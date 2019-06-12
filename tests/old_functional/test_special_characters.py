@@ -1,10 +1,8 @@
 # coding: utf-8
-from unittest.mock import patch
-
 from nxdrive.constants import WINDOWS
 
 from .common import OneUserTest
-from ..markers import not_windows, windows_only
+from ..markers import not_windows
 
 
 class TestSpecialCharacters(OneUserTest):
@@ -84,34 +82,3 @@ class TestSpecialCharacters(OneUserTest):
         file_name = "- - - - - -.txt" if WINDOWS else "| > < ? * -.txt"
         assert local.exists(f"/{folder_name}")
         assert local.exists(f"/{folder_name}/{file_name}")
-
-    @windows_only(reason="Windows is the only OS that doesn't normalize filenames.")
-    def test_unicode_normalization(self):
-        local = self.local_1
-        import unicodedata
-
-        class AlreadyExistsSignal:
-            def emit(self, old_path, new_path):
-                nonlocal called
-                called = True
-
-        called = False
-
-        self.engine_1.start()
-        self.wait_sync(wait_for_async=True)
-
-        folder = local.make_folder("/", "ABC")
-
-        bad_norm = "modele papieràlettres.txt"
-        good_norm = unicodedata.normalize("NFC", bad_norm)
-
-        with patch.object(
-            self.engine_1._local_watcher, "fileAlreadyExists", new=AlreadyExistsSignal()
-        ):
-            local.abspath(folder / good_norm).write_text("ababababa", encoding="utf-8")
-            self.wait_sync(wait_for_async=True)
-
-            local.abspath(folder / bad_norm).write_text("cdcdcdcdc", encoding="utf-8")
-            self.wait_sync(wait_for_async=True)
-
-            assert called
