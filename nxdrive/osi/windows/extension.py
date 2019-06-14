@@ -77,7 +77,7 @@ class WindowsExtensionListener(ExtensionListener):
             return None
 
         r_path = path.relative_to(engine.local_folder)
-        state = engine.get_dao().get_state_from_local(r_path)
+        state = engine.dao.get_state_from_local(r_path)
 
         if not state:
             return None

@@ -4,7 +4,7 @@ from nxdrive.manager import Manager
 
 def test_autolock(tmp):
     with Manager(tmp()) as manager:
-        dao = manager.get_dao()
+        dao = manager.dao
         dao.lock_path("/test_1", 1, "doc_id_1")
         dao.lock_path("/test_2", 2, "doc_id_2")
         dao.lock_path("/test_3", 3, "doc_id_3")
@@ -34,7 +34,7 @@ def test_notifications(tmp):
     notif2 = Notification("plop")
 
     with Manager(tmp()) as manager:
-        dao = manager.get_dao()
+        dao = manager.dao
         dao.insert_notification(notif)
         dao.insert_notification(notif2)
         assert len(dao.get_notifications()) == 2

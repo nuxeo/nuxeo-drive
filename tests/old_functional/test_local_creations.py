@@ -15,7 +15,7 @@ class TestLocalCreations(OneUserTest):
     def test_invalid_credentials_on_file_upload(self):
         local = self.local_1
         engine = self.engine_1
-        dao = engine.get_dao()
+        dao = engine.dao
 
         engine.start()
         self.wait_sync(wait_for_async=True)
@@ -431,7 +431,7 @@ class TestLocalCreations(OneUserTest):
         info.name = "Bar~.md"
         info.path = Path(self.workspace_title) / "Bar~.md"
         info.filepath = info.filepath.with_name("Bar~.md")
-        engine._dao.insert_local_state(info, parent_path=f"/{self.workspace_title}")
+        engine.dao.insert_local_state(info, parent_path=f"/{self.workspace_title}")
 
         # Wait and check
         self.wait_sync()

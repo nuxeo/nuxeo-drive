@@ -99,7 +99,7 @@ class Remote(Nuxeo):
         self.set_proxy(proxy)
 
         if dao:
-            self._dao = dao
+            self.dao = dao
 
         self.timeout = timeout if timeout > 0 else TIMEOUT
 
@@ -281,7 +281,7 @@ class Remote(Nuxeo):
             batch = chunk_size = None
             try:
                 # See if there is already a transfer for this file
-                upload = self._dao.get_upload(path=file_path)
+                upload = self.dao.get_upload(path=file_path)
                 if upload:
                     log.debug(f"Retrieved transfer for {file_path}: {upload}")
                     if upload.status is not TransferStatus.ONGOING:
@@ -325,7 +325,7 @@ class Remote(Nuxeo):
                         chunk_size=chunk_size,
                     )
                 upload.batch = batch.uid
-                self._dao.save_upload(upload)
+                self.dao.save_upload(upload)
 
                 uploader: Uploader = batch.get_uploader(
                     blob,
@@ -340,14 +340,14 @@ class Remote(Nuxeo):
                     for _ in uploader.iter_upload():
                         # Here 0 may happen when doing a single upload
                         action.progress += uploader.chunk_size or 0
-                        upload = self._dao.get_upload(path=file_path)
+                        upload = self.dao.get_upload(path=file_path)
                         if upload and upload.status is not TransferStatus.ONGOING:
                             raise UploadPaused(upload.uid or -1)
                 else:
                     uploader.upload()
 
                 # Transfer is completed, remove it from the database
-                self._dao.remove_transfer("upload", file_path)
+                self.dao.remove_transfer("upload", file_path)
 
                 upload_duration = int(time.time() - tick)
                 action.transfer_duration = upload_duration
@@ -408,7 +408,7 @@ class Remote(Nuxeo):
         file_name = file_path.name
 
         # Retrieve ongoing download if it exists
-        download = self._dao.get_download(path=file_path)
+        download = self.dao.get_download(path=file_path)
         engine_uid = kwargs.pop("engine_uid", None)
         doc_pair_id = kwargs.pop("doc_pair_id", None)
 
@@ -433,7 +433,7 @@ class Remote(Nuxeo):
                 url=download_url,
                 engine=engine_uid,
             )
-            self._dao.save_download(download)
+            self.dao.save_download(download)
         elif download.tmpname:
             file_out = Path(download.tmpname)
 
@@ -450,20 +450,20 @@ class Remote(Nuxeo):
             # application: we will loose current downloads and when resuming
             # we will restart the whole download at 0.
             log.info(f"Pausing download {download.uid!r}")
-            self._dao.set_transfer_doc(
+            self.dao.set_transfer_doc(
                 "download", download.uid or -1, engine_uid, doc_pair_id
             )
             raise
         except DownloadPaused:
             raise
         except Exception as e:
-            self._dao.remove_transfer("download", file_path)
+            self.dao.remove_transfer("download", file_path)
             with suppress(FileNotFoundError):
                 file_out.unlink()
             raise e
         else:
             # Download completed, remove it from the database
-            self._dao.remove_transfer("download", file_path)
+            self.dao.remove_transfer("download", file_path)
         finally:
             FileAction.finish_action()
         return tmp_file
@@ -505,7 +505,7 @@ class Remote(Nuxeo):
 
     def is_filtered(self, path: str, filtered: bool = True) -> bool:
         if filtered:
-            return self._dao.is_filter(path)
+            return self.dao.is_filter(path)
         return False
 
     def make_folder(

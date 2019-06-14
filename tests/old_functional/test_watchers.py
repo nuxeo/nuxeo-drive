@@ -57,7 +57,7 @@ class TestWatchers(OneUserTest):
 
     def get_full_queue(self, queue, dao=None):
         if dao is None:
-            dao = self.engine_1.get_dao()
+            dao = self.engine_1.dao
         result = []
         while queue:
             result.append(dao.get_state_from_id(queue.pop().id))
@@ -71,7 +71,7 @@ class TestWatchers(OneUserTest):
         self.wait_sync()
 
         # Workspace should have been reconcile
-        res = self.engine_1.get_dao().get_states_from_partial_local(ROOT)
+        res = self.engine_1.dao.get_states_from_partial_local(ROOT)
         # With root
         count = folders + files + 1
         assert len(res) == count
@@ -90,7 +90,7 @@ class TestWatchers(OneUserTest):
         # duplicated file with the same digest as the local file
         # might come first, in which case we get an extra synchronized file,
         # or not, in which case we get a conflicted file
-        assert self.engine_1.get_dao().get_sync_count() >= folders + files
+        assert self.engine_1.dao.get_sync_count() >= folders + files
         # Verify it has been reconciled and all items in queue are synchronized
         queue = self.get_full_queue(copy_queue(manager._local_file_queue))
         for item in queue:
@@ -112,7 +112,7 @@ class TestWatchers(OneUserTest):
         self.queue_manager_1._disable = True
         self.engine_1.start()
         self.wait_sync()
-        res = self.engine_1.get_dao().get_states_from_partial_local(ROOT)
+        res = self.engine_1.dao.get_states_from_partial_local(ROOT)
         # With root
         count = folders + files + 1
         assert len(res) == count
@@ -131,7 +131,7 @@ class TestWatchers(OneUserTest):
         metrics = self.queue_manager_1.get_metrics()
         assert metrics["local_folder_queue"]
         assert metrics["local_file_queue"]
-        res = self.engine_1.get_dao().get_states_from_partial_local(ROOT)
+        res = self.engine_1.dao.get_states_from_partial_local(ROOT)
         # With root
         assert len(res) == folders + files + 1
 
@@ -152,7 +152,7 @@ class TestWatchers(OneUserTest):
         # Test the deletion after first local scan
         self.test_local_scan()
         path = self._delete_folder_1()
-        children = self.engine_1.get_dao().get_states_from_partial_local(path)
+        children = self.engine_1.dao.get_states_from_partial_local(path)
         assert not children
 
     def test_local_scan_delete_non_synced(self):
@@ -162,16 +162,16 @@ class TestWatchers(OneUserTest):
         path = self._delete_folder_1()
         self.engine_1.start()
         self.wait_sync(timeout=5, fail_if_timeout=False)
-        children = self.engine_1.get_dao().get_states_from_partial_local(path)
+        children = self.engine_1.dao.get_states_from_partial_local(path)
         assert not children
 
     def test_local_watchdog_delete_synced(self):
         # Test the deletion after first local scan
         self.test_reconcile_scan()
         path = self._delete_folder_1()
-        child = self.engine_1.get_dao().get_state_from_local(path)
+        child = self.engine_1.dao.get_state_from_local(path)
         assert child.pair_state == "locally_deleted"
-        children = self.engine_1.get_dao().get_states_from_partial_local(path)
+        children = self.engine_1.dao.get_states_from_partial_local(path)
         assert len(children) == 5
         for child in children:
             assert child.pair_state == "locally_deleted"
@@ -183,9 +183,9 @@ class TestWatchers(OneUserTest):
         path = self._delete_folder_1()
         self.engine_1.start()
         self.wait_sync(timeout=5, fail_if_timeout=False)
-        child = self.engine_1.get_dao().get_state_from_local(path)
+        child = self.engine_1.dao.get_state_from_local(path)
         assert child.pair_state == "locally_deleted"
-        children = self.engine_1.get_dao().get_states_from_partial_local(path)
+        children = self.engine_1.dao.get_states_from_partial_local(path)
         assert len(children) == 5
         for child in children:
             assert child.pair_state == "locally_deleted"

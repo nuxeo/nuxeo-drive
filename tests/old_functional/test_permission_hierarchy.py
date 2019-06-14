@@ -120,7 +120,7 @@ class TestPermissionHierarchy2(TwoUsersTest):
         )
 
         # Status check
-        dao = self.engine_2.get_dao()
+        dao = self.engine_2.dao
         assert not dao.get_errors(limit=0)
         assert not dao.get_filters()
         assert not dao.get_unsynchronizeds()
@@ -292,7 +292,7 @@ class TestPermissionHierarchy2(TwoUsersTest):
         )
 
         # Status check
-        dao = self.engine_2.get_dao()
+        dao = self.engine_2.dao
         assert not dao.get_errors(limit=0)
         assert not dao.get_filters()
         assert not dao.get_unsynchronizeds()

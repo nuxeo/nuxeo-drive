@@ -119,9 +119,7 @@ class TestSharedFolders(TwoUsersTest):
         self.wait_sync(wait_for_async=True)
 
         # First checks
-        file_pair_state = self.engine_1.get_dao().get_state_from_local(
-            "/Folder01/File01.txt"
-        )
+        file_pair_state = self.engine_1.dao.get_state_from_local("/Folder01/File01.txt")
         assert file_pair_state is not None
         file_remote_ref = file_pair_state.remote_ref
         assert remote_2.exists("/Folder01")
@@ -183,7 +181,7 @@ class TestSharedFolders(TwoUsersTest):
             assert file_info.name == "File01.txt"
             assert remote_2.exists("/Folder01/SubFolder01/Image01.png")
             # File is in conflict
-            file_pair_state = self.engine_1.get_dao().get_normal_state_from_remote(
+            file_pair_state = self.engine_1.dao.get_normal_state_from_remote(
                 file_remote_ref
             )
             assert file_pair_state.pair_state == "conflicted"
@@ -210,7 +208,7 @@ class TestSharedFolders(TwoUsersTest):
         assert remote.exists("/Final/Aerial04.png")
         assert local.exists("/Final")
         assert local.exists("/Final/Aerial04.png")
-        folder_pair_state = self.engine_1.get_dao().get_state_from_local(
+        folder_pair_state = self.engine_1.dao.get_state_from_local(
             Path(self.workspace_title) / "Final"
         )
         assert folder_pair_state is not None
@@ -236,7 +234,5 @@ class TestSharedFolders(TwoUsersTest):
         assert local.exists("/Finished/Aerial04.png")
 
         # Check folder status
-        folder_pair_state = self.engine_1.get_dao().get_state_from_id(
-            folder_pair_state.id
-        )
+        folder_pair_state = self.engine_1.dao.get_state_from_id(folder_pair_state.id)
         assert folder_pair_state.last_error == "DEDUP"
