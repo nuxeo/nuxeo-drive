@@ -81,7 +81,7 @@ class QueueManager(QObject):
            File "engine/watcher/local_watcher.py", line 271, in scan_pair
              self._suspend_queue()
            File "engine/watcher/local_watcher.py", line 265, in _suspend_queue
-             for processor in self._engine.get_queue_manager().get_processors_on('/', exact_match=False):
+             for processor in self._engine.queue_manager.get_processors_on('/', exact_match=False):
            File "engine/queue_manager.py", line 413, in get_processors_on
              res.append(self._local_file_thread.worker)
          AttributeError: 'NoneType' object has no attribute 'worker'

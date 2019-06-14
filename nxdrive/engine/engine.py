@@ -147,14 +147,14 @@ class Engine(QObject):
         self._local_watcher.rootMoved.connect(self.rootMoved)
         self._local_watcher.docDeleted.connect(self.docDeleted)
         self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
-        self._queue_manager = self._create_queue_manager(processors)
+        self.queue_manager = self._create_queue_manager(processors)
 
         self._local_watcher.fileAlreadyExists.connect(self.fileAlreadyExists)
 
         # Launch queue processors after first remote_watcher pass
-        self._remote_watcher.initiate.connect(self._queue_manager.init_processors)
+        self._remote_watcher.initiate.connect(self.queue_manager.init_processors)
         self._remote_watcher.remoteWatcherStopped.connect(
-            self._queue_manager.shutdown_processors
+            self.queue_manager.shutdown_processors
         )
 
         # Connect last_sync checked
@@ -162,11 +162,11 @@ class Engine(QObject):
 
         # Connect for sync start
         self.newQueueItem.connect(self._check_sync_start)
-        self._queue_manager.newItem.connect(self._check_sync_start)
+        self.queue_manager.newItem.connect(self._check_sync_start)
 
         # Connect components signals to engine signals
-        self._queue_manager.newItem.connect(self.newQueueItem)
-        self._queue_manager.newErrorGiveUp.connect(self.newError)
+        self.queue_manager.newItem.connect(self.newQueueItem)
+        self.queue_manager.newErrorGiveUp.connect(self.newError)
 
         # Some conflict can be resolved automatically
         self.dao.newConflict.connect(self.conflict_resolver)
@@ -203,7 +203,7 @@ class Engine(QObject):
             "syncing": self.is_syncing(),
             "paused": self.is_paused(),
             "local_folder": str(self.local_folder),
-            "queue": self.get_queue_manager().get_metrics(),
+            "queue": self.queue_manager.get_metrics(),
             "web_authentication": bind.web_authentication,
             "server_url": bind.server_url,
             "default_ui": self.wui,
@@ -224,7 +224,7 @@ class Engine(QObject):
     @pyqtSlot(object)
     def _check_sync_start(self, row_id: str = None) -> None:
         if not self._sync_started:
-            queue_size = self._queue_manager.get_overall_size()
+            queue_size = self.queue_manager.get_overall_size()
             if queue_size > 0:
                 self._sync_started = True
                 self.syncStarted.emit(queue_size)
@@ -239,7 +239,7 @@ class Engine(QObject):
             self.start()
 
     def stop_processor_on(self, path: Path) -> None:
-        for worker in self.get_queue_manager().get_processors_on(path):
+        for worker in self.queue_manager.get_processors_on(path):
             log.debug(
                 f"Quitting processor: {worker!r} as requested to stop on {path!r}"
             )
@@ -256,7 +256,7 @@ class Engine(QObject):
         self._folder_lock = path
         # Check for each processor
         log.info(f"Local Folder locking on {path!r}")
-        while self.get_queue_manager().has_file_processors_on(path):
+        while self.queue_manager.has_file_processors_on(path):
             log.debug("Local folder locking wait for file processor to finish")
             sleep(1)
         log.info(f"Local Folder lock setup completed on {path!r}")
@@ -292,11 +292,11 @@ class Engine(QObject):
         self._offline_state = value
         if value:
             log.info(f"Engine {self.uid} goes offline")
-            self._queue_manager.suspend()
+            self.queue_manager.suspend()
             self.offline.emit()
         else:
             log.info(f"Engine {self.uid} goes online")
-            self._queue_manager.resume()
+            self.queue_manager.resume()
             self.online.emit()
 
     def is_offline(self) -> bool:
@@ -423,7 +423,7 @@ class Engine(QObject):
         if self._stopped:
             self.start()
             return
-        self._queue_manager.resume()
+        self.queue_manager.resume()
         for thread in self._threads:
             if thread.isRunning():
                 thread.worker.resume()
@@ -441,7 +441,7 @@ class Engine(QObject):
 
         doc_pair = self.dao.get_state_from_id(transfer.doc_pair)
         if doc_pair:
-            self.get_queue_manager().push(doc_pair)
+            self.queue_manager.push(doc_pair)
 
     def resume_suspended_transfers(self) -> None:
         """ Resume all suspended transfers. """
@@ -455,7 +455,7 @@ class Engine(QObject):
 
             doc_pair = self.dao.get_state_from_id(download.doc_pair)
             if doc_pair:
-                self.get_queue_manager().push(doc_pair)
+                self.queue_manager.push(doc_pair)
 
         for upload in self.dao.get_uploads_with_status(TransferStatus.SUSPENDED):
             if upload.uid is None:
@@ -467,14 +467,14 @@ class Engine(QObject):
 
             doc_pair = self.dao.get_state_from_id(upload.doc_pair)
             if doc_pair:
-                self.get_queue_manager().push(doc_pair)
+                self.queue_manager.push(doc_pair)
 
     def suspend(self) -> None:
         if self._pause:
             return
         self._pause = True
         self.dao.suspend_transfers()
-        self._queue_manager.suspend()
+        self.queue_manager.suspend()
         for thread in self._threads:
             thread.worker.suspend()
         self.syncSuspended.emit()
@@ -584,9 +584,6 @@ class Engine(QObject):
     def has_invalid_credentials(self) -> bool:
         return self._invalid_credentials
 
-    def get_queue_manager(self) -> QueueManager:
-        return self._queue_manager
-
     @staticmethod
     def local_rollback(force: bool = False) -> bool:
         """
@@ -645,9 +642,9 @@ class Engine(QObject):
 
         watcher = self._local_watcher
         empty_events = watcher.empty_events()
-        blacklist_size = self._queue_manager.get_errors_count()
-        qm_size = self._queue_manager.get_overall_size()
-        qm_active = self._queue_manager.active()
+        blacklist_size = self.queue_manager.get_errors_count()
+        qm_size = self.queue_manager.get_overall_size()
+        qm_active = self.queue_manager.active()
         active_status = "active" if qm_active else "inactive"
         empty_polls = self._remote_watcher.empty_polls
         win_info = ""

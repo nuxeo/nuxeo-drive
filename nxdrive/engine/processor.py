@@ -285,7 +285,7 @@ class Processor(EngineWorker):
 
                 self.pairSyncEnded.emit(self._current_metrics)
             except ThreadInterrupt:
-                self.engine.get_queue_manager().push(doc_pair)
+                self.engine.queue_manager.push(doc_pair)
                 raise
             except NotFound:
                 log.warning(
@@ -298,7 +298,7 @@ class Processor(EngineWorker):
             except (PairInterrupt, ParentNotSynced) as exc:
                 log.info(f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue")
                 sleep(1)
-                self.engine.get_queue_manager().push(doc_pair)
+                self.engine.queue_manager.push(doc_pair)
                 continue
             except CONNECTION_ERROR:
                 # TODO:
@@ -579,7 +579,7 @@ class Processor(EngineWorker):
 
         log.debug(f"Postpone action on document({reason}): {doc_pair!r}")
         doc_pair.error_count = 1
-        self.engine.get_queue_manager().push_error(
+        self.engine.queue_manager.push_error(
             doc_pair, exception=None, interval=interval
         )
 

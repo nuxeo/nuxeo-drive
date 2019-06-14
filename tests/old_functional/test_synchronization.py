@@ -747,7 +747,7 @@ class TestSynchronization(OneUserTest):
             self.wait_sync(fail_if_timeout=False)
 
             # Checks
-            assert engine.dao._queue_manager.get_errors_count() == 1
+            assert engine.dao.queue_manager.get_errors_count() == 1
             children = remote.get_children_info(self.workspace)
             assert len(children) == 1
             assert children[0].name == file1

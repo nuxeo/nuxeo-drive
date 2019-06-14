@@ -439,7 +439,7 @@ class TestLocalMoveAndRename(OneUserTest):
             self.engine_1.dao, "insert_local_state", new=insert_local_state
         ):
             # Might be blacklisted once
-            self.engine_1.get_queue_manager()._error_interval = 3
+            self.engine_1.queue_manager._error_interval = 3
             local.make_file("/", "File.txt", content=b"Some Content 2")
             sleep(10)
             self.wait_sync(fail_if_timeout=False)

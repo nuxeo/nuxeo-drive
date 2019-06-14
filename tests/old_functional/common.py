@@ -302,7 +302,7 @@ class TwoUsersTest(TestCase):
             password=password,
             folder=local_nxdrive_folder,
         )
-        queue_manager = engine.get_queue_manager()
+        queue_manager = engine.queue_manager
         sync_root_folder = local_nxdrive_folder / self.workspace_title
         local_root_client = self.get_local_client(engine.local.base_folder)
         local = self.get_local_client(sync_root_folder)
@@ -490,18 +490,18 @@ class TwoUsersTest(TestCase):
         if enforce_errors:
             if not self.connected:
                 self.engine_1.syncPartialCompleted.connect(
-                    self.engine_1.get_queue_manager().requeue_errors
+                    self.engine_1.queue_manager.requeue_errors
                 )
                 self.engine_2.syncPartialCompleted.connect(
-                    self.engine_2.get_queue_manager().requeue_errors
+                    self.engine_2.queue_manager.requeue_errors
                 )
                 self.connected = True
         elif self.connected:
             self.engine_1.syncPartialCompleted.disconnect(
-                self.engine_1.get_queue_manager().requeue_errors
+                self.engine_1.queue_manager.requeue_errors
             )
             self.engine_2.syncPartialCompleted.disconnect(
-                self.engine_2.get_queue_manager().requeue_errors
+                self.engine_2.queue_manager.requeue_errors
             )
             self.connected = False
 
@@ -732,12 +732,12 @@ class OneUserTest(TwoUsersTest):
         if enforce_errors:
             if not self.connected:
                 self.engine_1.syncPartialCompleted.connect(
-                    self.engine_1.get_queue_manager().requeue_errors
+                    self.engine_1.queue_manager.requeue_errors
                 )
                 self.connected = True
         elif self.connected:
             self.engine_1.syncPartialCompleted.disconnect(
-                self.engine_1.get_queue_manager().requeue_errors
+                self.engine_1.queue_manager.requeue_errors
             )
             self.connected = False
 

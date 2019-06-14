@@ -236,7 +236,7 @@ class LocalWatcher(EngineWorker):
     def _scan(self) -> None:
         log.info("Full scan started")
         start_ms = current_milli_time()
-        to_pause = not self.engine.get_queue_manager().is_paused()
+        to_pause = not self.engine.queue_manager.is_paused()
         if to_pause:
             self._suspend_queue()
         self._delete_files: Dict[str, DocPair] = {}
@@ -248,7 +248,7 @@ class LocalWatcher(EngineWorker):
         self._metrics["last_local_scan_time"] = current_milli_time() - start_ms
         log.info(f"Full scan finished in {self._metrics['last_local_scan_time']}ms")
         if to_pause:
-            self.engine.get_queue_manager().resume()
+            self.engine.queue_manager.resume()
         self.localScanFinished.emit()
 
     def _scan_handle_deleted_files(self) -> None:
@@ -265,13 +265,13 @@ class LocalWatcher(EngineWorker):
         return {**metrics, **self._metrics}
 
     def _suspend_queue(self) -> None:
-        queue = self.engine.get_queue_manager()
+        queue = self.engine.queue_manager
         queue.suspend()
         for processor in queue.get_processors_on(ROOT, exact_match=False):
             processor.stop()
 
     def scan_pair(self, local_path: Path) -> None:
-        to_pause = not self.engine.get_queue_manager().is_paused()
+        to_pause = not self.engine.queue_manager.is_paused()
         if to_pause:
             self._suspend_queue()
 
@@ -280,7 +280,7 @@ class LocalWatcher(EngineWorker):
         self._scan_handle_deleted_files()
 
         if to_pause:
-            self.engine.get_queue_manager().resume()
+            self.engine.queue_manager.resume()
 
     def empty_events(self) -> bool:
         ret = self.watchdog_queue.empty()

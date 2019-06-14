@@ -205,10 +205,10 @@ class EngineWorker(Worker):
             doc_pair,
             error,
             details=details,
-            incr=self.engine.get_queue_manager().get_error_threshold() + 1,
+            incr=self.engine.queue_manager.get_error_threshold() + 1,
         )
         # Push it to generate the error notification
-        self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
+        self.engine.queue_manager.push_error(doc_pair, exception=exception)
 
     def increase_error(
         self, doc_pair: DocPair, error: str, exception: Exception = None
@@ -221,7 +221,7 @@ class EngineWorker(Worker):
                 details = str(exception)
         log.info(f"Increasing error [{error}] ({details}) for {doc_pair!r}")
         self.dao.increase_error(doc_pair, error, details=details)
-        self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
+        self.engine.queue_manager.push_error(doc_pair, exception=exception)
 
     def remove_void_transfers(self, doc_pair: DocPair) -> None:
         """ Remove uploads and downloads on the target doc pair. """

@@ -88,7 +88,7 @@ class TestLocalFilter(OneUserTest):
         assert len(children) == 1
 
         # Force the postponed to ensure it's synchronized now
-        self.engine_1.get_queue_manager().requeue_errors()
+        self.engine_1.queue_manager.requeue_errors()
         self.wait_sync(wait_for_async=True)
         assert self.local_1.exists("/" + hexafile)
         children = self.remote_document_client_1.get_children_info(self.workspace)
