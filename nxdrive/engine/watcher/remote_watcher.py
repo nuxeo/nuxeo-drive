@@ -14,7 +14,7 @@ from ..workers import EngineWorker
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
 from ...exceptions import Forbidden, NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
-from ...utils import safe_filename
+from ...utils import safe_filename, get_date_from_sqlite
 
 if TYPE_CHECKING:
     from ..dao.sqlite import EngineDAO  # noqa
@@ -882,7 +882,8 @@ class RemoteWatcher(EngineWorker):
                                 self.engine.local_folder,
                                 doc_pair.local_path.with_name(new_info.name),
                                 doc_pair.folderish,
-                                doc_pair.last_local_updated,
+                                get_date_from_sqlite(doc_pair.last_remote_updated)
+                                or datetime.now(),
                             )
                             log.info(
                                 f"Trying to synchronize remote duplicate rename of {doc_pair}, "
