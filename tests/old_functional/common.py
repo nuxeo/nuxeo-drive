@@ -314,7 +314,7 @@ class TwoUsersTest(TestCase):
             password=getattr(self, f"password_{number}"),
             base_folder=self.workspace,
             upload_tmp_dir=self.upload_tmp_dir,
-            dao=engine._dao,
+            dao=engine.dao,
         )
         remote = RemoteBase(
             self.nuxeo_url,
@@ -324,14 +324,14 @@ class TwoUsersTest(TestCase):
             password=getattr(self, f"password_{number}"),
             base_folder=self.workspace,
             upload_tmp_dir=self.upload_tmp_dir,
-            dao=engine._dao,
+            dao=engine.dao,
         )
         if register_roots:
             remote.register_as_root(self.workspace)
 
         # Force deletion behavior to real deletion for all tests
-        manager._dao.update_config("deletion_behavior", "delete_server")
-        manager._dao.store_bool("show_deletion_prompt", False)
+        manager.dao.update_config("deletion_behavior", "delete_server")
+        manager.dao.store_bool("show_deletion_prompt", False)
 
         # And now persist in attributes
         setattr(self, f"manager_{number}", manager)
@@ -353,7 +353,7 @@ class TwoUsersTest(TestCase):
             "nxdrive-test-administrator-device",
             self.version,
             password=self.password_1,
-            dao=self.engine_1._dao,
+            dao=self.engine_1.dao,
         )
 
     def get_local_client(self, path: Path):
@@ -409,7 +409,7 @@ class TwoUsersTest(TestCase):
         # If there are Remotes, update their DAO as the old one is no more revelant
         for remote in (f"remote_document_client_{number}", f"remote_{number}"):
             if hasattr(self, remote):
-                getattr(self, remote)._dao = engine._dao
+                getattr(self, remote).dao = engine.dao
 
         return engine
 
@@ -559,8 +559,8 @@ class TwoUsersTest(TestCase):
             log.info("Wait for sync timeout")
             return
 
-        count1 = self.engine_1.get_dao().get_syncing_count()
-        count2 = self.engine_2.get_dao().get_syncing_count()
+        count1 = self.engine_1.dao.get_syncing_count()
+        count2 = self.engine_2.dao.get_syncing_count()
         err = "Wait for sync timeout has expired"
         if wait_for_engine_1 and count1:
             err += f" for engine 1 (syncing_count={count1})"
@@ -668,7 +668,7 @@ class TwoUsersTest(TestCase):
         :return: The pair from dao of engine 1 according to the path.
         """
         abs_path = f"/{self.workspace_title}{path}"
-        return self.engine_1.get_dao().get_state_from_local(abs_path)
+        return self.engine_1.dao.get_state_from_local(abs_path)
 
     def set_readonly(self, user: str, doc_path: str, grant: bool = True):
         """
@@ -787,7 +787,7 @@ class OneUserTest(TwoUsersTest):
             log.info("Wait for sync timeout")
             return
 
-        count = self.engine_1.get_dao().get_syncing_count()
+        count = self.engine_1.dao.get_syncing_count()
         err = "Wait for sync timeout has expired"
         if wait_for_engine_1 and count:
             err += f" for engine 1 (syncing_count={count})"

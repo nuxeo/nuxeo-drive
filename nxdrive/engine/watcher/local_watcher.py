@@ -255,7 +255,7 @@ class LocalWatcher(EngineWorker):
         for deleted in self._delete_files:
             if deleted in self._protected_files:
                 continue
-            self._dao.delete_local_state(self._delete_files[deleted])
+            self.dao.delete_local_state(self._delete_files[deleted])
         self._delete_files = {}
 
     def get_metrics(self) -> Metrics:
@@ -306,7 +306,7 @@ class LocalWatcher(EngineWorker):
             # Don't interact if only one level
             self._interact()
 
-        dao, client = self._dao, self.local
+        dao, client = self.dao, self.local
         # Load all children from DB
         log.debug(f"Fetching DB local children of {info.path!r}")
         db_children = dao.get_local_children(info.path)
@@ -660,7 +660,7 @@ class LocalWatcher(EngineWorker):
             return
 
         log.debug(f"Deleting file: {abspath!r}")
-        if self.engine.manager._dao.get_bool("show_deletion_prompt", default=True):
+        if self.engine.manager.dao.get_bool("show_deletion_prompt", default=True):
             self.docDeleted.emit(doc_pair.local_path)
         else:
             self.engine.delete_doc(doc_pair.local_path)
@@ -699,7 +699,7 @@ class LocalWatcher(EngineWorker):
             log.info(f"Ignoring file: {evt.dest_path!r}")
             return
 
-        dao, client = self._dao, self.local
+        dao, client = self.dao, self.local
         src_path = normalize(evt.dest_path)
         rel_path = client.get_path(src_path)
 
@@ -800,7 +800,7 @@ class LocalWatcher(EngineWorker):
         self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
     ) -> None:
         log.debug(f"Watchdog event {evt!r} on known pair {doc_pair!r}")
-        dao = self._dao
+        dao = self.dao
         acquired_pair = None
 
         try:
@@ -862,7 +862,7 @@ class LocalWatcher(EngineWorker):
         if not local_info:
             return
 
-        dao = self._dao
+        dao = self.dao
 
         # Unchanged folder
         if doc_pair.folderish:
@@ -930,7 +930,7 @@ class LocalWatcher(EngineWorker):
 
     @tooltip("Handle watchdog event")
     def handle_watchdog_event(self, evt: FileSystemEvent) -> None:
-        dao, client = self._dao, self.local
+        dao, client = self.dao, self.local
 
         dst_path = getattr(evt, "dest_path", "")
 

@@ -146,11 +146,11 @@ class NotificationService(QObject):
         self._lock = Lock()
         self._notifications: Dict[str, Notification] = dict()
         self._manager = manager
-        self._dao = manager.get_dao()
+        self.dao = manager.dao
         self.load_notifications()
 
     def load_notifications(self) -> None:
-        notifications = self._dao.get_notifications()
+        notifications = self.dao.get_notifications()
         for notif in notifications:
             self._notifications[notif["uid"]] = Notification(
                 uuid=notif["uid"],
@@ -182,9 +182,9 @@ class NotificationService(QObject):
         with self._lock:
             if notification.is_persistent():
                 if notification.uid not in self._notifications:
-                    self._dao.insert_notification(notification)
+                    self.dao.insert_notification(notification)
                 else:
-                    self._dao.update_notification(notification)
+                    self.dao.update_notification(notification)
             self._notifications[notification.uid] = notification
 
         self.newNotification.emit(notification)
@@ -206,9 +206,9 @@ class NotificationService(QObject):
                 remove = self._notifications[uid].is_remove_on_discard()
                 del self._notifications[uid]
             if remove:
-                self._dao.remove_notification(uid)
+                self.dao.remove_notification(uid)
             else:
-                self._dao.discard_notification(uid)
+                self.dao.discard_notification(uid)
         self.discardNotification.emit(uid)
 
 
@@ -529,14 +529,14 @@ class DefaultNotificationService(NotificationService):
 
     def _newError(self, row_id: int) -> None:
         engine_uid = self.sender().uid
-        doc_pair = self.sender().get_dao().get_state_from_id(row_id)
+        doc_pair = self.sender().dao.get_state_from_id(row_id)
         if doc_pair is None:
             return
         self.send_notification(ErrorNotification(engine_uid, doc_pair))
 
     def _newConflict(self, row_id: int) -> None:
         engine_uid = self.sender().uid
-        doc_pair = self.sender().get_dao().get_state_from_id(row_id)
+        doc_pair = self.sender().dao.get_state_from_id(row_id)
         if not doc_pair:
             return
         self.send_notification(ConflictNotification(engine_uid, doc_pair))

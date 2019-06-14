@@ -61,7 +61,7 @@ class TestLocalStorageIssue(OneUserTest):
             # blacklisted and there should be 1 error
             self.assertNxPart("/", "test_KO.odt")
             assert not local.exists("/test_KO.odt")
-            errors = self.engine_1.get_dao().get_errors(limit=0)
+            errors = self.engine_1.dao.get_errors(limit=0)
             assert len(errors) == 1
             assert errors[0].remote_name == "test_KO.odt"
 
@@ -80,7 +80,7 @@ class TestLocalStorageIssue(OneUserTest):
         # Blacklisted file should be ignored as delay (60 seconds by default)
         # is not expired and there should still be 1 error
         assert not local.exists("/test_KO.odt")
-        errors = self.engine_1.get_dao().get_errors(limit=0)
+        errors = self.engine_1.dao.get_errors(limit=0)
         assert len(errors) == 1
         assert errors[0].remote_name == "test_KO.odt"
 
@@ -95,7 +95,7 @@ class TestLocalStorageIssue(OneUserTest):
             # and there should still be 1 error
             self.assertNxPart("/", "test_KO.odt")
             assert not local.exists("/test_KO.odt")
-            errors = self.engine_1.get_dao().get_errors(limit=0)
+            errors = self.engine_1.dao.get_errors(limit=0)
             assert len(errors) == 1
             assert errors[0].remote_name == "test_KO.odt"
 
@@ -111,4 +111,4 @@ class TestLocalStorageIssue(OneUserTest):
         # and there should be no more errors left
         self.assertNxPart("/", "test_KO.odt")
         assert local.exists("/test_KO.odt")
-        assert not self.engine_1.get_dao().get_errors(limit=0)
+        assert not self.engine_1.dao.get_errors(limit=0)

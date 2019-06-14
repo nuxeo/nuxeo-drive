@@ -25,12 +25,12 @@ class DatabaseBackupWorker(PollWorker):
         if not self.manager:
             return False
 
-        if self.manager._dao:
-            self.manager._dao.save_backup()
+        if self.manager.dao:
+            self.manager.dao.save_backup()
 
         for engine in self.manager._engines.values():
-            if engine._dao:
-                engine._dao.save_backup()
+            if engine.dao:
+                engine.dao.save_backup()
 
         return True
 

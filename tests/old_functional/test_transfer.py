@@ -26,7 +26,7 @@ class TestDownload(OneUserTest):
             """
             This will mimic what is done in SystrayTranfer.qml:
                 - call API.pause_transfer() that will call:
-                    - engine.get_dao().pause_transfer(nature, transfer_uid)
+                    - engine.dao.pause_transfer(nature, transfer_uid)
             Then the download will be paused by the Engine:
                 - Engine.suspend_client() (== Remote.download_callback) will:
                     - raise DownloadPaused(download.uid)
@@ -44,7 +44,7 @@ class TestDownload(OneUserTest):
             callback_orig()
 
         engine = self.engine_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
         callback_orig = engine.remote.download_callback
 
         # Remotely create a file that will be downloaded locally
@@ -88,7 +88,7 @@ class TestDownload(OneUserTest):
             callback_orig()
 
         engine = self.engine_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
         callback_orig = engine.remote.download_callback
 
         # Remotely create a file that will be downloaded locally
@@ -138,7 +138,7 @@ class TestDownload(OneUserTest):
         count = 0
         remote = self.remote_1
         engine = self.engine_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
         callback_orig = engine.remote.download_callback
 
         # Remotely create a file that will be downloaded locally
@@ -182,7 +182,7 @@ class TestDownload(OneUserTest):
 
         remote = self.remote_1
         engine = self.engine_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
         callback_orig = engine.remote.download_callback
 
         # Remotely create a file that will be downloaded locally
@@ -230,7 +230,7 @@ class TestUpload(OneUserTest):
             """
             This will mimic what is done in SystrayTranfer.qml:
                 - call API.pause_transfer() that will call:
-                    - engine.get_dao().pause_transfer(nature, transfer_uid)
+                    - engine.dao.pause_transfer(nature, transfer_uid)
             Then the upload will be paused in Remote.upload().
             """
             # Ensure we have 1 ongoing upload
@@ -243,7 +243,7 @@ class TestUpload(OneUserTest):
             dao.pause_transfer("upload", upload.uid)
 
         engine = self.engine_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
 
         # Locally create a file that will be uploaded remotely
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
@@ -279,7 +279,7 @@ class TestUpload(OneUserTest):
             self.manager_1.suspend()
 
         engine = self.engine_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
 
         # Locally create a file that will be uploaded remotely
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
@@ -316,7 +316,7 @@ class TestUpload(OneUserTest):
 
         local = self.local_1
         engine = self.engine_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
 
         # Locally create a file that will be uploaded remotely
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
@@ -359,7 +359,7 @@ class TestUpload(OneUserTest):
 
         local = self.local_1
         engine = self.engine_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
 
         # Locally create a file that will be uploaded remotely
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)

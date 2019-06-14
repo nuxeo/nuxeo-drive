@@ -127,7 +127,7 @@ class Engine(QObject):
         self._sync_started = False
         self._invalid_credentials = False
         self._offline_state = False
-        self._dao = EngineDAO(self._get_db_file())
+        self.dao = EngineDAO(self._get_db_file())
 
         if binder:
             self.bind(binder)
@@ -169,11 +169,11 @@ class Engine(QObject):
         self._queue_manager.newErrorGiveUp.connect(self.newError)
 
         # Some conflict can be resolved automatically
-        self._dao.newConflict.connect(self.conflict_resolver)
+        self.dao.newConflict.connect(self.conflict_resolver)
         # Try to resolve conflict on startup
-        for conflict in self._dao.get_conflicts():
+        for conflict in self.dao.get_conflicts():
             self.conflict_resolver(conflict.id, emit=False)
-        self._dao.transferUpdated.connect(self.transferUpdated)
+        self.dao.transferUpdated.connect(self.transferUpdated)
 
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
@@ -233,7 +233,7 @@ class Engine(QObject):
         started = not self._stopped
         if started:
             self.stop()
-        self._dao.reinit_states()
+        self.dao.reinit_states()
         self._check_root()
         if started:
             self.start()
@@ -267,7 +267,7 @@ class Engine(QObject):
             return
 
         key_name = ("force_ui", "ui")[name == "wui"]
-        self._dao.update_config(key_name, value)
+        self.dao.update_config(key_name, value)
         setattr(self, name, value)
         log.info(f"{name} preferences set to {value}")
         self.uiChanged.emit()
@@ -280,11 +280,11 @@ class Engine(QObject):
         self, number: int, direction: str = "", duration: int = None
     ) -> DocPairs:
         """ Return the last files transferred (see EngineDAO). """
-        return self._dao.get_last_files(number, direction, duration)
+        return self.dao.get_last_files(number, direction, duration)
 
     def get_last_files_count(self, direction: str = "", duration: int = None) -> int:
         """ Return the count of the last files transferred (see EngineDAO). """
-        return self._dao.get_last_files_count(direction, duration)
+        return self.dao.get_last_files_count(direction, duration)
 
     def set_offline(self, value: bool = True) -> None:
         if value == self._offline_state:
@@ -307,15 +307,15 @@ class Engine(QObject):
         remote_parent_path = os.path.dirname(path)
         if not remote_ref:
             return
-        self._dao.add_filter(path)
-        pair = self._dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
+        self.dao.add_filter(path)
+        pair = self.dao.get_state_from_remote_with_path(remote_ref, remote_parent_path)
         if not pair:
             log.info(f"Cannot find the pair: {remote_ref} ({remote_parent_path!r})")
             return
-        self._dao.delete_remote_state(pair)
+        self.dao.delete_remote_state(pair)
 
     def remove_filter(self, path: str) -> None:
-        self._dao.remove_filter(path)
+        self.dao.remove_filter(path)
         # Scan the "new" pair, use signal/slot to not block UI
         self._scanPair.emit(path)
 
@@ -324,7 +324,7 @@ class Engine(QObject):
         if not mode:
             mode = self.manager.get_deletion_behavior()
 
-        doc_pair = self._dao.get_state_from_local(path)
+        doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
             log.info(f"Unable to delete non-existant doc {path}")
             return
@@ -333,25 +333,23 @@ class Engine(QObject):
             # Delete on server
             doc_pair.update_state("deleted", doc_pair.remote_state)
             if doc_pair.remote_state == "unknown":
-                self._dao.remove_state(doc_pair)
+                self.dao.remove_state(doc_pair)
             else:
-                self._dao.delete_local_state(doc_pair)
+                self.dao.delete_local_state(doc_pair)
         elif mode is DelAction.UNSYNC:
             # Add document to filters
-            self._dao.remove_state(doc_pair)
-            self._dao.add_filter(
-                doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
-            )
+            self.dao.remove_state(doc_pair)
+            self.dao.add_filter(doc_pair.remote_parent_path + "/" + doc_pair.remote_ref)
 
     def rollback_delete(self, path: Path) -> None:
         """ Re-synchronize a document when a deletion is cancelled. """
-        doc_pair = self._dao.get_state_from_local(path)
+        doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
             log.info(f"Unable to rollback delete on non-existant doc {path}")
             return
         if doc_pair.folderish:
-            self._dao.remove_state_children(doc_pair)
-        self._dao.force_remote_creation(doc_pair)
+            self.dao.remove_state_children(doc_pair)
+        self.dao.force_remote_creation(doc_pair)
         if doc_pair.folderish:
             self._remote_watcher._scan_remote(doc_pair)
 
@@ -436,38 +434,38 @@ class Engine(QObject):
 
     def resume_transfer(self, nature: str, uid: int) -> None:
         """ Resume a single transfer with its nature and uid. """
-        self._dao.resume_transfer(nature, uid)
-        transfer = getattr(self._dao, f"get_{nature}")(uid=uid)
+        self.dao.resume_transfer(nature, uid)
+        transfer = getattr(self.dao, f"get_{nature}")(uid=uid)
         if not transfer or not transfer.doc_pair:
             return
 
-        doc_pair = self._dao.get_state_from_id(transfer.doc_pair)
+        doc_pair = self.dao.get_state_from_id(transfer.doc_pair)
         if doc_pair:
             self.get_queue_manager().push(doc_pair)
 
     def resume_suspended_transfers(self) -> None:
         """ Resume all suspended transfers. """
-        for download in self._dao.get_downloads_with_status(TransferStatus.SUSPENDED):
+        for download in self.dao.get_downloads_with_status(TransferStatus.SUSPENDED):
             if download.uid is None:
                 continue
 
-            self._dao.resume_transfer("download", download.uid)
+            self.dao.resume_transfer("download", download.uid)
             if download.doc_pair is None:
                 continue
 
-            doc_pair = self._dao.get_state_from_id(download.doc_pair)
+            doc_pair = self.dao.get_state_from_id(download.doc_pair)
             if doc_pair:
                 self.get_queue_manager().push(doc_pair)
 
-        for upload in self._dao.get_uploads_with_status(TransferStatus.SUSPENDED):
+        for upload in self.dao.get_uploads_with_status(TransferStatus.SUSPENDED):
             if upload.uid is None:
                 continue
 
-            self._dao.resume_transfer("upload", upload.uid)
+            self.dao.resume_transfer("upload", upload.uid)
             if upload.doc_pair is None:
                 continue
 
-            doc_pair = self._dao.get_state_from_id(upload.doc_pair)
+            doc_pair = self.dao.get_state_from_id(upload.doc_pair)
             if doc_pair:
                 self.get_queue_manager().push(doc_pair)
 
@@ -475,7 +473,7 @@ class Engine(QObject):
         if self._pause:
             return
         self._pause = True
-        self._dao.suspend_transfers()
+        self.dao.suspend_transfers()
         self._queue_manager.suspend()
         for thread in self._threads:
             thread.worker.suspend()
@@ -526,18 +524,18 @@ class Engine(QObject):
         return url
 
     def _load_configuration(self) -> None:
-        self._web_authentication = self._dao.get_bool("web_authentication")
-        self.server_url = self._dao.get_config("server_url")
+        self._web_authentication = self.dao.get_bool("web_authentication")
+        self.server_url = self.dao.get_config("server_url")
         self.hostname = urlsplit(self.server_url).hostname
-        self.wui = self._dao.get_config("ui", default="jsf")
-        self.force_ui = self._dao.get_config("force_ui")
-        self.remote_user = self._dao.get_config("remote_user")
+        self.wui = self.dao.get_config("ui", default="jsf")
+        self.force_ui = self.dao.get_config("force_ui")
+        self.remote_user = self.dao.get_config("remote_user")
         self.account = f"{self.remote_user} • {self.name}"
-        self._remote_token = self._dao.get_config("remote_token")
-        self._ssl_verify = self._dao.get_bool("ssl_verify", default=True)
+        self._remote_token = self.dao.get_config("remote_token")
+        self._ssl_verify = self.dao.get_bool("ssl_verify", default=True)
         if Options.ssl_no_verify:
             self._ssl_verify = False
-        self._ca_bundle = Options.ca_bundle or self._dao.get_config("ca_bundle")
+        self._ca_bundle = Options.ca_bundle or self.dao.get_config("ca_bundle")
 
         if self._remote_token is None:
             self.set_invalid_credentials(
@@ -545,17 +543,17 @@ class Engine(QObject):
             )
 
     def get_remote_token(self) -> Optional[str]:
-        return self._dao.get_config("remote_token")
+        return self.dao.get_config("remote_token")
 
     def _create_queue_manager(self, processors: int) -> QueueManager:
         kwargs = {"max_file_processors": 2 if Options.debug else processors}
-        return QueueManager(self, self._dao, **kwargs)
+        return QueueManager(self, self.dao, **kwargs)
 
     def _create_remote_watcher(self, delay: int) -> RemoteWatcher:
-        return RemoteWatcher(self, self._dao, delay)
+        return RemoteWatcher(self, self.dao, delay)
 
     def _create_local_watcher(self) -> LocalWatcher:
-        return LocalWatcher(self, self._dao)
+        return LocalWatcher(self, self.dao)
 
     def _get_db_file(self) -> Path:
         return self.manager.home / f"ndrive_{self.uid}.db"
@@ -589,9 +587,6 @@ class Engine(QObject):
     def get_queue_manager(self) -> QueueManager:
         return self._queue_manager
 
-    def get_dao(self) -> EngineDAO:
-        return self._dao
-
     @staticmethod
     def local_rollback(force: bool = False) -> bool:
         """
@@ -621,27 +616,27 @@ class Engine(QObject):
         return thread
 
     def retry_pair(self, row_id: int) -> None:
-        state = self._dao.get_state_from_id(row_id)
+        state = self.dao.get_state_from_id(row_id)
         if state is None:
             return
-        self._dao.reset_error(state)
+        self.dao.reset_error(state)
 
     def ignore_pair(self, row_id: int, reason: str = None) -> None:
-        state = self._dao.get_state_from_id(row_id)
+        state = self.dao.get_state_from_id(row_id)
         if state is None:
             return
-        self._dao.unsynchronize_state(state, last_error=reason, ignore=True)
-        self._dao.reset_error(state, last_error=reason)
+        self.dao.unsynchronize_state(state, last_error=reason, ignore=True)
+        self.dao.reset_error(state, last_error=reason)
 
     def resolve_with_local(self, row_id: int) -> None:
-        row = self._dao.get_state_from_id(row_id)
+        row = self.dao.get_state_from_id(row_id)
         if row:
-            self._dao.force_local(row)
+            self.dao.force_local(row)
 
     def resolve_with_remote(self, row_id: int) -> None:
-        row = self._dao.get_state_from_id(row_id)
+        row = self.dao.get_state_from_id(row_id)
         if row:
-            self._dao.force_remote(row)
+            self.dao.force_remote(row)
 
     @pyqtSlot()
     def _check_last_sync(self) -> None:
@@ -666,7 +661,7 @@ class Engine(QObject):
         log.info(
             f"Checking sync for engine {self.uid}: queue manager is {active_status} (size={qm_size}), "
             f"empty remote polls count is {empty_polls}, local watcher empty events is {empty_events}, "
-            f"blacklist size is {blacklist_size} and syncing count is {self._dao.get_syncing_count()}"
+            f"blacklist size is {blacklist_size} and syncing count is {self.dao.get_syncing_count()}"
             f"{win_info}"
         )
 
@@ -677,7 +672,7 @@ class Engine(QObject):
             log.debug(f"Emitting syncPartialCompleted for engine {self.uid}")
             self.syncPartialCompleted.emit()
         else:
-            self._dao.update_config("last_sync_date", datetime.datetime.utcnow())
+            self.dao.update_config("last_sync_date", datetime.datetime.utcnow())
             log.debug(f"Emitting syncCompleted for engine {self.uid}")
             self._sync_started = False
             self.syncCompleted.emit()
@@ -721,21 +716,21 @@ class Engine(QObject):
     def get_metrics(self) -> Metrics:
         return {
             "uid": self.uid,
-            "conflicted_files": self._dao.get_conflict_count(),
-            "error_files": self._dao.get_error_count(),
-            "files_size": self._dao.get_global_size(),
+            "conflicted_files": self.dao.get_conflict_count(),
+            "error_files": self.dao.get_error_count(),
+            "files_size": self.dao.get_global_size(),
             "invalid_credentials": self._invalid_credentials,
-            "sync_files": self._dao.get_sync_count(filetype="file"),
-            "sync_folders": self._dao.get_sync_count(filetype="folder"),
-            "syncing": self._dao.get_syncing_count(),
-            "unsynchronized_files": self._dao.get_unsynchronized_count(),
+            "sync_files": self.dao.get_sync_count(filetype="file"),
+            "sync_folders": self.dao.get_sync_count(filetype="folder"),
+            "syncing": self.dao.get_syncing_count(),
+            "unsynchronized_files": self.dao.get_unsynchronized_count(),
         }
 
     def get_conflicts(self) -> DocPairs:
-        return self._dao.get_conflicts()
+        return self.dao.get_conflicts()
 
     def conflict_resolver(self, row_id: int, emit: bool = True) -> None:
-        pair = self._dao.get_state_from_id(row_id)
+        pair = self.dao.get_state_from_id(row_id)
         if not pair:
             log.debug("Conflict resolver: empty pair, skipping")
             return
@@ -760,7 +755,7 @@ class Engine(QObject):
                 and pair.remote_parent_ref == parent_ref
                 and safe_filename(pair.remote_name) == pair.local_name
             ):
-                self._dao.synchronize_state(pair)
+                self.dao.synchronize_state(pair)
             elif emit:
                 # Raise conflict only if not resolvable
                 self.newConflict.emit(row_id)
@@ -771,7 +766,7 @@ class Engine(QObject):
             log.exception("Conflict resolver error")
 
     def get_errors(self) -> DocPairs:
-        return self._dao.get_errors()
+        return self.dao.get_errors()
 
     def is_stopped(self) -> bool:
         return self._stopped
@@ -780,7 +775,7 @@ class Engine(QObject):
         log.debug(f"Engine {self.uid} stopping")
 
         # Make a backup in case something happens
-        self._dao.save_backup()
+        self.dao.save_backup()
 
         self._stopped = True
 
@@ -831,7 +826,7 @@ class Engine(QObject):
         self._load_configuration()
         self._remote_token = token
         self.remote.update_token(token)
-        self._dao.update_config("remote_token", self._remote_token)
+        self.dao.update_config("remote_token", self._remote_token)
         self.set_invalid_credentials(value=False)
         self.start()
 
@@ -850,7 +845,7 @@ class Engine(QObject):
             "timeout": self.timeout,
             "token": self._remote_token,
             "download_callback": self.suspend_client,
-            "dao": self._dao,
+            "dao": self.dao,
             "proxy": self.manager.proxy,
             "verify": verify,
         }
@@ -895,12 +890,12 @@ class Engine(QObject):
                     self.remote = None  # type: ignore
 
         # Save the configuration
-        self._dao.store_bool("web_authentication", self._web_authentication)
-        self._dao.update_config("server_url", self.server_url)
-        self._dao.update_config("remote_user", self.remote_user)
-        self._dao.update_config("remote_token", self._remote_token)
-        self._dao.store_bool("ssl_verify", self._ssl_verify)
-        self._dao.update_config("ca_bundle", self._ca_bundle)
+        self.dao.store_bool("web_authentication", self._web_authentication)
+        self.dao.update_config("server_url", self.server_url)
+        self.dao.update_config("remote_user", self.remote_user)
+        self.dao.update_config("remote_token", self._remote_token)
+        self.dao.store_bool("ssl_verify", self._ssl_verify)
+        self.dao.update_config("ca_bundle", self._ca_bundle)
 
         # Check for the root
         # If the top level state for the server binding doesn't exist,
@@ -931,7 +926,7 @@ class Engine(QObject):
 
             requests.get(url, proxies=proxies)
             self.server_url = url
-            self._dao.update_config("server_url", self.server_url)
+            self.dao.update_config("server_url", self.server_url)
             log.info(f"Updated server url to {self.server_url}")
         except Exception:
             log.warning(
@@ -940,7 +935,7 @@ class Engine(QObject):
             )
 
     def _check_root(self) -> None:
-        root = self._dao.get_state_from_local(ROOT)
+        root = self.dao.get_state_from_local(ROOT)
         if root is None:
             if self.local_folder.is_dir():
                 unset_path_readonly(self.local_folder)
@@ -995,13 +990,13 @@ class Engine(QObject):
             return
 
         local_info = self.local.get_info(ROOT)
-        self._dao.insert_local_state(local_info, None)
-        row = self._dao.get_state_from_local(ROOT)
+        self.dao.insert_local_state(local_info, None)
+        row = self.dao.get_state_from_local(ROOT)
         if not row:
             return
 
         remote_info = self.remote.get_filesystem_root_info()
-        self._dao.update_remote_state(
+        self.dao.update_remote_state(
             row, remote_info, remote_parent_path="", versioned=False
         )
         value = "|".join(
@@ -1009,7 +1004,7 @@ class Engine(QObject):
         )
         self.local.set_root_id(value.encode("utf-8"))
         self.local.set_remote_id(ROOT, remote_info.uid)
-        self._dao.synchronize_state(row)
+        self.dao.synchronize_state(row)
         # The root should also be sync
 
     def suspend_client(self, message: str = None) -> None:
@@ -1041,7 +1036,7 @@ class Engine(QObject):
             return
 
         # Get the current download and check if it is still ongoing
-        download = self._dao.get_download(
+        download = self.dao.get_download(
             path=action.filepath.with_name(action.filename)
         )
         if download and download.status != TransferStatus.ONGOING:
@@ -1051,8 +1046,8 @@ class Engine(QObject):
         return Processor(self, item_getter, **kwargs)
 
     def dispose_db(self) -> None:
-        if self._dao:
-            self._dao.dispose()
+        if self.dao:
+            self.dao.dispose()
 
     def get_user_full_name(self, userid: str, cache_only: bool = False) -> str:
         """ Get the last contributor full name. """

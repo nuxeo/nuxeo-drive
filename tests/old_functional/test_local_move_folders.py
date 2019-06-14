@@ -114,7 +114,7 @@ class TestLocalMoveFolders(OneUserTest):
         # First checks, everything should be online for every one
         assert remote.exists("/Folder1")
         assert local.exists("/Folder1")
-        folder_pair_state = self.engine_1.get_dao().get_state_from_local(
+        folder_pair_state = self.engine_1.dao.get_state_from_local(
             Path(self.workspace_title) / "Folder1"
         )
         assert folder_pair_state is not None
@@ -147,7 +147,7 @@ class TestLocalMoveFolders(OneUserTest):
         assert local.exists("/Folder1_LocalRename")
 
         # Check folder status
-        folder_pair_state = self.engine_1.get_dao().get_normal_state_from_remote(
+        folder_pair_state = self.engine_1.dao.get_normal_state_from_remote(
             folder_remote_ref
         )
         assert folder_pair_state.pair_state == "conflicted"

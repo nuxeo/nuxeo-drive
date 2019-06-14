@@ -216,9 +216,9 @@ class QMLDriveApi(QObject):
         engines = self._manager.get_engines().values()
 
         for engine in engines:
-            for download in engine.get_dao().get_downloads():
+            for download in engine.dao.get_downloads():
                 result.append(asdict(download))
-            for upload in engine.get_dao().get_uploads():
+            for upload in engine.dao.get_uploads():
                 result.append(asdict(upload))
         return result
 
@@ -231,7 +231,7 @@ class QMLDriveApi(QObject):
         engine = self._get_engine(engine_uid)
         if not engine:
             return
-        engine.get_dao().pause_transfer(nature, transfer_uid)
+        engine.dao.pause_transfer(nature, transfer_uid)
 
     @pyqtSlot(str, str, int)
     def resume_transfer(self, nature: str, engine_uid: str, uid: int) -> None:
@@ -260,7 +260,7 @@ class QMLDriveApi(QObject):
         result = []
         engine = self._get_engine(uid)
         if engine:
-            for conflict in engine.get_dao().get_unsynchronizeds():
+            for conflict in engine.dao.get_unsynchronizeds():
                 result.append(self._export_formatted_state(uid, conflict))
         return result
 
@@ -778,7 +778,7 @@ class QMLDriveApi(QObject):
         count = 0
         engine = self._get_engine(uid)
         if engine:
-            count = engine.get_dao().get_syncing_count()
+            count = engine.dao.get_syncing_count()
         return count
 
     @pyqtSlot(str, result=int)

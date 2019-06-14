@@ -194,14 +194,14 @@ class EngineWorker(Worker):
     ) -> None:
         super().__init__(thread=thread, **kwargs)
         self.engine = engine
-        self._dao = dao
+        self.dao = dao
 
     def giveup_error(
         self, doc_pair: DocPair, error: str, exception: Exception = None
     ) -> None:
         details = str(exception) if exception else None
         log.info(f"Give up for error [{error}] ({details}) for {doc_pair!r}")
-        self._dao.increase_error(
+        self.dao.increase_error(
             doc_pair,
             error,
             details=details,
@@ -220,7 +220,7 @@ class EngineWorker(Worker):
             except AttributeError:
                 details = str(exception)
         log.info(f"Increasing error [{error}] ({details}) for {doc_pair!r}")
-        self._dao.increase_error(doc_pair, error, details=details)
+        self.dao.increase_error(doc_pair, error, details=details)
         self.engine.get_queue_manager().push_error(doc_pair, exception=exception)
 
     def remove_void_transfers(self, doc_pair: DocPair) -> None:
@@ -231,7 +231,7 @@ class EngineWorker(Worker):
 
         fullpath = self.engine.local.abspath(doc_pair.local_path)
         for nature in ("download", "upload"):
-            self._dao.remove_transfer(nature, fullpath)
+            self.dao.remove_transfer(nature, fullpath)
 
 
 class PollWorker(Worker):

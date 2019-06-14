@@ -111,9 +111,9 @@ class Manager(QObject):
 
         if Options.proxy_server is not None:
             self.proxy = get_proxy(category="Manual", url=Options.proxy_server)
-            save_proxy(self.proxy, self._dao, token=self.device_id)
+            save_proxy(self.proxy, self.dao, token=self.device_id)
         else:
-            self.proxy = load_proxy(self._dao)
+            self.proxy = load_proxy(self.dao)
         log.info(f"Proxy configuration is {self.proxy!r}")
 
         # Set the logs levels option
@@ -133,7 +133,7 @@ class Manager(QObject):
                     Options.set("channel", "beta", setter="local")
                 else:
                     Options.set("channel", "release", setter="local")
-                self._dao.delete_config("beta_channel")
+                self.dao.delete_config("beta_channel")
 
             Options.set("channel", self.get_update_channel(), setter="local")
             if self.get_config("channel") != Options.channel:
@@ -149,8 +149,8 @@ class Manager(QObject):
                 self.set_config("client_version", self.version)
 
             # Add auto-lock on edit
-            if self._dao.get_config("direct_edit_auto_lock") is None:
-                self._dao.store_bool("direct_edit_auto_lock", True)
+            if self.dao.get_config("direct_edit_auto_lock") is None:
+                self.dao.store_bool("direct_edit_auto_lock", True)
 
         # Set default deletion behavior
         if not self.get_config("deletion_behavior"):
@@ -231,7 +231,7 @@ class Manager(QObject):
     def _create_autolock_service(self) -> ProcessAutoLockerWorker:
 
         self.autolock_service = ProcessAutoLockerWorker(
-            30, self._dao, folder=self.direct_edit_folder
+            30, self.dao, folder=self.direct_edit_folder
         )
         self.started.connect(self.autolock_service.thread.start)
         return self.autolock_service
@@ -250,11 +250,8 @@ class Manager(QObject):
     def _get_db(self) -> Path:
         return self.home / "manager.db"
 
-    def get_dao(self) -> ManagerDAO:  # TODO: Remove
-        return self._dao
-
     def _create_dao(self) -> None:
-        self._dao = ManagerDAO(self._get_db())
+        self.dao = ManagerDAO(self._get_db())
 
     def _create_server_config_updater(self) -> None:
         if not Options.update_check_delay:
@@ -325,7 +322,7 @@ class Manager(QObject):
 
     def stop(self, euid: str = None) -> None:
         # Make a backup in case something happens
-        self._dao.save_backup()
+        self.dao.save_backup()
 
         for uid, engine in self._engines.items():
             if euid is not None and euid != uid:
@@ -354,7 +351,7 @@ class Manager(QObject):
         self.started.emit()
 
     def load(self) -> None:
-        self._engine_definitions = self._engine_definitions or self._dao.get_engines()
+        self._engine_definitions = self._engine_definitions or self.dao.get_engines()
         self._engines = {}
 
         for engine in self._engine_definitions.copy():
@@ -399,43 +396,43 @@ class Manager(QObject):
     @property
     def device_id(self) -> str:
         if not self.__device_id:
-            self.__device_id = self._dao.get_config("device_id")
+            self.__device_id = self.dao.get_config("device_id")
             if not self.__device_id:
                 self.__device_id = uuid.uuid1().hex
-                self._dao.update_config("device_id", self.__device_id)
+                self.dao.update_config("device_id", self.__device_id)
         return self.__device_id
 
     def get_config(self, value: str, default: Any = None) -> Any:
-        return self._dao.get_config(value, default)
+        return self.dao.get_config(value, default)
 
     def set_config(self, key: str, value: Any) -> None:
         Options.set(key, value, setter="manual", fail_on_error=False)
-        self._dao.update_config(key, value)
+        self.dao.update_config(key, value)
 
     @pyqtSlot(result=bool)
     def get_direct_edit_auto_lock(self) -> bool:
         # Enabled by default, if app is frozen
-        return self._dao.get_bool("direct_edit_auto_lock", default=Options.is_frozen)
+        return self.dao.get_bool("direct_edit_auto_lock", default=Options.is_frozen)
 
     @pyqtSlot(bool)
     def set_direct_edit_auto_lock(self, value: bool) -> None:
-        self._dao.store_bool("direct_edit_auto_lock", value)
+        self.dao.store_bool("direct_edit_auto_lock", value)
 
     @pyqtSlot(result=bool)
     def get_auto_update(self) -> bool:
         # Enabled by default, if app is frozen
-        return Options.update_check_delay > 0 and self._dao.get_bool(
+        return Options.update_check_delay > 0 and self.dao.get_bool(
             "auto_update", default=Options.is_frozen
         )
 
     @pyqtSlot(bool)
     def set_auto_update(self, value: bool) -> None:
-        self._dao.store_bool("auto_update", value)
+        self.dao.store_bool("auto_update", value)
 
     @pyqtSlot(result=bool)
     def get_auto_start(self) -> bool:
         # Enabled by default, if app is frozen
-        return self._dao.get_bool("auto_start", default=Options.is_frozen)
+        return self.dao.get_bool("auto_start", default=Options.is_frozen)
 
     def generate_report(self, path: Path = None) -> Path:
         from .report import Report
@@ -446,7 +443,7 @@ class Manager(QObject):
 
     @pyqtSlot(bool, result=bool)
     def set_auto_start(self, value: bool) -> bool:
-        self._dao.store_bool("auto_start", value)
+        self.dao.store_bool("auto_start", value)
 
         if value:
             return self.osi.register_startup()
@@ -456,7 +453,7 @@ class Manager(QObject):
     @pyqtSlot(result=bool)
     def use_light_icons(self) -> bool:
         """Return True is the current icons set is the light one."""
-        return self._dao.get_bool("light_icons")
+        return self.dao.get_bool("light_icons")
 
     @pyqtSlot(bool)
     def set_light_icons(self, value: bool) -> None:
@@ -465,7 +462,7 @@ class Manager(QObject):
 
     @pyqtSlot(result=str)
     def get_update_channel(self) -> str:
-        return self._dao.get_config("channel", default=Options.channel or "release")
+        return self.dao.get_config("channel", default=Options.channel or "release")
 
     @pyqtSlot(str)
     def set_update_channel(self, value: str) -> None:
@@ -477,7 +474,7 @@ class Manager(QObject):
 
     @pyqtSlot(result=str)
     def get_log_level(self) -> str:
-        level = self._dao.get_config("log_level_file")
+        level = self.dao.get_config("log_level_file")
         if not level:
             level = Options.log_level_file or DEFAULT_LEVEL_FILE
         return level
@@ -503,7 +500,7 @@ class Manager(QObject):
                 return "PROXY_INVALID"
             engine.remote.set_proxy(proxy)
 
-        save_proxy(proxy, self._dao)
+        save_proxy(proxy, self.dao)
         self.proxy = proxy
         log.debug(f"Effective proxy: {proxy!r}")
         return ""
@@ -618,7 +615,7 @@ class Manager(QObject):
             self._engines[uid].local_folder = path
         # Watch new folder
         self.osi.watch_folder(path)
-        self._dao.update_engine_path(uid, path)
+        self.dao.update_engine_path(uid, path)
 
     def bind_engine(
         self,
@@ -660,7 +657,7 @@ class Manager(QObject):
         uid = uuid.uuid1().hex
 
         # TODO Check that engine is not inside another or same position
-        engine_def = self._dao.add_engine(engine_type, local_folder, uid, name)
+        engine_def = self.dao.add_engine(engine_type, local_folder, uid, name)
         try:
             self._engines[uid] = self._engine_types[engine_type](
                 self, engine_def, binder=binder
@@ -671,7 +668,7 @@ class Manager(QObject):
             ):
                 log.exception("Engine error")
             self._engines.pop(uid, None)
-            self._dao.delete_engine(uid)
+            self.dao.delete_engine(uid)
             # TODO Remove the DB?
             raise exc
 
@@ -707,19 +704,19 @@ class Manager(QObject):
         self.osi.unwatch_folder(self._engines[uid].local_folder)
         self._engines[uid].suspend()
         self._engines[uid].unbind()
-        self._dao.delete_engine(uid)
+        self.dao.delete_engine(uid)
         # Refresh the engines definition
         del self._engines[uid]
         self.dropEngine.emit(uid)
-        self._engine_definitions = self._dao.get_engines()
+        self._engine_definitions = self.dao.get_engines()
 
         # Backup the database
         if self.db_backup_worker:
             self.db_backup_worker.force_poll()
 
     def dispose_db(self) -> None:
-        if self._dao:
-            self._dao.dispose()
+        if self.dao:
+            self.dao.dispose()
 
     def get_engines(self) -> Dict[str, "Engine"]:  # TODO: Remove
         return self._engines
@@ -809,7 +806,7 @@ class Manager(QObject):
                 continue
 
             r_path = path.relative_to(engine.local_folder)
-            dao = engine._dao
+            dao = engine.dao
             states = dao.get_local_children(r_path)
             self.osi.send_content_sync_status(states, path)
             return

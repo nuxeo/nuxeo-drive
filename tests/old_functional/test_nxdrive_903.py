@@ -106,7 +106,7 @@ class Test(TwoUsersTest):
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True, timeout=60)
 
         # Ensure there is no postponed nor documents in error
-        assert not engine_2.get_dao().get_error_count(threshold=0)
+        assert not engine_2.dao.get_error_count(threshold=0)
 
         # Get a list of all synchronized folders to have a better view of
         # what is synced as expected

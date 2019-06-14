@@ -115,7 +115,7 @@ class TestSynchronization(OneUserTest):
     def test_single_quote_escaping(self):
         remote = self.remote_document_client_1
         local = LocalTest(self.local_nxdrive_folder_1)
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
 
         file = "APPEL D'OFFRES"
         filename = f"/{file}"
@@ -155,7 +155,7 @@ class TestSynchronization(OneUserTest):
         # detected before first upload
         local = self.local_1
         workspace_path = Path(self.workspace_title)
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
 
         assert not local.exists("/")
 
@@ -222,7 +222,7 @@ class TestSynchronization(OneUserTest):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
         children = dao.get_local_children("/")
         assert children
         doc_pair = children[0]
@@ -230,7 +230,7 @@ class TestSynchronization(OneUserTest):
 
     def test_synchronization_skip_errors(self):
         local = self.local_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
 
         assert not local.exists("/")
 
@@ -301,7 +301,7 @@ class TestSynchronization(OneUserTest):
 
         # Bound root but nothing is synchronized yet
         local = self.local_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
         workspace_path = Path(self.workspace_title)
         assert not local.exists("/")
 
@@ -350,7 +350,7 @@ class TestSynchronization(OneUserTest):
     def test_synchronization_offline(self):
         # Bound root but nothing is synchronized yet
         local = self.local_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
         workspace_path = Path(self.workspace_title)
         assert not local.exists("/")
 
@@ -400,7 +400,7 @@ class TestSynchronization(OneUserTest):
             assert state.pair_state == "synchronized"
 
     def test_create_content_in_readonly_area(self):
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
@@ -591,7 +591,7 @@ class TestSynchronization(OneUserTest):
     def test_synchronize_error_remote(self):
         path = f"/{self.workspace_title}/test.odt"
         remote = self.remote_document_client_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
 
         bad_remote = self.get_bad_remote()
         error = HTTPError(status=400, message="Mock")
@@ -747,7 +747,7 @@ class TestSynchronization(OneUserTest):
             self.wait_sync(fail_if_timeout=False)
 
             # Checks
-            assert engine.get_dao()._queue_manager.get_errors_count() == 1
+            assert engine.dao._queue_manager.get_errors_count() == 1
             children = remote.get_children_info(self.workspace)
             assert len(children) == 1
             assert children[0].name == file1
@@ -777,7 +777,7 @@ class TestSynchronization(OneUserTest):
 
         engine.start()
         self.wait_sync()
-        assert not engine.get_dao().get_errors()
+        assert not engine.dao.get_errors()
 
     def test_unsynchronize_accentued_document(self):
         remote = self.remote_document_client_1
@@ -812,7 +812,7 @@ class TestSynchronization2(TwoUsersTest):
     def test_conflict_detection(self):
         # Fetch the workspace sync root
         local = self.local_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
         workspace_path = Path(self.workspace_title)
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)

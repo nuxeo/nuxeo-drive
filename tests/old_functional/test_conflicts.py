@@ -13,7 +13,7 @@ class TestConflicts(TwoUsersTest):
         self.file_id = self.remote_1.make_file(
             self.workspace_id, "test.txt", content=b"Some content"
         ).uid
-        self.get_remote_state = self.engine_1.get_dao().get_normal_state_from_remote
+        self.get_remote_state = self.engine_1.dao.get_normal_state_from_remote
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
         assert self.local_1.exists("/test.txt")

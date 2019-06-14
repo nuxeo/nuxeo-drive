@@ -61,13 +61,13 @@ class TestLocalMoveAndRename(OneUserTest):
 
         def update_remote_state(row, *args, **kwargs):
             nonlocal marker
-            EngineDAO.update_remote_state(self.engine_1._dao, row, *args, **kwargs)
+            EngineDAO.update_remote_state(self.engine_1.dao, row, *args, **kwargs)
             if row.local_name == "New Folder" and not marker:
                 root_local.rename(row.local_path, "Renamed Folder")
                 marker = True
 
         with patch.object(
-            self.engine_1._dao, "update_remote_state", new=update_remote_state
+            self.engine_1.dao, "update_remote_state", new=update_remote_state
         ):
             local.make_folder("/", "New Folder")
             self.wait_sync(fail_if_timeout=False)
@@ -140,13 +140,13 @@ class TestLocalMoveAndRename(OneUserTest):
 
         def update_remote_state(row, *args, **kwargs):
             nonlocal marker
-            EngineDAO.update_remote_state(self.engine_1._dao, row, *args, **kwargs)
+            EngineDAO.update_remote_state(self.engine_1.dao, row, *args, **kwargs)
             if not marker and row.local_name == "File.txt":
                 self.engine_1.local.rename(row.local_path, "Renamed File.txt")
                 marker = True
 
         with patch.object(
-            self.engine_1._dao, "update_remote_state", new=update_remote_state
+            self.engine_1.dao, "update_remote_state", new=update_remote_state
         ):
             local.make_file("/", "File.txt", content=b"Some Content 2")
             self.wait_sync(fail_if_timeout=False)
@@ -433,10 +433,10 @@ class TestLocalMoveAndRename(OneUserTest):
                 local.rename("/File.txt", "Renamed File.txt")
                 sleep(2)
                 marker = True
-            EngineDAO.insert_local_state(self.engine_1._dao, info, parent_path)
+            EngineDAO.insert_local_state(self.engine_1.dao, info, parent_path)
 
         with patch.object(
-            self.engine_1._dao, "insert_local_state", new=insert_local_state
+            self.engine_1.dao, "insert_local_state", new=insert_local_state
         ):
             # Might be blacklisted once
             self.engine_1.get_queue_manager()._error_interval = 3
@@ -713,12 +713,12 @@ are well taken into account.
             assert len(local.get_children_info(srcname)) == 1
             assert len(local.get_children_info(srcname + dstname)) == len(files)
 
-        for dao in {self.engine_1.get_dao(), self.engine_2.get_dao()}:
+        for dao in {self.engine_1.dao, self.engine_2.dao}:
             assert not dao.get_errors(limit=0)
             assert not dao.get_filters()
             assert not dao.get_unsynchronizeds()
 
-        for dao in {self.engine_1.get_dao(), self.engine_2.get_dao()}:
+        for dao in {self.engine_1.dao, self.engine_2.dao}:
             assert not dao.get_errors(limit=0)
             assert not dao.get_filters()
             assert not dao.get_unsynchronizeds()

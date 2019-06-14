@@ -460,7 +460,7 @@ class Application(QApplication):
 
         res = msg.clickedButton()
         if cb.isChecked():
-            self.manager._dao.store_bool("show_deletion_prompt", False)
+            self.manager.dao.store_bool("show_deletion_prompt", False)
 
         if res == confirm:
             return mode

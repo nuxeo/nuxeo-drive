@@ -52,7 +52,7 @@ class QueueManager(QObject):
         self, engine: "Engine", dao: "EngineDAO", max_file_processors: int = 5
     ) -> None:
         super().__init__()
-        self._dao = dao
+        self.dao = dao
         self._engine = engine
         self._local_folder_queue: Queue = Queue()
         self._local_file_queue: Queue = Queue()
@@ -96,7 +96,7 @@ class QueueManager(QObject):
         self.newError.connect(self._on_new_error)
         self.queueProcessing.connect(self.launch_processors)
         # LAST ACTION
-        self._dao.register_queue_manager(self)
+        self.dao.register_queue_manager(self)
 
     def init_processors(self) -> None:
         log.debug("Init processors")

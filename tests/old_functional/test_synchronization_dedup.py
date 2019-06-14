@@ -31,7 +31,7 @@ class TestSynchronizationDedup(OneUserTest):
         self.wait_sync(wait_for_async=True)
 
         # Check DEDUP error
-        doc_pair = engine.get_dao().get_normal_state_from_remote(
+        doc_pair = engine.dao.get_normal_state_from_remote(
             "defaultFileSystemItemFactory#default#" + unisys2
         )
         assert doc_pair.last_error == "DEDUP"
@@ -42,12 +42,12 @@ class TestSynchronizationDedup(OneUserTest):
 
         # Check the file is not created and not present in the database
         assert not local.exists("/Unisys/foo.txt")
-        assert not engine.get_dao().get_normal_state_from_remote(
+        assert not engine.dao.get_normal_state_from_remote(
             "defaultFileSystemItemFactory#default#" + unisys2 + "/" + foo
         )
 
         # Check there is nothing syncing
-        assert not engine.get_dao().get_syncing_count()
+        assert not engine.dao.get_syncing_count()
 
 
 class TestSynchronizationDedupCaseSensitive(OneUserTest):
@@ -116,7 +116,7 @@ class TestSynchronizationDedupCaseSensitive(OneUserTest):
             assert len(get(f"/fruits-renamed")) == count_fixed_folder
 
         # Ensure there is no postponed nor documents in error
-        assert not self.engine_1.get_dao().get_error_count(threshold=0)
+        assert not self.engine_1.dao.get_error_count(threshold=0)
 
     def test_file_sync_under_dedup_shared_folders_rename_remotely_dupe(self):
         self.remote.update(self.root1, properties={"dc:title": "fruits-renamed"})

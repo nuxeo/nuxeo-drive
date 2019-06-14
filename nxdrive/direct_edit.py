@@ -303,7 +303,7 @@ class DirectEdit(Worker):
             kwargs["digest"] = blob.digest
             kwargs["check_params"] = False
 
-            pair = engine.get_dao().get_valid_duplicate_file(blob.digest)
+            pair = engine.dao.get_valid_duplicate_file(blob.digest)
         if pair:
             existing_file_path = engine.local.abspath(pair.local_path)
             log.info(
@@ -453,12 +453,12 @@ class DirectEdit(Worker):
             is_direct_edit=True,
             engine=engine.uid,
         )
-        engine.get_dao().save_download(download)
+        engine.dao.save_download(download)
         try:
             # Download the file
             tmp_file = self._download(engine, info, file_out, blob, xpath, url=url)
             # Download completed, remove it from the database
-            engine.get_dao().remove_transfer("download", file_path)
+            engine.dao.remove_transfer("download", file_path)
             if tmp_file is None:
                 log.warning("Download failed")
                 return None
@@ -647,7 +647,7 @@ class DirectEdit(Worker):
     def _send_lock_status(self, ref: str) -> None:
         manager = self._manager
         for engine in manager._engines.values():
-            dao = engine._dao
+            dao = engine.dao
             state = dao.get_normal_state_from_remote(ref)
             if state:
                 path = engine.local_folder / state.local_path
