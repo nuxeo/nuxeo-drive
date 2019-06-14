@@ -604,8 +604,6 @@ class ManagerDAO(ConfigurationDAO):
 
 class EngineDAO(ConfigurationDAO):
 
-    _queue_manager: Optional["QueueManager"] = None
-
     newConflict = pyqtSignal(object)
     transferUpdated = pyqtSignal()
 
@@ -615,6 +613,7 @@ class EngineDAO(ConfigurationDAO):
 
         super().__init__(db)
 
+        self.queue_manager: Optional["QueueManager"] = None
         self._items_count = 0
         self.get_syncing_count()
         self._filters = self.get_filters()
@@ -866,8 +865,8 @@ class EngineDAO(ConfigurationDAO):
                         ("locally_deleted",),
                     )
         finally:
-            if self._queue_manager:
-                self._queue_manager.interrupt_processors_on(
+            if self.queue_manager:
+                self.queue_manager.interrupt_processors_on(
                     doc_pair.local_path, exact_match=False
                 )
 
@@ -976,7 +975,7 @@ class EngineDAO(ConfigurationDAO):
     def register_queue_manager(self, manager: "QueueManager") -> None:
         # Prevent any update while init queue
         with self._lock:
-            self._queue_manager = manager
+            self.queue_manager = manager
             con = self._get_write_connection()
             c = con.cursor()
             # Order by path to be sure to process parents before childs
@@ -991,8 +990,8 @@ class EngineDAO(ConfigurationDAO):
                 # Add all the folders
                 if pair.folderish:
                     folders[pair.local_path] = True
-                if self._queue_manager and pair.local_parent_path not in folders:
-                    self._queue_manager.push_ref(
+                if self.queue_manager and pair.local_parent_path not in folders:
+                    self.queue_manager.push_ref(
                         pair.id, pair.folderish, pair.pair_state
                     )
         # Dont block everything if queue manager fail
@@ -1001,13 +1000,13 @@ class EngineDAO(ConfigurationDAO):
     def _queue_pair_state(
         self, row_id: int, folderish: bool, pair_state: str, pair: DocPair = None
     ) -> None:
-        if self._queue_manager and pair_state not in {"synchronized", "unsynchronized"}:
+        if self.queue_manager and pair_state not in {"synchronized", "unsynchronized"}:
             if pair_state == "conflicted":
                 log.debug(f"Emit newConflict with: {row_id}, pair={pair!r}")
                 self.newConflict.emit(row_id)
             else:
                 log.debug(f"Push to queue: {pair_state}, pair={pair!r}")
-                self._queue_manager.push_ref(row_id, folderish, pair_state)
+                self.queue_manager.push_ref(row_id, folderish, pair_state)
         else:
             log.debug(f"Will not push pair: {pair_state}, pair={pair!r}")
 

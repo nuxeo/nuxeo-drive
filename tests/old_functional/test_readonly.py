@@ -46,7 +46,7 @@ class TestReadOnly(OneUserTest):
         else:
             # The file is locally created and should be ignored
             self.wait_sync(wait_for_async=True)
-            ignored = self.engine_1.get_dao().get_unsynchronizeds()
+            ignored = self.engine_1.dao.get_unsynchronizeds()
             assert len(ignored) == 1
             assert ignored[0].local_path == Path("test.txt")
 
@@ -92,7 +92,7 @@ class TestReadOnly(OneUserTest):
         self.set_readonly(self.user_1, f"{self.ws.path}/test-ro")
         self.wait_sync(wait_for_async=True)
         assert local.exists("/test-ro/test.txt")
-        assert not self.engine_1.get_dao().get_filters()
+        assert not self.engine_1.dao.get_filters()
 
         # Delete the file and check if is re-downloaded
         local.unset_readonly("/test-ro")
@@ -101,7 +101,7 @@ class TestReadOnly(OneUserTest):
         assert not local.exists("/test-ro/test.txt")
 
         # Check that it is filtered
-        assert self.engine_1.get_dao().get_filters()
+        assert self.engine_1.dao.get_filters()
 
         # Check the file is still present on the server
         assert remote.exists("/test-ro/test.txt")
@@ -149,7 +149,7 @@ class TestReadOnly(OneUserTest):
             assert not remote.exists("/folder-dst/here.txt")
 
             # We should not have any error
-            assert not self.engine_1.get_dao().get_errors(limit=0)
+            assert not self.engine_1.dao.get_errors(limit=0)
 
     def test_file_move_from_ro_to_rw(self):
         """
@@ -197,7 +197,7 @@ class TestReadOnly(OneUserTest):
             assert remote.exists("/folder-rw/here.txt")
 
             # We should not have any error
-            assert not self.engine_1.get_dao().get_errors(limit=0)
+            assert not self.engine_1.dao.get_errors(limit=0)
 
     @pytest.mark.skip(True, reason="TODO NXDRIVE-740")
     def test_file_move_from_rw_to_ro(self):
@@ -235,7 +235,7 @@ class TestReadOnly(OneUserTest):
             assert not remote.exists("/folder/bar.txt")
 
             # We should not have any error
-            assert not self.engine_1.get_dao().get_errors(limit=0)
+            assert not self.engine_1.dao.get_errors(limit=0)
 
     def test_folder_add(self):
         """
@@ -256,8 +256,7 @@ class TestReadOnly(OneUserTest):
             # Sync and check that it is ignored
             self.wait_sync(wait_for_async=True)
             ignored = [
-                d.local_path.as_posix()
-                for d in self.engine_1.get_dao().get_unsynchronizeds()
+                d.local_path.as_posix() for d in self.engine_1.dao.get_unsynchronizeds()
             ]
             assert list(sorted(ignored)) == ["foo", "foo/test.txt"]
 
@@ -275,7 +274,7 @@ class TestReadOnly(OneUserTest):
         self.set_readonly(self.user_1, f"{self.ws.path}/test-ro")
         self.wait_sync(wait_for_async=True)
         assert local.exists("/test-ro/foo")
-        assert not self.engine_1.get_dao().get_filters()
+        assert not self.engine_1.dao.get_filters()
 
         # Delete the file and check if is re-downloaded
         local.unset_readonly("/test-ro")
@@ -284,7 +283,7 @@ class TestReadOnly(OneUserTest):
         assert not local.exists("/test-ro/foo")
 
         # Check that it is filtered
-        assert self.engine_1.get_dao().get_filters()
+        assert self.engine_1.dao.get_filters()
 
         # Check the file is still present on the server
         assert remote.exists("/test-ro/foo")
@@ -335,7 +334,7 @@ class TestReadOnly(OneUserTest):
             assert not remote.exists("/folder-dst/folder-src")
 
             # We should not have any error
-            assert not self.engine_1.get_dao().get_errors(limit=0)
+            assert not self.engine_1.dao.get_errors(limit=0)
 
     def test_folder_move_from_ro_to_rw(self):
         """
@@ -382,10 +381,10 @@ class TestReadOnly(OneUserTest):
             assert not remote.exists("/folder-dst/folder-src/here.txt")
 
             # We should not have any error
-            assert not self.engine_1.get_dao().get_errors(limit=0)
+            assert not self.engine_1.dao.get_errors(limit=0)
 
             # Check that it is filtered
-            assert self.engine_1.get_dao().get_filters()
+            assert self.engine_1.dao.get_filters()
             doc_pair = remote.get_info(folder_ro1)
             ref = (
                 "/org.nuxeo.drive.service.impl"
@@ -393,7 +392,7 @@ class TestReadOnly(OneUserTest):
                 f"/{SYNC_ROOT_FAC_ID}"
                 f"{doc_pair.root}/{FS_ITEM_ID_PREFIX}{doc_pair.uid}"
             )
-            assert self.engine_1.get_dao().is_filter(ref)
+            assert self.engine_1.dao.is_filter(ref)
 
     @pytest.mark.skip(True, reason="TODO NXDRIVE-740")
     def test_folder_move_from_rw_to_ro(self):
@@ -437,7 +436,7 @@ class TestReadOnly(OneUserTest):
             assert not remote.exists("/bar")
 
             # We should not have any error
-            assert not self.engine_1.get_dao().get_errors(limit=0)
+            assert not self.engine_1.dao.get_errors(limit=0)
 
     @windows_only
     def test_nxdrive_836(self):
@@ -489,8 +488,8 @@ Expected Result: Files should sync with the server.
         # Checks
         assert remote.exists("/ReadFolder/shareme.doc")
         assert remote.exists("/MEFolder/shareme.doc")
-        assert not self.engine_1.get_dao().get_errors(limit=0)
-        assert not self.engine_1.get_dao().get_unsynchronizeds()
+        assert not self.engine_1.dao.get_errors(limit=0)
+        assert not self.engine_1.dao.get_unsynchronizeds()
 
 
 class TestReadOnly2(TwoUsersTest):

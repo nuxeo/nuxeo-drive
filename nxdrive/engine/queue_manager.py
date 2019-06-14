@@ -52,7 +52,7 @@ class QueueManager(QObject):
         self, engine: "Engine", dao: "EngineDAO", max_file_processors: int = 5
     ) -> None:
         super().__init__()
-        self._dao = dao
+        self.dao = dao
         self._engine = engine
         self._local_folder_queue: Queue = Queue()
         self._local_file_queue: Queue = Queue()
@@ -81,7 +81,7 @@ class QueueManager(QObject):
            File "engine/watcher/local_watcher.py", line 271, in scan_pair
              self._suspend_queue()
            File "engine/watcher/local_watcher.py", line 265, in _suspend_queue
-             for processor in self._engine.get_queue_manager().get_processors_on('/', exact_match=False):
+             for processor in self._engine.queue_manager.get_processors_on('/', exact_match=False):
            File "engine/queue_manager.py", line 413, in get_processors_on
              res.append(self._local_file_thread.worker)
          AttributeError: 'NoneType' object has no attribute 'worker'
@@ -96,7 +96,7 @@ class QueueManager(QObject):
         self.newError.connect(self._on_new_error)
         self.queueProcessing.connect(self.launch_processors)
         # LAST ACTION
-        self._dao.register_queue_manager(self)
+        self.dao.register_queue_manager(self)
 
     def init_processors(self) -> None:
         log.debug("Init processors")

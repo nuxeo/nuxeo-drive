@@ -72,7 +72,7 @@ class FiltersDialog(QDialog):
             return label
 
         self.resize(491, 443)
-        filters = self._engine.get_dao().get_filters()
+        filters = self._engine.dao.get_filters()
         remote = self._engine.remote
         client = FsClient(remote, filters)
         tree_view = FolderTreeview(self, client)

@@ -323,7 +323,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
         # Test file should be created remotely in the test workspace
         assert remote.exists("/test.odt")
 
-        self.engine_1.get_queue_manager().suspend()
+        self.engine_1.queue_manager.suspend()
         # Locally update the file content and remotely update one of its
         # properties concurrently, then synchronize
         time.sleep(OS_STAT_MTIME_RESOLUTION)
@@ -337,7 +337,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
         test_file = remote.fetch(test_file_ref)
         assert test_file["properties"]["dc:description"] == "Some description."
         time.sleep(TEST_DEFAULT_DELAY)
-        self.engine_1.get_queue_manager().resume()
+        self.engine_1.queue_manager.resume()
 
         self.wait_sync(wait_for_async=True)
 

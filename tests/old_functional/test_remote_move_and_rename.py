@@ -57,7 +57,7 @@ class TestRemoteMoveAndRename(OneUserTest):
         self.wait_sync(wait_for_async=True)
 
     def get_state(self, remote):
-        return self.engine_1.get_dao().get_normal_state_from_remote(remote)
+        return self.engine_1.dao.get_normal_state_from_remote(remote)
 
     def test_remote_rename_file(self):
         remote = self.remote_1
@@ -126,8 +126,8 @@ class TestRemoteMoveAndRename(OneUserTest):
         assert file_1_1_state.local_name == "Renamed File 1.1 \xe9.odt"
 
         # Test for encoding error regressions
-        assert self.engine_1.get_dao()._get_recursive_condition(file_1_1_state)
-        assert self.engine_1.get_dao()._get_recursive_remote_condition(file_1_1_state)
+        assert self.engine_1.dao._get_recursive_condition(file_1_1_state)
+        assert self.engine_1.dao._get_recursive_remote_condition(file_1_1_state)
 
         # Check parents of renamed files to ensure it is an actual rename
         # that has been performed and not a move
@@ -597,7 +597,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
             assert not local.exists("/testFile.pdf")
 
         # The source file is accessed by another processor, but no error
-        assert not self.engine_1.get_dao().get_errors()
+        assert not self.engine_1.dao.get_errors()
 
         self.wait_sync(wait_for_async=True)
         assert local.exists("/testFile.pdf")
@@ -657,7 +657,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
             assert not local.exists("/Test folder/testFile2.pdf")
 
         # The source file is accessed by another processor, but no errors
-        assert not self.engine_1.get_dao().get_errors()
+        assert not self.engine_1.dao.get_errors()
 
         self.wait_sync(wait_for_async=True)
         assert local.exists("/Test folder/testFile2.pdf")
@@ -820,12 +820,12 @@ class TestRemoteFiles(OneUserTest):
 
         if not local.is_case_sensitive():
             # There should be a conflict
-            errors = engine.get_dao().get_errors()
+            errors = engine.dao.get_errors()
             assert len(errors) == 1
             assert errors[0].remote_ref.endswith(folder2_uid)
         else:
             # We should not have any error
-            assert not engine.get_dao().get_errors(limit=0)
+            assert not engine.dao.get_errors(limit=0)
 
         # Check - server
         children = list(
@@ -853,7 +853,7 @@ class TestRemoteFiles(OneUserTest):
             self.wait_sync(wait_for_async=True)
 
             # There should be no more conflict
-            assert not engine.get_dao().get_errors()
+            assert not engine.dao.get_errors()
 
             # And the local folder must be renamed
             children = list(sorted(local.get_children_info("/"), key=lambda x: x.name))

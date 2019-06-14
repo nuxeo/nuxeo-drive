@@ -37,7 +37,7 @@ class ProcessAutoLockerWorker(PollWorker):
 
     def __init__(self, check_interval: int, dao: "ManagerDAO", folder: Path) -> None:
         super().__init__(check_interval)
-        self._dao = dao
+        self.dao = dao
         self._folder = folder
 
         self._autolocked: Dict[Path, int] = {}
@@ -60,7 +60,7 @@ class ProcessAutoLockerWorker(PollWorker):
         try:
             if self._first:
                 # Cannot guess the locker of orphans so emit a signal
-                locks = self._dao.get_locked_paths()
+                locks = self.dao.get_locked_paths()
                 self.orphanLocks.emit(locks)
                 self._first = False
             self._process()
@@ -73,7 +73,7 @@ class ProcessAutoLockerWorker(PollWorker):
 
     def orphan_unlocked(self, path: Path) -> None:
         """Unlock old documents, or documents from an old DirectEdit session."""
-        self._dao.unlock_path(path)
+        self.dao.unlock_path(path)
 
     def _process(self) -> None:
         current_locks = deepcopy(self._autolocked)
@@ -133,7 +133,7 @@ class ProcessAutoLockerWorker(PollWorker):
         if path in self._lockers:
             locker = self._lockers[path]
             locker.autolock_lock(path)
-        self._dao.lock_path(path, pid, "")
+        self.dao.lock_path(path, pid, "")
         self._to_lock.remove(item)
 
     def _unlock_file(self, path: Path) -> None:
@@ -144,7 +144,7 @@ class ProcessAutoLockerWorker(PollWorker):
             locker.autolock_unlock(path)
         del self._autolocked[path]
         del self._lockers[path]
-        self._dao.unlock_path(path)
+        self.dao.unlock_path(path)
 
 
 def get_open_files() -> Iterator[Item]:

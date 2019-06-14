@@ -22,12 +22,12 @@ class TestSynchronizationSuspend(OneUserTest):
         assert local.exists("/Folder 1")
         assert local.exists("/Folder 2")
         assert local.exists("/File 5.txt")
-        self.engine_1.get_queue_manager().suspend()
+        self.engine_1.queue_manager.suspend()
         local.make_folder("/", "Folder 4")
         local.make_file("/Folder 4", "Test.txt", content=b"Plop")
         self.wait_sync(wait_for_async=True, fail_if_timeout=False)
         assert len(remote.get_children_info(self.workspace)) == 4
-        assert self.engine_1.get_queue_manager().is_paused()
+        assert self.engine_1.queue_manager.is_paused()
 
     def test_synchronization_local_watcher_paused_when_offline(self):
         """ NXDRIVE-680: fix unwanted local upload when offline. """
@@ -47,7 +47,7 @@ class TestSynchronizationSuspend(OneUserTest):
         assert local.exists("/file1.txt")
 
         # Simulate offline mode (no more network for instance)
-        engine.get_queue_manager().suspend()
+        engine.queue_manager.suspend()
 
         # Create a bunch of files locally
         local.make_folder("/", "files")
@@ -61,15 +61,15 @@ class TestSynchronizationSuspend(OneUserTest):
 
         # Checks
         assert len(remote.get_children_info(self.workspace)) == 1
-        assert engine.get_queue_manager().is_paused()
+        assert engine.queue_manager.is_paused()
 
         # Restore network connection
-        engine.get_queue_manager().resume()
+        engine.queue_manager.resume()
 
         # Wait for sync and check synced files
         self.wait_sync(wait_for_async=True)
         assert len(remote.get_children_info(self.workspace)) == 2
-        assert not engine.get_queue_manager().is_paused()
+        assert not engine.queue_manager.is_paused()
 
     def test_synchronization_end_with_children_ignore_parent(self):
         """ NXDRIVE-655: children of ignored folder are not ignored. """

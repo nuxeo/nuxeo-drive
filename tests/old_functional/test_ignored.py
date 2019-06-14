@@ -6,7 +6,7 @@ class TestIgnored(OneUserTest):
     def test_ignore_file(self):
         local = self.local_1
         remote = self.remote_document_client_1
-        dao = self.engine_1.get_dao()
+        dao = self.engine_1.dao
 
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
