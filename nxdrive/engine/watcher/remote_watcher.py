@@ -11,10 +11,11 @@ from nuxeo.exceptions import BadQuery, HTTPError
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
+from ...client.local_client import FileInfo
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
 from ...exceptions import Forbidden, NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
-from ...utils import safe_filename
+from ...utils import safe_filename, get_date_from_sqlite
 
 if TYPE_CHECKING:
     from ..dao.sqlite import EngineDAO  # noqa
@@ -868,8 +869,32 @@ class RemoteWatcher(EngineWorker):
                         )
 
                         remote_parent_path = os.path.dirname(new_info.path)
+
                         # TODO Add modify local_path and local_parent_path
                         # if needed
+
+                        if doc_pair.pair_state == "remotely_created" and (
+                            not doc_pair.local_path.exists()  # file doesn't exists yet
+                            or self.engine.local.get_remote_id(doc_pair.local_path)
+                            != doc_pair.remote_ref  # file exists but belongs to another document
+                        ):
+                            # We are trying to synchronize a duplicate
+                            # that has been renamed remotely (NXDRIVE-980 for context)
+                            info = FileInfo(
+                                self.engine.local_folder,
+                                doc_pair.local_path.with_name(new_info.name),
+                                doc_pair.folderish,
+                                get_date_from_sqlite(doc_pair.last_remote_updated)
+                                or datetime.now(),
+                            )
+                            log.info(
+                                f"Trying to synchronize remote duplicate rename of {doc_pair}, "
+                                f"forcing new local path {info}"
+                            )
+                            self.dao.update_local_state(
+                                doc_pair, info, versioned=False
+                            )
+
                         if self.dao.update_remote_state(
                             doc_pair,
                             new_info,
