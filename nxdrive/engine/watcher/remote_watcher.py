@@ -870,6 +870,28 @@ class RemoteWatcher(EngineWorker):
                         remote_parent_path = os.path.dirname(new_info.path)
                         # TODO Add modify local_path and local_parent_path
                         # if needed
+                        if doc_pair.pair_state == "remotely_created" and (
+                            not doc_pair.local_path.exists()
+                            or self.engine.local.get_remote_id(doc_pair.local_path)
+                            != doc_pair.remote_ref
+                        ):
+                            # We are trying to synchronize a duplicate that has been renamed remotely
+                            from nxdrive.client.local_client import FileInfo
+
+                            info = FileInfo(
+                                self.engine.local_folder,
+                                doc_pair.local_path.with_name(new_info.name),
+                                doc_pair.folderish,
+                                doc_pair.last_local_updated,
+                            )
+                            log.info(
+                                f"Trying to synchronize remote duplicate rename of {doc_pair}, "
+                                f"forcing new local path {info}"
+                            )
+                            self._dao.update_local_state(
+                                doc_pair, info, versioned=False
+                            )
+
                         if self._dao.update_remote_state(
                             doc_pair,
                             new_info,

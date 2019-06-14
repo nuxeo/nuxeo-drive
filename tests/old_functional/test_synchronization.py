@@ -807,6 +807,46 @@ class TestSynchronization(OneUserTest):
         self.wait_sync(wait_for_async=True)
         assert self.local_1.exists(f"/{name}")
 
+    def test_rename_duplicates(self):
+        remote = self.remote_document_client_1
+        local = self.local_1
+        engine = self.engine_1
+
+        # Create 7 files with the same name
+        name = "bug.txt"
+        for _ in range(7):
+            remote.make_file("/", name, content=b"42")
+
+        # Start sync
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Check that one "bug.txt" file exists, and engine has 6 errors
+        assert local.exists(f"/{name}")
+        assert len(local.get_children_info("/")) == 1
+        assert len(engine.get_errors()) == 6
+
+        # Rename all remote documents with unique names
+        ref = local.get_remote_id("/")
+        children = self.remote_1.get_fs_children(ref)
+        assert len(children) == 7
+        remote_files = set()
+        for child in children:
+            new_name = f"{child.uid.split('#')[-1]}-{child.name}"
+            remote_files.add(new_name)
+            remote.execute(command="NuxeoDrive.Rename", id=child.uid, name=new_name)
+
+        self.wait_sync(wait_for_async=True)
+
+        children = self.remote_1.get_fs_children(ref)
+        assert len(children) == 7
+        # Check that the 7 files exist locally and that there are no errors
+        local_children = local.get_children_info("/")
+        assert len(local_children) == 7
+        local_files = set(child.name for child in local_children)
+        assert not engine.get_errors()
+        assert remote_files == local_files
+
 
 class TestSynchronization2(TwoUsersTest):
     def test_conflict_detection(self):
