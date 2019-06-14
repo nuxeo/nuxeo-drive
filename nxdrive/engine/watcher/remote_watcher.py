@@ -11,6 +11,7 @@ from nuxeo.exceptions import BadQuery, HTTPError
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
+from ...client.local_client import FileInfo
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
 from ...exceptions import Forbidden, NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
@@ -871,13 +872,12 @@ class RemoteWatcher(EngineWorker):
                         # TODO Add modify local_path and local_parent_path
                         # if needed
                         if doc_pair.pair_state == "remotely_created" and (
-                            not doc_pair.local_path.exists()
+                            not doc_pair.local_path.exists()  # file doesn't exists yet
                             or self.engine.local.get_remote_id(doc_pair.local_path)
-                            != doc_pair.remote_ref
+                            != doc_pair.remote_ref  # file exists but belongs to another document
                         ):
-                            # We are trying to synchronize a duplicate that has been renamed remotely
-                            from nxdrive.client.local_client import FileInfo
-
+                            # We are trying to synchronize a duplicate
+                            # that has been renamed remotely (NXDRIVE-980 for context)
                             info = FileInfo(
                                 self.engine.local_folder,
                                 doc_pair.local_path.with_name(new_info.name),
