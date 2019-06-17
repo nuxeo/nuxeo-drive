@@ -7,8 +7,6 @@ from urllib.error import URLError
 
 import pytest
 from unittest.mock import patch
-from nuxeo.exceptions import HTTPError
-from nuxeo.models import User
 
 from nxdrive.exceptions import (
     DocumentAlreadyLocked,
@@ -436,46 +434,6 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
         )
 
         self._direct_edit_update(doc_id, filename, b"Test", url=url)
-
-    def test_url_missing_username(self):
-        """ The username must be in the URL. """
-        url = (
-            "nxdrive://edit/https/server.cloud.nuxeo.com/nuxeo"
-            "/repo/default"
-            "/nxdocid/xxxxxxxx-xxxx-xxxx-xxxx"
-            "/filename/lebron-james-beats-by-dre-powerb.psd"
-            "/downloadUrl/nxfile/default/xxxxxxxx-xxxx-xxxx-xxxx"
-            "/file:content/lebron-james-beats-by-dre-powerb.psd"
-        )
-        with pytest.raises(ValueError):
-            self._direct_edit_update("", "", b"", url=url)
-
-    def test_user_name(self):
-        # Create a complete user
-        remote = self.root_remote
-        try:
-            user = remote.users.create(
-                User(
-                    properties={
-                        "username": "john",
-                        "firstName": "John",
-                        "lastName": "Doe",
-                    }
-                )
-            )
-        except HTTPError as exc:
-            assert exc.status != 409
-            user = remote.users.get("john")
-
-        try:
-            username = self.engine_1.get_user_full_name("john")
-            assert username == "John Doe"
-        finally:
-            user.delete()
-
-        # Unknown user
-        username = self.engine_1.get_user_full_name("unknown")
-        assert username == "unknown"
 
     def test_double_lock_same_user(self):
         filename = "Mode opératoire¹.txt"
