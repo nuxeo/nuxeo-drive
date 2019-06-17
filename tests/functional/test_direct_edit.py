@@ -18,6 +18,10 @@ class MockUrlTestEngine(Engine):
         self._invalid_credentials = False
 
     def get_binder(self):
+        """
+        Must redefine to prevent:
+            RuntimeError: super-class __init__() of type MockUrlTestEngine was never called
+        """
         return ServerBindingSettings(self._url, None, self._user, ROOT, True)
 
 
@@ -29,6 +33,7 @@ def direct_edit(manager_factory):
 
 
 def test_binder(manager_factory):
+    """Also test username retrieval."""
     manager, engine = manager_factory()
 
     with manager:
@@ -41,6 +46,17 @@ def test_binder(manager_factory):
         assert binder.username
         assert binder.initialized
         assert binder.local_folder
+
+        # Test user name retrieval
+        full_username = (
+            f"{manager.user_details.firstName} {manager.user_details.lastName}"
+        )
+        username = engine.get_user_full_name(binder.username)
+        assert username == full_username
+
+        # Test unknown user name retrieval
+        username = engine.get_user_full_name("unknown")
+        assert username == "unknown"
 
 
 def test_cleanup_no_local_folder(direct_edit):
@@ -108,6 +124,20 @@ def test_handle_url_empty(direct_edit):
 
 def test_handle_url_malformed(direct_edit):
     assert not direct_edit.handle_url("https://example.org")
+
+
+def test_handle_url_missing_username(direct_edit):
+    """ The username must be in the URL. """
+    url = (
+        "nxdrive://edit/https/server.cloud.nuxeo.com/nuxeo"
+        "/repo/default"
+        "/nxdocid/xxxxxxxx-xxxx-xxxx-xxxx"
+        "/filename/lebron-james-beats-by-dre-powerb.psd"
+        "/downloadUrl/nxfile/default/xxxxxxxx-xxxx-xxxx-xxxx"
+        "/file:content/lebron-james-beats-by-dre-powerb.psd"
+    )
+    with pytest.raises(ValueError):
+        direct_edit.handle_url(url)
 
 
 def test_invalid_credentials(manager_factory):

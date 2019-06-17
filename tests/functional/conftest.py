@@ -84,6 +84,9 @@ def manager_factory(
                 conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
             )
 
+            # Let the possibility to access user's attributes from the manager
+            manager.user_details = user
+
             engine = None
             for uid, engine_ in manager.get_engines().items():
                 engine = engine_
