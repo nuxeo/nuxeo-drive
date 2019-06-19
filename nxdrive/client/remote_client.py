@@ -280,7 +280,7 @@ class Remote(Nuxeo):
         with the batch as an input.
         """
         with self.upload_lock:
-            tick = time.time()
+            tick = time.monotonic()
             action = UploadAction(file_path, filename, reporter=QApplication.instance())
             blob = FileBlob(str(file_path))
             if filename:
@@ -359,7 +359,7 @@ class Remote(Nuxeo):
                 # Transfer is completed, remove it from the database
                 self.dao.remove_transfer("upload", file_path)
 
-                upload_duration = int(time.time() - tick)
+                upload_duration = int(time.monotonic() - tick)
                 action.transfer_duration = upload_duration
                 # Use upload duration * 2 as Nuxeo transaction timeout
                 tx_timeout = max(TX_TIMEOUT, upload_duration * 2)
