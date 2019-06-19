@@ -46,6 +46,7 @@ from ..utils import (
     current_thread_id,
     get_device,
     lock_path,
+    sizeof_fmt,
     unlock_path,
     version_le,
 )
@@ -372,7 +373,7 @@ class Remote(Nuxeo):
                 if upload_duration > 0:
                     size = file_path.stat().st_size
                     log.debug(
-                        f"Size: {size / 1024:,.2f} Kib, speed: {size / upload_duration / 1024:,.2f} Kib/s"
+                        f"Size: {sizeof_fmt(size)}, speed: {sizeof_fmt(size / upload_duration)}/s"
                     )
 
                 headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}

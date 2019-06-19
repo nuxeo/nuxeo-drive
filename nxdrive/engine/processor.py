@@ -41,6 +41,7 @@ from ..utils import (
     is_generated_tmp_file,
     lock_path,
     safe_filename,
+    sizeof_fmt,
     unlock_path,
 )
 
@@ -457,13 +458,15 @@ class Processor(EngineWorker):
 
     def _update_speed_metrics(self) -> None:
         action = Action.get_last_file_action()
-        if action:
-            duration = action.end_time - action.start_time
-            if duration <= 0:
-                return
-            speed = action.size / duration / 1024
-            log.debug(f"Transfer speed {speed:,.2f} Kib/s")
-            self._current_metrics["speed"] = speed
+        if not action:
+            return
+
+        duration = action.end_time - action.start_time
+        if duration <= 0:
+            return
+
+        log.debug(f"Transfer speed: {sizeof_fmt(action.size / duration)}/s")
+        self._current_metrics["speed"] = action.size / duration / 1024  # Kib/s
 
     def _synchronize_if_not_remotely_dirty(
         self, doc_pair: DocPair, remote_info: RemoteFileInfo = None
