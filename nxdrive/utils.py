@@ -970,7 +970,7 @@ def lock_path(path: Path, locker: int) -> None:
         set_path_readonly(path.parent)
 
 
-def sizeof_fmt(num: int, suffix: str = "o") -> str:
+def sizeof_fmt(num: Union[float, int], suffix: str = "o") -> str:
     """
     Human readable version of file size.
     Supports:
@@ -993,7 +993,7 @@ def sizeof_fmt(num: int, suffix: str = "o") -> str:
         if abs(val) < 1024.0:
             return f"{val:3.1f} {unit}{suffix}"
         val /= 1024.0
-    return f"{val:.1f} Yi{suffix}"
+    return f"{val:,.1f} Yi{suffix}"
 
 
 def short_name(name: Union[bytes, str]) -> str:
