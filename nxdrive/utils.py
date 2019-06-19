@@ -10,6 +10,7 @@ import stat
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
+from threading import get_ident
 from typing import (
     Any,
     Callable,
@@ -46,6 +47,7 @@ __all__ = (
     "compute_urls",
     "copy_to_clipboard",
     "current_milli_time",
+    "current_thread_id",
     "decrypt",
     "encrypt",
     "find_icon",
@@ -143,6 +145,12 @@ def copy_to_clipboard(text: str) -> None:
         cb = QApplication.clipboard()
         cb.clear(mode=cb.Clipboard)
         cb.setText(text, mode=cb.Clipboard)
+
+
+def current_thread_id() -> int:
+    """Return the thread identifier of the current thread. This is a nonzero integer."""
+    # TODO: use get_native_id() in Python 3.8 (XXX_PYTHON)
+    return get_ident()
 
 
 def get_date_from_sqlite(d: str) -> Optional[datetime]:
@@ -1109,13 +1117,13 @@ class PidLockFile:
 def compute_digest(path: Path, digest_func: str, callback: Callable = None) -> str:
     """ Lazy computation of the digest. """
     h = get_digest_hash(digest_func)
-    if h is None:
+    if not h:
         raise UnknownDigest(digest_func)
 
     try:
         with safe_long_path(path).open(mode="rb") as f:
-            while True:
-                if callback:
+            while "computing":
+                if callable(callback):
                     callback(path)
                 buf = f.read(FILE_BUFFER_SIZE)
                 if not buf:
@@ -1125,4 +1133,5 @@ def compute_digest(path: Path, digest_func: str, callback: Callable = None) -> s
         # MemoryError happens randomly, dunno why but this is
         # not an issue as the hash will be recomputed later
         return UNACCESSIBLE_HASH
+
     return h.hexdigest()

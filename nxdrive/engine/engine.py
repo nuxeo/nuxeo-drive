@@ -4,7 +4,7 @@ import os
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
-from threading import Thread, current_thread
+from threading import Thread
 from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 from urllib.parse import urlsplit
@@ -33,6 +33,7 @@ from ..exceptions import (
 from ..objects import DocPairs, Binder, Metrics, EngineDef
 from ..options import Options
 from ..utils import (
+    current_thread_id,
     find_icon,
     if_frozen,
     safe_filename,
@@ -1009,7 +1010,7 @@ class Engine(QObject):
             raise ThreadInterrupt()
 
         # Verify thread status
-        thread_id = current_thread().ident
+        thread_id = current_thread_id()
         for thread in self._threads:
             if (
                 hasattr(thread, "worker")

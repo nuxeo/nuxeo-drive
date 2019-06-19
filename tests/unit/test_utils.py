@@ -103,6 +103,12 @@ def test_compute_fake_pid_from_path(path, pid):
     assert func(path) == pid
 
 
+def test_current_thread_id():
+    thread_id = nxdrive.utils.current_thread_id()
+    assert isinstance(thread_id, int)
+    assert thread_id > 0
+
+
 def test_encrypt_decrypt():
     enc = nxdrive.utils.encrypt
     dec = nxdrive.utils.decrypt

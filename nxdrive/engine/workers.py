@@ -1,7 +1,6 @@
 # coding: utf-8
 from contextlib import suppress
 from logging import getLogger
-from threading import current_thread
 from time import sleep, time
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
@@ -10,6 +9,7 @@ from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
 from .activity import Action, IdleAction
 from ..exceptions import ThreadInterrupt
 from ..objects import Metrics, DocPair
+from ..utils import current_thread_id
 
 if TYPE_CHECKING:
     from .dao.sqlite import EngineDAO  # noqa
@@ -174,7 +174,7 @@ class Worker(QObject):
         self._running = True
         self._continue = True
         self._pause = False
-        self.thread_id = current_thread().ident
+        self.thread_id = current_thread_id()
 
         try:
             try:

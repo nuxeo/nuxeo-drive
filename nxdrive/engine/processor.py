@@ -265,7 +265,6 @@ class Processor(EngineWorker):
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
                     continue
 
-                Action(handler_name)
                 self._current_metrics = {
                     "handler": doc_pair.pair_state,
                     "start_time": current_milli_time(),
