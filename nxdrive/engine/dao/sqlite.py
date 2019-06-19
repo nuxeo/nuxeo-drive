@@ -17,7 +17,7 @@ from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
-from threading import RLock, current_thread, local
+from threading import RLock, local
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -37,6 +37,7 @@ from ...objects import (
     Download,
     Upload,
 )
+from ...utils import current_thread_id
 
 if TYPE_CHECKING:
     from ..queue_manager import QueueManager  # noqa
@@ -311,7 +312,7 @@ class ConfigurationDAO(QObject):
     def _get_read_connection(self) -> Connection:
         # If in transaction
         if self.in_tx is not None:
-            if current_thread().ident != self.in_tx:
+            if current_thread_id() != self.in_tx:
                 log.debug("In transaction wait for read connection")
                 # Wait for the thread in transaction to finished
                 with self._tx_lock:

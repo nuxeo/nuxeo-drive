@@ -2,11 +2,12 @@
 import uuid
 from contextlib import suppress
 from pathlib import Path
-from threading import current_thread
 from time import monotonic
 from typing import Any, Dict, Optional
 
 from PyQt5.QtCore import pyqtSignal, QObject
+
+from ..utils import current_thread_id
 
 __all__ = (
     "Action",
@@ -22,9 +23,7 @@ class Action(QObject):
     actions: Dict[int, Optional["Action"]] = {}
     lastFileActions: Dict[int, Optional["FileAction"]] = {}
 
-    def __init__(
-        self, action_type: str = None, progress: float = 0.0, thread_id: int = None
-    ) -> None:
+    def __init__(self, action_type: str = None, progress: float = 0.0) -> None:
         super().__init__()
 
         self.type = action_type
@@ -35,9 +34,7 @@ class Action(QObject):
         self.finished = False
         self.suspend = False
 
-        idx = thread_id or current_thread().ident
-        if idx:
-            Action.actions[idx] = self
+        Action.actions[current_thread_id()] = self
 
     @property
     def progress(self) -> float:
@@ -56,23 +53,23 @@ class Action(QObject):
 
     @staticmethod
     def get_current_action(thread_id: int = None) -> Optional["Action"]:
-        idx = thread_id or current_thread().ident
+        idx = thread_id or current_thread_id()
         return Action.actions.get(idx, None) if idx else None
 
     @staticmethod
     def get_last_file_action(thread_id: int = None) -> Optional["FileAction"]:
-        idx = thread_id or current_thread().ident
+        idx = thread_id or current_thread_id()
         return Action.lastFileActions.get(idx, None) if idx else None
 
     @staticmethod
     def finish_action() -> None:
-        thread_id = current_thread().ident
-        if thread_id:
-            action = Action.actions.pop(thread_id, None)
-            if action:
-                action.finish()
-                if isinstance(action, FileAction):
-                    Action.lastFileActions[thread_id] = action
+        action = Action.actions.pop(current_thread_id(), None)
+        if not action:
+            return
+
+        action.finish()
+        if isinstance(action, FileAction):
+            Action.lastFileActions[current_thread_id()] = action
 
     def finish(self) -> None:
         self.finished = True

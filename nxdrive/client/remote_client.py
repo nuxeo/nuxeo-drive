@@ -5,7 +5,7 @@ import time
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
-from threading import Lock, current_thread
+from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
@@ -30,13 +30,7 @@ from ..constants import (
     TX_TIMEOUT,
     TransferStatus,
 )
-from ..engine.activity import (
-    Action,
-    DownloadAction,
-    FileAction,
-    UploadAction,
-    VerificationAction,
-)
+from ..engine.activity import Action, DownloadAction, UploadAction, VerificationAction
 from ..exceptions import (
     DownloadPaused,
     Forbidden,
@@ -47,7 +41,14 @@ from ..exceptions import (
 )
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo, Download, Upload
 from ..options import Options
-from ..utils import compute_digest, get_device, lock_path, unlock_path, version_le
+from ..utils import (
+    compute_digest,
+    current_thread_id,
+    get_device,
+    lock_path,
+    unlock_path,
+    version_le,
+)
 
 if TYPE_CHECKING:
     from ..engine.dao.sqlite import EngineDAO  # noqa
@@ -242,7 +243,12 @@ class Remote(Nuxeo):
         digester = get_digest_algorithm(digest)
         filepath = download_action.filepath
 
-        FileAction.finish_action()
+        # Terminate the download action to be able to start the verification one as we are allowing
+        # only 1 action per thread.
+        # Note that this is not really needed as the verification action would replace the download
+        # one, but let's do things right.
+        DownloadAction.finish_action()
+
         verif_action = VerificationAction(
             filepath, download_action.filename, reporter=QApplication.instance()
         )
@@ -250,11 +256,14 @@ class Remote(Nuxeo):
         def callback(_):
             verif_action.progress += FILE_BUFFER_SIZE
 
-        computed_digest = compute_digest(filepath, digester, callback=callback)
-        if digest != computed_digest:
-            # Temp file and Download table entry will be deleted
-            # by the calling method
-            raise CorruptedFile(filepath, digest, computed_digest)
+        try:
+            computed_digest = compute_digest(filepath, digester, callback=callback)
+            if digest != computed_digest:
+                # Temp file and Download table entry will be deleted
+                # by the calling method
+                raise CorruptedFile(filepath, digest, computed_digest)
+        finally:
+            VerificationAction.finish_action()
 
     def upload(
         self,
@@ -373,7 +382,7 @@ class Remote(Nuxeo):
             finally:
                 if blob.fd:
                     blob.fd.close()
-                FileAction.finish_action()
+                UploadAction.finish_action()
 
     def get_fs_info(
         self, fs_item_id: str, parent_fs_item_id: str = None
@@ -417,7 +426,7 @@ class Remote(Nuxeo):
                 [
                     DOWNLOAD_TMP_FILE_PREFIX,
                     file_name,
-                    str(current_thread().ident),
+                    str(current_thread_id()),
                     DOWNLOAD_TMP_FILE_SUFFIX,
                 ]
             )
@@ -438,6 +447,7 @@ class Remote(Nuxeo):
             file_out = Path(download.tmpname)
 
         DownloadAction(file_out, file_name, reporter=QApplication.instance())
+
         try:
             tmp_file = self.download(
                 download_url, file_out, digest=fs_item_info.digest, **kwargs
@@ -465,7 +475,10 @@ class Remote(Nuxeo):
             # Download completed, remove it from the database
             self.dao.remove_transfer("download", file_path)
         finally:
-            FileAction.finish_action()
+            # This call is needed in case we did not make the call to .check_integrity()
+            # where it should have done this for us. In the worst case, this will be a no-op.
+            DownloadAction.finish_action()
+
         return tmp_file
 
     def get_fs_children(
