@@ -161,7 +161,7 @@ def get_date_from_sqlite(d: str) -> Optional[datetime]:
         return None
 
 
-def get_timestamp_from_date(self, d: datetime = None) -> int:
+def get_timestamp_from_date(d: datetime = None) -> int:
     if not d:
         return 0
 
