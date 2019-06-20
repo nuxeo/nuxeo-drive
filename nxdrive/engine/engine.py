@@ -119,6 +119,8 @@ class Engine(QObject):
         self.local_folder = Path(definition.local_folder)
         self.folder = str(self.local_folder)
         self.local = self.local_cls(self.local_folder)
+        self.download_dir = self.manager.home / "tmp" / definition.uid
+        self.download_dir.mkdir(parents=True, exist_ok=True)
 
         self.uid = definition.uid
         self.name = definition.name
@@ -485,6 +487,7 @@ class Engine(QObject):
         self.manager.osi.unregister_folder_link(self.local_folder)
 
         self.dispose_db()
+        self.download_dir.rmdir()
         try:
             self._get_db_file().unlink()
         except FileNotFoundError:
@@ -1022,9 +1025,7 @@ class Engine(QObject):
             return
 
         # Get the current download and check if it is still ongoing
-        download = self.dao.get_download(
-            path=action.filepath.with_name(action.filename)
-        )
+        download = self.dao.get_download(path=action.filepath)
         if download and download.status != TransferStatus.ONGOING:
             raise DownloadPaused(download.uid or -1)
 

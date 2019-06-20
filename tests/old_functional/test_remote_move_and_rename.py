@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
+from nxdrive.options import Options
 
 from . import DocRemote, LocalTest
 from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, SYNC_ROOT_FAC_ID, OneUserTest
@@ -268,7 +269,7 @@ class TestRemoteMoveAndRename(OneUserTest):
 
         # Check child state
         folder_1_1_state = self.get_state(self.folder_1_1_id)
-        assert folder_1_1_state
+        assert folder_1_1_state is not None
         assert folder_1_1_state.local_path == (
             self.workspace_path / "Renamed Folder 1 \xe9/Sub-Folder 1.1"
         )
@@ -603,6 +604,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         assert local.exists("/testFile.pdf")
         assert not local.exists("/Test folder/testFile.pdf")
 
+    @Options.mock()
     def test_synchronize_remote_move_while_download_file(self):
         local = self.local_1
         remote = self.remote_1
@@ -623,6 +625,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         self.engine_1.has_rename = False
         self.engine_1.file_id = None
 
+        Options.set("tmp_file_limit", 0.1, "manual")
         try:
             self.engine_1.remote.download_callback = callback
             content = (self.location / "resources" / "testFile.pdf").read_bytes()

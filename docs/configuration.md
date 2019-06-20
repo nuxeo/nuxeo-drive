@@ -40,8 +40,8 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 |---|---|---|---|---
 | `ca-bundle` | None | str | 4.0.2 | File or directory with certificates of trusted CAs. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
 | `channel` | release | str | 4.0.2 | Update channel. Can be release, beta or alpha.
-| `chunk_limit` | 20 | int | 4.1.2 | Size in Mio above which files will be uploaded in chunks (if `chunk_upload` is `True`). Has to be above 0.
-| `chunk_size` | 20 | int | 4.1.2 | Size of the chunks in Mio. Has to be above 0 and lower or equal to 20.
+| `chunk_limit` | 20 | int | 4.1.2 | Size in MiB above which files will be uploaded in chunks (if `chunk_upload` is `True`). Has to be above 0.
+| `chunk_size` | 20 | int | 4.1.2 | Size of the chunks in MiB. Has to be above 0 and lower or equal to 20.
 | `chunk_upload` | True | bool | 4.1.2 | Activate the upload in chunks for files bigger than `chunk_limit`.
 | `delay` | 30 | int | 2 | Define the delay before each remote check.
 | `force-locale` | None | str | 2 | Force the reset to the language.
@@ -57,6 +57,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `nofscheck` | False | bool | 2.0.911 | Disable the standard check for binding, to allow installation on network filesystem.
 | `proxy-server` | None | str | 2 | Define the address of the proxy server (e.g. `http://proxy.example.com:3128`). This can also be set up by the user from the Settings window.
 | `ssl-no-verify` | False | bool | 4.0.1 | Define if SSL errors should be ignored. Highly unadvised to enable this option.
+| `tmp_file_limit` | 10 | int | 4.1.4 | File size in MiB. Files smaller than this limit will be written at once to the file rather than chunk by chunk.
 | `timeout` | 30 | int | 2 | Define the socket timeout.
 | `update-check-delay` | 3600 | int | 2 | Define the auto-update check delay. 0 means disabled.
 | `update-site-url` | [URL](https://community.nuxeo.com/static/drive-updates) | str | 2 | Configure a custom update website. See Nuxeo Drive Update Site for more details.

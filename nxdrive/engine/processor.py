@@ -24,8 +24,6 @@ from .workers import EngineWorker
 from ..client.local_client import FileInfo
 from ..constants import (
     CONNECTION_ERROR,
-    DOWNLOAD_TMP_FILE_PREFIX,
-    DOWNLOAD_TMP_FILE_SUFFIX,
     LONG_FILE_ERRORS,
     MAC,
     NO_SPACE_ERRORS,
@@ -315,6 +313,7 @@ class Processor(EngineWorker):
                 # TODO:
                 #  Add detection for server unavailability to stop all sync
                 #  instead of putting files in error
+                log.debug("Connection issue", exc_info=True)
                 self._postpone_pair(doc_pair, "CONNECTION_ERROR")
             except HTTPError as exc:
                 if exc.status == 404:
@@ -373,7 +372,9 @@ class Processor(EngineWorker):
                     ENOENT: No such file or directory
                     ESRCH: No such process (The system cannot find the file specified, on Windows)
                     """
-                    log.info(f"The document does not exist anymore:{doc_pair!r}")
+                    log.info(
+                        f"The document does not exist anymore locally: {doc_pair!r}"
+                    )
                     self.dao.remove_state(doc_pair)
                 elif error in LONG_FILE_ERRORS:
                     self.dao.remove_filter(
@@ -984,17 +985,13 @@ class Processor(EngineWorker):
         )
         self.dao.remove_state(doc_pair)
 
-    @staticmethod
-    def _get_temporary_file(file_path: Path) -> Path:
-        return file_path.with_name(
-            DOWNLOAD_TMP_FILE_PREFIX + file_path.name + DOWNLOAD_TMP_FILE_SUFFIX
-        )
-
     def _download_content(self, doc_pair: DocPair, file_path: Path) -> Path:
         # Check if the file is already on the HD
         pair = self.dao.get_valid_duplicate_file(doc_pair.remote_digest)
+        tmp_folder = self.engine.download_dir / doc_pair.remote_ref.split("#")[-1]
+        tmp_folder.mkdir(parents=True, exist_ok=True)
+        file_out = tmp_folder / file_path.name
         if pair:
-            file_out = self._get_temporary_file(file_path)
             locker = unlock_path(file_out)
             try:
                 shutil.copy(self.local.abspath(pair.local_path), file_out)
@@ -1009,6 +1006,7 @@ class Processor(EngineWorker):
         tmp_file = self.remote.stream_content(
             doc_pair.remote_ref,
             file_path,
+            file_out=file_out,
             parent_fs_item_id=doc_pair.remote_parent_ref,
             engine_uid=self.engine.uid,
             doc_pair_id=doc_pair.id,
@@ -1024,15 +1022,19 @@ class Processor(EngineWorker):
         else:
             new_os_path = os_path
         log.info(f"Updating content of local file {os_path!r}")
-        self.tmp_file: Optional[Path] = self._download_content(doc_pair, new_os_path)
+        tmp_file = self._download_content(doc_pair, new_os_path)
 
         # Delete original file and rename tmp file
         remote_id = self.local.get_remote_id(doc_pair.local_path)
         self.local.delete_final(doc_pair.local_path)
-        tmp_path = self.local.get_path(self.tmp_file)
         if remote_id:
-            self.local.set_remote_id(tmp_path, doc_pair.remote_ref)
-        updated_info = self.local.rename(tmp_path, doc_pair.remote_name)
+            self.local.set_remote_id(tmp_file, doc_pair.remote_ref)
+        updated_info = self.local.move(
+            tmp_file, doc_pair.local_parent_path, doc_pair.remote_name
+        )
+
+        with suppress(OSError):
+            tmp_file.parent.rmdir()
 
         # Set the modification time of the file to the server one
         self.local.change_file_date(
@@ -1056,7 +1058,6 @@ class Processor(EngineWorker):
             self.dao.reset_error(dupe_pair)
 
     def _synchronize_remotely_modified(self, doc_pair: DocPair) -> None:
-        self.tmp_file = None
         is_renaming = safe_filename(doc_pair.remote_name) != doc_pair.local_name
         try:
             if doc_pair.local_digest is not None and not self.local.is_equal_digests(
@@ -1149,11 +1150,6 @@ class Processor(EngineWorker):
             if doc_pair.folderish:
                 # Release folder lock in any case
                 self.engine.release_folder_lock()
-
-        if not self.tmp_file:
-            return
-        with suppress(OSError):
-            self.tmp_file.unlink()
 
     def _synchronize_remotely_created(self, doc_pair: DocPair) -> None:
         name = doc_pair.remote_name
@@ -1260,17 +1256,14 @@ class Processor(EngineWorker):
                 f"in {self.local.abspath(local_parent_path)!r}"
             )
             tmp_file = self._download_content(doc_pair, os_path)
-            tmp_path = self.local.get_path(tmp_file)
 
-            # Set remote id on TMP file already
-            self.local.set_remote_id(tmp_path, doc_pair.remote_ref)
+            # Set remote id on the TMP file already
+            self.local.set_remote_id(tmp_file, doc_pair.remote_ref)
 
-            # Rename TMP file
-            info = self.local.rename(tmp_path, name)
+            # Move the TMP file to the local sync folder
+            info = self.local.move(tmp_file, local_parent_path, name)
 
             # Set the modification time of the file to the server one
-            # (until NXDRIVE-1130 is done, the creation time is also
-            # the last modified time)
             mtime = doc_pair.last_remote_updated
             ctime = doc_pair.creation_date
             self.local.change_file_date(info.filepath, mtime=mtime, ctime=ctime)
@@ -1279,7 +1272,7 @@ class Processor(EngineWorker):
 
             # Clean-up the TMP file
             with suppress(OSError):
-                tmp_file.unlink()
+                tmp_file.parent.rmdir()
 
             return path
         finally:
@@ -1304,12 +1297,12 @@ class Processor(EngineWorker):
                 if doc_pair.folderish:
                     self.engine.set_local_folder_lock(doc_pair.local_path)
                 else:
-                    # Check for nxpart to clean up
-                    file_out = self._get_temporary_file(
-                        self.local.abspath(doc_pair.local_path)
+                    # Delete partial download if it exists
+                    tmpdir = (
+                        self.engine.download_dir / doc_pair.remote_ref.split("#")[-1]
                     )
-                    if file_out.exists():
-                        file_out.unlink()
+                    with suppress(OSError):
+                        tmpdir.rmdir()
 
                 if not self.engine.use_trash():
                     # Force the complete file deletion

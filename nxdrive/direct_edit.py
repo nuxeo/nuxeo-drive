@@ -23,15 +23,7 @@ from watchdog.observers import Observer
 
 from .client.local_client import LocalClient
 from .client.remote_client import Remote
-from .constants import (
-    CONNECTION_ERROR,
-    DOC_UID_REG,
-    DOWNLOAD_TMP_FILE_PREFIX,
-    DOWNLOAD_TMP_FILE_SUFFIX,
-    ROOT,
-    WINDOWS,
-    TransferStatus,
-)
+from .constants import CONNECTION_ERROR, DOC_UID_REG, ROOT, TransferStatus
 from .engine.activity import tooltip, DownloadAction
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
@@ -46,6 +38,7 @@ from .utils import (
     safe_os_filename,
     simplify_url,
     unset_path_readonly,
+    safe_rename,
 )
 
 if TYPE_CHECKING:
@@ -440,12 +433,11 @@ class DirectEdit(Worker):
 
         log.info(f"Editing {filename!r}")
         file_path = dir_path / filename
-        file_out = (
-            file_path.parent
-            / f"{DOWNLOAD_TMP_FILE_PREFIX}{file_path.name}{DOWNLOAD_TMP_FILE_SUFFIX}"
-        )
+        tmp_folder = engine.download_dir / doc_id
+        tmp_folder.mkdir(parents=True, exist_ok=True)
+        file_out = tmp_folder / filename
 
-        DownloadAction(file_out, file_path.name, reporter=QApplication.instance())
+        DownloadAction(file_path, tmppath=file_out, reporter=QApplication.instance())
         # Add a new download entry in the database
         download = Download(
             None,
@@ -496,12 +488,7 @@ class DirectEdit(Worker):
             )
         self.local.set_remote_id(dir_path, filename, name="nxdirecteditname")
 
-        # Rename to final filename
-        # Under Windows first need to delete target file if exists,
-        # otherwise will get a 183 WindowsError
-        if WINDOWS and file_path.exists():
-            file_path.unlink()
-        tmp_file.rename(file_path)
+        safe_rename(tmp_file, file_path)
 
         self._last_action_timing = current_milli_time() - start_time
         self.openDocument.emit(filename)
@@ -845,7 +832,7 @@ class DirectEdit(Worker):
         if src_path.is_dir():
             return
 
-        if self.local.is_temp_file(src_path.name):
+        if self.local.is_temp_file(src_path):
             return
 
         log.info(f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}")

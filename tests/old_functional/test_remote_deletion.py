@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from nxdrive.engine.engine import Engine
+from nxdrive.options import Options
 from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
 
 
@@ -101,6 +102,7 @@ class TestRemoteDeletion(OneUserTest):
             self.wait_sync(wait_for_async=True)
             assert not local.exists("/Test folder")
 
+    @Options.mock()
     @pytest.mark.randombug("NXDRIVE-1329", repeat=4)
     def test_synchronize_remote_deletion_while_download_file(self):
         local = self.local_1
@@ -124,6 +126,7 @@ class TestRemoteDeletion(OneUserTest):
 
         filepath = self.location / "resources" / "testFile.pdf"
 
+        Options.set("tmp_file_limit", 0.1, "manual")
         with patch.object(self.engine_1.remote, "download_callback", new=callback):
             remote.make_folder("/", "Test folder")
             remote.make_file("/Test folder", "testFile.pdf", filepath.read_bytes())

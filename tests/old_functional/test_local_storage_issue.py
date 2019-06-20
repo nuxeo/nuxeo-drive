@@ -34,7 +34,7 @@ class TestLocalStorageIssue(OneUserTest):
         self.engine_1.stop()
 
         # Create a file in the remote root workspace
-        remote.make_file("/", "test_KO.odt", content=b"Some large content.")
+        uid = remote.make_file("/", "test_NG.odt", content=b"Some large content.")
 
         # We pick a random error because there is no facility
         # to parametrize a method from a class derived from
@@ -55,15 +55,14 @@ class TestLocalStorageIssue(OneUserTest):
                 wait_for_async=True, fail_if_timeout=False, enforce_errors=False
             )
 
-            # Temporary download file (.nxpart) should be created locally
-            # but not renamed then removed
-            # Synchronization should not fail: doc pair should be
-            # blacklisted and there should be 1 error
-            self.assertNxPart("/", "test_KO.odt")
-            assert not local.exists("/test_KO.odt")
+            # - temporary download file should be created locally but not moved
+            # - synchronization should not fail: doc pair should be blacklisted
+            # - and there should be 1 error
+            assert (self.engine_1.download_dir / uid).is_dir()
+            assert not local.exists("/test_NG.odt")
             errors = self.engine_1.dao.get_errors(limit=0)
             assert len(errors) == 1
-            assert errors[0].remote_name == "test_KO.odt"
+            assert errors[0].remote_name == "test_NG.odt"
 
             assert self.engine_1.is_paused()
 
@@ -79,10 +78,10 @@ class TestLocalStorageIssue(OneUserTest):
 
         # Blacklisted file should be ignored as delay (60 seconds by default)
         # is not expired and there should still be 1 error
-        assert not local.exists("/test_KO.odt")
+        assert not local.exists("/test_NG.odt")
         errors = self.engine_1.dao.get_errors(limit=0)
         assert len(errors) == 1
-        assert errors[0].remote_name == "test_KO.odt"
+        assert errors[0].remote_name == "test_NG.odt"
 
         # Retry to synchronize blacklisted file still simulating
         # the same disk space related error
@@ -91,13 +90,14 @@ class TestLocalStorageIssue(OneUserTest):
             self.queue_manager_1.requeue_errors()
             self.wait_sync(fail_if_timeout=False, enforce_errors=False)
 
-            # Doc pair should be blacklisted again
-            # and there should still be 1 error
-            self.assertNxPart("/", "test_KO.odt")
-            assert not local.exists("/test_KO.odt")
+            # - temporary download file should be created locally but not moved
+            # - doc pair should be blacklisted again
+            # - and there should still be 1 error
+            assert (self.engine_1.download_dir / uid).is_dir()
+            assert not local.exists("/test_NG.odt")
             errors = self.engine_1.dao.get_errors(limit=0)
             assert len(errors) == 1
-            assert errors[0].remote_name == "test_KO.odt"
+            assert errors[0].remote_name == "test_NG.odt"
 
         # Synchronize without simulating any error, as if space had been made
         # available on device
@@ -109,6 +109,6 @@ class TestLocalStorageIssue(OneUserTest):
 
         # Previously blacklisted file should be created locally
         # and there should be no more errors left
-        self.assertNxPart("/", "test_KO.odt")
-        assert local.exists("/test_KO.odt")
+        assert not (self.engine_1.download_dir / uid).is_dir()
+        assert local.exists("/test_NG.odt")
         assert not self.engine_1.dao.get_errors(limit=0)

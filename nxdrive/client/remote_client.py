@@ -23,8 +23,6 @@ from .proxy import Proxy
 from ..constants import (
     APP_NAME,
     BATCH_SIZE,
-    DOWNLOAD_TMP_FILE_PREFIX,
-    DOWNLOAD_TMP_FILE_SUFFIX,
     FILE_BUFFER_SIZE,
     TIMEOUT,
     TOKEN_PERMISSION,
@@ -43,9 +41,9 @@ from ..objects import NuxeoDocumentInfo, RemoteFileInfo, Download, Upload
 from ..options import Options
 from ..utils import (
     compute_digest,
-    current_thread_id,
     get_device,
     lock_path,
+    safe_os_filename,
     sizeof_fmt,
     unlock_path,
     version_le,
@@ -194,26 +192,35 @@ class Remote(Nuxeo):
         )
 
         headers: Dict[str, str] = {}
+        downloaded = 0
         if file_out:
-            # Retrieve current size of .nxpart to know where to start the download
+            # Retrieve current size of the TMP file, if any, to know where to start the download
             with suppress(FileNotFoundError):
-                headers = {"Range": f"bytes={file_out.stat().st_size}-"}
+                downloaded = file_out.stat().st_size
+                headers = {"Range": f"bytes={downloaded}-"}
 
         resp = self.client.request(
             "GET", url.replace(self.client.host, ""), headers=headers
         )
 
-        current_action = Action.get_current_action()
-        if isinstance(current_action, DownloadAction) and resp:
-            current_action.size = int(resp.headers.get("Content-Length", 0) or 0)
-            if file_out:
-                with suppress(FileNotFoundError):
-                    current_action.progress = file_out.stat().st_size
+        if not file_out:
+            # Return the pointer to the data
+            result = resp.content
+            del resp
+            return result
 
-        if file_out:
-            callback = kwargs.pop("callback", self.download_callback)
-            locker = unlock_path(file_out)
-            try:
+        size = int(resp.headers.get("Content-Length", 0)) if resp else 0
+        chunked = size > (Options.tmp_file_limit * 1024 * 1024)
+
+        current_action = Action.get_current_action()
+        if isinstance(current_action, DownloadAction):
+            current_action.size = size
+            current_action.progress = downloaded
+
+        locker = unlock_path(file_out)
+        try:
+            if chunked:
+                callback = kwargs.pop("callback", self.download_callback)
                 self.operations.save_to_file(
                     current_action,
                     resp,
@@ -221,17 +228,21 @@ class Remote(Nuxeo):
                     chunk_size=FILE_BUFFER_SIZE,
                     callback=callback,
                 )
+            else:
+                view = memoryview(resp.content)
+                with file_out.open(mode="wb") as f:
+                    f.write(view)
 
-                if digest and isinstance(current_action, DownloadAction):
-                    self.check_integrity(digest, current_action)
-            finally:
-                lock_path(file_out, locker)
-                del resp
-            return file_out
-        else:
-            result = resp.content
+                    # Force write of file to disk
+                    f.flush()
+                    os.fsync(f.fileno())
+
+            if digest and isinstance(current_action, DownloadAction):
+                self.check_integrity(digest, current_action)
+        finally:
+            lock_path(file_out, locker)
             del resp
-            return result
+        return file_out
 
     def check_integrity(self, digest: str, download_action: DownloadAction) -> None:
         """
@@ -240,7 +251,7 @@ class Remote(Nuxeo):
         Update the progress of the verification during the computation of the digest.
         """
         digester = get_digest_algorithm(digest)
-        filepath = download_action.filepath
+        filepath = download_action.tmppath or download_action.filepath
 
         # Terminate the download action to be able to start the verification one as we are allowing
         # only 1 action per thread.
@@ -248,9 +259,7 @@ class Remote(Nuxeo):
         # one, but let's do things right.
         DownloadAction.finish_action()
 
-        verif_action = VerificationAction(
-            filepath, download_action.filename, reporter=QApplication.instance()
-        )
+        verif_action = VerificationAction(filepath, reporter=QApplication.instance())
 
         def callback(_):
             verif_action.progress += FILE_BUFFER_SIZE
@@ -314,7 +323,10 @@ class Remote(Nuxeo):
         """Upload a blob by chunks or in one go."""
 
         tick = time.monotonic()
-        action = UploadAction(file_path, filename, reporter=QApplication.instance())
+        path = (
+            file_path.with_name(safe_os_filename(filename)) if filename else file_path
+        )
+        action = UploadAction(path, tmppath=file_path, reporter=QApplication.instance())
         blob = FileBlob(str(file_path))
         if filename:
             blob.name = filename
@@ -349,7 +361,7 @@ class Remote(Nuxeo):
                 # Create a new batch and save it in the DB
                 batch = self.uploads.batch()
 
-            # By default, Options.chunk_size is 20, so chunks will be 20Mio.
+            # By default, Options.chunk_size is 20, so chunks will be 20MiB.
             # It can be set to a value between 1 and 20 through the config.ini
             chunk_size = chunk_size or (Options.chunk_size * 1024 * 1024)
 
@@ -470,9 +482,9 @@ class Remote(Nuxeo):
         self,
         fs_item_id: str,
         file_path: Path,
+        file_out: Path,
         parent_fs_item_id: str = None,
         fs_item_info: RemoteFileInfo = None,
-        file_out: Path = None,
         **kwargs: Any,
     ) -> Path:
         """Stream the binary content of a file system item to a tmp file
@@ -484,23 +496,11 @@ class Remote(Nuxeo):
             fs_item_id, parent_fs_item_id=parent_fs_item_id
         )
         download_url = self.client.host + fs_item_info.download_url
-        file_name = file_path.name
 
         # Retrieve ongoing download if it exists
         download = self.dao.get_download(path=file_path)
         engine_uid = kwargs.pop("engine_uid", None)
         doc_pair_id = kwargs.pop("doc_pair_id", None)
-
-        if not file_out:
-            name = "".join(
-                [
-                    DOWNLOAD_TMP_FILE_PREFIX,
-                    file_name,
-                    str(current_thread_id()),
-                    DOWNLOAD_TMP_FILE_SUFFIX,
-                ]
-            )
-            file_out = file_path.with_name(name)
 
         if not download:
             # Add a new download entry in the database
@@ -516,7 +516,7 @@ class Remote(Nuxeo):
         elif download.tmpname:
             file_out = Path(download.tmpname)
 
-        DownloadAction(file_out, file_name, reporter=QApplication.instance())
+        DownloadAction(file_path, tmppath=file_out, reporter=QApplication.instance())
 
         try:
             tmp_file = self.download(

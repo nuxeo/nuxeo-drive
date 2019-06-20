@@ -40,7 +40,9 @@ class TestConcurrentSynchronization(TwoUsersTest):
         remote = self.remote_document_client_1
 
         # Create file in the remote root workspace
-        remote.make_file("/", "test_update.docx", content=b"Some content to update.")
+        uid = remote.make_file(
+            "/", "test_update.docx", content=b"Some content to update."
+        )
         remote.make_file("/", "test_delete.docx", content=b"Some content to delete.")
 
         # Launch first synchronization
@@ -106,7 +108,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
             # temporary download file should not be there anymore and there
             # should be no pending items left
         else:
-            self.assertNxPart("/", "test_update.docx")
+            assert not (self.engine_1.download_dir / uid).is_dir()
 
         assert local.exists("/test_update.docx")
         assert local.get_content("/test_update.docx") == b"Updated content."

@@ -19,7 +19,7 @@ def touch(path: Path):
     try:
         path.write_bytes(b"Test")
     except OSError:
-        log.exception("Unable to touch")
+        log.warning("Unable to touch")
         return False
     return True
 
