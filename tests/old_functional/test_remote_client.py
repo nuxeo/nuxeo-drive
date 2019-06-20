@@ -1,12 +1,13 @@
 # coding: utf-8
 import hashlib
 import operator
+from pathlib import Path
 from shutil import copyfile
+from tempfile import mkdtemp
 
 import pytest
 
 from nxdrive.exceptions import NotFound
-from nxdrive.utils import current_thread_id
 
 from . import LocalTest, make_tmp_file
 from .common import FS_ITEM_ID_PREFIX, OneUserTest, TwoUsersTest
@@ -94,9 +95,10 @@ class TestRemoteFileSystemClient(OneUserTest):
             self.workspace_id, "Document 1.txt", "Content of doc 1."
         ).uid
         file_path = self.local_test_folder_1 / "Document 1.txt"
-        tmp_file = remote.stream_content(fs_item_id, file_path)
+        file_out = Path(mkdtemp()) / file_path.name
+        tmp_file = remote.stream_content(fs_item_id, file_path, file_out)
         assert tmp_file.exists()
-        assert tmp_file.name == f".Document 1.txt{current_thread_id()}.nxpart"
+        assert tmp_file.name == "Document 1.txt"
         assert tmp_file.read_bytes() == b"Content of doc 1."
 
     def test_get_fs_children(self):

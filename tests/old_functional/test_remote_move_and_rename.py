@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
+from nxdrive.options import Options
 
 from . import DocRemote, LocalTest
 from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, SYNC_ROOT_FAC_ID, OneUserTest
@@ -623,6 +624,7 @@ class TestSyncRemoteMoveAndRename(OneUserTest):
         self.engine_1.has_rename = False
         self.engine_1.file_id = None
 
+        Options.set("tmp_file_limit", 0.1, "manual")
         try:
             self.engine_1.remote.download_callback = callback
             content = (self.location / "resources" / "testFile.pdf").read_bytes()

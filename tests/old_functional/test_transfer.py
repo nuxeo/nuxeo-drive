@@ -57,6 +57,8 @@ class TestDownload(OneUserTest):
         # There is no download, right now
         assert not dao.get_downloads()
 
+        Options.set("tmp_file_limit", 0.1, "manual")
+
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():
                 self.wait_sync(wait_for_async=True)
@@ -100,6 +102,8 @@ class TestDownload(OneUserTest):
 
         # There is no download, right now
         assert not dao.get_downloads()
+
+        Options.set("tmp_file_limit", 0.1, "manual")
 
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():
@@ -151,6 +155,8 @@ class TestDownload(OneUserTest):
         # There is no download, right now
         assert not dao.get_downloads()
 
+        Options.set("tmp_file_limit", 0.1, "manual")
+
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():
                 self.wait_sync(wait_for_async=True)
@@ -194,6 +200,8 @@ class TestDownload(OneUserTest):
 
         # There is no download, right now
         assert not dao.get_downloads()
+
+        Options.set("tmp_file_limit", 0.1, "manual")
 
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():

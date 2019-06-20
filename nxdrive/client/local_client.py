@@ -21,14 +21,7 @@ from send2trash.exceptions import TrashPermissionError
 
 from nuxeo.utils import get_digest_algorithm
 
-from ..constants import (
-    DOWNLOAD_TMP_FILE_PREFIX,
-    DOWNLOAD_TMP_FILE_SUFFIX,
-    LINUX,
-    MAC,
-    ROOT,
-    WINDOWS,
-)
+from ..constants import LINUX, MAC, ROOT, WINDOWS
 from ..exceptions import DuplicationDisabledError, NotFound, UnknownDigest
 from ..options import Options
 from ..utils import (
@@ -144,10 +137,8 @@ class LocalClient:
         return self._case_sensitive
 
     @staticmethod
-    def is_temp_file(filename: str) -> bool:
-        return filename.startswith(DOWNLOAD_TMP_FILE_PREFIX) and filename.endswith(
-            DOWNLOAD_TMP_FILE_SUFFIX
-        )
+    def is_temp_file(filepath: Path) -> bool:
+        return Options.nxdrive_home / "tmp" in filepath.parents
 
     def set_readonly(self, ref: Path) -> None:
         path = self.abspath(ref)
@@ -512,7 +503,7 @@ FolderType=Generic
         result = []
 
         for child in sorted(os_path.iterdir()):
-            if self.is_ignored(ref, child.name) or self.is_temp_file(child.name):
+            if self.is_ignored(ref, child.name) or self.is_temp_file(child):
                 log.info(f"Ignoring banned file {child.name!r} in {os_path!r}")
                 continue
 
@@ -630,7 +621,6 @@ FolderType=Generic
 
     def rename(self, ref: Path, to_name: str) -> FileInfo:
         """ Rename a local file or folder. """
-
         new_name = safe_os_filename(to_name)
         source_os_path = self.abspath(ref)
         parent = ref.parent

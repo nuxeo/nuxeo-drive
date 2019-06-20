@@ -222,6 +222,7 @@ class MetaOptions(type):
         "system_wide": (_is_system_wide(), "default"),
         "theme": ("ui5", "default"),
         "timeout": (30, "default"),
+        "tmp_file_limit": (10, "default"),
         "update_check_delay": (3600, "default"),
         "update_site_url": (
             "https://community.nuxeo.com/static/drive-updates",
