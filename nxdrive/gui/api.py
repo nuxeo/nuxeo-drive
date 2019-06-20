@@ -108,13 +108,15 @@ class QMLDriveApi(QObject):
         return engines.get(uid)
 
     def get_last_files(
-        self, uid: str, number: int, direction: str, duration: int = None
+        self, uid: str, number: int, direction: str = "", duration: int = None
     ) -> List[Dict[str, Any]]:
         """ Return the last files transferred (see EngineDAO). """
         engine = self._get_engine(uid)
         result = []
-        if engine is not None:
-            for state in engine.get_last_files(number, direction, duration):
+        if engine:
+            for state in engine.get_last_files(
+                number, direction=direction, duration=duration
+            ):
                 result.append(state.export())
         return result
 
@@ -124,7 +126,7 @@ class QMLDriveApi(QObject):
         count = 0
         engine = self._get_engine(uid)
         if engine:
-            count = engine.get_last_files_count(direction="", duration=60)
+            count = engine.get_last_files_count(duration=60)
         return count
 
     @pyqtSlot(result=str)

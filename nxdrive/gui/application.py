@@ -1333,7 +1333,7 @@ class Application(QApplication):
 
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:
-        files = self.api.get_last_files(uid, 10, "")
+        files = self.api.get_last_files(uid, 10)
         if files != self.file_model.files:
             self.file_model.empty()
             self.file_model.addFiles(files)
