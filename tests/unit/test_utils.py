@@ -261,6 +261,17 @@ def test_get_current_os_full():
     assert ver
 
 
+def test_get_timestamp_from_date():
+    from datetime import datetime
+
+    # No date provided
+    assert nxdrive.utils.get_timestamp_from_date(0) == 0
+    assert nxdrive.utils.get_timestamp_from_date(None) == 0
+
+    dtime = datetime(2019, 6, 20)
+    assert nxdrive.utils.get_timestamp_from_date(dtime) == 1560988800
+
+
 @pytest.mark.parametrize("hostname", BAD_HOSTNAMES)
 def test_retrieve_ssl_certificate_unknown(hostname):
     from ssl import SSLError
