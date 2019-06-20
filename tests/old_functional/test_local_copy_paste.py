@@ -96,7 +96,7 @@ class TestLocalCopyPaste(OneUserTest):
 
         if stopped:
             self.engine_1.start()
-        self.wait_sync()
+        self.wait_sync(timeout=60)
 
         # Expect local "/A" to contain all the files
         abs_folder_path_1 = local.abspath(self.folder_path_1)

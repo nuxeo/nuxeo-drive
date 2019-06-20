@@ -646,20 +646,6 @@ class TwoUsersTest(TestCase):
         else:
             remote.block_inheritance(doc_path)
 
-    def assertNxPart(self, path: str, name: str):
-        for child in self.local_1.abspath(path).iterdir():
-            child_name = child.name
-            if len(child_name) < 8:
-                continue
-            if name is not None and len(child_name) < len(name) + 8:
-                continue
-            if (
-                child_name[0] == "."
-                and child_name.endswith(".nxpart")
-                and (name is None or child_name[1 : len(name) + 1] == name)
-            ):
-                self.fail(f"nxpart found in {path!r}")
-
     def get_dao_state_from_engine_1(self, path: str):
         """
         Returns the pair from dao of engine 1 according to the path.

@@ -101,14 +101,14 @@ class FileAction(Action):
         self,
         action_type: str,
         filepath: Path,
-        filename: str = None,
+        tmppath: Path = None,
         size: float = -1.0,
         reporter: Any = None,
     ) -> None:
         super().__init__(action_type=action_type)
 
         self.filepath = filepath
-        self.filename = filename or filepath.name
+        self.tmppath = tmppath
 
         # Is it an empty file?
         self.empty = False
@@ -169,51 +169,46 @@ class FileAction(Action):
         return {
             **super().export(),
             "size": self.size,
-            "name": self.filename,
+            "name": self.filepath.name,
             "filepath": str(self.filepath),
+            "tmppath": str(self.tmppath),
             "empty": self.empty,
             "uploaded": self.uploaded,
         }
 
     def __repr__(self) -> str:
         if self.size < 0:
-            return f"{self.type}({self.filename!r})"
+            return f"{self.type}({self.filename.name!r})"
         percent = self.get_percent()
         if percent > 0.0:
-            return f"{self.type}({self.filename!r}[{self.size}]-{percent})"
-        return f"{self.type}({self.filename!r}[{self.size}])"
+            return f"{self.type}({self.filepath.name!r}[{self.size}]-{percent})"
+        return f"{self.type}({self.filepath.name!r}[{self.size}])"
 
 
 class DownloadAction(FileAction):
     def __init__(
-        self, filepath: Path, filename: str = None, reporter: Any = None
+        self, filepath: Path, tmppath: Path = None, reporter: Any = None
     ) -> None:
-        super().__init__("Download", filepath, filename=filename, reporter=reporter)
+        super().__init__("Download", filepath, tmppath=tmppath, reporter=reporter)
 
 
 class UploadAction(FileAction):
     def __init__(
-        self, filepath: Path, filename: str = None, reporter: Any = None
+        self, filepath: Path, tmppath: Path = None, reporter: Any = None
     ) -> None:
         super().__init__(
             "Upload",
             filepath,
-            filename=filename,
-            size=filepath.stat().st_size,
+            tmppath=tmppath,
+            size=tmppath.stat().st_size if tmppath else filepath.stat().st_size,
             reporter=reporter,
         )
 
 
 class VerificationAction(FileAction):
-    def __init__(
-        self, filepath: Path, filename: str = None, reporter: Any = None
-    ) -> None:
+    def __init__(self, filepath: Path, reporter: Any = None) -> None:
         super().__init__(
-            "Verification",
-            filepath,
-            filename=filename,
-            size=filepath.stat().st_size,
-            reporter=reporter,
+            "Verification", filepath, size=filepath.stat().st_size, reporter=reporter
         )
 
 

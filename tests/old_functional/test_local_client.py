@@ -181,7 +181,6 @@ class StubLocalClient:
         local.make_file("/", "File 2.txt.swp", content=data)
         local.make_file("/", "File 2.txt.lock", content=data)
         local.make_file("/", "File 2.txt.part", content=data)
-        local.make_file("/", ".File 2.txt.nxpart", content=data)
         if local.is_case_sensitive():
             local.make_file("/", "File 2.txt.LOCK", content=data)
         else:

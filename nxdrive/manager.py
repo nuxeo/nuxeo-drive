@@ -85,7 +85,7 @@ class Manager(QObject):
         self._platform = get_current_os_full()
 
         # Primary attributes to allow initializing the notification center early
-        self.home = normalized_path(home)
+        self.home: Path = normalized_path(home)
         self.home.mkdir(exist_ok=True)
 
         if self.home not in Manager._instances:

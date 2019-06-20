@@ -19,7 +19,7 @@ from watchdog.observers import Observer
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
 from ...client.local_client import FileInfo
-from ...constants import DOWNLOAD_TMP_FILE_SUFFIX, LINUX, MAC, ROOT, WINDOWS
+from ...constants import LINUX, MAC, ROOT, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
 from ...options import Options
@@ -934,12 +934,6 @@ class LocalWatcher(EngineWorker):
 
         dst_path = getattr(evt, "dest_path", "")
 
-        # Ignore *.nxpart
-        if evt.src_path.endswith(DOWNLOAD_TMP_FILE_SUFFIX) or dst_path.endswith(
-            DOWNLOAD_TMP_FILE_SUFFIX
-        ):
-            return
-
         self._metrics["last_event"] = current_milli_time()
 
         evt_log = f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}"
@@ -977,7 +971,7 @@ class LocalWatcher(EngineWorker):
                 log.info(f"Ignoring action on banned file: {evt!r}")
                 return
 
-            if client.is_temp_file(src_path.name):
+            if client.is_temp_file(src_path):
                 log.info(f"Ignoring temporary file: {evt!r}")
                 return
 
