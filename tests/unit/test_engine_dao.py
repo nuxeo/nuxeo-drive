@@ -269,13 +269,13 @@ def test_last_sync(engine_dao):
             assert files[i].id == ids[i]
 
         ids = [58, 62, 61, 60, 63]
-        files = dao.get_last_files(5, "remote")
+        files = dao.get_last_files(5, direction="remote")
         assert len(files) == 5
         for i in range(5):
             assert files[i].id == ids[i]
 
         ids = [8, 11, 5]
-        files = dao.get_last_files(5, "local")
+        files = dao.get_last_files(5, direction="local")
         assert len(files) == 3
         for i in range(3):
             assert files[i].id == ids[i]
