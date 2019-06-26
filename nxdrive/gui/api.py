@@ -566,6 +566,8 @@ class QMLDriveApi(QObject):
             error = "UNAUTHORIZED"
         except FolderAlreadyUsed:
             error = "FOLDER_USED"
+        except PermissionError:
+            error = "FOLDER_PERMISSION_ERROR"
         except HTTPError:
             error = "CONNECTION_ERROR"
         except CONNECTION_ERROR as e:
