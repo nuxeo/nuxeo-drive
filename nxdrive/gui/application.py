@@ -761,7 +761,7 @@ class Application(QApplication):
         engine.noSpaceLeftOnDevice.connect(self._no_space_left)
         engine.newSyncStarted.connect(self.refresh_files)
         engine.newSyncEnded.connect(self.refresh_files)
-        engine.transferUpdated.connect(self.refresh_transfers)
+        engine.dao.transferUpdated.connect(self.refresh_transfers)
         self.change_systray_icon()
 
     def init_checks(self) -> None:
@@ -1324,8 +1324,8 @@ class Application(QApplication):
             self.transfer_model.set_transfers(transfers)
             self.transfer_model.fileChanged.emit()
 
-    @pyqtSlot()
-    def refresh_files(self) -> None:
+    @pyqtSlot(object)
+    def refresh_files(self, metrics: Dict[str, Any]) -> None:
         engine = self.sender()
         if not isinstance(engine, Engine):
             return
