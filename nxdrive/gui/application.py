@@ -779,7 +779,7 @@ class Application(QApplication):
         self.manager.updater.noSpaceLeftOnDevice.connect(self._no_space_left)
 
         if not self.manager.get_engines():
-            self.show_settings()
+            self.show_settings("Accounts")
         else:
             for engine in self.manager.get_engines().values():
                 # Prompt for settings if needed
