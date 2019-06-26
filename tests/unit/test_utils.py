@@ -269,7 +269,7 @@ def test_get_timestamp_from_date():
     assert nxdrive.utils.get_timestamp_from_date(None) == 0
 
     dtime = datetime(2019, 6, 20)
-    assert nxdrive.utils.get_timestamp_from_date(dtime) == 1560988800
+    assert nxdrive.utils.get_timestamp_from_date(dtime) == 1_560_988_800
 
 
 @pytest.mark.parametrize("hostname", BAD_HOSTNAMES)
@@ -370,6 +370,29 @@ def test_guess_server_url(url, result):
             pytest.skip(f"Intranet not stable ({exc})")
     else:
         assert func(url) == result
+
+
+def test_increment_local_folder(tmp):
+    func = nxdrive.utils.increment_local_folder
+    basefolder = tmp()
+    name = "folder"
+
+    # There is no existing folder
+    assert func(basefolder, name) == basefolder / "folder"
+
+    # Create the folder, and check the next call returns an incremented folder name
+    (basefolder / "folder").mkdir(parents=True)
+    assert func(basefolder, name) == basefolder / "folder 2"
+
+    # Loop on folder creation for 100 iterations to check we always get an incremented folder name.
+    # Before NXDRIVE-1723, after 41 iterations it was returning ".", the current folder (bad).
+    for n in range(2, 101):
+        assert func(basefolder, name) == basefolder / f"folder {n}"
+        (basefolder / f"folder {n}").mkdir()
+
+    # Remove 1 folder in the middle of all and check we get it back when calling the function
+    (basefolder / "folder 69").rmdir()
+    assert func(basefolder, name) == basefolder / "folder 69"
 
 
 @pytest.mark.parametrize(

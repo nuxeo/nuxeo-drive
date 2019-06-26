@@ -302,13 +302,12 @@ def increment_local_folder(basefolder: Path, name: str) -> Path:
     Example: "Nuxeo Drive" > "Nuxeo Drive 2" > "Nuxeo Drive 3"
     """
     folder = basefolder / name
-    for num in range(2, 42):
+    num = 2
+    while "checking":
         if not folder.is_dir():
-            break
+            return folder
         folder = basefolder / f"{name} {num}"
-    else:
-        folder = Path()
-    return folder
+        num += 1
 
 
 def is_hexastring(value: str) -> bool:
