@@ -33,7 +33,6 @@ from ...objects import (
     Filters,
     RemoteFileInfo,
     EngineDef,
-    Transfer,
     Download,
     Upload,
 )
@@ -608,10 +607,7 @@ class EngineDAO(ConfigurationDAO):
     newConflict = pyqtSignal(object)
     transferUpdated = pyqtSignal()
 
-    def __init__(self, db: Path, state_factory: Type[DocPair] = None) -> None:
-        if state_factory:
-            self._state_factory = state_factory
-
+    def __init__(self, db: Path) -> None:
         super().__init__(db)
 
         self.queue_manager: Optional["QueueManager"] = None
@@ -1908,16 +1904,6 @@ class EngineDAO(ConfigurationDAO):
             self._filters = self.get_filters()
             self.get_syncing_count()
 
-    def get_transfers(self) -> List[Transfer]:
-        con = self._get_read_connection()
-        backup = con.row_factory
-        c = con.cursor()
-        con.row_factory = Transfer
-        try:
-            return c.execute("SELECT * FROM Transfers").fetchall()
-        finally:
-            con.row_factory = backup
-
     def get_downloads(self) -> List[Download]:
         con = self._get_read_connection()
         c = con.cursor()
@@ -1973,6 +1959,7 @@ class EngineDAO(ConfigurationDAO):
             key, value = "doc_pair", doc_pair
         else:
             return None
+
         res = [d for d in self.get_downloads() if getattr(d, key) == value]
         return res[0] if res else None
 
@@ -1988,6 +1975,7 @@ class EngineDAO(ConfigurationDAO):
             key, value = "doc_pair", doc_pair
         else:
             return None
+
         res = [u for u in self.get_uploads() if getattr(u, key) == value]
         return res[0] if res else None
 
@@ -2008,7 +1996,7 @@ class EngineDAO(ConfigurationDAO):
                 ),
             )
             download.uid = c.lastrowid
-        self.transferUpdated.emit()
+            self.transferUpdated.emit()
 
     def save_upload(self, upload: Upload) -> None:
         with self._lock:
@@ -2028,7 +2016,7 @@ class EngineDAO(ConfigurationDAO):
                 ),
             )
             upload.uid = c.lastrowid
-        self.transferUpdated.emit()
+            self.transferUpdated.emit()
 
     def pause_transfer(self, nature: str, uid: int) -> None:
         table = f"{nature.title()}s"  # Downloads/Uploads
@@ -2038,7 +2026,7 @@ class EngineDAO(ConfigurationDAO):
                 f"UPDATE {table} SET status = ? WHERE uid = ?",
                 (TransferStatus.PAUSED.value, uid),
             )
-        self.transferUpdated.emit()
+            self.transferUpdated.emit()
 
     def suspend_transfers(self) -> None:
         with self._lock:
@@ -2051,7 +2039,7 @@ class EngineDAO(ConfigurationDAO):
                 "UPDATE Uploads SET status = ? WHERE status = ?",
                 (TransferStatus.SUSPENDED.value, TransferStatus.ONGOING.value),
             )
-        self.transferUpdated.emit()
+            self.transferUpdated.emit()
 
     def resume_transfer(self, nature: str, uid: int) -> None:
         table = f"{nature.title()}s"  # Downloads/Uploads
@@ -2061,7 +2049,7 @@ class EngineDAO(ConfigurationDAO):
                 f"UPDATE {table} SET status = ? WHERE uid = ?",
                 (TransferStatus.ONGOING.value, uid),
             )
-        self.transferUpdated.emit()
+            self.transferUpdated.emit()
 
     def set_transfer_doc(
         self, nature: str, transfer_uid: int, engine_uid: str, doc_pair_uid: int
@@ -2079,7 +2067,7 @@ class EngineDAO(ConfigurationDAO):
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(f"DELETE FROM {table} WHERE path = ?", (path,))
-        self.transferUpdated.emit()
+            self.transferUpdated.emit()
 
     @staticmethod
     def _escape(text: str) -> str:

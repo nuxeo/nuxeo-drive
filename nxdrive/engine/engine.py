@@ -83,7 +83,6 @@ class Engine(QObject):
     newSyncEnded = pyqtSignal(object)
     newError = pyqtSignal(object)
     newQueueItem = pyqtSignal(object)
-    transferUpdated = pyqtSignal()
     offline = pyqtSignal()
     online = pyqtSignal()
 
@@ -171,10 +170,10 @@ class Engine(QObject):
 
         # Some conflict can be resolved automatically
         self.dao.newConflict.connect(self.conflict_resolver)
+
         # Try to resolve conflict on startup
         for conflict in self.dao.get_conflicts():
             self.conflict_resolver(conflict.id, emit=False)
-        self.dao.transferUpdated.connect(self.transferUpdated)
 
         # Scan in remote_watcher thread
         self._scanPair.connect(self._remote_watcher.scan_pair)
@@ -276,16 +275,6 @@ class Engine(QObject):
     def release_folder_lock(self) -> None:
         log.info("Local Folder unlocking")
         self._folder_lock = None
-
-    def get_last_files(
-        self, number: int, direction: str = "", duration: int = None
-    ) -> DocPairs:
-        """ Return the last files transferred (see EngineDAO). """
-        return self.dao.get_last_files(number, direction=direction, duration=duration)
-
-    def get_last_files_count(self, direction: str = "", duration: int = None) -> int:
-        """ Return the count of the last files transferred (see EngineDAO). """
-        return self.dao.get_last_files_count(direction=direction, duration=duration)
 
     def set_offline(self, value: bool = True) -> None:
         if value == self._offline_state:

@@ -114,7 +114,7 @@ class QMLDriveApi(QObject):
         engine = self._get_engine(uid)
         result = []
         if engine:
-            for state in engine.get_last_files(
+            for state in engine.dao.get_last_files(
                 number, direction=direction, duration=duration
             ):
                 result.append(state.export())
@@ -126,7 +126,7 @@ class QMLDriveApi(QObject):
         count = 0
         engine = self._get_engine(uid)
         if engine:
-            count = engine.get_last_files_count(duration=60)
+            count = engine.dao.get_last_files_count(duration=60)
         return count
 
     @pyqtSlot(result=str)
@@ -215,12 +215,11 @@ class QMLDriveApi(QObject):
     def get_transfers(self) -> List[Dict[str, Any]]:
         result: List[Dict[str, Any]] = []
 
-        engines = self._manager.get_engines().values()
-
-        for engine in engines:
-            for download in engine.dao.get_downloads():
+        for engine in self._manager.get_engines().values():
+            dao = engine.dao
+            for download in dao.get_downloads():
                 result.append(asdict(download))
-            for upload in engine.dao.get_uploads():
+            for upload in dao.get_uploads():
                 result.append(asdict(upload))
         return result
 

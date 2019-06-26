@@ -2,7 +2,6 @@
 import hashlib
 import unicodedata
 from collections import namedtuple
-from contextlib import suppress
 from datetime import datetime
 from pathlib import Path
 from sqlite3 import Row
@@ -326,17 +325,16 @@ class DocPair(Row):
             f" local_state={self.local_state!r},"
             f" remote_state={self.remote_state!r},"
             f" pair_state={self.pair_state!r},"
-            f" filter_path={self.path!r}"
+            # f" filter_path={self.path!r}"
             ">"
         )
 
     def __getattr__(self, name: str) -> Optional[Union[str, Path]]:
-        with suppress(IndexError):
-            if name in {"local_path", "local_parent_path"}:
-                return Path((self[name] or "").lstrip("/"))
-            if name == "remote_ref":
-                return self[name] or ""
-            return self[name]
+        if name in ("local_path", "local_parent_path"):
+            return Path((self[name] or "").lstrip("/"))
+        if name == "remote_ref":
+            return self[name] or ""
+        return self[name]
 
     def export(self) -> Dict[str, Any]:
         result: Dict[str, Any] = {
@@ -396,10 +394,9 @@ class EngineDef(Row):
     name: str
 
     def __getattr__(self, name: str) -> Optional[Union[str, Path]]:
-        with suppress(IndexError):
-            if name == "local_folder":
-                return Path(self[name])
-            return self[name]
+        if name == "local_folder":
+            return Path(self[name])
+        return self[name]
 
 
 @dataclass
