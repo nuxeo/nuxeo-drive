@@ -486,10 +486,12 @@ class Engine(QObject):
 
         self.dispose_db()
         try:
-            os.remove(self._get_db_file())
-        except OSError as exc:
-            if exc.errno != 2:  # File not found, already removed
-                log.exception("Database removal error")
+            self._get_db_file().unlink()
+        except FileNotFoundError:
+            # File already removed
+            pass
+        except OSError:
+            log.exception("Database removal error")
 
     def check_fs_marker(self) -> bool:
         tag, tag_value = "drive-fs-test", b"NXDRIVE_VERIFICATION"
