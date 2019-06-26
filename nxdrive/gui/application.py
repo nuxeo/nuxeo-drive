@@ -267,7 +267,7 @@ class Application(QApplication):
             self._window_root(self.systray_window).updateProgress
         )
 
-    @pyqtSlot(Action)
+    @pyqtSlot(object)
     def action_progressing(self, action: Action) -> None:
         self.transfer_model.set_progress(action.export())
 

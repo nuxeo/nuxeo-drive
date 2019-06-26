@@ -93,9 +93,9 @@ class IdleAction(Action):
 
 
 class FileAction(Action):
-    started = pyqtSignal(Action)
-    progressing = pyqtSignal(Action)
-    done = pyqtSignal(Action)
+    started = pyqtSignal(object)
+    progressing = pyqtSignal(object)
+    done = pyqtSignal(object)
 
     def __init__(
         self,
@@ -124,7 +124,7 @@ class FileAction(Action):
     def _connect_reporter(self, reporter):
         if not reporter:
             return
-        for evt in {"started", "progressing", "done"}:
+        for evt in ("started", "progressing", "done"):
             signal = getattr(reporter, f"action_{evt}", None)
             if signal:
                 getattr(self, evt).connect(signal)
