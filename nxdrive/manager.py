@@ -383,7 +383,7 @@ class Manager(QObject):
         file_path = force_decode(file_path)
         log.info(f"Launching editor on {file_path!r}")
         try:
-            self.osi.open_local_file(file_path)
+            self.osi.open_local_file(file_path, select=select)
         except OSError as exc:
             if exc.errno in NO_SPACE_ERRORS:
                 log.warning("Cannot open local file, disk space needed", exc_info=True)
