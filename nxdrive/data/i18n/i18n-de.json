@@ -123,6 +123,7 @@
     "FILTERS_WINDOW_TITLE": "Nuxeo Drive – Filter",
     "FILTERS_DISABLED": "Sie müssen warten bis die aktuellen Synchronisationsvorgänge abgeschlossen sind, bevor Sie Ordner filtern können.",
     "FOLDER_DOES_NOT_EXISTS": "Dieser Ordner existiert nicht",
+    "FOLDER_PERMISSION_ERROR": "No enough rights to use the local folder",
     "FOLDER_USED": "Ordner wird schon von einem anderen Nuxeo Drive-Konto verwendet",
     "HELP": "Hilfe",
     "HOST": "Host",

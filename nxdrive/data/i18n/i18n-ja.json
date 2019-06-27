@@ -123,6 +123,7 @@
     "FILTERS_WINDOW_TITLE": "Nuxeo Drive - フィルタ",
     "FILTERS_DISABLED": "一部のフォルダをフィルタリングする前に、現在の同期処理が完了するまで待つ必要があります。",
     "FOLDER_DOES_NOT_EXISTS": "このフォルダは存在しません",
+    "FOLDER_PERMISSION_ERROR": "No enough rights to use the local folder",
     "FOLDER_USED": "別のNuxeo Driveアカウントによって使用されているフォルダ",
     "HELP": "ヘルプ",
     "HOST": "ホスト",
