@@ -9,6 +9,7 @@ from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
+import requests
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
@@ -33,7 +34,6 @@ from ..constants import (
 from ..engine.activity import Action, DownloadAction, UploadAction, VerificationAction
 from ..exceptions import (
     DownloadPaused,
-    Forbidden,
     NotFound,
     ScrollDescendantsError,
     ThreadInterrupt,
@@ -140,14 +140,12 @@ class Remote(Nuxeo):
         This is the end point where all HTTP calls are done.
         The goal is to handle specific errors early.
         """
+        # Unauthorized and Forbidden exceptions are handled by the Python client.
         try:
             return self.operations.execute(**kwargs)
         except HTTPError as e:
-            stack = getattr(e, "stacktrace", None)
-            if e.status in {401, 403}:
-                raise Forbidden(stack)
-            if e.status == 404:
-                raise NotFound(stack)
+            if e.status == requests.codes.not_found:
+                raise NotFound()
             raise e
 
     def _escape(self, path) -> str:

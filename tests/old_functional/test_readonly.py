@@ -4,9 +4,9 @@ from logging import getLogger
 from pathlib import Path
 
 import pytest
+from nuxeo.exceptions import Forbidden
 
 from nxdrive.constants import WINDOWS
-from nxdrive.exceptions import Forbidden
 from .common import FS_ITEM_ID_PREFIX, SYNC_ROOT_FAC_ID, OneUserTest, TwoUsersTest
 from ..markers import windows_only
 

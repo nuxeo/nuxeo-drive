@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Pattern, TYPE_CHECKING
 from urllib.parse import quote
 
 from PyQt5.QtWidgets import QApplication
-from nuxeo.exceptions import HTTPError
+from nuxeo.exceptions import Forbidden, HTTPError
 from nuxeo.utils import get_digest_algorithm
 from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -35,13 +35,7 @@ from .engine.activity import tooltip, DownloadAction
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
-from .exceptions import (
-    DocumentAlreadyLocked,
-    Forbidden,
-    NotFound,
-    ThreadInterrupt,
-    UnknownDigest,
-)
+from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt, UnknownDigest
 from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo, Download
 from .utils import (
     current_milli_time,

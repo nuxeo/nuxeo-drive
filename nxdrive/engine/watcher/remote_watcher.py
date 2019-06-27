@@ -7,13 +7,13 @@ from time import monotonic, sleep
 from typing import Any, Dict, Optional, Set, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
-from nuxeo.exceptions import BadQuery, HTTPError
+from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
 from ...client.local_client import FileInfo
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
-from ...exceptions import Forbidden, NotFound, ScrollDescendantsError, ThreadInterrupt
+from ...exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
 from ...utils import safe_filename, get_date_from_sqlite
 
@@ -617,7 +617,7 @@ class RemoteWatcher(EngineWorker):
             log.warning(exc)
         except (*CONNECTION_ERROR, OSError) as exc:
             log.warning(f"Network error: {exc}")
-        except Forbidden:
+        except Unauthorized:
             self.engine.set_invalid_credentials()
             self.engine.set_offline()
         except HTTPError as exc:
@@ -891,9 +891,7 @@ class RemoteWatcher(EngineWorker):
                                 f"Trying to synchronize remote duplicate rename of {doc_pair}, "
                                 f"forcing new local path {info}"
                             )
-                            self.dao.update_local_state(
-                                doc_pair, info, versioned=False
-                            )
+                            self.dao.update_local_state(doc_pair, info, versioned=False)
 
                         if self.dao.update_remote_state(
                             doc_pair,
