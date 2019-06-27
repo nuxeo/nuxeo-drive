@@ -123,6 +123,7 @@
     "FILTERS_WINDOW_TITLE": "Nuxeo Drive – filter",
     "FILTERS_DISABLED": "Du måste vänta tills de aktuella synkroniseringsåtgärderna har slutförts innan du filtrerar mappar.",
     "FOLDER_DOES_NOT_EXISTS": "Den här mappen finns inte",
+    "FOLDER_PERMISSION_ERROR": "No enough rights to use the local folder",
     "FOLDER_USED": "Mappen används redan av ett annat Nuxeo Drive-konto",
     "HELP": "Hjälp",
     "HOST": "Värd",

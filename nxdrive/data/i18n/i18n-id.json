@@ -123,6 +123,7 @@
     "FILTERS_WINDOW_TITLE": "Nuxeo Drive - Menyaring",
     "FILTERS_DISABLED": "Anda harus menunggu tindakan sinkronisasi saat ini yang harus dilakukan sebelum menyaring beberapa folder.",
     "FOLDER_DOES_NOT_EXISTS": "Folder ini tidak ada",
+    "FOLDER_PERMISSION_ERROR": "No enough rights to use the local folder",
     "FOLDER_USED": "Folder sudah digunakan oleh akun Nuxeo Drive yang lain",
     "HELP": "Bantuan",
     "HOST": "Tuan rumah",
