@@ -4,10 +4,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from requests import ConnectionError
-from nuxeo.exceptions import HTTPError
+from nuxeo.exceptions import HTTPError, Unauthorized
 
 from nxdrive.constants import ROOT, WINDOWS
-from nxdrive.exceptions import Forbidden
 from . import LocalTest
 from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
 from .. import ensure_no_exception
@@ -142,7 +141,7 @@ class TestSynchronization(OneUserTest):
         # Simulate bad responses
         with patch.object(self.engine_1, "remote", new=self.get_bad_remote()):
             self.engine_1.remote.request_token()
-            self.engine_1.remote.make_server_call_raise(Forbidden())
+            self.engine_1.remote.make_server_call_raise(Unauthorized())
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
             assert self.engine_1.is_offline()
 

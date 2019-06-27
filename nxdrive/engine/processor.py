@@ -10,7 +10,13 @@ from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal
-from nuxeo.exceptions import CorruptedFile, HTTPError, Unauthorized, UploadError
+from nuxeo.exceptions import (
+    CorruptedFile,
+    Forbidden,
+    HTTPError,
+    Unauthorized,
+    UploadError,
+)
 
 from .activity import Action
 from .workers import EngineWorker
@@ -295,6 +301,12 @@ class Processor(EngineWorker):
             except Unauthorized:
                 self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
                 continue
+            except Forbidden:
+                msg = (
+                    f" Access to the document {doc_pair.remote_ref!r} on server {self.engine.hostname!r}"
+                    f" is forbidden for user {self.engine.remote_user!r}"
+                )
+                log.warning(msg)
             except (PairInterrupt, ParentNotSynced) as exc:
                 log.info(f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue")
                 sleep(1)

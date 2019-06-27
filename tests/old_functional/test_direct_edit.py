@@ -6,14 +6,10 @@ from typing import Any, Dict
 from urllib.error import URLError
 
 import pytest
+from nuxeo.exceptions import Forbidden
 from unittest.mock import patch
 
-from nxdrive.exceptions import (
-    DocumentAlreadyLocked,
-    Forbidden,
-    NotFound,
-    ThreadInterrupt,
-)
+from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import safe_os_filename
 from . import LocalTest, make_tmp_file

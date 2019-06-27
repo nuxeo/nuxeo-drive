@@ -4,9 +4,9 @@ from contextlib import suppress
 from pathlib import Path
 
 import pytest
+from nuxeo.exceptions import Forbidden
 
 from nxdrive.constants import WINDOWS
-from nxdrive.exceptions import Forbidden
 from . import LocalTest
 from .common import OneUserTest, TwoUsersTest
 from ..markers import windows_only
