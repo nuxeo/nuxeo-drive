@@ -305,9 +305,10 @@ def increment_local_folder(basefolder: Path, name: str) -> Path:
     num = 2
     while "checking":
         if not folder.is_dir():
-            return folder
+            break
         folder = basefolder / f"{name} {num}"
         num += 1
+    return folder
 
 
 def is_hexastring(value: str) -> bool:
