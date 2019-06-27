@@ -177,17 +177,12 @@ class Processor(EngineWorker):
                 continue
 
             soft_lock = None
+            handler_name = ""
             try:
                 log.info(f"Executing processor on {doc_pair!r}({doc_pair.version})")
                 self._current_doc_pair = doc_pair
                 if not self.check_pair_state(doc_pair):
                     continue
-
-                # Ensure we are using the good clients
-                if self.remote is not self.engine.remote:
-                    self.remote = self.engine.remote
-                if self.local is not self.engine.local:
-                    self.local = self.engine.local
 
                 self.engine.manager.osi.send_sync_status(
                     doc_pair, self.local.abspath(doc_pair.local_path)
@@ -297,21 +292,17 @@ class Processor(EngineWorker):
                 log.warning(
                     f"The document or its parent does not exist anymore: {doc_pair!r}"
                 )
-                continue
             except Unauthorized:
                 self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
-                continue
             except Forbidden:
-                msg = (
+                log.warning(
                     f" Access to the document {doc_pair.remote_ref!r} on server {self.engine.hostname!r}"
                     f" is forbidden for user {self.engine.remote_user!r}"
                 )
-                log.warning(msg)
             except (PairInterrupt, ParentNotSynced) as exc:
                 log.info(f"{type(exc).__name__} on {doc_pair!r}, wait 1s and requeue")
                 sleep(1)
                 self.engine.queue_manager.push(doc_pair)
-                continue
             except CONNECTION_ERROR:
                 # TODO:
                 #  Add detection for server unavailability to stop all sync
@@ -337,7 +328,6 @@ class Processor(EngineWorker):
                 else:
                     error = f"{handler_name}_http_error_{exc.status}"
                     self._handle_pair_handler_exception(doc_pair, error, exc)
-                continue
             except UploadError as exc:
                 log.info(exc)
                 log.warning(f"Delaying failed upload: {doc_pair!r}")
@@ -348,19 +338,12 @@ class Processor(EngineWorker):
                 self.engine.dao.set_transfer_doc(
                     nature, exc.transfer_id, self.engine.uid, doc_pair.id
                 )
-                continue
             except DuplicationDisabledError:
                 self.giveup_error(doc_pair, "DEDUP")
-                continue
             except CorruptedFile as exc:
                 self.increase_error(doc_pair, "CORRUPT", exception=exc)
-                continue
             except UnknownDigest as exc:
-                log.info(
-                    f"The document's digest has no corresponding algorithm: {doc_pair!r}"
-                )
                 self.giveup_error(doc_pair, "UNKNOWN_DIGEST", exception=exc)
-                continue
             except PermissionError:
                 """
                 WindowsError: [Error 32] The process cannot access the
@@ -424,17 +407,16 @@ class Processor(EngineWorker):
                     self._postpone_pair(doc_pair, "Trashing not possible")
                 else:
                     self._handle_pair_handler_exception(doc_pair, handler_name, exc)
-                continue
             except Exception as exc:
                 # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
                 sys.excepthook(*sys.exc_info())  # type: ignore
 
                 self._handle_pair_handler_exception(doc_pair, handler_name, exc)
-                continue
             finally:
                 if soft_lock:
                     self._unlock_soft_path(soft_lock)
                 self.dao.release_state(self.thread_id)
+
             self._interact()
 
     def _handle_pair_handler_exception(
