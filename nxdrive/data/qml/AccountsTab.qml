@@ -229,8 +229,12 @@ Rectangle {
         id: accountDeletion
         message: qsTr("CONFIRM_DISCONNECT") + tl.tr
         okColor: red
+
+        // Global variable to be able to get the checkbox state from ConfirmPopup.qml
+        property bool purge_local_files: false
+
         onOk: {
-            api.unbind_server(accountSelect.getRole("uid"))
+            api.unbind_server(accountSelect.getRole("uid"), purge_local_files)
             accountSelect.currentIndex = 0
         }
     }

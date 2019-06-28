@@ -464,9 +464,9 @@ class QMLDriveApi(QObject):
         """Make daily job better for our developers :)"""
         return getenv("NXDRIVE_TEST_NUXEO_URL", "")
 
-    @pyqtSlot(str)
-    def unbind_server(self, uid: str) -> None:
-        self._manager.unbind_engine(uid)
+    @pyqtSlot(str, bool)
+    def unbind_server(self, uid: str, purge: bool) -> None:
+        self._manager.unbind_engine(uid, purge=purge)
 
     @pyqtSlot(str)
     def filters_dialog(self, uid: str) -> None:

@@ -1,5 +1,6 @@
 # coding: utf-8
 import platform
+import shutil
 import uuid
 from logging import getLogger
 from pathlib import Path
@@ -695,18 +696,33 @@ class Manager(QObject):
 
         return self._engines[uid]
 
-    def unbind_engine(self, uid: str) -> None:
+    def unbind_engine(self, uid: str, purge: bool = False) -> None:
+        """Remove an Engine. If *purge* is True, then local files will be deleted."""
+
+        log.debug(f"Unbinding Engine {uid}, local files purgation is {purge}")
+
         if not self._engines:
             self.load()
-        if uid not in self._engines:
+
+        engine = self._engines.pop(uid)
+        if not engine:
             return
+
         # Unwatch folder
-        self.osi.unwatch_folder(self._engines[uid].local_folder)
-        self._engines[uid].suspend()
-        self._engines[uid].unbind()
+        self.osi.unwatch_folder(engine.local_folder)
+        engine.suspend()
+        engine.unbind()
         self.dao.delete_engine(uid)
+
+        # On-demand local files removal
+        if purge:
+            engine.local.unset_readonly(engine.local_folder)
+            try:
+                shutil.rmtree(engine.local_folder)
+            except OSError:
+                log.warning("Cannot purge local files", exc_info=True)
+
         # Refresh the engines definition
-        del self._engines[uid]
         self.dropEngine.emit(uid)
         self._engine_definitions = self.dao.get_engines()
 
