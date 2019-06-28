@@ -406,8 +406,10 @@ class TwoUsersTest(TestCase):
         number_str = str(number)
         engine = getattr(self, f"engine_{number_str}")
         manager = getattr(self, f"manager_{number_str}")
-        manager.unbind_engine(engine.uid)
+        local_folder = engine.local_folder
+        manager.unbind_engine(engine.uid, purge=True)
         delattr(self, f"engine_{number_str}")
+        assert not local_folder.exists()
 
     def send_bind_engine(self, number: int, start_engine: bool = True) -> None:
         self.app.bindEngine.emit(number, start_engine)

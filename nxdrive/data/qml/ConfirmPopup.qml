@@ -20,6 +20,8 @@ NuxeoPopup {
             height: parent.height - 30
             anchors.centerIn: parent
             spacing: 20
+
+            // The message to display
             ScaledText {
                 text: message
                 wrapMode: Text.WordWrap
@@ -27,9 +29,20 @@ NuxeoPopup {
                 Layout.alignment: Qt.AlignHCenter
             }
 
+            // Additional checkbox (used only when removing an account)
+            // It will set accountDeletion.purge_local_files when visible
+            NuxeoCheckBox {
+                id: confirmCheckbox
+                visible: typeof(accountDeletion) !== "undefined"
+                text: qsTr("PURGE_LOCAL_FILES") + tl.tr
+                checked: true
+            }
+
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
                 spacing: 20
+
+                // Cancel button
                 NuxeoButton {
                     id: cancelButton
                     text: qsTr("CANCEL") + tl.tr
@@ -37,16 +50,30 @@ NuxeoPopup {
                     darkColor: darkGray
                     inverted: true
                     Layout.alignment: Qt.AlignLeft
-                    onClicked: { control.cancel(); control.close() }
+
+                    onClicked: {
+                        control.cancel()
+                        control.close()
+                    }
                 }
 
+                // OK button
                 NuxeoButton {
                     id: okButton
                     text: qsTr("CONTINUE") + tl.tr
                     inverted: true
                     color: control.okColor
                     Layout.alignment: Qt.AlignRight
-                    onClicked: { control.ok(); control.close() }
+
+                    onClicked: {
+                        // Update the global variable to be able to get the state in AccountsTab.qml
+                        if (typeof accountDeletion !== "undefined") {
+                            accountDeletion.purge_local_files = confirmCheckbox.checked
+                        }
+
+                        control.ok()
+                        control.close()
+                    }
                 }
             }
         }
