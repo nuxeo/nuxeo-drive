@@ -92,7 +92,7 @@ class TestMultipleFiles(OneUserTest):
         num = self.NUMBER_OF_LOCAL_FILES
         names = set(["local%04d.txt" % n for n in range(1, num + 1)])
 
-        for path in {new_path, copy_path}:
+        for path in (new_path, copy_path):
             # Local
             assert local.abspath(path).exists()
             children = [f.name for f in local.abspath(path).iterdir()]
