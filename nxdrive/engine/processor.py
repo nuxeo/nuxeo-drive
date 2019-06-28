@@ -1,4 +1,5 @@
 # coding: utf-8
+import errno
 import shutil
 import sqlite3
 import sys
@@ -25,6 +26,7 @@ from ..constants import (
     CONNECTION_ERROR,
     DOWNLOAD_TMP_FILE_PREFIX,
     DOWNLOAD_TMP_FILE_SUFFIX,
+    LONG_FILE_ERRORS,
     MAC,
     NO_SPACE_ERRORS,
     UNACCESSIBLE_HASH,
@@ -360,39 +362,14 @@ class Processor(EngineWorker):
                 # Try to handle different kind of Windows error
                 error = getattr(exc, "winerror", exc.errno)
 
-                if error in {2, 3}:
+                if error in (errno.ENOENT, errno.ESRCH):
                     """
-                    WindowsError: [Error 2] The specified file is not found
-                    WindowsError: [Error 3] The system cannot find the file specified
+                    ENOENT: No such file or directory
+                    ESRCH: No such process (The system cannot find the file specified, on Windows)
                     """
                     log.info(f"The document does not exist anymore:{doc_pair!r}")
                     self.dao.remove_state(doc_pair)
-                elif error in {36, 111, 121, 124, 206, 1223}:
-                    """
-                    OSError: [Errno 36] Filename too long
-                    Cause: on GNU/Linux, filename is restricted to 255 chars
-                    or even worse: 143 if using encryptFS
-
-                    WindowsError: [Error 111] ??? (seems related to deep
-                    tree)
-                    Cause: short paths are disabled on Windows
-
-                    WindowsError: [Error 121] The source or destination
-                    path exceeded or would exceed MAX_PATH.
-                    Cause: short paths are disabled on Windows
-
-                    WindowsError: [Error 124] The path in the source or
-                    destination or both was invalid.
-                    Cause: dealing with different drives, ie when the sync
-                    folder is not on the same drive as Nuxeo Drive one
-
-                    WindowsError: [Error 206] The filename or extension is
-                    too long.
-                    Cause: even the full short path is too long
-
-                    OSError: Couldn't perform operation. Error code: 1223
-                    Seems related to long paths
-                    """
+                elif error in LONG_FILE_ERRORS:
                     self.dao.remove_filter(
                         doc_pair.remote_parent_path + "/" + doc_pair.remote_ref
                     )
