@@ -13,7 +13,7 @@ from unittest import TestCase
 from uuid import uuid4
 
 from faker import Faker
-from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QCoreApplication, pyqtSignal, pyqtSlot
 from nuxeo.models import Document, User
 
 from sentry_sdk import configure_scope
@@ -220,17 +220,6 @@ class TwoUsersTest(TestCase):
 
             with suppress(Exception):
                 self.app.quit()
-
-        # Ensure to kill the app if it is taking too long.
-        # We need to do that because sometimes a thread get blocked and so the test suite.
-        # Here, we set the timeout to 00:02:00, let's see if a higher value is needed.
-        timeout = 2 * 60
-
-        def kill_test():
-            log.error(f"Killing {self.id()} after {timeout} seconds")
-            self.app.quit()
-
-        QTimer.singleShot(timeout * 1000, kill_test)
 
         # Start the app and let signals transit between threads!
         sync_thread = Thread(target=launch_test)
