@@ -49,6 +49,36 @@ NO_SPACE_ERRORS = {
     errno.ERANGE,  # Result too large
 }
 
+# OSError indicating the incapacity to do anything because of too long file name or deep tree.
+#
+# OSError: [Errno 36] Filename too long
+# Cause: on GNU/Linux, filename is restricted to 255 chars or even worse: 143 if using encryptFS.
+#
+# WindowsError: [Error 111] ??? (seems related to deep tree)
+# Cause: short paths are disabled on Windows
+#
+# WindowsError: [Error 121] The source or destination path exceeded or would exceed MAX_PATH.
+# Cause: short paths are disabled on Windows
+#
+# OSError: [WinError 123] The filename, directory name, or volume label syntax is incorrect.
+#
+# WindowsError: [Error 124] The path in the source or destination or both was invalid.
+# Cause: dealing with different drives, ie when the sync folder is not on the same drive as Nuxeo Drive one.
+#
+# WindowsError: [Error 206] The filename or extension is too long.
+# Cause: even the full short path is too long
+#
+# OSError: Couldn't perform operation. Error code: 1223 (seems related to long paths)
+LONG_FILE_ERRORS = {
+    errno.ENAMETOOLONG,  # Filename too long
+    111,
+    121,
+    123,
+    124,
+    206,
+    1223,
+}
+
 CONNECTION_ERROR = (ChunkedEncodingError, ConnectionError, Timeout)
 
 
