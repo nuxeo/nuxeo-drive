@@ -98,9 +98,6 @@ check_vars() {
         echo "Please do not call this script directly. Use the good one from 'tools/OS/deploy_jenkins_slave.sh'."
         exit 1
     fi
-    if [ "${SKIP:=unset}" = "unset" ]; then
-        export SKIP=""
-    fi
     if [ "${WORKSPACE_DRIVE:=unset}" = "unset" ]; then
         if [ -d "${WORKSPACE}/sources" ]; then
             export WORKSPACE_DRIVE="${WORKSPACE}/sources"
@@ -116,7 +113,6 @@ check_vars() {
     echo "    WORKSPACE            = ${WORKSPACE}"
     echo "    WORKSPACE_DRIVE      = ${WORKSPACE_DRIVE}"
     echo "    STORAGE_DIR          = ${STORAGE_DIR}"
-    echo "    SKIP                 = ${SKIP}"
 
     cd "${WORKSPACE_DRIVE}"
 
@@ -125,6 +121,12 @@ check_vars() {
     else
         echo "    SPECIFIC_TEST        = ${SPECIFIC_TEST}"
         export SPECIFIC_TEST="tests/${SPECIFIC_TEST}"
+    fi
+
+    if [ "${SKIP:=unset}" = "unset" ]; then
+        export SKIP=""
+    else
+        echo "    SKIP                 = ${SKIP}"
     fi
 }
 
