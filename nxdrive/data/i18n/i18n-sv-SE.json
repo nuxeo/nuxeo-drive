@@ -218,6 +218,7 @@
     "PROXY_PAC_URL_PLACEHOLDER": "Ange webbadress",
     "PROXY_PASSWORD_PLACEHOLDER": "Ange proxylösenordet",
     "PROXY_USERNAME_PLACEHOLDER": "Ange proxyanvändarnamnet",
+    "PURGE_LOCAL_FILES": "Delete local files",
     "QUIT": "Avsluta",
     "READONLY": "Skrivskyddat dokument",
     "READONLY_FILE": "Kan inte uppdatera „%1“ eftersom det är skrivskyddat",

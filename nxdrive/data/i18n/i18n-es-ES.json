@@ -218,6 +218,7 @@
     "PROXY_PAC_URL_PLACEHOLDER": "Introduzca la dirección URL",
     "PROXY_PASSWORD_PLACEHOLDER": "Introduzca su contraseña del proxy",
     "PROXY_USERNAME_PLACEHOLDER": "Introduzca su nombre de usuario del proxy",
+    "PURGE_LOCAL_FILES": "Delete local files",
     "QUIT": "Salir",
     "READONLY": "Documento de solo lectura",
     "READONLY_FILE": "No se puede actualizar „%1“ porque es de solo lectura",
