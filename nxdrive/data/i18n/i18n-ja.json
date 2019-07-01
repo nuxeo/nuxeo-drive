@@ -218,6 +218,7 @@
     "PROXY_PAC_URL_PLACEHOLDER": "URLを入力してください",
     "PROXY_PASSWORD_PLACEHOLDER": "あなたのプロキシパスワードを入力してください",
     "PROXY_USERNAME_PLACEHOLDER": "あなたのプロキシユーザ名を入力してください",
+    "PURGE_LOCAL_FILES": "Delete local files",
     "QUIT": "中止",
     "READONLY": "読み取り専用文書",
     "READONLY_FILE": "„%1“は読み取り専用なので、更新できません",

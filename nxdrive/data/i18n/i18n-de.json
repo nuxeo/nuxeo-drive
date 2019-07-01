@@ -218,6 +218,7 @@
     "PROXY_PAC_URL_PLACEHOLDER": "Bitte geben Sie die URL ein",
     "PROXY_PASSWORD_PLACEHOLDER": "Bitte geben Sie Ihr Proxy-Kennwort ein",
     "PROXY_USERNAME_PLACEHOLDER": "Bitte geben Sie Ihren Proxy-Benutzernamen ein",
+    "PURGE_LOCAL_FILES": "Delete local files",
     "QUIT": "Beenden",
     "READONLY": "Schreibgeschütztes Dokument",
     "READONLY_FILE": "„%1“ kann nicht aktualisiert werden, da schreibgeschützt",

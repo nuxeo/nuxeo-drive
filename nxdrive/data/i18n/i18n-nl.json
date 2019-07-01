@@ -218,6 +218,7 @@
     "PROXY_PAC_URL_PLACEHOLDER": "Voer de URL in",
     "PROXY_PASSWORD_PLACEHOLDER": "Voer uw proxywachtwoord in",
     "PROXY_USERNAME_PLACEHOLDER": "Voer uw proxygebruikersnaam in",
+    "PURGE_LOCAL_FILES": "Delete local files",
     "QUIT": "Sluiten",
     "READONLY": "Alleen-lezendocument",
     "READONLY_FILE": "Kan '{{ name }}' niet bijwerken omdat het alleen-lezen is",
