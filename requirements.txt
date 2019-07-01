@@ -21,5 +21,5 @@ python-dateutil==2.8.0
 requests==2.22.0
 rfc3987==1.3.8
 Send2Trash==1.5.0
-sentry-sdk==0.9.0
+sentry-sdk==0.9.5
 xattr==0.9.6; sys_platform != 'win32'
