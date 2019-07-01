@@ -175,8 +175,11 @@ install_pyenv() {
 install_python() {
     local version="$1"
 
-    # To fix Mac error when building the package "libpython27.dylib does not exist"
-    [ "${OSI}" = "osx" ] && export PYTHON_CONFIGURE_OPTS="--enable-shared"
+    # To fix this error when building the package "libpythonXY.dylib does not exist"
+    # Some of 3rd party tool like PyInstaller might require CPython installation
+    # built with --enable-shared
+    # Source: https://github.com/pyenv/pyenv/wiki#how-to-build-cpython-with---enable-shared
+    export PYTHON_CONFIGURE_OPTS="--enable-shared"
 
     pyenv install --skip-existing "${version}"
 
