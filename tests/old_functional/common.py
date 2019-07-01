@@ -226,6 +226,7 @@ class TwoUsersTest(TestCase):
 
         with configure_scope() as scope:
             scope.set_tag("test", self.current_test)
+            scope.set_tag("branch", os.getenv("BRANCH_NAME"))
             sync_thread.start()
             self.app.exec_()
             sync_thread.join(30)
