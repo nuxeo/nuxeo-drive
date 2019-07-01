@@ -190,9 +190,6 @@ function check_vars {
 	if (-Not ($Env:ISCC_PATH)) {
 		$Env:ISCC_PATH = "C:\Program Files (x86)\Inno Setup 5"
 	}
-	if (-Not ($Env:SKIP)) {
-		$Env:SKIP = ""
-	}
 	if (-Not ($Env:PYTHON_DIR)) {
 		$ver_major, $ver_minor = $Env:PYTHON_DRIVE_VERSION.split('.')[0,1]
 		$Env:PYTHON_DIR = "C:\Python$ver_major$ver_minor-32"
@@ -206,7 +203,6 @@ function check_vars {
 	Write-Output "    STORAGE_DIR          = $Env:STORAGE_DIR"
 	Write-Output "    PYTHON_DIR           = $Env:PYTHON_DIR"
 	Write-Output "    ISCC_PATH            = $Env:ISCC_PATH"
-	Write-Output "    SKIP                 = $Env:SKIP"
 
 	Set-Location "$Env:WORKSPACE_DRIVE"
 
@@ -215,6 +211,12 @@ function check_vars {
 	} else {
 		Write-Output "    SPECIFIC_TEST        = $Env:SPECIFIC_TEST"
 		$Env:SPECIFIC_TEST = "tests\$Env:SPECIFIC_TEST"
+	}
+
+	if (-Not ($Env:SKIP)) {
+		$Env:SKIP = ""
+	} else {
+		Write-Output "    SKIP                 = $Env:SKIP"
 	}
 }
 
