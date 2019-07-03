@@ -215,10 +215,7 @@ class EngineWorker(Worker):
     ) -> None:
         details = None
         if exception:
-            try:
-                details = getattr(exception, "message")
-            except AttributeError:
-                details = str(exception)
+            details = str(exception)
         log.info(f"Increasing error [{error}] ({details}) for {doc_pair!r}")
         self.dao.increase_error(doc_pair, error, details=details)
         self.engine.queue_manager.push_error(doc_pair, exception=exception)
