@@ -139,7 +139,7 @@ class CliHandler:
         common_parser.add_argument(
             "--ssl-no-verify",
             default=Options.ssl_no_verify,
-            action="store_false",
+            action="store_true",
             help="Allows invalid/custom certificates. Highly unadvised to enable this option.",
         )
 
