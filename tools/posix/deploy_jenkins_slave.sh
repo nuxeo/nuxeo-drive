@@ -49,6 +49,7 @@ build_installer() {
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     elif [ "${OSI}" = "linux" ]; then
         ${PYTHON} tools/cleanup_application_tree.py dist/ndrive
+        remove_blacklisted_files dist/ndrive
     fi
 
     # Remove empty folders
