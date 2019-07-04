@@ -47,6 +47,8 @@ build_installer() {
 
         # Remove broken symlinks pointing to an inexistant target
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
+    elif [ "${OSI}" = "linux" ]; then
+        ${PYTHON} tools/cleanup_application_tree.py dist/ndrive
     fi
 
     # Remove empty folders
