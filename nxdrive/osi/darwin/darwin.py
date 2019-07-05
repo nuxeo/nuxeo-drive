@@ -211,16 +211,14 @@ class DarwinIntegration(AbstractOSIntegration):
         :param state: current local state of the file
         :param path: full path of the file
         """
+        name = f"{BUNDLE_IDENTIFIER}.syncStatus"
         try:
-            if not path.exists():
-                return
-
-            name = f"{BUNDLE_IDENTIFIER}.syncStatus"
             status = get_formatted_status(state, path)
-
             log.debug(f"Sending status to FinderSync for {path!r}: {status}")
             self._send_notification(name, {"statuses": [status]})
-        except:
+        except FileNotFoundError:
+            pass
+        except Exception:
             log.exception("Error while trying to send status to FinderSync")
 
     @if_frozen
@@ -231,12 +229,8 @@ class DarwinIntegration(AbstractOSIntegration):
         :param states: current local states of the children of the folder
         :param path: full path of the folder
         """
+        name = f"{BUNDLE_IDENTIFIER}.syncStatus"
         try:
-            if not path.exists():
-                return
-
-            name = f"{BUNDLE_IDENTIFIER}.syncStatus"
-
             # We send the statuses of the children by batch in case
             # the notification center doesn't allow notifications
             # with a heavy payload.
@@ -255,7 +249,9 @@ class DarwinIntegration(AbstractOSIntegration):
                 )
                 log.debug(statuses)
                 self._send_notification(name, {"statuses": statuses})
-        except:
+        except FileNotFoundError:
+            pass
+        except Exception:
             log.exception("Error while trying to send status to FinderSync")
 
     @if_frozen
