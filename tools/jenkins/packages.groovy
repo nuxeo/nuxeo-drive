@@ -100,11 +100,7 @@ for (x in slaves) {
                         }
 
                         try {
-                            if (osi == 'GNU/Linux') {
-                                sh 'tools/linux/deploy_jenkins_slave.sh --install-release'
-                                sh 'tools/linux/deploy_jenkins_slave.sh --build'
-                                archiveArtifacts artifacts: 'dist/*.deb', fingerprint: true
-                            } else if (osi == 'macOS') {
+                            if (osi == 'macOS') {
                                 def env_vars = [
                                     'SIGNING_ID=NUXEO CORP',
                                     "LOGIN_KEYCHAIN_PATH=${env.HOME}/Library/Keychains/login.keychain",

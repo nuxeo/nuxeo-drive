@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Nuxeo Drive
+GenericName=Nuxeo Drive
+Comment=Desktop synchronization client for the Nuxeo platform
+Exec=false
+Icon=.icon
+Type=Application
+StartupNotify=false
+Terminal=false
+Categories=Office;
+MimeType=application/ndrive;

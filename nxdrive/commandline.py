@@ -478,19 +478,20 @@ class CliHandler:
         log.info(f"Command line: argv={argv!r}, options={options!r}")
         log.info(f"Running on version {self.get_version()}")
 
+        # We cannot use fail_on_error=True because options is a namespace
+        # and contains a lot of inexistant Options values.
+        Options.update(options, setter="cli", fail_on_error=False)
+
         if QSslSocket:
             has_ssl_support = QSslSocket.supportsSsl()
             log.info(f"SSL support: {has_ssl_support!r}")
             if not has_ssl_support:
-                if Options.is_frozen:
+                # If the option --ssl-no-verify is True, then we do not care about SSL support
+                if Options.is_frozen and not Options.ssl_no_verify:
                     raise RuntimeError("No SSL support, packaging must have failed.")
                 else:
                     options.ca_bundle = None
                     options.ssl_no_verify = True
-
-        # We cannot use fail_on_error=True because options is a namespace
-        # and contains a lot of inexistant Options values.
-        Options.update(options, setter="cli", fail_on_error=False)
 
         if command != "uninstall":
             self._install_faulthandler()
