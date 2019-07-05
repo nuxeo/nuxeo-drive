@@ -196,7 +196,7 @@ class Application(QApplication):
         self.ignoreds_model = FileModel()
         self.language_model = LanguageModel()
 
-        self.add_engines(list(self.manager._engines.values()))
+        self.add_engines(list(self.manager.engines.values()))
         self.engine_model.statusChanged.connect(self.update_status)
         self.language_model.addLanguages(Translator.languages())
 
@@ -254,11 +254,11 @@ class Application(QApplication):
         self._window_root(self.systray_window).getLastFiles.connect(self.get_last_files)
         self.api.setMessage.connect(self._window_root(self.settings_window).setMessage)
 
-        if self.manager.get_engines():
+        if self.manager.engines:
             current_uid = self.engine_model.engines_uid[0]
             self.get_last_files(current_uid)
             self.refresh_transfers()
-            self.update_status(self.manager._engines[current_uid])
+            self.update_status(self.manager.engines[current_uid])
 
         self.manager.updater.updateAvailable.connect(
             self._window_root(self.systray_window).updateAvailable
@@ -551,7 +551,7 @@ class Application(QApplication):
             return
 
         syncing = conflict = False
-        engines = self.manager.get_engines()
+        engines = self.manager.engines
         invalid_credentials = paused = offline = True
 
         for engine in engines.values():
@@ -765,7 +765,7 @@ class Application(QApplication):
         self.change_systray_icon()
 
     def init_checks(self) -> None:
-        for engine in self.manager.get_engines().values():
+        for engine in self.manager.engines.values():
             self._connect_engine(engine)
 
         self.manager.newEngine.connect(self._connect_engine)
@@ -778,10 +778,10 @@ class Application(QApplication):
         self.manager.updater.updateAvailable.connect(self._update_notification)
         self.manager.updater.noSpaceLeftOnDevice.connect(self._no_space_left)
 
-        if not self.manager.get_engines():
+        if not self.manager.engines:
             self.show_settings("Accounts")
         else:
-            for engine in self.manager.get_engines().values():
+            for engine in self.manager.engines.values():
                 # Prompt for settings if needed
                 if engine.has_invalid_credentials():
                     self.show_settings("Accounts")  # f"Account_{engine.uid}"

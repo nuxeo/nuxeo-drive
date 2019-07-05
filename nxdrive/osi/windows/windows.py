@@ -238,7 +238,7 @@ class WindowsIntegration(AbstractOSIntegration):
             return
 
         log.debug(f"Making Explorer {action} {folder!r}")
-        paths = {engine.local_folder for engine in self._manager._engines.values()}
+        paths = {e.local_folder for e in self._manager.engines.values()}
 
         if action == "watch":
             paths.add(folder)

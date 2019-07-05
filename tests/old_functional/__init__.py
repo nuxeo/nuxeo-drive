@@ -37,12 +37,12 @@ def patch_nxdrive_objects():
     Manager._create_server_config_updater = lambda *args: None
 
     def dispose_all(self) -> None:
-        for engine in self.get_engines().values():
+        for engine in self.engines.values():
             engine.dispose_db()
         self.dispose_db()
 
     def unbind_all(self) -> None:
-        if not self._engines:
+        if not self.engines:
             self.load()
         for engine in self._engine_definitions:
             self.unbind_engine(engine.uid)

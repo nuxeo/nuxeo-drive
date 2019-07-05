@@ -106,7 +106,7 @@ class Manager(QObject):
         self._engine_definitions: List[EngineDef] = []
 
         self._engine_types: Dict[str, Type[Engine]] = {"NXDRIVE": Engine}
-        self._engines: Dict[str, Engine] = {}
+        self.engines: Dict[str, Engine] = {}
         self.server_config_updater: Optional[ServerOptionsUpdater] = None
         self.db_backup_worker: Optional[DatabaseBackupWorker] = None
 
@@ -303,7 +303,7 @@ class Manager(QObject):
         if not self._pause:
             return
         self._pause = False
-        for uid, engine in self._engines.items():
+        for uid, engine in self.engines.items():
             if euid is not None and euid != uid:
                 continue
             log.info(f"Resume engine {uid}")
@@ -314,7 +314,7 @@ class Manager(QObject):
         if self._pause:
             return
         self._pause = True
-        for uid, engine in self._engines.items():
+        for uid, engine in self.engines.items():
             if euid is not None and euid != uid:
                 continue
             log.info(f"Suspend engine {uid}")
@@ -325,7 +325,7 @@ class Manager(QObject):
         # Make a backup in case something happens
         self.dao.save_backup()
 
-        for uid, engine in self._engines.items():
+        for uid, engine in self.engines.items():
             if euid is not None and euid != uid:
                 continue
             if engine.is_started():
@@ -337,7 +337,7 @@ class Manager(QObject):
 
     def start(self, euid: str = None) -> None:
         self._started = True
-        for uid, engine in list(self._engines.items()):
+        for uid, engine in list(self.engines.items()):
             if euid is not None and euid != uid:
                 continue
             if not self._pause:
@@ -353,7 +353,7 @@ class Manager(QObject):
 
     def load(self) -> None:
         self._engine_definitions = self._engine_definitions or self.dao.get_engines()
-        self._engines = {}
+        self.engines = {}
 
         for engine in self._engine_definitions.copy():
             if engine.engine not in self._engine_types:
@@ -365,9 +365,9 @@ class Manager(QObject):
                 self._engine_definitions.remove(engine)
                 continue
 
-            self._engines[engine.uid] = self._engine_types[engine.engine](self, engine)
-            self._engines[engine.uid].online.connect(self._force_autoupdate)
-            self.initEngine.emit(self._engines[engine.uid])
+            self.engines[engine.uid] = self._engine_types[engine.engine](self, engine)
+            self.engines[engine.uid].online.connect(self._force_autoupdate)
+            self.initEngine.emit(self.engines[engine.uid])
 
     def _get_engine_db_file(self, uid: str) -> Path:
         return self.home / f"ndrive_{uid}.db"
@@ -496,7 +496,7 @@ class Manager(QObject):
         return self._tracker.uid if self._tracker else ""
 
     def set_proxy(self, proxy: "Proxy") -> str:
-        for engine in self._engines.values():
+        for engine in self.engines.values():
             if not validate_proxy(proxy, engine.server_url):
                 return "PROXY_INVALID"
             engine.remote.set_proxy(proxy)
@@ -610,10 +610,10 @@ class Manager(QObject):
     def update_engine_path(self, uid: str, path: Path) -> None:
         # Dont update the engine by itself,
         # should be only used by engine.update_engine_path
-        if uid in self._engines:
+        if uid in self.engines:
             # Unwatch old folder
-            self.osi.unwatch_folder(self._engines[uid].local_folder)
-            self._engines[uid].local_folder = path
+            self.osi.unwatch_folder(self.engines[uid].local_folder)
+            self.engines[uid].local_folder = path
         # Watch new folder
         self.osi.watch_folder(path)
         self.dao.update_engine_path(uid, path)
@@ -652,7 +652,7 @@ class Manager(QObject):
         elif not self.check_local_folder_available(local_folder):
             raise FolderAlreadyUsed()
 
-        if not self._engines:
+        if not self.engines:
             self.load()
 
         uid = uuid.uuid1().hex
@@ -660,7 +660,7 @@ class Manager(QObject):
         # TODO Check that engine is not inside another or same position
         engine_def = self.dao.add_engine(engine_type, local_folder, uid, name)
         try:
-            self._engines[uid] = self._engine_types[engine_type](
+            self.engines[uid] = self._engine_types[engine_type](
                 self, engine_def, binder=binder
             )
         except Exception as exc:
@@ -668,7 +668,7 @@ class Manager(QObject):
                 exc, (InvalidDriveException, RootAlreadyBindWithDifferentAccount)
             ):
                 log.exception("Engine error")
-            self._engines.pop(uid, None)
+            self.engines.pop(uid, None)
             self.dao.delete_engine(uid)
             # TODO Remove the DB?
             raise exc
@@ -679,12 +679,12 @@ class Manager(QObject):
         self.refresh_update_status()
 
         if starts:
-            self._engines[uid].start()
+            self.engines[uid].start()
 
         # Watch folder in the file explorer
         self.osi.watch_folder(local_folder)
 
-        self.newEngine.emit(self._engines[uid])
+        self.newEngine.emit(self.engines[uid])
 
         # NXDRIVE-978: Update the current state to reflect the change in
         # the systray menu
@@ -694,17 +694,17 @@ class Manager(QObject):
         if self.db_backup_worker:
             self.db_backup_worker.force_poll()
 
-        return self._engines[uid]
+        return self.engines[uid]
 
     def unbind_engine(self, uid: str, purge: bool = False) -> None:
         """Remove an Engine. If *purge* is True, then local files will be deleted."""
 
         log.debug(f"Unbinding Engine {uid}, local files purgation is {purge}")
 
-        if not self._engines:
+        if not self.engines:
             self.load()
 
-        engine = self._engines.pop(uid)
+        engine = self.engines.pop(uid)
         if not engine:
             return
 
@@ -734,9 +734,6 @@ class Manager(QObject):
         if self.dao:
             self.dao.dispose()
 
-    def get_engines(self) -> Dict[str, "Engine"]:  # TODO: Remove
-        return self._engines
-
     @property
     def version(self) -> str:
         return __version__
@@ -746,7 +743,7 @@ class Manager(QObject):
 
     def is_syncing(self) -> bool:
         syncing_engines = []
-        for uid, engine in self._engines.items():
+        for uid, engine in self.engines.items():
             if engine.is_syncing():
                 syncing_engines.append(uid)
         if syncing_engines:
@@ -815,7 +812,7 @@ class Manager(QObject):
         return engine.get_metadata_url(remote_ref, edit=edit)
 
     def send_sync_status(self, path: Path) -> None:
-        for engine in self._engines.values():
+        for engine in self.engines.values():
             # Only send status if we picked the right
             # engine and if we're not targeting the root
             if engine.local_folder not in path.parents:

@@ -63,7 +63,7 @@ class EngineModel(QAbstractListModel):
         self.beginInsertRows(parent, count, count)
         self.engines_uid.append(uid)
         self.endInsertRows()
-        self._connect_engine(self.application.manager._engines[uid])
+        self._connect_engine(self.application.manager.engines[uid])
         self.engineChanged.emit()
 
     def removeEngine(self, uid: str) -> None:
@@ -78,7 +78,7 @@ class EngineModel(QAbstractListModel):
             return ""
 
         uid = self.engines_uid[index]
-        engine = self.application.manager._engines[uid]
+        engine = self.application.manager.engines[uid]
         return getattr(engine, self.names[role].decode())
 
     @pyqtSlot(int, str, result=str)
@@ -87,7 +87,7 @@ class EngineModel(QAbstractListModel):
             return ""
 
         uid = self.engines_uid[index]
-        engine = self.application.manager._engines[uid]
+        engine = self.application.manager.engines[uid]
         return getattr(engine, role)
 
     def removeRows(

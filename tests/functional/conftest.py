@@ -88,7 +88,7 @@ def manager_factory(
             manager.user_details = user
 
             engine = None
-            for uid, engine_ in manager.get_engines().items():
+            for uid, engine_ in manager.engines.items():
                 engine = engine_
 
             return manager, engine

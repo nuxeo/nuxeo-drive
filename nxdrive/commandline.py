@@ -629,7 +629,7 @@ class CliHandler:
         return 0
 
     def unbind_server(self, options: Namespace) -> int:
-        for uid, engine in self.manager.get_engines().items():
+        for uid, engine in self.manager.engines.items():
             if engine.local_folder == options.local_folder:
                 self.manager.unbind_engine(uid)
                 return 0
@@ -637,7 +637,7 @@ class CliHandler:
         return 1
 
     def bind_root(self, options: Namespace) -> int:
-        for engine in self.manager.get_engines().values():
+        for engine in self.manager.engines.values():
             if engine.local_folder == options.local_folder:
                 engine.remote.register_as_root(options.remote_root)
                 return 0
@@ -645,7 +645,7 @@ class CliHandler:
         return 1
 
     def unbind_root(self, options: Namespace) -> int:
-        for engine in self.manager.get_engines().values():
+        for engine in self.manager.engines.values():
             if engine.local_folder == options.local_folder:
                 engine.remote.unregister_as_root(options.remote_root)
                 return 0

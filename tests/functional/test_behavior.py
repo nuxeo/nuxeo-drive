@@ -18,7 +18,7 @@ AttributeError: 'Engine' object has no attribute '_local_watcher'
 
     with manager:
         # There is 1 bound engine
-        assert manager._engines
+        assert manager.engines
 
         # Simulate the database file removal
         db_file = engine._get_db_file()
@@ -29,12 +29,12 @@ AttributeError: 'Engine' object has no attribute '_local_watcher'
         manager.load()
 
         # There is no bound engine
-        assert not manager._engines
+        assert not manager.engines
 
         # Restore the file and check all is fixed
         os.rename(f"{db_file}.or", db_file)
         manager.load()
-        assert manager._engines
+        assert manager.engines
 
 
 @not_windows(reason="PermissionError when trying to delete the file.")
@@ -51,4 +51,4 @@ def test_mananger_engine_removal(manager_factory):
         manager.load()
 
         # There should be no engine
-        assert not manager.get_engines()
+        assert not manager.engines
