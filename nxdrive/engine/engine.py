@@ -754,9 +754,6 @@ class Engine(QObject):
         except:
             log.exception("Conflict resolver error")
 
-    def get_errors(self) -> DocPairs:
-        return self.dao.get_errors()
-
     def is_stopped(self) -> bool:
         return self._stopped
 
