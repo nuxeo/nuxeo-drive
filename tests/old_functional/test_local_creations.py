@@ -435,4 +435,4 @@ class TestLocalCreations(OneUserTest):
 
         # Wait and check
         self.wait_sync()
-        assert not engine.get_errors()
+        assert not engine.dao.get_errors()

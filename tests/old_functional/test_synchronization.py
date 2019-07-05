@@ -823,7 +823,7 @@ class TestSynchronization(OneUserTest):
         # Check that one "bug.txt" file exists, and engine has 6 errors
         assert local.exists(f"/{name}")
         assert len(local.get_children_info("/")) == 1
-        assert len(engine.get_errors()) == 6
+        assert len(engine.dao.get_errors()) == 6
 
         # Rename all remote documents with unique names
         ref = local.get_remote_id("/")
@@ -843,7 +843,7 @@ class TestSynchronization(OneUserTest):
         local_children = local.get_children_info("/")
         assert len(local_children) == 7
         local_files = set(child.name for child in local_children)
-        assert not engine.get_errors()
+        assert not engine.dao.get_errors()
         assert remote_files == local_files
 
 

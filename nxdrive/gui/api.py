@@ -279,7 +279,7 @@ class QMLDriveApi(QObject):
         result = []
         engine = self._get_engine(uid)
         if engine:
-            for error in engine.get_errors():
+            for error in engine.dao.get_errors():
                 result.append(self._export_formatted_state(uid, error))
         return result
 
