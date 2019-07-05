@@ -243,7 +243,7 @@ class WindowsIntegration(AbstractOSIntegration):
         if action == "watch":
             paths.add(folder)
         else:
-            paths.remove(folder)
+            paths.discard(folder)
 
         set_filter_folders(paths)
         log.info(f"{folder!r} is now in Explorer {action} list")

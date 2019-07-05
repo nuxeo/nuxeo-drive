@@ -85,7 +85,7 @@ class BaseUpdater(PollWorker):
         `None` if no bound engine.
         """
 
-        for engine in self.manager.engines.values():
+        for engine in self.manager.engines.copy().values():
             if engine.remote:
                 return engine.remote.client.server_version
         return None

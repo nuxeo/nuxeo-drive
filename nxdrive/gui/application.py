@@ -765,7 +765,7 @@ class Application(QApplication):
         self.change_systray_icon()
 
     def init_checks(self) -> None:
-        for engine in self.manager.engines.values():
+        for engine in self.manager.engines.copy().values():
             self._connect_engine(engine)
 
         self.manager.newEngine.connect(self._connect_engine)
@@ -781,7 +781,7 @@ class Application(QApplication):
         if not self.manager.engines:
             self.show_settings("Accounts")
         else:
-            for engine in self.manager.engines.values():
+            for engine in self.manager.engines.copy().values():
                 # Prompt for settings if needed
                 if engine.has_invalid_credentials():
                     self.show_settings("Accounts")  # f"Account_{engine.uid}"

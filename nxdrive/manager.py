@@ -704,7 +704,7 @@ class Manager(QObject):
         if not self.engines:
             self.load()
 
-        engine = self.engines.pop(uid)
+        engine = self.engines.pop(uid, None)
         if not engine:
             return
 
