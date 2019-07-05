@@ -317,7 +317,7 @@ class RemoteWatcher(EngineWorker):
                     descendant_info.parent_uid
                 )
                 if not parent_pair:
-                    log.error(
+                    log.warning(
                         "Cannot find parent pair of postponed remote descendant, "
                         f"ignoring {descendant_info}"
                     )
