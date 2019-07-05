@@ -217,21 +217,21 @@ def test_url_resolver(manager_factory, nuxeo_url):
         assert not get_engine("server-url-not-found", user=user)
 
         # HTTP explicit
-        manager._engines["0"] = MockUrlTestEngine("http://localhost:80/nuxeo", user)
+        manager.engines["0"] = MockUrlTestEngine("http://localhost:80/nuxeo", user)
         assert get_engine("http://localhost:80/nuxeo", user=user)
         assert get_engine("http://localhost/nuxeo/", user=user)
 
         # HTTP implicit
-        manager._engines["0"] = MockUrlTestEngine("http://localhost/nuxeo", user)
+        manager.engines["0"] = MockUrlTestEngine("http://localhost/nuxeo", user)
         assert get_engine("http://localhost:80/nuxeo/", user=user)
         assert get_engine("http://localhost/nuxeo", user=user)
 
         # HTTPS explicit
-        manager._engines["0"] = MockUrlTestEngine("https://localhost:443/nuxeo", user)
+        manager.engines["0"] = MockUrlTestEngine("https://localhost:443/nuxeo", user)
         assert get_engine("https://localhost:443/nuxeo", user=user)
         assert get_engine("https://localhost/nuxeo/", user=user)
 
         # HTTPS implicit
-        manager._engines["0"] = MockUrlTestEngine("https://localhost/nuxeo", user)
+        manager.engines["0"] = MockUrlTestEngine("https://localhost/nuxeo", user)
         assert get_engine("https://localhost:443/nuxeo/", user=user)
         assert get_engine("https://localhost/nuxeo", user=user)

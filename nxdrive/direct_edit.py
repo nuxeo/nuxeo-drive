@@ -236,7 +236,7 @@ class DirectEdit(Worker):
             return None
 
         url = simplify_url(url)
-        for engine in self._manager.get_engines().values():
+        for engine in self._manager.engines.values():
             bind = engine.get_binder()
             server_url = bind.server_url.rstrip("/")
             if server_url == url and (not user or user == bind.username):
@@ -247,7 +247,7 @@ class DirectEdit(Worker):
             return None
 
         user = user.lower()
-        for engine in self._manager.get_engines().values():
+        for engine in self._manager.engines.values():
             bind = engine.get_binder()
             server_url = simplify_url(bind.server_url)
             if server_url == url and user == bind.username.lower():
@@ -640,7 +640,7 @@ class DirectEdit(Worker):
 
     def _send_lock_status(self, ref: str) -> None:
         manager = self._manager
-        for engine in manager._engines.values():
+        for engine in manager.engines.values():
             dao = engine.dao
             state = dao.get_normal_state_from_remote(ref)
             if state:

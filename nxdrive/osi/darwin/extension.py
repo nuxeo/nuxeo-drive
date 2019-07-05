@@ -30,5 +30,5 @@ class DarwinExtensionListener(ExtensionListener):
         self.manager.send_sync_status(path)
 
     def handle_trigger_watch(self, *args: Any) -> None:
-        for engine in self.manager._engines.values():
+        for engine in self.manager.engines.values():
             self.manager.osi.watch_folder(engine.local_folder)

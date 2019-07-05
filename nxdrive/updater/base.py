@@ -85,7 +85,7 @@ class BaseUpdater(PollWorker):
         `None` if no bound engine.
         """
 
-        for engine in self.manager.get_engines().values():
+        for engine in self.manager.engines.values():
             if engine.remote:
                 return engine.remote.client.server_version
         return None
@@ -221,7 +221,7 @@ class BaseUpdater(PollWorker):
             status, version = UPDATE_STATUS_UNAVAILABLE_SITE, None
         else:
             login_type = Login.NONE
-            for engine in list(self.manager._engines.values()):
+            for engine in list(self.manager.engines.values()):
                 url = engine.server_url
                 login_type |= self.manager._get_server_login_type(url, _raise=False)
 
