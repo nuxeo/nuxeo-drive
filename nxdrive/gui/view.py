@@ -1,5 +1,4 @@
 # coding: utf-8
-from contextlib import suppress
 from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import (
@@ -67,10 +66,9 @@ class EngineModel(QAbstractListModel):
         self.engineChanged.emit()
 
     def removeEngine(self, uid: str) -> None:
-        with suppress(ValueError):
-            idx = self.engines_uid.index(uid)
-            self.removeRows(idx, 1)
-            self.engineChanged.emit()
+        idx = self.engines_uid.index(uid)
+        self.removeRows(idx, 1)
+        self.engineChanged.emit()
 
     def data(self, index: QModelIndex, role: int = UID_ROLE) -> str:
         index = index.row()
@@ -78,7 +76,10 @@ class EngineModel(QAbstractListModel):
             return ""
 
         uid = self.engines_uid[index]
-        engine = self.application.manager.engines[uid]
+        engine = self.application.manager.engines.get(uid)
+        if not engine:
+            return ""
+
         return getattr(engine, self.names[role].decode())
 
     @pyqtSlot(int, str, result=str)
@@ -87,7 +88,10 @@ class EngineModel(QAbstractListModel):
             return ""
 
         uid = self.engines_uid[index]
-        engine = self.application.manager.engines[uid]
+        engine = self.application.manager.engines.get(uid)
+        if not engine:
+            return ""
+
         return getattr(engine, role)
 
     def removeRows(

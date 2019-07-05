@@ -121,7 +121,7 @@ class ExtensionListener(QTcpServer):
         return json.dumps(response)
 
     def get_engine(self, path: Path) -> Optional[Engine]:
-        for engine in self.manager.engines.values():
+        for engine in self.manager.engines.copy().values():
             if engine.local_folder in path.parents:
                 return engine
         return None

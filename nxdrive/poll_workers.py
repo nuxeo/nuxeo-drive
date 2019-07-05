@@ -28,7 +28,7 @@ class DatabaseBackupWorker(PollWorker):
         if self.manager.dao:
             self.manager.dao.save_backup()
 
-        for engine in self.manager.engines.values():
+        for engine in self.manager.engines.copy().values():
             if engine.dao:
                 engine.dao.save_backup()
 
@@ -46,7 +46,7 @@ class ServerOptionsUpdater(PollWorker):
     def _poll(self) -> bool:
         """ Check for the configuration file and apply updates. """
 
-        for engine in self.manager.engines.values():
+        for engine in self.manager.engines.copy().values():
             if not engine.remote:
                 continue
 
