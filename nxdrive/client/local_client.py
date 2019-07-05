@@ -320,18 +320,20 @@ FolderType=Generic
         self, ref: Path, remote_id: Union[bytes, str], name: str = "ndrive"
     ) -> None:
         path = self.abspath(ref)
+        log.debug(f"Setting xattr {name!r} with value {remote_id!r} on {path!r}")
+        self.set_path_remote_id(path, remote_id, name=name)
 
+    @staticmethod
+    def set_path_remote_id(
+        path: Path, remote_id: Union[bytes, str], name: str = "ndrive"
+    ) -> None:
         if not isinstance(remote_id, bytes):
             remote_id = unicodedata.normalize("NFC", remote_id).encode("utf-8")
 
-        log.debug(f"Setting xattr {name!r} with value {remote_id!r} on {path!r}")
         locker = unlock_path(path, False)
         if WINDOWS:
             path_alt = f"{path}:{name}"
             try:
-                if not path.exists():
-                    raise NotFound()
-
                 stat_ = path.stat()
                 with open(path_alt, "wb") as f:
                     f.write(remote_id)
@@ -393,7 +395,7 @@ FolderType=Generic
             name = f"user.{name}"
 
         try:
-            return xattr.getxattr(str(path), name).decode("utf-8")
+            return xattr.getxattr(str(path), name).decode("utf-8", errors="ignore")
         except OSError:
             return ""
 
