@@ -223,7 +223,7 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
         self.direct_edit.directEditForbidden.connect(forbidden_signal)
 
         bad_remote = self.get_bad_remote()
-        bad_remote.make_server_call_raise(Forbidden())
+        bad_remote.make_server_call_raise(Forbidden(message="Mock"))
 
         with patch.object(
             self.manager_1, "open_local_file", new=open_local_file
@@ -246,7 +246,7 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
 
             # Simulate server error
             bad_remote = self.get_bad_remote()
-            bad_remote.make_upload_raise(Forbidden())
+            bad_remote.make_upload_raise(Forbidden(message="Mock"))
 
             with patch.object(self.engine_1, "remote", new=bad_remote):
                 # Update file content

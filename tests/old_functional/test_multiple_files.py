@@ -12,7 +12,7 @@ from ..markers import not_linux
 class TestMultipleFiles(OneUserTest):
 
     NUMBER_OF_LOCAL_FILES = 10
-    SYNC_TIMEOUT = 5  # in seconds
+    SYNC_TIMEOUT = 10  # in seconds
 
     def setUp(self):
         """
@@ -92,7 +92,7 @@ class TestMultipleFiles(OneUserTest):
         num = self.NUMBER_OF_LOCAL_FILES
         names = set(["local%04d.txt" % n for n in range(1, num + 1)])
 
-        for path in {new_path, copy_path}:
+        for path in (new_path, copy_path):
             # Local
             assert local.abspath(path).exists()
             children = [f.name for f in local.abspath(path).iterdir()]

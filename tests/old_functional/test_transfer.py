@@ -4,8 +4,10 @@ Test pause/resume transfers in differents scenarii.
 from unittest.mock import patch
 
 import pytest
+from nuxeo.exceptions import HTTPError
 from nxdrive.constants import FILE_BUFFER_SIZE, TransferStatus, WINDOWS
 from nxdrive.options import Options
+from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
 from .common import OneUserTest, SYNC_ROOT_FAC_ID
@@ -375,3 +377,168 @@ class TestUpload(OneUserTest):
         self.wait_sync()
         assert not dao.get_uploads()
         assert not self.remote_1.exists("/test.bin")
+
+    def test_not_server_error_upload(self):
+        """Test an error happening after chunks were uploaded, at the NuxeoDrive.CreateFile operation call."""
+
+        def link_blob_to_doc(*args, **kwargs):
+            """Simulate an exception that is not handled by the Processor."""
+            raise ValueError("Mocked exception")
+
+        engine = self.engine_1
+        dao = self.engine_1.dao
+
+        # Locally create a file that will be uploaded remotely
+        self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
+
+        # There is no upload, right now
+        assert not dao.get_uploads()
+
+        with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
+            with ensure_no_exception():
+                self.wait_sync()
+
+                # There should be 1 upload with DONE transfer status
+                uploads = dao.get_uploads()
+                assert len(uploads) == 1
+                upload = uploads[0]
+                assert upload.status == TransferStatus.DONE
+
+                # The file on the server should not exist yet
+                assert not self.remote_1.exists("/test.bin")
+
+                # The doc should be in error
+                assert len(dao.get_errors()) == 1
+
+        # Reset the error
+        for state in dao.get_errors():
+            dao.reset_error(state)
+
+        # Resync and check the file exist
+        self.wait_sync()
+        assert not dao.get_uploads()
+        assert self.remote_1.exists("/test.bin")
+
+    def test_server_error_but_upload_ok(self):
+        """
+        Test an error happening after chunks were uploaded and the NuxeoDrive.CreateFile operation call.
+        This could happen if a proxy do not understand well the final requests as seen in NXDRIVE-1753.
+        """
+
+        def link_blob_to_doc(*args, **kwargs):
+            # Call the original method to effectively end the upload process
+            link_blob_to_doc_orig(*args, **kwargs)
+
+            # The file should be present on the server
+            assert self.remote_1.exists("/test.bin")
+
+            # There should be 1 upload with DONE transfer status
+            uploads = dao.get_uploads()
+            assert len(uploads) == 1
+            upload = uploads[0]
+            assert upload.status == TransferStatus.DONE
+
+            # And throw an error
+            stack = (
+                "The proxy server received an invalid response from an upstream server."
+            )
+            raise HTTPError(status=502, message="Mocked Proxy Error", stacktrace=stack)
+
+        engine = self.engine_1
+        dao = self.engine_1.dao
+        link_blob_to_doc_orig = engine.remote.link_blob_to_doc
+
+        # Locally create a file that will be uploaded remotely
+        self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
+
+        # There is no upload, right now
+        assert not dao.get_uploads()
+
+        with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
+            with ensure_no_exception():
+                self.wait_sync()
+
+                # There should be no upload as the Processor has checked the file existence
+                # on the server and so deleted the upload from the database
+                assert not dao.get_uploads()
+
+        # Resync and check the file still exists
+        self.wait_sync()
+        assert not dao.get_uploads()
+        assert self.remote_1.exists("/test.bin")
+        assert not dao.get_errors(limit=0)
+
+    def test_server_error_upload(self):
+        """Test a server error happening after chunks were uploaded, at the NuxeoDrive.CreateFile operation call."""
+
+        def link_blob_to_doc(*args, **kwargs):
+            """Simulate a server error."""
+            raise ConnectionError("Mocked exception")
+
+        engine = self.engine_1
+        dao = self.engine_1.dao
+
+        # Locally create a file that will be uploaded remotely
+        self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
+
+        # There is no upload, right now
+        assert not dao.get_uploads()
+
+        with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
+            with ensure_no_exception():
+                self.wait_sync()
+
+                # There should be 1 upload with DONE transfer status
+                uploads = dao.get_uploads()
+                assert len(uploads) == 1
+                upload = uploads[0]
+                assert upload.status == TransferStatus.DONE
+
+                # The file on the server should not exist yet
+                assert not self.remote_1.exists("/test.bin")
+
+        # Resync and check the file exists
+        self.wait_sync()
+        assert not dao.get_uploads()
+        assert self.remote_1.exists("/test.bin")
+
+    def test_chunk_upload_error(self):
+        """Test a server error happening while uploading chunks."""
+
+        def send_data(*args, **kwargs):
+            """Simulate an error."""
+            raise ConnectionError("Mocked error")
+
+        def callback(upload):
+            """Patch send_data() after chunk 1 is sent."""
+            if len(upload.blob.uploadedChunkIds) == 1:
+                upload.service.send_data = send_data
+
+        engine = self.engine_1
+        dao = self.engine_1.dao
+        bad_remote = self.get_bad_remote()
+        bad_remote.upload_callback = callback
+
+        # Locally create a file that will be uploaded remotely
+        self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 4)
+
+        # There is no upload, right now
+        assert not dao.get_uploads()
+
+        with patch.object(engine, "remote", new=bad_remote):
+            with ensure_no_exception():
+                self.wait_sync()
+
+                # There should be 1 upload with ONGOING transfer status
+                uploads = dao.get_uploads()
+                assert len(uploads) == 1
+                upload = uploads[0]
+                assert upload.status == TransferStatus.ONGOING
+
+                # The file on the server should not exist yet
+                assert not self.remote_1.exists("/test.bin")
+
+        # Resync and check the file exists
+        self.wait_sync()
+        assert not dao.get_uploads()
+        assert self.remote_1.exists("/test.bin")
