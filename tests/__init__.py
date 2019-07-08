@@ -112,6 +112,10 @@ def ensure_no_exception():
 
     def error(type_, value, traceback) -> None:
         """ Install an exception hook to catch any error. """
+        # Mock'ed errors should not entrave the check
+        if "mock" in str(value).lower():
+            return
+
         nonlocal received
         received = True
         print(type_)

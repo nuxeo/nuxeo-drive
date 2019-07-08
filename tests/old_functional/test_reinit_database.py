@@ -24,8 +24,8 @@ class TestReinitDatabase(OneUserTest):
         assert self.local.exists("/Test folder")
         assert self.local.exists("/Test folder/Test.txt")
 
-        # Destroy database
-        self.unbind_engine(1)
+        # Destroy database but keep synced files as we just need to test the database
+        self.unbind_engine(1, purge=False)
         self.bind_engine(1, start_engine=False)
 
     def _check_states(self):
