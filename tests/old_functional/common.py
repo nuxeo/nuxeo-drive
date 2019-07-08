@@ -121,7 +121,7 @@ class StubQApplication(QCoreApplication):
 
     @pyqtSlot(int)
     def unbind_engine(self, number):
-        self._test.unbind_engine(number)
+        self._test.unbind_engine(number, purge=False)
 
 
 class TwoUsersTest(TestCase):
@@ -414,14 +414,12 @@ class TwoUsersTest(TestCase):
 
         return engine
 
-    def unbind_engine(self, number: int) -> None:
+    def unbind_engine(self, number: int, purge: bool = True) -> None:
         number_str = str(number)
         engine = getattr(self, f"engine_{number_str}")
         manager = getattr(self, f"manager_{number_str}")
-        local_folder = engine.local_folder
-        manager.unbind_engine(engine.uid, purge=True)
+        manager.unbind_engine(engine.uid, purge=purge)
         delattr(self, f"engine_{number_str}")
-        assert not local_folder.exists()
 
     def send_bind_engine(self, number: int, start_engine: bool = True) -> None:
         self.app.bindEngine.emit(number, start_engine)
