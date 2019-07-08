@@ -6,7 +6,7 @@ from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from threading import Lock
-from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
 import requests
@@ -272,116 +272,181 @@ class Remote(Nuxeo):
         mime_type: str = None,
         **params: Any,
     ) -> Dict[str, Any]:
-        """ Upload a file with a batch.
+        """
+        Upload a file with a batch.
+        If command is not None, the operation is executed with the batch as an input.
 
-        If command is not None, the operation is executed
-        with the batch as an input.
+        If an exception happens at step 1 or 2, the upload will be continued the next
+        time the Processor handle the document (it will be postponed due to the error).
+
+        If the error was raised at step 1, the upload will not start from zero: it will
+        resume from the next chunk based on what previously chunks were sent.
+        This is dependent of the chunk TTL configured on the server (it must be large enough
+        to handle big files).
+
+        If the error was raised at step 2, the step 1 will be checked to ensure the blob
+        was successfuly uploaded. But it most cases, nothing will be uploaded twice.
+        Also, it the error is one of HTTP 502 or 503, the Processor will check for
+        the file existence to bypass errors happening *after* the operation was successful.
+        If it exists, the error is skipped and the upload is seen as a success.
         """
         with self.upload_lock:
-            tick = time.monotonic()
-            action = UploadAction(file_path, filename, reporter=QApplication.instance())
-            blob = FileBlob(str(file_path))
-            if filename:
-                blob.name = filename
-            if mime_type:
-                blob.mimetype = mime_type
+            # Step 1: upload the blob
+            blob, duration = self.upload_chunks(
+                file_path, filename=filename, mime_type=mime_type, **params
+            )
 
-            batch = chunk_size = None
-            try:
-                # See if there is already a transfer for this file
-                upload = self.dao.get_upload(path=file_path)
-                if upload:
-                    log.debug(f"Retrieved transfer for {file_path}: {upload}")
-                    if upload.status is not TransferStatus.ONGOING:
-                        raise UploadPaused(upload.uid or -1)
+            # Step 2: link the uploaded blob to the document
+            item = self.link_blob_to_doc(command, blob, duration, **params)
 
-                    # Check if the associated batch still exists server-side
-                    with suppress(Exception):
-                        self.uploads.get(upload.batch, upload.idx)
-                        batch = Batch(batchId=upload.batch, service=self.uploads)
-                        batch._upload_idx = upload.idx
-                        chunk_size = upload.chunk_size
+            # Transfer is completed, delete the upload from the database
+            self.dao.remove_transfer("upload", file_path)
 
-                if not batch:
-                    # Create a new batch and save it in the DB
-                    batch = self.uploads.batch()
+            return item
 
-                # By default, Options.chunk_size is 20, so chunks will be 20Mio.
-                # It can be set to a value between 1 and 20 through the config.ini
-                chunk_size = chunk_size or (Options.chunk_size * 1024 * 1024)
+    def upload_chunks(
+        self,
+        file_path: Path,
+        filename: str = None,
+        mime_type: str = None,
+        **params: Any,
+    ) -> Tuple[FileBlob, int]:
+        """Upload a blob by chunks or in one go."""
 
-                # For the upload to be chunked, the Options.chunk_upload must be True
-                # and the blob must be bigger than Options.chunk_limit, which by default
-                # is equal to Options.chunk_size.
-                chunked = (
-                    Options.chunk_upload
-                    and blob.size > Options.chunk_limit * 1024 * 1024
-                )
+        tick = time.monotonic()
+        action = UploadAction(file_path, filename, reporter=QApplication.instance())
+        blob = FileBlob(str(file_path))
+        if filename:
+            blob.name = filename
+        if mime_type:
+            blob.mimetype = mime_type
 
-                engine_uid = params.pop("engine_uid", None)
-                is_direct_edit = params.pop("is_direct_edit", False)
-                if not upload:
-                    # Add an upload entry in the database
-                    upload = Upload(
-                        None,
-                        file_path,
-                        TransferStatus.ONGOING,
-                        engine=engine_uid,
-                        is_direct_edit=is_direct_edit,
-                        batch=batch.uid,
-                        idx=batch._upload_idx,
-                        chunk_size=chunk_size,
+        batch = None
+        chunk_size = None
+        try:
+            # See if there is already a transfer for this file
+            upload = self.dao.get_upload(path=file_path)
+            if upload:
+                log.debug(f"Retrieved transfer for {file_path!r}: {upload}")
+                if upload.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
+                    raise UploadPaused(upload.uid or -1)
+
+                # Check if the associated batch still exists server-side
+                try:
+                    self.uploads.get(upload.batch, upload.idx)
+                except Exception:
+                    log.debug(
+                        f"No associated batch found, restarting from zero",
+                        exc_info=True,
                     )
-                upload.batch = batch.uid
-                self.dao.save_upload(upload)
+                    # Remove the transfer as it is no more valid
+                    self.dao.remove_transfer("upload", file_path)
+                    upload = None
+                else:
+                    log.debug(f"Associated batch found, resuming the upload")
+                    batch = Batch(batchId=upload.batch, service=self.uploads)
+                    batch._upload_idx = upload.idx
+                    chunk_size = upload.chunk_size
 
-                uploader: Uploader = batch.get_uploader(
-                    blob,
-                    chunked=chunked,
+                    # Set those attributes as FileBlob does not have them
+                    # and they are required for the step 2 of .upload()
+                    blob.batch_id = batch.uid
+                    blob.fileIdx = upload.idx
+
+            if not batch:
+                # Create a new batch and save it in the DB
+                batch = self.uploads.batch()
+
+            # By default, Options.chunk_size is 20, so chunks will be 20Mio.
+            # It can be set to a value between 1 and 20 through the config.ini
+            chunk_size = chunk_size or (Options.chunk_size * 1024 * 1024)
+
+            # For the upload to be chunked, the Options.chunk_upload must be True
+            # and the blob must be bigger than Options.chunk_limit, which by default
+            # is equal to Options.chunk_size.
+            chunked = (
+                Options.chunk_upload and blob.size > Options.chunk_limit * 1024 * 1024
+            )
+
+            engine_uid = params.pop("engine_uid", None)
+            is_direct_edit = params.pop("is_direct_edit", False)
+
+            if not upload:
+                # Add an upload entry in the database
+                upload = Upload(
+                    None,
+                    file_path,
+                    TransferStatus.ONGOING,
+                    engine=engine_uid,
+                    is_direct_edit=is_direct_edit,
+                    batch=batch.uid,
+                    idx=batch._upload_idx,
                     chunk_size=chunk_size,
-                    callback=self.upload_callback,
                 )
-                action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
+            self.dao.save_upload(upload)
 
+            uploader: Uploader = batch.get_uploader(
+                blob,
+                chunked=chunked,
+                chunk_size=chunk_size,
+                callback=self.upload_callback,
+            )
+            action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
+            log.debug(f"Upload progression is {action.get_percent():.2f}%")
+
+            if action.get_percent() < 100.0:
                 if uploader.chunked:
                     # If there is an UploadError, we catch it from the processor
                     for _ in uploader.iter_upload():
                         # Here 0 may happen when doing a single upload
                         action.progress += uploader.chunk_size or 0
-                        upload = self.dao.get_upload(path=file_path)
-                        if upload and upload.status is not TransferStatus.ONGOING:
-                            raise UploadPaused(upload.uid or -1)
+
+                        # Handle status changes every time a chunk is sent
+                        transfer = self.dao.get_upload(path=file_path)
+                        if transfer and transfer.status not in (
+                            TransferStatus.ONGOING,
+                            TransferStatus.DONE,
+                        ):
+                            raise UploadPaused(transfer.uid or -1)
                 else:
                     uploader.upload()
+                    action.progress += blob.size
 
-                # Transfer is completed, remove it from the database
-                self.dao.remove_transfer("upload", file_path)
+            # Transfer is completed, update the status in the database
+            upload.status = TransferStatus.DONE
+            self.dao.save_upload(upload)
 
-                upload_duration = int(time.monotonic() - tick)
-                action.transfer_duration = upload_duration
-                # Use upload duration * 2 as Nuxeo transaction timeout
-                tx_timeout = max(TX_TIMEOUT, upload_duration * 2)
+            duration = int(time.monotonic() - tick)
+            action.transfer_duration = duration
+            if duration > 0:
                 log.debug(
-                    f"Using {tx_timeout} seconds [max({TX_TIMEOUT}, "
-                    f"2 * upload time={upload_duration})] as Nuxeo "
-                    f"transaction timeout for batch execution of {command!r} "
-                    f"with file {file_path!r}"
+                    f"Size: {sizeof_fmt(blob.size)}, speed: {sizeof_fmt(blob.size / duration)}/s"
                 )
 
-                if upload_duration > 0:
-                    size = file_path.stat().st_size
-                    log.debug(
-                        f"Size: {sizeof_fmt(size)}, speed: {sizeof_fmt(size / upload_duration)}/s"
-                    )
+            return blob, duration
+        finally:
+            # In case of error, log the progression to help debugging
+            if action.get_percent() < 100.0:
+                log.debug(f"Upload progression stopped at {action.get_percent():.2f}%")
 
-                headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
-                return self.execute(
-                    command=command, input_obj=blob, headers=headers, **params
-                )
-            finally:
-                if blob.fd:
-                    blob.fd.close()
-                UploadAction.finish_action()
+            UploadAction.finish_action()
+            if blob.fd:
+                blob.fd.close()
+
+    def link_blob_to_doc(
+        self, command: str, blob: FileBlob, duration: int, **params
+    ) -> Dict[str, Any]:
+        """Link the given uploaded *blob* to the given document (refs are passed into *params*)."""
+
+        # Remove additionnal parameters to prevent a BadQuery
+        params.pop("engine_uid", None)
+        params.pop("is_direct_edit", None)
+
+        # Use upload duration * 2 as Nuxeo transaction timeout
+        tx_timeout = max(TX_TIMEOUT, duration * 2)
+        headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
+
+        return self.execute(command=command, input_obj=blob, headers=headers, **params)
 
     def get_fs_info(
         self, fs_item_id: str, parent_fs_item_id: str = None

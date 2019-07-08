@@ -21,7 +21,7 @@ class TestLocalCreations(OneUserTest):
         self.wait_sync(wait_for_async=True)
 
         bad_remote = self.get_bad_remote()
-        error = Unauthorized(status=401, message="Mock")
+        error = Unauthorized(message="Mock")
         bad_remote.make_upload_raise(error)
 
         file = "Performance Reports - error n°401.txt"

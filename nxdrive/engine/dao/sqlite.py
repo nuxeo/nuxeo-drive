@@ -1716,13 +1716,13 @@ class EngineDAO(ConfigurationDAO):
         # Check if it really needs an update
         if (
             row.remote_ref == info.uid
-            and info.parent_uid == row.remote_parent_ref
-            and remote_parent_path == row.remote_parent_path
-            and info.name == row.remote_name
-            and info.can_rename == row.remote_can_rename
-            and info.can_delete == row.remote_can_delete
-            and info.can_update == row.remote_can_update
-            and info.can_create_child == row.remote_can_create_child
+            and row.remote_parent_ref == info.parent_uid
+            and row.remote_parent_path == remote_parent_path
+            and row.remote_name == info.name
+            and row.remote_can_rename == info.can_rename
+            and row.remote_can_delete == info.can_delete
+            and row.remote_can_update == info.can_update
+            and row.remote_can_create_child == info.can_create_child
         ):
             bname = os.path.basename(row.local_path)
             if bname == info.name or (WINDOWS and bname.strip() == info.name.strip()):

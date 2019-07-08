@@ -615,11 +615,11 @@ class RemoteWatcher(EngineWorker):
             raise
         except ScrollDescendantsError as exc:
             log.warning(exc)
-        except (*CONNECTION_ERROR, OSError) as exc:
-            log.warning(f"Network error: {exc}")
         except Unauthorized:
             self.engine.set_invalid_credentials()
             self.engine.set_offline()
+        except (*CONNECTION_ERROR, OSError) as exc:
+            log.warning(f"Network error: {exc}")
         except HTTPError as exc:
             status = exc.status
             err = f"HTTP error {status} while trying to handle remote changes"

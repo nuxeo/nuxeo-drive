@@ -141,7 +141,7 @@ class TestSynchronization(OneUserTest):
         # Simulate bad responses
         with patch.object(self.engine_1, "remote", new=self.get_bad_remote()):
             self.engine_1.remote.request_token()
-            self.engine_1.remote.make_server_call_raise(Unauthorized())
+            self.engine_1.remote.make_server_call_raise(Unauthorized(message="Mock"))
             self.wait_sync(wait_for_async=True, fail_if_timeout=False)
             assert self.engine_1.is_offline()
 

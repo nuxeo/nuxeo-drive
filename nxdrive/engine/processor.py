@@ -252,11 +252,17 @@ class Processor(EngineWorker):
 
                 # Skip files in process
                 download = self.engine.dao.get_download(doc_pair=doc_pair.id)
-                if download and download.status is not TransferStatus.ONGOING:
+                if download and download.status not in (
+                    TransferStatus.ONGOING,
+                    TransferStatus.DONE,
+                ):
                     log.info(f"Download is paused for {doc_pair!r}")
                     continue
                 upload = self.engine.dao.get_upload(doc_pair=doc_pair.id)
-                if upload and upload.status is not TransferStatus.ONGOING:
+                if upload and upload.status not in (
+                    TransferStatus.ONGOING,
+                    TransferStatus.DONE,
+                ):
                     log.info(f"Upload is paused for {doc_pair!r}")
                     continue
 
@@ -324,9 +330,9 @@ class Processor(EngineWorker):
                     self._postpone_pair(doc_pair, "Conflict")
                 elif exc.status == 500:
                     self.increase_error(doc_pair, "SERVER_ERROR", exception=exc)
-                elif exc.status in {502, 503}:
+                elif exc.status in (502, 503):
                     log.warning("Server is unavailable", exc_info=True)
-                    self._postpone_pair(doc_pair, "Server unavailable")
+                    self._check_exists_on_the_server(doc_pair)
                 else:
                     error = f"{handler_name}_http_error_{exc.status}"
                     self._handle_pair_handler_exception(doc_pair, error, exc)
@@ -395,6 +401,38 @@ class Processor(EngineWorker):
                 self.dao.release_state(self.thread_id)
 
             self._interact()
+
+    def _check_exists_on_the_server(self, doc_pair: DocPair) -> None:
+        """Used when the server is not available to do specific actions."""
+        if doc_pair.pair_state == "locally_created":
+            # As seen with NXDRIVE-1753, an uploaded file may have worked
+            # but for some reason the final state is in error. So, let's
+            # check if the document is present on the server to bypass
+            # (infinite|useless) retries.
+            # Note: this is ugly as there are hardcoded values, maybe need to review that.
+            path = f"/default-domain/workspaces/{doc_pair.local_path}"
+            try:
+                fs_item = self.remote.fetch(path)
+            except Exception:
+                pass
+            else:
+                log.debug(f"The document has already been uploaded to the server")
+
+                # Fetch the remote item to update the local pair details
+                doc_pair.remote_ref = (
+                    f"defaultFileSystemItemFactory#default#{fs_item['uid']}"
+                )
+                remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
+                paths = remote_info.path.partition("/defaultFileSystemItemFactory")
+                doc_pair.remote_parent_path = paths[0]
+                self._refresh_remote(doc_pair, remote_info=remote_info)
+
+                # Transfer is completed, delete the upload from the database
+                self.remove_void_transfers(doc_pair)
+                return
+
+        # Simply retry later
+        self._postpone_pair(doc_pair, "Server unavailable")
 
     def _handle_pair_handler_exception(
         self, doc_pair: DocPair, handler_name: str, e: Exception
