@@ -9,6 +9,8 @@ import pytest
 from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
 
+from .. import ensure_no_exception
+
 
 class MockUrlTestEngine(Engine):
     def __init__(self, url: str, user: str):
@@ -182,6 +184,14 @@ def test_is_valid_folder_name(direct_edit):
     assert not func("is this a real file name.jpeg")
     assert not func("")
     assert not func(None)
+
+
+def test_lock_queue_doc_not_found(direct_edit):
+    ref = Path("something inexistant.docx")
+    direct_edit._lock_queue.put((ref, "lock"))
+
+    with ensure_no_exception():
+        direct_edit._handle_lock_queue()
 
 
 def test_metrics(direct_edit):

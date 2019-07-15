@@ -630,6 +630,8 @@ class DirectEdit(Worker):
                 self.autolock.documentUnlocked.emit(ref.name)
             except ThreadInterrupt:
                 raise
+            except NotFound:
+                log.debug(f"Document {ref!r} no more exists")
             except DocumentAlreadyLocked as exc:
                 log.warning(f"Document {ref!r} already locked by {exc.username}")
                 self.directEditLockError.emit(action, ref.name, uid)
