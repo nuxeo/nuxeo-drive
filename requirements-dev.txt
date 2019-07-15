@@ -1,4 +1,2 @@
 # nuitka==0.6.3; sys_platform == 'win32'
-# pyinstaller==3.5.0 or newer
-# https://github.com/pyinstaller/pyinstaller/issues/3942
-https://github.com/pyinstaller/pyinstaller/archive/9e1f05ba22ee797b6914d85ac11fe9dc425ad649.zip
+pyinstaller==3.5
