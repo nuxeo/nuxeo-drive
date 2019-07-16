@@ -387,7 +387,7 @@ FolderType=Generic
             path_alt = f"{path}:{name}"
             try:
                 with open(path_alt, "rb") as f:
-                    return f.read().decode("utf-8")
+                    return f.read().decode("utf-8", errors="ignore")
             except OSError:
                 return ""
 
