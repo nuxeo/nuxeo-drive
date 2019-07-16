@@ -339,19 +339,11 @@ class Remote(Nuxeo):
                         f"No associated batch found, restarting from zero",
                         exc_info=True,
                     )
-                    # Remove the transfer as it is no more valid
-                    self.dao.remove_transfer("upload", file_path)
-                    upload = None
                 else:
                     log.debug(f"Associated batch found, resuming the upload")
                     batch = Batch(batchId=upload.batch, service=self.uploads)
                     batch._upload_idx = upload.idx
                     chunk_size = upload.chunk_size
-
-                    # Set those attributes as FileBlob does not have them
-                    # and they are required for the step 2 of .upload()
-                    blob.batch_id = batch.uid
-                    blob.fileIdx = upload.idx
 
             if not batch:
                 # Create a new batch and save it in the DB
@@ -385,16 +377,27 @@ class Remote(Nuxeo):
                 )
             self.dao.save_upload(upload)
 
+            # Set those attributes as FileBlob does not have them
+            # and they are required for the step 2 of .upload()
+            blob.batch_id = batch.uid
+            blob.fileIdx = upload.idx
+
             uploader: Uploader = batch.get_uploader(
                 blob,
                 chunked=chunked,
                 chunk_size=chunk_size,
                 callback=self.upload_callback,
             )
-            action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
+
+            # Update the progress on chunked upload only as the first call to
+            # action.progress will set the action.uploaded attr to True for
+            # empty files. This is not what we want: empty files are legits.
+            if uploader.chunked:
+                action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
+
             log.debug(f"Upload progression is {action.get_percent():.2f}%")
 
-            if action.get_percent() < 100.0:
+            if action.get_percent() < 100.0 or not action.uploaded:
                 if uploader.chunked:
                     # If there is an UploadError, we catch it from the processor
                     for _ in uploader.iter_upload():
@@ -410,6 +413,8 @@ class Remote(Nuxeo):
                             raise UploadPaused(transfer.uid or -1)
                 else:
                     uploader.upload()
+                    # For empty files, this will set action.uploaded to True,
+                    # telling us that the file was correctly sent to the server.
                     action.progress += blob.size
 
             # Transfer is completed, update the status in the database
@@ -426,10 +431,11 @@ class Remote(Nuxeo):
             return blob, duration
         finally:
             # In case of error, log the progression to help debugging
-            if action.get_percent() < 100.0:
+            if action.get_percent() < 100.0 and not action.uploaded:
                 log.debug(f"Upload progression stopped at {action.get_percent():.2f}%")
 
             UploadAction.finish_action()
+
             if blob.fd:
                 blob.fd.close()
 
