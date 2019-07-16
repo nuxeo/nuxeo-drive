@@ -467,7 +467,13 @@ def normalized_path(path: Union[bytes, str, Path]) -> Path:
     """ Return absolute, normalized file path. """
     if not isinstance(path, Path):
         path = force_decode(path)
-    return Path(path).expanduser().resolve()
+    expanded = Path(path).expanduser()
+    try:
+        return expanded.resolve()
+    except PermissionError:
+        # On Windows, we can get a PermissionError when the file is being
+        # opened in another software, fallback on .absolute() then.
+        return expanded.absolute()
 
 
 def normalize_and_expand_path(path: str) -> Path:

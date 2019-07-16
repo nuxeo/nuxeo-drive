@@ -743,7 +743,12 @@ FolderType=Generic
         # - target.name == "ABCDE.txt"
         # - "abcde.txt" exists on the filesystem
         # -> target.resolve() will set target.name as "abcde.txt"
-        target = target.resolve().with_name(target.name)
+        try:
+            target = target.resolve().with_name(target.name)
+        except PermissionError:
+            # On Windows, we can get a PermissionError when the file is being
+            # opened in another software, fallback on .absolute() then.
+            target = target.absolute().with_name(target.name)
 
         try:
             return target.relative_to(self.base_folder)
