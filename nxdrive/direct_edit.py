@@ -17,6 +17,7 @@ from nuxeo.utils import get_digest_algorithm
 from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from requests import codes
+from requests.exceptions import ChunkedEncodingError
 from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
 
@@ -725,6 +726,8 @@ class DirectEdit(Worker):
                 self._last_action_timing = current_milli_time() - start_time
                 self.directEditUploadCompleted.emit(os_path.name)
                 self.editDocument.emit(ref.name)
+            except ThreadInterrupt:
+                raise
             except NotFound:
                 # Not found on the server, just skip it
                 continue
@@ -739,8 +742,9 @@ class DirectEdit(Worker):
                     str(ref), engine.hostname, engine.remote_user
                 )
                 continue
-            except ThreadInterrupt:
-                raise
+            except ChunkedEncodingError:
+                # Incorrect chunked encoding? Hm let's skip it then.
+                continue
             except Exception as e:
                 if (
                     isinstance(e, HTTPError)
