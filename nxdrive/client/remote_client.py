@@ -728,8 +728,9 @@ class Remote(Nuxeo):
             return None
 
         parent_uid = None
-        if fetch_parent_uid:
+        if fetch_parent_uid and doc["path"]:
             parent_uid = self.fetch(os.path.dirname(doc["path"]))["uid"]
+
         doc.update(
             {"root": self._base_folder_ref, "repository": self.client.repository}
         )
