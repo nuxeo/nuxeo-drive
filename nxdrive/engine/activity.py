@@ -102,16 +102,25 @@ class FileAction(Action):
         action_type: str,
         filepath: Path,
         filename: str = None,
-        size: float = 0.0,
+        size: float = -1.0,
         reporter: Any = None,
     ) -> None:
         super().__init__(action_type=action_type)
 
         self.filepath = filepath
         self.filename = filename or filepath.name
-        if not size:
+
+        # Is it an empty file?
+        self.empty = False
+
+        # Is it already on the server?
+        self.uploaded = False
+
+        if size < 0:
             with suppress(OSError):
                 size = filepath.stat().st_size
+        if size == 0:
+            self.empty = True
         self.size = size
 
         self.start_time = monotonic()
@@ -136,14 +145,20 @@ class FileAction(Action):
     @progress.setter
     def progress(self, value: float) -> None:
         self._progress = value
+
+        if self.empty and not self.uploaded:
+            # Even if it *is* empty, we need this to know when the file has been uploaded
+            self.uploaded = True
+
         self.progressing.emit(self)
 
     def get_percent(self) -> float:
-        if self.size <= 0 or self.progress <= 0:
+        if self.size < 0 or (self.empty and not self.uploaded):
             return 0.0
-        if self.progress > self.size:
+        if self.progress >= self.size:
+            self.uploaded = True
             return 100.0
-        return self.progress * 100 / self.size
+        return self.progress * 100.0 / self.size
 
     def finish(self) -> None:
         super().finish()
@@ -156,11 +171,12 @@ class FileAction(Action):
             "size": self.size,
             "name": self.filename,
             "filepath": str(self.filepath),
+            "empty": self.empty,
+            "uploaded": self.uploaded,
         }
 
     def __repr__(self) -> str:
-        # Size can be None if the file disapeared right on creation
-        if self.size is None:
+        if self.size < 0:
             return f"{self.type}({self.filename!r})"
         percent = self.get_percent()
         if percent > 0.0:
