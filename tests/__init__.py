@@ -8,7 +8,9 @@ from typing import Any
 
 import nuxeo.constants
 
-from nxdrive.logging_config import configure
+
+# Silence any logging errors, we do not need more noise to output
+logging.raiseExceptions = False
 
 
 # Automatically check all operations done with the Python client
@@ -32,6 +34,8 @@ shutil._basename = _basename
 
 def configure_logs():
     """Configure the logging module."""
+
+    from nxdrive.logging_config import configure
 
     formatter = logging.Formatter(
         "%(thread)-4d %(module)-14s %(levelname).1s %(message)s"
