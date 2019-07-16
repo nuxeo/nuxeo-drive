@@ -152,6 +152,9 @@ def configure(
     elif file_handler:
         file_handler.setLevel(file_level)
 
+    # NXDRIVE-1774: filter out urllib3 logging about "Certificate did not match..."
+    logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+
 
 def get_handler(name: str):
     for handler in logging.getLogger().handlers:

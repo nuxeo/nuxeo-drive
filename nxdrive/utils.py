@@ -803,14 +803,14 @@ def guess_server_url(
                 if resp.status_code == 200:
                     log.debug(f"Found URL: {new_url}")
                     return new_url
-        except requests.HTTPError as exc:
-            if exc.response.status_code in {401, 403}:
-                # When there is only Web-UI installed, the code is 401.
-                log.debug(f"Found URL: {new_url}")
-                return new_url
         except SSLError as exc:
             if "CERTIFICATE_VERIFY_FAILED" in str(exc):
                 raise InvalidSSLCertificate()
+        except requests.HTTPError as exc:
+            if exc.response.status_code in (401, 403):
+                # When there is only Web-UI installed, the code is 401.
+                log.debug(f"Found URL: {new_url}")
+                return new_url
         except (ValueError, requests.RequestException):
             log.debug(f"Bad URL: {new_url}")
         except Exception:
