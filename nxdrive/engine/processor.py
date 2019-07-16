@@ -410,7 +410,11 @@ class Processor(EngineWorker):
             # check if the document is present on the server to bypass
             # (infinite|useless) retries.
             # Note: this is ugly as there are hardcoded values, maybe need to review that.
-            path = f"/default-domain/workspaces/{doc_pair.local_path}"
+            local_path = str(doc_pair.local_path)
+            if WINDOWS:
+                local_path = local_path.replace("\\", "/")
+            path = f"/default-domain/workspaces/{local_path}"
+            print("path =", path)
             try:
                 fs_item = self.remote.fetch(path)
             except Exception:
