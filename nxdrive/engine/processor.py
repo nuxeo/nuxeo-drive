@@ -994,9 +994,13 @@ class Processor(EngineWorker):
             locker = unlock_path(file_out)
             try:
                 shutil.copy(self.local.abspath(pair.local_path), file_out)
+            except FileNotFoundError:
+                # Let's re-download the file
+                pass
+            else:
+                return file_out
             finally:
                 lock_path(file_out, locker)
-            return file_out
 
         tmp_file = self.remote.stream_content(
             doc_pair.remote_ref,

@@ -299,17 +299,23 @@ class DirectEdit(Worker):
             kwargs["check_params"] = False
 
             pair = engine.dao.get_valid_duplicate_file(blob.digest)
+
         if pair:
             existing_file_path = engine.local.abspath(pair.local_path)
-            log.info(
-                f"Local file matches remote digest {blob.digest!r}, "
-                f"copying it from {existing_file_path!r}"
-            )
-            shutil.copy(existing_file_path, file_out)
-            if pair.is_readonly():
-                log.info(f"Unsetting readonly flag on copied file {file_out!r}")
-                unset_path_readonly(file_out)
-        else:
+            try:
+                shutil.copy(existing_file_path, file_out)
+            except FileNotFoundError:
+                pair = None
+            else:
+                log.info(
+                    f"Local file matches remote digest {blob.digest!r}, "
+                    f"copying it from {existing_file_path!r}"
+                )
+                if pair.is_readonly():
+                    log.info(f"Unsetting readonly flag on copied file {file_out!r}")
+                    unset_path_readonly(file_out)
+
+        if not pair:
             log.info(f"Downloading file {blob.name!r} from {url!r}")
             if url:
                 engine.remote.download(
@@ -326,6 +332,7 @@ class DirectEdit(Worker):
                     callback=self.stop_client,
                     **kwargs,
                 )
+
         return file_out
 
     def _get_info(self, engine: "Engine", doc_id: str) -> Optional[NuxeoDocumentInfo]:
