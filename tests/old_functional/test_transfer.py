@@ -18,7 +18,13 @@ class TestDownload(OneUserTest):
         self.engine_1.start()
         self.wait_sync(wait_for_async=True)
 
-    @Options.mock()
+        # Lower tmp_file_limit options to have chunked downloads without having to create big files
+        self.default_tmp_file_limit = Options.tmp_file_limit
+        Options.tmp_file_limit = 1
+
+    def tearDown(self):
+        Options.tmp_file_limit = self.default_tmp_file_limit
+
     def test_pause_download_manually(self):
         """
         Pause the transfer by simulating a click on the pause/resume icon
@@ -70,8 +76,6 @@ class TestDownload(OneUserTest):
         # There is no download, right now
         assert not dao.get_downloads()
 
-        Options.set("tmp_file_limit", 0.1, "manual")
-
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():
                 self.wait_sync(wait_for_async=True)
@@ -82,7 +86,6 @@ class TestDownload(OneUserTest):
         self.wait_sync(wait_for_async=True)
         assert not dao.get_downloads()
 
-    @Options.mock()
     def test_pause_download_automatically(self):
         """
         Pause the transfer by simulating an application exit
@@ -117,8 +120,6 @@ class TestDownload(OneUserTest):
         # There is no download, right now
         assert not dao.get_downloads()
 
-        Options.set("tmp_file_limit", 0.1, "manual")
-
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():
                 self.wait_sync(wait_for_async=True)
@@ -129,7 +130,6 @@ class TestDownload(OneUserTest):
         self.wait_sync(wait_for_async=True)
         assert not dao.get_downloads()
 
-    @Options.mock()
     def test_modifying_paused_download(self):
         """Modifying a paused download should discard the current download."""
 
@@ -170,8 +170,6 @@ class TestDownload(OneUserTest):
         # There is no download, right now
         assert not dao.get_downloads()
 
-        Options.set("tmp_file_limit", 0.1, "manual")
-
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():
                 self.wait_sync(wait_for_async=True)
@@ -181,7 +179,6 @@ class TestDownload(OneUserTest):
         assert not dao.get_downloads()
         assert self.local_1.get_content("/test.bin") == b"remotely changed"
 
-    @Options.mock()
     def test_deleting_paused_download(self):
         """Deleting a paused download should discard the current download."""
 
@@ -216,8 +213,6 @@ class TestDownload(OneUserTest):
 
         # There is no download, right now
         assert not dao.get_downloads()
-
-        Options.set("tmp_file_limit", 0.1, "manual")
 
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():

@@ -216,6 +216,10 @@ class Remote(Nuxeo):
         if isinstance(current_action, DownloadAction):
             current_action.size = size
             current_action.progress = downloaded
+            log.debug(
+                f"Download progression is {current_action.get_percent():.2f}% "
+                f"(chunked is {chunked}, chunk size is {sizeof_fmt(FILE_BUFFER_SIZE)})"
+            )
 
         locker = unlock_path(file_out)
         try:
@@ -407,7 +411,9 @@ class Remote(Nuxeo):
             if uploader.chunked:
                 action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
 
-            log.debug(f"Upload progression is {action.get_percent():.2f}%")
+            log.debug(
+                f"Upload progression is {action.get_percent():.2f}% (chunk size is {sizeof_fmt(chunk_size)})"
+            )
 
             if action.get_percent() < 100.0 or not action.uploaded:
                 if uploader.chunked:
@@ -461,10 +467,15 @@ class Remote(Nuxeo):
         params.pop("is_direct_edit", None)
 
         # Use upload duration * 2 as Nuxeo transaction timeout
-        tx_timeout = max(TX_TIMEOUT, duration * 2)
-        headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
+        timeout = max(TX_TIMEOUT, duration * 2)
+        headers = {"Nuxeo-Transaction-Timeout": str(timeout)}
 
-        return self.execute(command=command, input_obj=blob, headers=headers, **params)
+        log.debug(
+            f"Setting connection timeout to {timeout} seconds to handle the file creation on the server"
+        )
+        return self.execute(
+            command=command, input_obj=blob, headers=headers, timeout=timeout, **params
+        )
 
     def get_fs_info(
         self, fs_item_id: str, parent_fs_item_id: str = None
