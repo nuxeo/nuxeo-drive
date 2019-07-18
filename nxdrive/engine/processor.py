@@ -189,16 +189,13 @@ class Processor(EngineWorker):
                 )
 
                 if MAC and self.local.exists(doc_pair.local_path):
-                    with suppress(OSError):
-                        finder_info = self.local.get_remote_id(
-                            doc_pair.local_path, "com.apple.FinderInfo"
-                        )
-                        if "brokMACS" in finder_info:
-                            log.debug(f"Skip as pair is in use by Finder: {doc_pair!r}")
-                            self._postpone_pair(
-                                doc_pair, "Finder using file", interval=3
-                            )
-                            continue
+                    finder_info = self.local.get_remote_id(
+                        doc_pair.local_path, "com.apple.FinderInfo"
+                    )
+                    if finder_info and "brokMACS" in finder_info:
+                        log.debug(f"Skip as pair is in use by Finder: {doc_pair!r}")
+                        self._postpone_pair(doc_pair, "Finder using file", interval=3)
+                        continue
 
                 # TODO Update as the server dont take hash to avoid conflict yet
                 if doc_pair.pair_state.startswith("locally") and doc_pair.remote_ref:
@@ -1034,7 +1031,7 @@ class Processor(EngineWorker):
         )
 
         with suppress(OSError):
-            tmp_file.parent.rmdir()
+            shutil.rmtree(tmp_file.parent)
 
         # Set the modification time of the file to the server one
         self.local.change_file_date(
@@ -1272,7 +1269,7 @@ class Processor(EngineWorker):
 
             # Clean-up the TMP file
             with suppress(OSError):
-                tmp_file.parent.rmdir()
+                shutil.rmtree(tmp_file.parent)
 
             return path
         finally:
@@ -1302,7 +1299,7 @@ class Processor(EngineWorker):
                         self.engine.download_dir / doc_pair.remote_ref.split("#")[-1]
                     )
                     with suppress(OSError):
-                        tmpdir.rmdir()
+                        shutil.rmtree(tmpdir)
 
                 if not self.engine.use_trash():
                     # Force the complete file deletion
