@@ -844,6 +844,7 @@ class Processor(EngineWorker):
         if not doc_pair.remote_ref:
             self.dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
+            self.remove_void_transfers(doc_pair)
             return
 
         if doc_pair.remote_can_delete:
@@ -874,6 +875,7 @@ class Processor(EngineWorker):
                 )
                 self.engine.deleteReadonly.emit(doc_pair.local_name)
         self._search_for_dedup(doc_pair)
+        self.remove_void_transfers(doc_pair)
 
     def _synchronize_locally_moved_remotely_modified(self, doc_pair: DocPair) -> None:
         self._synchronize_locally_moved(doc_pair, update=False)
