@@ -222,7 +222,7 @@ class MetaOptions(type):
         "system_wide": (_is_system_wide(), "default"),
         "theme": ("ui5", "default"),
         "timeout": (30, "default"),
-        "tmp_file_limit": (10, "default"),
+        "tmp_file_limit": (10.0, "default"),
         "update_check_delay": (3600, "default"),
         "update_site_url": (
             "https://community.nuxeo.com/static/drive-updates",
@@ -486,9 +486,9 @@ def validate_chunk_size(value: int) -> int:
     raise ValueError("Chunk size must be between 1 and 20 (MiB)")
 
 
-def validate_tmp_file_limit(value: Union[int, float]) -> Union[int, float]:
+def validate_tmp_file_limit(value: Union[int, float]) -> float:
     if value > 0:
-        return value
+        return float(value)
     raise ValueError("Temporary file limit must be above 0")
 
 
