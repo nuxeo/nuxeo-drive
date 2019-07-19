@@ -4,6 +4,7 @@ import socket
 import time
 from contextlib import suppress
 from logging import getLogger
+from os.path import isfile
 from pathlib import Path
 from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
@@ -29,14 +30,8 @@ from ..constants import (
     TX_TIMEOUT,
     TransferStatus,
 )
-from ..engine.activity import Action, DownloadAction, UploadAction, VerificationAction
-from ..exceptions import (
-    DownloadPaused,
-    NotFound,
-    ScrollDescendantsError,
-    ThreadInterrupt,
-    UploadPaused,
-)
+from ..engine.activity import DownloadAction, UploadAction, VerificationAction
+from ..exceptions import NotFound, ScrollDescendantsError, UploadPaused
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo, Download, Upload
 from ..options import Options
 from ..utils import (
@@ -185,7 +180,7 @@ class Remote(Nuxeo):
         self.client.auth = self.auth
 
     def download(
-        self, url: str, file_out: Path = None, digest: str = None, **kwargs: Any
+        self, url: str, file_path: Path, file_out: Path, digest: str, **kwargs: Any
     ) -> Path:
         log.debug(
             f"Downloading file from {url!r} to {file_out!r} with digest={digest!r}"
@@ -212,21 +207,44 @@ class Remote(Nuxeo):
         size = int(resp.headers.get("Content-Length", 0)) if resp else 0
         chunked = size > (Options.tmp_file_limit * 1024 * 1024)
 
-        current_action = Action.get_current_action()
-        if isinstance(current_action, DownloadAction):
-            current_action.size = size
-            current_action.progress = downloaded
-            log.debug(
-                f"Download progression is {current_action.get_percent():.2f}% "
-                f"(chunked is {chunked}, chunk size is {sizeof_fmt(FILE_BUFFER_SIZE)})"
+        # Retrieve the eventual ongoing download
+        download = self.dao.get_download(path=file_path)
+
+        if download and download.tmpname and not isfile(download.tmpname):
+            # Reset if the TMP file does not exist anymore
+            download = None
+
+        if not download:
+            # Add a new download entry in the database
+            download = Download(
+                None,
+                path=file_path,
+                status=TransferStatus.ONGOING,
+                tmpname=str(file_out),
+                url=url,
+                filesize=size,
+                doc_pair=kwargs.pop("doc_pair_id", None),
+                engine=kwargs.pop("engine_uid", None),
             )
+            self.dao.save_download(download)
+
+        action = DownloadAction(
+            file_path, tmppath=file_out, reporter=QApplication.instance()
+        )
+        action.size = size
+        action.progress = downloaded
+        log.debug(
+            f"Download progression is {action.get_percent():.2f}% "
+            f"(data length is {sizeof_fmt(size)}, "
+            f"chunked is {chunked}, chunk size is {sizeof_fmt(FILE_BUFFER_SIZE)})"
+        )
 
         locker = unlock_path(file_out)
         try:
             if chunked:
                 callback = kwargs.pop("callback", self.download_callback)
                 self.operations.save_to_file(
-                    current_action,
+                    action,
                     resp,
                     file_out,
                     chunk_size=FILE_BUFFER_SIZE,
@@ -241,11 +259,16 @@ class Remote(Nuxeo):
                     f.flush()
                     os.fsync(f.fileno())
 
-            if digest and isinstance(current_action, DownloadAction):
-                self.check_integrity(digest, current_action)
+            self.check_integrity(digest, action)
+
+            # Download finished!
+            download.status = TransferStatus.DONE
+            self.dao.set_transfer_status("download", download)
         finally:
+            DownloadAction.finish_action()
             lock_path(file_out, locker)
             del resp
+
         return file_out
 
     def check_integrity(self, digest: str, download_action: DownloadAction) -> None:
@@ -271,7 +294,7 @@ class Remote(Nuxeo):
         try:
             computed_digest = compute_digest(filepath, digester, callback=callback)
             if digest != computed_digest:
-                # Temp file and Download table entry will be deleted
+                # TMP file and Downloads table entry will be deleted
                 # by the calling method
                 raise CorruptedFile(filepath, digest, computed_digest)
         finally:
@@ -391,11 +414,11 @@ class Remote(Nuxeo):
                     idx=batch._upload_idx,
                     chunk_size=chunk_size,
                 )
-            self.dao.save_upload(upload)
+                self.dao.save_upload(upload)
 
             # Set those attributes as FileBlob does not have them
             # and they are required for the step 2 of .upload()
-            blob.batch_id = batch.uid
+            blob.batch_id = upload.batch
             blob.fileIdx = upload.idx
 
             uploader: Uploader = batch.get_uploader(
@@ -422,6 +445,10 @@ class Remote(Nuxeo):
                         # Here 0 may happen when doing a single upload
                         action.progress += uploader.chunk_size or 0
 
+                        # Save the progression
+                        upload.progress = action.get_percent()
+                        self.dao.set_transfer_progress("upload", upload)
+
                         # Handle status changes every time a chunk is sent
                         transfer = self.dao.get_upload(path=file_path)
                         if transfer and transfer.status not in (
@@ -431,13 +458,16 @@ class Remote(Nuxeo):
                             raise UploadPaused(transfer.uid or -1)
                 else:
                     uploader.upload()
+
                     # For empty files, this will set action.uploaded to True,
                     # telling us that the file was correctly sent to the server.
                     action.progress += blob.size
 
+                    upload.progress = action.get_percent()
+
             # Transfer is completed, update the status in the database
             upload.status = TransferStatus.DONE
-            self.dao.save_upload(upload)
+            self.dao.set_transfer_status("upload", upload)
 
             duration = int(time.monotonic() - tick)
             action.transfer_duration = duration
@@ -449,8 +479,14 @@ class Remote(Nuxeo):
             return blob, duration
         finally:
             # In case of error, log the progression to help debugging
-            if action.get_percent() < 100.0 and not action.uploaded:
-                log.debug(f"Upload progression stopped at {action.get_percent():.2f}%")
+            percent = action.get_percent()
+            if percent < 100.0 and not action.uploaded:
+                log.debug(f"Upload progression stopped at {percent:.2f}%")
+
+                # Save the progression
+                if upload:  # mypy fix ...
+                    upload.progress = percent
+                    self.dao.set_transfer_progress("upload", upload)
 
             UploadAction.finish_action()
 
@@ -503,62 +539,22 @@ class Remote(Nuxeo):
         Raises NotFound if file system item with id fs_item_id
         cannot be found
         """
-        fs_item_info = fs_item_info or self.get_fs_info(
-            fs_item_id, parent_fs_item_id=parent_fs_item_id
+        if not fs_item_info:
+            fs_item_info = self.get_fs_info(
+                fs_item_id, parent_fs_item_id=parent_fs_item_id
+            )
+
+        # Download the blob
+        tmp_file = self.download(
+            self.client.host + fs_item_info.download_url,
+            file_path,
+            file_out,
+            fs_item_info.digest or "",  # mypy fix ...
+            **kwargs,
         )
-        download_url = self.client.host + fs_item_info.download_url
 
-        # Retrieve ongoing download if it exists
-        download = self.dao.get_download(path=file_path)
-        engine_uid = kwargs.pop("engine_uid", None)
-        doc_pair_id = kwargs.pop("doc_pair_id", None)
-
-        if not download:
-            # Add a new download entry in the database
-            download = Download(
-                None,
-                path=file_path,
-                status=TransferStatus.ONGOING,
-                tmpname=str(file_out),
-                url=download_url,
-                engine=engine_uid,
-            )
-            self.dao.save_download(download)
-        elif download.tmpname:
-            file_out = Path(download.tmpname)
-
-        DownloadAction(file_path, tmppath=file_out, reporter=QApplication.instance())
-
-        try:
-            tmp_file = self.download(
-                download_url, file_out, digest=fs_item_info.digest, **kwargs
-            )
-        except ThreadInterrupt:
-            # We handle ThreadInterrupt to stop there and pause the current
-            # download, if any. If we do not do that, the global Exception
-            # will be taken a few lines after and the temporary downloaded
-            # file will be removed. This is problematic when suspending the
-            # application: we will loose current downloads and when resuming
-            # we will restart the whole download at 0.
-            log.info(f"Pausing download {download.uid!r}")
-            self.dao.set_transfer_doc(
-                "download", download.uid or -1, engine_uid, doc_pair_id
-            )
-            raise
-        except DownloadPaused:
-            raise
-        except Exception as e:
-            self.dao.remove_transfer("download", file_path)
-            with suppress(FileNotFoundError):
-                file_out.unlink()
-            raise e
-        else:
-            # Download completed, remove it from the database
-            self.dao.remove_transfer("download", file_path)
-        finally:
-            # This call is needed in case we did not make the call to .check_integrity()
-            # where it should have done this for us. In the worst case, this will be a no-op.
-            DownloadAction.finish_action()
+        # Download completed, remove it from the database
+        self.dao.remove_transfer("download", file_path)
 
         return tmp_file
 

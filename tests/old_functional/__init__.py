@@ -230,8 +230,12 @@ class RemoteBase(Remote):
         cannot be found
         """
         fs_item_info = self.get_fs_info(fs_item_id)
-        download_url = self.client.host + fs_item_info.download_url
-        return self.download(download_url, digest=fs_item_info.digest, **kwargs)
+        url = self.client.host + fs_item_info.download_url
+
+        # Placeholders
+        file_path = file_out = ""
+
+        return self.download(url, file_path, file_out, fs_item_info.digest, **kwargs)
 
     def get_roots(self) -> List[NuxeoDocumentInfo]:
         res = self.execute(command="NuxeoDrive.GetRoots")

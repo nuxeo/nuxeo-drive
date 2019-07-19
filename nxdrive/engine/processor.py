@@ -402,39 +402,47 @@ class Processor(EngineWorker):
 
     def _check_exists_on_the_server(self, doc_pair: DocPair) -> None:
         """Used when the server is not available to do specific actions."""
-        if doc_pair.pair_state == "locally_created":
-            # As seen with NXDRIVE-1753, an uploaded file may have worked
-            # but for some reason the final state is in error. So, let's
-            # check if the document is present on the server to bypass
-            # (infinite|useless) retries.
-            # Note: this is ugly as there are hardcoded values, maybe need to review that.
-            local_path = str(doc_pair.local_path)
-            if WINDOWS:
-                local_path = local_path.replace("\\", "/")
-            path = f"/default-domain/workspaces/{local_path}"
-            print("path =", path)
-            try:
-                fs_item = self.remote.fetch(path)
-            except Exception:
-                pass
-            else:
-                log.debug(f"The document has already been uploaded to the server")
+        if doc_pair.pair_state != "locally_created":
+            # Simply retry later
+            self._postpone_pair(doc_pair, "Server unavailable")
+            return
 
-                # Fetch the remote item to update the local pair details
-                doc_pair.remote_ref = (
-                    f"defaultFileSystemItemFactory#default#{fs_item['uid']}"
-                )
-                remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
-                paths = remote_info.path.partition("/defaultFileSystemItemFactory")
-                doc_pair.remote_parent_path = paths[0]
-                self._refresh_remote(doc_pair, remote_info=remote_info)
+        # As seen with NXDRIVE-1753, an uploaded file may have worked
+        # but for some reason the final state is in error. So, let's
+        # check if the document is present on the server to bypass
+        # (infinite|useless) retries.
+        # Note: this is ugly as there are hardcoded values, maybe need to review that.
+        local_path = str(doc_pair.local_path)
+        if WINDOWS:
+            local_path = local_path.replace("\\", "/")
+        path = f"/default-domain/workspaces/{local_path}"
+        try:
+            fs_item = self.remote.fetch(path)
+        except Exception:
+            pass
+        else:
+            log.debug(f"The document has already been uploaded to the server")
 
-                # Transfer is completed, delete the upload from the database
-                self.remove_void_transfers(doc_pair)
-                return
+            # Fetch the remote item to update the local pair details
+            doc_pair.remote_ref = (
+                f"defaultFileSystemItemFactory#default#{fs_item['uid']}"
+            )
+            remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
+            paths = remote_info.path.partition("/defaultFileSystemItemFactory")
+            doc_pair.remote_parent_path = paths[0]
+            self._refresh_remote(doc_pair, remote_info=remote_info)
 
-        # Simply retry later
-        self._postpone_pair(doc_pair, "Server unavailable")
+            # Set the synced states and remote name
+            doc_pair.remote_name = remote_info.name
+            self.dao.synchronize_state(doc_pair)
+            self.dao.update_last_transfer(doc_pair.id, "upload")
+            self.dao.update_remote_name(doc_pair.id, remote_info.name)
+
+            # Transfer is completed, delete the upload from the database
+            self.remove_void_transfers(doc_pair)
+
+            # Trigger a refresh of the systray menu
+            self.pairSyncEnded.emit(self._current_metrics)
 
     def _handle_pair_handler_exception(
         self, doc_pair: DocPair, handler_name: str, e: Exception
@@ -1008,7 +1016,7 @@ class Processor(EngineWorker):
         tmp_file = self.remote.stream_content(
             doc_pair.remote_ref,
             file_path,
-            file_out=file_out,
+            file_out,
             parent_fs_item_id=doc_pair.remote_parent_ref,
             engine_uid=self.engine.uid,
             doc_pair_id=doc_pair.id,

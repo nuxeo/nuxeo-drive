@@ -417,6 +417,7 @@ class Transfer:
 @dataclass
 class Download(Transfer):
     transfer_type: str = field(init=False, default="download")
+    filesize: int = 0
     tmpname: Optional[str] = None
     url: Optional[str] = None
 
