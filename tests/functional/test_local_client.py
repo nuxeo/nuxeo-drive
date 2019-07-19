@@ -1,5 +1,5 @@
-from pathlib import Path
-from unittest.mock import Mock
+import pathlib
+from unittest.mock import patch
 
 from nxdrive.client.local_client import LocalClient
 from nxdrive.constants import ROOT
@@ -13,27 +13,35 @@ def test_get_path(tmp):
     path_upper = folder / "FOO.TXT"
 
     # The path does not exist, it returns ROOT
-    assert local.get_path(Path("bar.doc")) == ROOT
+    assert local.get_path(pathlib.Path("bar.doc")) == ROOT
 
     # The path exists, it returns
-    assert local.get_path(path) == Path("foo.txt")
-    assert local.get_path(path_upper) == Path("FOO.TXT")
+    assert local.get_path(path) == pathlib.Path("foo.txt")
+    assert local.get_path(path_upper) == pathlib.Path("FOO.TXT")
+
+
+@patch("pathlib.Path.resolve")
+@patch("pathlib.Path.absolute")
+def test_get_path_permission_error(mocked_resolve, mocked_absolute, tmp):
+    folder = tmp()
+    folder.mkdir()
+    local = LocalClient(folder)
+    path = folder / "foo.txt"
 
     # Path.resolve() raises a PermissionError, it should fallback on .absolute()
-    Path.resolve = Mock(side_effect=PermissionError())
-    Path.absolute = Mock()
+    mocked_resolve.side_effect = PermissionError()
     path_abs = local.get_path(path)
-    assert Path.absolute.called
+    assert mocked_absolute.called
 
     # Restore the original ehavior and check that .resolved() and .absolute()
     # return the same value.
-    Path.resolve.reset_mock()
+    mocked_resolve.reset_mock()
     assert local.get_path(path) == path_abs
 
 
 def test_set_get_xattr_file_not_found():
     """If file is not found, there is no value to retrieve."""
-    file = Path("file-no-found.txt")
+    file = pathlib.Path("file-no-found.txt")
 
     # This call should not fail
     LocalClient.set_path_remote_id(file, "something")
