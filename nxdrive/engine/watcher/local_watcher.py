@@ -579,6 +579,7 @@ class LocalWatcher(EngineWorker):
                 dao.remove_state(deleted)
             else:
                 self._delete_files[deleted.remote_ref] = deleted
+            self.remove_void_transfers(deleted)
 
         for child_info in to_scan_new:
             self._scan_recursive(child_info)
