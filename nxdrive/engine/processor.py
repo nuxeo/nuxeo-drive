@@ -758,21 +758,24 @@ class Processor(EngineWorker):
                 )
                 remote_ref = fs_item_info.uid
             else:
-                # TODO Check if the file is already on the server with the
-                # TODO good digest
+                # TODO Check if the file is already on the server with the good digest
                 log.info(
                     f"Creating remote document {name!r} "
                     f"in folder {parent_pair.remote_name!r}"
                 )
                 local_info = self.local.get_info(doc_pair.local_path)
                 if local_info.size != doc_pair.size:
-                    # Size has changed ( copy must still be running )
+                    # Size has changed (copy must still be running)
                     doc_pair.local_digest = UNACCESSIBLE_HASH
                     self.dao.update_local_state(
                         doc_pair, local_info, versioned=False, queue=False
                     )
-                    self._postpone_pair(doc_pair, "Unaccessible hash")
+                    # We need to recheck soon, and not put the doc in error after 3 tries
+                    # (copying a 100 GB file can take quit some time for example)
+                    doc_pair.error_count = 0
+                    self._postpone_pair(doc_pair, "Unaccessible hash", interval=5)
                     return
+
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
                     doc_pair.local_digest = local_info.get_digest()
                     log.debug(f"Creation of postponed local file: {doc_pair!r}")
