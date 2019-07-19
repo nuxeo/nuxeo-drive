@@ -1026,8 +1026,13 @@ class Engine(QObject):
 
         # Get the current download and check if it is still ongoing
         download = self.dao.get_download(path=action.filepath)
-        if download and download.status != TransferStatus.ONGOING:
-            raise DownloadPaused(download.uid or -1)
+        if download:
+            # Save the progression
+            download.progress = action.get_percent()
+            self.dao.set_transfer_progress("download", download)
+
+            if download.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
+                raise DownloadPaused(download.uid or -1)
 
     def create_processor(self, item_getter: Callable, **kwargs: Any) -> Processor:
         return Processor(self, item_getter, **kwargs)

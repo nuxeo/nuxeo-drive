@@ -227,7 +227,7 @@ class QMLDriveApi(QObject):
         engine = self._manager.engines.get(engine_uid)
         if not engine:
             return
-        engine.dao.pause_transfer(nature, transfer_uid)
+        engine.dao.pause_transfer(nature, transfer_uid, progress)
 
     @pyqtSlot(str, str, int)
     def resume_transfer(self, nature: str, engine_uid: str, uid: int) -> None:
