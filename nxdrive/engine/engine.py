@@ -1,6 +1,7 @@
 # coding: utf-8
 import datetime
 import os
+import shutil
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
@@ -487,7 +488,15 @@ class Engine(QObject):
         self.manager.osi.unregister_folder_link(self.local_folder)
 
         self.dispose_db()
-        self.download_dir.rmdir()
+
+        try:
+            shutil.rmtree(self.download_dir)
+        except FileNotFoundError:
+            # Folder already removed
+            pass
+        except OSError:
+            log.exception("Download folder removal error")
+
         try:
             self._get_db_file().unlink()
         except FileNotFoundError:
