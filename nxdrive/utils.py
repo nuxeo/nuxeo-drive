@@ -45,7 +45,6 @@ __all__ = (
     "compute_digest",
     "compute_fake_pid_from_path",
     "compute_urls",
-    "copy_to_clipboard",
     "current_milli_time",
     "current_thread_id",
     "decrypt",
@@ -127,24 +126,6 @@ def compute_fake_pid_from_path(path: str) -> int:
         path_b = path.encode(getdefaultencoding() or "utf-8", errors="ignore")
 
     return crc32(path_b)
-
-
-def copy_to_clipboard(text: str) -> None:
-    """ Copy the given text to the clipboard. """
-
-    if WINDOWS:
-        import win32clipboard
-
-        win32clipboard.OpenClipboard()
-        win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
-        win32clipboard.CloseClipboard()
-    else:
-        from PyQt5.QtWidgets import QApplication
-
-        cb = QApplication.clipboard()
-        cb.clear(mode=cb.Clipboard)
-        cb.setText(text, mode=cb.Clipboard)
 
 
 def current_thread_id() -> int:

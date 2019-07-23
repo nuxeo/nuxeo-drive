@@ -101,6 +101,16 @@ class AbstractOSIntegration(QObject):
     def get_system_configuration(self) -> Dict[str, Any]:
         return dict()
 
+    @staticmethod
+    def cb_get() -> str:
+        """Get the text data from the clipboard."""
+        return ""
+
+    @staticmethod
+    def cb_set(text: str) -> None:
+        """Copy some *text* into the clipboard."""
+        pass
+
     def _init(self) -> None:
         pass
 

@@ -41,6 +41,8 @@ There is currently no universal package to download. In the meantime you can ins
 
 The easiest and safest way to build Drive is to follow the same steps as we do on [Jenkins](#jenkins).
 
+Note that the `xclip` tool is needed for the clipboard copy/paste to work.
+
 #### xattr
 
 First note that Nuxeo Drive uses [Extended file attributes](https://en.wikipedia.org/wiki/Extended_file_attributes) through the [xattr](https://pypi.python.org/pypi/xattr/) Python wrapper.

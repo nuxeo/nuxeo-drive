@@ -144,13 +144,14 @@ def fatal_error_qt(exc_formatted: str) -> None:
 
     def copy() -> None:
         """Copy details to the clipboard and change the text of the button. """
-        copy_to_clipboard("\n".join(details))
+        osi.cb_set("\n".join(details))
         copy_paste.setText(tr("FATAL_ERROR_DETAILS_COPIED"))
 
     # "Copy details" button
     with suppress(Exception):
-        from nxdrive.utils import copy_to_clipboard
+        from nxdrive.osi import AbstractOSIntegration
 
+        osi = AbstractOSIntegration.get(None)
         copy_paste = buttons.addButton(
             tr("FATAL_ERROR_DETAILS_COPY"), QDialogButtonBox.ActionRole
         )

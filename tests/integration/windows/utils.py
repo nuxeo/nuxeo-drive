@@ -2,21 +2,11 @@ from logging import getLogger
 from time import sleep
 
 from nxdrive.constants import APP_NAME
+from nxdrive.osi import AbstractOSIntegration
 
 
 log = getLogger(__name__)
-
-
-def copy_clipboard() -> str:
-    """Get content of the clip board."""
-    # Use the import there to prevent pytest --last-failed to crash
-    # when running on non Windows platforms
-    import win32clipboard
-
-    win32clipboard.OpenClipboard()
-    details = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
-    win32clipboard.CloseClipboard()
-    return details
+osi = AbstractOSIntegration(None)
 
 
 def fatal_error_dlg(app, with_details: bool = True) -> bool:
@@ -29,7 +19,7 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
             sleep(1)
             dlg.child_window(title="Copy details").wait("visible").click()
             sleep(1)
-            log.warning(f"Fatal error screen detected! Details:\n{copy_clipboard()}")
+            log.warning(f"Fatal error screen detected! Details:\n{osi.cb_get()}")
         else:
             log.warning(f"Fatal error screen detected!")
 
