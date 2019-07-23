@@ -78,6 +78,26 @@ class WindowsIntegration(AbstractOSIntegration):
             return True
         return False
 
+    @staticmethod
+    def cb_get() -> str:
+        """Get the text data from the clipboard."""
+        import win32clipboard
+
+        win32clipboard.OpenClipboard()
+        text = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+        win32clipboard.CloseClipboard()
+        return text
+
+    @staticmethod
+    def cb_set(text: str) -> None:
+        """Copy some *text* into the clipboard."""
+        import win32clipboard
+
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardText(text, win32clipboard.CF_UNICODETEXT)
+        win32clipboard.CloseClipboard()
+
     @pyqtSlot(result=bool)
     def install_addons(self, setup: str = "nuxeo-drive-addons.exe") -> bool:
         """Install addons using the installer shipped within the main installer."""

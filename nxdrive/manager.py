@@ -40,7 +40,6 @@ from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater
 from .updater import updater
 from .updater.constants import Login
 from .utils import (
-    copy_to_clipboard,
     force_decode,
     get_arch,
     get_current_os_full,
@@ -776,12 +775,13 @@ class Manager(QObject):
         else:
             self.open_local_file(url)
 
-    def ctx_copy_share_link(self, path: Path) -> None:
+    def ctx_copy_share_link(self, path: Path) -> str:
         """ Copy the document's share-link to the clipboard. """
 
         url = self.get_metadata_infos(path)
-        copy_to_clipboard(url)
+        self.osi.cb_set(url)
         log.info(f"Copied {url!r}")
+        return url
 
     def ctx_edit_metadata(self, path: Path) -> None:
         """ Open the user's browser to a remote document's metadata. """
@@ -804,9 +804,10 @@ class Manager(QObject):
 
         root_id = self.get_root_id(path)
         root_values = root_id.split("|") if root_id else []
+
         try:
-            engine = self.get_engines()[root_values[3]]
-        except:
+            engine = self.engines[root_values[3]]
+        except (KeyError, IndexError):
             raise ValueError(f"Unknown engine {root_values[3]} for {path!r}")
 
         return engine.get_metadata_url(remote_ref, edit=edit)

@@ -88,7 +88,7 @@ def manager_factory(
             manager.user_details = user
 
             engine = None
-            for uid, engine_ in manager.engines.items():
+            for engine_ in manager.engines.values():
                 engine = engine_
 
             return manager, engine
@@ -134,20 +134,33 @@ def user_factory(request, server, faker):
 
 
 @pytest.fixture()
-def workspace_factory(request, server):
-    """Workspace creation factory with automatic clean-up."""
+def obj_factory(request, server):
+    """File/Folder/Workspace creation factory with automatic clean-up."""
 
-    def _make_workspace(title: str = ""):
+    parent = "/default-domain/workspaces"
+
+    def _make(
+        title: str = "",
+        nature: str = "Folder",
+        parent: str = parent,
+        enable_sync: bool = False,
+    ):
         title = title or str(uuid4())
-        new_ws = Document(name=title, type="Workspace", properties={"dc:title": title})
-        ws = server.documents.create(new_ws, parent_path="/default-domain/workspaces")
-        request.addfinalizer(ws.delete)
-        log.info(f"[FIXTURE] Created {ws}")
+        new = Document(name=title, type=nature, properties={"dc:title": title})
+        obj = server.documents.create(new, parent_path=parent)
+        request.addfinalizer(obj.delete)
+        log.info(f"[FIXTURE] Created {obj}")
 
         # Convenient attributes
-        for k, v in ws.properties.items():
-            setattr(ws, k, v)
+        for k, v in obj.properties.items():
+            setattr(obj, k, v)
 
-        return ws
+        if enable_sync:
+            operation = server.operations.new("NuxeoDrive.SetSynchronization")
+            operation.params = {"enable": True}
+            operation.input_obj = obj.path
+            operation.execute()
 
-    yield _make_workspace
+        return obj
+
+    yield _make

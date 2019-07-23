@@ -356,7 +356,6 @@ class Engine(QObject):
         :param edit: Show the metadata edit page instead of the document.
         :return: The complete URL.
         """
-
         _, repo, uid = remote_ref.split("#", 2)
         page = ("view_documents", "view_drive_metadata")[edit]
         token = self.get_remote_token()

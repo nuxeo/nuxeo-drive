@@ -295,6 +295,7 @@ class Processor(EngineWorker):
                 log.warning(
                     f"The document or its parent does not exist anymore: {doc_pair!r}"
                 )
+                self.remove_void_transfers(doc_pair)
             except Unauthorized:
                 self.giveup_error(doc_pair, "INVALID_CREDENTIALS")
             except Forbidden:

@@ -114,10 +114,6 @@ class Application(QApplication):
         # kicking off our event loop every few milliseconds.
         #
         # https://machinekoder.com/how-to-not-shoot-yourself-in-the-foot-using-python-qt/
-        #
-        # ---
-        # This is usefull while testing too, as sometimes the test is cancelled due
-        # to a timeout set before running it (wanted behavior).
         self.timer = QTimer()
         self.timer.timeout.connect(lambda: None)
         self.timer.start(100)
