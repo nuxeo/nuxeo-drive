@@ -5,7 +5,7 @@ https://github.com/gorakhargosh/watchdog/archive/8b94506c3156a3b66faef7aac9a139f
 # nuxeo==2.2.2
 https://github.com/nuxeo/nuxeo-python-client/archive/beb5e4c3e8b07f44236569eda8416d0a4aa97bf9.zip
 markdown==3.1.1
-psutil==5.6.2
+psutil==5.6.3
 pyaml==19.4.1
 pycryptodomex==3.8.2
 # Ignore pyobjc updates until NXDRIVE-1396 is done
@@ -22,5 +22,5 @@ python-dateutil==2.8.0
 requests==2.22.0
 rfc3987==1.3.8
 Send2Trash==1.5.0
-sentry-sdk==0.9.0
+sentry-sdk==0.10.2
 xattr==0.9.6; sys_platform != 'win32'

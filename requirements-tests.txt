@@ -1,10 +1,10 @@
-faker==1.0.7
-flake8==3.7.7
+faker==2.0.0
+flake8==3.7.8
 junitparser==1.3.2
-mypy==0.701
+mypy==0.720
 pre-commit==1.17.0
-pytest==4.6.2
+pytest==5.0.1
 pytest-cov==2.7.1
 pytest-timeout==1.3.3
-pytest-xdist==1.28.0
+pytest-xdist==1.29.0
 pywinauto==0.6.6; sys_platform == 'win32'
