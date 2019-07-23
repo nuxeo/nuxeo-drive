@@ -617,7 +617,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 5
+        return 6
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -661,6 +661,18 @@ class EngineDAO(ConfigurationDAO):
         if version < 5:
             self._create_transfer_tables(cursor)
             self.store_int(SCHEMA_VERSION, 5)
+        if version < 6:
+            # Add the *filesize* field to the Downloads table,
+            # used to display download metrics in the systray menu.
+            try:
+                cursor.execute(
+                    "ALTER TABLE Downloads ADD COLUMN filesize INTEGER DEFAULT 0;"
+                )
+            except OperationalError:
+                # The field was already created at version 5 in ._create_transfer_tables()
+                # so we can bypass the error
+                pass
+            self.store_int(SCHEMA_VERSION, 6)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
@@ -678,6 +690,7 @@ class EngineDAO(ConfigurationDAO):
             "    engine         VARCHAR     DEFAULT NULL,"
             "    is_direct_edit INTEGER     DEFAULT 0,"
             "    progress       REAL,"
+            "    filesize       INTEGER     DEFAULT 0,"
             "    doc_pair       INTEGER     UNIQUE,"
             "    tmpname        VARCHAR,"
             "    url            VARCHAR,"
@@ -1019,6 +1032,14 @@ class EngineDAO(ConfigurationDAO):
             c = con.cursor()
             c.execute(
                 "UPDATE States SET last_transfer = ? WHERE id = ?", (transfer, row_id)
+            )
+
+    def update_remote_name(self, row_id: int, remote_name: str) -> None:
+        with self._lock:
+            con = self._get_write_connection()
+            c = con.cursor()
+            c.execute(
+                "UPDATE States SET remote_name = ? WHERE id = ?", (remote_name, row_id)
             )
 
     def get_dedupe_pair(self, name: str, parent: str, row_id: int) -> Optional[DocPair]:
@@ -1472,9 +1493,10 @@ class EngineDAO(ConfigurationDAO):
                 "   AND " + self._get_to_sync_condition(),
                 (row.remote_ref, row.local_path),
             ).fetchall()
-            log.info(f"Queuing {len(children)} children of {row}")
-            for child in children:
-                self._queue_pair_state(child.id, child.folderish, child.pair_state)
+            if children:
+                log.info(f"Queuing {len(children)} children of {row}")
+                for child in children:
+                    self._queue_pair_state(child.id, child.folderish, child.pair_state)
 
     def increase_error(
         self, row: DocPair, error: str, details: str = None, incr: int = 1
@@ -1915,6 +1937,7 @@ class EngineDAO(ConfigurationDAO):
                 engine=res.engine,
                 is_direct_edit=res.is_direct_edit,
                 progress=res.progress,
+                filesize=res.filesize,
                 doc_pair=res.doc_pair,
                 tmpname=res.tmpname,
                 url=res.url,
@@ -1980,51 +2003,55 @@ class EngineDAO(ConfigurationDAO):
         return res[0] if res else None
 
     def save_download(self, download: Download) -> None:
+        """New download."""
+        sql = (
+            "INSERT INTO Downloads "
+            "(path, status, engine, doc_pair, filesize, is_direct_edit, tmpname, url)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        )
+        values = (
+            download.path,
+            download.status.value,
+            download.engine,
+            download.doc_pair,
+            download.filesize,
+            download.is_direct_edit,
+            download.tmpname,
+            download.url,
+        )
         with self._lock:
             c = self._get_write_connection().cursor()
-            c.execute(
-                "REPLACE INTO Downloads "
-                "(path, status, engine, is_direct_edit, tmpname, url) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (
-                    download.path,
-                    download.status.value,
-                    download.engine,
-                    download.is_direct_edit,
-                    download.tmpname,
-                    download.url,
-                ),
-            )
-            download.uid = c.lastrowid
+            c.execute(sql, values)
             self.transferUpdated.emit()
 
     def save_upload(self, upload: Upload) -> None:
+        """New upload."""
+        sql = (
+            "INSERT INTO Uploads "
+            "(path, status, engine, is_direct_edit, batch, idx, chunk_size)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)"
+        )
+        values = (
+            upload.path,
+            upload.status.value,
+            upload.engine,
+            upload.is_direct_edit,
+            upload.batch,
+            upload.idx,
+            upload.chunk_size,
+        )
         with self._lock:
             c = self._get_write_connection().cursor()
-            c.execute(
-                "REPLACE INTO Uploads "
-                "(path, status, engine, is_direct_edit, batch, idx, chunk_size) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (
-                    upload.path,
-                    upload.status.value,
-                    upload.engine,
-                    upload.is_direct_edit,
-                    upload.batch,
-                    upload.idx,
-                    upload.chunk_size,
-                ),
-            )
-            upload.uid = c.lastrowid
+            c.execute(sql, values)
             self.transferUpdated.emit()
 
-    def pause_transfer(self, nature: str, uid: int) -> None:
+    def pause_transfer(self, nature: str, uid: int, progress: float) -> None:
         table = f"{nature.title()}s"  # Downloads/Uploads
         with self._lock:
             c = self._get_write_connection().cursor()
             c.execute(
-                f"UPDATE {table} SET status = ? WHERE uid = ?",
-                (TransferStatus.PAUSED.value, uid),
+                f"UPDATE {table} SET status = ?, progress = ? WHERE uid = ?",
+                (TransferStatus.PAUSED.value, progress, uid),
             )
             self.transferUpdated.emit()
 
@@ -2060,6 +2087,30 @@ class EngineDAO(ConfigurationDAO):
             c.execute(
                 f"UPDATE {table} SET doc_pair = ?, engine = ? WHERE uid = ?",
                 (doc_pair_uid, engine_uid, transfer_uid),
+            )
+
+    def set_transfer_progress(
+        self, nature: str, transfer: Union[Download, Upload]
+    ) -> None:
+        """Update the 'progress' field of a given *transfer*."""
+        table = f"{nature.title()}s"  # Downloads/Uploads
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                f"UPDATE {table} SET progress = ? WHERE uid = ?",
+                (transfer.progress, transfer.uid),
+            )
+
+    def set_transfer_status(
+        self, nature: str, transfer: Union[Download, Upload]
+    ) -> None:
+        """Update the 'status' field of a given *transfer*."""
+        table = f"{nature.title()}s"  # Downloads/Uploads
+        with self._lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                f"UPDATE {table} SET status = ? WHERE uid = ?",
+                (transfer.status.value, transfer.uid),
             )
 
     def remove_transfer(self, nature: str, path: Path) -> None:

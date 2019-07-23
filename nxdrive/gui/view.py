@@ -1,4 +1,5 @@
 # coding: utf-8
+import os.path
 from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import (
@@ -143,7 +144,8 @@ class TransferModel(QAbstractListModel):
     TYPE = Qt.UserRole + 5
     ENGINE = Qt.UserRole + 6
     IS_DIRECT_EDIT = Qt.UserRole + 7
-    VERIFYING = Qt.UserRole + 8
+    FINALIZING = Qt.UserRole + 8
+    PROGRESS_METRICS = Qt.UserRole + 9
 
     def __init__(self, parent: QObject = None) -> None:
         super().__init__(parent)
@@ -156,7 +158,10 @@ class TransferModel(QAbstractListModel):
             self.TYPE: b"transfer_type",
             self.ENGINE: b"engine",
             self.IS_DIRECT_EDIT: b"is_direct_edit",
-            self.VERIFYING: b"verifying",
+            self.PROGRESS_METRICS: b"progress_metrics",
+            # The is the Verification step for downloads
+            # and Linking step for uploads.
+            self.FINALIZING: b"finalizing",
         }
 
     def roleNames(self) -> Dict[int, bytes]:
@@ -180,12 +185,34 @@ class TransferModel(QAbstractListModel):
         self.fileChanged.emit()
         self.endInsertRows()
 
+    def get_progress(self, row: Dict[str, Any]) -> str:
+        """Return a nicely formatted line to know the transfer progression.
+        E.g: 10.0 MiB / 42.0 MiB [24%]
+        """
+        if row["transfer_type"] == "download":
+            try:
+                progress = os.path.getsize(row["tmpname"])
+            except FileNotFoundError:
+                progress = 0
+            size = row["filesize"]
+        else:
+            try:
+                size = os.path.getsize(row["path"])
+            except FileNotFoundError:
+                size = 0
+            progress = size * (row["progress"] or 0.0) / 100
+
+        percent = min(100, progress * 100 / (size or 1))
+        return f"{sizeof_fmt(progress)} / {sizeof_fmt(size)} [{int(percent)}%]"
+
     def data(self, index: QModelIndex, role: int = NAME) -> Any:
         row = self.transfers[index.row()]
         if role == self.STATUS:
             return row["status"].name
-        if role == self.VERIFYING:
-            return row.get("verifying", False)
+        if role == self.FINALIZING:
+            return row.get("finalizing", False)
+        if role == self.PROGRESS_METRICS:
+            return self.get_progress(row)
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
@@ -201,8 +228,9 @@ class TransferModel(QAbstractListModel):
             if item["name"] == action["name"]:
                 idx = self.createIndex(i, 0)
                 self.setData(idx, action["progress"], self.PROGRESS)
+                self.setData(idx, action["progress"], self.PROGRESS_METRICS)
                 if action["action_type"] == "Verification":
-                    self.setData(idx, True, self.VERIFYING)
+                    self.setData(idx, True, self.FINALIZING)
                 break
 
     def flags(self, index: QModelIndex):

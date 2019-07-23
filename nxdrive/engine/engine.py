@@ -1,6 +1,7 @@
 # coding: utf-8
 import datetime
 import os
+import shutil
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
@@ -487,7 +488,15 @@ class Engine(QObject):
         self.manager.osi.unregister_folder_link(self.local_folder)
 
         self.dispose_db()
-        self.download_dir.rmdir()
+
+        try:
+            shutil.rmtree(self.download_dir)
+        except FileNotFoundError:
+            # Folder already removed
+            pass
+        except OSError:
+            log.exception("Download folder removal error")
+
         try:
             self._get_db_file().unlink()
         except FileNotFoundError:
@@ -1026,8 +1035,13 @@ class Engine(QObject):
 
         # Get the current download and check if it is still ongoing
         download = self.dao.get_download(path=action.filepath)
-        if download and download.status != TransferStatus.ONGOING:
-            raise DownloadPaused(download.uid or -1)
+        if download:
+            # Save the progression
+            download.progress = action.get_percent()
+            self.dao.set_transfer_progress("download", download)
+
+            if download.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
+                raise DownloadPaused(download.uid or -1)
 
     def create_processor(self, item_getter: Callable, **kwargs: Any) -> Processor:
         return Processor(self, item_getter, **kwargs)

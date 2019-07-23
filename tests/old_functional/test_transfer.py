@@ -55,7 +55,7 @@ class TestDownload(OneUserTest):
             count += 1
             if count == 2:
                 # Pause the download
-                dao.pause_transfer("download", download.uid)
+                dao.pause_transfer("download", download.uid, 25.0)
 
             # Call the original function to make the paused download
             # effective at the 2nd iteration
@@ -146,7 +146,7 @@ class TestDownload(OneUserTest):
                 assert download.status == TransferStatus.ONGOING
 
                 # Pause the download
-                dao.pause_transfer("download", download.uid)
+                dao.pause_transfer("download", download.uid, 0.0)
 
                 # Apply changes to the document
                 remote.update_content(file.uid, b"remotely changed")
@@ -191,7 +191,7 @@ class TestDownload(OneUserTest):
             assert download.status == TransferStatus.ONGOING
 
             # Pause the download
-            dao.pause_transfer("download", download.uid)
+            dao.pause_transfer("download", download.uid, 0.0)
 
             # Remove the document
             remote.delete(file.uid)
@@ -259,7 +259,7 @@ class TestUpload(OneUserTest):
             assert upload.status == TransferStatus.ONGOING
 
             # Pause the upload
-            dao.pause_transfer("upload", upload.uid)
+            dao.pause_transfer("upload", upload.uid, 50.0)
 
         engine = self.engine_1
         dao = self.engine_1.dao
@@ -328,7 +328,7 @@ class TestUpload(OneUserTest):
             assert upload.status == TransferStatus.ONGOING
 
             # Pause the upload
-            dao.pause_transfer("upload", upload.uid)
+            dao.pause_transfer("upload", upload.uid, 50.0)
 
             # Apply changes to the document
             local.update_content("/test.bin", b"locally changed")
@@ -368,7 +368,7 @@ class TestUpload(OneUserTest):
             assert upload.status == TransferStatus.ONGOING
 
             # Pause the upload
-            dao.pause_transfer("upload", upload.uid)
+            dao.pause_transfer("upload", upload.uid, 50.0)
 
             # Remove the document
             # (this is the problematic part on Windows, because for the
@@ -447,13 +447,13 @@ class TestUpload(OneUserTest):
             link_blob_to_doc_orig(*args, **kwargs)
 
             # The file should be present on the server
-            assert self.remote_1.exists("/test.bin")
+            assert self.remote_1.exists(f"/{file}")
 
-            # There should be 1 upload with DONE transfer status
+            # There should be 1 upload with ONGOING transfer status
             uploads = dao.get_uploads()
             assert len(uploads) == 1
             upload = uploads[0]
-            assert upload.status == TransferStatus.DONE
+            assert upload.status == TransferStatus.ONGOING
 
             # And throw an error
             stack = (
@@ -464,9 +464,10 @@ class TestUpload(OneUserTest):
         engine = self.engine_1
         dao = self.engine_1.dao
         link_blob_to_doc_orig = engine.remote.link_blob_to_doc
+        file = "t'ée sんt.bin"
 
         # Locally create a file that will be uploaded remotely
-        self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
+        self.local_1.make_file("/", file, content=b"0" * FILE_BUFFER_SIZE * 2)
 
         # There is no upload, right now
         assert not dao.get_uploads()
@@ -482,7 +483,7 @@ class TestUpload(OneUserTest):
         # Resync and check the file still exists
         self.wait_sync()
         assert not dao.get_uploads()
-        assert self.remote_1.exists("/test.bin")
+        assert self.remote_1.exists(f"/{file}")
         assert not dao.get_errors(limit=0)
 
     def test_server_error_upload(self):

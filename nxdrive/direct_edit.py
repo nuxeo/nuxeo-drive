@@ -11,7 +11,6 @@ from threading import Lock
 from typing import Any, Dict, List, Optional, Pattern, TYPE_CHECKING
 from urllib.parse import quote
 
-from PyQt5.QtWidgets import QApplication
 from nuxeo.exceptions import Forbidden, HTTPError
 from nuxeo.utils import get_digest_algorithm
 from nuxeo.models import Blob
@@ -23,13 +22,13 @@ from watchdog.observers import Observer
 
 from .client.local_client import LocalClient
 from .client.remote_client import Remote
-from .constants import CONNECTION_ERROR, DOC_UID_REG, ROOT, TransferStatus
-from .engine.activity import tooltip, DownloadAction
+from .constants import CONNECTION_ERROR, DOC_UID_REG, ROOT
+from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
 from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt, UnknownDigest
-from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo, Download
+from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .utils import (
     current_milli_time,
     force_decode,
@@ -276,6 +275,7 @@ class DirectEdit(Worker):
         self,
         engine: "Engine",
         info: NuxeoDocumentInfo,
+        file_path: Path,
         file_out: Path,
         blob: Blob,
         xpath: str,
@@ -309,12 +309,12 @@ class DirectEdit(Worker):
                     unset_path_readonly(file_out)
 
         if not pair:
-            log.info(f"Downloading file {blob.name!r} from {url!r}")
             if url:
                 engine.remote.download(
                     quote(url, safe="/:"),
+                    file_path,
                     file_out,
-                    digest=blob.digest,
+                    blob.digest,
                     callback=self.stop_client,
                 )
             else:
@@ -437,30 +437,17 @@ class DirectEdit(Worker):
         tmp_folder.mkdir(parents=True, exist_ok=True)
         file_out = tmp_folder / filename
 
-        DownloadAction(file_path, tmppath=file_out, reporter=QApplication.instance())
-        # Add a new download entry in the database
-        download = Download(
-            None,
-            path=file_path,
-            status=TransferStatus.ONGOING,
-            url=url,
-            is_direct_edit=True,
-            engine=engine.uid,
-        )
-        engine.dao.save_download(download)
         try:
             # Download the file
-            tmp_file = self._download(engine, info, file_out, blob, xpath, url=url)
-            # Download completed, remove it from the database
-            engine.dao.remove_transfer("download", file_path)
+            tmp_file = self._download(
+                engine, info, file_path, file_out, blob, xpath, url=url
+            )
             if tmp_file is None:
                 log.warning("Download failed")
                 return None
         except CONNECTION_ERROR:
             log.warning("Unable to perform DirectEdit", exc_info=True)
             return None
-        finally:
-            DownloadAction.finish_action()
 
         # Set the remote_id
         dir_path = self.local.get_path(dir_path)

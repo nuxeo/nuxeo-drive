@@ -32,15 +32,22 @@ Rectangle {
                 }
 
                 RowLayout {
+                    // (Down|Up)load icon
                     IconLabel {
                         size: 16
                         icon: download ? MdiFont.Icon.download : MdiFont.Icon.upload
+                    }
+                    // Progression: 10.0 MiB / 42.0 MiB [24%]
+                    ScaledText {
+                        text: progress_metrics
+                        pointSize: 10
+                        color: mediumGray
                     }
                 }
             }
 
             IconLabel {
-                visible: !is_direct_edit
+                visible: !is_direct_edit && !finalizing
                 z: 20; Layout.alignment: Qt.AlignRight; Layout.rightMargin: 10
                 icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
                 onClicked: {
@@ -58,7 +65,7 @@ Rectangle {
 
         NuxeoProgressBar {
             id: progressBar
-            color: verifying ? lightGreen : lightBlue
+            color: finalizing ? lightGreen : lightBlue
             Layout.fillWidth: true; Layout.alignment: Qt.AlignRight
             Layout.leftMargin: 15; Layout.rightMargin: 15
             height: 5
