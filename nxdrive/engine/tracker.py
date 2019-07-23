@@ -1,6 +1,4 @@
 # coding: utf-8
-import ctypes
-import locale
 import os
 import sys
 from logging import getLogger
@@ -13,8 +11,8 @@ from .workers import Worker
 from ..constants import APP_NAME, MAC, WINDOWS
 from ..utils import get_arch, get_current_os
 
-if MAC:
-    from Foundation import NSLocale
+if not MAC:
+    import locale
 
 if TYPE_CHECKING:
     from .engine import Engine  # noqa
@@ -66,16 +64,26 @@ class Tracker(Worker):
     def current_locale(self) -> str:
         """ Detect the OS default language. """
 
-        encoding = locale.getdefaultlocale()[1] or ""
+        # Guess the encoding
+        if MAC:
+            # Always UTF-8 on macOS
+            encoding = "UTF-8"
+        else:
+            encoding = locale.getdefaultlocale()[1] or ""
+
+        # Guess the current locale name
         if WINDOWS:
+            import ctypes
+
             l10n_code = (
                 ctypes.windll.kernel32.GetUserDefaultUILanguage()  # type: ignore
             )
             l10n = locale.windows_locale[l10n_code]
         elif MAC:
+            from Foundation import NSLocale
+
             l10n_code = NSLocale.currentLocale()
             l10n = NSLocale.localeIdentifier(l10n_code)
-            encoding = "UTF-8"
         else:
             l10n = locale.getdefaultlocale()[0] or ""
 
