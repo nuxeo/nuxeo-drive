@@ -225,13 +225,13 @@ class TransferModel(QAbstractListModel):
     @pyqtSlot(dict)
     def set_progress(self, action: Dict[str, Any]) -> None:
         for i, item in enumerate(self.transfers):
-            if item["name"] == action["name"]:
-                idx = self.createIndex(i, 0)
-                self.setData(idx, action["progress"], self.PROGRESS)
-                self.setData(idx, action["progress"], self.PROGRESS_METRICS)
-                if action["action_type"] == "Verification":
-                    self.setData(idx, True, self.FINALIZING)
-                break
+            if item["name"] != action["name"]:
+                continue
+            idx = self.createIndex(i, 0)
+            self.setData(idx, action["progress"], self.PROGRESS)
+            self.setData(idx, action["progress"], self.PROGRESS_METRICS)
+            if action["action_type"] in ("Linking", "Verification"):
+                self.setData(idx, True, self.FINALIZING)
 
     def flags(self, index: QModelIndex):
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable

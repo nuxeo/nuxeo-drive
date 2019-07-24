@@ -14,6 +14,7 @@ __all__ = (
     "DownloadAction",
     "FileAction",
     "IdleAction",
+    "LinkingAction",
     "UploadAction",
     "tooltip",
 )
@@ -186,13 +187,26 @@ class FileAction(Action):
 
 
 class DownloadAction(FileAction):
+    """Download: step 1/2 - Download the file."""
+
     def __init__(
         self, filepath: Path, tmppath: Path = None, reporter: Any = None
     ) -> None:
         super().__init__("Download", filepath, tmppath=tmppath, reporter=reporter)
 
 
+class VerificationAction(FileAction):
+    """Download: step 2/2 - Checking the file integrity."""
+
+    def __init__(self, filepath: Path, reporter: Any = None) -> None:
+        super().__init__(
+            "Verification", filepath, size=filepath.stat().st_size, reporter=reporter
+        )
+
+
 class UploadAction(FileAction):
+    """Upload: step 1/2 - Upload the file."""
+
     def __init__(
         self, filepath: Path, tmppath: Path = None, reporter: Any = None
     ) -> None:
@@ -205,11 +219,13 @@ class UploadAction(FileAction):
         )
 
 
-class VerificationAction(FileAction):
+class LinkingAction(FileAction):
+    """Upload: step 2/2 - Create the document on the server and link the uploaded blob to it."""
+
     def __init__(self, filepath: Path, reporter: Any = None) -> None:
-        super().__init__(
-            "Verification", filepath, size=filepath.stat().st_size, reporter=reporter
-        )
+        size = filepath.stat().st_size
+        super().__init__("Linking", filepath, size=size, reporter=reporter)
+        self.progress = size
 
 
 def tooltip(doing: str):
