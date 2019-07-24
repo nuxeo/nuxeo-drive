@@ -6,6 +6,7 @@ from nxdrive.engine.activity import (
     DownloadAction,
     FileAction,
     IdleAction,
+    LinkingAction,
     UploadAction,
     VerificationAction,
     tooltip,
@@ -231,6 +232,19 @@ def test_verification_action(tmp):
 
     action = VerificationAction(filepath)
     assert action.type == "Verification"
+
+    Action.finish_action()
+    assert action.finished
+
+
+def test_finalization_action(tmp):
+    folder = tmp()
+    folder.mkdir()
+    filepath = folder / "test.txt"
+    filepath.write_bytes(b"This is Sparta!")
+
+    action = LinkingAction(filepath)
+    assert action.type == "Linking"
 
     Action.finish_action()
     assert action.finished

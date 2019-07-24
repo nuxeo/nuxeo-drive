@@ -30,7 +30,12 @@ from ..constants import (
     TX_TIMEOUT,
     TransferStatus,
 )
-from ..engine.activity import DownloadAction, UploadAction, VerificationAction
+from ..engine.activity import (
+    DownloadAction,
+    LinkingAction,
+    UploadAction,
+    VerificationAction,
+)
 from ..exceptions import NotFound, ScrollDescendantsError, UploadPaused
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo, Download, Upload
 from ..options import Options
@@ -333,6 +338,7 @@ class Remote(Nuxeo):
             )
 
             # Step 2: link the uploaded blob to the document
+            params["file_path"] = file_path
             item = self.link_blob_to_doc(command, blob, duration, **params)
 
             # Transfer is completed, delete the upload from the database
@@ -501,6 +507,7 @@ class Remote(Nuxeo):
         # Remove additionnal parameters to prevent a BadQuery
         params.pop("engine_uid", None)
         params.pop("is_direct_edit", None)
+        file_path = params.pop("file_path")
 
         # Use upload duration * 2 as Nuxeo transaction timeout
         timeout = max(TX_TIMEOUT, duration * 2)
@@ -509,9 +516,24 @@ class Remote(Nuxeo):
         log.debug(
             f"Setting connection timeout to {timeout} seconds to handle the file creation on the server"
         )
-        return self.execute(
-            command=command, input_obj=blob, headers=headers, timeout=timeout, **params
-        )
+
+        # Terminate the upload action to be able to start the finalization one as we are allowing
+        # only 1 action per thread.
+        # Note that this is not really needed as the finalization action would replace the upload
+        # one, but let's do things right.
+        UploadAction.finish_action()
+
+        LinkingAction(file_path, reporter=QApplication.instance())
+        try:
+            return self.execute(
+                command=command,
+                input_obj=blob,
+                headers=headers,
+                timeout=timeout,
+                **params,
+            )
+        finally:
+            LinkingAction.finish_action()
 
     def get_fs_info(
         self, fs_item_id: str, parent_fs_item_id: str = None

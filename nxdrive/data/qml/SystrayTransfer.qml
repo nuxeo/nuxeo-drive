@@ -8,8 +8,8 @@ Rectangle {
     property variant fileData: model
     property bool paused: status == "PAUSED" || status == "SUSPENDED"
     property bool download: transfer_type == "download"
-    visible: progress > 0 && progress < 100 || true
-    width: parent.width; height: visible ? 55 : 0
+    width: parent.width
+    height: 55
 
     ColumnLayout {
         anchors.fill: parent
@@ -20,8 +20,10 @@ Rectangle {
             spacing: 10
 
             ColumnLayout {
-                Layout.fillWidth: true; Layout.fillHeight: true
-                Layout.leftMargin: 20; Layout.rightMargin: 20
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.leftMargin: 20
+                Layout.rightMargin: 20
                 Layout.topMargin: 5
 
                 ScaledText {
@@ -39,7 +41,7 @@ Rectangle {
                     }
                     // Progression: 10.0 MiB / 42.0 MiB [24%]
                     ScaledText {
-                        text: progress_metrics
+                        text: !download && finalizing ? qsTr("FINALIZING") + tl.tr : progress_metrics
                         pointSize: 10
                         color: mediumGray
                     }
@@ -66,10 +68,14 @@ Rectangle {
         NuxeoProgressBar {
             id: progressBar
             color: finalizing ? lightGreen : lightBlue
-            Layout.fillWidth: true; Layout.alignment: Qt.AlignRight
-            Layout.leftMargin: 15; Layout.rightMargin: 15
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignRight
+            Layout.leftMargin: 15
+            Layout.rightMargin: 15
             height: 5
             value: progress || 0.0
+            // Indeterminate progress bar when linking the blob to the document (last upload step)
+            indeterminate: !download && finalizing
         }
     }
 }
