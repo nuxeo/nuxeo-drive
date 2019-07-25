@@ -290,6 +290,10 @@ function install_deps {
 	}
 
 	Write-Output ">>> Installing requirements"
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT pip
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
