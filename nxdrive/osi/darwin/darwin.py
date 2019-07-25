@@ -31,7 +31,7 @@ from ...constants import APP_NAME, BUNDLE_IDENTIFIER
 from ...objects import DocPair
 from ...options import Options
 from ...translator import Translator
-from ...utils import force_decode, if_frozen
+from ...utils import if_frozen
 
 
 __all__ = ("DarwinIntegration",)
@@ -93,18 +93,21 @@ class DarwinIntegration(AbstractOSIntegration):
 
     @staticmethod
     def cb_get() -> str:
-        """Get the text data from the clipboard."""
-        data = subprocess.check_output(["pbpaste"])
-        # data = '"blablabla"\n' -> remove useless characters
-        data = data.rstrip()[1:-1]
-        return force_decode(data)
+        """Get the text data from the clipboard.
+        Emulate: pbpaste r
+        """
+        data = subprocess.check_output(["pbpaste", "r"])
+        return data.decode("utf-8")
 
     @staticmethod
     def cb_set(text: str) -> None:
-        """Copy some *text* into the clipboard."""
-        with subprocess.Popen(["echo", f'"{text}"'], stdout=subprocess.PIPE) as ps:
-            subprocess.check_call(["pbcopy"], stdin=ps.stdout)
-            ps.wait()
+        """Copy some *text* into the clipboard.
+        Emulate: echo "blablabla" | pbcopy w
+        """
+        with subprocess.Popen(["pbcopy", "w"], stdin=subprocess.PIPE) as p:
+            p.stdin.write(text.encode("utf-8"))
+            p.stdin.close()
+            p.wait()
 
     def open_local_file(self, file_path: str, select: bool = False) -> None:
         """Note that this function must _not_ block the execution."""

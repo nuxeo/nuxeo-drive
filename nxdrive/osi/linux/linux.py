@@ -3,7 +3,6 @@ import subprocess
 from logging import getLogger
 
 from .. import AbstractOSIntegration
-from ...utils import force_decode
 
 __all__ = ("LinuxIntegration",)
 
@@ -16,18 +15,21 @@ class LinuxIntegration(AbstractOSIntegration):
 
     @staticmethod
     def cb_get() -> str:
-        """Get the text data from the clipboard. The xclip tool needs to be installed."""
-        data = subprocess.check_output("xclip -selection clipboard -o".split())
-        # data = '"blablabla"\n' -> remove useless characters
-        data = data.rstrip()[1:-1]
-        return force_decode(data)
+        """Get the text data from the clipboard. The xclip tool needs to be installed.
+        Emulate: xclip -selection c -o
+        """
+        data = subprocess.check_output(["xclip", "-selection", "c", "-o"])
+        return data.decode("utf-8")
 
     @staticmethod
     def cb_set(text: str) -> None:
-        """Copy some *text* into the clipboard. The xclip tool needs to be installed."""
-        with subprocess.Popen(["echo", f'"{text}"'], stdout=subprocess.PIPE) as ps:
-            subprocess.check_call(["xclip", "-selection", "c"], stdin=ps.stdout)
-            ps.wait()
+        """Copy some *text* into the clipboard. The xclip tool needs to be installed.
+        Emulate: echo "blablabla" | xclip -selection c
+        """
+        with subprocess.Popen(["xclip", "-selection", "c"], stdin=subprocess.PIPE) as p:
+            p.stdin.write(text.encode("utf-8"))
+            p.stdin.close()
+            p.wait()
 
     def open_local_file(self, file_path: str, select: bool = False) -> None:
         """Note that this function must _not_ block the execution."""

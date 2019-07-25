@@ -80,7 +80,9 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @staticmethod
     def cb_get() -> str:
-        """Get the text data from the clipboard."""
+        """Get the text data from the clipboard.
+        Emulate: CTRL + V
+        """
         import win32clipboard
 
         win32clipboard.OpenClipboard()
@@ -90,7 +92,9 @@ class WindowsIntegration(AbstractOSIntegration):
 
     @staticmethod
     def cb_set(text: str) -> None:
-        """Copy some *text* into the clipboard."""
+        """Copy some *text* into the clipboard.
+        Emulate: CTRL + C
+        """
         import win32clipboard
 
         win32clipboard.OpenClipboard()
