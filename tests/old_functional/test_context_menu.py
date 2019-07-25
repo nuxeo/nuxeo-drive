@@ -1,6 +1,8 @@
+import os
 from os.path import isfile
 
 import pytest
+from nxdrive.constants import MAC
 
 from .common import OneUserTest
 
@@ -12,6 +14,14 @@ class TestContextMenu(OneUserTest):
 
     def test_copy_share_link(self):
         """It will test the copy/paste clipboard stuff."""
+
+        if MAC and "JENKINS_URL" in os.environ:
+            pytest.skip(
+                "macOS 10.11+ limitation: it's not possible to call CFPasteboardCreate when"
+                " there is no pasteboard, i.e. when the computer is on the loginwindow."
+                " See NXDRIVE-1794 for details."
+            )
+
         manager = self.manager_1
         local = self.local_1
 
