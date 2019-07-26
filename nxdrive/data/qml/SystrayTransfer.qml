@@ -41,7 +41,7 @@ Rectangle {
                     }
                     // Progression: 10.0 MiB / 42.0 MiB [24%]
                     ScaledText {
-                        text: !download && finalizing ? qsTr("FINALIZING") + tl.tr : progress_metrics
+                        text: progress_metrics + (!download && finalizing ? " • " + qsTr("FINALIZING") + tl.tr : "")
                         pointSize: 10
                         color: mediumGray
                     }
