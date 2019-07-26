@@ -6,7 +6,6 @@ from contextlib import suppress
 from logging import getLogger
 from os.path import isfile
 from pathlib import Path
-from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
@@ -116,8 +115,6 @@ class Remote(Nuxeo):
         self.upload_callback: Optional[Callable] = None
 
         self._has_new_trash_service = not version_le(self.client.server_version, "10.1")
-
-        self.upload_lock = Lock()
 
         if base_folder is not None:
             base_folder_doc = self.fetch(base_folder)
@@ -331,20 +328,19 @@ class Remote(Nuxeo):
         the file existence to bypass errors happening *after* the operation was successful.
         If it exists, the error is skipped and the upload is seen as a success.
         """
-        with self.upload_lock:
-            # Step 1: upload the blob
-            blob, duration = self.upload_chunks(
-                file_path, filename=filename, mime_type=mime_type, **params
-            )
+        # Step 1: upload the blob
+        blob, duration = self.upload_chunks(
+            file_path, filename=filename, mime_type=mime_type, **params
+        )
 
-            # Step 2: link the uploaded blob to the document
-            params["file_path"] = file_path
-            item = self.link_blob_to_doc(command, blob, duration, **params)
+        # Step 2: link the uploaded blob to the document
+        params["file_path"] = file_path
+        item = self.link_blob_to_doc(command, blob, duration, **params)
 
-            # Transfer is completed, delete the upload from the database
-            self.dao.remove_transfer("upload", file_path)
+        # Transfer is completed, delete the upload from the database
+        self.dao.remove_transfer("upload", file_path)
 
-            return item
+        return item
 
     def upload_chunks(
         self,
