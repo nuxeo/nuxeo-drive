@@ -25,11 +25,12 @@ from ..client.local_client import LocalClient
 from ..client.remote_client import Remote
 from ..constants import CONNECTION_ERROR, MAC, ROOT, WINDOWS, DelAction, TransferStatus
 from ..exceptions import (
+    DownloadPaused,
     InvalidDriveException,
     PairInterrupt,
     RootAlreadyBindWithDifferentAccount,
+    UploadPaused,
     ThreadInterrupt,
-    DownloadPaused,
 )
 from ..objects import DocPairs, Binder, Metrics, EngineDef
 from ..options import Options
@@ -842,6 +843,7 @@ class Engine(QObject):
             "timeout": self.timeout,
             "token": self._remote_token,
             "download_callback": self.suspend_client,
+            "upload_callback": self.suspend_client,
             "dao": self.dao,
             "proxy": self.manager.proxy,
             "verify": verify,
@@ -1005,7 +1007,7 @@ class Engine(QObject):
         # The root should also be sync
 
     def suspend_client(self, message: str = None) -> None:
-        if self.is_paused() or self._stopped:
+        if self.is_paused() or not self.is_started():
             raise ThreadInterrupt()
 
         # Verify thread status
@@ -1041,6 +1043,14 @@ class Engine(QObject):
 
             if download.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
                 raise DownloadPaused(download.uid or -1)
+        else:
+            # Get the current upload and check if it is still ongoing
+            upload = self.dao.get_upload(path=action.filepath)
+            if upload and upload.status not in (
+                TransferStatus.ONGOING,
+                TransferStatus.DONE,
+            ):
+                raise UploadPaused(upload.uid or -1)
 
     def create_processor(self, item_getter: Callable, **kwargs: Any) -> Processor:
         return Processor(self, item_getter, **kwargs)

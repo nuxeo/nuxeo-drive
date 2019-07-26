@@ -113,6 +113,10 @@ class LocalWatcher(EngineWorker):
                         self._win_delete_check()
                         self._win_folder_scan_check()
 
+                    # If there are a _lot_ of FS events, it is better to let Qt handling
+                    # some app events. Else the GUI will not be responsive enough.
+                    self._interact()
+
                 if WINDOWS:
                     self._win_delete_check()
                     self._win_folder_scan_check()
