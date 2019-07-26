@@ -69,6 +69,7 @@ class Remote(Nuxeo):
         token: str = None,
         proxy: Proxy = None,
         download_callback: Callable = None,
+        upload_callback: Callable = None,
         base_folder: str = None,
         dao: "EngineDAO" = None,
         repository: str = Options.remote_repo,
@@ -111,8 +112,7 @@ class Remote(Nuxeo):
 
         # Callback function used for chunked uploads.
         # It will be forwarded to Batch.get_uploader() on the Nuxeo Python Client side.
-        # Defaults to None for now as it is only used for tests.
-        self.upload_callback: Optional[Callable] = None
+        self.upload_callback = upload_callback
 
         self._has_new_trash_service = not version_le(self.client.server_version, "10.1")
 

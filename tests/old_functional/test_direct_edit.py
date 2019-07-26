@@ -39,6 +39,12 @@ class DirectEditSetup:
         self.remote = self.remote_document_client_1
         self.local = LocalTest(self.nxdrive_conf_folder_1 / "edit")
 
+        # Fix needed only for tests: as Engine.suspend_engine() is used as callback
+        # for Remote.upload_callback, and it first checks if the Engine is started.
+        # This is not the case, but we need to simulate that in order the make tests
+        # pass.
+        self.engine_1._stopped = False
+
         yield
 
         # Test teardown
