@@ -122,6 +122,7 @@
     "FILE_PATH": "Percorso: %1",
     "FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filtri",
     "FILTERS_DISABLED": "Attendere che le azioni di sincronizzazione correnti siano terminate prima di filtrare le cartelle.",
+    "FINALIZING": "Finalizing ...",
     "FOLDER_DOES_NOT_EXISTS": "Questa cartella non esiste",
     "FOLDER_PERMISSION_ERROR": "No enough rights to use the local folder",
     "FOLDER_USED": "Cartella già utilizzata da un altro account Nuxeo Drive",
