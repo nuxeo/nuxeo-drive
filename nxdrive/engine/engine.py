@@ -37,6 +37,7 @@ from ..options import Options
 from ..utils import (
     current_thread_id,
     find_icon,
+    find_suitable_tmp_dir,
     if_frozen,
     safe_filename,
     set_path_readonly,
@@ -121,8 +122,6 @@ class Engine(QObject):
         self.local_folder = Path(definition.local_folder)
         self.folder = str(self.local_folder)
         self.local = self.local_cls(self.local_folder)
-        self.download_dir = self.manager.home / "tmp" / definition.uid
-        self.download_dir.mkdir(parents=True, exist_ok=True)
 
         self.uid = definition.uid
         self.name = definition.name
@@ -136,6 +135,11 @@ class Engine(QObject):
         if binder:
             self.bind(binder)
         self._load_configuration()
+
+        download_dir = find_suitable_tmp_dir(self.local_folder, self.manager.home)
+        self.download_dir = download_dir / ".tmp" / definition.uid
+        log.info(f"Using temporary download folder {self.download_dir!r}")
+        self.download_dir.mkdir(parents=True, exist_ok=True)
 
         if not binder:
             self._check_https()

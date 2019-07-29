@@ -51,6 +51,7 @@ __all__ = (
     "encrypt",
     "find_icon",
     "find_resource",
+    "find_suitable_tmp_dir",
     "force_decode",
     "force_encode",
     "get_arch",
@@ -132,6 +133,27 @@ def current_thread_id() -> int:
     """Return the thread identifier of the current thread. This is a nonzero integer."""
     # TODO: use get_native_id() in Python 3.8 (XXX_PYTHON)
     return get_ident()
+
+
+def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path) -> Path:
+    """Find a suitable folder for the downloaded temporary files.
+    It _must_ be on the same partition of the local sync folder
+    to prevent false FS events.
+    """
+    if WINDOWS:
+        # On Windows, we need to check for the drive letter
+        if sync_folder.drive == home_folder.drive:
+            # Both folders are on the same partition, use the predefined home folder
+            return home_folder
+
+    # On Unix, we check the st_dev field
+    elif sync_folder.stat().st_dev == home_folder.stat().st_dev:
+        # Both folders are on the same partition, use the predefined home folder
+        return home_folder
+
+    # Folders are on different partitions, try to find a suitable one based one the same
+    # partition used by the *sync_folder*.
+    return sync_folder.parent
 
 
 def get_date_from_sqlite(d: str) -> Optional[datetime]:
