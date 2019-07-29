@@ -510,7 +510,7 @@ class Remote(Nuxeo):
         headers = {"Nuxeo-Transaction-Timeout": str(timeout)}
 
         log.debug(
-            f"Setting connection timeout to {timeout} seconds to handle the file creation on the server"
+            f"Setting connection timeout to {timeout:,} seconds to handle the file creation on the server"
         )
 
         # Terminate the upload action to be able to start the finalization one as we are allowing
