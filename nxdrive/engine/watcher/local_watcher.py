@@ -19,7 +19,7 @@ from watchdog.observers import Observer
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
 from ...client.local_client import FileInfo
-from ...constants import LINUX, MAC, ROOT, WINDOWS
+from ...constants import LINUX, MAC, ROOT, UNACCESSIBLE_HASH, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
 from ...options import Options
@@ -810,7 +810,7 @@ class LocalWatcher(EngineWorker):
 
         try:
             acquired_pair = dao.acquire_state(self.thread_id, doc_pair.id)
-            if acquired_pair is not None:
+            if acquired_pair:
                 if evt.event_type == "deleted":
                     self._handle_delete_on_known_pair(doc_pair)
                 else:
@@ -823,9 +823,15 @@ class LocalWatcher(EngineWorker):
             log.debug(f"Don't update as cannot acquire {doc_pair!r}")
         finally:
             dao.release_state(self.thread_id)
-            if acquired_pair is not None:
+
+            # TODO: This piece of code is only useful on Windows when creating a file inside a read-only folder.
+            # TODO: Remove everything with NXDRIVE-1095.
+            if acquired_pair:
                 refreshed_pair = dao.get_state_from_id(acquired_pair.id)
-                if refreshed_pair is not None:
+                if refreshed_pair and refreshed_pair.pair_state not in (
+                    "synchronized",
+                    "unsynchronized",
+                ):
                     log.debug(
                         "Re-queuing acquired, released and refreshed "
                         f"state {refreshed_pair!r}"
@@ -841,7 +847,11 @@ class LocalWatcher(EngineWorker):
         self, doc_pair: DocPair, evt: FileSystemEvent, rel_path: Path
     ) -> None:
         client = self.local
+        dao = self.dao
         local_info = client.try_get_info(rel_path)
+
+        if not local_info:
+            return
 
         if evt.event_type == "created":
             # NXDRIVE-471 case maybe
@@ -851,7 +861,7 @@ class LocalWatcher(EngineWorker):
                     "Created event on a known pair with no remote_ref, this should "
                     f"only happen in case of a quick move and copy-paste: {doc_pair!r}"
                 )
-                if not local_info or local_info.get_digest() == doc_pair.local_digest:
+                if local_info.get_digest() == doc_pair.local_digest:
                     return
 
                 log.info(
@@ -863,11 +873,6 @@ class LocalWatcher(EngineWorker):
                 log.info(
                     f"Created event on a known pair with a remote_ref: {doc_pair!r}"
                 )
-
-        if not local_info:
-            return
-
-        dao = self.dao
 
         # Unchanged folder
         if doc_pair.folderish:
@@ -884,7 +889,7 @@ class LocalWatcher(EngineWorker):
                     f"Digest has not changed for {rel_path!r} (watchdog event "
                     f"[{evt.event_type}]), only update last_local_updated"
                 )
-                if not local_info.remote_ref:
+                if not local_info.remote_ref and doc_pair.remote_ref:
                     client.set_remote_id(rel_path, doc_pair.remote_ref)
                 dao.update_local_modification_time(doc_pair, local_info)
                 return
@@ -892,32 +897,49 @@ class LocalWatcher(EngineWorker):
             doc_pair.local_digest = digest
             doc_pair.local_state = "modified"
 
-        if (
-            evt.event_type == "modified"
-            and doc_pair.remote_ref
-            and doc_pair.remote_ref != local_info.remote_ref
-        ):
-            original_pair = dao.get_normal_state_from_remote(local_info.remote_ref)
-            original_info = None
-            if original_pair:
-                original_info = client.try_get_info(original_pair.local_path)
+        if evt.event_type == "modified":
+            # Handle files that take some time to be fully copied
+            ongoing_copy = False
+            if local_info.size != doc_pair.size:
+                # Check the pair state as:
+                #  - a synced document can be modified and we need to handle it
+                #  - a conflicted file can be manually resolved using the local version and we need to handle it too
+                if doc_pair.pair_state not in ("synchronized", "locally_resolved"):
+                    log.debug(f"Size has changed (copy must still be running)")
+                    doc_pair.local_digest = UNACCESSIBLE_HASH
+                    ongoing_copy = True
+            elif doc_pair.local_digest == UNACCESSIBLE_HASH:
+                log.debug(f"Unaccessible hash (copy must still be running)")
+                ongoing_copy = True
+            if ongoing_copy:
+                if not local_info.remote_ref and doc_pair.remote_ref:
+                    client.set_remote_id(rel_path, doc_pair.remote_ref)
+                    local_info.remote_ref = doc_pair.remote_ref
+                self.remove_void_transfers(doc_pair)
+                return
 
-            if (
-                MAC
-                and original_info
-                and original_info.remote_ref == local_info.remote_ref
-            ):
-                log.info(
-                    "MacOS has postponed overwriting of xattr, "
-                    f"need to reset remote_ref for {doc_pair!r}"
-                )
-                # We are in a copy/paste situation with OS overriding
-                # the xattribute
-                client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
+            if doc_pair.remote_ref and doc_pair.remote_ref != local_info.remote_ref:
+                original_pair = dao.get_normal_state_from_remote(local_info.remote_ref)
+                original_info = None
+                if original_pair:
+                    original_info = client.try_get_info(original_pair.local_path)
 
-            # This happens on overwrite through Windows Explorer
-            if not original_info:
-                client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
+                if (
+                    MAC
+                    and original_info
+                    and original_info.remote_ref == local_info.remote_ref
+                ):
+                    log.info(
+                        "macOS has postponed overwriting of xattr, "
+                        f"need to reset remote_ref for {doc_pair!r}"
+                    )
+                    # We are in a copy/paste situation with OS overriding
+                    # the xattribute
+                    client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
+
+                # This happens on overwrite through Windows Explorer
+                if not original_info:
+                    client.set_remote_id(doc_pair.local_path, doc_pair.remote_ref)
 
         self.remove_void_transfers(doc_pair)
 
