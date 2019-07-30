@@ -706,7 +706,7 @@ are well taken into account.
                 local1.move(child.path, dst)
 
         # Checks
-        self.wait_sync(wait_for_async=True, wait_for_engine_2=True, timeout=120)
+        self.wait_sync(wait_for_async=True, wait_for_engine_2=True, timeout=180)
 
         for local in {local1, local2}:
             assert len(local.get_children_info("/")) == 1
