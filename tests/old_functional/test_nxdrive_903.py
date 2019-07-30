@@ -103,7 +103,7 @@ class Test(TwoUsersTest):
 
         # Steps 19 -> 21
         engine_2.resume()
-        self.wait_sync(wait_for_async=True, wait_for_engine_2=True, timeout=60)
+        self.wait_sync(wait_for_async=True, wait_for_engine_2=True, timeout=120)
 
         # Ensure there is no postponed nor documents in error
         assert not engine_2.dao.get_error_count(threshold=0)
