@@ -3,7 +3,7 @@ rem Primary environment variables to control all other scripts.
 rem https://github.com/nuxeo/nuxeo-drive/blob/master/docs/deployment.md
 
 rem XXX_PYTHON
-set PYTHON_DRIVE_VERSION=3.7.3
+set PYTHON_DRIVE_VERSION=3.7.4
 
 rem The absolute path to the WORKSPACE, here on the current user desktop
 set WORKSPACE=%USERPROFILE%\Desktop
