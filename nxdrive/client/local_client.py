@@ -16,10 +16,9 @@ from pathlib import Path
 from time import mktime, strptime
 from typing import Any, List, Optional, Tuple, Union
 
+from nuxeo.utils import get_digest_algorithm
 from send2trash import send2trash
 from send2trash.exceptions import TrashPermissionError
-
-from nuxeo.utils import get_digest_algorithm
 
 from ..constants import LINUX, MAC, ROOT, WINDOWS
 from ..exceptions import DuplicationDisabledError, NotFound, UnknownDigest
