@@ -469,6 +469,8 @@ class LocalWatcher(EngineWorker):
                                 self._protected_files[doc_pair.remote_ref] = True
                     if child_info.folderish:
                         to_scan_new.append(child_info)
+                except ThreadInterrupt:
+                    raise
                 except Exception:
                     log.exception(
                         f"Error during recursive scan of {child_info.path!r}, "

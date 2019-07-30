@@ -121,7 +121,9 @@ class Engine(QObject):
 
         self.local_folder = Path(definition.local_folder)
         self.folder = str(self.local_folder)
-        self.local = self.local_cls(self.local_folder)
+        self.local = self.local_cls(
+            self.local_folder, digest_callback=self.suspend_client
+        )
 
         self.uid = definition.uid
         self.name = definition.name
@@ -1036,6 +1038,9 @@ class Engine(QObject):
             raise PairInterrupt()
 
         if not action:
+            return
+
+        if not isinstance(action, FileAction):
             return
 
         # Get the current download and check if it is still ongoing
