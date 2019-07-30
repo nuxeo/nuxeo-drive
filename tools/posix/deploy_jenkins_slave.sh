@@ -27,7 +27,7 @@
 set -e
 
 # Global variables
-PYTHON="python -Xutf8 -E -s"
+PYTHON="python -Xutf8 -E -s -OO"
 PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 
 build_installer() {
