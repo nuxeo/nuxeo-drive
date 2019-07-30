@@ -1,6 +1,6 @@
 # coding: utf-8
 import os.path
-from typing import Any, Dict, List, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import (
     QAbstractListModel,
@@ -147,8 +147,9 @@ class TransferModel(QAbstractListModel):
     FINALIZING = Qt.UserRole + 8
     PROGRESS_METRICS = Qt.UserRole + 9
 
-    def __init__(self, parent: QObject = None) -> None:
+    def __init__(self, translate: Callable, parent: QObject = None) -> None:
         super().__init__(parent)
+        self.tr = translate
         self.transfers: List[Dict[str, Any]] = []
         self.names = {
             self.ID: b"uid",
@@ -203,7 +204,8 @@ class TransferModel(QAbstractListModel):
             progress = size * (row["progress"] or 0.0) / 100
 
         percent = min(100, progress * 100 / (size or 1))
-        return f"{sizeof_fmt(progress)} / {sizeof_fmt(size)} [{int(percent)}%]"
+        suffix = self.tr("BYTE_ABBREV")
+        return f"{sizeof_fmt(progress, suffix=suffix)} / {sizeof_fmt(size, suffix=suffix)} [{int(percent)}%]"
 
     def data(self, index: QModelIndex, role: int = NAME) -> Any:
         row = self.transfers[index.row()]
@@ -256,8 +258,9 @@ class FileModel(QAbstractListModel):
     STATE = Qt.UserRole + 14
     SIZE = Qt.UserRole + 15
 
-    def __init__(self, parent: QObject = None) -> None:
+    def __init__(self, translate: Callable, parent: QObject = None) -> None:
         super().__init__(parent)
+        self.tr = translate
         self.files: List[Dict[str, Any]] = []
         self.names = {
             self.ID: b"id",
@@ -296,10 +299,8 @@ class FileModel(QAbstractListModel):
         elif role == self.LOCAL_PATH:
             return str(row["local_path"])
         elif role == self.SIZE:
-            size = row["size"]
-            if size == 0:
-                return ""
-            return f"({sizeof_fmt(size)})"
+            suffix = self.tr("BYTE_ABBREV")
+            return f"({sizeof_fmt(row['size'], suffix=suffix)})"
         return row[self.names[role].decode()]
 
     def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
