@@ -33,7 +33,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 # Global variables
-$global:PYTHON_OPT = "-Xutf8", "-E", "-s"
+$global:PYTHON_OPT = "-Xutf8", "-E", "-s", "-OO"
 $global:PIP_OPT = "-m", "pip", "install", "--upgrade", "--upgrade-strategy=only-if-needed"
 
 # Imports
