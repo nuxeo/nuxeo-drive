@@ -828,7 +828,7 @@ class LocalWatcher(EngineWorker):
 
             # TODO: This piece of code is only useful on Windows when creating a file inside a read-only folder.
             # TODO: Remove everything with NXDRIVE-1095.
-            if acquired_pair:
+            if WINDOWS and acquired_pair:
                 refreshed_pair = dao.get_state_from_id(acquired_pair.id)
                 if refreshed_pair and refreshed_pair.pair_state not in (
                     "synchronized",
