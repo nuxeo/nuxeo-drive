@@ -62,7 +62,7 @@ It may evolve quickly without notification as we are following the Python develo
 
 [//]: # (XXX_PYTHON)
 
-As of now, we are using the __Python 3.7.3__.
+As of now, we are using the __Python 3.7.4__.
 
 History:
 

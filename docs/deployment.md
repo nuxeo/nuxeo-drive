@@ -51,7 +51,7 @@ Executing the script without argument will setup.update the isolated environment
 
 [//]: # (XXX_PYTHON)
 
-- [Python 3.7.3](https://www.python.org/ftp/python/3.7.3/python-3.7.3.exe) or newer.
+- [Python 3.7.4](https://www.python.org/ftp/python/3.7.4/python-3.7.4.exe).
 - [Inno Setup 5.5.9 (u)](http://www.jrsoftware.org/download.php/is-unicode.exe) to create the installer.
 
 ### Troubleshooting
