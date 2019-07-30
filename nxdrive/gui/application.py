@@ -184,12 +184,12 @@ class Application(QApplication):
     def init_gui(self) -> None:
 
         self.api = QMLDriveApi(self)
-        self.conflicts_model = FileModel()
-        self.errors_model = FileModel()
+        self.conflicts_model = FileModel(self.translate)
+        self.errors_model = FileModel(self.translate)
         self.engine_model = EngineModel(self)
-        self.transfer_model = TransferModel()
-        self.file_model = FileModel()
-        self.ignoreds_model = FileModel()
+        self.transfer_model = TransferModel(self.translate)
+        self.file_model = FileModel(self.translate)
+        self.ignoreds_model = FileModel(self.translate)
         self.language_model = LanguageModel()
 
         self.add_engines(list(self.manager.engines.values()))

@@ -486,7 +486,7 @@ class Processor(EngineWorker):
             return
 
         log.debug(f"Transfer speed: {sizeof_fmt(action.size / duration)}/s")
-        self._current_metrics["speed"] = action.size / duration / 1024  # Kib/s
+        self._current_metrics["speed"] = action.size / duration / 1024  # KiB/s
 
     def _synchronize_if_not_remotely_dirty(
         self, doc_pair: DocPair, remote_info: RemoteFileInfo = None

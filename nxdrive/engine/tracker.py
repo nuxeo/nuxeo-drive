@@ -157,7 +157,7 @@ class Tracker(Worker):
     @pyqtSlot(object)
     def _send_sync_event(self, metrics: Dict[str, Any]) -> None:
         timing = metrics.get("end_time", 0) - metrics["start_time"]
-        speed = metrics.get("speed", None)  # Kib/s
+        speed = metrics.get("speed", None)  # KiB/s
 
         if timing > 0:
             self.send_event(

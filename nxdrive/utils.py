@@ -979,7 +979,7 @@ def lock_path(path: Path, locker: int) -> None:
         set_path_readonly(path.parent)
 
 
-def sizeof_fmt(num: Union[float, int], suffix: str = "o") -> str:
+def sizeof_fmt(num: Union[float, int], suffix: str = "B") -> str:
     """
     Human readable version of file size.
     Supports:
@@ -991,9 +991,9 @@ def sizeof_fmt(num: Union[float, int], suffix: str = "o") -> str:
     Examples:
 
         >>> sizeof_fmt(168963795964)
-        "157.4 Gio"
-        >>> sizeof_fmt(168963795964, suffix="B")
         "157.4 GiB"
+        >>> sizeof_fmt(168963795964, suffix="o")
+        "157.4 Gio"
 
     Source: https://stackoverflow.com/a/1094933/1117028
     """
