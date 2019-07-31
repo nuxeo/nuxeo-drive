@@ -634,6 +634,7 @@ class Remote(Nuxeo):
         filename: str = None,
         mime_type: str = None,
         overwrite: bool = False,
+        **kwargs: Any,
     ) -> RemoteFileInfo:
         """Create a document by streaming the file with the given path
 
@@ -647,6 +648,7 @@ class Remote(Nuxeo):
             mime_type=mime_type,
             parentId=parent_id,
             overwrite=overwrite,
+            **kwargs,
         )
         return RemoteFileInfo.from_dict(fs_item)
 
@@ -656,6 +658,7 @@ class Remote(Nuxeo):
         file_path: Path,
         parent_fs_item_id: str = None,
         filename: str = None,
+        **kwargs: Any,
     ) -> RemoteFileInfo:
         """Update a document by streaming the file with the given path"""
         fs_item = self.upload(
@@ -664,6 +667,7 @@ class Remote(Nuxeo):
             filename=filename,
             id=fs_item_id,
             parentId=parent_fs_item_id,
+            **kwargs,
         )
         return RemoteFileInfo.from_dict(fs_item)
 

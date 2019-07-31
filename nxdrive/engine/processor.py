@@ -551,6 +551,7 @@ class Processor(EngineWorker):
                     parent_fs_item_id=doc_pair.remote_parent_ref,
                     # Use remote name to avoid rename in case of duplicate
                     filename=doc_pair.remote_name,
+                    engine_uid=self.engine.uid,
                 )
                 self.dao.update_last_transfer(doc_pair.id, "upload")
                 self._update_speed_metrics()
@@ -800,6 +801,7 @@ class Processor(EngineWorker):
                     self.local.abspath(doc_pair.local_path),
                     filename=name,
                     overwrite=overwrite,
+                    engine_uid=self.engine.uid,
                 )
                 remote_ref = fs_item_info.uid
                 self.dao.update_last_transfer(doc_pair.id, "upload")
