@@ -27,6 +27,7 @@ MANIFEST
 pypi*
 .project
 *.pyc
+*.pyo
 .pydevproject
 .pyre*
 .pytest_cache
