@@ -425,7 +425,7 @@ class TestUpload(OneUserTest):
                 assert not self.remote_1.exists("/test.bin")
 
                 # The doc should be in error
-                assert len(dao.get_errors()) == 1
+                assert len(dao.get_errors(limit=0)) == 1
 
         # Reset the error
         for state in dao.get_errors():
