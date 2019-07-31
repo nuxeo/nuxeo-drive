@@ -882,7 +882,14 @@ class LocalWatcher(EngineWorker):
             dao.update_local_modification_time(doc_pair, local_info)
             return
 
-        if doc_pair.local_state == "synchronized":
+        # We can't allow this branch to be taken for big files
+        # because computing their digest will explode everything.
+        # This code is taken _a lot_ when copying big files, so it
+        # makes sens to bypass this check.
+        if (
+            local_info.size < Options.big_file * 1024 * 1024
+            and doc_pair.local_state == "synchronized"
+        ):
             digest = local_info.get_digest()
             # Unchanged digest, can be the case if only the last
             # modification time or file permissions have been updated

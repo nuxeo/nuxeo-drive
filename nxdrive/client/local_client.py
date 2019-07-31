@@ -66,7 +66,7 @@ class FileInfo:
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.digest_callback = kwargs.pop("digest_callback", None)
-        self.size = kwargs.pop("size", 0)
+
         filepath = root / path
         self.path = Path(unicodedata.normalize("NFC", str(path)))
         self.filepath = Path(unicodedata.normalize("NFC", str(filepath)))
@@ -75,6 +75,14 @@ class FileInfo:
         if not MAC and filepath.exists() and self.filepath != filepath:
             log.info(f"Forcing normalization of {filepath!r} to {self.filepath!r}")
             safe_rename(filepath, self.filepath)
+
+        # Guess the file size to help catching file changes in the watcher.
+        # This will prevent to do checksum comparisons, which are expensive.
+        size = kwargs.pop("size", 0)
+        if size == 0:
+            with suppress(FileNotFoundError):
+                size = self.filepath.stat().st_size
+        self.size = size
 
         self.folderish = folderish  # True if a Folder
         self.remote_ref = kwargs.pop("remote_ref", "")
@@ -96,12 +104,8 @@ class FileInfo:
             f" size={self.size}, remote_ref={self.remote_ref!r}>"
         )
 
-    def get_digest(self, digest_func: str = None) -> Optional[str]:
+    def get_digest(self, digest_func: str = None) -> str:
         """ Lazy computation of the digest. """
-
-        if self.folderish:
-            return None
-
         digest_func = str(digest_func or self._digest_func)
         return compute_digest(self.filepath, digest_func, callback=self.digest_callback)
 

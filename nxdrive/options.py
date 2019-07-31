@@ -188,6 +188,7 @@ class MetaOptions(type):
 
     # Default options
     options: Dict[str, Tuple[Any, str]] = {
+        "big_file": (300, "default"),
         "browser_startup_page": ("drive_browser_login.jsp", "default"),
         "ca_bundle": (None, "default"),
         "channel": ("release", "default"),

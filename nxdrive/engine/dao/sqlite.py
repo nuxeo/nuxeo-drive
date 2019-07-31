@@ -24,7 +24,13 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 from .utils import fix_db, restore_backup, save_backup
 from ...client.local_client import FileInfo
-from ...constants import NO_SPACE_ERRORS, ROOT, WINDOWS, TransferStatus
+from ...constants import (
+    NO_SPACE_ERRORS,
+    ROOT,
+    WINDOWS,
+    TransferStatus,
+    UNACCESSIBLE_HASH,
+)
 from ...exceptions import UnknownPairState
 from ...notification import Notification
 from ...objects import (
@@ -36,6 +42,7 @@ from ...objects import (
     Download,
     Upload,
 )
+from ...options import Options
 from ...utils import current_thread_id
 
 if TYPE_CHECKING:
@@ -887,7 +894,18 @@ class EngineDAO(ConfigurationDAO):
 
     def insert_local_state(self, info: FileInfo, parent_path: Optional[Path]) -> int:
         pair_state = PAIR_STATES[("created", "unknown")]
-        digest = info.get_digest()
+
+        digest = None
+        if not info.folderish:
+            if info.size >= Options.big_file * 1024 * 1024:
+                # We can't compute the digest of big files now as it will
+                # be done later when the entire file is fully copied.
+                # For instance, on my machine (32GB RAM, 8 cores, Intel NUC)
+                # it takes 23 minutes for 100 GB and 7 minute for 50 GB.
+                # This is way too much effort to compute it several times.
+                digest = UNACCESSIBLE_HASH
+            else:
+                digest = info.get_digest()
 
         with self._lock:
             con = self._get_write_connection()

@@ -38,6 +38,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 
 | Parameter | Default Value | Type | Version Added | Description
 |---|---|---|---|---
+| `big-file` | 300 | int | 4.1.4 | File size in MiB. Files bigger than this limit are considered "big". This implies few tweaks in the synchronization engine like bypassing most of the expensive and time consuming digest computations. It is a tradeoff to handle large files as best effort.
 | `ca-bundle` | None | str | 4.0.2 | File or directory with certificates of trusted CAs. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
 | `channel` | release | str | 4.0.2 | Update channel. Can be release, beta or alpha.
 | `chunk_limit` | 20 | int | 4.1.2 | Size in MiB above which files will be uploaded in chunks (if `chunk_upload` is `True`). Has to be above 0.
