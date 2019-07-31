@@ -17,6 +17,7 @@
     "AUTOUPDATE_UPGRADE": "Sebuah versi baru {{ version }} sudah tersedia",
     "BROWSE_DIALOG_CAPTION": "Pilih lokasi folder Nuxeo Drive",
     "BUG_REPORT": "Laporkan sebuah bug",
+    "BYTE_ABBREV": "B",
     "CANCEL": "Batal",
     "CHANNEL": "Channel",
     "CHANNEL_CHANGE_SETTINGS": "Change channel update settings",

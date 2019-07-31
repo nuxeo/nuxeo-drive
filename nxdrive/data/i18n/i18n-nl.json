@@ -17,6 +17,7 @@
     "AUTOUPDATE_UPGRADE": "Er is een nieuwe versie {{ version }} beschikbaar.",
     "BROWSE_DIALOG_CAPTION": "Maplocatie Nuxeo Drive selecteren",
     "BUG_REPORT": "Een programmafout melden",
+    "BYTE_ABBREV": "B",
     "CANCEL": "Annuleren",
     "CHANNEL": "Kanaal",
     "CHANNEL_CHANGE_SETTINGS": "Kanaalupdate instellingen wijzigen",
