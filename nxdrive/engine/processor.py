@@ -786,14 +786,15 @@ class Processor(EngineWorker):
                     return
 
                 if doc_pair.local_digest == UNACCESSIBLE_HASH:
-                    doc_pair.local_digest = local_info.get_digest()
                     log.debug(f"Creation of postponed local file: {doc_pair!r}")
+                    doc_pair.local_digest = local_info.get_digest()
                     self.dao.update_local_state(
                         doc_pair, local_info, versioned=False, queue=False
                     )
                     if doc_pair.local_digest == UNACCESSIBLE_HASH:
                         self._postpone_pair(doc_pair, "Unaccessible hash")
                         return
+
                 fs_item_info = self.remote.stream_file(
                     parent_ref,
                     self.local.abspath(doc_pair.local_path),

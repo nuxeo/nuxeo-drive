@@ -69,7 +69,6 @@ class StubLocalClient:
         folder_1_info = local.get_info(folder_1)
         assert folder_1_info.name == "A new folder"
         assert folder_1_info.path == folder_1
-        assert not folder_1_info.get_digest()
         assert folder_1_info.folderish
 
         doc_3 = local.make_file(folder_1, "Document 3.txt", content=SOME_TEXT_CONTENT)
