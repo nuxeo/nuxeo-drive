@@ -395,6 +395,88 @@ def test_increment_local_folder(tmp):
     assert func(basefolder, name) == basefolder / "folder 69"
 
 
+@pytest.mark.parametrize("cmd", ["access-online", "copy-share-link", "edit-metadata"])
+def test_parse_protocol_url_cmd(cmd):
+    """Parse context menu commands."""
+    url = f"nxdrive://{cmd}/00000000-0000-0000-0000/On%20call%20Schedule.docx"
+    info = nxdrive.utils.parse_protocol_url(url)
+    assert info == {
+        "command": cmd,
+        "filepath": "00000000-0000-0000-0000/On%20call%20Schedule.docx",
+    }
+
+
+def test_parse_protocol_url_cmd_unknown():
+    """Parse an unknown command, it must fail."""
+    url = f"nxdrive://unknown/00000000-0000-0000-0000/On%20call%20Schedule.docx"
+    with pytest.raises(ValueError):
+        nxdrive.utils.parse_protocol_url(url)
+
+
+def test_parse_protocol_url_edit():
+    """It will also test parse_edit_protocol()."""
+    url = (
+        "nxdrive://edit"
+        "/http/server.cloud.nuxeo.com:8080/nuxeo"
+        "/user/Administrator"
+        "/repo/default"
+        "/nxdocid/00000000-0000-0000-0000"
+        "/filename/On%20call%20Schedule.docx"
+        "/downloadUrl/nxfile/default/00000000-0000-0000-0000"
+        "/file:content/On%20call%20Schedule.docx"
+    )
+    info = nxdrive.utils.parse_protocol_url(url)
+    assert info == {
+        "command": "download_edit",
+        "user": "Administrator",
+        "server_url": "http://server.cloud.nuxeo.com:8080/nuxeo",
+        "repo": "default",
+        "doc_id": "00000000-0000-0000-0000",
+        "filename": "On%20call%20Schedule.docx",
+        "download_url": "nxfile/default/00000000-0000-0000-0000/file:content/On%20call%20Schedule.docx",
+    }
+
+
+def test_parse_protocol_url_edit_missing_download_url():
+    """The download part must be in the URL."""
+    url = (
+        "nxdrive://edit"
+        "/http/server.cloud.nuxeo.com:8080/nuxeo"
+        "/user/Administrator"
+        "/repo/default"
+        "/nxdocid/00000000-0000-0000-0000"
+        "/filename/On%20call%20Schedule.docx"
+    )
+    with pytest.raises(ValueError):
+        nxdrive.utils.parse_protocol_url(url)
+
+
+def test_parse_protocol_url_edit_missing_username():
+    """The username must be in the URL."""
+    url = (
+        "nxdrive://edit/https/server.cloud.nuxeo.com/nuxeo"
+        "/repo/default"
+        "/nxdocid/00000000-0000-0000-0000"
+        "/filename/lebron-james-beats-by-dre-powerb.psd"
+        "/downloadUrl/nxfile/default/00000000-0000-0000-0000"
+        "/file:content/lebron-james-beats-by-dre-powerb.psd"
+    )
+    with pytest.raises(ValueError):
+        nxdrive.utils.parse_protocol_url(url)
+
+
+def test_parse_protocol_url_token():
+    """Simple token parsing."""
+    url = "nxdrive://token/12345678-acbd-1234-cdef-1234567890ab/user/Administrator@127.0.0.1"
+    info = nxdrive.utils.parse_protocol_url(url)
+    assert isinstance(info, dict)
+    assert info == {
+        "command": "token",
+        "token": "12345678-acbd-1234-cdef-1234567890ab",
+        "username": "Administrator@127.0.0.1",
+    }
+
+
 @pytest.mark.parametrize(
     "url, result",
     [
