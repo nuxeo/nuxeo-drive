@@ -42,7 +42,6 @@ from ..utils import (
     compute_digest,
     get_device,
     lock_path,
-    safe_os_filename,
     sizeof_fmt,
     unlock_path,
     version_le,
@@ -352,10 +351,7 @@ class Remote(Nuxeo):
         """Upload a blob by chunks or in one go."""
 
         tick = time.monotonic()
-        path = (
-            file_path.with_name(safe_os_filename(filename)) if filename else file_path
-        )
-        action = UploadAction(path, tmppath=file_path, reporter=QApplication.instance())
+        action = UploadAction(file_path, reporter=QApplication.instance())
         blob = FileBlob(str(file_path))
         if filename:
             blob.name = filename
