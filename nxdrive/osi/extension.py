@@ -7,7 +7,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtNetwork import QHostAddress, QTcpServer, QTcpSocket
+from PyQt5.QtNetwork import (
+    QAbstractSocket,
+    QHostAddress,
+    QHostInfo,
+    QTcpServer,
+    QTcpSocket,
+)
 
 from ..engine.engine import Engine
 from ..objects import DocPair
@@ -56,14 +62,30 @@ class ExtensionListener(QTcpServer):
         self.handlers: Dict[str, Callable] = {}
         self.newConnection.connect(self._handle_connection)
 
+    @staticmethod
+    def host_to_addr(host: str) -> QHostAddress:
+        """Get the IPv4 address of a given hostname.
+        It is required to use this method in order to get the actual IP
+        as it turns out that QHostAddress(host) does not do any DNS lookup.
+        """
+        host_info = QHostInfo.fromName(host)
+        for address in host_info.addresses():
+            if address.protocol() == QAbstractSocket.IPv4Protocol:
+                return address
+
+    @property
+    def address(self) -> str:
+        """Compute the real address the server is listening on."""
+        return f"{self.serverAddress().toString()}:{self.serverPort()}"
+
     def _listen(self):
         """
         Called once the Manager.started() is emitted.
 
         Starts listening and emits a signal so that the extension can be started.
         """
-        self.listen(QHostAddress(self.host), self.port)
-        log.info(f"Listening to {self.explorer_name} on {self.host}:{self.port}")
+        self.listen(self.host_to_addr(self.host), self.port)
+        log.info(f"Listening to {self.explorer_name} on {self.address!r}")
         self.listening.emit()
 
     def _handle_connection(self) -> None:
