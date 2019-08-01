@@ -3,14 +3,14 @@ Test pause/resume transfers in differents scenarii.
 """
 from unittest.mock import patch
 
-import pytest
 from nuxeo.exceptions import HTTPError
-from nxdrive.constants import FILE_BUFFER_SIZE, TransferStatus, WINDOWS
+from nxdrive.constants import FILE_BUFFER_SIZE, TransferStatus
 from nxdrive.options import Options
 from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
 from .common import OneUserTest, SYNC_ROOT_FAC_ID
+from ..markers import not_windows
 
 
 class TestDownload(OneUserTest):
@@ -352,9 +352,8 @@ class TestUpload(OneUserTest):
         assert not dao.get_uploads()
         assert self.local_1.get_content("/test.bin") == b"locally changed"
 
-    @pytest.mark.skipif(
-        WINDOWS,
-        reason="Cannot test the behavior as the local deletion is blocked by the OS.",
+    @not_windows(
+        reason="Cannot test the behavior as the local deletion is blocked by the OS."
     )
     def test_deleting_paused_upload(self):
         """Deleting a paused upload should discard the current upload."""

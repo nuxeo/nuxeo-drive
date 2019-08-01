@@ -207,16 +207,8 @@ class VerificationAction(FileAction):
 class UploadAction(FileAction):
     """Upload: step 1/2 - Upload the file."""
 
-    def __init__(
-        self, filepath: Path, tmppath: Path = None, reporter: Any = None
-    ) -> None:
-        super().__init__(
-            "Upload",
-            filepath,
-            tmppath=tmppath,
-            size=tmppath.stat().st_size if tmppath else filepath.stat().st_size,
-            reporter=reporter,
-        )
+    def __init__(self, filepath: Path, reporter: Any = None) -> None:
+        super().__init__("Upload", filepath, reporter=reporter)
 
 
 class LinkingAction(FileAction):
