@@ -863,8 +863,8 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         (
             r"nxdrive://(?P<cmd>edit)/(?P<scheme>\w*)/(?P<server>.*)/"
             r"user/(?P<username>.*)/repo/(?P<repo>.*)/"
-            r"nxdocid/(?P<docid>(\d|[a-f]|-)*)/filename/(?P<filename>[^/]*)"
-            r"(/downloadUrl/(?P<download>.*)|)"
+            r"nxdocid/(?P<docid>[0-9a-fA-F\-]*)/filename/(?P<filename>[^/]*)"
+            r"/downloadUrl/(?P<download>.*)"
         ),
         # Events from context menu:
         #     - Access online

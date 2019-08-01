@@ -138,7 +138,7 @@ class DirectEdit(Worker):
 
         info = parse_protocol_url(url)
 
-        if not info:
+        if not isinstance(info, dict) or info.get("command", "") != "download_edit":
             return
 
         self.edit(
