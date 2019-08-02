@@ -183,6 +183,8 @@ def test_find_suitable_tmp_dir_same_partition(tmp):
         ("Book1.bak", (True, False)),
         ("pptED23.tmp", (True, False)),
         ("9ABCDEF0.tep", (False, None)),
+        # Emacs auto save file
+        ("#9ABCDEF0.tep#", (True, False)),
         # AutoCAD
         ("atmp9716", (True, False)),
         ("7151_CART.dwl", (True, False)),
