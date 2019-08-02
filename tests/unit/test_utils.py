@@ -396,6 +396,16 @@ def test_normalized_path_permission_error(mocked_resolve, mocked_absolute, tmp):
     assert func(path) == path_abs
 
 
+def test_normalize_and_expand_path():
+    if WINDOWS:
+        path = "~/%userprofile%/foo"
+    else:
+        path = "~/$HOME/foo"
+    home = str(Path("~").expanduser())
+    expected = Path(f"{home}/{home}/foo")
+    assert nxdrive.utils.normalize_and_expand_path(path) == expected
+
+
 @pytest.mark.parametrize("hostname", BAD_HOSTNAMES)
 def test_retrieve_ssl_certificate_unknown(hostname):
     from ssl import SSLError
