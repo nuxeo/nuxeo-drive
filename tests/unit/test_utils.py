@@ -11,6 +11,7 @@ import pytest
 
 import nxdrive.utils
 from nxdrive.constants import APP_NAME, WINDOWS
+from nxdrive.options import Options
 
 from ..markers import not_windows, windows_only
 
@@ -372,6 +373,25 @@ def test_get_timestamp_from_date():
 
     dtime = datetime(2019, 6, 20)
     assert nxdrive.utils.get_timestamp_from_date(dtime) == 1_560_988_800
+
+
+@Options.mock()
+def test_if_frozen_decorator():
+    @nxdrive.utils.if_frozen
+    def check():
+        nonlocal checkpoint
+        checkpoint = True
+        return True
+
+    checkpoint = False
+
+    # The app is not frozen in tests, so the call must return False
+    assert not check()
+    assert not checkpoint
+
+    Options.is_frozen = True
+    assert check()
+    assert checkpoint
 
 
 @patch("pathlib.Path.resolve")
