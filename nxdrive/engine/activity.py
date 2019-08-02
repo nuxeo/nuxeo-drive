@@ -179,7 +179,7 @@ class FileAction(Action):
 
     def __repr__(self) -> str:
         if self.size < 0:
-            return f"{self.type}({self.filename.name!r})"
+            return f"{self.type}({self.filepath.name!r})"
         percent = self.get_percent()
         if percent > 0.0:
             return f"{self.type}({self.filepath.name!r}[{self.size}]-{percent})"
