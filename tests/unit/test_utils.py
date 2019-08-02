@@ -3,11 +3,12 @@ import os
 import re
 from math import pow
 from unittest.mock import patch
-
 import pytest
 
 import nxdrive.utils
 from nxdrive.constants import WINDOWS
+
+from ..markers import not_windows, windows_only
 
 BAD_HOSTNAMES = [
     "expired.badssl.com",
@@ -118,6 +119,55 @@ def test_encrypt_decrypt():
     cipher = enc(pwd, token)
 
     assert dec(cipher, token) == pwd
+
+
+@windows_only(reason="Unix has no drive concept")
+@patch("pathlib.Path.drive")
+def test_find_suitable_tmp_dir_different_drive(mocked_drive, tmp):
+    raise AssertionError("TODO")
+    count = 0
+
+    def drive():
+        """Return a different drive each call."""
+        nonlocal count
+        count += 1
+        return count
+
+    func = nxdrive.utils.find_suitable_tmp_dir
+    sync_folder = tmp()
+    home_folder = sync_folder / "home"
+    home_folder.mkdir(parents=True)
+    mocked_drive.return_value = drive()
+    assert func(sync_folder, home_folder) == sync_folder.parent
+
+
+@not_windows(reason="Windows has no st_dev")
+@patch("pathlib.Path.stat")
+def test_find_suitable_tmp_dir_different_partition(mocked_stat, tmp):
+    class Stat:
+        """Return a different st_dev each call."""
+
+        count = 0
+
+        @property
+        def st_dev(self):
+            self.count += 1
+            return self.count
+
+    func = nxdrive.utils.find_suitable_tmp_dir
+    sync_folder = tmp()
+    home_folder = sync_folder / "home"
+    home_folder.mkdir(parents=True)
+    mocked_stat.return_value = Stat()
+    assert func(sync_folder, home_folder) == sync_folder.parent
+
+
+def test_find_suitable_tmp_dir_same_partition(tmp):
+    func = nxdrive.utils.find_suitable_tmp_dir
+    sync_folder = tmp()
+    home_folder = sync_folder / "home"
+    home_folder.mkdir(parents=True)
+    assert func(sync_folder, home_folder) == home_folder
 
 
 @pytest.mark.parametrize(
