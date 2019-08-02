@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import re
+import sys
 from datetime import datetime
 from math import pow
 from time import sleep
@@ -336,6 +337,12 @@ def test_get_date_from_sqlite():
 
     # Good date
     assert func("2019-08-02 10:56:57") == datetime(2019, 8, 2, 10, 56, 57)
+
+
+def test_get_device_unknown():
+    """For unknown platforms, we just remove spaces."""
+    with patch.object(sys, "platform", "The Black Star"):
+        assert nxdrive.utils.get_device() == "TheBlackStar"
 
 
 def test_get_timestamp_from_date():
