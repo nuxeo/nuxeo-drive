@@ -406,6 +406,30 @@ def test_normalize_and_expand_path():
     assert nxdrive.utils.normalize_and_expand_path(path) == expected
 
 
+def test_normalize_event_filename(tmp):
+    func = nxdrive.utils.normalize_event_filename
+
+    folder = tmp()
+    file = folder / "file.txt"
+    file_to_normalize = str(folder / "file \u0061\u0301.txt")
+    file_normalized = folder / "file \xe1.txt"
+    file_ending_with_space = folder / "file2.txt "
+    file_ending_with_space_stripped = folder / "file2.txt"
+    folder.mkdir()
+    file.touch()
+    file_ending_with_space.touch()
+
+    assert func(file, action=False) == file
+
+    # The file ending with a space is renamed
+    assert func(file_ending_with_space) == file_ending_with_space_stripped
+    assert not file_ending_with_space.is_file()
+    assert file_ending_with_space_stripped.is_file()
+
+    # Check the file is normalized
+    assert func(file_to_normalize) == file_normalized
+
+
 @pytest.mark.parametrize("hostname", BAD_HOSTNAMES)
 def test_retrieve_ssl_certificate_unknown(hostname):
     from ssl import SSLError
