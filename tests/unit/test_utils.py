@@ -315,6 +315,11 @@ def test_current_milli_time():
     assert milli < func()
 
 
+def test_find_icon():
+    """It will also test find_resource()."""
+    assert isinstance(nxdrive.utils.find_icon("boom"), Path)
+
+
 def test_get_current_os():
     ver = nxdrive.utils.get_current_os()
     assert isinstance(ver, tuple)
