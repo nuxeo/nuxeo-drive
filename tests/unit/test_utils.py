@@ -374,6 +374,28 @@ def test_get_timestamp_from_date():
     assert nxdrive.utils.get_timestamp_from_date(dtime) == 1_560_988_800
 
 
+@patch("pathlib.Path.resolve")
+@patch("pathlib.Path.absolute")
+def test_normalized_path_permission_error(mocked_resolve, mocked_absolute, tmp):
+    raise AssertionError("TODO")
+    func = nxdrive.utils.normalized_path
+
+    folder = tmp()
+    folder.mkdir()
+    path = folder / "foo.txt"
+
+    # Path.resolve() raises a PermissionError, it should fallback on .absolute()
+    mocked_resolve.side_effect = PermissionError()
+    path_abs = func(str(path))
+    assert mocked_resolve.called
+    assert mocked_absolute.called
+
+    # Restore the original ehavior and check that .resolved() and .absolute()
+    # return the same value.
+    mocked_resolve.reset_mock()
+    assert func(path) == path_abs
+
+
 @pytest.mark.parametrize("hostname", BAD_HOSTNAMES)
 def test_retrieve_ssl_certificate_unknown(hostname):
     from ssl import SSLError
