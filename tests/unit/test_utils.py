@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import re
+from datetime import datetime
 from math import pow
 from unittest.mock import patch
 import pytest
@@ -311,9 +312,21 @@ def test_get_current_os_full():
     assert ver
 
 
-def test_get_timestamp_from_date():
-    from datetime import datetime
+def test_get_date_from_sqlite():
+    func = nxdrive.utils.get_date_from_sqlite
 
+    # No date
+    assert func(None) is None
+    assert func("") is None
+
+    # Bad date
+    assert func("2019-08-02") is None
+
+    # Good date
+    assert func("2019-08-02 10:56:57") == datetime(2019, 8, 2, 10, 56, 57)
+
+
+def test_get_timestamp_from_date():
     # No date provided
     assert nxdrive.utils.get_timestamp_from_date(0) == 0
     assert nxdrive.utils.get_timestamp_from_date(None) == 0
