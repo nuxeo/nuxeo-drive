@@ -707,16 +707,17 @@ def decrypt(
     try:
         encobj = AES.new(secret, AES.MODE_CFB, iv)
         return encobj.decrypt(ciphertext)
-    except:
+    except Exception:
         return None
 
 
 def _lazysecret(secret: bytes, blocksize: int = 32, padding: bytes = b"}") -> bytes:
     """Pad secret if not legal AES block size (16, 24, 32)"""
-    if len(secret) > blocksize:
-        return secret[: -(len(secret) - blocksize)]
-    if not len(secret) in (16, 24, 32):
-        return secret + (blocksize - len(secret)) * padding
+    length = len(secret)
+    if length > blocksize:
+        return secret[: -(length - blocksize)]
+    if length not in (16, 24, 32):
+        return secret + (blocksize - length) * padding
     return secret
 
 
