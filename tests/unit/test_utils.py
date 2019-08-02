@@ -120,10 +120,24 @@ def test_encrypt_decrypt():
     dec = nxdrive.utils.decrypt
 
     pwd = b"Administrator"
+
+    # Test secret with length > block size
     token = b"12345678-acbd-1234-cdef-1234567890ab"
     cipher = enc(pwd, token)
-
     assert dec(cipher, token) == pwd
+
+    # Test secret with length mulitple of 2
+    token = "12345678-acbd-1234-cdef-12345678"
+    cipher = enc(pwd, token)
+    assert dec(cipher, token) == pwd
+
+    # Test secret with length not mulitple of 2
+    token = "12345678-acbd-1234-cdef-123456"
+    cipher = enc(pwd, token)
+    assert dec(cipher, token) == pwd
+
+    # Decrypt failure
+    assert dec("", token) is None
 
 
 @windows_only(reason="Unix has no drive concept")
