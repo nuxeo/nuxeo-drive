@@ -4,12 +4,13 @@ import re
 import sys
 from datetime import datetime
 from math import pow
+from pathlib import Path
 from time import sleep
 from unittest.mock import patch
 import pytest
 
 import nxdrive.utils
-from nxdrive.constants import WINDOWS
+from nxdrive.constants import APP_NAME, WINDOWS
 
 from ..markers import not_windows, windows_only
 
@@ -337,6 +338,23 @@ def test_get_date_from_sqlite():
 
     # Good date
     assert func("2019-08-02 10:56:57") == datetime(2019, 8, 2, 10, 56, 57)
+
+
+def test_get_default_local_folder():
+    if WINDOWS:
+        good_folder = Path(f"~/Documents/{APP_NAME}").expanduser()
+    else:
+        good_folder = Path(f"~/{APP_NAME}").expanduser()
+
+    folder = nxdrive.utils.get_default_local_folder()
+    assert isinstance(folder, Path)
+
+    if good_folder.is_dir():
+        # Use startswith() in case the already is an old folder, in that case
+        # we will get an incremented folder
+        assert str(folder).startswith(str(good_folder))
+    else:
+        assert folder == good_folder
 
 
 def test_get_device_unknown():
