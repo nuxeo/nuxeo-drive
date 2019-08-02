@@ -3,6 +3,7 @@ import os
 import re
 from datetime import datetime
 from math import pow
+from time import sleep
 from unittest.mock import patch
 import pytest
 
@@ -296,6 +297,17 @@ def test_get_certificate_details_from_hostname(hostname):
         "subject",
     }:
         assert key in cert_details
+
+
+def test_current_milli_time():
+    func = nxdrive.utils.current_milli_time
+
+    milli = func()
+    assert isinstance(milli, int)
+
+    # Second call must return a higher value
+    sleep(2)
+    assert milli < func()
 
 
 def test_get_current_os():
