@@ -400,6 +400,7 @@ def test_retrieve_ssl_certificate_unknown(hostname):
         ("off", False),
         ("no", False),
         ("non", False),
+        ("nope", "nope"),
         ("epsilon\nalpha\ndelta\nbeta", ("alpha", "beta", "delta", "epsilon")),
     ],
 )
