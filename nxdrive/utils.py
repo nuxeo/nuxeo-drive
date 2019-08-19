@@ -1102,6 +1102,7 @@ class PidLockFile:
                 log.info(msg)
 
         self.locked = True
+        return None
 
     def lock(self) -> Optional[int]:
         pid = self.check_running()
@@ -1115,6 +1116,7 @@ class PidLockFile:
             raise RuntimeError(f"Invalid PID: {pid!r}")
 
         self.pid_filepath.write_text(str(pid), encoding="utf-8")
+        return None
 
 
 def compute_digest(path: Path, digest_func: str, callback: Callable = None) -> str:
