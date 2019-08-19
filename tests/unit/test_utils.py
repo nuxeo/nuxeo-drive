@@ -153,22 +153,15 @@ def test_encrypt_decrypt():
 
 
 @windows_only(reason="Unix has no drive concept")
-@patch("pathlib.Path.drive")
-def test_find_suitable_tmp_dir_different_drive(mocked_drive, tmp):
-    raise AssertionError("TODO")
-    count = 0
-
-    def drive():
-        """Return a different drive each call."""
-        nonlocal count
-        count += 1
-        return count
-
-    func = nxdrive.utils.find_suitable_tmp_dir
+def test_find_suitable_tmp_dir_different_drive(tmp):
     sync_folder = tmp()
     home_folder = sync_folder / "home"
     home_folder.mkdir(parents=True)
-    mocked_drive.return_value = drive()
+
+    # Change the drive letter
+    home_folder._drv = chr(ord(home_folder.drive[:-1]) + 1)
+
+    func = nxdrive.utils.find_suitable_tmp_dir
     assert func(sync_folder, home_folder) == sync_folder.parent
 
 
