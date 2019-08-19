@@ -582,6 +582,21 @@ def test_guess_server_url(url, result):
         assert func(url) == result
 
 
+def test_guess_server_url_bad_ssl():
+    from nxdrive.exceptions import InvalidSSLCertificate
+
+    url = BAD_HOSTNAMES[0]
+    with pytest.raises(InvalidSSLCertificate):
+        nxdrive.utils.guess_server_url(url)
+
+
+@patch("rfc3987.parse")
+def test_guess_server_url_exception(mocked_parse):
+    mocked_parse.side_effect = Exception("...")
+    url = "http://localhost:8080/nuxeo"
+    nxdrive.utils.guess_server_url(url)
+
+
 def test_increment_local_folder(tmp):
     func = nxdrive.utils.increment_local_folder
     basefolder = tmp()
