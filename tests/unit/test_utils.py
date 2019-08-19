@@ -32,7 +32,7 @@ BAD_HOSTNAMES = [
 
 
 class MockedPath(Path):
-    """Simple way to test ath methods.
+    """Simple way to test Path methods.
     Using mock did not make it.
     """
 
