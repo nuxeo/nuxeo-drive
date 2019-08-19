@@ -452,20 +452,28 @@ def test_normalize_event_filename(tmp):
     func = nxdrive.utils.normalize_event_filename
 
     folder = tmp()
+    folder.mkdir()
+
     file = folder / "file.txt"
+    file.touch()
+
+    # File that needs normalization
     file_to_normalize = str(folder / "file \u0061\u0301.txt")
     file_normalized = folder / "file \xe1.txt"
+
+    # File that needs to be stripped
     file_ending_with_space = folder / "file2.txt "
-    file_ending_with_space_stripped = folder / "file2.txt"
-    folder.mkdir()
-    file.touch()
     file_ending_with_space.touch()
+    file_ending_with_space_stripped = folder / "file2.txt"
 
     assert func(file, action=False) == file
 
     # The file ending with a space is renamed
     assert func(file_ending_with_space) == file_ending_with_space_stripped
-    assert not file_ending_with_space.is_file()
+    if not WINDOWS:
+        # Sadly, on Windows, checking for "file2.txt " or "file2.txt     " is the
+        # same as checking for "file2.txt". So we need to skip this check.
+        assert not file_ending_with_space.is_file()
     assert file_ending_with_space_stripped.is_file()
 
     # Check the file is normalized
