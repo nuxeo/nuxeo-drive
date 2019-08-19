@@ -476,11 +476,13 @@ def version_lt(x: str, y: str) -> bool:
     return version_compare_client(x, y) < 0
 
 
-def normalized_path(path: Union[bytes, str, Path]) -> Path:
-    """ Return absolute, normalized file path. """
+def normalized_path(path: Union[bytes, str, Path], cls: Callable = Path) -> Path:
+    """Return absolute, normalized file path.
+    The *cls* argument is used in tests, it must be a class or subclass of Path.
+    """
     if not isinstance(path, Path):
         path = force_decode(path)
-    expanded = Path(path).expanduser()
+    expanded = cls(path).expanduser()
     try:
         return expanded.resolve()
     except PermissionError:
