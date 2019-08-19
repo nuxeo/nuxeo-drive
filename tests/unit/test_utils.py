@@ -4,7 +4,7 @@ import re
 import sys
 from datetime import datetime
 from math import pow
-from pathlib import Path
+from pathlib import Path, _posix_flavour, _windows_flavour
 from time import sleep
 from unittest.mock import patch
 import pytest
@@ -29,6 +29,18 @@ BAD_HOSTNAMES = [
     "client-cert-missing.badssl.com",
     "invalid-expected-sct.badssl.com",
 ]
+
+
+class MockedPath(Path):
+    """Simple way to test ath methods.
+    Using mock did not make it.
+    """
+
+    _flavour = _windows_flavour if WINDOWS else _posix_flavour
+
+    def resolve(self, *_, **__):
+        """ Raise a PermissionError. """
+        raise PermissionError("Boom!")
 
 
 @pytest.mark.parametrize(
@@ -413,10 +425,7 @@ def test_if_frozen_decorator():
     assert checkpoint
 
 
-@patch("pathlib.Path.resolve")
-@patch("pathlib.Path.absolute")
-def test_normalized_path_permission_error(mocked_resolve, mocked_absolute, tmp):
-    raise AssertionError("TODO")
+def test_normalized_path_permission_error(tmp):
     func = nxdrive.utils.normalized_path
 
     folder = tmp()
@@ -424,15 +433,11 @@ def test_normalized_path_permission_error(mocked_resolve, mocked_absolute, tmp):
     path = folder / "foo.txt"
 
     # Path.resolve() raises a PermissionError, it should fallback on .absolute()
-    mocked_resolve.side_effect = PermissionError()
-    path_abs = func(str(path))
-    assert mocked_resolve.called
-    assert mocked_absolute.called
+    path_abs = func(str(path), cls=MockedPath)  # Test giving a str
 
-    # Restore the original ehavior and check that .resolved() and .absolute()
+    # Restore the original behavior and check that .resolved() and .absolute()
     # return the same value.
-    mocked_resolve.reset_mock()
-    assert func(path) == path_abs
+    assert func(path) == path_abs  # Test giving a Path
 
 
 def test_normalize_and_expand_path():
