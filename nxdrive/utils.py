@@ -7,6 +7,7 @@ import os
 import os.path
 import re
 import stat
+from copy import deepcopy
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
@@ -81,6 +82,15 @@ __all__ = (
     "unset_path_readonly",
     "version_le",
 )
+
+DEFAULTS_CERT_DETAILS = {
+    "subject": [],
+    "issuer": [],
+    "caIssuers": [],
+    "serialNumber": "N/A",
+    "notAfter": "N/A",
+    "notBefore": "N/A",
+}
 
 DEVICE_DESCRIPTIONS = {"darwin": "macOS", "linux": "GNU/Linux", "win32": "Windows"}
 WIN32_PATCHED_MIME_TYPES = {
@@ -646,14 +656,7 @@ def get_certificate_details(hostname: str = "", cert_data: str = "") -> Dict[str
 
     import ssl
 
-    defaults = {
-        "subject": [],
-        "issuer": [],
-        "caIssuers": [],
-        "serialNumber": "N/A",
-        "notAfter": "N/A",
-        "notBefore": "N/A",
-    }
+    defaults = deepcopy(DEFAULTS_CERT_DETAILS)
     cert_file = Path("c.crt")
 
     try:
