@@ -527,6 +527,8 @@ def test_get_value(raw_value, expected_value):
         "http://example.org/\t:8080/nuxeo",
         """http://example.org/
         :8080/nuxeo""",
+        "example.org",
+        "192.168.0.42/nuxeo",
     ],
 )
 def test_compute_urls(url):
