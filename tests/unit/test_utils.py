@@ -682,6 +682,22 @@ def test_parse_protocol_url_token():
     }
 
 
+def test_parse_protocol_url_bad_http_scheme():
+    """Bad HTTP scheme."""
+    url = (
+        "nxdrive://edit"
+        "/htto/server.cloud.nuxeo.com:8080/nuxeo"
+        "/user/Administrator"
+        "/repo/default"
+        "/nxdocid/00000000-0000-0000-0000"
+        "/filename/On%20call%20Schedule.docx"
+        "/downloadUrl/nxfile/default/00000000-0000-0000-0000"
+        "/file:content/On%20call%20Schedule.docx"
+    )
+    with pytest.raises(ValueError):
+        nxdrive.utils.parse_protocol_url(url)
+
+
 @pytest.mark.parametrize(
     "url, result",
     [
