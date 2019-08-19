@@ -1,13 +1,19 @@
 # coding: utf-8
 import os
 import re
+import sys
+from datetime import datetime
 from math import pow
+from pathlib import Path, _posix_flavour, _windows_flavour
+from time import sleep
 from unittest.mock import patch
-
 import pytest
 
 import nxdrive.utils
-from nxdrive.constants import WINDOWS
+from nxdrive.constants import APP_NAME, WINDOWS
+from nxdrive.options import Options
+
+from ..markers import not_windows, windows_only
 
 BAD_HOSTNAMES = [
     "expired.badssl.com",
@@ -23,6 +29,18 @@ BAD_HOSTNAMES = [
     "client-cert-missing.badssl.com",
     "invalid-expected-sct.badssl.com",
 ]
+
+
+class MockedPath(Path):
+    """Simple way to test Path methods.
+    Using mock did not make it.
+    """
+
+    _flavour = _windows_flavour if WINDOWS else _posix_flavour
+
+    def resolve(self, *_, **__):
+        """ Raise a PermissionError. """
+        raise PermissionError("Boom!")
 
 
 @pytest.mark.parametrize(
@@ -114,10 +132,66 @@ def test_encrypt_decrypt():
     dec = nxdrive.utils.decrypt
 
     pwd = b"Administrator"
+
+    # Test secret with length > block size
     token = b"12345678-acbd-1234-cdef-1234567890ab"
     cipher = enc(pwd, token)
-
     assert dec(cipher, token) == pwd
+
+    # Test secret with length mulitple of 2
+    token = "12345678-acbd-1234-cdef-12345678"
+    cipher = enc(pwd, token)
+    assert dec(cipher, token) == pwd
+
+    # Test secret with length not mulitple of 2
+    token = "12345678-acbd-1234-cdef-123456"
+    cipher = enc(pwd, token)
+    assert dec(cipher, token) == pwd
+
+    # Decrypt failure
+    assert dec("", token) is None
+
+
+@windows_only(reason="Unix has no drive concept")
+def test_find_suitable_tmp_dir_different_drive(tmp):
+    sync_folder = tmp()
+    home_folder = sync_folder / "home"
+    home_folder.mkdir(parents=True)
+
+    # Change the drive letter
+    home_folder._drv = chr(ord(home_folder.drive[:-1]) + 1)
+
+    func = nxdrive.utils.find_suitable_tmp_dir
+    assert func(sync_folder, home_folder) == sync_folder.parent
+
+
+@not_windows(reason="Windows has no st_dev")
+@patch("pathlib.Path.stat")
+def test_find_suitable_tmp_dir_different_partition(mocked_stat, tmp):
+    class Stat:
+        """Return a different st_dev each call."""
+
+        count = 0
+
+        @property
+        def st_dev(self):
+            self.count += 1
+            return self.count
+
+    func = nxdrive.utils.find_suitable_tmp_dir
+    sync_folder = tmp()
+    home_folder = sync_folder / "home"
+    home_folder.mkdir(parents=True)
+    mocked_stat.return_value = Stat()
+    assert func(sync_folder, home_folder) == sync_folder.parent
+
+
+def test_find_suitable_tmp_dir_same_partition(tmp):
+    func = nxdrive.utils.find_suitable_tmp_dir
+    sync_folder = tmp()
+    home_folder = sync_folder / "home"
+    home_folder.mkdir(parents=True)
+    assert func(sync_folder, home_folder) == home_folder
 
 
 @pytest.mark.parametrize(
@@ -129,6 +203,8 @@ def test_encrypt_decrypt():
         ("Book1.bak", (True, False)),
         ("pptED23.tmp", (True, False)),
         ("9ABCDEF0.tep", (False, None)),
+        # Emacs auto save file
+        ("#9ABCDEF0.tep#", (True, False)),
         # AutoCAD
         ("atmp9716", (True, False)),
         ("7151_CART.dwl", (True, False)),
@@ -247,6 +323,27 @@ def test_get_certificate_details_from_hostname(hostname):
         assert key in cert_details
 
 
+def test_get_certificate_details_error():
+    cert_details = nxdrive.utils.get_certificate_details(cert_data="qsd351qds")
+    assert cert_details == nxdrive.utils.DEFAULTS_CERT_DETAILS
+
+
+def test_current_milli_time():
+    func = nxdrive.utils.current_milli_time
+
+    milli = func()
+    assert isinstance(milli, int)
+
+    # Second call must return a higher value
+    sleep(2)
+    assert milli < func()
+
+
+def test_find_icon():
+    """It will also test find_resource()."""
+    assert isinstance(nxdrive.utils.find_icon("boom"), Path)
+
+
 def test_get_current_os():
     ver = nxdrive.utils.get_current_os()
     assert isinstance(ver, tuple)
@@ -261,15 +358,126 @@ def test_get_current_os_full():
     assert ver
 
 
-def test_get_timestamp_from_date():
-    from datetime import datetime
+def test_get_date_from_sqlite():
+    func = nxdrive.utils.get_date_from_sqlite
 
+    # No date
+    assert func(None) is None
+    assert func("") is None
+
+    # Bad date
+    assert func("2019-08-02") is None
+
+    # Good date
+    assert func("2019-08-02 10:56:57") == datetime(2019, 8, 2, 10, 56, 57)
+
+
+def test_get_default_local_folder():
+    if WINDOWS:
+        good_folder = Path(f"~/Documents/{APP_NAME}").expanduser()
+    else:
+        good_folder = Path(f"~/{APP_NAME}").expanduser()
+
+    folder = nxdrive.utils.get_default_local_folder()
+    assert isinstance(folder, Path)
+
+    if good_folder.is_dir():
+        # Use startswith() in case the already is an old folder, in that case
+        # we will get an incremented folder
+        assert str(folder).startswith(str(good_folder))
+    else:
+        assert folder == good_folder
+
+
+def test_get_device_unknown():
+    """For unknown platforms, we just remove spaces."""
+    with patch.object(sys, "platform", "The Black Star"):
+        assert nxdrive.utils.get_device() == "TheBlackStar"
+
+
+def test_get_timestamp_from_date():
     # No date provided
     assert nxdrive.utils.get_timestamp_from_date(0) == 0
     assert nxdrive.utils.get_timestamp_from_date(None) == 0
 
     dtime = datetime(2019, 6, 20)
     assert nxdrive.utils.get_timestamp_from_date(dtime) == 1_560_988_800
+
+
+@Options.mock()
+def test_if_frozen_decorator():
+    @nxdrive.utils.if_frozen
+    def check():
+        nonlocal checkpoint
+        checkpoint = True
+        return True
+
+    checkpoint = False
+
+    # The app is not frozen in tests, so the call must return False
+    assert not check()
+    assert not checkpoint
+
+    Options.is_frozen = True
+    assert check()
+    assert checkpoint
+
+
+def test_normalized_path_permission_error(tmp):
+    func = nxdrive.utils.normalized_path
+
+    folder = tmp()
+    folder.mkdir()
+    path = folder / "foo.txt"
+
+    # Path.resolve() raises a PermissionError, it should fallback on .absolute()
+    path_abs = func(str(path), cls=MockedPath)  # Test giving a str
+
+    # Restore the original behavior and check that .resolved() and .absolute()
+    # return the same value.
+    assert func(path) == path_abs  # Test giving a Path
+
+
+def test_normalize_and_expand_path():
+    if WINDOWS:
+        path = "%userprofile%/foo"
+    else:
+        path = "$HOME/foo"
+    home = str(Path("~").expanduser())
+    expected = Path(f"{home}/foo")
+    assert nxdrive.utils.normalize_and_expand_path(path) == expected
+
+
+def test_normalize_event_filename(tmp):
+    func = nxdrive.utils.normalize_event_filename
+
+    folder = tmp()
+    folder.mkdir()
+
+    file = folder / "file.txt"
+    file.touch()
+
+    # File that needs normalization
+    file_to_normalize = str(folder / "file \u0061\u0301.txt")
+    file_normalized = folder / "file \xe1.txt"
+
+    # File that needs to be stripped
+    file_ending_with_space = folder / "file2.txt "
+    file_ending_with_space.touch()
+    file_ending_with_space_stripped = folder / "file2.txt"
+
+    assert func(file, action=False) == file
+
+    # The file ending with a space is renamed
+    assert func(file_ending_with_space) == file_ending_with_space_stripped
+    if not WINDOWS:
+        # Sadly, on Windows, checking for "file2.txt " or "file2.txt     " is the
+        # same as checking for "file2.txt". So we need to skip this check.
+        assert not file_ending_with_space.is_file()
+    assert file_ending_with_space_stripped.is_file()
+
+    # Check the file is normalized
+    assert func(file_to_normalize) == file_normalized
 
 
 @pytest.mark.parametrize("hostname", BAD_HOSTNAMES)
@@ -298,6 +506,7 @@ def test_retrieve_ssl_certificate_unknown(hostname):
         ("off", False),
         ("no", False),
         ("non", False),
+        ("nope", "nope"),
         ("epsilon\nalpha\ndelta\nbeta", ("alpha", "beta", "delta", "epsilon")),
     ],
 )
@@ -324,6 +533,8 @@ def test_get_value(raw_value, expected_value):
         "http://example.org/\t:8080/nuxeo",
         """http://example.org/
         :8080/nuxeo""",
+        "example.org",
+        "192.168.0.42/nuxeo",
     ],
 )
 def test_compute_urls(url):
@@ -370,6 +581,21 @@ def test_guess_server_url(url, result):
             pytest.skip(f"Intranet not stable ({exc})")
     else:
         assert func(url) == result
+
+
+def test_guess_server_url_bad_ssl():
+    from nxdrive.exceptions import InvalidSSLCertificate
+
+    url = BAD_HOSTNAMES[0]
+    with pytest.raises(InvalidSSLCertificate):
+        nxdrive.utils.guess_server_url(url)
+
+
+@patch("rfc3987.parse")
+def test_guess_server_url_exception(mocked_parse):
+    mocked_parse.side_effect = Exception("...")
+    url = "http://localhost:8080/nuxeo"
+    nxdrive.utils.guess_server_url(url)
 
 
 def test_increment_local_folder(tmp):
@@ -475,6 +701,22 @@ def test_parse_protocol_url_token():
         "token": "12345678-acbd-1234-cdef-1234567890ab",
         "username": "Administrator@127.0.0.1",
     }
+
+
+def test_parse_protocol_url_bad_http_scheme():
+    """Bad HTTP scheme."""
+    url = (
+        "nxdrive://edit"
+        "/htto/server.cloud.nuxeo.com:8080/nuxeo"
+        "/user/Administrator"
+        "/repo/default"
+        "/nxdocid/00000000-0000-0000-0000"
+        "/filename/On%20call%20Schedule.docx"
+        "/downloadUrl/nxfile/default/00000000-0000-0000-0000"
+        "/file:content/On%20call%20Schedule.docx"
+    )
+    with pytest.raises(ValueError):
+        nxdrive.utils.parse_protocol_url(url)
 
 
 @pytest.mark.parametrize(
