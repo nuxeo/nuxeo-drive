@@ -440,11 +440,11 @@ def test_normalized_path_permission_error(tmp):
 
 def test_normalize_and_expand_path():
     if WINDOWS:
-        path = "~/%userprofile%/foo"
+        path = "%userprofile%/foo"
     else:
-        path = "~/$HOME/foo"
+        path = "$HOME/foo"
     home = str(Path("~").expanduser())
-    expected = Path(f"{home}/{home}/foo")
+    expected = Path(f"{home}/foo")
     assert nxdrive.utils.normalize_and_expand_path(path) == expected
 
 
