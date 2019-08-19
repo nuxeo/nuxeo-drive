@@ -330,6 +330,11 @@ def test_get_certificate_details_from_hostname(hostname):
         assert key in cert_details
 
 
+def test_get_certificate_details_error():
+    cert_details = nxdrive.utils.get_certificate_details(cert_data="qsd351qds")
+    assert cert_details == nxdrive.utils.DEFAULTS_CERT_DETAILS
+
+
 def test_current_milli_time():
     func = nxdrive.utils.current_milli_time
 
