@@ -815,7 +815,7 @@ def guess_server_url(
                 kwargs["proxies"] = proxy.settings(url=full_url)
             with requests.get(full_url, **kwargs) as resp:
                 resp.raise_for_status()
-                if resp.status_code == 200:
+                if resp.status_code == 200:  # Happens when JSF is installed
                     log.debug(f"Found URL: {new_url}")
                     return new_url
         except SSLError as exc:
@@ -903,9 +903,7 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         return dict(
             command=cmd, token=parsed_url["token"], username=parsed_url["username"]
         )
-    elif cmd in path_cmds:
-        return dict(command=cmd, filepath=parsed_url["path"])
-    return dict(command=cmd)
+    return dict(command=cmd, filepath=parsed_url["path"])
 
 
 def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str, str]:
