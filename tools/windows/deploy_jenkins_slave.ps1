@@ -13,6 +13,7 @@
 # You can tweak tests checks by setting the SKIP envar:
 #    - SKIP=flake8 to skip code style
 #    - SKIP=mypy to skip type annotations
+#    - SKIP=cleanup to skip dead code checks
 #    - SKIP=rerun to not rerun failed test(s)
 #    - SKIP=integration to not run integration tests on Windows
 #    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,integration)
@@ -384,6 +385,14 @@ function launch_tests {
 	if (-not ($Env:SKIP -match 'mypy' -or $Env:SKIP -match 'all')) {
 		Write-Output ">>> Checking type annotations"
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy nxdrive
+		if ($lastExitCode -ne 0) {
+			ExitWithCode $lastExitCode
+		}
+	}
+
+	if (-not ($Env:SKIP -match 'cleanup' -or $Env:SKIP -match 'all')) {
+		Write-Output ">>> Checking for dead code with Vulture"
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m vulture nxdrive tools\whitelist.py
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
