@@ -94,21 +94,6 @@ class BaseUpdater(PollWorker):
     # Public methods that can be overrided
     #
 
-    def force_status(self, status: str, version: str) -> None:
-        """
-        Trigger the auto-update notification with given status and version.
-        Used for debugging purposes only.
-        """
-
-        self._set_status(status, version=version)
-
-        if status == UPDATE_STATUS_UPDATING:
-            # Put a percentage
-            self._set_progress(40)
-
-        if status == UPDATE_STATUS_UPDATE_AVAILABLE:
-            self.updateAvailable.emit()
-
     def install(self, filename: str) -> None:
         """
         Install the new version.
