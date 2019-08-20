@@ -126,7 +126,6 @@ class FileAction(Action):
 
         self.start_time = monotonic()
         self.end_time = 0.0
-        self.transfer_duration = 0.0
 
         self._connect_reporter(reporter)
         self.started.emit(self)
