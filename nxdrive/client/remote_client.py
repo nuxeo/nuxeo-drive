@@ -76,7 +76,6 @@ class Remote(Nuxeo):
         **kwargs: Any,
     ) -> None:
         auth = TokenAuth(token) if token else (user_id, password)
-        self.kwargs = kwargs
 
         super().__init__(
             auth=auth,
