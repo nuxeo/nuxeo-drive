@@ -18,9 +18,6 @@ __all__ = ("DriveSystrayIcon",)
 
 
 class DriveSystrayIcon(QSystemTrayIcon):
-
-    __context_menu = None
-
     def __init__(self, application: "Application") -> None:
         super().__init__(application)
         self.application = application
