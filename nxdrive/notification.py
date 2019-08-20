@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from logging import getLogger
 from threading import Lock
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -64,7 +64,6 @@ class Notification:
         flags: int = 0,
         title: str = "",
         description: str = "",
-        replacements: Dict[str, str] = None,
         action: str = "",
     ) -> None:
         self.flags = flags
@@ -73,8 +72,6 @@ class Notification:
         self.description = description
         self.action = action
         self.engine_uid = engine_uid
-        self._time: Optional[int] = None
-        self._replacements = replacements or dict()
 
         self.uid = ""
         if uid:
@@ -95,7 +92,6 @@ class Notification:
             "discardable": self.is_discardable(),
             "discard": self.is_discard(),
             "systray": self.is_systray(),
-            "replacements": self.get_replacements(),
         }
 
     def is_remove_on_discard(self) -> bool:
@@ -124,9 +120,6 @@ class Notification:
 
     def is_discard_on_trigger(self) -> bool:
         return bool(self.flags & Notification.FLAG_DISCARD_ON_TRIGGER)
-
-    def get_replacements(self) -> Dict[str, str]:
-        return self._replacements
 
     def __repr__(self) -> str:
         return (
@@ -178,7 +171,6 @@ class NotificationService(QObject):
 
     def send_notification(self, notification: Notification) -> None:
         log.info(f"Sending {notification!r}")
-        notification._time = int(time.time())
         with self._lock:
             if notification.is_persistent():
                 if notification.uid not in self._notifications:
