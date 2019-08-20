@@ -3,7 +3,6 @@ import os
 import sys
 import subprocess
 from contextlib import suppress
-from ctypes import windll  # type: ignore
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict
@@ -13,7 +12,6 @@ import win32file
 from PyQt5.QtCore import pyqtSlot
 from win32com.client import Dispatch
 from win32com.shell import shell, shellcon
-from win32con import LOGPIXELSX
 
 from . import registry
 from .extension import (
@@ -51,22 +49,6 @@ class WindowsIntegration(AbstractOSIntegration):
     @if_frozen
     def _cleanup(self) -> None:
         disable_overlay()
-
-    @property
-    def zoom_factor(self) -> float:
-        if not self.__zoom_factor:
-            try:
-                # Enable DPI detection
-                windll.user32.SetProcessDPIAware()
-                display = windll.user32.GetDC(None)
-                dpi = windll.gdi32.GetDeviceCaps(display, LOGPIXELSX)
-                windll.user32.ReleaseDC(None, display)
-                # See https://technet.microsoft.com/en-us/library/dn528846.aspx
-                self.__zoom_factor = dpi / 96.0
-            except:
-                log.info("Cannot get zoom factor (using default 1.0)", exc_info=True)
-                self.__zoom_factor = 1.0
-        return self.__zoom_factor
 
     @pyqtSlot(result=bool)
     def addons_installed(self) -> bool:

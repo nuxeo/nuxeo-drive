@@ -17,16 +17,11 @@ log = getLogger(__name__)
 
 class AbstractOSIntegration(QObject):
 
-    __zoom_factor = 1.0
     nature = "Unknown"
 
     def __init__(self, manager: Optional["Manager"]) -> None:
         super().__init__()
         self._manager = manager
-
-    @property
-    def zoom_factor(self) -> float:
-        return self.__zoom_factor
 
     def open_local_file(self, file_path: str, select: bool = False) -> None:
         """
