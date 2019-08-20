@@ -134,6 +134,10 @@ class Engine(QObject):
         self._offline_state = False
         self.dao = EngineDAO(self._get_db_file())
 
+        # The password is only set when binding an account for the 1st time,
+        # then only the token will be available and used
+        self._remote_password: str = ""
+
         if binder:
             self.bind(binder)
         self._load_configuration()
@@ -843,9 +847,7 @@ class Engine(QObject):
             verify = self._ssl_verify
 
         kwargs = {
-            # The password is only set when binding an account for the 1st time,
-            # then only the token will be available and used
-            "password": getattr(self, "_remote_password", None),
+            "password": self._remote_password,
             "timeout": self.timeout,
             "token": self._remote_token,
             "download_callback": self.suspend_client,
