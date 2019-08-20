@@ -1025,7 +1025,6 @@ class PidLockFile:
     """ This class handle the pid lock file"""
 
     def __init__(self, folder: Path, key: str) -> None:
-        self.folder = folder
         self.key = key
         self.locked = False
         self.pid_filepath = safe_long_path(folder / f"nxdrive_{key}.pid")
