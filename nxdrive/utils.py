@@ -93,17 +93,6 @@ DEFAULTS_CERT_DETAILS = {
 }
 
 DEVICE_DESCRIPTIONS = {"darwin": "macOS", "linux": "GNU/Linux", "win32": "Windows"}
-WIN32_PATCHED_MIME_TYPES = {
-    "image/pjpeg": "image/jpeg",
-    "image/x-png": "image/png",
-    "image/bmp": "image/x-ms-bmp",
-    "audio/x-mpg": "audio/mpeg",
-    "video/x-mpeg2a": "video/mpeg",
-    "application/x-javascript": "application/javascript",
-    "application/x-msexcel": "application/vnd.ms-excel",
-    "application/x-mspowerpoint": "application/vnd.ms-powerpoint",
-    "application/x-mspowerpoint.12": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-}
 
 log = getLogger(__name__)
 
