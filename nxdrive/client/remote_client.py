@@ -1,12 +1,12 @@
 # coding: utf-8
 import os
 import socket
-import time
 from contextlib import suppress
 from logging import getLogger
 from os.path import isfile
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
+from time import monotonic_ns
+from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
 import requests
@@ -30,12 +30,13 @@ from ..constants import (
     TransferStatus,
 )
 from ..engine.activity import (
+    Action,
     DownloadAction,
     LinkingAction,
     UploadAction,
     VerificationAction,
 )
-from ..exceptions import NotFound, ScrollDescendantsError, UploadPaused
+from ..exceptions import DownloadPaused, NotFound, ScrollDescendantsError, UploadPaused
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo, Download, Upload
 from ..options import Options
 from ..utils import (
@@ -106,11 +107,21 @@ class Remote(Nuxeo):
         self.version = version
 
         # Callback function used for downloads.
-        self.download_callback = download_callback
+        # Note: the order is important, keep it!
+        self.download_callback = (
+            self.transfer_start_callback,
+            download_callback,
+            self.transfer_end_callback,
+        )
 
         # Callback function used for chunked uploads.
         # It will be forwarded to Batch.get_uploader() on the Nuxeo Python Client side.
-        self.upload_callback = upload_callback
+        # Note: the order is important, keep it!
+        self.upload_callback = (
+            self.transfer_start_callback,
+            upload_callback,
+            self.transfer_end_callback,
+        )
 
         self._has_new_trash_service = not version_le(self.client.server_version, "10.1")
 
@@ -127,6 +138,60 @@ class Remote(Nuxeo):
             for attr in sorted(self.__init__.__code__.co_varnames[1:])  # type: ignore
         )
         return f"<{self.__class__.__name__} {attrs}>"
+
+    def transfer_start_callback(self, *_: Any) -> None:
+        """Callback for each chunked (down|up)loads.
+        Called first to set the end time of the current (down|up)loaded chunk.
+        """
+        action = Action.get_current_action()
+        if action:  # mypy fix ...
+            action.chunk_transfer_end_time_ns = monotonic_ns()
+
+    def transfer_end_callback(self, *_: Any) -> None:
+        """Callback for each chunked (down|up)loads.
+        Called last to set the start time of the next chunk to (down|up)load.
+        """
+        action = Action.get_current_action()
+        if not action:  # mypy fix ...
+            return
+
+        # Handle transfer speed
+        duration = (
+            action.chunk_transfer_end_time_ns - action.chunk_transfer_start_time_ns
+        )
+        if duration > 0.0:
+            # 1024 * 1024 * 1024 to counter the duration that is exprimed in nanoseconds
+            speed = action.last_chunk_transfer_speed = (
+                action.chunk_size * 1024 * 1024 * 1024 / duration
+            )
+            log.debug(f"Chunk transfer speed was {sizeof_fmt(speed)}/s")
+
+        # Handle transfer pause
+        if isinstance(action, DownloadAction):
+            # Get the current download and check if it is still ongoing
+            download = self.dao.get_download(path=action.filepath)
+            if download:
+                # Save the progression
+                download.progress = action.get_percent()
+                self.dao.set_transfer_progress("download", download)
+
+                if download.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
+                    # Reset the last transferred chunk speed to skip its display in the systray
+                    action.last_chunk_transfer_speed = 0
+                    raise DownloadPaused(download.uid or -1)
+        elif isinstance(action, UploadAction):
+            # Get the current upload and check if it is still ongoing
+            upload = self.dao.get_upload(path=action.filepath)
+            if upload and upload.status not in (
+                TransferStatus.ONGOING,
+                TransferStatus.DONE,
+            ):
+                # Reset the last transferred chunk speed to skip its display in the systray
+                action.last_chunk_transfer_speed = 0
+                raise UploadPaused(upload.uid or -1)
+
+        # Update the transfer start timer for the next iteration
+        action.chunk_transfer_start_time_ns = monotonic_ns()
 
     def execute(self, **kwargs: Any) -> Any:
         """
@@ -242,6 +307,10 @@ class Remote(Nuxeo):
         locker = unlock_path(file_out)
         try:
             if chunked:
+                # Store the chunck size and start time for later transfer speed computation
+                action.chunk_size = FILE_BUFFER_SIZE
+                action.chunk_transfer_start_time_ns = monotonic_ns()
+
                 callback = kwargs.pop("callback", self.download_callback)
                 self.operations.save_to_file(
                     action,
@@ -327,13 +396,13 @@ class Remote(Nuxeo):
         If it exists, the error is skipped and the upload is seen as a success.
         """
         # Step 1: upload the blob
-        blob, duration = self.upload_chunks(
+        blob = self.upload_chunks(
             file_path, filename=filename, mime_type=mime_type, **params
         )
 
         # Step 2: link the uploaded blob to the document
         params["file_path"] = file_path
-        item = self.link_blob_to_doc(command, blob, duration, **params)
+        item = self.link_blob_to_doc(command, blob, **params)
 
         # Transfer is completed, delete the upload from the database
         self.dao.remove_transfer("upload", file_path)
@@ -346,10 +415,9 @@ class Remote(Nuxeo):
         filename: str = None,
         mime_type: str = None,
         **params: Any,
-    ) -> Tuple[FileBlob, int]:
+    ) -> FileBlob:
         """Upload a blob by chunks or in one go."""
 
-        tick = time.monotonic()
         action = UploadAction(file_path, reporter=QApplication.instance())
         blob = FileBlob(str(file_path))
         if filename:
@@ -437,6 +505,10 @@ class Remote(Nuxeo):
 
             if action.get_percent() < 100.0 or not action.uploaded:
                 if uploader.chunked:
+                    # Store the chunck size and start time for later transfer speed computation
+                    action.chunk_size = chunk_size
+                    action.chunk_transfer_start_time_ns = monotonic_ns()
+
                     # If there is an UploadError, we catch it from the processor
                     for _ in uploader.iter_upload():
                         # Here 0 may happen when doing a single upload
@@ -466,13 +538,7 @@ class Remote(Nuxeo):
             upload.status = TransferStatus.DONE
             self.dao.set_transfer_status("upload", upload)
 
-            duration = int(time.monotonic() - tick)
-            if duration > 0:
-                log.debug(
-                    f"Size: {sizeof_fmt(blob.size)}, speed: {sizeof_fmt(blob.size / duration)}/s"
-                )
-
-            return blob, duration
+            return blob
         finally:
             # In case of error, log the progression to help debugging
             percent = action.get_percent()
@@ -490,7 +556,7 @@ class Remote(Nuxeo):
                 blob.fd.close()
 
     def link_blob_to_doc(
-        self, command: str, blob: FileBlob, duration: int, **params
+        self, command: str, blob: FileBlob, **params
     ) -> Dict[str, Any]:
         """Link the given uploaded *blob* to the given document (refs are passed into *params*)."""
 
@@ -499,12 +565,9 @@ class Remote(Nuxeo):
         params.pop("is_direct_edit", None)
         file_path = params.pop("file_path")
 
-        # Use upload duration * 2 as Nuxeo transaction timeout
-        timeout = max(TX_TIMEOUT, duration * 2)
-        headers = {"Nuxeo-Transaction-Timeout": str(timeout)}
-
+        headers = {"Nuxeo-Transaction-Timeout": str(TX_TIMEOUT)}
         log.debug(
-            f"Setting connection timeout to {timeout:,} seconds to handle the file creation on the server"
+            f"Setting connection timeout to {TX_TIMEOUT:,} seconds to handle the file creation on the server"
         )
 
         # Terminate the upload action to be able to start the finalization one as we are allowing
@@ -519,7 +582,7 @@ class Remote(Nuxeo):
                 command=command,
                 input_obj=blob,
                 headers=headers,
-                timeout=timeout,
+                timeout=TX_TIMEOUT,
                 **params,
             )
         finally:

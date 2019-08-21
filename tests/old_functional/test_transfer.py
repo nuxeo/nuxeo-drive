@@ -59,7 +59,8 @@ class TestDownload(OneUserTest):
 
             # Call the original function to make the paused download
             # effective at the 2nd iteration
-            callback_orig()
+            for cb in callback_orig:
+                cb()
 
         engine = self.engine_1
         dao = self.engine_1.dao
@@ -104,7 +105,8 @@ class TestDownload(OneUserTest):
             self.manager_1.suspend()
 
             # Call the original function to make the suspended download effective
-            callback_orig()
+            for cb in callback_orig:
+                cb()
 
         engine = self.engine_1
         dao = self.engine_1.dao
@@ -152,7 +154,8 @@ class TestDownload(OneUserTest):
                 remote.update_content(file.uid, b"remotely changed")
 
             # Call the original function to make the paused download effective
-            callback_orig()
+            for cb in callback_orig:
+                cb()
 
         count = 0
         remote = self.remote_1
@@ -197,7 +200,8 @@ class TestDownload(OneUserTest):
             remote.delete(file.uid)
 
             # Call the original function to make the paused download effective
-            callback_orig()
+            for cb in callback_orig:
+                cb()
 
         remote = self.remote_1
         engine = self.engine_1
