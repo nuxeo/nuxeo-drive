@@ -102,18 +102,13 @@ class QMLDriveApi(QObject):
         result["last_error_details"] = state.last_error_details or ""
         return result
 
-    def get_last_files(
-        self, uid: str, number: int, direction: str = "", duration: int = None
-    ) -> List[Dict[str, Any]]:
+    @pyqtSlot(str, int, result=list)
+    def get_last_files(self, uid: str, number: int) -> List[Dict[str, Any]]:
         """ Return the last files transferred (see EngineDAO). """
         engine = self._manager.engines.get(uid)
-        result = []
-        if engine:
-            for state in engine.dao.get_last_files(
-                number, direction=direction, duration=duration
-            ):
-                result.append(state.export())
-        return result
+        if not engine:
+            return []
+        return [s.export() for s in engine.dao.get_last_files(number)]
 
     @pyqtSlot(str, result=int)
     def get_last_files_count(self, uid: str) -> int:

@@ -109,7 +109,7 @@ Rectangle {
                         id: accountSelect
                         // When picking an account, refresh the file list.
                         onActivated: {
-                            api.get_last_files(accountSelect.getRole("uid"), 10)
+                            getLastFiles(accountSelect.getRole("uid"))
                             updateCounts()
                         }
                     }
