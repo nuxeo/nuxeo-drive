@@ -124,6 +124,14 @@ class FileAction(Action):
             self.empty = True
         self.size = size
 
+        # Used to compute the transfer speed, updated by the Remote client
+        self.chunk_size = 0
+        # Used to compute the transfer speed, updated by the Remote client at each (down|up)loaded chunk
+        self.chunk_transfer_start_time_ns = 0.0  # nanoseconds
+        self.chunk_transfer_end_time_ns = 0.0  # nanoseconds
+        # The transfer speed of the latest (down|up)loaded chunk
+        self.last_chunk_transfer_speed = 0.0
+
         self.start_time = monotonic()
         self.end_time = 0.0
 
@@ -174,6 +182,7 @@ class FileAction(Action):
             "tmppath": str(self.tmppath),
             "empty": self.empty,
             "uploaded": self.uploaded,
+            "speed": self.last_chunk_transfer_speed,
         }
 
     def __repr__(self) -> str:

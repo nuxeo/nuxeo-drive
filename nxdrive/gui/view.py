@@ -1,5 +1,6 @@
 # coding: utf-8
 import os.path
+from functools import partial
 from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import (
@@ -203,9 +204,16 @@ class TransferModel(QAbstractListModel):
                 size = 0
             progress = size * (row["progress"] or 0.0) / 100
 
-        percent = min(100, progress * 100 / (size or 1))
+        # Pretty print
         suffix = self.tr("BYTE_ABBREV")
-        return f"{sizeof_fmt(progress, suffix=suffix)} / {sizeof_fmt(size, suffix=suffix)} [{int(percent)}%]"
+        psize = partial(sizeof_fmt, suffix=suffix)
+
+        percent = int(min(100, progress * 100 / (size or 1)))
+        speed = row.get("speed", 0)
+        if speed:
+            return f"{psize(progress)} / {psize(size)} [{percent}% @ {psize(speed)}/s]"
+        else:
+            return f"{psize(progress)} / {psize(size)} [{percent}%]"
 
     def data(self, index: QModelIndex, role: int = NAME) -> Any:
         row = self.transfers[index.row()]
@@ -230,6 +238,12 @@ class TransferModel(QAbstractListModel):
             if item["name"] != action["name"]:
                 continue
             idx = self.createIndex(i, 0)
+
+            if action["action_type"] in ("Linking", "Verification"):
+                item["speed"] = 0
+            else:
+                item["speed"] = action["speed"]
+
             self.setData(idx, action["progress"], self.PROGRESS)
             self.setData(idx, action["progress"], self.PROGRESS_METRICS)
             if action["action_type"] in ("Linking", "Verification"):

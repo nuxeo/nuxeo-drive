@@ -25,11 +25,9 @@ from ..client.local_client import LocalClient
 from ..client.remote_client import Remote
 from ..constants import CONNECTION_ERROR, MAC, ROOT, WINDOWS, DelAction, TransferStatus
 from ..exceptions import (
-    DownloadPaused,
     InvalidDriveException,
     PairInterrupt,
     RootAlreadyBindWithDifferentAccount,
-    UploadPaused,
     ThreadInterrupt,
 )
 from ..objects import DocPairs, Binder, Metrics, EngineDef
@@ -1030,38 +1028,15 @@ class Engine(QObject):
                 raise ThreadInterrupt()
 
         # Get action
-        current = None
         action = Action.get_current_action()
-        if isinstance(action, FileAction):
-            current = self.local.get_path(action.filepath)
-
-        if current and self._folder_lock and self._folder_lock in current.parents:
-            log.info(f"PairInterrupt {current!r} because lock on {self._folder_lock!r}")
-            raise PairInterrupt()
-
-        if not action:
-            return
-
         if not isinstance(action, FileAction):
             return
 
-        # Get the current download and check if it is still ongoing
-        download = self.dao.get_download(path=action.filepath)
-        if download:
-            # Save the progression
-            download.progress = action.get_percent()
-            self.dao.set_transfer_progress("download", download)
-
-            if download.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
-                raise DownloadPaused(download.uid or -1)
-        else:
-            # Get the current upload and check if it is still ongoing
-            upload = self.dao.get_upload(path=action.filepath)
-            if upload and upload.status not in (
-                TransferStatus.ONGOING,
-                TransferStatus.DONE,
-            ):
-                raise UploadPaused(upload.uid or -1)
+        # Check for a possible lock
+        current = self.local.get_path(action.filepath)
+        if self._folder_lock and self._folder_lock in current.parents:
+            log.info(f"PairInterrupt {current!r} because lock on {self._folder_lock!r}")
+            raise PairInterrupt()
 
     def create_processor(self, item_getter: Callable, **kwargs: Any) -> Processor:
         return Processor(self, item_getter, **kwargs)
