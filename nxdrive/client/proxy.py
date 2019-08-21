@@ -114,7 +114,6 @@ class AutomaticProxy(Proxy):
         if pac_url and "://" not in pac_url:
             pac_url = "http://" + pac_url
         self.pac_url = pac_url
-        self._js = js
         self._pac_file = get_pac(
             url=pac_url,
             js=js,

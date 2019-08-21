@@ -76,7 +76,6 @@ class Remote(Nuxeo):
         **kwargs: Any,
     ) -> None:
         auth = TokenAuth(token) if token else (user_id, password)
-        self.kwargs = kwargs
 
         super().__init__(
             auth=auth,
@@ -468,7 +467,6 @@ class Remote(Nuxeo):
             self.dao.set_transfer_status("upload", upload)
 
             duration = int(time.monotonic() - tick)
-            action.transfer_duration = duration
             if duration > 0:
                 log.debug(
                     f"Size: {sizeof_fmt(blob.size)}, speed: {sizeof_fmt(blob.size / duration)}/s"

@@ -14,7 +14,7 @@ from nxdrive.fatal_error import check_executable_path, show_critical_error
 from nxdrive.options import Options
 
 
-def before_send(event: Any, hint: Any) -> Any:
+def before_send(event: Any, _hint: Any) -> Any:
     """
     Alter an event before sending to the Sentry server.
     The event will not be sent if None is returned.

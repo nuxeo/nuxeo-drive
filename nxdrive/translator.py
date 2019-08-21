@@ -45,9 +45,17 @@ class Translator(QTranslator):
 
         Translator._singleton = self
 
-    def translate(
-        self, context: str, text: str, disambiguation: str = "", n: int = -1
-    ) -> str:
+    def translate(self, _context: str, text: str, _disambiguation: str, _n: int) -> str:
+        """
+        *_context* is set by PyQt, e.g.: QQmlImportDatabase or Conflicts.
+        *text* is the translation label or english PyQt error message, e.g.: EXTRA_FILE_COUNT or "is not a type".
+        *_disambiguation* is set by PyQt, seems always None.
+        *_n* is set by PyQt, seems always -1.
+
+        *_context*, *_disambiguation* and *_n* are not used but requiered
+        when the Translator is used inside QML.
+        They also starts with a underscore to fix Vulture.
+        """
         return self._get(text)
 
     @pyqtProperty(str, notify=languageChanged)
@@ -114,9 +122,6 @@ class Translator(QTranslator):
     def _languages(self) -> List[Tuple[str, str]]:
         return sorted(self._langs.values())
 
-    def _translations(self) -> List[Tuple[str, Dict[str, str]]]:
-        return sorted(self._labels.items())
-
     @staticmethod
     def set(lang: str) -> None:
         if Translator._singleton is None:
@@ -148,9 +153,3 @@ class Translator(QTranslator):
         if Translator._singleton is None:
             raise RuntimeError("Translator not initialized")
         return Translator._singleton._languages()
-
-    @staticmethod
-    def translations() -> List[Tuple[str, Dict[str, str]]]:
-        if Translator._singleton is None:
-            raise RuntimeError("Translator not initialized")
-        return Translator._singleton._translations()

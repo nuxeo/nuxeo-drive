@@ -128,13 +128,6 @@ class QMLDriveApi(QObject):
     def get_tracker_id(self) -> str:
         return self._manager.get_tracker_id()
 
-    @pyqtSlot(str)
-    def set_language(self, locale: str) -> None:
-        try:
-            Translator.set(locale)
-        except RuntimeError:
-            log.exception("Set language error")
-
     @pyqtSlot(QUrl, result=str)
     def to_local_file(self, url: QUrl) -> str:
         """
@@ -183,11 +176,6 @@ class QMLDriveApi(QObject):
     def get_update_version(self) -> str:
         """ Return the version of the update, if one is available. """
         return self._manager.updater.version
-
-    @pyqtSlot(result=int)
-    def get_update_progress(self) -> float:
-        """ Return the progress of the update, if one is ingoing. """
-        return self._manager.updater.progress
 
     @pyqtSlot(str)
     def app_update(self, version: str) -> None:
@@ -778,14 +766,6 @@ class QMLDriveApi(QObject):
         if engine:
             count = engine.dao.get_syncing_count()
         return count
-
-    @pyqtSlot(str, result=int)
-    def get_conflicts_count(self, uid: str) -> int:
-        return len(self.get_conflicts(uid))
-
-    @pyqtSlot(str, result=int)
-    def get_errors_count(self, uid: str) -> int:
-        return len(self.get_errors(uid))
 
     # Conflicts section
 
