@@ -14,7 +14,6 @@ from PyQt5.QtWidgets import QMessageBox
 
 from ..client.proxy import get_proxy
 from ..constants import APP_NAME, CONNECTION_ERROR, TOKEN_PERMISSION
-from ..engine.activity import Action, FileAction
 from ..exceptions import (
     FolderAlreadyUsed,
     InvalidDriveException,
@@ -176,18 +175,6 @@ class QMLDriveApi(QObject):
     def app_update(self, version: str) -> None:
         """ Start the udpate to the specified version. """
         self._manager.updater.update(version)
-
-    @pyqtSlot(result=list)
-    def get_actions(self) -> List[Dict[str, Any]]:
-        result: List[Dict[str, Any]] = []
-
-        if not self._manager.engines:
-            return result
-
-        for action in Action.get_actions().values():
-            if isinstance(action, FileAction):
-                result.append(action.export())
-        return result
 
     @pyqtSlot(result=list)
     def get_transfers(self) -> List[Dict[str, Any]]:
