@@ -767,14 +767,6 @@ class QMLDriveApi(QObject):
             count = engine.dao.get_syncing_count()
         return count
 
-    @pyqtSlot(str, result=int)
-    def get_conflicts_count(self, uid: str) -> int:
-        return len(self.get_conflicts(uid))
-
-    @pyqtSlot(str, result=int)
-    def get_errors_count(self, uid: str) -> int:
-        return len(self.get_errors(uid))
-
     # Conflicts section
 
     @pyqtSlot(str, int)
