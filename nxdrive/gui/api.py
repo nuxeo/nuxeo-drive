@@ -177,11 +177,6 @@ class QMLDriveApi(QObject):
         """ Return the version of the update, if one is available. """
         return self._manager.updater.version
 
-    @pyqtSlot(result=int)
-    def get_update_progress(self) -> float:
-        """ Return the progress of the update, if one is ingoing. """
-        return self._manager.updater.progress
-
     @pyqtSlot(str)
     def app_update(self, version: str) -> None:
         """ Start the udpate to the specified version. """
