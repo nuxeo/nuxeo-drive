@@ -1,6 +1,7 @@
 # coding: utf-8
 import platform
 import shutil
+import sqlite3
 import uuid
 from logging import getLogger
 from pathlib import Path
@@ -656,8 +657,22 @@ class Manager(QObject):
 
         uid = uuid.uuid1().hex
 
-        # TODO Check that engine is not inside another or same position
-        engine_def = self.dao.add_engine(engine_type, local_folder, uid, name)
+        try:
+            engine_def = self.dao.add_engine(engine_type, local_folder, uid, name)
+        except sqlite3.IntegrityError:
+            # UNIQUE constraint failed: Engines.local_folder
+            # This happens in that scenario:
+            #   - Add a new account using the local folder "/home/USER/drive".
+            #   - Delete the Engine database.
+            #   - Add a new account using the same local folder "/home/USER/drive".
+            #
+            # FolderAlreadyUsed is raised instead of deleting the old database entry because
+            # it is convenient to be able to restore the DB file later for whatever reason.
+            # And there is no popup to ask the user for its deletion for the same purpose.
+            # Note that the use case is rare enough to be handled that way. In fact, in years,
+            # that happened only while testing the application a lot.
+            raise FolderAlreadyUsed()
+
         try:
             self.engines[uid] = self._engine_types[engine_type](
                 self, engine_def, binder=binder

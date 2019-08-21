@@ -1,5 +1,9 @@
 import os
 
+import pytest
+from nxdrive.exceptions import FolderAlreadyUsed
+
+from .. import ensure_no_exception
 from ..markers import not_windows
 
 
@@ -52,3 +56,21 @@ def test_manager_engine_removal(manager_factory):
 
         # There should be no engine
         assert not manager.engines
+
+
+@not_windows(reason="PermissionError when trying to delete the file.")
+def test_manager_account_addition_same_folder_used(tmp, manager_factory):
+    """NXDRIVE-1783: Handle account addition with already used local folder."""
+
+    home = tmp()
+    manager, engine = manager_factory(home=home)
+
+    # Remove the database file
+    os.remove(engine._get_db_file())
+
+    with ensure_no_exception(), manager:
+        # Instantiate a second manager with its engine using the same home folder.
+        # It should not fail on:
+        #     sqlite3.IntegrityError: UNIQUE constraint failed: Engines.local_folder
+        with pytest.raises(FolderAlreadyUsed):
+            manager2, engine2 = manager_factory(home=home)
