@@ -38,8 +38,8 @@ AttributeError: 'Engine' object has no attribute '_local_watcher'
 
 
 @not_windows(reason="PermissionError when trying to delete the file.")
-def test_mananger_engine_removal(manager_factory):
-    """NXDIVE-1618: Remove inexistant engines from the Manager engines list."""
+def test_manager_engine_removal(manager_factory):
+    """NXDRIVE-1618: Remove inexistant engines from the Manager engines list."""
 
     manager, engine = manager_factory()
 
