@@ -128,13 +128,6 @@ class QMLDriveApi(QObject):
     def get_tracker_id(self) -> str:
         return self._manager.get_tracker_id()
 
-    @pyqtSlot(str)
-    def set_language(self, locale: str) -> None:
-        try:
-            Translator.set(locale)
-        except RuntimeError:
-            log.exception("Set language error")
-
     @pyqtSlot(QUrl, result=str)
     def to_local_file(self, url: QUrl) -> str:
         """
