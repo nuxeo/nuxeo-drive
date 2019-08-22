@@ -19,18 +19,10 @@ def test_tracker_send_methods(manager_factory, monkeypatch):
     # We need an engine to test custom dimensions (here it is unused and so we use "_")
     manager, _ = manager_factory()
 
-    metrics = {
-        "start_time": 0,
-        "end_time": 42,
-        "speed": 42,
-        "handler": "test_tracker_send_methods",
-    }
-
     with manager:
         tracker = Tracker(manager, uid="")
         monkeypatch.setattr(tracker._tracker, "send", send)
 
         tracker._send_directedit_open("Jean-Michel Jarre - Oxygen")
         tracker._send_directedit_edit("Jean-Michel Jarre - Oxygen.ogg")
-        tracker._send_sync_event(metrics)
         tracker._send_stats()

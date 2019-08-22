@@ -19,7 +19,6 @@ from nuxeo.exceptions import (
     UploadError,
 )
 
-from .activity import Action
 from .workers import EngineWorker
 from ..client.local_client import FileInfo
 from ..constants import (
@@ -42,14 +41,7 @@ from ..exceptions import (
     UploadPaused,
 )
 from ..objects import DocPair, RemoteFileInfo
-from ..utils import (
-    current_milli_time,
-    is_generated_tmp_file,
-    lock_path,
-    safe_filename,
-    sizeof_fmt,
-    unlock_path,
-)
+from ..utils import is_generated_tmp_file, lock_path, safe_filename, unlock_path
 
 if TYPE_CHECKING:
     from .engine import Engine  # noqa
@@ -270,16 +262,12 @@ class Processor(EngineWorker):
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
                     continue
 
-                self._current_metrics = {
-                    "handler": doc_pair.pair_state,
-                    "start_time": current_milli_time(),
-                }
+                self._current_metrics = {"handler": doc_pair.pair_state}
                 log.debug(f"Calling {handler_name}() on doc pair {doc_pair!r}")
 
                 self.pairSyncStarted.emit(self._current_metrics)
                 soft_lock = self._lock_soft_path(doc_pair.local_path)
                 sync_handler(doc_pair)
-                self._current_metrics["end_time"] = current_milli_time()
 
                 pair = self.dao.get_state_from_id(doc_pair.id)
                 if pair and "deleted" not in pair.pair_state:
@@ -476,18 +464,6 @@ class Processor(EngineWorker):
             log.info("Auto-resolve conflict has folder has same remote_id")
             self.dao.synchronize_state(doc_pair)
 
-    def _update_speed_metrics(self) -> None:
-        action = Action.get_last_file_action()
-        if not action:
-            return
-
-        duration = action.end_time - action.start_time
-        if duration <= 0:
-            return
-
-        log.debug(f"Overall transfer speed was {sizeof_fmt(action.size / duration)}/s")
-        self._current_metrics["speed"] = action.size / duration / 1024  # KiB/s
-
     def _synchronize_if_not_remotely_dirty(
         self, doc_pair: DocPair, remote_info: RemoteFileInfo = None
     ) -> None:
@@ -554,7 +530,6 @@ class Processor(EngineWorker):
                     engine_uid=self.engine.uid,
                 )
                 self.dao.update_last_transfer(doc_pair.id, "upload")
-                self._update_speed_metrics()
                 self.dao.update_remote_state(doc_pair, fs_item_info, versioned=False)
                 # TODO refresh_client
             else:
@@ -805,7 +780,6 @@ class Processor(EngineWorker):
                 )
                 remote_ref = fs_item_info.uid
                 self.dao.update_last_transfer(doc_pair.id, "upload")
-                self._update_speed_metrics()
 
             with self.dao._lock:
                 remote_id_done = False
@@ -1025,7 +999,6 @@ class Processor(EngineWorker):
             engine_uid=self.engine.uid,
             doc_pair_id=doc_pair.id,
         )
-        self._update_speed_metrics()
         return tmp_file
 
     def _update_remotely(self, doc_pair: DocPair, is_renaming: bool) -> None:

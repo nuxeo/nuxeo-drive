@@ -2,7 +2,6 @@
 import uuid
 from contextlib import suppress
 from pathlib import Path
-from time import monotonic
 from typing import Any, Dict, Optional
 
 from PyQt5.QtCore import pyqtSignal, QObject
@@ -22,7 +21,6 @@ __all__ = (
 
 class Action(QObject):
     actions: Dict[int, Optional["Action"]] = {}
-    lastFileActions: Dict[int, Optional["FileAction"]] = {}
 
     def __init__(self, action_type: str = None, progress: float = 0.0) -> None:
         super().__init__()
@@ -58,19 +56,10 @@ class Action(QObject):
         return Action.actions.get(idx, None) if idx else None
 
     @staticmethod
-    def get_last_file_action(thread_id: int = None) -> Optional["FileAction"]:
-        idx = thread_id or current_thread_id()
-        return Action.lastFileActions.get(idx, None) if idx else None
-
-    @staticmethod
     def finish_action() -> None:
         action = Action.actions.pop(current_thread_id(), None)
-        if not action:
-            return
-
-        action.finish()
-        if isinstance(action, FileAction):
-            Action.lastFileActions[current_thread_id()] = action
+        if action:
+            action.finish()
 
     def finish(self) -> None:
         self.finished = True
@@ -132,9 +121,6 @@ class FileAction(Action):
         # The transfer speed of the latest (down|up)loaded chunk
         self.last_chunk_transfer_speed = 0.0
 
-        self.start_time = monotonic()
-        self.end_time = 0.0
-
         self._connect_reporter(reporter)
         self.started.emit(self)
 
@@ -170,7 +156,6 @@ class FileAction(Action):
 
     def finish(self) -> None:
         super().finish()
-        self.end_time = monotonic()
         self.done.emit(self)
 
     def export(self) -> Dict[str, Any]:
