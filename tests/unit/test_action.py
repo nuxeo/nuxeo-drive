@@ -77,7 +77,6 @@ def test_file_action(tmp):
     assert details["name"] == filepath.name
     assert details["filepath"] == str(filepath)
 
-    assert Action.get_last_file_action() is None
     assert Action.get_current_action() is action
 
     # Test repr() when .get_percent() > 0
@@ -87,8 +86,6 @@ def test_file_action(tmp):
 
     Action.finish_action()
     assert action.finished
-
-    assert Action.get_last_file_action() is action
 
 
 def test_file_action_empty_file(tmp):

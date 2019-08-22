@@ -2,7 +2,7 @@
 import os
 import sys
 from logging import getLogger
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from PyQt5.QtCore import QTimer, pyqtSlot
 from UniversalAnalytics import Tracker as UATracker
@@ -48,17 +48,10 @@ class Tracker(Worker):
         self._stat_timer = QTimer()
         self._stat_timer.timeout.connect(self._send_stats)
 
-        # Connect engines
-        for engine in self._manager.engines.values():
-            self.connect_engine(engine)
-        self._manager.newEngine.connect(self.connect_engine)
-        if self._manager.direct_edit is not None:
+        # Connect Direct Edit metrics
+        if self._manager.direct_edit:
             self._manager.direct_edit.openDocument.connect(self._send_directedit_open)
             self._manager.direct_edit.editDocument.connect(self._send_directedit_edit)
-
-    @pyqtSlot(object)
-    def connect_engine(self, engine: "Engine") -> None:
-        engine.newSyncEnded.connect(self._send_sync_event)
 
     @property
     def current_locale(self) -> str:
@@ -153,27 +146,6 @@ class Tracker(Worker):
             label=extension.lower(),
             value=self._manager.direct_edit.get_metrics()["last_action_timing"],
         )
-
-    @pyqtSlot(object)
-    def _send_sync_event(self, metrics: Dict[str, Any]) -> None:
-        timing = metrics.get("end_time", 0) - metrics["start_time"]
-        speed = metrics.get("speed", None)  # KiB/s
-
-        if timing > 0:
-            self.send_event(
-                category="TransferOperation",
-                action=metrics["handler"],
-                label="OverallTime",
-                value=timing,
-            )
-
-        if speed:
-            self.send_event(
-                category="TransferOperation",
-                action=metrics["handler"],
-                label="Speed",
-                value=speed,
-            )
 
     @pyqtSlot()
     def _send_stats(self) -> None:
