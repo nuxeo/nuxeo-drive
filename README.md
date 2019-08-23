@@ -4,6 +4,10 @@
 
 This is an ongoing development project for desktop synchronization of local folders with remote Nuxeo workspaces.
 
+![Nuxeo Drive Settings][nuxeo-drive-settings-preview]
+
+[nuxeo-drive-settings-preview]: https://raw.githubusercontent.com/nuxeo/nuxeo-drive/master/preview.png
+
 Watch this [screencast](https://embedwistia-a.akamaihd.net/deliveries/db284a19e500781cdca15ecb0e5901d62154f084/file.mp4) to get a 6 min overview of this project.
 
 See [USERDOC/Nuxeo Drive](https://doc.nuxeo.com/x/04HQ) for complete up-to-date documentation.
