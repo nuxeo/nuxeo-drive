@@ -192,3 +192,22 @@ The [backlog](https://jira.nuxeo.com/issues/?jql=%28project%20%3D%20%22Nuxeo%20D
 ## Developing on Nuxeo Drive
 
 See the [contributor guide](DEVELOPERS.md) if you wish to actually contribute to the Nuxeo Drive code base.
+
+## Requirements
+
+For the maintainer, the command to stick the current requirements (needs `pip-tools`):
+
+```shell
+# Core dependencies, it will generate requirements.txt
+pip-compile --allow-unsafe --generate-hashes requirements.in
+
+# Code freeze dependencies, it will generate requirements-dev.txt
+pip-compile --allow-unsafe --generate-hashes requirements-dev.in
+```
+
+Notes:
+
+- The [PyUp bot](https://pyup.io/) will automatically check for updates and opend a PR if needed.
+- :warning: **SECURITY**: before upgrading a package, ensure its source code and its updated dependencies are safe to distribute.
+- When a package has been updated, regenerate the appropriate `requirements.txt` file using the previous command.
+- Hashes are not used for testing pacakges as they are not distributed.
