@@ -43,23 +43,10 @@ To build the Marketplace package see the related [marketplace-drive](https://git
 
 See [docs/deployment.md](docs/deployment.md).
 
-## Requirements
-
-To manage requirements, this is the command to stick the current requirements (needs `pip-tools`):
-
-```shell
-# Core dependencies, it will generate requirements.txt
-pip-compile --allow-unsafe --generate-hashes requirements.in
-
-# Code freeze dependencies, it will generate requirements-dev.txt
-pip-compile --allow-unsafe --generate-hashes requirements-dev.in
-```
-
-Notes:
+## Requirements Notes
 
 - The [PyUp bot](https://pyup.io/) will automatically check for updates and opend a PR if needed.
 - :warning: **SECURITY**: before upgrading a package, ensure its source code and its updated dependencies are safe to distribute.
-- When a package has been updated, regenerate the appropriate `requirements.txt` file using the previous command.
 - Hashes are not used for testing packages as they are not distributed.
 
 ## Client Architecture
