@@ -781,7 +781,7 @@ class EngineDAO(ConfigurationDAO):
             # Avoid any lock for this call by using the write connection
             try:
                 return self.get_state_from_id(row_id, from_write=True)
-            except:
+            except Exception:
                 self.release_processor(thread_id)
                 raise
         raise OperationalError("Cannot acquire")

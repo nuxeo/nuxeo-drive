@@ -344,7 +344,7 @@ class Manager(QObject):
                 log.info(f"Launch engine {uid}")
                 try:
                     engine.start()
-                except:
+                except Exception:
                     log.exception(f"Could not start the engine {uid}")
 
         # Check only if manager is started

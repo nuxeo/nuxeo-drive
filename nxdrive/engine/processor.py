@@ -1399,7 +1399,7 @@ class Processor(EngineWorker):
                     self.dao.remove_state(target_pair)
             self.dao.synchronize_state(source_pair)
             return True
-        except:
+        except Exception:
             log.exception("Cannot rollback local modification")
         return False
 

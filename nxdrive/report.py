@@ -68,7 +68,7 @@ class Report:
             rel_path = path.relative_to(self._manager.home)
             try:
                 myzip.write(str(path), str(rel_path), compress_type=comp)
-            except:
+            except Exception:
                 log.exception(f"Impossible to copy the log {rel_path!r}")
 
     @staticmethod
@@ -82,7 +82,7 @@ class Report:
         with dao._lock:
             try:
                 myzip.write(dao._db, dao._db.name, compress_type=ZIP_DEFLATED)
-            except:
+            except Exception:
                 log.exception(f"Impossible to copy the database {dao._db.name!r}")
 
     def get_path(self) -> Path:
@@ -105,7 +105,7 @@ class Report:
         for record in log_buffer:
             try:
                 line = handler.format(record)
-            except:
+            except Exception:
                 with suppress(Exception):
                     yield force_encode(f"Logging record error: {record!r}")
             else:
@@ -133,5 +133,5 @@ class Report:
             try:
                 lines = b"\n".join(self.export_logs())
                 zip_.writestr("debug.log", lines, compress_type=ZIP_DEFLATED)
-            except:
+            except Exception:
                 log.exception("Impossible to get lines from the memory logger")

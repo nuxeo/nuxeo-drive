@@ -100,7 +100,7 @@ def main() -> int:
         if exc.code != 0:
             show_critical_error()
         ret = exc.code
-    except:
+    except Exception:
         show_critical_error()
         ret = 1
 

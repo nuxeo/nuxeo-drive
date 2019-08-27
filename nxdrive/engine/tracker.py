@@ -118,7 +118,7 @@ class Tracker(Worker):
         log.debug(self.fmt_event.format(**kwargs))
         try:
             self._tracker.send("event", **kwargs)
-        except:
+        except Exception:
             log.exception("Error sending analytics")
 
     @pyqtSlot(str)

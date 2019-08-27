@@ -103,7 +103,7 @@ class ExtensionListener(QTcpServer):
 
             try:
                 content = self._parse_payload(payload.data())
-            except:
+            except Exception:
                 log.info(f"Unable to decode payload: {payload}")
             else:
                 response = self._handle_content(content)

@@ -67,7 +67,7 @@ class ProcessAutoLockerWorker(PollWorker):
             return True
         except ThreadInterrupt:
             raise
-        except:
+        except Exception:
             log.exception("Unhandled error")
         return False
 

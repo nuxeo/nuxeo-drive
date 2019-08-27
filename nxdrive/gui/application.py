@@ -375,7 +375,7 @@ class Application(QApplication):
             if msg.clickedButton() == overwrite:
                 self.manager.direct_edit.force_update(ref, digest)
             del self._conflicts_modals[filename]
-        except:
+        except Exception:
             log.exception(
                 f"Error while displaying Direct Edit conflict modal dialog for {filename!r}"
             )
@@ -1172,7 +1172,7 @@ class Application(QApplication):
         final_url = unquote(event.url().toString())
         try:
             return self._handle_nxdrive_url(final_url)
-        except:
+        except Exception:
             log.exception(f"Error handling URL event {final_url!r}")
             return False
 
@@ -1246,7 +1246,7 @@ class Application(QApplication):
         try:
             server.listen(named_pipe)
             log.info(f"Listening for nxdrive:// calls on {server.fullServerName()}")
-        except:
+        except Exception:
             log.info(
                 f"Unable to start local server on {named_pipe}: {server.errorString()}"
             )

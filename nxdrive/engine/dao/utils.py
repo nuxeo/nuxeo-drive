@@ -86,7 +86,7 @@ def fix_db(database: Path, dump_file: Path = Path("dump.sql")) -> None:
         # Forward the exception, and sorry for you :/
         log.exception("Database is not recoverable")
         raise
-    except:
+    except Exception:
         log.exception("Dump error")
         return
 
@@ -94,7 +94,7 @@ def fix_db(database: Path, dump_file: Path = Path("dump.sql")) -> None:
     try:
         read(dump_file, database)
         backup.unlink()
-    except:
+    except Exception:
         log.exception("Restoration error")
         log.info("Cancelling the operation")
         if not database.is_file():
