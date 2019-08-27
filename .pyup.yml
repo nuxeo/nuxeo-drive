@@ -3,8 +3,3 @@ schedule: every week
 label_prs: dependencies
 branch_prefix: wip-
 assignees: BoboTiG
-search: False
-requirements:
-  - requirements.in
-  - requirements-dev.in
-  - requirements-tests.txt
