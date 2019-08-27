@@ -92,6 +92,9 @@ class Application(QApplication):
         super().__init__(list(*args))
         self.manager = manager
 
+        # Used by SyncAndQuitWorker
+        self.manager.application = self
+
         # Little trick here!
         #
         # Qt strongly builds on a concept called event loop.

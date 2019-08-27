@@ -144,6 +144,13 @@ class CliHandler:
         )
 
         common_parser.add_argument(
+            "--sync-and-quit",
+            default=Options.sync_and_quit,
+            action="store_true",
+            help="Launch the synchronization and then exit the application.",
+        )
+
+        common_parser.add_argument(
             "--debug-pydev",
             default=Options.debug_pydev,
             action="store_true",

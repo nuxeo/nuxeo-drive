@@ -37,7 +37,7 @@ from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
 from .options import Options
 from .osi import AbstractOSIntegration
-from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater
+from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
 from .updater import updater
 from .updater.constants import Login
 from .utils import (
@@ -184,6 +184,10 @@ class Manager(QObject):
 
         # Create the FinderSync/Explorer listener thread
         self._create_extension_listener()
+
+        # Create the sync and quit worker
+        self.sync_and_quit_worker = SyncAndQuitWorker(self)
+        self.started.connect(self.sync_and_quit_worker.thread.start)
 
     def __enter__(self):
         return self
@@ -756,15 +760,8 @@ class Manager(QObject):
         return self._started
 
     def is_syncing(self) -> bool:
-        syncing_engines = []
-        for uid, engine in self.engines.items():
-            if engine.is_syncing():
-                syncing_engines.append(uid)
-        if syncing_engines:
-            log.info(f"Some engines are currently synchronizing: {syncing_engines}")
-            return True
-        log.info("No engine currently synchronizing")
-        return False
+        """Return True if any engine is still syncing stuff."""
+        return any(engine.is_syncing() for engine in self.engines.values())
 
     def get_root_id(self, path: Path) -> str:
         ref = LocalClient.get_path_remote_id(path, "ndriveroot")
