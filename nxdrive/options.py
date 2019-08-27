@@ -220,6 +220,7 @@ class MetaOptions(type):
         "res_dir": (_get_resources_dir(), "default"),
         "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
+        "sync_and_quit": (False, "default"),
         "system_wide": (_is_system_wide(), "default"),
         "theme": ("ui5", "default"),
         "timeout": (30, "default"),
