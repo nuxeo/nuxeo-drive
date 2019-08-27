@@ -187,27 +187,8 @@ The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crow
 
 ## Roadmap
 
-The [backlog](https://jira.nuxeo.com/issues/?jql=%28project%20%3D%20%22Nuxeo%20Drive%20%22%20OR%20component%20%3D%20%22Nuxeo%20Drive%22%20OR%20project%20%3D%20NXDOC%20AND%20Tags%20%3D%20drive%29%20AND%20resolution%20%3D%20Unresolved%20ORDER%20BY%20Rank%20ASC) is handled on JIRA.
+The [backlog](https://jira.nuxeo.com/issues/?jql=(project%20%3D%20%22Nuxeo%20Drive%20%22%20OR%20project%20%3D%20%22Nuxeo%20Python%20Client%22%20%20OR%20component%20%3D%20%22Nuxeo%20Drive%22%20OR%20project%20%3D%20NXDOC%20AND%20Tags%20%3D%20nxdrive)%20AND%20resolution%20%3D%20Unresolved%20ORDER%20BY%20%22Backlog%20priority%22%20%20ASC) is handled on JIRA.
 
 ## Developing on Nuxeo Drive
 
 See the [contributor guide](DEVELOPERS.md) if you wish to actually contribute to the Nuxeo Drive code base.
-
-## Requirements
-
-For the maintainer, the command to stick the current requirements (needs `pip-tools`):
-
-```shell
-# Core dependencies, it will generate requirements.txt
-pip-compile --allow-unsafe --generate-hashes requirements.in
-
-# Code freeze dependencies, it will generate requirements-dev.txt
-pip-compile --allow-unsafe --generate-hashes requirements-dev.in
-```
-
-Notes:
-
-- The [PyUp bot](https://pyup.io/) will automatically check for updates and opend a PR if needed.
-- :warning: **SECURITY**: before upgrading a package, ensure its source code and its updated dependencies are safe to distribute.
-- When a package has been updated, regenerate the appropriate `requirements.txt` file using the previous command.
-- Hashes are not used for testing pacakges as they are not distributed.
