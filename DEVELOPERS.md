@@ -1,3 +1,12 @@
+# Development Workflow
+
+The development workflow is described on that [Wiki](https://nuxeowiki.atlassian.net/wiki/spaces/DRIVE/pages/861602188/Development+Workflow).
+
+# The Stack
+
+Nuxeo Drive is writen in Python and make heavily use of the Qt framework.
+This allowes to easily create a multi-platform desktop application using the same code base.
+
 # Coding Style Guide
 
 We tend to follow the [PEP8](http://pep8.org), that's all.
@@ -7,8 +16,10 @@ it will call predefined hooks and [black](https://github.com/ambv/black) for you
 
 For core developers, the whole mecanism is installed with the [developer environment](docs/deployment.md). But if you are a contributor, you can easily use it:
 
-    pip install pre-commit
-    pre-commit install
+```shell
+python -m pip install pre-commit
+pre-commit install
+```
 
 Note: on Windows you will need to have [Git](https://www.gitforwindows.org) installed.
 
@@ -18,19 +29,38 @@ This guide is for developers willing to work on the Nuxeo Drive codebase itself.
 
 Note that many behaviors of Nuxeo Drive can be customized without actually changing the code of Nuxeo Drive but by contributing to the server side extension points instead.
 
-The projects comes into two parts: the addon deployed on the Nuxeo server, written in Java and the client written in Python.
+The projects comes into two parts: the addon deployed on the Nuxeo server, written in Java, and the client written in Python.
 
-Nuxeo Drive Client is a Python daemon that looks for changes on the local machine filesystem in a specific folder and on a remote workspace on the Nuxeo server using the Content Automation HTTP API and propagates those changes one way or the other.
+Nuxeo Drive client is a Python desktop application that looks for changes on the local machine filesystem in a specific folder and on a remote workspace on the Nuxeo server using the Content Automation HTTP API and propagates those changes one way or the other.
 
 ## Building the Server Addon
 
-To build the nuxeo-drive addon see the related [nuxeo-drive-server](https://github.com/nuxeo/nuxeo-drive-server) GitHub repository.
+To build the nuxeo-drive addon see the related [nuxeo](https://github.com/nuxeo/nuxeo/tree/master/addons/nuxeo-drive-server) GitHub repository.
 
 To build the Marketplace package see the related [marketplace-drive](https://github.com/nuxeo/marketplace-drive) GitHub repository.
 
 ## Building the Nuxeo Drive Client
 
 See [docs/deployment.md](docs/deployment.md).
+
+## Requirements
+
+To manage requirements, this is the command to stick the current requirements (needs `pip-tools`):
+
+```shell
+# Core dependencies, it will generate requirements.txt
+pip-compile --allow-unsafe --generate-hashes requirements.in
+
+# Code freeze dependencies, it will generate requirements-dev.txt
+pip-compile --allow-unsafe --generate-hashes requirements-dev.in
+```
+
+Notes:
+
+- The [PyUp bot](https://pyup.io/) will automatically check for updates and opend a PR if needed.
+- :warning: **SECURITY**: before upgrading a package, ensure its source code and its updated dependencies are safe to distribute.
+- When a package has been updated, regenerate the appropriate `requirements.txt` file using the previous command.
+- Hashes are not used for testing packages as they are not distributed.
 
 ## Client Architecture
 
