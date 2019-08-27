@@ -2,14 +2,9 @@
 schedule: every week
 label_prs: dependencies
 branch_prefix: wip-
-requirements:
-  - requirements.in:
-      update: all
-      pin: True
-  - requirements-dev.in:
-      update: all
-      pin: True
-  - requirements-tests.txt:
-      update: all
-      pin: True
 assignees: BoboTiG
+search: False
+requirements:
+  - requirements.in
+  - requirements-dev.in
+  - requirements-tests.txt
