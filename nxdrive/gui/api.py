@@ -338,7 +338,7 @@ class QMLDriveApi(QObject):
     def quit(self) -> None:
         try:
             self.application.quit()
-        except:
+        except Exception:
             log.exception("Application exit error")
 
     @pyqtSlot(result=str)
@@ -372,7 +372,7 @@ class QMLDriveApi(QObject):
             callback_params = {"engine": uid}
             log.info(f"Opening login window for token update with URL {url}")
             self.application._open_authentication_dialog(url, callback_params)
-        except:
+        except Exception:
             log.exception(
                 "Unexpected error while trying to open web"
                 " authentication window for token update"
@@ -540,7 +540,7 @@ class QMLDriveApi(QObject):
                 error = "CONNECTION_REFUSED"
             else:
                 error = "CONNECTION_ERROR"
-        except:
+        except Exception:
             log.exception("Unexpected error")
             # Map error here
             error = "CONNECTION_UNKNOWN"
@@ -598,7 +598,7 @@ class QMLDriveApi(QObject):
             error = "FOLDER_USED"
         except StartupPageConnectionError:
             error = "CONNECTION_ERROR"
-        except:
+        except Exception:
             log.exception(
                 "Unexpected error while trying to open web authentication window"
             )
@@ -684,7 +684,7 @@ class QMLDriveApi(QObject):
             )
 
             log.info(f"RETURN FROM BIND_SERVER IS: '{error}'")
-        except:
+        except Exception:
             log.exception(
                 "Unexpected error while trying to create a new account "
                 f"[{local_folder}, {server_url}, {username}]"

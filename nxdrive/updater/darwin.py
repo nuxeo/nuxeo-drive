@@ -45,7 +45,7 @@ class Updater(BaseUpdater):
         try:
             self._copy(mount_dir)
             self._set_progress(80)
-        except:
+        except Exception:
             log.exception("Content copy error")
             self._backup(restore=True)
         finally:

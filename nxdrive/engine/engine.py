@@ -771,7 +771,7 @@ class Engine(QObject):
                 self.manager.osi.send_sync_status(
                     pair, self.local.abspath(pair.local_path)
                 )
-        except:
+        except Exception:
             log.exception("Conflict resolver error")
 
     def is_stopped(self) -> bool:
@@ -985,7 +985,7 @@ class Engine(QObject):
         locker = self.local.unlock_ref(ROOT, unlock_parent=False)
         try:
             self.local.set_folder_icon(ROOT, icon)
-        except:
+        except Exception:
             log.exception("Icon folder cannot be set")
         finally:
             self.local.lock_ref(ROOT, locker)

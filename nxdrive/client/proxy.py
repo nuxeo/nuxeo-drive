@@ -186,7 +186,7 @@ def validate_proxy(proxy: Proxy, url: str) -> bool:
         # OSError: Could not find a suitable TLS CA certificate bundle, invalid path: ...
         log.critical(f"{exc}. Ensure the 'ca_bundle' option is correct.")
         return False
-    except:
+    except Exception:
         log.exception("Invalid proxy.")
         return False
 

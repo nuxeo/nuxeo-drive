@@ -629,7 +629,7 @@ class RemoteWatcher(EngineWorker):
                 log.warning(err)
         except ThreadInterrupt:
             raise
-        except:
+        except Exception:
             log.exception("Unexpected error")
         else:
             return True
