@@ -6,7 +6,7 @@ from logging import getLogger
 import pytest
 from nuxeo.documents import Document
 
-from .utils import fatal_error_dlg
+from .utils import cb_get, fatal_error_dlg  # , get_opened_url
 
 
 log = getLogger(__name__)
@@ -147,6 +147,88 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
 
         # Unbind the server
         assert unbind(exe, local_folder)
+    finally:
+        if ws:
+            ws.delete()
+
+        assert launch(exe, f"clean-folder {local_folder}")
+
+        os.chmod(folder, stat.S_IWUSR)
+        shutil.rmtree(folder)
+        assert not os.path.isdir(folder)
+
+
+def test_ctx_menu_access_online_inexistant(nuxeo_url, exe, server, tmp):
+    """It should be a no-op, no fatal error."""
+    args = f'access-online --file="bla bla bla"'
+    assert launch(exe, args)
+
+
+def test_ctx_menu_copy_share_link_inexistant(nuxeo_url, exe, server, tmp):
+    args = f'copy-share-link --file="bla bla bla"'
+    assert not launch(exe, args)
+
+
+def test_ctx_menu_edit_metadata_inexistant(nuxeo_url, exe, server, tmp):
+    """It should be a no-op, no fatal error."""
+    args = f'edit-metadata --file="bla bla bla"'
+    assert launch(exe, args)
+
+
+def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
+    """Will test:
+        - access-online
+        - copy-share-link
+        - edit-metadata
+    """
+
+    folder = tmp()
+    assert not folder.is_dir()
+    local_folder = f'--local-folder="{str(folder)}"'
+
+    ws = None
+
+    try:
+        # 1st, bind the server
+        args = f"Administrator {nuxeo_url} {local_folder} --password Administrator"
+        assert bind(exe, args)
+        assert folder.is_dir()
+
+        # 2nd, create a workspace
+        new = Document(
+            name="my workspace",
+            type="Workspace",
+            properties={"dc:title": "my workspace"},
+        )
+        ws = server.documents.create(new, parent_path="/default-domain/workspaces")
+
+        # 3rd, bind the root (e.g.: enable the sync of the workspace)
+        args = f'bind-root "{ws.path}" {local_folder}'
+        assert launch(exe, args, wait=5)
+
+        # 4th, sync and quit
+        assert launch(exe, "console --sync-and-quit", wait=40)
+
+        # Check
+        synced_folder = folder / ws.title
+        assert (synced_folder).is_dir()
+
+        # Get the copy-share link
+        args = f'copy-share-link --file="{str(synced_folder)}"'
+        assert launch(exe, args)
+        url_copied = cb_get()
+        assert url_copied.startswith(nuxeo_url)
+        assert url_copied.endswith(ws.uid)
+
+        # Test access-online, it should open a brower
+        args = f'access-online --file="{str(synced_folder)}"'
+        assert launch(exe, args)
+        # assert get_opened_url() == url_copied
+
+        # Test edit-metadata, it should open a brower
+        args = f'edit-metadata --file="{str(synced_folder)}"'
+        assert launch(exe, args)
+        # assert get_opened_url() == url_copied
     finally:
         if ws:
             ws.delete()
