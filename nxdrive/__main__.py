@@ -5,6 +5,7 @@ See https://github.com/pyinstaller/pyinstaller/issues/2560
 """
 import os
 import platform
+import signal
 import sys
 from contextlib import suppress
 from typing import Any, Set
@@ -64,8 +65,21 @@ def setup_sentry() -> None:
     )
 
 
+def signal_handler(signum: int, frame: Any):
+    """Signal handler."""
+    from PyQt5.QtWidgets import QApplication
+
+    signame = signal.Signals(signum).name
+    print("\r", flush=True)
+    print(f" ! Caught {signame} ({signum}), gracefully exiting {APP_NAME}", flush=True)
+    QApplication.quit()
+
+
 def main() -> int:
     """ Entry point. """
+
+    # Catch CTRL+C
+    signal.signal(signal.SIGINT, signal_handler)
 
     ret = 0
 
