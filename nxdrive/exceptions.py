@@ -1,5 +1,9 @@
 # coding: utf-8
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from .engine.engine import Engine  # noqa
 
 
 class DriveError(Exception):
@@ -28,6 +32,19 @@ class DuplicationDisabledError(ValueError):
     """
 
     pass
+
+
+class EngineInitError(DriveError):
+    """ Impossible to initialize a Engine. """
+
+    def __init__(self, engine: "Engine") -> None:
+        self.engine = engine
+
+    def __repr__(self) -> str:
+        return f"Engine initialization error for {self.engine!r}"
+
+    def __str__(self) -> str:
+        return repr(self)
 
 
 class EngineTypeMissing(DriveError):

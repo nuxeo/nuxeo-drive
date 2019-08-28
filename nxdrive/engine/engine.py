@@ -25,6 +25,7 @@ from ..client.local_client import LocalClient
 from ..client.remote_client import Remote
 from ..constants import CONNECTION_ERROR, MAC, ROOT, WINDOWS, DelAction, TransferStatus
 from ..exceptions import (
+    EngineInitError,
     InvalidDriveException,
     PairInterrupt,
     RootAlreadyBindWithDifferentAccount,
@@ -146,8 +147,10 @@ class Engine(QObject):
         self.download_dir.mkdir(parents=True, exist_ok=True)
 
         if not binder:
+            if not self.server_url:
+                raise EngineInitError(self)
             self._check_https()
-            self.remote = self.init_remote()
+            self.remote: Remote = self.init_remote()
 
         self._local_watcher = self._create_local_watcher()
         self.create_thread(worker=self._local_watcher)
@@ -159,7 +162,7 @@ class Engine(QObject):
         self._local_watcher.rootMoved.connect(self.rootMoved)
         self._local_watcher.docDeleted.connect(self.docDeleted)
         self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
-        self.queue_manager = self._create_queue_manager(processors)
+        self.queue_manager: QueueManager = self._create_queue_manager(processors)
 
         self._local_watcher.fileAlreadyExists.connect(self.fileAlreadyExists)
 
@@ -199,8 +202,12 @@ class Engine(QObject):
     def __repr__(self) -> str:
         return (
             f"<{type(self).__name__} "
-            f"name={self.name!r}, offline={self._offline_state!r}, "
-            f"uid={self.uid!r}, type={self.type!r}>"
+            f"name={self.name!r}, "
+            f"server_url={self.server_url!r}, "
+            f"has_token={bool(self._remote_token)!r}, "
+            f"is_offline={self._offline_state!r}, "
+            f"uid={self.uid!r}, "
+            f"type={self.type!r}>"
         )
 
     def export(self) -> Dict[str, Any]:
@@ -549,7 +556,7 @@ class Engine(QObject):
             self._ssl_verify = False
         self._ca_bundle = Options.ca_bundle or self.dao.get_config("ca_bundle")
 
-        if self._remote_token is None:
+        if not self._remote_token:
             self.set_invalid_credentials(
                 reason="found no token in engine configuration"
             )
