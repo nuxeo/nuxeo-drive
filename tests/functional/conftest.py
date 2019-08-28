@@ -4,48 +4,13 @@ from typing import Callable
 from random import randint
 from uuid import uuid4
 
-import nuxeo
-import nuxeo.client
-import nuxeo.operations
 import pytest
 from faker import Faker
-from nuxeo.client import Nuxeo
 from nuxeo.documents import Document
 from nuxeo.users import User
-
 from nxdrive.manager import Manager
 
-
-# Operations cache
-OPS_CACHE = None
-SERVER_INFO = None
-
 log = getLogger(__name__)
-
-
-@pytest.fixture(scope="session")
-def server(nuxeo_url):
-    """
-    Get the Nuxeo instance.
-
-    For now, we do not allow to use another than Administrator:Administrator
-    to prevent unexpected actions on critical servers.
-    """
-    auth = ("Administrator", "Administrator")
-    server = Nuxeo(host=nuxeo_url, auth=auth)
-    server.client.set(schemas=["dublincore"])
-
-    # Save bandwith by caching operations details
-    global OPS_CACHE
-    if not OPS_CACHE:
-        OPS_CACHE = server.operations.operations
-        nuxeo.operations.API.ops = OPS_CACHE
-    global SERVER_INFO
-    if not SERVER_INFO:
-        SERVER_INFO = server.client.server_info()
-        nuxeo.client.NuxeoClient._server_info = SERVER_INFO
-
-    return server
 
 
 @pytest.fixture(scope="session")

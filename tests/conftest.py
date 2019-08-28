@@ -3,13 +3,20 @@ import os
 import shutil
 import sys
 
+import nuxeo.client
+import nuxeo.operations
 import pytest
+from nuxeo.client import Nuxeo
 
 
 pytest_plugins = "tests.pytest_random"
 
 
 DEFAULT_NUXEO_URL = "http://localhost:8080/nuxeo"
+
+# Operations cache
+OPS_CACHE = None
+SERVER_INFO = None
 
 
 @pytest.hookimpl(trylast=True, hookwrapper=True)
@@ -115,3 +122,28 @@ def nuxeo_url() -> str:
     url = os.getenv("NXDRIVE_TEST_NUXEO_URL", DEFAULT_NUXEO_URL)
     url = url.split("#")[0]
     return url
+
+
+@pytest.fixture(scope="session")
+def server(nuxeo_url):
+    """
+    Get the Nuxeo instance.
+
+    For now, we do not allow to use another than Administrator:Administrator
+    to prevent unexpected actions on critical servers.
+    """
+    auth = ("Administrator", "Administrator")
+    server = Nuxeo(host=nuxeo_url, auth=auth)
+    server.client.set(schemas=["dublincore"])
+
+    # Save bandwith by caching operations details
+    global OPS_CACHE
+    if not OPS_CACHE:
+        OPS_CACHE = server.operations.operations
+        nuxeo.operations.API.ops = OPS_CACHE
+    global SERVER_INFO
+    if not SERVER_INFO:
+        SERVER_INFO = server.client.server_info()
+        nuxeo.client.NuxeoClient._server_info = SERVER_INFO
+
+    return server

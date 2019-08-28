@@ -61,6 +61,7 @@ def test_invalid_argument_value(exe, arg):
         # --nxdrive-home tested in test_argument_nxdrive_home()
         "--proxy-server=https://Alice:password@example.org:8888",
         "--ssl-no-verify",
+        "--sync-and-quit",
         "--timeout=42",
         "--update-check-delay=42",
         "--update-site-url='https://example.org'",

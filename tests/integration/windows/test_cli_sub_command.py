@@ -4,6 +4,7 @@ import stat
 from logging import getLogger
 
 import pytest
+from nuxeo.documents import Document
 
 from .utils import fatal_error_dlg
 
@@ -11,9 +12,9 @@ from .utils import fatal_error_dlg
 log = getLogger(__name__)
 
 
-def launch(exe, args: str) -> None:
+def launch(exe, args: str, wait: int = 0) -> None:
     try:
-        with exe(args=args) as app:
+        with exe(args=args, wait=wait) as app:
             return not fatal_error_dlg(app)
     except Exception:
         return False
@@ -89,3 +90,69 @@ def test_unbind_server_missing_argument(exe, folder):
     """Without (or invalid) argument must not fail at all."""
     local_folder = f'--local-folder="{folder}"'
     assert unbind(exe, local_folder)
+
+
+def test_bind_root_doc_not_found(nuxeo_url, exe, server, tmp):
+    args = f"bind-root 'inexistant folder' --local-folder='{str(tmp())}'"
+    assert not launch(exe, args)
+
+
+def test_unbind_root_doc_not_found(nuxeo_url, exe, server, tmp):
+    args = f"unbind-root 'inexistant folder' --local-folder='{str(tmp())}'"
+    assert not launch(exe, args)
+
+
+def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp):
+    """Automate things:
+        - bind a server
+        - bind a root
+        - sync data
+        - unbind the root
+        - unbind the server
+    """
+
+    folder = tmp()
+    assert not folder.is_dir()
+    local_folder = f'--local-folder="{str(folder)}"'
+
+    ws = None
+
+    try:
+        # 1st, bind the server
+        args = f"Administrator {nuxeo_url} {local_folder} --password Administrator"
+        assert bind(exe, args)
+        assert folder.is_dir()
+
+        # 2nd, create a workspace
+        new = Document(
+            name="sync and stop",
+            type="Workspace",
+            properties={"dc:title": "sync and stop"},
+        )
+        ws = server.documents.create(new, parent_path="/default-domain/workspaces")
+
+        # 3rd, bind the root (e.g.: enable the sync of the workspace)
+        args = f'bind-root "{ws.path}" {local_folder}'
+        assert launch(exe, args, wait=5)
+
+        # 4th, sync and quit
+        assert launch(exe, "console --sync-and-quit", wait=40)
+
+        # Check
+        assert (folder / ws.title).is_dir()
+
+        # Unbind the root
+        args = f'unbind-root "{ws.path}" {local_folder}'
+        assert launch(exe, args)
+
+        # Unbind the server
+        assert unbind(exe, local_folder)
+    finally:
+        if ws:
+            ws.delete()
+
+        assert launch(exe, f"clean-folder {local_folder}")
+
+        os.chmod(folder, stat.S_IWUSR)
+        shutil.rmtree(folder)
+        assert not os.path.isdir(folder)

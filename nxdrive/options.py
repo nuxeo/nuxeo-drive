@@ -179,6 +179,7 @@ class MetaOptions(type):
         "password",
         "nuxeo_url",
         "local_folder",
+        "remote_root",
         "username",
         # From the Manager
         "client_version",

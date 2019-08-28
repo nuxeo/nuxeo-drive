@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from logging import getLogger
+from time import sleep
 
 import pytest
 
@@ -33,9 +34,11 @@ def exe(final_exe, tmp):
     path.mkdir(parents=True, exist_ok=True)
 
     @contextmanager
-    def execute(cmd: str = final_exe, args: str = ""):
+    def execute(cmd: str = final_exe, args: str = "", wait: int = 0):
         if "--nxdrive-home" not in args:
             args += f' --nxdrive-home="{path}"'
+        if "--log-level-file" not in args:
+            args += " --log-level-file=DEBUG"
         args = args.strip()
 
         log.info(f"Starting {cmd!r} with args={args!r}")
@@ -43,7 +46,9 @@ def exe(final_exe, tmp):
         app = Application(backend="uia").start(f"{cmd} {args}")
         try:
             yield app
+            if wait > 0:
+                sleep(wait)
         finally:
-            app.kill(soft=True)
+            app.kill()
 
     return execute
