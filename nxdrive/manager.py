@@ -26,6 +26,7 @@ from .constants import (
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
 from .exceptions import (
+    EngineInitError,
     EngineTypeMissing,
     FolderAlreadyUsed,
     InvalidDriveException,
@@ -369,9 +370,20 @@ class Manager(QObject):
                 self._engine_definitions.remove(engine)
                 continue
 
-            self.engines[engine.uid] = self._engine_types[engine.engine](self, engine)
-            self.engines[engine.uid].online.connect(self._force_autoupdate)
-            self.initEngine.emit(self.engines[engine.uid])
+            try:
+                self.engines[engine.uid] = self._engine_types[engine.engine](
+                    self, engine
+                )
+            except EngineInitError as exc:
+                log.error(
+                    f"Cannot initialize the engine {exc.engine}, it is missing crucial info"
+                    " (like server URL or token). Engine definition is {engine!r}."
+                )
+                self._engine_definitions.remove(engine)
+                continue
+            else:
+                self.engines[engine.uid].online.connect(self._force_autoupdate)
+                self.initEngine.emit(self.engines[engine.uid])
 
     def _get_engine_db_file(self, uid: str) -> Path:
         return self.home / f"ndrive_{uid}.db"

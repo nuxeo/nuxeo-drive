@@ -398,6 +398,15 @@ class EngineDef(Row):
             return Path(self[name])
         return self[name]
 
+    def __repr__(self) -> str:
+        return (
+            f"<{type(self).__name__} "
+            f"name={self.name!r}, "
+            f"local_folder={str(self.local_folder)!r}, "
+            f"uid={self.uid!r}, "
+            f"type={self.engine!r}>"
+        )
+
 
 @dataclass
 class Transfer:
