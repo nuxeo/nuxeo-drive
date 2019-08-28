@@ -28,8 +28,9 @@
 set -e
 
 # Global variables
-PYTHON="python -Xutf8 -E -s -OO"
-PIP="${PYTHON} -m pip install --upgrade --upgrade-strategy=only-if-needed"
+PYTHON="python -Xutf8 -E -s"
+PYTHON_OPT="${PYTHON} -OO"
+PIP="${PYTHON_OPT} -m pip install --upgrade --upgrade-strategy=only-if-needed"
 
 build_installer() {
     local version
@@ -325,7 +326,7 @@ start_nxdrive() {
     echo ">>> Starting Nuxeo Drive"
 
     export PYTHONPATH="${WORKSPACE_DRIVE}"
-    ${PYTHON} -m nxdrive
+    ${PYTHON_OPT} -m nxdrive
 }
 
 verify_python() {
