@@ -377,7 +377,7 @@ class Manager(QObject):
             except EngineInitError as exc:
                 log.error(
                     f"Cannot initialize the engine {exc.engine}, it is missing crucial info"
-                    " (like server URL or token). Engine definition is {engine!r}."
+                    f" (like server URL or token). Engine definition is {engine!r}."
                 )
                 self._engine_definitions.remove(engine)
                 continue
