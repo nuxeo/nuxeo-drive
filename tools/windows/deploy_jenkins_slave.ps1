@@ -34,7 +34,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 # Global variables
-$global:PYTHON_OPT = "-Xutf8", "-E", "-s", "-OO"
+$global:PYTHON_OPT = "-Xutf8", "-E", "-s"
 $global:PIP_OPT = "-m", "pip", "install", "--upgrade", "--upgrade-strategy=only-if-needed"
 
 # Imports
@@ -253,7 +253,7 @@ function ExitWithCode($retCode) {
 function freeze_nuitka() {
 	$env:PATH = "C:\mingw64\mingw32\bin;$env:PATH"
 
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m nuitka `
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO -m nuitka `
 		--standalone `
 		--follow-imports `
 		--python-flag=nosite,noasserts `
@@ -273,6 +273,7 @@ function freeze_nuitka() {
 }
 
 function freeze_pyinstaller() {
+	# Note: -OO option cannot be set with PyInstaller
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m PyInstaller ndrive.spec --noconfirm
 
 	if ($lastExitCode -ne 0) {
@@ -284,27 +285,27 @@ function install_deps {
 	if (-Not (check_import "import pip")) {
 		Write-Output ">>> Installing pip"
 		# https://github.com/python/cpython/blob/master/Tools/msi/pip/pip.wxs#L28
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m ensurepip -U --default-pip
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO -m ensurepip -U --default-pip
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
 	}
 
 	Write-Output ">>> Installing requirements"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT pip
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT pip
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements.txt
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r requirements.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-dev.txt
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r requirements-dev.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
 	if (-Not ($install_release)) {
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT $global:PIP_OPT -r requirements-tests.txt
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r requirements-tests.txt
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
@@ -329,7 +330,7 @@ function install_python {
 
 	Write-Output ">>> Setting-up the Python virtual environment"
 
-	& $Env:PYTHON_DIR\python.exe $global:PYTHON_OPT -m venv --copies "$Env:STORAGE_DIR"
+	& $Env:PYTHON_DIR\python.exe $global:PYTHON_OPT -OO -m venv --copies "$Env:STORAGE_DIR"
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
@@ -493,7 +494,7 @@ function sign_dlls {
 function start_nxdrive {
 	# Start Nuxeo Drive
 	$Env:PYTHONPATH = "$Env:WORKSPACE_DRIVE"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m nxdrive
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO -m nxdrive
 }
 
 function zip_files($filename, $src) {
