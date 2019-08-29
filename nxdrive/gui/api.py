@@ -13,7 +13,12 @@ from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
 
 from ..client.proxy import get_proxy
-from ..constants import APP_NAME, CONNECTION_ERROR, TOKEN_PERMISSION
+from ..constants import (
+    APP_NAME,
+    CONNECTION_ERROR,
+    DEFAULT_SERVER_TYPE,
+    TOKEN_PERMISSION,
+)
 from ..exceptions import (
     FolderAlreadyUsed,
     InvalidDriveException,
@@ -53,11 +58,11 @@ class QMLDriveApi(QObject):
         super().__init__()
         self._manager = application.manager
         self.application = application
-        self._callback_params: Dict[str, str] = {}
+        self.callback_params: Dict[str, str] = {}
 
         # Attributes for the web authentication feedback
         self.openAuthenticationDialog.connect(
-            self.application._open_authentication_dialog
+            self.application.open_authentication_dialog
         )
 
     def _json_default(self, obj: Any) -> Any:
@@ -208,11 +213,6 @@ class QMLDriveApi(QObject):
             return
         engine.resume_transfer(nature, uid)
 
-    @pyqtSlot(str, result=str)
-    def get_threads(self, uid: str) -> str:
-        engine = self._manager.engines.get(uid)
-        return self._json(engine._get_threads() if engine else [])
-
     @pyqtSlot(str, str)
     def show_metadata(self, uid: str, ref: str) -> None:
         self.application.hide_systray()
@@ -359,11 +359,11 @@ class QMLDriveApi(QObject):
             params = urlencode({"updateToken": True})
 
             url = engine.server_url
-            login_type = self._manager._get_server_login_type(url)
+            login_type = self._manager.get_server_login_type(url)
             if login_type is Login.OLD:
                 # We might have to downgrade because the
                 # browser login is not available.
-                self._manager.updater._force_downgrade()
+                self._manager.updater.force_downgrade()
                 return
 
             url = self._get_authentication_url(engine.server_url)
@@ -371,7 +371,7 @@ class QMLDriveApi(QObject):
                 url = f"{url}&{params}"
             callback_params = {"engine": uid}
             log.info(f"Opening login window for token update with URL {url}")
-            self.application._open_authentication_dialog(url, callback_params)
+            self.application.open_authentication_dialog(url, callback_params)
         except Exception:
             log.exception(
                 "Unexpected error while trying to open web"
@@ -464,11 +464,7 @@ class QMLDriveApi(QObject):
         log.info(f"Binder is : {binder.url}/{binder.username}")
 
         engine = self._manager.bind_engine(
-            self._manager._get_default_server_type(),
-            local_folder,
-            name,
-            binder,
-            starts=False,
+            DEFAULT_SERVER_TYPE, local_folder, name, binder, starts=False
         )
 
         # Flag to close the settings window when the filters dialog is closed
@@ -559,7 +555,7 @@ class QMLDriveApi(QObject):
         parts = urlsplit(server_url)
 
         # Handle the engine
-        engine_type = parts.fragment or self._manager._get_default_server_type()
+        engine_type = parts.fragment or DEFAULT_SERVER_TYPE
 
         try:
             # Handle local folder
@@ -569,7 +565,7 @@ class QMLDriveApi(QObject):
                 raise FolderAlreadyUsed()
 
             # Connect to startup page
-            login_type = self._manager._get_server_login_type(server_url)
+            login_type = self._manager.get_server_login_type(server_url)
             url = self._get_authentication_url(server_url)
 
             if login_type is not Login.OLD:
@@ -584,7 +580,7 @@ class QMLDriveApi(QObject):
                 if Options.is_frozen:
                     # We might have to downgrade because the
                     # browser login is not available.
-                    self._manager.updater._force_downgrade()
+                    self._manager.updater.force_downgrade()
                     return
 
             callback_params = {
@@ -655,7 +651,7 @@ class QMLDriveApi(QObject):
     def handle_token(self, token: str, username: str) -> None:
         if not token:
             error = "CONNECTION_REFUSED"
-        elif "engine" in self._callback_params:
+        elif "engine" in self.callback_params:
             error = self.update_token(token)
         else:
             error = self.create_account(token, username)
@@ -665,11 +661,11 @@ class QMLDriveApi(QObject):
     def create_account(self, token: str, username: str) -> str:
         error = ""
         try:
-            local_folder = self._callback_params["local_folder"]
+            local_folder = self.callback_params["local_folder"]
             server_url = (
-                self._callback_params["server_url"]
+                self.callback_params["server_url"]
                 + "#"
-                + self._callback_params["engine_type"]
+                + self.callback_params["engine_type"]
             )
 
             log.info(f"Creating new account [{local_folder}, {server_url}, {username}]")
@@ -695,7 +691,7 @@ class QMLDriveApi(QObject):
 
     def update_token(self, token: str) -> str:
         error = ""
-        engine = self._manager.engines.get(self._callback_params["engine"])
+        engine = self._manager.engines.get(self.callback_params["engine"])
         if not engine:
             return ""
         try:

@@ -106,10 +106,10 @@ class AbstractOSIntegration(QObject):
         """Copy some *text* into the clipboard."""
         pass
 
-    def _init(self) -> None:
+    def init(self) -> None:
         pass
 
-    def _cleanup(self) -> None:
+    def cleanup(self) -> None:
         pass
 
     @staticmethod

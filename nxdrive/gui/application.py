@@ -303,7 +303,7 @@ class Application(QApplication):
         context.setContextProperty("update_check_delay", Options.update_check_delay)
         context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("WINDOWS", WINDOWS)
-        context.setContextProperty("tl", Translator._singleton)
+        context.setContextProperty("tl", Translator.singleton)
         context.setContextProperty(
             "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"
         )
@@ -356,7 +356,7 @@ class Application(QApplication):
         Translator.on_change(self._handle_language_change)
         # Trigger it now
         self.osi.register_contextual_menu()
-        self.installTranslator(Translator._singleton)
+        self.installTranslator(Translator.singleton)
 
     @pyqtSlot(str, Path, str)
     def _direct_edit_conflict(self, filename: str, ref: Path, digest: str) -> None:
@@ -665,10 +665,10 @@ class Application(QApplication):
         self._show_window(self.settings_window)
 
     @pyqtSlot(str, object)
-    def _open_authentication_dialog(
+    def open_authentication_dialog(
         self, url: str, callback_params: Dict[str, str]
     ) -> None:
-        self.api._callback_params = callback_params
+        self.api.callback_params = callback_params
         if Options.is_frozen:
             """
             Authenticate through the browser.
@@ -885,7 +885,7 @@ class Application(QApplication):
         if not self._delegator:
             self._delegator = NotificationDelegator.alloc().init()
             if self._delegator:
-                self._delegator._manager = self.manager
+                self._delegator.manager = self.manager
         setup_delegator(self._delegator)
 
     @pyqtSlot(object)

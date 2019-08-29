@@ -65,7 +65,7 @@ class DarwinIntegration(AbstractOSIntegration):
     )
 
     @if_frozen
-    def _init(self) -> None:
+    def init(self) -> None:
         log.info("Telling plugInKit to use the FinderSync")
         try:
             subprocess.run(
@@ -79,7 +79,7 @@ class DarwinIntegration(AbstractOSIntegration):
             log.exception("Error while starting FinderSync")
 
     @if_frozen
-    def _cleanup(self) -> None:
+    def cleanup(self) -> None:
         log.info("Telling plugInKit to ignore the FinderSync")
         try:
             subprocess.run(

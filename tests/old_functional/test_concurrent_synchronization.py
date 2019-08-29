@@ -286,7 +286,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
         self.engine_1.suspend()
         local.delete("/Test folder")
         assert not local.exists("/Test folder")
-        test_folder_ref = remote._check_ref("/Test folder")
+        test_folder_ref = remote.check_ref("/Test folder")
         # Wait for 1 second to make sure the folder's last modification time
         # will be different from the pair state's last remote update time
         time.sleep(REMOTE_MODIFICATION_TIME_RESOLUTION)
@@ -331,7 +331,7 @@ class TestConcurrentSynchronization(TwoUsersTest):
         time.sleep(OS_STAT_MTIME_RESOLUTION)
         local.update_content("/test.odt", b"Updated content.")
         assert local.get_content("/test.odt") == b"Updated content."
-        test_file_ref = remote._check_ref("/test.odt")
+        test_file_ref = remote.check_ref("/test.odt")
         # Wait for 1 second to make sure the file's last modification time
         # will be different from the pair state's last remote update time
         time.sleep(REMOTE_MODIFICATION_TIME_RESOLUTION)

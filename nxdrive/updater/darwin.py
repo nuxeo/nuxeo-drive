@@ -31,7 +31,7 @@ class Updater(BaseUpdater):
         On any error, the backup will be reverted.
         """
         # Unload the Finder Sync extension
-        self.manager.osi._cleanup()
+        self.manager.osi.cleanup()
 
         log.info(f"Mounting {filename!r}")
         mount_info = subprocess.check_output(["hdiutil", "mount", filename])

@@ -176,7 +176,7 @@ def check_level(level: str) -> str:
     """Handle bad logging level."""
     try:
         level = no_trace(level)
-        logging._nameToLevel[level]
+        logging._nameToLevel[level]  # pylint: disable=protected-access
     except (AttributeError, ValueError, KeyError):
         err = f"Unknown logging level {level!r}, need to be one of {LOG_LEVELS}."
         raise ValueError(err)

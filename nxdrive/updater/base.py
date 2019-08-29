@@ -208,7 +208,7 @@ class BaseUpdater(PollWorker):
             login_type = Login.NONE
             for engine in list(self.manager.engines.values()):
                 url = engine.server_url
-                login_type |= self.manager._get_server_login_type(url, _raise=False)
+                login_type |= self.manager.get_server_login_type(url, _raise=False)
 
             channel = self.manager.get_update_channel()
             log.info(
@@ -228,7 +228,7 @@ class BaseUpdater(PollWorker):
             self.status = status
             self.version = ""
 
-    def _force_downgrade(self) -> None:
+    def force_downgrade(self) -> None:
         try:
             # Fetch all available versions
             self._fetch_versions()

@@ -781,7 +781,7 @@ class Processor(EngineWorker):
                 remote_ref = fs_item_info.uid
                 self.dao.update_last_transfer(doc_pair.id, "upload")
 
-            with self.dao._lock:
+            with self.dao.lock:
                 remote_id_done = False
                 # NXDRIVE-599: set as soon as possible the remote_id as
                 # update_remote_state can crash with InterfaceError

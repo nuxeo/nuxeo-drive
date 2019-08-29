@@ -15,8 +15,8 @@ __all__ = ("Translator",)
 class Translator(QTranslator):
 
     languageChanged = pyqtSignal()
-    _singleton = None
-    _current_lang: str = ""
+    singleton = None
+    current_language: str = ""
 
     def __init__(self, path: Path, lang: str = None) -> None:
         super().__init__()
@@ -31,19 +31,19 @@ class Translator(QTranslator):
             self._labels[label] = json.loads(translation.read_text(encoding="utf-8"))
 
         # List language
-        self._langs: Dict[str, Tuple[str, str]] = {}
+        self.langs: Dict[str, Tuple[str, str]] = {}
         for key in self._labels:
             with suppress(KeyError):
-                self._langs[key] = (key, self._labels[key]["LANGUAGE"])
+                self.langs[key] = (key, self._labels[key]["LANGUAGE"])
 
         # Select one
         try:
-            self._set(lang)
+            self.set_language(lang)
         except ValueError:
-            self._set("en")
+            self.set_language("en")
         self._fallback = self._labels["en"]
 
-        Translator._singleton = self
+        Translator.singleton = self
 
     def translate(self, _context: str, text: str, _disambiguation: str, _n: int) -> str:
         """
@@ -56,7 +56,7 @@ class Translator(QTranslator):
         when the Translator is used inside QML.
         They also starts with a underscore to fix Vulture.
         """
-        return self._get(text)
+        return self.get_translation(text)
 
     @pyqtProperty(str, notify=languageChanged)
     def tr(self) -> str:
@@ -77,9 +77,9 @@ class Translator(QTranslator):
 
     @staticmethod
     def on_change(func: Callable) -> None:
-        if Translator._singleton is None:
+        if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
-        Translator._singleton.languageChanged.connect(func)
+        Translator.singleton.languageChanged.connect(func)
 
     @staticmethod
     def _tokenize(label: str, values: List[Any] = None) -> str:
@@ -98,7 +98,7 @@ class Translator(QTranslator):
         result = re.sub(r"%(\d+)", r"{\1}", label)
         return result.format(*([""] + values))
 
-    def _get(self, label: str, values: List[Any] = None) -> str:
+    def get_translation(self, label: str, values: List[Any] = None) -> str:
         if label not in self._current:
             if label not in self._fallback:
                 return label
@@ -106,27 +106,21 @@ class Translator(QTranslator):
         return self._tokenize(self._current[label], values)
 
     @pyqtSlot(str)
-    def _set(self, lang: str) -> None:
+    def set_language(self, lang: str) -> None:
         try:
             self._current = self._labels[lang]
         except KeyError:
             raise ValueError(f"Unknown language {lang!r}")
         else:
-            if self._current_lang != lang:
-                self._current_lang = lang
+            if self.current_language != lang:
+                self.current_language = lang
                 self.languageChanged.emit()
-
-    def _locale(self) -> str:
-        return self._current_lang
-
-    def _languages(self) -> List[Tuple[str, str]]:
-        return sorted(self._langs.values())
 
     @staticmethod
     def set(lang: str) -> None:
-        if Translator._singleton is None:
+        if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
-        return Translator._singleton._set(lang)
+        return Translator.singleton.set_language(lang)
 
     @staticmethod
     def format_date(date: datetime) -> str:
@@ -138,18 +132,18 @@ class Translator(QTranslator):
 
     @staticmethod
     def locale() -> str:
-        if Translator._singleton is None:
+        if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
-        return Translator._singleton._locale()
+        return Translator.singleton.current_language
 
     @staticmethod
     def get(label: str, values: List[str] = None) -> str:
-        if Translator._singleton is None:
+        if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
-        return Translator._singleton._get(label, values)
+        return Translator.singleton.get_translation(label, values)
 
     @staticmethod
     def languages() -> List[Tuple[str, str]]:
-        if Translator._singleton is None:
+        if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
-        return Translator._singleton._languages()
+        return list(sorted(Translator.singleton.langs.values()))

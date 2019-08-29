@@ -235,10 +235,7 @@ class Engine(QObject):
         }
 
     def _get_threads(self) -> List[Dict[str, Any]]:
-        result = []
-        for thread in self.get_threads():
-            result.append(thread.worker.export())
-        return result
+        return [thread.worker.export() for thread in self._threads]
 
     @pyqtSlot(object)
     def _check_sync_start(self, row_id: str = None) -> None:
@@ -360,7 +357,7 @@ class Engine(QObject):
             self.dao.remove_state_children(doc_pair)
         self.dao.force_remote_creation(doc_pair)
         if doc_pair.folderish:
-            self._remote_watcher._scan_remote(doc_pair)
+            self._remote_watcher.scan_remote(doc_pair)
 
     def get_metadata_url(self, remote_ref: str, edit: bool = False) -> str:
         """
@@ -725,9 +722,6 @@ class Engine(QObject):
             thread.start()
         self.syncStarted.emit(0)
         self._start.emit()
-
-    def get_threads(self) -> List[QThread]:
-        return self._threads
 
     def get_metrics(self) -> Metrics:
         return {

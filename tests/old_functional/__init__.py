@@ -207,7 +207,7 @@ class RemoteBase(Remote):
         return self.execute(command="Document.GetChildren", input_obj=f"doc:{ref}")
 
     def get_children_info(self, ref: str, limit: int = 1000) -> List[NuxeoDocumentInfo]:
-        ref = self._escape(self._check_ref(ref))
+        ref = self._escape(self.check_ref(ref))
         types = {"File", "Note", "Workspace", "Folder", "Picture"}
 
         query = (
@@ -291,7 +291,7 @@ class RemoteBase(Remote):
         filtered = []
         for entry in entries:
             entry.update(
-                {"root": self._base_folder_ref, "repository": self.client.repository}
+                {"root": self.base_folder_ref, "repository": self.client.repository}
             )
             if parent_uid is None and fetch_parent_uid:
                 parent_uid = self.fetch(os.path.dirname(entry["path"]))["uid"]
@@ -426,7 +426,7 @@ class DocRemote(RemoteTest):
         # - Folder under Folder or Workspace
         # This configuration should be provided by a special operation on the
         # server.
-        parent = self._check_ref(parent)
+        parent = self.check_ref(parent)
         doc = self.create(parent, doc_type, name=name, properties={"dc:title": name})
         return doc["uid"]
 
@@ -437,7 +437,7 @@ class DocRemote(RemoteTest):
 
         Creates a temporary file from the content then streams it.
         """
-        parent = self._check_ref(parent)
+        parent = self.check_ref(parent)
         properties = {"dc:title": name}
         if doc_type == "Note" and content is not None:
             properties["note:note"] = content
@@ -495,7 +495,7 @@ class DocRemote(RemoteTest):
         """
 
         if not isinstance(ref, NuxeoDocumentInfo):
-            ref = self._check_ref(ref)
+            ref = self.check_ref(ref)
         return self.get_blob(ref)
 
     def update_content(
@@ -507,13 +507,13 @@ class DocRemote(RemoteTest):
         """
         if filename is None:
             filename = self.get_info(ref).name
-        self.attach_blob(self._check_ref(ref), content, filename)
+        self.attach_blob(self.check_ref(ref), content, filename)
 
     def move(self, ref: str, target: str, name: str = None):
         return self.execute(
             command="Document.Move",
-            input_obj=f"doc:{self._check_ref(ref)}",
-            target=self._check_ref(target),
+            input_obj=f"doc:{self.check_ref(ref)}",
+            target=self.check_ref(target),
             name=name,
         )
 
@@ -525,13 +525,13 @@ class DocRemote(RemoteTest):
     def copy(self, ref: str, target: str, name: str = None):
         return self.execute(
             command="Document.Copy",
-            input_obj=f"doc:{self._check_ref(ref)}",
-            target=self._check_ref(target),
+            input_obj=f"doc:{self.check_ref(ref)}",
+            target=self.check_ref(target),
             name=name,
         )
 
     def delete(self, ref: str, use_trash: bool = True):
-        input_obj = f"doc:{self._check_ref(ref)}"
+        input_obj = f"doc:{self.check_ref(ref)}"
         if use_trash:
             try:
                 if not self._has_new_trash_service:
@@ -548,7 +548,7 @@ class DocRemote(RemoteTest):
         return self.execute(command="Document.Delete", input_obj=input_obj)
 
     def delete_content(self, ref: str, xpath: str = None):
-        return self.delete_blob(self._check_ref(ref), xpath=xpath)
+        return self.delete_blob(self.check_ref(ref), xpath=xpath)
 
     def delete_blob(self, ref: str, xpath: str = None):
         return self.execute(command="Blob.Remove", input_obj=f"doc:{ref}", xpath=xpath)
@@ -561,7 +561,7 @@ class DocRemote(RemoteTest):
         headers = {"X-NXfetch.document": "versionLabel"}
         versions = self.execute(
             command="Document.GetVersions",
-            input_obj=f"doc:{self._check_ref(ref)}",
+            input_obj=f"doc:{self.check_ref(ref)}",
             headers=headers,
         )
         return [(v["uid"], v["versionLabel"]) for v in versions["entries"]]
@@ -569,7 +569,7 @@ class DocRemote(RemoteTest):
     def create_version(self, ref: str, increment: str = "None"):
         doc = self.execute(
             command="Document.CreateVersion",
-            input_obj=f"doc:{self._check_ref(ref)}",
+            input_obj=f"doc:{self._heck_ref(ref)}",
             increment=increment,
         )
         return doc["uid"]
@@ -577,12 +577,12 @@ class DocRemote(RemoteTest):
     def restore_version(self, version: str) -> str:
         doc = self.execute(
             command="Document.RestoreVersion",
-            input_obj=f"doc:{self._check_ref(version)}",
+            input_obj=f"doc:{self.check_ref(version)}",
         )
         return doc["uid"]
 
     def block_inheritance(self, ref: str, overwrite: bool = True):
-        input_obj = f"doc:{self._check_ref(ref)}"
+        input_obj = f"doc:{self.check_ref(ref)}"
 
         self.execute(
             command="Document.SetACE",

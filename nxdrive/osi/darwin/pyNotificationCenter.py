@@ -20,7 +20,7 @@ __all__ = ("NotificationDelegator", "notify", "setup_delegator")
 
 class NotificationDelegator(NSObject):
 
-    _manager: "Manager"
+    manager: "Manager"
 
     def __init__(self) -> None:
         info_dict = NSBundle.mainBundle().infoDictionary()
@@ -33,13 +33,13 @@ class NotificationDelegator(NSObject):
         info = notification.userInfo()
         if info and "uuid" not in info:
             return
-        notifications = self._manager.notification_service.get_notifications()
+        notifications = self.manager.notification_service.get_notifications()
         if (
             info["uuid"] not in notifications
             or notifications[info["uuid"]].is_discard_on_trigger()
         ):
             center.removeDeliveredNotification_(notification)
-        self._manager.notification_service.trigger_notification(info["uuid"])
+        self.manager.notification_service.trigger_notification(info["uuid"])
 
     def userNotificationCenter_shouldPresentNotification_(
         self, center: object, notification: object
