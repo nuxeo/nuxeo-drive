@@ -520,11 +520,15 @@ class DefaultNotificationService(NotificationService):
         self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
 
     def _newError(self, row_id: int) -> None:
-        engine_uid = self.sender().uid
-        doc_pair = self.sender().dao.get_state_from_id(row_id)
-        if doc_pair is None:
+        engine = self.sender()
+        if not hasattr(engine, "dao"):
             return
-        self.send_notification(ErrorNotification(engine_uid, doc_pair))
+
+        doc_pair = engine.dao.get_state_from_id(row_id)
+        if not doc_pair:
+            return
+
+        self.send_notification(ErrorNotification(engine.uid, doc_pair))
 
     def _newConflict(self, row_id: int) -> None:
         engine_uid = self.sender().uid
