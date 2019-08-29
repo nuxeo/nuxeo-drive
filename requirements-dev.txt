@@ -20,3 +20,6 @@ pefile==2019.4.18 ; sys_platform == "win32" \
     # via pyinstaller
 pyinstaller==3.5 \
     --hash=sha256:ee7504022d1332a3324250faf2135ea56ac71fdb6309cff8cd235de26b1d0a96
+pywin32-ctypes==0.2.0 ; sys_platform == "win32" \
+    --hash=sha256:9dc2d991b3479cc2df15930958b674a48a227d5361d413827a4cfd0b5876fc98
+    # via pyinstaller
