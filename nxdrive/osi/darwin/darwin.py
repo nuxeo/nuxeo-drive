@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import xattr
-from Foundation import NSBundle, NSDistributedNotificationCenter
+from Foundation import NSBundle, NSDistributedNotificationCenter, NSUserDefaults
 from LaunchServices import (
     CFURLCreateWithString,
     LSSetDefaultHandlerForURLScheme,
@@ -108,6 +108,22 @@ class DarwinIntegration(AbstractOSIntegration):
             p.stdin.write(text.encode("utf-8"))
             p.stdin.close()
             p.wait()
+
+    @staticmethod
+    def current_them() -> str:
+        """Get the current OS them."""
+        try:
+            theme = NSUserDefaults.standardUserDefaults().stringForKey_(
+                "AppleInterfaceStyle"
+            )
+        except Exception:
+            return ""
+        else:
+            return theme.lower()
+
+    def dark_mode_in_use(self) -> bool:
+        """Does the user has the Dark mode set?"""
+        return self.current_them() == "dark"
 
     def open_local_file(self, file_path: str, select: bool = False) -> None:
         """Note that this function must _not_ block the execution."""

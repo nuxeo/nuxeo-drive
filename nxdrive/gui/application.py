@@ -1141,6 +1141,9 @@ class Application(QApplication):
                 if version > (6, 1):  # Windows 7
                     # Windows 8+ has a dark them by default
                     use_light_icons = True
+            elif MAC and self.osi.dark_mode_in_use():
+                # The Dark mode on macOS is set
+                use_light_icons = True
         else:
             # The value stored in DTB as a string '0' or '1', convert to boolean
             use_light_icons = bool(int(use_light_icons))
