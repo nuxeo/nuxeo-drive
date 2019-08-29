@@ -78,7 +78,7 @@ class ExtensionListener(QTcpServer):
         """Compute the real address the server is listening on."""
         return f"{self.serverAddress().toString()}:{self.serverPort()}"
 
-    def _listen(self):
+    def start_listening(self):
         """
         Called once the Manager.started() is emitted.
 

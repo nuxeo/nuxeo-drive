@@ -419,7 +419,7 @@ class MetaOptions(type):
             items = items.items()
         elif not isinstance(items, list):
             # To handle CLI (type is argparse.Namespace)
-            items = items._get_kwargs()
+            items = items._get_kwargs()  # pylint: disable=protected-access
 
         for item, value in items:
             MetaOptions.set(

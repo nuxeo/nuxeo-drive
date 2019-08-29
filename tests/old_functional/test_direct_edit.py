@@ -97,7 +97,7 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
             file_path,
             command="Blob.AttachOnDocument",
             filename=attachment_filename,
-            document=self.remote._check_ref(doc_id),
+            document=self.remote.check_ref(doc_id),
             xpath="files:files",
         )
         scheme, host = self.nuxeo_url.split("://")

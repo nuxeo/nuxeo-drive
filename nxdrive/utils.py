@@ -655,6 +655,7 @@ def get_certificate_details(hostname: str = "", cert_data: str = "") -> Dict[str
         cert_file.write_text(certificate, encoding="utf-8")
         try:
             # Taken from https://stackoverflow.com/a/50072461/1117028
+            # pylint: disable=protected-access
             details = ssl._ssl._test_decode_cert(cert_file)  # type: ignore
             defaults.update(details)
         finally:

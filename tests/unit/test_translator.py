@@ -44,7 +44,7 @@ def test_load_file():
 
 
 def test_non_iniialized():
-    Translator._singleton = None
+    Translator.singleton = None
     with pytest.raises(RuntimeError):
         Translator.get("TEST")
 

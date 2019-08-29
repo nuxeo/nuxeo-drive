@@ -127,10 +127,10 @@ class Remote(Nuxeo):
 
         if base_folder is not None:
             base_folder_doc = self.fetch(base_folder)
-            self._base_folder_ref = base_folder_doc["uid"]
+            self.base_folder_ref = base_folder_doc["uid"]
             self._base_folder_path = base_folder_doc["path"]
         else:
-            self._base_folder_ref, self._base_folder_path = None, None
+            self.base_folder_ref, self._base_folder_path = None, None
 
     def __repr__(self) -> str:
         attrs = ", ".join(
@@ -218,7 +218,7 @@ class Remote(Nuxeo):
         :param use_trash: Filter documents inside the trash.
         :rtype: bool
         """
-        ref = self._escape(self._check_ref(ref))
+        ref = self._escape(self.check_ref(ref))
         id_prop = "ecm:path" if ref.startswith("/") else "ecm:uuid"
         trash = self._get_trash_condition() if use_trash else ""
 
@@ -790,7 +790,7 @@ class Remote(Nuxeo):
     def fetch(self, ref: str, **kwargs: Any) -> Dict[str, Any]:
         return self.execute(command="Document.Fetch", value=get_text(ref), **kwargs)
 
-    def _check_ref(self, ref: str) -> str:
+    def check_ref(self, ref: str) -> str:
         if ref.startswith("/") and self._base_folder_path is not None:
             # This is a path ref (else an id ref)
             if self._base_folder_path.endswith("/"):
@@ -811,11 +811,11 @@ class Remote(Nuxeo):
         self, ref: str, raise_if_missing: bool = True, fetch_parent_uid: bool = True
     ) -> Optional[NuxeoDocumentInfo]:
         try:
-            doc = self.fetch(self._check_ref(ref))
+            doc = self.fetch(self.check_ref(ref))
         except NotFound:
             if raise_if_missing:
                 raise NotFound(
-                    f"Could not find {self._check_ref(ref)!r} on {self.client.host}"
+                    f"Could not find {self.check_ref(ref)!r} on {self.client.host}"
                 )
             return None
 
@@ -823,9 +823,7 @@ class Remote(Nuxeo):
         if fetch_parent_uid and doc["path"]:
             parent_uid = self.fetch(os.path.dirname(doc["path"]))["uid"]
 
-        doc.update(
-            {"root": self._base_folder_ref, "repository": self.client.repository}
-        )
+        doc.update({"root": self.base_folder_ref, "repository": self.client.repository})
         return NuxeoDocumentInfo.from_dict(doc, parent_uid=parent_uid)
 
     def get_blob(
@@ -854,18 +852,18 @@ class Remote(Nuxeo):
 
     def lock(self, ref: str) -> Dict[str, Any]:
         return self.execute(
-            command="Document.Lock", input_obj=f"doc:{self._check_ref(ref)}"
+            command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}"
         )
 
     def unlock(self, ref: str) -> Dict[str, Any]:
         return self.execute(
-            command="Document.Unlock", input_obj=f"doc:{self._check_ref(ref)}"
+            command="Document.Unlock", input_obj=f"doc:{self.check_ref(ref)}"
         )
 
     def register_as_root(self, ref: str) -> bool:
         self.execute(
             command="NuxeoDrive.SetSynchronization",
-            input_obj=f"doc:{self._check_ref(ref)}",
+            input_obj=f"doc:{self.check_ref(ref)}",
             enable=True,
         )
         return True
@@ -873,7 +871,7 @@ class Remote(Nuxeo):
     def unregister_as_root(self, ref: str) -> bool:
         self.execute(
             command="NuxeoDrive.SetSynchronization",
-            input_obj=f"doc:{self._check_ref(ref)}",
+            input_obj=f"doc:{self.check_ref(ref)}",
             enable=False,
         )
         return True

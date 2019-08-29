@@ -31,6 +31,8 @@ UNACCESSIBLE_HASH = "TO_COMPUTE"
 
 TOKEN_PERMISSION = "ReadWrite"
 
+DEFAULT_SERVER_TYPE = "NXDRIVE"
+
 # Document's UID and token regexp
 DOC_UID_REG = "[0-f]{8}-[0-f]{4}-[0-f]{4}-[0-f]{4}-[0-f]{12}"
 

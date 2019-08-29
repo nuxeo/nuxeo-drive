@@ -82,7 +82,7 @@ class RemoteWatcher(EngineWorker):
             raise
 
     @tooltip("Remote scanning")
-    def _scan_remote(self, from_state: DocPair = None):
+    def scan_remote(self, from_state: DocPair = None):
         """Recursively scan the bound remote folder looking for updates"""
         log.debug("Remote full scan")
         start = monotonic()
@@ -168,7 +168,7 @@ class RemoteWatcher(EngineWorker):
                 self._do_scan_remote(doc_pair, child_info)
         else:
             log.info(f"Remote scan_pair: {remote_path!r} is not available")
-            self._scan_remote()
+            self.scan_remote()
 
     @staticmethod
     def _check_modified(pair: DocPair, info: RemoteFileInfo) -> bool:
@@ -560,7 +560,7 @@ class RemoteWatcher(EngineWorker):
     def _partial_full_scan(self, path: str) -> None:
         log.info(f"Continue full scan of {path!r}")
         if path == "/":
-            self._scan_remote()
+            self.scan_remote()
         else:
             self._scan_pair(path)
         self.dao.delete_path_to_scan(path)
@@ -586,7 +586,7 @@ class RemoteWatcher(EngineWorker):
 
         try:
             if not self._last_remote_full_scan:
-                self._scan_remote()
+                self.scan_remote()
 
                 # Might need to handle the changes now
                 if first_pass:

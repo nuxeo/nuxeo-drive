@@ -348,7 +348,7 @@ class DirectEdit(Worker):
 
         doc.update(
             {
-                "root": engine.remote._base_folder_ref,
+                "root": engine.remote.base_folder_ref,
                 "repository": engine.remote.client.repository,
             }
         )
@@ -693,7 +693,7 @@ class DirectEdit(Worker):
                 remote.upload(
                     os_path,
                     command=cmd,
-                    document=remote._check_ref(details.uid),
+                    document=remote.check_ref(details.uid),
                     engine_uid=engine.uid,
                     is_direct_edit=True,
                     **kwargs,

@@ -19,6 +19,7 @@ from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
 from .constants import (
     APP_NAME,
+    DEFAULT_SERVER_TYPE,
     NO_SPACE_ERRORS,
     STARTUP_PAGE_CONNECTION_TIMEOUT,
     DelAction,
@@ -284,8 +285,8 @@ class Manager(QObject):
         self._extension_listener = self.osi.get_extension_listener()
         if not self._extension_listener:
             return
-        self._extension_listener.listening.connect(self.osi._init)
-        self.started.connect(self._extension_listener._listen)
+        self._extension_listener.listening.connect(self.osi.init)
+        self.started.connect(self._extension_listener.start_listening)
         self.stopped.connect(self._extension_listener.close)
 
     @if_frozen
@@ -336,7 +337,7 @@ class Manager(QObject):
             if engine.is_started():
                 log.info(f"Stop engine {uid}")
                 engine.stop()
-        self.osi._cleanup()
+        self.osi.cleanup()
         self.dispose_db()
         self.stopped.emit()
 
@@ -528,10 +529,7 @@ class Manager(QObject):
     def set_deletion_behavior(self, behavior: DelAction) -> None:
         self.set_config("deletion_behavior", behavior.value)
 
-    def _get_default_server_type(self) -> str:  # TODO: Move to constants.py
-        return "NXDRIVE"
-
-    def _get_server_login_type(self, server_url: str, _raise: bool = True) -> Login:
+    def get_server_login_type(self, server_url: str, _raise: bool = True) -> Login:
         # Take into account URL parameters
         parts = urlsplit(server_url)
         url = urlunsplit(
@@ -603,11 +601,7 @@ class Manager(QObject):
             url=url,
         )
         return self.bind_engine(
-            self._get_default_server_type(),
-            local_folder,
-            name,
-            binder,
-            starts=start_engine,
+            DEFAULT_SERVER_TYPE, local_folder, name, binder, starts=start_engine
         )
 
     def _get_engine_name(self, server_url: str) -> str:

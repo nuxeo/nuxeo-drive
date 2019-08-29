@@ -70,7 +70,7 @@ Rectangle {
                     currentIndex = find(currentLanguage)
                 }
                 onActivated: {
-                    tl._set(languageModel.getTag(languageBox.currentIndex))
+                    tl.set_language(languageModel.getTag(languageBox.currentIndex))
                 }
             }
         }

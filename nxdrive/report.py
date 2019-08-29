@@ -74,16 +74,16 @@ class Report:
     @staticmethod
     def copy_db(myzip: ZipFile, dao: "EngineDAO") -> None:
         """
-        Copy a databse file to the ZIP report.
+        Copy a database file to the ZIP report.
         If it fails, we just try ignore the file.
         """
 
         # Lock to avoid inconsistence
-        with dao._lock:
+        with dao.lock:
             try:
-                myzip.write(dao._db, dao._db.name, compress_type=ZIP_DEFLATED)
+                myzip.write(dao.db, dao.db.name, compress_type=ZIP_DEFLATED)
             except Exception:
-                log.exception(f"Impossible to copy the database {dao._db.name!r}")
+                log.exception(f"Impossible to copy the database {dao.db.name!r}")
 
     def get_path(self) -> Path:
         return self._zipfile

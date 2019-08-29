@@ -37,17 +37,17 @@ class WindowsIntegration(AbstractOSIntegration):
     nature = "Windows"
 
     @if_frozen
-    def _init(self) -> None:
+    def init(self) -> None:
         if self._manager:
             watched_folders = {
-                engine.local_folder for engine in self._manager._engine_definitions
+                engine.local_folder for engine in self._manager.engines.values()
             }
             if watched_folders:
                 set_filter_folders(watched_folders)
                 enable_overlay()
 
     @if_frozen
-    def _cleanup(self) -> None:
+    def cleanup(self) -> None:
         disable_overlay()
 
     @pyqtSlot(result=bool)
