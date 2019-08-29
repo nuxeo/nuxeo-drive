@@ -942,7 +942,8 @@ class Engine(QObject):
             log.info(f"Updated server url to {self.server_url}")
         except Exception:
             log.warning(
-                f"Server at {self.server_url} doesn't seem to handle HTTPS, keeping HTTP",
+                f"Server at {self.server_url} doesn't seem to handle HTTPS, keeping HTTP."
+                " For information, this is the encountered SSL error:",
                 exc_info=True,
             )
 
