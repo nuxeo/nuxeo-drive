@@ -268,6 +268,9 @@ class Application(QApplication):
 
     @pyqtSlot(object)
     def action_progressing(self, action: Action) -> None:
+        if not isinstance(action, Action):
+            log.warning(f"An action is needed, got {action!r}")
+            return
         self.transfer_model.set_progress(action.export())
 
     def add_engines(self, engines: Union[Engine, List[Engine]]) -> None:
