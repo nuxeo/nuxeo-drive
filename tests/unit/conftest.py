@@ -26,7 +26,7 @@ class MockEngineDAO(EngineDAO):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.dispose()
-        self._db.unlink()
+        self.db.unlink()
 
     def _get_adjacent_sync_file(
         self, ref: str, comp: str, order: str, sync_mode: str = None
