@@ -569,7 +569,7 @@ class DocRemote(RemoteTest):
     def create_version(self, ref: str, increment: str = "None"):
         doc = self.execute(
             command="Document.CreateVersion",
-            input_obj=f"doc:{self._heck_ref(ref)}",
+            input_obj=f"doc:{self.check_ref(ref)}",
             increment=increment,
         )
         return doc["uid"]

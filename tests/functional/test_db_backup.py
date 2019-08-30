@@ -45,7 +45,7 @@ def test_create_backup(manager_factory, tmp, nuxeo_url, user_factory, monkeypatc
     def restore_db(self):
         nonlocal restored
         restored = True
-        return nxdrive.engine.dao.utils.restore_backup(self._db)
+        return nxdrive.engine.dao.utils.restore_backup(self.db)
 
     restored = False
     monkeypatch.setattr(ConfigurationDAO, "restore_backup", restore_db)

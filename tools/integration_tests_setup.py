@@ -205,6 +205,7 @@ def clean_download_dir(dir_, pattern):
 
 
 if __name__ == "__main__":
+    pflush("Running on Python %s" % sys.version)
     options = parse_args()
     # Handle empty options set by ant empty arguments
     if hasattr(options, "server_url") and not options.server_url:
