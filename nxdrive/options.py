@@ -192,10 +192,11 @@ class MetaOptions(type):
         "big_file": (300, "default"),
         "browser_startup_page": ("drive_browser_login.jsp", "default"),
         "ca_bundle": (None, "default"),
-        "channel": ("release", "default"),
+        "channel": ("centralized", "default"),
         "chunk_limit": (20, "default"),
         "chunk_size": (20, "default"),
         "chunk_upload": (True, "default"),
+        "client_version": (None, "default"),
         "debug": (False, "default"),
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
@@ -489,6 +490,19 @@ def validate_chunk_size(value: int) -> int:
     raise ValueError("Chunk size must be between 1 and 20 (MiB)")
 
 
+def validate_client_version(value: str) -> str:
+    """The minimum version which implements the Centralized channel is 4.2.0,
+    downgrades below this version are not allowed.
+    """
+    from .utils import version_lt
+
+    if not version_lt(value, "4.2.0"):
+        return value
+    raise ValueError(
+        f"Downgrade to version {value!r} is not possible. It must be >= '4.2.0'."
+    )
+
+
 def validate_tmp_file_limit(value: Union[int, float]) -> float:
     if value > 0:
         return float(value)
@@ -497,4 +511,5 @@ def validate_tmp_file_limit(value: Union[int, float]) -> float:
 
 Options.checkers["chunk_limit"] = validate_chunk_limit
 Options.checkers["chunk_size"] = validate_chunk_size
+Options.checkers["client_version"] = validate_client_version
 Options.checkers["tmp_file_limit"] = validate_tmp_file_limit

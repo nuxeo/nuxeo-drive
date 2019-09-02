@@ -105,7 +105,7 @@ class BaseUpdater(PollWorker):
     def refresh_status(self) -> None:
         """
         Check for an update.
-        Used when changing the beta channel option or when binding a new engine.
+        Used when changing the channel option or when binding a new engine.
         """
         self._poll()
 
@@ -213,7 +213,8 @@ class BaseUpdater(PollWorker):
             channel = self.manager.get_update_channel()
             log.info(
                 f"Getting update status for version {self.manager.version}"
-                f" (channel={channel}) on server {self.server_ver}"
+                f" (channel={channel}, desired client_version={Options.client_version})"
+                f" on server {self.server_ver}"
             )
             status, version = get_update_status(
                 self.manager.version,

@@ -11,6 +11,7 @@ from .constants import (
     UPDATE_STATUS_WRONG_CHANNEL,
     Login,
 )
+from ..options import Options
 from ..utils import version_le, version_lt
 
 __all__ = ("get_update_status",)
@@ -29,7 +30,7 @@ def is_version_compatible(
 
     Try first the min_all and max_all keys that contain all server versions.
     Fallback on min and max keys that contain only one server version:
-        the oldest supported.
+    the oldest supported.
     """
     if not has_browser_login and not version_lt(version_id, "4"):
         return False
@@ -60,7 +61,7 @@ def get_compatible_versions(
     Find all Drive versions compatible with the current server instance.
     """
 
-    # If no server_version, then we cannot know in advance if Drive
+    # If no server_ver, then we cannot know in advance if Drive
     # will be compatible with a higher version of the server.
     # This is the case when there is no bound account.
     version_regex = r"^\d+(\.\d+)+(-HF\d+|)(-SNAPSHOT|)(-I.*|)$"
@@ -81,16 +82,16 @@ def get_compatible_versions(
     return candidates
 
 
-def get_latest_version(versions: Versions, nature: str) -> str:
+def get_latest_version(versions: Versions, channel: str) -> str:
     """ Get the most recent version of a given channel. """
     versions_list = [
         version
         for version, info in versions.items()
-        if info.get("type", "").lower() in (nature, "release")
+        if info.get("type", "").lower() in (channel, "release")
     ]
 
     if not versions_list:
-        log.debug(f"No version found in {nature} channel.")
+        log.debug(f"No version found in {channel} channel.")
         return ""
 
     highest = str(max(map(LooseVersion, versions_list)))
@@ -100,7 +101,7 @@ def get_latest_version(versions: Versions, nature: str) -> str:
 def get_update_status(
     current_version: str,
     versions: Versions,
-    nature: str,
+    channel: str,
     server_version: Optional[str],
     login_type: Login,
 ) -> Tuple[str, str]:
@@ -127,19 +128,47 @@ def get_update_status(
         )
         return "", ""
 
-    # Find the latest available version
+    # Filter versions based on their compatibility with the server
     versions = get_compatible_versions(versions, server_version, has_browser_login)
-    latest = get_latest_version(versions, nature)
 
+    # If the update channel is Centralized, we do not filter anything more
+    # and just return the desired version.
+    original_channel = channel
+    latest = None
+    if channel == "centralized":
+        if Options.client_version:
+            latest = Options.client_version
+        else:
+            log.debug(
+                "Update channel is 'centralized' but no 'client_version' set."
+                " Falling back to the 'release' channel."
+            )
+            channel = "release"
+
+    if latest is None:
+        # Find the latest available version
+        latest = get_latest_version(versions, channel)
+
+    # No version available
     if not latest:
-        status = "", ""
-    elif current_version == latest:
-        status = UPDATE_STATUS_UP_TO_DATE, ""
-    elif not version_le(latest, current_version):
-        status = UPDATE_STATUS_UPDATE_AVAILABLE, latest
-    elif current_version in versions.keys():
-        status = UPDATE_STATUS_WRONG_CHANNEL, latest
-    else:
-        status = UPDATE_STATUS_INCOMPATIBLE_SERVER, latest
+        return "", ""
 
-    return status
+    # Up-to-date, the current version is already the latest one
+    if current_version == latest:
+        return UPDATE_STATUS_UP_TO_DATE, ""
+
+    # A new version is available
+    if not version_le(latest, current_version):
+        return UPDATE_STATUS_UPDATE_AVAILABLE, latest
+
+    # The current version came from another channel
+    if current_version in versions.keys():
+        # For the Centralized channel, this is not an issue as administrators must
+        # have checked that the desired version is working fine whatever the channel
+        if original_channel == "centralized":
+            return UPDATE_STATUS_UPDATE_AVAILABLE, latest
+        else:
+            return UPDATE_STATUS_WRONG_CHANNEL, latest
+
+    # The latest version is not compatible with the server
+    return UPDATE_STATUS_INCOMPATIBLE_SERVER, latest

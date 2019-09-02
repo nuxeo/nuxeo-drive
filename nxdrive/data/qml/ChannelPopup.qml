@@ -15,14 +15,17 @@ NuxeoPopup {
     onOpened: {
         var channel = api.get_update_channel()
         switch(channel) {
-            case "release":
+            case "centralized":
                 channelType.currentIndex = 0
                 break
-            case "beta":
+            case "release":
                 channelType.currentIndex = 1
                 break
-            case "alpha":
+            case "beta":
                 channelType.currentIndex = 2
+                break
+            case "alpha":
+                channelType.currentIndex = 3
                 break
         }
     }
@@ -39,6 +42,7 @@ NuxeoPopup {
             textRole: "type"
             displayText: qsTr(currentText) + tl.tr
             model: ListModel {
+                ListElement { type: "Centralized"; value: "centralized" }
                 ListElement { type: "Release"; value: "release" }
                 ListElement { type: "Beta"; value: "beta" }
                 ListElement { type: "Alpha"; value: "alpha" }

@@ -28,6 +28,9 @@ BATCH_SIZE = 100  # Scroll descendants batch size
 # time, the server will finish way before thhat timeout.
 TX_TIMEOUT = 60 * 60 * 6  # 6 hours
 
+# Default update channel
+DEFAULT_CHANNEL = "centralized"
+
 ROOT = Path()
 
 UNACCESSIBLE_HASH = "TO_COMPUTE"
