@@ -19,6 +19,7 @@ from .client.local_client import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
 from .constants import (
     APP_NAME,
+    DEFAULT_CHANNEL,
     DEFAULT_SERVER_TYPE,
     NO_SPACE_ERRORS,
     STARTUP_PAGE_CONNECTION_TIMEOUT,
@@ -135,7 +136,7 @@ class Manager(QObject):
                 if beta:
                     Options.set("channel", "beta", setter="local")
                 else:
-                    Options.set("channel", "release", setter="local")
+                    Options.set("channel", DEFAULT_CHANNEL, setter="local")
                 self.dao.delete_config("beta_channel")
 
             Options.set("channel", self.get_update_channel(), setter="local")
@@ -434,6 +435,7 @@ class Manager(QObject):
 
     @pyqtSlot(bool)
     def set_direct_edit_auto_lock(self, value: bool) -> None:
+        log.debug(f"Changed parameter 'direct_edit_auto_lock' to {value}")
         self.dao.store_bool("direct_edit_auto_lock", value)
 
     @pyqtSlot(result=bool)
@@ -445,6 +447,7 @@ class Manager(QObject):
 
     @pyqtSlot(bool)
     def set_auto_update(self, value: bool) -> None:
+        log.debug(f"Changed parameter 'auto_update' to {value}")
         self.dao.store_bool("auto_update", value)
 
     @pyqtSlot(result=bool)
@@ -461,6 +464,7 @@ class Manager(QObject):
 
     @pyqtSlot(bool, result=bool)
     def set_auto_start(self, value: bool) -> bool:
+        log.debug(f"Changed parameter 'auto_start' to {value}")
         self.dao.store_bool("auto_start", value)
 
         if value:
@@ -480,7 +484,9 @@ class Manager(QObject):
 
     @pyqtSlot(result=str)
     def get_update_channel(self) -> str:
-        return self.dao.get_config("channel", default=Options.channel or "release")
+        return self.dao.get_config(
+            "channel", default=Options.channel or DEFAULT_CHANNEL
+        )
 
     @pyqtSlot(str)
     def set_update_channel(self, value: str) -> None:
@@ -513,6 +519,7 @@ class Manager(QObject):
         return self._tracker.uid if self._tracker else ""
 
     def set_proxy(self, proxy: "Proxy") -> str:
+        log.debug(f"Changed proxy to {proxy}")
         for engine in self.engines.values():
             if not validate_proxy(proxy, engine.server_url):
                 return "PROXY_INVALID"

@@ -12,7 +12,7 @@ from logging import getLogger
 from typing import List, TYPE_CHECKING, Union
 
 from . import __version__
-from .constants import APP_NAME, BUNDLE_IDENTIFIER
+from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL
 from .logging_config import configure
 from .options import Options
 from .osi import AbstractOSIntegration
@@ -115,8 +115,8 @@ class CliHandler:
 
         common_parser.add_argument(
             "--channel",
-            default="release",
-            choices=("alpha", "beta", "release"),
+            default=DEFAULT_CHANNEL,
+            choices=("alpha", "beta", "release", "centralized"),
             help="Update channel",
         )
 
