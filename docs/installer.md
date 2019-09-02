@@ -55,8 +55,10 @@ So if you plan to create your own Nuxeo Drive installer, this is where to look a
 
 When you are done with it, you call the *Inno Setup Compiler* with:
 
+[//]: # (XXX_INNO_SETUP)
+
 ```batch
-    "C:\Program Files (x86)\Inno Setup 5\iscc.exe" /DMyAppVersion="x.y.z" "tools\windows\setup.iss"
+"C:\Program Files (x86)\Inno Setup 6\iscc.exe" /DMyAppVersion="x.y.z" "tools\windows\setup.iss"
 ```
 
 That is all, ~40 seconds later, you will find a file `dist\nuxeo-drive-x.y.z.exe`: ready to deploy and install!

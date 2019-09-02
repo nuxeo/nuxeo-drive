@@ -15,7 +15,10 @@ CreateUninstallRegKey=no
 
 ; Set the output directory to "Program Files" by default.
 ; You can override by setting the "/TARGETDIR="C:\folder" argument.
-DefaultDirName={param:targetdir|{pf}\{#MyAppName}}
+DefaultDirName={param:targetdir|{commonpf}\{#MyAppName}}
+
+; Disable the used user areas warning, we're all consenting adults
+UsedUserAreasWarning=no
 
 
 #include "setup-common.iss"
