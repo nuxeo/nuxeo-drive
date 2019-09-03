@@ -10,6 +10,9 @@ LINUX = platform == "linux"
 MAC = platform == "darwin"
 WINDOWS = platform == "win32"
 
+# Custom protocol URL (nxdrive://...)
+NXDRIVE_SCHEME = "nxdrive"
+
 BUNDLE_IDENTIFIER = "org.nuxeo.drive"
 APP_NAME = "Nuxeo Drive"
 COMPANY = "Nuxeo"
