@@ -804,9 +804,6 @@ class Application(QApplication):
         ]
         description = Translator.get(msg, [version])
         flags = Notification.FLAG_BUBBLE | Notification.FLAG_UNIQUE
-        if LINUX:
-            description += " " + Translator.get("AUTOUPDATE_MANUAL")
-            flags |= Notification.FLAG_SYSTRAY
 
         log.warning(description)
         notification = Notification(

@@ -13,7 +13,6 @@
     "AUTOSTART": "Iniciar al arrancar",
     "AUTOUPDATE": "Actualización automática de Drive",
     "AUTOUPDATE_DOWNGRADE": "Se necesita volver a versión %1.",
-    "AUTOUPDATE_MANUAL": "Descárguela e instálela manualmente desde el sitio web de actualizaciones.",
     "AUTOUPDATE_UPGRADE": "Una nueva versión %1 disponible.",
     "BROWSE_DIALOG_CAPTION": "Seleccionar la ubicación de la carpeta Nuxeo Drive",
     "BUG_REPORT": "Informar de un error",

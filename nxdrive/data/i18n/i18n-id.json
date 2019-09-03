@@ -13,7 +13,6 @@
     "AUTOSTART": "Mulai saat boot",
     "AUTOUPDATE": "Perbarui Drive secara otomatis",
     "AUTOUPDATE_DOWNGRADE": "Diturunkan ke {{ version }} sangat dibutuhkan",
-    "AUTOUPDATE_MANUAL": "Please download and install it manually from the updates website.",
     "AUTOUPDATE_UPGRADE": "Sebuah versi baru {{ version }} sudah tersedia",
     "BROWSE_DIALOG_CAPTION": "Pilih lokasi folder Nuxeo Drive",
     "BUG_REPORT": "Laporkan sebuah bug",

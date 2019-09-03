@@ -13,7 +13,6 @@
     "AUTOSTART": "Uitvoeren bij opstarten",
     "AUTOUPDATE": "Drive automatisch bijwerken",
     "AUTOUPDATE_DOWNGRADE": "Versie niet compatibel met de server, u hebt een downgrade naar {{ version }} nodig. Synchronisatie begint pas na de downgrade.",
-    "AUTOUPDATE_MANUAL": "Download en installeer deze handmatig van de updatewebsite.",
     "AUTOUPDATE_UPGRADE": "Er is een nieuwe versie {{ version }} beschikbaar.",
     "BROWSE_DIALOG_CAPTION": "Maplocatie Nuxeo Drive selecteren",
     "BUG_REPORT": "Een programmafout melden",

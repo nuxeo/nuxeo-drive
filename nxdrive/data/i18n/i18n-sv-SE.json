@@ -13,7 +13,6 @@
     "AUTOSTART": "Kör vid start",
     "AUTOUPDATE": "Uppdatera Drive automatiskt",
     "AUTOUPDATE_DOWNGRADE": "Versionen är inte kompatibel med servern; den behöver nedgraderas till %1. Synkroniseringen börjar inte förrän då.",
-    "AUTOUPDATE_MANUAL": "Hämta och installera den manuellt från webbsidan med uppdateringar.",
     "AUTOUPDATE_UPGRADE": "Det finns en ny tillgänglig version %1.",
     "BROWSE_DIALOG_CAPTION": "Välj mapp för Nuxeo Drive",
     "BUG_REPORT": "Rapportera bugg",
