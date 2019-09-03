@@ -1,4 +1,5 @@
 # coding: utf-8
+import os
 import shutil
 import subprocess
 from logging import getLogger
@@ -6,7 +7,6 @@ from pathlib import Path
 
 from .base import BaseUpdater
 from ..constants import APP_NAME
-from ..options import Options
 
 __all__ = ("Updater",)
 
@@ -22,26 +22,22 @@ class Updater(BaseUpdater):
     def install(self, filename: str) -> None:
         """
         Steps:
-            - move the new executable into the $HOME folder
+            - move the new executable next to the current running AppImage file
             - restart Drive
 
         Note 1: on any error, nothing will be handled.
-        Note 2: the old version executable will still be present on the disk after the restart.
+        Note 2: the old executable will still be present on the disk after the restart.
         """
-
         # Destination file (removing the salt from the file name)
-        file = str(Options.home / Path(filename).name[33:])
+        original_executable = Path(os.getenv("APPIMAGE", ""))  # Set by AppImage
+        new_executable = str(original_executable.parent / Path(filename).name[33:])
+        log.debug(f"Moving {filename!r} -> {new_executable!r}")
+        shutil.move(filename, new_executable)
 
-        # We cannot guess the actual location of the original executable as the AppImage
-        # is mounted into a temporary folder. So we just move the new executable in the
-        # $HOME folder.
-        log.debug(f"Moving {filename!r} -> {file!r}")
-        shutil.move(filename, file)
+        log.debug(f"Adjusting execution rights on {new_executable!r}")
+        subprocess.check_call(["chmod", "a+x", new_executable])
 
-        log.debug(f"Adjusting execution rights on {file!r}")
-        subprocess.check_call(["chmod", "a+x", file])
-
-        self._restart(file)
+        self._restart(new_executable)
 
     def _restart(self, executable: str) -> None:
         """
