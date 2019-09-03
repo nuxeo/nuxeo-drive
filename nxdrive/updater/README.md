@@ -144,7 +144,7 @@ Then, actions taken are OS-specific.
 
 The process is quite simple:
 
-1. Copy the `nuxeo-drive-x.y.z-x86_64.AppImage` into the `$HOME` folder;
+1. Move the new `nuxeo-drive-x.y.z-x86_64.AppImage` file next to the current running AppImage file;
 2. Restart Drive using the new executable.
 
 #### macOS

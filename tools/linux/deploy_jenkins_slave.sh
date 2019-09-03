@@ -33,17 +33,17 @@ create_package() {
     local app_version="$(python tools/changelog.py --drive-version)"
     local app_dir="dist/AppRun"
 
-    echo ">>> [AppImage] Adjusting file names to fit in the AppImage"
+    echo ">>> [AppImage ${app_version}] Adjusting file names to fit in the AppImage"
     # Taken from https://gitlab.com/scottywz/ezpyi/blob/master/ezpyi
     [ -d "${app_dir}" ] && rm -rfv "${app_dir}"
     mv -v "dist/ndrive" "${app_dir}"
     mv -v "${app_dir}/ndrive" "${app_dir}/AppRun"
 
-    echo ">>> [AppImage] Copying icons"
+    echo ">>> [AppImage ${app_version}] Copying icons"
     cp -v "tools/linux/app_icon.svg" "${app_dir}/.DirIcon.svg"
     cp -v "tools/linux/app_icon.svg" "${app_dir}/.icon.svg"
 
-    echo ">>> [AppImage] Copying metadata files"
+    echo ">>> [AppImage ${app_version}] Copying metadata files"
     mkdir -pv "${app_dir}/usr/share/metainfo"
     cp -v "tools/linux/${app_id}.appdata.xml" "${app_dir}/usr/share/metainfo"
     mkdir -pv "${app_dir}/usr/share/applications"
@@ -57,7 +57,7 @@ create_package() {
     chmod -v a+x "appimagetool-x86_64.AppImage"
     ./appimagetool-x86_64.AppImage --appimage-extract
 
-    echo ">>> [AppImage] Creating the AppImage file"
+    echo ">>> [AppImage ${app_version}] Creating the AppImage file"
     # --no-appstream because appstreamcli is not easily installable on CentOS
     ./squashfs-root/AppRun --no-appstream "${app_dir}" "dist/${app_name}-${app_version}-x86_64.AppImage"
 
@@ -67,7 +67,7 @@ create_package() {
     wget "https://github.com/AppImage/pkg2appimage/raw/master/excludelist"
     wget "https://github.com/AppImage/pkg2appimage/raw/master/appdir-lint.sh"
 
-    echo ">>> [AppImage] Checking the AppImage conformity"
+    echo ">>> [AppImage ${app_version}] Checking the AppImage conformity"
     bash appdir-lint.sh "${app_dir}"
     appstream-util validate-relax "${app_dir}/usr/share/metainfo/${app_id}.appdata.xml"
     echo "!!! Further checks needed, not usable on CentOS, keep it as example and regularly do it manually"
