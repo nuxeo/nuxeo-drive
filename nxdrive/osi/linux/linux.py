@@ -1,8 +1,12 @@
 # coding: utf-8
+import os
 import subprocess
 from logging import getLogger
+from pathlib import Path
 
 from .. import AbstractOSIntegration
+from ...constants import APP_NAME, NXDRIVE_SCHEME
+from ...utils import if_frozen
 
 __all__ = ("LinuxIntegration",)
 
@@ -41,3 +45,56 @@ class LinuxIntegration(AbstractOSIntegration):
 
         # xdg-open should be supported by recent Gnome, KDE, Xfce
         subprocess.Popen(["xdg-open", file_path])
+
+    @if_frozen
+    def register_protocol_handlers(self) -> None:
+        """Register the URL scheme listener using XDG.
+        This works for OSes that are XDG compliant, so most of distribution flavors.
+
+        Note that we recreate the .desktop file each time the application starts
+        to handle new versions (as the executable filename may change between
+        2 versions).
+        """
+
+        original_executable = os.getenv("APPIMAGE", "")  # Set by AppImage
+        if not original_executable:
+            log.info(
+                "Impossible to guess the original file location, "
+                "skipping custom protocol URL handler installation."
+            )
+
+        desktop_file = Path(
+            f"~/.local/share/applications/{NXDRIVE_SCHEME}.desktop"
+        ).expanduser()
+        desktop_content = f"""[Desktop Entry]
+Name={APP_NAME} Scheme Handler
+Exec="{original_executable}" %u
+StartupNotify=false
+Type=Application
+MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
+"""
+
+        try:
+            # Create the folder if it does not exist (maybe not ideal, at all)
+            if not desktop_file.parent.is_dir():
+                desktop_file.parent.mkdir(parents=True)
+
+            # Create the .desktop file
+            with open(desktop_file, "w") as f:
+                f.write(desktop_content)
+
+            # Register the application with the MIME type
+            subprocess.check_call(
+                [
+                    "xdg-mime",
+                    "default",
+                    f"{NXDRIVE_SCHEME}.desktop",
+                    f"x-scheme-handler/{NXDRIVE_SCHEME}",
+                ]
+            )
+        except Exception:
+            log.warning("Error while registering the URL scheme", exc_info=True)
+        else:
+            log.info(
+                f"Registered {original_executable!r} for URL scheme {NXDRIVE_SCHEME!r}"
+            )

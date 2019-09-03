@@ -27,7 +27,7 @@ from nuxeo.compat import quote
 from .extension import DarwinExtensionListener
 from .. import AbstractOSIntegration
 from ..extension import get_formatted_status
-from ...constants import APP_NAME, BUNDLE_IDENTIFIER
+from ...constants import APP_NAME, BUNDLE_IDENTIFIER, NXDRIVE_SCHEME
 from ...objects import DocPair
 from ...options import Options
 from ...translator import Translator
@@ -43,7 +43,6 @@ class DarwinIntegration(AbstractOSIntegration):
 
     nature = "macOS"
 
-    NXDRIVE_SCHEME = "nxdrive"
     NDRIVE_AGENT_TEMPLATE = (
         '<?xml version="1.0" encoding="UTF-8"?>'
         '<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN"'
@@ -172,10 +171,8 @@ class DarwinIntegration(AbstractOSIntegration):
                 " was launched from the Python OSX app bundle"
             )
             return
-        LSSetDefaultHandlerForURLScheme(self.NXDRIVE_SCHEME, bundle_id)
-        log.info(
-            f"Registered bundle {bundle_id!r} for URL scheme {self.NXDRIVE_SCHEME!r}"
-        )
+        LSSetDefaultHandlerForURLScheme(NXDRIVE_SCHEME, bundle_id)
+        log.info(f"Registered bundle {bundle_id!r} for URL scheme {NXDRIVE_SCHEME!r}")
 
     @staticmethod
     def is_partition_supported(folder: Path) -> bool:
