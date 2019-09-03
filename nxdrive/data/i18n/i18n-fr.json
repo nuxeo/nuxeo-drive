@@ -13,7 +13,6 @@
     "AUTOSTART": "Lancer au démarrage de l'ordinateur",
     "AUTOUPDATE": "Mise à jour automatique de Drive",
     "AUTOUPDATE_DOWNGRADE": "Mise à jour %1 requise. La synchronisation ne pourra pas démarrer.",
-    "AUTOUPDATE_MANUAL": "Veuillez télécharger et installer manuellement à partir du site web de mises à jour.",
     "AUTOUPDATE_UPGRADE": "Une nouvelle version %1 est disponible.",
     "BROWSE_DIALOG_CAPTION": "Choisir un dossier",
     "BUG_REPORT": "Signaler un problème",

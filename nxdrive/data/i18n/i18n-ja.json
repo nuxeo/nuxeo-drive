@@ -13,7 +13,6 @@
     "AUTOSTART": "ブート時に起動",
     "AUTOUPDATE": "ドライブを自動的に更新",
     "AUTOUPDATE_DOWNGRADE": "%1へのダウングレードが必要です",
-    "AUTOUPDATE_MANUAL": "更新用ウェブサイトから手動でダウンロードしてインストールしてください。",
     "AUTOUPDATE_UPGRADE": "新バージョン%1が利用できます",
     "BROWSE_DIALOG_CAPTION": "Nuxeo Driveフォルダの場所を選択",
     "BUG_REPORT": "バグをレポート",

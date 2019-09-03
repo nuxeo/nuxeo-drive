@@ -40,9 +40,7 @@ def updater(*args: Any, **kwargs: Any) -> "Updater":
         elif operating_system == "windows":
             from .windows import Updater  # type: ignore
         else:
-            from .base import BaseUpdater as Updater  # type: ignore
-
-            setattr(Updater, "_can_update", False)
+            from .linux import Updater  # type: ignore
 
     return Updater(*args, **kwargs)
 

@@ -536,7 +536,7 @@ class Manager(QObject):
             (
                 parts.scheme,
                 parts.netloc,
-                f"{parts.path}/{Options.browser_startup_page}",
+                f"{parts.path.rstrip('/')}/{Options.browser_startup_page}",
                 parts.query,
                 parts.fragment,
             )

@@ -51,6 +51,8 @@ create_package() {
     ln -srv "${app_dir}/usr/share/applications/${app_id}.desktop" "${app_dir}/${app_id}.desktop"
 
     echo ">>> [AppImage] Downloading the AppImage tool"
+    [ -f "appimagetool-x86_64.AppImage" ] && rm -fv "appimagetool-x86_64.AppImage"
+    [ -d "squashfs-root" ] && rm -frv "squashfs-root"
     wget "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage"
     chmod -v a+x "appimagetool-x86_64.AppImage"
     ./appimagetool-x86_64.AppImage --appimage-extract
@@ -60,6 +62,8 @@ create_package() {
     ./squashfs-root/AppRun --no-appstream "${app_dir}" "dist/${app_name}-${app_version}-x86_64.AppImage"
 
     echo ">>> [AppImage] Downloading AppImage conformity tools"
+    [ -f "excludelist" ] && rm -fv "excludelist"
+    [ -f "appdir-lint.sh" ] && rm -fv "appdir-lint.sh"
     wget "https://github.com/AppImage/pkg2appimage/raw/master/excludelist"
     wget "https://github.com/AppImage/pkg2appimage/raw/master/appdir-lint.sh"
 
@@ -69,6 +73,12 @@ create_package() {
     echo "!!! Further checks needed, not usable on CentOS, keep it as example and regularly do it manually"
     echo "appstreamcli validate '${app_dir}/usr/share/metainfo/${app_id}.appdata.xml'"
     echo "appstreamcli validate-tree '${app_dir}'"
+
+    echo ">>> [AppImage] Clean-up"
+    [ -f "appimagetool-x86_64.AppImage" ] && rm -fv "appimagetool-x86_64.AppImage"
+    [ -d "squashfs-root" ] && rm -frv "squashfs-root"
+    [ -f "excludelist" ] && rm -fv "excludelist"
+    [ -f "appdir-lint.sh" ] && rm -fv "appdir-lint.sh"
 }
 
 main "$@"

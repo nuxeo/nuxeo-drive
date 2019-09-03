@@ -13,7 +13,6 @@
     "AUTOSTART": "Avvia al riavvio del sistema",
     "AUTOUPDATE": "Aggiorna Drive automaticamente",
     "AUTOUPDATE_DOWNGRADE": "Versione non compatibile con il server, è necessario eseguire un downgrade alla versione %1. La sincronizzazione inizierà solo dopo il downgrade.",
-    "AUTOUPDATE_MANUAL": "Scaricare e installare manualmente dal sito Web degli aggiornamenti.",
     "AUTOUPDATE_UPGRADE": "È disponibile la nuova versione %1.",
     "BROWSE_DIALOG_CAPTION": "Seleziona posizione cartella Nuxeo Drive",
     "BUG_REPORT": "Segnala un bug",

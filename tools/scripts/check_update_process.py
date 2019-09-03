@@ -31,17 +31,18 @@ import time
 from contextlib import suppress
 from os.path import expanduser
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 
-EXT = {"darwin": "dmg", "win32": "exe"}[sys.platform]
+EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
 
 
 def create_versions(dst, version):
     """ Create the versions.yml file. """
 
-    name = f"nuxeo-drive-{version}.{EXT}"
+    ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
+    name = f"nuxeo-drive-{version}{ext}"
     path = os.path.join(dst, "alpha", name)
     with open(path, "rb") as installer:
         checksum = hashlib.sha256(installer.read()).hexdigest()
@@ -64,6 +65,7 @@ def create_versions(dst, version):
     type: alpha
     checksum:
         algo: sha256
+        appimage: {checksum}
         dmg: {checksum}
         exe: {checksum}
     """
@@ -76,9 +78,11 @@ def gen_exe():
 
     cmd = []
 
-    if EXT == "dmg":
+    if EXT == "appimage":
+        cmd = "sh tools/linux/deploy_jenkins_slave.sh --build"
+    elif EXT == "dmg":
         cmd = "sh tools/osx/deploy_jenkins_slave.sh --build"
-    elif EXT == "exe":
+    else:
         cmd = (
             "powershell -ExecutionPolicy Unrestricted"
             ' . ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
@@ -91,7 +95,10 @@ def gen_exe():
 def install_drive(installer):
     """ Install Drive onto the system to simulate a real case. """
 
-    if EXT == "dmg":
+    if EXT == "appimage":
+        # Nothing to install on GNU/Linux
+        pass
+    elif EXT == "dmg":
         # Simulate what nxdrive.updater.darwin.intall() does
         cmd = ["hdiutil", "mount", installer]
         print(">>> Command:", cmd)
@@ -109,13 +116,13 @@ def install_drive(installer):
         cmd = ["hdiutil", "unmount", mount_dir]
         print(">>> Command:", cmd)
         subprocess.check_call(cmd)
-    elif EXT == "exe":
+    else:
         cmd = [installer, "/verysilent"]
         print(">>> Command:", cmd)
         subprocess.check_call(cmd)
 
 
-def launch_drive():
+def launch_drive(executable):
     """ Launch Drive and wait for auto-update. """
 
     # Be patient, especially on Windows ...
@@ -123,15 +130,19 @@ def launch_drive():
 
     cmd = []
 
-    if EXT == "dmg":
+    if EXT == "appimage":
+        cmd = [executable]
+    elif EXT == "dmg":
         cmd = ["open", "/Applications/Nuxeo Drive.app", "--args"]
-    elif EXT == "exe":
+    else:
         cmd = [expanduser("~\\AppData\\Local\\Nuxeo Drive\\ndrive.exe")]
 
     cmd += [
         "--log-level-console=DEBUG",
         "--update-site-url=http://localhost:8000",
+        "--update-check-delay=12",
         "--channel=alpha",
+        "--ssl-no-verify",  # Needed until NXDRIVE-1747
     ]
     print(">>> Command:", cmd)
     return subprocess.check_output(cmd).decode("utf-8").strip()
@@ -157,12 +168,15 @@ def tests():
 def uninstall_drive():
     """ Remove Drive from the computer. """
 
+    if EXT == "appimage":
+        # Nothing to uninstall on GNU/Linux"
+        pass
     if EXT == "dmg":
         path = "/Applications/Nuxeo Drive.app"
         print(">>> Deleting", path)
         with suppress(OSError):
             shutil.rmtree(path)
-    elif EXT == "exe":
+    else:
         cmd = [
             expanduser("~\\AppData\\Local\\Nuxeo Drive\\unins000.exe"),
             "/verysilent",
@@ -266,7 +280,8 @@ def main():
     gen_exe()
 
     # Move the file to the webserver
-    file = f"dist/nuxeo-drive-{version}.{EXT}"
+    ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
+    file = f"dist/nuxeo-drive-{version}{ext}"
     dst_file = os.path.join(path, os.path.basename(file))
     print(">>> Moving", file, "->", path)
     shutil.move(file, dst_file)
@@ -287,7 +302,8 @@ def main():
         gen_exe()
 
         # Move the file to test to the webserver
-        src_file = f"dist/nuxeo-drive-{previous}.{EXT}"
+        ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
+        src_file = f"dist/nuxeo-drive-{previous}{ext}"
         installer = os.path.basename(src_file)
         dst_file = os.path.join(path, installer)
         print(">>> Moving", src_file, "->", path)
@@ -301,7 +317,7 @@ def main():
 
         # Launch Drive in its own thread
         print(">>> Testing upgrade", previous, "->", version)
-        threading.Thread(target=launch_drive).start()
+        threading.Thread(target=launch_drive, args=(dst_file,)).start()
 
         # Start the web server
         webserver(root)
