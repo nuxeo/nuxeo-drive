@@ -119,7 +119,7 @@ class BaseUpdater(PollWorker):
         try:
             self._install(version, self._download(version))
         except OSError as exc:
-            self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE)
+            self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, version=version)
             if exc.errno in NO_SPACE_ERRORS:
                 log.warning("Update failed, disk space needed", exc_info=True)
                 self.noSpaceLeftOnDevice.emit()
@@ -128,7 +128,7 @@ class BaseUpdater(PollWorker):
         except CONNECTION_ERROR:
             log.warning("Error during update request", exc_info=True)
         except Exception:
-            self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE)
+            self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, version=version)
             log.exception("Update failed")
 
     #
@@ -244,7 +244,7 @@ class BaseUpdater(PollWorker):
             }
             if versions:
                 version = max(versions.keys())
-                self._set_status(UPDATE_STATUS_INCOMPATIBLE_SERVER, version)
+                self._set_status(UPDATE_STATUS_INCOMPATIBLE_SERVER, version=version)
         self.serverIncompatible.emit()
 
     def _handle_status(self) -> None:
