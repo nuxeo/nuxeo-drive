@@ -6,6 +6,8 @@ from typing import Any
 
 from PyQt5.QtCore import QCoreApplication, QTimer
 
+from .constants import COMPANY
+
 __all__ = ("ConsoleApplication",)
 
 log = getLogger(__name__)
@@ -15,6 +17,9 @@ class ConsoleApplication(QCoreApplication):
     """Console mode Nuxeo Drive application"""
 
     def __init__(self, manager, *args: Any):
+        # Little fix here! See Application.__init__() for details.
+        QCoreApplication.setOrganizationName(COMPANY)
+
         super().__init__(list(*args))
 
         # Little trick here! See Application.__init__() for details.
