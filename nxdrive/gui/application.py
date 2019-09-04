@@ -89,6 +89,20 @@ class Application(QApplication):
     tray_icon: DriveSystrayIcon
 
     def __init__(self, manager: "Manager", *args: Any) -> None:
+        # This 1st line is needed to fix:
+        #   QML Settings: Failed to initialize QSettings instance. Status code is: 1
+        #   QML Settings: The following application identifiers have not been set:
+        #       QVector("organizationName", "organizationDomain")
+        #
+        # This affects the locations where Qt WebEngine stores persistent and cached data
+        # (even if we do not use it though).
+        #
+        # See https://bugreports.qt.io/browse/QTBUG-71669
+        # and https://codereview.qt-project.org/c/qt/qtwebengine/+/244966
+        #
+        # The bug happened with PyQt 5.13.0 on Windows.
+        QApplication.setOrganizationName(COMPANY)
+
         super().__init__(list(*args))
         self.manager = manager
 
