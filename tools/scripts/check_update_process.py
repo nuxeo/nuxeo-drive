@@ -142,7 +142,6 @@ def launch_drive(executable):
         "--update-site-url=http://localhost:8000",
         "--update-check-delay=12",
         "--channel=alpha",
-        "--ssl-no-verify",  # Needed until NXDRIVE-1747
     ]
     print(">>> Command:", cmd)
     return subprocess.check_output(cmd).decode("utf-8").strip()
