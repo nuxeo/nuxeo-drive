@@ -474,6 +474,9 @@ class Engine(QObject):
             if doc_pair:
                 self.queue_manager.push(doc_pair)
 
+        # Update the systray icon and syncing count in the systray, if there are any resumed transfers
+        self._check_sync_start()
+
     def suspend(self) -> None:
         if self._pause:
             return
