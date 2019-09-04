@@ -210,10 +210,11 @@ class TransferModel(QAbstractListModel):
 
         percent = int(min(100, progress * 100 / (size or 1)))
         speed = row.get("speed", 0)
+        txt = f"{psize(progress)} / {psize(size)} ({percent}%)"
         if speed:
-            return f"{psize(progress)} / {psize(size)} [{percent}% @ {psize(speed)}/s]"
-        else:
-            return f"{psize(progress)} / {psize(size)} [{percent}%]"
+            icon = "↓" if row["transfer_type"] == "download" else "↑"
+            txt += f" {icon} {psize(speed)}/s"
+        return txt
 
     def data(self, index: QModelIndex, role: int = NAME) -> Any:
         row = self.transfers[index.row()]
@@ -240,6 +241,7 @@ class TransferModel(QAbstractListModel):
             idx = self.createIndex(i, 0)
 
             if action["action_type"] in ("Linking", "Verification"):
+                # Disable the speed to not show the speed at the final step
                 item["speed"] = 0
             else:
                 item["speed"] = action["speed"]
