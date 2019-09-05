@@ -24,7 +24,7 @@ The only one viable at the time was [PyUpdater](http://www.pyupdater.org/). Howe
 We wrote our own auto-update framework knowing:
 
 - The code freeze is done with PyInstaller;
-- The GNU/Linux installer uses AppImageTool commands to generate a `.AppImage`;
+- The GNU/Linux binary uses AppImageTool commands to generate a `.AppImage`;
 - The macOS installer uses OS-specific commands to generate a `.dmg`;
 - The Windows installer uses the Inno Setup Compiler that outputs a single `.exe`.
 
@@ -109,7 +109,7 @@ Each entry describes a version with:
 - `type`: the release type, either an `alpha`, a `beta` or a `release`. **Mandatory**.
 - `checksum`: list of checksums for related files. **Mandatory**.
   - `algo`: the algorithm used, it must be one of the [hashlib](https://docs.python.org/2/library/hashlib.html) module (will use SHA256 by default).
-  - `appimage`: the checksum of the file `.AppImage`. **Mandatory** if you provide a GNU/Linux installer.
+  - `appimage`: the checksum of the file `.AppImage`. **Mandatory** if you provide a GNU/Linux binary.
   - `dmg`: the checksum of the file `.dmg`. **Mandatory** if you provide a macOS installer.
   - `exe`: the checksum of the file `.exe`. **Mandatory** if you provide a Windows installer.
 - `min`: the minimum Nuxeo version required for this release to work with. **Mandatory**.

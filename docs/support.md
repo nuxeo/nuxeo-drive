@@ -27,6 +27,9 @@ History:
 
 Officially supported platform vendors and versions:
 
+- GNU/Linux (most of distributions supported by AppImage), 64 bits
+  - Debian GNU/Linux >= 10
+  - Ubuntu >= 16.04
 - macOS >= 10.11, 64 bits
 - Windows 7, both 32 and 64 bits
 - Windows 8, both 32 and 64 bits
@@ -35,18 +38,11 @@ Officially supported platform vendors and versions:
 
 History:
 
+- `2019-xx-xx` (v4.2.0): added support for GNU/Linux
 - `2018-06-11` (v3.1.1): dropped support for macOS 10.10
 - `2018-02-23` (v3.0.5): dropped support for macOS 10.4 - 10.9
 - `2017-04-11` (v2.4.0): dropped support for Windows Vista
 - `2014-04-08` (v1.3.0806): dropped support for Windows XP
-
-### GNU/Linux
-
-GNU/Linux support is a bit more complicated, but our developers are using Debian 8+ and Ubuntu 16.04+ on a daily basis.
-
-You can find out how we are doing it by reading [deployment.md](https://github.com/nuxeo/nuxeo-drive/blob/master/docs/deployment.md) and the related Shell script.
-
-_Note_: this is a temporary situation, official support with packages is on the way.
 
 ### Known Browsers Limitations
 

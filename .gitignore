@@ -43,3 +43,4 @@ xcuserdata
 yacctab.py
 tools/jenkins/junit/xml
 *.AppImage
+squashfs-root

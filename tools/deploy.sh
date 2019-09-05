@@ -12,6 +12,7 @@ release() {
     local drive_version
     local release_url
     local path
+    local final_appimage
     local final_dmg
     local final_exe
 
@@ -24,6 +25,7 @@ release() {
     fi
 
     path="/var/www/community.nuxeo.com/static/drive-updates"
+    final_appimage="${path}/release/nuxeo-drive-${drive_version}-x86_64.AppImage"
     final_dmg="${path}/release/nuxeo-drive-${drive_version}.dmg"
     final_exe="${path}/release/nuxeo-drive-${drive_version}.exe"
 
@@ -33,6 +35,7 @@ release() {
 mv -vf ${path}/beta/*${drive_version}* ${path}/release/
 
 # Create symbolic links of the latest packages
+ln -sfv ${final_appimage} ${path}/nuxeo-drive-x86_64.AppImage
 ln -sfv ${final_dmg} ${path}/nuxeo-drive.dmg
 ln -sfv ${final_exe} ${path}/nuxeo-drive.exe
 EOF

@@ -6,6 +6,8 @@
 - [contextual_menu.md](contextual_menu.md): How to install contextual menu items.
 - [deployment.md](deployment.md): How to setup a complete development environment for Drive.
 - [icon_overlay.md](icon_overlay.md): How to install icon overlay.
+- [gnu_linux.md](gnu_linux.md): GNU/Linux manual usage.
+- [gnu_linux_qa.md](gnu_linux_qa.md): GNU/Linux troubleshooting.
 - [installer.md](installer.md): How we package Nuxeo Drive and installers OS-specific information.
 - [manual_init.md](manual_init.md): How to manually initialize a Nuxeo Drive instance.
 - [support.md](support.md): List of supported OS versions, Python version, limitations and translations. Useful for the **support**.

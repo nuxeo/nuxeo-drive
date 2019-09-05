@@ -14,7 +14,7 @@ import os.path
 
 import yaml
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 __all__ = ("create", "delete", "merge", "promote")
 
 
@@ -59,8 +59,9 @@ def create(version, category):
     """ Create a version file with default values. """
 
     # Compute installers checksum
-    checksum_dmg = checksum_exe = checksum_exe_admin = None
+    checksum_appimage = checksum_dmg = checksum_exe = checksum_exe_admin = None
     paths = (
+        "dist/nuxeo-drive-{}-x86_64.AppImage",
         "dist/nuxeo-drive-{}.dmg",
         "dist/nuxeo-drive-{}.exe",
         "dist/nuxeo-drive-{}-admin.exe",
@@ -73,7 +74,9 @@ def create(version, category):
             path.format(version), "rb"  # Set TESTING=1 envar to skip the error
         ) as installer:
             checksum = hashlib.sha256(installer.read()).hexdigest()
-            if path.endswith("dmg"):
+            if path.endswith("AppImage"):
+                checksum_appimage = checksum
+            elif path.endswith("dmg"):
                 checksum_dmg = checksum
             elif "admin" in path:
                 checksum_exe_admin = checksum
@@ -100,11 +103,17 @@ def create(version, category):
     type: {}
     checksum:
         algo: sha256
+        appimage: {}
         dmg: {}
         exe: {}
         exe-admin: {}
 """.format(
-        version, category, checksum_dmg, checksum_exe, checksum_exe_admin
+        version,
+        category,
+        checksum_appimage,
+        checksum_dmg,
+        checksum_exe,
+        checksum_exe_admin,
     )
     with open(output, "w") as versions:
         versions.write(yml)
