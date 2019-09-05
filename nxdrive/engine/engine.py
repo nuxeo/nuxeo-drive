@@ -981,7 +981,7 @@ class Engine(QObject):
         elif WINDOWS:
             icon = find_icon("folder_windows.ico")
         else:
-            # No implementation on GNU/Linux
+            # To be implementation with https://jira.nuxeo.com/browse/NXDRIVE-1831
             return
 
         if not icon:

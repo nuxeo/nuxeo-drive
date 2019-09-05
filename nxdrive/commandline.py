@@ -12,7 +12,7 @@ from logging import getLogger
 from typing import List, TYPE_CHECKING, Union
 
 from . import __version__
-from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL
+from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX
 from .logging_config import configure
 from .options import Options
 from .osi import AbstractOSIntegration
@@ -494,9 +494,11 @@ class CliHandler:
             log.info(f"SSL support: {has_ssl_support!r}")
             if not has_ssl_support:
                 # If the option --ssl-no-verify is True, then we do not care about SSL support
-                if Options.is_frozen and not Options.ssl_no_verify:
+                # We also do not block GNU/Linux users as it may not work properly (Ubutun 14.04 for instance)
+                if Options.is_frozen and not Options.ssl_no_verify and not LINUX:
                     raise RuntimeError("No SSL support, packaging must have failed.")
                 else:
+                    log.warning("No SSL support! HTTPS validation will be skipped.")
                     options.ca_bundle = None
                     options.ssl_no_verify = True
 

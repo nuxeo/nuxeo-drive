@@ -20,18 +20,16 @@ properties([
     ]]
 ])
 
-// Jenkins slaves we will build on
-//
-//   Until NXDRIVE-351 is done, the SLAVE slave is not needed.
-//
+// Jenkins agents we will build on
 //   We are using TWANG because it is the oldest macOS version we support (10.11).
 //   The macOS installer needs to be built on that version to support 10.11+ because
 //   PyInstaller is not retro-compatible: if we would build on 10.13, the minimum
 //   supported macOS version would become 10.13.
 //
-slaves = ['TWANG', 'WINSLAVE']
+// agents = ['SLAVEPRIV', 'TWANG', 'WINSLAVE'] TODO fix SLAVEPRIV
+agents = ['TWANG', 'WINSLAVE']
 labels = [
-    'SLAVE': 'GNU/Linux',
+    'SLAVEPRIV': 'GNU/Linux',
     'TWANG': 'macOS',
     'WINSLAVE': 'Windows'
 ]
@@ -51,12 +49,12 @@ def checkout_custom() {
         userRemoteConfigs: [[url: repos_git]]])
 }
 
-for (x in slaves) {
-    def slave = x
-    def osi = labels.get(slave)
+for (x in agents) {
+    def agent = x
+    def osi = labels.get(agent)
 
-    builders[slave] = {
-        node(slave) {
+    builders[agent] = {
+        node(agent) {
             withEnv(["WORKSPACE=${pwd()}"]) {
                 if (params.CLEAN_WORKSPACE) {
                     dir('deploy-dir') {
@@ -76,20 +74,6 @@ for (x in slaves) {
                     }
                 }
 
-                stage(osi + ' Extension') {
-                    // Trigger the Drive extensions job to build extensions and have artifacts
-                    if (osi == 'macOS') {
-                        build job: 'Drive-extensions', parameters: [
-                            [$class: 'StringParameterValue',
-                                name: 'BRANCH_NAME',
-                                value: params.BRANCH_NAME]]
-
-                        dir('sources') {
-                            step([$class: 'CopyArtifact', filter: 'extension.zip', projectName: 'Drive-extensions'])
-                        }
-                    }
-                }
-
                 stage(osi + ' Build') {
                     dir('sources') {
                         dir('build') {
@@ -100,7 +84,20 @@ for (x in slaves) {
                         }
 
                         try {
-                            if (osi == 'macOS') {
+                            if (osi == 'GNU/Linux') {
+                                docker.withRegistry('https://dockerpriv.nuxeo.com/') {
+                                    // XXX_PYTHON
+                                    sh "docker run --rm -v ${env.WORKSPACE}/sources/dist:/opt/dist -e 'BRANCH_NAME=${env.BRANCH_NAME}' nuxeo-drive-build:py-3.7.4"
+                                }
+                                archiveArtifacts artifacts: 'dist/*.AppImage', fingerprint: true
+                            } else if (osi == 'macOS') {
+                                // Trigger the Drive extensions job to build extensions and have artifacts
+                                build job: 'Drive-extensions', parameters: [
+                                    [$class: 'StringParameterValue',
+                                        name: 'BRANCH_NAME',
+                                        value: params.BRANCH_NAME]]
+                                step([$class: 'CopyArtifact', filter: 'extension.zip', projectName: 'Drive-extensions'])
+
                                 def env_vars = [
                                     'SIGNING_ID=NUXEO CORP',
                                     "LOGIN_KEYCHAIN_PATH=${env.HOME}/Library/Keychains/login.keychain",
@@ -139,7 +136,5 @@ for (x in slaves) {
 }
 
 timeout(120) {
-    timestamps {
-        parallel builders
-    }
+    parallel builders
 }

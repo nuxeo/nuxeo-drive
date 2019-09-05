@@ -150,7 +150,7 @@ class Manager(QObject):
             # Store the old version to be able to show release notes
             self.old_version = self.get_config("client_version")
             if self.old_version != self.version:
-                self.set_config("client_version", self.version)
+                self.dao.update_config("client_version", self.version)
 
             # Add auto-lock on edit
             if self.dao.get_config("direct_edit_auto_lock") is None:

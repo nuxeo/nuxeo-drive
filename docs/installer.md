@@ -25,7 +25,7 @@ We decided to use [PyInstaller](http://www.pyinstaller.org/) to freeze the code:
 ### Installers
 
 Currently, only macOS and Windows are supported.
-There is no built-in support for installer on GNU/Linux.
+There is no built-in support for installer on GNU/Linux, only a universal binary (AppImage file).
 
 #### macOS
 

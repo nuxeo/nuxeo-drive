@@ -62,6 +62,7 @@ class LinuxIntegration(AbstractOSIntegration):
                 "Impossible to guess the original file location, "
                 "skipping custom protocol URL handler installation."
             )
+            return
 
         desktop_file = Path(
             f"~/.local/share/applications/{NXDRIVE_SCHEME}.desktop"

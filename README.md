@@ -8,84 +8,36 @@ This is an ongoing development project for desktop synchronization of local fold
 
 [nuxeo-drive-settings-preview]: https://raw.githubusercontent.com/nuxeo/nuxeo-drive/master/preview.png
 
-Watch this [screencast](https://embedwistia-a.akamaihd.net/deliveries/db284a19e500781cdca15ecb0e5901d62154f084/file.mp4) to get a 6 min overview of this project.
+See the [Nuxeo Drive docs](https://doc.nuxeo.com/client-apps/nuxeo-drive/) for complete up-to-date documentation.
 
-See [USERDOC/Nuxeo Drive](https://doc.nuxeo.com/x/04HQ) for complete up-to-date documentation.
+---
 
-Note: this documentation follows the Drive version of the master branch, which could evolve rapidly. To see the documentation of a given Drive release, use this kind of link:
+Note: this documentation follows the Nuxeo Drive version of the master branch, which evolve quickly.
+To see the documentation of a given Nuxeo Drive release, use this kind of link:
 
 ```shell
 # For Drive 2.1.113 go to:
 https://github.com/nuxeo/nuxeo-drive/tree/release-2.1.113
 ```
 
-## License
+---
 
-The source code of Nuxeo Drive is available under the GNU LGPL v2.1 described in [LICENSE.txt](LICENSE.txt).
+## Installation
 
-## Install
+Installing Nuxeo Drive requires two components:
 
-Installing Nuxeo Drive requires two components: the `nuxeo-drive` server addon for the Nuxeo Platform and a desktop program on the user's computer.
+1. the `nuxeo-drive` server addon for the Nuxeo Platform;
+2. and a desktop client on the user's computer.
 
-## Clients
+### Desktop Clients
 
-### macOS and Windows Desktop Clients
+The GNU/Linux|macOS|Windows desktop client can be downloaded from the **Home** > **Nuxeo Drive** tab or from the [update website](https://community.nuxeo.com/static/drive-updates/).
 
-Once the Marketplace package is installed, the macOS/Windows desktop client package can be downloaded from the **Home** > **Nuxeo Drive** tab or from the [update website](https://community.nuxeo.com/static/drive-updates/). Administrator rights are not required.
+The latest official release can always be found at this static URL:
 
-You can also fetch the latest development version from the [our Continous Integration server](https://qa.nuxeo.org/jenkins/view/Drive/job/Drive/job/Drive-packages/).
-
-All the necessary dependencies (such as the Python interpreter and the Qt / PyQt for the client side user interface) are included and will not impact any alternative version you may have already installed on your computer.
-
-### Debian based Distributions (and Other GNU/Linux Variants) Client
-
-There is currently no universal package to download. In the meantime you can install it from the source code.
-
-*Has been reported to work on* Ubuntu >= 12.04.
-
-The easiest and safest way to build Drive is to follow the same steps as we do on [Jenkins](#jenkins).
-
-Note that the `xclip` tool is needed for the clipboard copy/paste to work.
-
-#### xattr
-
-First note that Nuxeo Drive uses [Extended file attributes](https://en.wikipedia.org/wiki/Extended_file_attributes) through the [xattr](https://pypi.python.org/pypi/xattr/) Python wrapper.
-
-On FreeBSD and macOS, xattrs are enabled in the default kernel.
-
-On GNU/Linux, depending on the distribution, you may need a special mount option (`user_xattr`) to enable them for a given file system, e.g.:
-
-```shell
-sudo mount -o remount,user_xattr /dev/sda3
-```
-
-#### Python
-
-Nuxeo Drive is officially supported on **Python 3.6+**.
-
-#### Install Nuxeo Drive
-
-Install Nuxeo Drive requirements and Nuxeo Drive itself.
-These are common installation actions, not depending on the package manager.
-From the folder containing the Nuxeo Drive source code (this repository):
-
-```shell
-git checkout "release-4.0.0"  # Or whatever release you want, starting with 4.0.0 and newer
-
-export WORKSPACE="$(pwd)"
-./tools/linux/deploy_jenkins_slave.sh --install
-```
-
-Then, when you want to launch Drive, simply type:
-
-```shell
-export WORKSPACE="$(pwd)"
-./tools/linux/deploy_jenkins_slave.sh --start
-```
-
-### Jenkins
-
-To easily manage all dependencies and packaging steps, we created several Jenkinsfiles you can reuse. They are located in the **tools/jenikins** folder. You may also want to read the [docs/deployment.md](https://github.com/nuxeo/nuxeo-drive/blob/master/docs/deployment.md).
+- [GNU/Linux](https://community.nuxeo.com/static/drive-updates/nuxeo-drive-x86_64.AppImage)
+- [macOS](https://community.nuxeo.com/static/drive-updates/nuxeo-drive.dmg)
+- [Windows](https://community.nuxeo.com/static/drive-updates/nuxeo-drive.exe)
 
 ## Configuration and Usage
 
@@ -184,6 +136,10 @@ The [sync-nuxeo-drive-crowdin](https://qa.nuxeo.org/jenkins/job/Private/job/Crow
     * GNU/Linux: `/home/username/.nuxeo-drive/logs`
     * macOS: `/Users/username/.nuxeo-drive/logs`
     * Windows: `C:\Users\username\.nuxeo-drive\logs`
+
+## License
+
+The source code of Nuxeo Drive is available under the GNU LGPL v2.1 described in [LICENSE.txt](LICENSE.txt).
 
 ## Roadmap
 

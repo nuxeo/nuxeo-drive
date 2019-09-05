@@ -2,6 +2,8 @@
 
 ## Nautilus
 
+*Not up-to-date*
+
 Install Nautilus required addon:
 
     apt-get install python-nautilus

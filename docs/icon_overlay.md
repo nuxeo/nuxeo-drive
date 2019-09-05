@@ -2,6 +2,8 @@
 
 ## GNU/Linux
 
+*Not up-to-date*
+
 ### Nautilus
 
 Install required Nautilus addons:

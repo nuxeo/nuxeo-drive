@@ -23,7 +23,6 @@ cancel() {
     echo ">>> [${release_type} ${drive_version}] Removing the branch"
     git branch -D "wip-alpha-${release_type}.${drive_version}" || true
     git push --delete origin "wip-alpha-${release_type}.${drive_version}" || true
-
 }
 
 changelog() {
@@ -39,6 +38,7 @@ $(python tools/changelog.py --format=md)
 
 Download links:
 
+- [GNU/Linux binary](https://community.nuxeo.com/static/drive-updates/beta/nuxeo-drive-${drive_version}-x86_64.AppImage)
 - [macOS installer](https://community.nuxeo.com/static/drive-updates/beta/nuxeo-drive-${drive_version}.dmg)
 - [Windows installer](https://community.nuxeo.com/static/drive-updates/beta/nuxeo-drive-${drive_version}.exe)
 EOF

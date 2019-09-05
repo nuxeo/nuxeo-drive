@@ -12,20 +12,18 @@ properties([
 ])
 
 
-timestamps {
-    node('IT') {
-        def credential_id = '4691426b-aa51-428b-901d-4e851ee37b01'
+node('IT') {
+    def credential_id = '4691426b-aa51-428b-901d-4e851ee37b01'
 
-        withEnv(["WORKSPACE=${pwd()}"]) {
-            stage('Checkout') {
-                deleteDir()
-                git credentialsId: credential_id, url: 'git@github.com:nuxeo/nuxeo-drive.git', branch: 'master'
-            }
+    withEnv(["WORKSPACE=${pwd()}"]) {
+        stage('Checkout') {
+            deleteDir()
+            git credentialsId: credential_id, url: 'git@github.com:nuxeo/nuxeo-drive.git', branch: 'master'
+        }
 
-            stage('Clean-up') {
-                sshagent([credential_id]) {
-                    sh "tools/cleanup.sh"
-                }
+        stage('Clean-up') {
+            sshagent([credential_id]) {
+                sh "tools/cleanup.sh"
             }
         }
     }
