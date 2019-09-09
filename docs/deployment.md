@@ -19,6 +19,7 @@ Possible `ARG`:
     --build: freeze the client into self-hosted binary package
     --build-ext: build the FinderSync extension (macOS only)
     --install: install a complete development environment
+    --install-python: install only Python
     --install-release: install a complete environment for a release (without tests requirements)
     --start: start Nuxeo Drive
     --tests: launch the tests suite
