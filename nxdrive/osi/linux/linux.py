@@ -67,17 +67,18 @@ class LinuxIntegration(AbstractOSIntegration):
             f"~/.local/share/applications/{NXDRIVE_SCHEME}.desktop"
         ).expanduser()
         desktop_content = f"""[Desktop Entry]
-Name={APP_NAME} Scheme Handler
-Exec="{original_executable}" %u
-StartupNotify=false
 Type=Application
+Name={APP_NAME}
+NoDisplay=true
+StartupNotify=false
+Terminal=false
+Exec="{original_executable}" %u
 MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
 """
 
         try:
-            # Create the folder if it does not exist (maybe not ideal, at all)
-            if not desktop_file.parent.is_dir():
-                desktop_file.parent.mkdir(parents=True)
+            # Create the folder if it does not exist
+            desktop_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Create the .desktop file
             with open(desktop_file, "w") as f:
