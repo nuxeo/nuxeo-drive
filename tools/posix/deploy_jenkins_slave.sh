@@ -7,6 +7,8 @@
 #     --build: build the package
 #     --build-ext: build the FinderSync extension (macOS only)
 #     --install: install all dependencies
+#     --install-python: install only Python
+#     --install-release: install all but test dependencies
 #     --start: start Nuxeo Drive
 #     --tests: launch the tests suite
 #
@@ -65,7 +67,7 @@ build_installer() {
         exit 0
     fi
 
-    version="$(${PYTHON} -m nxdrive --version)"
+    version="$(${PYTHON} tools/changelog.py --drive-version)"
     cd dist
     zip -9 -r "nuxeo-drive-${OSI}-${version}.zip" "ndrive"
     cd -
@@ -363,7 +365,7 @@ main() {
                 build_extension
                 exit 0
             ;;
-            "--install")
+            "--install" | "--install-python")
                 export INSTALL_ARG="1"
             ;;
             "--install-release")
