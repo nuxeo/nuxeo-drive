@@ -120,6 +120,8 @@ class FileAction(Action):
         self.chunk_transfer_end_time_ns = 0.0  # nanoseconds
         # The transfer speed of the latest (down|up)loaded chunk
         self.last_chunk_transfer_speed = 0.0
+        # Number of chunks transferred since the last speed computation
+        self.transferred_chunks = 0
 
         self._connect_reporter(reporter)
         self.started.emit(self)
