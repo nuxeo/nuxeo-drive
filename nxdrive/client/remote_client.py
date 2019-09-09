@@ -3,7 +3,6 @@ import os
 import socket
 from contextlib import suppress
 from logging import getLogger
-from os.path import isfile
 from pathlib import Path
 from time import monotonic_ns
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
@@ -274,10 +273,6 @@ class Remote(Nuxeo):
 
         # Retrieve the eventual ongoing download
         download = self.dao.get_download(path=file_path)
-
-        if download and download.tmpname and not isfile(download.tmpname):
-            # Reset if the TMP file does not exist anymore
-            download = None
 
         if not download:
             # Add a new download entry in the database
