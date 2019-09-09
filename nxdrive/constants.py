@@ -19,7 +19,7 @@ COMPANY = "Nuxeo"
 
 TIMEOUT = 20  # Seconds
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30  # Seconds
-FILE_BUFFER_SIZE = 1024 ** 2
+FILE_BUFFER_SIZE = 1024 ** 2  # 1 MiB
 MAX_LOG_DISPLAYED = 50000  # Lines
 BATCH_SIZE = 100  # Scroll descendants batch size
 

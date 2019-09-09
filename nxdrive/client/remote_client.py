@@ -155,15 +155,20 @@ class Remote(Nuxeo):
             return
 
         # Handle transfer speed
+        action.transferred_chunks += 1
         duration = (
             action.chunk_transfer_end_time_ns - action.chunk_transfer_start_time_ns
         )
-        if duration > 0.0:
-            # 1024 * 1024 * 1024 to counter the duration that is exprimed in nanoseconds
+        if duration > 1_000_000_000:  # 1 second in nanoseconds
+            # x 1,073,741,824 to counter the duration that is exprimed in nanoseconds
             speed = action.last_chunk_transfer_speed = (
-                action.chunk_size * 1024 * 1024 * 1024 / duration
+                action.chunk_size
+                * action.transferred_chunks
+                * 1_073_741_824.0
+                / duration
             )
             log.debug(f"Chunk transfer speed was {sizeof_fmt(speed)}/s")
+            action.transferred_chunks = 1
 
         # Handle transfer pause
         if isinstance(action, DownloadAction):
@@ -190,7 +195,8 @@ class Remote(Nuxeo):
                 raise UploadPaused(upload.uid or -1)
 
         # Update the transfer start timer for the next iteration
-        action.chunk_transfer_start_time_ns = monotonic_ns()
+        if duration > 1_000_000_000:
+            action.chunk_transfer_start_time_ns = monotonic_ns()
 
     def execute(self, **kwargs: Any) -> Any:
         """
