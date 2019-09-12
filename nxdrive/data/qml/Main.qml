@@ -7,7 +7,7 @@ QtObject {
     property var settingsWindow: Window {
         id: settingsWindow
         minimumWidth: 640
-        minimumHeight: 520
+        minimumHeight: 540
         objectName: "settingsWindow"
         title: qsTr("SETTINGS_WINDOW_TITLE") + tl.tr
         width: settings.width; height: settings.height

@@ -222,8 +222,6 @@ class Application(QApplication):
             self.conflicts_window.setMinimumHeight(600)
             self.settings_window = QQuickView()
             self.add_qml_import_path(self.settings_window)
-            self.settings_window.setMinimumWidth(640)
-            self.settings_window.setMinimumHeight(520)
             self.systray_window = SystrayWindow()
             self.add_qml_import_path(self.systray_window)
 
