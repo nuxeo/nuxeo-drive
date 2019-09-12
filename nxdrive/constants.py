@@ -21,7 +21,7 @@ TIMEOUT = 20  # Seconds
 STARTUP_PAGE_CONNECTION_TIMEOUT = 30  # Seconds
 FILE_BUFFER_SIZE = 1024 ** 2  # 1 MiB
 MAX_LOG_DISPLAYED = 50000  # Lines
-BATCH_SIZE = 100  # Scroll descendants batch size
+BATCH_SIZE = 500  # Scroll descendants batch size (max is 1,000)
 
 # Transaction timeout: it is used by the server when generating the whole file after all chunks
 # have been uploaded. Setting a high value to be able to handle very big files. Most of the

@@ -213,6 +213,20 @@ class RemoteWatcher(EngineWorker):
         Perform a scroll scan of the bound remote folder looking for updates.
         """
 
+        def sorting_func(descendant: RemoteFileInfo) -> Tuple[int, str, str]:
+            """Sort function used when sorting descendants in a remote scroll scan.
+
+            The sorting is done on:
+                1: the path length to sync parents first;
+                2: the parent's UID to sync children of a same parent consecutively;
+                3: the document's name to sync document alphabetically (no natural sorting).
+
+            That sorting will make the app to sync all files from the 1st (sub*)folder,
+            then sync all files from the next (sub*)folder, ... , until the sync of all
+            files of the lastest (sub*)folder.
+            """
+            return len(descendant.path), descendant.parent_uid, descendant.name
+
         remote_parent_path = self._init_scan_remote(doc_pair, remote_info)
         if remote_parent_path is None:
             return
@@ -228,17 +242,8 @@ class RemoteWatcher(EngineWorker):
 
         to_process = []
         scroll_id = None
-        t1 = None
 
         while "Scrolling":
-            t0 = monotonic()
-            if t1 is not None:
-                elapsed = t0 - t1
-                log.debug(
-                    f"Local processing of descendants "
-                    f"of {remote_info.name!r} ({remote_info.uid}) took {elapsed:.2} sec"
-                )
-
             # Scroll through a batch of descendants
             log.debug(
                 f"Scrolling through at most [{BATCH_SIZE}] descendants "
@@ -248,21 +253,19 @@ class RemoteWatcher(EngineWorker):
                 remote_info.uid, scroll_id, batch_size=BATCH_SIZE
             )
 
-            t1 = monotonic()
-            elapsed = t1 - t0
             descendants_info = scroll_res["descendants"]
+            if not descendants_info:
+                break
 
             log.debug(
                 f"Remote scroll request retrieved {len(descendants_info)} descendants "
-                f"for {remote_info.name!r} ({remote_info.uid}), took {elapsed:.2} sec"
+                f"for {remote_info.name!r} ({remote_info.uid})"
             )
-            if not descendants_info:
-                break
 
             scroll_id = scroll_res["scroll_id"]
 
             # Results are not necessarily sorted
-            descendants_info = sorted(descendants_info, key=attrgetter("path"))
+            descendants_info = sorted(descendants_info, key=sorting_func)
 
             # Handle descendants
             for descendant_info in descendants_info:
@@ -272,7 +275,7 @@ class RemoteWatcher(EngineWorker):
                     continue
 
                 if self.dao.is_filter(descendant_info.path):
-                    # Skip filtered document
+                    log.debug(f"Skipping filtered document {descendant_info}")
                     descendants.pop(descendant_info.uid, None)
                     continue
 
@@ -298,21 +301,27 @@ class RemoteWatcher(EngineWorker):
 
                 self._find_remote_child_match_or_create(parent_pair, descendant_info)
 
+            """
+            # That code is kept for information purpose as it seems to be a good idea to stop now (see NXDRIVE-1636)
+            # but the NuxeoDrive.ScrollDescendants operation contract is to return *at most* BATCH_SIZE documents.
+            # This is because the batch size represents the max number of descendant docs IDs to handle (query),
+            # then they get adapted to FileSystemItem in Java, so this post-filtering can remove some docs comparing
+            # to the max size, typically the docs for which permissions are denied.
+            # (comment added when investigating the issue with NXDRIVE-1832)
             if len(descendants_info) < BATCH_SIZE:
                 log.debug(f"Less descendants than {BATCH_SIZE}, finishing scroll.")
                 break
+            """
 
             # Check if synchronization thread was suspended
             self._interact()
 
         if to_process:
-            t0 = monotonic()
-            to_process = sorted(to_process, key=attrgetter("path"))
             log.debug(
                 f"Processing [{len(to_process)}] postponed descendants of "
                 f"{remote_info.name!r} ({remote_info.uid})"
             )
-            for descendant_info in to_process:
+            for descendant_info in sorted(to_process, key=sorting_func):
                 parent_pair = self.dao.get_normal_state_from_remote(
                     descendant_info.parent_uid
                 )
@@ -324,10 +333,6 @@ class RemoteWatcher(EngineWorker):
                     continue
 
                 self._find_remote_child_match_or_create(parent_pair, descendant_info)
-
-            t1 = monotonic()
-            elapsed = t1 - t0
-            log.debug(f"Postponed descendants processing took {elapsed:.2} sec")
 
         # Delete remaining
         for deleted in descendants.values():
@@ -421,7 +426,7 @@ class RemoteWatcher(EngineWorker):
             return None
 
         if doc_pair.local_path:
-            Action(f"Remote scanning {doc_pair.local_path!r}")
+            Action(f"Remote scanning „{doc_pair.local_path}“")
             log.info(f"Remote scanning: {doc_pair.local_path!r}")
 
         return remote_parent_path
