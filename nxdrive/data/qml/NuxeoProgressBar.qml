@@ -44,7 +44,7 @@ ProgressBar {
                 from: 0
                 to: parent.width
                 loops: Animation.Infinite
-                duration: 1500
+                duration: 15000
                 // https://doc.qt.io/qt-5/qml-qtquick-animator.html
                 easing.type: Easing.OutInBack
                 running: control.indeterminate

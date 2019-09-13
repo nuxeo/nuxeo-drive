@@ -39,7 +39,7 @@ Rectangle {
                         size: 16
                         icon: download ? MdiFont.Icon.download : MdiFont.Icon.upload
                     }
-                    // Progression: 10.0 MiB / 42.0 MiB [24%]
+                    // Progression
                     ScaledText {
                         text: progress_metrics + (!download && finalizing ? " • " + qsTr("FINALIZING") + tl.tr : "")
                         pointSize: 10
