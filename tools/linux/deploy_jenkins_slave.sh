@@ -26,16 +26,39 @@ remove_blacklisted_files() {
     rm -fv excludelist
 }
 
+check() {
+    # Check AppImage conformity.
+    echo ">>> [AppImage] Extracting the AppImage"
+    [ -f "squashfs-root" ] && rm -rf "squashfs-root"
+    ./dist/*-x86_64.AppImage --version
+    ./dist/*-x86_64.AppImage --appimage-extract
+
+    echo ">>> [AppImage] Downloading AppImage conformity tools"
+    [ -f "excludelist" ] && rm -f "excludelist"
+    [ -f "appdir-lint.sh" ] && rm -f "appdir-lint.sh"
+    wget "https://github.com/AppImage/pkg2appimage/raw/master/excludelist"
+    wget "https://github.com/AppImage/pkg2appimage/raw/master/appdir-lint.sh"
+
+    echo ">>> [AppImage] Checking the AppImage conformity"
+    bash appdir-lint.sh "squashfs-root"
+
+    echo ">>> [AppImage] Clean-up"
+    rm -rf "squashfs-root"
+    rm -f "excludelist"
+    rm -f "appdir-lint.sh"
+}
+
 create_package() {
     # Create the final AppImage
     local app_name="nuxeo-drive"
     local app_id="org.nuxeo.drive"
     local app_version="$(python tools/changelog.py --drive-version)"
     local app_dir="dist/AppRun"
+    local output="dist/${app_name}-${app_version}-x86_64.AppImage"
 
     echo ">>> [AppImage ${app_version}] Adjusting file names to fit in the AppImage"
     # Taken from https://gitlab.com/scottywz/ezpyi/blob/master/ezpyi
-    [ -d "${app_dir}" ] && rm -rfv "${app_dir}"
+    [ -d "${app_dir}" ] && rm -rf "${app_dir}"
     mv -v "dist/ndrive" "${app_dir}"
     mv -v "${app_dir}/ndrive" "${app_dir}/AppRun"
 
@@ -55,7 +78,7 @@ create_package() {
     cp -v /usr/lib64/libcrypt-2.17.so "${app_dir}/libcrypt.so.1"
 
     echo ">>> [AppImage] Downloading the AppImage tool"
-    [ -f "appimagetool-x86_64.AppImage" ] && rm -fv "appimagetool-x86_64.AppImage"
+    [ -f "appimagetool-x86_64.AppImage" ] && rm -f "appimagetool-x86_64.AppImage"
     [ -d "squashfs-root" ] && rm -frv "squashfs-root"
     wget "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage"
     chmod -v a+x "appimagetool-x86_64.AppImage"
@@ -63,26 +86,11 @@ create_package() {
 
     echo ">>> [AppImage ${app_version}] Creating the AppImage file"
     # --no-appstream because appstreamcli is not easily installable on CentOS
-    ./squashfs-root/AppRun --no-appstream "${app_dir}" "dist/${app_name}-${app_version}-x86_64.AppImage"
-
-    echo ">>> [AppImage] Downloading AppImage conformity tools"
-    [ -f "excludelist" ] && rm -fv "excludelist"
-    [ -f "appdir-lint.sh" ] && rm -fv "appdir-lint.sh"
-    wget "https://github.com/AppImage/pkg2appimage/raw/master/excludelist"
-    wget "https://github.com/AppImage/pkg2appimage/raw/master/appdir-lint.sh"
-
-    echo ">>> [AppImage ${app_version}] Checking the AppImage conformity"
-    bash appdir-lint.sh "${app_dir}"
-    appstream-util validate-relax "${app_dir}/usr/share/metainfo/${app_id}.appdata.xml"
-    echo "!!! Further checks needed, not usable on CentOS, keep it as example and regularly do it manually"
-    echo "appstreamcli validate '${app_dir}/usr/share/metainfo/${app_id}.appdata.xml'"
-    echo "appstreamcli validate-tree '${app_dir}'"
+    ./squashfs-root/AppRun --no-appstream "${app_dir}" "${output}"
 
     echo ">>> [AppImage] Clean-up"
-    [ -f "appimagetool-x86_64.AppImage" ] && rm -fv "appimagetool-x86_64.AppImage"
-    [ -d "squashfs-root" ] && rm -frv "squashfs-root"
-    [ -f "excludelist" ] && rm -fv "excludelist"
-    [ -f "appdir-lint.sh" ] && rm -fv "appdir-lint.sh"
+    [ -f "appimagetool-x86_64.AppImage" ] && rm -f "appimagetool-x86_64.AppImage"
+    [ -d "squashfs-root" ] && rm -rf "squashfs-root"
 }
 
 main "$@"

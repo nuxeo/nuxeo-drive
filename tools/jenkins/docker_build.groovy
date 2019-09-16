@@ -17,6 +17,21 @@ properties([
     ]]
 ])
 
+// Do not allow to rebuild past images
+def protected_versions = [
+    'x.y.z'  // ,'3.7.4'
+]
+if (protected_versions.contains(params.PYTHON_VERSION)) {
+    def reason = "${params.PYTHON_VERSION} already exists!"
+    if (params.PYTHON_VERSION == 'x.y.z') {
+        reason = "No Python version."
+    }
+    echo reason
+    currentBuild.description = reason
+    currentBuild.result = "ABORTED"
+    return
+}
+
 node('IT') {
     stage('Build') {
         def scmvars = checkout(scm)

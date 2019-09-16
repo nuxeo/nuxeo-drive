@@ -7,6 +7,7 @@
 #     --build: build the package
 #     --build-ext: build the FinderSync extension (macOS only)
 #     --install: install all dependencies
+#     --check: check AppImage conformity (GNU/Linux only)
 #     --install-python: install only Python
 #     --install-release: install all but test dependencies
 #     --start: start Nuxeo Drive
@@ -363,6 +364,10 @@ main() {
         case "$1" in
             "--build-ext")
                 build_extension
+                exit 0
+            ;;
+            "--check")
+                check
                 exit 0
             ;;
             "--install" | "--install-python")

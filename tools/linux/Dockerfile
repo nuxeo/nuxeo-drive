@@ -24,10 +24,10 @@ RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
     yum install -y --setopt=tsflags=noscripts \
         # General
             file \
-            findutils \
             gcc \
             git-core \
             make \
+            sudo \
             wget \
             zip \
         # pyenv requirements
@@ -44,10 +44,6 @@ RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
             mesa-libGL \
         # Qt requirements
             dbus \
-        # Needed by AppImage conformity tools
-            desktop-file-utils \
-            libappstream-glib \
-            which && \
     # Clean-up
         yum clean all
 
@@ -62,15 +58,12 @@ RUN git clone $GIT_URL sources && \
     cd $WORKSPACE && \
     rm -rf sources
 
-# Fix (appstream-util:5998): GLib-GIO-ERROR: No GSettings schemas are installed on the system
-RUN glib-compile-schemas /usr/share/glib-2.0/schemas/
-
 # Create the jenkins user (the same one as on our CI/QA setup)
-RUN useradd -m -d /home/jenkins -u 1001 -s /bin/bash jenkins
+RUN useradd -m -d /home/jenkins -u 1001 -s /bin/bash jenkins && \
+    echo "jenkins ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-# Create the shared folder and adapt rights
-RUN mkdir "$WORKSPACE/dist" && \
-    chown jenkins:jenkins -R $WORKSPACE && \
+# Adapt rights
+RUN chown jenkins:jenkins -R "$WORKSPACE" && \
     chown jenkins:jenkins /entrypoint.sh && \
     chmod a+x /entrypoint.sh
 
@@ -78,7 +71,7 @@ RUN mkdir "$WORKSPACE/dist" && \
 # Else it will simply use the desired command line.
 ENTRYPOINT ["/entrypoint.sh"]
 
-USER jenkins
-
 # That folder has to be set by the caller, it will hold generated binaries
 VOLUME ["$WORKSPACE/dist"]
+
+USER jenkins
