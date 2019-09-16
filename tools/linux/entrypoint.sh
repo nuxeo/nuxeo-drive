@@ -10,11 +10,7 @@ else
     ./tools/linux/deploy_jenkins_slave.sh --install-release
     ./tools/linux/deploy_jenkins_slave.sh --build
 
-    # Move interesting binaries into the volume
-    cp -v $(pwd)/dist/*.AppImage /opt/dist
-    cp -v $(pwd)/dist/*.zip /opt/dist
-
-    # Cleanup
-    cd ..
-    rm -rf sources
+    echo "[build n°${BUILD_VERSION}] Copying interesting binaries into the volume"
+    sudo cp -v $(pwd)/dist/*.AppImage "${WORKSPACE}/dist"
+    sudo cp -v $(pwd)/dist/*.zip "${WORKSPACE}/dist"
 fi

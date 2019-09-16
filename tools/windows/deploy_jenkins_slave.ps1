@@ -48,7 +48,7 @@ function add_missing_ddls {
 	}
 
 	# PyInstaller #4416
-	Copy -Verbose -Force -Destination "dist\ndrive\PyQt5\Qt\bin" "dist\ndrive\Qt5Core.dll"
+	# Copy -Verbose -Force -Destination "dist\ndrive\PyQt5\Qt\bin" "dist\ndrive\Qt5Core.dll"
 }
 
 function build($app_version, $script) {

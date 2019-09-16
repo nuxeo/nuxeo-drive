@@ -26,8 +26,7 @@ properties([
 //   PyInstaller is not retro-compatible: if we would build on 10.13, the minimum
 //   supported macOS version would become 10.13.
 //
-// agents = ['SLAVEPRIV', 'TWANG', 'WINSLAVE'] TODO fix SLAVEPRIV
-agents = ['TWANG', 'WINSLAVE']
+agents = ['SLAVEPRIV', 'TWANG', 'WINSLAVE']
 labels = [
     'SLAVEPRIV': 'GNU/Linux',
     'TWANG': 'macOS',
@@ -86,10 +85,14 @@ for (x in agents) {
                         try {
                             if (osi == 'GNU/Linux') {
                                 docker.withRegistry('https://dockerpriv.nuxeo.com/') {
-                                    // XXX_PYTHON
-                                    sh "docker run --rm -v ${env.WORKSPACE}/sources/dist:/opt/dist -e 'BRANCH_NAME=${env.BRANCH_NAME}' nuxeo-drive-build:py-3.7.4"
+                                    sh 'mkdir -v dist'
+                                    sh 'pwd'
+                                    sh "ls -l ${env.WORKSPACE}/sources/dist"
+                                    sh "docker run --rm -v ${env.WORKSPACE}/sources/dist:/opt/dist -e 'BRANCH_NAME=${env.BRANCH_NAME}' nuxeo-drive-build:py-3.7.4"  // XXX_PYTHON
+                                    sh 'ls -l dist'
+                                    sh 'tools/linux/deploy_jenkins_slave.sh --check'
+                                    archiveArtifacts artifacts: 'dist/*.AppImage', fingerprint: true
                                 }
-                                archiveArtifacts artifacts: 'dist/*.AppImage', fingerprint: true
                             } else if (osi == 'macOS') {
                                 // Trigger the Drive extensions job to build extensions and have artifacts
                                 build job: 'Drive-extensions', parameters: [
