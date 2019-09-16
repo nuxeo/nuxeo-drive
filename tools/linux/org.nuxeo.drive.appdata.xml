@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-	<id>org.nuxeo.drive</id>
+	<id>org.nuxeo.drive.desktop</id>
 	<metadata_license>MIT</metadata_license>
 	<project_license>LGPL-2.1-only</project_license>
 	<name>Nuxeo Drive</name>
@@ -20,6 +20,9 @@
 			<image type="source" width="975" height="548">https://raw.githubusercontent.com/nuxeo/nuxeo-drive/master/preview.png</image>
 		</screenshot>
 	</screenshots>
-	<developer_name>Nuxeo and contributors</developer_name>
+	<developer_name>Nuxeo</developer_name>
 	<update_contact>mschoentgen -- nuxeo.com</update_contact>
+	<provides>
+		<binary>ndrive</binary>
+	</provides>
 </component>
