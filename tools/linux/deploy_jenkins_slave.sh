@@ -40,8 +40,8 @@ create_package() {
     mv -v "${app_dir}/ndrive" "${app_dir}/AppRun"
 
     echo ">>> [AppImage ${app_version}] Copying icons"
-    cp -v "tools/linux/app_icon.svg" "${app_dir}/.DirIcon.svg"
-    cp -v "tools/linux/app_icon.svg" "${app_dir}/.icon.svg"
+    cp -v "tools/linux/DirIcon.png" "${app_dir}/.DirIcon"
+    cp -v "nxdrive/data/icons/app_icon.svg" "${app_dir}/${app_name}.svg"
 
     echo ">>> [AppImage ${app_version}] Copying metadata files"
     mkdir -pv "${app_dir}/usr/share/metainfo"
