@@ -8,6 +8,8 @@ import pytest
 
 from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
+from nxdrive.translator import Translator
+from nxdrive.utils import find_resource
 
 from .. import ensure_no_exception
 
@@ -134,19 +136,19 @@ def test_invalid_credentials(manager_factory):
     manager, engine = manager_factory()
     doc_uid = "0000"
 
+    Translator(find_resource("i18n"), "en")
+
     def has_invalid_credentials(self) -> bool:
         return True
 
-    def error_signal(label: str, values: List) -> None:
+    def error_signal() -> None:
         nonlocal received
-        assert label == "DIRECT_EDIT_INVALID_CREDS"
-        assert values == [engine.remote_user, engine.server_url]
         received = True
 
     with manager:
         direct_edit = manager.direct_edit
         received = False
-        direct_edit.directEditError.connect(error_signal)
+        engine.invalidAuthentication.connect(error_signal)
 
         with patch.object(
             Engine, "has_invalid_credentials", new=has_invalid_credentials

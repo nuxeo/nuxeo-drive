@@ -11,7 +11,7 @@ from threading import Lock
 from typing import Any, Dict, List, Optional, Pattern, TYPE_CHECKING
 from urllib.parse import quote
 
-from nuxeo.exceptions import Forbidden, HTTPError
+from nuxeo.exceptions import Forbidden, HTTPError, Unauthorized
 from nuxeo.utils import get_digest_algorithm
 from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -261,12 +261,8 @@ class DirectEdit(Worker):
             )
             self.directEditError.emit("DIRECT_EDIT_CANT_FIND_ENGINE", values)
         elif engine.has_invalid_credentials():
-            values = [engine.remote_user, engine.server_url]
-            log.warning(
-                f"Invalid credentials for user {engine.remote_user!r} "
-                f"on server {engine.server_url!r}"
-            )
-            self.directEditError.emit("DIRECT_EDIT_INVALID_CREDS", values)
+            # Ping again the user in case it is not obvious
+            engine.invalidAuthentication.emit()
             engine = None
 
         return engine
@@ -340,6 +336,9 @@ class DirectEdit(Worker):
             )
             log.warning(msg)
             self.directEditForbidden.emit(doc_id, engine.hostname, engine.remote_user)
+            return None
+        except Unauthorized:
+            engine.set_invalid_credentials()
             return None
         except NotFound:
             values = [doc_id, engine.hostname]
