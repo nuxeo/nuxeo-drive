@@ -70,7 +70,7 @@ build_installer() {
 
     version="$(${PYTHON} tools/changelog.py --drive-version)"
     cd dist
-    zip -9 -r "nuxeo-drive-${OSI}-${version}.zip" "ndrive"
+    zip -9 -q -r "nuxeo-drive-${OSI}-${version}.zip" "ndrive"
     cd -
 
     create_package
