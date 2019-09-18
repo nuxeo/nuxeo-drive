@@ -30,8 +30,8 @@ check() {
     # Check AppImage conformity.
     echo ">>> [AppImage] Extracting the AppImage"
     [ -f "squashfs-root" ] && rm -rf "squashfs-root"
-    ./dist/*-x86_64.AppImage --version
     ./dist/*-x86_64.AppImage --appimage-extract
+    ./squashfs-root/AppRun --version
 
     echo ">>> [AppImage] Downloading AppImage conformity tools"
     [ -f "excludelist" ] && rm -f "excludelist"
@@ -43,9 +43,7 @@ check() {
     bash appdir-lint.sh "squashfs-root"
 
     echo ">>> [AppImage] Clean-up"
-    rm -rf "squashfs-root"
-    rm -f "excludelist"
-    rm -f "appdir-lint.sh"
+    rm -rf squashfs-root excludelist appdir-lint.sh
 }
 
 create_package() {

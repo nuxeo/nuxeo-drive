@@ -84,15 +84,16 @@ for (x in agents) {
 
                         try {
                             if (osi == 'GNU/Linux') {
-                                docker.withRegistry('https://dockerpriv.nuxeo.com/') {
-                                    sh 'mkdir -v dist'
-                                    sh 'pwd'
-                                    sh "ls -l ${env.WORKSPACE}/sources/dist"
-                                    sh "docker run --rm -v ${env.WORKSPACE}/sources/dist:/opt/dist -e 'BRANCH_NAME=${env.BRANCH_NAME}' nuxeo-drive-build:py-3.7.4"  // XXX_PYTHON
-                                    sh 'ls -l dist'
-                                    sh 'tools/linux/deploy_jenkins_slave.sh --check'
-                                    archiveArtifacts artifacts: 'dist/*.AppImage', fingerprint: true
+                                def branch = params.BRANCH_NAME
+                                // Handle alpha branches
+                                if (branch.contains('refs/tags/')) {
+                                    branch = branch.replace('refs/tags/', 'wip-')
                                 }
+
+                                def image = docker.image('nuxeo-drive-build:py-3.7.4')  // XXX_PYTHON
+                                image.inside() { sh "/entrypoint.sh" }
+                                sh 'tools/linux/deploy_jenkins_slave.sh --check'
+                                archiveArtifacts artifacts: 'dist/*.AppImage', fingerprint: true
                             } else if (osi == 'macOS') {
                                 // Trigger the Drive extensions job to build extensions and have artifacts
                                 build job: 'Drive-extensions', parameters: [

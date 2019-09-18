@@ -14,9 +14,8 @@ LABEL maintainer="mschoentgen@nuxeo.com"
 # Usefull envars
 ENV BUILD_VERSION ${VERSION}
 ENV GIT_URL ${SCM_REPOSITORY}
-ENV WORKSPACE /opt
 
-WORKDIR $WORKSPACE
+WORKDIR /opt
 
 # Install requirements
 RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
@@ -27,7 +26,6 @@ RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 && \
             gcc \
             git-core \
             make \
-            sudo \
             wget \
             zip \
         # pyenv requirements
@@ -52,18 +50,17 @@ RUN git clone $GIT_URL sources && \
     cd sources && \
     git reset --hard ${SCM_REF} && \
     # Install Python
-    ./tools/linux/deploy_jenkins_slave.sh --install-python && \
+    WORKSPACE=/opt ./tools/linux/deploy_jenkins_slave.sh --install-python && \
     # Copy the entry point script
     cp tools/linux/entrypoint.sh / && \
-    cd $WORKSPACE && \
+    cd .. && \
     rm -rf sources
 
 # Create the jenkins user (the same one as on our CI/QA setup)
-RUN useradd -m -d /home/jenkins -u 1001 -s /bin/bash jenkins && \
-    echo "jenkins ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN useradd -m -d /home/jenkins -u 1001 -s /bin/bash jenkins
 
 # Adapt rights
-RUN chown jenkins:jenkins -R "$WORKSPACE" && \
+RUN chown jenkins:jenkins -R /opt && \
     chown jenkins:jenkins /entrypoint.sh && \
     chmod a+x /entrypoint.sh
 
@@ -72,6 +69,6 @@ RUN chown jenkins:jenkins -R "$WORKSPACE" && \
 ENTRYPOINT ["/entrypoint.sh"]
 
 # That folder has to be set by the caller, it will hold generated binaries
-VOLUME ["$WORKSPACE/dist"]
+VOLUME ["/opt/dist"]
 
 USER jenkins
