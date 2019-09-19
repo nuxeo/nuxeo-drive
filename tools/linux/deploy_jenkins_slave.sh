@@ -71,9 +71,7 @@ create_package() {
     cp -v "tools/linux/${app_id}.desktop" "${app_dir}/usr/share/applications"
     ln -srv "${app_dir}/usr/share/applications/${app_id}.desktop" "${app_dir}/${app_id}.desktop"
 
-    echo ">>> [AppImage ${app_version}] Adding more files to expand compatibility"
-    # Needed on Fedora 30+ (see https://github.com/slic3r/Slic3r/issues/4798)
-    cp -v /usr/lib64/libcrypt-2.17.so "${app_dir}/libcrypt.so.1"
+    more_compatibility
 
     echo ">>> [AppImage] Downloading the AppImage tool"
     [ -f "appimagetool-x86_64.AppImage" ] && rm -f "appimagetool-x86_64.AppImage"
@@ -89,6 +87,13 @@ create_package() {
     echo ">>> [AppImage] Clean-up"
     [ -f "appimagetool-x86_64.AppImage" ] && rm -f "appimagetool-x86_64.AppImage"
     [ -d "squashfs-root" ] && rm -rf "squashfs-root"
+}
+
+more_compatibility() {
+    echo ">>> [AppImage ${app_version}] Adding more files to expand compatibility"
+
+    # Needed on Fedora 30+ (see https://github.com/slic3r/Slic3r/issues/4798)
+    cp -v /usr/lib64/libcrypt-2.17.so "${app_dir}/libcrypt.so.1"
 }
 
 main "$@"
