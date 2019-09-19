@@ -135,7 +135,7 @@ class BaseUpdater(PollWorker):
     # Private methods, should not try to override
     #
 
-    def _download(self, version: str) -> Optional[str]:
+    def _download(self, version: str) -> str:
         """ Download a given version to a temporary file. """
 
         name = self.release_file.format(version=version)
@@ -169,9 +169,7 @@ class BaseUpdater(PollWorker):
         except Exception as exc:
             raise UpdateError(f"Impossible to get {url!r}: {exc}")
 
-        if not self._is_valid(version, path):
-            return None
-
+        self._check_validity(version, path)
         return path
 
     def _fetch_versions(self) -> None:
@@ -224,13 +222,14 @@ class BaseUpdater(PollWorker):
                 login_type,
             )
 
-        info = self.versions.get(version, {})
-        checksums = info.get("checksum", {})
-        checksum = checksums.get(self.ext, "").lower()
-        if not checksum:
-            log.info(
-                f"There is no downloadable file for the version ${version!r} on that OS."
-            )
+        if version:
+            info = self.versions.get(version, {})
+            checksums = info.get("checksum", {})
+            checksum = checksums.get(self.ext, "").lower()
+            if not checksum:
+                log.info(
+                    f"There is no downloadable file for the version ${version!r} on that OS."
+                )
         elif status and version:
             self._set_status(status, version=version)
         elif status:
@@ -319,7 +318,7 @@ class BaseUpdater(PollWorker):
         log.info(f"Installing {APP_NAME} {version}")
         self.install(filename)
 
-    def _is_valid(self, version: str, filename: str) -> bool:
+    def _check_validity(self, version: str, filename: str) -> None:
         """ Check the downloaded file integrity. Use SHA256 by default. """
 
         info = self.versions.get(version, {})
@@ -339,8 +338,6 @@ class BaseUpdater(PollWorker):
         )
         if computed != checksum:
             raise UpdateError(f"Installer integrity check failed for {filename!r}")
-
-        return True
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
