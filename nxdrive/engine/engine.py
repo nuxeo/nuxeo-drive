@@ -108,6 +108,7 @@ class Engine(QObject):
 
         self.remote_cls = remote_cls
         self.local_cls = local_cls
+        self.download_dir: Path = ROOT
 
         # Initialize those attributes first to be sure .stop()
         # can be called without missing ones
@@ -141,10 +142,7 @@ class Engine(QObject):
             self.bind(binder)
         self._load_configuration()
 
-        download_dir = find_suitable_tmp_dir(self.local_folder, self.manager.home)
-        self.download_dir = download_dir / ".tmp" / definition.uid
-        log.info(f"Using temporary download folder {self.download_dir!r}")
-        self.download_dir.mkdir(parents=True, exist_ok=True)
+        self.download_dir = self._set_download_dir()
 
         if not binder:
             if not self.server_url:
@@ -251,6 +249,7 @@ class Engine(QObject):
             self.stop()
         self.dao.reinit_states()
         self._check_root()
+        self.download_dir = self._set_download_dir()
         if started:
             self.start()
 
@@ -260,6 +259,17 @@ class Engine(QObject):
                 f"Quitting processor: {worker!r} as requested to stop on {path!r}"
             )
             worker.quit()
+
+    def _set_download_dir(self) -> Path:
+        """Guess a good location for a download folder."""
+        if self.download_dir is not ROOT and self.download_dir.is_dir():
+            return self.download_dir
+
+        download_dir = find_suitable_tmp_dir(self.local_folder, self.manager.home)
+        download_dir = download_dir / ".tmp" / self.uid
+        log.info(f"Using temporary download folder {download_dir!r}")
+        download_dir.mkdir(parents=True, exist_ok=True)
+        return download_dir
 
     def set_local_folder(self, path: Path) -> None:
         log.info(f"Update local folder to {path!r}")
@@ -954,15 +964,12 @@ class Engine(QObject):
         if root is None:
             if self.local_folder.is_dir():
                 unset_path_readonly(self.local_folder)
-            self._make_local_folder(self.local_folder)
+            else:
+                self.local_folder.mkdir(parents=True)
             self._add_top_level_state()
             self._set_root_icon()
             self.manager.osi.register_folder_link(self.local_folder)
             set_path_readonly(self.local_folder)
-
-    def _make_local_folder(self, local_folder: Path) -> None:
-        local_folder.mkdir(parents=True, exist_ok=True)
-        # Put the ROOT in readonly
 
     def cancel_action_on(self, pair_id: int) -> None:
         for thread in self._threads:
