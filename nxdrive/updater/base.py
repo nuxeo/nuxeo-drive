@@ -135,7 +135,7 @@ class BaseUpdater(PollWorker):
     # Private methods, should not try to override
     #
 
-    def _download(self, version: str) -> str:
+    def _download(self, version: str) -> Optional[str]:
         """ Download a given version to a temporary file. """
 
         name = self.release_file.format(version=version)
@@ -170,7 +170,7 @@ class BaseUpdater(PollWorker):
             raise UpdateError(f"Impossible to get {url!r}: {exc}")
 
         if not self._is_valid(version, path):
-            raise UpdateError(f"Installer integrity check failed for {name!r}")
+            return None
 
         return path
 
@@ -223,7 +223,15 @@ class BaseUpdater(PollWorker):
                 self.server_ver,
                 login_type,
             )
-        if status and version:
+
+        info = self.versions.get(version, {})
+        checksums = info.get("checksum", {})
+        checksum = checksums.get(self.ext, "").lower()
+        if not checksum:
+            log.info(
+                f"There is no downloadable file for the version ${version!r} on that OS."
+            )
+        elif status and version:
             self._set_status(status, version=version)
         elif status:
             self.status = status
@@ -316,13 +324,10 @@ class BaseUpdater(PollWorker):
 
         info = self.versions.get(version, {})
         checksums = info.get("checksum", {})
-        algo = checksums.get("algo", "sha256").lower()
         checksum = checksums.get(self.ext, "").lower()
-        if not checksum:
-            log.error(f"Invalid version info {info!r} (version={version})")
-            return False
-
+        algo = checksums.get("algo", "sha256").lower()
         func = getattr(hashlib, algo, "sha256")()
+
         with open(filename, "rb") as installer:
             for chunk in iter(lambda: installer.read(16384), b""):
                 func.update(chunk)
@@ -332,7 +337,10 @@ class BaseUpdater(PollWorker):
             f"Integrity check [{algo.upper()}] for {filename!r}: "
             f"good={checksum!r}, found={computed!r}"
         )
-        return computed == checksum
+        if computed != checksum:
+            raise UpdateError(f"Installer integrity check failed for {filename!r}")
+
+        return True
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
