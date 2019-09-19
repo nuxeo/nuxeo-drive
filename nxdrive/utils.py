@@ -139,23 +139,24 @@ def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path) -> Path:
     It _must_ be on the same partition of the local sync folder
     to prevent false FS events.
     """
-    sync_folder.mkdir(parents=True, exist_ok=True)
-    home_folder.mkdir(parents=True, exist_ok=True)
+    try:
+        if WINDOWS:
+            # On Windows, we need to check for the drive letter
+            if sync_folder.drive == home_folder.drive:
+                # Both folders are on the same partition, use the predefined home folder
+                return home_folder
 
-    if WINDOWS:
-        # On Windows, we need to check for the drive letter
-        if sync_folder.drive == home_folder.drive:
+        # On Unix, we check the st_dev field
+        elif sync_folder.stat().st_dev == home_folder.stat().st_dev:
             # Both folders are on the same partition, use the predefined home folder
             return home_folder
 
-    # On Unix, we check the st_dev field
-    elif sync_folder.stat().st_dev == home_folder.stat().st_dev:
-        # Both folders are on the same partition, use the predefined home folder
+        # Folders are on different partitions, try to find a suitable one based one the same
+        # partition used by the *sync_folder*.
+        return sync_folder.parent
+    except FileNotFoundError:
+        # Typically, the syc_folder does not exist anymore
         return home_folder
-
-    # Folders are on different partitions, try to find a suitable one based one the same
-    # partition used by the *sync_folder*.
-    return sync_folder.parent
 
 
 def get_date_from_sqlite(d: str) -> Optional[datetime]:

@@ -198,6 +198,7 @@ def test_find_suitable_tmp_dir_inexistant(tmp):
     func = nxdrive.utils.find_suitable_tmp_dir
     sync_folder = tmp()
     home_folder = tmp()
+    home_folder.mkdir(parents=True)
     assert func(sync_folder, home_folder) == home_folder
 
 
