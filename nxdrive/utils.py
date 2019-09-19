@@ -139,6 +139,9 @@ def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path) -> Path:
     It _must_ be on the same partition of the local sync folder
     to prevent false FS events.
     """
+    sync_folder.mkdir(parents=True, exist_ok=True)
+    home_folder.mkdir(parents=True, exist_ok=True)
+
     if WINDOWS:
         # On Windows, we need to check for the drive letter
         if sync_folder.drive == home_folder.drive:
