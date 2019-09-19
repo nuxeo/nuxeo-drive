@@ -19,7 +19,7 @@ properties([
 
 // Do not allow to rebuild past images
 def protected_versions = [
-    'x.y.z'  // ,'3.7.4'
+    'x.y.z', '3.7.4'
 ]
 if (protected_versions.contains(params.PYTHON_VERSION)) {
     def reason = "${params.PYTHON_VERSION} already exists!"
