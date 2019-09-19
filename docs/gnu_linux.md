@@ -6,6 +6,14 @@ The easiest and safest way to build Nuxeo Drive is to follow the same steps as w
 
 Note that the `xclip` tool is needed for the clipboard copy/paste to work.
 
+## Binary
+
+When you downloaded an official binary (file `.AppImage`), you will have to make it executable before being able to run it:
+
+```shell
+chmod a+x *.AppImage
+```
+
 ## xattr
 
 First note that Nuxeo Drive uses [Extended file attributes](https://en.wikipedia.org/wiki/Extended_file_attributes) through the [xattr](https://pypi.python.org/pypi/xattr/) Python wrapper.
