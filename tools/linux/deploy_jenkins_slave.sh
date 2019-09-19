@@ -93,7 +93,7 @@ more_compatibility() {
     echo ">>> [AppImage ${app_version}] Adding more files to expand compatibility"
 
     # Needed on Fedora 30+ (see https://github.com/slic3r/Slic3r/issues/4798)
-    cp -v /usr/lib64/libcrypt-2.17.so "${app_dir}/libcrypt.so.1"
+    cp -v /usr/lib64/libcrypt-2.17.so "${app_dir}/libcrypt.so.1" || true
 }
 
 main "$@"
