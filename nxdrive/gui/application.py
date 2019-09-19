@@ -52,6 +52,7 @@ from ..utils import (
     find_icon,
     find_resource,
     force_decode,
+    get_current_os_full,
     get_device,
     if_frozen,
     normalized_path,
@@ -1149,15 +1150,21 @@ class Application(QApplication):
             # Default value for GNU/Linux, macOS ans Windows 7
             use_light_icons = False
 
-            if WINDOWS:
+            if LINUX:
+                platform = get_current_os_full()
+                if "manjaro" in platform[0].lower():
+                    # Manjaro has a dark them by default and the notification area has the same color
+                    # as our dark icons, so use the light ones.
+                    use_light_icons = True
+            elif MAC and self.osi.dark_mode_in_use():
+                # The Dark mode on macOS is set
+                use_light_icons = True
+            elif WINDOWS:
                 win_ver = sys.getwindowsversion()
                 version = (win_ver.major, win_ver.minor)
                 if version > (6, 1):  # Windows 7
                     # Windows 8+ has a dark them by default
                     use_light_icons = True
-            elif MAC and self.osi.dark_mode_in_use():
-                # The Dark mode on macOS is set
-                use_light_icons = True
         else:
             # The value stored in DTB as a string '0' or '1', convert to boolean
             use_light_icons = bool(int(use_light_icons))
