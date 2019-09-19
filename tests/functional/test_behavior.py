@@ -41,6 +41,33 @@ AttributeError: 'Engine' object has no attribute '_local_watcher'
         assert manager.engines
 
 
+def test_crash_engine_no_local_folder(manager_factory):
+    """
+    Drive should not crash when the engine local folder is removed.  Traceback:
+
+Traceback (most recent call last):
+  File "nxdrive/__main__.py", line 113, in main
+  File "nxdrive/commandline.py", line 507, in handle
+  File "nxdrive/commandline.py", line 514, in get_manager
+  File "nxdrive/manager.py", line 175, in __init__
+  File "nxdrive/manager.py", line 377, in load
+  File "nxdrive/engine/engine.py", line 144, in __init__
+  File "nxdrive/utils.py", line 149, in find_suitable_tmp_dir
+  File "pathlib.py", line 1168, in stat
+FileNotFoundError: [Errno 2] No such file or directory: '/home/nuxeo/Drive/Company UAT'
+    """
+    import shutil
+
+    manager, engine = manager_factory()
+
+    shutil.rmtree(engine.local_folder)
+    assert not engine.local_folder.is_dir()
+
+    with manager:
+        # Trigger engines reload as it is done in __init__()
+        manager.load()
+
+
 @not_windows(reason="PermissionError when trying to delete the file.")
 def test_manager_engine_removal(manager_factory):
     """NXDRIVE-1618: Remove inexistant engines from the Manager engines list."""
