@@ -82,6 +82,12 @@ class StubQApplication(QCoreApplication):
 
     def __init__(self, argv, test_case):
         super().__init__(argv)
+
+        # Little trick here! See Application.__init__() for details.
+        self.timer = QTimer()
+        self.timer.timeout.connect(lambda: None)
+        self.timer.start(100)
+
         self._test = test_case
         self.bindEngine.connect(self.bind_engine)
         self.unbindEngine.connect(self.unbind_engine)
@@ -225,6 +231,10 @@ class TwoUsersTest(TestCase):
         # We need to do that because sometimes a thread get blocked and so the test suite.
         # Here, we set the timeout to 00:02:00, let's see if a higher value is needed.
         timeout = 2 * 60
+
+        # Set a higher timeout for those special tests
+        if self.id().startswith("tests.old_functional.test_volume."):
+            timeout = 30 * 60  # 00:30:00
 
         def kill_test():
             log.error(f"Killing {self.id()} after {timeout} seconds")
@@ -608,8 +618,6 @@ class TwoUsersTest(TestCase):
         for _, dirnames, filenames in os.walk(path):
             dir_count += len(dirnames)
             file_count += len(filenames)
-        if (path / ".partials").exists():
-            dir_count -= 1
         return file_count, dir_count
 
     def generate_report(self):
