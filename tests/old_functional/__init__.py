@@ -364,15 +364,24 @@ class RemoteTest(RemoteBase):
             command="NuxeoDrive.SetActiveFactories", profile=profile, enable=False
         )
 
-    def mass_import(self, target_path, nb_nodes, nb_threads=12):
+    def mass_import(self, target_path, nb_nodes):
+        """Used in test_volume.py only.
+
+        *nb_nodes* is the minimum number of documents to create on the server.
+        A tradeoff has been made for performance over an exact number.
+        Randomness and threading inside, it is OK for us.
+
+        To get the real documents number, use a specific NXQL query
+        (see test_remote_scan() from test_volume.py).
+        """
         tx_timeout = 3600
         url = "site/randomImporter/run"
         params = {
             "targetPath": target_path,
             "batchSize": 50,
-            "nbThreads": nb_threads,
+            "nbThreads": 12,
             "interactive": "true",
-            "fileSizeKB": 1,
+            "fileSizeKB": 10,
             "nbNodes": nb_nodes,
             "nonUniform": "true",
             "transactionTimeout": tx_timeout,
@@ -384,7 +393,7 @@ class RemoteTest(RemoteBase):
         )
 
     def wait_for_async_and_es_indexing(self):
-        """ Use for test_volume only. """
+        """Used in test_volume.py only."""
 
         tx_timeout = 3600
         headers = {"Nuxeo-Transaction-Timeout": str(tx_timeout)}
