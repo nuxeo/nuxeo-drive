@@ -60,6 +60,7 @@ FileNotFoundError: [Errno 2] No such file or directory: '/home/nuxeo/Drive/Compa
 
     manager, engine = manager_factory()
 
+    engine.local.unset_readonly(engine.local_folder)
     shutil.rmtree(engine.local_folder)
     assert not engine.local_folder.is_dir()
 
