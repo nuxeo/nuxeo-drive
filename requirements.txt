@@ -238,10 +238,9 @@ tld==0.9.6 \
     --hash=sha256:e63acad4f866bc4c724a21a03eb7cf692bc8495cb286ee60d3a45258054bdc02    # via pypac
 https://github.com/GoodRx/universal-analytics-python/archive/77ce628c56de1ba51a9bf0774794fd687f785803.zip \
     --hash=sha256:fa57bd764c9bcf628cb7f289b9aa9a5edeb69714da635bbbcad2a626674b5d7c
-urllib3==1.25.3 \
-    --hash=sha256:b246607a25ac80bedac05c6f282e3cdaf3afb65420fd024ac94435cabe6e18d1 \
-    --hash=sha256:dbe59173209418ae49d485b87d1681aefa36252ee85884c31346debd19463232 \
-    # via requests, sentry-sdk
+urllib3==1.25.5 \
+    --hash=sha256:2f3eadfea5d92bc7899e75b5968410b749a054b492d5a6379c1344a1481bc2cb \
+    --hash=sha256:9c6c593cb28f52075016307fc26b0a0f8e82bc7d1ff19aaaa959b91710a56c47    # via requests, sentry-sdk
 https://github.com/gorakhargosh/watchdog/archive/18bb843ae9fa777a8f214c291a0e201f858bd9a1.zip \
     --hash=sha256:eedcc294942bd9cbc09a0bb8a6c8e7984dfb3ebd1e9d5414054567f95e30838e
 xattr==0.9.6 ; sys_platform != "win32" \
