@@ -313,6 +313,7 @@ class DirectEdit(Worker):
                     blob.digest,
                     callback=self.stop_client,
                 )
+                engine.dao.remove_transfer("upload", file_path)
             else:
                 engine.remote.get_blob(
                     info,
