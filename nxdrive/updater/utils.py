@@ -165,7 +165,7 @@ def get_update_status(
     if current_version in versions.keys():
         # For the Centralized channel, this is not an issue as administrators must
         # have checked that the desired version is working fine whatever the channel
-        if original_channel == "centralized":
+        if original_channel == "centralized" and Options.client_version:
             return UPDATE_STATUS_UPDATE_AVAILABLE, latest
         else:
             return UPDATE_STATUS_WRONG_CHANNEL, latest

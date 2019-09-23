@@ -122,6 +122,7 @@ def test_get_update_status_centralized_channel(current, desired, action_required
 @Options.mock()
 def test_get_update_status_centralized_channel_wrong_client_version():
     """Test the Centralized channel with a client_version too low."""
+    # Must be >= 4.2.0
     Options.client_version = "4.0.3.12"
 
     # The options is not updated, protected by the option's callback
@@ -130,10 +131,26 @@ def test_get_update_status_centralized_channel_wrong_client_version():
     action, version = get_update_status(
         "4.3.4", VERSIONS, "centralized", "10.12", Login.NEW
     )
-    # As the client_version is not set, it falls back to the release channel
-    assert action == UPDATE_STATUS_UPDATE_AVAILABLE
-    # And so the latest release is 4.2.0 (4.3.4 is beta, so a downgrade is asked)
+
+    # As the client_version is not set, it falls back to the release channel.
+    # The latest release is 4.2.0 (4.3.4 is beta).
+    # As the version in use is from the beta channel, the user is asked
+    # to either downgrade to the release channel or continue using that beta channel.
+    assert action == UPDATE_STATUS_WRONG_CHANNEL
     assert version == "4.2.0"
+
+
+@Options.mock()
+def test_get_update_status_centralized_channel_client_version_from_other_channel():
+    """Test the Centralized channel with a client_version from a channel other than release."""
+    Options.client_version = "4.3.4"
+    action, version = get_update_status(
+        "4.0.3.12", VERSIONS, "centralized", "10.12", Login.NEW
+    )
+
+    # As the client_version is set, it is allowed to update to another channel (here alpha -> beta)
+    assert action == UPDATE_STATUS_UPDATE_AVAILABLE
+    assert version == "4.3.4"
 
 
 @Options.mock()
