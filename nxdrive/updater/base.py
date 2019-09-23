@@ -221,16 +221,20 @@ class BaseUpdater(PollWorker):
                 self.server_ver,
                 login_type,
             )
+            log.debug(f"Guessed status {status!r} and version {version!r}.")
 
+        # Check the digest is available for that version on that OS
         if version:
             info = self.versions.get(version, {})
             checksums = info.get("checksum", {})
             checksum = checksums.get(self.ext, "").lower()
             if not checksum:
                 log.info(
-                    f"There is no downloadable file for the version ${version!r} on that OS."
+                    f"There is no downloadable file for the version {version!r} on that OS."
                 )
-        elif status and version:
+                return
+
+        if status and version:
             self._set_status(status, version=version)
         elif status:
             self.status = status
