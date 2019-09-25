@@ -5,7 +5,7 @@ import logging
 import os
 from logging import Formatter
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
-from typing import Any, List
+from typing import Any, Generator, List
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import constants
@@ -62,27 +62,44 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         on Windows with non-latin characters."""
         kwargs["encoding"] = "utf-8"
         super().__init__(*args, **kwargs)
+        self.checkup()
 
-    def find_last_rotated_file(self) -> str:
-        dir_name, base_name = os.path.split(self.baseFilename)
-        file_names = os.listdir(dir_name)
-        result = []
-        # We want to find a rotated file with eg filename.2017-04-26... name
-        prefix = f"{base_name}.20"
-        for file_name in file_names:
-            if file_name.startswith(prefix) and not file_name.endswith(".zip"):
-                result.append(file_name)
-        result.sort()
-        return os.path.join(dir_name, result[0])
+    def checkup(self) -> None:
+        """Ensure the log files are purged and compressed."""
+        self.compress_all()
+        self.remove_old_files()
+
+    def find_rotated_files(self) -> Generator[str, None, None]:
+        """Find all rotated log files (compressed and raw)."""
+        folder, filename = os.path.split(self.baseFilename)
+        for file in os.listdir(folder):
+            # We want to find a rotated file with e.g. "file.log.2017-04-26" and "file.log.2019-09-25.zip" names
+            if file.startswith(f"{filename}.20"):
+                yield os.path.join(folder, file)
+
+    def compress(self, file: str) -> None:
+        """Compress one rotated log file."""
+        with open(file, "rb") as f, ZipFile(f"{file}.zip", mode="w") as z:
+            z.writestr(os.path.basename(file), f.read(), ZIP_DEFLATED)
+        os.remove(file)
+
+    def compress_all(self, file: str = "") -> None:
+        """Compress all rotated log files."""
+        for file in self.find_rotated_files():
+            if not file.endswith(".zip"):
+                self.compress(file)
+
+    def remove_old_files(self) -> None:
+        """Remove old rotated log files. Keeping only *.backupCount* files, removing the oldest ones."""
+        count = getattr(self, "backupCount", 30)
+        files = sorted(self.find_rotated_files(), reverse=True)
+        for number, file in enumerate(files, 1):
+            if number > count and file.endswith(".zip"):
+                os.remove(file)
 
     def doRollover(self) -> None:
         super().doRollover()
-
-        dfn = self.find_last_rotated_file()
-        dfn_zipped = f"{dfn}.zip"
-        with open(dfn, "rb") as reader, ZipFile(dfn_zipped, mode="w") as zip_:
-            zip_.writestr(os.path.basename(dfn), reader.read(), ZIP_DEFLATED)
-        os.remove(dfn)
+        self.checkup()
 
 
 def no_trace(level: str) -> str:
