@@ -54,8 +54,9 @@
       <arg value="--base-folder=.." />
       <arg value="--work-folder=${out.dir}" />
       <arg value="fetch-mp" />
-      <arg value="--url=${nuxeo.drive.mp.url}" />
+      <arg value="--url=${nuxeo.drive.mp.url}${nuxeo.drive.mp.filename}" />
       <arg value="--marketplace-filename=${nuxeo.drive.mp.filename}" />
+      <arg value="--direct" />
     </exec>
   </target>
 

@@ -62,7 +62,7 @@ def parse_args(args=None):
     main_parser.add_argument(
         "--work-folder",
         default=DEFAULT_WORK_FOLDER,
-        help="Folder to work in (marketplace package download," " MSI extract, ...).",
+        help="Folder to work in (marketplace package download, MSI extract, ...).",
     )
 
     # Fetch marketplace package dependency from related Jenkins job
@@ -84,7 +84,7 @@ def parse_args(args=None):
     parser.add_argument(
         "--marketplace-filename",
         default=DEFAULT_MARKETPLACE_FILENAME,
-        help="Name of the downloaded marketplace package" " file.",
+        help="Name of the downloaded marketplace package file.",
     )
 
     # Integration test launcher
