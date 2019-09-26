@@ -2,8 +2,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.nuxeo.ecm.distribution</groupId>
-    <artifactId>nuxeo-distribution</artifactId>
+    <groupId>org.nuxeo</groupId>
+    <artifactId>nuxeo-ecm</artifactId>
     <version>11.1-SNAPSHOT</version>
   </parent>
 
@@ -16,18 +16,31 @@
     functional tests in multiple environments (OS, DB)
   </description>
 
-  <properties>
-    <!-- URL of the last archived artifacts of the nuxeo-drive marketplace
-      package on Jenkins -->
-    <nuxeo.drive.mp.url>https://qa.nuxeo.org/jenkins/job/master/job/addons_nuxeo-drive-master-marketplace/lastSuccessfulBuild/artifact/marketplace/target/</nuxeo.drive.mp.url>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>org.nuxeo.ecm.distribution</groupId>
       <artifactId>nuxeo-server-tomcat</artifactId>
       <type>zip</type>
       <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.nuxeo.packages</groupId>
+      <artifactId>nuxeo-drive-package</artifactId>
+      <type>zip</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.nuxeo.packages</groupId>
+      <artifactId>nuxeo-dam-package</artifactId>
+      <type>zip</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.nuxeo.packages</groupId>
+      <artifactId>nuxeo-importer-package</artifactId>
+      <type>zip</type>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -48,7 +61,7 @@
             </goals>
             <configuration>
               <targets>
-                <target>fetch-nuxeo-drive-mp</target>
+                <target>prepare-packages</target>
                 <target>prepare-environment</target>
                 <target>add-custom-template</target>
                 <target>enable-custom-template</target>
@@ -95,15 +108,6 @@
       </plugin>
     </plugins>
   </build>
-
-  <profiles>
-    <profile>
-      <id>tomcat</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-    </profile>
-  </profiles>
 
   <repositories>
     <repository>
