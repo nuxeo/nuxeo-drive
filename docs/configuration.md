@@ -40,7 +40,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 |---|---|---|---|---
 | `big-file` | 300 | int | 4.1.4 | File size in MiB. Files bigger than this limit are considered "big". This implies few tweaks in the synchronization engine like bypassing most of the expensive and time consuming digest computations. It is a tradeoff to handle large files as best effort.
 | `ca-bundle` | None | str | 4.0.2 | File or directory with certificates of trusted CAs. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
-| `channel` | release | str | 4.0.2 | Update channel. Can be release, beta or alpha.
+| `channel` | centralized | str | 4.0.2 | Update channel. Can be centralized, release, beta or alpha.
 | `chunk_limit` | 20 | int | 4.1.2 | Size in MiB above which files will be uploaded in chunks (if `chunk_upload` is `True`). Has to be above 0.
 | `chunk_size` | 20 | int | 4.1.2 | Size of the chunks in MiB. Has to be above 0 and lower or equal to 20.
 | `chunk_upload` | True | bool | 4.1.2 | Activate the upload in chunks for files bigger than `chunk_limit`.
@@ -77,6 +77,10 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `max-sync-step` | 10 (int) | 4.1.3 | None | None
 | `proxy-exceptions` | None (str) | 4.0.0 | None | None
 | `proxy-type` | None (str) | 4.0.0 | None | None
+
+Other changes:
+
+- `channel` was set to "release" in 4.0.2. It then changed to "centralized" in 4.2.0.
 
 ## Command Line Arguments
 
