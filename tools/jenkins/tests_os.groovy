@@ -151,12 +151,12 @@ node(slave) {
                                     'PATH+SBIN=/usr/sbin',
                                 ]
                                 withEnv(env_vars) {
-                                    sh "mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                    sh "mvn -B -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
                                 }
                             } else if (osi == 'GNU/Linux') {
-                                sh "${mvnHome}/bin/mvn -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
+                                sh "${mvnHome}/bin/mvn -B -f ftest/pom.xml clean verify -Pqa,pgsql ${platform_opt}"
                             } else {
-                                bat(/"${mvnHome}\bin\mvn" -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
+                                bat(/"${mvnHome}\bin\mvn" -B -f ftest\pom.xml clean verify -Pqa,pgsql ${platform_opt}/)
                             }
                         } catch(e) {
                             currentBuild.result = 'FAILURE'
