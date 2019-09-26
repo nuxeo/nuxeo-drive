@@ -40,23 +40,19 @@
   </unzip>
   <import file="${out.dir}/nuxeo-ftest.xml" />
 
-  <!-- Needed to test the Picture type -->
-  <property name="wizard.preset" value="nuxeo-dam" />
+  <target name="prepare-packages">
+    <copy todir="${out.dir}/packages">
+      <artifact:set>
+        <includes>
+          <artifact groupId="org.nuxeo.packages" type="zip" />
+        </includes>
+      </artifact:set>
+    </copy>
 
-  <!-- Configure nuxeo-drive marketplace package installation -->
-  <property name="nuxeo.drive.mp.filename" value="nuxeo-drive.zip" />
-  <!-- nuxeo-platform-importer is needed to test mass import -->
-  <property name="mp.install" value="file:${out.dir}/${nuxeo.drive.mp.filename},nuxeo-platform-importer" />
-
-  <target name="fetch-nuxeo-drive-mp">
-    <exec executable="python" failonerror="true">
-      <arg value="../tools/integration_tests_setup.py" />
-      <arg value="--base-folder=.." />
-      <arg value="--work-folder=${out.dir}" />
-      <arg value="fetch-mp" />
-      <arg value="--url=${nuxeo.drive.mp.url}" />
-      <arg value="--marketplace-filename=${nuxeo.drive.mp.filename}" />
-    </exec>
+    <!-- compute mp.install property with the list of packages -->
+    <fileset id="packages.list" dir="${out.dir}/packages" />
+    <pathconvert pathsep="," property="packages.list" refid="packages.list" />
+    <property name="mp.install" value="${packages.list}" />
   </target>
 
   <target name="run-drive-tests">
