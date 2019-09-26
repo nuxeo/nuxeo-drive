@@ -306,14 +306,16 @@ class DirectEdit(Worker):
 
         if not pair:
             if url:
-                engine.remote.download(
-                    quote(url, safe="/:"),
-                    file_path,
-                    file_out,
-                    blob.digest,
-                    callback=self.stop_client,
-                )
-                engine.dao.remove_transfer("upload", file_path)
+                try:
+                    engine.remote.download(
+                        quote(url, safe="/:"),
+                        file_path,
+                        file_out,
+                        blob.digest,
+                        callback=self.stop_client,
+                    )
+                finally:
+                    engine.dao.remove_transfer("download", file_path)
             else:
                 engine.remote.get_blob(
                     info,
