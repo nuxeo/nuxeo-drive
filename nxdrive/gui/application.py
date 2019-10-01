@@ -39,7 +39,7 @@ from ..constants import (
 )
 from ..engine.activity import Action
 from ..engine.engine import Engine
-from ..gui.folders_dialog import FiltersDialog
+from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
 from ..notification import Notification
 from ..options import Options
 from ..translator import Translator
@@ -85,7 +85,7 @@ class Application(QApplication):
     icons: Dict[str, QIcon] = {}
     icon_state = None
     use_light_icons = None
-    filters_dlg: Optional[FiltersDialog] = None
+    filters_dlg: Optional[DialogMixin] = None
     _delegator: Optional["NotificationDelegator"] = None
     tray_icon: DriveSystrayIcon
 
@@ -185,6 +185,10 @@ class Application(QApplication):
         # Connect this slot last so the other slots connected
         # to self.aboutToQuit can run beforehand.
         self.aboutToQuit.connect(self.manager.stop)
+
+        # Handle the eventual command via the custom URL scheme
+        if Options.protocol_url:
+            self._handle_nxdrive_url(Options.protocol_url)
 
     @if_frozen
     def add_qml_import_path(self, view: QQuickView) -> None:
@@ -610,7 +614,7 @@ class Application(QApplication):
         self.errors_model.addFiles(self.api.get_errors(uid))
         self.ignoreds_model.addFiles(self.api.get_unsynchronizeds(uid))
 
-    @pyqtSlot()
+    @pyqtSlot(object)
     def show_conflicts_resolution(self, engine: Engine) -> None:
         """ Display the conflicts/errors window. """
         self.refresh_conflicts(engine.uid)
@@ -618,7 +622,8 @@ class Application(QApplication):
         self.conflicts_window.show()
         self.conflicts_window.requestActivate()
 
-    @pyqtSlot()
+    @pyqtSlot()  # From systray.py
+    @pyqtSlot(str)  # All other calls
     def show_settings(self, section: str = "General") -> None:
         sections = {"General": 0, "Accounts": 1, "About": 2}
         self._window_root(self.settings_window).setSection.emit(sections[section])
@@ -662,13 +667,13 @@ class Application(QApplication):
     def destroyed_filters_dialog(self) -> None:
         self.filters_dlg = None
 
-    @pyqtSlot()
+    @pyqtSlot(object)
     def show_filters(self, engine: Engine) -> None:
         if self.filters_dlg:
             self.filters_dlg.close()
             self.filters_dlg = None
 
-        self.filters_dlg = FiltersDialog(self, engine)
+        self.filters_dlg = DocumentsDialog(self, engine)
         self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
 
         # Close the settings window at the same time of the filters one
@@ -678,6 +683,17 @@ class Application(QApplication):
 
         self.filters_dlg.show()
         self._show_window(self.settings_window)
+
+    @pyqtSlot(object)
+    def show_server_folders(self, engine: Engine, path: Path) -> None:
+        """Display the remote folders dialog window."""
+        if self.filters_dlg:
+            self.filters_dlg.close()
+            self.filters_dlg = None
+
+        self.filters_dlg = FoldersDialog(self, engine, path)
+        self.filters_dlg.destroyed.connect(self.destroyed_filters_dialog)
+        self.filters_dlg.show()
 
     @pyqtSlot(str, object)
     def open_authentication_dialog(
@@ -1234,6 +1250,7 @@ class Application(QApplication):
         func = {
             "access-online": manager.ctx_access_online,
             "copy-share-link": manager.ctx_copy_share_link,
+            "direct-upload": self.ctx_upload_local_file,
             "edit-metadata": manager.ctx_edit_metadata,
         }.get(cmd, None)
         if func:
@@ -1303,6 +1320,27 @@ class Application(QApplication):
         finally:
             del con
         log.info("Successfully closed server socket")
+
+    def ctx_upload_local_file(self, path: Path) -> None:
+        """Direct upload of a local file to anywhere on the server."""
+        # For now, only files are handled
+        if not path.is_file():
+            log.warning(f"Direct upload of {path!r} is not possible (a file is needed)")
+            return
+
+        # Direct upload is not allowed for synced files
+        for engine in self.manager.engines.values():
+            if engine.local_folder in path.parents:
+                log.warning(
+                    f"Direct upload of {path!r} is not allowed for synced files"
+                )
+                return
+
+        log.info(f"Direct upload: {path!r}")
+        # TODO: Multiple accounts
+        for engine in self.manager.engines.values():
+            self.show_server_folders(engine, path)
+            break
 
     def update_status(self, engine: Engine) -> None:
         """

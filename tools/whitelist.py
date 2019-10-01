@@ -9,6 +9,7 @@ blob.mimetype  # Remote.upload_chunks()
 cb_get  # OSI
 CliHandler.bind_root  # Used by the arguments parser
 CliHandler.clean_folder  # Used by the arguments parser
+CliHandler.ctx_direct_upload  # Used by the arguments parser
 CliHandler.download_edit  # Used by the arguments parser
 CliHandler.unbind_root  # Used by the arguments parser
 CliHandler.unbind_server  # Used by the arguments parser
@@ -32,6 +33,7 @@ ob.winapi.BUFFER_SIZE  # Used by Watchdog
 on_any_event  # Used by Watchdog
 _.row_factory  # Internal use of SQLite
 Processor._synchronize_conflicted  # Used by Processor._execute()
+Processor._synchronize_direct_upload  # Used by Processor._execute()
 Processor._synchronize_deleted_unknown  # Used by Processor._execute()
 Processor._synchronize_locally_deleted  # Used by Processor._execute()
 Processor._synchronize_locally_resolved  # Used by Processor._execute()

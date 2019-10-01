@@ -162,7 +162,7 @@ class Manager(QObject):
 
         # Create DirectEdit
         self._create_autolock_service()
-        self._create_direct_edit(Options.protocol_url)
+        self._create_direct_edit()
 
         # Create notification service
         self._started = False
@@ -295,10 +295,10 @@ class Manager(QObject):
         if self.updater:
             self.updater.refresh_status()
 
-    def _create_direct_edit(self, url: str) -> "DirectEdit":
+    def _create_direct_edit(self) -> "DirectEdit":
         from .direct_edit import DirectEdit  # noqa
 
-        self.direct_edit = DirectEdit(self, self.direct_edit_folder, url)
+        self.direct_edit = DirectEdit(self, self.direct_edit_folder)
         self.started.connect(self.direct_edit.thread.start)
         self.autolock_service.direct_edit = self.direct_edit
         return self.direct_edit

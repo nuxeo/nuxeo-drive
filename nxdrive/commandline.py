@@ -49,15 +49,16 @@ If no command is provided, the graphical application is
 started along with a synchronization process.
 
 Possible commands:
-- console
-- bind-server
-- unbind-server
-- bind-root
-- unbind-root
-- clean-folder
 - access-online
+- bind-root
+- bind-server
+- clean-folder
+- console
 - copy-share-link
+- direct-upload
 - edit-metadata
+- unbind-root
+- unbind-server
 
 To get options for a specific command:
 
@@ -350,6 +351,15 @@ class CliHandler:
         ctx_item3.set_defaults(command="ctx_edit_metadata")
         ctx_item3.add_argument("--file", default="", help="File path.")
 
+        # Context menu: Direct upload
+        ctx_item4 = subparsers.add_parser(
+            "direct-upload",
+            help="Direct upload of a given file to anywhere on the server.",
+            parents=[common_parser],
+        )
+        ctx_item4.set_defaults(command="ctx_direct_upload")
+        ctx_item4.add_argument("--file", default="", help="File path.")
+
         return parser
 
     """Command Line Interface handler: parse options and execute operation"""
@@ -613,6 +623,13 @@ class CliHandler:
         """ Event fired by "Edit metadata" menu entry. """
         file_path = normalized_path(options.file)
         self.manager.ctx_edit_metadata(file_path)
+
+    def ctx_direct_upload(self, options: Namespace) -> int:
+        """Event fired by "Direct upload" menu entry."""
+        # Craft the URL to be handled later at application startup
+        Options.protocol_url = f"nxdrive://direct-upload/{options.file}"
+        self.launch(options=options)
+        return 0
 
     def download_edit(self, options: Namespace) -> int:
         self.launch(options=options)

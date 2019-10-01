@@ -29,11 +29,11 @@ from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
 from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt, UnknownDigest
 from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
+from .options import Options
 from .utils import (
     current_milli_time,
     force_decode,
     normalize_event_filename,
-    parse_protocol_url,
     safe_os_filename,
     simplify_url,
     unset_path_readonly,
@@ -71,12 +71,12 @@ class DirectEdit(Worker):
     directEditStarting = pyqtSignal(str, str)
     directEditLocked = pyqtSignal(str, str, datetime)
 
-    def __init__(self, manager: "Manager", folder: Path, url: str) -> None:
+    def __init__(self, manager: "Manager", folder: Path) -> None:
         super().__init__()
 
         self._manager = manager
         self._folder = folder
-        self.url = url
+        self.url = Options.protocol_url
         self.lock = Lock()
 
         self.autolock = self._manager.autolock_service
@@ -128,25 +128,6 @@ class DirectEdit(Worker):
     def stop_client(self, message: str = None) -> None:
         if self._stop:
             raise ThreadInterrupt()
-
-    def handle_url(self, url: str = None) -> None:
-        url = url or self.url
-        if not url:
-            return
-
-        log.info(f"DirectEdit load: {url!r}")
-
-        info = parse_protocol_url(url)
-
-        if not isinstance(info, dict) or info.get("command", "") != "download_edit":
-            return
-
-        self.edit(
-            info["server_url"],
-            info["doc_id"],
-            user=info["user"],
-            download_url=info["download_url"],
-        )
 
     def _is_valid_folder_name(
         self, name: str, pattern: Pattern = re.compile(f"^{DOC_UID_REG}_")
@@ -767,9 +748,6 @@ class DirectEdit(Worker):
         try:
             self._cleanup()
             self._setup_watchdog()
-
-            # Load the target URL if Drive was not launched before
-            self.handle_url()
 
             while True:
                 self._interact()
