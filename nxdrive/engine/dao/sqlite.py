@@ -100,6 +100,8 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     ("unsynchronized", "moved"): "unsynchronized",
     ("unsynchronized", "synchronized"): "unsynchronized",
     ("unsynchronized", "deleted"): "remotely_deleted",
+    # Direct upload
+    ("direct", "unknown"): "direct_upload",
 }
 
 
@@ -889,8 +891,13 @@ class EngineDAO(ConfigurationDAO):
                 int(doc_pair.id), bool(doc_pair.folderish), "locally_deleted"
             )
 
-    def insert_local_state(self, info: FileInfo, parent_path: Optional[Path]) -> int:
-        pair_state = PAIR_STATES[("created", "unknown")]
+    def insert_local_state(
+        self,
+        info: FileInfo,
+        parent_path: Optional[Path] = None,
+        local_state: str = "created",
+    ) -> int:
+        pair_state = PAIR_STATES[(local_state, "unknown")]
 
         digest = None
         if not info.folderish:
@@ -912,7 +919,7 @@ class EngineDAO(ConfigurationDAO):
                 "(last_local_updated, local_digest, local_path, "
                 "local_parent_path, local_name, folderish, size, "
                 "local_state, remote_state, pair_state) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, 'created', 'unknown', ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'unknown', ?)",
                 (
                     info.last_modification_time,
                     digest,
@@ -921,6 +928,7 @@ class EngineDAO(ConfigurationDAO):
                     info.path.name,
                     info.folderish,
                     info.size,
+                    local_state,
                     pair_state,
                 ),
             )

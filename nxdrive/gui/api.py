@@ -332,7 +332,7 @@ class QMLDriveApi(QObject):
     def show_settings(self, page: str) -> None:
         self.application.hide_systray()
         log.info(f"Show settings on page {page}")
-        self.application.show_settings(section=page or None)
+        self.application.show_settings(section=page)
 
     @pyqtSlot()
     def quit(self) -> None:

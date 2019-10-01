@@ -189,7 +189,7 @@ class Processor(EngineWorker):
                         self._postpone_pair(doc_pair, "Finder using file", interval=3)
                         continue
 
-                # TODO Update as the server dont take hash to avoid conflict yet
+                # TODO Update as the server don't take hash to avoid conflict yet
                 if doc_pair.pair_state.startswith("locally") and doc_pair.remote_ref:
                     try:
                         remote_info = self.remote.get_fs_info(doc_pair.remote_ref)
@@ -444,6 +444,32 @@ class Processor(EngineWorker):
         else:
             log.exception("Unknown error")
             self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
+
+    def _synchronize_direct_upload(self, doc_pair: DocPair) -> None:
+        """Direct upload of a local file."""
+        if WINDOWS:
+            file = doc_pair.local_path
+        else:
+            # The path retrieved from the database will have its starting slash trimmed, restore it
+            file = Path(f"/{doc_pair.local_path}")
+
+        if not file.exists():
+            log.debug(
+                f"Cancelling direct upload of {file!r} because it does not exist anymore"
+            )
+            self.dao.remove_state(doc_pair)
+            return
+
+        # The remote path is stored as the remote ref in xattr of the file
+        parent_path = self.local.get_remote_id(file)
+
+        # Do the upload
+        self.remote.direct_upload(file, parent_path, self.engine.uid)
+
+        # Clean-up
+        self.dao.remove_state(doc_pair)
+        self.local.remove_remote_id(file)
+        self.local.remove_remote_id(file, name="remote")
 
     def _synchronize_conflicted(self, doc_pair: DocPair) -> None:
         if doc_pair.local_state == "moved" and doc_pair.remote_state in (

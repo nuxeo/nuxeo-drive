@@ -2,12 +2,12 @@
 //  FinderSync.swift
 //  NuxeoFinderSync
 //
-//  Created by Léa Klein on 28/02/2018.
+//  Created by Léa Klein on 2018-02-28.
 //
 //  Contributors:
 //      Mickaël Schoentgen
 //
-//  Copyright © 2018 Nuxeo. All rights reserved.
+//  Copyright © 2018-2019 Nuxeo. All rights reserved.
 //
 
 import Cocoa
@@ -24,6 +24,7 @@ class FinderSync: FIFinderSync {
     var title1 = "Access online"
     var title2 = "Copy share-link"
     var title3 = "Edit metadata"
+    var title4 = "Direct upload"
 
     let fileStatus = FileStatus()
     let addr = "127.0.0.1"
@@ -44,8 +45,11 @@ class FinderSync: FIFinderSync {
         //NSLog("FinderSync() launched from \(Bundle.main.bundlePath)")
         super.init()
 
-        // Upon startup, we are not watching any directories
-        FIFinderSyncController.default().directoryURLs = []
+        // Upon startup, we are watching the root only to be able to display a context menu
+        // on all files and folders. Then, when sync roots are added, they will also have
+        // a context menu, but a different one.
+        FIFinderSyncController.default().directoryURLs = [URL(fileURLWithPath: "/")]
+
         for badge in self.badges {
             FIFinderSyncController.default().setBadgeImage(
                 badge.image,
@@ -114,6 +118,7 @@ class FinderSync: FIFinderSync {
             self.title1 = entries[0]
             self.title2 = entries[1]
             self.title3 = entries[2]
+            self.title4 = entries[3]
         }
     }
 
@@ -171,7 +176,50 @@ class FinderSync: FIFinderSync {
     // Context menu, also toolbar menu, if previous code is uncommented
 
     override func menu(for menuKind: FIMenuKind) -> NSMenu {
-        // Produce a menu for the extension
+        // Produce a menu for the extension.
+        //
+        // Menu entries are different depending of the selected items.
+        //
+        // If the item is in any (synced) watched folders, then
+        // only menu entries related to synced files should be displayed.
+        // Else there is another menu for unsynced files and folders.
+
+        // Get selected items
+        let items = FIFinderSyncController.default().selectedItemURLs()
+
+        // Check if the path of the item starts with a watched folder (except "/").
+        for watched_folder in FIFinderSyncController.default().directoryURLs! {
+            if watched_folder.path == "/" {
+                // Skip the root
+                continue
+            }
+            for item in items! {
+                if item.path.hasPrefix(watched_folder.path) {
+                    // The item is from a folder that is watched
+                    return menu_for_synced_items()
+                }
+            }
+        }
+
+        return menu_for_unsynced_items()
+    }
+
+    func menu_for_unsynced_items() -> NSMenu {
+        // Produce the menu for unsynced files and folders.
+        let menu = NSMenu(title: "Nuxeo Drive")
+
+        // Direct upload
+        let item1 = NSMenuItem(title: self.title4,
+                               action: #selector(directUpload(_:)),
+                               keyEquivalent: "D")
+        item1.image = self.icon
+        menu.addItem(item1)
+
+        return menu
+    }
+
+    func menu_for_synced_items() -> NSMenu {
+        // Produce a menu for synced files and folders.
         let menu = NSMenu(title: "Nuxeo Drive")
 
         // Access online
@@ -241,6 +289,15 @@ class FinderSync: FIFinderSync {
         for item in items! {
             //NSLog("copyShareLink: target: \(item.path)")
             openNXUrl(command: "copy-share-link", target: item)
+        }
+    }
+
+    @IBAction func directUpload(_ sender: AnyObject?) {
+        // Event fired by "Direct upload" menu entry
+        let items = FIFinderSyncController.default().selectedItemURLs()
+        for item in items! {
+            //NSLog("directUpload: target: \(item.path)")
+            openNXUrl(command: "direct-upload", target: item)
         }
     }
 

@@ -289,8 +289,8 @@ class DarwinIntegration(AbstractOSIntegration):
     def register_contextual_menu(self) -> None:
         name = f"{BUNDLE_IDENTIFIER}.setConfig"
 
-        log.debug(f"Sending menu to FinderSync")
-        entries = [Translator.get(f"CONTEXT_MENU_{i}") for i in range(1, 4)]
+        log.debug("Sending menu to FinderSync")
+        entries = [Translator.get(f"CONTEXT_MENU_{i}") for i in range(1, 5)]
         self._send_notification(name, {"entries": entries})
 
     def register_folder_link(self, path: Path) -> None:

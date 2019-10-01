@@ -150,24 +150,23 @@ class WindowsIntegration(AbstractOSIntegration):
                 },
             )
 
-        self.register_contextual_menu_entry(
-            Translator.get("CONTEXT_MENU_1"),
-            'access-online --file "%1"',
-            "shell32.dll,17",
-            1,
+        # Context menu entries (order is important)
+        # See http://www.tiger-222.fr/?d=2019/10/01/10/18/05-icones-de-imageresdll-et-shell32dll for icons
+        entries = (
+            # (command, icon)
+            ("access-online", "shell32.dll,17"),
+            ("copy-share-link", "shell32.dll,134"),
+            ("edit-metadata", "imageres.dll,289"),
+            ("direct-upload", "imageres.dll,277"),
         )
-        self.register_contextual_menu_entry(
-            Translator.get("CONTEXT_MENU_2"),
-            'copy-share-link --file "%1"',
-            "shell32.dll,134",
-            2,
-        )
-        self.register_contextual_menu_entry(
-            Translator.get("CONTEXT_MENU_3"),
-            'edit-metadata --file "%1"',
-            "shell32.dll,269",
-            3,
-        )
+
+        for idx, (command, icon) in enumerate(entries, 1):
+            self.register_contextual_menu_entry(
+                Translator.get(f"CONTEXT_MENU_{idx}"),
+                f'{command} --file "%1"',
+                icon,
+                idx,
+            )
 
     @if_frozen
     def register_contextual_menu_entry(

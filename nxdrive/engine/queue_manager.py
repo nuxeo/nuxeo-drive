@@ -208,6 +208,13 @@ class QueueManager(QObject):
                     f"{self._remote_file_queue.qsize()}"
                 )
             self.newItem.emit(row_id)
+        elif state.pair_state == "direct_upload":
+            self._local_file_queue.put(state)
+            log.debug(
+                "Pushed to _local_file_queue, now of size: "
+                f"{self._local_file_queue.qsize()}"
+            )
+            self.newItem.emit(row_id)
         else:
             # deleted and conflicted
             log.info(f"Not processable state: {state!r}")

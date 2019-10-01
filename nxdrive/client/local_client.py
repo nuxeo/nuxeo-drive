@@ -390,13 +390,18 @@ FolderType=Generic
         except OSError:
             return ""
 
-    def get_info(self, ref: Path) -> FileInfo:
-        os_path = self.abspath(ref)
-        if not os_path.exists():
-            raise NotFound(
-                f"Could not find doc into {self.base_folder!r}: "
-                f"ref={ref!r}, os_path={os_path!r}"
-            )
+    def get_info(self, ref: Path, check: bool = True) -> FileInfo:
+        if check:
+            # all use cases except direct upload
+            os_path = self.abspath(ref)
+            if not os_path.exists():
+                raise NotFound(
+                    f"Could not find doc into {self.base_folder!r}: "
+                    f"ref={ref!r}, os_path={os_path!r}"
+                )
+        else:
+            # Direct upload, *ref* is an absolute local path
+            os_path = ref
 
         folderish = os_path.is_dir()
         stat_info = os_path.stat()

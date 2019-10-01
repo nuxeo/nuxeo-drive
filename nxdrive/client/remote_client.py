@@ -13,11 +13,12 @@ from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
 from nuxeo.exceptions import CorruptedFile, HTTPError
-from nuxeo.models import FileBlob, Batch
+from nuxeo.models import Batch, FileBlob, Document
 from nuxeo.uploads import Uploader
 from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtWidgets import QApplication
 
+from .local_client import LocalClient
 from .proxy import Proxy
 from ..constants import (
     APP_NAME,
@@ -588,6 +589,37 @@ class Remote(Nuxeo):
             )
         finally:
             LinkingAction.finish_action()
+
+    def direct_upload(self, file: Path, parent_path: str, engine_uid: str):
+        """Upload a given file to the given folderish document on the server."""
+        log.info(f"Direct upload of {file!r} into {parent_path!r}")
+
+        # The remote file, when created, is stored in the file xattr.
+        # So retrieve it and if it is defined, the document creation should
+        # be skipped to prevent duplicate creations.
+        remote_ref = LocalClient.get_path_remote_id(file, name="remote")
+
+        if not remote_ref:
+            # Create the file on the server
+            doc = self.documents.create(
+                Document(name=file.name, type="File"), parent_path=parent_path
+            )
+            # Save the remote document's UID into the file xattr, in case next steps fails
+            LocalClient.set_path_remote_id(file, doc.uid, name="remote")
+            remote_ref = doc.uid
+
+        # /!\ # Here, the upload may fail if the remote_ref is already set on the local file
+        # /!\ but the document does not exist anymore on the server.
+
+        # Upload the blob and attach it to the file
+        self.upload(
+            file,
+            engine_uid=engine_uid,
+            document=remote_ref,
+            command="Blob.AttachOnDocument",
+            xpath="file:content",
+            void_op=True,
+        )
 
     def get_fs_info(
         self, fs_item_id: str, parent_fs_item_id: str = None

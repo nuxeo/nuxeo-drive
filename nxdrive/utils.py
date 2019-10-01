@@ -859,7 +859,7 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         return None
 
     # Commands that need a path to work with
-    path_cmds = ("access-online", "copy-share-link", "edit-metadata")
+    path_cmds = ("access-online", "copy-share-link", "direct-upload", "edit-metadata")
 
     protocol_regex = (
         # Direct Edit stuff
@@ -873,6 +873,7 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
         #     - Access online
         #     - Copy share-link
         #     - Edit metadata
+        #     - Direct upload
         # And event from macOS to sync the document status (FinderSync)
         r"nxdrive://(?P<cmd>({}))/(?P<path>.*)".format("|".join(path_cmds)),
         # Event to acquire the login token from the server
