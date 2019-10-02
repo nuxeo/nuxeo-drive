@@ -23,7 +23,15 @@ from .watcher.remote_watcher import RemoteWatcher
 from .workers import Worker
 from ..client.local_client import LocalClient
 from ..client.remote_client import Remote
-from ..constants import CONNECTION_ERROR, MAC, ROOT, WINDOWS, DelAction, TransferStatus
+from ..constants import (
+    CONNECTION_ERROR,
+    LINUX,
+    MAC,
+    ROOT,
+    WINDOWS,
+    DelAction,
+    TransferStatus,
+)
 from ..exceptions import (
     EngineInitError,
     InvalidDriveException,
@@ -980,23 +988,20 @@ class Engine(QObject):
 
     @if_frozen
     def _set_root_icon(self) -> None:
-        state = self.local.has_folder_icon(ROOT)
-        if isinstance(state, str):
-            # Save the original version in the database for later stats
-            # and proceed to the new icon installation.
-            self.manager.set_config("original_version", state)
-        elif state:
+        """Set the folder icon if not already done."""
+        if self.local.has_folder_icon(ROOT):
             return
 
-        if MAC:
-            icon = find_icon("folder_mac.dat")
-        elif WINDOWS:
-            icon = find_icon("folder_windows.ico")
-        else:
+        if LINUX:
             # To be implementation with https://jira.nuxeo.com/browse/NXDRIVE-1831
             return
+        elif MAC:
+            icon = find_icon("folder_mac.dat")
+        else:
+            icon = find_icon("folder_windows.ico")
 
         if not icon:
+            log.error(f"Missing icon from the package: {icon!r}")
             return
 
         locker = self.local.unlock_ref(ROOT, unlock_parent=False)

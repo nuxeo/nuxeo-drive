@@ -3,7 +3,6 @@
 
 import errno
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -218,28 +217,26 @@ class LocalClient:
         finally:
             lock_path(path, locker)
 
-    def has_folder_icon(self, ref: Path) -> Union[bool, str]:
-        """Check if the folder icon is set.
-        On Windows, it may return the version number as str for later use in stats."""
+    def has_folder_icon(self, ref: Path) -> bool:
+        """Check if the folder icon is set."""
 
-        if MAC:
+        if LINUX:
+            # To be implementation with https://jira.nuxeo.com/browse/NXDRIVE-1831
+            return True
+        elif MAC:
             return (self.abspath(ref) / "Icon\r").is_file()
-
-        if WINDOWS:
-            fname = self.abspath(ref) / "desktop.ini"
-            with suppress(FileNotFoundError):
-                content = fname.read_text(encoding="utf-8")
-                version = re.findall(r"nuxeo-drive-([0-9.]+).win32\\", content)
-                if version:
-                    return version[0]
-                return True
-
-        return False
+        else:
+            return (self.abspath(ref) / "desktop.ini").is_file()
 
     def set_folder_icon(self, ref: Path, icon: Path) -> None:
-        if MAC:
+        """Create a special file to customize the folder icon."""
+        log.debug(f"Setting the folder icon of {ref!r} using {icon!r}")
+        if LINUX:
+            # To be implementation with https://jira.nuxeo.com/browse/NXDRIVE-1831
+            return
+        elif MAC:
             self.set_folder_icon_darwin(ref, icon)
-        elif WINDOWS:
+        else:
             self.set_folder_icon_win32(ref, icon)
 
     def set_folder_icon_win32(self, ref: Path, icon: Path) -> None:
@@ -248,7 +245,7 @@ class LocalClient:
         # Desktop.ini file content
         content = f"""
 [.ShellClassInfo]
-IconResource={icon},0
+IconResource={icon}
 [ViewState]
 Mode=
 Vid=
