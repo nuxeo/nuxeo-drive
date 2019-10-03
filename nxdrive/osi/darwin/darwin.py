@@ -10,8 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import xattr
-from Foundation import NSBundle, NSDistributedNotificationCenter, NSUserDefaults
-from LaunchServices import (
+from CoreServices import (
     CFURLCreateWithString,
     LSSetDefaultHandlerForURLScheme,
     LSSharedFileListCopySnapshot,
@@ -19,6 +18,9 @@ from LaunchServices import (
     LSSharedFileListInsertItemURL,
     LSSharedFileListItemCopyDisplayName,
     LSSharedFileListItemRemove,
+    NSBundle,
+    NSDistributedNotificationCenter,
+    NSUserDefaults,
     kLSSharedFileListFavoriteItems,
     kLSSharedFileListItemBeforeFirst,
 )
