@@ -290,7 +290,7 @@ def get_default_local_folder() -> Path:
     return increment_local_folder(folder, APP_NAME)
 
 
-def get_value(value: str) -> Union[bool, str, Tuple[str, ...]]:
+def get_value(value: str) -> Union[bool, float, str, Tuple[str, ...]]:
     """ Get parsed value for commandline/registry input. """
 
     if value.lower() in {"true", "1", "on", "yes", "oui"}:
@@ -299,6 +299,9 @@ def get_value(value: str) -> Union[bool, str, Tuple[str, ...]]:
         return False
     elif "\n" in value:
         return tuple(sorted(value.split()))
+    elif value.count(".") == 1 and re.match(r"^[\d\.]+$", value):
+        # "0.1" -> 0.1
+        return float(value)
 
     return value
 
