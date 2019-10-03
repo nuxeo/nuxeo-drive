@@ -21,7 +21,8 @@ from .queue_manager import QueueManager
 from .watcher.local_watcher import LocalWatcher
 from .watcher.remote_watcher import RemoteWatcher
 from .workers import Worker
-from ..client.local_client import LocalClient
+from ..client.local.base import LocalClientMixin
+from ..client.local import LocalClient
 from ..client.remote_client import Remote
 from ..constants import (
     CONNECTION_ERROR,
@@ -108,7 +109,7 @@ class Engine(QObject):
         binder: Binder = None,
         processors: int = 5,
         remote_cls: Type[Remote] = Remote,
-        local_cls: Type[LocalClient] = LocalClient,
+        local_cls: Type[LocalClientMixin] = LocalClient,
     ) -> None:
         super().__init__()
 

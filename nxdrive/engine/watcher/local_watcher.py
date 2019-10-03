@@ -18,7 +18,7 @@ from watchdog.observers import Observer
 
 from ..activity import tooltip
 from ..workers import EngineWorker, Worker
-from ...client.local_client import FileInfo
+from ...client.local import FileInfo
 from ...constants import LINUX, MAC, ROOT, UNACCESSIBLE_HASH, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics

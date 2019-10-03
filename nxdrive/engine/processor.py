@@ -20,7 +20,7 @@ from nuxeo.exceptions import (
 )
 
 from .workers import EngineWorker
-from ..client.local_client import FileInfo
+from ..client.local import FileInfo
 from ..constants import (
     CONNECTION_ERROR,
     LONG_FILE_ERRORS,

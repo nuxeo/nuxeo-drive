@@ -592,7 +592,7 @@ class CliHandler:
         log.debug("Successfully closed client socket")
 
     def clean_folder(self, options: Namespace) -> int:
-        from .client.local_client import LocalClient
+        from .client.local import LocalClient
 
         if not options.local_folder:
             print("A folder must be specified")

@@ -11,7 +11,7 @@ from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
 
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
-from ...client.local_client import FileInfo
+from ...client.local import FileInfo
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
 from ...exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs

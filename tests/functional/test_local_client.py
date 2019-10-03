@@ -1,7 +1,7 @@
 import pathlib
 from unittest.mock import patch
 
-from nxdrive.client.local_client import LocalClient
+from nxdrive.client.local import LocalClient
 from nxdrive.constants import ROOT
 
 

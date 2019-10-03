@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union, TYPE_CHECKING
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from .utils import fix_db, restore_backup, save_backup
-from ...client.local_client import FileInfo
+from ...client.local import FileInfo
 from ...constants import (
     NO_SPACE_ERRORS,
     ROOT,

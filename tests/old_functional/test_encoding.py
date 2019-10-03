@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 
-from nxdrive.client.local_client import FileInfo
+from nxdrive.client.local import FileInfo
 from .common import OneUserTest
 from ..markers import not_mac
 
