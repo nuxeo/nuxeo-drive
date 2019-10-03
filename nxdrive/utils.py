@@ -1080,12 +1080,12 @@ class PidLockFile:
                 if pid is not None:
                     msg = (
                         f"Failed to remove stalled PID file: {self.pid_filepath!r} "
-                        f"for stopped process {pid}",
+                        f"for stopped process {pid}"
                     )
                     log.warning(msg, exc_info=True)
                     return pid
 
-                msg = f"Failed to remove empty stalled PID file {self.pid_filepath!r}: "
+                msg = f"Failed to remove empty stalled PID file {self.pid_filepath!r}"
                 log.warning(msg, exc_info=True)
             else:
                 if pid is None:

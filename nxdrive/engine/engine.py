@@ -1098,7 +1098,7 @@ class ServerBindingSettings:
     """ Summarize server binding settings. """
 
     server_url: str
-    web_authentication: str
+    web_authentication: bool
     username: str
     local_folder: Path
     initialized: bool
