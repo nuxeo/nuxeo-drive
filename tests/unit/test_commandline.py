@@ -24,7 +24,9 @@ debug = False
 
 [DEV]
 log_level-console = ERROR
+debug = True
 delay = 3
+tmp-file-limit = 0.0105
 """
         )
 
@@ -118,24 +120,31 @@ def test_default_override(cmd):
     # Default value
     options = cmd.parse_cli([])
     assert options.log_level_console == "WARNING"
+    assert not options.debug
 
     # Normal arg
     options = cmd.parse_cli(argv)
     assert options.log_level_console == "INFO"
+    assert not options.debug
 
     # config.ini override
     create_ini()
     options = cmd.parse_cli([])
     assert options.log_level_console == "DEBUG"
+    assert not options.debug
 
     # config.ini override, but arg specified
     options = cmd.parse_cli(argv)
     assert options.log_level_console == "INFO"
+    assert not options.debug
 
     # other usage section
     create_ini(env="DEV")
     options = cmd.parse_cli([])
     assert options.log_level_console == "ERROR"
+    assert options.debug
+    assert options.delay == 3
+    assert options.tmp_file_limit == 0.0105
 
 
 @Options.mock()
