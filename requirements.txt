@@ -5,10 +5,9 @@
 #
 # It is now manually managed.
 #
-certifi==2019.6.16 \
-    --hash=sha256:046832c04d4e752f37383b628bc601a7ea7211496b4638f6514d0e5b9acc4939 \
-    --hash=sha256:945e3ba63a0b9f577b1395204e13c3a231f9bc0223888be653286534e5873695 \
-    # via requests, sentry-sdk
+certifi==2019.9.11 \
+    --hash=sha256:e4f3620cfea4f83eedc95b24abd9cd56f3c4b146dd0177e83a21b4eb49e21e50 \
+    --hash=sha256:fd7c7c74727ddcf00e9acd26bba8da604ffec95bf1c2144e67aff7a8b50e6cef    # via requests, sentry-sdk
 cffi==1.12.3 \
     --hash=sha256:041c81822e9f84b1d9c401182e174996f0bae9991f33725d059b771744290774 \
     --hash=sha256:046ef9a22f5d3eed06334d01b1e836977eeef500d9b78e9ef693f9380ad0b83d \
@@ -80,9 +79,9 @@ idna==2.8 \
 markdown==3.1.1 \
     --hash=sha256:2e50876bcdd74517e7b71f3e7a76102050edec255b3983403f1a63e7c8a41e7a \
     --hash=sha256:56a46ac655704b91e5b7e6326ce43d5ef72411376588afa1dd90e881b83c7e8c
-nuxeo==2.2.2 \
-    --hash=sha256:418963773da56303b891b63e78e91e0c75128ac4cfb66f3e2c5f0e9ab4be661e \
-    --hash=sha256:f2db695b72c3e1cf77afea2dfb91880fc917c3227354c7eca40f1698501c5ea8
+nuxeo==2.2.3 \
+    --hash=sha256:4f9208afc6dc3e55ea4371d22c9b8b096f2d9fc5a7660e3296803bc20cbfbab7 \
+    --hash=sha256:e442993a4af3e7b52b1fc81469fddc881f16392c2fde01d27ac6f68a5c522649
 pathtools==0.1.2 \
     --hash=sha256:7c35c5421a39bb82e58018febd90e3b6e5db34c5443aaaf742b3f33d4655f1c0
     # via watchdog
@@ -153,8 +152,8 @@ pyobjc-framework-SystemConfiguration==4.2.2 ; sys_platform == "darwin" \
     --hash=sha256:78ec4adba535b65125328153a82704d734fd070c7a0c4de533367380a0e2ea9d \
     # pyup: ignore
     # via pypac
-pypac==0.12.0 \
-    --hash=sha256:ccba48d38f611002005ef1e92b23aeaeebe98241c03533960027e8a39c5920aa
+pypac==0.13.0 \
+    --hash=sha256:a1eac0e3224939fcc691c8ad815f9cd24d737c8e0cf9c9905a01821bbe8f1414
 # [macOS] Ignore SIP updates until NXDRIVE-1719 is done
 pyqt5-sip==4.19.13 ; sys_platform == "darwin" \
     --hash=sha256:125f77c087572c9272219cda030a63c2f996b8507592b2a54d7ef9b75f9f054d \
@@ -205,8 +204,19 @@ pyyaml==5.1.2 \
     --hash=sha256:bf47c0607522fdbca6c9e817a6e81b08491de50f3766a7a0e6a5be7905961b41 \
     --hash=sha256:f81025eddd0327c7d4cfe9b62cf33190e1e736cc6e97502b3ec425f574b3e7a8 \
     # via pyaml
-pywin32==224 ; sys_platform == "win32" \
-    --hash=sha256:22e218832a54ed206452c8f3ca9eff07ef327f8e597569a4c2828be5eaa09a77
+pywin32==225; sys_platform == "win32" \
+    --hash=sha256:0443e9bb196e72480f50cbddc2cf98fbb858a77d02e281ba79489ea3287b36e9 \
+    --hash=sha256:09bbe7cdb29eb40ab2e83f7a232eeeedde864be7a0622b70a90f456aad07a234 \
+    --hash=sha256:0d8e0f47808798d320c983574c36c49db642678902933a210edd40157d206fd0 \
+    --hash=sha256:0db7c9f4b93528afd080d35912a60be2f86a1d6c49c0a9cf9cedd106eed81ea3 \
+    --hash=sha256:749e590875051661ecefbd9dfa957a485016de0f25e43f5e70f888ef1e29587b \
+    --hash=sha256:779d3e9d4b934f2445d2920c3941416d99af72eb7f7fd57a63576cc8aa540ad6 \
+    --hash=sha256:7c89d2c11a31c7aaa16dc4d25054d7e0e99d6f6b24193cf62c83850484658c87 \
+    --hash=sha256:81f7732b662c46274d7d8c411c905d53e71999cba95457a0686467c3ebc745ca \
+    --hash=sha256:9db1fb8830bfa99c5bfd335d4482c14db5c6f5028db3b006787ef4200206242b \
+    --hash=sha256:bd8d04835db28646d9e07fd0ab7c7b18bd90e89dfdc559e60389179495ef30da \
+    --hash=sha256:fc6822a68afd79e97b015985dd455767c72009b81bcd18957068626c43f11e75 \
+    --hash=sha256:fe6cfc2045931866417740b575231c7e12d69d481643be1493487ad53b089959
 requests==2.22.0 \
     --hash=sha256:11e007a8a2aa0323f5a921e9e6a2d7e4e67d9877e85773fba9ba6419025cbeb4 \
     --hash=sha256:9cf5292fcd0f598c671cfc1e0d7d1a7f13bb8085e9a590f48c010551dc6c4b31
@@ -216,23 +226,21 @@ rfc3987==1.3.8 \
 send2trash==1.5.0 \
     --hash=sha256:60001cc07d707fe247c94f74ca6ac0d3255aabcb930529690897ca2a39db28b2 \
     --hash=sha256:f1691922577b6fa12821234aeb57599d887c4900b9ca537948d2dac34aea888b
-sentry-sdk==0.11.2 \
-    --hash=sha256:528f936118679e9a52dacb96bfefe20acb5d63e0797856c64a582cc3c2bc1f9e \
-    --hash=sha256:b4edcb1296fee107439345d0f8b23432b8732b7e28407f928367d0a4a36301a9
+sentry-sdk==0.12.2 \
+    --hash=sha256:2529ab6f93914d01bcd80b1b16c15a025902350ab19af2033aa5ff797c1600ad \
+    --hash=sha256:ab16b539c40cc18e3dcfec99d0d3fff16337a050eaf79d4503ef2b73af9a7d9e
 six==1.12.0 \
     --hash=sha256:3350809f0555b11f552448330d0b52d5f24c91a322ea4a15ef22629740f3761c \
     --hash=sha256:d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73 \
     # via python-dateutil, tld
-tld==0.9.3 \
-    --hash=sha256:13fce7a3068034504580831b01e2e792c8969aa340c4613b43cd4993069b8415 \
-    --hash=sha256:f766638e4e972445ce18e4dc0fadc0189c0a2a4f7d15e50c3c25d49af9cb1744 \
-    # via pypac
+tld==0.9.6 \
+    --hash=sha256:89a7a403a4a5de1ca7b64550df8a8a2abdfbbd1556e1b8cdfe251c0f90ab2f3a \
+    --hash=sha256:e63acad4f866bc4c724a21a03eb7cf692bc8495cb286ee60d3a45258054bdc02    # via pypac
 https://github.com/GoodRx/universal-analytics-python/archive/77ce628c56de1ba51a9bf0774794fd687f785803.zip \
     --hash=sha256:fa57bd764c9bcf628cb7f289b9aa9a5edeb69714da635bbbcad2a626674b5d7c
-urllib3==1.25.3 \
-    --hash=sha256:b246607a25ac80bedac05c6f282e3cdaf3afb65420fd024ac94435cabe6e18d1 \
-    --hash=sha256:dbe59173209418ae49d485b87d1681aefa36252ee85884c31346debd19463232 \
-    # via requests, sentry-sdk
+urllib3==1.25.6 \
+    --hash=sha256:3de946ffbed6e6746608990594d08faac602528ac7015ac28d33cee6a45b7398 \
+    --hash=sha256:9a107b99a5393caf59c7aa3c1249c16e6879447533d0887f4336dde834c7be86    # via requests, sentry-sdk
 https://github.com/gorakhargosh/watchdog/archive/18bb843ae9fa777a8f214c291a0e201f858bd9a1.zip \
     --hash=sha256:eedcc294942bd9cbc09a0bb8a6c8e7984dfb3ebd1e9d5414054567f95e30838e
 xattr==0.9.6 ; sys_platform != "win32" \
