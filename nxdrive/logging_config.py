@@ -3,6 +3,7 @@
 
 import logging
 import os
+import os.path
 from logging import Formatter
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
 from typing import Any, Generator, List
@@ -86,8 +87,11 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
     def compress_all(self, file: str = "") -> None:
         """Compress all rotated log files."""
         for file in self.find_rotated_files():
-            if not file.endswith(".zip"):
-                self.compress(file)
+            if not file.endswith(".zip") and os.path.isfile(file):
+                try:
+                    self.compress(file)
+                except OSError:
+                    pass
 
     def remove_old_files(self) -> None:
         """Remove old rotated log files. Keeping only *.backupCount* files, removing the oldest ones."""
