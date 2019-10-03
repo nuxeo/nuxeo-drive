@@ -121,15 +121,6 @@ def test_document_not_found(manager_factory):
         assert received
 
 
-def test_handle_url_empty(direct_edit):
-    assert not direct_edit.handle_url(None)
-    assert not direct_edit.handle_url("")
-
-
-def test_handle_url_malformed(direct_edit):
-    assert not direct_edit.handle_url("https://example.org")
-
-
 def test_invalid_credentials(manager_factory):
     """Opening a document without being authenticated is not allowed."""
 

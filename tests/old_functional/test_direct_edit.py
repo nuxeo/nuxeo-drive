@@ -3,15 +3,15 @@ import time
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict
+from unittest.mock import patch
 from urllib.error import URLError
 
 import pytest
 from nuxeo.exceptions import Forbidden
-from unittest.mock import patch
-
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
-from nxdrive.utils import safe_os_filename
+from nxdrive.utils import parse_protocol_url, safe_os_filename
+
 from . import LocalTest, make_tmp_file
 from .common import OneUserTest, TwoUsersTest
 from ..utils import random_png
@@ -65,10 +65,16 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
     ):
         # Download file
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
-            if url is None:
-                self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+            if url:
+                info = parse_protocol_url(url)
+                self.direct_edit.edit(
+                    info["server_url"],
+                    info["doc_id"],
+                    user=info["user"],
+                    download_url=info["download_url"],
+                )
             else:
-                self.direct_edit.handle_url(url)
+                self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             local_path = Path(f"{doc_id}_{safe_os_filename(xpath)}/{filename}")
             assert self.local.exists(local_path)
             self.wait_sync(fail_if_timeout=False)
