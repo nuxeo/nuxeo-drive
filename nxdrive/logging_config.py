@@ -2,10 +2,9 @@
 """ Utilities to log nxdrive operations and failures. """
 
 import logging
-import os
-import os.path
 from logging import Formatter
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
+from pathlib import Path
 from typing import Any, Generator, List
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -63,31 +62,31 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         on Windows with non-latin characters."""
         kwargs["encoding"] = "utf-8"
         super().__init__(*args, **kwargs)
-        self.checkup()
+        self.compress_and_purge()
 
-    def checkup(self) -> None:
-        """Ensure the log files are purged and compressed."""
+    def compress_and_purge(self) -> None:
+        """Ensure the log files are compressed and purged."""
         self.compress_all()
         self.remove_old_files()
 
-    def find_rotated_files(self) -> Generator[str, None, None]:
+    def find_rotated_files(self) -> Generator[Path, None, None]:
         """Find all rotated log files (compressed and raw)."""
-        folder, filename = os.path.split(self.baseFilename)
-        for file in os.listdir(folder):
-            # We want to find a rotated file with e.g. "file.log.2017-04-26" and "file.log.2019-09-25.zip" names
-            if file.startswith(f"{filename}.20"):
-                yield os.path.join(folder, file)
+        path = Path(self.baseFilename)
+        # We want to find rotated files, e.g. "file.log.2017-04-26" and "file.log.2019-09-25.zip" names.
+        for entry in path.parent.glob(f"{path.name}.20*"):
+            if entry.is_file():
+                yield Path(entry)
 
-    def compress(self, file: str) -> None:
+    def compress(self, file: Path) -> None:
         """Compress one rotated log file."""
-        with open(file, "rb") as f, ZipFile(f"{file}.zip", mode="w") as z:
-            z.writestr(os.path.basename(file), f.read(), ZIP_DEFLATED)
-        os.remove(file)
+        with file.open(mode="rb") as f, ZipFile(f"{file}.zip", mode="w") as z:
+            z.writestr(file.name, f.read(), ZIP_DEFLATED)
+        file.unlink()
 
-    def compress_all(self, file: str = "") -> None:
+    def compress_all(self) -> None:
         """Compress all rotated log files."""
         for file in self.find_rotated_files():
-            if not file.endswith(".zip") and os.path.isfile(file):
+            if not file.name.endswith(".zip"):
                 try:
                     self.compress(file)
                 except OSError:
@@ -98,12 +97,12 @@ class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
         count = getattr(self, "backupCount", 30)
         files = sorted(self.find_rotated_files(), reverse=True)
         for number, file in enumerate(files, 1):
-            if number > count and file.endswith(".zip"):
-                os.remove(file)
+            if number > count and file.name.endswith(".zip"):
+                file.unlink()
 
     def doRollover(self) -> None:
         super().doRollover()
-        self.checkup()
+        self.compress_and_purge()
 
 
 def no_trace(level: str) -> str:
