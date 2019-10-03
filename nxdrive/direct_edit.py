@@ -20,7 +20,7 @@ from requests.exceptions import ChunkedEncodingError
 from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
 
-from .client.local_client import LocalClient
+from .client.local import LocalClient
 from .client.remote_client import Remote
 from .constants import CONNECTION_ERROR, DOC_UID_REG, ROOT
 from .engine.activity import tooltip

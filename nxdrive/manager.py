@@ -15,7 +15,7 @@ from PyQt5.sip import SIP_VERSION_STR
 
 from . import __version__
 from .autolocker import ProcessAutoLockerWorker
-from .client.local_client import LocalClient
+from .client.local import LocalClient
 from .client.proxy import get_proxy, load_proxy, save_proxy, validate_proxy
 from .constants import (
     APP_NAME,

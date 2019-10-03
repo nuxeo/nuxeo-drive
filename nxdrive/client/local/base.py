@@ -4,7 +4,6 @@
 import errno
 import os
 import shutil
-import subprocess
 import tempfile
 import unicodedata
 import uuid
@@ -13,17 +12,17 @@ from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from time import mktime, strptime
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Type, Union
 
 from nuxeo.utils import get_digest_algorithm
 
 # from send2trash import send2trash
 # from send2trash.exceptions import TrashPermissionError
 
-from ..constants import LINUX, MAC, ROOT, WINDOWS
-from ..exceptions import DuplicationDisabledError, NotFound, UnknownDigest
-from ..options import Options
-from ..utils import (
+from ...constants import LINUX, MAC, ROOT, WINDOWS
+from ...exceptions import DuplicationDisabledError, NotFound, UnknownDigest
+from ...options import Options
+from ...utils import (
     compute_digest,
     force_decode,
     lock_path,
@@ -36,16 +35,7 @@ from ..utils import (
     unset_path_readonly,
 )
 
-if WINDOWS:
-    import ctypes
-    import win32api
-    import win32con
-    import win32file
-else:
-    import stat
-    import xattr
-
-__all__ = ("FileInfo", "LocalClient")
+__all__ = ("FileInfo", "get")
 
 log = getLogger(__name__)
 
@@ -110,8 +100,8 @@ class FileInfo:
         return compute_digest(self.filepath, digest_func, callback=self.digest_callback)
 
 
-class LocalClient:
-    """ Client API implementation for the local file system. """
+class LocalClientMixin:
+    """The base class for client API implementation for the local file system."""
 
     _case_sensitive = None
 
@@ -176,40 +166,16 @@ class LocalClient:
     def get_root_id(self) -> str:
         return self.get_remote_id(ROOT, name="ndriveroot")
 
-    def _remove_remote_id_windows(self, path: Path, name: str = "ndrive") -> None:
-        path_alt = f"{path}:{name}"
-        try:
-            os.remove(path_alt)
-        except OSError as e:
-            if e.errno != errno.EACCES:
-                raise e
-            unset_path_readonly(path)
-            try:
-                os.remove(path_alt)
-            finally:
-                set_path_readonly(path)
-
-    @staticmethod
-    def _remove_remote_id_unix(path: Path, name: str = "ndrive") -> None:
-        if LINUX:
-            name = f"user.{name}"
-        try:
-            xattr.removexattr(str(path), name)
-        except OSError as exc:
-            # EPROTONOSUPPORT: protocol not supported (xattr)
-            # ENODATA: no data available
-            if exc.errno not in {errno.ENODATA, errno.EPROTONOSUPPORT}:
-                raise exc
+    def remove_remote_id_impl(self, ref: Path, name: str = "ndrive") -> None:
+        """OS specific implementation. Need to be implemented by subclasses."""
+        raise NotImplementedError()
 
     def remove_remote_id(self, ref: Path, name: str = "ndrive") -> None:
         path = self.abspath(ref)
         log.debug(f"Removing xattr {name!r} from {path!r}")
         locker = unlock_path(path, False)
-        func = (
-            self._remove_remote_id_windows if WINDOWS else self._remove_remote_id_unix
-        )
         try:
-            func(path, name=name)
+            self.remove_remote_id_impl(path, name=name)
         except OSError as exc:
             # ENOENT: file does not exist
             # OSError [Errno 93]: Attribute not found
@@ -219,94 +185,14 @@ class LocalClient:
             lock_path(path, locker)
 
     def has_folder_icon(self, ref: Path) -> bool:
-        """Check if the folder icon is set."""
-
-        if LINUX:
-            # To be implementation with https://jira.nuxeo.com/browse/NXDRIVE-1831
-            return True
-        elif MAC:
-            return (self.abspath(ref) / "Icon\r").is_file()
-        else:
-            return (self.abspath(ref) / "desktop.ini").is_file()
+        """Check if the folder icon is set.. Need to be implemented by subclasses."""
+        raise NotImplementedError()
 
     def set_folder_icon(self, ref: Path, icon: Path) -> None:
-        """Create a special file to customize the folder icon."""
-        log.debug(f"Setting the folder icon of {ref!r} using {icon!r}")
-        if LINUX:
-            # To be implementation with https://jira.nuxeo.com/browse/NXDRIVE-1831
-            return
-        elif MAC:
-            self.set_folder_icon_darwin(ref, icon)
-        else:
-            self.set_folder_icon_win32(ref, icon)
-
-    def set_folder_icon_win32(self, ref: Path, icon: Path) -> None:
-        """ Configure the icon for a folder on Windows. """
-
-        # Desktop.ini file content
-        content = f"""
-[.ShellClassInfo]
-IconResource={icon}
-[ViewState]
-Mode=
-Vid=
-FolderType=Generic
-"""
-        # Create the desktop.ini file inside the ReadOnly shared folder.
-        os_path = self.abspath(ref)
-        filename = os_path / "desktop.ini"
-        with suppress(FileNotFoundError):
-            filename.unlink()
-
-        filename.write_text(content, encoding="utf-8")
-
-        win32api.SetFileAttributes(str(filename), win32con.FILE_ATTRIBUTE_SYSTEM)
-        win32api.SetFileAttributes(str(filename), win32con.FILE_ATTRIBUTE_HIDDEN)
-
-        # Windows folder use READ_ONLY flag as a customization flag ...
-        # https://support.microsoft.com/en-us/kb/326549
-        win32api.SetFileAttributes(str(os_path), win32con.FILE_ATTRIBUTE_READONLY)
-
-    @staticmethod
-    def _get_icon_xdata() -> List[int]:
-        entry_size = 32
-        icon_flag_index = 8
-        icon_flag_value = 4
-        result = [0] * entry_size
-        result[icon_flag_index] = icon_flag_value
-        return result
-
-    def set_folder_icon_darwin(self, ref: Path, icon: Path) -> None:
+        """Create a special file to customize the folder icon.
+        Need to be implemented by subclasses.
         """
-        macOS: configure a folder with a given custom icon
-            1. Read the com.apple.ResourceFork extended attribute from the icon file
-            2. Set the com.apple.FinderInfo extended attribute with folder icon flag
-            3. Create a Icon file (name: Icon\r) inside the target folder
-            4. Set extended attributes com.apple.FinderInfo & com.apple.ResourceFork for icon file (name: Icon\r)
-            5. Hide the icon file (name: Icon\r)
-        """
-
-        target_folder = self.abspath(ref)
-
-        # Generate the value for 'com.apple.FinderInfo'
-        has_icon_xdata = bytes(bytearray(self._get_icon_xdata()))
-
-        # Configure 'com.apple.FinderInfo' for the folder
-        xattr.setxattr(str(target_folder), xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
-
-        # Create the 'Icon\r' file
-        meta_file = target_folder / "Icon\r"
-        if meta_file.is_file():
-            meta_file.unlink()
-        meta_file.touch()
-
-        # Configure 'com.apple.FinderInfo' for the Icon file
-        xattr.setxattr(str(meta_file), xattr.XATTR_FINDERINFO_NAME, has_icon_xdata)
-
-        # Configure 'com.apple.ResourceFork' for the Icon file
-        info = icon.read_bytes()
-        xattr.setxattr(str(meta_file), xattr.XATTR_RESOURCEFORK_NAME, info)
-        os.chflags(meta_file, stat.UF_HIDDEN)  # type: ignore
+        raise NotImplementedError()
 
     def set_remote_id(
         self, ref: Path, remote_id: Union[bytes, str], name: str = "ndrive"
@@ -319,53 +205,7 @@ FolderType=Generic
     def set_path_remote_id(
         path: Path, remote_id: Union[bytes, str], name: str = "ndrive"
     ) -> None:
-        if not isinstance(remote_id, bytes):
-            remote_id = unicodedata.normalize("NFC", remote_id).encode("utf-8")
-
-        locker = unlock_path(path, False)
-        if WINDOWS:
-            path_alt = f"{path}:{name}"
-            try:
-                stat_ = path.stat()
-                with open(path_alt, "wb") as f:
-                    f.write(remote_id)
-
-                    # Force write of file to disk
-                    f.flush()
-                    os.fsync(f.fileno())
-
-                # Avoid time modified change
-                os.utime(path, (stat_.st_atime, stat_.st_mtime))
-            except FileNotFoundError:
-                pass
-            except OSError as e:
-                # Should not happen
-                if e.errno != errno.EACCES:
-                    raise e
-                unset_path_readonly(path)
-                with open(path_alt, "wb") as f:
-                    f.write(remote_id)
-
-                    # Force write of file to disk
-                    f.flush()
-                    os.fsync(f.fileno())
-
-                set_path_readonly(path)
-            finally:
-                lock_path(path, locker)
-            return
-
-        if LINUX:
-            name = f"user.{name}"
-
-        try:
-            stat_ = path.stat()
-            xattr.setxattr(str(path), name, remote_id)
-            os.utime(path, (stat_.st_atime, stat_.st_mtime))
-        except FileNotFoundError:
-            pass
-        finally:
-            lock_path(path, locker)
+        raise NotImplementedError()
 
     def get_remote_id(self, ref: Path, name: str = "ndrive") -> str:
         path = self.abspath(ref)
@@ -375,21 +215,7 @@ FolderType=Generic
 
     @staticmethod
     def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
-        if WINDOWS:
-            path_alt = f"{path}:{name}"
-            try:
-                with open(path_alt, "rb") as f:
-                    return f.read().decode("utf-8", errors="ignore")
-            except OSError:
-                return ""
-
-        if LINUX:
-            name = f"user.{name}"
-
-        try:
-            return xattr.getxattr(str(path), name).decode("utf-8", errors="ignore")
-        except OSError:
-            return ""
+        raise NotImplementedError()
 
     def get_info(self, ref: Path, check: bool = True) -> FileInfo:
         if check:
@@ -481,21 +307,6 @@ FolderType=Generic
             Options.ignored_prefixes
         ):
             return True
-
-        if WINDOWS:
-            # NXDRIVE-465: ignore hidden files on Windows
-            ref = parent_ref / file_name
-            path = self.abspath(ref)
-            is_system = win32con.FILE_ATTRIBUTE_SYSTEM
-            is_hidden = win32con.FILE_ATTRIBUTE_HIDDEN
-            try:
-                attrs = win32api.GetFileAttributes(str(path))
-            except win32file.error:
-                return False
-            if attrs & is_system == is_system:
-                return True
-            if attrs & is_hidden == is_hidden:
-                return True
 
         # NXDRIVE-655: need to check every parent if they are ignored
         result = False
@@ -629,6 +440,14 @@ FolderType=Generic
             log.exception("Unhandled error")
         return False
 
+    def set_file_attribute(self, path: Path) -> None:
+        """Set a special attribute (not extended attribute) to a given file.
+        Here we do not raise NotImplementedError because this is only used on Windows.
+        So instead of declaring an no-op method in the GNU/Linux and macOS classs, we
+        just do nothing here by default.
+        """
+        pass
+
     def rename(self, ref: Path, to_name: str) -> FileInfo:
         """ Rename a local file or folder. """
         new_name = safe_os_filename(to_name)
@@ -657,11 +476,7 @@ FolderType=Generic
                 )
             if old_name != new_name:
                 safe_rename(source_os_path, target_os_path)
-            if WINDOWS:
-                # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
-                ctypes.windll.kernel32.SetFileAttributesW(  # type: ignore
-                    str(target_os_path), 128
-                )
+            self.set_file_attribute(target_os_path)
             new_ref = parent / new_name
             return self.get_info(new_ref)
         finally:
@@ -687,6 +502,14 @@ FolderType=Generic
             self.lock_ref(filename, locker & 2, is_abs=True)
             self.lock_ref(parent, locker & 1 | new_locker, is_abs=True)
 
+    def change_created_time(self, filepath: Path, d_ctime: datetime) -> None:
+        """Change the created time of a given file.
+        Here we do not raise NotImplementedError because there is no concept of
+        creation time on GNU/Linux. So instead of declaring an no-op method in
+        the GNU/Linux class, we just do nothing here by default.
+        """
+        pass
+
     def change_file_date(
         self, filepath: Path, mtime: str = None, ctime: str = None
     ) -> None:
@@ -710,25 +533,7 @@ FolderType=Generic
         # The modification time will be updated just after, if needed.
         if ctime:
             d_ctime = datetime.strptime(str(ctime), "%Y-%m-%d %H:%M:%S")
-
-            if MAC:
-                cmd = ["touch", "-mt", d_ctime.strftime("%Y%m%d%H%M.%S"), str(filepath)]
-                subprocess.check_call(cmd)
-            elif WINDOWS:
-                winfile = win32file.CreateFileW(
-                    str(filepath),
-                    win32con.GENERIC_WRITE,
-                    (
-                        win32con.FILE_SHARE_READ
-                        | win32con.FILE_SHARE_WRITE
-                        | win32con.FILE_SHARE_DELETE
-                    ),
-                    None,
-                    win32con.OPEN_EXISTING,
-                    win32con.FILE_ATTRIBUTE_NORMAL,
-                    None,
-                )
-                win32file.SetFileTime(winfile, d_ctime)
+            self.change_created_time(filepath, d_ctime)
 
         if mtime:
             d_mtime = mktime(strptime(str(mtime), "%Y-%m-%d %H:%M:%S"))
@@ -772,3 +577,15 @@ FolderType=Generic
             return os_path, name
 
         raise DuplicationDisabledError("De-duplication is disabled")
+
+
+def get() -> Type[LocalClientMixin]:
+    """Factory to get the appropriate local client class depending of the OS."""
+    if LINUX:
+        from .linux import LocalClient  # type: ignore
+    elif MAC:
+        from .darwin import LocalClient  # type: ignore
+    elif WINDOWS:
+        from .windows import LocalClient  # type: ignore
+
+    return LocalClient

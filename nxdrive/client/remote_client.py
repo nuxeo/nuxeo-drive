@@ -18,7 +18,7 @@ from nuxeo.uploads import Uploader
 from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtWidgets import QApplication
 
-from .local_client import LocalClient
+from .local import LocalClient
 from .proxy import Proxy
 from ..constants import (
     APP_NAME,
