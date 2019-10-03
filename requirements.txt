@@ -130,27 +130,20 @@ pycryptodomex==3.9.0 \
     --hash=sha256:e530b77bdff5c2bf3065e6a088e1602ad193b43e285bac196d4b8820308ec6bb \
     --hash=sha256:f048069aa7b530f1c5e84d55c2b28ca7a7272bb3b8d28829d454a94bec6529a8 \
     --hash=sha256:f6a9271c842e93c349b6007676a62d03dca712c9f4dff66c3270d50504ca9014
-# [macOS] Ignore pyobjc updates until NXDRIVE-1396 is done
-pyobjc-core==4.2.2 ; sys_platform == "darwin" \
-    --hash=sha256:19b98162bb42de01b05bb6c3c32e2c533085ce98799c6451177550416430188a \
-    # pyup: ignore
+pyobjc-core==5.2 ; sys_platform == "darwin" \
+    --hash=sha256:046449f510c1f33d41bdd0d4c8eb2f084593a2ee4573a25d604bdccabb7a909e \
     # via pyobjc-framework-Cocoa
-pyobjc-framework-Cocoa==4.2.2 ; sys_platform == "darwin" \
-    --hash=sha256:d97fd162a60e4dc8384b4fe2cc4916039f3a8b6c8545d9df0ad35c580c1424ea \
-    # pyup: ignore
-pyobjc-framework-FSEvents==4.2.2 ; sys_platform == "darwin" \
-    --hash=sha256:039649dd48dd298fe4437c5dbbc3429a40c87421edb42be89e66181b811f0447 \
-    # pyup: ignore
+pyobjc-framework-Cocoa==5.2 ; sys_platform == "darwin" \
+    --hash=sha256:d72d48cf2e24c2f540a1b1348a880fde87b1f8cb7e1be5e95550a306152d48d0
+pyobjc-framework-CoreServices==5.2 ; sys_platform == "darwin" \
+    --hash=sha256:6faa326afa2a77bdd8ea182d4ae5d5095089d8ec9e1605ce3c82546fe396f986
+pyobjc-framework-FSEvents==5.2 ; sys_platform == "darwin" \
+    --hash=sha256:bf4cf7c8ee0b3f5d5f3842a0c4b1a4148398fd4aac0f6ca5ce967477e289af1b \
     # via watchdog
-pyobjc-framework-LaunchServices==4.2.2 ; sys_platform == "darwin" \
-    --hash=sha256:b5d2288155e8a952d46740f448a92f621953190b88a356ff49c963f20eaee5f1 \
-    # pyup: ignore
-pyobjc-framework-ScriptingBridge==4.2.2 ; sys_platform == "darwin" \
-    --hash=sha256:f6b5a001452dde16affafa47468e3081863c8847b591cb3ca47fbf69318fa590 \
-    # pyup: ignore
-pyobjc-framework-SystemConfiguration==4.2.2 ; sys_platform == "darwin" \
-    --hash=sha256:78ec4adba535b65125328153a82704d734fd070c7a0c4de533367380a0e2ea9d \
-    # pyup: ignore
+pyobjc-framework-ScriptingBridge==5.2 ; sys_platform == "darwin" \
+    --hash=sha256:74c01c439b5ca1a2b9811010d27dda4f4b1e2e76bbf9b9e8a0f5ebaa69d999fe
+pyobjc-framework-SystemConfiguration==5.2 ; sys_platform == "darwin" \
+    --hash=sha256:b301db045b58df0a5052aacaa26e1eed9e19e8f5cd011991937982dc6dcc9f79 \
     # via pypac
 pypac==0.13.0 \
     --hash=sha256:a1eac0e3224939fcc691c8ad815f9cd24d737c8e0cf9c9905a01821bbe8f1414

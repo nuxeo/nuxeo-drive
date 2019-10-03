@@ -2,7 +2,7 @@
 """ Python integration macOS notification center. """
 from typing import Dict, TYPE_CHECKING
 
-from Foundation import (
+from CoreServices import (
     NSBundle,
     NSMutableDictionary,
     NSObject,

@@ -71,11 +71,6 @@ create_package() {
     echo ">>> [package] Creating the DMG file"
     rm -fv ${output_dir}/*.dmg
 
-    # Fix an issue with send2trash (NXDRIVE-1294)
-    pushd "${pkg_path}/Contents/MacOS"
-    ln -sv Foundation/_Foundation.*.so Foundation.dylib
-    popd
-
     prepare_signing
     if [ "${SIGNING_ID:=unset}" != "unset" ]; then
         echo ">>> [sign] Signing the app and its extension"

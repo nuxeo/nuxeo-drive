@@ -73,7 +73,7 @@ class Tracker(Worker):
             )
             l10n = locale.windows_locale[l10n_code]
         elif MAC:
-            from Foundation import NSLocale
+            from CoreServices import NSLocale
 
             l10n_code = NSLocale.currentLocale()
             l10n = NSLocale.localeIdentifier(l10n_code)
