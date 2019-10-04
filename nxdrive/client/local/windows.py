@@ -1,7 +1,7 @@
 # coding: utf-8
 """ API to access local resources for synchronization. """
 
-import ctypes.windll
+import ctypes
 import errno
 import os
 import unicodedata
@@ -14,6 +14,7 @@ from typing import Union
 import win32api
 import win32con
 import win32file
+from send2trash import send2trash
 
 from .base import LocalClientMixin
 from ...constants import ROOT
@@ -185,3 +186,7 @@ FolderType=Generic
             set_path_readonly(path)
         finally:
             lock_path(path, locker)
+
+    def trash(self, path: Path) -> None:
+        """Move a given file or folder to the trash. Untrash is possible then."""
+        send2trash(str(path))

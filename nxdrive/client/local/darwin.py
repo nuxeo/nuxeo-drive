@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List, Union
 
 import xattr
+from AppKit import NSWorkspace, NSWorkspaceRecycleOperation
 
 from .base import LocalClientMixin
 from ...utils import lock_path, unlock_path
@@ -108,3 +109,36 @@ class LocalClient(LocalClientMixin):
             pass
         finally:
             lock_path(path, locker)
+
+    def trash(self, path: Path) -> None:
+        """Move a given file or folder to the trash. Untrash is possible then."""
+        # Using deprecated APIs that still works on Mojave.
+        # See next commented code when it will no more work.
+        parent, files = str(path.parent), [path.name]
+        ws = NSWorkspace.sharedWorkspace()
+        ws.performFileOperation_source_destination_files_tag_(
+            NSWorkspaceRecycleOperation, parent, "", files, None
+        )
+
+        """
+        # Code kept for future usage, when Apple will remove thoses deprecated APIs (or PyObjC)
+        # will need to define:
+        #       self.mac_ver = get_current_os()[1]
+        if version_lt(self.mac_ver, "10.14"):
+            # Before Mojave (that code actually works on Mojave though, but APIs are deprecated)
+            parent, files = str(path.parent),  [path.name]
+            ws = NSWorkspace.sharedWorkspace()
+            ws.performFileOperation_source_destination_files_tag_(
+                NSWorkspaceRecycleOperation, parent, "", files, None
+            )
+        else:
+            # Mojave and newer
+            from AppKit import NSURL
+            from ScriptingBridge import SBApplication
+
+            targetfile = NSURL.fileURLWithPath_(str(path))
+            finder = SBApplication.applicationWithBundleIdentifier_("com.apple.Finder")
+            items = finder.items().objectAtLocation_(targetfile)
+            items.delete()
+            del finder
+        """

@@ -37,10 +37,6 @@ __all__ = ("FileInfo", "get")
 log = getLogger(__name__)
 
 
-# Used by LocalClientMixin.delete_final()
-error = None
-
-
 class FileInfo:
     """ Data Transfer Object for file info on the Local FS. """
 
@@ -381,33 +377,32 @@ class LocalClientMixin:
         log.debug(f"Trashing {os_path!r}")
         locker = self.unlock_ref(os_path, is_abs=True)
         try:
-            # send2trash(str(os_path))
-            # TODO: NXDRIVE-1868
-            pass
-        # except TrashPermissionError:
-        #    log.warning(
-        #        f"Trash not possible, deleting permanently {os_path!r}", exc_info=True
-        #    )
-        #    self.delete_final(ref)
-        except OSError as exc:
-            log.warning(f"Cannot trash {os_path!r}")
-            with suppress(Exception):
-                # WindowsError(None, None, path, retcode)
-                _, _, _, retcode = exc.args
-                exc.winerror = retcode  # type: ignore
-            exc.trash_issue = True  # type: ignore
-            raise exc
+            self.trash(os_path)
+        except OSError:
+            log.warning(
+                f"Trash not possible, deleting permanently {os_path!r}", exc_info=True
+            )
+            try:
+                self.delete_final(ref)
+            except OSError as exc:
+                log.warning(f"Cannot delete {os_path!r}")
+                with suppress(Exception):
+                    # WindowsError(None, None, path, retcode)
+                    _, _, _, retcode = exc.args
+                    exc.winerror = retcode  # type: ignore
+                exc.trash_issue = True  # type: ignore
+                raise exc
         finally:
             # Don't want to unlock the current deleted
             self.lock_ref(os_path, locker & 2, is_abs=True)
 
     def delete_final(self, ref: Path) -> None:
-        global error
+        """Completely remove a given file or folder. Untrash is not possible then."""
         error = None
 
         def onerror(func, path, exc_info):
             """ Assign the error only once. """
-            global error
+            nonlocal error
             if not error:
                 error = exc_info[1]
 
@@ -578,6 +573,10 @@ class LocalClientMixin:
             return os_path, name
 
         raise DuplicationDisabledError("De-duplication is disabled")
+
+    def trash(self, path: Path) -> None:
+        """Move a given file or folder to the trash. Untrash is possible then."""
+        raise NotImplementedError()
 
 
 def get() -> Type[LocalClientMixin]:
