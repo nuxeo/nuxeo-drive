@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Union
 
 import xattr
+from send2trash import send2trash
 
 from .base import LocalClientMixin
 from ...utils import lock_path, unlock_path
@@ -69,3 +70,7 @@ class LocalClient(LocalClientMixin):
             pass
         finally:
             lock_path(path, locker)
+
+    def trash(self, path: Path) -> None:
+        """Move a given file or folder to the trash. Untrash is possible then."""
+        send2trash(str(path))

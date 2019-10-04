@@ -295,6 +295,7 @@ class DarwinIntegration(AbstractOSIntegration):
         entries = [Translator.get(f"CONTEXT_MENU_{i}") for i in range(1, 5)]
         self._send_notification(name, {"entries": entries})
 
+    @if_frozen
     def register_folder_link(self, path: Path) -> None:
         favorites = self._get_favorite_list() or []
         if not favorites:
@@ -316,6 +317,7 @@ class DarwinIntegration(AbstractOSIntegration):
         if item:
             log.info(f"Registered new favorite in Finder for: {path!r}")
 
+    @if_frozen
     def unregister_folder_link(self, path: Path) -> None:
         favorites = self._get_favorite_list()
         if not favorites:
