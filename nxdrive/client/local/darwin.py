@@ -35,6 +35,7 @@ class LocalClient(LocalClientMixin):
 
     @staticmethod
     def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
+        """Get a given extended attribute from a file/folder."""
         try:
             return xattr.getxattr(str(path), name).decode("utf-8", errors="ignore")
         except OSError:
@@ -50,6 +51,7 @@ class LocalClient(LocalClientMixin):
         return result
 
     def remove_remote_id_impl(self, path: Path, name: str = "ndrive") -> None:
+        """Remove a given extended attribute."""
         try:
             xattr.removexattr(str(path), name)
         except OSError as exc:

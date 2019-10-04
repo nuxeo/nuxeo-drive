@@ -54,6 +54,7 @@ class LocalClient(LocalClientMixin):
 
     @staticmethod
     def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
+        """Get a given extended attribute from a file/folder."""
         try:
             with open(f"{path}:{name}", "rb") as f:
                 return f.read().decode("utf-8", errors="ignore")
@@ -98,6 +99,7 @@ class LocalClient(LocalClientMixin):
         return result
 
     def remove_remote_id_impl(self, path: Path, name: str = "ndrive") -> None:
+        """Remove a given extended attribute."""
         path_alt = f"{path}:{name}"
         try:
             os.remove(path_alt)
@@ -111,11 +113,7 @@ class LocalClient(LocalClientMixin):
                 set_path_readonly(path)
 
     def set_file_attribute(self, path: Path) -> None:
-        """Set a special attribute (not extended attribute) to a given file.
-        Here we do not raise NotImplementedError because this is only used on Windows.
-        So instead of declaring an no-op method in the GNU/Linux and macOS classs, we
-        just do nothing here by default.
-        """
+        """Set a special attribute (not extended attribute) to a given file."""
         # 128 = FILE_ATTRIBUTE_NORMAL (a file that does not have other attributes set)
         # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
         ctypes.windll.kernel32.SetFileAttributesW(  # type: ignore

@@ -16,9 +16,6 @@ from typing import Any, List, Optional, Tuple, Type, Union
 
 from nuxeo.utils import get_digest_algorithm
 
-# from send2trash import send2trash
-# from send2trash.exceptions import TrashPermissionError
-
 from ...constants import LINUX, MAC, ROOT, WINDOWS
 from ...exceptions import DuplicationDisabledError, NotFound, UnknownDigest
 from ...options import Options
@@ -39,6 +36,8 @@ __all__ = ("FileInfo", "get")
 
 log = getLogger(__name__)
 
+
+# Used by LocalClientMixin.delete_final()
 error = None
 
 
@@ -103,15 +102,16 @@ class FileInfo:
 class LocalClientMixin:
     """The base class for client API implementation for the local file system."""
 
-    _case_sensitive = None
-
     def __init__(self, base_folder: Path, **kwargs: Any) -> None:
         self._digest_func = kwargs.pop("digest_func", "md5")
+
         # Function to check during long-running processing like digest
         # computation if the synchronization thread needs to be suspended
         self.digest_callback = kwargs.pop("digest_callback", None)
+
         self.base_folder = base_folder.resolve()
 
+        self._case_sensitive: Optional[bool] = None
         self.is_case_sensitive()
 
     def __repr__(self) -> str:
@@ -167,7 +167,7 @@ class LocalClientMixin:
         return self.get_remote_id(ROOT, name="ndriveroot")
 
     def remove_remote_id_impl(self, ref: Path, name: str = "ndrive") -> None:
-        """OS specific implementation. Need to be implemented by subclasses."""
+        """Remove a given extended attribute. Need to be implemented by subclasses."""
         raise NotImplementedError()
 
     def remove_remote_id(self, ref: Path, name: str = "ndrive") -> None:
@@ -185,7 +185,7 @@ class LocalClientMixin:
             lock_path(path, locker)
 
     def has_folder_icon(self, ref: Path) -> bool:
-        """Check if the folder icon is set.. Need to be implemented by subclasses."""
+        """Check if the folder icon is set. Need to be implemented by subclasses."""
         raise NotImplementedError()
 
     def set_folder_icon(self, ref: Path, icon: Path) -> None:
@@ -215,6 +215,7 @@ class LocalClientMixin:
 
     @staticmethod
     def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
+        """Get a given extended attribute from a file/folder. Need to be implemented by subclasses."""
         raise NotImplementedError()
 
     def get_info(self, ref: Path, check: bool = True) -> FileInfo:
