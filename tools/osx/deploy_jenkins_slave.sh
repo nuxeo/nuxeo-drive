@@ -68,9 +68,6 @@ create_package() {
     mkdir "${pkg_path}/Contents/PlugIns"
     mv -fv "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/."
 
-    echo ">>> [package] Creating the DMG file"
-    rm -fv ${output_dir}/*.dmg
-
     prepare_signing
     if [ "${SIGNING_ID:=unset}" != "unset" ]; then
         echo ">>> [sign] Signing the app and its extension"
@@ -94,15 +91,17 @@ create_package() {
         spctl --assess -v "${pkg_path}"
     fi
 
+    echo ">>> [package] Creating the DMG file"
+    # Clean-up
+    rm -fv ${output_dir}/*.dmg
+    rm -rf "${src_folder_tmp}" "${dmg_tmp}"
+    mkdir "${src_folder_tmp}"
+
     echo ">>> [DMG] ${bundle_name} version ${app_version}"
     # Compute DMG name and size
     local dmg_path="${output_dir}/nuxeo-drive-${app_version}.dmg"
     local dmg_size=$(( $(du -sm "${pkg_path}" | cut -d$'\t' -f1,1) + 20 ))
     echo ">>> [DMG ${app_version}] ${dmg_path} (${dmg_size} Mo)"
-
-    # Clean tmp directories
-    rm -rf "${src_folder_tmp}" "${dmg_tmp}"
-    mkdir "${src_folder_tmp}"
 
     echo ">>> [DMG ${app_version}] Preparing the DMG"
     cp -a "${pkg_path}" "${src_folder_tmp}"
