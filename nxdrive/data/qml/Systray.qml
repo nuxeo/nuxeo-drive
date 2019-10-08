@@ -13,6 +13,7 @@ Rectangle {
     }
 
     property bool hasAccounts: EngineModel.count > 0
+    property double startTime: 0.0
 
     signal appUpdate(string version)
     signal getLastFiles(string uid)
@@ -20,9 +21,19 @@ Rectangle {
     signal updateAvailable()
     signal updateProgress(int progress)
 
-    function updateCounts() {
+    function doUpdateCounts() {
         systrayContainer.syncingCount = api.get_syncing_count(accountSelect.getRole("uid"))
         systrayContainer.extraCount = api.get_last_files_count(accountSelect.getRole("uid")) - 10
+    }
+
+    function updateCounts(force) {
+        // Update counts every 2 seconds to go easy on the database
+        var now = new Date().getTime()
+
+        if (now - startTime > 2000) {
+            doUpdateCounts()
+            startTime = new Date().getTime()
+        }
     }
 
     Connections {
@@ -32,12 +43,12 @@ Rectangle {
 
     Connections {
         target: TransferModel
-        onFileChanged: updateCounts()
+        onFileChanged: doUpdateCounts()
     }
 
     Connections {
         target: FileModel
-        onFileChanged: updateCounts()
+        onFileChanged: doUpdateCounts()
     }
 
     Connections {
@@ -52,6 +63,11 @@ Rectangle {
         syncState.state = sync
         errorState.state = error
         updateState.state = update
+
+        // Force the counts update at the end of the sync
+        if (sync == "") {
+            doUpdateCounts()
+        }
     }
 
     onUpdateAvailable: updateState.state = api.get_update_status()
@@ -110,7 +126,7 @@ Rectangle {
                         // When picking an account, refresh the file list.
                         onActivated: {
                             getLastFiles(accountSelect.getRole("uid"))
-                            updateCounts()
+                            doUpdateCounts()
                         }
                     }
 

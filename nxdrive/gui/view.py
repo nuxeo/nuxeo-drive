@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from .application import Application  # noqa
     from ..engine.engine import Engine  # noqa
 
-__all__ = ("FileModel", "LanguageModel")
+__all__ = ("EngineModel", "FileModel", "LanguageModel")
 
 
 class EngineModel(QAbstractListModel):
@@ -166,6 +166,9 @@ class TransferModel(QAbstractListModel):
             self.FINALIZING: b"finalizing",
         }
 
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len(self.transfers)
+
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
 
@@ -173,19 +176,18 @@ class TransferModel(QAbstractListModel):
     def count(self):
         return self.rowCount()
 
-    def rowCount(self, parent: QModelIndex = QModelIndex(), **kwargs: Any) -> int:
-        return len(self.transfers)
-
     def set_transfers(
         self, transfers: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
     ) -> None:
-        self.beginRemoveRows(parent, 0, len(self.transfers) - 1)
+        self.beginRemoveRows(parent, 0, self.rowCount() - 1)
         self.transfers.clear()
         self.endRemoveRows()
+
         self.beginInsertRows(parent, 0, len(transfers) - 1)
         self.transfers.extend(transfers)
-        self.fileChanged.emit()
         self.endInsertRows()
+
+        self.fileChanged.emit()
 
     def get_progress(self, row: Dict[str, Any]) -> str:
         """Return a nicely formatted line to know the transfer progression.
@@ -299,14 +301,20 @@ class FileModel(QAbstractListModel):
     def roleNames(self) -> Dict[int, bytes]:
         return self.names
 
-    def addFiles(
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len(self.files)
+
+    def add_files(
         self, files: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
     ) -> None:
-        count = self.rowCount()
-        self.beginInsertRows(parent, count, count + len(files) - 1)
+        self.beginRemoveRows(parent, 0, self.rowCount() - 1)
+        self.files.clear()
+        self.endRemoveRows()
+
+        self.beginInsertRows(parent, 0, len(files) - 1)
         self.files.extend(files)
-        self.fileChanged.emit()
         self.endInsertRows()
+        self.fileChanged.emit()
 
     def data(self, index: QModelIndex, role: int = NAME) -> Any:
         row = self.files[index.row()]
@@ -325,40 +333,6 @@ class FileModel(QAbstractListModel):
         key = force_decode(self.roleNames()[role])
         self.files[index.row()][key] = value
         self.dataChanged.emit(index, index, [role])
-
-    @pyqtSlot(int, int)
-    def removeRows(
-        self, row: int, count: int, parent: QModelIndex = QModelIndex()
-    ) -> bool:
-        try:
-            self.beginRemoveRows(parent, row, row + count - 1)
-            for _ in range(count):
-                self.files.pop(row)
-            self.fileChanged.emit()
-            self.endRemoveRows()
-            return True
-        except Exception:
-            return False
-
-    def insertRows(
-        self, files: List[Dict[str, Any]], row: int, parent: QModelIndex = QModelIndex()
-    ) -> bool:
-        try:
-            self.beginInsertRows(parent, row, row + len(files) - 1)
-            for f in files[::-1]:
-                self.files.insert(row, f)
-            self.fileChanged.emit()
-            self.endInsertRows()
-            return True
-        except Exception:
-            return False
-
-    def empty(self) -> None:
-        count = self.rowCount()
-        self.removeRows(0, count)
-
-    def rowCount(self, parent: QModelIndex = QModelIndex(), **kwargs: Any) -> int:
-        return len(self.files)
 
     @pyqtProperty("int", notify=fileChanged)
     def count(self) -> int:

@@ -1008,7 +1008,8 @@ class Processor(EngineWorker):
         if pair:
             locker = unlock_path(file_out)
             try:
-                shutil.copy(self.local.abspath(pair.local_path), file_out)
+                # copyfile() is used to prevent metadata copy
+                shutil.copyfile(self.local.abspath(pair.local_path), file_out)
             except FileNotFoundError:
                 # Let's re-download the file
                 pass

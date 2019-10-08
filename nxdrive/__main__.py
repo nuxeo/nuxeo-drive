@@ -122,4 +122,4 @@ def main() -> int:
     return ret
 
 
-sys.exit((main()))
+sys.exit(main())

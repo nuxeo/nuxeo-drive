@@ -5,6 +5,7 @@ import sys
 from logging import getLogger
 from math import sqrt
 from pathlib import Path
+from time import monotonic
 from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 from urllib.parse import unquote
 
@@ -189,6 +190,9 @@ class Application(QApplication):
         # Handle the eventual command via the custom URL scheme
         if Options.protocol_url:
             self._handle_nxdrive_url(Options.protocol_url)
+
+        # Timer used to refresh the files list in the systray menu, see .refresh_files()
+        self._last_refresh_view = 0.0
 
     @if_frozen
     def add_qml_import_path(self, view: QQuickView) -> None:
@@ -606,13 +610,9 @@ class Application(QApplication):
 
     def refresh_conflicts(self, uid: str) -> None:
         """ Update the content of the conflicts/errors window. """
-        self.conflicts_model.empty()
-        self.errors_model.empty()
-        self.ignoreds_model.empty()
-
-        self.conflicts_model.addFiles(self.api.get_conflicts(uid))
-        self.errors_model.addFiles(self.api.get_errors(uid))
-        self.ignoreds_model.addFiles(self.api.get_unsynchronizeds(uid))
+        self.conflicts_model.add_files(self.api.get_conflicts(uid))
+        self.errors_model.add_files(self.api.get_errors(uid))
+        self.ignoreds_model.add_files(self.api.get_unsynchronizeds(uid))
 
     @pyqtSlot(object)
     def show_conflicts_resolution(self, engine: Engine) -> None:
@@ -782,6 +782,7 @@ class Application(QApplication):
     def _connect_engine(self, engine: Engine) -> None:
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
+        engine.syncCompleted.connect(self.force_refresh_files)
         engine.invalidAuthentication.connect(self.change_systray_icon)
         engine.syncSuspended.connect(self.change_systray_icon)
         engine.syncResumed.connect(self.change_systray_icon)
@@ -1383,22 +1384,26 @@ class Application(QApplication):
         transfers = self.api.get_transfers()
         if transfers != self.transfer_model.transfers:
             self.transfer_model.set_transfers(transfers)
-            self.transfer_model.fileChanged.emit()
+
+    @pyqtSlot()
+    def force_refresh_files(self) -> None:
+        """Force a refreshing of the files list."""
+        self._last_refresh_view = 0.0
+        self.refresh_files({})
 
     @pyqtSlot(object)
     def refresh_files(self, metrics: Dict[str, Any]) -> None:
-        engine = self.sender()
-        if not isinstance(engine, Engine):
-            return
-        self.get_last_files(engine.uid)
+        """Refresh the files list every second to go easy on the QML side and prevent GUI lags."""
+        if monotonic() - self._last_refresh_view > 1.0:
+            engine = self.sender()
+            self.get_last_files(engine.uid)
+            self._last_refresh_view = monotonic()
 
     @pyqtSlot(str)
     def get_last_files(self, uid: str) -> None:
         files = self.api.get_last_files(uid, 10)
         if files != self.file_model.files:
-            self.file_model.empty()
-            self.file_model.addFiles(files)
-            self.file_model.fileChanged.emit()
+            self.file_model.add_files(files)
 
     def current_language(self) -> Optional[str]:
         lang = Translator.locale()
