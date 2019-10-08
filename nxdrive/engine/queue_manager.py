@@ -340,6 +340,7 @@ class QueueManager(QObject):
         with self._thread_inspection:
             for thread in self._processors_pool:
                 if thread.isFinished():
+                    thread.quit()
                     self._processors_pool.remove(thread)
             if (
                 self._local_folder_thread is not None

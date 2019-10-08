@@ -714,11 +714,10 @@ class Engine(QObject):
 
     def _thread_finished(self) -> None:
         for thread in self._threads:
-            if thread == self._local_watcher.thread:
-                continue
-            if thread == self._remote_watcher.thread:
+            if thread in (self._local_watcher.thread, self._remote_watcher.thread):
                 continue
             if thread.isFinished():
+                thread.quit()
                 self._threads.remove(thread)
 
     def is_started(self) -> bool:
