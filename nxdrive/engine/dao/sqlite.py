@@ -18,7 +18,17 @@ from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from threading import RLock, local
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    TYPE_CHECKING,
+)
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -1949,11 +1959,11 @@ class EngineDAO(ConfigurationDAO):
             self._filters = self.get_filters()
             self.get_syncing_count()
 
-    def get_downloads(self) -> List[Download]:
+    def get_downloads(self) -> Generator[Download, None, None]:
         con = self._get_read_connection()
         c = con.cursor()
-        return [
-            Download(
+        for res in c.execute("SELECT * FROM Downloads"):
+            yield Download(
                 res.uid,
                 Path(res.path),
                 TransferStatus(res.status),
@@ -1965,14 +1975,12 @@ class EngineDAO(ConfigurationDAO):
                 tmpname=res.tmpname,
                 url=res.url,
             )
-            for res in c.execute("SELECT * FROM Downloads").fetchall()
-        ]
 
-    def get_uploads(self) -> List[Upload]:
+    def get_uploads(self) -> Generator[Upload, None, None]:
         con = self._get_read_connection()
         c = con.cursor()
-        return [
-            Upload(
+        for res in c.execute("SELECT * FROM Uploads"):
+            yield Upload(
                 res.uid,
                 Path(res.path),
                 TransferStatus(res.status),
@@ -1984,8 +1992,6 @@ class EngineDAO(ConfigurationDAO):
                 idx=res.idx,
                 chunk_size=res.chunk_size,
             )
-            for res in c.execute("SELECT * FROM Uploads").fetchall()
-        ]
 
     def get_downloads_with_status(self, status: TransferStatus) -> List[Download]:
         return [d for d in self.get_downloads() if d.status == status]

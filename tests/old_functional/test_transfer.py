@@ -41,7 +41,7 @@ class TestDownload(OneUserTest):
                     - raise DownloadPaused(download.uid)
             """
             # Ensure we have 1 ongoing download
-            downloads = dao.get_downloads()
+            downloads = list(dao.get_downloads())
             assert downloads
             download = downloads[0]
             assert download.status == TransferStatus.ONGOING
@@ -75,7 +75,7 @@ class TestDownload(OneUserTest):
         ).uid.split("#")[-1]
 
         # There is no download, right now
-        assert not dao.get_downloads()
+        assert not list(dao.get_downloads())
 
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():
@@ -83,9 +83,9 @@ class TestDownload(OneUserTest):
             assert dao.get_downloads_with_status(TransferStatus.PAUSED)
 
         # Resume the download
-        engine.resume_transfer("download", dao.get_downloads()[0].uid)
+        engine.resume_transfer("download", list(dao.get_downloads())[0].uid)
         self.wait_sync(wait_for_async=True)
-        assert not dao.get_downloads()
+        assert not list(dao.get_downloads())
 
     def test_pause_download_automatically(self):
         """
@@ -96,7 +96,7 @@ class TestDownload(OneUserTest):
         def callback(*_, **__):
             """This will mimic what is done in SystrayMenu.qml: suspend the app."""
             # Ensure we have 1 ongoing download
-            downloads = dao.get_downloads()
+            downloads = list(dao.get_downloads())
             assert downloads
             download = downloads[0]
             assert download.status == TransferStatus.ONGOING
@@ -120,7 +120,7 @@ class TestDownload(OneUserTest):
         )
 
         # There is no download, right now
-        assert not dao.get_downloads()
+        assert not list(dao.get_downloads())
 
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():
@@ -130,7 +130,7 @@ class TestDownload(OneUserTest):
         # Resume the download
         self.manager_1.resume()
         self.wait_sync(wait_for_async=True)
-        assert not dao.get_downloads()
+        assert not list(dao.get_downloads())
 
     def test_modifying_paused_download(self):
         """Modifying a paused download should discard the current download."""
@@ -142,7 +142,7 @@ class TestDownload(OneUserTest):
 
             if count == 1:
                 # Ensure we have 1 ongoing download
-                downloads = dao.get_downloads()
+                downloads = list(dao.get_downloads())
                 assert downloads
                 download = downloads[0]
                 assert download.status == TransferStatus.ONGOING
@@ -171,7 +171,7 @@ class TestDownload(OneUserTest):
         )
 
         # There is no download, right now
-        assert not dao.get_downloads()
+        assert not list(dao.get_downloads())
 
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():
@@ -179,7 +179,7 @@ class TestDownload(OneUserTest):
 
         # Resync and check the local content is correct
         self.wait_sync(wait_for_async=True)
-        assert not dao.get_downloads()
+        assert not list(dao.get_downloads())
         assert self.local_1.get_content("/test.bin") == b"remotely changed"
 
     def test_deleting_paused_download(self):
@@ -188,7 +188,7 @@ class TestDownload(OneUserTest):
         def callback(*_, **__):
             """Pause the download and delete the document."""
             # Ensure we have 1 ongoing download
-            downloads = dao.get_downloads()
+            downloads = list(dao.get_downloads())
             assert downloads
             download = downloads[0]
             assert download.status == TransferStatus.ONGOING
@@ -216,7 +216,7 @@ class TestDownload(OneUserTest):
         )
 
         # There is no download, right now
-        assert not dao.get_downloads()
+        assert not list(dao.get_downloads())
 
         with patch.object(engine.remote, "download_callback", new=callback):
             with ensure_no_exception():
@@ -224,7 +224,7 @@ class TestDownload(OneUserTest):
 
         # Resync and check the file does not exist
         self.wait_sync(wait_for_async=True)
-        assert not dao.get_downloads()
+        assert not list(dao.get_downloads())
         assert not self.local_1.exists("/test.bin")
 
 
@@ -257,7 +257,7 @@ class TestUpload(OneUserTest):
             Then the upload will be paused in Remote.upload().
             """
             # Ensure we have 1 ongoing upload
-            uploads = dao.get_uploads()
+            uploads = list(dao.get_uploads())
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
@@ -272,7 +272,7 @@ class TestUpload(OneUserTest):
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
 
         # There is no upload, right now
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
@@ -280,9 +280,9 @@ class TestUpload(OneUserTest):
             assert dao.get_uploads_with_status(TransferStatus.PAUSED)
 
         # Resume the upload
-        engine.resume_transfer("upload", dao.get_uploads()[0].uid)
+        engine.resume_transfer("upload", list(dao.get_uploads())[0].uid)
         self.wait_sync()
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
 
     def test_pause_upload_automatically(self):
         """
@@ -293,7 +293,7 @@ class TestUpload(OneUserTest):
         def callback(*_):
             """This will mimic what is done in SystrayMenu.qml: suspend the app."""
             # Ensure we have 1 ongoing upload
-            uploads = dao.get_uploads()
+            uploads = list(dao.get_uploads())
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
@@ -308,7 +308,7 @@ class TestUpload(OneUserTest):
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
 
         # There is no upload, right now
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
@@ -318,7 +318,7 @@ class TestUpload(OneUserTest):
         # Resume the upload
         self.manager_1.resume()
         self.wait_sync()
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
 
     def test_modifying_paused_upload(self):
         """Modifying a paused upload should discard the current upload."""
@@ -326,7 +326,7 @@ class TestUpload(OneUserTest):
         def callback(*_):
             """Pause the upload and apply changes to the document."""
             # Ensure we have 1 ongoing upload
-            uploads = dao.get_uploads()
+            uploads = list(dao.get_uploads())
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
@@ -345,7 +345,7 @@ class TestUpload(OneUserTest):
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
 
         # There is no upload, right now
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
@@ -353,7 +353,7 @@ class TestUpload(OneUserTest):
 
         # Resync and check the local content is correct
         self.wait_sync()
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
         assert self.local_1.get_content("/test.bin") == b"locally changed"
 
     @not_windows(
@@ -365,7 +365,7 @@ class TestUpload(OneUserTest):
         def callback(*_):
             """Pause the upload and delete the document."""
             # Ensure we have 1 ongoing upload
-            uploads = dao.get_uploads()
+            uploads = list(dao.get_uploads())
             assert uploads
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
@@ -387,7 +387,7 @@ class TestUpload(OneUserTest):
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
 
         # There is no upload, right now
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
@@ -395,7 +395,7 @@ class TestUpload(OneUserTest):
 
         # Resync and check the file does not exist
         self.wait_sync()
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
         assert not self.remote_1.exists("/test.bin")
 
     def test_not_server_error_upload(self):
@@ -412,14 +412,14 @@ class TestUpload(OneUserTest):
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
 
         # There is no upload, right now
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
 
         with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
             with ensure_no_exception():
                 self.wait_sync()
 
                 # There should be 1 upload with DONE transfer status
-                uploads = dao.get_uploads()
+                uploads = list(dao.get_uploads())
                 assert len(uploads) == 1
                 upload = uploads[0]
                 assert upload.status == TransferStatus.DONE
@@ -436,7 +436,7 @@ class TestUpload(OneUserTest):
 
         # Resync and check the file exist
         self.wait_sync()
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
         assert self.remote_1.exists("/test.bin")
 
     def test_server_error_but_upload_ok(self):
@@ -453,7 +453,7 @@ class TestUpload(OneUserTest):
             assert self.remote_1.exists(f"/{file}")
 
             # There should be 1 upload with ONGOING transfer status
-            uploads = dao.get_uploads()
+            uploads = list(dao.get_uploads())
             assert len(uploads) == 1
             upload = uploads[0]
             assert upload.status == TransferStatus.ONGOING
@@ -473,7 +473,7 @@ class TestUpload(OneUserTest):
         self.local_1.make_file("/", file, content=b"0" * FILE_BUFFER_SIZE * 2)
 
         # There is no upload, right now
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
 
         with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
             with ensure_no_exception():
@@ -481,11 +481,11 @@ class TestUpload(OneUserTest):
 
                 # There should be no upload as the Processor has checked the file existence
                 # on the server and so deleted the upload from the database
-                assert not dao.get_uploads()
+                assert not list(dao.get_uploads())
 
         # Resync and check the file still exists
         self.wait_sync()
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
         assert self.remote_1.exists(f"/{file}")
         assert not dao.get_errors(limit=0)
 
@@ -503,14 +503,14 @@ class TestUpload(OneUserTest):
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 2)
 
         # There is no upload, right now
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
 
         with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
             with ensure_no_exception():
                 self.wait_sync()
 
                 # There should be 1 upload with DONE transfer status
-                uploads = dao.get_uploads()
+                uploads = list(dao.get_uploads())
                 assert len(uploads) == 1
                 upload = uploads[0]
                 assert upload.status == TransferStatus.DONE
@@ -520,7 +520,7 @@ class TestUpload(OneUserTest):
 
         # Resync and check the file exists
         self.wait_sync()
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
         assert self.remote_1.exists("/test.bin")
 
     def test_chunk_upload_error(self):
@@ -544,14 +544,14 @@ class TestUpload(OneUserTest):
         self.local_1.make_file("/", "test.bin", content=b"0" * FILE_BUFFER_SIZE * 4)
 
         # There is no upload, right now
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
 
         with patch.object(engine, "remote", new=bad_remote):
             with ensure_no_exception():
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status
-                uploads = dao.get_uploads()
+                uploads = list(dao.get_uploads())
                 assert len(uploads) == 1
                 upload = uploads[0]
                 assert upload.status == TransferStatus.ONGOING
@@ -561,5 +561,5 @@ class TestUpload(OneUserTest):
 
         # Resync and check the file exists
         self.wait_sync()
-        assert not dao.get_uploads()
+        assert not list(dao.get_uploads())
         assert self.remote_1.exists("/test.bin")

@@ -295,16 +295,17 @@ class Remote(Nuxeo):
             )
             self.dao.save_download(download)
 
-        action = DownloadAction(
-            file_path, tmppath=file_out, reporter=QApplication.instance()
-        )
-        action.size = size
-        action.progress = downloaded
-        log.debug(
-            f"Download progression is {action.get_percent():.2f}% "
-            f"(data length is {sizeof_fmt(size)}, "
-            f"chunked is {chunked}, chunk size is {sizeof_fmt(FILE_BUFFER_SIZE)})"
-        )
+        if chunked:
+            action = DownloadAction(
+                file_path, tmppath=file_out, reporter=QApplication.instance()
+            )
+            action.size = size
+            action.progress = downloaded
+            log.debug(
+                f"Download progression is {action.get_percent():.2f}% "
+                f"(data length is {sizeof_fmt(size)}, "
+                f"chunked is {chunked}, chunk size is {sizeof_fmt(FILE_BUFFER_SIZE)})"
+            )
 
         locker = unlock_path(file_out)
         try:
@@ -321,22 +322,23 @@ class Remote(Nuxeo):
                     chunk_size=FILE_BUFFER_SIZE,
                     callback=callback,
                 )
-            else:
-                view = memoryview(resp.content)
-                with file_out.open(mode="wb") as f:
-                    f.write(view)
 
+                self.check_integrity(digest, action)
+            else:
+                with memoryview(resp.content) as view, file_out.open(mode="wb") as f:
+                    f.write(view)
                     # Force write of file to disk
                     f.flush()
                     os.fsync(f.fileno())
 
-            self.check_integrity(digest, action)
+                self.check_integrity_simple(digest, file_out)
 
             # Download finished!
             download.status = TransferStatus.DONE
             self.dao.set_transfer_status("download", download)
         finally:
-            DownloadAction.finish_action()
+            if chunked:
+                DownloadAction.finish_action()
             lock_path(file_out, locker)
             del resp
 
@@ -344,8 +346,7 @@ class Remote(Nuxeo):
 
     def check_integrity(self, digest: str, download_action: DownloadAction) -> None:
         """
-        Check the integrity of a downloaded file.
-
+        Check the integrity of a downloaded chunked file.
         Update the progress of the verification during the computation of the digest.
         """
         digester = get_digest_algorithm(digest)
@@ -370,6 +371,13 @@ class Remote(Nuxeo):
                 raise CorruptedFile(filepath, digest, computed_digest)
         finally:
             VerificationAction.finish_action()
+
+    def check_integrity_simple(self, digest: str, file: Path) -> None:
+        """Check the integrity of a relatively small downloaded file."""
+        digester = get_digest_algorithm(digest)
+        computed_digest = compute_digest(file, digester)
+        if digest != computed_digest:
+            raise CorruptedFile(file, digest, computed_digest)
 
     def upload(
         self,

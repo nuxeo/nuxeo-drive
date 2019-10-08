@@ -184,13 +184,19 @@ class QMLDriveApi(QObject):
     @pyqtSlot(result=list)
     def get_transfers(self) -> List[Dict[str, Any]]:
         result: List[Dict[str, Any]] = []
+        limit = 5  # 10 files are displayed in the systray, so take 5 of each kind
 
         for engine in self._manager.engines.values():
             dao = engine.dao
-            for download in dao.get_downloads():
+            for count, download in enumerate(dao.get_downloads()):
+                if count >= limit:
+                    break
                 result.append(asdict(download))
-            for upload in dao.get_uploads():
+            for count, upload in enumerate(dao.get_uploads()):
+                if count >= limit:
+                    break
                 result.append(asdict(upload))
+
         return result
 
     @pyqtSlot(str, str, int, float)

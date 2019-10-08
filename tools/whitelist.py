@@ -23,7 +23,6 @@ FolderTreeview.resizeEvent  # Internal use of PyQt
 install_addons  # Used in QML
 getTag  # Used in QML
 getName  # Internal use of QML
-insertRows  # Internal use of QML
 Manager.set_light_icons  # Used in QML
 MetaOptions.mock  # Used in tests
 nameRoles  # Internal use of QML
