@@ -56,7 +56,7 @@ class LocalWatcher(EngineWorker):
     fileAlreadyExists = pyqtSignal(Path, Path)
 
     def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
-        super().__init__(engine, dao)
+        super().__init__(engine, dao, name="LocalWatcher")
         self.lock = Lock()
         self._event_handler: Optional[DriveFSEventHandler] = None
         # Delay for the scheduled recursive scans of
