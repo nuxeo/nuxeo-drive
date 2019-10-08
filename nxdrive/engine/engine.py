@@ -107,7 +107,7 @@ class Engine(QObject):
         manager: "Manager",
         definition: EngineDef,
         binder: Binder = None,
-        processors: int = 5,
+        processors: int = 10,
         remote_cls: Type[Remote] = Remote,
         local_cls: Type[LocalClientMixin] = LocalClient,
     ) -> None:
