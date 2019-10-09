@@ -21,8 +21,8 @@ properties([
 ])
 
 // Jenkins agents we will build on
-//   We are using TWANG because it is the oldest macOS version we support (10.11).
-//   The macOS installer needs to be built on that version to support 10.11+ because
+//   We are using TWANG because it is the oldest macOS version we support (10.12).
+//   The macOS installer needs to be built on that version to support 10.12+ because
 //   PyInstaller is not retro-compatible: if we would build on 10.13, the minimum
 //   supported macOS version would become 10.13.
 //
