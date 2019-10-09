@@ -28,7 +28,7 @@ History:
 Officially supported platform vendors and versions:
 
 - GNU/Linux, 64 bits
-- macOS >= 10.11, 64 bits
+- macOS >= 10.12, 64 bits
 - Windows 7, both 32 and 64 bits
 - Windows 8, both 32 and 64 bits
 - Windows 8.1, both 32 and 64 bits
@@ -36,6 +36,7 @@ Officially supported platform vendors and versions:
 
 History:
 
+- `2019-10-xx` (v4.2.1): dropped support for macOS 10.11
 - `2019-09-26` (v4.2.0): added support for GNU/Linux
 - `2018-06-11` (v3.1.1): dropped support for macOS 10.10
 - `2018-02-23` (v3.0.5): dropped support for macOS 10.4 - 10.9
