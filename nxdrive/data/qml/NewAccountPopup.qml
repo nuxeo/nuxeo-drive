@@ -1,6 +1,6 @@
-import QtQuick 2.10
+import QtQuick 2.13
 import QtQuick.Dialogs 1.3
-import QtQuick.Layouts 1.3
+import QtQuick.Layouts 1.13
 import "icon-font/Icon.js" as MdiFont
 
 NuxeoPopup {

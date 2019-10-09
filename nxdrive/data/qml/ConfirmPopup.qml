@@ -1,5 +1,5 @@
-import QtQuick 2.10
-import QtQuick.Layouts 1.3
+import QtQuick 2.13
+import QtQuick.Layouts 1.13
 
 NuxeoPopup {
     id: control

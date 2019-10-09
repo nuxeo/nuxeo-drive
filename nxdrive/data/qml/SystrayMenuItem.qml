@@ -1,5 +1,5 @@
-import QtQuick 2.10
-import QtQuick.Controls 2.3
+import QtQuick 2.13
+import QtQuick.Controls 2.13
 
 Rectangle {
     id: control
@@ -15,7 +15,7 @@ Rectangle {
         id: itemText
         text: control.text
         pointSize: control.size
-        
+
         padding: 10
         height: parent.height
         elide: Text.ElideRight

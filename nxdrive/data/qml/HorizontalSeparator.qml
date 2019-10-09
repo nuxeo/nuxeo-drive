@@ -1,4 +1,4 @@
-import QtQuick 2.10
+import QtQuick 2.13
 
 Rectangle {
     property real factor: 1.0
