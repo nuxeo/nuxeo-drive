@@ -1,4 +1,4 @@
-import QtQuick 2.10
+import QtQuick 2.13
 import "icon-font/Icon.js" as MdiFont
 
 IconLabel {
