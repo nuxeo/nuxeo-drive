@@ -90,8 +90,10 @@ for (x in agents) {
                                     branch = branch.replace('refs/tags/', 'wip-')
                                 }
 
-                                def image = docker.image('nuxeo-drive-build:py-3.7.4')  // XXX_PYTHON
-                                image.inside() { sh "/entrypoint.sh" }
+                                docker.withRegistry('https://dockerpriv.nuxeo.com/') {
+                                    def image = docker.image('nuxeo-drive-build:py-3.7.4')  // XXX_PYTHON
+                                    image.inside() { sh "/entrypoint.sh" }
+                                }
                                 sh 'tools/linux/deploy_jenkins_slave.sh --check'
                                 archiveArtifacts artifacts: 'dist/*.AppImage', fingerprint: true
                             } else if (osi == 'macOS') {
