@@ -16,7 +16,7 @@ def create_symlink(folder: Path) -> None:
     # PyQt5/Qt/qml/QtQml/Models.2
     root = str(sibbling).partition("Contents")[2].lstrip("/")
     # ../../../../
-    backward = "../" * len(root.split("/"))
+    backward = "../" * (root.count("/") + 1)
     # ../../../../Resources/PyQt5/Qt/qml/QtQml/Models.2
     good_path = f"{backward}Resources/{root}"
 
@@ -47,7 +47,7 @@ def fix_dll(dll: Path) -> None:
     # Resources/PyQt5/Qt/qml/QtQuick/Controls.2/Fusion
     root = str(dll.parent).partition("Contents")[2][1:]
     # /../../../../../../..
-    backward = "/.." * len(root.split("/"))
+    backward = "/.." * (root.count("/") + 1)
     # /../../../../../../../MacOS
     good_path = f"{backward}/MacOS"
 
@@ -68,7 +68,7 @@ def find_problematic_folders(folder: Path) -> Generator[Path, None, None]:
         if not path.is_dir() or path.is_symlink():
             # Skip simlinks as they are allowed (even with a dot)
             continue
-        if "." in path.name:
+        if "qml" == path.name:
             yield path
         else:
             yield from find_problematic_folders(path)
@@ -114,9 +114,9 @@ def main(args: List[str]) -> int:
         for folder in find_problematic_folders(path):
             for file in move_contents_to_resources(folder):
                 fix_dll(file)
+                print(f" !! Fixed DLL {str(file)!r}")
             shutil.rmtree(folder)
             create_symlink(folder)
-            print(f" !! Fixed {folder}")
         print(f">>> [{name}] Application fixed.")
     return 0
 
