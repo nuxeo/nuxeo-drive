@@ -81,6 +81,7 @@ class ContentLoaderMixin(QRunnable):
         for child in self.sort_children(children):
             subitem = self.new_subitem(child)
             if child.folderish() and child.selectable():
+                # Add a placeholder subitem to subitmen to show a loading message
                 self.add_loading_subitem(subitem)
             self.item.appendRow(subitem)
 
