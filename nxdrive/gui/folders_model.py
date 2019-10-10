@@ -121,15 +121,18 @@ class FilteredDoc(FileInfo):
     """A document. Used by the filters feature."""
 
     def __init__(
-        self, fs_info: RemoteFileInfo, state: int, parent: "Documents" = None
+        self, fs_info: RemoteFileInfo, state: Qt.CheckState, parent: "Documents" = None
     ) -> None:
         super().__init__(parent=parent)
 
-        # Handle the document's state
-        self.state = parent.state if parent else state  # type: ignore
-        self.old_state = state
-
         self.fs_info = fs_info
+
+        # Handle the document's state
+        if parent and parent.is_dirty():  # type: ignore
+            self.state: Qt.CheckState = parent.state  # type: ignore
+            self.old_state = state
+        else:
+            self.old_state = self.state = state
 
     def __repr__(self) -> str:
         return (
@@ -161,9 +164,9 @@ class FilteredDoc(FileInfo):
 class FilteredDocuments:
     """Display all documents (files and folders) of all sync roots. Used by the filters feature."""
 
-    def __init__(self, remote: Remote, filters: Filters = None) -> None:
+    def __init__(self, remote: Remote, filters: Filters) -> None:
         self.remote = remote
-        self.filters = filters or []
+        self.filters = tuple(filters)
         self.roots: List["Documents"] = []
 
     def get_item_state(self, path: str) -> int:
@@ -171,13 +174,14 @@ class FilteredDocuments:
         if not path.endswith("/"):
             path += "/"
 
-        if any(path.startswith(filter_path) for filter_path in self.filters):
+        if path.startswith(self.filters):
+            # The document is filtered
             return Qt.Unchecked
-
-        # Find partial checked
-        if any(filter_path.startswith(path) for filter_path in self.filters):
+        elif any(filter_path.startswith(path) for filter_path in self.filters):
+            # The document has a child that is filtered
             return Qt.PartiallyChecked
 
+        # The document is not filtered at all
         return Qt.Checked
 
     def get_top_documents(self) -> Iterator["Documents"]:
