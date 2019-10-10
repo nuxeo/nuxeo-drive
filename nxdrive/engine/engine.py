@@ -10,6 +10,7 @@ from time import sleep
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 from urllib.parse import urlsplit
 
+import requests
 from dataclasses import dataclass
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
@@ -946,26 +947,22 @@ class Engine(QObject):
         if self.server_url.startswith("https"):
             return
 
+        url = self.server_url.replace("http://", "https://")
         try:
-            url = self.server_url.replace("http://", "https://")
             proxies = self.manager.proxy.settings(url=url)
-            import requests
-
             requests.get(url, proxies=proxies)
-            self.server_url = url
-            self.dao.update_config("server_url", self.server_url)
-            log.info(f"Updated server url to {self.server_url}")
         except Exception:
             # No need to log the whole exception when using a development environment
-            devenv = self.hostname in (
-                "127.0.0.1",
-                "localhost",
-            ) or self.hostname.startswith("192.168.")
+            devenv = self.hostname.startswith(("127.0.0.1", "localhost", "192.168."))
             log.warning(
-                f"Server at {self.server_url} doesn't seem to handle HTTPS, keeping HTTP."
-                " For information, this is the encountered SSL error:",
+                f"Server at {self.server_url!r} doesn't seem to handle HTTPS, keeping HTTP."
+                " For information, this is the encountered SSL error",
                 exc_info=not devenv,
             )
+        else:
+            self.server_url = url
+            self.dao.update_config("server_url", self.server_url)
+            log.info(f"Updated server URL to {self.server_url!r}")
 
     def _check_root(self) -> None:
         root = self.dao.get_state_from_local(ROOT)
