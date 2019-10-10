@@ -66,7 +66,7 @@ create_package() {
     build_extension
     echo ">>> [package] Adding the extension to the package"
     mkdir "${pkg_path}/Contents/PlugIns"
-    mv -fv "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/."
+    mv -fv "${WORKSPACE_DRIVE}/NuxeoFinderSync.appex" "${pkg_path}/Contents/PlugIns/"
 
     prepare_signing
     if [ "${SIGNING_ID:=unset}" != "unset" ]; then
