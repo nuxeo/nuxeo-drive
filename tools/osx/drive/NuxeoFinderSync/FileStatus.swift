@@ -3,7 +3,11 @@
 //  NuxeoFinderSync
 //
 //  Created by Léa Klein on 26/03/2018.
-//  Copyright © 2018 Nuxeo. All rights reserved.
+//
+//  Contributors:
+//      Mickaël Schoentgen
+//
+//  Copyright © 2018-2019 Nuxeo. All rights reserved.
 //
 
 import Foundation
@@ -163,7 +167,7 @@ class FileStatus {
 
     func run(_ returnVal: Int32, error: SQLiteError) throws {
         if !(returnVal == SQLITE_OK || returnVal == SQLITE_DONE) {
-            let errmsg = String(cString: sqlite3_errmsg(db)!)
+            //let errmsg = String(cString: sqlite3_errmsg(db)!)
             //NSLog("\(error): \(errmsg)")
             throw error
         }

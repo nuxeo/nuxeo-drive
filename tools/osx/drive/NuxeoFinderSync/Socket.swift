@@ -3,7 +3,11 @@
 //  NuxeoFinderSync
 //
 //  Created by Léa Klein on 12/04/2018.
-//  Copyright © 2018 Nuxeo. All rights reserved.
+//
+//  Contributors:
+//      Mickaël Schoentgen
+//
+//  Copyright © 2018-2019 Nuxeo. All rights reserved.
 //
 import Foundation
 
@@ -75,7 +79,7 @@ class Socket : NSObject, StreamDelegate {
     }
 
     func send(_ content: Data) {
-        content.withUnsafeBytes {
+        _ = content.withUnsafeBytes {
             outputStream?.write($0, maxLength: content.count)
         }
     }
