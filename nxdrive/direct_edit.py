@@ -621,6 +621,15 @@ class DirectEdit(Worker):
             except Empty:
                 break
 
+            os_path = self.local.abspath(ref)
+
+            if os_path.is_dir():
+                # The upload file is a folder?!
+                # It *may* happen when the user DirectEdit'ed a ZIP file,
+                # the OS opened it and automatically decompressed it in-place.
+                log.debug(f"Skipping DirectEdit queue ref {ref!r} (folder)")
+                continue
+
             log.debug(f"Handling DirectEdit queue ref: {ref!r}")
 
             details = self._extract_edit_info(ref)
@@ -663,7 +672,6 @@ class DirectEdit(Worker):
                         self.directEditConflict.emit(ref.name, ref, remote_blob.digest)
                         continue
 
-                os_path = self.local.abspath(ref)
                 log.info(f"Uploading file {os_path!r}")
 
                 if xpath == "note:note":
