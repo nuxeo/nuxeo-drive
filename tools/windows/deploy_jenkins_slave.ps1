@@ -2,7 +2,9 @@
 #
 # Possible ARG:
 #     -build: build the installer
+#     -check_upgrade: check the auto-update works
 #     -install: install all dependencies
+#     -install_release: install all but test dependencies
 #     -start: start Nuxeo Drive
 #     -tests: launch the tests suite
 #
@@ -24,6 +26,7 @@
 param (
 	[switch]$build = $false,
 	[switch]$build_dlls = $false,
+	[switch]$check_upgrade = $false,
 	[switch]$install = $false,
 	[switch]$install_release = $false,
 	[switch]$start = $false,
@@ -170,6 +173,15 @@ function check_import($import) {
 	}
 	return 0
 }
+
+function check_upgrade {
+	# Ensure a new version can be released by checking the auto-update process.
+    & $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\scripts\check_update_process.py
+	if ($lastExitCode -ne 0) {
+		ExitWithCode $lastExitCode
+	}
+}
+
 
 function check_vars {
 	# Check required variables
@@ -521,6 +533,8 @@ function main {
 		build_installer
 	} elseif ($build_dlls) {
 		build_overlays
+	} elseif ($check_upgrade) {
+		check_upgrade
 	} elseif ($install -or $install_release) {
 		install_deps
 		if ((check_import "import PyQt5") -ne 1) {

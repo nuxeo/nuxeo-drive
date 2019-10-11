@@ -204,7 +204,7 @@ class BaseUpdater(PollWorker):
             status, version = UPDATE_STATUS_UNAVAILABLE_SITE, None
         else:
             # Special case to test the auto-updater without the need for an account
-            if os.getenv("FORCE_USE_LATEST_VERSION"):
+            if os.getenv("FORCE_USE_LATEST_VERSION", "0") == "1":
                 version = max(self.versions)
                 if version_lt(self.manager.version, version):
                     log.info(f"FORCE_USE_LATEST_VERSION is set, ugrading to {version}")

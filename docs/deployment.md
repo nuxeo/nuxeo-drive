@@ -18,6 +18,7 @@ Possible `ARG`:
 
     --build: freeze the client into self-hosted binary package
     --build-ext: build the FinderSync extension (macOS only)
+    --check-upgrade: check the auto-update works
     --install: install a complete development environment
     --check: check AppImage conformity (GNU/Linux only)
     --install-python: install only Python
@@ -42,6 +43,7 @@ See [pyenv](https://github.com/yyuu/pyenv/wiki/Common-build-problems#requirement
 Possible `ARG`:
 
     -build: freeze the client into self-hosted binary package
+    -check_upgrade: check the auto-update works
     -install: install a complete development environment
     -install_release: install a complete environment for a release (without tests requirements)
     -start: start Nuxeo Drive

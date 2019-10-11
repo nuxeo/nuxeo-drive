@@ -2,14 +2,20 @@
 """
 NXDRIVE-961: We need to be strong against any update process regressions.
 
-That script will:
+That fully automated script will:
 
 1. generate an executable for a given version lesser than the current one,
    let's say 1.2.2 if the current version is 1.2.3
 2. start un local webserver containing all required files for a complete upgrade
 3. starts the executable using the local webserver as beta update canal
 4. start Drive and let the auto-upgrade working
-check that the Drive version is 1.2.3
+5. check that the Drive version is 1.2.3
+
+Notes:
+
+- It will purge any existant local installation, be warned!
+- Ideally, no sync root are enabled on the local server for the Administrator account.
+- FORCE_USE_LATEST_VERSION envar can be used to bypass the need for an account.
 
 It __must__ be launched before any new release to validate the update process.
 """
@@ -28,15 +34,30 @@ import sys
 import tempfile
 import threading
 import time
-from contextlib import suppress
-from os.path import expanduser
+from os.path import expanduser, expandvars
 from pathlib import Path
 
-__version__ = "0.4.1"
-
+__version__ = "1.0.0"
 
 EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
+
+
+def alter_spec(console):
+    """ Set the console mode in the PyInstaller .spec file. """
+
+    path = "ndrive.spec"
+
+    with open(path, encoding="utf-8") as handler:
+        content = handler.readlines()
+
+    for lineno, line in enumerate(content.copy()):
+        if "console=" in line:
+            content[lineno] = f"    console={str(console)},\n"
+            break
+
+    with open(path, "w", encoding="utf-8", newline="\n") as handler:
+        handler.write("".join(content))
 
 
 def create_versions(dst, version):
@@ -47,9 +68,8 @@ def create_versions(dst, version):
     path = os.path.join(dst, "alpha", name)
     with open(path, "rb") as installer:
         checksum = hashlib.sha256(installer.read()).hexdigest()
-    print(">>> Computed the checksum:", checksum)
+    print(">>> Computed the checksum:", checksum, flush=True)
 
-    print(">>> Crafting versions.yml")
     """
     Note that we removed the following section with NXDRIVE-1419:
 
@@ -70,6 +90,7 @@ def create_versions(dst, version):
         dmg: {checksum}
         exe: {checksum}
     """
+    print(">>> Crafting versions.yml:", yml, flush=True)
     with open(os.path.join(dst, "versions.yml"), "a") as versions:
         versions.write(yml)
 
@@ -89,8 +110,20 @@ def gen_exe():
             ' . ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
         )
 
-    print(">>> Command:", cmd)
+    print(">>> Command:", cmd, flush=True)
     subprocess.check_call(cmd.split())
+
+
+def get_version():
+    """ Get the current version from the auto-generated VERSION file. """
+
+    if EXT == "exe":
+        file = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\VERSION")
+    else:
+        file = expanduser("~/.nuxeo-drive/VERSION")
+
+    with open(file) as f:
+        return f.read().strip()
 
 
 def install_drive(installer):
@@ -102,50 +135,109 @@ def install_drive(installer):
     elif EXT == "dmg":
         # Simulate what nxdrive.updater.darwin.intall() does
         cmd = ["hdiutil", "mount", installer]
-        print(">>> Command:", cmd)
+        print(">>> Command:", cmd, flush=True)
         mount_info = subprocess.check_output(cmd).decode("utf-8").strip()
         mount_dir = mount_info.splitlines()[-1].split("\t")[-1]
 
         src = "{}/Nuxeo Drive.app".format(mount_dir)
         dst = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(dst):
-            print(">>> Deleting", dst)
+            print(">>> Deleting", dst, flush=True)
             shutil.rmtree(dst)
-        print(">>> Copying", src, "->", dst)
+        print(">>> Copying", src, "->", dst, flush=True)
         shutil.copytree(src, dst)
 
         cmd = ["hdiutil", "unmount", mount_dir]
-        print(">>> Command:", cmd)
+        print(">>> Command:", cmd, flush=True)
         subprocess.check_call(cmd)
     else:
         cmd = [installer, "/verysilent"]
-        print(">>> Command:", cmd)
+        print(">>> Command:", cmd, flush=True)
         subprocess.check_call(cmd)
 
 
-def launch_drive(executable):
+def launch_drive(executable, args=None):
     """ Launch Drive and wait for auto-update. """
 
     # Be patient, especially on Windows ...
     time.sleep(5)
 
-    cmd = []
+    if not args:
+        args = []
 
     if EXT == "appimage":
-        cmd = [executable]
+        cmd = [executable, *args]
     elif EXT == "dmg":
-        cmd = ["open", f"{Path.home()}/Applications/Nuxeo Drive.app", "--args"]
+        cmd = ["open", f"{Path.home()}/Applications/Nuxeo Drive.app", "--args", *args]
     else:
-        cmd = [expanduser("~\\AppData\\Local\\Nuxeo Drive\\ndrive.exe")]
+        cmd = [
+            expandvars(
+                "C:\\Users\\%username%\\AppData\\Local\\Nuxeo Drive\\ndrive.exe"
+            ),
+            *args,
+        ]
 
-    cmd += [
-        "--log-level-console=DEBUG",
-        "--update-site-url=http://localhost:8000",
-        "--update-check-delay=12",
-        "--channel=alpha",
-    ]
-    print(">>> Command:", cmd)
+    print(">>> Command:", cmd, flush=True)
     return subprocess.check_output(cmd).decode("utf-8").strip()
+
+
+def save_log(output):
+    """Save log files for job archives."""
+
+    dst = os.path.join(output, f"nxdrive-{EXT}.log")
+
+    if EXT == "exe":
+        src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
+    else:
+        src = expanduser("~/.nuxeo-drive/logs/nxdrive.log")
+
+    try:
+        os.remove(dst)
+        print(">>> Deleting", repr(dst), flush=True)
+    except FileNotFoundError:
+        pass
+    try:
+        shutil.copyfile(src, dst)
+        print(">>> Copying", repr(src), "->", repr(dst), flush=True)
+    except FileNotFoundError:
+        pass
+
+
+def set_options():
+    """ Set given options into the config file. """
+
+    if EXT == "exe":
+        home = expandvars("C:\\Users\\%username%\\.nuxeo-drive")
+        file = f"{home}\\config.ini"
+        metrics = f"{home}\\metrics.state"
+    else:
+        home = expanduser("~/.nuxeo-drive")
+        file = f"{home}/config.ini"
+        metrics = f"{home}/metrics.state"
+
+    options = [
+        "sync-and-quit = True",
+        "log-level-console = WARNING",
+        "log-level-file = DEBUG",
+        "update-site-url = http://localhost:8000",
+        "update-check-delay = 8",
+        "channel = alpha",
+    ]
+
+    if not os.path.isdir(home):
+        os.mkdir(home)
+
+    print(">>> Setting metrics: sentry", flush=True)
+    with open(metrics, "w") as f:
+        f.write("sentry\n")
+
+    print(">>> Setting options:", options, flush=True)
+    with open(file, "w") as f:
+        f.write(f"[DEFAULT]\n")
+        f.write(f"env = automatic\n")
+        f.write(f"[automatic]\n")
+        f.write("\n".join(options))
+        f.write("\n")
 
 
 def tests():
@@ -170,21 +262,29 @@ def uninstall_drive():
 
     if EXT == "appimage":
         # Nothing to uninstall on GNU/Linux"
-        pass
+        home = expanduser("~/.nuxeo-drive")
     elif EXT == "dmg":
+        home = expanduser("~/.nuxeo-drive")
         path = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(path):
             print(">>> Deleting", path, flush=True)
             shutil.rmtree(path)
     else:
+        home = expandvars("C:\\Users\\%username%\\.nuxeo-drive")
         cmd = [
-            expanduser("~\\AppData\\Local\\Nuxeo Drive\\unins000.exe"),
+            expandvars(
+                "C:\\Users\\%username%\\AppData\\Local\\Nuxeo Drive\\unins000.exe"
+            ),
             "/verysilent",
         ]
-        if not os.path.isfile(cmd[0]):
-            return
-        print(">>> Command:", cmd)
-        subprocess.check_call(cmd)
+        if os.path.isfile(cmd[0]):
+            print(">>> Command:", cmd, flush=True)
+            subprocess.check_call(cmd)
+
+    # Purge local files
+    if os.path.isdir(home):
+        print(">>> Deleting", home, flush=True)
+        shutil.rmtree(home)
 
 
 def version_decrement(version):
@@ -245,21 +345,33 @@ def version_update(version, lineno):
 def webserver(folder, port=8000):
     """ Start a local web server. """
 
+    def stop(server):
+        """Stop the server after 30 seconds."""
+        time.sleep(30)
+        try:
+            server.shutdown()
+        except Exception:
+            pass
+
     os.chdir(folder)
+
     httpd = socketserver.TCPServer(("", port), Server)
-    print(">>> Serving", folder, "at http://localhost:8000")
-    print(">>> CTRL+C to terminate")
+    print(">>> Serving", folder, f"at http://localhost:{port}", flush=True)
+    print(">>> CTRL+C to terminate (or wait 30 sec)", flush=True)
     try:
+        threading.Thread(target=stop, args=(httpd,)).start()
         httpd.serve_forever()
     except KeyboardInterrupt:
         httpd.shutdown()
+    except Exception:
+        pass
 
 
 def main():
     """ Main logic. """
 
     # Cleanup
-    with suppress(OSError):
+    if os.path.isdir("dist"):
         shutil.rmtree("dist")
 
     # Remove previous installation
@@ -273,9 +385,16 @@ def main():
     path = os.path.join(root, "alpha")
     os.makedirs(path)
 
+    # Alter the PyInstaller spec file to enable the console mode.
+    # it will be used to get the current version and validating the process.
+    alter_spec(True)
+
+    # Set the sync-and-stop option to let Drive update and quit without manual action
+    set_options()
+
     # Generate the current version executable
     version, lineno = version_find()
-    print(">>> Current version is", version, "at line", lineno)
+    print(">>> Current version is", version, "at line", lineno, flush=True)
     assert version_checker(version)
     gen_exe()
 
@@ -283,8 +402,13 @@ def main():
     ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
     file = f"dist/nuxeo-drive-{version}{ext}"
     dst_file = os.path.join(path, os.path.basename(file))
-    print(">>> Moving", file, "->", path)
+    print(">>> Moving", file, "->", path, flush=True)
     shutil.move(file, dst_file)
+
+    version_forced = os.getenv("FORCE_USE_LATEST_VERSION", False)
+    if not version_forced:
+        # Where the account will be bound
+        local_folder = os.path.join(root, "folder")
 
     # Guess the anterior version
     previous = version_decrement(version)
@@ -306,7 +430,7 @@ def main():
         src_file = f"dist/nuxeo-drive-{previous}{ext}"
         installer = os.path.basename(src_file)
         dst_file = os.path.join(path, installer)
-        print(">>> Moving", src_file, "->", path)
+        print(">>> Moving", src_file, "->", path, flush=True)
         shutil.move(src_file, dst_file)
 
         # Append the versions.yml file
@@ -315,24 +439,63 @@ def main():
         # Install Drive on the computer
         install_drive(dst_file)
 
+        if not version_forced:
+            # Add an account to be able to auto-update
+            url = os.getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo")
+            username = os.getenv("NXDRIVE_TEST_USER", "Administrator")
+            password = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
+            launch_drive(
+                dst_file,
+                [
+                    "bind-server",
+                    username,
+                    url,
+                    f"--password={password}",
+                    f"--local-folder={local_folder}",
+                ],
+            )
+
         # Launch Drive in its own thread
-        print(">>> Testing upgrade", previous, "->", version)
+        print(">>> Testing upgrade", previous, "->", version, flush=True)
         threading.Thread(target=launch_drive, args=(dst_file,)).start()
 
         # Start the web server
         webserver(root)
+
+        # Save the log file for job archives
+        save_log(src)
+
+        # And assert the version is the good one
+        current_ver = get_version()
+        print(f">>> Current version is {current_ver!r}", flush=True)
+        assert (
+            current_ver == version
+        ), f"Current version is {current_ver!r} (need {version})"
     finally:
         os.chdir(src)
 
         # Restore the original version
         version_update(version, lineno)
 
+        # Restore the non-console mode
+        alter_spec(False)
+
+        if not version_forced:
+            # Remove the account
+            try:
+                launch_drive(dst_file, ["clean-folder", f"--local-folder={root}"])
+            except Exception as exc:
+                print(" !! ERROR:", exc, flush=True)
+
         # Cleanup
-        with suppress(OSError):
+        try:
             shutil.rmtree(root)
+        except Exception as exc:
+            print(" !! ERROR:", exc, flush=True)
 
         uninstall_drive()
 
 
 if __name__ == "__main__":
-    exit(tests() and main())
+    tests()
+    exit(main())

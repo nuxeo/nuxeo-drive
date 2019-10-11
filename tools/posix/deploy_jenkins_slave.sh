@@ -6,6 +6,7 @@
 # Possible ARG:
 #     --build: build the package
 #     --build-ext: build the FinderSync extension (macOS only)
+#     --check-upgrade: check the auto-update works
 #     --install: install all dependencies
 #     --check: check AppImage conformity (GNU/Linux only)
 #     --install-python: install only Python
@@ -89,6 +90,11 @@ check_import() {
         return 1
     fi
     echo "OK."
+}
+
+check_upgrade() {
+    # Ensure a new version can be released by checking the auto-update process.
+    ${PYTHON} tools/scripts/check_update_process.py
 }
 
 check_vars() {
@@ -387,6 +393,7 @@ main() {
     if [ $# -eq 1 ]; then
         case "$1" in
             "--build") build_installer ;;
+            "--check-upgrade") check_upgrade ;;
             "--install" | "--install-release")
                 install_deps
                 if ! check_import "import PyQt5" >/dev/null; then
