@@ -173,6 +173,21 @@ def test_lock_queue_doc_not_found(direct_edit):
         direct_edit._handle_lock_queue()
 
 
+def test_upload_queue_doc_is_a_folder(direct_edit):
+    """NXDRIVE-1862: some way or another, a folder can be stuck in the upload queue."""
+    folder = (
+        direct_edit.local.base_folder
+        / "00000000-1111-2222-3333-444444444444_file-content"
+        / "T0088"
+    )
+    folder.mkdir(parents=True)
+    ref = direct_edit.local.get_path(folder)
+    direct_edit._upload_queue.put(ref)
+
+    with ensure_no_exception():
+        direct_edit._handle_upload_queue()
+
+
 def test_metrics(direct_edit):
     assert isinstance(direct_edit.get_metrics(), dict)
 
