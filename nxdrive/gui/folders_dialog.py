@@ -191,10 +191,10 @@ class DocumentsDialog(DialogMixin):
 
 
 class FoldersDialog(DialogMixin):
-    """The dialog window for folderish documents. Used bu the direct upload feature."""
+    """The dialog window for folderish documents. Used bu the Direct Transfer feature."""
 
     # The windows's title
-    title_label = "DIRECT_UPLOAD_WINDOW_TITLE"
+    title_label = "DIRECT_TRANSFER_WINDOW_TITLE"
 
     def __init__(self, application: "Application", engine: Engine, path: Path) -> None:
         super().__init__(application, engine)

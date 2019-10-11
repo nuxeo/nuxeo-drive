@@ -80,7 +80,7 @@ class FileInfo:
 
 
 class Doc(FileInfo):
-    """A folderish document. Used by the direct upload feature."""
+    """A folderish document. Used by the Direct Transfer feature."""
 
     def __init__(self, doc: Document, parent: FileInfo = None) -> None:
         super().__init__(parent=parent)
@@ -199,7 +199,7 @@ class FilteredDocuments:
 
 
 class FoldersOnly:
-    """Display _all_, and only, folders from the remote server. Used by the direct upload feature."""
+    """Display _all_, and only, folders from the remote server. Used by the Direct Transfer feature."""
 
     def __init__(self, remote: Remote) -> None:
         self.remote = remote

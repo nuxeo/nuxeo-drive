@@ -55,7 +55,7 @@ Possible commands:
 - clean-folder
 - console
 - copy-share-link
-- direct-upload
+- direct-transfer
 - edit-metadata
 - unbind-root
 - unbind-server
@@ -351,13 +351,13 @@ class CliHandler:
         ctx_item3.set_defaults(command="ctx_edit_metadata")
         ctx_item3.add_argument("--file", default="", help="File path.")
 
-        # Context menu: Direct upload
+        # Context menu: Direct Transfer
         ctx_item4 = subparsers.add_parser(
-            "direct-upload",
-            help="Direct upload of a given file to anywhere on the server.",
+            "direct-transfer",
+            help="Direct Transfer of a given file to anywhere on the server.",
             parents=[common_parser],
         )
-        ctx_item4.set_defaults(command="ctx_direct_upload")
+        ctx_item4.set_defaults(command="ctx_direct_transfer")
         ctx_item4.add_argument("--file", default="", help="File path.")
 
         return parser
@@ -624,10 +624,10 @@ class CliHandler:
         file_path = normalized_path(options.file)
         self.manager.ctx_edit_metadata(file_path)
 
-    def ctx_direct_upload(self, options: Namespace) -> int:
-        """Event fired by "Direct upload" menu entry."""
+    def ctx_direct_transfer(self, options: Namespace) -> int:
+        """Event fired by "Direct Transfer" menu entry."""
         # Craft the URL to be handled later at application startup
-        Options.protocol_url = f"nxdrive://direct-upload/{options.file}"
+        Options.protocol_url = f"nxdrive://direct-transfer/{options.file}"
         self.launch(options=options)
         return 0
 

@@ -107,7 +107,7 @@ class DocumentContentLoader(ContentLoaderMixin):
 
 
 class FolderContentLoader(ContentLoaderMixin):
-    """A contents loader for folderish documents. Used by the direct upload feature."""
+    """A contents loader for folderish documents. Used by the Direct Transfer feature."""
 
     def new_subitem(self, child: Doc) -> QStandardItem:
         """A new child of an item is available. Create an item to append to its parent.

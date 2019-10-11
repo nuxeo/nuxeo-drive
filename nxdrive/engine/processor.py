@@ -445,8 +445,8 @@ class Processor(EngineWorker):
             log.exception("Unknown error")
             self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
 
-    def _synchronize_direct_upload(self, doc_pair: DocPair) -> None:
-        """Direct upload of a local file."""
+    def _synchronize_direct_transfer(self, doc_pair: DocPair) -> None:
+        """Direct Transfer of a local file."""
         if WINDOWS:
             file = doc_pair.local_path
         else:
@@ -455,7 +455,7 @@ class Processor(EngineWorker):
 
         if not file.exists():
             log.debug(
-                f"Cancelling direct upload of {file!r} because it does not exist anymore"
+                f"Cancelling Direct Transfer of {file!r} because it does not exist anymore"
             )
             self.dao.remove_state(doc_pair)
             return
@@ -464,7 +464,7 @@ class Processor(EngineWorker):
         parent_path = self.local.get_remote_id(file)
 
         # Do the upload
-        self.remote.direct_upload(file, parent_path, self.engine.uid)
+        self.remote.direct_transfer(file, parent_path, self.engine.uid)
 
         # Clean-up
         self.dao.remove_state(doc_pair)

@@ -598,9 +598,9 @@ class Remote(Nuxeo):
         finally:
             LinkingAction.finish_action()
 
-    def direct_upload(self, file: Path, parent_path: str, engine_uid: str):
+    def direct_transfer(self, file: Path, parent_path: str, engine_uid: str):
         """Upload a given file to the given folderish document on the server."""
-        log.info(f"Direct upload of {file!r} into {parent_path!r}")
+        log.info(f"Direct Transfer of {file!r} into {parent_path!r}")
 
         # The remote file, when created, is stored in the file xattr.
         # So retrieve it and if it is defined, the document creation should
