@@ -55,6 +55,7 @@ for (x in agents) {
                         deleteDir()
                     }
                 }
+                currentBuild.description = params.BRANCH_NAME
 
                 stage(osi + ' Checkout') {
                     dir('sources') {
@@ -68,7 +69,17 @@ for (x in agents) {
                     }
                 }
 
-                stage(osi + ' Build') {
+                stage(osi) {
+                    // First step, curcial, will check the auto-update process.
+                    // It is a quality of service to prevent releasing a bad version.
+                    // Then installers and bianires are built.
+
+                    // Note: there seems to be too many commands that could have been split into sub-stages,
+                    //       but this would duplicate too many things and take too much time and resources.
+
+                    // Used by the auto-updater to bypass the need for an account
+                    env.FORCE_USE_LATEST_VERSION = '1'
+
                     dir('sources') {
                         dir('build') {
                             deleteDir()
@@ -77,50 +88,83 @@ for (x in agents) {
                             deleteDir()
                         }
 
-                        try {
-                            if (osi == 'GNU/Linux') {
-                                def branch = params.BRANCH_NAME
-                                // Handle alpha branches
-                                if (branch.contains('refs/tags/')) {
-                                    branch = branch.replace('refs/tags/', 'wip-')
-                                }
+                        try
+                        {
+                            if (osi == 'GNU/Linux')
+                            {
+                                // No auto-update check on GNU/Linux as AppImage cannot be started from our headless agents, sadly.
+                                // But this is not a big deal as the auto-update process on GNU/Linux is really a simple copy.
 
-                                docker.withRegistry('https://dockerpriv.nuxeo.com/') {
+                                // Build the binary
+                                docker.withRegistry('https://dockerpriv.nuxeo.com/')
+                                {
                                     def image = docker.image('nuxeo-drive-build:py-3.7.4')  // XXX_PYTHON
                                     image.inside() { sh "/entrypoint.sh" }
                                 }
+
+                                // Check the resulting binary is OK
                                 sh 'tools/linux/deploy_jenkins_slave.sh --check'
+
+                                // And archive it
                                 archiveArtifacts artifacts: 'dist/*.AppImage', fingerprint: true
-                            } else if (osi == 'macOS') {
+                            }
+                            else if (osi == 'macOS')
+                            {
                                 def env_vars = [
                                     'SIGNING_ID=NUXEO CORP',
-                                    'KEYCHAIN_PATH=/Users/jenkins/Library/Keychains/login.keychain-db',
+                                    "KEYCHAIN_PATH=${env.HOME}/Library/Keychains/login.keychain-db",
                                 ]
-                                withEnv(env_vars) {
+                                withEnv(env_vars)
+                                {
                                     withCredentials([string(credentialsId: 'MOBILE_LOGIN_KEYCHAIN_PASSWORD',
                                                             variable: 'KEYCHAIN_PASSWORD')]) {
+                                        // Install requirements
                                         sh 'tools/osx/deploy_jenkins_slave.sh --install-release'
+
+                                        // Auto-update check
+                                        sh 'tools/osx/deploy_jenkins_slave.sh --check-upgrade'
+
+                                        // Build the installer
                                         sh 'tools/osx/deploy_jenkins_slave.sh --build'
+
+                                        // And archive it
                                         archiveArtifacts artifacts: 'dist/*.dmg', fingerprint: true
                                     }
                                 }
-                            } else {
+                            }
+                            else if (osi == 'Windows')
+                            {
                                 def env_vars = [
                                     'SIGNING_ID=Nuxeo',
                                     'SIGNTOOL_PATH=C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit',
                                 ]
-                                withEnv(env_vars) {
+                                withEnv(env_vars)
+                                {
+                                    // Install requirements
                                     bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -install_release'
+
+                                    // Auto-update check
+                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -check_upgrade'
+
+                                    // Build the installer
                                     bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
+
+                                    // And archive it
                                     archiveArtifacts artifacts: 'dist/*.exe', fingerprint: true
                                 }
                             }
+
+                            // Archive ZIP'ed sources
                             archiveArtifacts artifacts: 'dist/*.zip', fingerprint: true
-                        } catch(e) {
+                        }
+                        catch(e)
+                        {
                             currentBuild.result = 'FAILURE'
                             throw e
-                        } finally {
-                            currentBuild.description = params.BRANCH_NAME
+                        }
+                        finally {
+                            // Retrieve auto-update logs when possible
+                            archiveArtifacts artifacts: 'nxdrive-*.log', fingerprint: true, allowEmptyArchive: true
                         }
                     }
                 }
