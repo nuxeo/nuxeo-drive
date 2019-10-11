@@ -11,10 +11,10 @@ def create_symlink(folder: Path) -> None:
     """Create the appropriate symlink in the MacOS folder
     pointing to the Resources folder.
     """
-    sibbling = Path(str(folder).replace("MacOS", ""))
+    sibling = Path(str(folder).replace("MacOS", ""))
 
     # PyQt5/Qt/qml/QtQml/Models.2
-    root = str(sibbling).partition("Contents")[2].lstrip("/")
+    root = str(sibling).partition("Contents")[2].lstrip("/")
     # ../../../../
     backward = "../" * (root.count("/") + 1)
     # ../../../../Resources/PyQt5/Qt/qml/QtQml/Models.2
@@ -76,7 +76,7 @@ def find_problematic_folders(folder: Path) -> Generator[Path, None, None]:
 
 def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
     """Recursively move any non symlink file from a problematic folder
-    to the sibbling one in Resources.
+    to the sibling one in Resources.
     """
     for path in folder.iterdir():
         if path.is_symlink():
@@ -84,17 +84,17 @@ def move_contents_to_resources(folder: Path) -> Generator[Path, None, None]:
         if path.is_dir():
             yield from move_contents_to_resources(path)
         else:
-            sibbling = Path(str(path).replace("MacOS", "Resources"))
+            sibling = Path(str(path).replace("MacOS", "Resources"))
 
             # Create the parent if it does not exist yet
-            sibbling.parent.mkdir(parents=True, exist_ok=True)
+            sibling.parent.mkdir(parents=True, exist_ok=True)
 
             # Make the move
-            shutil.move(path, sibbling)
+            shutil.move(path, sibling)
 
             # Yield the DLL if it is one
-            if sibbling.name.endswith(".dylib"):
-                yield sibbling
+            if sibling.name.endswith(".dylib"):
+                yield sibling
 
 
 def main(args: List[str]) -> int:
