@@ -6,6 +6,7 @@ from PyQt5.QtCore import pyqtSlot
 
 from .engine.workers import PollWorker
 from .options import Options
+from .updater.constants import UPDATE_STATUS_UPDATING
 from .utils import normalize_and_expand_path
 
 if TYPE_CHECKING:
@@ -104,6 +105,7 @@ class SyncAndQuitWorker(PollWorker):
             Options.sync_and_quit
             and self.manager.is_started()
             and not self.manager.is_syncing()
+            and self.manager.updater.status != UPDATE_STATUS_UPDATING
             and hasattr(self.manager, "application")
         ):
             log.info(
