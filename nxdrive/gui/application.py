@@ -1251,7 +1251,7 @@ class Application(QApplication):
         func = {
             "access-online": manager.ctx_access_online,
             "copy-share-link": manager.ctx_copy_share_link,
-            "direct-upload": self.ctx_upload_local_file,
+            "direct-transfer": self.ctx_upload_local_file,
             "edit-metadata": manager.ctx_edit_metadata,
         }.get(cmd, None)
         if func:
@@ -1323,21 +1323,23 @@ class Application(QApplication):
         log.info("Successfully closed server socket")
 
     def ctx_upload_local_file(self, path: Path) -> None:
-        """Direct upload of a local file to anywhere on the server."""
+        """Direct Transfer of a local file to anywhere on the server."""
         # For now, only files are handled
         if not path.is_file():
-            log.warning(f"Direct upload of {path!r} is not possible (a file is needed)")
+            log.warning(
+                f"Direct Transfer of {path!r} is not possible (a file is needed)"
+            )
             return
 
-        # Direct upload is not allowed for synced files
+        # Direct Transfer is not allowed for synced files
         for engine in self.manager.engines.values():
             if engine.local_folder in path.parents:
                 log.warning(
-                    f"Direct upload of {path!r} is not allowed for synced files"
+                    f"Direct Transfer of {path!r} is not allowed for synced files"
                 )
                 return
 
-        log.info(f"Direct upload: {path!r}")
+        log.info(f"Direct Transfer: {path!r}")
         # TODO: Multiple accounts
         for engine in self.manager.engines.values():
             self.show_server_folders(engine, path)

@@ -216,7 +216,7 @@ class LocalClientMixin:
 
     def get_info(self, ref: Path, check: bool = True) -> FileInfo:
         if check:
-            # all use cases except direct upload
+            # all use cases except Direct Transfer
             os_path = self.abspath(ref)
             if not os_path.exists():
                 raise NotFound(
@@ -224,7 +224,7 @@ class LocalClientMixin:
                     f"ref={ref!r}, os_path={os_path!r}"
                 )
         else:
-            # Direct upload, *ref* is an absolute local path
+            # Direct Transfer, *ref* is an absolute local path
             os_path = ref
 
         folderish = os_path.is_dir()

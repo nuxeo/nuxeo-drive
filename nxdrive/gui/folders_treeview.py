@@ -37,7 +37,7 @@ class TreeViewMixin(QTreeView):
         self.root_item = QStandardItemModel()
         self.setModel(self.root_item)
 
-        # At start, fetch top level folders (direct upload) or sync roots (filters)
+        # At start, fetch top level folders (Direct Transfer) or sync roots (filters)
         self.load_children()
 
         # When an item is clicked, load its children
@@ -157,7 +157,7 @@ class DocumentTreeView(TreeViewMixin):
 
 
 class FolderTreeView(TreeViewMixin):
-    """A tree view of all folderish documents. Used by the direct upload feature."""
+    """A tree view of all folderish documents. Used by the Direct Transfer feature."""
 
     # The content's loader for folderish documents
     loader = FolderContentLoader

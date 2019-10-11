@@ -110,8 +110,8 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     ("unsynchronized", "moved"): "unsynchronized",
     ("unsynchronized", "synchronized"): "unsynchronized",
     ("unsynchronized", "deleted"): "remotely_deleted",
-    # Direct upload
-    ("direct", "unknown"): "direct_upload",
+    # Direct Transfer
+    ("direct", "unknown"): "direct_transfer",
 }
 
 

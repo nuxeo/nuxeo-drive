@@ -24,7 +24,7 @@ class FinderSync: FIFinderSync {
     var title1 = "Access online"
     var title2 = "Copy share-link"
     var title3 = "Edit metadata"
-    var title4 = "Direct upload"
+    var title4 = "Direct Transfer"
 
     let fileStatus = FileStatus()
     let addr = "127.0.0.1"
@@ -208,7 +208,7 @@ class FinderSync: FIFinderSync {
         // Produce the menu for unsynced files and folders.
         let menu = NSMenu(title: "Nuxeo Drive")
 
-        // Direct upload
+        // Direct Transfer
         let item1 = NSMenuItem(title: self.title4,
                                action: #selector(directUpload(_:)),
                                keyEquivalent: "D")
@@ -293,7 +293,7 @@ class FinderSync: FIFinderSync {
     }
 
     @IBAction func directUpload(_ sender: AnyObject?) {
-        // Event fired by "Direct upload" menu entry
+        // Event fired by "Direct Transfer" menu entry
         let items = FIFinderSyncController.default().selectedItemURLs()
         for item in items! {
             //NSLog("directUpload: target: \(item.path)")

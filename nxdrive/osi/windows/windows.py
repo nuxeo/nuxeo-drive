@@ -157,7 +157,7 @@ class WindowsIntegration(AbstractOSIntegration):
             ("access-online", "shell32.dll,17"),
             ("copy-share-link", "shell32.dll,134"),
             ("edit-metadata", "imageres.dll,289"),
-            ("direct-upload", "imageres.dll,277"),
+            ("direct-transfer", "imageres.dll,277"),
         )
 
         for idx, (command, icon) in enumerate(entries, 1):
