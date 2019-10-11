@@ -117,10 +117,9 @@ class DarwinIntegration(AbstractOSIntegration):
             theme = NSUserDefaults.standardUserDefaults().stringForKey_(
                 "AppleInterfaceStyle"
             )
+            return theme.lower()
         except Exception:
             return ""
-        else:
-            return theme.lower()
 
     def dark_mode_in_use(self) -> bool:
         """Does the user has the Dark mode set?"""
