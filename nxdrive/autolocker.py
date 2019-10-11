@@ -12,6 +12,7 @@ from .constants import LINUX, MAC, WINDOWS
 from .engine.workers import PollWorker
 from .exceptions import ThreadInterrupt
 from .objects import Item, Items
+from .options import Options
 
 if TYPE_CHECKING:
     from .direct_edit import DirectEdit  # noqa
@@ -79,6 +80,12 @@ class ProcessAutoLockerWorker(PollWorker):
         current_locks = deepcopy(self._autolocked)
 
         for pid, path in get_open_files():
+            # Filter out files depending on configured ignored patterns
+            if path.name.startswith(Options.ignored_prefixes) or path.name.endswith(
+                Options.ignored_suffixes
+            ):
+                continue
+
             found_in_watched_folder = False
             if self._folder in path.parents:
                 log.info(f"Found in watched folder: {path!r} (PID={pid})")
