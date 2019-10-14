@@ -207,8 +207,6 @@ six==1.12.0 \
 tld==0.9.6 \
     --hash=sha256:89a7a403a4a5de1ca7b64550df8a8a2abdfbbd1556e1b8cdfe251c0f90ab2f3a \
     --hash=sha256:e63acad4f866bc4c724a21a03eb7cf692bc8495cb286ee60d3a45258054bdc02    # via pypac
-https://github.com/GoodRx/universal-analytics-python/archive/77ce628c56de1ba51a9bf0774794fd687f785803.zip \
-    --hash=sha256:fa57bd764c9bcf628cb7f289b9aa9a5edeb69714da635bbbcad2a626674b5d7c
 urllib3==1.25.6 \
     --hash=sha256:3de946ffbed6e6746608990594d08faac602528ac7015ac28d33cee6a45b7398 \
     --hash=sha256:9a107b99a5393caf59c7aa3c1249c16e6879447533d0887f4336dde834c7be86    # via requests, sentry-sdk

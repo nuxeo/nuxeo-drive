@@ -2,14 +2,15 @@
 import os
 import sys
 from logging import getLogger
-from typing import Any, TYPE_CHECKING
+from time import monotonic_ns
+from typing import Any, Dict, TYPE_CHECKING
 
-from PyQt5.QtCore import QTimer, pyqtSlot
-from UniversalAnalytics import Tracker as UATracker
+from PyQt5.QtCore import pyqtSlot
+import requests
 
-from .workers import Worker
+from .workers import PollWorker
 from ..constants import APP_NAME, MAC, WINDOWS
-from ..utils import get_arch, get_current_os
+from ..utils import ga_user_agent, get_current_os
 
 if not MAC:
     import locale
@@ -23,39 +24,51 @@ __all__ = ("Tracker",)
 log = getLogger(__name__)
 
 
-class Tracker(Worker):
+class Tracker(PollWorker):
+    def __init__(
+        self, manager: "Manager", uid: str = "UA-81135-23", interval: int = 60 * 60
+    ) -> None:
+        # Send stats every hour by default
+        super().__init__(check_interval=interval)
 
-    fmt_event = "Send {category}({action}) {label}: {value!r}"
-
-    def __init__(self, manager: "Manager", uid: str = "UA-81135-23") -> None:
-        super().__init__()
         self._manager = manager
-        self.thread.started.connect(self.run)
         self.uid = uid
-        self.app_name = APP_NAME.replace(" ", "")
-        self.arch = get_arch()
-        self.current_os = " ".join(get_current_os())
-        self._tracker = UATracker.create(
-            uid, client_id=self._manager.device_id, user_agent=self.user_agent
-        )
-        self._tracker.set("appName", self.app_name)
-        self._tracker.set("appVersion", self._manager.version)
-        self._tracker.set("encoding", sys.getfilesystemencoding())
-        self._tracker.set("language", self.current_locale)
-        self._manager.started.connect(self._send_stats)
 
-        # Send stat every hour
-        self._stat_timer = QTimer()
-        self._stat_timer.timeout.connect(self._send_stats)
+        self._current_os = " ".join(get_current_os()).strip()
+        if WINDOWS:
+            self._current_os = f"Microsoft {self._current_os}"
 
-        # Connect Direct Edit metrics
-        if self._manager.direct_edit:
-            self._manager.direct_edit.openDocument.connect(self._send_directedit_open)
-            self._manager.direct_edit.editDocument.connect(self._send_directedit_edit)
+        self._session = requests.sessions.Session()
+        self._tracking_url = "https://ssl.google-analytics.com/collect"
+        self.__current_locale = ""
+
+        # Main dimensions, see .send_event() docstring for details.
+        self._dimensions = {"cd10": self._manager.arch, "cd11": self._current_os}
+
+        # https://developers.google.com/analytics/devguides/collection/protocol/v1/parameters
+        # Main data to send every HTTP call
+        self._data = {
+            "v": "1",  # protocol version
+            # "aip": "1",  # anonymize IP
+            "tid": self.uid,  # tracking ID
+            "cid": self._manager.device_id,  # client ID
+            "ua": self.user_agent,  # user agent
+            "de": sys.getfilesystemencoding(),  # encoding
+            "ul": self.current_locale,  # language
+            "an": APP_NAME,  # application name
+            "av": self._manager.version,  # application version
+        }
+
+        self._session.headers.update({"user-agent": self.user_agent})
+
+        log.debug(f"Created the Google Analytics tracker with data {self._data}")
 
     @property
     def current_locale(self) -> str:
         """ Detect the OS default language. """
+
+        if self.__current_locale:
+            return self.__current_locale
 
         # Guess the encoding
         if MAC:
@@ -80,22 +93,25 @@ class Tracker(Worker):
         else:
             l10n = locale.getdefaultlocale()[0] or ""
 
-        return ".".join([l10n, encoding])
+        self.__current_locale = ".".join([l10n, encoding])
+        return self.__current_locale
 
     @property
     def user_agent(self) -> str:
         """ Format a custom user agent. """
 
-        return f"{self.app_name}/{self._manager.version} ({self.current_os})"
+        return (
+            f"{APP_NAME.replace(' ', '')}/{self._manager.version} ({ga_user_agent()})"
+        )
 
-    def send_event(self, **kwargs: Any) -> None:
+    def send_event(self, category: str, action: str, label: str, value: int) -> None:
         """
         Send a event to Google Analytics. Attach some attributes (dimensions) to ease filtering.
 
         [WARNING] Do not reuse old dimensions:
         https://support.google.com/analytics/answer/2709828?hl=en#Limits
 
-        Those dimensions are transposed from Engine.get_metrics() when calling ._send_stats():
+        Those dimensions are transposed from Engine.get_metrics() when calling .send_stats():
             dimension1: $sync_files
             dimension2: $sync_folders
             dimension3: $error_files
@@ -105,50 +121,71 @@ class Tracker(Worker):
         And those ones were deleted at some point:
             dimension9: NXDRIVE-1238
         """
-        dimensions = {"dimension10": self.arch, "dimension11": self.current_os}
 
         engines = list(self._manager.engines.values())
+        dimensions = {}
         if engines:
             engine = engines[0]
-            dimensions["dimension6"] = engine.hostname
-            dimensions["dimension7"] = engine.server_url
-            dimensions["dimension8"] = engine.remote.client.server_version
+            dimensions["cd6"] = engine.hostname
+            dimensions["cd7"] = engine.server_url
+            dimensions["cd8"] = engine.remote.client.server_version
 
-        self._tracker.set(dimensions)
-        log.debug(self.fmt_event.format(**kwargs))
+        data = {
+            # Main data
+            **self._data,
+            # Event data
+            "t": "event",
+            "ec": category,  # event catagory
+            "ea": action,  # event action
+            "el": label,  # event label/name
+            "ev": str(value),  # event value
+            # Additionnal event data: dimensions
+            **self._dimensions,
+            **dimensions,
+        }
+
+        log.debug(f"Send {category}({action}) {label}: {value!r}")
         try:
-            self._tracker.send("event", **kwargs)
+            self._session.post(self._tracking_url, data=data, timeout=5.0)
         except Exception:
-            log.exception("Error sending analytics")
+            log.warning("Error sending Google Analytics")
 
-    @pyqtSlot(str)
-    def _send_directedit_open(self, name: str) -> None:
+    @pyqtSlot(object)
+    def send_sync_event(self, metrics: Dict[str, Any]) -> None:
+        """Sent each time the Processor handles an event.
+        This is mostly to have real time stats on GA.
+        """
+        elapsed = monotonic_ns() - metrics["start_ns"]
+        if elapsed > 0.0:
+            self.send_event(
+                category="TransferOperation",
+                action=metrics["handler"],
+                label="OverallTime",
+                value=elapsed,
+            )
+
+    @pyqtSlot(str, int)
+    def send_directedit_open(self, name: str, timing: int) -> None:
         _, extension = os.path.splitext(name)
         if not extension:
             extension = "unknown"
 
         self.send_event(
-            category="DirectEdit",
-            action="Open",
-            label=extension.lower(),
-            value=self._manager.direct_edit.get_metrics()["last_action_timing"],
+            category="DirectEdit", action="Open", label=extension.lower(), value=timing
         )
 
-    @pyqtSlot(str)
-    def _send_directedit_edit(self, name: str) -> None:
+    @pyqtSlot(str, int)
+    def send_directedit_edit(self, name: str, timing: int) -> None:
         _, extension = os.path.splitext(name)
         if not extension:
             extension = "unknown"
 
         self.send_event(
-            category="DirectEdit",
-            action="Edit",
-            label=extension.lower(),
-            value=self._manager.direct_edit.get_metrics()["last_action_timing"],
+            category="DirectEdit", action="Edit", label=extension.lower(), value=timing
         )
 
     @pyqtSlot()
-    def _send_stats(self) -> None:
+    def send_stats(self) -> None:
         for engine in self._manager.engines.values():
             for key, value in engine.get_metrics().items():
                 if not isinstance(value, int):
@@ -159,4 +196,7 @@ class Tracker(Worker):
                     category="Statistics", action="Engine", label=key, value=value
                 )
 
-        self._stat_timer.start(60 * 60 * 1000)
+    @pyqtSlot(result=bool)
+    def _poll(self) -> bool:
+        self.send_stats()
+        return True

@@ -143,7 +143,11 @@ class Application(QApplication):
         self._init_translator()
         self.setQuitOnLastWindowClosed(False)
 
-        self.ask_for_metrics_approval()
+        if not self.manager.preferences_metrics_chosen:
+            self.show_metrics_acceptance()
+            # Start the tracker now, if needed
+            if not self.manager.tracker:
+                self.manager.tracker = self.manager.create_tracker()
 
         self._conflicts_modals: Dict[str, bool] = dict()
         self.current_notification: Optional[Notification] = None
@@ -797,6 +801,10 @@ class Application(QApplication):
         engine.newSyncStarted.connect(self.refresh_files)
         engine.newSyncEnded.connect(self.refresh_files)
         engine.dao.transferUpdated.connect(self.refresh_transfers)
+
+        if self.manager.tracker:
+            engine.newSyncEnded.connect(self.manager.tracker.send_sync_event)
+
         self.change_systray_icon()
 
     def init_checks(self) -> None:
@@ -1465,20 +1473,3 @@ class Application(QApplication):
         (Options.nxdrive_home / "metrics.state").write_text(
             "\n".join(states), encoding="utf-8"
         )
-
-    def ask_for_metrics_approval(self) -> None:
-        """Should we setup and use Sentry and/or Google Analytics?"""
-
-        # Check the user choice first
-        Options.nxdrive_home.mkdir(parents=True, exist_ok=True)
-
-        STATE_FILE = Options.nxdrive_home / "metrics.state"
-        if STATE_FILE.is_file():
-            lines = STATE_FILE.read_text(encoding="utf-8").splitlines()
-            Options.use_sentry = "sentry" in lines
-            Options.use_analytics = "analytics" in lines
-            # Abort now, the user already decided to use Sentry or not
-            return
-
-        # The user did not choose yet, display a message box
-        self.show_metrics_acceptance()

@@ -61,8 +61,8 @@ def _is_lock_file(name: str) -> bool:
 class DirectEdit(Worker):
     localScanFinished = pyqtSignal()
     directEditUploadCompleted = pyqtSignal(str)
-    openDocument = pyqtSignal(str)
-    editDocument = pyqtSignal(str)
+    openDocument = pyqtSignal(str, int)
+    editDocument = pyqtSignal(str, int)
     directEditLockError = pyqtSignal(str, str, str)
     directEditConflict = pyqtSignal(str, Path, str)
     directEditError = pyqtSignal(str, list)
@@ -89,7 +89,6 @@ class DirectEdit(Worker):
         self._lock_queue: Queue = Queue()
         self._error_queue = BlacklistQueue()
         self._stop = False
-        self._last_action_timing = -1
         self.watchdog_queue: Queue = Queue()
 
         self.thread.started.connect(self.run)
@@ -460,8 +459,8 @@ class DirectEdit(Worker):
 
         safe_rename(tmp_file, file_path)
 
-        self._last_action_timing = current_milli_time() - start_time
-        self.openDocument.emit(filename)
+        timing = current_milli_time() - start_time
+        self.openDocument.emit(filename, timing)
         return file_path
 
     @pyqtSlot(str, str, str, str)
@@ -695,9 +694,9 @@ class DirectEdit(Worker):
                 self.local.set_remote_id(
                     dir_path, current_digest, name="nxdirecteditdigest"
                 )
-                self._last_action_timing = current_milli_time() - start_time
+                timing = current_milli_time() - start_time
                 self.directEditUploadCompleted.emit(os_path.name)
-                self.editDocument.emit(ref.name)
+                self.editDocument.emit(ref.name, timing)
             except ThreadInterrupt:
                 raise
             except NotFound:
@@ -778,7 +777,6 @@ class DirectEdit(Worker):
         metrics = super().get_metrics()
         if self._event_handler:
             metrics["fs_events"] = self._event_handler.counter
-        metrics["last_action_timing"] = self._last_action_timing
         return {**metrics, **self._metrics}
 
     @tooltip("Setup watchdog")
