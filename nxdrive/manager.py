@@ -151,6 +151,7 @@ class Manager(QObject):
             self.old_version = self.get_config("client_version")
             if self.old_version != self.version:
                 self.dao.update_config("client_version", self.version)
+            self._write_version_file()
 
             # Add auto-lock on edit
             if self.dao.get_config("direct_edit_auto_lock") is None:
@@ -861,3 +862,10 @@ class Manager(QObject):
             states = dao.get_local_children(r_path)
             self.osi.send_content_sync_status(states, path)
             return
+
+    def _write_version_file(self) -> None:
+        """Save the current version in a VERSION file inside the home directory.
+        This is for information purpose and used by the auto-update checker script."""
+        file = Options.nxdrive_home / "VERSION"
+        log.debug(f"Saving the current version ({self.version}) into {file!r}")
+        file.write_text(f"{self.version}\n")
