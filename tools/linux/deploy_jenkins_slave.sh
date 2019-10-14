@@ -14,7 +14,7 @@ remove_blacklisted_files() {
     echo ">>> [${app_dir}] Removing blacklisted files"
 
     [ -f excludelist ] && rm -fv excludelist
-    wget "https://raw.githubusercontent.com/AppImage/pkg2appimage/master/excludelist"
+    wget "https://raw.githubusercontent.com/AppImage/pkg2appimage/9db3779700474cb87cff32f1d6470047a9786936/excludelist"
 
     while IFS= read -r line; do
         file="$(echo "${line}" | cut -d' ' -f1)"
@@ -36,8 +36,8 @@ check() {
     echo ">>> [AppImage] Downloading AppImage conformity tools"
     [ -f "excludelist" ] && rm -f "excludelist"
     [ -f "appdir-lint.sh" ] && rm -f "appdir-lint.sh"
-    wget "https://github.com/AppImage/pkg2appimage/raw/master/excludelist"
-    wget "https://github.com/AppImage/pkg2appimage/raw/master/appdir-lint.sh"
+    wget "https://raw.githubusercontent.com/AppImage/pkg2appimage/9db3779700474cb87cff32f1d6470047a9786936/excludelist"
+    wget "https://raw.githubusercontent.com/AppImage/pkg2appimage/9db3779700474cb87cff32f1d6470047a9786936/appdir-lint.sh"
 
     echo ">>> [AppImage] Checking the AppImage conformity"
     bash appdir-lint.sh "squashfs-root"
