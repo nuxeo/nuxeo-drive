@@ -7,7 +7,7 @@ from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from threading import Lock
-from time import sleep
+from time import monotonic_ns, sleep
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal
@@ -262,7 +262,10 @@ class Processor(EngineWorker):
                     self.increase_error(doc_pair, "ILLEGAL_STATE")
                     continue
 
-                self._current_metrics = {"handler": doc_pair.pair_state}
+                self._current_metrics = {
+                    "handler": doc_pair.pair_state,
+                    "start_ns": monotonic_ns(),
+                }
                 log.debug(f"Calling {handler_name}() on doc pair {doc_pair!r}")
 
                 self.pairSyncStarted.emit(self._current_metrics)

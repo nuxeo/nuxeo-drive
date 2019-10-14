@@ -55,6 +55,7 @@ __all__ = (
     "find_suitable_tmp_dir",
     "force_decode",
     "force_encode",
+    "ga_user_agent",
     "get_arch",
     "get_certificate_details",
     "get_current_os",
@@ -233,6 +234,16 @@ def get_current_os_full() -> Tuple[Any, ...]:
         from platform import win32_ver
 
         return win32_ver()
+
+
+def ga_user_agent() -> str:
+    """Try to create a UA that is parsable by Google Analytics processor."""
+    osi = get_current_os_full()
+    if WINDOWS:
+        # GA determines the Windows version based on "NT X.Y"
+        release = ".".join(osi[1].split(".")[:2])  # "10.0.16299" -> "10.10"
+        return f"Windows NT {release}"
+    return " ".join(osi).strip()
 
 
 def get_device() -> str:

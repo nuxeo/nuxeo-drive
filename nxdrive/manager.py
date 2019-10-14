@@ -25,8 +25,10 @@ from .constants import (
     STARTUP_PAGE_CONNECTION_TIMEOUT,
     DelAction,
 )
+from .direct_edit import DirectEdit
 from .engine.dao.sqlite import ManagerDAO
 from .engine.engine import Engine
+from .engine.tracker import Tracker
 from .exceptions import (
     EngineInitError,
     EngineTypeMissing,
@@ -55,8 +57,6 @@ from .utils import (
 
 if TYPE_CHECKING:
     from .client.proxy import Proxy  # noqa
-    from .direct_edit import DirectEdit  # noqa
-    from .engine.tracker import Tracker  # noqa
     from .updater import Updater  # noqa
 
 
@@ -83,8 +83,8 @@ class Manager(QObject):
     def __init__(self, home: Path) -> None:
         super().__init__()
 
+        self.arch = get_arch()  # public because used in the Tracker
         self._os = get_device()
-        self._arch = get_arch()
         self._platform = get_current_os_full()
 
         # Primary attributes to allow initializing the notification center early
@@ -164,6 +164,13 @@ class Manager(QObject):
         self._create_autolock_service()
         self._create_direct_edit()
 
+        # Check for metrics approval
+        self.preferences_metrics_chosen = False
+        self.check_metrics_preferences()
+
+        # Setup analytics tracker
+        self.tracker = self.create_tracker()
+
         # Create notification service
         self._started = False
 
@@ -181,9 +188,6 @@ class Manager(QObject):
 
         # Create the application update verification thread
         self.updater: "Updater" = self._create_updater()
-
-        # Setup analytics tracker
-        self._tracker = self._create_tracker()
 
         # Create the FinderSync/Explorer listener thread
         self._create_extension_listener()
@@ -222,12 +226,21 @@ class Manager(QObject):
             "python_version": platform.python_version(),
             "os": self._os,
             "platform": self._platform,
-            "arch": self._arch,
+            "arch": self.arch,
             "appname": APP_NAME,
         }
 
     def open_help(self) -> None:
         self.open_local_file("https://doc.nuxeo.com/nxdoc/nuxeo-drive/")
+
+    def check_metrics_preferences(self) -> None:
+        """Should we setup and use Sentry and/or Google Analytics?"""
+        state_file = Options.nxdrive_home / "metrics.state"
+        if state_file.is_file():
+            lines = state_file.read_text(encoding="utf-8").splitlines()
+            Options.use_sentry = "sentry" in lines
+            Options.use_analytics = "analytics" in lines
+            self.preferences_metrics_chosen = True
 
     @if_frozen
     def _handle_os(self) -> None:
@@ -244,15 +257,22 @@ class Manager(QObject):
         self.started.connect(self.autolock_service.thread.start)
         return self.autolock_service
 
-    def _create_tracker(self) -> Optional["Tracker"]:
-        if not self.get_tracking():
+    def create_tracker(self) -> Optional["Tracker"]:
+        """Create the Google Analytics tracker."""
+
+        # Avoid sending statistics when testing or if the user does not allow it.
+        if not Options.is_frozen or not Options.use_analytics:
             return None
 
-        from .engine.tracker import Tracker  # noqa
-
         tracker = Tracker(self)
+
         # Start the tracker when we launch
         self.started.connect(tracker.thread.start)
+
+        # Connect DirectEdit metrics
+        self.direct_edit.openDocument.connect(tracker.send_directedit_open)
+        self.direct_edit.editDocument.connect(tracker.send_directedit_edit)
+
         return tracker
 
     def _get_db(self) -> Path:
@@ -296,8 +316,6 @@ class Manager(QObject):
             self.updater.refresh_status()
 
     def _create_direct_edit(self) -> "DirectEdit":
-        from .direct_edit import DirectEdit  # noqa
-
         self.direct_edit = DirectEdit(self, self.direct_edit_folder)
         self.started.connect(self.direct_edit.thread.start)
         self.autolock_service.direct_edit = self.direct_edit
@@ -509,14 +527,8 @@ class Manager(QObject):
             log.warning("Setting log level to DEBUG, sensitive data may be logged.")
         self.set_config("log_level_file", value)
 
-    def get_tracking(self) -> bool:
-        """
-        Avoid sending statistics when testing or if the user does not allow it.
-        """
-        return Options.is_frozen and Options.use_analytics
-
     def get_tracker_id(self) -> str:
-        return self._tracker.uid if self._tracker else ""
+        return self.tracker.uid if self.tracker else ""
 
     def set_proxy(self, proxy: "Proxy") -> str:
         log.debug(f"Changed proxy to {proxy}")
