@@ -954,11 +954,10 @@ class Engine(QObject):
         except Exception:
             # No need to log the whole exception when using a development environment
             devenv = self.hostname.startswith(("127.0.0.1", "localhost", "192.168."))
-            log.warning(
-                f"Server at {self.server_url!r} doesn't seem to handle HTTPS, keeping HTTP."
-                " For information, this is the encountered SSL error",
-                exc_info=not devenv,
-            )
+            err = f"Server at {self.server_url!r} doesn't seem to handle HTTPS, keeping HTTP."
+            if not devenv:
+                err += " For information, this is the encountered SSL error:"
+            log.warning(err, exc_info=not devenv)
         else:
             self.server_url = url
             self.dao.update_config("server_url", self.server_url)
