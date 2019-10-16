@@ -325,6 +325,7 @@ class Application(QApplication):
         context.setContextProperty("ratio", self.ratio)
         context.setContextProperty("update_check_delay", Options.update_check_delay)
         context.setContextProperty("isFrozen", Options.is_frozen)
+        context.setContextProperty("LINUX", LINUX)
         context.setContextProperty("WINDOWS", WINDOWS)
         context.setContextProperty("tl", Translator.singleton)
         context.setContextProperty(
