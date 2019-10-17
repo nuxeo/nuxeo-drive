@@ -30,7 +30,8 @@ class Updater(BaseUpdater):
         So, a big thank you to Inno Setup!
         """
 
-        cmd = f'timeout /t 5 /nobreak > nul && "{filename}" /verysilent /start=auto'
+        # Using ping instead of timeout to wait 5 seconds (see NXDRIVE-1890)
+        cmd = f'ping 127.0.0.1 -n 6 > nul && "{filename}" /verysilent /start=auto'
         log.info("Launching the auto-updater in 5 seconds ...")
         subprocess.Popen(cmd, shell=True, close_fds=True)
 
