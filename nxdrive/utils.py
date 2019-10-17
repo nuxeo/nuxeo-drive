@@ -239,7 +239,9 @@ def get_current_os_full() -> Tuple[Any, ...]:
 def ga_user_agent() -> str:
     """Try to create a UA that is parsable by Google Analytics processor."""
     osi = get_current_os_full()
-    if WINDOWS:
+    if MAC:
+        return osi[0]
+    elif WINDOWS:
         # GA determines the Windows version based on "NT X.Y"
         release = ".".join(osi[1].split(".")[:2])  # "10.0.16299" -> "10.10"
         return f"Windows NT {release}"
