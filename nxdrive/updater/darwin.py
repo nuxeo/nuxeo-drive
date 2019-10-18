@@ -1,9 +1,12 @@
 # coding: utf-8
 import os
+import re
+import sys
 import shutil
 import subprocess
 from contextlib import suppress
 from logging import getLogger
+from pathlib import Path
 
 from .base import BaseUpdater
 from ..constants import APP_NAME
@@ -15,7 +18,13 @@ log = getLogger(__name__)
 
 
 class Updater(BaseUpdater):
-    """ macOS updater. """
+    """macOS updater.
+
+    The updater is path agnostic: it will update the application
+    whatever the current location of the application. Ideally it
+    will be /Applications, but it can also be $HOME/Applications
+    for testing or users having less rights.
+    """
 
     ext = "dmg"
     release_file = "nuxeo-drive-{version}.dmg"
@@ -32,6 +41,10 @@ class Updater(BaseUpdater):
         """
         # Unload the Finder Sync extension
         self.manager.osi.cleanup()
+
+        exe_path = sys.executable
+        m = re.match(r"(.*\.app).*", exe_path)
+        self.final_app = Path(m.group(1) if m else exe_path)
 
         log.info(f"Mounting {filename!r}")
         mount_info = subprocess.check_output(["hdiutil", "mount", filename])
@@ -55,9 +68,8 @@ class Updater(BaseUpdater):
             subprocess.check_call(["hdiutil", "unmount", mount_dir])
 
         # Check if the new application exists
-        app = f"/Applications/{APP_NAME}.app"
-        if not os.path.isdir(app):
-            log.error(f"{app!r} does not exist, auto-update failed")
+        if not self.final_app.is_dir():
+            log.error(f"{self.final_app!r} does not exist, auto-update failed")
             return
 
         # Trigger the application exit + restart
@@ -68,8 +80,8 @@ class Updater(BaseUpdater):
     def _backup(self, restore: bool = False) -> None:
         """ Backup or restore the current application. """
 
-        src = f"/Applications/{APP_NAME}.app"
-        dst = src + ".old"
+        src = self.final_app
+        dst = src.with_suffix(f"{src.suffix}.old")
 
         if restore:
             src, dst = dst, src
@@ -83,30 +95,24 @@ class Updater(BaseUpdater):
     def _cleanup(self, filename: str) -> None:
         """ Remove some files. """
 
-        # The backup
-        path = f"/Applications/{APP_NAME}.app.old"
-        with suppress(OSError):
-            shutil.rmtree(path)
-            log.info(f"Deleted {path!r}")
-
-        # The temporary DMG
-        with suppress(OSError):
-            os.remove(filename)
-            log.info(f"Deleted {filename!r}")
+        paths = (f"{self.final_app}.old", filename)
+        for path in paths:
+            with suppress(OSError):
+                shutil.rmtree(path)
+                log.info(f"Deleted {path!r}")
 
     def _copy(self, mount_dir: str) -> None:
         """ Copy the new application content to /Applications. """
 
         src = f"{mount_dir}/{APP_NAME}.app"
-        dst = f"/Applications/{APP_NAME}.app"
-        log.info(f"Copying {src!r} -> {dst!r}")
-        shutil.copytree(src, dst)
+        log.info(f"Copying {src!r} -> {self.final_app!r}")
+        shutil.copytree(src, self.final_app)
 
     def _restart(self) -> None:
         """
         Restart the current application to take into account the new version.
         """
 
-        cmd = f'sleep 5 ; open "/Applications/{APP_NAME}.app"'
+        cmd = f'sleep 5 ; open "{self.final_app}"'
         log.info(f"Launching the new {APP_NAME} version in 5 seconds ...")
         subprocess.Popen(cmd, shell=True, close_fds=True)
