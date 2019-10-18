@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import psutil
+import re
 import stat
 import subprocess
 import sys
@@ -29,7 +30,7 @@ from nuxeo.compat import quote
 from .extension import DarwinExtensionListener
 from .. import AbstractOSIntegration
 from ..extension import get_formatted_status
-from ...constants import APP_NAME, BUNDLE_IDENTIFIER, NXDRIVE_SCHEME
+from ...constants import BUNDLE_IDENTIFIER, NXDRIVE_SCHEME
 from ...objects import DocPair
 from ...options import Options
 from ...translator import Translator
@@ -39,6 +40,13 @@ from ...utils import if_frozen
 __all__ = ("DarwinIntegration",)
 
 log = getLogger(__name__)
+
+
+def _get_app() -> str:
+    """Return the path to the application, when bundled."""
+    exe_path = sys.executable
+    m = re.match(r"(.*\.app).*", exe_path)
+    return m.group(1) if m else exe_path
 
 
 class DarwinIntegration(AbstractOSIntegration):
@@ -61,9 +69,7 @@ class DarwinIntegration(AbstractOSIntegration):
         "</plist>"
     )
     FINDERSYNC_ID = f"{BUNDLE_IDENTIFIER}.NuxeoFinderSync"
-    FINDERSYNC_PATH = (
-        f"/Applications/{APP_NAME}.app/Contents/PlugIns/NuxeoFinderSync.appex/"
-    )
+    FINDERSYNC_PATH = f"{_get_app()}/Contents/PlugIns/NuxeoFinderSync.appex/"
 
     @if_frozen
     def init(self) -> None:

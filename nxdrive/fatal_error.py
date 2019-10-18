@@ -196,7 +196,7 @@ def fatal_error_mac(text: str) -> None:
 def check_executable_path() -> bool:
     """Check that the app runs from the right path, and quit if not."""
 
-    if not MAC:
+    if not MAC or not Options.is_frozen:
         return True
 
     import re
@@ -207,7 +207,10 @@ def check_executable_path() -> bool:
     m = re.match(r"(.*\.app).*", exe_path)
     path = Path(m.group(1) if m else exe_path)
 
-    if not Options.is_frozen or path == Path(f"/Applications/{APP_NAME}.app"):
+    if path in (
+        Path(f"/Applications/{APP_NAME}.app"),
+        Path.home() / "Applications" / f"{APP_NAME}.app",
+    ):
         return True
 
     try:

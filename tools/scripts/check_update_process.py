@@ -30,8 +30,9 @@ import threading
 import time
 from contextlib import suppress
 from os.path import expanduser
+from pathlib import Path
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 
 EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
@@ -106,7 +107,7 @@ def install_drive(installer):
         mount_dir = mount_info.splitlines()[-1].split("\t")[-1]
 
         src = "{}/Nuxeo Drive.app".format(mount_dir)
-        dst = "/Applications/Nuxeo Drive.app"
+        dst = f"{Path.home()}/Applications/Nuxeo Drive.app"
         if os.path.isdir(dst):
             print(">>> Deleting", dst)
             shutil.rmtree(dst)
@@ -133,7 +134,7 @@ def launch_drive(executable):
     if EXT == "appimage":
         cmd = [executable]
     elif EXT == "dmg":
-        cmd = ["open", "/Applications/Nuxeo Drive.app", "--args"]
+        cmd = ["open", f"{Path.home()}/Applications/Nuxeo Drive.app", "--args"]
     else:
         cmd = [expanduser("~\\AppData\\Local\\Nuxeo Drive\\ndrive.exe")]
 
@@ -170,10 +171,10 @@ def uninstall_drive():
     if EXT == "appimage":
         # Nothing to uninstall on GNU/Linux"
         pass
-    if EXT == "dmg":
-        path = "/Applications/Nuxeo Drive.app"
-        print(">>> Deleting", path)
-        with suppress(OSError):
+    elif EXT == "dmg":
+        path = f"{Path.home()}/Applications/Nuxeo Drive.app"
+        if os.path.isdir(path):
+            print(">>> Deleting", path, flush=True)
             shutil.rmtree(path)
     else:
         cmd = [
