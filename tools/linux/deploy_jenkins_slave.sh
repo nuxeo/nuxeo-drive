@@ -12,18 +12,14 @@ remove_blacklisted_files() {
     local app_dir="$1"
 
     echo ">>> [${app_dir}] Removing blacklisted files"
-
-    [ -f excludelist ] && rm -fv excludelist
-    wget "https://raw.githubusercontent.com/AppImage/pkg2appimage/9db3779700474cb87cff32f1d6470047a9786936/excludelist"
-
     while IFS= read -r line; do
         file="$(echo "${line}" | cut -d' ' -f1)"
         if [ ! "${file}" = "" ] && [ ! "${file}" = "#" ]; then
             [ -f "${app_dir}/${file}" ] && rm -fv "${app_dir}/${file}"
         fi
-    done < excludelist
+    done < tools/linux/appimage/excludelist
 
-    rm -fv excludelist
+    return 0  # <-- Needed, do not remove!
 }
 
 check() {
@@ -33,17 +29,13 @@ check() {
     ./dist/*-x86_64.AppImage --appimage-extract
     ./squashfs-root/AppRun --version
 
-    echo ">>> [AppImage] Downloading AppImage conformity tools"
-    [ -f "excludelist" ] && rm -f "excludelist"
-    [ -f "appdir-lint.sh" ] && rm -f "appdir-lint.sh"
-    wget "https://raw.githubusercontent.com/AppImage/pkg2appimage/9db3779700474cb87cff32f1d6470047a9786936/excludelist"
-    wget "https://raw.githubusercontent.com/AppImage/pkg2appimage/9db3779700474cb87cff32f1d6470047a9786936/appdir-lint.sh"
-
     echo ">>> [AppImage] Checking the AppImage conformity"
-    bash appdir-lint.sh "squashfs-root"
+    bash tools/linux/appimage/appdir-lint.sh "squashfs-root"
 
     echo ">>> [AppImage] Clean-up"
-    rm -rf squashfs-root excludelist appdir-lint.sh
+    rm -rf squashfs-root
+
+    return 0  # <-- Needed, do not remove!
 }
 
 create_package() {
@@ -73,20 +65,18 @@ create_package() {
 
     more_compatibility
 
-    echo ">>> [AppImage] Downloading the AppImage tool"
-    [ -f "appimagetool-x86_64.AppImage" ] && rm -f "appimagetool-x86_64.AppImage"
+    echo ">>> [AppImage] Decompressing the AppImage tool"
     [ -d "squashfs-root" ] && rm -frv "squashfs-root"
-    wget "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage"
-    chmod -v a+x "appimagetool-x86_64.AppImage"
-    ./appimagetool-x86_64.AppImage --appimage-extract
+    ./tools/linux/appimage/appimagetool-x86_64.AppImage --appimage-extract
 
     echo ">>> [AppImage ${app_version}] Creating the AppImage file"
     # --no-appstream because appstreamcli is not easily installable on CentOS
     ./squashfs-root/AppRun --no-appstream "${app_dir}" "${output}"
 
     echo ">>> [AppImage] Clean-up"
-    [ -f "appimagetool-x86_64.AppImage" ] && rm -f "appimagetool-x86_64.AppImage"
-    [ -d "squashfs-root" ] && rm -rf "squashfs-root"
+    rm -rf squashfs-root
+
+    return 0  # <-- Needed, do not remove!
 }
 
 more_compatibility() {
@@ -94,6 +84,8 @@ more_compatibility() {
 
     # Needed on Fedora 30+ (see https://github.com/slic3r/Slic3r/issues/4798)
     cp -v /usr/lib64/libcrypt-2.17.so "${app_dir}/libcrypt.so.1" || true
+
+    return 0  # <-- Needed, do not remove!
 }
 
 main "$@"
