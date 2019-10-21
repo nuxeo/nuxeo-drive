@@ -9,6 +9,7 @@ from nxdrive.constants import MAC, WINDOWS
 from pathlib import Path
 
 from .common import FILE_CONTENT, SYNC_ROOT_FAC_ID, OneUserTest
+from .. import ensure_no_exception
 
 
 class TestLocalCreations(OneUserTest):
@@ -436,3 +437,34 @@ class TestLocalCreations(OneUserTest):
         # Wait and check
         self.wait_sync()
         assert not engine.dao.get_errors()
+
+    def test_local_creation_with_obsolete_xattr(self):
+        """
+        When a local file/folder has an old remote ref stored in its xattr,
+        the sync should be done without error.
+        """
+        local = self.local_1
+        remote = self.remote_1
+        engine = self.engine_1
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Stop the engine to be able to alter xattrs before the Processor handles it
+        engine.stop()
+
+        # Create a file with an invalid remote ref
+        file = local.make_file("/", "obsolete.md", content=b"bla bla bla")
+        local.set_path_remote_id(local.abspath(file), "obsolete#remote-ref-file")
+
+        # Create a folder with an invalid remote ref
+        folder = local.make_folder("/", "obsolete")
+        local.set_path_remote_id(local.abspath(folder), "obsolete#remote-ref-folder")
+
+        with ensure_no_exception():
+            engine.start()
+            self.wait_sync()
+
+        assert not engine.dao.get_errors()
+        assert remote.exists("/obsolete.md")
+        assert remote.exists("/obsolete")
