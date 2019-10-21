@@ -6,7 +6,7 @@ from typing import Any
 
 from PyQt5.QtCore import QCoreApplication, QTimer
 
-from .constants import COMPANY
+from .constants import APP_NAME, COMPANY
 
 __all__ = ("ConsoleApplication",)
 
@@ -32,8 +32,12 @@ class ConsoleApplication(QCoreApplication):
         # Used by SyncAndQuitWorker
         self.manager.application = self
 
-        # Make sure manager is stopped before quitting
+        # Application update
+        self.manager.updater.appUpdated.connect(self.quit)
+
+        # Connect this slot last so the other slots connected
+        # to self.aboutToQuit can run beforehand.
         self.aboutToQuit.connect(self.manager.stop)
 
-        log.info("Starting console mode application")
+        log.info(f"Starting {APP_NAME} in console mode")
         self.manager.start()
