@@ -139,22 +139,21 @@ class LocalClientMixin:
             unset_path_readonly(path)
 
     def clean_xattr_root(self) -> None:
-        self.unlock_ref(ROOT, unlock_parent=False)
-        with suppress(OSError):
-            self.remove_root_id()
-        self.clean_xattr_folder_recursive(ROOT)
+        with suppress(Exception):
+            self.remove_root_id(cleanup=True)
+        self.clean_xattr_folder_recursive(ROOT, cleanup=True)
 
-    def clean_xattr_folder_recursive(self, path: Path) -> None:
+    def clean_xattr_folder_recursive(self, path: Path, cleanup: bool = False) -> None:
         for child in self.get_children_info(path):
-            locker = self.unlock_ref(child.path, unlock_parent=False)
-            if child.remote_ref:
-                self.remove_remote_id(child.path)
-            self.lock_ref(child.path, locker)
+            try:
+                self.remove_remote_id(child.path, cleanup=cleanup)
+            except Exception:
+                log.warning(f"Cannot clean {child.filepath!r}", exc_info=True)
             if child.folderish:
                 self.clean_xattr_folder_recursive(child.path)
 
-    def remove_root_id(self) -> None:
-        self.remove_remote_id(ROOT, name="ndriveroot")
+    def remove_root_id(self, cleanup: bool = False) -> None:
+        self.remove_remote_id(ROOT, name="ndriveroot", cleanup=cleanup)
 
     def set_root_id(self, value: bytes) -> None:
         self.set_remote_id(ROOT, value, name="ndriveroot")
@@ -166,19 +165,23 @@ class LocalClientMixin:
         """Remove a given extended attribute. Need to be implemented by subclasses."""
         raise NotImplementedError()
 
-    def remove_remote_id(self, ref: Path, name: str = "ndrive") -> None:
+    def remove_remote_id(
+        self, ref: Path, name: str = "ndrive", cleanup: bool = False
+    ) -> None:
         path = self.abspath(ref)
         log.debug(f"Removing xattr {name!r} from {path!r}")
-        locker = unlock_path(path, False)
+        locker = unlock_path(path, unlock_parent=False)
         try:
             self.remove_remote_id_impl(path, name=name)
         except OSError as exc:
             # ENOENT: file does not exist
             # OSError [Errno 93]: Attribute not found
-            if exc.errno not in {errno.ENOENT, 93}:
+            if exc.errno not in (errno.ENOENT, 93):
                 raise exc
         finally:
-            lock_path(path, locker)
+            # Relock the path by default. It is not needed when using the clean-folder CLI arg.
+            if not cleanup:
+                lock_path(path, locker)
 
     def has_folder_icon(self, ref: Path) -> bool:
         """Check if the folder icon is set. Need to be implemented by subclasses."""
