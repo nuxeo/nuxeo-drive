@@ -470,7 +470,7 @@ function sign($file) {
 		/n "$Env:SIGNING_ID" `
 		/d "$Env:APP_NAME" `
 		/fd sha256 `
-		/tr http://sha256timestamp.ws.symantec.com/sha256/timestamp `
+		/tr http://timestamp.digicert.com/sha256/timestamp `
 		/v `
 		"$file"
 	if ($lastExitCode -ne 0) {
