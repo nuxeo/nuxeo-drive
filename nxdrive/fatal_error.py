@@ -9,7 +9,7 @@ from nxdrive.constants import APP_NAME, COMPANY, MAC, WINDOWS
 from nxdrive.options import Options
 
 
-__all__ = ("check_executable_path", "show_critical_error")
+__all__ = ("check_executable_path", "check_os_version", "show_critical_error")
 
 
 def check_executable_path_error_qt(path: Path) -> None:
@@ -230,6 +230,29 @@ def check_executable_path() -> bool:
         fatal_error_mac(text)
 
     return False
+
+
+def check_os_version() -> bool:
+    """Check that the current OS version is supported."""
+
+    if MAC:
+        from distutils.version import StrictVersion
+        from platform import mac_ver
+
+        version = mac_ver()[0]
+        if StrictVersion(version) < StrictVersion("10.12"):
+            fatal_error_mac(
+                f"macOS 10.12 (Sierra) or newer is required (your version is {version})."
+            )
+            return False
+    elif WINDOWS:
+        win_ver = sys.getwindowsversion()
+        version = (win_ver.major, win_ver.minor)
+        if version < (6, 1):
+            fatal_error_win("Windows 7 or newer is required.")
+            return False
+
+    return True
 
 
 def show_critical_error() -> None:
