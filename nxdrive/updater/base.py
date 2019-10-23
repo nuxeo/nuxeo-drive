@@ -203,6 +203,18 @@ class BaseUpdater(PollWorker):
         except UpdateError:
             status, version = UPDATE_STATUS_UNAVAILABLE_SITE, None
         else:
+            # Special case to test the auto-updater without the need for an account
+            if os.getenv("FORCE_USE_LATEST_VERSION"):
+                version = max(self.versions)
+                if version_lt(self.manager.version, version):
+                    log.info(f"FORCE_USE_LATEST_VERSION is set, ugrading to {version}")
+                    self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, version=version)
+                else:
+                    log.info(
+                        f"FORCE_USE_LATEST_VERSION is set, but {version} not newer than the current version"
+                    )
+                return
+
             login_type = Login.NONE
             for engine in list(self.manager.engines.values()):
                 url = engine.server_url
