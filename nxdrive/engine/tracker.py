@@ -10,6 +10,7 @@ import requests
 
 from .workers import PollWorker
 from ..constants import APP_NAME, MAC, WINDOWS
+from ..options import Options
 from ..utils import ga_user_agent, get_current_os
 
 if not MAC:
@@ -43,7 +44,11 @@ class Tracker(PollWorker):
         self.__current_locale = ""
 
         # Main dimensions, see .send_event() docstring for details.
-        self._dimensions = {"cd10": self._manager.arch, "cd11": self._current_os}
+        self._dimensions = {
+            "cd10": self._manager.arch,
+            "cd11": self._current_os,
+            "cd12": Options.channel,
+        }
 
         # https://developers.google.com/analytics/devguides/collection/protocol/v1/parameters
         # Main data to send every HTTP call
