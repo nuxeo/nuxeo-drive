@@ -247,8 +247,8 @@ def check_os_version() -> bool:
             return False
     elif WINDOWS:
         win_ver = sys.getwindowsversion()
-        version = (win_ver.major, win_ver.minor)
-        if version < (6, 1):
+        version_number = (win_ver.major, win_ver.minor)
+        if version_number < (6, 1):
             fatal_error_win("Windows 7 or newer is required.")
             return False
 
