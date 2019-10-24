@@ -279,6 +279,13 @@ class RemoteWatcher(EngineWorker):
                     descendants.pop(descendant_info.uid, None)
                     continue
 
+                if descendant_info.digest == "notInBinaryStore":
+                    log.debug(
+                        f"Skipping unsyncable document {descendant_info} (digest is 'notInBinaryStore')"
+                    )
+                    descendants.pop(descendant_info.uid, None)
+                    continue
+
                 log.debug(f"Handling remote descendant {descendant_info!r}")
                 if descendant_info.uid in descendants:
                     descendant_pair = descendants.pop(descendant_info.uid)
@@ -370,6 +377,12 @@ class RemoteWatcher(EngineWorker):
         for child_info in children_info:
             if self.filtered(child_info):
                 log.info(f"Ignoring banned file: {child_info!r}")
+                continue
+
+            if child_info.digest == "notInBinaryStore":
+                log.debug(
+                    f"Skipping unsyncable document {child_info} (digest is 'notInBinaryStore')"
+                )
                 continue
 
             log.debug(f"Scanning remote child: {child_info!r}")
@@ -727,6 +740,14 @@ class RemoteWatcher(EngineWorker):
             # TODO In case of pause or stop: save the last event id
             self._interact()
 
+            fs_item = change.get("fileSystemItem")
+
+            if fs_item and fs_item.get("digest", "") == "notInBinaryStore":
+                log.debug(
+                    f"Skipping unsyncable document {change} (digest is 'notInBinaryStore')"
+                )
+                continue
+
             log.debug(f"Processing event: {change!r}")
 
             event_id = change.get("eventId")
@@ -740,7 +761,7 @@ class RemoteWatcher(EngineWorker):
             if processed:
                 # A more recent version was already processed
                 continue
-            fs_item = change.get("fileSystemItem")
+
             new_info = RemoteFileInfo.from_dict(fs_item) if fs_item else None
 
             if self.filtered(new_info):
