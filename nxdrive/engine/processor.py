@@ -457,6 +457,7 @@ class Processor(EngineWorker):
             file = Path(f"/{doc_pair.local_path}")
 
         if not file.exists():
+            self.engine.directTranferError.emit(file)
             log.debug(
                 f"Cancelling Direct Transfer of {file!r} because it does not exist anymore"
             )
@@ -467,7 +468,14 @@ class Processor(EngineWorker):
         parent_path = self.local.get_remote_id(file)
 
         # Do the upload
-        self.remote.direct_transfer(file, parent_path, self.engine.uid)
+        self.engine.directTranferStatus.emit(file, True)
+        try:
+            self.remote.direct_transfer(file, parent_path, self.engine.uid)
+        except Exception:
+            self.engine.directTranferError.emit(file)
+            raise
+        else:
+            self.engine.directTranferStatus.emit(file, False)
 
         # Clean-up
         self.dao.remove_state(doc_pair)
