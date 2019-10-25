@@ -98,6 +98,10 @@ class Engine(QObject):
     offline = pyqtSignal()
     online = pyqtSignal()
 
+    # Direct Transfer notifications
+    directTranferError = pyqtSignal(Path)
+    directTranferStatus = pyqtSignal(Path, bool)
+
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
     # others processors to operate on a folder
