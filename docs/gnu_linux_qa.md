@@ -1,13 +1,5 @@
 # GNU/Linux - Troubleshooting
 
-## Supported Distributions
-
-This is a table of minimum supported versions.
-
-| Nuxeo Drive | Debian | Ubuntu | Fedora | Manjaro
-|---|---|---|---|---
-| 4.2.0+ | 10 | 16.04 | 29 | 18.1.0
-
 # No SSL Support on Ubuntu 16.04
 
 This is known and the root cause is that newer versions of Python and PyQt need OpenSSL 1.1+.
