@@ -6,18 +6,12 @@ This page is targeting the current Nuxeo Drive release. You can check for older 
 https://github.com/nuxeo/nuxeo-drive/blob/release-$VERSION/docs/support.md
 ```
 
+
+
 ## Server
 
-Nuxeo Drive always supports all versions [currently supported](https://www.nuxeo.com/legal/supported-versions/) by Nuxeo (at the time of each release).
+Nuxeo Drive always supports all versions [currently supported](https://www.nuxeo.com/legal/supported-versions/) by Nuxeo (at the time of each release), with those [minimum HF requirements](https://doc.nuxeo.com/client-apps/nuxeo-drive-faq/#what-are-the-required-nuxeo-versionshotfixes-when-using-a-drive-client-version).
 The **only requirement** is to always have the Nuxeo Drive addon up-to-date.
-
-Current support:
-
-- Nuxeo Platform 7.10
-- Nuxeo Platform 8.10
-- Nuxeo Platform 9.10
-- Nuxeo Platform 10.10
-- Nuxeo Platform SNAPSHOT
 
 History:
 
@@ -25,14 +19,7 @@ History:
 
 ## Client
 
-Officially supported platform vendors and versions:
-
-- GNU/Linux, 64 bits
-- macOS >= 10.12, 64 bits
-- Windows 7, both 32 and 64 bits
-- Windows 8, both 32 and 64 bits
-- Windows 8.1, both 32 and 64 bits
-- Windows 10, both 32 and 64 bits
+Check the [supported OS](https://doc.nuxeo.com/client-apps/nuxeo-drive-faq/#what-are-the-supported-os) page.
 
 History:
 
