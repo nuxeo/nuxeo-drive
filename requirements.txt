@@ -79,9 +79,9 @@ idna==2.8 \
 markdown==3.1.1 \
     --hash=sha256:2e50876bcdd74517e7b71f3e7a76102050edec255b3983403f1a63e7c8a41e7a \
     --hash=sha256:56a46ac655704b91e5b7e6326ce43d5ef72411376588afa1dd90e881b83c7e8c
-nuxeo==2.2.3 \
-    --hash=sha256:4f9208afc6dc3e55ea4371d22c9b8b096f2d9fc5a7660e3296803bc20cbfbab7 \
-    --hash=sha256:e442993a4af3e7b52b1fc81469fddc881f16392c2fde01d27ac6f68a5c522649
+nuxeo==2.2.4 \
+    --hash=sha256:a1ecf503dba2c4f2ad2a91234d72f2789ba1036d41a10fe97b7063db6ce95a70 \
+    --hash=sha256:0f8a98024b1a7a27dc3cb1f9fde60bb858cf55d41a8b899364f40488e1c29c74
 pathtools==0.1.2 \
     --hash=sha256:7c35c5421a39bb82e58018febd90e3b6e5db34c5443aaaf742b3f33d4655f1c0
     # via watchdog

@@ -456,7 +456,7 @@ class Remote(Nuxeo):
                 else:
                     log.debug(f"Associated batch found, resuming the upload")
                     batch = Batch(batchId=upload.batch, service=self.uploads)
-                    batch._upload_idx = upload.idx
+                    batch.upload_idx = upload.idx
                     chunk_size = upload.chunk_size
 
             if not batch:
@@ -486,7 +486,7 @@ class Remote(Nuxeo):
                     engine=engine_uid,
                     is_direct_edit=is_direct_edit,
                     batch=batch.uid,
-                    idx=batch._upload_idx,
+                    idx=batch.upload_idx,
                     chunk_size=chunk_size,
                 )
                 self.dao.save_upload(upload)
