@@ -510,7 +510,9 @@ class Remote(Nuxeo):
                 action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
 
             log.debug(
-                f"Upload progression is {action.get_percent():.2f}% (chunk size is {sizeof_fmt(chunk_size)})"
+                f"Upload progression is {action.get_percent():.2f}% "
+                f"(data length is {sizeof_fmt(blob.size)}, "
+                f"chunked is {chunked}, chunk size is {sizeof_fmt(chunk_size)})"
             )
 
             if action.get_percent() < 100.0 or not action.uploaded:

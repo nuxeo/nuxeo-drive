@@ -219,7 +219,7 @@ class LocalClientMixin:
 
     def get_info(self, ref: Path, check: bool = True) -> FileInfo:
         if check:
-            # all use cases except Direct Transfer
+            # All use cases except Direct Transfer
             os_path = self.abspath(ref)
             if not os_path.exists():
                 raise NotFound(

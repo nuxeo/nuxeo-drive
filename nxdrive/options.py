@@ -481,13 +481,13 @@ class Options(metaclass=MetaOptions):
 def validate_chunk_limit(value: int) -> int:
     if value > 0:
         return value
-    raise ValueError("Chunk limit must be above 0")
+    raise ValueError(f"Chunk limit must be above 0 (got {value!r})")
 
 
 def validate_chunk_size(value: int) -> int:
     if 0 < value <= 20:
         return value
-    raise ValueError("Chunk size must be between 1 and 20 (MiB)")
+    raise ValueError(f"Chunk size must be between 1 and 20 MiB (got {value!r})")
 
 
 def validate_client_version(value: str) -> str:
