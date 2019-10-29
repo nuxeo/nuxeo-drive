@@ -404,11 +404,10 @@ class Engine(QObject):
         """
         _, repo, uid = remote_ref.split("#", 2)
         page = ("view_documents", "view_drive_metadata")[edit]
-        token = self.get_remote_token()
 
         urls = {
-            "jsf": f"{self.server_url}nxdoc/{repo}/{uid}/{page}?token={token}",
-            "web": f"{self.server_url}ui?token={token}#!/doc/{uid}",
+            "jsf": f"{self.server_url}nxdoc/{repo}/{uid}/{page}",
+            "web": f"{self.server_url}ui#!/doc/{uid}",
         }
         return urls[self.force_ui or self.wui]
 

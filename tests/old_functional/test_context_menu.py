@@ -37,6 +37,7 @@ class TestContextMenu(OneUserTest):
         assert isfile(path)
         url = manager.ctx_copy_share_link(path)
         assert url.startswith("http")
+        assert "token" not in url
         assert manager.osi.cb_get() == url
 
     def test_get_metadata_infos(self):
@@ -58,8 +59,10 @@ class TestContextMenu(OneUserTest):
         # "Access online" entry
         url = manager.get_metadata_infos(path)
         assert url.startswith("http")
+        assert "token" not in url
 
         # "Edit metadata" entry
         url_edit = manager.get_metadata_infos(path, edit=True)
         assert url.startswith("http")
         assert url_edit != url
+        assert "token" not in url
