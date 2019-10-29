@@ -384,6 +384,15 @@ class Processor(EngineWorker):
                 # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
                 sys.excepthook(*sys.exc_info())  # type: ignore
 
+                # Show a notification for Direct Transfer errors
+                if doc_pair.pair_state == "direct_transfer":
+                    file = (
+                        doc_pair.local_path
+                        if WINDOWS
+                        else Path(f"/{doc_pair.local_path}")
+                    )
+                    self.engine.directTranferError.emit(file)
+
                 self._handle_pair_handler_exception(doc_pair, handler_name, exc)
             finally:
                 if soft_lock:
@@ -393,7 +402,9 @@ class Processor(EngineWorker):
             self._interact()
 
     def _check_exists_on_the_server(self, doc_pair: DocPair) -> None:
-        """Used when the server is not available to do specific actions."""
+        """Used when the server is not available to do specific actions.
+        Note that this check is not yet handled for Direct Transfer.
+        """
         if doc_pair.pair_state != "locally_created":
             # Simply retry later
             self._postpone_pair(doc_pair, "Server unavailable")
@@ -458,10 +469,11 @@ class Processor(EngineWorker):
 
         if not file.exists():
             self.engine.directTranferError.emit(file)
-            log.debug(
+            log.warning(
                 f"Cancelling Direct Transfer of {file!r} because it does not exist anymore"
             )
             self.dao.remove_state(doc_pair)
+            self.dao.remove_transfer("upload", file)
             return
 
         # The remote path is stored as the remote ref in xattr of the file
@@ -469,13 +481,8 @@ class Processor(EngineWorker):
 
         # Do the upload
         self.engine.directTranferStatus.emit(file, True)
-        try:
-            self.remote.direct_transfer(file, parent_path, self.engine.uid)
-        except Exception:
-            self.engine.directTranferError.emit(file)
-            raise
-        else:
-            self.engine.directTranferStatus.emit(file, False)
+        self.remote.direct_transfer(file, parent_path, self.engine.uid)
+        self.engine.directTranferStatus.emit(file, False)
 
         # Clean-up
         self.dao.remove_state(doc_pair)

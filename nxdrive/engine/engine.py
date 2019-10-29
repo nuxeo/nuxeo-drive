@@ -371,6 +371,15 @@ class Engine(QObject):
             self.dao.remove_state(doc_pair)
             self.dao.add_filter(doc_pair.remote_parent_path + "/" + doc_pair.remote_ref)
 
+    def direct_transfer(self, local_path: Path, remote_ref: str) -> None:
+        """Plan the Direct Transfer."""
+        # Save the remote folder's refere into the file xattrs
+        self.local.set_remote_id(local_path, remote_ref)
+
+        # Add the file into the database to plan the upload
+        info = self.local.get_info(local_path)
+        self.dao.insert_local_state(info, None, local_state="direct")
+
     def rollback_delete(self, path: Path) -> None:
         """ Re-synchronize a document when a deletion is cancelled. """
         doc_pair = self.dao.get_state_from_local(path)

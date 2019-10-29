@@ -235,12 +235,5 @@ class FoldersDialog(DialogMixin):
 
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
-
-        # Save the remote folder's path into the file xattr
-        self.engine.local.set_remote_id(self.path, self.remote_folder.text())
-
-        # Add the file into the database and plan the upload
-        info = self.engine.local.get_info(self.path)
-        self.engine.dao.insert_local_state(info, None, local_state="direct")
-
+        self.engine.direct_transfer(self.path, self.remote_folder.text())
         super().accept()
