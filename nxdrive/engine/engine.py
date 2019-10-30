@@ -14,6 +14,7 @@ import requests
 from dataclasses import dataclass
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from nuxeo.exceptions import HTTPError
+from nuxeo.models import Document
 
 from .activity import Action, FileAction
 from .dao.sqlite import EngineDAO
@@ -98,7 +99,8 @@ class Engine(QObject):
     offline = pyqtSignal()
     online = pyqtSignal()
 
-    # Direct Transfer notifications
+    # Direct Transfer
+    directTranferDuplicateError = pyqtSignal(Path, Document)
     directTranferError = pyqtSignal(Path)
     directTranferStatus = pyqtSignal(Path, bool)
 
@@ -378,7 +380,42 @@ class Engine(QObject):
 
         # Add the file into the database to plan the upload
         info = self.local.get_info(local_path)
-        self.dao.insert_local_state(info, None, local_state="direct")
+        self.dao.insert_local_state(info, parent_path=None, local_state="direct")
+
+    def direct_transfer_cancel(self, file: Path) -> None:
+        """Cancel the Direct Transfer of the given local *file*."""
+        log.info(f"Direct Transfer of {file!r}, user choice: cancel the upload")
+
+        doc_pair = self.dao.get_state_from_local(file)
+        if not doc_pair:
+            # Magic teleportation?
+            log.warning("The doc pair disappeared?! Direct Transfer cancelled.")
+            return
+
+        # Cancel the upload, clean-up the database and local file
+        self.dao.remove_state(doc_pair)
+        self.local.remove_remote_id(file)
+        self.local.remove_remote_id(file, name="remote")
+
+    def direct_transfer_replace_blob(self, file: Path, doc: Document) -> None:
+        """Replace the document's blob on the server."""
+        log.info(
+            f"Direct Transfer of {file!r}, user choice: "
+            f"replace the document's attached file (UID is {doc.uid!r})"
+        )
+
+        doc_pair = self.dao.get_state_from_local(file)
+        if not doc_pair:
+            # Magic teleportation?
+            log.warning("The doc pair disappeared?! Direct Transfer cancelled.")
+            return
+
+        # Plan the replacement of the document's blob on the server
+        doc_pair.remote_state = "deleted"
+        self.dao.update_pair_state(doc_pair)
+
+        # Repush the pair to be traited later
+        self.queue_manager.push(doc_pair)
 
     def rollback_delete(self, path: Path) -> None:
         """ Re-synchronize a document when a deletion is cancelled. """

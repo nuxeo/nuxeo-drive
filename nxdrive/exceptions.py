@@ -1,6 +1,8 @@
 # coding: utf-8
+from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
+from nuxeo.models import Document
 
 if TYPE_CHECKING:
     from .engine.engine import Engine  # noqa
@@ -10,6 +12,26 @@ class DriveError(Exception):
     """ Mother exception. """
 
     pass
+
+
+class DirectTransferDuplicateFoundError(ValueError):
+    """
+    Exception raised when a duplicate file already exists on the server
+    and trying to Direct Transfer a local file with the same name.
+    """
+
+    def __init__(self, file: Path, doc: Document) -> None:
+        self.file = file
+        self.doc = doc
+
+    def __repr__(self) -> str:
+        return (
+            f"Document with the name {self.file.name!r} already found on the server: {self.doc}."
+            f"Direct Transfer of {self.file!r} postponed after the user decided what to do."
+        )
+
+    def __str__(self) -> str:
+        return repr(self)
 
 
 class DocumentAlreadyLocked(DriveError):

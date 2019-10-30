@@ -36,7 +36,13 @@ from ..engine.activity import (
     UploadAction,
     VerificationAction,
 )
-from ..exceptions import DownloadPaused, NotFound, ScrollDescendantsError, UploadPaused
+from ..exceptions import (
+    DirectTransferDuplicateFoundError,
+    DownloadPaused,
+    NotFound,
+    ScrollDescendantsError,
+    UploadPaused,
+)
 from ..objects import NuxeoDocumentInfo, RemoteFileInfo, Download, Upload
 from ..options import Options
 from ..utils import (
@@ -137,7 +143,7 @@ class Remote(Nuxeo):
             f"{attr}={getattr(self, attr, None)!r}"
             for attr in sorted(self.__init__.__code__.co_varnames[1:])  # type: ignore
         )
-        return f"<{self.__class__.__name__} {attrs}>"
+        return f"<{type(self).__name__} {attrs}>"
 
     def transfer_start_callback(self, *_: Any) -> None:
         """Callback for each chunked (down|up)loads.
@@ -600,28 +606,101 @@ class Remote(Nuxeo):
         finally:
             LinkingAction.finish_action()
 
-    def direct_transfer(self, file: Path, parent_path: str, engine_uid: str):
-        """Upload a given file to the given folderish document on the server."""
+    def get_document_or_none(self, uid: str = "", path: str = "") -> Optional[Document]:
+        """Fetch a document base don given criterias or return None if not found on the server."""
+        doc: Optional[Document] = None
+        try:
+            doc = self.documents.get(uid=uid, path=path)
+        except HTTPError as exc:
+            if exc.status != requests.codes.not_found:
+                raise
+        return doc
+
+    def direct_transfer(
+        self, file: Path, parent_path: str, engine_uid: str, replace_blob: bool = False
+    ):
+        """Upload a given file to the given folderish document on the server.
+
+        Note about possible duplicate creation via a race condition client <-> server.
+        Given the local *file* with the path "$HOME/some-folder/subfolder/file.odt",
+        the file name is "file.odt".
+
+        Scenario:
+            - Step 1: local, check for a doc with the path name "file.odt" => nothing returned, continuing;
+            - Step 2: server, a document with a path name set to "file.odt" is created;
+            - Step 3: local, create the document with the path name "file.odt".
+
+        Even if the elapsed time between steps 1 and 3 is really short, it may happen.
+
+        What can be done to prevent such scenario is not on the Nuxeo Drive side but on the server one.
+        For now, 2 options are possible but not qualified to be done in a near future:
+            - https://jira.nuxeo.com/browse/NXP-22959;
+            - create a new operation `Document.GetOrCreate` that ensures atomicity.
+        """
         log.info(f"Direct Transfer of {file!r} into {parent_path!r}")
 
-        # The remote file, when created, is stored in the file xattr.
+        # The remote file, when created, is stored in the file xattrs.
         # So retrieve it and if it is defined, the document creation should
         # be skipped to prevent duplicate creations.
         remote_ref = LocalClient.get_path_remote_id(file, name="remote")
 
-        if not remote_ref:
+        doc: Optional[Document] = None
+
+        if remote_ref:
+            # The remote ref is set, so it means either the file has already been uploaded,
+            # either a previous upload failed: the document was created, or not, and it has
+            # a blob attached, or not. In any cases, we need to ensure the user can upload
+            # without headhache.
+            doc = self.get_document_or_none(uid=remote_ref)
+
+        if not doc:
+            # We need to handle possbile duplicates based on the file name and
+            # the destination folder on the server.
+            # Note: using this way may still result in duplicates:
+            #  - the user created 2 documents with the same name on Web-UI or another way
+            #  - the user then deleted the 1st document
+            #  - the other document has a path like "name.TIMESTAMP"
+            # So then Drive will not see that document as a duplicate because it will check
+            # a path with "name" only.
+
+            # If we really want to avoid that situation, we should use that commented code:
+            """
+            # Note that it would be too much effort for the server, we do not want that!
+            for child in self.documents.get_children(path=parent_path):
+                # It is OK to have a folder and a file with the same name,
+                # but not 2 files or 2 folders with the same name
+                if child.title == file.name:
+                    local_is_dir = file.isdir()
+                    remote_is_dir = "Folderish" in child["facets"]
+                    if local_is_dir is remote_is_dir:
+                        # Duplicate found!
+                        doc = child
+                        remote_ref = doc.uid
+                        break
+            """
+
+            doc = self.get_document_or_none(path=f"{parent_path}/{file.name}")
+            if doc:
+                remote_ref = doc.uid
+
+        if not replace_blob and doc and doc.properties.get("file:content"):
+            # The document already exists and has a blob attached. Ask the user what to do.
+            raise DirectTransferDuplicateFoundError(file, doc)
+
+        if not doc:
             # Create the file on the server
             doc = self.documents.create(
-                Document(name=file.name, type="File"), parent_path=parent_path
+                Document(
+                    name=file.name, type="File", properties={"dc:title": file.name}
+                ),
+                parent_path=parent_path,
             )
-            # Save the remote document's UID into the file xattr, in case next steps fails
-            LocalClient.set_path_remote_id(file, doc.uid, name="remote")
             remote_ref = doc.uid
 
-        # /!\ # Here, the upload may fail if the remote_ref is already set on the local file
-        # /!\ but the document does not exist anymore on the server.
+        # Save the remote document's UID into the file xattrs, in case next steps fails
+        LocalClient.set_path_remote_id(file, remote_ref, name="remote")
 
-        # Upload the blob and attach it to the file
+        # Upload the blob and attach it to the document
         self.upload(
             file,
             engine_uid=engine_uid,
