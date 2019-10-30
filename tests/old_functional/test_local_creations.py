@@ -468,3 +468,87 @@ class TestLocalCreations(OneUserTest):
         assert not engine.dao.get_errors()
         assert remote.exists("/obsolete.md")
         assert remote.exists("/obsolete")
+
+    def recovery_scenario(self, cleanup: bool = True):
+        """
+        A recovery test, scenario:
+            1. Add a new account using the foo folder.
+            2. Remove the account, keep the foo folder as-is.
+            3. Remove xattrs using the clean-folder CLI argument (if *cleanup* is True).
+            4. Re-add the account using the foo folder.
+
+        The goal is to check that local data is not re-downloaded at all.
+        Drive should simply recreate the database and check the all files are there.
+        """
+        # Start engine and wait for synchronization
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Create folders and files on the server
+        workspace_id = f"{SYNC_ROOT_FAC_ID}{self.workspace}"
+        folder_uid = self.remote_1.make_folder(workspace_id, "a folder").uid
+        self.remote_1.make_file(folder_uid, "file1.bin", content=b"0321" * 42)
+        self.remote_1.make_file(folder_uid, "file2.bin", content=b"12365" * 42)
+        self.remote_1.make_folder(folder_uid, "folder 2")
+
+        # Start engine and wait for synchronization
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Local checks
+        assert self.local_1.exists("/a folder")
+        assert self.local_1.exists("/a folder/file1.bin")
+        assert self.local_1.exists("/a folder/file2.bin")
+        assert self.local_1.exists("/a folder/folder 2")
+
+        # Stop the engine for following actions
+        self.engine_1.stop()
+
+        if cleanup:
+            # Remove xattrs
+            folder = Path("a folder")
+            self.local_1.clean_xattr_folder_recursive(folder, cleanup=True)
+            self.local_1.remove_remote_id(folder, cleanup=True)
+
+            # Ensure xattrs are gone
+            assert not self.local_1.get_remote_id(folder)
+            assert not self.local_1.get_remote_id(folder / "file1.bin")
+            assert not self.local_1.get_remote_id(folder / "file2.bin")
+            assert not self.local_1.get_remote_id(folder / "folder 2")
+
+        # Destroy the database but keep synced files
+        self.unbind_engine(1, purge=False)
+
+        def download(*_, **__):
+            """
+            Patch Remote.download() to be able to check that nothing
+            will be downloaded as local data is already there.
+            """
+            assert 0, "No download should be done!"
+
+        # Re-bind the account using the same folder
+        self.bind_engine(1, start_engine=False)
+
+        # Start the sync
+        with patch.object(self.engine_1.remote, "download", new=download):
+            with ensure_no_exception():
+                self.engine_1.start()
+                self.wait_sync(wait_for_async=True)
+
+        # No error expected
+        assert not self.engine_1.dao.get_errors(limit=0)
+
+        # Checks
+        for client in (self.local_1, self.remote_1):
+            assert client.exists("/a folder")
+            assert client.exists("/a folder/file1.bin")
+            assert client.exists("/a folder/file2.bin")
+            assert client.exists("/a folder/folder 2")
+
+    def test_local_creation_with_files_existant_without_xattrs(self):
+        """NXDRIVE-1882: Recovery test with purgation of attrs."""
+        self.recovery_scenario(cleanup=True)
+
+    def test_local_creation_with_files_existant_with_xattr(self):
+        """NXDRIVE-1882: Recovery test without purgation of attrs."""
+        self.recovery_scenario(cleanup=False)
