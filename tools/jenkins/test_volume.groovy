@@ -22,10 +22,10 @@ properties([
 ])
 
 // Jenkins slaves we will build on
-agents = ['SLAVE', 'OSXSLAVE-DRIVE&&!TWANG', 'WINSLAVE']
+agents = ['SLAVE', 'OSXSLAVE-DRIVE', 'WINSLAVE']
 labels = [
     'SLAVE': 'GNU/Linux',
-    'OSXSLAVE-DRIVE&&!TWANG': 'macOS',
+    'OSXSLAVE-DRIVE': 'macOS',
     'WINSLAVE': 'Windows'
 ]
 builders = [:]

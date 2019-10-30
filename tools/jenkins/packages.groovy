@@ -21,15 +21,10 @@ properties([
 ])
 
 // Jenkins agents we will build on
-//   We are using TWANG because it is the oldest macOS version we support (10.12).
-//   The macOS installer needs to be built on that version to support 10.12+ because
-//   PyInstaller is not retro-compatible: if we would build on 10.13, the minimum
-//   supported macOS version would become 10.13.
-//
-agents = ['SLAVEPRIV', 'TWANG', 'WINSLAVE']
+agents = ['SLAVEPRIV', 'OSXSLAVE-DRIVE', 'WINSLAVE']
 labels = [
     'SLAVEPRIV': 'GNU/Linux',
-    'TWANG': 'macOS',
+    'OSXSLAVE-DRIVE': 'macOS',
     'WINSLAVE': 'Windows'
 ]
 builders = [:]
@@ -97,20 +92,13 @@ for (x in agents) {
                                 sh 'tools/linux/deploy_jenkins_slave.sh --check'
                                 archiveArtifacts artifacts: 'dist/*.AppImage', fingerprint: true
                             } else if (osi == 'macOS') {
-                                // Trigger the Drive extensions job to build extensions and have artifacts
-                                build job: 'Drive-extensions', parameters: [
-                                    [$class: 'StringParameterValue',
-                                        name: 'BRANCH_NAME',
-                                        value: params.BRANCH_NAME]]
-                                step([$class: 'CopyArtifact', filter: 'extension.zip', projectName: 'Drive-extensions'])
-
                                 def env_vars = [
                                     'SIGNING_ID=NUXEO CORP',
-                                    "LOGIN_KEYCHAIN_PATH=${env.HOME}/Library/Keychains/login.keychain",
+                                    'KEYCHAIN_PATH=/Users/jenkins/Library/Keychains/login.keychain-db',
                                 ]
                                 withEnv(env_vars) {
                                     withCredentials([string(credentialsId: 'MOBILE_LOGIN_KEYCHAIN_PASSWORD',
-                                                            variable: 'LOGIN_KEYCHAIN_PASSWORD')]) {
+                                                            variable: 'KEYCHAIN_PASSWORD')]) {
                                         sh 'tools/osx/deploy_jenkins_slave.sh --install-release'
                                         sh 'tools/osx/deploy_jenkins_slave.sh --build'
                                         archiveArtifacts artifacts: 'dist/*.dmg', fingerprint: true

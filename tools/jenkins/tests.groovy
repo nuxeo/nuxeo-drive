@@ -39,7 +39,7 @@ properties([
 
 // Jenkins slaves we will build on
 slaves = [
-    'macos': 'OSXSLAVE-DRIVE&&!TWANG',
+    'macos': 'OSXSLAVE-DRIVE',
     'linux': 'SLAVE',
     'windows': 'WINSLAVE'
 ]
