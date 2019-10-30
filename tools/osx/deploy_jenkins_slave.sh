@@ -14,20 +14,21 @@ prepare_signing() {
     if [ "${SIGNING_ID:=unset}" = "unset" ]; then
         echo ">>> [sign] WARNING: Signing ID is unavailable, application won't be signed."
         return
-    elif [ "${LOGIN_KEYCHAIN_PASSWORD:=unset}" = "unset" ]; then
+    elif [ "${KEYCHAIN_PASSWORD:=unset}" = "unset" ]; then
         echo ">>> [sign] WARNING: Keychain is unavailable, application won't be signed."
         return
     fi
 
     echo ">>> [sign] Unlocking the keychain"
-    security unlock-keychain -p "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}"
-    # set-key-partition-list was added in Sierra (macOS 10.12)
-    security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${LOGIN_KEYCHAIN_PASSWORD}" "${LOGIN_KEYCHAIN_PATH}" || true
-    security set-keychain-settings "${LOGIN_KEYCHAIN_PATH}"
-    security find-identity -p codesigning -v | grep "${SIGNING_ID}" || (
+    security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+
+    # Allow to use the codesign executable
+    security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+
+    security find-identity -p codesigning -v "${KEYCHAIN_PATH}" | grep "${SIGNING_ID}" || (
         echo "The '${SIGNING_ID}' identity is not available or no more valid."
         echo "This is the identities list:"
-        security find-identity -p codesigning
+        security find-identity -p codesigning "${KEYCHAIN_PATH}"
         exit 1
     )
 }
@@ -35,14 +36,6 @@ prepare_signing() {
 build_extension() {
     # Create the FinderSync extension, if not already done
     local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
-
-    if test -f "${WORKSPACE_DRIVE}/extension.zip"; then
-        # The extension has been unstashed from a specific job, just decompress it
-        echo ">>> [package] Decompressing the FinderSync extension"
-        unzip -o -d "${WORKSPACE_DRIVE}" "${WORKSPACE_DRIVE}/extension.zip"
-        rm -fv "${WORKSPACE_DRIVE}/extension.zip"
-        return
-    fi
 
     echo ">>> [package] Building the FinderSync extension"
     xcodebuild -project "${extension_path}/drive.xcodeproj" -target "NuxeoFinderSync" -configuration Release build
@@ -78,10 +71,12 @@ create_package() {
         # dependancies of the current binary and see that they are not signed
         # yet. But the find command will eventually reach it and sign it later.
         find "${pkg_path}/Contents/MacOS" -type f -exec codesign --sign "${SIGNING_ID}" {} \;
+
         # Then we sign the extension
         codesign --force --deep --sign "${SIGNING_ID}" \
             --entitlements "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements" \
             "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
+
         # And we shallow sign the .app
         codesign --sign "${SIGNING_ID}" "${pkg_path}"
 
