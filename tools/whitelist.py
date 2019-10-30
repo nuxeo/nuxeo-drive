@@ -33,6 +33,7 @@ on_any_event  # Used by Watchdog
 _.row_factory  # Internal use of SQLite
 Processor._synchronize_conflicted  # Used by Processor._execute()
 Processor._synchronize_direct_transfer  # Used by Processor._execute()
+Procesor._synchronize_direct_transfer_replace_blob  # Used by Processor._execute()
 Processor._synchronize_deleted_unknown  # Used by Processor._execute()
 Processor._synchronize_locally_deleted  # Used by Processor._execute()
 Processor._synchronize_locally_resolved  # Used by Processor._execute()

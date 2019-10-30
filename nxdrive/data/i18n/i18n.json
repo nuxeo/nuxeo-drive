@@ -124,6 +124,7 @@
     "FATAL_ERROR_UPDATE_TOOLTIP": "We advise you to update to the latest version of %1",
     "FEEDBACK_LINK": "Something is missing? Share your feedback here.",
     "FILE_ALREADY_EXISTS": "There is already a file named „%1“ in  this folder. Do you want to replace it with the one you're moving?",
+    "FILE_ALREADY_EXISTS_ON_SERVER": "There already is a document named „%1“ at the same location on the server. Do you want to replace the document's attached file with the local file or cancel the upload?",
     "FILE_PATH": "Path: %1",
     "FILTERS_WINDOW_TITLE": "Nuxeo Drive - Filters",
     "FILTERS_DISABLED": "You must wait for current synchronisation actions to be done before filtering some folders.",

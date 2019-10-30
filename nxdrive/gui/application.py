@@ -11,6 +11,7 @@ from urllib.parse import unquote
 
 import requests
 from markdown import markdown
+from nuxeo.models import Document
 from PyQt5.QtCore import Qt, QRect, QTimer, QUrl, pyqtSlot, QEvent
 from PyQt5.QtGui import QCursor, QFont, QFontMetricsF, QIcon, QWindow
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
@@ -550,6 +551,39 @@ class Application(QApplication):
             # Delete or filter out the document
             engine.delete_doc(path, mode)
 
+    @pyqtSlot(Path, Document)
+    def _direct_transfer_duplicate_error(self, file: Path, doc: Document) -> None:
+        """When the user try to Direct Transfer a local file/folder and there already is a similar document
+        at the same location on the server, we ask the user what to do.
+        """
+
+        # When starting the application, if there already is a document in error waiting to be
+        # traited here, then the Folder Selection window will pop-up at the same time.
+        # Close it to not confuse users.
+        if self.filters_dlg:
+            self.filters_dlg.close()
+            self.filters_dlg = None
+
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setWindowIcon(self.icon)
+        msg.setWindowTitle(
+            Translator.get("DIRECT_TRANSFER_WINDOW_TITLE", values=[APP_NAME])
+        )
+
+        msg.setText(Translator.get("FILE_ALREADY_EXISTS_ON_SERVER", values=[file.name]))
+        replace = msg.addButton(Translator.get("REPLACE"), QMessageBox.AcceptRole)
+
+        msg.addButton(Translator.get("CANCEL"), QMessageBox.RejectRole)
+        msg.exec_()
+
+        engine: Engine = self.sender()
+
+        if msg.clickedButton() == replace:
+            engine.direct_transfer_replace_blob(file, doc)
+        else:
+            engine.direct_transfer_cancel(file)
+
     @pyqtSlot(Path, Path)
     def _file_already_exists(self, oldpath: Path, newpath: Path) -> None:
         msg = QMessageBox()
@@ -785,6 +819,9 @@ class Application(QApplication):
 
     @pyqtSlot(object)
     def _connect_engine(self, engine: Engine) -> None:
+        engine.directTranferDuplicateError.connect(
+            self._direct_transfer_duplicate_error
+        )
         engine.syncStarted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.change_systray_icon)
         engine.syncCompleted.connect(self.force_refresh_files)

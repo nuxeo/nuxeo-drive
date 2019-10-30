@@ -441,7 +441,7 @@ class DirectTransferStatus(Notification):
         label = "DIRECT_TRANSFER_START" if status else "DIRECT_TRANSFER_END"
         values = [file.name]
         super().__init__(
-            "DIRECT_TRANSFER_STATUS",
+            label,
             title="Direct Transfer",
             description=Translator.get(label, values=values),
             level=Notification.LEVEL_INFO,
