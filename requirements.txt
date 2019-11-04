@@ -226,9 +226,9 @@ six==1.12.0 \
     --hash=sha256:3350809f0555b11f552448330d0b52d5f24c91a322ea4a15ef22629740f3761c \
     --hash=sha256:d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73 \
     # via python-dateutil, tld
-tld==0.9.6 \
-    --hash=sha256:89a7a403a4a5de1ca7b64550df8a8a2abdfbbd1556e1b8cdfe251c0f90ab2f3a \
-    --hash=sha256:e63acad4f866bc4c724a21a03eb7cf692bc8495cb286ee60d3a45258054bdc02    # via pypac
+tld==0.9.7 \
+    --hash=sha256:1c0020fac141d14ee43d7e55aa54cc605515b37d472e5e5612d21196ca89e3be \
+    --hash=sha256:cef15360ec42547a583d49ef5246936b3ace424a95c00b59c09dcbe44b289961    # via pypac
 urllib3==1.25.6 \
     --hash=sha256:3de946ffbed6e6746608990594d08faac602528ac7015ac28d33cee6a45b7398 \
     --hash=sha256:9a107b99a5393caf59c7aa3c1249c16e6879447533d0887f4336dde834c7be86    # via requests, sentry-sdk
