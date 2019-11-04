@@ -20,6 +20,7 @@ from PyQt5.QtQuick import QQuickView, QQuickWindow
 from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QLabel,
@@ -1368,6 +1369,59 @@ class Application(QApplication):
             del con
         log.info("Successfully closed server socket")
 
+    def _select_account(self, engines: List[Engine]) -> Optional[Engine]:
+        """Display a selection box to let the user choose 1 account."""
+
+        dialog = QDialog()
+        dialog.setWindowTitle(
+            Translator.get("DIRECT_TRANSFER_WINDOW_TITLE", values=[APP_NAME])
+        )
+        dialog.setWindowIcon(self.icon)
+
+        selected_engine: Optional[Engine] = None
+
+        def account_selected(index: int) -> None:
+            """Callback for when an account is selected."""
+            nonlocal selected_engine
+            selected_engine = select.itemData(index)
+            log.debug(f"Selected engine {selected_engine} ({select.itemText(index)})")
+
+        def accept() -> None:
+            nonlocal selected_engine
+            selected_engine = select.currentData()
+            dialog.accept()
+
+        def close() -> None:
+            nonlocal selected_engine
+            selected_engine = None
+            dialog.close()
+
+        # The text
+        label = QLabel(Translator.get("SELECT_ACCOUNT"))
+
+        # The dropdown menu to select the account
+        select = QComboBox()
+        select.activated.connect(account_selected)
+        for engine in engines:
+            user = engine.get_user_full_name(engine.remote_user)
+            text = f"{user} • {engine.server_url}"
+            select.addItem(text, engine)
+
+        # The buttons
+        buttons = QDialogButtonBox()
+        buttons.setStandardButtons(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(accept)
+        buttons.rejected.connect(close)
+
+        layout = QVBoxLayout()
+        layout.addWidget(label)
+        layout.addWidget(select)
+        layout.addWidget(buttons)
+        dialog.setLayout(layout)
+        dialog.exec_()
+
+        return selected_engine
+
     def ctx_upload_local_file(self, path: Path) -> None:
         """Direct Transfer of a local file to anywhere on the server."""
         # For now, only files are handled
@@ -1378,18 +1432,31 @@ class Application(QApplication):
             return
 
         # Direct Transfer is not allowed for synced files
-        for engine in self.manager.engines.values():
-            if engine.local_folder in path.parents:
+        engines = list(self.manager.engines.values())
+        for engine_ in engines:
+            if engine_.local_folder in path.parents:
                 log.warning(
                     f"Direct Transfer of {path!r} is not allowed for synced files"
                 )
                 return
 
         log.info(f"Direct Transfer: {path!r}")
-        # TODO: Multiple accounts
-        for engine in self.manager.engines.values():
-            self.show_server_folders(engine, path)
-            break
+
+        if len(engines) > 1:
+            # The user has to select the desired account
+            engine: Optional[Engine] = self._select_account(engines)
+        elif engines:
+            engine = engines[0]
+        else:
+            engine = None
+
+        if not engine:
+            log.warning(
+                f"Cannot use the Direct Transfer feature with no account, aborting."
+            )
+            return
+
+        self.show_server_folders(engine, path)
 
     def update_status(self, engine: Engine) -> None:
         """

@@ -248,6 +248,7 @@
     "SECTION_ABOUT": "About",
     "SECTION_ACCOUNTS": "Accounts",
     "SECTION_GENERAL": "General",
+    "SELECT_ACCOUNT": "Select an account:",
     "SELECT_ALL": "Select all",
     "SELECTIVE_SYNC": "Selective Sync",
     "SELECTIVE_SYNC_DESCR": "Select which folder you want to see on this computer. Any folders you unselect won't be shown on this computer, but you can still access them online.",
