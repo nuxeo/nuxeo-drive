@@ -144,8 +144,11 @@ pyobjc-core==6.0.1; sys_platform == "darwin" \
     --hash=sha256:9637e3c4c53129182b68e88c450719ff9f0f4d9b915b2cf11d4c57c37643d4e3 \
     --hash=sha256:96ef0564f718ee3e5cb1d3883a7a4ba083c0d3f4629f50cd2aedb4be62fb160a \
     --hash=sha256:9a4d77ac4e3e4d01567d65a0ea11530c059a3966c164dc458c8d9b0ba773b9b4    # via pyobjc-framework-Cocoa
-pyobjc-framework-Cocoa==5.2 ; sys_platform == "darwin" \
-    --hash=sha256:d72d48cf2e24c2f540a1b1348a880fde87b1f8cb7e1be5e95550a306152d48d0
+pyobjc-framework-Cocoa==6.0.1; sys_platform == "darwin" \
+    --hash=sha256:6a344805d228b35fd8652a27122d12bcb3fc2e6f57bbb10609a62616a66d40da \
+    --hash=sha256:73e6eae7de8de33b2968b0c001aebb8ced4418b8969e791f4cd95f7b722d1a26 \
+    --hash=sha256:7ad304c2665c5d91b22eb87f85f49b4571acc8a9d08bda52c0c119762243d5d8 \
+    --hash=sha256:915e0d7d1e21d6ea3bdab08fc548fad96f54b0c1cad3d799946caecc6d58e282
 pyobjc-framework-CoreServices==5.2 ; sys_platform == "darwin" \
     --hash=sha256:6faa326afa2a77bdd8ea182d4ae5d5095089d8ec9e1605ce3c82546fe396f986
 pyobjc-framework-FSEvents==5.2 ; sys_platform == "darwin" \
