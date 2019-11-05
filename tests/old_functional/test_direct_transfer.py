@@ -2,7 +2,10 @@
 Test the Direct Transfer feature in differents scenarii.
 """
 from contextlib import suppress
-from shutil import copyfile
+from os import scandir
+from pathlib import Path
+from shutil import copyfile, copytree
+from time import sleep
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -468,3 +471,95 @@ class TestDirectTransfer(OneUserTest):
                 assert not self.has_blob()
 
         self.sync_and_check()
+
+
+class TestDirectTransferFolder(OneUserTest):
+    def setUp(self):
+        # No sync root, to ease testing
+        self.remote_1.unregister_as_root(self.workspace)
+        self.engine_1.start()
+
+        # The folder used for the Direct Transfer (must be > 1 MiB)
+        folder = self.location / "resources"
+        # Work with a copy of the folder to allow parallel testing
+        self.folder = self.tmpdir / str(uuid4())
+        copytree(folder, self.folder, copy_function=copyfile)
+
+        self.files, self.folders = self.get_tree(self.folder)
+        # 10 = tests/resources
+        #  3 = tests/resources/i18n
+        assert len(self.files) == 10 + 3
+        # tests/resources/i18n
+        assert len(self.folders) == 1
+
+        # Lower chunk_* options to have chunked uploads without having to create big files
+        self.default_chunk_limit = Options.chunk_limit
+        self.default_chunk_size = Options.chunk_size
+        Options.chunk_limit = 1
+        Options.chunk_size = 1
+
+    def tearDown(self):
+        # Restore options
+        Options.chunk_limit = self.default_chunk_limit
+        Options.chunk_size = self.default_chunk_size
+
+    def get_tree(self, path: Path):
+        files, folders = [], []
+
+        with scandir(path) as it:
+            for entry in it:
+                if entry.is_file():
+                    files.append(Path(entry.path))
+                elif entry.is_dir():
+                    folder = Path(entry.path)
+                    folders.append(folder)
+                    subfiles, subfolders = self.get_tree(folder)
+                    files.extend(subfiles)
+                    folders.extend(subfolders)
+
+        return files, folders
+
+    def has_blob(self, file: str) -> bool:
+        """Check that *file* exists on the server and has a blob attached.
+        As when doing a Direct Transfer, the document is first created on the server,
+        this is the only way to check if the blob upload has been finished successfully.
+        """
+        try:
+            doc = self.root_remote.documents.get(path=f"{self.ws.path}/{file}")
+        except Exception:
+            return False
+        else:
+            return bool(doc.properties.get("file:content"))
+
+    def sync_and_check(self) -> None:
+        # Let time for uploads to be planned
+        sleep(3)
+
+        # Sync
+        self.wait_sync()
+
+        # Check the error count
+        assert not self.engine_1.dao.get_errors(limit=0)
+
+        # Check the uploads count
+        assert not list(self.engine_1.dao.get_uploads())
+
+        # Check files exist on the server with their attached blob
+        for file in self.files:
+            doc = str(file.relative_to(self.folder))
+            assert self.has_blob(doc)
+
+        # Check subfolders
+        for folder in self.folders:
+            doc = str(folder.relative_to(self.folder))
+            assert self.root_remote.documents.get(path=f"{self.ws.path}/{doc}")
+
+    def test_folder(self):
+        """Test the Direct Transfer on a folder containing files and a sufolder."""
+
+        # There is no upload, right now
+        assert not list(self.engine_1.dao.get_uploads())
+
+        with ensure_no_exception():
+            self.engine_1.direct_transfer(self.folder, self.ws.path)
+            self.sync_and_check()
