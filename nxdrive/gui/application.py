@@ -1423,13 +1423,7 @@ class Application(QApplication):
         return selected_engine
 
     def ctx_upload_local_file(self, path: Path) -> None:
-        """Direct Transfer of a local file to anywhere on the server."""
-        # For now, only files are handled
-        if not path.is_file():
-            log.warning(
-                f"Direct Transfer of {path!r} is not possible (a file is needed)"
-            )
-            return
+        """Direct Transfer of local files and folders to anywhere on the server."""
 
         # Direct Transfer is not allowed for synced files
         engines = list(self.manager.engines.values())
@@ -1442,6 +1436,7 @@ class Application(QApplication):
 
         log.info(f"Direct Transfer: {path!r}")
 
+        # Select the good account to use
         if len(engines) > 1:
             # The user has to select the desired account
             engine: Optional[Engine] = self._select_account(engines)

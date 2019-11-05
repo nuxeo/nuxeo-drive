@@ -17,7 +17,7 @@ from .folders_model import FoldersOnly, FilteredDocuments
 from ..constants import APP_NAME
 from ..engine.engine import Engine
 from ..translator import Translator
-from ..utils import sizeof_fmt
+from ..utils import get_tree_size, sizeof_fmt
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -201,10 +201,17 @@ class FoldersDialog(DialogMixin):
 
         self.path = path
 
-        # Add a new widget at 1st position: a text input with the local file to upload
+        if path.is_dir():
+            label = "LOCAL_FOLDER"
+            file_size = get_tree_size(path)
+        else:
+            label = "LOCAL_FILE"
+            file_size = path.stat().st_size
+
+        # Add a new widget at 1st position: a text input with the local path and content size
         local_file_layout = QHBoxLayout()
-        local_file_lbl = QLabel(Translator.get("LOCAL_FILE"))
-        local_file_size_lbl = QLabel(sizeof_fmt(path.stat().st_size))
+        local_file_lbl = QLabel(Translator.get(label))
+        local_file_size_lbl = QLabel(sizeof_fmt(file_size))
         local_file = QLineEdit()
         local_file.setTextMargins(5, 0, 5, 0)
         local_file.setText(str(path))
@@ -235,5 +242,5 @@ class FoldersDialog(DialogMixin):
 
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
-        self.engine.direct_transfer(self.path, self.remote_folder.text())
         super().accept()
+        self.engine.direct_transfer(self.path, self.remote_folder.text())

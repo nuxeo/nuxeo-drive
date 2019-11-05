@@ -48,6 +48,7 @@ from ..utils import (
     current_thread_id,
     find_icon,
     find_suitable_tmp_dir,
+    get_tree_list,
     if_frozen,
     safe_filename,
     set_path_readonly,
@@ -375,12 +376,29 @@ class Engine(QObject):
 
     def direct_transfer(self, local_path: Path, remote_ref: str) -> None:
         """Plan the Direct Transfer."""
-        # Save the remote folder's refere into the file xattrs
-        self.local.set_remote_id(local_path, remote_ref)
+        self.directTranferStatus.emit(local_path, True)
 
-        # Add the file into the database to plan the upload
-        info = self.local.get_info(local_path)
-        self.dao.insert_local_state(info, parent_path=None, local_state="direct")
+        def plan(path: Path, remote_uid: str) -> None:
+            """Actions to do (refactored in a function to prevent duplicate code between files and folders)."""
+            # Save the remote folder's reference into the file/folder xattrs
+            try:
+                self.local.set_remote_id(path, remote_uid)
+            except PermissionError:
+                log.warning(
+                    f"Cannot set the remote ID on {path!r}, skipping the upload"
+                )
+                return
+
+            # Add the path into the database to plan the upload
+            info = self.local.get_info(path, check=False)
+            self.dao.insert_local_state(info, parent_path=None, local_state="direct")
+
+        if local_path.is_file():
+            plan(local_path, remote_ref)
+        else:
+            tree = sorted(get_tree_list(local_path, remote_ref))
+            for remote_path, path in tree:
+                plan(path, remote_path)
 
     def direct_transfer_cancel(self, file: Path) -> None:
         """Cancel the Direct Transfer of the given local *file*."""
