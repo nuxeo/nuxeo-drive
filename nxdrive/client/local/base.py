@@ -78,8 +78,7 @@ class FileInfo:
         # Function to use
         self._digest_func = kwargs.pop("digest_func", "MD5").lower()
 
-        # Precompute base name once and for all are it's often useful in
-        # practice
+        # Precompute base name once and for all as it's often useful in practice
         self.name = self.filepath.name
 
     def __repr__(self) -> str:

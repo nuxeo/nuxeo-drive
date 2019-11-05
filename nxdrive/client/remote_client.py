@@ -688,14 +688,19 @@ class Remote(Nuxeo):
             raise DirectTransferDuplicateFoundError(file, doc)
 
         if not doc:
-            # Create the file on the server
+            # Create the document on the server
+            nature = "File" if file.is_file() else "Folder"
             doc = self.documents.create(
                 Document(
-                    name=file.name, type="File", properties={"dc:title": file.name}
+                    name=file.name, type=nature, properties={"dc:title": file.name}
                 ),
                 parent_path=parent_path,
             )
             remote_ref = doc.uid
+
+        # If the path is a folder, there is no more work to do
+        if file.is_dir():
+            return
 
         # Save the remote document's UID into the file xattrs, in case next steps fails
         LocalClient.set_path_remote_id(file, remote_ref, name="remote")

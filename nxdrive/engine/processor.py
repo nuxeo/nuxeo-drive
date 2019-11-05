@@ -42,6 +42,7 @@ from ..exceptions import (
     UploadPaused,
 )
 from ..objects import DocPair, RemoteFileInfo
+from ..options import Options
 from ..utils import is_generated_tmp_file, lock_path, safe_filename, unlock_path
 
 if TYPE_CHECKING:
@@ -383,7 +384,7 @@ class Processor(EngineWorker):
                     self._handle_pair_handler_exception(doc_pair, handler_name, exc)
             except DirectTransferDuplicateFoundError as exc:
                 # Ask the user what to do when a possible duplicate can be created by a Direct Transfer call
-                log.warning(str(exc))
+                log.info(str(exc))
                 self.engine.directTranferDuplicateError.emit(exc.file, exc.doc)
             except Exception as exc:
                 # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
@@ -487,16 +488,18 @@ class Processor(EngineWorker):
         parent_path = self.local.get_remote_id(file)
 
         # Do the upload
-        self.engine.directTranferStatus.emit(file, True)
         self.remote.direct_transfer(
             file, parent_path, self.engine.uid, replace_blob=replace_blob
         )
-        self.engine.directTranferStatus.emit(file, False)
 
         # Clean-up
         self.dao.remove_state(doc_pair)
         self.local.remove_remote_id(file)
         self.local.remove_remote_id(file, name="remote")
+
+        # Display a notification only for big files (to prevent notifications flood)
+        if not doc_pair.folderish and doc_pair.size >= Options.big_file * 1024 * 1024:
+            self.engine.directTranferStatus.emit(file, False)
 
     def _synchronize_direct_transfer_replace_blob(self, doc_pair: DocPair) -> None:
         """Force the blob replacement of the remote document (choice done by the user)."""

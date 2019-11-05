@@ -16,6 +16,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generator,
     Iterator,
     Optional,
     Pattern,
@@ -63,6 +64,8 @@ __all__ = (
     "get_date_from_sqlite",
     "get_device",
     "get_timestamp_from_date",
+    "get_tree_size",
+    "get_tree_list",
     "guess_server_url",
     "if_frozen",
     "is_generated_tmp_file",
@@ -301,6 +304,38 @@ def get_default_local_folder() -> Path:
         folder = normalized_path(Options.home)
 
     return increment_local_folder(folder, APP_NAME)
+
+
+def get_tree_list(
+    path: Path, remote_ref: str
+) -> Generator[Tuple[str, Path], None, None]:
+    """Compute remote paths based on *remote_ref* from a given *path*.
+    This is used in the Direct Transfer feature to upload a folder
+    and all its contents.
+    Each entry will yield a tuple (remote_path, local_path).
+    This order is important as it will be used in get_tree_list_sorted()
+    to retrieve the sorted list to trait.
+    """
+    with os.scandir(path) as it:
+        for entry in it:
+            if entry.is_file():
+                yield remote_ref, Path(entry.path)
+            elif entry.is_dir():
+                local_path = Path(entry.path)
+                yield remote_ref, local_path
+                yield from get_tree_list(local_path, f"{remote_ref}/{entry.name}")
+
+
+def get_tree_size(path: Path) -> int:
+    """Compute the total files size from a given folder *path*."""
+    size = 0
+    with os.scandir(path) as it:
+        for entry in it:
+            if entry.is_file():
+                size += entry.stat().st_size
+            elif entry.is_dir():
+                size += get_tree_size(Path(entry.path))
+    return size
 
 
 def get_value(value: str) -> Union[bool, float, str, Tuple[str, ...]]:
