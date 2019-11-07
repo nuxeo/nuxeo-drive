@@ -112,7 +112,9 @@ Rectangle {
             RowLayout {
                 anchors.fill: parent
 
+                // Icon: accounts
                 IconLabel {
+                    id: accountIcon
                     Layout.alignment: Qt.AlignRight
                     icon: MdiFont.Icon.accountOutline
                 }
@@ -121,8 +123,14 @@ Rectangle {
                     Layout.alignment: Qt.AlignLeft
                     Layout.maximumWidth: parent.width / 2
 
+                    // The account list
                     AccountsComboBox {
                         id: accountSelect
+
+                        // Width management: systray width minus the 4 icon's width
+                        width: systray.width
+                        Layout.preferredWidth: systray.width - (accountIcon.width * 4)
+
                         // When picking an account, refresh the file list.
                         onActivated: {
                             getLastFiles(accountSelect.getRole("uid"))
@@ -130,6 +138,7 @@ Rectangle {
                         }
                     }
 
+                    // The current account server URL
                     ScaledText {
                         id: accountUrl
                         Layout.maximumWidth: parent.width
@@ -152,6 +161,7 @@ Rectangle {
                     }
                 }
 
+                // Icon: open remote server's URL
                 IconLabel {
                     icon: MdiFont.Icon.openInNew
                     Layout.alignment: Qt.AlignRight; Layout.rightMargin: 4
@@ -159,12 +169,14 @@ Rectangle {
 
                 }
 
+                // Icon: open local sync root folder
                 IconLabel {
                     icon: MdiFont.Icon.folder; size: 24
                     Layout.alignment: Qt.AlignLeft
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                 }
 
+                // Icon: sub-menu
                 IconLabel {
                     id: settingsContainer
                     icon: MdiFont.Icon.dotsVertical
@@ -174,6 +186,7 @@ Rectangle {
                 }
             }
 
+            // The sub-menu
             SystrayMenu {
                 id: contextMenu
                 anchors {
@@ -183,6 +196,7 @@ Rectangle {
             }
         }
 
+        // Transfering/synced files list
         Rectangle {
             Layout.fillWidth: true; Layout.fillHeight: true
 
@@ -234,6 +248,7 @@ Rectangle {
             }
         }
 
+        // Sync status (items remaining to sync, or small text when sync is over)
         SystrayStatus {
             id: syncState
             state: ""  // Synced
@@ -270,6 +285,7 @@ Rectangle {
             ]
         }
 
+        // Error status
         SystrayStatus {
             id: errorState
             state: ""  // no errors/conflicts
@@ -309,6 +325,7 @@ Rectangle {
             ]
         }
 
+        // Update status
         SystrayStatus {
             id: updateState
             state: "up_to_date"
@@ -356,6 +373,7 @@ Rectangle {
         }
     }
 
+    // Different systray contents when there is no accounts
     Rectangle {
         visible: !hasAccounts
         width: parent.width - 2
@@ -407,6 +425,7 @@ Rectangle {
         }
     }
 
+    // Update confirmation popup
     ConfirmPopup {
         id: updatePopup
         property string version
