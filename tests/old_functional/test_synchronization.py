@@ -846,6 +846,39 @@ class TestSynchronization(OneUserTest):
         assert not engine.dao.get_errors()
         assert remote_files == local_files
 
+    def test_local_creation_copying_from_sibling(self):
+        """Test a local file creation when checking for an already synced file on the HDD."""
+
+        remote = self.remote_document_client_1
+        local = self.local_1
+        engine = self.engine_1
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Create a remote folder and a file inside it
+        contents = b"1234567890" * 42 * 42
+        remote.make_folder("/", "a folder")
+        remote.make_file("/a folder", "file1.bin", content=contents)
+        self.wait_sync(wait_for_async=True)
+
+        def stream_content(*args, **kwargs):
+            """Called by Processor._download_content(). We are testing that this method is never called."""
+            assert 0, "Should not be called!"
+
+        # Create another files with the same contents and check that the remote client downloads nothing
+        with patch.object(self.engine_1.remote, "stream_content", new=stream_content):
+            remote.make_file("/a folder", "file2.bin", content=contents)
+            remote.make_file("/", "file3.bin", content=contents)
+            self.wait_sync(wait_for_async=True)
+
+        # Checks
+        assert not engine.dao.queue_manager.get_errors_count()
+        for client in (remote, local):
+            assert client.exists("/a folder/file1.bin")
+            assert client.exists("/a folder/file2.bin")
+            assert client.exists("/file3.bin")
+
 
 class TestSynchronization2(TwoUsersTest):
     def test_conflict_detection(self):

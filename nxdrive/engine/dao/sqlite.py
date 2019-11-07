@@ -1164,13 +1164,15 @@ class EngineDAO(ConfigurationDAO):
             )
 
     def get_valid_duplicate_file(self, digest: str) -> Optional[DocPair]:
+        """Find a file already synced with the same digest as the given *digest*."""
         c = self._get_read_connection().cursor()
         return c.execute(
             "SELECT *"
             "  FROM States"
-            " WHERE remote_digest = ?"
+            " WHERE local_digest = ?"
+            "   AND remote_digest = ?"
             "   AND pair_state = 'synchronized'",
-            (digest,),
+            (digest, digest),
         ).fetchone()
 
     def get_remote_descendants(self, path: str) -> DocPairs:

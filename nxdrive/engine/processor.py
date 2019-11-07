@@ -1044,8 +1044,11 @@ class Processor(EngineWorker):
             try:
                 # copyfile() is used to prevent metadata copy
                 shutil.copyfile(self.local.abspath(pair.local_path), file_out)
-            except FileNotFoundError:
-                # Let's re-download the file
+            except (FileNotFoundError, IsADirectoryError):
+                # IsADirectoryError may raise if the local path stored in DB is pointing
+                #     to an obsolete path. And for whatever reason, that path points to
+                #     a folder ...
+                # Let's re-download the file.
                 pass
             else:
                 return file_out
