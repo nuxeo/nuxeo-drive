@@ -293,6 +293,8 @@ class DirectEdit(Worker):
                         file_out,
                         blob.digest,
                         callback=self.stop_client,
+                        is_direct_edit=True,
+                        engine_uid=engine.uid,
                     )
                 finally:
                     engine.dao.remove_transfer("download", file_path)

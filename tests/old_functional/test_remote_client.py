@@ -96,7 +96,9 @@ class TestRemoteFileSystemClient(OneUserTest):
         ).uid
         file_path = self.local_test_folder_1 / "Document 1.txt"
         file_out = Path(mkdtemp()) / file_path.name
-        tmp_file = remote.stream_content(fs_item_id, file_path, file_out)
+        tmp_file = remote.stream_content(
+            fs_item_id, file_path, file_out, engine_uid=self.engine_1.uid
+        )
         assert tmp_file.exists()
         assert tmp_file.name == "Document 1.txt"
         assert tmp_file.read_bytes() == b"Content of doc 1."

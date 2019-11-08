@@ -537,32 +537,30 @@ class Engine(QObject):
 
     def resume_suspended_transfers(self) -> None:
         """ Resume all suspended transfers. """
-        for download in self.dao.get_downloads_with_status(TransferStatus.SUSPENDED):
-            if download.uid is None:
-                continue
+        for nature in ("download", "upload"):
+            meth = getattr(self.dao, f"get_{nature}s_with_status")
+            for transfer in meth(TransferStatus.SUSPENDED):
+                if transfer.uid is None:
+                    continue
 
-            self.dao.resume_transfer("download", download.uid)
-            if download.doc_pair is None:
-                continue
+                self.dao.resume_transfer(nature, transfer.uid)
+                if transfer.doc_pair is None:
+                    continue
 
-            doc_pair = self.dao.get_state_from_id(download.doc_pair)
-            if doc_pair:
-                self.queue_manager.push(doc_pair)
-
-        for upload in self.dao.get_uploads_with_status(TransferStatus.SUSPENDED):
-            if upload.uid is None:
-                continue
-
-            self.dao.resume_transfer("upload", upload.uid)
-            if upload.doc_pair is None:
-                continue
-
-            doc_pair = self.dao.get_state_from_id(upload.doc_pair)
-            if doc_pair:
-                self.queue_manager.push(doc_pair)
+                doc_pair = self.dao.get_state_from_id(transfer.doc_pair)
+                if doc_pair:
+                    self.queue_manager.push(doc_pair)
 
         # Update the systray icon and syncing count in the systray, if there are any resumed transfers
         self._check_sync_start()
+
+    def remove_staled_transfers(self) -> None:
+        """Remove staled transfers: at startup, no transfer can have the trasfer status ONGOING."""
+        for nature in ("download", "upload"):
+            meth = getattr(self.dao, f"get_{nature}s_with_status")
+            for transfer in meth(TransferStatus.ONGOING):
+                self.dao.remove_transfer(nature, transfer.path)
+                log.info(f"Removed staled {transfer}")
 
     def suspend(self) -> None:
         if self._pause:
@@ -802,6 +800,7 @@ class Engine(QObject):
         if self.manager.server_config_updater:
             self.manager.server_config_updater.force_poll()
 
+        self.remove_staled_transfers()
         self.resume_suspended_transfers()
 
         self._stopped = False
