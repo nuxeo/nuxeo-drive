@@ -298,6 +298,7 @@ class Remote(Nuxeo):
                 filesize=size,
                 doc_pair=kwargs.pop("doc_pair_id", None),
                 engine=kwargs.pop("engine_uid", None),
+                is_direct_edit=kwargs.pop("is_direct_edit", False),
             )
             self.dao.save_download(download)
 
