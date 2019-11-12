@@ -382,9 +382,10 @@ def test_get_date_from_sqlite():
 
 def test_get_default_local_folder():
     if WINDOWS:
-        good_folder = Path(f"~/Documents/{APP_NAME}").expanduser()
+        path = os.path.expandvars(f"C:\\Users\\%username%\\Documents")
+        good_folder = Path(path) / APP_NAME
     else:
-        good_folder = Path(f"~/{APP_NAME}").expanduser()
+        good_folder = Path.home() / APP_NAME
 
     folder = nxdrive.utils.get_default_local_folder()
     assert isinstance(folder, Path)
@@ -449,9 +450,10 @@ def test_normalized_path_permission_error(tmp):
 def test_normalize_and_expand_path():
     if WINDOWS:
         path = "%userprofile%/foo"
+        home = os.path.expandvars("C:\\Users\\%username%")
     else:
         path = "$HOME/foo"
-    home = str(Path("~").expanduser())
+        home = str(Path.home())
     expected = Path(f"{home}/foo")
     assert nxdrive.utils.normalize_and_expand_path(path) == expected
 
