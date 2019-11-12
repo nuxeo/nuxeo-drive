@@ -15,7 +15,7 @@ main() {
     path="/var/www/community.nuxeo.com/static/drive-updates"
 
     echo ">>> Installing requirements"
-    python -m pip install --user pyaml==17.12.1
+    python -m pip install --user pyyaml==5.1.2
 
     echo ">>> Retrieving versions.yml"
     rsync -vz nuxeo@lethe.nuxeo.com:${path}/versions.yml .

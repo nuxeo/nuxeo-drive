@@ -127,7 +127,7 @@ publish() {
     unzip -o dist.zip
 
     echo ">>> [${release_type} ${drive_version}] Generating ${drive_version}.yml"
-    python -m pip install --user pyaml==17.12.1
+    python -m pip install --user pyyaml==5.1.2
     python tools/versions.py --add "${drive_version}" --type "${release_type}"
     echo "\nContent of ${drive_version}.yml:"
     cat "${drive_version}.yml"
