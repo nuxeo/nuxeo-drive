@@ -1,7 +1,7 @@
 # coding: utf-8
 """
 versions.yml management.
-Requires the pyaml module.
+Requires the pyyaml module.
 """
 
 from __future__ import print_function, unicode_literals
