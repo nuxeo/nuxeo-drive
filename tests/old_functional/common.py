@@ -96,6 +96,14 @@ class StubQApplication(QCoreApplication):
         self.doc: Optional[Document] = None
         self.emitted = False
 
+        # Used by test_local_move_folders.py
+        self.local_scan_count = 0
+
+    @pyqtSlot()
+    def local_scan_finished(self) -> None:
+        """Count the number of local scan done."""
+        self.local_scan_count += 1
+
     @pyqtSlot()
     def sync_completed(self):
         uid = getattr(self.sender(), "uid", None)
