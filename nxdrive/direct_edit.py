@@ -16,7 +16,6 @@ from nuxeo.utils import get_digest_algorithm
 from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from requests import codes
-from requests.exceptions import ChunkedEncodingError
 from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
 
@@ -55,7 +54,8 @@ def _is_lock_file(name: str) -> bool:
     third-party software.
     """
 
-    return name.startswith(("~$", ".~lock."))  # Microsoft Office  # (Libre|Open)Office
+    # Microsoft Office, (Libre|Open)Office
+    return name.startswith(("~$", ".~lock."))
 
 
 class DirectEdit(Worker):
@@ -555,6 +555,8 @@ class DirectEdit(Worker):
         return False
 
     def _handle_lock_queue(self) -> None:
+        errors = []
+
         while "items":
             try:
                 item = self._lock_queue.get_nowait()
@@ -567,9 +569,10 @@ class DirectEdit(Worker):
 
             try:
                 details = self._extract_edit_info(ref)
+                uid = details.uid
                 remote = details.engine.remote
                 if action == "lock":
-                    self._lock(remote, details.uid)
+                    self._lock(remote, uid)
                     self.local.set_remote_id(ref.parent, b"1", name="nxdirecteditlock")
                     # Emit the lock signal only when the lock is really set
                     self._send_lock_status(ref)
@@ -577,7 +580,7 @@ class DirectEdit(Worker):
                     continue
 
                 try:
-                    remote.unlock(details.uid)
+                    remote.unlock(uid)
                 except NotFound:
                     purge = True
                 else:
@@ -601,10 +604,20 @@ class DirectEdit(Worker):
             except DocumentAlreadyLocked as exc:
                 log.warning(f"Document {ref!r} already locked by {exc.username}")
                 self.directEditLockError.emit(action, ref.name, uid)
-            except Exception:
+            except CONNECTION_ERROR:
                 # Try again in 30s
+                log.warning(
+                    f"Connection error while trying to {action} document {ref!r}",
+                    exc_info=True,
+                )
+                errors.append(item)
+            except Exception:
                 log.exception(f"Cannot {action} document {ref!r}")
                 self.directEditLockError.emit(action, ref.name, uid)
+
+        # Requeue errors
+        for item in errors:
+            self._lock_queue.put(item)
 
     def _send_lock_status(self, ref: str) -> None:
         manager = self._manager
@@ -703,7 +716,7 @@ class DirectEdit(Worker):
                 raise
             except NotFound:
                 # Not found on the server, just skip it
-                continue
+                pass
             except Forbidden:
                 msg = (
                     "Upload queue error:"
@@ -714,10 +727,10 @@ class DirectEdit(Worker):
                 self.directEditForbidden.emit(
                     str(ref), engine.hostname, engine.remote_user
                 )
-                continue
-            except ChunkedEncodingError:
-                # Incorrect chunked encoding? Hm let's skip it then.
-                continue
+            except CONNECTION_ERROR:
+                # Try again in 30s
+                log.warning(f"Connection error while uploading {ref!r}", exc_info=True)
+                self._error_queue.push(ref, ref)
             except Exception as e:
                 if (
                     isinstance(e, HTTPError)
