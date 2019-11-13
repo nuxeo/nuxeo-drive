@@ -3,7 +3,6 @@ import errno
 from enum import Enum, auto
 from pathlib import Path
 from sys import platform
-from urllib3.exceptions import MaxRetryError
 
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
@@ -79,7 +78,7 @@ if WINDOWS:
     # OSError: Couldn't perform operation. Error code: 1223 (seems related to long paths)
     LONG_FILE_ERRORS.add(1223)
 
-CONNECTION_ERROR = (ChunkedEncodingError, ConnectionError, MaxRetryError, Timeout)
+CONNECTION_ERROR = (ChunkedEncodingError, ConnectionError, Timeout)
 
 
 class DelAction(Enum):
