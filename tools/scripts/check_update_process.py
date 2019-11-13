@@ -377,7 +377,6 @@ def main():
     # Remove previous installation
     uninstall_drive()
 
-    version_checker = distutils.version.StrictVersion
     src = os.getcwd()
 
     # Server tree
@@ -395,7 +394,6 @@ def main():
     # Generate the current version executable
     version, lineno = version_find()
     print(">>> Current version is", version, "at line", lineno, flush=True)
-    assert version_checker(version)
     gen_exe()
 
     # Move the file to the webserver
@@ -412,7 +410,6 @@ def main():
 
     # Guess the anterior version
     previous = version_decrement(version)
-    assert version_checker(previous)
 
     # Create the versions.yml file
     create_versions(root, version)
