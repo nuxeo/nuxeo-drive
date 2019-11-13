@@ -6,6 +6,7 @@ import sys
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
+from urllib3.exceptions import MaxRetryError
 from threading import Lock
 from time import monotonic_ns, sleep
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
@@ -306,6 +307,9 @@ class Processor(EngineWorker):
                 #  instead of putting files in error
                 log.debug("Connection issue", exc_info=True)
                 self._postpone_pair(doc_pair, "CONNECTION_ERROR")
+            except MaxRetryError:
+                log.warning("Connection retries issue", exc_info=True)
+                self._postpone_pair(doc_pair, "MAX_RETRY_ERROR")
             except HTTPError as exc:
                 if exc.status == 404:
                     # We saw it happened once a migration is done.
