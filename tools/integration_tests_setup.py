@@ -4,7 +4,6 @@ Launch Nuxeo Drive functional tests against a running Nuxeo instance.
 
 Steps executed:
     - setup test environment variables
-    - run the auto-update test directly from sources
     - run the integration tests directly from sources
 """
 
@@ -15,30 +14,21 @@ import sys
 
 def set_environment():
     # Convenient way to try a specific test without having to abort and start a new job.
-    os.environ["SPECIFIC_TEST"] = "tests"
+    os.environ["SPECIFIC_TEST"] = os.getenv("SPECIFIC_TEST", "tests")
 
 
 def run_tests_from_source():
     """ Launch the tests suite. """
 
-    if sys.platform.startswith("linux"):
-        check_upgrade = []
+    osi = sys.platform
+
+    if osi.startswith("linux"):
         install = ["sh", "../tools/linux/deploy_jenkins_slave.sh", "--install"]
-        tests = ["sh", ",../tools/linux/deploy_jenkins_slave.sh", "--tests"]
-    elif sys.platform == "darwin":
-        check_upgrade = [
-            "sh",
-            "../tools/osx/deploy_jenkins_slave.sh",
-            "--check-upgrade",
-        ]
+        tests = ["sh", "../tools/linux/deploy_jenkins_slave.sh", "--tests"]
+    elif osi == "darwin":
         install = ["sh", "../tools/osx/deploy_jenkins_slave.sh", "--install"]
-        tests = ["sh", ",../tools/osx/deploy_jenkins_slave.sh", "--tests"]
-    else:
-        check_upgrade = [
-            "powershell",
-            ".\\..\\tools\\windows\\deploy_jenkins_slave.ps1",
-            "-check_upgrade",
-        ]
+        tests = ["sh", "../tools/osx/deploy_jenkins_slave.sh", "--tests"]
+    elif osi == "win32":
         install = [
             "powershell",
             ".\\..\\tools\\windows\\deploy_jenkins_slave.ps1",
@@ -49,12 +39,11 @@ def run_tests_from_source():
             ".\\..\\tools\\windows\\deploy_jenkins_slave.ps1",
             "-tests",
         ]
-
-    if os.getenv("NXDRIVE_CHECK_AUTO_UPDATE"):
-        subprocess.check_call(check_upgrade)
     else:
-        subprocess.check_call(install)
-        subprocess.check_call(tests)
+        raise RuntimeError("OS not supported")
+
+    subprocess.check_call(install)
+    subprocess.check_call(tests)
 
 
 if __name__ == "__main__":
