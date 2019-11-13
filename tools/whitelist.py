@@ -18,6 +18,8 @@ DocPair.last_sync_error_date  # Check NXDRIVE-1804
 Download.transfer_type  # Used in QML
 Engine.account  # Used in QML
 Engine.folder  # Used in QML
+EngineDAO.get_downloads_with_status()  # Used dynamically in Engine
+EngineDAO.get_uploads_with_status()  # Used dynamically in Engine
 exc.trash_issue  # LocalClient.delete()
 FolderTreeview.resizeEvent  # Internal use of PyQt
 install_addons  # Used in QML
