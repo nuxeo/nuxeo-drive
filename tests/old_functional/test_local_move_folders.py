@@ -1,5 +1,6 @@
 # coding: utf-8
 import shutil
+from contextlib import suppress
 from pathlib import Path
 from time import sleep
 
@@ -55,6 +56,12 @@ class TestLocalMoveFolders(OneUserTest):
                 children = [child.name for child in remote.get_fs_children(uid)]
                 assert len(children) == count
                 assert set(children) == names
+
+    def tearDown(self):
+        with suppress(TypeError):
+            self.engine_1._local_watcher.localScanFinished.disconnect(
+                self.app.local_scan_finished
+            )
 
     def test_local_move_folder_with_files(self):
         count = 10
@@ -222,6 +229,11 @@ class TestLocalMoveFolders(OneUserTest):
         remote = self.remote_1
         remote_doc = self.remote_document_client_1
 
+        # NXDRIVE-987: count the number of local scan
+        self.engine_1._local_watcher.localScanFinished.connect(
+            self.app.local_scan_finished
+        )
+
         count = 1000
         self._setup(count=count, wait_for_sync=False)  # 2,000 files
 
@@ -276,3 +288,6 @@ class TestLocalMoveFolders(OneUserTest):
             ]
             assert len(children) == count
             assert set(children) == names
+
+        # NXDRIVE-987: ensure there was only 1 local scan done
+        assert self.app.local_scan_count == 1
