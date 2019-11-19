@@ -22,7 +22,7 @@ The idea is to bypass the need for the server to do the transfer for us.
 Nuxeo Drive should upload directly to S3 and tell the server the bucket where the file is stored.
 It will ease on the server load and should provide better transfer speed.
 
-It is required to not loose the pause/resume feature for such uploads.
+It is required to not lose the pause/resume feature for such uploads.
 
 ## Specifications
 
