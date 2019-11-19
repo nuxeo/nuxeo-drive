@@ -12,8 +12,8 @@ Use Amazon S3 for uploads.
 
 ## Rationale
 
-The current behavior is to use the default Nuxeo provider, which is the serve itself.
-given that S3 is configured on the server, when uploading anything to the server, it will then do the transfer to S3.
+The current behavior is to use the default Nuxeo provider, which is the server itself.
+Given that S3 is configured on the server, when uploading a blob, it will then do the transfer to S3.
 This is very unoptimized because this will ask the server to do a lot of work for each and every upload.
 
 ### Idea
@@ -118,7 +118,7 @@ Then, the code is more complex than single uploads, but still quite readable:
 mpu = s3_client.create_multipart_upload(Bucket="<BUCKET>", Key="<KEY>/<FILENAME>")
 upload_id = mpu["UploadId"]
 
-# Parts sent, will be used to complete the upload
+# Parts sent, will be used to complete the multipart upload
 data_packs = []
 
 chunk_size = 1024 * 1024 * 5  # Parts of 5 MiB
