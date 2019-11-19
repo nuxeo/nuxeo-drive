@@ -56,7 +56,7 @@ import boto3
 from nuxeo.client import Nuxeo
 
 
-# Instanciate the Nuxeo client
+# Instantiate the Nuxeo client
 nuxeo = Nuxeo(...)
 
 # This is the document that needs a blob
