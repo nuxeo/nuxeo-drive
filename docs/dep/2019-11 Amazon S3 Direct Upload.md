@@ -51,7 +51,7 @@ In short:
 2. Using that data, the client can now talk directly to S3 using [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html) (the Amazon S3 SDK for Python).
 3. When the upload is finished, the client has to tell the server the upload is complete. That step requires to know the ETag set by S3 at the previous step.
 
-For the next sections, let's image we already have a Batch, AWS credentials, and the `s3_client` has been created:
+For the next sections, let's imagine we already have a Batch, AWS credentials, and the `s3_client` has been created:
 
 ```python
 import boto3
