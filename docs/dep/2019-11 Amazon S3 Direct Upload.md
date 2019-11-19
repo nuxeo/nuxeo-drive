@@ -71,7 +71,7 @@ file = nuxeo.documents.create(new_file, parent_path=path)
 # The batch to process the blob upload
 batch = nuxeo.uploads.batch(handler="s3")
 
-# Instanciate the S3 client
+# Instantiate the S3 client
 s3_client = boto3.client(
     "s3",
     aws_access_key_id=batch.extraInfo["awsSecretKeyId"],
