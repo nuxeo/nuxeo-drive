@@ -114,7 +114,7 @@ Checks need to be added for those boundaries.
 Then, the code is more complex than single uploads, but still quite readable:
 
 ```python
-# Instanciate a new multipart upload
+# Instantiate a new multipart upload
 mpu = s3_client.create_multipart_upload(Bucket="<BUCKET>", Key="<KEY>/<FILENAME>")
 upload_id = mpu["UploadId"]
 
