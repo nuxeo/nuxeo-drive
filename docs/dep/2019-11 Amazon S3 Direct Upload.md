@@ -3,6 +3,8 @@
 - Created: 2019-11-18
 - Last-Modified: 2019-11-18
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>
+- Reviewer: Yannis Achour <yachour@nuxeo.com>,
+            Antoine Taillefer <ataillefer@nuxeo.com>
 - Status: draft
 - Related-Ticket: [NXDRIVE-1621](https://jira.nuxeo.com/browse/NXDRIVE-1621)
 
