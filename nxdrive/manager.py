@@ -76,6 +76,10 @@ class Manager(QObject):
     resumed = pyqtSignal()
     directEdit = pyqtSignal(str, str, str, str)
 
+    # Direct Transfer statistics
+    # args: folderish document, document size
+    directTransferStats = pyqtSignal(bool, int)
+
     _instances: Dict[Path, CallableProxyType] = {}
     __device_id = None
     autolock_service: ProcessAutoLockerWorker
@@ -269,6 +273,9 @@ class Manager(QObject):
 
         # Start the tracker when we launch
         self.started.connect(tracker.thread.start)
+
+        # Connect Direct Transfer metrics
+        self.directTransferStats.connect(tracker.send_direct_transfer)
 
         # Connect DirectEdit metrics
         self.direct_edit.openDocument.connect(tracker.send_directedit_open)
