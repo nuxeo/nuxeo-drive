@@ -505,6 +505,8 @@ class Processor(EngineWorker):
         if not doc_pair.folderish and doc_pair.size >= Options.big_file * 1024 * 1024:
             self.engine.directTranferStatus.emit(file, False)
 
+        self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)
+
     def _synchronize_direct_transfer_replace_blob(self, doc_pair: DocPair) -> None:
         """Force the blob replacement of the remote document (choice done by the user)."""
         self._synchronize_direct_transfer(doc_pair, replace_blob=True)

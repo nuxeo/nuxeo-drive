@@ -189,6 +189,13 @@ class Tracker(PollWorker):
             category="DirectEdit", action="Edit", label=extension.lower(), value=timing
         )
 
+    @pyqtSlot(bool, int)
+    def send_direct_transfer(self, folderish: bool, size: int) -> None:
+        nature = "folder" if folderish else "file"
+        self.send_event(
+            category="DirectTransfer", action="Sent", label=nature, value=size
+        )
+
     @pyqtSlot()
     def send_stats(self) -> None:
         for engine in self._manager.engines.values():
