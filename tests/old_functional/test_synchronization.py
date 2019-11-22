@@ -604,7 +604,7 @@ class TestSynchronization(OneUserTest):
             self.engine_1.stop()
 
             pair = dao.get_state_from_local(path)
-            assert pair
+            assert pair is not None
             assert pair.error_count
             assert pair.pair_state == "remotely_created"
 
