@@ -7,14 +7,16 @@ Steps executed:
     - run the integration tests directly from sources
 """
 
-import os
 import subprocess
 import sys
 
 
 def set_environment():
     # Convenient way to try a specific test without having to abort and start a new job.
-    os.environ["SPECIFIC_TEST"] = os.getenv("SPECIFIC_TEST", "tests")
+    # import os
+    #
+    # os.environ["SPECIFIC_TEST"] = "tests/..."
+    return
 
 
 def run_tests_from_source():
