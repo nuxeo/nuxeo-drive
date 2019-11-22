@@ -272,13 +272,14 @@ class DirectEdit(Worker):
         if pair:
             existing_file_path = engine.local.abspath(pair.local_path)
             try:
-                shutil.copy(existing_file_path, file_out)
+                # copyfile() is used to prevent metadata copy
+                shutil.copyfile(existing_file_path, file_out)
             except FileNotFoundError:
                 pair = None
             else:
                 log.info(
                     f"Local file matches remote digest {blob.digest!r}, "
-                    f"copying it from {existing_file_path!r}"
+                    f"copied it from {existing_file_path!r}"
                 )
                 if pair.is_readonly():
                     log.info(f"Unsetting readonly flag on copied file {file_out!r}")
@@ -469,12 +470,13 @@ class DirectEdit(Worker):
     def edit(
         self, server_url: str, doc_id: str, user: str = None, download_url: str = None
     ) -> None:
-        log.info(f"Editing doc {doc_id!r} on {server_url!r}")
+        log.info(f"Direct Editing doc {doc_id!r} on {server_url!r}")
         try:
             # Download the file
             file_path = self._prepare_edit(
                 server_url, doc_id, user=user, download_url=download_url
             )
+            log.debug("Direct Edit preparation returned file path {file_path!r}")
 
             # Launch it
             if file_path:

@@ -13,6 +13,7 @@ from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import parse_protocol_url, safe_os_filename
 
 from . import LocalTest, make_tmp_file
+from .. import ensure_no_exception
 from .common import OneUserTest, TwoUsersTest
 from ..utils import random_png
 
@@ -408,6 +409,31 @@ class TestDirectEdit(OneUserTest, DirectEditSetup):
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
         self.remote.lock(doc_id)
         self._direct_edit_update(doc_id, filename, b"Test")
+
+    def test_synced_file(self):
+        """Test the fact that instead of downloading the file, we get it from the local sync folder."""
+        filename = "M'ode opératoire ツ .txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+        assert self.local_1.exists(f"/{filename}")
+
+        def download(*_, **__):
+            """
+            Patch Remote.download() and Remote.get_blob()
+            to be able to check that nothing will
+            be downloaded as local data is already there.
+            """
+            assert 0, "No download should be done!"
+
+        with patch.object(self.engine_1.remote, "download", new=download), patch.object(
+            self.engine_1.remote, "get_blob", new=download
+        ), ensure_no_exception():
+            path = self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
+            assert isinstance(path, Path)
+
+        assert not list(self.engine_1.dao.get_downloads())
 
     def test_url_with_spaces(self):
         scheme, host = self.nuxeo_url.split("://")
