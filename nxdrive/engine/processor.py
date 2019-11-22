@@ -1210,16 +1210,14 @@ class Processor(EngineWorker):
 
     def _synchronize_remotely_created(self, doc_pair: DocPair) -> None:
         name = doc_pair.remote_name
+
         # Find the parent pair to find the path of the local folder to
         # create the document into
         parent_pair = self._get_normal_state_from_remote_ref(doc_pair.remote_parent_ref)
         if parent_pair is None:
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
-            raise ValueError(
-                f"Could not find parent folder of doc {name!r} "
-                f"({doc_pair.remote_ref!r}) folder"
-            )
+            raise ParentNotSynced(name, doc_pair.remote_ref)
 
         if parent_pair.local_path is None:
             if parent_pair.pair_state == "unsynchronized":
