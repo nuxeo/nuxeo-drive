@@ -5,8 +5,9 @@ from unittest.mock import patch
 
 from requests import ConnectionError
 from nuxeo.exceptions import HTTPError, Unauthorized
-
 from nxdrive.constants import ROOT, WINDOWS
+from nxdrive.utils import safe_filename
+
 from . import LocalTest
 from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
 from .. import ensure_no_exception
@@ -812,7 +813,8 @@ class TestSynchronization(OneUserTest):
         engine = self.engine_1
 
         # Create 7 files with the same name
-        name = "bug.txt"
+        name = "Congés 2016 / 2017.txt"
+        sanitized_name = safe_filename(name)
         for _ in range(7):
             remote.make_file("/", name, content=b"42")
 
@@ -820,10 +822,10 @@ class TestSynchronization(OneUserTest):
         engine.start()
         self.wait_sync(wait_for_async=True)
 
-        # Check that one "bug.txt" file exists, and engine has 6 errors
-        assert local.exists(f"/{name}")
+        # Check that one file exists, and engine has 6 errors
+        assert local.exists(f"/{sanitized_name}")
         assert len(local.get_children_info("/")) == 1
-        assert len(engine.dao.get_errors()) == 6
+        assert len(engine.dao.get_errors(limit=0)) == 6
 
         # Rename all remote documents with unique names
         ref = local.get_remote_id("/")
@@ -831,7 +833,7 @@ class TestSynchronization(OneUserTest):
         assert len(children) == 7
         remote_files = set()
         for child in children:
-            new_name = f"{child.uid.split('#')[-1]}-{child.name}"
+            new_name = f"{child.uid.split('#')[-1]}-{safe_filename(child.name)}"
             remote_files.add(new_name)
             remote.execute(command="NuxeoDrive.Rename", id=child.uid, name=new_name)
 
@@ -843,7 +845,7 @@ class TestSynchronization(OneUserTest):
         local_children = local.get_children_info("/")
         assert len(local_children) == 7
         local_files = set(child.name for child in local_children)
-        assert not engine.dao.get_errors()
+        assert not engine.dao.get_errors(limit=0)
         assert remote_files == local_files
 
     def test_local_creation_copying_from_sibling(self):

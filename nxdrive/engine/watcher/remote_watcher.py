@@ -906,9 +906,13 @@ class RemoteWatcher(EngineWorker):
                         ):
                             # We are trying to synchronize a duplicate
                             # that has been renamed remotely (NXDRIVE-980 for context)
+
+                            # Make name safe by removing invalid chars
+                            name = safe_filename(new_info.name)
+
                             info = FileInfo(
                                 self.engine.local_folder,
-                                doc_pair.local_path.with_name(new_info.name),
+                                doc_pair.local_path.with_name(name),
                                 doc_pair.folderish,
                                 get_date_from_sqlite(doc_pair.last_remote_updated)
                                 or datetime.now(),
