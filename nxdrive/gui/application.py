@@ -145,6 +145,9 @@ class Application(QApplication):
         self._init_translator()
         self.setQuitOnLastWindowClosed(False)
 
+        # Timer used to refresh the files list in the systray menu, see .refresh_files()
+        self._last_refresh_view = 0.0
+
         if not self.manager.preferences_metrics_chosen:
             self.show_metrics_acceptance()
             # Start the tracker now, if needed
@@ -196,9 +199,6 @@ class Application(QApplication):
         # Handle the eventual command via the custom URL scheme
         if Options.protocol_url:
             self._handle_nxdrive_url(Options.protocol_url)
-
-        # Timer used to refresh the files list in the systray menu, see .refresh_files()
-        self._last_refresh_view = 0.0
 
     @if_frozen
     def add_qml_import_path(self, view: QQuickView) -> None:
