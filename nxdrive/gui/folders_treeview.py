@@ -65,10 +65,15 @@ class TreeViewMixin(QTreeView):
         When busy, it means children are being fetched (i.e. a HTTP call is ongoing).
         In that case, change the cursor to let the user know something is happening.
         """
-        if busy:
-            self.setCursor(Qt.BusyCursor)
-        else:
-            self.unsetCursor()
+        try:
+            if busy:
+                self.setCursor(Qt.BusyCursor)
+            else:
+                self.unsetCursor()
+        except RuntimeError:
+            # RuntimeError: wrapped C/C++ object of type FolderTreeView has been deleted
+            # May happen if the window is deleted early.
+            pass
 
 
 class DocumentTreeView(TreeViewMixin):
