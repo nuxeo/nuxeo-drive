@@ -633,7 +633,7 @@ class Manager(QObject):
 
     def _get_engine_name(self, server_url: str) -> str:
         urlp = urlparse(server_url)
-        return urlp.hostname
+        return urlp.hostname or ""
 
     def check_local_folder_available(self, path: Path) -> bool:
         if not self._engine_definitions:
