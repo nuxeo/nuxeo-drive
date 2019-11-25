@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 import re
 import sys
 import shutil
@@ -83,10 +82,14 @@ class Updater(BaseUpdater):
         src = self.final_app
         dst = src.with_suffix(f"{src.suffix}.old")
 
+        # Delete eventual obsolete backup
+        with suppress(FileNotFoundError):
+            shutil.rmtree(dst)
+
         if restore:
             src, dst = dst, src
 
-        if not os.path.isdir(src):
+        if not src.is_dir():
             return
 
         log.info(f"Moving {src!r} -> {dst!r}")
