@@ -445,6 +445,8 @@ class Remote(Nuxeo):
 
         batch = None
         chunk_size = None
+        upload: Optional[Upload] = None
+
         try:
             # See if there is already a transfer for this file
             upload = self.dao.get_upload(path=file_path)
@@ -566,7 +568,7 @@ class Remote(Nuxeo):
                 log.debug(f"Upload progression stopped at {percent:.2f}%")
 
                 # Save the progression
-                if upload:  # mypy fix ...
+                if upload:
                     upload.progress = percent
                     self.dao.set_transfer_progress("upload", upload)
 
