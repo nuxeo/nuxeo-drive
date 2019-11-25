@@ -572,7 +572,7 @@ class CliHandler:
         named_pipe = f"{BUNDLE_IDENTIFIER}.protocol.{pid}"
         log.debug(
             f"Opening a local socket to the running instance on {named_pipe} "
-            f"(payload={self.redact_payload(payload)})"
+            f"(payload={self.redact_payload(payload)!r})"
         )
         client = QLocalSocket()
         try:
