@@ -490,6 +490,14 @@ class Processor(EngineWorker):
 
         # The remote path is stored as the remote ref in xattrs of the file
         parent_path = self.local.get_remote_id(file)
+        if not parent_path:
+            self.engine.directTranferError.emit(file)
+            log.warning(
+                f"Cancelling Direct Transfer of {file!r} because it has no remote path set"
+            )
+            self.dao.remove_state(doc_pair)
+            self.dao.remove_transfer("upload", file)
+            return
 
         # Do the upload
         self.remote.direct_transfer(
