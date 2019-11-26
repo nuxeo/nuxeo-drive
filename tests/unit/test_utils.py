@@ -423,6 +423,12 @@ def test_get_tree_list():
         assert isinstance(local_path, Path)
 
 
+def test_get_tree_size():
+    location = nxdrive.utils.normalized_path(__file__).parent.parent
+    path = location / "resources"
+    assert nxdrive.utils.get_tree_size(path) == 3111940
+
+
 @Options.mock()
 def test_if_frozen_decorator():
     @nxdrive.utils.if_frozen
