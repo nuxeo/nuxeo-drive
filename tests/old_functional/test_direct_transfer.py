@@ -546,12 +546,14 @@ class TestDirectTransferFolder(OneUserTest):
 
         # Check files exist on the server with their attached blob
         for file in self.files:
-            doc = str(file.relative_to(self.folder))
-            assert self.has_blob(doc)
+            # .as_posix() is needed to replace "\\" with "/" on Windows
+            doc = file.relative_to(self.folder).as_posix()
+            assert self.has_blob(str(doc))
 
         # Check subfolders
         for folder in self.folders:
-            doc = str(folder.relative_to(self.folder))
+            # .as_posix() is needed to replace "\\" with "/" on Windows
+            doc = folder.relative_to(self.folder).as_posix()
             assert self.root_remote.documents.get(path=f"{self.ws.path}/{doc}")
 
     def test_folder(self):
