@@ -413,6 +413,16 @@ def test_get_timestamp_from_date():
     assert nxdrive.utils.get_timestamp_from_date(dtime) == 1_560_988_800
 
 
+def test_get_tree_list():
+    location = nxdrive.utils.normalized_path(__file__).parent.parent
+    path = location / "resources"
+    remote_ref = "/default-domain/workspaces/foo"
+    for ref, local_path in nxdrive.utils.get_tree_list(path, remote_ref):
+        assert ref.startswith(remote_ref)
+        assert "\\" not in ref
+        assert isinstance(local_path, Path)
+
+
 @Options.mock()
 def test_if_frozen_decorator():
     @nxdrive.utils.if_frozen
