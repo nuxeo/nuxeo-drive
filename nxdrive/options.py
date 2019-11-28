@@ -223,6 +223,7 @@ class MetaOptions(type):
         "ssl_no_verify": (False, "default"),
         "startup_page": ("drive_login.jsp", "default"),
         "sync_and_quit": (False, "default"),
+        "synchronization_enabled": (True, "default"),
         "system_wide": (_is_system_wide(), "default"),
         "theme": ("ui5", "default"),
         "timeout": (30, "default"),

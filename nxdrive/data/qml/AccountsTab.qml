@@ -32,7 +32,7 @@ Rectangle {
             id: accountSelect
             anchors {
                 left: parent.left
-                leftMargin: 185
+                leftMargin: sync_enabled ? 185 : 105
             }
         }
     }
@@ -95,7 +95,6 @@ Rectangle {
                         onClicked: api.set_server_ui(uid, "web")
                         checked: (forceUi == "web")
                         Layout.alignment: Qt.AlignTop
-                        Layout.leftMargin: -8
                         Layout.topMargin: -10
                     }
                     NuxeoRadioButton {
@@ -106,25 +105,32 @@ Rectangle {
                         onClicked: api.set_server_ui(uid, "jsf")
                         checked: (forceUi == "jsf")
                         Layout.alignment: Qt.AlignTop
-                        Layout.leftMargin: -8
                         Layout.topMargin: -5
                     }
                 }
 
                 // Local folder
-                ScaledText { text: qsTr("ENGINE_FOLDER") + tl.tr; color: mediumGray }
+                ScaledText {
+                    text: qsTr("ENGINE_FOLDER") + tl.tr
+                    visible: sync_enabled
+                    color: mediumGray
+                }
                 Link {
                     text: folder
+                    visible: sync_enabled
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                 }
 
                 // Filters
                 ScaledText {
                     text: qsTr("SELECTIVE_SYNC") + tl.tr
+                    visible: sync_enabled
                     color: mediumGray
                     Layout.alignment: Qt.AlignTop
                 }
                 ColumnLayout {
+                    visible: sync_enabled
+
                     ScaledText {
                         text: qsTr("SELECTIVE_SYNC_DESCR") + tl.tr
                         Layout.maximumWidth: 400
@@ -139,10 +145,12 @@ Rectangle {
 
                 // Conflicts/Errors
                 ScaledText {
+                    visible: sync_enabled
                     text: qsTr("CONFLICTS_AND_ERRORS") + tl.tr
                     color: mediumGray
                 }
                 Link {
+                    visible: sync_enabled
                     text: qsTr("OPEN_WINDOW") + tl.tr
                     onClicked: api.show_conflicts_resolution(uid)
                 }

@@ -15,6 +15,7 @@ from ...client.local import FileInfo
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
 from ...exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import Metrics, RemoteFileInfo, DocPair, DocPairs
+from ...options import Options
 from ...utils import safe_filename, get_date_from_sqlite
 
 if TYPE_CHECKING:
@@ -597,6 +598,15 @@ class RemoteWatcher(EngineWorker):
         return not online
 
     def _handle_changes(self, first_pass: bool = False) -> bool:
+        # If synchronization features are disabled, we just need to emit
+        # the appropriate signal to let the systray icon be updated.
+        if not Options.synchronization_enabled:
+            if first_pass:
+                self.initiate.emit()
+                return True
+            self.updated.emit()
+            return False
+
         if self._check_offline():
             return False
 

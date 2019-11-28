@@ -9,8 +9,37 @@ from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.utils import safe_filename
 
 from . import LocalTest
-from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
+from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, OneUserNoSync, TwoUsersTest
 from .. import ensure_no_exception
+
+
+class TestSynchronizationDisabled(OneUserNoSync):
+    """Test with synchronization features disabled."""
+
+    def test_basic_synchronization(self):
+        """Test that nothing will be synced."""
+
+        local = self.local_1
+        remote = self.remote_document_client_1
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # The local root is not created
+        assert not local.exists("/remote folder")
+
+        # Force its creation to test local changes are not reflected remotely
+        local.unlock_ref(local.base_folder)
+        local.base_folder.mkdir()
+        local.make_folder("/", "local folder")
+
+        # Create a remote document to check that nothing will be locally synced
+        remote.make_folder("/", "remote folder")
+
+        # Sync and checks
+        self.wait_sync(wait_for_async=True)
+        assert not remote.exists("/local folder")
+        assert local.exists("/local folder")
+        assert not local.exists("/remote folder")
 
 
 class TestSynchronization(OneUserTest):

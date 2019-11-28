@@ -76,6 +76,18 @@ class ServerOptionsUpdater(PollWorker):
                 # We cannot use fail_on_error=True because the server may
                 # be outdated and still have obsolete options.
                 Options.update(conf, setter="server", fail_on_error=False)
+
+                # Save this option so that it has direct effect at the next start
+                skey = "synchronization_enabled"
+                if skey in conf:
+                    vkey = conf[skey]
+                    if isinstance(vkey, bool):
+                        self.manager.dao.update_config(skey, vkey)
+                    else:
+                        log.warning(
+                            f"Bad value from the server's config.ini: {skey!r}={vkey!r} (a boolean is required)"
+                        )
+
                 break
 
         return True

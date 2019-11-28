@@ -330,6 +330,7 @@ class Application(QApplication):
         context.setContextProperty("updater", self.manager.updater)
         context.setContextProperty("ratio", self.ratio)
         context.setContextProperty("update_check_delay", Options.update_check_delay)
+        context.setContextProperty("sync_enabled", Options.synchronization_enabled)
         context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("LINUX", LINUX)
         context.setContextProperty("WINDOWS", WINDOWS)
