@@ -220,7 +220,7 @@ class Engine(QObject):
             f"name={self.name!r}, "
             f"server_url={self.server_url!r}, "
             f"has_token={bool(self._remote_token)!r}, "
-            f"is_offline={self._offline_state!r}, "
+            f"is_offline={self.is_offline()!r}, "
             f"uid={self.uid!r}, "
             f"type={self.type!r}>"
         )
@@ -322,6 +322,7 @@ class Engine(QObject):
     def set_offline(self, value: bool = True) -> None:
         if value == self._offline_state:
             return
+
         self._offline_state = value
         if value:
             log.info(f"Engine {self.uid} goes offline")
@@ -479,7 +480,7 @@ class Engine(QObject):
                 f"{self.server_url}nxhome/{Options.remote_repo}/@view_home?"
                 "tabIds=USER_CENTER%3AuserCenterNuxeoDrive"
             ),
-            "web": f"{self.server_url}ui?token={self.get_remote_token()}#!/drive",
+            "web": f"{self.server_url}ui/#!/drive",
         }
         return urls[self.force_ui or self.wui]
 
@@ -510,11 +511,14 @@ class Engine(QObject):
         self.manager.open_local_file(url)
 
     def resume(self) -> None:
+        log.info(f"Engine {self.uid} is resuming")
         self._pause = False
+
         # If stopped then start the engine
         if self._stopped:
             self.start()
             return
+
         self.queue_manager.resume()
         for thread in self._threads:
             if thread.isRunning():
@@ -565,6 +569,8 @@ class Engine(QObject):
     def suspend(self) -> None:
         if self._pause:
             return
+
+        log.info(f"Engine {self.uid} is suspending")
         self._pause = True
         self.dao.suspend_transfers()
         self.queue_manager.suspend()
@@ -645,9 +651,6 @@ class Engine(QObject):
             self.set_invalid_credentials(
                 reason="found no token in engine configuration"
             )
-
-    def get_remote_token(self) -> Optional[str]:
-        return self.dao.get_config("remote_token")
 
     def _create_queue_manager(self, processors: int) -> QueueManager:
         kwargs = {"max_file_processors": 2 if Options.debug else processors}
@@ -790,6 +793,8 @@ class Engine(QObject):
         return not self._stopped
 
     def start(self) -> None:
+        log.info(f"Engine {self.uid} is starting")
+
         if not self.check_fs_marker():
             raise FsMarkerException()
 
@@ -805,7 +810,6 @@ class Engine(QObject):
 
         self._stopped = False
         Processor.soft_locks = {}
-        log.info(f"Engine {self.uid} is starting")
         for thread in self._threads:
             thread.start()
         self.syncStarted.emit(0)
@@ -867,7 +871,7 @@ class Engine(QObject):
         return self._stopped
 
     def stop(self) -> None:
-        log.debug(f"Engine {self.uid} stopping")
+        log.debug(f"Engine {self.uid} is stopping")
 
         # Make a backup in case something happens
         self.dao.save_backup()

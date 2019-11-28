@@ -30,6 +30,16 @@ from ...utils import (
     normalize_event_filename as normalize,
 )
 
+if WINDOWS:
+    import watchdog.observers as ob
+
+    # Monkey-patch Watchdog to:
+    #   - Set the Windows hack delay to 0 in WindowsApiEmitter,
+    #     otherwise we might miss some events
+    #   - Increase the ReadDirectoryChangesW buffer size
+    ob.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
+    ob.winapi.BUFFER_SIZE = 8192
+
 if TYPE_CHECKING:
     from ..dao.sqlite import EngineDAO  # noqa
     from ..engine import Engine  # noqa
@@ -57,22 +67,20 @@ class LocalWatcher(EngineWorker):
 
     def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao, name="LocalWatcher")
+
+        self.local = self.engine.local
         self.lock = Lock()
-        self._event_handler: Optional[DriveFSEventHandler] = None
+        self.watchdog_queue: Queue = Queue()
+
         # Delay for the scheduled recursive scans of
         # a created / modified / moved folder under Windows
         self._windows_folder_scan_delay = 10000  # 10 seconds
-        self._windows_watchdog_event_buffer = 8192
         if WINDOWS:
             log.info(
                 "Windows detected so delete event will be delayed "
                 f"by {WIN_MOVE_RESOLUTION_PERIOD} ms"
             )
-        # TODO Review to delete
-        self._init()
 
-    def _init(self) -> None:
-        self.local = self.engine.local
         self._metrics = {
             "last_local_scan_time": -1,
             "new_files": 0,
@@ -80,19 +88,20 @@ class LocalWatcher(EngineWorker):
             "delete_files": 0,
             "last_event": 0,
         }
-        self._observer = None
-        self._root_observer = None
+
+        self._event_handler: Optional[DriveFSEventHandler] = None
+        self._observer = Observer()
+        self._root_observer = Observer()
+
         self._delete_events: Dict[str, Tuple[int, DocPair]] = {}
         self._folder_scan_events: Dict[Path, Tuple[float, DocPair]] = {}
 
     def _execute(self) -> None:
         try:
-            self._init()
             if not self.local.exists(ROOT):
                 self.rootDeleted.emit()
                 return
 
-            self.watchdog_queue: Queue = Queue()
             self._setup_watchdog()
             self._scan()
 
@@ -598,39 +607,21 @@ class LocalWatcher(EngineWorker):
 
     @tooltip("Setup watchdog")
     def _setup_watchdog(self) -> None:
-        """
-        Monkey-patch Watchdog to:
-            - Set the Windows hack delay to 0 in WindowsApiEmitter,
-              otherwise we might miss some events
-            - Increase the ReadDirectoryChangesW buffer size for Windows
-        """
         base: Path = self.local.base_folder
-
-        if WINDOWS:
-            try:
-                import watchdog.observers as ob
-
-                ob.read_directory_changes.WATCHDOG_TRAVERSE_MOVED_DIR_DELAY = 0
-                ob.winapi.BUFFER_SIZE = self._windows_watchdog_event_buffer
-            except ImportError:
-                log.exception("Cannot import read_directory_changes")
         log.info(f"Watching FS modification on : {base!r}")
 
         # Filter out all ignored suffixes. It will handle custom ones too.
         ignore_patterns = [f"*{suffix}" for suffix in Options.ignored_suffixes]
 
-        self._event_handler = DriveFSEventHandler(self, ignore_patterns=ignore_patterns)
+        # The root local folder watcher
         self._root_event_handler = DriveFSRootEventHandler(
             self, base.name, ignore_patterns=ignore_patterns
         )
-        observer = Observer()
-        observer.schedule(self._event_handler, str(base), recursive=True)
-        observer.start()
-        self._observer = observer
-        root_observer = Observer()
-        root_observer.schedule(self._root_event_handler, str(base.parent))
-        root_observer.start()
-        self._root_observer = root_observer
+        self._root_observer.schedule(self._root_event_handler, str(base.parent))
+
+        # The contents of the root local folder
+        self._event_handler = DriveFSEventHandler(self, ignore_patterns=ignore_patterns)
+        self._observer.schedule(self._event_handler, str(base), recursive=True)
 
     def _stop_watchdog(self) -> None:
         if self._observer:

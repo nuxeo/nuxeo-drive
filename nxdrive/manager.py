@@ -339,7 +339,6 @@ class Manager(QObject):
         for uid, engine in self.engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.info(f"Resume engine {uid}")
             engine.resume()
         self.resumed.emit()
 
@@ -350,7 +349,6 @@ class Manager(QObject):
         for uid, engine in self.engines.items():
             if euid is not None and euid != uid:
                 continue
-            log.info(f"Suspend engine {uid}")
             engine.suspend()
         self.suspended.emit()
 
@@ -362,7 +360,6 @@ class Manager(QObject):
             if euid is not None and euid != uid:
                 continue
             if engine.is_started():
-                log.info(f"Stop engine {uid}")
                 engine.stop()
         self.osi.cleanup()
         self.dispose_db()
@@ -374,7 +371,6 @@ class Manager(QObject):
             if euid is not None and euid != uid:
                 continue
             if not self._pause:
-                log.info(f"Launch engine {uid}")
                 try:
                     engine.start()
                 except Exception:
