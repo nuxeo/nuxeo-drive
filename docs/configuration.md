@@ -59,6 +59,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `proxy-server` | None | str | 2 | Define the address of the proxy server (e.g. `http://proxy.example.com:3128`). This can also be set up by the user from the Settings window.
 | `ssl-no-verify` | False | bool | 4.0.1 | Define if SSL errors should be ignored. Highly unadvised to enable this option.
 | `sync-and-quit` | False | bool | 4.2.0 | Launch the synchronization and then exit the application.
+| `synchronization_enabled` | True | bool | 4.4.0 | Synchronization features are enabled. If set to `False`, nothing will be downloaded/uploaded/synchronized but Direct Edit and Direct Transfer will work.
 | `tmp_file_limit` | 10.0 | float | 4.1.4 | File size in MiB. Files smaller than this limit will be written at once to the file rather than chunk by chunk.
 | `timeout` | 30 | int | 2 | Define the socket timeout.
 | `update-check-delay` | 3600 | int | 2 | Define the auto-update check delay. 0 means disabled.

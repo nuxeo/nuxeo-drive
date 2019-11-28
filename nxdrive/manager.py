@@ -131,6 +131,26 @@ class Manager(QObject):
         if Options.force_locale is not None:
             self.set_config("locale", Options.force_locale)
 
+        # Handle synchronization state early
+        sync_enabled = self.dao.get_config("synchronization_enabled")
+        if sync_enabled is not None:
+            # If the option has been set from another conf source, it has the precedence
+            # over the old (and maybe obsolete) value stored in the database
+            if (
+                Options.options["synchronization_enabled"][1] != "default"
+                and Options.synchronization_enabled != sync_enabled
+            ):
+                # Update the value stored in the database using the the global options value
+                self.dao.update_config("sync_enabled", Options.synchronization_enabled)
+            else:
+                # Update global options using the value stored in the database
+                Options.synchronization_enabled = sync_enabled != "0"
+
+        if not Options.synchronization_enabled:
+            log.info(
+                ">>> Synchronization features are disabled, only Direct Edit and Direct Transfer will work."
+            )
+
         self.old_version = None
         if Options.is_frozen:
             # Persist the channel update

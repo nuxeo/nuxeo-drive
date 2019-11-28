@@ -820,3 +820,11 @@ class OneUserTest(TwoUsersTest):
         if wait_for_engine_1 and count:
             err += f" for engine 1 (syncing_count={count})"
         log.warning(err)
+
+
+class OneUserNoSync(OneUserTest):
+    """ Tests requiring only one user with synchronization features disabled. """
+
+    def setup_method(self, *args, **kwargs):
+        Options.synchronization_enabled = False
+        super().setup_method(*args, **kwargs)

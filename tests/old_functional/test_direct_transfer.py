@@ -16,12 +16,12 @@ from nxdrive.constants import TransferStatus
 from nxdrive.options import Options
 from requests.exceptions import ConnectionError
 
-from .common import OneUserTest
+from .common import OneUserTest, OneUserNoSync
 from .. import ensure_no_exception
 from ..markers import not_windows
 
 
-class TestDirectTransfer(OneUserTest):
+class DirectTransfer:
     def setUp(self):
         # No sync root, to ease testing
         self.remote_1.unregister_as_root(self.workspace)
@@ -35,6 +35,8 @@ class TestDirectTransfer(OneUserTest):
 
         # The file used for the Direct Transfer (must be > 1 MiB)
         source = self.location / "resources" / "test_engine_migration_duplicate.db"
+        assert source.stat().st_size > 1024 * 1024
+
         # Work with a copy of the file to allow parallel testing
         self.file = self.tmpdir / f"{uuid4()}.bin"
         copyfile(source, self.file)
@@ -349,7 +351,12 @@ class TestDirectTransfer(OneUserTest):
                 uploads = list(dao.get_uploads())
                 assert len(uploads) == 1
                 upload = uploads[0]
-                assert upload.status == TransferStatus.ONGOING
+                expected_status = (
+                    TransferStatus.ONGOING
+                    if Options.synchronization_enabled
+                    else TransferStatus.DONE
+                )
+                assert upload.status == expected_status
 
                 # The file exists on the server but has no blob yet
                 assert not self.has_blob()
@@ -429,7 +436,12 @@ class TestDirectTransfer(OneUserTest):
                 uploads = list(dao.get_uploads())
                 assert len(uploads) == 1
                 upload = uploads[0]
-                assert upload.status == TransferStatus.ONGOING
+                expected_status = (
+                    TransferStatus.ONGOING
+                    if Options.synchronization_enabled
+                    else TransferStatus.DONE
+                )
+                assert upload.status == expected_status
 
                 # The file exists on the server but has no blob yet
                 assert not self.has_blob()
@@ -473,7 +485,21 @@ class TestDirectTransfer(OneUserTest):
         self.sync_and_check()
 
 
-class TestDirectTransferFolder(OneUserTest):
+class TestDirectTransfer(OneUserTest, DirectTransfer):
+    """Direct Transfer in "normal" mode, i.e.: when synchronization features are enabled."""
+
+    def setUp(self):
+        DirectTransfer.setUp(self)
+
+
+class TestDirectTransferNoSync(OneUserNoSync, DirectTransfer):
+    """Direct Transfer should work when synchronization features are not enabled."""
+
+    def setUp(self):
+        DirectTransfer.setUp(self)
+
+
+class DirectTransferFolder:
     def setUp(self):
         # No sync root, to ease testing
         self.remote_1.unregister_as_root(self.workspace)
@@ -565,3 +591,17 @@ class TestDirectTransferFolder(OneUserTest):
         with ensure_no_exception():
             self.engine_1.direct_transfer(self.folder, self.ws.path)
             self.sync_and_check()
+
+
+class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):
+    """Direct Transfer in "normal" mode, i.e.: when synchronization features are enabled."""
+
+    def setUp(self):
+        DirectTransferFolder.setUp(self)
+
+
+class TestDirectTransferFolderNoSync(OneUserNoSync, DirectTransferFolder):
+    """Direct Transfer should work when synchronization features are not enabled."""
+
+    def setUp(self):
+        DirectTransferFolder.setUp(self)

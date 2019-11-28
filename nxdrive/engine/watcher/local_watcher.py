@@ -247,6 +247,12 @@ class LocalWatcher(EngineWorker):
 
     @tooltip("Full local scan")
     def _scan(self) -> None:
+        # If synchronization features are disabled, we just need to emit that specific
+        # signal to let the Remote Watcher start its own thread and the Queue Manager.
+        if not Options.synchronization_enabled:
+            self.localScanFinished.emit()
+            return
+
         log.info("Full scan started")
         start_ms = current_milli_time()
         to_pause = not self.engine.queue_manager.is_paused()
@@ -623,7 +629,14 @@ class LocalWatcher(EngineWorker):
         self._event_handler = DriveFSEventHandler(self, ignore_patterns=ignore_patterns)
         self._observer.schedule(self._event_handler, str(base), recursive=True)
 
+        if Options.synchronization_enabled:
+            self._root_observer.start()
+            self._observer.start()
+
     def _stop_watchdog(self) -> None:
+        if not Options.synchronization_enabled:
+            return
+
         if self._observer:
             log.info("Stopping the FS Observer thread")
             try:
