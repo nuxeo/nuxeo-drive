@@ -390,6 +390,7 @@ class QueueManager(QObject):
 
     def get_metrics(self) -> Metrics:
         metrics = {
+            "is_paused": self.is_paused(),
             "local_folder_queue": self._local_folder_queue.qsize(),
             "local_file_queue": self._local_file_queue.qsize(),
             "remote_folder_queue": self._remote_folder_queue.qsize(),
