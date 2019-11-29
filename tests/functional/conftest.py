@@ -10,6 +10,8 @@ from nuxeo.documents import Document
 from nuxeo.users import User
 from nxdrive.manager import Manager
 
+from .. import env
+
 log = getLogger(__name__)
 
 
@@ -102,17 +104,15 @@ def user_factory(request, server, faker):
 def obj_factory(request, server):
     """File/Folder/Workspace creation factory with automatic clean-up."""
 
-    parent = "/default-domain/workspaces"
-
     def _make(
         title: str = "",
         nature: str = "Folder",
-        parent: str = parent,
+        parent: str = env.WS_DIR,
         enable_sync: bool = False,
     ):
         title = title or str(uuid4())
         new = Document(name=title, type=nature, properties={"dc:title": title})
-        obj = server.documents.create(new, parent_path=parent)
+        obj = server.documents.create(new, parent_path=env.WS_DIR)
         request.addfinalizer(obj.delete)
         log.info(f"[FIXTURE] Created {obj}")
 

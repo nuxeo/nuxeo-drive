@@ -7,6 +7,7 @@ import pytest
 from nuxeo.documents import Document
 
 from .utils import cb_get, fatal_error_dlg  # , get_opened_url
+from ... import env
 
 
 log = getLogger(__name__)
@@ -129,7 +130,7 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
             type="Workspace",
             properties={"dc:title": "sync and stop"},
         )
-        ws = server.documents.create(new, parent_path="/default-domain/workspaces")
+        ws = server.documents.create(new, parent_path=env.WS_DIR)
 
         # 3rd, bind the root (e.g.: enable the sync of the workspace)
         args = f'bind-root "{ws.path}" {local_folder}'
@@ -200,7 +201,7 @@ def test_ctx_menu_entries(nuxeo_url, exe, server, tmp):
             type="Workspace",
             properties={"dc:title": "my workspace"},
         )
-        ws = server.documents.create(new, parent_path="/default-domain/workspaces")
+        ws = server.documents.create(new, parent_path=env.WS_DIR)
 
         # 3rd, bind the root (e.g.: enable the sync of the workspace)
         args = f'bind-root "{ws.path}" {local_folder}'

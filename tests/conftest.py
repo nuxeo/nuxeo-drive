@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 import shutil
 import sys
 
@@ -8,11 +7,11 @@ import nuxeo.operations
 import pytest
 from nuxeo.client import Nuxeo
 
+from . import env
+
 
 pytest_plugins = "tests.pytest_random"
 
-
-DEFAULT_NUXEO_URL = "http://localhost:8080/nuxeo"
 
 # Operations cache
 OPS_CACHE = None
@@ -119,9 +118,7 @@ def version() -> str:
 @pytest.fixture(scope="session")
 def nuxeo_url() -> str:
     """Retrieve the Nuxeo URL."""
-    url = os.getenv("NXDRIVE_TEST_NUXEO_URL", DEFAULT_NUXEO_URL)
-    url = url.split("#")[0]
-    return url
+    return env.NXDRIVE_TEST_NUXEO_URL.split("#")[0]
 
 
 @pytest.fixture(scope="session")

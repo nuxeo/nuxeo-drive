@@ -81,4 +81,4 @@ def salt(text: str, prefix: str = "ndt-", with_suffix: bool = True) -> str:
     To use for workspace titles, usernames, groups names ...
     """
     suffix = random.randint(1, 99999) if with_suffix else ""
-    return f"{prefix}{text}{suffix}"
+    return f"{prefix}{text}-{suffix}"

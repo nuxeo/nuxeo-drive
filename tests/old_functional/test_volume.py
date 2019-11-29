@@ -37,11 +37,14 @@ FOLDERS = FILES = DEPTH = 0
 
 if "TEST_VOLUME" in os.environ:
     values_ = os.getenv("TEST_VOLUME", "")
-    if values_.count(",") != 2:
-        # Low volume by default
-        values_ = "3,10,2"  # 200 documents
+    if not values_:
+        del os.environ["TEST_VOLUME"]
+    else:
+        if values_.count(",") != 2:
+            # Low volume by default
+            values_ = "3,10,2"  # 200 documents
 
-    FOLDERS, FILES, DEPTH = map(int, values_.split(","))
+        FOLDERS, FILES, DEPTH = map(int, values_.split(","))
     del values_
 
 
@@ -99,10 +102,8 @@ class TestVolume(OneUserTest):
             self.engine_1.stop()
 
         self.tree = {"childs": {}, "path": ROOT}
-        log.warning(
-            f"Creating {FILES * FILES * FOLDERS * DEPTH + FOLDERS * DEPTH} documents ..."
-        )
         items = self.create_tree(FOLDERS, FILES, DEPTH, self.tree)
+        log.warning(f"Created {items:,} local documents.")
 
         if not stopped:
             self.engine_1.start()
@@ -110,7 +111,6 @@ class TestVolume(OneUserTest):
         if wait_for_sync:
             self.wait_sync(timeout=items * 10)
 
-        log.warning(f"Created {items:,} documents.")
         return items
 
     def _check_folder(self, path: Path, removed=[], added=[]):

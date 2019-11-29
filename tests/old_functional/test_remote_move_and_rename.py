@@ -10,6 +10,7 @@ from nxdrive.engine.engine import Engine
 from nxdrive.options import Options
 
 from . import DocRemote, LocalTest
+from .. import env
 from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, SYNC_ROOT_FAC_ID, OneUserTest
 from ..markers import windows_only
 
@@ -519,8 +520,7 @@ class TestRemoteMoveAndRename(OneUserTest):
 
     def test_remote_move_to_non_sync_root(self):
         # Grant ReadWrite permission on Workspaces for test user
-        workspaces_path = "/default-domain/workspaces"
-        input_obj = "doc:" + workspaces_path
+        input_obj = f"doc:{env.WS_DIR}"
         self.root_remote.execute(
             command="Document.SetACE",
             input_obj=input_obj,
@@ -529,7 +529,7 @@ class TestRemoteMoveAndRename(OneUserTest):
             grant=True,
         )
 
-        workspaces_info = self.root_remote.fetch(workspaces_path)
+        workspaces_info = self.root_remote.fetch(env.WS_DIR)
         workspaces = workspaces_info["uid"]
 
         # Get remote client with Workspaces as base folder and local client

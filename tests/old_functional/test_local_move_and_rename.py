@@ -4,15 +4,15 @@ import time
 from itertools import product
 from pathlib import Path
 from time import sleep
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 from nuxeo.exceptions import HTTPError
-
 from nxdrive.engine.dao.sqlite import EngineDAO
+
 from . import DocRemote, LocalTest
 from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
-
+from .. import env
 
 # TODO NXDRIVE-170: refactor
 
@@ -571,10 +571,10 @@ class TestLocalMoveAndRename(OneUserTest):
         # test workspace.
         remote = DocRemote(
             self.nuxeo_url,
-            "Administrator",
+            env.NXDRIVE_TEST_USERNAME,
             "nxdrive-test-administrator-device",
             self.version,
-            password="Administrator",
+            password=env.NXDRIVE_TEST_PASSWORD,
             base_folder=self.workspace,
         )
         folder_1_uid = remote.get_info("/Original Folder 1").uid

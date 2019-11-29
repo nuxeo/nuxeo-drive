@@ -12,12 +12,10 @@ from typing import Optional, Tuple
 from unittest import TestCase
 from uuid import uuid4
 
-from faker import Faker
 from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
+from faker import Faker
+from nuxeo.exceptions import BadQuery
 from nuxeo.models import Document, User
-
-from sentry_sdk import configure_scope
-
 from nxdrive import __version__
 from nxdrive.constants import LINUX, MAC, WINDOWS
 from nxdrive.engine.watcher.local_watcher import WIN_MOVE_RESOLUTION_PERIOD
@@ -25,13 +23,15 @@ from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.translator import Translator
 from nxdrive.utils import normalized_path
+from sentry_sdk import configure_scope
+
 from . import DocRemote, LocalTest, RemoteBase, RemoteTest
+from .. import env
 from ..utils import clean_dir, salt
 
 # Default remote watcher delay used for tests
 TEST_DEFAULT_DELAY = 3
 
-TEST_WS_DIR = "/default-domain/workspaces"
 FS_ITEM_ID_PREFIX = "defaultFileSystemItemFactory#default#"
 SYNC_ROOT_FAC_ID = "defaultSyncRootFolderItemFactory#default#"
 
@@ -47,7 +47,6 @@ OS_STAT_MTIME_RESOLUTION = 1.0
 
 log = getLogger(__name__)
 
-DEFAULT_NUXEO_URL = "http://localhost:8080/nuxeo"
 DEFAULT_WAIT_SYNC_TIMEOUT = 10
 FILE_CONTENT = b"Lorem ipsum dolor sit amet ..."
 FAKER = Faker("en_US")
@@ -59,18 +58,16 @@ Translator(LOCATION / "resources" / "i18n")
 
 def nuxeo_url() -> str:
     """Retrieve the Nuxeo URL."""
-    url = os.getenv("NXDRIVE_TEST_NUXEO_URL", DEFAULT_NUXEO_URL)
-    url = url.split("#")[0]
-    return url
+    return env.NXDRIVE_TEST_NUXEO_URL.split("#")[0]
 
 
 def root_remote(base_folder: str = "/") -> DocRemote:
     return DocRemote(
         nuxeo_url(),
-        "Administrator",
+        env.NXDRIVE_TEST_USERNAME,
         "nxdrive-test-administrator-device",
         __version__,
-        password="Administrator",
+        password=env.NXDRIVE_TEST_PASSWORD,
         base_folder=base_folder,
         timeout=60,
     )
@@ -171,7 +168,9 @@ class TwoUsersTest(TestCase):
 
         log.info("TEST master setup start")
 
-        self.current_test = test_method.__name__
+        # This will be the name of the workspace and a tag on Sentry
+        node = os.getenv("NODE_NAME", sys.platform).lower()  # Only set from Jenkins
+        self.current_test = f"{test_method.__name__}-{node}"
 
         # To be replaced with fixtures when migrating to 100% pytest
         self.nuxeo_url = nuxeo_url()  # fixture name: nuxeo_url
@@ -191,7 +190,15 @@ class TwoUsersTest(TestCase):
 
         # Add proper rights for all users on the root workspace
         users = [user.uid for user in self.users]
-        self.ws.add_permission({"permission": "ReadWrite", "users": users})
+        try:
+            self.ws.add_permission({"permission": "ReadWrite", "users": users})
+        except BadQuery:
+            # *users* is a valid parameter starting with Nuxeo 10.3.
+            # Keep that compatibility code for test_volume.py to work on old customers server.
+            for user in self.users:
+                self.ws.add_permission(
+                    {"permission": "ReadWrite", "username": user.uid}
+                )
 
         Options.delay = TEST_DEFAULT_DELAY
         self.connected = False
@@ -267,7 +274,7 @@ class TwoUsersTest(TestCase):
 
         # Set a higher timeout for those special tests
         if self.id().startswith("tests.old_functional.test_volume."):
-            timeout = 30 * 60  # 00:30:00
+            timeout = 60 * 60 * 4  # 04:00:00
 
         def kill_test():
             log.error(f"Killing {self.id()} after {timeout} seconds")
@@ -308,6 +315,7 @@ class TwoUsersTest(TestCase):
         }
 
         user = self.root_remote.users.create(User(properties=properties))
+        log.warning(f"Created user {user}")
 
         # Convenient attributes
         for k, v in properties.items():
@@ -321,9 +329,10 @@ class TwoUsersTest(TestCase):
     def _create_workspace(self, title: str) -> Document:
         title = salt(title, prefix="")
         new_ws = Document(name=title, type="Workspace", properties={"dc:title": title})
-        self.ws = self.root_remote.documents.create(new_ws, parent_path=TEST_WS_DIR)
+        self.ws = self.root_remote.documents.create(new_ws, parent_path=env.WS_DIR)
         self.workspace = self.ws.uid
         self.workspace_title = self.ws.title
+        log.warning(f"Created workspace {self.ws}")
         return self.ws
 
     def _append_user_attrs(self, number: int, register_roots: bool) -> None:

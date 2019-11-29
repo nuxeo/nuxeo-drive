@@ -5,8 +5,9 @@ from glob import glob
 from logging import getLogger
 
 import pytest
-
 from nxdrive.constants import WINDOWS
+
+from ... import env
 
 if not WINDOWS:
     pytestmark = pytest.mark.skip
@@ -69,13 +70,10 @@ def test_installer_arguments(installer_path):
         TARGETDRIVEFOLDER: The path to the user synchronisation folder that will be created.
         START=auto: Start Nuxeo Drive after the installation.
     """
-    url = os.environ.get("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo")
-    username = os.environ.get("NXDRIVE_TEST_USER", "Administrator")
-    password = os.environ.get("NXDRIVE_TEST_PASSWORD", "Administrator")
     with Installer(installer_path) as installer:
         args = [
-            '/TARGETURL="%s"' % url,
-            '/TARGETUSERNAME="%s"' % username,
-            '/TARGETPASSWORD="%s"' % password,
+            f'/TARGETURL="{env.NXDRIVE_TEST_NUXEO_URL}"',
+            f'/TARGETUSERNAME="{env.NXDRIVE_TEST_USERNAME}"',
+            f'/TARGETPASSWORD="{env.NXDRIVE_TEST_PASSWORD}"',
         ]
         installer.install(args)
