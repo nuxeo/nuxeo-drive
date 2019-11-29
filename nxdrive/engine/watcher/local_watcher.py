@@ -90,9 +90,8 @@ class LocalWatcher(EngineWorker):
         }
 
         self._event_handler: Optional[DriveFSEventHandler] = None
-        self._observer = Observer()
-        self._root_observer = Observer()
-
+        self._observer: Optional[Observer] = None
+        self._root_observer: Optional[Observer] = None
         self._delete_events: Dict[str, Tuple[int, DocPair]] = {}
         self._folder_scan_events: Dict[Path, Tuple[float, DocPair]] = {}
 
@@ -614,18 +613,20 @@ class LocalWatcher(EngineWorker):
     @tooltip("Setup watchdog")
     def _setup_watchdog(self) -> None:
         base: Path = self.local.base_folder
-        log.info(f"Watching FS modification on : {base!r}")
+        log.info(f"Watching FS modification on {base!r}")
 
         # Filter out all ignored suffixes. It will handle custom ones too.
         ignore_patterns = [f"*{suffix}" for suffix in Options.ignored_suffixes]
 
         # The root local folder watcher
+        self._root_observer = Observer()
         self._root_event_handler = DriveFSRootEventHandler(
             self, base.name, ignore_patterns=ignore_patterns
         )
         self._root_observer.schedule(self._root_event_handler, str(base.parent))
 
         # The contents of the root local folder
+        self._observer = Observer()
         self._event_handler = DriveFSEventHandler(self, ignore_patterns=ignore_patterns)
         self._observer.schedule(self._event_handler, str(base), recursive=True)
 
