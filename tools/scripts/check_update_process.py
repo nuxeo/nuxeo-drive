@@ -439,7 +439,7 @@ def main():
         if not version_forced:
             # Add an account to be able to auto-update
             url = os.getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo")
-            username = os.getenv("NXDRIVE_TEST_USER", "Administrator")
+            username = os.getenv("NXDRIVE_TEST_USERNAME", "Administrator")
             password = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
             launch_drive(
                 dst_file,

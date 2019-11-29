@@ -12,8 +12,8 @@ properties([
     [$class: 'ParametersDefinitionProperty', parameterDefinitions: [
         [$class: 'StringParameterDefinition',
             name: 'TEST_VOLUME',
-            defaultValue: '10,1200,3',
-            description: '<ul><li>number of folders</li><li>number of files to create inside each folder</li><li>depth: the tree will be replicated into itself <i>depth</i> times</li><li>Total is <code>files * files * folders * depth + folders * depth</code> (here 363,600)</ul>'],
+            defaultValue: '6,1200,3',
+            description: '<ul><li>number of folders</li><li>number of files to create inside each folder</li><li>depth: the tree will be replicated into itself <i>depth</i> times</li><li>Total is <code>...</code> (here 309,858)</ul>'],
         [$class: 'StringParameterDefinition',
             name: 'TEST_REMOTE_SCAN_VOLUME',
             defaultValue: '200000',

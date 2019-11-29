@@ -9,7 +9,6 @@ import nuxeo.client
 import nuxeo.constants
 import nuxeo.operations
 from nuxeo.exceptions import HTTPError
-
 from nxdrive.client.local import LocalClient
 from nxdrive.client.remote_client import Remote
 from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo

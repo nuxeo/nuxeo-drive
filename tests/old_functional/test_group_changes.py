@@ -3,7 +3,8 @@ from logging import getLogger
 
 from nuxeo.models import Document, Group
 
-from .common import OneUserTest, TEST_WS_DIR, root_remote, salt
+from .common import OneUserTest, root_remote, salt
+from .. import env
 
 log = getLogger(__name__)
 
@@ -36,7 +37,7 @@ class TestGroupChanges(OneUserTest):
                 type="Workspace",
                 properties={"dc:title": workspace_name},
             ),
-            parent_path=TEST_WS_DIR,
+            parent_path=env.WS_DIR,
         )
         self.workspace_path = self.workspace_group.path
 
