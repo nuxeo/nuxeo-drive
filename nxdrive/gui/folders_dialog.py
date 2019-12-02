@@ -1,14 +1,17 @@
 # coding: utf-8
 from pathlib import Path
-from typing import Union, TYPE_CHECKING
+from typing import List, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QHBoxLayout,
+    QMenu,
     QLabel,
     QLineEdit,
+    QPushButton,
     QVBoxLayout,
 )
 
@@ -17,7 +20,7 @@ from .folders_model import FoldersOnly, FilteredDocuments
 from ..constants import APP_NAME
 from ..engine.engine import Engine
 from ..translator import Translator
-from ..utils import get_tree_size, sizeof_fmt
+from ..utils import get_tree_list, get_tree_size, sizeof_fmt
 
 if TYPE_CHECKING:
     from .application import Application  # noqa
@@ -200,25 +203,25 @@ class FoldersDialog(DialogMixin):
         super().__init__(application, engine)
 
         self.path = path
+        self.paths = set([self.path])
+        self.overall_size = self._get_overall_size()
+        self.overall_count = self._get_overall_count()
 
-        if path.is_dir():
-            label = "LOCAL_FOLDER"
-            file_size = get_tree_size(path)
-        else:
-            label = "LOCAL_FILE"
-            file_size = path.stat().st_size
-
-        # Add a new widget at 1st position: a text input with the local path and content size
+        # Add a new widget at 1st position:
+        #   - a text input with the 1st local path (+ count of eventual other paths)
+        #   - a label holding contents size
+        #   - a button to add more local paths
         local_file_layout = QHBoxLayout()
-        local_file_lbl = QLabel(Translator.get(label))
-        local_file_size_lbl = QLabel(sizeof_fmt(file_size))
-        local_file = QLineEdit()
-        local_file.setTextMargins(5, 0, 5, 0)
-        local_file.setText(str(path))
-        local_file.setReadOnly(True)
-        local_file_layout.addWidget(local_file_lbl)
-        local_file_layout.addWidget(local_file)
-        local_file_layout.addWidget(local_file_size_lbl)
+        self.local_paths_size_lbl = QLabel(sizeof_fmt(self.overall_size))
+        self.local_path = QLineEdit()
+        self.local_path.setTextMargins(5, 0, 5, 0)
+        self.local_path.setText(self._files_display())
+        self.local_path.setReadOnly(True)
+        add_local_path_btn = QPushButton(Translator.get("ADD_FILES"), self)
+        add_local_path_btn.setMenu(self._add_sub_menu())
+        local_file_layout.addWidget(self.local_path)
+        local_file_layout.addWidget(self.local_paths_size_lbl)
+        local_file_layout.addWidget(add_local_path_btn)
         self.vertical_layout.insertLayout(0, local_file_layout)
 
         # Add a new widget before the buttons: a text input with the selected remote folder to upload into
@@ -227,14 +230,22 @@ class FoldersDialog(DialogMixin):
         self.remote_folder = QLineEdit()
         self.remote_folder.setTextMargins(5, 0, 5, 0)
         self.remote_folder.setReadOnly(True)
-        # Populate the remote folder with the previously selected, if any
-        self.remote_folder.setText(engine.dao.get_config("dt_last_remote_location", ""))
         remote_folder_layout.addWidget(remote_folder_lbl)
         remote_folder_layout.addWidget(self.remote_folder)
         self.vertical_layout.insertLayout(2, remote_folder_layout)
 
+        # Populate the remote folder with the previously selected, if any
+        self.remote_folder.setText(engine.dao.get_config("dt_last_remote_location", ""))
+
         # Do not allow the click on OK until a folder is selected
-        self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
+        self.button_box.button(QDialogButtonBox.Ok).setEnabled(
+            bool(self.remote_folder.text())
+        )
+
+    def accept(self) -> None:
+        """Action to do when the OK button is clicked."""
+        super().accept()
+        self.engine.direct_transfer(self.paths, self.remote_folder.text())
 
     def get_tree_view(self) -> FolderTreeView:
         """Render the folders tree."""
@@ -242,7 +253,69 @@ class FoldersDialog(DialogMixin):
         client = FoldersOnly(self.engine.remote)
         return FolderTreeView(self, client)
 
-    def accept(self) -> None:
-        """Action to do when the OK button is clicked."""
-        super().accept()
-        self.engine.direct_transfer(self.path, self.remote_folder.text())
+    def _add_sub_menu(self) -> QMenu:
+        """Ths is the sub-menu displayed when clicking on the Add button."""
+        menu = QMenu()
+        menu.addAction(Translator.get("ADD_FILES"), self._select_more_files)
+        menu.addAction(Translator.get("ADD_FOLDER"), self._select_more_folder)
+        return menu
+
+    def _files_display(self) -> str:
+        """Return the original file or folder to upload and the count of others to proceed."""
+        txt = str(self.path)
+        if self.overall_count > 1:
+            txt += f" (+{self.overall_count - 1:,})"
+        return txt
+
+    def _get_overall_count(self) -> int:
+        """Compute total number of files and folders."""
+        return sum(self._get_count(p) for p in self.paths)
+
+    def _get_overall_size(self) -> int:
+        """Compute all local paths contents size."""
+        return sum(self._get_size(p) for p in self.paths)
+
+    def _get_count(self, path: Path) -> int:
+        """Get the children count of a folder or return 1 if a file."""
+        if path.is_dir():
+            return len(list(get_tree_list(path, "")))
+        return 1
+
+    def _get_size(self, path: Path) -> int:
+        """Get the local file size or its contents size when a folder."""
+        if path.is_dir():
+            return get_tree_size(path)
+        return path.stat().st_size
+
+    def _process_additionnal_local_paths(self, paths: List[str]) -> None:
+        """Append more local paths to the upload queue."""
+        if not paths:
+            return
+
+        for local_path in paths:
+            path = Path(local_path)
+
+            # Prevent to upload twice the same file
+            if path in self.paths:
+                continue
+
+            # Save the path
+            self.paths.add(path)
+
+            # Recompute total size and count
+            self.overall_size += self._get_size(path)
+            self.overall_count += self._get_count(path)
+
+        # Update labels with new information
+        self.local_path.setText(self._files_display())
+        self.local_paths_size_lbl.setText(sizeof_fmt(self.overall_size))
+
+    def _select_more_files(self) -> None:
+        """Choose additional local files to upload."""
+        paths, _ = QFileDialog.getOpenFileNames(self, Translator.get("ADD_FILES"))
+        self._process_additionnal_local_paths(paths)
+
+    def _select_more_folder(self) -> None:
+        """Choose an additional local folder to upload."""
+        path = QFileDialog.getExistingDirectory(self, Translator.get("ADD_FOLDER"))
+        self._process_additionnal_local_paths([path])

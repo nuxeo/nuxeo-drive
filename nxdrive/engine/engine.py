@@ -7,7 +7,7 @@ from logging import getLogger
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING
 from urllib.parse import urlsplit
 
 import requests
@@ -375,9 +375,9 @@ class Engine(QObject):
             self.dao.remove_state(doc_pair)
             self.dao.add_filter(doc_pair.remote_parent_path + "/" + doc_pair.remote_ref)
 
-    def direct_transfer(self, local_path: Path, remote_ref: str) -> None:
+    def direct_transfer(self, local_paths: Set[Path], remote_ref: str) -> None:
         """Plan the Direct Transfer."""
-        self.directTranferStatus.emit(local_path, True)
+        # self.directTranferStatus.emit(local_path[0], True)
 
         def plan(path: Path, remote_uid: str) -> None:
             """Actions to do (refactored in a function to prevent duplicate code between files and folders)."""
@@ -397,12 +397,13 @@ class Engine(QObject):
         # Save the remote location for next times
         self.dao.update_config("dt_last_remote_location", remote_ref)
 
-        if local_path.is_file():
-            plan(local_path, remote_ref)
-        else:
-            tree = sorted(get_tree_list(local_path, remote_ref))
-            for remote_path, path in tree:
-                plan(path, remote_path)
+        for local_path in sorted(local_paths):
+            if local_path.is_file():
+                plan(local_path, remote_ref)
+            else:
+                tree = sorted(get_tree_list(local_path, remote_ref))
+                for remote_path, path in tree:
+                    plan(path, remote_path)
 
     def direct_transfer_cancel(self, file: Path) -> None:
         """Cancel the Direct Transfer of the given local *file*."""

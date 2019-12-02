@@ -1299,7 +1299,7 @@ class Application(QApplication):
         func = {
             "access-online": manager.ctx_access_online,
             "copy-share-link": manager.ctx_copy_share_link,
-            "direct-transfer": self.ctx_upload_local_file,
+            "direct-transfer": self.ctx_direct_transfer,
             "edit-metadata": manager.ctx_edit_metadata,
         }.get(cmd, None)
         if func:
@@ -1423,7 +1423,7 @@ class Application(QApplication):
 
         return selected_engine
 
-    def ctx_upload_local_file(self, path: Path) -> None:
+    def ctx_direct_transfer(self, path: Path) -> None:
         """Direct Transfer of local files and folders to anywhere on the server."""
 
         # Direct Transfer is not allowed for synced files
