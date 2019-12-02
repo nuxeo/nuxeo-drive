@@ -227,6 +227,8 @@ class FoldersDialog(DialogMixin):
         self.remote_folder = QLineEdit()
         self.remote_folder.setTextMargins(5, 0, 5, 0)
         self.remote_folder.setReadOnly(True)
+        # Populate the remote folder with the previously selected, if any
+        self.remote_folder.setText(engine.dao.get_config("dt_last_remote_location", ""))
         remote_folder_layout.addWidget(remote_folder_lbl)
         remote_folder_layout.addWidget(self.remote_folder)
         self.vertical_layout.insertLayout(2, remote_folder_layout)
