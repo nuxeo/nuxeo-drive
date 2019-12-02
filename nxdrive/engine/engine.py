@@ -394,6 +394,9 @@ class Engine(QObject):
             info = self.local.get_info(path, check=False)
             self.dao.insert_local_state(info, parent_path=None, local_state="direct")
 
+        # Save the remote location for next times
+        self.dao.update_config("dt_last_remote_location", remote_ref)
+
         if local_path.is_file():
             plan(local_path, remote_ref)
         else:
