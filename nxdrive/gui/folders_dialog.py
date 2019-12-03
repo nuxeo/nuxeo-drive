@@ -1,6 +1,6 @@
 # coding: utf-8
 from pathlib import Path
-from typing import List, Union, TYPE_CHECKING
+from typing import List, Optional, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -199,11 +199,19 @@ class FoldersDialog(DialogMixin):
     # The windows's title
     title_label = "DIRECT_TRANSFER_WINDOW_TITLE"
 
-    def __init__(self, application: "Application", engine: Engine, path: Path) -> None:
+    def __init__(
+        self, application: "Application", engine: Engine, path: Optional[Path]
+    ) -> None:
+        """*path* is None when the dialog window is opened from a click on the systray menu icon."""
+
         super().__init__(application, engine)
 
         self.path = path
-        self.paths = set([self.path])
+        if self.path:
+            self.paths = set([self.path])
+        else:
+            self.paths = set([])
+
         self.overall_size = self._get_overall_size()
         self.overall_count = self._get_overall_count()
 
@@ -217,7 +225,7 @@ class FoldersDialog(DialogMixin):
         self.local_path.setTextMargins(5, 0, 5, 0)
         self.local_path.setText(self._files_display())
         self.local_path.setReadOnly(True)
-        add_local_path_btn = QPushButton(Translator.get("ADD_FILES"), self)
+        add_local_path_btn = QPushButton(Translator.get("ADD"), self)
         add_local_path_btn.setMenu(self._add_sub_menu())
         local_file_layout.addWidget(self.local_path)
         local_file_layout.addWidget(self.local_paths_size_lbl)
@@ -262,7 +270,7 @@ class FoldersDialog(DialogMixin):
 
     def _files_display(self) -> str:
         """Return the original file or folder to upload and the count of others to proceed."""
-        txt = str(self.path)
+        txt = str(self.path or "")
         if self.overall_count > 1:
             txt += f" (+{self.overall_count - 1:,})"
         return txt
@@ -294,6 +302,10 @@ class FoldersDialog(DialogMixin):
 
         for local_path in paths:
             path = Path(local_path)
+
+            # If .path is None, then pick the first local path to display something useful
+            if not self.path:
+                self.path = path
 
             # Prevent to upload twice the same file
             if path in self.paths:

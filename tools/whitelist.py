@@ -48,6 +48,7 @@ QMLDriveApi.default_server_url_value  # Used in QML
 QMLDriveApi.get_proxy_settings  # Used in QML
 QMLDriveApi.get_update_url  # Used in QML
 QMLDriveApi.get_update_version  # Used in QML
+QMLDriveApi.open_direct_transfer  # Used in QML
 QMLDriveApi.open_local  # Used in QML
 QMLDriveApi.open_remote_server  # Used in QML
 QMLDriveApi.open_report  # Used in QML

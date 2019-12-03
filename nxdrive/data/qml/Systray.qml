@@ -112,24 +112,22 @@ Rectangle {
             RowLayout {
                 anchors.fill: parent
 
-                // Icon: accounts
+                // Icon 1: accounts
                 IconLabel {
                     id: accountIcon
-                    Layout.alignment: Qt.AlignRight
                     icon: MdiFont.Icon.accountOutline
                 }
 
+                // Accounts list
                 ColumnLayout {
-                    Layout.alignment: Qt.AlignLeft
                     Layout.maximumWidth: parent.width / 2
 
-                    // The account list
                     AccountsComboBox {
                         id: accountSelect
 
-                        // Width management: systray width minus the 4 icon's width
+                        // Width management: systray width minus the 5 icon's width
                         width: systray.width
-                        Layout.preferredWidth: systray.width - (accountIcon.width * 4)
+                        Layout.preferredWidth: systray.width - (accountIcon.width * 5)
 
                         // When picking an account, refresh the file list.
                         onActivated: {
@@ -161,27 +159,28 @@ Rectangle {
                     }
                 }
 
-                // Icon: open remote server's URL
+                // Icon 2: open remote server's URL
                 IconLabel {
                     icon: MdiFont.Icon.openInNew
-                    Layout.alignment: Qt.AlignRight; Layout.rightMargin: 4
                     onClicked: api.open_remote_server(accountSelect.getRole("uid"))
-
                 }
 
-                // Icon: open local sync root folder
+                // Icon 3: open local sync root folder
                 IconLabel {
                     icon: MdiFont.Icon.folder; size: 24
-                    Layout.alignment: Qt.AlignLeft
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                 }
 
-                // Icon: sub-menu
+                // Icon 4: open the Direct Transfer window
+                IconLabel {
+                    icon: MdiFont.Icon.cloudUpload; size: 24
+                    onClicked: api.open_direct_transfer(accountSelect.getRole("uid"))
+                }
+
+                // Icon 5: sub-menu
                 IconLabel {
                     id: settingsContainer
                     icon: MdiFont.Icon.dotsVertical
-                    Layout.alignment: Qt.AlignLeft
-
                     onClicked: contextMenu.visible = !contextMenu.visible
                 }
             }

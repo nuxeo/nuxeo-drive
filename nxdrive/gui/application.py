@@ -726,8 +726,10 @@ class Application(QApplication):
         self._show_window(self.settings_window)
 
     @pyqtSlot(object)
-    def show_server_folders(self, engine: Engine, path: Path) -> None:
-        """Display the remote folders dialog window."""
+    def show_server_folders(self, engine: Engine, path: Optional[Path]) -> None:
+        """Display the remote folders dialog window.
+        *path* is None when the dialog window is opened from a click on the systray menu icon.
+        """
         if self.filters_dlg:
             self.filters_dlg.close()
             self.filters_dlg = None
