@@ -37,27 +37,10 @@ import time
 from os.path import expanduser, expandvars
 from pathlib import Path
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
-
-
-def alter_spec(console):
-    """ Set the console mode in the PyInstaller .spec file. """
-
-    path = "ndrive.spec"
-
-    with open(path, encoding="utf-8") as handler:
-        content = handler.readlines()
-
-    for lineno, line in enumerate(content.copy()):
-        if "console=" in line:
-            content[lineno] = f"    console={str(console)},\n"
-            break
-
-    with open(path, "w", encoding="utf-8", newline="\n") as handler:
-        handler.write("".join(content))
 
 
 def create_versions(dst, version):
@@ -384,10 +367,6 @@ def main():
     path = os.path.join(root, "alpha")
     os.makedirs(path)
 
-    # Alter the PyInstaller spec file to enable the console mode.
-    # it will be used to get the current version and validating the process.
-    alter_spec(True)
-
     # Set the sync-and-stop option to let Drive update and quit without manual action
     set_options()
 
@@ -473,9 +452,6 @@ def main():
 
         # Restore the original version
         version_update(version, lineno)
-
-        # Restore the non-console mode
-        alter_spec(False)
 
         if not version_forced:
             # Remove the account
