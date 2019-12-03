@@ -299,6 +299,13 @@ class QMLDriveApi(QObject):
             return "[ERROR] " + str(e)
 
     @pyqtSlot(str)
+    def open_direct_transfer(self, uid: str) -> None:
+        self.application.hide_systray()
+        engine = self._manager.engines.get(uid)
+        if engine:
+            self.application.show_server_folders(engine, None)
+
+    @pyqtSlot(str)
     def open_remote_server(self, uid: str) -> None:
         self.application.hide_systray()
         engine = self._manager.engines.get(uid)
