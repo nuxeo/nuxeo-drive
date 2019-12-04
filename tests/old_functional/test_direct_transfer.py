@@ -70,6 +70,12 @@ class DirectTransfer:
         else:
             return bool(doc.properties.get("file:content"))
 
+    def no_uploads(self) -> bool:
+        """Check there is no ongoing uploads."""
+        assert not any(
+            u for u in self.engine_1.dao.get_uploads() if u.path == self.file
+        )
+
     def sync_and_check(self, should_have_blob: bool = True) -> None:
         # Sync
         self.wait_sync()
@@ -91,15 +97,13 @@ class DirectTransfer:
         pytest.xfail("Waiting for NXDRIVE-1910")
 
         engine = self.engine_1
-        dao = self.engine_1.dao
-
         engine.stop()
 
         # There is no upload, right now
-        assert not list(dao.get_uploads())
+        self.no_uploads()
 
         with ensure_no_exception():
-            engine.direct_transfer(self.file, self.ws.path)
+            engine.direct_transfer([self.file], self.ws.path)
             self.sync_and_check()
 
     def test_duplicate_file_but_no_blob_attached(self):
@@ -114,7 +118,7 @@ class DirectTransfer:
 
         with ensure_no_exception():
             # The upload should work: the doc will be retrieved and the blob uploaded and attached
-            self.engine_1.direct_transfer(self.file, self.ws.path)
+            self.engine_1.direct_transfer([self.file], self.ws.path)
             self.sync_and_check()
 
         # Ensure there is only 1 document on the server
@@ -136,12 +140,12 @@ class DirectTransfer:
 
         with ensure_no_exception():
             # 1st upload: OK
-            self.engine_1.direct_transfer(self.file, self.ws.path)
+            self.engine_1.direct_transfer([self.file], self.ws.path)
             self.sync_and_check()
 
             # 2nd upload: it should be cancelled by the user
             with patch.object(self.engine_1.remote, "upload", new=upload):
-                self.engine_1.direct_transfer(self.file, self.ws.path)
+                self.engine_1.direct_transfer([self.file], self.ws.path)
                 self.sync_and_check()
 
         # Ensure the signal was emitted
@@ -162,14 +166,14 @@ class DirectTransfer:
 
         with ensure_no_exception():
             # 1st upload: OK
-            self.engine_1.direct_transfer(self.file, self.ws.path)
+            self.engine_1.direct_transfer([self.file], self.ws.path)
             self.sync_and_check()
 
             # To ease testing, we change local file content
             self.file.write_bytes(b"blob changed!")
 
             # 2nd upload: the blob should be replaced on the server
-            self.engine_1.direct_transfer(self.file, self.ws.path)
+            self.engine_1.direct_transfer([self.file], self.ws.path)
             self.sync_and_check()
 
         # Ensure the signal was emitted
@@ -211,11 +215,11 @@ class DirectTransfer:
         dao = self.engine_1.dao
 
         # There is no upload, right now
-        assert not list(dao.get_uploads())
+        self.no_uploads()
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer(self.file, self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()
             assert dao.get_uploads_with_status(TransferStatus.PAUSED)
 
@@ -244,11 +248,11 @@ class DirectTransfer:
         dao = self.engine_1.dao
 
         # There is no upload, right now
-        assert not list(dao.get_uploads())
+        self.no_uploads()
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer(self.file, self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()
             assert dao.get_uploads_with_status(TransferStatus.SUSPENDED)
 
@@ -277,11 +281,11 @@ class DirectTransfer:
         dao = self.engine_1.dao
 
         # There is no upload, right now
-        assert not list(dao.get_uploads())
+        self.no_uploads()
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer(self.file, self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()
 
         # Resume the upload
@@ -318,11 +322,11 @@ class DirectTransfer:
         dao = self.engine_1.dao
 
         # There is no upload, right now
-        assert not list(dao.get_uploads())
+        self.no_uploads()
 
         with patch.object(engine.remote, "upload_callback", new=callback):
             with ensure_no_exception():
-                engine.direct_transfer(self.file, self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()
 
         # Resume the upload
@@ -340,11 +344,11 @@ class DirectTransfer:
         dao = self.engine_1.dao
 
         # There is no upload, right now
-        assert not list(dao.get_uploads())
+        self.no_uploads()
 
         with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
             with ensure_no_exception():
-                engine.direct_transfer(self.file, self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status
@@ -401,16 +405,16 @@ class DirectTransfer:
         link_blob_to_doc_orig = engine.remote.link_blob_to_doc
 
         # There is no upload, right now
-        assert not list(dao.get_uploads())
+        self.no_uploads()
 
         with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
             with ensure_no_exception():
-                engine.direct_transfer(self.file, self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()
 
                 # There should be no upload as the Processor has checked the file existence
                 # on the server and so deleted the upload from the database
-                assert not list(dao.get_uploads())
+                self.no_uploads()
 
         self.sync_and_check()
 
@@ -425,11 +429,11 @@ class DirectTransfer:
         dao = self.engine_1.dao
 
         # There is no upload, right now
-        assert not list(dao.get_uploads())
+        self.no_uploads()
 
         with patch.object(engine.remote, "link_blob_to_doc", new=link_blob_to_doc):
             with ensure_no_exception():
-                engine.direct_transfer(self.file, self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status
@@ -466,11 +470,11 @@ class DirectTransfer:
         bad_remote.upload_callback = callback
 
         # There is no upload, right now
-        assert not list(dao.get_uploads())
+        self.no_uploads()
 
         with patch.object(engine, "remote", new=bad_remote):
             with ensure_no_exception():
-                engine.direct_transfer(self.file, self.ws.path)
+                engine.direct_transfer([self.file], self.ws.path)
                 self.wait_sync()
 
                 # There should be 1 upload with ONGOING transfer status
@@ -589,7 +593,7 @@ class DirectTransferFolder:
         assert not list(self.engine_1.dao.get_uploads())
 
         with ensure_no_exception():
-            self.engine_1.direct_transfer(self.folder, self.ws.path)
+            self.engine_1.direct_transfer([self.folder], self.ws.path)
             self.sync_and_check()
 
 
