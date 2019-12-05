@@ -37,7 +37,13 @@ import time
 from os.path import expanduser, expandvars
 from pathlib import Path
 
-__version__ = "1.1.0"
+import requests
+import yaml
+
+# Alter the lookup path to be able to find Nuxeo Drive sources
+sys.path.insert(0, os.getcwd())
+
+__version__ = "2.0.0"
 
 EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
@@ -78,6 +84,28 @@ def create_versions(dst, version):
         versions.write(yml)
 
 
+def download_last_ga_release(output_dir, version):
+    """ Download the latest GA release from the update website. """
+
+    file = f"nuxeo-drive-{version}"
+    if EXT == "appimage":
+        file += "-x86_64.AppImage"
+    else:
+        file += f".{EXT}"
+
+    url = f"https://community.nuxeo.com/static/drive-updates/release/{file}"
+    output = os.path.join(output_dir, "alpha", file)
+    print(">>> Downloading", url, "->", output, flush=True)
+
+    with requests.get(url) as req, open(output, "wb") as dst:
+        dst.write(req.content)
+
+    # Adjust execution rights
+    subprocess.check_call(["chmod", "a+x", output])
+
+    return output
+
+
 def gen_exe():
     """ Generate an executable to install. """
 
@@ -95,6 +123,20 @@ def gen_exe():
 
     print(">>> Command:", cmd, flush=True)
     subprocess.check_call(cmd.split())
+
+
+def get_last_version_number():
+    """ Get the lastest GA release version from the update website. """
+
+    from nxdrive.updater.utils import get_latest_version
+
+    url = "https://community.nuxeo.com/static/drive-updates/versions.yml"
+    print(">>> Donwloading", url, flush=True)
+    with requests.get(url) as req:
+        data = req.content
+
+    versions = yaml.safe_load(data)
+    return get_latest_version(versions, "release")
 
 
 def get_version():
@@ -161,13 +203,18 @@ def launch_drive(executable, args=None):
         ]
 
     print(">>> Command:", cmd, flush=True)
-    return subprocess.check_output(cmd).decode("utf-8").strip()
+    try:
+        subprocess.check_call(cmd)
+    except subprocess.CalledProcessError:
+        # Either this is bad and OK the process will handle the error later;
+        # either this is an error at the end of the app exit, and it is OK too.
+        pass
 
 
-def save_log(output):
+def save_log(output, name):
     """Save log files for job archives."""
 
-    dst = os.path.join(output, f"nxdrive-{EXT}.log")
+    dst = os.path.join(output, f"nxdrive-{EXT}-{name}.log")
 
     if EXT == "exe":
         src = expandvars("C:\\Users\\%username%\\.nuxeo-drive\\logs\\nxdrive.log")
@@ -176,12 +223,12 @@ def save_log(output):
 
     try:
         os.remove(dst)
-        print(">>> Deleting", repr(dst), flush=True)
+        print(">>> Deleted", repr(dst), flush=True)
     except FileNotFoundError:
         pass
     try:
         shutil.copyfile(src, dst)
-        print(">>> Copying", repr(src), "->", repr(dst), flush=True)
+        print(">>> Copied", repr(src), "->", repr(dst), flush=True)
     except FileNotFoundError:
         pass
 
@@ -308,7 +355,9 @@ def version_find():
     with open(path, encoding="utf-8") as handler:
         for lineno, line in enumerate(handler.readlines()):
             if line.startswith("__version__"):
-                return re.findall(r'"(.+)"', line)[0], lineno
+                version = re.findall(r'"(.+)"', line)[0]
+                print(">>> Current version is", version, "at line", lineno, flush=True)
+                return version, lineno
 
 
 def version_update(version, lineno):
@@ -350,78 +399,95 @@ def webserver(folder, port=8000):
         pass
 
 
-def main():
-    """ Main logic. """
+#
+# Functions used by main()
+# (or put like this: this is main() splited into smaller functions :)
+#
 
-    # Cleanup
-    if os.path.isdir("dist"):
-        shutil.rmtree("dist")
 
-    # Remove previous installation
-    uninstall_drive()
-
-    src = os.getcwd()
-
-    # Server tree
-    root = tempfile.mkdtemp()
-    path = os.path.join(root, "alpha")
-    os.makedirs(path)
-
-    # Set the sync-and-stop option to let Drive update and quit without manual action
-    set_options()
-
-    # Generate the current version executable
+def check_against_me(root):
+    """Check the auto-updater against itself."""
     version, lineno = version_find()
-    print(">>> Current version is", version, "at line", lineno, flush=True)
-    gen_exe()
-
-    # Move the file to the webserver
-    ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
-    file = f"dist/nuxeo-drive-{version}{ext}"
-    dst_file = os.path.join(path, os.path.basename(file))
-    print(">>> Moving", file, "->", path, flush=True)
-    shutil.move(file, dst_file)
-
-    version_forced = os.getenv("FORCE_USE_LATEST_VERSION", False)
-    if not version_forced:
-        # Where the account will be bound
-        local_folder = os.path.join(root, "folder")
 
     # Guess the anterior version
     previous = version_decrement(version)
-
-    # Create the versions.yml file
-    create_versions(root, version)
 
     try:
         # Update the version in Drive code source to emulate an old version
         version_update(previous, lineno)
         assert version_find() == (previous, lineno)
 
-        # Generate the executable
-        gen_exe()
+        exe = gen_and_move(root, previous)
 
-        # Move the file to test to the webserver
-        ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
-        src_file = f"dist/nuxeo-drive-{previous}{ext}"
-        installer = os.path.basename(src_file)
-        dst_file = os.path.join(path, installer)
-        print(">>> Moving", src_file, "->", path, flush=True)
-        shutil.move(src_file, dst_file)
+        # And gooo!
+        job(root, version, exe, previous, "dev")
+    finally:
+        # Restore the original version
+        version_update(version, lineno)
 
-        # Append the versions.yml file
-        create_versions(root, previous)
 
+def check_against_last_release(root):
+    """Check the auto-updater against the latest GA release."""
+
+    version, _ = version_find()
+
+    # Get the version number
+    ga_version = get_last_version_number()
+
+    # Get the latest GA release file
+    last_ga = download_last_ga_release(root, ga_version)
+
+    # Append the versions.yml file
+    create_versions(root, ga_version)
+
+    # And gooo!
+    job(root, version, last_ga, ga_version, "ga")
+
+
+def gen_and_move(root, version):
+    """ Generate the installer for a given version and move it to the web server root. """
+
+    # Generate the installer
+    gen_exe()
+
+    # Move the file to the webserver
+    ext = "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
+    file = f"dist/nuxeo-drive-{version}{ext}"
+    dst_file = os.path.join(root, "alpha", os.path.basename(file))
+    print(">>> Moving", file, "->", dst_file, flush=True)
+    shutil.move(file, dst_file)
+
+    # Create, or append to, the versions.yml file
+    create_versions(root, version)
+
+    return dst_file
+
+
+def job(root, version, executable, previous_version, name):
+    """Repetive tasks.
+    *name* is a string to customize the log file to archive.
+    """
+
+    src = os.getcwd()
+
+    try:
         # Install Drive on the computer
-        install_drive(dst_file)
+        install_drive(executable)
 
+        # Set the sync-and-stop option to let Drive update and quit without manual action
+        set_options()
+
+        version_forced = os.getenv("FORCE_USE_LATEST_VERSION", "0") == "1"
         if not version_forced:
+            # Where the account will be bound
+            local_folder = os.path.join(root, "folder")
+
             # Add an account to be able to auto-update
             url = os.getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo")
             username = os.getenv("NXDRIVE_TEST_USERNAME", "Administrator")
             password = os.getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
             launch_drive(
-                dst_file,
+                executable,
                 [
                     "bind-server",
                     username,
@@ -432,14 +498,14 @@ def main():
             )
 
         # Launch Drive in its own thread
-        print(">>> Testing upgrade", previous, "->", version, flush=True)
-        threading.Thread(target=launch_drive, args=(dst_file,)).start()
+        print(">>> Testing upgrade", previous_version, "->", version, flush=True)
+        threading.Thread(target=launch_drive, args=(executable,)).start()
 
         # Start the web server
         webserver(root)
 
         # Save the log file for job archives
-        save_log(src)
+        save_log(src, name)
 
         # And assert the version is the good one
         current_ver = get_version()
@@ -450,25 +516,56 @@ def main():
     finally:
         os.chdir(src)
 
-        # Restore the original version
-        version_update(version, lineno)
-
         if not version_forced:
             # Remove the account
             try:
-                launch_drive(dst_file, ["clean-folder", f"--local-folder={root}"])
+                launch_drive(executable, ["clean-folder", f"--local-folder={root}"])
             except Exception as exc:
                 print(" !! ERROR:", exc, flush=True)
 
+        # Remove the installation
+        uninstall_drive()
+
+
+def setup():
+    """ Setup and cleanup. """
+
+    # Cleanup
+    if os.path.isdir("dist"):
+        shutil.rmtree("dist")
+
+    # Remove previous installation
+    uninstall_drive()
+
+    # Server tree
+    root = tempfile.mkdtemp()
+    path = os.path.join(root, "alpha")
+    os.makedirs(path)
+
+    return root
+
+
+def main():
+    """ Main logic. """
+
+    root = setup()
+
+    # Generate the current version executable
+    version, _ = version_find()
+    gen_and_move(root, version)
+
+    try:
+        check_against_me(root)
+        # To enable on all OS when 4.4.0 is GA
+        # check_against_last_release(root)
+    finally:
         # Cleanup
         try:
             shutil.rmtree(root)
         except Exception as exc:
             print(" !! ERROR:", exc, flush=True)
 
-        uninstall_drive()
-
 
 if __name__ == "__main__":
     tests()
-    exit(main())
+    sys.exit(main())
