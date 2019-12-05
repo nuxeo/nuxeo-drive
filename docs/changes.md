@@ -15,6 +15,7 @@
 - [4.2.0](changes/4.2.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-4.1.4...release-4.2.0))
 - [4.3.0](changes/4.3.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-4.2.0...release-4.3.0))
 - [4.4.0](changes/4.4.0.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-4.4.0...release-4.3.0))
+- [4.4.1](changes/4.4.1.md) ([diff](https://github.com/nuxeo/nuxeo-drive/compare/release-4.4.0...master))
 
 ## 3.x
 
