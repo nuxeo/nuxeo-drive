@@ -4,13 +4,13 @@
 import errno
 import os
 import shutil
-import tempfile
 import unicodedata
 import uuid
 from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
+from tempfile import mkdtemp
 from time import mktime, strptime
 from typing import Any, List, Optional, Tuple, Type, Union
 
@@ -23,7 +23,6 @@ from ...utils import (
     compute_digest,
     force_decode,
     lock_path,
-    normalized_path,
     safe_long_path,
     safe_os_filename,
     safe_rename,
@@ -106,8 +105,10 @@ class LocalClientMixin:
 
         self.base_folder = base_folder.resolve()
 
+        # The download folder from the engine, mostly used in .rename()
+        self.download_dir = kwargs.pop("download_dir", ROOT)
+
         self._case_sensitive: Optional[bool] = None
-        self.is_case_sensitive()
 
     def __repr__(self) -> str:
         return (
@@ -119,9 +120,15 @@ class LocalClientMixin:
 
     def is_case_sensitive(self) -> bool:
         if self._case_sensitive is None:
-            path = tempfile.mkdtemp(prefix=".caseTest_")
-            self._case_sensitive = not os.path.isdir(path.upper())
-            os.rmdir(path)
+            try:
+                path = mkdtemp(prefix=".caseTest_")
+                self._case_sensitive = not os.path.isdir(path.upper())
+                os.rmdir(path)
+            except OSError:
+                # For instance, %TEMP% may be restricted on Windows.
+                # Assume False but log the error to help improve that code.
+                log.error("Cannot check for case sensitivity", exc_info=True)
+                self._case_sensitive = False
         return self._case_sensitive
 
     @staticmethod
@@ -463,7 +470,7 @@ class LocalClientMixin:
                 # The filesystem is not sensitive, so we cannot rename
                 # from "a" to "A". We need to use a temporary filename
                 # inbetween, which allows us to do "a" -> <tempname> -> "A".
-                temp_path = normalized_path(tempfile.gettempdir()) / str(uuid.uuid4())
+                temp_path = self.download_dir / str(uuid.uuid4())
                 source_os_path.rename(temp_path)
                 source_os_path = temp_path
                 # Try the os rename part
