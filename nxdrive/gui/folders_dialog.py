@@ -250,6 +250,10 @@ class FoldersDialog(DialogMixin):
             bool(self.remote_folder.text())
         )
 
+        # Open the files selection dialog if there is no pre-selected paths
+        if not self.paths:
+            self._select_more_files()
+
     def accept(self) -> None:
         """Action to do when the OK button is clicked."""
         super().accept()
