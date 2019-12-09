@@ -139,7 +139,9 @@ class Engine(QObject):
         self.local_folder = Path(definition.local_folder)
         self.folder = str(self.local_folder)
         self.local = self.local_cls(
-            self.local_folder, digest_callback=self.suspend_client
+            self.local_folder,
+            digest_callback=self.suspend_client,
+            download_dir=self.download_dir,
         )
 
         self.uid = definition.uid
@@ -286,6 +288,10 @@ class Engine(QObject):
         download_dir = download_dir / ".tmp" / self.uid
         log.info(f"Using temporary download folder {download_dir!r}")
         download_dir.mkdir(parents=True, exist_ok=True)
+
+        # Update the LocalClient attribute as it is needed by .rename()
+        self.local.download_dir = download_dir
+
         return download_dir
 
     def set_local_folder(self, path: Path) -> None:

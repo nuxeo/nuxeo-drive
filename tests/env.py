@@ -12,3 +12,6 @@ NXDRIVE_TEST_PASSWORD = getenv("NXDRIVE_TEST_PASSWORD", "Administrator")
 
 # The remote path where to store data. Must exist before running tests.
 WS_DIR = getenv("NXDRIVE_TEST_PATH", "/default-domain/workspaces")
+
+# On Windows, this is used to define the drive letter of a second NTFS partition
+SECOND_PARTITION = getenv("SECOND_PARTITION", "Q:\\")

@@ -1,6 +1,7 @@
 # coding: utf-8
 from logging import getLogger
-from typing import Callable
+from pathlib import Path
+from typing import Callable, Optional
 from random import randint
 from uuid import uuid4
 
@@ -34,7 +35,9 @@ def manager_factory(
 ) -> Callable[[], Manager]:
     """Manager instance with automatic clean-up."""
 
-    def _make_manager(home: str = "", with_engine: bool = True):
+    def _make_manager(
+        home: str = "", with_engine: bool = True, local_folder: Optional[Path] = None
+    ):
         manager = Manager(home or tmp())
 
         # Force deletion behavior to real deletion for all tests
@@ -45,7 +48,7 @@ def manager_factory(
         log.info(f"[FIXTURE] Created {manager}")
 
         if with_engine:
-            conf_folder = manager.home / "nuxeo-conf"
+            conf_folder = (local_folder or manager.home) / "nuxeo-conf"
             user = user_factory()
             manager.bind_server(
                 conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
