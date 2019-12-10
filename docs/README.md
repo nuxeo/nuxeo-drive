@@ -12,3 +12,4 @@
 - [manual_init.md](manual_init.md): How to manually initialize a Nuxeo Drive instance.
 - [support.md](support.md): List of supported OS versions, Python version, limitations and translations. Useful for the **support**.
 - [tests.md](tests.md): How to debug a functional test with the pydev server.
+- [uploads.md](uploads.md): Sequential diagrams of the upload process.
