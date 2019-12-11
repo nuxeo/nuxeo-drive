@@ -252,10 +252,9 @@ class DarwinIntegration(AbstractOSIntegration):
         name = f"{BUNDLE_IDENTIFIER}.syncStatus"
         try:
             status = get_formatted_status(state, path)
-            log.debug(f"Sending status to FinderSync for {path!r}: {status}")
-            self._send_notification(name, {"statuses": [status]})
-        except FileNotFoundError:
-            pass
+            if status:
+                log.debug(f"Sending status to FinderSync for {path!r}: {status}")
+                self._send_notification(name, {"statuses": [status]})
         except Exception:
             log.exception("Error while trying to send status to FinderSync")
 
@@ -277,10 +276,11 @@ class DarwinIntegration(AbstractOSIntegration):
             batch_size = Options.findersync_batch_size
             for i in range(0, len(states), batch_size):
                 states_batch = states[i : i + batch_size]
-                statuses = [
-                    get_formatted_status(state, path / state.local_name)
-                    for state in states_batch
-                ]
+                statuses = []
+                for state in states_batch:
+                    status = get_formatted_status(state, path / state.local_name)
+                    if status:
+                        statuses.append(status)
                 log.debug(
                     f"Sending statuses to FinderSync for children of {path!r} "
                     f"(items {i}-{i + len(states_batch) - 1})"

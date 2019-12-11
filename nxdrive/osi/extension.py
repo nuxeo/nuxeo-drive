@@ -149,11 +149,17 @@ class ExtensionListener(QTcpServer):
         return None
 
 
-def get_formatted_status(state: DocPair, path: Path) -> Dict[str, str]:
+def get_formatted_status(state: DocPair, path: Path) -> Optional[Dict[str, str]]:
     """ For a given file and its state info, get a JSON-compatible status. """
     status = Status.UNSYNCED
 
-    readonly = (path.stat().st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
+    try:
+        readonly = (path.stat().st_mode & (stat.S_IWUSR | stat.S_IWGRP)) == 0
+    except FileNotFoundError:
+        return None
+    except PermissionError:
+        readonly = True
+
     if readonly:
         status = Status.LOCKED
     elif state:
