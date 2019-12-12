@@ -361,25 +361,32 @@ class Engine(QObject):
 
     def delete_doc(self, path: Path, mode: DelAction = None) -> None:
         """ Delete doc after prompting the user for the mode. """
-        if not mode:
-            mode = self.manager.get_deletion_behavior()
 
         doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
             log.info(f"Unable to delete non-existant doc {path}")
             return
 
+        # In case the deleted path is not synced, there is no
+        # need to ask the user what to do.
+        if doc_pair.remote_state == "unknown":
+            self.dao.remove_state(doc_pair)
+            return
+
+        if not mode:
+            mode = self.manager.get_deletion_behavior()
+
         if mode is DelAction.DEL_SERVER:
             # Delete on server
             doc_pair.update_state("deleted", doc_pair.remote_state)
-            if doc_pair.remote_state == "unknown":
-                self.dao.remove_state(doc_pair)
-            else:
-                self.dao.delete_local_state(doc_pair)
+            self.dao.delete_local_state(doc_pair)
         elif mode is DelAction.UNSYNC:
             # Add document to filters
             self.dao.remove_state(doc_pair)
-            self.dao.add_filter(doc_pair.remote_parent_path + "/" + doc_pair.remote_ref)
+            if doc_pair.remote_parent_path and doc_pair.remote_ref:
+                self.dao.add_filter(
+                    f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
+                )
 
     def direct_transfer(self, local_paths: Set[Path], remote_ref: str) -> None:
         """Plan the Direct Transfer."""
