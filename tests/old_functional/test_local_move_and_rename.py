@@ -12,7 +12,7 @@ from nxdrive.engine.dao.sqlite import EngineDAO
 
 from . import DocRemote, LocalTest
 from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
-from .. import env
+from .. import ensure_no_exception, env
 
 # TODO NXDRIVE-170: refactor
 
@@ -297,6 +297,62 @@ class TestLocalMoveAndRename(OneUserTest):
         assert len(remote.get_children_info(info.parent_uid)) == 4
         assert len(local.get_children_info("/")) == 3
         assert len(remote.get_children_info(self.workspace)) == 3
+
+    def test_local_move_file_rollback(self):
+        """Test a local move into a folder that is not allowed on the server,
+        and so we locally revert/cancel the move.
+        Sometimes the rollback itself is canceled because the doc pair has
+        no a remote name. The cause is not yet known.
+        We would then end on such errors (see NXDRIVE-1952):
+
+            # Nuxeo Drive <= 4.2.0
+            AttributeError: 'NoneType' object has no attribute 'rstrip'
+            File "engine/processor.py", line 1383, in _handle_failed_remote_rename
+            File "client/local_client.py", line 629, in rename
+            File "utils.py", line 569, in safe_os_filename
+            File "utils.py", line 555, in safe_filename
+
+        Or even:
+
+            # Nuxeo Drive > 4.2.0
+            TypeError: expected string or bytes-like object
+            File "engine/processor.py", line 1462, in _handle_failed_remote_rename
+            File "client/local/base.py", line 458, in rename
+            File "utils.py", line 622, in safe_os_filename
+            File "utils.py", line 607, in safe_filename
+            File ".../re.py", line 192, in sub
+        """
+        local = self.local_1
+
+        # Move "/Original File 1.txt" -> "/Original Folder 1/Original File 1.txt"
+        local.move("/Original File 1.txt", "/Original Folder 1")
+        # And change the file name too
+        local.rename(
+            "/Original Folder 1/Original File 1.txt", "Original File 1-ren.txt"
+        )
+        # Checks
+        assert not local.exists("/Original File 1.txt")
+        assert not local.exists("/Original Folder 1/Original File 1.txt")
+        assert local.exists("/Original Folder 1/Original File 1-ren.txt")
+
+        def rename(*args, **kwargs):
+            raise ValueError("Mock'ed rename error")
+
+        def allow_rollback(*args, **kwargs):
+            """Allow rollback on all OSes."""
+            return True
+
+        with patch.object(self.engine_1.remote, "rename", new=rename):
+            with patch.object(self.engine_1, "local_rollback", new=allow_rollback):
+                with ensure_no_exception():
+                    self.wait_sync()
+
+        # The file has been moved again to its original location
+        assert not local.exists("/Original File 1.txt")
+        assert not local.exists("/Original File 1-ren.txt")
+        assert not local.exists("/Original Folder 1/Original File 1-ren.txt")
+        assert local.exists("/Original Folder 1/Original File 1.txt")
+        assert not self.engine_1.dao.get_errors(limit=0)
 
     def test_local_move_and_rename_file(self):
         local = self.local_1

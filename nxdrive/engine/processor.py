@@ -950,10 +950,7 @@ class Processor(EngineWorker):
     def _synchronize_locally_moved(
         self, doc_pair: DocPair, update: bool = True
     ) -> None:
-        """
-        A file has been moved locally, and an error occurs when tried to
-        move on the server.
-        """
+        """A file has been moved locally."""
 
         remote_info = None
         self._search_for_dedup(doc_pair, doc_pair.remote_name)
@@ -965,13 +962,14 @@ class Processor(EngineWorker):
         else:
             parent_pair = self._get_normal_state_from_remote_ref(parent_ref)
 
-        if doc_pair.local_name != doc_pair.remote_name:
-            try:
-                if not doc_pair.remote_can_rename:
-                    self._handle_failed_remote_rename(doc_pair, doc_pair)
-                    return
+        if doc_pair.remote_name and doc_pair.local_name != doc_pair.remote_name:
+            if not doc_pair.remote_can_rename:
+                log.warning(f"Renaming is prohibited for {doc_pair!r}")
+                self._handle_failed_remote_rename(doc_pair, doc_pair)
+                return
 
-                log.info(f"Renaming remote document according to local {doc_pair!r}")
+            log.info(f"Renaming remote document according to local {doc_pair!r}")
+            try:
                 remote_info = self.remote.rename(
                     doc_pair.remote_ref, doc_pair.local_name
                 )
@@ -1003,11 +1001,11 @@ class Processor(EngineWorker):
                 and not parent_pair.pair_state == "unsynchronized"
                 and parent_pair.remote_can_create_child
             ):
-                log.info(f"Moving remote file according to local : {doc_pair!r}")
+                log.info(f"Moving remote file according to local {doc_pair!r}")
                 # Bug if move in a parent with no rights / partial move
                 # if rename at the same time
                 parent_path = (
-                    parent_pair.remote_parent_path + "/" + parent_pair.remote_ref
+                    f"{parent_pair.remote_parent_path}/{parent_pair.remote_ref}"
                 )
                 remote_info = self.remote.move(
                     doc_pair.remote_ref, parent_pair.remote_ref
@@ -1445,9 +1443,16 @@ class Processor(EngineWorker):
     def _handle_failed_remote_rename(
         self, source_pair: DocPair, target_pair: DocPair
     ) -> bool:
-        """  Return False if an error occurs. """
+        """Cancel a local rename using the remote name."""
 
+        # Being in such situation is not possible on Unix,
+        # this is a Windows feature only :D
         if not self.engine.local_rollback(force=WINDOWS):
+            return False
+
+        # For an unknown reason yet, the remote name is set to None.
+        # In that case, just ignore the rollback.
+        if not target_pair.remote_name:
             return False
 
         log.warning(
