@@ -12,6 +12,7 @@ from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from threading import get_ident
+from types import MappingProxyType
 from typing import (
     Any,
     Callable,
@@ -19,7 +20,6 @@ from typing import (
     Generator,
     Iterator,
     Optional,
-    Pattern,
     Tuple,
     TYPE_CHECKING,
     Union,
@@ -32,6 +32,8 @@ from .constants import (
     APP_NAME,
     DOC_UID_REG,
     FILE_BUFFER_SIZE,
+    FORBID_CHARS_ALL,
+    FORBID_CHARS_UNIX,
     MAC,
     UNACCESSIBLE_HASH,
     WINDOWS,
@@ -597,29 +599,19 @@ def if_frozen(func) -> Callable:
     return wrapper
 
 
-def safe_filename(
-    name: str, replacement: str = "-", pattern: Pattern = re.compile(r'(["|*/:<>?\\])')
-) -> str:
-    """ Replace invalid characters in target filename. """
+def safe_filename(name: str, pattern: MappingProxyType = FORBID_CHARS_ALL) -> str:
+    """Replace forbidden characters for a given *name*."""
     if WINDOWS:
         # Windows doesn't allow whitespace at the end of filenames
         name = name.rstrip()
-    return re.sub(pattern, replacement, name)
+    return name.translate(pattern)
 
 
-def safe_os_filename(name: str, pattern: Pattern = re.compile(r"([/:])")) -> str:
-    """
-    Replace characters that are forbidden in file or folder names by the OS.
-
-    On Windows, they are:
-        " | * / : < > ? \\
-    On Unix, they are:
-        / :
-    """
+def safe_os_filename(name: str, pattern: MappingProxyType = FORBID_CHARS_UNIX) -> str:
+    """Replace forbidden characters (by the OS) for a given *name*."""
     if WINDOWS:
         return safe_filename(name)
-    else:
-        return safe_filename(name, pattern=pattern)
+    return safe_filename(name, pattern=pattern)
 
 
 def safe_long_path(path: Path) -> Path:
