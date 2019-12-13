@@ -50,6 +50,7 @@ class StubLocalClient:
         assert doc_1_info.path == doc_1
         assert doc_1_info.get_digest() == EMPTY_DIGEST
         assert not doc_1_info.folderish
+        assert doc_1_info.size == 0
 
         doc_2 = local.make_file("/", "Document 2.txt", content=SOME_TEXT_CONTENT)
         assert local.exists(doc_2)
@@ -59,6 +60,7 @@ class StubLocalClient:
         assert doc_2_info.path == doc_2
         assert doc_2_info.get_digest() == SOME_TEXT_DIGEST
         assert not doc_2_info.folderish
+        assert doc_2_info.size > 0
 
         local.delete(doc_2)
         assert local.exists(doc_1)
@@ -70,6 +72,8 @@ class StubLocalClient:
         assert folder_1_info.name == "A new folder"
         assert folder_1_info.path == folder_1
         assert folder_1_info.folderish
+        # A folder has no size
+        assert folder_1_info.size == 0
 
         doc_3 = local.make_file(folder_1, "Document 3.txt", content=SOME_TEXT_CONTENT)
         local.delete(folder_1)
