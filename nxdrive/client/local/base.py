@@ -60,12 +60,15 @@ class FileInfo:
             log.info(f"Forcing normalization of {filepath!r} to {self.filepath!r}")
             safe_rename(filepath, self.filepath)
 
-        # Guess the file size to help catching file changes in the watcher.
-        # This will prevent to do checksum comparisons, which are expensive.
-        size = kwargs.pop("size", 0)
-        if size == 0:
-            with suppress(FileNotFoundError):
-                size = self.filepath.stat().st_size
+        if folderish:
+            size = 0
+        else:
+            # Guess the file size to help catching file changes in the watcher.
+            # This will prevent to do checksum comparisons, which are expensive.
+            size = kwargs.pop("size", 0)
+            if size == 0:
+                with suppress(FileNotFoundError):
+                    size = self.filepath.stat().st_size
         self.size = size
 
         self.folderish = folderish  # True if a Folder
@@ -82,7 +85,7 @@ class FileInfo:
 
     def __repr__(self) -> str:
         return (
-            f"FileInfo<path={self.path!r}, filepath={self.filepath!r},"
+            f"{type(self).__name__}<path={self.path!r}, filepath={self.filepath!r},"
             f" name={self.name!r}, folderish={self.folderish!r},"
             f" size={self.size}, remote_ref={self.remote_ref!r}>"
         )

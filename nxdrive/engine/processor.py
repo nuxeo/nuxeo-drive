@@ -1123,8 +1123,12 @@ class Processor(EngineWorker):
     def _synchronize_remotely_modified(self, doc_pair: DocPair) -> None:
         is_renaming = safe_filename(doc_pair.remote_name) != doc_pair.local_name
         try:
-            if doc_pair.local_digest is not None and not self.local.is_equal_digests(
-                doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
+            if (
+                not doc_pair.folderish
+                and doc_pair.local_digest is not None
+                and not self.local.is_equal_digests(
+                    doc_pair.local_digest, doc_pair.remote_digest, doc_pair.local_path
+                )
             ):
                 self._update_remotely(doc_pair, is_renaming)
             else:

@@ -313,16 +313,20 @@ class TestRemoteMoveAndRename(OneUserTest):
 
         # Move a non empty folder with some content
         remote.move(self.folder_1_id, self.folder_2_id)
-        assert remote.get_fs_info(self.folder_1_id).name == "Original Fold\xe9r 1"
-        assert remote.get_fs_info(self.folder_1_id).parent_uid == self.folder_2_id
+        remote_info = remote.get_fs_info(self.folder_1_id)
+        assert remote_info is not None
+        assert remote_info.name == "Original Fold\xe9r 1"
+        assert remote_info.parent_uid == self.folder_2_id
 
         # Synchronize: only the folder move is detected: all
         # the descendants are automatically realigned
         self.wait_sync(wait_for_async=True)
 
         # Check remote folder
-        assert remote.get_fs_info(self.folder_1_id).name == "Original Fold\xe9r 1"
-        assert remote.get_fs_info(self.folder_1_id).parent_uid == self.folder_2_id
+        remote_info = remote.get_fs_info(self.folder_1_id)
+        assert remote_info is not None
+        assert remote_info.name == "Original Fold\xe9r 1"
+        assert remote_info.parent_uid == self.folder_2_id
 
         # Check local folder
         assert not local.exists("/Original Fold\xe9r 1")
