@@ -58,7 +58,7 @@ ShadowRectangle {
 
             ScaledText {
                 id: errorDetails
-                font.family: "monospace"
+                font.family: "Courier"
                 text: fileData.last_error_details
                 visible: type != "conflict" && text
                 Layout.fillWidth: true

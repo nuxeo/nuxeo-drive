@@ -68,7 +68,7 @@ def fatal_error_qt(exc_formatted: str) -> None:
     dialog.setWindowIcon(QIcon(str(find_icon("app_icon.svg"))))
     dialog.resize(800, 600)
     layout = QVBoxLayout()
-    css = "font-family: monospace; font-size: 12px;"
+    css = "font-family: Courier; font-size: 12px;"
     details = []
 
     # Display a little message to apologize

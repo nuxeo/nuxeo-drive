@@ -158,7 +158,7 @@ class Application(QApplication):
         self.current_notification: Optional[Notification] = None
         self.default_tooltip = APP_NAME
 
-        font = QFont("Helvetica, Arial, sans-serif", 12)
+        font = QFont("Helvetica, Times", pointSize=12)
         self.setFont(font)
         self.ratio = sqrt(QFontMetricsF(font).height() / 12)
 
@@ -237,7 +237,7 @@ class Application(QApplication):
             self.conflicts_window.setMinimumHeight(600)
             self.settings_window = QQuickView()
             self.settings_window.setMinimumWidth(640)
-            self.settings_window.setMinimumHeight(540)
+            self.settings_window.setMinimumHeight(580)
             self.add_qml_import_path(self.settings_window)
             self.systray_window = SystrayWindow()
             self.add_qml_import_path(self.systray_window)

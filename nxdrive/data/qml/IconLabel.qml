@@ -11,6 +11,7 @@ import QtQuick 2.13
     text: icon
     font.family: "Material Design Icons"
     pointSize: size
+    font.pointSize: pointSize / ratio
     color: mediumGray
 
     MouseArea {
