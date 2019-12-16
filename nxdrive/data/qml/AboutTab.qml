@@ -69,7 +69,7 @@ Rectangle {
             id: licenseText
             width: parent.width
             wrapMode: Text.WordWrap
-            font.family: 'monospace'
+            font.family: "Courier"
             pointSize: 12
 
             Component.onCompleted: {

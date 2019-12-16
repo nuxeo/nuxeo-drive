@@ -116,7 +116,8 @@ Rectangle {
             text: qsTr("CREATE_REPORT") + tl.tr
             onClicked: {
                 var link = api.generate_report()
-                lastReportLink.text = link
+                lastReportLink.report_url = link
+                lastReportLink.text = link.split(/[\\/]/).pop()
             }
         }
 
@@ -127,7 +128,8 @@ Rectangle {
             }
             Link {
                 id: lastReportLink
-                onClicked: api.open_report(text)
+                property string report_url
+                onClicked: api.open_report(report_url)
             }
         }
 

@@ -35,7 +35,7 @@ NuxeoPopup {
                 KeyNavigation.tab: folderInput
                 placeholderText: "your.nuxeo.platform.com"
                 text: api.default_server_url_value()
-                font.family: "monospace"
+                font.family: "Courier"
             }
 
             ScaledText {

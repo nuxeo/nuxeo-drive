@@ -73,7 +73,7 @@ NuxeoPopup {
             id: urlInput
             visible: isManual
             Layout.fillWidth: true
-            font.family: 'monospace'
+            font.family: "Courier"
             placeholderText: 'https://username:password@proxy.tld:port'
             inputMethodHints: Qt.ImhUrlCharactersOnly
         }
@@ -87,7 +87,7 @@ NuxeoPopup {
             id: pacUrlInput
             visible: isAuto
             Layout.fillWidth: true
-            font.family: 'monospace'
+            font.family: "Courier"
             placeholderText: 'https://server.tld/proxy.pac\nfile://C:/proxy.pac'
             inputMethodHints: Qt.ImhUrlCharactersOnly
         }
