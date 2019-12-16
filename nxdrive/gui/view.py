@@ -256,6 +256,125 @@ class TransferModel(QAbstractListModel):
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
 
+class DirectTransferModel(QAbstractListModel):
+    fileChanged = pyqtSignal()
+    noItems = pyqtSignal()
+
+    ID = Qt.UserRole + 1
+    NAME = Qt.UserRole + 2
+    STATUS = Qt.UserRole + 3
+    PROGRESS = Qt.UserRole + 4
+    ENGINE = Qt.UserRole + 5
+    FINALIZING = Qt.UserRole + 6
+    PROGRESS_METRICS = Qt.UserRole + 7
+
+    def __init__(self, translate: Callable, parent: QObject = None) -> None:
+        super().__init__(parent)
+        self.tr = translate
+        self.items: List[Dict[str, Any]] = []
+        self.names = {
+            self.ID: b"uid",
+            self.NAME: b"name",
+            self.STATUS: b"status",
+            self.PROGRESS: b"progress",
+            self.ENGINE: b"engine",
+            self.PROGRESS_METRICS: b"progress_metrics",
+            # The is the Verification step for downloads
+            # and Linking step for uploads.
+            self.FINALIZING: b"finalizing",
+        }
+
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        return len(self.items)
+
+    def get_dest(self, parent: QModelIndex = QModelIndex()) -> str:
+        if self.items:
+            for transfer in self.items:
+                if "remote_parent_path" in transfer:
+                    remote_parent_path = transfer["remote_parent_path"]
+                    remote_parent_url = transfer["remote_parent_url"]
+                    break
+            else:
+                return ["?", ""]
+        else:
+            return ["?", ""]
+        return [remote_parent_path, remote_parent_url]
+
+    def roleNames(self) -> Dict[int, bytes]:
+        return self.names
+
+    @pyqtProperty("int", notify=fileChanged)
+    def count(self) -> int:
+        count = self.rowCount()
+        if count == 0:
+            self.noItems.emit()
+        return count
+
+    @pyqtProperty(list, notify=fileChanged)
+    def destination(self) -> List[str]:
+        return self.get_dest()
+
+    def set_items(
+        self, transfers: List[Dict[str, Any]], parent: QModelIndex = QModelIndex()
+    ) -> None:
+        self.beginRemoveRows(parent, 0, self.rowCount() - 1)
+        self.items.clear()
+        self.endRemoveRows()
+
+        self.beginInsertRows(parent, 0, len(transfers) - 1)
+        self.items.extend(transfers)
+        self.endInsertRows()
+
+        self.fileChanged.emit()
+
+    def get_progress(self, row: Dict[str, Any]) -> str:
+        """Return formatted infos list on direct transfer progression.
+        E.g: ["10.0Mib", "42.0Mib", "remote_path"]
+        """
+        try:
+            size = row["path"].stat().st_size
+        except FileNotFoundError:
+            size = 0
+        progress = size * (row["progress"] or 0.0) / 100
+
+        # Pretty print
+        suffix = self.tr("BYTE_ABBREV")
+        psize = partial(sizeof_fmt, suffix=suffix)
+        return [psize(progress), psize(size)]
+
+    def data(self, index: QModelIndex, role: int = NAME) -> Any:
+        row = self.items[index.row()]
+        if role == self.STATUS:
+            return row["status"].name
+        if role == self.FINALIZING:
+            return row.get("finalizing", False)
+        if role == self.PROGRESS_METRICS:
+            return self.get_progress(row)
+        return row[self.names[role].decode()]
+
+    def setData(self, index: QModelIndex, value: Any, role: int = None) -> None:
+        if role is None:
+            return
+        key = force_decode(self.roleNames()[role])
+        self.items[index.row()][key] = value
+        self.dataChanged.emit(index, index, [role])
+
+    @pyqtSlot(dict)
+    def set_progress(self, action: Dict[str, Any]) -> None:
+        for i, item in enumerate(self.items):
+            if item["name"] != action["name"]:
+                continue
+            idx = self.createIndex(i, 0)
+
+            self.setData(idx, action["progress"], self.PROGRESS)
+            self.setData(idx, action["progress"], self.PROGRESS_METRICS)
+            if action["action_type"] in ("Linking", "Verification"):
+                self.setData(idx, True, self.FINALIZING)
+
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+
 class FileModel(QAbstractListModel):
     fileChanged = pyqtSignal()
 

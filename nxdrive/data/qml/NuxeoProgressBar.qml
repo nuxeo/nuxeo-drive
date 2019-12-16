@@ -4,6 +4,7 @@ import QtQuick.Controls 2.13
 ProgressBar {
     id: control
     property string color: lightBlue
+    property string text: ""
     from: 0
     to: 100
 
@@ -23,6 +24,16 @@ ProgressBar {
             width: control.visualPosition * parent.width
             height: parent.height
             color: control.color
+
+            // Display some text inside the progress bar
+            ScaledText {
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                padding: 5
+                text: control.text
+                style: Text.Outline
+                styleColor: lighterGray
+            }
         }
 
         // Animation for unlimited progress bar by animating alternating stripes
