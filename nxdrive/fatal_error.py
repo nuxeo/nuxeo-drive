@@ -108,7 +108,7 @@ def fatal_error_qt(exc_formatted: str) -> None:
         from nxdrive.report import Report
 
         # Last 20th lines
-        raw_lines = Report.export_logs(-20)
+        raw_lines = Report.export_logs(20)
         lines = b"\n".join(raw_lines).decode(errors="replace")
 
         if lines:
