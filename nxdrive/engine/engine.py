@@ -28,6 +28,7 @@ from ..constants import (
     DelAction,
     TransferStatus,
 )
+from ..direct_transfer import DirectTransferManager
 from ..exceptions import (
     EngineInitError,
     InvalidDriveException,
@@ -41,7 +42,6 @@ from ..utils import (
     current_thread_id,
     find_icon,
     find_suitable_tmp_dir,
-    get_tree_list,
     if_frozen,
     safe_filename,
     safe_long_path,
@@ -57,6 +57,7 @@ from .watcher.remote_watcher import RemoteWatcher
 from .workers import Worker
 
 if TYPE_CHECKING:
+    from ..direct_transfer import DirectTransferManager  # noqa
     from ..manager import Manager  # noqa
 
 __all__ = ("Engine", "ServerBindingSettings")
@@ -102,9 +103,8 @@ class Engine(QObject):
     online = pyqtSignal()
 
     # Direct Transfer
-    directTranferDuplicateError = pyqtSignal(Path, Document)
+    directTransferDuplicateError = pyqtSignal(Path, Document)
     directTranferError = pyqtSignal(Path)
-    directTranferStatus = pyqtSignal(Path, bool)
 
     type = "NXDRIVE"
     # Folder locker - LocalFolder processor can prevent
@@ -186,6 +186,19 @@ class Engine(QObject):
 
         # Pause in case of no more space on the device
         self.noSpaceLeftOnDevice.connect(self.suspend)
+
+        # Set the Direct Transfer database file
+        db = self.manager.home / "direct_transfer" / f"{self.uid}.db"
+        db.parent.mkdir(exist_ok=True)
+
+        # And create the Direct Transfer manager
+        self.dt_manager = DirectTransferManager(
+            str(db),
+            self.uid,
+            self.remote,
+            done_callback=self.manager.directTransferStats.emit,
+            dupe_callback=self.directTransferDuplicateError.emit,
+        )
 
     def __repr__(self) -> str:
         return (
@@ -399,70 +412,32 @@ class Engine(QObject):
                     f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
                 )
 
-    def direct_transfer(self, local_paths: Set[Path], remote_ref: str) -> None:
+    def direct_transfer(
+        self, local_paths: Set[Path], remote_path: str, start: bool = True
+    ) -> None:
         """Plan the Direct Transfer."""
-        # self.directTranferStatus.emit(local_path[0], True)
-
-        def plan(path: Path, remote_uid: str) -> None:
-            """Actions to do (refactored in a function to prevent duplicate code between files and folders)."""
-            # Save the remote folder's reference into the file/folder xattrs
-            try:
-                self.local.set_remote_id(path, remote_uid)
-            except PermissionError:
-                log.warning(
-                    f"Cannot set the remote ID on {path!r}, skipping the upload"
-                )
-                return
-
-            # Add the path into the database to plan the upload
-            info = self.local.get_info(path, check=False)
-            self.dao.insert_local_state(info, parent_path=None, local_state="direct")
-
         # Save the remote location for next times
-        self.dao.update_config("dt_last_remote_location", remote_ref)
+        self.dao.update_config("dt_last_remote_location", remote_path)
 
-        for local_path in sorted(local_paths):
-            if local_path.is_file():
-                plan(local_path, remote_ref)
-            else:
-                tree = sorted(get_tree_list(local_path, remote_ref))
-                for remote_path, path in tree:
-                    plan(path, remote_path)
+        if self.dt_manager.is_completed:
+            # Create a new transfers session
+            self.dt_manager.reset()
+
+        # Add paths recursively and start uploading!
+        if local_paths:
+            self.dt_manager.add_all(local_paths, remote_path)
+            if start:
+                self.dt_manager.start()
 
     def direct_transfer_cancel(self, file: Path) -> None:
         """Cancel the Direct Transfer of the given local *file*."""
-        log.info(f"Direct Transfer of {file!r}, user choice: cancel the upload")
-
-        doc_pair = self.dao.get_state_from_local(file)
-        if not doc_pair:
-            # Magic teleportation?
-            log.warning("The doc pair disappeared?! Direct Transfer cancelled.")
-            return
-
-        # Cancel the upload, clean-up the database and local file
-        self.dao.remove_state(doc_pair)
-        self.local.remove_remote_id(file)
-        self.local.remove_remote_id(file, name="remote")
+        if self.dt_manager:
+            self.dt_manager.cancel(file)
 
     def direct_transfer_replace_blob(self, file: Path, doc: Document) -> None:
         """Replace the document's blob on the server."""
-        log.info(
-            f"Direct Transfer of {file!r}, user choice: "
-            f"replace the document's attached file (UID is {doc.uid!r})"
-        )
-
-        doc_pair = self.dao.get_state_from_local(file)
-        if not doc_pair:
-            # Magic teleportation?
-            log.warning("The doc pair disappeared?! Direct Transfer cancelled.")
-            return
-
-        # Plan the replacement of the document's blob on the server
-        doc_pair.remote_state = "deleted"
-        self.dao.update_pair_state(doc_pair)
-
-        # Repush the pair to be traited later
-        self.queue_manager.push(doc_pair)
+        if self.dt_manager:
+            self.dt_manager.replace_blob(file, doc.uid)
 
     def rollback_delete(self, path: Path) -> None:
         """ Re-synchronize a document when a deletion is cancelled. """
@@ -554,6 +529,8 @@ class Engine(QObject):
             else:
                 thread.start()
         self.resume_suspended_transfers()
+        if self.dt_manager:
+            self.dt_manager.start()
         self.syncResumed.emit()
 
     def resume_transfer(self, nature: str, uid: int) -> None:
@@ -601,6 +578,8 @@ class Engine(QObject):
         log.info(f"Engine {self.uid} is suspending")
         self._pause = True
         self.dao.suspend_transfers()
+        if self.dt_manager:
+            self.dt_manager.stop()
         self.queue_manager.suspend()
         for thread in self._threads:
             thread.worker.suspend()

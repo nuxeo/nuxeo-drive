@@ -193,6 +193,9 @@ def configure(
     # NXDRIVE-1918: filter out botocore logging (too verbose)
     logging.getLogger("botocore").setLevel(logging.ERROR)
 
+    # NXDRIVE-2006: filter out peewee logging (too verbose)
+    logging.getLogger("peewee").setLevel(logging.ERROR)
+
 
 def get_handler(name: str) -> Optional[logging.Handler]:
     for handler in logging.getLogger().handlers:

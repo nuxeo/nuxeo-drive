@@ -115,9 +115,6 @@ PAIR_STATES: Dict[Tuple[str, str], str] = {
     ("unsynchronized", "moved"): "unsynchronized",
     ("unsynchronized", "synchronized"): "unsynchronized",
     ("unsynchronized", "deleted"): "remotely_deleted",
-    # Direct Transfer
-    ("direct", "unknown"): "direct_transfer",
-    ("direct", "deleted"): "direct_transfer_replace_blob",
 }
 
 
@@ -640,7 +637,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 10
+        return 11
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -666,6 +663,7 @@ class EngineDAO(ConfigurationDAO):
                 "   AND folderish = 0"
             )
             self.store_int(SCHEMA_VERSION, 1)
+
         if version < 2:
             cursor.execute(
                 "CREATE TABLE if not exists ToRemoteScan ("
@@ -674,16 +672,20 @@ class EngineDAO(ConfigurationDAO):
                 ")"
             )
             self.store_int(SCHEMA_VERSION, 2)
+
         if version < 3:
             self._migrate_state(cursor)
             self.store_int(SCHEMA_VERSION, 3)
+
         if version < 4:
             self._migrate_state(cursor)
             cursor.execute("UPDATE States SET creation_date = last_remote_updated")
             self.store_int(SCHEMA_VERSION, 4)
+
         if version < 5:
             self._create_transfer_tables(cursor)
             self.store_int(SCHEMA_VERSION, 5)
+
         if version < 6:
             # Add the *filesize* field to the Downloads table,
             # used to display download metrics in the systray menu.
@@ -696,6 +698,7 @@ class EngineDAO(ConfigurationDAO):
                 # so we can bypass the error
                 pass
             self.store_int(SCHEMA_VERSION, 6)
+
         if version < 7:
             # Remove the no-more-used *idx* field of Uploads.
             # SQLite does not support column deletion, we need to recreate
@@ -720,8 +723,8 @@ class EngineDAO(ConfigurationDAO):
 
             # Delete the table
             cursor.execute("DROP TABLE Uploads_backup;")
-
             self.store_int(SCHEMA_VERSION, 7)
+
         if version < 8:
             if WINDOWS:
                 # Update the tmpname column to add the long path prefix on Windows
@@ -779,6 +782,15 @@ class EngineDAO(ConfigurationDAO):
                     )
 
             self.store_int(SCHEMA_VERSION, 10)
+
+        if version < 11:
+            # With NXDRIVE-2006, Direct Transfers were removed from the sync database.
+            # Here we just do the cleanup without managing the conversion using the new database
+            # the database is only known from the Direct Transfer manager and it would require
+            # too many actions for a beta feature.
+            log.warning("Removing all Direct Transfers for the database migration.")
+            cursor.execute("DELETE FROM States WHERE local_state = 'direct'")
+            self.store_int(SCHEMA_VERSION, 11)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
@@ -1234,21 +1246,6 @@ class EngineDAO(ConfigurationDAO):
             c.execute(
                 "UPDATE States SET last_local_updated = ? WHERE id = ?",
                 (info.last_modification_time, row.id),
-            )
-
-    def update_pair_state(self, row: DocPair) -> None:
-        """Update local, remote and pair states of a given *doc_pair*.
-        States should already be defined in the *doc_pair* attributes,
-        the goal is only to save them in the database.
-        """
-        row.pair_state = self._get_pair_state(row)
-
-        with self.lock:
-            con = self._get_write_connection()
-            c = con.cursor()
-            c.execute(
-                "UPDATE States SET local_state = ?, remote_state = ?, pair_state = ? WHERE id = ?",
-                (row.local_state, row.remote_state, row.pair_state, row.id),
             )
 
     def get_valid_duplicate_file(self, digest: str) -> Optional[DocPair]:

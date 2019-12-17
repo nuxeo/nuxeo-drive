@@ -105,6 +105,8 @@ tools/deps/nuxeo-python-client-9823efb.zip[s3] \
 pathtools==0.1.2 \
     --hash=sha256:7c35c5421a39bb82e58018febd90e3b6e5db34c5443aaaf742b3f33d4655f1c0
     # via watchdog
+peewee==3.13.3 \
+    --hash=sha256:1269a9736865512bd4056298003aab190957afe07d2616cf22eaf56cb6398369
 psutil==5.6.7 \
     --hash=sha256:1b1575240ca9a90b437e5a40db662acd87bbf181f6aa02f0204978737b913c6b \
     --hash=sha256:28f771129bfee9fc6b63d83a15d857663bbdcae3828e1cb926e91320a9b5b5cd \

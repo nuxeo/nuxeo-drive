@@ -81,6 +81,9 @@ def no_warnings(recwarn):
         elif "(rm_rf) error removing" in message:
             # First appeared with pytest 5.4.1
             continue
+        elif "resolve package from __spec__ or __package__" in message:
+            # Not related to our stuff (Peewee)
+            continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
         print(warn, file=sys.stderr)

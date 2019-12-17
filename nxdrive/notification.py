@@ -435,21 +435,6 @@ class DirectTransferError(Notification):
         )
 
 
-class DirectTransferStatus(Notification):
-    """Display a notification when a Direct Transfer is starting or finished."""
-
-    def __init__(self, file: Path, status: bool) -> None:
-        label = "DIRECT_TRANSFER_START" if status else "DIRECT_TRANSFER_END"
-        values = [file.name]
-        super().__init__(
-            label,
-            title="Direct Transfer",
-            description=Translator.get(label, values=values),
-            level=Notification.LEVEL_INFO,
-            flags=Notification.FLAG_VOLATILE | Notification.FLAG_BUBBLE,
-        )
-
-
 class ErrorOpenedFile(Notification):
     def __init__(self, path: str, is_folder: bool) -> None:
         values = [short_name(path), APP_NAME]
@@ -518,15 +503,10 @@ class DefaultNotificationService(NotificationService):
         engine.errorOpenedFile.connect(self._errorOpenedFile)
         engine.longPathError.connect(self._longPathError)
         engine.directTranferError.connect(self._direct_transfer_error)
-        engine.directTranferStatus.connect(self._direct_transfer_status)
 
     def _direct_transfer_error(self, file: Path) -> None:
         """Display a notification when a Direct Transfer is in error."""
         self.send_notification(DirectTransferError(file))
-
-    def _direct_transfer_status(self, file: Path, status: bool) -> None:
-        """Display a notification when a Direct Transfer is starting or finished."""
-        self.send_notification(DirectTransferStatus(file, status))
 
     def _errorOpenedFile(self, doc: DocPair) -> None:
         self.send_notification(ErrorOpenedFile(str(doc.local_path), doc.folderish))

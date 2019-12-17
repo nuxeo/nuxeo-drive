@@ -6,10 +6,10 @@ from nuxeo.models import Document
 @pytest.mark.parametrize(
     "username",
     [
-        "ndt-Alice",
-        "ndt-bob@bar.com",
-        # "ndt-éléonor",
-        # "ndt-東京スカイツリー",
+        "Alice",
+        "bob@bar.com",
+        # "éléonor",
+        # "東京スカイツリー",
     ],
 )
 def test_personal_space(manager_factory, tmp, nuxeo_url, user_factory, username):

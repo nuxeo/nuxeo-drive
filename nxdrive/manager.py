@@ -407,6 +407,7 @@ class Manager(QObject):
                 continue
             if engine.is_started():
                 engine.stop()
+            engine.dt_manager.shutdown()
         self.osi.cleanup()
         self.dispose_db()
         self.stopped.emit()

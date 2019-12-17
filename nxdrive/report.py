@@ -71,6 +71,28 @@ class Report:
             except Exception:
                 log.exception(f"Impossible to copy the log {rel_path!r}")
 
+    def copy_direct_transfer_dbs(self, myzip: ZipFile) -> None:
+        """Copy all log Direct Transfer databases to the ZIP report."""
+
+        folder = self._manager.home / "direct_transfer"
+        if not folder.is_dir():
+            return
+
+        for path in folder.iterdir():
+            if not path.is_file():
+                continue
+            if path.suffix != ".db":
+                continue
+
+            comp = ZIP_DEFLATED
+            rel_path = path.relative_to(self._manager.home)
+            try:
+                myzip.write(str(path), str(rel_path), compress_type=comp)
+            except Exception:
+                log.exception(
+                    f"Impossible to copy the Direct Transfer database {rel_path!r}"
+                )
+
     @staticmethod
     def copy_db(myzip: ZipFile, dao: "EngineDAO") -> None:
         """
@@ -124,6 +146,9 @@ class Report:
             self.copy_db(zip_, self._manager.dao)
             for engine in self._manager.engines.values():
                 self.copy_db(zip_, engine.dao)
+
+            # Direct Transfer databases
+            self.copy_direct_transfer_dbs(zip_)
 
             # Logs
             self.copy_logs(zip_)

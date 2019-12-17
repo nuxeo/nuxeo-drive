@@ -14,6 +14,17 @@ CliHandler.download_edit  # Used by the arguments parser
 CliHandler.unbind_root  # Used by the arguments parser
 CliHandler.unbind_server  # Used by the arguments parser
 _.close_settings_too  # Used by Appiclation.show_filters()
+direct_transfer.manager.decrease_priority  # Used by QML
+direct_transfer.manager.increase_priority  # Used by QML
+direct_transfer.models.BaseModel.Meta  # Used by Peewee
+direct_transfer.models.BaseModel.Meta.only_save_dirty  # Used by Peewee
+direct_transfer.models.BatchField.field_type  # Used by Peewee
+direct_transfer.models.BatchField.db_value  # Used by Peewee
+direct_transfer.models.BatchField.python_value  # Used by Peewee
+direct_transfer.models.Transfer.doctype  # Used by Peewee
+direct_transfer.models.Transfer.error_count_total  # Used by Peewee
+direct_transfer.uploader.transfer.batch.service  # Used by the Nuxeo Python client
+direct_transfer.uploader.transfer.doctype  # Used by Peewee
 DocPair.last_sync_error_date  # Check NXDRIVE-1804
 Download.transfer_type  # Used in QML
 Engine.folder  # Used in QML
@@ -35,8 +46,6 @@ ob.winapi.BUFFER_SIZE  # Used by Watchdog
 on_any_event  # Used by Watchdog
 _.row_factory  # Internal use of SQLite
 Processor._synchronize_conflicted  # Used by Processor._execute()
-Processor._synchronize_direct_transfer  # Used by Processor._execute()
-Processor._synchronize_direct_transfer_replace_blob  # Used by Processor._execute()
 Processor._synchronize_deleted_unknown  # Used by Processor._execute()
 Processor._synchronize_locally_deleted  # Used by Processor._execute()
 Processor._synchronize_locally_resolved  # Used by Processor._execute()

@@ -20,6 +20,7 @@ class MockUrlTestEngine(Engine):
         self._user = user
         self._stopped = True
         self._invalid_credentials = False
+        self.dt_manager = None
 
     def get_binder(self):
         """

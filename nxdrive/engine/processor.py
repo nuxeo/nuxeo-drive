@@ -32,7 +32,6 @@ from ..constants import (
     TransferStatus,
 )
 from ..exceptions import (
-    DirectTransferDuplicateFoundError,
     DownloadPaused,
     DuplicationDisabledError,
     NotFound,
@@ -43,7 +42,6 @@ from ..exceptions import (
     UploadPaused,
 )
 from ..objects import DocPair, RemoteFileInfo
-from ..options import Options
 from ..utils import is_generated_tmp_file, lock_path, safe_filename, unlock_path
 from .workers import EngineWorker
 
@@ -313,16 +311,11 @@ class Processor(EngineWorker):
                 self._postpone_pair(doc_pair, "MAX_RETRY_ERROR")
             except HTTPError as exc:
                 if exc.status == 404:
-                    if doc_pair.local_state == "direct":
-                        # Happening while Direct Transfer'ring a document,
-                        # that means the parent folder is not yet created. Postpone.
-                        self._postpone_pair(doc_pair, "Parent not yet synced")
-                    else:
-                        # We saw it happened once a migration is done.
-                        # Nuxeo kept the document reference but it does
-                        # not exist physically anywhere.
-                        log.info(f"The document does not exist anymore: {doc_pair!r}")
-                        self.dao.remove_state(doc_pair)
+                    # We saw it happened once a migration is done.
+                    # Nuxeo kept the document reference but it does
+                    # not exist physically anywhere.
+                    log.info(f"The document does not exist anymore: {doc_pair!r}")
+                    self.dao.remove_state(doc_pair)
                 elif exc.status == 409:  # Conflict
                     # It could happen on multiple files drag'n drop
                     # starting with identical characters.
@@ -400,23 +393,9 @@ class Processor(EngineWorker):
                     self._postpone_pair(doc_pair, "Trashing not possible")
                 else:
                     self._handle_pair_handler_exception(doc_pair, handler_name, exc)
-            except DirectTransferDuplicateFoundError as exc:
-                # Ask the user what to do when a possible duplicate can be created by a Direct Transfer call
-                log.info(str(exc))
-                self.engine.directTranferDuplicateError.emit(exc.file, exc.doc)
             except Exception as exc:
                 # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
                 sys.excepthook(*sys.exc_info())
-
-                # Show a notification for Direct Transfer errors
-                if doc_pair.pair_state.startswith("direct_transfer"):
-                    file = (
-                        doc_pair.local_path
-                        if WINDOWS
-                        else Path(f"/{doc_pair.local_path}")
-                    )
-                    self.engine.directTranferError.emit(file)
-
                 self._handle_pair_handler_exception(doc_pair, handler_name, exc)
             finally:
                 if soft_lock:
@@ -482,56 +461,6 @@ class Processor(EngineWorker):
         else:
             log.exception("Unknown error")
             self.increase_error(doc_pair, f"SYNC_HANDLER_{handler_name}", exception=e)
-
-    def _synchronize_direct_transfer(
-        self, doc_pair: DocPair, replace_blob: bool = False
-    ) -> None:
-        """Direct Transfer of a local file."""
-        if WINDOWS:
-            file = doc_pair.local_path
-        else:
-            # The path retrieved from the database will have its starting slash trimmed, restore it
-            file = Path(f"/{doc_pair.local_path}")
-
-        if not file.exists():
-            self.engine.directTranferError.emit(file)
-            log.warning(
-                f"Cancelling Direct Transfer of {file!r} because it does not exist anymore"
-            )
-            self.dao.remove_state(doc_pair)
-            self.dao.remove_transfer("upload", file)
-            return
-
-        # The remote path is stored as the remote ref in xattrs of the file
-        parent_path = self.local.get_remote_id(file)
-        if not parent_path:
-            self.engine.directTranferError.emit(file)
-            log.warning(
-                f"Cancelling Direct Transfer of {file!r} because it has no remote path set"
-            )
-            self.dao.remove_state(doc_pair)
-            self.dao.remove_transfer("upload", file)
-            return
-
-        # Do the upload
-        self.remote.direct_transfer(
-            file, parent_path, self.engine.uid, replace_blob=replace_blob
-        )
-
-        # Clean-up
-        self.dao.remove_state(doc_pair)
-        self.local.remove_remote_id(file)
-        self.local.remove_remote_id(file, name="remote")
-
-        # Display a notification only for big files (to prevent notifications flood)
-        if not doc_pair.folderish and doc_pair.size >= Options.big_file * 1024 * 1024:
-            self.engine.directTranferStatus.emit(file, False)
-
-        self.engine.manager.directTransferStats.emit(doc_pair.folderish, doc_pair.size)
-
-    def _synchronize_direct_transfer_replace_blob(self, doc_pair: DocPair) -> None:
-        """Force the blob replacement of the remote document (choice done by the user)."""
-        self._synchronize_direct_transfer(doc_pair, replace_blob=True)
 
     def _synchronize_conflicted(self, doc_pair: DocPair) -> None:
         if doc_pair.local_state == "moved" and doc_pair.remote_state in (
