@@ -3,7 +3,6 @@ import errno
 from enum import Enum, auto
 from pathlib import Path
 from sys import platform
-from types import MappingProxyType
 
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
@@ -42,14 +41,6 @@ DEFAULT_SERVER_TYPE = "NXDRIVE"
 
 # Document's UID and token regexp
 DOC_UID_REG = "[0-f]{8}-[0-f]{4}-[0-f]{4}-[0-f]{4}-[0-f]{12}"
-
-# Forbidden charaters on the OS (will be replaced by a dash "-")
-# On Windows, they are:
-#    / : " | * < > ? \
-# On Unix, they are:
-#    / :
-FORBID_CHARS_ALL = MappingProxyType({ord(c): "-" for c in '/:"|*<>?\\'})
-FORBID_CHARS_UNIX = MappingProxyType({ord(c): "-" for c in "/:"})
 
 # The registry key from the HKCU hive where to look for local configuration on Windows
 CONFIG_REGISTRY_KEY = "Software\\Nuxeo\\Drive"

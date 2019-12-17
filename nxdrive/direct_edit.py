@@ -33,7 +33,7 @@ from .utils import (
     current_milli_time,
     force_decode,
     normalize_event_filename,
-    safe_os_filename,
+    safe_filename,
     simplify_url,
     unset_path_readonly,
     safe_rename,
@@ -412,7 +412,7 @@ class DirectEdit(Worker):
         self.directEditStarting.emit(engine.hostname, filename)
 
         # Create local structure
-        folder_name = safe_os_filename(f"{doc_id}_{xpath}")
+        folder_name = safe_filename(f"{doc_id}_{xpath}")
         dir_path = self._folder / folder_name
         dir_path.mkdir(exist_ok=True)
 

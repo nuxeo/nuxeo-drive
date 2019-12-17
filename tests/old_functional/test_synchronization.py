@@ -562,7 +562,7 @@ class TestSynchronization(OneUserTest):
 
         # Create a remote folder with a weird name
         folder = remote.make_folder(self.workspace, 'Folder with chars: / \\ * < > ? "')
-        characters = "- - - - - - - -" if WINDOWS else '- - \\ * < > ? "'
+        characters = "- - - - - - - -"
         foldername = f"Folder with chars{characters}"
 
         self.wait_sync(wait_for_async=True)

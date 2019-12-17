@@ -23,7 +23,8 @@
 #    - SKIP=mypy to skip type annotations
 #    - SKIP=cleanup to skip dead code checks
 #    - SKIP=rerun to not rerun failed test(s)
-#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun)
+#    - SKIP=bench to not run benchmarks
+#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,bench)
 #    - SKIP=tests tu run only code checks
 #
 # There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
@@ -252,43 +253,49 @@ launch_tests() {
         ${PYTHON} -m vulture nxdrive tools/whitelist.py
     fi
 
-    if should_skip "tests"; then
-        # Skip all test cases
-        return
+    if should_run "tests"; then
+        echo ">>> Launching unit tests"
+        launch_test "tests/unit"
+
+        echo ">>> Launching functional tests"
+        launch_test "tests/functional"
+
+        echo ">>> Launching synchronization functional tests, file by file"
+        echo "    (first, run for each test file, failures are ignored to have"
+        echo "     a whole picture of errors)"
+        total="$(find tests/old_functional -name "test_*.py" | wc -l)"
+        number=1
+        for test_file in $(find tests/old_functional -name "test_*.py"); do
+            echo ""
+            echo ">>> [${number}/${total}] Testing ${test_file} ..."
+            launch_test "${test_file}" "-q --durations=3"
+            number=$(( number + 1 ))
+        done
+
+        if should_run "rerun"; then
+            echo ">>> Re-rerun failed tests"
+            set +e
+            ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none `junit_arg "final"`
+            # The above command will exit with error code 5 if there is no failure to rerun
+            ret=$?
+            set -e
+        fi
+
+        # Do not fail on junit merge
+        python tools/jenkins/junit/merge.py || true
+
+        if [ $ret -ne 0 ] && [ $ret -ne 5 ]; then
+            exit 1
+        fi
     fi
 
-    echo ">>> Launching unit tests"
-    launch_test "tests/unit"
-
-    echo ">>> Launching functional tests"
-    launch_test "tests/functional"
-
-    echo ">>> Launching synchronization functional tests, file by file"
-    echo "    (first, run for each test file, failures are ignored to have"
-    echo "     a whole picture of errors)"
-    total="$(find tests/old_functional -name "test_*.py" | wc -l)"
-    number=1
-    for test_file in $(find tests/old_functional -name "test_*.py"); do
-        echo ""
-        echo ">>> [${number}/${total}] Testing ${test_file} ..."
-        launch_test "${test_file}" "-q --durations=3"
-        number=$(( number + 1 ))
-    done
-
-    if should_run "rerun"; then
-        echo ">>> Re-rerun failed tests"
-        set +e
-        ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none `junit_arg "final"`
-        # The above command will exit with error code 5 if there is no failure to rerun
-        ret=$?
-        set -e
-    fi
-
-    # Do not fail on junit merge
-    python tools/jenkins/junit/merge.py || true
-
-    if [ $ret -ne 0 ] && [ $ret -ne 5 ]; then
-        exit 1
+    if should_run "bench"; then
+        echo ">>> Benchmarking"
+        ${PYTHON} -m pytest -c benchmarks/empty.ini \
+            --benchmark-group-by=param \
+            --benchmark-sort=stddev \
+            --benchmark-columns=min,max,mean,stddev \
+            benchmarks
     fi
 }
 

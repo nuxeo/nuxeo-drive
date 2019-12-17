@@ -12,7 +12,6 @@ from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from threading import get_ident
-from types import MappingProxyType
 from typing import (
     Any,
     Callable,
@@ -32,8 +31,6 @@ from .constants import (
     APP_NAME,
     DOC_UID_REG,
     FILE_BUFFER_SIZE,
-    FORBID_CHARS_ALL,
-    FORBID_CHARS_UNIX,
     MAC,
     UNACCESSIBLE_HASH,
     WINDOWS,
@@ -573,7 +570,7 @@ def normalize_event_filename(filename: Union[str, Path], action: bool = True) ->
 
     # NXDRIVE-188: Normalize name on the file system, if needed
     normalized = Path(unicodedata.normalize("NFC", str(path)))
-    normalized = normalized.with_name(safe_os_filename(normalized.name))
+    normalized = normalized.with_name(safe_filename(normalized.name))
 
     if WINDOWS and path.exists():
         path = normalized_path(path).with_name(path.name)
@@ -599,19 +596,23 @@ def if_frozen(func) -> Callable:
     return wrapper
 
 
-def safe_filename(name: str, pattern: MappingProxyType = FORBID_CHARS_ALL) -> str:
-    """Replace forbidden characters for a given *name*."""
-    if WINDOWS:
+def safe_filename(name: str, replacement: str = "-") -> str:
+    """Replace forbidden characters (at the OS and Nuxeo levels) for a given *name*.
+    See benchmarks/test_safe_filename.py for the best implementation.
+    """
+    return (
         # Windows doesn't allow whitespace at the end of filenames
-        name = name.rstrip()
-    return name.translate(pattern)
-
-
-def safe_os_filename(name: str, pattern: MappingProxyType = FORBID_CHARS_UNIX) -> str:
-    """Replace forbidden characters (by the OS) for a given *name*."""
-    if WINDOWS:
-        return safe_filename(name)
-    return safe_filename(name, pattern=pattern)
+        (name.rstrip() if WINDOWS else name)
+        .replace("/", replacement)
+        .replace(":", replacement)
+        .replace('"', replacement)
+        .replace("|", replacement)
+        .replace("*", replacement)
+        .replace("<", replacement)
+        .replace(">", replacement)
+        .replace("?", replacement)
+        .replace("\\", replacement)
+    )
 
 
 def safe_long_path(path: Path) -> Path:
