@@ -2,7 +2,7 @@
 """ Utilities to log nxdrive operations and failures. """
 
 import logging
-from logging import Formatter
+from logging import Formatter, LogRecord
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
 from pathlib import Path
 from typing import Any, Generator, List
@@ -36,20 +36,35 @@ is_logging_configured = False
 class CustomMemoryHandler(BufferingHandler):
     def __init__(self, capacity: int = constants.MAX_LOG_DISPLAYED) -> None:
         super().__init__(capacity)
+        self._old_buffer: List[LogRecord] = []
 
-    def get_buffer(self, size: int) -> List[str]:
-        """
-        If `size` is positive, returns the first `size` lines from the memory buffer.
-        If `size` is negative, returns the last `size` lines from the memory buffer.
-        By default, `size` is equal to the buffer length, so the entire buffer is returned.
-        """
+    def flush(self) -> None:
+        """Save the current buffer and clear it."""
         self.acquire()
         try:
-            if size > 0:
-                return self.buffer[:size]  # type: ignore
-            return self.buffer[size:]  # type: ignore
+            # Save the current buffer
+            self._old_buffer = self.buffer[:]
+            # And clear it
+            self.buffer: List[LogRecord] = []
         finally:
             self.release()
+
+    def get_buffer(self, count: int) -> List[LogRecord]:
+        """Returns latest *count* lines from the memory buffer."""
+        if count < 1:
+            return []
+
+        self.acquire()
+        try:
+            # Get lines from the current buffer
+            result = self.buffer[:]
+            if len(result) < count:
+                # And complete with lines from the saved buffer, if needed
+                result += self._old_buffer[len(result) - count :]
+        finally:
+            self.release()
+
+        return result
 
 
 class TimedCompressedRotatingFileHandler(TimedRotatingFileHandler):
