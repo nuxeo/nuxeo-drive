@@ -22,7 +22,7 @@ from ...options import Options
 from ...utils import (
     force_decode,
     lock_path,
-    safe_os_filename,
+    safe_filename,
     set_path_readonly,
     unlock_path,
     unset_path_readonly,
@@ -69,7 +69,7 @@ class LocalClient(LocalClientMixin):
     def is_ignored(self, parent_ref: Path, file_name: str) -> bool:
         """ Note: added parent_ref to be able to filter on size if needed. """
 
-        file_name = safe_os_filename(force_decode(file_name.lower()))
+        file_name = safe_filename(force_decode(file_name.lower()))
 
         if file_name.endswith(Options.ignored_suffixes) or file_name.startswith(
             Options.ignored_prefixes

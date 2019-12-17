@@ -17,8 +17,9 @@
 #    - SKIP=mypy to skip type annotations
 #    - SKIP=cleanup to skip dead code checks
 #    - SKIP=rerun to not rerun failed test(s)
+#    - SKIP=bench to not run benchmarks
 #    - SKIP=integration to not run integration tests on Windows
-#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,integration)
+#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,bench,integration)
 #    - SKIP=tests tu run only code checks
 #
 # There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
@@ -411,45 +412,52 @@ function launch_tests {
 		}
 	}
 
-	if ($Env:SKIP -match 'tests') {
-		# Skip all test cases
-		return
+	if (-not ($Env:SKIP -match 'tests')) {
+		Write-Output ">>> Launching unit tests"
+		launch_test "tests\unit"
+
+		Write-Output ">>> Launching functional tests"
+		launch_test "tests\functional"
+
+		Write-Output ">>> Launching synchronization functional tests, file by file"
+		Write-Output "    (first, run for each test file, failures are ignored to have"
+		Write-Output "     a whole picture of errors)"
+		$files = Get-ChildItem "tests\old_functional" -Filter test_*.py
+		$total = $files.count
+		$number = 1
+		$files |  Foreach-Object {
+			$test_file = "tests\old_functional\$_"
+			Write-Output ""
+			Write-Output ">>> [$number/$total] Testing $test_file ..."
+			launch_test "$test_file" "-q" "--durations=3"
+			$number = $number + 1
+		}
+
+		if (-not ($Env:SKIP -match 'rerun' -or $Env:SKIP -match 'all')) {
+			Write-Output ">>> Re-rerun failed tests"
+			$junitxml = junit_arg "final"
+			& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
+				--last-failed --last-failed-no-failures none $junitxml
+			# The above command will exit with error code 5 if there is no failure to rerun
+			$ret = $lastExitCode
+		}
+
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\jenkins\junit\merge.py
+
+		if ($ret -ne 0 -and $ret -ne 5) {
+			ExitWithCode $ret
+		}
 	}
 
-	Write-Output ">>> Launching unit tests"
-	launch_test "tests\unit"
-
-	Write-Output ">>> Launching functional tests"
-	launch_test "tests\functional"
-
-	Write-Output ">>> Launching synchronization functional tests, file by file"
-	Write-Output "    (first, run for each test file, failures are ignored to have"
-	Write-Output "     a whole picture of errors)"
-	$files = Get-ChildItem "tests\old_functional" -Filter test_*.py
-	$total = $files.count
-	$number = 1
-	$files |  Foreach-Object {
-		$test_file = "tests\old_functional\$_"
-		Write-Output ""
-		Write-Output ">>> [$number/$total] Testing $test_file ..."
-		launch_test "$test_file" "-q" "--durations=3"
-		$number = $number + 1
+	if (-not ($Env:SKIP -match 'bench' -or $Env:SKIP -match 'all')) {
+		Write-Output ">>> Benchmarking"
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pytest `
+			-c "benchmarks\empty.ini" `
+			--benchmark-group-by=param `
+			--benchmark-sort=stddev `
+			--benchmark-columns=min,max,mean,stddev `
+			"benchmarks"
 	}
-
-	if (-not ($Env:SKIP -match 'rerun' -or $Env:SKIP -match 'all')) {
-		Write-Output ">>> Re-rerun failed tests"
-		$junitxml = junit_arg "final"
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
-			--last-failed --last-failed-no-failures none $junitxml
-		# The above command will exit with error code 5 if there is no failure to rerun
-		$ret = $lastExitCode
-	}
-
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\jenkins\junit\merge.py
-
-    if ($ret -ne 0 -and $ret -ne 5) {
-        ExitWithCode $ret
-    }
 
 	if (-not ($Env:SKIP -match 'integration' -or $Env:SKIP -match 'all')) {
 		Write-Output ">>> Freezing the application for integration tests"

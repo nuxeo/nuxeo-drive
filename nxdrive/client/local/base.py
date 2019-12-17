@@ -24,7 +24,7 @@ from ...utils import (
     force_decode,
     lock_path,
     safe_long_path,
-    safe_os_filename,
+    safe_filename,
     safe_rename,
     set_path_readonly,
     unlock_path,
@@ -310,7 +310,7 @@ class LocalClientMixin:
     def is_ignored(self, parent_ref: Path, file_name: str) -> bool:
         """ Note: added parent_ref to be able to filter on size if needed. """
 
-        file_name = safe_os_filename(force_decode(file_name.lower()))
+        file_name = safe_filename(force_decode(file_name.lower()))
 
         if file_name.endswith(Options.ignored_suffixes) or file_name.startswith(
             Options.ignored_prefixes
@@ -458,7 +458,7 @@ class LocalClientMixin:
 
     def rename(self, ref: Path, to_name: str) -> FileInfo:
         """ Rename a local file or folder. """
-        new_name = safe_os_filename(to_name)
+        new_name = safe_filename(to_name)
         source_os_path = self.abspath(ref)
         parent = ref.parent
         old_name = ref.name
@@ -578,7 +578,7 @@ class LocalClientMixin:
         """ Absolute path on the operating system with deduplicated names. """
 
         # Make name safe by removing invalid chars
-        name = safe_os_filename(orig_name)
+        name = safe_filename(orig_name)
 
         os_path = self.abspath(parent / name)
         if old_name == name or not os_path.exists():

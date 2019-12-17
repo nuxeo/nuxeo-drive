@@ -427,7 +427,7 @@ def test_get_tree_list():
 def test_get_tree_size():
     location = nxdrive.utils.normalized_path(__file__).parent.parent
     path = location / "resources"
-    assert nxdrive.utils.get_tree_size(path) == 3111940
+    assert nxdrive.utils.get_tree_size(path) > 3000000
 
 
 @Options.mock()
@@ -792,6 +792,15 @@ def test_simplify_url(url, result):
 )
 def test_safe_filename(invalid, valid):
     assert nxdrive.utils.safe_filename(invalid) == valid
+
+
+def test_safe_filename_ending_with_space():
+    invalid = "<a>zerty.odt "
+    valid = nxdrive.utils.safe_filename(invalid)
+    if WINDOWS:
+        assert valid == "-a-zerty.odt"
+    else:
+        assert valid == "-a-zerty.odt "
 
 
 def test_safe_rename(tmp):

@@ -10,7 +10,7 @@ import pytest
 from nuxeo.exceptions import Forbidden
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
-from nxdrive.utils import parse_protocol_url, safe_os_filename
+from nxdrive.utils import parse_protocol_url, safe_filename
 
 from . import LocalTest, make_tmp_file
 from .. import ensure_no_exception
@@ -76,7 +76,7 @@ class MixinTests(DirectEditSetup):
                 )
             else:
                 self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
-            local_path = Path(f"{doc_id}_{safe_os_filename(xpath)}/{filename}")
+            local_path = Path(f"{doc_id}_{safe_filename(xpath)}/{filename}")
             assert self.local.exists(local_path)
             self.wait_sync(fail_if_timeout=False)
             self.local.delete_final(local_path)
@@ -135,7 +135,7 @@ class MixinTests(DirectEditSetup):
 
         with patch.object(self.manager_1, "open_local_file", new=open_local_file):
             self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
-            local_path = Path(f"{doc_id}_{safe_os_filename(xpath)}/{filename}")
+            local_path = Path(f"{doc_id}_{safe_filename(xpath)}/{filename}")
             assert self.local.exists(local_path)
             self.wait_sync(fail_if_timeout=False)
             self.local.set_remote_id(local_path.parent, b"", name="nxdirecteditxpath")

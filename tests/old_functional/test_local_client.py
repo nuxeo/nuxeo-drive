@@ -112,9 +112,7 @@ class StubLocalClient:
 
         # Create a file with invalid chars
         invalid_filename = 'a/b\\c*d:e<f>g?h"i|j.doc'
-        escaped_filename = (
-            "a-b-c-d-e-f-g-h-i-j.doc" if WINDOWS else 'a-b\\c*d-e<f>g?h"i|j.doc'
-        )
+        escaped_filename = "a-b-c-d-e-f-g-h-i-j.doc"
         file_2 = local.make_file(folder_1, invalid_filename)
         file_2 = local.get_info(file_2)
         assert file_2.name == escaped_filename
