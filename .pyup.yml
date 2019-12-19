@@ -1,5 +1,0 @@
-# https://pyup.io/docs/bot/config/
-schedule: "every day"
-label_prs: dependencies
-branch_prefix: wip-
-assignees: BoboTiG
