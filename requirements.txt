@@ -221,7 +221,7 @@ urllib3==1.25.6 \
     --hash=sha256:9a107b99a5393caf59c7aa3c1249c16e6879447533d0887f4336dde834c7be86    # via requests, sentry-sdk
 tools/deps/watchdog-18bb843.zip \
     --hash=sha256:eedcc294942bd9cbc09a0bb8a6c8e7984dfb3ebd1e9d5414054567f95e30838e
-xattr==0.9.6 ; sys_platform != "win32" \
+xattr==0.9.7 ; sys_platform != "win32" \
     --hash=sha256:117f864caf6428a75ed1263d29e020afb5db30dcbdfc1b79da9f19ec8748d2df \
     --hash=sha256:4ea01c6d23252d9caeae613ea63191095924ec14df3a9390a404e84df6a1ddb7 \
     --hash=sha256:7cb1b28eeab4fe99cc4350e831434142fce658f7d03f173ff7722144e6a47458 \
