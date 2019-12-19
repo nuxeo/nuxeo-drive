@@ -10,7 +10,7 @@ altgraph==0.16.1 \
     --hash=sha256:ddf5320017147ba7b810198e0b6619bd7b5563aa034da388cea8546b877f9b0c \
     # via pyinstaller
 future==0.18.2; sys_platform == "win32" \
-    --hash=sha256:6142ef79e2416e432931d527452a1cab3aa4a754a0a53d25b2589f79e1106f34
+    --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via pefile
 macholib==1.11 ; sys_platform == "darwin" \
     --hash=sha256:ac02d29898cf66f27510d8f39e9112ae00590adb4a48ec57b25028d6962b1ae1
