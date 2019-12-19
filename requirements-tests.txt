@@ -1,4 +1,4 @@
-faker==2.0.4
+faker==3.0.0
 flake8==3.7.9
 junitparser==1.4.0
 mypy==0.740
