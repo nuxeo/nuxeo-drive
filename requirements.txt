@@ -216,9 +216,9 @@ tld==0.11.9 \
     --hash=sha256:d1275ed59acfd13d675a4b72c2b4ce7c889b61c961886af92b6b8780e8e3e9df \
     --hash=sha256:1d4ee60fbbefa70cad44329825dbedfb0fed6f1ef3b66d23f5cc3f2f3bbbd803 \
     --hash=sha256:c5fe79df74b68ebc33406dfadc69f6484dee8005035a129fdb40b8fabfd06e9f    # via pypac
-urllib3==1.25.6 \
-    --hash=sha256:3de946ffbed6e6746608990594d08faac602528ac7015ac28d33cee6a45b7398 \
-    --hash=sha256:9a107b99a5393caf59c7aa3c1249c16e6879447533d0887f4336dde834c7be86    # via requests, sentry-sdk
+urllib3==1.25.7 \
+    --hash=sha256:a8a318824cc77d1fd4b2bec2ded92646630d7fe8619497b142c84a9e6f5a7293 \
+    --hash=sha256:f3c5fd51747d450d4dcf6f923c81f78f811aab8205fda64b0aba34a4e48b0745    # via requests, sentry-sdk
 tools/deps/watchdog-18bb843.zip \
     --hash=sha256:eedcc294942bd9cbc09a0bb8a6c8e7984dfb3ebd1e9d5414054567f95e30838e
 xattr==0.9.7 ; sys_platform != "win32" \
