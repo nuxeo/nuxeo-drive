@@ -200,9 +200,13 @@ six==1.12.0 \
     --hash=sha256:3350809f0555b11f552448330d0b52d5f24c91a322ea4a15ef22629740f3761c \
     --hash=sha256:d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73 \
     # via python-dateutil, tld
-tld==0.9.6 \
-    --hash=sha256:89a7a403a4a5de1ca7b64550df8a8a2abdfbbd1556e1b8cdfe251c0f90ab2f3a \
-    --hash=sha256:e63acad4f866bc4c724a21a03eb7cf692bc8495cb286ee60d3a45258054bdc02    # via pypac
+tld==0.11.9 \
+    --hash=sha256:10ab9a854e68758ab3aa5ede87eac6162a91d51b0f426cc180c386dd717bd3f1 \
+    --hash=sha256:2c03cb3650c2ed6ab66ea9bab3673be5b0ec9334092b746f64c7848f295d64c5 \
+    --hash=sha256:b22f50b382f7340417579e768df84f9984a5e4ab55473f137a4fbeecb355cf1c \
+    --hash=sha256:d1275ed59acfd13d675a4b72c2b4ce7c889b61c961886af92b6b8780e8e3e9df \
+    --hash=sha256:1d4ee60fbbefa70cad44329825dbedfb0fed6f1ef3b66d23f5cc3f2f3bbbd803 \
+    --hash=sha256:c5fe79df74b68ebc33406dfadc69f6484dee8005035a129fdb40b8fabfd06e9f    # via pypac
 urllib3==1.25.6 \
     --hash=sha256:3de946ffbed6e6746608990594d08faac602528ac7015ac28d33cee6a45b7398 \
     --hash=sha256:9a107b99a5393caf59c7aa3c1249c16e6879447533d0887f4336dde834c7be86    # via requests, sentry-sdk
