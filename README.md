@@ -31,9 +31,9 @@ Installing Nuxeo Drive requires two components:
 
 ### Desktop Clients
 
-The GNU/Linux|macOS|Windows desktop client can be downloaded from the **Home** > **Nuxeo Drive** tab or from the [update website](https://community.nuxeo.com/static/drive-updates/).
+The desktop client can be downloaded from the **Home** > **Nuxeo Drive** tab or from the [update website](https://community.nuxeo.com/static/drive-updates/).
 
-The latest official release can always be found at this static URL:
+The latest official release can always be found at those static URLs:
 
 - [GNU/Linux](https://community.nuxeo.com/static/drive-updates/nuxeo-drive-x86_64.AppImage)
 - [macOS](https://community.nuxeo.com/static/drive-updates/nuxeo-drive.dmg)
