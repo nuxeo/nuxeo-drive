@@ -40,7 +40,7 @@ main() {
     while IFS= read release; do
         version="$(echo ${release} | sed s'/alpha-//')"
         echo " - ${version}"
-        ssh -T nuxeo@lethe.nuxeo.com "rm -vf ${path}/alpha/*${version}*" || true
+        ssh -T nuxeo@lethe.nuxeo.com "rm -vf ${path}/alpha/*${version}.* ${path}/alpha/*${version}-*" || true
         git tag --delete "${release}" || true
         git push --delete origin "wip-${release}" || true  # branch
         git push --delete origin "${release}" || true  # tag
