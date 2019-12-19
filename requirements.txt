@@ -180,7 +180,7 @@ pyyaml==5.2 \
     --hash=sha256:8100c896ecb361794d8bfdb9c11fce618c7cf83d624d73d5ab38aef3bc82d43f \
     --hash=sha256:2e9f0b7c5914367b0916c3c104a024bb68f269a486b9d04a2e8ac6f6597b7803 \
     --hash=sha256:c0ee8eca2c582d29c3c2ec6e2c4f703d1b7f1fb10bc72317355a746057e7346c
-pywin32==225; sys_platform == "win32" \
+pywin32==227; sys_platform == "win32" \
     --hash=sha256:0443e9bb196e72480f50cbddc2cf98fbb858a77d02e281ba79489ea3287b36e9 \
     --hash=sha256:09bbe7cdb29eb40ab2e83f7a232eeeedde864be7a0622b70a90f456aad07a234 \
     --hash=sha256:0d8e0f47808798d320c983574c36c49db642678902933a210edd40157d206fd0 \
