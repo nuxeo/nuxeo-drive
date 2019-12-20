@@ -161,10 +161,18 @@ def get_open_files() -> Iterator[Item]:
     :return: Generator of (PID, file path).
     """
 
-    for proc in psutil.process_iter():
-        with suppress(Exception):
-            for handler in proc.open_files():
-                with suppress(Exception):
-                    yield proc.pid, Path(handler.path)
+    # Let's skip all errors at the top the the code.
+    # It would be an endless fight to catch specific errors only.
+    # Here, it is typically MemoryError's.
+    try:
+        for proc in psutil.process_iter():
+            # But we also want to filter out errors by processor to be able to retrieve some data from others
+            with suppress(Exception):
+                for handler in proc.open_files():
+                    # And so for errors happening at the processus level (typically PermissisonError's)
+                    with suppress(Exception):
+                        yield proc.pid, Path(handler.path)
+    except Exception:
+        log.warning("Cannot get opened files", exc_info=True)
 
     yield from get_other_opened_files()

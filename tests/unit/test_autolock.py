@@ -77,7 +77,7 @@ def test_autolock(autolock, tmpdir):
         assert len(autolock._autolocked) == 2
 
 
-def test_get_opend_file():
+def test_get_open_files():
     """Just check get_open_files() works."""
     files = list(nxdrive.autolocker.get_open_files())
 
