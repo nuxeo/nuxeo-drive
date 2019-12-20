@@ -1,8 +1,10 @@
 # coding: utf-8
+import pathlib  # noqa
 from datetime import datetime
 from logging import getLogger
 from sqlite3 import DatabaseError
 from time import sleep
+from unittest.mock import patch
 
 import nxdrive.engine.dao.utils
 from nxdrive.engine.dao.sqlite import ConfigurationDAO
@@ -83,3 +85,30 @@ def test_delete_old_backups(tmp):
     assert int(remaining_backups[0].name.split("_")[-1]) > yesterday
     # The newest should be more recent than the today timestamp
     assert int(remaining_backups[-1].name.split("_")[-1]) > today
+
+
+@patch("pathlib.Path.unlink")
+def test_delete_old_inexistant_backup(mocked_unlink, tmp):
+    home = tmp()
+    backups = home / "backups"
+    backups.mkdir(parents=True, exist_ok=True)
+
+    db = home / "manager.db"
+    db.touch()
+
+    today = int(datetime.now().timestamp())
+    yesterday = today - 86400
+
+    for i in range(3):
+        # Creating 3 files with timestamps of today
+        (backups / f"manager.db_{today - i * 1000}").touch()
+        # And 3 files with timestamps of yesterday
+        (backups / f"manager.db_{yesterday - i * 1000}").touch()
+
+    sleep(1)
+
+    # Simulate a file not found error when removing old backups
+    mocked_unlink.side_effect = FileNotFoundError()
+
+    # Trigger backup that will trigger the error, and it should not fail
+    nxdrive.engine.dao.utils.save_backup(db)
