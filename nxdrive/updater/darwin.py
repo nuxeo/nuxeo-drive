@@ -64,7 +64,13 @@ class Updater(BaseUpdater):
             self._cleanup(filename)
             self._set_progress(90)
             log.info(f"Unmounting {mount_dir!r}")
-            subprocess.check_call(["hdiutil", "unmount", mount_dir])
+            try:
+                subprocess.check_call(["hdiutil", "unmount", mount_dir, "-force"])
+            except subprocess.CalledProcessError:
+                log.warning(
+                    f"Unmount failed, you will have to do it manually (Catalina feature).",
+                    exc_info=True,
+                )
 
         # Check if the new application exists
         if not self.final_app.is_dir():
