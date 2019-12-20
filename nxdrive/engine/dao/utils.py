@@ -166,7 +166,8 @@ def save_backup(database: Path) -> bool:
     # Remove older backups
     for backup in old_backups:
         log.debug(f"Removing old backup {backup}")
-        backup.unlink()
+        with suppress(FileNotFoundError):
+            backup.unlink()  # NXDRIVE-1724
 
     backup = backup_folder / f"{database.name}_{int(datetime.now().timestamp())}"
     log.info(f"Creating backup {backup}")
