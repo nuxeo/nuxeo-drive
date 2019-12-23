@@ -550,12 +550,14 @@ class QMLDriveApi(QObject):
             else:
                 error = "CONNECTION_ERROR"
         except Exception:
-            log.exception("Unexpected error")
-            # Map error here
+            log.warning("Unexpected error", exc_info=True)
             error = "CONNECTION_UNKNOWN"
 
         log.warning(Translator.get(error))
         self.setMessage.emit(error, "error")
+
+        # Arise the settings window to let the user know the error
+        self.application._show_window(self.application.settings_window)
 
     @pyqtSlot(str, str)
     def web_authentication(self, server_url: str, local_folder: str) -> None:
