@@ -245,10 +245,7 @@ class FoldersDialog(DialogMixin):
         # Populate the remote folder with the previously selected, if any
         self.remote_folder.setText(engine.dao.get_config("dt_last_remote_location", ""))
 
-        # Do not allow the click on OK until a folder is selected
-        self.button_box.button(QDialogButtonBox.Ok).setEnabled(
-            bool(self.remote_folder.text())
-        )
+        self.button_ok_state()
 
         # Open the files selection dialog if there is no pre-selected paths
         if not self.paths:
@@ -258,6 +255,16 @@ class FoldersDialog(DialogMixin):
         """Action to do when the OK button is clicked."""
         super().accept()
         self.engine.direct_transfer(self.paths, self.remote_folder.text())
+
+    def button_ok_state(self) -> None:
+        """Handle the state of the OK button. It should be enabled when particular criterias are met."""
+
+        # Required criterias:
+        #   - at least 1 local path
+        #   - a selected remote path
+        self.button_box.button(QDialogButtonBox.Ok).setEnabled(
+            bool(self.remote_folder.text()) and bool(self.paths)
+        )
 
     def get_tree_view(self) -> FolderTreeView:
         """Render the folders tree."""
@@ -325,6 +332,8 @@ class FoldersDialog(DialogMixin):
         # Update labels with new information
         self.local_path.setText(self._files_display())
         self.local_paths_size_lbl.setText(sizeof_fmt(self.overall_size))
+
+        self.button_ok_state()
 
     def _select_more_files(self) -> None:
         """Choose additional local files to upload."""
