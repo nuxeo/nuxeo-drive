@@ -10,7 +10,7 @@ from PyQt5.QtCore import (
     pyqtSignal,
 )
 from PyQt5.QtGui import QStandardItemModel
-from PyQt5.QtWidgets import QDialogButtonBox, QTreeView
+from PyQt5.QtWidgets import QTreeView
 
 from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_loader import DocumentContentLoader, FolderContentLoader
@@ -180,11 +180,8 @@ class FolderTreeView(TreeViewMixin):
             index = new.indexes()[0]
         except IndexError:
             # The selection has been cleared
-            enabled = False
             path = ""
         else:
-            enabled = True
-
             # Get the selected folder's path
             path = self.model().itemFromIndex(index).data(Qt.UserRole).get_path()
 
@@ -192,4 +189,4 @@ class FolderTreeView(TreeViewMixin):
         self.parent.remote_folder.setText(path)
 
         # Set the OK button state depending of the current selection
-        self.parent.button_box.button(QDialogButtonBox.Ok).setEnabled(enabled)
+        self.parent.button_ok_state()
