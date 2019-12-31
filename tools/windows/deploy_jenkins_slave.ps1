@@ -366,6 +366,12 @@ function junit_arg($path, $run) {
 function launch_test($path, $pytest_args) {
 	# Launch tests on a specific path. On failure, retry failed tests.
 	$junitxml = junit_arg $path 1
+	if ($Env:SPECIFIC_TEST -ne "tests") {
+		# Skip JUnit report when running a specific test as it will fail because
+		# of the "::" that may contain the report filename, see NXDRIVE-1994.
+		$junitxml = ""
+	}
+
 	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest $pytest_args $junitxml "$path"
 	if ($lastExitCode -eq 0) {
 		return
