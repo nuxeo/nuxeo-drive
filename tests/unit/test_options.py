@@ -218,6 +218,35 @@ def test_setters():
     assert Options.delay == 222
 
 
+@Options.mock()
+def test_server_and_local_config_with_default_value_forced():
+    """Usecase:
+    - The server defines some options.
+    - The user decided to force default values for the same option.
+    Result: The user choice must be the priority.
+    """
+
+    # The option is set to True by default
+    assert Options.synchronization_enabled
+
+    # The default arguments from the CLI are not taken into account
+    Options.set("synchronization_enabled", True, setter="cli")
+    assert str(Options) == "Options()"
+
+    # The user has a config file setting the option to True,
+    # even if this is the default value, it should be taken into account
+    Options.set("synchronization_enabled", True, setter="local")
+    assert str(Options) == "Options(synchronization_enabled[local]=True)"
+
+    # Even further: the user has set the default value manually, it has the priority over all
+    Options.set("synchronization_enabled", True, setter="manual")
+    assert str(Options) == "Options(synchronization_enabled[manual]=True)"
+
+    # The server's config has then no power
+    Options.set("synchronization_enabled", False, setter="server")
+    assert Options.synchronization_enabled
+
+
 def test_site_update_url():
     with requests.get(Options.update_site_url) as resp:
         resp.raise_for_status()
