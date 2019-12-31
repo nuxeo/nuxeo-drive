@@ -371,7 +371,9 @@ class MetaOptions(type):
                     )
                     return
 
-            if new_value == old_value:
+            # If the option was set from a local config file, it must be taken into account
+            # event if the value is the same as the default one (see NXDRIVE-1980).
+            if new_value == old_value and setter not in ("local", "manual"):
                 return
 
             # We allow to set something when the default is None
@@ -388,7 +390,6 @@ class MetaOptions(type):
                     log.warning(err)
 
             # Only update if the setter has rights to
-            setter = setter.lower()
             if MetaOptions._setters[setter] < MetaOptions._setters[old_setter]:
                 return
 
