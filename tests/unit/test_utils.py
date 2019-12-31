@@ -156,14 +156,28 @@ def test_encrypt_decrypt():
 @windows_only(reason="Unix has no drive concept")
 def test_find_suitable_tmp_dir_different_drive(tmp):
     sync_folder = tmp()
-    home_folder = sync_folder / "home"
+    home_folder = sync_folder / ".nuxeo-drive"
     home_folder.mkdir(parents=True)
 
     # Change the drive letter
     home_folder._drv = chr(ord(home_folder.drive[:-1]) + 1)
 
     func = nxdrive.utils.find_suitable_tmp_dir
-    assert func(sync_folder, home_folder) == sync_folder.parent
+    assert func(sync_folder, home_folder) == sync_folder.parent / home_folder.name
+
+
+@windows_only(reason="Unix has no drive concept")
+def test_find_suitable_tmp_dir_different_drive_using_the_root(tmp):
+    home_folder = tmp() / ".nuxeo-drive"
+    home_folder.mkdir(parents=True)
+
+    # Change the drive letter
+    drive = chr(ord(home_folder.drive[:-1]) + 1)
+    sync_folder = Path(f"{drive}:")
+
+    func = nxdrive.utils.find_suitable_tmp_dir
+    with pytest.raises(ValueError):
+        func(sync_folder, home_folder)
 
 
 @not_windows(reason="Windows has no st_dev")
@@ -173,6 +187,7 @@ def test_find_suitable_tmp_dir_different_partition(mocked_stat, tmp):
         """Return a different st_dev each call."""
 
         count = 0
+        st_mode = 0o7777
 
         @property
         def st_dev(self):
@@ -181,10 +196,21 @@ def test_find_suitable_tmp_dir_different_partition(mocked_stat, tmp):
 
     func = nxdrive.utils.find_suitable_tmp_dir
     sync_folder = tmp()
-    home_folder = sync_folder / "home"
+    home_folder = sync_folder / ".nuxeo-drive"
     home_folder.mkdir(parents=True)
     mocked_stat.return_value = Stat()
-    assert func(sync_folder, home_folder) == sync_folder.parent
+    assert func(sync_folder, home_folder) == sync_folder.parent / home_folder.name
+
+
+@not_windows(reason="Windows has no st_dev")
+def test_find_suitable_tmp_dir_different_partition_using_the_root(tmp):
+    func = nxdrive.utils.find_suitable_tmp_dir
+    home_folder = tmp() / ".nuxeo-drive"
+    home_folder.mkdir(parents=True)
+    sync_folder = Path("/")
+
+    with pytest.raises(ValueError):
+        func(sync_folder, home_folder)
 
 
 def test_find_suitable_tmp_dir_same_partition(tmp):
