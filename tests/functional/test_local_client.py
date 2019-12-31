@@ -101,4 +101,5 @@ def test_rename_with_different_partitions(manager_factory):
             assert len(children) == 1
             assert children[0].name == "File LOWER.txt"
     finally:
+        local.unset_readonly(engine.local_folder)
         shutil.rmtree(local_folder)

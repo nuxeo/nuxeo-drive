@@ -139,26 +139,42 @@ def current_thread_id() -> int:
 
 def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path) -> Path:
     """Find a suitable folder for the downloaded temporary files.
-    It _must_ be on the same partition of the local sync folder
+
+    It _must_ be on the same partition/filesystem of the local sync folder
     to prevent false FS events.
+
+    Raise ValueError if the sync folder is at the root of the partition/filesystem.
     """
     try:
         if WINDOWS:
             # On Windows, we need to check for the drive letter
+            if str(sync_folder) == sync_folder.drive:
+                # It is not allowed to use the root drive as sync folder
+                raise ValueError("The local sync folder cannot be the drive itself")
+
             if sync_folder.drive == home_folder.drive:
                 # Both folders are on the same partition, use the predefined home folder
                 return home_folder
+        else:
+            # TODO: Remove the next comment when mypy > 0.761 is out
+            # TODO: or when https://github.com/python/typeshed/pull/3566 is merged
+            if sync_folder.is_mount():  # type: ignore
+                # It is not allowed to use the mount point as sync folder
+                raise ValueError(
+                    "The local sync folder cannot be the mount point itself"
+                )
 
-        # On Unix, we check the st_dev field
-        elif sync_folder.stat().st_dev == home_folder.stat().st_dev:
-            # Both folders are on the same partition, use the predefined home folder
-            return home_folder
+            # On Unix, we check the st_dev field
+            if sync_folder.stat().st_dev == home_folder.stat().st_dev:
+                # Both folders are on the same mount points/filesystems, use the predefined home folder
+                return home_folder
 
-        # Folders are on different partitions, try to find a suitable one based one the same
-        # partition used by the *sync_folder*.
-        return sync_folder.parent
+        # Folders are on different partitions/filesystem, find a suitable one based one the
+        # same partition/filesystem used by the sync folder. The home folder's name is appended
+        # to keep a clean tree.
+        return sync_folder.parent / home_folder.name
     except FileNotFoundError:
-        # Typically, the syc_folder does not exist anymore
+        # Typically, the sync folder does not exist anymore
         return home_folder
 
 
