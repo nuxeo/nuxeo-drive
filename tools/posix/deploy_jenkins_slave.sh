@@ -231,6 +231,11 @@ launch_tests() {
     local ret=0
     local junit_folder="tools/jenkins/junit/xml"
 
+    # Clean-up JUnit and pytest caches
+    find "${junit_folder}" -depth -type f | xargs rm -f || true
+    find "${junit_folder}" -depth -type d -empty -delete || true
+    find . -type d -name ".pytest_cache" | xargs rm -rf || true
+
     # If a specific test is asked, just run it and bypass all over checks
     if [ "${SPECIFIC_TEST}" != "tests" ]; then
         echo ">>> Launching the specific tests"
