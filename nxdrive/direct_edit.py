@@ -418,7 +418,7 @@ class DirectEdit(Worker):
 
         log.info(f"Editing {filename!r}")
         file_path = dir_path / filename
-        tmp_folder = engine.download_dir / doc_id
+        tmp_folder = self._folder / f"{doc_id}.dl"
         tmp_folder.mkdir(parents=True, exist_ok=True)
         file_out = tmp_folder / filename
 
