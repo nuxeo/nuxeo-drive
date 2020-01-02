@@ -20,37 +20,43 @@ Rectangle {
                 Layout.fillWidth: true; Layout.fillHeight: true
                 Layout.leftMargin: 20; Layout.topMargin: 5
 
+                // File name
                 ScaledText {
                     text: name
                     Layout.fillWidth: true
-                    pointSize: 14
+                    font.pointSize: point_size * 1.2
                     elide: Text.ElideRight
                 }
 
                 RowLayout {
+                    // (Down|Up)load icon
                     IconLabel {
                         size: 16
                         icon: last_transfer == "upload" ? MdiFont.Icon.upload : MdiFont.Icon.download
                     }
+                    // Sync date
                     ScaledText {
                         text: last_sync_date
-                        pointSize: 10
+                        font.pointSize: point_size * 0.8
                         color: mediumGray
                     }
+                    // File size
                     ScaledText {
                         text: size
-                        pointSize: 10
+                        font.pointSize: point_size * 0.8
                         color: mediumGray
                     }
                 }
             }
 
+            // Icon: Open the file on the server
             IconLabel {
                 z: 20; Layout.alignment: Qt.AlignRight; Layout.rightMargin: 0
                 icon: MdiFont.Icon.openInNew
                 onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
             }
 
+            // Icon: Open the file locally
             IconLabel {
                 z: 20; size: 24
                 Layout.alignment: Qt.AlignLeft; Layout.rightMargin: 10

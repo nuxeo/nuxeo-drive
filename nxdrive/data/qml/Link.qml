@@ -1,13 +1,12 @@
 import QtQuick 2.13
 
- ScaledText {
+ScaledText {
     id: control
 
     signal clicked()
 
     color: nuxeoBlue
 
-    elide: Text.ElideRight
     horizontalAlignment: Text.AlignLeft
     verticalAlignment: Text.AlignVCenter
 

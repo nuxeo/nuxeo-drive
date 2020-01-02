@@ -5,7 +5,7 @@ TextInput {
     property string placeholderText
     property string lineColor: nuxeoBlue
 
-    font.pointSize: 12 / ratio
+    font.pointSize: point_size
     wrapMode: TextInput.Wrap
     selectionColor: teal
     horizontalAlignment: TextInput.AlignLeft

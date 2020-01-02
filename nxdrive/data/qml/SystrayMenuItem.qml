@@ -14,11 +14,9 @@ Rectangle {
     ScaledText {
         id: itemText
         text: control.text
-        pointSize: control.size
 
         padding: 10
         height: parent.height
-        elide: Text.ElideRight
         horizontalAlignment: Text.AlignLeft
         verticalAlignment: Text.AlignVCenter
     }

@@ -63,7 +63,8 @@ Rectangle {
 
                 TextMetrics { id: textMetrics; font: languageBox.font }
                 Component.onCompleted: {
-                    for(var i = 0; i < languageModel.rowCount(); i++){
+                    // Compute the dropdown list width based on the longest item.
+                    for (var i = 0; i < languageModel.rowCount(); i++) {
                         textMetrics.text = qsTr(languageModel.getName(i))
                         modelWidth = Math.max(textMetrics.width, modelWidth)
                     }
@@ -83,7 +84,7 @@ Rectangle {
 
         ScaledText {
             text: qsTr("ADVANCED_SETTINGS") + tl.tr
-            pointSize: 16
+            font.pointSize: point_size * 1.4
             Layout.bottomMargin: 15
         }
 

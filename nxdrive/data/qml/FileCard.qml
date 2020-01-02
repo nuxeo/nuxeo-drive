@@ -34,7 +34,10 @@ ShadowRectangle {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
                 text: fileData.name + (fileData.folderish ? "/" : "")
-                pointSize: 14; font.weight: Font.Bold
+                font {
+                    pointSize: point_size * 1.2
+                    weight: Font.Bold
+                }
             }
 
             ScaledText {
@@ -125,7 +128,6 @@ ShadowRectangle {
                             anchors.fill: parent
                             text: qsTr(modelData) + tl.tr
                             leftPadding: 10
-                            elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
 
                             MouseArea {

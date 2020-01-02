@@ -17,7 +17,6 @@ Button {
     contentItem: ScaledText {
         id: buttonText
         text: control.text
-        pointSize: control.size
 
         opacity: enabled ? 1.0 : 0.3
         anchors {
@@ -26,7 +25,6 @@ Button {
         color: control.inverted ? "white" : control.color
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
     }
 
     background: Rectangle {

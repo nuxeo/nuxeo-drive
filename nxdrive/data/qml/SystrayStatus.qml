@@ -38,7 +38,7 @@ HoverRectangle {
                 text: control.subText
                 visible: text
                 color: statusText.color
-                pointSize: 10
+                font.pointSize: point_size * 0.8
                 opacity: 0.8
                 Layout.alignment: Qt.AlignRight
             }

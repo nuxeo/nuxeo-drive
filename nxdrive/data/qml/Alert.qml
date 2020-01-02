@@ -26,7 +26,6 @@ ShadowRectangle {
     ScaledText {
         id: content
         anchors.fill: parent
-        pointSize: control.size
         padding: control.padding
         color: "white"
 

@@ -126,7 +126,6 @@ Rectangle {
                         id: accountSelect
 
                         // Width management: systray width minus the 5 icon's width
-                        width: systray.width
                         Layout.preferredWidth: systray.width - (accountIcon.width * 5)
 
                         // When picking an account, refresh the file list.
@@ -141,8 +140,7 @@ Rectangle {
                         id: accountUrl
                         Layout.maximumWidth: parent.width
                         text: accountSelect.getRole("server_url")
-                        elide: Text.ElideRight
-                        pointSize: 10
+                        font.pointSize: point_size * 0.8
                         color: mediumGray
 
                         MouseArea {
@@ -393,8 +391,10 @@ Rectangle {
 
             ScaledText {
                 text: qsTr("NO_ACCOUNT") + tl.tr
-                font.weight: Font.Bold
-                pointSize: 14
+                font {
+                    pointSize: point_size * 1.2
+                    weight: Font.Bold
+                }
                 Layout.maximumWidth: parent.width
                 Layout.alignment: Qt.AlignHCenter
                 horizontalAlignment: Text.AlignHCenter
@@ -403,7 +403,7 @@ Rectangle {
 
             Link {
                 text: qsTr("OPEN_SETTINGS") + tl.tr
-                pointSize: 14
+                font.pointSize: point_size * 1.2
                 Layout.maximumWidth: parent.width
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 50
@@ -412,7 +412,7 @@ Rectangle {
 
             Link {
                 text: qsTr("QUIT") + tl.tr
-                pointSize: 14
+                font.pointSize: point_size * 1.2
                 Layout.maximumWidth: parent.width
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 10

@@ -14,13 +14,14 @@ TabButton {
 
     contentItem:  ScaledText {
         text: control.text
-        font.weight: Font.Bold
-        pointSize: 14
+        font{
+            weight: Font.Bold
+            pointSize: point_size * 1.2
+        }
         opacity: enabled ? 1.0 : 0.3
         color: activated ? control.underlineColor : control.color
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
     }
 
     background: Item {

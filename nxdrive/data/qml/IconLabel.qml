@@ -9,9 +9,10 @@ import QtQuick 2.13
     signal clicked()
 
     text: icon
-    font.family: "Material Design Icons"
-    pointSize: size
-    font.pointSize: pointSize / ratio
+    font {
+        family: "Material Design Icons"
+        pointSize: point_size * 1.4
+    }
     color: mediumGray
 
     MouseArea {
