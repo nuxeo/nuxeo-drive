@@ -5,7 +5,7 @@ import sqlite3
 import sys
 from logging import getLogger
 from pathlib import Path
-from os.path import basename
+from os.path import basename, splitext
 from queue import Queue
 from threading import Lock
 from time import mktime, sleep, time
@@ -971,11 +971,20 @@ class LocalWatcher(EngineWorker):
 
     @tooltip("Handle watchdog event")
     def handle_watchdog_event(self, evt: FileSystemEvent) -> None:
-        dao, client = self.dao, self.local
-
-        dst_path = getattr(evt, "dest_path", "")
-
         self._metrics["last_event"] = current_milli_time()
+
+        if not evt.src_path:
+            log.warning(f"Skipping event without a source path: {evt!r}")
+            return
+
+        if WINDOWS and ":" in splitext(evt.src_path)[1]:
+            # An event on the NTFS stream ("c:\folder\file.ext:nxdrive"), it should not happen.
+            # The cause is not yet known, need more data to understand how it happens.
+            log.warning(f"Skipping event on the NTFS stream: {evt!r}")
+            return
+
+        dao, client = self.dao, self.local
+        dst_path = getattr(evt, "dest_path", "")
 
         evt_log = f"Handling watchdog event [{evt.event_type}] on {evt.src_path!r}"
         if dst_path:
