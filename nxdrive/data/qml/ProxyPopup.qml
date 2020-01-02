@@ -61,7 +61,6 @@ NuxeoPopup {
                 width: proxyType.width
                 contentItem: ScaledText {
                     text: qsTr(type) + tl.tr
-                    elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
                 }
                 highlighted: proxyType.highlightedIndex === index

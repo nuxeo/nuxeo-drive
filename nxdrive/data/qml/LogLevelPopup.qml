@@ -32,7 +32,6 @@ NuxeoPopup {
                 width: logLevel.width
                 contentItem: ScaledText {
                     text: modelData
-                    elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
                 }
                 highlighted: logLevel.highlightedIndex === index

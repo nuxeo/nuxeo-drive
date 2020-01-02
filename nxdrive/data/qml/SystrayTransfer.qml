@@ -26,10 +26,11 @@ Rectangle {
                 Layout.rightMargin: 20
                 Layout.topMargin: 5
 
+                // File name
                 ScaledText {
                     text: name
                     Layout.fillWidth: true
-                    pointSize: 14
+                    font.pointSize: point_size * 1.2
                     elide: Text.ElideRight
                 }
 
@@ -42,7 +43,7 @@ Rectangle {
                     // Progression
                     ScaledText {
                         text: progress_metrics + (!download && finalizing ? " • " + qsTr("FINALIZING") + tl.tr : "")
-                        pointSize: 10
+                        font.pointSize: point_size * 0.8
                         color: mediumGray
                     }
                 }

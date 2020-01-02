@@ -16,6 +16,7 @@ Rectangle {
         }
     }
 
+    // The accounts list
     Item {
         visible: hasAccounts
 
@@ -26,13 +27,18 @@ Rectangle {
             leftMargin: 30
         }
 
-        ScaledText { text: qsTr("ACCOUNT_NAME") + tl.tr; color: mediumGray }
+        GridLayout {
+            columns: 2
+            columnSpacing: 5
 
-        AccountsComboBox {
-            id: accountSelect
-            anchors {
-                left: parent.left
-                leftMargin: sync_enabled ? 185 : 105
+            // Accounts label
+            ScaledText { text: qsTr("SELECT_ACCOUNT") + tl.tr }
+
+            // Dropdown list
+            AccountsComboBox {
+                id: accountSelect
+                Layout.maximumWidth: 400
+                Layout.leftMargin: 10
             }
         }
     }
@@ -44,7 +50,7 @@ Rectangle {
         anchors {
             top: parent.top
             left: parent.left
-            topMargin: 70
+            topMargin: 100
             leftMargin: 30
         }
 
@@ -190,7 +196,10 @@ Rectangle {
 
         ScaledText {
             text: qsTr("NO_ACCOUNT") + tl.tr
-            pointSize: 14; font.weight: Font.Bold
+            font{
+                pointSize: point_size * 1.2
+                weight: Font.Bold
+            }
             Layout.alignment: Qt.AlignHCenter
             wrapMode: Text.WordWrap
         }

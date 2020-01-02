@@ -52,7 +52,6 @@ NuxeoPopup {
                 width: deletionBehavior.width
                 contentItem: ScaledText {
                     text: qsTr(type) + tl.tr
-                    elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
                 }
                 highlighted: deletionBehavior.highlightedIndex === index

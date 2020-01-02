@@ -5,7 +5,7 @@ import "icon-font/Icon.js" as MdiFont
 
 NuxeoPopup {
     id: control
-    width: 400 * ratio
+    width: 400
     height: 250
     padding: 20
 

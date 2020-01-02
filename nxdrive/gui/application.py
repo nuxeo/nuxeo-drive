@@ -158,9 +158,11 @@ class Application(QApplication):
         self.current_notification: Optional[Notification] = None
         self.default_tooltip = APP_NAME
 
-        font = QFont("Helvetica, Times", pointSize=12)
+        # Font selection (*.point_size* will be used in QML for Hi-DPI scaling)
+        point_size = 12
+        font = QFont("Helvetica, Times", pointSize=point_size)
         self.setFont(font)
-        self.ratio = sqrt(QFontMetricsF(font).height() / 12)
+        self.point_size = point_size / sqrt(QFontMetricsF(font).height() / point_size)
 
         self.init_gui()
 
@@ -328,7 +330,7 @@ class Application(QApplication):
         context.setContextProperty("manager", self.manager)
         context.setContextProperty("osi", self.osi)
         context.setContextProperty("updater", self.manager.updater)
-        context.setContextProperty("ratio", self.ratio)
+        context.setContextProperty("point_size", self.point_size)
         context.setContextProperty("update_check_delay", Options.update_check_delay)
         context.setContextProperty("sync_enabled", Options.synchronization_enabled)
         context.setContextProperty("isFrozen", Options.is_frozen)

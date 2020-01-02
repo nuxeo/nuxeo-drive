@@ -6,6 +6,10 @@ ComboBox {
     id: control
     property string color: nuxeoBlue
     property int modelWidth
+
+    // No elide by default, sub-components can change that property
+    property int elideStyle: Text.ElideNone
+
     width: modelWidth + 2 * contentItem.leftPadding + 2 * contentItem.rightPadding
     spacing: 10
 
@@ -32,6 +36,7 @@ ComboBox {
         width: control.width
 
         text: control.displayText
+        elide: elideStyle
         color: control.color
         verticalAlignment: Text.AlignVCenter
     }
@@ -57,7 +62,7 @@ ComboBox {
     }
 
     MouseArea {
-        width: contentItem.contentWidth * ratio + contentItem.rightPadding + 10
+        width: contentItem.contentWidth + contentItem.rightPadding + 10
         height: parent.height * 3/2
         anchors {
             verticalCenter: parent.verticalCenter

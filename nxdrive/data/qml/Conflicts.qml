@@ -57,14 +57,17 @@ Rectangle {
 
                 ScaledText {
                     text: qsTr("NO_CONFLICTS_TITLE") + tl.tr
-                    pointSize: 16; font.weight: Font.Bold
+                    font {
+                        pointSize: point_size * 1.4
+                        weight: Font.Bold
+                    }
                     Layout.bottomMargin: 10
                     Layout.alignment: Qt.AlignHCenter
                 }
 
                 ScaledText {
                     text: qsTr("NO_CONFLICTS_BODY") + tl.tr
-                    pointSize: 14
+                    font.pointSize: point_size * 1.2
                     Layout.alignment: Qt.AlignHCenter
                 }
             }
