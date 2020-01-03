@@ -37,7 +37,7 @@ Rectangle {
                 RowLayout {
                     // (Down|Up)load icon
                     IconLabel {
-                        size: 16
+                        size: 12
                         icon: download ? MdiFont.Icon.download : MdiFont.Icon.upload
                     }
                     // Progression
