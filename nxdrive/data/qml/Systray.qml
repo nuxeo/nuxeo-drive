@@ -165,13 +165,13 @@ Rectangle {
 
                 // Icon 3: open local sync root folder
                 IconLabel {
-                    icon: MdiFont.Icon.folder; size: 24
+                    icon: MdiFont.Icon.folder
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                 }
 
                 // Icon 4: open the Direct Transfer window
                 IconLabel {
-                    icon: MdiFont.Icon.cloudUpload; size: 24
+                    icon: MdiFont.Icon.cloudUpload
                     onClicked: api.open_direct_transfer(accountSelect.getRole("uid"))
                 }
 
@@ -385,7 +385,8 @@ Rectangle {
 
             IconLabel {
                 icon: MdiFont.Icon.accountPlus
-                size: 96; Layout.alignment: Qt.AlignHCenter
+                size: 96
+                Layout.alignment: Qt.AlignHCenter
                 onClicked: api.show_settings("Accounts")
             }
 

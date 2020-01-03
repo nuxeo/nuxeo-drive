@@ -16,12 +16,15 @@ NuxeoComboBox {
     }
 
     Component.onCompleted: {
-        if (model.count > 0) { currentIndex = 0; adaptWidth() }
+        if (model.count > 0) {
+            currentIndex = 0
+            adaptWidth()
+        }
     }
 
     function adaptWidth() {
         // Compute the dropdown list width based on the longest item.
-        for(var i = 0; i < EngineModel.count; i++){
+        for (var i = 0; i < EngineModel.count; i++) {
             textMetrics.text = EngineModel.get(i, control.textRole)
             modelWidth = Math.max(textMetrics.width, modelWidth)
         }
