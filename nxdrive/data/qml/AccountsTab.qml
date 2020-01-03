@@ -28,8 +28,13 @@ Rectangle {
         }
 
         GridLayout {
-            columns: 2
+            columns: 3
             columnSpacing: 5
+
+            // Account icon
+            IconLabel {
+                icon: MdiFont.Icon.account
+            }
 
             // Accounts label
             ScaledText { text: qsTr("SELECT_ACCOUNT") + tl.tr }
@@ -38,7 +43,6 @@ Rectangle {
             AccountsComboBox {
                 id: accountSelect
                 Layout.maximumWidth: 400
-                Layout.leftMargin: 10
             }
         }
     }
