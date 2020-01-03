@@ -209,10 +209,7 @@ class FoldersOnly:
 
     def get_personal_space(self) -> "Documents":
         """Retrieve the "Personal space" special folder."""
-        # The personal space (there can only be one workspace by user, else the installation is broken)
-        personal_space = self.remote.documents.get(
-            path=f"/default-domain/UserWorkspaces/{self.remote.user_id}"
-        )
+        personal_space = self.remote.personal_space()
 
         # Alter the title to use "Personal space" instead of "Firstname Lastname"
         personal_space.title = Translator.get("PERSONAL_SPACE")
@@ -230,8 +227,6 @@ class FoldersOnly:
         try:
             yield self.get_personal_space()
         except Exception:
-            # Generally speaking, when there is an error here is because the user is fresh new
-            # and never connected to the web UI. Hence its personal folder does not exists yet.
             path = f"/default-domain/UserWorkspaces/{self.remote.user_id}"
             log.warning(f"Error while retrieving documents on {path!r}", exc_info=True)
             yield Doc(
