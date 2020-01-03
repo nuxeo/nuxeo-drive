@@ -256,6 +256,12 @@ class Remote(Nuxeo):
         self.auth = TokenAuth(token)
         self.client.auth = self.auth
 
+    def personal_space(self) -> Document:
+        """Retrieve the "Personal space" special folder.
+        If the folder does not exist yet, it will be lazily created with that call.
+        """
+        return Document(**self.execute(command="UserWorkspace.Get"))
+
     def download(
         self, url: str, file_path: Path, file_out: Path, digest: str, **kwargs: Any
     ) -> Path:

@@ -36,7 +36,10 @@ def manager_factory(
     """Manager instance with automatic clean-up."""
 
     def _make_manager(
-        home: str = "", with_engine: bool = True, local_folder: Optional[Path] = None
+        home: str = "",
+        with_engine: bool = True,
+        local_folder: Optional[Path] = None,
+        user: Optional[User] = None,
     ):
         manager = Manager(home or tmp())
 
@@ -49,7 +52,7 @@ def manager_factory(
 
         if with_engine:
             conf_folder = (local_folder or manager.home) / "nuxeo-conf"
-            user = user_factory()
+            user = user or user_factory()
             manager.bind_server(
                 conf_folder, nuxeo_url, user.uid, user.password, start_engine=False
             )
@@ -78,9 +81,9 @@ def user_factory(request, server, faker):
         company.lower().replace(",", "_").replace(" ", "_").replace("-", "_")
     )
 
-    def _make_user(password: str = "Administrator"):
+    def _make_user(username: str = "", password: str = "Administrator"):
         first_name, last_name = fake.name().split(" ", 1)
-        username = f"{first_name.lower()}-{randint(1, 99_999)}"
+        username = username or f"{first_name.lower()}-{randint(1, 99_999)}"
         properties = {
             "lastName": last_name,
             "firstName": first_name,
