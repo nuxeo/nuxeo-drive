@@ -434,6 +434,5 @@ class Download(Transfer):
 @dataclass
 class Upload(Transfer):
     transfer_type: str = field(init=False, default="upload")
-    batch: Optional[str] = None
-    idx: Optional[int] = None
+    batch: dict = field(default_factory=dict)
     chunk_size: Optional[int] = None

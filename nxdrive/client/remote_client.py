@@ -13,8 +13,8 @@ from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
 from nuxeo.exceptions import CorruptedFile, HTTPError
+from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, FileBlob, Document
-from nuxeo.uploads import Uploader
 from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtWidgets import QApplication
 
@@ -38,7 +38,6 @@ from ..engine.activity import (
 )
 from ..exceptions import (
     DirectTransferDuplicateFoundError,
-    DownloadPaused,
     NotFound,
     ScrollDescendantsError,
     UploadPaused,
@@ -130,6 +129,7 @@ class Remote(Nuxeo):
         )
 
         self._has_new_trash_service = not version_le(self.client.server_version, "10.1")
+        self._can_use_s3 = "s3" in self.uploads.handlers()
 
         if base_folder is not None:
             base_folder_doc = self.fetch(base_folder)
@@ -176,30 +176,6 @@ class Remote(Nuxeo):
             )
             log.debug(f"Chunk transfer speed was {sizeof_fmt(speed)}/s")
             action.transferred_chunks = 1
-
-        # Handle transfer pause
-        if isinstance(action, DownloadAction):
-            # Get the current download and check if it is still ongoing
-            download = self.dao.get_download(path=action.filepath)
-            if download:
-                # Save the progression
-                download.progress = action.get_percent()
-                self.dao.set_transfer_progress("download", download)
-
-                if download.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
-                    # Reset the last transferred chunk speed to skip its display in the systray
-                    action.last_chunk_transfer_speed = 0
-                    raise DownloadPaused(download.uid or -1)
-        elif isinstance(action, UploadAction):
-            # Get the current upload and check if it is still ongoing
-            upload = self.dao.get_upload(path=action.filepath)
-            if upload and upload.status not in (
-                TransferStatus.ONGOING,
-                TransferStatus.DONE,
-            ):
-                # Reset the last transferred chunk speed to skip its display in the systray
-                action.last_chunk_transfer_speed = 0
-                raise UploadPaused(upload.uid or -1)
 
         # Update the transfer start timer for the next iteration
         if duration > 1_000_000_000:
@@ -463,7 +439,9 @@ class Remote(Nuxeo):
 
                 # Check if the associated batch still exists server-side
                 try:
-                    self.uploads.get(upload.batch, upload.idx)
+                    self.uploads.get(
+                        upload.batch["batchId"], upload.batch["upload_idx"]
+                    )
                 except Exception:
                     log.debug(
                         f"No associated batch found, restarting from zero",
@@ -471,13 +449,13 @@ class Remote(Nuxeo):
                     )
                 else:
                     log.debug(f"Associated batch found, resuming the upload")
-                    batch = Batch(batchId=upload.batch, service=self.uploads)
-                    batch.upload_idx = upload.idx
+                    batch = Batch(service=self.uploads, **upload.batch)
                     chunk_size = upload.chunk_size
 
             if not batch:
                 # Create a new batch and save it in the DB
-                batch = self.uploads.batch()
+                handler = "s3" if self._can_use_s3 else ""
+                batch = self.uploads.batch(handler=handler)
 
             # By default, Options.chunk_size is 20, so chunks will be 20MiB.
             # It can be set to a value between 1 and 20 through the config.ini
@@ -501,16 +479,15 @@ class Remote(Nuxeo):
                     TransferStatus.ONGOING,
                     engine=engine_uid,
                     is_direct_edit=is_direct_edit,
-                    batch=batch.uid,
-                    idx=batch.upload_idx,
+                    batch=batch.as_dict(),
                     chunk_size=chunk_size,
                 )
                 self.dao.save_upload(upload)
 
             # Set those attributes as FileBlob does not have them
             # and they are required for the step 2 of .upload()
-            blob.batch_id = upload.batch
-            blob.fileIdx = upload.idx
+            blob.batch_id = batch.uid
+            blob.fileIdx = batch.upload_idx
 
             uploader: Uploader = batch.get_uploader(
                 blob,
@@ -524,12 +501,6 @@ class Remote(Nuxeo):
             # empty files. This is not what we want: empty files are legits.
             if uploader.chunked:
                 action.progress = chunk_size * len(uploader.blob.uploadedChunkIds)
-
-            log.debug(
-                f"Upload progression is {action.get_percent():.2f}% "
-                f"(data length is {sizeof_fmt(blob.size)}, "
-                f"chunked is {chunked}, chunk size is {sizeof_fmt(chunk_size)})"
-            )
 
             if action.get_percent() < 100.0 or not action.uploaded:
                 if uploader.chunked:
@@ -561,6 +532,9 @@ class Remote(Nuxeo):
                     action.progress += blob.size
 
                     upload.progress = action.get_percent()
+
+            # Complete the upload (this is a no-op when using the default upload provider)
+            batch.complete()
 
             # Transfer is completed, update the status in the database
             upload.status = TransferStatus.DONE

@@ -36,11 +36,13 @@ from ..constants import (
     TransferStatus,
 )
 from ..exceptions import (
+    DownloadPaused,
     EngineInitError,
     InvalidDriveException,
     PairInterrupt,
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
+    UploadPaused,
 )
 from ..objects import DocPairs, Binder, Metrics, EngineDef
 from ..options import Options
@@ -1136,6 +1138,28 @@ class Engine(QObject):
         action = Action.get_current_action()
         if not isinstance(action, FileAction):
             return
+
+        # Get the current download and check if it is still ongoing
+        download = self.dao.get_download(path=action.filepath)
+        if download:
+            # Save the progression
+            download.progress = action.get_percent()
+            self.dao.set_transfer_progress("download", download)
+
+            if download.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
+                # Reset the last transferred chunk speed to skip its display in the systray
+                action.last_chunk_transfer_speed = 0
+                raise DownloadPaused(download.uid or -1)
+        else:
+            # Get the current upload and check if it is still ongoing
+            upload = self.dao.get_upload(path=action.filepath)
+            if upload and upload.status not in (
+                TransferStatus.ONGOING,
+                TransferStatus.DONE,
+            ):
+                # Reset the last transferred chunk speed to skip its display in the systray
+                action.last_chunk_transfer_speed = 0
+                raise UploadPaused(upload.uid or -1)
 
         # Check for a possible lock
         current = self.local.get_path(action.filepath)
