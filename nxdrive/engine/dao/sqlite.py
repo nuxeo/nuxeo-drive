@@ -2101,7 +2101,8 @@ class EngineDAO(ConfigurationDAO):
     def save_upload(self, upload: Upload) -> None:
         """New upload."""
         # Remove non-serializable data, never used elsewhere
-        upload.batch.pop("blobs", None)
+        batch = upload.batch.copy()
+        batch.pop("blobs", None)
 
         sql = (
             "INSERT INTO Uploads "
@@ -2113,7 +2114,7 @@ class EngineDAO(ConfigurationDAO):
             upload.status.value,
             upload.engine,
             upload.is_direct_edit,
-            json.dumps(upload.batch),
+            json.dumps(batch),
             upload.chunk_size,
         )
         with self.lock:
@@ -2187,6 +2188,22 @@ class EngineDAO(ConfigurationDAO):
             c.execute(
                 f"UPDATE {table} SET status = ? WHERE uid = ?",
                 (transfer.status.value, transfer.uid),
+            )
+
+    def update_upload(self, upload: Upload) -> None:
+        """Update a given *upload* with up-to-date Batch details and chunk size.
+        Batch details may contain the so-needed multipart upload ID when using
+        the S3 upload provider.
+        """
+        # Remove non-serializable data, never used elsewhere
+        batch = upload.batch.copy()
+        batch.pop("blobs", None)
+
+        with self.lock:
+            c = self._get_write_connection().cursor()
+            c.execute(
+                "UPDATE Uploads SET batch = ?, chunk_size = ? WHERE uid = ?",
+                (json.dumps(batch), upload.chunk_size, upload.uid),
             )
 
     def remove_transfer(self, nature: str, path: Path) -> None:

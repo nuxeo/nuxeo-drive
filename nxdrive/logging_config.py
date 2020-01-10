@@ -190,6 +190,9 @@ def configure(
     # NXDRIVE-1774: filter out urllib3 logging about "Certificate did not match..."
     logging.getLogger("urllib3").setLevel(logging.CRITICAL)
 
+    # NXDRIVE-1918: filter out botocore logging (too verbose)
+    logging.getLogger("botocore").setLevel(logging.ERROR)
+
 
 def get_handler(name: str):
     for handler in logging.getLogger().handlers:

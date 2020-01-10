@@ -60,5 +60,6 @@ shortcut.Targetpath  # WindowsIntegration._create_shortcut()
 shortcut.WorkingDirectory  # WindowsIntegration._create_shortcut()
 shortcut.IconLocation  # WindowsIntegration._create_shortcut()
 Upload.transfer_type  # Used in QML
+uploader.callback  # Used in Remote.upload()
 userNotificationCenter_didActivateNotification_  # From NotificationDelegator
 userNotificationCenter_shouldPresentNotification_  # From NotificationDelegator

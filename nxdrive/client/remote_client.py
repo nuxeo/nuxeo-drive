@@ -431,16 +431,23 @@ class Remote(Nuxeo):
         try:
             # See if there is already a transfer for this file
             upload = self.dao.get_upload(path=file_path)
+
             if upload:
                 log.debug(f"Retrieved transfer for {file_path!r}: {upload}")
                 if upload.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
                     raise UploadPaused(upload.uid or -1)
 
+                # When fetching for an eventual batch, specifying the file index
+                # is not possible for S3 as there is no blob at the current index
+                # until the S3 upload is done itself and the call to
+                # batch.complete() done.
+                file_idx = upload.batch["upload_idx"]
+                if upload.batch.get("provider", "") == "s3":
+                    file_idx = None
+
                 # Check if the associated batch still exists server-side
                 try:
-                    self.uploads.get(
-                        upload.batch["batchId"], upload.batch["upload_idx"]
-                    )
+                    self.uploads.get(upload.batch["batchId"], file_idx=file_idx)
                 except Exception:
                     log.debug(
                         f"No associated batch found, restarting from zero",
@@ -498,6 +505,7 @@ class Remote(Nuxeo):
                 chunk_size=chunk_size,
                 callback=self.upload_callback,
             )
+            log.debug(f"Using {type(uploader).__name__!r} uploader")
 
             # Update the progress on chunked upload only as the first call to
             # action.progress will set the action.uploaded attr to True for
@@ -507,6 +515,24 @@ class Remote(Nuxeo):
 
             if action.get_percent() < 100.0 or not action.uploaded:
                 if uploader.chunked:
+                    if batch.provider == "s3":
+                        first_time = True
+
+                        def save_s3_details(uploader_):
+                            # For S3, the uploader calls all callbacks before starting
+                            # the actual upload. This is convenient to allow us to save
+                            # the multipart upload ID and accurate chunk size.
+                            nonlocal first_time
+                            if not first_time:
+                                return
+
+                            upload.batch = uploader_.batch.as_dict()
+                            upload.chunk_limit = uploader_.chunk_size
+                            self.dao.update_upload(upload)
+                            first_time = False
+
+                        uploader.callback += (save_s3_details,)
+
                     # Store the chunck size and start time for later transfer speed computation
                     action.chunk_size = chunk_size
                     action.chunk_transfer_start_time_ns = monotonic_ns()
