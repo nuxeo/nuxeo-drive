@@ -698,7 +698,7 @@ class EngineDAO(ConfigurationDAO):
             # SQLite does not support column deletion, we need to recreate
             # a new one and insert back old data.
 
-            # Make a copy of the table the table
+            # Make a copy of the table
             cursor.execute("ALTER TABLE Uploads RENAME TO Uploads_backup;")
 
             # Create again the table, with up-to-date columns
