@@ -129,7 +129,6 @@ class Remote(Nuxeo):
         )
 
         self._has_new_trash_service = not version_le(self.client.server_version, "10.1")
-        self._can_use_s3 = "s3" in self.uploads.handlers()
 
         if base_folder is not None:
             base_folder_doc = self.fetch(base_folder)
@@ -453,8 +452,12 @@ class Remote(Nuxeo):
                     chunk_size = upload.chunk_size
 
             if not batch:
+                # .uploads.handlers() result is cached, so it is convenient to call it each time here
+                # in case the server did not answered correctly the previous time and thus S3 would
+                # be completely disabled because of a one-time server error.
+                handler = "s3" if "s3" in self.uploads.handlers() else ""
+
                 # Create a new batch and save it in the DB
-                handler = "s3" if self._can_use_s3 else ""
                 batch = self.uploads.batch(handler=handler)
 
             # By default, Options.chunk_size is 20, so chunks will be 20MiB.
