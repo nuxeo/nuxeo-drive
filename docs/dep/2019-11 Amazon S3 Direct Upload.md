@@ -1,12 +1,15 @@
 # Amazon S3 Direct Uploads
 
 - Created: 2019-11-18
-- Last-Modified: 2019-11-18
+- Last-Modified: 2020-01-13
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>
 - Reviewer: Yannis Achour <yachour@nuxeo.com>,
             Antoine Taillefer <ataillefer@nuxeo.com>
-- Status: draft
-- Related-Ticket: [NXDRIVE-1621](https://jira.nuxeo.com/browse/NXDRIVE-1621)
+- Status: implemented
+- Related-Ticket: [NXDRIVE-1621](https://jira.nuxeo.com/browse/NXDRIVE-1621),
+                  [NXDRIVE-1918](https://jira.nuxeo.com/browse/NXDRIVE-1918),
+                  [NXPY-138](https://jira.nuxeo.com/browse/NXPY-138),
+                  [NXPY-149](https://jira.nuxeo.com/browse/NXPY-149)
 
 ## Abstract
 
