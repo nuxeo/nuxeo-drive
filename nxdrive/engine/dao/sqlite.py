@@ -2,6 +2,7 @@
 """
 Query formatting in this file is based on http://www.sqlstyle.guide/
 """
+import json
 import os
 import sys
 from sqlite3 import (
@@ -150,7 +151,8 @@ class AutoRetryCursor(Cursor):
                 return super().execute(*args, **kwargs)
             except OperationalError as exc:
                 log.info(
-                    f"Retry locked database #{count}, args={args!r}, kwargs={kwargs!r}"
+                    f"Retry locked database #{count}, args={args!r}, kwargs={kwargs!r}",
+                    exc_info=True,
                 )
                 if count > 5:
                     raise exc
@@ -635,7 +637,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 6
+        return 7
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -691,6 +693,32 @@ class EngineDAO(ConfigurationDAO):
                 # so we can bypass the error
                 pass
             self.store_int(SCHEMA_VERSION, 6)
+        if version < 7:
+            # Remove the no-more-used *idx* field of Uploads.
+            # SQLite does not support column deletion, we need to recreate
+            # a new one and insert back old data.
+
+            # Make a copy of the table
+            cursor.execute("ALTER TABLE Uploads RENAME TO Uploads_backup;")
+
+            # Create again the table, with up-to-date columns
+            self._create_transfer_tables(cursor)
+
+            # Insert back old uploads with up-to-date fields
+            for upload in cursor.execute("SELECT * FROM Uploads_backup"):
+                # With the new Amazon S3 capability, the *batch* filed needs to be updated.
+                # It was a simple batch ID (str), this is now batch details (a serialized dict).
+                batch = json.dumps(
+                    {"batchId": upload["batch"], "upload_idx": upload["idx"]}
+                )
+                cursor.execute(
+                    "UPDATE Uploads SET batch = ? WHERE uid = ?", (batch, upload["uid"])
+                )
+
+            # Delete the table
+            cursor.execute("DROP TABLE Uploads_backup;")
+
+            self.store_int(SCHEMA_VERSION, 7)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
@@ -725,7 +753,6 @@ class EngineDAO(ConfigurationDAO):
             "    progress       REAL,"
             "    doc_pair       INTEGER     UNIQUE,"
             "    batch          VARCHAR,"
-            "    idx            INTEGER,"
             "    chunk_size     INTEGER,"
             "    PRIMARY KEY (uid)"
             ")"
@@ -2007,8 +2034,7 @@ class EngineDAO(ConfigurationDAO):
                 is_direct_edit=res.is_direct_edit,
                 progress=res.progress,
                 doc_pair=res.doc_pair,
-                batch=res.batch,
-                idx=res.idx,
+                batch=json.loads(res.batch),
                 chunk_size=res.chunk_size,
             )
 
@@ -2074,23 +2100,29 @@ class EngineDAO(ConfigurationDAO):
 
     def save_upload(self, upload: Upload) -> None:
         """New upload."""
+        # Remove non-serializable data, never used elsewhere
+        batch = {k: v for k, v in upload.batch.items() if k != "blobs"}
+
         sql = (
             "INSERT INTO Uploads "
-            "(path, status, engine, is_direct_edit, batch, idx, chunk_size)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?)"
+            "(path, status, engine, is_direct_edit, batch, chunk_size)"
+            " VALUES (?, ?, ?, ?, ?, ?)"
         )
         values = (
             upload.path,
             upload.status.value,
             upload.engine,
             upload.is_direct_edit,
-            upload.batch,
-            upload.idx,
+            json.dumps(batch),
             upload.chunk_size,
         )
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(sql, values)
+
+            # Important: update the upload UID attr
+            upload.uid = int(c.execute("SELECT last_insert_rowid()").fetchone()[0])
+
             self.transferUpdated.emit()
 
     def pause_transfer(self, nature: str, uid: int, progress: float) -> None:

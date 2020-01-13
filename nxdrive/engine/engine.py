@@ -890,6 +890,8 @@ class Engine(QObject):
     def stop(self) -> None:
         log.debug(f"Engine {self.uid} is stopping")
 
+        self.dao.suspend_transfers()
+
         # Make a backup in case something happens
         self.dao.save_backup()
 

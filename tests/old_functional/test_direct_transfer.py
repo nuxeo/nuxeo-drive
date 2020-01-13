@@ -355,12 +355,7 @@ class DirectTransfer:
                 uploads = list(dao.get_uploads())
                 assert len(uploads) == 1
                 upload = uploads[0]
-                expected_status = (
-                    TransferStatus.ONGOING
-                    if Options.synchronization_enabled
-                    else TransferStatus.DONE
-                )
-                assert upload.status == expected_status
+                assert upload.status == TransferStatus.DONE
 
                 # The file exists on the server but has no blob yet
                 assert not self.has_blob()
@@ -440,12 +435,7 @@ class DirectTransfer:
                 uploads = list(dao.get_uploads())
                 assert len(uploads) == 1
                 upload = uploads[0]
-                expected_status = (
-                    TransferStatus.ONGOING
-                    if Options.synchronization_enabled
-                    else TransferStatus.DONE
-                )
-                assert upload.status == expected_status
+                assert upload.status == TransferStatus.DONE
 
                 # The file exists on the server but has no blob yet
                 assert not self.has_blob()
