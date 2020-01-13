@@ -32,7 +32,6 @@ from typing import (
 )
 
 from PyQt5.QtCore import QObject, pyqtSignal
-from nuxeo.models import Batch
 
 from .utils import fix_db, restore_backup, save_backup
 from ...client.local import FileInfo
@@ -2035,7 +2034,7 @@ class EngineDAO(ConfigurationDAO):
                 is_direct_edit=res.is_direct_edit,
                 progress=res.progress,
                 doc_pair=res.doc_pair,
-                batch=Batch(**json.loads(res.batch)),
+                batch=json.loads(res.batch),
                 chunk_size=res.chunk_size,
             )
 
@@ -2102,8 +2101,7 @@ class EngineDAO(ConfigurationDAO):
     def save_upload(self, upload: Upload) -> None:
         """New upload."""
         # Remove non-serializable data, never used elsewhere
-        batch = upload.batch.as_dict()
-        batch.pop("blobs", None)
+        batch = {k: v for k, v in upload.batch.items() if k != "blobs"}
 
         sql = (
             "INSERT INTO Uploads "
@@ -2121,6 +2119,10 @@ class EngineDAO(ConfigurationDAO):
         with self.lock:
             c = self._get_write_connection().cursor()
             c.execute(sql, values)
+
+            # Important: update the upload UID attr
+            upload.uid = int(c.execute("SELECT last_insert_rowid()").fetchone()[0])
+
             self.transferUpdated.emit()
 
     def pause_transfer(self, nature: str, uid: int, progress: float) -> None:
@@ -2189,22 +2191,6 @@ class EngineDAO(ConfigurationDAO):
             c.execute(
                 f"UPDATE {table} SET status = ? WHERE uid = ?",
                 (transfer.status.value, transfer.uid),
-            )
-
-    def update_upload(self, upload: Upload) -> None:
-        """Update a given *upload* with up-to-date Batch details and chunk size.
-        Batch details may contain the so-needed multipart upload ID when using
-        the S3 upload provider.
-        """
-        # Remove non-serializable data, never used elsewhere
-        batch = upload.batch.as_dict()
-        batch.pop("blobs", None)
-
-        with self.lock:
-            c = self._get_write_connection().cursor()
-            c.execute(
-                "UPDATE Uploads SET batch = ?, chunk_size = ? WHERE uid = ?",
-                (json.dumps(batch), upload.chunk_size, upload.uid),
             )
 
     def remove_transfer(self, nature: str, path: Path) -> None:

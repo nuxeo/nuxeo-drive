@@ -441,11 +441,15 @@ class Remote(Nuxeo):
                 # is not possible for S3 as there is no blob at the current index
                 # until the S3 upload is done itself and the call to
                 # batch.complete() done.
-                file_idx = None if upload.batch.is_s3() else upload.batch.upload_idx
+                file_idx = (
+                    None
+                    if upload.batch["provider"] == "s3"
+                    else upload.batch["upload_idx"]
+                )
 
                 # Check if the associated batch still exists server-side
                 try:
-                    self.uploads.get(upload.batch.uid, file_idx=file_idx)
+                    self.uploads.get(upload.batch["batchId"], file_idx=file_idx)
                 except Exception:
                     log.debug(
                         f"No associated batch found, restarting from zero",
@@ -453,8 +457,7 @@ class Remote(Nuxeo):
                     )
                 else:
                     log.debug(f"Associated batch found, resuming the upload")
-                    batch = upload.batch
-                    batch.service = self.uploads
+                    batch = Batch(service=self.uploads, **upload.batch)
                     chunk_size = upload.chunk_size
 
             if not batch:
@@ -480,19 +483,6 @@ class Remote(Nuxeo):
             engine_uid = params.pop("engine_uid", None)
             is_direct_edit = params.pop("is_direct_edit", False)
 
-            if not upload:
-                # Add an upload entry in the database
-                upload = Upload(
-                    None,
-                    file_path,
-                    TransferStatus.ONGOING,
-                    engine=engine_uid,
-                    is_direct_edit=is_direct_edit,
-                    batch=batch,
-                    chunk_size=chunk_size,
-                )
-                self.dao.save_upload(upload)
-
             # Set those attributes as FileBlob does not have them
             # and they are required for the step 2 of .upload()
             blob.batch_id = batch.uid
@@ -505,6 +495,19 @@ class Remote(Nuxeo):
                 callback=self.upload_callback,
             )
             log.debug(f"Using {type(uploader).__name__!r} uploader")
+
+            if not upload:
+                # Add an upload entry in the database
+                upload = Upload(
+                    None,
+                    file_path,
+                    TransferStatus.ONGOING,
+                    engine=engine_uid,
+                    is_direct_edit=is_direct_edit,
+                    batch=batch.as_dict(),
+                    chunk_size=chunk_size,
+                )
+                self.dao.save_upload(upload)
 
             # Update the progress on chunked upload only as the first call to
             # action.progress will set the action.uploaded attr to True for
@@ -520,11 +523,9 @@ class Remote(Nuxeo):
                     if batch.is_s3():
                         # For S3, the uploader yields itself before starting
                         # the actual upload. This is convenient to allow us to save
-                        # the multipart upload ID and accurate chunk size.
-                        fresh_uploader = next(iterator)
-                        upload.batch = fresh_uploader.batch
-                        chunk_size = upload.chunk_size = fresh_uploader.chunk_size
-                        self.dao.update_upload(upload)
+                        # the multipart upload ID and other stuff.
+                        # But we do not need it :)
+                        next(iterator)
 
                     # Store the chunck size and start time for later transfer speed computation
                     action.chunk_size = chunk_size
