@@ -32,6 +32,7 @@ from typing import (
 )
 
 from PyQt5.QtCore import QObject, pyqtSignal
+from nuxeo.models import Batch
 
 from .utils import fix_db, restore_backup, save_backup
 from ...client.local import FileInfo
@@ -2034,7 +2035,7 @@ class EngineDAO(ConfigurationDAO):
                 is_direct_edit=res.is_direct_edit,
                 progress=res.progress,
                 doc_pair=res.doc_pair,
-                batch=json.loads(res.batch),
+                batch=Batch(**json.loads(res.batch)),
                 chunk_size=res.chunk_size,
             )
 
@@ -2101,7 +2102,7 @@ class EngineDAO(ConfigurationDAO):
     def save_upload(self, upload: Upload) -> None:
         """New upload."""
         # Remove non-serializable data, never used elsewhere
-        batch = upload.batch.copy()
+        batch = upload.batch.as_dict()
         batch.pop("blobs", None)
 
         sql = (
@@ -2196,7 +2197,7 @@ class EngineDAO(ConfigurationDAO):
         the S3 upload provider.
         """
         # Remove non-serializable data, never used elsewhere
-        batch = upload.batch.copy()
+        batch = upload.batch.as_dict()
         batch.pop("blobs", None)
 
         with self.lock:

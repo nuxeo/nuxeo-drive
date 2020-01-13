@@ -424,7 +424,7 @@ class Remote(Nuxeo):
         if mime_type:
             blob.mimetype = mime_type
 
-        batch = None
+        batch: Optional[Batch] = None
         chunk_size = None
         upload: Optional[Upload] = None
 
@@ -441,13 +441,11 @@ class Remote(Nuxeo):
                 # is not possible for S3 as there is no blob at the current index
                 # until the S3 upload is done itself and the call to
                 # batch.complete() done.
-                file_idx = upload.batch["upload_idx"]
-                if upload.batch.get("provider", "") == "s3":
-                    file_idx = None
+                file_idx = None if upload.batch.is_s3() else upload.batch.upload_idx
 
                 # Check if the associated batch still exists server-side
                 try:
-                    self.uploads.get(upload.batch["batchId"], file_idx=file_idx)
+                    self.uploads.get(upload.batch.uid, file_idx=file_idx)
                 except Exception:
                     log.debug(
                         f"No associated batch found, restarting from zero",
@@ -455,12 +453,13 @@ class Remote(Nuxeo):
                     )
                 else:
                     log.debug(f"Associated batch found, resuming the upload")
-                    batch = Batch(service=self.uploads, **upload.batch)
+                    batch = upload.batch
+                    batch.service = self.uploads
                     chunk_size = upload.chunk_size
 
             if not batch:
                 # .uploads.handlers() result is cached, so it is convenient to call it each time here
-                # in case the server did not answered correctly the previous time and thus S3 would
+                # in case the server did not answer correctly the previous time and thus S3 would
                 # be completely disabled because of a one-time server error.
                 handler = "s3" if "s3" in self.uploads.handlers() else ""
 
@@ -489,7 +488,7 @@ class Remote(Nuxeo):
                     TransferStatus.ONGOING,
                     engine=engine_uid,
                     is_direct_edit=is_direct_edit,
-                    batch=batch.as_dict(),
+                    batch=batch,
                     chunk_size=chunk_size,
                 )
                 self.dao.save_upload(upload)
@@ -515,30 +514,24 @@ class Remote(Nuxeo):
 
             if action.get_percent() < 100.0 or not action.uploaded:
                 if uploader.chunked:
-                    if batch.provider == "s3":
-                        first_time = True
+                    # Save the iterator that will actually upload chunks
+                    iterator = uploader.iter_upload()
 
-                        def save_s3_details(uploader_):
-                            # For S3, the uploader calls all callbacks before starting
-                            # the actual upload. This is convenient to allow us to save
-                            # the multipart upload ID and accurate chunk size.
-                            nonlocal first_time
-                            if not first_time:
-                                return
-
-                            upload.batch = uploader_.batch.as_dict()
-                            upload.chunk_limit = uploader_.chunk_size
-                            self.dao.update_upload(upload)
-                            first_time = False
-
-                        uploader.callback += (save_s3_details,)
+                    if batch.is_s3():
+                        # For S3, the uploader yields itself before starting
+                        # the actual upload. This is convenient to allow us to save
+                        # the multipart upload ID and accurate chunk size.
+                        fresh_uploader = next(iterator)
+                        upload.batch = fresh_uploader.batch
+                        chunk_size = upload.chunk_size = fresh_uploader.chunk_size
+                        self.dao.update_upload(upload)
 
                     # Store the chunck size and start time for later transfer speed computation
                     action.chunk_size = chunk_size
                     action.chunk_transfer_start_time_ns = monotonic_ns()
 
                     # If there is an UploadError, we catch it from the processor
-                    for _ in uploader.iter_upload():
+                    for _ in iterator:
                         # Here 0 may happen when doing a single upload
                         action.progress += uploader.chunk_size or 0
 
@@ -562,8 +555,9 @@ class Remote(Nuxeo):
 
                     upload.progress = action.get_percent()
 
-            # Complete the upload (this is a no-op when using the default upload provider)
-            batch.complete()
+            if batch.is_s3():
+                # Complete the S3 upload
+                batch.complete()
 
             # Transfer is completed, update the status in the database
             upload.status = TransferStatus.DONE

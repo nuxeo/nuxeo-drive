@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass, field
 from dateutil import parser
 from dateutil.tz import tzlocal
+from nuxeo.models import Batch
 
 from .constants import TransferStatus
 from .exceptions import DriveError
@@ -434,5 +435,5 @@ class Download(Transfer):
 @dataclass
 class Upload(Transfer):
     transfer_type: str = field(init=False, default="upload")
-    batch: dict = field(default_factory=dict)
+    batch: Batch = field(default_factory=Batch)
     chunk_size: Optional[int] = None
