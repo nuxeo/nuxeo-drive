@@ -38,6 +38,7 @@ from ..engine.activity import (
 )
 from ..exceptions import (
     DirectTransferDuplicateFoundError,
+    DownloadPaused,
     NotFound,
     ScrollDescendantsError,
     UploadPaused,
@@ -175,6 +176,30 @@ class Remote(Nuxeo):
             )
             log.debug(f"Chunk transfer speed was {sizeof_fmt(speed)}/s")
             action.transferred_chunks = 1
+
+        # Handle transfer pause
+        if isinstance(action, DownloadAction):
+            # Get the current download and check if it is still ongoing
+            download = self.dao.get_download(path=action.filepath)
+            if download:
+                # Save the progression
+                download.progress = action.get_percent()
+                self.dao.set_transfer_progress("download", download)
+
+                if download.status not in (TransferStatus.ONGOING, TransferStatus.DONE):
+                    # Reset the last transferred chunk speed to skip its display in the systray
+                    action.last_chunk_transfer_speed = 0
+                    raise DownloadPaused(download.uid or -1)
+        elif isinstance(action, UploadAction):
+            # Get the current upload and check if it is still ongoing
+            upload = self.dao.get_upload(path=action.filepath)
+            if upload and upload.status not in (
+                TransferStatus.ONGOING,
+                TransferStatus.DONE,
+            ):
+                # Reset the last transferred chunk speed to skip its display in the systray
+                action.last_chunk_transfer_speed = 0
+                raise UploadPaused(upload.uid or -1)
 
         # Update the transfer start timer for the next iteration
         if duration > 1_000_000_000:
@@ -443,7 +468,7 @@ class Remote(Nuxeo):
                 # batch.complete() done.
                 file_idx = (
                     None
-                    if upload.batch["provider"] == "s3"
+                    if upload.batch.get("provider", "") == "s3"
                     else upload.batch["upload_idx"]
                 )
 

@@ -452,11 +452,11 @@ class TestUpload(OneUserTest):
             # The file should be present on the server
             assert self.remote_1.exists(f"/{file}")
 
-            # There should be 1 upload with ONGOING transfer status
+            # There should be 1 upload with DONE transfer status
             uploads = list(dao.get_uploads())
             assert len(uploads) == 1
             upload = uploads[0]
-            assert upload.status == TransferStatus.ONGOING
+            assert upload.status == TransferStatus.DONE
 
             # And throw an error
             stack = (
