@@ -52,8 +52,8 @@ chardet==3.0.4 \
 distro==1.4.0 ; sys_platform == "linux" \
     --hash=sha256:362dde65d846d23baee4b5c058c8586f219b5a54be1cf5fc6ff55c4578392f57 \
     --hash=sha256:eedf82a470ebe7d010f1872c17237c79ab04097948800029994fa458e52fb4b4
-docutils==0.15.2 \
-    --hash=sha256:6c4f696463b79f1fb8ba0c594b63840ebd41f059e92b31957c46b74a4599b6d0 \
+docutils==0.16 \
+    --hash=sha256:0c5b78adfbf7762415433f5515cd5c9e762339e23369dbe8000d84a4bf4ab3af \
     --hash=sha256:c2de3a60e9e7d07be26b7f2b00ca0309c207e06c100f9cc2a94931fc75a478fc
     # via boto3
 dukpy==0.2.2 \
