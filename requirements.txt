@@ -153,7 +153,7 @@ pyobjc-core==5.2 ; sys_platform == "darwin" \
     # via pyobjc-framework-Cocoa
 pyobjc-framework-Cocoa==5.2 ; sys_platform == "darwin" \
     --hash=sha256:d72d48cf2e24c2f540a1b1348a880fde87b1f8cb7e1be5e95550a306152d48d0
-pyobjc-framework-CoreServices==5.2 ; sys_platform == "darwin" \
+pyobjc-framework-CoreServices==6.1 ; sys_platform == "darwin" \
     --hash=sha256:6faa326afa2a77bdd8ea182d4ae5d5095089d8ec9e1605ce3c82546fe396f986
 pyobjc-framework-FSEvents==5.2 ; sys_platform == "darwin" \
     --hash=sha256:bf4cf7c8ee0b3f5d5f3842a0c4b1a4148398fd4aac0f6ca5ce967477e289af1b
