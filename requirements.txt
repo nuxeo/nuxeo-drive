@@ -148,7 +148,7 @@ pycryptodomex==3.9.4 \
     --hash=sha256:0943b65fb41b7403a9def6214061fdd9ab9afd0bbc581e553c72eebe60bded36 \
     --hash=sha256:11ce5fec5990e34e3981ed14897ba601c83957b577d77d395f1f8f878a179f98 \
     --hash=sha256:22d970cee5c096b9123415e183ae03702b2cd4d3ba3f0ced25c4e1aba3967167
-pyobjc-core==5.2 ; sys_platform == "darwin" \
+pyobjc-core==6.1 ; sys_platform == "darwin" \
     --hash=sha256:046449f510c1f33d41bdd0d4c8eb2f084593a2ee4573a25d604bdccabb7a909e
     # via pyobjc-framework-Cocoa
 pyobjc-framework-Cocoa==5.2 ; sys_platform == "darwin" \
