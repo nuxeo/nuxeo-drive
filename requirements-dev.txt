@@ -5,14 +5,15 @@ altgraph==0.16.1 \
 future==0.18.2; sys_platform == "win32" \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via pefile
-macholib==1.11 ; sys_platform == "darwin" \
-    --hash=sha256:ac02d29898cf66f27510d8f39e9112ae00590adb4a48ec57b25028d6962b1ae1
+macholib==1.13 ; sys_platform == "darwin" \
+    --hash=sha256:c72bda118afe7799570fcb4114315d5c9c5416e48eacf1198da39b4d77201559 \
+    --hash=sha256:b71afea242d5ad4caacbdb79d80e75815d033fbc30f45954b2f3397f39683fd6
     # via pyinstaller
 pefile==2019.4.18 ; sys_platform == "win32" \
     --hash=sha256:a5d6e8305c6b210849b47a6174ddf9c452b2888340b8177874b862ba6c207645
     # via pyinstaller
-tools/deps/pyinstaller-3f57c91.zip \
-    --hash=sha256:b4e1e3f4d84efbc4a22ef12f8d467391b33a8816d448da1f0fe6bbeb00995e89
+pyinstaller==3.6 \
+    --hash=sha256:3730fa80d088f8bb7084d32480eb87cbb4ddb64123363763cf8f2a1378c1c4b7
 pywin32-ctypes==0.2.0 ; sys_platform == "win32" \
     --hash=sha256:9dc2d991b3479cc2df15930958b674a48a227d5361d413827a4cfd0b5876fc98
     # via pyinstaller
