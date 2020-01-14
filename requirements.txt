@@ -160,7 +160,7 @@ pyobjc-framework-FSEvents==5.2 ; sys_platform == "darwin" \
     # via watchdog
 pyobjc-framework-ScriptingBridge==5.2 ; sys_platform == "darwin" \
     --hash=sha256:74c01c439b5ca1a2b9811010d27dda4f4b1e2e76bbf9b9e8a0f5ebaa69d999fe
-pyobjc-framework-SystemConfiguration==5.2 ; sys_platform == "darwin" \
+pyobjc-framework-SystemConfiguration==6.1 ; sys_platform == "darwin" \
     --hash=sha256:b301db045b58df0a5052aacaa26e1eed9e19e8f5cd011991937982dc6dcc9f79
     # via pypac
 pypac==0.13.0 \
