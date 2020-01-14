@@ -146,7 +146,7 @@ check_vars() {
 
 install_deps() {
     echo ">>> Installing requirements"
-    ${PIP} pip
+    ${PIP} -r requirements-pip.txt
     ${PIP} -r requirements.txt
     ${PIP} -r requirements-dev.txt
     if [ "${INSTALL_RELEASE_ARG:=0}" != "1" ]; then
