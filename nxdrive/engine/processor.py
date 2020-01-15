@@ -6,12 +6,10 @@ import sys
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
-from urllib3.exceptions import MaxRetryError
 from threading import Lock
 from time import monotonic_ns, sleep
-from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
-from PyQt5.QtCore import pyqtSignal
 from nuxeo.exceptions import (
     CorruptedFile,
     Forbidden,
@@ -19,8 +17,9 @@ from nuxeo.exceptions import (
     Unauthorized,
     UploadError,
 )
+from PyQt5.QtCore import pyqtSignal
+from urllib3.exceptions import MaxRetryError
 
-from .workers import EngineWorker
 from ..client.local import FileInfo
 from ..constants import (
     CONNECTION_ERROR,
@@ -33,18 +32,19 @@ from ..constants import (
 )
 from ..exceptions import (
     DirectTransferDuplicateFoundError,
+    DownloadPaused,
     DuplicationDisabledError,
     NotFound,
     PairInterrupt,
     ParentNotSynced,
     ThreadInterrupt,
     UnknownDigest,
-    DownloadPaused,
     UploadPaused,
 )
 from ..objects import DocPair, RemoteFileInfo
 from ..options import Options
 from ..utils import is_generated_tmp_file, lock_path, safe_filename, unlock_path
+from .workers import EngineWorker
 
 if TYPE_CHECKING:
     from .engine import Engine  # noqa
@@ -58,8 +58,8 @@ class Processor(EngineWorker):
     pairSyncStarted = pyqtSignal(object)
     pairSyncEnded = pyqtSignal(object)
     path_locker = Lock()
-    soft_locks: Dict[str, Dict[Path, bool]] = dict()
-    readonly_locks: Dict[str, Dict[Path, List[int]]] = dict()
+    soft_locks: Dict[str, Dict[Path, bool]] = {}
+    readonly_locks: Dict[str, Dict[Path, List[int]]] = {}
     readonly_locker = Lock()
 
     _current_doc_pair: Optional[DocPair] = None
@@ -76,14 +76,14 @@ class Processor(EngineWorker):
         path = Path(str(path).lower())
         with Processor.path_locker:
             if self.engine.uid not in Processor.soft_locks:
-                Processor.soft_locks[self.engine.uid] = dict()
+                Processor.soft_locks[self.engine.uid] = {}
             else:
                 Processor.soft_locks[self.engine.uid].pop(path, None)
 
     def _unlock_readonly(self, path: Path) -> None:
         with Processor.readonly_locker:
             if self.engine.uid not in Processor.readonly_locks:
-                Processor.readonly_locks[self.engine.uid] = dict()
+                Processor.readonly_locks[self.engine.uid] = {}
 
             if path in Processor.readonly_locks[self.engine.uid]:
                 log.debug(f"Readonly unlock: increase count on {path!r}")
@@ -96,7 +96,7 @@ class Processor(EngineWorker):
     def _lock_readonly(self, path: Path) -> None:
         with Processor.readonly_locker:
             if self.engine.uid not in Processor.readonly_locks:
-                Processor.readonly_locks[self.engine.uid] = dict()
+                Processor.readonly_locks[self.engine.uid] = {}
 
             if path not in Processor.readonly_locks[self.engine.uid]:
                 log.info(f"Readonly lock: cannot find reference on {path!r}")
@@ -117,7 +117,7 @@ class Processor(EngineWorker):
         path = Path(str(path).lower())
         with Processor.path_locker:
             if self.engine.uid not in Processor.soft_locks:
-                Processor.soft_locks[self.engine.uid] = dict()
+                Processor.soft_locks[self.engine.uid] = {}
             if path in Processor.soft_locks[self.engine.uid]:
                 raise PairInterrupt
             else:

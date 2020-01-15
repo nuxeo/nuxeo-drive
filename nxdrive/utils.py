@@ -18,6 +18,7 @@ from logging import getLogger
 from pathlib import Path
 from threading import get_ident
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -25,7 +26,6 @@ from typing import (
     Iterator,
     Optional,
     Tuple,
-    TYPE_CHECKING,
     Union,
 )
 from urllib.parse import urlsplit, urlunsplit
@@ -982,10 +982,12 @@ def parse_protocol_url(url_string: str) -> Optional[Dict[str, str]]:
     if cmd == "edit":
         return parse_edit_protocol(parsed_url, url_string)
     elif cmd == "token":
-        return dict(
-            command=cmd, token=parsed_url["token"], username=parsed_url["username"]
-        )
-    return dict(command=cmd, filepath=parsed_url["path"])
+        return {
+            "command": cmd,
+            "token": parsed_url["token"],
+            "username": parsed_url["username"],
+        }
+    return {"command": cmd, "filepath": parsed_url["path"]}
 
 
 def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str, str]:
@@ -1004,15 +1006,15 @@ def parse_edit_protocol(parsed_url: Dict[str, str], url_string: str) -> Dict[str
 
     server_url = f"{scheme}://{parsed_url.get('server')}"
 
-    return dict(
-        command="download_edit",
-        server_url=server_url,
-        user=parsed_url["username"],
-        repo=parsed_url["repo"],
-        doc_id=parsed_url["docid"],
-        filename=parsed_url["filename"],
-        download_url=parsed_url["download"],
-    )
+    return {
+        "command": "download_edit",
+        "server_url": server_url,
+        "user": parsed_url["username"],
+        "repo": parsed_url["repo"],
+        "doc_id": parsed_url["docid"],
+        "filename": parsed_url["filename"],
+        "download_url": parsed_url["download"],
+    }
 
 
 def set_path_readonly(path: Path) -> None:
