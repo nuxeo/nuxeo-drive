@@ -66,9 +66,13 @@ def skip_tests(reason) {
     currentBuild.result = "ABORTED"
 }
 
-// Do not launch anything if we are on a Work In Progress branch
 if (env.BRANCH_NAME.startsWith('wip-')) {
+    // Do not launch anything if we are on a Work In Progress branch
     skip_tests('WIP')
+    return
+} else if (env.BRANCH_NAME.startsWith('dependabot')) {
+    // Do not launch anything if it is only dependencies upgrade
+    skip_tests('DEPS')
     return
 }
 
