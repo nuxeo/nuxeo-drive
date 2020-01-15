@@ -16,9 +16,9 @@ from nxdrive.constants import TransferStatus
 from nxdrive.options import Options
 from requests.exceptions import ConnectionError
 
-from .common import OneUserTest, OneUserNoSync
 from .. import ensure_no_exception
 from ..markers import not_windows
+from .common import OneUserNoSync, OneUserTest
 
 
 class DirectTransfer:
@@ -67,8 +67,7 @@ class DirectTransfer:
             )
         except Exception:
             return False
-        else:
-            return bool(doc.properties.get("file:content"))
+        return bool(doc.properties.get("file:content"))
 
     def no_uploads(self) -> bool:
         """Check there is no ongoing uploads."""
@@ -548,8 +547,7 @@ class DirectTransferFolder:
             doc = self.root_remote.documents.get(path=f"{self.ws.path}/{file}")
         except Exception:
             return False
-        else:
-            return bool(doc.properties.get("file:content"))
+        return bool(doc.properties.get("file:content"))
 
     def sync_and_check(self) -> None:
         # Let time for uploads to be planned
