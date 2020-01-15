@@ -5,7 +5,7 @@ altgraph==0.17 \
 future==0.18.2; sys_platform == "win32" \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via pefile
-macholib==1.13 ; sys_platform == "darwin" \
+macholib==1.14 ; sys_platform == "darwin" \
     --hash=sha256:c72bda118afe7799570fcb4114315d5c9c5416e48eacf1198da39b4d77201559 \
     --hash=sha256:b71afea242d5ad4caacbdb79d80e75815d033fbc30f45954b2f3397f39683fd6
     # via pyinstaller
