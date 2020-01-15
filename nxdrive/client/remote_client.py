@@ -489,7 +489,7 @@ class Remote(Nuxeo):
                 # .uploads.handlers() result is cached, so it is convenient to call it each time here
                 # in case the server did not answer correctly the previous time and thus S3 would
                 # be completely disabled because of a one-time server error.
-                handler = "s3" if "s3" in self.uploads.handlers() else ""
+                handler = "s3" if self.uploads.has_s3() else ""
 
                 # Create a new batch and save it in the DB
                 batch = self.uploads.batch(handler=handler)
