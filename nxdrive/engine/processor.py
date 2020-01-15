@@ -312,11 +312,16 @@ class Processor(EngineWorker):
                 self._postpone_pair(doc_pair, "MAX_RETRY_ERROR")
             except HTTPError as exc:
                 if exc.status == 404:
-                    # We saw it happened once a migration is done.
-                    # Nuxeo kept the document reference but it does
-                    # not exist physically anywhere.
-                    log.info(f"The document does not exist anymore: {doc_pair!r}")
-                    self.dao.remove_state(doc_pair)
+                    if doc_pair.local_state == "direct":
+                        # Happening while Direct Transfer'ring a document,
+                        # that means the parent folder is not yet created. Postpone.
+                        self._postpone_pair(doc_pair, "Parent not yet synced")
+                    else:
+                        # We saw it happened once a migration is done.
+                        # Nuxeo kept the document reference but it does
+                        # not exist physically anywhere.
+                        log.info(f"The document does not exist anymore: {doc_pair!r}")
+                        self.dao.remove_state(doc_pair)
                 elif exc.status == 409:  # Conflict
                     # It could happen on multiple files drag'n drop
                     # starting with identical characters.
