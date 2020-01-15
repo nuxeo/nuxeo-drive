@@ -316,14 +316,17 @@ def get_tree_list(
 
     Note: this function cannot be decorated with lru_cache().
     """
+    # First, yield the folder itself
+    yield remote_ref, path
+    remote_ref += f"/{path.name}"
+
+    # Then, yield its children
     with os.scandir(path) as it:
         for entry in it:
             if entry.is_file():
                 yield remote_ref, Path(entry.path)
             elif entry.is_dir():
-                local_path = Path(entry.path)
-                yield remote_ref, local_path
-                yield from get_tree_list(local_path, f"{remote_ref}/{entry.name}")
+                yield from get_tree_list(Path(entry.path), remote_ref)
 
 
 def get_tree_size(path: Path) -> int:

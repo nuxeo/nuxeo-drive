@@ -457,10 +457,25 @@ def test_get_tree_list():
     location = nxdrive.utils.normalized_path(__file__).parent.parent
     path = location / "resources"
     remote_ref = f"{env.WS_DIR}/foo"
-    for ref, local_path in nxdrive.utils.get_tree_list(path, remote_ref):
-        assert ref.startswith(remote_ref)
-        assert "\\" not in ref
-        assert isinstance(local_path, Path)
+    tree = list(nxdrive.utils.get_tree_list(path, remote_ref))
+
+    # Check we got all paths
+    expected_paths = [path] + sorted(path.glob("**/*"))
+    guessed_paths = sorted(p for _, p in tree)
+    assert guessed_paths == expected_paths
+
+    # Check we got correct remote paths
+    expected_rpaths = [remote_ref]
+    rpath = f"{remote_ref}/{path.name}"
+    for p in expected_paths[1:]:
+        parent = p.relative_to(path).parent.as_posix()
+        if parent != ".":
+            expected_rpaths.append(f"{rpath}/{parent}")
+        else:
+            expected_rpaths.append(rpath)
+    expected_rpaths = sorted(expected_rpaths)
+    guessed_rpaths = sorted(p for p, _ in tree)
+    assert guessed_rpaths == expected_rpaths
 
 
 def test_get_tree_size():

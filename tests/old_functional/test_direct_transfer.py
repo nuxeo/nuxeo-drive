@@ -2,8 +2,6 @@
 Test the Direct Transfer feature in differents scenarii.
 """
 from contextlib import suppress
-from os import scandir
-from pathlib import Path
 from shutil import copyfile, copytree
 from time import sleep
 from unittest.mock import patch
@@ -14,6 +12,7 @@ from nuxeo.exceptions import HTTPError
 from nuxeo.models import Document
 from nxdrive.constants import TransferStatus
 from nxdrive.options import Options
+from nxdrive.utils import get_tree_list
 from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
@@ -76,6 +75,9 @@ class DirectTransfer:
         )
 
     def sync_and_check(self, should_have_blob: bool = True) -> None:
+        # Let time for uploads to be planned
+        sleep(3)
+
         # Sync
         self.wait_sync()
 
@@ -504,12 +506,11 @@ class DirectTransferFolder:
         self.folder = self.tmpdir / str(uuid4())
         copytree(folder, self.folder, copy_function=copyfile)
 
-        self.files, self.folders = self.get_tree(self.folder)
-        # 10 = tests/resources
-        #  3 = tests/resources/i18n
-        assert len(self.files) == 10 + 3
-        # tests/resources/i18n
-        assert len(self.folders) == 1
+        # Get folders and files tests will handle
+        tree = {path: rpath for rpath, path in get_tree_list(self.folder, self.ws.path)}
+        self.files = [path for path in tree.keys() if path.is_file()]
+        self.folders = [path for path in tree.keys() if path.is_dir()]
+        self.tree = tree
 
         # Lower chunk_* options to have chunked uploads without having to create big files
         self.default_chunk_limit = Options.chunk_limit
@@ -522,29 +523,13 @@ class DirectTransferFolder:
         Options.chunk_limit = self.default_chunk_limit
         Options.chunk_size = self.default_chunk_size
 
-    def get_tree(self, path: Path):
-        files, folders = [], []
-
-        with scandir(path) as it:
-            for entry in it:
-                if entry.is_file():
-                    files.append(Path(entry.path))
-                elif entry.is_dir():
-                    folder = Path(entry.path)
-                    folders.append(folder)
-                    subfiles, subfolders = self.get_tree(folder)
-                    files.extend(subfiles)
-                    folders.extend(subfolders)
-
-        return files, folders
-
     def has_blob(self, file: str) -> bool:
         """Check that *file* exists on the server and has a blob attached.
         As when doing a Direct Transfer, the document is first created on the server,
         this is the only way to check if the blob upload has been finished successfully.
         """
         try:
-            doc = self.root_remote.documents.get(path=f"{self.ws.path}/{file}")
+            doc = self.root_remote.documents.get(path=f"{self.tree[file]}/{file.name}")
         except Exception:
             return False
         return bool(doc.properties.get("file:content"))
@@ -564,15 +549,11 @@ class DirectTransferFolder:
 
         # Check files exist on the server with their attached blob
         for file in self.files:
-            # .as_posix() is needed to replace "\\" with "/" on Windows
-            doc = file.relative_to(self.folder).as_posix()
-            assert self.has_blob(str(doc))
+            assert self.has_blob(file)
 
         # Check subfolders
         for folder in self.folders:
-            # .as_posix() is needed to replace "\\" with "/" on Windows
-            doc = folder.relative_to(self.folder).as_posix()
-            assert self.root_remote.documents.get(path=f"{self.ws.path}/{doc}")
+            assert self.root_remote.documents.get(path=self.tree[folder])
 
     def test_folder(self):
         """Test the Direct Transfer on a folder containing files and a sufolder."""
@@ -583,6 +564,14 @@ class DirectTransferFolder:
         with ensure_no_exception():
             self.engine_1.direct_transfer([self.folder], self.ws.path)
             self.sync_and_check()
+
+        # Ensure there is only 1 folder created at the workspace root
+        children = self.remote_1.get_children(self.ws.path)["entries"]
+        assert len(children) == 1
+        assert children[0]["title"] == self.folder.name
+
+        # All has been uploaded
+        assert not list(self.engine_1.dao.get_uploads())
 
 
 class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):
