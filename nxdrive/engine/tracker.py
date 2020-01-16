@@ -86,9 +86,7 @@ class Tracker(PollWorker):
         if WINDOWS:
             import ctypes
 
-            l10n_code = (
-                ctypes.windll.kernel32.GetUserDefaultUILanguage()  # type: ignore
-            )
+            l10n_code = ctypes.windll.kernel32.GetUserDefaultUILanguage()
             l10n = locale.windows_locale[l10n_code]
         elif MAC:
             from CoreServices import NSLocale

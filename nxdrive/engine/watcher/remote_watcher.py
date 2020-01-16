@@ -83,7 +83,7 @@ class RemoteWatcher(EngineWorker):
             raise
 
     @tooltip("Remote scanning")
-    def scan_remote(self, from_state: DocPair = None):
+    def scan_remote(self, from_state: DocPair = None) -> None:
         """Recursively scan the bound remote folder looking for updates"""
         log.debug("Remote full scan")
         start = monotonic()

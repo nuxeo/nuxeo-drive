@@ -258,8 +258,8 @@ class QueueManager(QObject):
         ):
             strerror = exception.strerror if hasattr(exception, "strerror") else ""
             log.info(
-                "Detected WindowsError with code "  # type: ignore
-                f"{exception.winerror}: {strerror!r}, "
+                "Detected WindowsError with code "
+                f"{err_code}: {strerror!r}, "
                 "won't increase next try interval"
             )
             error_count = 1

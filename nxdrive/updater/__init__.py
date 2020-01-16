@@ -4,6 +4,7 @@
 from logging import getLogger
 from typing import Any, TYPE_CHECKING
 
+from ..constants import LINUX, MAC
 from ..options import Options
 
 if TYPE_CHECKING:
@@ -26,23 +27,25 @@ def updater(*args: Any, **kwargs: Any) -> "Updater":
 
     if not Options.update_check_delay:
         # The user manually disabled the auto-update
-        from .base import BaseUpdater as Updater  # noqa
+        from . import base
 
-        setattr(Updater, "_can_update", False)
+        setattr(base.BaseUpdater, "_can_update", False)
         log.info("Update check delay is set to 0, disabling auto-update")
-    else:
-        import platform
+        return base.BaseUpdater(*args, **kwargs)
 
-        operating_system = platform.system().lower()
+    if LINUX:
+        from . import linux
 
-        if operating_system == "darwin":
-            from .darwin import Updater  # type: ignore
-        elif operating_system == "windows":
-            from .windows import Updater  # type: ignore
-        else:
-            from .linux import Updater  # type: ignore
+        return linux.Updater(*args, **kwargs)
 
-    return Updater(*args, **kwargs)
+    if MAC:
+        from . import darwin
+
+        return darwin.Updater(*args, **kwargs)
+
+    from . import windows
+
+    return windows.Updater(*args, **kwargs)
 
 
 __all__ = ("UpdateError", "updater")

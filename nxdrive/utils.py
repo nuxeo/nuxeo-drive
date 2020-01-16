@@ -607,7 +607,7 @@ def normalize_event_filename(filename: Union[str, Path], action: bool = True) ->
     return normalized
 
 
-def if_frozen(func) -> Callable:
+def if_frozen(func) -> Callable:  # type: ignore
     """
     Decorator to enable the call of a function/method
     only if the application is frozen.

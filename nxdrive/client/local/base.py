@@ -16,7 +16,7 @@ from typing import Any, List, Optional, Tuple, Type, Union
 
 from nuxeo.utils import get_digest_algorithm
 
-from ...constants import LINUX, MAC, ROOT, WINDOWS
+from ...constants import LINUX, MAC, ROOT
 from ...exceptions import DuplicationDisabledError, NotFound, UnknownDigest
 from ...options import Options
 from ...utils import (
@@ -401,8 +401,8 @@ class LocalClientMixin:
                 with suppress(Exception):
                     # WindowsError(None, None, path, retcode)
                     _, _, _, retcode = exc.args
-                    exc.winerror = retcode  # type: ignore
-                exc.trash_issue = True  # type: ignore
+                    setattr(exc, "winerror", retcode)
+                setattr(exc, "trash_issue", True)
                 raise exc
         finally:
             # Don't want to unlock the current deleted
@@ -412,7 +412,7 @@ class LocalClientMixin:
         """Completely remove a given file or folder. Untrash is not possible then."""
         error = None
 
-        def onerror(func, path, exc_info):
+        def onerror(func: Any, path: Path, exc_info: Any) -> None:
             """ Assign the error only once. """
             nonlocal error
             if not error:
@@ -432,7 +432,7 @@ class LocalClientMixin:
             elif os_path.is_dir():
                 # Override `onerror` to catch the 1st exception and let other
                 # documents to be deleted.
-                shutil.rmtree(os_path, onerror=onerror)
+                shutil.rmtree(os_path, onerror=onerror)  # type: ignore
                 if error:
                     raise error
         finally:
@@ -594,10 +594,15 @@ class LocalClientMixin:
 def get() -> Type[LocalClientMixin]:
     """Factory to get the appropriate local client class depending of the OS."""
     if LINUX:
-        from .linux import LocalClient  # type: ignore
-    elif MAC:
-        from .darwin import LocalClient  # type: ignore
-    elif WINDOWS:
-        from .windows import LocalClient  # type: ignore
+        from . import linux
 
-    return LocalClient
+        return linux.LocalClient
+
+    if MAC:
+        from . import darwin
+
+        return darwin.LocalClient
+
+    from . import windows
+
+    return windows.LocalClient

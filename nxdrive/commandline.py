@@ -4,7 +4,6 @@
 import faulthandler
 import os
 import sys
-import traceback
 from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
@@ -25,9 +24,11 @@ from .utils import (
 )
 
 try:
-    import ipdb as pdb
+    import ipdb
 except ImportError:
-    import pdb  # type: ignore
+    import pdb
+else:
+    pdb = ipdb
 
 try:
     from PyQt5.QtNetwork import QSslSocket
@@ -393,6 +394,10 @@ class CliHandler:
         options = parser.parse_args(filtered_args)
 
         if options.debug:
+            from traceback import print_exception
+            from types import TracebackType
+            from typing import Type
+
             # Automatically check all operations done with the Python client
             import nuxeo.constants
 
@@ -400,11 +405,15 @@ class CliHandler:
 
             # Install Post-Mortem debugger hook
 
-            def info(etype, value, tb):
-                traceback.print_exception(etype, value, tb)
+            def excepthook(
+                type_: Type[BaseException],
+                value: BaseException,
+                traceback: TracebackType,
+            ) -> None:
+                print_exception(type_, value, traceback)
                 pdb.pm()
 
-            sys.excepthook = info
+            sys.excepthook = excepthook
 
         return options
 

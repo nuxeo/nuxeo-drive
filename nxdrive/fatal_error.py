@@ -174,7 +174,7 @@ def fatal_error_win(text: str) -> None:
     ICON_STOP = 0x10
 
     title = f"{APP_NAME} Fatal Error"
-    ctypes.windll.user32.MessageBoxW(0, text, title, MB_OK | ICON_STOP)  # type: ignore
+    ctypes.windll.user32.MessageBoxW(0, text, title, MB_OK | ICON_STOP)
 
 
 def fatal_error_mac(text: str) -> None:

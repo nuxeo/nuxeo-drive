@@ -117,9 +117,7 @@ class LocalClient(LocalClientMixin):
         """Set a special attribute (not extended attribute) to a given file."""
         # 128 = FILE_ATTRIBUTE_NORMAL (a file that does not have other attributes set)
         # See http://msdn.microsoft.com/en-us/library/aa365535%28v=vs.85%29.aspx
-        ctypes.windll.kernel32.SetFileAttributesW(  # type: ignore
-            str(path), 128
-        )
+        ctypes.windll.kernel32.SetFileAttributesW(str(path), 128)
 
     def set_folder_icon(self, ref: Path, icon: Path) -> None:
         """Create a special file to customize the folder icon."""

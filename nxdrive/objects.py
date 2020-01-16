@@ -364,9 +364,11 @@ class DocPair(Row):
 
         if date_time:
             # As date_time is in UTC
-            result["last_sync_date"] = Translator.format_datetime(
-                date_time + tzlocal().utcoffset(date_time)  # type: ignore
-            )
+            offset = tzlocal().utcoffset(date_time)
+            if offset:
+                result["last_sync_date"] = Translator.format_datetime(
+                    date_time + offset
+                )
 
         return result
 

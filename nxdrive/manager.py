@@ -221,16 +221,16 @@ class Manager(QObject):
         self.sync_and_quit_worker = SyncAndQuitWorker(self)
         self.started.connect(self.sync_and_quit_worker.thread.start)
 
-    def __enter__(self):
+    def __enter__(self) -> "Manager":
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *_: Any) -> None:
         self.close()
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} home={self.home!r}>"
 
-    def close(self):
+    def close(self) -> None:
         try:
             self.stop()
         finally:
@@ -317,7 +317,7 @@ class Manager(QObject):
         if self.server_config_updater:
             self.started.connect(self.server_config_updater.thread.start)
 
-    def _create_updater(self) -> "Updater":  # type: ignore
+    def _create_updater(self) -> "Updater":
         updater_ = updater(self)
         self.prompted_wrong_channel = False
         self.started.connect(updater_.thread.start)

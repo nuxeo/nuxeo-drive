@@ -130,7 +130,7 @@ class EngineModel(QAbstractListModel):
         engine.uiChanged.connect(self.uiChanged)
         engine.authChanged.connect(self.authChanged)
 
-    def _relay_engine_events(self):
+    def _relay_engine_events(self) -> None:
         engine = self.sender()
         self.statusChanged.emit(engine)
 
@@ -173,7 +173,7 @@ class TransferModel(QAbstractListModel):
         return self.names
 
     @pyqtProperty("int", notify=fileChanged)
-    def count(self):
+    def count(self) -> int:
         return self.rowCount()
 
     def set_transfers(
@@ -253,7 +253,7 @@ class TransferModel(QAbstractListModel):
             if action["action_type"] in ("Linking", "Verification"):
                 self.setData(idx, True, self.FINALIZING)
 
-    def flags(self, index: QModelIndex):
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
 
@@ -338,7 +338,7 @@ class FileModel(QAbstractListModel):
     def count(self) -> int:
         return self.rowCount()
 
-    def flags(self, index: QModelIndex):
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
 

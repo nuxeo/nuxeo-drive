@@ -2,11 +2,14 @@
 """ Console mode application. """
 
 from logging import getLogger
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PyQt5.QtCore import QCoreApplication, QTimer
 
 from .constants import APP_NAME, COMPANY
+
+if TYPE_CHECKING:
+    from .manager import Manager  # noqa
 
 __all__ = ("ConsoleApplication",)
 
@@ -16,7 +19,7 @@ log = getLogger(__name__)
 class ConsoleApplication(QCoreApplication):
     """Console mode Nuxeo Drive application"""
 
-    def __init__(self, manager, *args: Any):
+    def __init__(self, manager: "Manager", *args: Any) -> None:
         # Little fix here! See Application.__init__() for details.
         QCoreApplication.setOrganizationName(COMPANY)
 

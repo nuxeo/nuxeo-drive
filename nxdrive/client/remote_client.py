@@ -218,7 +218,7 @@ class Remote(Nuxeo):
                 raise NotFound()
             raise e
 
-    def _escape(self, path) -> str:
+    def _escape(self, path: str) -> str:
         """Escape any single quote with an antislash to further use in a NXQL query."""
         return path.replace("'", r"\'")
 
@@ -373,7 +373,7 @@ class Remote(Nuxeo):
 
         verif_action = VerificationAction(filepath, reporter=QApplication.instance())
 
-        def callback(_):
+        def callback(_: Path) -> None:
             verif_action.progress += FILE_BUFFER_SIZE
 
         try:
@@ -606,7 +606,7 @@ class Remote(Nuxeo):
                 blob.fd.close()
 
     def link_blob_to_doc(
-        self, command: str, blob: FileBlob, **params
+        self, command: str, blob: FileBlob, **params: Any
     ) -> Dict[str, Any]:
         """Link the given uploaded *blob* to the given document (refs are passed into *params*)."""
 
@@ -650,7 +650,7 @@ class Remote(Nuxeo):
 
     def direct_transfer(
         self, file: Path, parent_path: str, engine_uid: str, replace_blob: bool = False
-    ):
+    ) -> None:
         """Upload a given file to the given folderish document on the server.
 
         Note about possible duplicate creation via a race condition client <-> server.
