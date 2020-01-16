@@ -750,7 +750,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(result=bool)
     def is_paused(self) -> bool:
-        return self._manager.is_paused()
+        return self._manager.is_paused
 
     @pyqtSlot(str, result=int)
     def get_syncing_count(self, uid: str) -> int:
