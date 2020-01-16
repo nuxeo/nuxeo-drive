@@ -133,7 +133,7 @@ class WindowsIntegration(AbstractOSIntegration):
             )
         else:
             # startfile() returns as soon as the associated application is launched.
-            os.startfile(file_path)  # type: ignore
+            os.startfile(file_path)
 
     @if_frozen
     def register_contextual_menu(self) -> None:

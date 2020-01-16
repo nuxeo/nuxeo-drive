@@ -1293,7 +1293,7 @@ class LocalWatcher(EngineWorker):
             log.exception("Watchdog OS exception")
         except Exception:
             # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
-            sys.excepthook(*sys.exc_info())  # type: ignore
+            sys.excepthook(*sys.exc_info())
             log.exception("Watchdog exception")
 
     def _schedule_win_folder_scan(self, doc_pair: DocPair) -> None:
@@ -1357,7 +1357,7 @@ class DriveFSRootEventHandler(PatternMatchingEventHandler):
             self.watcher.handle_watchdog_root_event(event)
         except Exception:
             # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
-            sys.excepthook(*sys.exc_info())  # type: ignore
+            sys.excepthook(*sys.exc_info())
             log.exception("Watchdog ROOT exception")
         else:
             self.counter += 1

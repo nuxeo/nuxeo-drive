@@ -14,7 +14,7 @@ from ..markers import not_windows
 
 
 def copy_queue(queue: Queue) -> Queue:
-    result = deepcopy(queue.queue)  # type: ignore
+    result = deepcopy(queue.queue)
     result.reverse()
     return result
 

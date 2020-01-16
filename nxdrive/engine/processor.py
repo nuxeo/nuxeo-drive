@@ -397,7 +397,7 @@ class Processor(EngineWorker):
                 self.engine.directTranferDuplicateError.emit(exc.file, exc.doc)
             except Exception as exc:
                 # Workaround to forward unhandled exceptions to sys.excepthook between all Qthreads
-                sys.excepthook(*sys.exc_info())  # type: ignore
+                sys.excepthook(*sys.exc_info())
 
                 # Show a notification for Direct Transfer errors
                 if doc_pair.pair_state.startswith("direct_transfer"):
@@ -1034,7 +1034,7 @@ class Processor(EngineWorker):
             else:
                 self._synchronize_locally_modified(doc_pair)
 
-    def _synchronize_deleted_unknown(self, doc_pair: DocPair, *_) -> None:
+    def _synchronize_deleted_unknown(self, doc_pair: DocPair) -> None:
         """
         Somehow a pair can get to an inconsistent state:
         <local_state='deleted',remote_state='unknown',pair_state='unknown'>

@@ -59,13 +59,13 @@ class ContentLoaderMixin(QRunnable):
         self.fill_tree(children)
         self.tree.set_loading_cursor(False)
 
-    def add_loading_subitem(self, item) -> None:
+    def add_loading_subitem(self, item: QStandardItem) -> None:
         """Add "Loading..." entry in advance for when the user will click on an item to expand it."""
         load_item = QStandardItem(Translator.get("LOADING"))
         load_item.setSelectable(False)
         item.appendRow(load_item)
 
-    def new_subitem(self, child) -> QStandardItem:
+    def new_subitem(self, child: QStandardItem) -> QStandardItem:
         """A new child of an item is available. To be implemented by specific classes."""
         raise NotImplementedError()
 

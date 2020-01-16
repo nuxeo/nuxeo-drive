@@ -141,13 +141,13 @@ class QMLDriveApi(QObject):
         return abspath(url.toLocalFile())
 
     @pyqtSlot(str)
-    def trigger_notification(self, id_: str) -> None:
+    def trigger_notification(self, uid: str) -> None:
         self.application.hide_systray()
-        self._manager.notification_service.trigger_notification(id_)
+        self._manager.notification_service.trigger_notification(uid)
 
     @pyqtSlot(str)
-    def discard_notification(self, id_) -> None:
-        self._manager.notification_service.discard_notification(id_)
+    def discard_notification(self, uid: str) -> None:
+        self._manager.notification_service.discard_notification(uid)
 
     def _export_notifications(
         self, notifs: Dict[str, Notification]

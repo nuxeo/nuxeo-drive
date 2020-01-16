@@ -514,7 +514,7 @@ class Engine(QObject):
         log.info(f"Will try to open edit : {doc_ref}")
         # TODO Implement a TemporaryWorker
 
-        def run():
+        def run() -> None:
             self.manager.directEdit.emit(
                 self.server_url, doc_ref, self.remote_user, None
             )
@@ -683,7 +683,7 @@ class Engine(QObject):
         return self.manager.home / f"ndrive_{self.uid}.db"
 
     def get_binder(self) -> "ServerBindingSettings":
-        return ServerBindingSettings(  # type: ignore
+        return ServerBindingSettings(
             self.server_url,
             self._web_authentication,
             self.remote_user,

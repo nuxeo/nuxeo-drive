@@ -368,7 +368,7 @@ class Application(QApplication):
         for name, value in colors.items():
             context.setContextProperty(name, value)
 
-    def _window_root(self, window):
+    def _window_root(self, window: QWindow) -> QWindow:
         if WINDOWS:
             return window.rootObject()
         return window
@@ -699,7 +699,7 @@ class Application(QApplication):
         self.systray_window.raise_()
 
     @pyqtSlot()
-    def hide_systray(self):
+    def hide_systray(self) -> None:
         self.systray_window.hide()
 
     @pyqtSlot()
@@ -1542,10 +1542,10 @@ class Application(QApplication):
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        def analytics_choice(state) -> None:
+        def analytics_choice(state: Qt.CheckSate) -> None:
             Options.use_analytics = bool(state)
 
-        def errors_choice(state) -> None:
+        def errors_choice(state: Qt.CheckSate) -> None:
             Options.use_sentry = bool(state)
 
         # Checkboxes

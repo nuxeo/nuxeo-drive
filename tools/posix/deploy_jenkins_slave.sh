@@ -245,11 +245,11 @@ launch_tests() {
 
     if should_run "mypy"; then
         echo ">>> Checking type annotations"
-        ${PYTHON} -m mypy nxdrive
+        ${PYTHON} -m mypy --platform=win32 nxdrive
     fi
 
     if should_run "cleanup"; then
-        echo ">>> Checking for dead code with Vulture"
+        echo ">>> Checking for dead code"
         ${PYTHON} -m vulture nxdrive tools/whitelist.py
     fi
 

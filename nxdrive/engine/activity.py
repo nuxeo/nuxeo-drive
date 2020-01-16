@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtWidgets import QApplication
 
 from ..utils import current_thread_id
 
@@ -78,7 +79,7 @@ class Action(QObject):
 
 
 class IdleAction(Action):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(action_type="Idle")
 
 
@@ -126,9 +127,10 @@ class FileAction(Action):
         self._connect_reporter(reporter)
         self.started.emit(self)
 
-    def _connect_reporter(self, reporter):
+    def _connect_reporter(self, reporter: Optional[QApplication]) -> None:
         if not reporter:
             return
+
         for evt in ("started", "progressing", "done"):
             signal = getattr(reporter, f"action_{evt}", None)
             if signal:
@@ -215,9 +217,9 @@ class LinkingAction(FileAction):
         self.progress = size
 
 
-def tooltip(doing: str):
-    def action_decorator(func):
-        def func_wrapper(*args, **kwargs):
+def tooltip(doing: str):  # type: ignore
+    def action_decorator(func):  # type: ignore
+        def func_wrapper(*args: Any, **kwargs: Any):  # type: ignore
             Action(doing)
             try:
                 func(*args, **kwargs)

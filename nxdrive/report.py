@@ -100,7 +100,7 @@ class Report:
         if not handler:
             return
 
-        log_buffer = handler.get_buffer(lines)
+        log_buffer = handler.get_buffer(lines)  # type: ignore
 
         for record in log_buffer:
             try:
@@ -109,9 +109,10 @@ class Report:
                 with suppress(Exception):
                     yield force_encode(f"Logging record error: {record!r}")
             else:
-                if not isinstance(line, bytes):
-                    line = line.encode(errors="replace")
-                yield line
+                if isinstance(line, bytes):
+                    yield line
+                else:
+                    yield line.encode(errors="replace")
 
     def generate(self) -> None:
         """ Create the ZIP report with all interesting files. """

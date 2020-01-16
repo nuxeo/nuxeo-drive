@@ -404,14 +404,14 @@ function launch_tests {
 
 	if (-not ($Env:SKIP -match 'mypy' -or $Env:SKIP -match 'all')) {
 		Write-Output ">>> Checking type annotations"
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy nxdrive
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --platform=win32 nxdrive
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
 	}
 
 	if (-not ($Env:SKIP -match 'cleanup' -or $Env:SKIP -match 'all')) {
-		Write-Output ">>> Checking for dead code with Vulture"
+		Write-Output ">>> Checking for dead code"
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m vulture nxdrive tools\whitelist.py
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode

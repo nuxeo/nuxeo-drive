@@ -227,10 +227,10 @@ class ConfigurationDAO(QObject):
                 log.warning(f"[OS] Unable to restore {self.db}", exc_info=True)
                 raise
             log.exception(f"[OS] Unable to restore {self.db}")
-            sys.excepthook(*sys.exc_info())  # type: ignore
+            sys.excepthook(*sys.exc_info())
         except Exception:
             log.exception(f"Unable to restore {self.db}")
-            sys.excepthook(*sys.exc_info())  # type: ignore
+            sys.excepthook(*sys.exc_info())
         return False
 
     def save_backup(self) -> bool:
@@ -244,10 +244,10 @@ class ConfigurationDAO(QObject):
                 log.warning(f"[OS] Unable to backup {self.db}", exc_info=True)
             else:
                 log.exception(f"[OS] Unable to backup {self.db}")
-                sys.excepthook(*sys.exc_info())  # type: ignore
+                sys.excepthook(*sys.exc_info())
         except Exception:
             log.exception(f"Unable to backup {self.db}")
-            sys.excepthook(*sys.exc_info())  # type: ignore
+            sys.excepthook(*sys.exc_info())
         return False
 
     def get_schema_version(self) -> int:
@@ -727,7 +727,7 @@ class EngineDAO(ConfigurationDAO):
             super()._create_table(cursor, name, force)
 
     @staticmethod
-    def _create_transfer_tables(cursor: Cursor):
+    def _create_transfer_tables(cursor: Cursor) -> None:
         cursor.execute(
             "CREATE TABLE if not exists Downloads ("
             "    uid            INTEGER     NOT NULL,"

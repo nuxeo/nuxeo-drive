@@ -8,6 +8,7 @@ import platform
 import signal
 import sys
 from contextlib import suppress
+from types import FrameType
 from typing import Any, Set
 
 from nxdrive.constants import APP_NAME
@@ -69,7 +70,7 @@ def setup_sentry() -> None:
     )
 
 
-def signal_handler(signum: int, frame: Any):
+def signal_handler(signum: int, frame: FrameType) -> None:
     """Signal handler."""
     from PyQt5.QtWidgets import QApplication
 
