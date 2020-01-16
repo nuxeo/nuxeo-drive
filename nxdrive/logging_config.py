@@ -5,7 +5,7 @@ import logging
 from logging import Formatter, LogRecord
 from logging.handlers import BufferingHandler, TimedRotatingFileHandler
 from pathlib import Path
-from typing import Any, Generator, List
+from typing import Any, Generator, List, Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from . import constants
@@ -156,7 +156,7 @@ def configure(
     memory_handler = get_handler("memory")
     if not memory_handler:
         memory_handler = CustomMemoryHandler()
-        memory_handler.set_name("memory")  # type: ignore
+        memory_handler.name = "memory"
         memory_handler.setFormatter(formatter)
         memory_handler.setLevel(logging.DEBUG)
         root_logger.addHandler(memory_handler)
@@ -166,7 +166,7 @@ def configure(
     console_handler = get_handler("nxdrive_console")
     if not console_handler:
         console_handler = logging.StreamHandler()
-        console_handler.set_name("nxdrive_console")  # type: ignore
+        console_handler.name = "nxdrive_console"
         console_handler.setFormatter(formatter)
         console_handler.setLevel(console_level)
         root_logger.addHandler(console_handler)
@@ -180,7 +180,7 @@ def configure(
         file_handler = TimedCompressedRotatingFileHandler(
             log_filename, when="midnight", backupCount=30
         )
-        file_handler.set_name("nxdrive_file")  # type: ignore
+        file_handler.name = "nxdrive_file"
         file_handler.setFormatter(formatter)
         file_handler.setLevel(file_level)
         root_logger.addHandler(file_handler)
@@ -194,9 +194,9 @@ def configure(
     logging.getLogger("botocore").setLevel(logging.ERROR)
 
 
-def get_handler(name: str):
+def get_handler(name: str) -> Optional[logging.Handler]:
     for handler in logging.getLogger().handlers:
-        if handler.get_name() == name:  # type: ignore
+        if handler.name == name:
             return handler
     return None
 
