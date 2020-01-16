@@ -21,7 +21,7 @@ def is_healthy(database: Path) -> bool:
     log.info(f"Checking database integrity: {database!r}")
     with sqlite3.connect(str(database)) as con:
         status = con.cursor().execute("PRAGMA integrity_check(1)").fetchone()
-        return status[0] == "ok"
+        return bool(status[0] == "ok")
 
 
 def dump(database: Path, dump_file: Path) -> None:

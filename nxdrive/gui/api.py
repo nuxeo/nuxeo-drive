@@ -529,9 +529,10 @@ class QMLDriveApi(QObject):
                 return
 
             kwargs["check_fs"] = False
-            return self.bind_server(
+            self.bind_server(
                 local_folder, server_url, username, password, name, **kwargs
             )
+            return
         except NotFound:
             error = "FOLDER_DOES_NOT_EXISTS"
         except InvalidDriveException:

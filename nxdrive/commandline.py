@@ -525,7 +525,8 @@ class CliHandler:
             self._install_faulthandler()
             self.manager = self.get_manager()
 
-        return handler(options)
+        ret_code: int = handler(options)
+        return ret_code
 
     def get_manager(self) -> "Manager":
         from .manager import Manager  # noqa
@@ -560,7 +561,7 @@ class CliHandler:
             return 0
 
         app = self._get_application(console=console)
-        exit_code = app.exec_()
+        exit_code: int = app.exec_()
         lock.unlock()
         log.info(f"{APP_NAME} exited with code {exit_code}")
         return exit_code

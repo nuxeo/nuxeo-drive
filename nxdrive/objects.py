@@ -334,7 +334,7 @@ class DocPair(Row):
             return Path((self[name] or "").lstrip("/"))
         if name == "remote_ref":
             return self[name] or ""
-        return self[name]
+        return self[name]  # type: ignore
 
     def export(self) -> Dict[str, Any]:
         result: Dict[str, Any] = {
@@ -398,7 +398,7 @@ class EngineDef(Row):
     def __getattr__(self, name: str) -> Optional[Union[str, Path]]:
         if name == "local_folder":
             return Path(self[name])
-        return self[name]
+        return self[name]  # type: ignore
 
     def __repr__(self) -> str:
         return (

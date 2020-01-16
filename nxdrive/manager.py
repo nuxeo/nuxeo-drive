@@ -458,7 +458,7 @@ class Manager(QObject):
             if not self.__device_id:
                 self.__device_id = uuid.uuid1().hex
                 self.dao.update_config("device_id", self.__device_id)
-        return self.__device_id
+        return str(self.__device_id)
 
     def get_config(self, value: str, default: Any = None) -> Any:
         return self.dao.get_config(value, default)
@@ -523,8 +523,8 @@ class Manager(QObject):
 
     @pyqtSlot(result=str)
     def get_update_channel(self) -> str:
-        return self.dao.get_config(
-            "channel", default=Options.channel or DEFAULT_CHANNEL
+        return (
+            self.dao.get_config("channel", default=Options.channel) or DEFAULT_CHANNEL
         )
 
     @pyqtSlot(str)
@@ -537,10 +537,10 @@ class Manager(QObject):
 
     @pyqtSlot(result=str)
     def get_log_level(self) -> str:
-        level = self.dao.get_config("log_level_file")
-        if not level:
-            level = Options.log_level_file or DEFAULT_LEVEL_FILE
-        return level
+        return (
+            self.dao.get_config("log_level_file", default=Options.log_level_file)
+            or DEFAULT_LEVEL_FILE
+        )
 
     @pyqtSlot(str)
     def set_log_level(self, value: str) -> None:

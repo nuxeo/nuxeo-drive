@@ -68,7 +68,7 @@ class WindowsIntegration(AbstractOSIntegration):
         import win32clipboard
 
         win32clipboard.OpenClipboard()
-        text = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+        text: str = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
         win32clipboard.CloseClipboard()
         return text
 
@@ -98,7 +98,7 @@ class WindowsIntegration(AbstractOSIntegration):
         except Exception:
             log.exception(f"Unknown error while trying to install addons")
         else:
-            return self.addons_installed()
+            return bool(self.addons_installed())
         return False
 
     @staticmethod
@@ -113,7 +113,7 @@ class WindowsIntegration(AbstractOSIntegration):
         if win32file.GetDriveType(folder) != win32file.DRIVE_FIXED:
             return False
         volume = win32file.GetVolumePathName(folder)
-        return win32api.GetVolumeInformation(volume)[-1] == "NTFS"
+        return bool(win32api.GetVolumeInformation(volume)[-1] == "NTFS")
 
     def get_system_configuration(self) -> Dict[str, Any]:
         if not registry.exists(CONFIG_REGISTRY_KEY):
@@ -226,7 +226,7 @@ class WindowsIntegration(AbstractOSIntegration):
             log.info(f"Registered new favorite in Explorer for {path!r}")
 
     def _get_folder_link(self, name: str = None) -> Path:
-        return Options.home / "Links" / f"{name or APP_NAME}.lnk"
+        return Path(Options.home) / "Links" / f"{name or APP_NAME}.lnk"
 
     @if_frozen
     def send_sync_status(self, state: DocPair, path: Path) -> None:
