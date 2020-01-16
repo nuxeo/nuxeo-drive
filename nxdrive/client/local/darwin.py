@@ -38,7 +38,9 @@ class LocalClient(LocalClientMixin):
     def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
         """Get a given extended attribute from a file/folder."""
         try:
-            return xattr.getxattr(str(path), name).decode("utf-8", errors="ignore")
+            return (
+                xattr.getxattr(str(path), name).decode("utf-8", errors="ignore") or ""
+            )
         except OSError:
             return ""
 

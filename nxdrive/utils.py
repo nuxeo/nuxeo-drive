@@ -214,7 +214,7 @@ def get_current_os() -> Tuple[str, str]:
 
 
 @lru_cache(maxsize=1)
-def get_current_os_full() -> Tuple[Any, ...]:
+def get_current_os_full() -> Tuple[str, ...]:
     """ Detect the full OS version for log debugging. """
 
     device = get_device()
@@ -222,11 +222,13 @@ def get_current_os_full() -> Tuple[Any, ...]:
     if device == "macOS":
         from platform import mac_ver
 
-        return mac_ver()
+        # https://docs.python.org/3/library/platform.html#platform.mac_ver
+        ver = mac_ver()
+        return tuple((ver[0], *ver[1], ver[2]))
     elif device == "GNU/Linux":
         import distro
 
-        return distro.linux_distribution()
+        return tuple(distro.linux_distribution())
     else:
         from platform import win32_ver
 
@@ -545,11 +547,11 @@ def normalized_path(path: Union[bytes, str, Path], cls: Callable = Path) -> Path
         path = force_decode(path)
     expanded = cls(path).expanduser()
     try:
-        return expanded.resolve()
+        return expanded.resolve()  # type: ignore
     except PermissionError:
         # On Windows, we can get a PermissionError when the file is being
         # opened in another software, fallback on .absolute() then.
-        return expanded.absolute()
+        return expanded.absolute()  # type: ignore
 
 
 def normalize_and_expand_path(path: str) -> Path:
@@ -620,7 +622,7 @@ def if_frozen(func) -> Callable:  # type: ignore
         if the application not frozen."""
         if not Options.is_frozen:
             return False
-        return func(*args, **kwargs)
+        return func(*args, **kwargs)  # type: ignore
 
     return wrapper
 
@@ -1236,4 +1238,4 @@ def compute_digest(path: Path, digest_func: str, callback: Callable = None) -> s
         # not an issue as the hash will be recomputed later
         return UNACCESSIBLE_HASH
 
-    return h.hexdigest()
+    return str(h.hexdigest())

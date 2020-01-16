@@ -892,14 +892,15 @@ class Remote(Nuxeo):
             command="NuxeoDrive.Delete", id=fs_item_id, parentId=parent_fs_item_id
         )
 
-    def undelete(self, uid: str) -> str:
+    def undelete(self, uid: str) -> None:
         input_obj = "doc:" + uid
-        if not self._has_new_trash_service:
-            return self.execute(
-                command="Document.SetLifeCycle", input_obj=input_obj, value="undelete"
-            )
-        else:
-            return self.documents.untrash(uid)
+        if self._has_new_trash_service:
+            self.documents.untrash(uid)
+            return
+
+        self.execute(
+            command="Document.SetLifeCycle", input_obj=input_obj, value="undelete"
+        )
 
     def rename(self, fs_item_id: str, new_name: str) -> RemoteFileInfo:
         return RemoteFileInfo.from_dict(
@@ -919,9 +920,11 @@ class Remote(Nuxeo):
             fs_item_id = fs_item_id.split("#")[-1]
         if "#" in parent_ref:
             parent_ref = parent_ref.split("#")[-1]
+
         if not parent_ref:
-            log.info("Parent uid is empty, not performing move2.")
+            log.info("Parent's UID is empty, not performing move2().")
             return {}
+
         return self.documents.move(fs_item_id, parent_ref, name=name)
 
     def get_fs_item(
@@ -930,6 +933,7 @@ class Remote(Nuxeo):
         if not fs_item_id:
             log.warning("get_fs_item() called without fs_item_id")
             return None
+
         return self.execute(
             command="NuxeoDrive.GetFileSystemItem",
             id=fs_item_id,
@@ -992,32 +996,30 @@ class Remote(Nuxeo):
             doc_id = ref.uid
             if ref.doc_type == "Note":
                 doc = self.fetch(doc_id)
-                content = doc["properties"].get("note:note")
-                if content:
-                    content = unquote(content).encode("utf-8")
+                note = doc["properties"].get("note:note")
+                if note:
+                    content = unquote(note).encode("utf-8")
                     if file_out:
                         file_out.write_bytes(content)
-                return content
+                    return content
+                return b""
         else:
             doc_id = ref
 
-        return self.execute(
+        blob: bytes = self.execute(
             command="Blob.Get",
             input_obj=f"doc:{doc_id}",
             json=False,
             file_out=file_out,
             **kwargs,
         )
+        return blob
 
-    def lock(self, ref: str) -> Dict[str, Any]:
-        return self.execute(
-            command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}"
-        )
+    def lock(self, ref: str) -> None:
+        self.execute(command="Document.Lock", input_obj=f"doc:{self.check_ref(ref)}")
 
-    def unlock(self, ref: str) -> Dict[str, Any]:
-        return self.execute(
-            command="Document.Unlock", input_obj=f"doc:{self.check_ref(ref)}"
-        )
+    def unlock(self, ref: str) -> None:
+        self.execute(command="Document.Unlock", input_obj=f"doc:{self.check_ref(ref)}")
 
     def register_as_root(self, ref: str) -> bool:
         self.execute(
@@ -1050,6 +1052,6 @@ class Remote(Nuxeo):
             return {}
 
     def _get_trash_condition(self) -> str:
-        if not self._has_new_trash_service:
-            return "AND ecm:currentLifeCycleState != 'deleted'"
-        return "AND ecm:isTrashed = 0"
+        if self._has_new_trash_service:
+            return "AND ecm:isTrashed = 0"
+        return "AND ecm:currentLifeCycleState != 'deleted'"

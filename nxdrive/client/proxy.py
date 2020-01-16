@@ -126,7 +126,7 @@ class AutomaticProxy(Proxy):
         self._resolver = ProxyResolver(self._pac_file)
 
     def settings(self, url: str = None, **kwargs: Any) -> Dict[str, Any]:
-        return self._resolver.get_proxy_for_requests(url)
+        return self._resolver.get_proxy_for_requests(url)  # type: ignore
 
 
 def get_proxy(**kwargs: Any) -> Proxy:

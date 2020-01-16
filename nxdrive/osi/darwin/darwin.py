@@ -120,7 +120,7 @@ class DarwinIntegration(AbstractOSIntegration):
     def current_them() -> str:
         """Get the current OS them."""
         try:
-            theme = NSUserDefaults.standardUserDefaults().stringForKey_(
+            theme: str = NSUserDefaults.standardUserDefaults().stringForKey_(
                 "AppleInterfaceStyle"
             )
             return theme.lower()
@@ -337,14 +337,14 @@ class DarwinIntegration(AbstractOSIntegration):
 
     @staticmethod
     def _get_favorite_list() -> List[str]:
-        return LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems, None)
+        return list(LSSharedFileListCreate(None, kLSSharedFileListFavoriteItems, None))
 
     @staticmethod
     def _find_item_in_list(lst: List[str], name: str) -> Optional[str]:
         for item in LSSharedFileListCopySnapshot(lst, None)[0]:
             item_name = LSSharedFileListItemCopyDisplayName(item)
             if name == item_name:
-                return item
+                return str(item)
         return None
 
     def get_extension_listener(self) -> DarwinExtensionListener:

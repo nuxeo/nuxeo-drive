@@ -66,7 +66,7 @@ class QueueManager(QObject):
         self._local_file_thread = None
         self._remote_folder_thread = None
         self._remote_file_thread = None
-        self._error_threshold = Options.max_errors
+        self._error_threshold = int(Options.max_errors)
         self._error_interval = 60
         self.set_max_processors(max_file_processors)
         self._processors_pool: List[QThread] = list()
@@ -279,48 +279,72 @@ class QueueManager(QObject):
             if emit_sig:
                 self.newError.emit(doc_pair.id)
 
-    def _get_local_folder(self) -> Optional[str]:
+    def _get_local_folder(self) -> Optional[DocPair]:
         if self._local_folder_queue.empty():
             return None
+
         try:
-            state = self._local_folder_queue.get(True, 3)
+            state: DocPair = self._local_folder_queue.get(True, 3)
         except Empty:
             return None
-        if state is not None and self._is_on_error(state.id):
+        else:
+            if not state:
+                return None
+
+        if self._is_on_error(state.id):
             return self._get_local_folder()
+
         return state
 
     def _get_local_file(self) -> Optional[DocPair]:
         if self._local_file_queue.empty():
             return None
+
         try:
-            state = self._local_file_queue.get(True, 3)
+            state: DocPair = self._local_file_queue.get(True, 3)
         except Empty:
             return None
-        if state is not None and self._is_on_error(state.id):
+        else:
+            if not state:
+                return None
+
+        if self._is_on_error(state.id):
             return self._get_local_file()
+
         return state
 
     def _get_remote_folder(self) -> Optional[DocPair]:
         if self._remote_folder_queue.empty():
             return None
+
         try:
-            state = self._remote_folder_queue.get(True, 3)
+            state: DocPair = self._remote_folder_queue.get(True, 3)
         except Empty:
             return None
-        if state is not None and self._is_on_error(state.id):
+        else:
+            if not state:
+                return None
+
+        if self._is_on_error(state.id):
             return self._get_remote_folder()
+
         return state
 
     def _get_remote_file(self) -> Optional[DocPair]:
         if self._remote_file_queue.empty():
             return None
+
         try:
-            state = self._remote_file_queue.get(True, 3)
+            state: DocPair = self._remote_file_queue.get(True, 3)
         except Empty:
             return None
-        if state is not None and self._is_on_error(state.id):
+        else:
+            if not state:
+                return None
+
+        if self._is_on_error(state.id):
             return self._get_remote_file()
+
         return state
 
     def _get_file(self) -> Optional[DocPair]:

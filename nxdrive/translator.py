@@ -120,7 +120,7 @@ class Translator(QTranslator):
     def set(lang: str) -> None:
         if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
-        return Translator.singleton.set_language(lang)
+        Translator.singleton.set_language(lang)
 
     @staticmethod
     def format_date(date: datetime) -> str:

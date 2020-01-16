@@ -169,7 +169,7 @@ class FilteredDocuments:
         self.filters = tuple(filters)
         self.roots: List["Documents"] = []
 
-    def get_item_state(self, path: str) -> int:
+    def get_item_state(self, path: str) -> Qt.CheckState:
         """Guess the new item state based on its parent state from actual filtered documents."""
         if not path.endswith("/"):
             path += "/"

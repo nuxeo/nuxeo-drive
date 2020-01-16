@@ -87,7 +87,7 @@ class BaseUpdater(PollWorker):
 
         for engine in self.manager.engines.copy().values():
             if engine.remote:
-                return engine.remote.client.server_version
+                return engine.remote.client.server_version  # type: ignore
         return None
 
     #
@@ -321,9 +321,9 @@ class BaseUpdater(PollWorker):
     def get_version_channel(self, version: str) -> str:
         info = self.versions.get(version)
         if info:
-            return info.get("type", "")
-        else:
-            log.debug(f"No version {version} in record.")
+            return info.get("type", None) or ""
+
+        log.debug(f"No version {version} in record.")
         return ""
 
     def _install(self, version: str, filename: str) -> None:
