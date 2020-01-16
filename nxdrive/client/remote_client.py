@@ -5,7 +5,7 @@ from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns
-from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 from urllib.parse import unquote
 
 import requests
@@ -14,12 +14,10 @@ from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
 from nuxeo.exceptions import CorruptedFile, HTTPError
 from nuxeo.handlers.default import Uploader
-from nuxeo.models import Batch, FileBlob, Document
+from nuxeo.models import Batch, Document, FileBlob
 from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtWidgets import QApplication
 
-from .local import LocalClient
-from .proxy import Proxy
 from ..constants import (
     APP_NAME,
     BATCH_SIZE,
@@ -43,7 +41,7 @@ from ..exceptions import (
     ScrollDescendantsError,
     UploadPaused,
 )
-from ..objects import NuxeoDocumentInfo, RemoteFileInfo, Download, Upload
+from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo, Upload
 from ..options import Options
 from ..utils import (
     compute_digest,
@@ -53,6 +51,8 @@ from ..utils import (
     unlock_path,
     version_le,
 )
+from .local import LocalClient
+from .proxy import Proxy
 
 if TYPE_CHECKING:
     from ..engine.dao.sqlite import EngineDAO  # noqa
