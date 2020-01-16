@@ -339,8 +339,7 @@ class Remote(Nuxeo):
                 self.check_integrity(digest, action)
             else:
                 with memoryview(resp.content) as view, file_out.open(mode="wb") as f:
-                    # TODO: NXDRIVE-1945, remove "type: ignore" when mypy 0.750 comes out
-                    f.write(view)  # type: ignore
+                    f.write(view)
                     # Force write of file to disk
                     f.flush()
                     os.fsync(f.fileno())
