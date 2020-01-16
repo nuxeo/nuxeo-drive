@@ -200,7 +200,7 @@ class Manager(QObject):
         self._started = False
 
         # Pause if in debug
-        self._pause = Options.debug
+        self.is_paused = Options.debug
 
         # Connect all Qt signals
         self.notification_service.init_signals()
@@ -349,13 +349,10 @@ class Manager(QObject):
         self.autolock_service.direct_edit = self.direct_edit
         return self.direct_edit
 
-    def is_paused(self) -> bool:  # TODO: Remove
-        return self._pause
-
     def resume(self, euid: str = None) -> None:
-        if not self._pause:
+        if not self.is_paused:
             return
-        self._pause = False
+        self.is_paused = False
         for uid, engine in self.engines.items():
             if euid is not None and euid != uid:
                 continue
@@ -363,9 +360,9 @@ class Manager(QObject):
         self.resumed.emit()
 
     def suspend(self, euid: str = None) -> None:
-        if self._pause:
+        if self.is_paused:
             return
-        self._pause = True
+        self.is_paused = True
         for uid, engine in self.engines.items():
             if euid is not None and euid != uid:
                 continue
@@ -390,7 +387,7 @@ class Manager(QObject):
         for uid, engine in list(self.engines.items()):
             if euid is not None and euid != uid:
                 continue
-            if not self._pause:
+            if not self.is_paused:
                 try:
                     engine.start()
                 except Exception:
@@ -755,7 +752,7 @@ class Manager(QObject):
 
         # NXDRIVE-978: Update the current state to reflect the change in
         # the systray menu
-        self._pause = False
+        self.is_paused = False
 
         # Backup the database
         if self.db_backup_worker:
