@@ -732,7 +732,7 @@ class DirectEdit(Worker):
             except CONNECTION_ERROR:
                 # Try again in 30s
                 log.warning(f"Connection error while uploading {ref!r}", exc_info=True)
-                self._error_queue.push(ref, ref)
+                self._error_queue.push(ref)
             except Exception as e:
                 if (
                     isinstance(e, HTTPError)
@@ -746,7 +746,7 @@ class DirectEdit(Worker):
                     continue
                 # Try again in 30s
                 log.exception(f"DirectEdit unhandled error for ref {ref!r}")
-                self._error_queue.push(ref, ref)
+                self._error_queue.push(ref)
 
     def _handle_queues(self) -> None:
         # Lock any document
@@ -754,7 +754,7 @@ class DirectEdit(Worker):
 
         # Unqueue any errors
         for item in self._error_queue.get():
-            self._upload_queue.put(item.name)
+            self._upload_queue.put(item.path)
 
         # Handle the upload queue
         self._handle_upload_queue()
