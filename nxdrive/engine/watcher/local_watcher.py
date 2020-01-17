@@ -8,7 +8,7 @@ from pathlib import Path
 from os.path import basename, splitext
 from queue import Queue
 from threading import Lock
-from time import mktime, sleep, time
+from time import mktime, sleep
 from typing import Any, Dict, Optional, Set, TYPE_CHECKING, Tuple
 
 from PyQt5.QtCore import pyqtSignal
@@ -106,9 +106,8 @@ class LocalWatcher(EngineWorker):
 
             if WINDOWS:
                 # Check dequeue and folder scan only every 100 loops (1s)
-                self._win_delete_interval = self._win_folder_scan_interval = int(
-                    round(time() * 1000)
-                )
+                now = current_milli_time()
+                self._win_delete_interval = self._win_folder_scan_interval = now
 
             while "working":
                 self._interact()
@@ -142,13 +141,13 @@ class LocalWatcher(EngineWorker):
         return len(self._delete_events)
 
     def _win_delete_check(self) -> None:
-        elapsed = int(round(time() * 1000)) - WIN_MOVE_RESOLUTION_PERIOD
+        elapsed = current_milli_time() - WIN_MOVE_RESOLUTION_PERIOD
         if self._win_delete_interval >= elapsed:
             return
 
         with self.lock:
             self._win_dequeue_delete()
-        self._win_delete_interval = int(round(time() * 1000))
+        self._win_delete_interval = current_milli_time()
 
     @tooltip("Dequeue delete")
     def _win_dequeue_delete(self) -> None:
@@ -187,13 +186,13 @@ class LocalWatcher(EngineWorker):
         return len(self._folder_scan_events)
 
     def _win_folder_scan_check(self) -> None:
-        elapsed = int(round(time() * 1000)) - self._windows_folder_scan_delay
+        elapsed = current_milli_time() - self._windows_folder_scan_delay
         if self._win_folder_scan_interval >= elapsed:
             return
 
         with self.lock:
             self._win_dequeue_folder_scan()
-        self._win_folder_scan_interval = int(round(time() * 1000))
+        self._win_folder_scan_interval = current_milli_time()
 
     @tooltip("Dequeue folder scan")
     def _win_dequeue_folder_scan(self) -> None:
