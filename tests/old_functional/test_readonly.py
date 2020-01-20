@@ -258,7 +258,7 @@ class TestReadOnly(OneUserTest):
             ignored = [
                 d.local_path.as_posix() for d in self.engine_1.dao.get_unsynchronizeds()
             ]
-            assert list(sorted(ignored)) == ["foo", "foo/test.txt"]
+            assert sorted(ignored) == ["foo", "foo/test.txt"]
 
             # Check there is nothing uploaded to the server
             assert not remote.get_children_info("/")

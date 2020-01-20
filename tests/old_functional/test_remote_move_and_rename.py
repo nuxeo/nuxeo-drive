@@ -835,8 +835,8 @@ class TestRemoteFiles(OneUserTest):
             assert not engine.dao.get_errors(limit=0)
 
         # Check - server
-        children = list(
-            sorted(remote.get_children_info(self.workspace), key=lambda x: x.name)
+        children = sorted(
+            remote.get_children_info(self.workspace), key=lambda x: x.name
         )
         assert len(children) == 2
         assert folder1_uid.endswith(children[0].uid)
@@ -845,7 +845,7 @@ class TestRemoteFiles(OneUserTest):
         assert children[1].name == foldername_lower
 
         # Check - client
-        children = list(sorted(local.get_children_info("/"), key=lambda x: x.name))
+        children = sorted(local.get_children_info("/"), key=lambda x: x.name)
         assert len(children) == 2
         assert children[0].remote_ref.endswith(folder1_uid)
         assert children[0].name == "AA_1"
@@ -863,7 +863,7 @@ class TestRemoteFiles(OneUserTest):
             assert not engine.dao.get_errors()
 
             # And the local folder must be renamed
-            children = list(sorted(local.get_children_info("/"), key=lambda x: x.name))
+            children = sorted(local.get_children_info("/"), key=lambda x: x.name)
             assert len(children) == 2
             assert children[0].remote_ref.endswith(folder1_uid)
             assert children[0].name == "AA_1"

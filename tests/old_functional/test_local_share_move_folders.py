@@ -29,7 +29,7 @@ class TestLocalShareMoveFolders(TwoUsersTest):
         self.folder_path_2 = local.make_folder("/", "a2")
 
         num = self.NUMBER_OF_LOCAL_IMAGE_FILES
-        self.names = set(["file%03d.png" % file_num for file_num in range(1, num + 1)])
+        self.names = {"file%03d.png" % file_num for file_num in range(1, num + 1)}
 
         # Add image files to a1
         abs_folder_path_1 = local.abspath(self.folder_path_1)

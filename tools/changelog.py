@@ -307,7 +307,7 @@ def main():
 
     # Get commits and print out formatted interesting informations
     debug(">>> Changelog.py v{}".format(__version__))
-    changelog([issue for issue in get_issues(args)], formatter=args.format)
+    changelog(list(get_issues(args)), formatter=args.format)
 
 
 if __name__ == "__main__":

@@ -1057,7 +1057,7 @@ class EngineDAO(ConfigurationDAO):
                 f"WHERE {self._get_to_sync_condition()}"
                 " ORDER BY local_path ASC"
             ).fetchall()
-            folders = dict()
+            folders = {}
             for pair in pairs:
                 # Add all the folders
                 if pair.folderish:

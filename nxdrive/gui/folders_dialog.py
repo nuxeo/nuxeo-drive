@@ -1,6 +1,6 @@
 # coding: utf-8
 from pathlib import Path
-from typing import List, Optional, Union, TYPE_CHECKING
+from typing import List, Optional, Set, Union, TYPE_CHECKING
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -208,9 +208,9 @@ class FoldersDialog(DialogMixin):
 
         self.path = path
         if self.path:
-            self.paths = set([self.path])
+            self.paths: Set[Path] = {self.path}
         else:
-            self.paths = set([])
+            self.paths = set()
 
         self.overall_size = self._get_overall_size()
         self.overall_count = self._get_overall_count()
