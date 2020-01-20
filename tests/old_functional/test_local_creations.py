@@ -14,6 +14,31 @@ from .common import FILE_CONTENT, SYNC_ROOT_FAC_ID, OneUserTest
 
 
 class TestLocalCreations(OneUserTest):
+    def test_create_then_rename_local_folder(self):
+        """Prevent regressions on fast create-then-rename folder."""
+        local = self.local_1
+
+        self.engine_1.start()
+        self.wait_sync(wait_for_async=True)
+
+        # Create a local folder, rename it
+        local.make_folder("/", "Test folder")
+        if WINDOWS:
+            # Too fast folder create-then-rename are not well handled
+            time.sleep(1)
+        local.rename("/Test folder", "Renamed folder")
+        assert local.exists("/Renamed folder")
+
+        # Sync and ensure the file is still renamed
+        self.wait_sync(wait_for_async=True)
+        assert local.exists("/Renamed folder")
+
+        # Ensure the folder is renamed on the server too
+        assert not self.engine_1.dao.get_errors()
+        children = self.remote_1.get_children_info(self.workspace)
+        assert len(children) == 1
+        assert children[0].name == "Renamed folder"
+
     def test_invalid_credentials_on_file_upload(self):
         local = self.local_1
         engine = self.engine_1

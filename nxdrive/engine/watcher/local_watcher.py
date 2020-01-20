@@ -192,8 +192,8 @@ class LocalWatcher(EngineWorker):
     @tooltip("Dequeue folder scan")
     def _win_dequeue_folder_scan(self) -> None:
         try:
-            for evt_time, evt_pair in list(self._folder_scan_events.values()):
-                local_path = evt_pair.local_path
+            events = list(self._folder_scan_events.items())
+            for local_path, (evt_time, evt_pair) in events:
                 delay = current_milli_time() - evt_time
 
                 if delay < self._windows_folder_scan_delay:
