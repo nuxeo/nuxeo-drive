@@ -2,8 +2,8 @@
 from datetime import datetime
 from pathlib import Path
 
-from nxdrive.constants import DelAction
 from nxdrive.client.local import FileInfo
+from nxdrive.constants import DelAction
 from nxdrive.objects import RemoteFileInfo
 
 

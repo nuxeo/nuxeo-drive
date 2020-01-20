@@ -1,15 +1,16 @@
 # coding: utf-8
 import shutil
 import time
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
 from nuxeo.exceptions import Unauthorized
 from nxdrive.constants import MAC, WINDOWS
-from pathlib import Path
 
-from .common import FILE_CONTENT, SYNC_ROOT_FAC_ID, OneUserTest
 from .. import ensure_no_exception
+from .common import FILE_CONTENT, SYNC_ROOT_FAC_ID, OneUserTest
 
 
 class TestLocalCreations(OneUserTest):

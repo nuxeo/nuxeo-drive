@@ -1,6 +1,6 @@
 # coding: utf-8
-from .common import OneUserTest
 from ..markers import not_windows
+from .common import OneUserTest
 
 
 class TestSpecialCharacters(OneUserTest):

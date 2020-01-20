@@ -1,11 +1,12 @@
 # coding: utf-8
 from logging import getLogger
 from pathlib import Path
-from typing import Callable, Optional
 from random import randint
+from typing import Callable, Optional
 from uuid import uuid4
 
 import pytest
+
 from faker import Faker
 from nuxeo.documents import Document
 from nuxeo.users import User

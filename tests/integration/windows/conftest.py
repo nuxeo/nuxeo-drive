@@ -4,7 +4,6 @@ from time import sleep
 
 import pytest
 
-
 log = getLogger(__name__)
 
 

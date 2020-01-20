@@ -4,6 +4,7 @@ from logging import getLogger
 from typing import Iterator, List, Union
 
 from PyQt5.QtCore import QObject, Qt
+
 from nuxeo.models import Document
 
 from ..client.remote_client import Remote

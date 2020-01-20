@@ -8,12 +8,13 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from requests.exceptions import ConnectionError
+
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import Document
 from nxdrive.constants import TransferStatus
 from nxdrive.options import Options
 from nxdrive.utils import get_tree_list
-from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
 from ..markers import not_windows

@@ -2,9 +2,10 @@
 import os
 import shutil
 import sys
-from macholib.MachO import MachO
 from pathlib import Path
 from typing import Generator, List, Optional
+
+from macholib.MachO import MachO
 
 
 def create_symlink(folder: Path) -> None:

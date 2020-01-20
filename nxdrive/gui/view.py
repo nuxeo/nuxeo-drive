@@ -1,7 +1,7 @@
 # coding: utf-8
 import os.path
 from functools import partial
-from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
 from PyQt5.QtCore import (
     QAbstractListModel,

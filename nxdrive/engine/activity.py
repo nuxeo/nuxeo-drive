@@ -4,7 +4,7 @@ from contextlib import suppress
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
 from ..utils import current_thread_id

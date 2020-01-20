@@ -48,7 +48,7 @@ import sys
 from contextlib import suppress
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Dict, Set, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Set, Tuple, Union
 
 __all__ = ("Options",)
 

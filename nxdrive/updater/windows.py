@@ -2,8 +2,8 @@
 import subprocess
 from logging import getLogger
 
-from .base import BaseUpdater
 from ..options import Options
+from .base import BaseUpdater
 
 __all__ = ("Updater",)
 

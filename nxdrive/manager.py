@@ -5,12 +5,12 @@ import sqlite3
 import uuid
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlparse, urlsplit, urlunsplit
 from weakref import CallableProxyType, proxy
 
 import requests
-from PyQt5.QtCore import QObject, QT_VERSION_STR, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QT_VERSION_STR, QObject, pyqtSignal, pyqtSlot
 from PyQt5.sip import SIP_VERSION_STR
 
 from . import __version__

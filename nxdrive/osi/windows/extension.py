@@ -7,10 +7,10 @@ from typing import Any, Dict, List, Optional, Set
 
 from win32com.shell import shell, shellcon
 
-from . import registry
-from ..extension import ExtensionListener, get_formatted_status
 from ...constants import CONFIG_REGISTRY_KEY
 from ...utils import force_encode
+from ..extension import ExtensionListener, get_formatted_status
+from . import registry
 
 log = getLogger(__name__)
 

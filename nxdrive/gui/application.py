@@ -6,13 +6,11 @@ from logging import getLogger
 from math import sqrt
 from pathlib import Path
 from time import monotonic
-from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from urllib.parse import unquote
 
 import requests
-from markdown import markdown
-from nuxeo.models import Document
-from PyQt5.QtCore import Qt, QRect, QTimer, QUrl, pyqtSlot, QEvent
+from PyQt5.QtCore import QEvent, QRect, Qt, QTimer, QUrl, pyqtSlot
 from PyQt5.QtGui import QCursor, QFont, QFontMetricsF, QIcon, QWindow
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtQml import QQmlApplicationEngine, QQmlContext
@@ -29,6 +27,9 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
 )
+
+from markdown import markdown
+from nuxeo.models import Document
 
 from ..constants import (
     APP_NAME,
@@ -58,10 +59,10 @@ from ..utils import (
     get_current_os_full,
     get_device,
     if_frozen,
+    normalize_event_filename,
     normalized_path,
     parse_protocol_url,
     short_name,
-    normalize_event_filename,
 )
 from .api import QMLDriveApi
 from .systray import DriveSystrayIcon, SystrayWindow

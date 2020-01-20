@@ -2,7 +2,7 @@
 """ Auto-update framework. """
 
 from logging import getLogger
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..constants import LINUX, MAC
 from ..options import Options

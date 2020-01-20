@@ -5,8 +5,8 @@ import subprocess
 from logging import getLogger
 from pathlib import Path
 
-from .base import BaseUpdater
 from ..constants import APP_NAME
+from .base import BaseUpdater
 
 __all__ = ("Updater",)
 

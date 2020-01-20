@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 from urllib.parse import unquote
 
 import requests
+from PyQt5.QtWidgets import QApplication
+
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
@@ -16,7 +18,6 @@ from nuxeo.exceptions import CorruptedFile, HTTPError
 from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, Document, FileBlob
 from nuxeo.utils import get_digest_algorithm
-from PyQt5.QtWidgets import QApplication
 
 from ..constants import (
     APP_NAME,

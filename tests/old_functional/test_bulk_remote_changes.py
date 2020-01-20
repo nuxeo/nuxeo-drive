@@ -25,12 +25,13 @@ Note: searching for the following regular expression in log file
 
 from logging import getLogger
 from time import sleep
-
 from unittest.mock import patch
+
 from requests import ConnectionError
 
 from nxdrive.client.remote_client import Remote
 from nxdrive.objects import RemoteFileInfo
+
 from .common import TEST_DEFAULT_DELAY, TwoUsersTest
 
 log = getLogger(__name__)

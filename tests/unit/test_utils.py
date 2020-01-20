@@ -8,8 +8,9 @@ from pathlib import Path, _posix_flavour, _windows_flavour
 from time import sleep
 from unittest.mock import patch
 
-import nxdrive.utils
 import pytest
+
+import nxdrive.utils
 from nxdrive.constants import APP_NAME, WINDOWS
 from nxdrive.options import Options
 

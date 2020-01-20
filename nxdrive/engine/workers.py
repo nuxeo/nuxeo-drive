@@ -2,14 +2,14 @@
 from contextlib import suppress
 from logging import getLogger
 from time import sleep, time
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from PyQt5.QtCore import QCoreApplication, QObject, QThread, pyqtSlot
 
-from .activity import Action, IdleAction
 from ..exceptions import ThreadInterrupt
-from ..objects import Metrics, DocPair
+from ..objects import DocPair, Metrics
 from ..utils import current_thread_id
+from .activity import Action, IdleAction
 
 if TYPE_CHECKING:
     from .dao.sqlite import EngineDAO  # noqa

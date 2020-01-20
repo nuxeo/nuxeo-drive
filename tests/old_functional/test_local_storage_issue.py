@@ -1,6 +1,6 @@
 # coding: utf-8
-import random
 import os
+import random
 from unittest.mock import patch
 
 from nxdrive.constants import NO_SPACE_ERRORS

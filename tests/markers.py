@@ -1,12 +1,10 @@
 # coding: utf-8
 """Collection of pytest markers to ease test filtering."""
-
 import os
 
 import pytest
 
 from nxdrive.constants import LINUX, MAC, WINDOWS
-
 
 # Skip tests based on data coming from Jenkins (not public)
 jenkins_only = pytest.mark.skipif(

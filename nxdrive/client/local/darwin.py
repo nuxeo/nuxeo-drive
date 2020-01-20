@@ -14,8 +14,8 @@ from typing import List, Union
 import xattr
 from AppKit import NSWorkspace, NSWorkspaceRecycleOperation
 
-from .base import LocalClientMixin
 from ...utils import lock_path, unlock_path
+from .base import LocalClientMixin
 
 __all__ = ("LocalClient",)
 

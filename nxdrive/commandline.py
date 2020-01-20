@@ -8,7 +8,7 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
-from typing import List, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, List, Union
 
 from . import __version__
 from .constants import APP_NAME, BUNDLE_IDENTIFIER, DEFAULT_CHANNEL, LINUX
@@ -19,8 +19,8 @@ from .utils import (
     force_encode,
     get_default_local_folder,
     get_value,
-    normalized_path,
     normalize_and_expand_path,
+    normalized_path,
 )
 
 try:

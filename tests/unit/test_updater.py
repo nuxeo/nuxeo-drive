@@ -1,16 +1,15 @@
 # coding: utf-8
 import pytest
 
+from nxdrive.options import Options
 from nxdrive.updater.constants import (
     UPDATE_STATUS_INCOMPATIBLE_SERVER,
-    UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UP_TO_DATE,
+    UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_WRONG_CHANNEL,
     Login,
 )
-from nxdrive.options import Options
 from nxdrive.updater.utils import get_update_status
-
 
 VERSIONS = {
     "1.3.0424": {"type": "release", "min": "5.8"},

@@ -6,18 +6,19 @@ from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 from queue import Empty, Queue
-from time import sleep
 from threading import Lock
-from typing import Any, Dict, List, Optional, Pattern, TYPE_CHECKING
+from time import sleep
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Pattern
 from urllib.parse import quote
 
-from nuxeo.exceptions import Forbidden, HTTPError, Unauthorized
-from nuxeo.utils import get_digest_algorithm
-from nuxeo.models import Blob
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from requests import codes
 from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
+
+from nuxeo.exceptions import Forbidden, HTTPError, Unauthorized
+from nuxeo.models import Blob
+from nuxeo.utils import get_digest_algorithm
 
 from .client.local import LocalClient
 from .client.remote_client import Remote
@@ -34,9 +35,9 @@ from .utils import (
     force_decode,
     normalize_event_filename,
     safe_filename,
+    safe_rename,
     simplify_url,
     unset_path_readonly,
-    safe_rename,
 )
 
 if TYPE_CHECKING:

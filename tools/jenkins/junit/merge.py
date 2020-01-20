@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from junitparser import JUnitXml, TestSuite
 
 JUNIT_PATH = Path("tools/jenkins/junit/xml")

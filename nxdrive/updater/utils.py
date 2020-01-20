@@ -4,15 +4,15 @@ from distutils.version import LooseVersion
 from logging import getLogger
 from typing import Any, Dict, Optional, Tuple
 
+from ..options import Options
+from ..utils import version_le, version_lt
 from .constants import (
     UPDATE_STATUS_INCOMPATIBLE_SERVER,
-    UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UP_TO_DATE,
+    UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_WRONG_CHANNEL,
     Login,
 )
-from ..options import Options
-from ..utils import version_le, version_lt
 
 __all__ = ("get_update_status",)
 

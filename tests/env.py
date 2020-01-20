@@ -1,6 +1,5 @@
 from os import getenv
 
-
 # The server URL against to run tests
 NXDRIVE_TEST_NUXEO_URL = getenv("NXDRIVE_TEST_NUXEO_URL", "http://localhost:8080/nuxeo")
 

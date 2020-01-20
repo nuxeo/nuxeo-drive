@@ -9,7 +9,6 @@ import sys
 from pathlib import Path
 from typing import Generator, List, Set
 
-
 FILES: Set[str] = {
     "PyQt*/Qt/lib",  # Contains only WebEngineCore.framework on macOS
     "PyQt*/Qt/plugins/mediaservice",

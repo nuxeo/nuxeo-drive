@@ -4,6 +4,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+
 from nxdrive.client.local import LocalClient
 from nxdrive.constants import ROOT, WINDOWS
 

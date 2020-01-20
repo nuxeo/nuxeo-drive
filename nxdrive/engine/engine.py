@@ -3,28 +3,22 @@ import datetime
 import os
 import shutil
 from contextlib import suppress
+from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Type
 from urllib.parse import urlsplit
 
 import requests
-from dataclasses import dataclass
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import Document
 
-from .activity import Action, FileAction
-from .dao.sqlite import EngineDAO
-from .processor import Processor
-from .queue_manager import QueueManager
-from .watcher.local_watcher import LocalWatcher
-from .watcher.remote_watcher import RemoteWatcher
-from .workers import Worker
-from ..client.local.base import LocalClientMixin
 from ..client.local import LocalClient
+from ..client.local.base import LocalClientMixin
 from ..client.remote_client import Remote
 from ..constants import (
     CONNECTION_ERROR,
@@ -42,7 +36,7 @@ from ..exceptions import (
     RootAlreadyBindWithDifferentAccount,
     ThreadInterrupt,
 )
-from ..objects import DocPairs, Binder, Metrics, EngineDef
+from ..objects import Binder, DocPairs, EngineDef, Metrics
 from ..options import Options
 from ..utils import (
     current_thread_id,
@@ -54,6 +48,13 @@ from ..utils import (
     set_path_readonly,
     unset_path_readonly,
 )
+from .activity import Action, FileAction
+from .dao.sqlite import EngineDAO
+from .processor import Processor
+from .queue_manager import QueueManager
+from .watcher.local_watcher import LocalWatcher
+from .watcher.remote_watcher import RemoteWatcher
+from .workers import Worker
 
 if TYPE_CHECKING:
     from ..manager import Manager  # noqa

@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 import pytest
 from PyQt5.QtNetwork import QAbstractSocket, QHostAddress
-from nxdrive.osi.extension import ExtensionListener, Status, get_formatted_status
 
+from nxdrive.osi.extension import ExtensionListener, Status, get_formatted_status
 
 DocPair = namedtuple(
     "DocPair",

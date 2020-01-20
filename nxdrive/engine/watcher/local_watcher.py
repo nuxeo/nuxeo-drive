@@ -4,31 +4,26 @@ import re
 import sqlite3
 import sys
 from logging import getLogger
-from pathlib import Path
 from os.path import basename, splitext
+from pathlib import Path
 from queue import Queue
 from threading import Lock
 from time import mktime, sleep
-from typing import Any, Dict, Optional, Set, TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple
 
 from PyQt5.QtCore import pyqtSignal
-
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
 
-from ..activity import tooltip
-from ..workers import EngineWorker, Worker
 from ...client.local import FileInfo
 from ...constants import LINUX, MAC, ROOT, UNACCESSIBLE_HASH, WINDOWS
 from ...exceptions import ThreadInterrupt
 from ...objects import DocPair, Metrics
 from ...options import Options
-from ...utils import (
-    current_milli_time,
-    force_decode,
-    is_generated_tmp_file,
-    normalize_event_filename as normalize,
-)
+from ...utils import current_milli_time, force_decode, is_generated_tmp_file
+from ...utils import normalize_event_filename as normalize
+from ..activity import tooltip
+from ..workers import EngineWorker, Worker
 
 if WINDOWS:
     import watchdog.observers as ob

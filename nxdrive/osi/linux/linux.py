@@ -4,9 +4,9 @@ import subprocess
 from logging import getLogger
 from pathlib import Path
 
-from .. import AbstractOSIntegration
 from ...constants import APP_NAME, NXDRIVE_SCHEME
 from ...utils import if_frozen
+from .. import AbstractOSIntegration
 
 __all__ = ("LinuxIntegration",)
 

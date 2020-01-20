@@ -1,6 +1,7 @@
 import os
 
 import pytest
+
 from nxdrive.exceptions import FolderAlreadyUsed
 
 from .. import ensure_no_exception

@@ -14,10 +14,11 @@ import pytest
 
 from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.exceptions import DuplicationDisabledError, NotFound
-from . import LocalTest
-from .common import OneUserTest
+
 from ..markers import not_linux, windows_only
 from ..utils import random_png
+from . import LocalTest
+from .common import OneUserTest
 
 if WINDOWS:
     import win32api

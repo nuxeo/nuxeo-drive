@@ -20,15 +20,15 @@ Notes:
 It __must__ be launched before any new release to validate the update process.
 """
 
-import http.server
-import socketserver
 import distutils.dir_util
 import distutils.version
 import hashlib
+import http.server
 import os
 import os.path
 import re
 import shutil
+import socketserver
 import subprocess
 import sys
 import tempfile

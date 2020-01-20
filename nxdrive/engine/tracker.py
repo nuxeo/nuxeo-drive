@@ -3,15 +3,15 @@ import os
 import sys
 from logging import getLogger
 from time import monotonic_ns
-from typing import Any, Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
-from PyQt5.QtCore import pyqtSlot
 import requests
+from PyQt5.QtCore import pyqtSlot
 
-from .workers import PollWorker
 from ..constants import APP_NAME, MAC, WINDOWS
 from ..options import Options
 from ..utils import ga_user_agent, get_current_os
+from .workers import PollWorker
 
 if not MAC:
     import locale

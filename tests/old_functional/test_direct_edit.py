@@ -8,16 +8,17 @@ from urllib.error import URLError
 from uuid import uuid4
 
 import pytest
+
 from nuxeo.exceptions import Forbidden
 from nxdrive.constants import WINDOWS
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.utils import parse_protocol_url, safe_filename
 
-from . import LocalTest, make_tmp_file
 from .. import ensure_no_exception, env
-from .common import OneUserTest, OneUserNoSync, TwoUsersTest
 from ..utils import random_png
+from . import LocalTest, make_tmp_file
+from .common import OneUserNoSync, OneUserTest, TwoUsersTest
 
 log = getLogger(__name__)
 

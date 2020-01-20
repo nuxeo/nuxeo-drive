@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 from nxdrive.engine.watcher.remote_watcher import RemoteWatcher
 
-from .common import TwoUsersTest
 from ..utils import random_png
+from .common import TwoUsersTest
 
 
 class TestLocalShareMoveFolders(TwoUsersTest):
