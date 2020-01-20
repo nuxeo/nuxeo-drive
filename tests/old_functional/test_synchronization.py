@@ -873,7 +873,7 @@ class TestSynchronization(OneUserTest):
         # Check that the 7 files exist locally and that there are no errors
         local_children = local.get_children_info("/")
         assert len(local_children) == 7
-        local_files = set(child.name for child in local_children)
+        local_files = {child.name for child in local_children}
         assert not engine.dao.get_errors(limit=0)
         assert remote_files == local_files
 

@@ -154,7 +154,7 @@ class Application(QApplication):
             if not self.manager.tracker:
                 self.manager.tracker = self.manager.create_tracker()
 
-        self._conflicts_modals: Dict[str, bool] = dict()
+        self._conflicts_modals: Dict[str, bool] = {}
         self.current_notification: Optional[Notification] = None
         self.default_tooltip = APP_NAME
 

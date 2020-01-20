@@ -28,7 +28,7 @@ DEFAULT_LEVEL_FILE = "INFO"
 # package and directly change the real process name but this requires to build
 # a compiled extension under Windows...
 
-_logging_context = dict()
+_logging_context = {}
 
 is_logging_configured = False
 

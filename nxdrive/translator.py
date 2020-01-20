@@ -146,4 +146,4 @@ class Translator(QTranslator):
     def languages() -> List[Tuple[str, str]]:
         if not Translator.singleton:
             raise RuntimeError("Translator not initialized")
-        return list(sorted(Translator.singleton.langs.values()))
+        return sorted(Translator.singleton.langs.values())

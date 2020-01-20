@@ -69,7 +69,7 @@ class QueueManager(QObject):
         self._error_threshold = int(Options.max_errors)
         self._error_interval = 60
         self.set_max_processors(max_file_processors)
-        self._processors_pool: List[QThread] = list()
+        self._processors_pool: List[QThread] = []
         self._get_file_lock = Lock()
         # Should not operate on thread while we are inspecting them
         """
@@ -90,7 +90,7 @@ class QueueManager(QObject):
 
         # ERROR HANDLING
         self._error_lock = Lock()
-        self._on_error_queue: Dict[int, DocPair] = dict()
+        self._on_error_queue: Dict[int, DocPair] = {}
         self._error_timer = QTimer()
         self._error_timer.timeout.connect(self._on_error_timer)
         self.newError.connect(self._on_new_error)

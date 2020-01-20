@@ -224,7 +224,7 @@ def get_current_os_full() -> Tuple[str, ...]:
 
         # https://docs.python.org/3/library/platform.html#platform.mac_ver
         ver = mac_ver()
-        return tuple((ver[0], *ver[1], ver[2]))
+        return (ver[0], *ver[1], ver[2])
     elif device == "GNU/Linux":
         import distro
 

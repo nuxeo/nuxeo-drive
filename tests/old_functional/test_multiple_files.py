@@ -90,7 +90,7 @@ class TestMultipleFiles(OneUserTest):
         # expect '/a2/a1' to contain the files
         # expect 'Nuxeo Drive Test Workspace/a1' to also contain the files
         num = self.NUMBER_OF_LOCAL_FILES
-        names = set(["local%04d.txt" % n for n in range(1, num + 1)])
+        names = {"local%04d.txt" % n for n in range(1, num + 1)}
 
         for path in (new_path, copy_path):
             # Local
@@ -106,7 +106,7 @@ class TestMultipleFiles(OneUserTest):
 
             children = remote.get_fs_children(uid)
             assert len(children) == num
-            children_names = set([child.name for child in children])
+            children_names = {child.name for child in children}
             assert children_names == names
 
     @pytest.mark.randombug("NXDRIVE-720", condition=LINUX)

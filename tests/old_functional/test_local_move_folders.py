@@ -28,7 +28,7 @@ class TestLocalMoveFolders(OneUserTest):
         self.folder_path_1 = local.make_folder("/", "a1")
         self.folder_path_2 = local.make_folder("/", "a2")
 
-        names = set([f"file{n + 1:03d}.png" for n in range(count)])
+        names = {f"file{n + 1:03d}.png" for n in range(count)}
 
         for path in (self.folder_path_1, self.folder_path_2):
             for name in names:
@@ -73,7 +73,7 @@ class TestLocalMoveFolders(OneUserTest):
         dst = local.abspath(self.folder_path_2)
         shutil.move(src, dst)
         self.wait_sync()
-        names = set([f"file{n + 1:03d}.png" for n in range(count)])
+        names = {f"file{n + 1:03d}.png" for n in range(count)}
 
         # Check that a1 doesn't exist anymore locally and remotely
         assert not local.exists("/a1")
@@ -255,7 +255,7 @@ class TestLocalMoveFolders(OneUserTest):
         self.wait_sync(timeout=100, wait_win=True)
 
         # Expected files
-        names = set([f"file{n + 1:03d}.png" for n in range(count)])
+        names = {f"file{n + 1:03d}.png" for n in range(count)}
 
         # Check that a* doesn't exist anymore locally and remotely
         assert not local.exists("/a1")

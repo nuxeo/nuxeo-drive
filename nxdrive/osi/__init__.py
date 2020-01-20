@@ -94,7 +94,7 @@ class AbstractOSIntegration(QObject):
         pass
 
     def get_system_configuration(self) -> Dict[str, Any]:
-        return dict()
+        return {}
 
     @staticmethod
     def cb_get() -> str:

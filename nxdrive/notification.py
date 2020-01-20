@@ -138,7 +138,7 @@ class NotificationService(QObject):
     def __init__(self, manager: "Manager") -> None:
         super().__init__()
         self._lock = Lock()
-        self._notifications: Dict[str, Notification] = dict()
+        self._notifications: Dict[str, Notification] = {}
         self._manager = manager
         self.dao = manager.dao
         self.load_notifications()
@@ -162,7 +162,7 @@ class NotificationService(QObject):
         with self._lock:
             if engine is None:
                 return self._notifications
-            result = dict()
+            result = {}
             for notif in self._notifications.values():
                 if notif.engine_uid == engine:
                     result[notif.uid] = notif
