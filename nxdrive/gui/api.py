@@ -1,16 +1,17 @@
 # coding: utf-8
 import json
+from dataclasses import asdict
 from logging import getLogger
-from pathlib import Path
 from os import getenv
 from os.path import abspath
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
-from dataclasses import asdict
-from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
+
+from nuxeo.exceptions import HTTPError, Unauthorized
 
 from ..client.proxy import get_proxy
 from ..constants import (
@@ -35,8 +36,8 @@ from ..updater.constants import Login
 from ..utils import (
     force_decode,
     get_date_from_sqlite,
-    get_device,
     get_default_local_folder,
+    get_device,
     guess_server_url,
     normalized_path,
 )

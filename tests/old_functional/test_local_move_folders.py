@@ -4,9 +4,9 @@ from contextlib import suppress
 from pathlib import Path
 from time import sleep
 
-from .common import OneUserTest
 from .. import ensure_no_exception
 from ..utils import random_png
+from .common import OneUserTest
 
 
 class TestLocalMoveFolders(OneUserTest):

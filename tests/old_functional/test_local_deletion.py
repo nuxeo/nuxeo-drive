@@ -5,6 +5,7 @@ import pytest
 
 from nxdrive.constants import WINDOWS
 from nxdrive.options import Options
+
 from .common import OneUserTest
 
 

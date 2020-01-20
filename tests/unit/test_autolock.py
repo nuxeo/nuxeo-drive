@@ -7,6 +7,7 @@ from typing import Dict, List, Tuple
 from unittest.mock import Mock, patch
 
 import pytest
+
 import nxdrive.autolocker
 
 from .. import ensure_no_exception

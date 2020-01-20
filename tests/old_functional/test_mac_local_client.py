@@ -1,6 +1,6 @@
 # coding: utf-8
-from .common import OneUserTest
 from ..markers import mac_only
+from .common import OneUserTest
 
 try:
     import xattr

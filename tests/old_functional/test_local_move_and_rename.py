@@ -7,12 +7,13 @@ from time import sleep
 from unittest.mock import patch
 
 import pytest
+
 from nuxeo.exceptions import HTTPError
 from nxdrive.engine.dao.sqlite import EngineDAO
 
+from .. import ensure_no_exception, env
 from . import DocRemote, LocalTest
 from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
-from .. import ensure_no_exception, env
 
 # TODO NXDRIVE-170: refactor
 

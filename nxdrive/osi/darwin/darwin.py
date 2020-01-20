@@ -1,6 +1,5 @@
 # coding: utf-8
 import os
-import psutil
 import re
 import stat
 import subprocess
@@ -10,6 +9,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import psutil
 import xattr
 from CoreServices import (
     CFURLCreateWithString,
@@ -27,15 +27,14 @@ from CoreServices import (
 )
 from nuxeo.compat import quote
 
-from .extension import DarwinExtensionListener
-from .. import AbstractOSIntegration
-from ..extension import get_formatted_status
 from ...constants import BUNDLE_IDENTIFIER, NXDRIVE_SCHEME
 from ...objects import DocPair
 from ...options import Options
 from ...translator import Translator
 from ...utils import if_frozen
-
+from .. import AbstractOSIntegration
+from ..extension import get_formatted_status
+from .extension import DarwinExtensionListener
 
 __all__ = ("DarwinIntegration",)
 

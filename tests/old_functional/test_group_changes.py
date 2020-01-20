@@ -3,8 +3,8 @@ from logging import getLogger
 
 from nuxeo.models import Document, Group
 
-from .common import OneUserTest, root_remote, salt
 from .. import env
+from .common import OneUserTest, root_remote, salt
 
 log = getLogger(__name__)
 

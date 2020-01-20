@@ -2,13 +2,13 @@
 import shutil
 import sys
 
+import pytest
+
 import nuxeo.client
 import nuxeo.operations
-import pytest
 from nuxeo.client import Nuxeo
 
 from . import env
-
 
 pytest_plugins = "tests.pytest_random"
 

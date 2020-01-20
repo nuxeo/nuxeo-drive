@@ -4,7 +4,6 @@ import pytest
 
 from .utils import fatal_error_dlg, main_window, share_metrics_dlg
 
-
 log = getLogger(__name__)
 
 

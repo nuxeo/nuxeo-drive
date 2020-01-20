@@ -11,8 +11,8 @@ from typing import Union
 import xattr
 from send2trash import send2trash
 
-from .base import LocalClientMixin
 from ...utils import lock_path, unlock_path
+from .base import LocalClientMixin
 
 __all__ = ("LocalClient",)
 

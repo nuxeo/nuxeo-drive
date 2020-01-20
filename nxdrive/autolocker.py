@@ -3,10 +3,11 @@ from contextlib import suppress
 from copy import deepcopy
 from logging import getLogger
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Iterable, Iterator
+
+from PyQt5.QtCore import QTimer, pyqtSignal
 
 import psutil
-from PyQt5.QtCore import QTimer, pyqtSignal
 
 from .constants import LINUX, MAC, WINDOWS
 from .engine.workers import PollWorker

@@ -9,10 +9,10 @@ from nxdrive.constants import WINDOWS
 from nxdrive.engine.engine import Engine
 from nxdrive.options import Options
 
-from . import DocRemote, LocalTest
 from .. import env
-from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, SYNC_ROOT_FAC_ID, OneUserTest
 from ..markers import windows_only
+from . import DocRemote, LocalTest
+from .common import REMOTE_MODIFICATION_TIME_RESOLUTION, SYNC_ROOT_FAC_ID, OneUserTest
 
 
 class TestRemoteMoveAndRename(OneUserTest):

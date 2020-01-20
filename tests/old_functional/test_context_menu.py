@@ -2,6 +2,7 @@ import os
 from os.path import isfile
 
 import pytest
+
 from nxdrive.constants import MAC
 
 from .common import OneUserTest

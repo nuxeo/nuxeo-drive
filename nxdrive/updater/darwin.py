@@ -1,15 +1,15 @@
 # coding: utf-8
 import re
-import sys
 import shutil
 import subprocess
+import sys
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 
-from .base import BaseUpdater
 from ..constants import APP_NAME
 from ..utils import force_decode
+from .base import BaseUpdater
 
 __all__ = ("Updater",)
 

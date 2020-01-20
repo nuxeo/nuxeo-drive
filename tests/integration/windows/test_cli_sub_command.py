@@ -4,11 +4,11 @@ import stat
 from logging import getLogger
 
 import pytest
+
 from nuxeo.documents import Document
 
-from .utils import cb_get, fatal_error_dlg  # , get_opened_url
 from ... import env
-
+from .utils import cb_get, fatal_error_dlg  # , get_opened_url
 
 log = getLogger(__name__)
 

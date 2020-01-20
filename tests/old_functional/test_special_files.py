@@ -1,8 +1,8 @@
 # coding: utf-8
 from shutil import copyfile
 
-from .common import OneUserTest
 from .. import ensure_no_exception
+from .common import OneUserTest
 
 
 class TestSpecialFiles(OneUserTest):

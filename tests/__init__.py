@@ -8,7 +8,6 @@ from typing import Any
 
 import nuxeo.constants
 
-
 # Silence any logging errors, we do not need more noise to output
 logging.raiseExceptions = False
 

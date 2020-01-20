@@ -8,7 +8,6 @@ from pathlib import Path
 from nxdrive.constants import APP_NAME, COMPANY, MAC, WINDOWS
 from nxdrive.options import Options
 
-
 __all__ = ("check_executable_path", "check_os_version", "show_critical_error")
 
 

@@ -16,7 +16,6 @@ import win32con
 import win32file
 from send2trash import send2trash
 
-from .base import LocalClientMixin
 from ...constants import ROOT
 from ...options import Options
 from ...utils import (
@@ -27,6 +26,7 @@ from ...utils import (
     unlock_path,
     unset_path_readonly,
 )
+from .base import LocalClientMixin
 
 __all__ = ("LocalClient",)
 

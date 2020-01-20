@@ -1,13 +1,13 @@
 # coding: utf-8
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from PyQt5.QtCore import QObject, pyqtSlot
 
-from .extension import ExtensionListener
 from ..constants import APP_NAME, LINUX, MAC, WINDOWS
 from ..objects import DocPair
+from .extension import ExtensionListener
 
 if TYPE_CHECKING:
     from ..manager import Manager  # noqa

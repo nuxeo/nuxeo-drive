@@ -4,28 +4,28 @@ import os
 import uuid
 from logging import getLogger
 from tempfile import gettempdir
-from typing import Any, Dict, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import requests
 import yaml
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
-from . import UpdateError
-from .constants import (
-    UPDATE_STATUS_INCOMPATIBLE_SERVER,
-    UPDATE_STATUS_UNAVAILABLE_SITE,
-    UPDATE_STATUS_UPDATE_AVAILABLE,
-    UPDATE_STATUS_UPDATING,
-    UPDATE_STATUS_UP_TO_DATE,
-    UPDATE_STATUS_WRONG_CHANNEL,
-    Login,
-)
-from .utils import get_update_status
 from ..constants import APP_NAME, CONNECTION_ERROR, NO_SPACE_ERRORS
 from ..engine.workers import PollWorker
 from ..options import Options
 from ..utils import version_lt
+from . import UpdateError
+from .constants import (
+    UPDATE_STATUS_INCOMPATIBLE_SERVER,
+    UPDATE_STATUS_UNAVAILABLE_SITE,
+    UPDATE_STATUS_UP_TO_DATE,
+    UPDATE_STATUS_UPDATE_AVAILABLE,
+    UPDATE_STATUS_UPDATING,
+    UPDATE_STATUS_WRONG_CHANNEL,
+    Login,
+)
+from .utils import get_update_status
 
 if TYPE_CHECKING:
     from ..manager import Manager  # noqa

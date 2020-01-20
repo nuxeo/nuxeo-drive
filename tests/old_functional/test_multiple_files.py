@@ -5,8 +5,9 @@ from pathlib import Path
 import pytest
 
 from nxdrive.constants import LINUX, MAC
-from .common import OneUserTest
+
 from ..markers import not_linux
+from .common import OneUserTest
 
 
 class TestMultipleFiles(OneUserTest):

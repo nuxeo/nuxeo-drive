@@ -6,7 +6,6 @@ from nxdrive.constants import WINDOWS
 
 from .common import OneUserTest
 
-
 # Number of chars in path "C:\...\Nuxeo..." is approx 96 chars
 FOLDER_A = "A" * 90
 FOLDER_B = "B" * 90

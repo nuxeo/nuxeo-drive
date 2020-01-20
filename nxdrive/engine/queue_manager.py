@@ -5,13 +5,13 @@ from logging import getLogger
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Lock
-from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
 
-from .processor import Processor
 from ..objects import DocPair, Metrics
 from ..options import Options
+from .processor import Processor
 
 if TYPE_CHECKING:
     from .dao.sqlite import EngineDAO  # noqa

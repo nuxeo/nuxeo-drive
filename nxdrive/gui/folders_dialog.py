@@ -1,6 +1,6 @@
 # coding: utf-8
 from pathlib import Path
-from typing import List, Optional, Set, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional, Set, Union
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -8,19 +8,19 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QFileDialog,
     QHBoxLayout,
-    QMenu,
     QLabel,
     QLineEdit,
+    QMenu,
     QPushButton,
     QVBoxLayout,
 )
 
-from .folders_treeview import DocumentTreeView, FolderTreeView
-from .folders_model import FoldersOnly, FilteredDocuments
 from ..constants import APP_NAME
 from ..engine.engine import Engine
 from ..translator import Translator
 from ..utils import get_tree_list, get_tree_size, sizeof_fmt
+from .folders_model import FilteredDocuments, FoldersOnly
+from .folders_treeview import DocumentTreeView, FolderTreeView
 
 if TYPE_CHECKING:
     from .application import Application  # noqa

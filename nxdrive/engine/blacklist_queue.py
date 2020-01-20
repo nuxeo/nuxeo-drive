@@ -1,8 +1,8 @@
 # coding: utf-8
-from time import monotonic
 from logging import getLogger
 from pathlib import Path
 from threading import Lock
+from time import monotonic
 from typing import Dict, Generator
 
 __all__ = ("BlacklistQueue",)

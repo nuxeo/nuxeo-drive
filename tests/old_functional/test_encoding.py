@@ -3,8 +3,9 @@ import os
 from pathlib import Path
 
 from nxdrive.client.local import FileInfo
-from .common import OneUserTest
+
 from ..markers import not_mac
+from .common import OneUserTest
 
 
 class TestEncoding(OneUserTest):

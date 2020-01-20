@@ -9,8 +9,8 @@ import pytest
 
 from nxdrive.engine.engine import Engine
 from nxdrive.options import Options
-from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
 
+from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest, TwoUsersTest
 
 log = getLogger(__name__)
 

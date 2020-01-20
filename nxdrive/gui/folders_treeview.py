@@ -1,19 +1,19 @@
 # coding: utf-8
-from typing import List, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Union
 
 from PyQt5.QtCore import (
     QItemSelection,
     QModelIndex,
     QObject,
-    QThreadPool,
     Qt,
+    QThreadPool,
     pyqtSignal,
 )
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtWidgets import QTreeView
 
-from .folders_model import FilteredDocuments, FoldersOnly
 from .folders_loader import DocumentContentLoader, FolderContentLoader
+from .folders_model import FilteredDocuments, FoldersOnly
 
 if TYPE_CHECKING:
     from .folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog  # noqa

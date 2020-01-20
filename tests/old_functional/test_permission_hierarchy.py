@@ -4,12 +4,13 @@ from contextlib import suppress
 from pathlib import Path
 
 import pytest
-from nuxeo.exceptions import Forbidden
 
+from nuxeo.exceptions import Forbidden
 from nxdrive.constants import WINDOWS
+
+from ..markers import windows_only
 from . import LocalTest
 from .common import OneUserTest, TwoUsersTest
-from ..markers import windows_only
 
 
 class TestPermissionHierarchy(OneUserTest):

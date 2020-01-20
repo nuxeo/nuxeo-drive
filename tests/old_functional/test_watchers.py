@@ -4,13 +4,13 @@ from pathlib import Path
 from queue import Queue
 from shutil import copyfile
 from time import sleep
-
 from unittest.mock import patch
 
 from nxdrive.constants import ROOT
+
+from ..markers import not_windows
 from . import LocalTest
 from .common import OneUserTest
-from ..markers import not_windows
 
 
 def copy_queue(queue: Queue) -> Queue:

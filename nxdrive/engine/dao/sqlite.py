@@ -5,21 +5,22 @@ Query formatting in this file is based on http://www.sqlstyle.guide/
 import json
 import os
 import sys
+from contextlib import suppress
+from datetime import datetime
+from logging import getLogger
+from pathlib import Path
 from sqlite3 import (
-    connect,
     Connection,
     Cursor,
     DatabaseError,
     IntegrityError,
     OperationalError,
     Row,
+    connect,
 )
-from contextlib import suppress
-from datetime import datetime
-from logging import getLogger
-from pathlib import Path
 from threading import RLock, local
 from typing import (
+    TYPE_CHECKING,
     Any,
     Dict,
     Generator,
@@ -28,33 +29,32 @@ from typing import (
     Tuple,
     Type,
     Union,
-    TYPE_CHECKING,
 )
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from .utils import fix_db, restore_backup, save_backup
 from ...client.local import FileInfo
 from ...constants import (
     NO_SPACE_ERRORS,
     ROOT,
+    UNACCESSIBLE_HASH,
     WINDOWS,
     TransferStatus,
-    UNACCESSIBLE_HASH,
 )
 from ...exceptions import UnknownPairState
 from ...notification import Notification
 from ...objects import (
     DocPair,
     DocPairs,
+    Download,
+    EngineDef,
     Filters,
     RemoteFileInfo,
-    EngineDef,
-    Download,
     Upload,
 )
 from ...options import Options
 from ...utils import current_thread_id
+from .utils import fix_db, restore_backup, save_backup
 
 if TYPE_CHECKING:
     from ..queue_manager import QueueManager  # noqa

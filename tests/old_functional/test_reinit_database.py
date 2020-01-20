@@ -2,8 +2,7 @@
 import time
 from pathlib import Path
 
-from .common import OS_STAT_MTIME_RESOLUTION
-from .common import OneUserTest
+from .common import OS_STAT_MTIME_RESOLUTION, OneUserTest
 
 
 class TestReinitDatabase(OneUserTest):

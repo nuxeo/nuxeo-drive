@@ -4,9 +4,9 @@ from contextlib import suppress
 
 import pytest
 import requests
-from sentry_sdk import configure_scope
 
 from nxdrive.options import Options
+from sentry_sdk import configure_scope
 
 # Remove eventual logging callbacks
 with suppress(KeyError):

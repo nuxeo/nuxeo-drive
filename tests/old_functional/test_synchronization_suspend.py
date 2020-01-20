@@ -1,8 +1,9 @@
 # coding: utf-8
 import pytest
+
 from nxdrive.constants import LINUX, WINDOWS
 
-from .common import OneUserTest, SYNC_ROOT_FAC_ID
+from .common import SYNC_ROOT_FAC_ID, OneUserTest
 
 
 class TestSynchronizationSuspend(OneUserTest):

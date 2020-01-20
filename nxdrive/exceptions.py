@@ -1,6 +1,6 @@
 # coding: utf-8
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from nuxeo.models import Document
 

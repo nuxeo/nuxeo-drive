@@ -1,31 +1,32 @@
 # coding: utf-8
 import os
-import sys
 import subprocess
+import sys
 from contextlib import suppress
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict
 
+from PyQt5.QtCore import pyqtSlot
+
 import win32api
 import win32file
-from PyQt5.QtCore import pyqtSlot
 from win32com.client import Dispatch
 from win32com.shell import shell, shellcon
 
-from . import registry
-from .extension import (
-    disable_overlay,
-    enable_overlay,
-    set_filter_folders,
-    WindowsExtensionListener,
-)
-from .. import AbstractOSIntegration
 from ...constants import APP_NAME, CONFIG_REGISTRY_KEY
 from ...objects import DocPair
 from ...options import Options
 from ...translator import Translator
 from ...utils import force_encode, get_value, if_frozen
+from .. import AbstractOSIntegration
+from . import registry
+from .extension import (
+    WindowsExtensionListener,
+    disable_overlay,
+    enable_overlay,
+    set_filter_folders,
+)
 
 __all__ = ("WindowsIntegration",)
 

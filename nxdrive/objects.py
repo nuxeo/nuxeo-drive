@@ -2,13 +2,13 @@
 import hashlib
 import unicodedata
 from collections import namedtuple
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from sqlite3 import Row
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from dataclasses import dataclass, field
 from dateutil import parser
 from dateutil.tz import tzlocal
 

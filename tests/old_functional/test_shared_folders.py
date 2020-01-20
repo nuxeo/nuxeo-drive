@@ -1,9 +1,9 @@
 # coding: utf-8
 from pathlib import Path
 
+from ..utils import random_png
 from . import LocalTest
 from .common import TwoUsersTest
-from ..utils import random_png
 
 
 class TestSharedFolders(TwoUsersTest):

@@ -1,12 +1,12 @@
 # coding: utf-8
 from logging import getLogger
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
-from PyQt5.QtCore import QRunnable, QVariant, Qt
+from PyQt5.QtCore import QRunnable, Qt, QVariant
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 
-from .folders_model import Documents, Doc, FilteredDoc
 from ..translator import Translator
+from .folders_model import Doc, Documents, FilteredDoc
 
 if TYPE_CHECKING:
     from .folders_treeview import TreeViewMixin  # noqa
