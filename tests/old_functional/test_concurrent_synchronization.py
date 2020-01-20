@@ -253,6 +253,9 @@ class TestConcurrentSynchronization(TwoUsersTest):
         # Create a local folder in the test workspace and a file inside
         # this folder, then synchronize
         local1.make_folder("/", "Test folder")
+        if WINDOWS:
+            # Too fast folder create-then-rename are not well handled
+            time.sleep(1)
         local1.rename("/Test folder", "Renamed folder")
         self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
         assert local1.exists("/Renamed folder")
