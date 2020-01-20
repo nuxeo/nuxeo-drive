@@ -207,22 +207,24 @@ class LocalWatcher(EngineWorker):
                         f"delay expiration: {local_path!r}"
                     )
                     continue
+
                 if not self.local.exists(local_path):
-                    if local_path in self._folder_scan_events:
-                        log.info(
-                            "Win: dequeuing folder scan event as folder "
-                            f"doesn't exist: {local_path!r}"
-                        )
-                        del self._folder_scan_events[local_path]
+                    log.info(
+                        "Win: dequeuing folder scan event as folder "
+                        f"doesn't exist: {local_path!r}"
+                    )
+                    self._folder_scan_events.pop(local_path, None)
                     continue
+
                 local_info = self.local.try_get_info(local_path)
-                if local_info is None:
+                if not local_info:
                     log.debug(
                         "Win: dequeuing folder scan event as folder "
                         f"doesn't exist: {local_path!r}"
                     )
-                    del self._folder_scan_events[local_path]
+                    self._folder_scan_events.pop(local_path, None)
                     continue
+
                 log.info(f"Win: handling folder to scan: {local_path!r}")
                 self.scan_pair(local_path)
                 local_info = self.local.try_get_info(local_path)
@@ -232,12 +234,13 @@ class LocalWatcher(EngineWorker):
                     else 0
                 )
                 if mtime > evt_time:
-                    # Re-schedule scan as the folder
-                    # has been modified since last check
+                    log.info(
+                        f"Re-schedule scan as the folder has been modified since last check: {evt_pair}"
+                    )
                     self._folder_scan_events[local_path] = (mtime, evt_pair)
                 else:
                     log.info(f"Win: dequeuing folder scan event: {evt_pair!r}")
-                    del self._folder_scan_events[local_path]
+                    self._folder_scan_events.pop(local_path, None)
         except ThreadInterrupt:
             raise
         except Exception:
@@ -1259,6 +1262,7 @@ class LocalWatcher(EngineWorker):
                     )
                     client.remove_remote_id(rel_path)
             dao.insert_local_state(local_info, parent_rel_path)
+
             # An event can be missed inside a new created folder as
             # watchdog will put listener after it
             if local_info.folderish:
@@ -1267,7 +1271,6 @@ class LocalWatcher(EngineWorker):
                     doc_pair = dao.get_state_from_local(rel_path)
                     if doc_pair:
                         self._schedule_win_folder_scan(doc_pair)
-            return
         except ThreadInterrupt:
             raise
         except OSError as exc:
@@ -1298,15 +1301,17 @@ class LocalWatcher(EngineWorker):
     def _schedule_win_folder_scan(self, doc_pair: DocPair) -> None:
         # On Windows schedule another recursive scan to make sure I/Os finished
         # ex: copy/paste, move
-        if self._win_folder_scan_interval > 0 and self._windows_folder_scan_delay > 0:
-            log.info(f"Add pair to folder scan events: {doc_pair!r}")
-            with self.lock:
-                local_info = self.local.try_get_info(doc_pair.local_path)
-                if local_info is not None:
-                    self._folder_scan_events[doc_pair.local_path] = (
-                        mktime(local_info.last_modification_time.timetuple()),
-                        doc_pair,
-                    )
+        if self._win_folder_scan_interval <= 0 or self._windows_folder_scan_delay <= 0:
+            return
+
+        with self.lock:
+            local_info = self.local.try_get_info(doc_pair.local_path)
+            if local_info:
+                log.info(f"Add pair to folder scan events: {doc_pair!r}")
+                self._folder_scan_events[doc_pair.local_path] = (
+                    mktime(local_info.last_modification_time.timetuple()),
+                    doc_pair,
+                )
 
 
 class DriveFSEventHandler(PatternMatchingEventHandler):
