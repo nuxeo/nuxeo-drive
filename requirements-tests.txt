@@ -2,7 +2,7 @@ faker==4.0.0
 flake8==3.7.9
 junitparser==1.4.1
 mypy==0.761
-pre-commit==1.21.0
+pre-commit==2.0.0
 pytest==5.3.4
 pytest-cov==2.8.1
 pytest-benchmark==3.2.3
