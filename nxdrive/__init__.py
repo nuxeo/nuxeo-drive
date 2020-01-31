@@ -17,7 +17,7 @@ Contributors:
     and https://github.com/nuxeo/nuxeo-drive/graphs/contributors
 
 Versioning
------------
+----------
 
 We use semantic versioning (https://semver.org) compliant with distutils
 and the PEP-440.
