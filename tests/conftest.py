@@ -2,10 +2,9 @@
 import shutil
 import sys
 
-import pytest
-
 import nuxeo.client
 import nuxeo.operations
+import pytest
 from nuxeo.client import Nuxeo
 
 from . import env
@@ -136,7 +135,7 @@ def server(nuxeo_url):
     server = Nuxeo(host=nuxeo_url, auth=auth)
     server.client.set(schemas=["dublincore"])
 
-    # Save bandwith by caching operations details
+    # Save bandwidth by caching operations details
     global OPS_CACHE
     if not OPS_CACHE:
         OPS_CACHE = server.operations.operations

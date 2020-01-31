@@ -52,7 +52,7 @@ class Translator(QTranslator):
         *_disambiguation* is set by PyQt, seems always None.
         *_n* is set by PyQt, seems always -1.
 
-        *_context*, *_disambiguation* and *_n* are not used but requiered
+        *_context*, *_disambiguation* and *_n* are not used but required
         when the Translator is used inside QML.
         They also starts with a underscore to fix Vulture.
         """

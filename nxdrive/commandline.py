@@ -426,7 +426,7 @@ class CliHandler:
             - config.ini next to the current executable
             - config.ini from the ~/.nuxeo-drive folder
             - config.ini from the current working directory
-        Each configuration file is independant and can define its own `env` section.
+        Each configuration file is independent and can define its own `env` section.
         """
         args = AbstractOSIntegration.get(None).get_system_configuration()
         if args:
@@ -505,7 +505,7 @@ class CliHandler:
         log.info(f"Running on version {self.get_version()}")
 
         # We cannot use fail_on_error=True because options is a namespace
-        # and contains a lot of inexistant Options values.
+        # and contains a lot of nonexistent Options values.
         Options.update(options, setter="cli", fail_on_error=False)
 
         if QSslSocket:

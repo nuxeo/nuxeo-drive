@@ -157,7 +157,7 @@ class MetaOptions(type):
         "~",
     )
 
-    # Setters weight, higher is more powerfull
+    # Setters weight, higher is more powerful
     _setters: Dict[str, int] = {
         "default": 0,
         "server": 1,

@@ -658,7 +658,7 @@ class Manager(QObject):
         return True
 
     def update_engine_path(self, uid: str, path: Path) -> None:
-        # Dont update the engine by itself,
+        # Don't update the engine by itself,
         # should be only used by engine.update_engine_path
         if uid in self.engines:
             # Unwatch old folder

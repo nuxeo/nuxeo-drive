@@ -108,7 +108,7 @@ setup_sentry()
 def ensure_no_exception():
     """
     Helper to use as a context manager to check a snippet does not throw any exception.
-    Usefull when one exception is only loggued and not forwared to the parent thread.
+    Useful when one exception is only loggued and not forwarded to the parent thread.
         >>> with ensure_no_exception():
         ...     # some code where you do not want any exception
     """

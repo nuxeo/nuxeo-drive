@@ -15,7 +15,7 @@ Contributors:
     Léa Klein <lklein@nuxeo.com>
     and https://github.com/nuxeo/nuxeo-drive/graphs/contributors
 
-Versionning
+Versioning
 -----------
 
 We use semantic versioning (https://semver.org) compliant with distutils
