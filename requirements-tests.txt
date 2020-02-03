@@ -1,3 +1,4 @@
+codespell==1.16.0
 faker==4.0.0
 flake8==3.7.9
 junitparser==1.4.1
