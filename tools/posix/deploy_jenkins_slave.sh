@@ -245,7 +245,7 @@ launch_tests() {
         local to_skip=""
         for file in tools/codespell_skip.txt .gitignore; do
               while read -r line; do
-                  # for folders codespell need a relative path
+                  # Codespell needs relative paths for folders
                   [ -e "${line}" ] && line="./${line}"
                   to_skip="${to_skip}${line},"
               done < $file
