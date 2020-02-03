@@ -142,7 +142,7 @@ class TestLocalDeletion(OneUserTest):
 
     @pytest.mark.skip(
         reason="Wait to know what is the expectation "
-        "- the previous folder doesnt exist"
+        "- the previous folder does not exist"
     )
     def test_move_untrash_file_on_parent_with_no_rights_on_destination(self):
         local = self.local_1

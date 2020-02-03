@@ -148,7 +148,7 @@ class Worker(QObject):
     def get_metrics(self) -> Metrics:
         """
         Get the Worker metrics.
-        :return a dict with differents variables that represent the worker
+        :return a dict with different variables that represent the worker
                 activity
         """
 

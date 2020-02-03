@@ -71,5 +71,5 @@ def test_get_formatted_status_permission_error(mocked_stat):
 
 def test_get_formatted_status_file_not_found():
     doc_pair = DocPair()
-    path = pathlib.Path("./inexistant")
+    path = pathlib.Path("./inexistent")
     assert get_formatted_status(doc_pair, path) is None

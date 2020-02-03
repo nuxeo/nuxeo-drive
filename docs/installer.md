@@ -86,7 +86,7 @@ Note: You cannot use one of these arguments without the other, they are compleme
 - `TARGETURL`:  The URL of the Nuxeo server.
 - `TARGETUSERNAME`: The username of the user who will be using Nuxeo Drive.
 
-###### Optionnal arguments
+###### Optional arguments
 
 - `TARGETPASSWORD`: The password of the user who will be using Nuxeo Drive.
 

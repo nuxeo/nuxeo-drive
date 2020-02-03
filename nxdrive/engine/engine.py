@@ -365,7 +365,7 @@ class Engine(QObject):
 
         doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
-            log.info(f"Unable to delete non-existant doc {path}")
+            log.info(f"Unable to delete non-existent doc {path}")
             return
 
         # In case the deleted path is not synced, there is no
@@ -458,7 +458,7 @@ class Engine(QObject):
         """ Re-synchronize a document when a deletion is cancelled. """
         doc_pair = self.dao.get_state_from_local(path)
         if not doc_pair:
-            log.info(f"Unable to rollback delete on non-existant doc {path}")
+            log.info(f"Unable to rollback delete on non-existent doc {path}")
             return
         if doc_pair.folderish:
             self.dao.remove_state_children(doc_pair)
@@ -577,7 +577,7 @@ class Engine(QObject):
         self._check_sync_start()
 
     def remove_staled_transfers(self) -> None:
-        """Remove staled transfers: at startup, no transfer can have the trasfer status ONGOING."""
+        """Remove staled transfers: at startup, no transfer can have the transfer status ONGOING."""
         for nature in ("download", "upload"):
             meth = getattr(self.dao, f"get_{nature}s_with_status")
             for transfer in meth(TransferStatus.ONGOING):

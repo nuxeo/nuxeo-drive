@@ -20,11 +20,12 @@
 #
 # You can tweak tests checks by setting the SKIP envar:
 #    - SKIP=flake8 to skip code style
+#    - SKIP=spell to skip grammar check
 #    - SKIP=mypy to skip type annotations
 #    - SKIP=cleanup to skip dead code checks
 #    - SKIP=rerun to not rerun failed test(s)
 #    - SKIP=bench to not run benchmarks
-#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,bench)
+#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,,spell,bench)
 #    - SKIP=tests tu run only code checks
 #
 # There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
@@ -52,7 +53,7 @@ build_installer() {
         # Move problematic folders out of Contents/MacOS
         ${PYTHON} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
 
-        # Remove broken symlinks pointing to an inexistant target
+        # Remove broken symlinks pointing to an inexistent target
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     elif [ "${OSI}" = "linux" ]; then
         remove_blacklisted_files dist/ndrive
@@ -236,6 +237,27 @@ launch_tests() {
         echo ">>> Launching the specific tests"
         launch_test "${SPECIFIC_TEST}"
         return
+    fi
+
+    if should_run "spell"; then
+        echo ">>> Checking the grammar"
+        echo "    Add '--interactive=3 --write-changes' arguments to the following command to allow interactive modifications."
+        local to_skip=""
+        for file in tools/codespell_skip.txt .gitignore; do
+              while read -r line; do
+                  # Codespell needs relative paths for folders
+                  [ -e "${line}" ] && line="./${line}"
+                  to_skip="${to_skip}${line},"
+              done < $file
+        done
+        # Display the command to allow interactive mode later
+        set -x
+        codespell \
+            --ignore-words=tools/codespell_whitelist.txt \
+            --quiet-level=4 \
+            --skip="${to_skip}" \
+            2> /dev/null
+        set +x
     fi
 
     if should_run "flake8"; then

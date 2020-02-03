@@ -1,7 +1,6 @@
 import os
 
 import pytest
-
 from nxdrive.exceptions import FolderAlreadyUsed
 
 from .. import ensure_no_exception
@@ -72,7 +71,7 @@ FileNotFoundError: [Errno 2] No such file or directory: '/home/nuxeo/Drive/Compa
 
 @not_windows(reason="PermissionError when trying to delete the file.")
 def test_manager_engine_removal(manager_factory):
-    """NXDRIVE-1618: Remove inexistant engines from the Manager engines list."""
+    """NXDRIVE-1618: Remove inexistent engines from the Manager engines list."""
 
     manager, engine = manager_factory()
 

@@ -81,4 +81,4 @@ The only implemented check will be to ensure the `client_version` is greater or 
 There will be no other checks so that administrators can use alpha, beta and release versions.
 
 This might lead to unusable or instable versions of the application.
-This is known and now that administrators are handling that, it is their responsability to ensure they do not deploy a problematic version of Nuxeo Drive.
+This is known and now that administrators are handling that, it is their responsibility to ensure they do not deploy a problematic version of Nuxeo Drive.

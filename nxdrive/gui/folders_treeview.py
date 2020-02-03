@@ -185,7 +185,7 @@ class FolderTreeView(TreeViewMixin):
             # Get the selected folder's path
             path = self.model().itemFromIndex(index).data(Qt.UserRole).get_path()
 
-        # Set the remote folder acording to the selected folder
+        # Set the remote folder according to the selected folder
         self.parent.remote_folder.setText(path)
 
         # Set the OK button state depending of the current selection

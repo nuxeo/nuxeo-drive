@@ -91,7 +91,7 @@ Example {}: changelog.py --format=md
 
 Example {}: changelog.py --format=md --types NXPY SUPNXP
 
-    Same as previously, but printed changelog takes into acocunt only
+    Same as previously, but printed changelog takes into account only
     NXPY and SUPNXP issues.
 
 
@@ -176,9 +176,9 @@ def get_issues(args):
 
 
 def get_issue_infos(issue, raw=False):
-    """ Retrieve issue informations. """
+    """ Retrieve issue information. """
 
-    debug(">>> Fetching informations of {}".format(issue))
+    debug(">>> Fetching information of {}".format(issue))
     base_url = "https://jira.nuxeo.com"
     url = base_url + "/rest/api/2/issue/{}".format(issue)
 
@@ -190,7 +190,7 @@ def get_issue_infos(issue, raw=False):
         except (requests.HTTPError, ValueError):
             pass
     else:
-        debug(">>> Impossible to to retrieve informations, passing")
+        debug(">>> Impossible to to retrieve information, passing")
         return
 
     # Skip unfinished work
@@ -305,7 +305,7 @@ def main():
         print(get_version())
         return
 
-    # Get commits and print out formatted interesting informations
+    # Get commits and print out formatted interesting information
     debug(">>> Changelog.py v{}".format(__version__))
     changelog(list(get_issues(args)), formatter=args.format)
 

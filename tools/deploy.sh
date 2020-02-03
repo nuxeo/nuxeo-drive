@@ -47,7 +47,7 @@ EOF
     rsync -vz versions.yml nuxeo@lethe.nuxeo.com:/var/www/community.nuxeo.com/static/drive-updates/
 
     echo ">>> [${latest_release}] Saving release on GitHub"
-    # Fetch the pre-release informations to find the complete URL
+    # Fetch the pre-release information to find the complete URL
     # Note: if the pre-release is still a draft, the command below will fail
     curl --silent -X GET -n -o prerelease.json \
         "https://api.github.com/repos/nuxeo/nuxeo-drive/releases/tags/${latest_release}"

@@ -10,9 +10,6 @@ from threading import Lock
 from time import monotonic_ns, sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
-from PyQt5.QtCore import pyqtSignal
-from urllib3.exceptions import MaxRetryError
-
 from nuxeo.exceptions import (
     CorruptedFile,
     Forbidden,
@@ -20,6 +17,8 @@ from nuxeo.exceptions import (
     Unauthorized,
     UploadError,
 )
+from PyQt5.QtCore import pyqtSignal
+from urllib3.exceptions import MaxRetryError
 
 from ..client.local import FileInfo
 from ..constants import (
@@ -565,7 +564,7 @@ class Processor(EngineWorker):
         if not doc_pair.folderish and not self.local.is_equal_digests(
             None, doc_pair.remote_digest, doc_pair.local_path
         ):
-            # Note: setted 1st argument of is_equal_digests() to None
+            # Note: set 1st argument of is_equal_digests() to None
             # to force digest computation
             try:
                 info = self.local.get_info(doc_pair.local_path)
@@ -793,7 +792,7 @@ class Processor(EngineWorker):
                     self.dao.synchronize_state(doc_pair)
                     return
             except HTTPError as e:
-                # undelete will fail if you dont have the rights
+                # undelete will fail if you don't have the rights
                 if e.status not in {401, 403}:
                     raise e
                 log.debug(
@@ -1263,7 +1262,7 @@ class Processor(EngineWorker):
             except NotFound:
                 # Drive was shut while syncing a root.  While stopped, the root
                 # was unsynced via the Web-UI.  At the restart, remotely
-                # created files queue may have obsolete informations.
+                # created files queue may have obsolete information.
                 # To prevent inconsistency, we remotely remove the pair.
                 self._synchronize_remotely_deleted(doc_pair)
                 return
@@ -1287,7 +1286,7 @@ class Processor(EngineWorker):
 
         self.local.set_remote_id(path, doc_pair.remote_ref)
         if path != doc_pair.local_path and doc_pair.folderish:
-            # Update childs
+            # Update children
             self.dao.update_local_parent_path(doc_pair, path.name, path.parent)
         self._refresh_local_state(doc_pair, self.local.get_info(path))
         self._handle_readonly(doc_pair)

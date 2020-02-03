@@ -250,7 +250,7 @@ class LocalClientMixin:
             )
             mtime = datetime.utcfromtimestamp(0)
 
-        # TODO Do we need to load it everytime ?
+        # TODO Do we need to load it every time ?
         remote_ref = self.get_remote_id(ref)
         # On unix we could use the inode for file move detection but that won't
         # work on Windows. To reduce complexity of the code and the possibility
@@ -451,7 +451,7 @@ class LocalClientMixin:
     def set_file_attribute(self, path: Path) -> None:
         """Set a special attribute (not extended attribute) to a given file.
         Here we do not raise NotImplementedError because this is only used on Windows.
-        So instead of declaring an no-op method in the GNU/Linux and macOS classs, we
+        So instead of declaring an no-op method in the GNU/Linux and macOS class, we
         just do nothing here by default.
         """
         pass
@@ -472,7 +472,7 @@ class LocalClientMixin:
             ):
                 # The filesystem is not sensitive, so we cannot rename
                 # from "a" to "A". We need to use a temporary filename
-                # inbetween, which allows us to do "a" -> <tempname> -> "A".
+                # in between, which allows us to do "a" -> <tempname> -> "A".
                 temp_path = self.download_dir / str(uuid.uuid4())
                 source_os_path.rename(temp_path)
                 source_os_path = temp_path

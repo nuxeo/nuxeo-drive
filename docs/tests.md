@@ -1,6 +1,6 @@
 # How to debug a functional test with the pydev server
 
-- Copy `pysrc` from the PyDev eclipse plugin to your Pyhton libraries
+- Copy `pysrc` from the PyDev eclipse plugin to your Python libraries
 - Rename it to `pydev`
 - Add a `__init__.py` file in `pydev`
 

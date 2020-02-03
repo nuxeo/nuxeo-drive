@@ -6,9 +6,8 @@ from operator import attrgetter, itemgetter
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
-
 from nuxeo.exceptions import BadQuery, HTTPError, Unauthorized
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 from ...client.local import FileInfo
 from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
@@ -225,7 +224,7 @@ class RemoteWatcher(EngineWorker):
 
             That sorting will make the app to sync all files from the 1st (sub*)folder,
             then sync all files from the next (sub*)folder, ... , until the sync of all
-            files of the lastest (sub*)folder.
+            files of the latest (sub*)folder.
             """
             return len(descendant.path), descendant.parent_uid, descendant.name
 

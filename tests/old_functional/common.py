@@ -337,7 +337,7 @@ class TwoUsersTest(TestCase):
         return self.ws
 
     def _append_user_attrs(self, number: int, register_roots: bool) -> None:
-        """Create all stuff needed for one user. Ugly but usefull."""
+        """Create all stuff needed for one user. Ugly but useful."""
 
         # Create all what we need
         local_test_folder = self.tmpdir / str(number)

@@ -1,5 +1,5 @@
 """
-Test the Direct Transfer feature in differents scenarii.
+Test the Direct Transfer feature in different scenarii.
 """
 from contextlib import suppress
 from shutil import copyfile, copytree

@@ -257,9 +257,9 @@ class FoldersDialog(DialogMixin):
         self.engine.direct_transfer(self.paths, self.remote_folder.text())
 
     def button_ok_state(self) -> None:
-        """Handle the state of the OK button. It should be enabled when particular criterias are met."""
+        """Handle the state of the OK button. It should be enabled when particular criteria are met."""
 
-        # Required criterias:
+        # Required criteria:
         #   - at least 1 local path
         #   - a selected remote path
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(
@@ -273,7 +273,7 @@ class FoldersDialog(DialogMixin):
         return FolderTreeView(self, client)
 
     def _add_sub_menu(self) -> QMenu:
-        """Ths is the sub-menu displayed when clicking on the Add button."""
+        """This is the sub-menu displayed when clicking on the Add button."""
         menu = QMenu()
         menu.addAction(Translator.get("ADD_FILES"), self._select_more_files)
         menu.addAction(Translator.get("ADD_FOLDER"), self._select_more_folder)

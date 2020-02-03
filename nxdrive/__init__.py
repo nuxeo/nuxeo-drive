@@ -13,10 +13,11 @@ Contributors:
     Rémi Cattiau
     Mickaël Schoentgen <mschoentgen@nuxeo.com>
     Léa Klein <lklein@nuxeo.com>
+    Romain Grasland <rgrasland@nuxeo.com>
     and https://github.com/nuxeo/nuxeo-drive/graphs/contributors
 
-Versionning
------------
+Versioning
+----------
 
 We use semantic versioning (https://semver.org) compliant with distutils
 and the PEP-440.

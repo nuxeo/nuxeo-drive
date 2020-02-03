@@ -114,7 +114,7 @@ class Doc(FileInfo):
         return self.doc.path
 
     def selectable(self) -> bool:
-        """Allow to fetch its children only if the user has at least the "Read" priviledge."""
+        """Allow to fetch its children only if the user has at least the "Read" privilege."""
         return "Read" in self.doc.contextParameters["permissions"]
 
 

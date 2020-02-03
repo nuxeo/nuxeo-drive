@@ -82,15 +82,15 @@ class TestVolume(OneUserTest):
             items += 1
 
             folderobj["name"] = foldername
-            folderobj["childs"] = {}
+            folderobj["children"] = {}
             abspath = self.local_1.abspath(folderobj["path"])
-            parent["childs"][foldername] = folderobj
+            parent["children"][foldername] = folderobj
 
             items += self.create_tree(folders, files, depth - 1, folderobj)
 
             for file in range(files):
                 filename = get_name(False, DEPTH - depth + 1, file + 1)
-                folderobj["childs"][filename] = {"name": filename}
+                folderobj["children"][filename] = {"name": filename}
                 random_png(Path(abspath) / filename)
                 items += 1
 
@@ -102,7 +102,7 @@ class TestVolume(OneUserTest):
         if not stopped:
             self.engine_1.stop()
 
-        self.tree = {"childs": {}, "path": ROOT}
+        self.tree = {"children": {}, "path": ROOT}
         items = self.create_tree(FOLDERS, FILES, DEPTH, self.tree)
         log.warning(f"Created {items:,} local documents.")
 
@@ -179,7 +179,7 @@ class TestVolume(OneUserTest):
 
         # While we are started
         # Move one parent to the second children
-        if len(self.tree["childs"]) < 3 or DEPTH < 2:
+        if len(self.tree["children"]) < 3 or DEPTH < 2:
             pytest.skip("Can't execute this test on so few data")
 
         # Move root 2 in, first subchild of 1

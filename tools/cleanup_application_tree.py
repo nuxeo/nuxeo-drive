@@ -94,11 +94,11 @@ def find_useless_files(folder: Path) -> Generator[Path, None, None]:
 
 def main(args: List[str]) -> int:
     """
-    Purge uneeded files from the packaged application.
+    Purge unneeded files from the packaged application.
     Take one or more folder arguments: "ndrive", "Nuxeo Drive.app".
     """
     for folder in args:
-        print(f">>> [{folder}] Purging uneeded files")
+        print(f">>> [{folder}] Purging unneeded files")
         for file in find_useless_files(Path(folder)):
             if file.is_dir():
                 shutil.rmtree(file)

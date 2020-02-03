@@ -1,0 +1,4 @@
+./nxdrive/data/i18n/i18n-*
+./tests/resources/i18n/i18n-*
+tools/windows/unofficial_i18n
+tools/codespell_whitelist.txt

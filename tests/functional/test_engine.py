@@ -43,7 +43,7 @@ def test_delete_doc(manager_factory, tmp):
 
     with manager:
         # Test a file without associated doc pair
-        engine.delete_doc(Path("inexistant"))
+        engine.delete_doc(Path("inexistent"))
 
         # Test a file not synced
         engine.delete_doc(doc_pair("unsynced", synced=False))

@@ -72,7 +72,7 @@ create() {
         # New alpha version:
         #    - checkout the last commit
         #    - update the version number and release date
-        echo ">>> [${release_type}] Update informations into a new branch"
+        echo ">>> [${release_type}] Update information into a new branch"
         drive_version="$(python tools/changelog.py --drive-version)"
         alpha_version="$(git describe --always --match="release-*" | cut -d"-" -f3)"
 

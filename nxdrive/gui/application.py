@@ -1217,7 +1217,7 @@ class Application(QApplication):
         use_light_icons = self.manager.get_config("light_icons", default=None)
 
         if use_light_icons is None:
-            # Default value for GNU/Linux, macOS ans Windows 7
+            # Default value for GNU/Linux, macOS and Windows 7
             use_light_icons = False
 
             if LINUX:

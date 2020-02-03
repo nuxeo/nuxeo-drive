@@ -179,7 +179,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str)
     def app_update(self, version: str) -> None:
-        """ Start the udpate to the specified version. """
+        """ Start the update to the specified version. """
         self._manager.updater.update(version)
 
     @pyqtSlot(result=list)
@@ -394,7 +394,7 @@ class QMLDriveApi(QObject):
             self.setMessage.emit("CONNECTION_UNKNOWN", "error")
 
     def _guess_server_url(self, server_url: str) -> str:
-        """Handle invalide SSL certificates when guessing the server URL."""
+        """Handle invalid SSL certificates when guessing the server URL."""
         try:
             return guess_server_url(server_url, proxy=self._manager.proxy)
         except InvalidSSLCertificate as exc:

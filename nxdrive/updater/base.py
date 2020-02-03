@@ -38,7 +38,7 @@ log = getLogger(__name__)
 class BaseUpdater(PollWorker):
     """ Updater class for frozen application. """
 
-    # Used to trigger the application exit on sucessful update
+    # Used to trigger the application exit on successful update
     appUpdated = pyqtSignal()
 
     # Used to display a notification when a new version is available
@@ -91,7 +91,7 @@ class BaseUpdater(PollWorker):
         return None
 
     #
-    # Public methods that can be overrided
+    # Public methods that can be overridden
     #
 
     def install(self, filename: str) -> None:

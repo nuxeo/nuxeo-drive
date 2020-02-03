@@ -108,7 +108,7 @@ libthai.so.0
 libfreetype.so.6
 libharfbuzz.so.0
 
-# Note, after discussion we do not exlude this, but we can use a dummy library that just does nothing
+# Note, after discussion we do not exclude this, but we can use a dummy library that just does nothing
 # libselinux.so.1
 # Workaround for:
 # sed: error while loading shared libraries: libpcre.so.3: cannot open shared object file: No such file or directory
@@ -135,7 +135,7 @@ libgpg-error.so.0
 # libhx509.so.5 # Missing on openSUSE LEAP 42.0
 libICE.so.6
 # libidn.so.11 # Does not come with Solus by default
-# libk5crypto.so.3 # Runnning AppImage built on Debian 9 or Ubuntu 16.04 on an Archlinux fails otherwise; https://github.com/AppImage/AppImages/issues/301
+# libk5crypto.so.3 # Running AppImage built on Debian 9 or Ubuntu 16.04 on an Archlinux fails otherwise; https://github.com/AppImage/AppImages/issues/301
 # libkeyutils.so.1 # Does not come with Void Linux by default; https://github.com/Subsurface-divelog/subsurface/issues/1971#issuecomment-466606834
 # libkrb5.so.26 # Disputed, seemingly needed by Arch Linux since Kerberos is named differently there. Missing on openSUSE LEAP 42.0
 # libkrb5.so.3 # Disputed, seemingly needed by Arch Linux since Kerberos is named differently there

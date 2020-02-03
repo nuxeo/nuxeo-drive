@@ -101,7 +101,7 @@ def test_cleanup_bad_folder_name(direct_edit):
 
 
 def test_document_not_found(manager_factory):
-    """Trying to DirectEdit'ing a inexistant document should display a notification."""
+    """Trying to DirectEdit'ing a inexistent document should display a notification."""
 
     manager, engine = manager_factory()
     doc_uid = "0000"
@@ -166,7 +166,7 @@ def test_is_valid_folder_name(direct_edit):
 
 
 def test_lock_queue_doc_not_found(direct_edit):
-    ref = Path("something inexistant.docx")
+    ref = Path("something inexistent.docx")
     direct_edit._lock_queue.put((ref, "lock"))
 
     with ensure_no_exception():

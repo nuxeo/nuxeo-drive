@@ -35,7 +35,7 @@ TO_IGNORE = [
 
 
 def is_valid(row, system):
-    """ Chek if a given row is good to take into account. """
+    """ Check if a given row is good to take into account. """
 
     return row[system] not in TO_IGNORE
 

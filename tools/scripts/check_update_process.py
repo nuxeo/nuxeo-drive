@@ -13,7 +13,7 @@ That fully automated script will:
 
 Notes:
 
-- It will purge any existant local installation, be warned!
+- It will purge any existent local installation, be warned!
 - Ideally, no sync root are enabled on the local server for the Administrator account.
 - FORCE_USE_LATEST_VERSION envar can be used to bypass the need for an account.
 
@@ -126,12 +126,12 @@ def gen_exe():
 
 
 def get_last_version_number():
-    """ Get the lastest GA release version from the update website. """
+    """ Get the latest GA release version from the update website. """
 
     from nxdrive.updater.utils import get_latest_version
 
     url = "https://community.nuxeo.com/static/drive-updates/versions.yml"
-    print(">>> Donwloading", url, flush=True)
+    print(">>> Downloading", url, flush=True)
     with requests.get(url) as req:
         data = req.content
 
@@ -158,7 +158,7 @@ def install_drive(installer):
         # Nothing to install on GNU/Linux
         pass
     elif EXT == "dmg":
-        # Simulate what nxdrive.updater.darwin.intall() does
+        # Simulate what nxdrive.updater.darwin.install() does
         cmd = ["hdiutil", "mount", installer]
         print(">>> Command:", cmd, flush=True)
         mount_info = subprocess.check_output(cmd).decode("utf-8").strip()
@@ -464,7 +464,7 @@ def gen_and_move(root, version):
 
 
 def job(root, version, executable, previous_version, name):
-    """Repetive tasks.
+    """Repetitive tasks.
     *name* is a string to customize the log file to archive.
     """
 

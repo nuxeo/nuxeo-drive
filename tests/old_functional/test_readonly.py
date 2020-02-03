@@ -454,7 +454,7 @@ Scenario:
 4. User2: Client: Launch Drive client and Wait for sync completion
 5. User2: Client: Move the files(drag and drop) from "ReadFolder" to "MEFolder"
 6. User1: Server: Remove the read permission for "ReadFolder" for User2
-7. User2: Client: Remove the read only attribue for moved files in "MEFolder"
+7. User2: Client: Remove the read only attribute for moved files in "MEFolder"
    and Edit the files.
 
 Expected Result: Files should sync with the server.

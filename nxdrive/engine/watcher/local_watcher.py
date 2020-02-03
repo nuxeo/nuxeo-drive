@@ -665,7 +665,7 @@ class LocalWatcher(EngineWorker):
         # Ask for deletion confirmation if needed
         abspath = self.local.abspath(doc_pair.local_path)
         if not abspath.parent.exists():
-            log.debug(f"Deleted event on inexistant file: {abspath!r}")
+            log.debug(f"Deleted event on inexistent file: {abspath!r}")
             return
 
         log.debug(f"Deleting file: {abspath!r}")
@@ -785,7 +785,7 @@ class LocalWatcher(EngineWorker):
                 # This does not make it on GNU/Linux, and it would break
                 # test_move_and_copy_paste_folder_original_location_from_child_stopped().
                 # The call to dao.replace_local_paths() is revelant on macOS and Windows only.
-                # See NXDRIVE-1690 for more informations.
+                # See NXDRIVE-1690 for more information.
                 return
 
             dao.replace_local_paths(doc_pair.local_path, local_info.path)
@@ -1119,7 +1119,7 @@ class LocalWatcher(EngineWorker):
                 return
 
             # If doc_pair is not None mean
-            # the creation has been catched by scan
+            # the creation has been caught by scan
             # As Windows send a delete / create event for reparent
             local_info = client.try_get_info(rel_path)
             if not local_info:
@@ -1223,7 +1223,7 @@ class LocalWatcher(EngineWorker):
                                 None, from_pair.local_digest, rel_path
                             )
                         ):
-                            # Note: setted 1st argument of is_equal_digests() to None
+                            # Note: set 1st argument of is_equal_digests() to None
                             # to force digest computation.
                             # This code is needed and tested by test_copy_paste_normal() on Windows.
                             log.debug(
