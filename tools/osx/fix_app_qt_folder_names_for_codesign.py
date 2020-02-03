@@ -35,7 +35,7 @@ def fix_dll(dll: Path) -> None:
 
     def match_func(pth: str) -> Optional[str]:
         """Callback function for MachO.rewriteLoadCommands() that is
-        called on every lookup path setted in the DLL headers.
+        called on every lookup path set in the DLL headers.
         By returning None for system libraries, it changes nothing.
         Else we return a relative path pointing to the good file
         in the MacOS folder.

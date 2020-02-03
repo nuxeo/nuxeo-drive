@@ -1223,7 +1223,7 @@ class LocalWatcher(EngineWorker):
                                 None, from_pair.local_digest, rel_path
                             )
                         ):
-                            # Note: setted 1st argument of is_equal_digests() to None
+                            # Note: set 1st argument of is_equal_digests() to None
                             # to force digest computation.
                             # This code is needed and tested by test_copy_paste_normal() on Windows.
                             log.debug(

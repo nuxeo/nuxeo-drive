@@ -1,6 +1,3 @@
-datas
 alse
+datas
 wan
-numer
-splitted
-setted

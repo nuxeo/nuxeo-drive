@@ -20,11 +20,12 @@
 #
 # You can tweak tests checks by setting the SKIP envar:
 #    - SKIP=flake8 to skip code style
+#    - SKIP=spell to skip grammar check
 #    - SKIP=mypy to skip type annotations
 #    - SKIP=cleanup to skip dead code checks
 #    - SKIP=rerun to not rerun failed test(s)
 #    - SKIP=bench to not run benchmarks
-#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,bench)
+#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,,spell,bench)
 #    - SKIP=tests tu run only code checks
 #
 # There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
@@ -238,15 +239,13 @@ launch_tests() {
         return
     fi
 
-    if should_run "flake8"; then
-        echo ">>> Checking the style"
-        ${PYTHON} -m flake8 .
-
+    if should_run "spell"; then
         echo ">>> Checking the grammar"
         echo "    Add '--interactive=3 --write-changes' arguments to the following command to allow interactive modifications."
         local to_skip=""
         for file in tools/codespell_skip.txt .gitignore; do
               while read -r line; do
+                  # for folders codespell need a relative path
                   [ -e "${line}" ] && line="./${line}"
                   to_skip="${to_skip}${line},"
               done < $file
@@ -257,8 +256,13 @@ launch_tests() {
             --ignore-words=tools/codespell_whitelist.txt \
             --quiet-level=4 \
             --skip="${to_skip}" \
-            2>/dev/null
+            2> /dev/null
         set +x
+    fi
+
+    if should_run "flake8"; then
+        echo ">>> Checking the style"
+        ${PYTHON} -m flake8 .
     fi
 
     if should_run "mypy"; then

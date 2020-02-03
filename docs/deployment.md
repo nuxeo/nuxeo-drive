@@ -86,11 +86,12 @@ If you get an error message complaining about the lack of signature for this scr
 - `SKIP` is used to tweak tests checks:
 ```
     - SKIP=flake8 to skip code style
+    - SKIP=spell to skip grammar check
     - SKIP=mypy to skip type annotations
     - SKIP=cleanup to skip dead code checks
     - SKIP=rerun to not rerun failed test(s)
     - SKIP=integration to not run integration tests on Windows
-    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,integration)
+    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,spell,integration)
     - SKIP=tests tu run only code checks
 ```
 

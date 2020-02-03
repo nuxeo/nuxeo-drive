@@ -10,9 +10,6 @@ from threading import Lock
 from time import monotonic_ns, sleep
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
-from PyQt5.QtCore import pyqtSignal
-from urllib3.exceptions import MaxRetryError
-
 from nuxeo.exceptions import (
     CorruptedFile,
     Forbidden,
@@ -20,6 +17,8 @@ from nuxeo.exceptions import (
     Unauthorized,
     UploadError,
 )
+from PyQt5.QtCore import pyqtSignal
+from urllib3.exceptions import MaxRetryError
 
 from ..client.local import FileInfo
 from ..constants import (
@@ -565,7 +564,7 @@ class Processor(EngineWorker):
         if not doc_pair.folderish and not self.local.is_equal_digests(
             None, doc_pair.remote_digest, doc_pair.local_path
         ):
-            # Note: setted 1st argument of is_equal_digests() to None
+            # Note: set 1st argument of is_equal_digests() to None
             # to force digest computation
             try:
                 info = self.local.get_info(doc_pair.local_path)
