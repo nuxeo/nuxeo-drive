@@ -266,11 +266,14 @@ class NuxeoDocumentInfo:
                 )
 
         # Attachments are in a specific array
-        elif xpath.startswith("files:files"):
-            attachments = props.get("files:files")
+        elif "/" in xpath:
+            parts = xpath.split("/")
+            attachments = props.get(parts.pop(0))
             if attachments:
-                idx = int(xpath.split("/")[1])
-                return Blob.from_dict(attachments[idx]["file"])
+                data = attachments[int(parts.pop(0))]  # foo:bar/0
+                if parts:
+                    data = data[parts[0]]  # files:files/0/file
+                return Blob.from_dict(data)
 
         # All other blobs should be directly accessible in the properties
         # and follow the default formatting. If that is not the case,
