@@ -1,5 +1,5 @@
 /// Json-cpp amalgated source (http://jsoncpp.sourceforge.net/).
-/// It is intented to be used with #include "dist/jsoncpp.cpp"
+/// It is intended to be used with #include "dist/jsoncpp.cpp"
 
 // //////////////////////////////////////////////////////////////////////
 // Beginning of content of file: LICENSE
@@ -138,7 +138,7 @@ enum {
 typedef char UIntToStringBuffer[uintToStringBufferSize];
 
 /** Converts an unsigned integer to string.
- * @param value Unsigned interger to convert to string
+ * @param value Unsigned integer to convert to string
  * @param current Input/Output string buffer.
  *        Must have at least uintToStringBufferSize chars free.
  */
@@ -1092,7 +1092,7 @@ public:
   }
 
   /// allocate space for an array of objectPerAllocation object.
-  /// @warning it is the responsability of the caller to call objects
+  /// @warning it is the responsibility of the caller to call objects
   /// constructors.
   AllocatedType *allocate() {
     if (freeHead_) // returns node from free list.
@@ -1119,7 +1119,7 @@ public:
   }
 
   /// Release the object.
-  /// @warning it is the responsability of the caller to actually destruct the
+  /// @warning it is the responsibility of the caller to actually destruct the
   /// object.
   void release(AllocatedType *object) {
     assert(object != 0);
@@ -1135,7 +1135,7 @@ private:
     AllocatedType buffer_[objectPerAllocation];
   };
 
-  // disabled copy constructor and assignement operator.
+  // disabled copy constructor and assignment operator.
   BatchAllocator(const BatchAllocator &);
   void operator=(const BatchAllocator &);
 
@@ -1152,7 +1152,7 @@ private:
 
   BatchInfo *batches_;
   BatchInfo *currentBatch_;
-  /// Head of a single linked list within the allocated space of freeed object
+  /// Head of a single linked list within the allocated space of freed object
   AllocatedType *freeHead_;
   unsigned int objectsPerPage_;
 };
@@ -3121,7 +3121,7 @@ std::string valueToString(double value) {
   char buffer[32];
 
 // Print into the buffer. We need not request the alternative representation
-// that always has a decimal point because JSON doesn't distingish the
+// that always has a decimal point because JSON doesn't distinguish the
 // concepts of reals and integers.
 #if defined(_MSC_VER) && defined(__STDC_SECURE_LIB__) // Use secure version with
                                                       // visual studio 2005 to
@@ -3721,8 +3721,3 @@ std::ostream &operator<<(std::ostream &sout, const Value &root) {
 // //////////////////////////////////////////////////////////////////////
 // End of content of file: src/lib_json/json_writer.cpp
 // //////////////////////////////////////////////////////////////////////
-
-
-
-
-

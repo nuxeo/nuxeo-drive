@@ -171,7 +171,7 @@ class TestLocalMoveFolders(OneUserTest):
             ...
         The folder is created directly and it generates useless URLs.
         So we move the document to get back good URLs. As the document has been
-        renamed above, the document's title is aleady the good one.
+        renamed above, the document's title is already the good one.
         """
         local = self.local_1
         remote = self.remote_1

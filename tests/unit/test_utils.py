@@ -140,12 +140,12 @@ def test_encrypt_decrypt():
     cipher = enc(pwd, token)
     assert dec(cipher, token) == pwd
 
-    # Test secret with length mulitple of 2
+    # Test secret with length multiple of 2
     token = "12345678-acbd-1234-cdef-12345678"
     cipher = enc(pwd, token)
     assert dec(cipher, token) == pwd
 
-    # Test secret with length not mulitple of 2
+    # Test secret with length not multiple of 2
     token = "12345678-acbd-1234-cdef-123456"
     cipher = enc(pwd, token)
     assert dec(cipher, token) == pwd

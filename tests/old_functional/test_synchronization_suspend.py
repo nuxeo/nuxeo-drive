@@ -94,7 +94,7 @@ class TestSynchronizationSuspend(OneUserTest):
         local.make_file("/.hidden", "Test.txt", content=b"Plop")
         local.make_folder("/.hidden", "normal")
         local.make_file("/.hidden/normal", "Test.txt", content=b"Plop")
-        # Should not try to sync therefor it should not timeout
+        # Should not try to sync therefore it should not timeout
         self.wait_sync(wait_for_async=True)
         assert len(remote.get_children_info(self.workspace)) == 4
 

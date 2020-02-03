@@ -153,7 +153,7 @@ The marker is empty, meaning this does not work.
 
 ### Idea 1
 
-In the Photoshop settings, we can set a log file where actions are writen.
+In the Photoshop settings, we can set a log file where actions are written.
 
 The file content look like:
 
@@ -178,7 +178,7 @@ But this implies a lot of trouble:
 
 1) If another picture is already open in Photoshop when doing the DirectEdit on another document, we will have 2 temporary files. Which one is the good one?
 2) If Photoshtop failed to open the DirectEdit'ing document, but there already is another file opened, we will ses a temporary file but it will not be the good one.
-3) If there is several DirectEdit on mutiple files, how to know which temporary file belongs to whic document?
+3) If there is several DirectEdit on multiple files, how to know which temporary file belongs to which document?
 
 And most probably a lot of issues I cannot imagine right now.
 So, this does not work either.
@@ -187,7 +187,7 @@ So, this does not work either.
 
 We could use the Photoshop Scripting API. I uses COM objects on Windows and AppleScript on macOS.
 
-I read that we can setup a `Notifer` that will call a function on specifed a event.
+I read that we can setup a `Notifer` that will call a function on specified a event.
 
 This is a non working POC for Windows (requires the `pywin32` module):
 

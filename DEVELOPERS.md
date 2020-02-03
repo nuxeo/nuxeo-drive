@@ -6,7 +6,7 @@ The development workflow is described on that [Wiki](https://nuxeowiki.atlassian
 
 [![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=nuxeo/nuxeo-drive)](https://dependabot.com)
 
-Nuxeo Drive is writen in Python and make heavily use of the Qt framework.
+Nuxeo Drive is written in Python and make heavily use of the Qt framework.
 This allowes to easily create a multi-platform desktop application using the same code base.
 
 # Coding Style Guide
@@ -16,7 +16,7 @@ We tend to follow the [PEP8](http://pep8.org), that's all.
 To help with this requirement, you can automate checks and formatting using [pre-commit](https://pre-commit.com/):
 it will call predefined hooks and [black](https://github.com/ambv/black) for you to ensure there is no regression and to keep the code clean.
 
-For core developers, the whole mecanism is installed with the [developer environment](docs/deployment.md). But if you are a contributor, you can easily use it:
+For core developers, the whole mechanism is installed with the [developer environment](docs/deployment.md). But if you are a contributor, you can easily use it:
 
 ```shell
 python -m pip install pre-commit
@@ -63,7 +63,7 @@ Handle the basic commandline arguments, create the Manager, and depending on the
 
 **Manager**
 
-Handle all the generic behavior of Nuxeo Drive: auto-updates, bind of an engine, declaration of differents engine types, tracker.
+Handle all the generic behavior of Nuxeo Drive: auto-updates, bind of an engine, declaration of different engine types, tracker.
 
 **Engine**
 

@@ -123,7 +123,7 @@ class LocalClient(LocalClientMixin):
         )
 
         """
-        # Code kept for future usage, when Apple will remove thoses deprecated APIs (or PyObjC)
+        # Code kept for future usage, when Apple will remove those deprecated APIs (or PyObjC)
         # will need to define:
         #       self.mac_ver = get_current_os()[1]
         if version_lt(self.mac_ver, "10.14"):

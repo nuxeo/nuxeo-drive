@@ -10,7 +10,7 @@ related issue: https://jira.nuxeo.com/browse/NXDRIVE-645
 
 <img src="/docs/Pictures/Scenario1-Pic1.png" width="300"/>
 
-* Connect user2 on drive client and synchonize “testshared” folder
+* Connect user2 on drive client and synchronize “testshared” folder
 
 <img src="/docs/Pictures/Scenario1-Pic2.png" width="300"/>
 

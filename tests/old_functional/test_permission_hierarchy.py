@@ -219,7 +219,7 @@ class TestPermissionHierarchy2(TwoUsersTest):
         assert self.local_2.exists("/Other Docs/Folder C")
         assert self.local_2.exists("/Other Docs/Folder C/Folder D/Folder E")
 
-        # Verify that we dont have any 403 errors
+        # Verify that we don't have any 403 errors
         assert not self.remote_2.get_fs_item(folder_a_fs)
         assert not self.remote_2.get_fs_item(folder_b_fs)
 

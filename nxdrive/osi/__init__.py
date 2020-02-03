@@ -30,7 +30,7 @@ class AbstractOSIntegration(QObject):
         Note that this function must _not_ block the execution.
 
         :param file_path: The file URL to open.
-        :param select: Hightlight the given file_path. Useful when
+        :param select: Highlight the given file_path. Useful when
                        opening a folder and to select a file.
         """
         pass

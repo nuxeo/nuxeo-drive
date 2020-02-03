@@ -68,7 +68,7 @@ create_package() {
         # A message indicating "code object is not signed at all" can appear:
         # This is normal. The find command goes through the binaries in an
         # arbitrary order. When the `codesign` runs, it will look at some
-        # dependancies of the current binary and see that they are not signed
+        # dependencies of the current binary and see that they are not signed
         # yet. But the find command will eventually reach it and sign it later.
         find "${pkg_path}/Contents/MacOS" -type f -exec codesign --sign "${SIGNING_ID}" {} \;
 

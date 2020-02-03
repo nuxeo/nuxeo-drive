@@ -33,7 +33,7 @@ Once the review process is complete, the DEP will be merged.
 
 DEP status are `draft`, `approved`, `rejected`, `ongoing implementation` and `implemented`.
 
-`rejected` and `implemented` status are final, e.g. when one of those is set, the DEP cannot be modifed later. Another DEP will be needed to apply changes to the current status.
+`rejected` and `implemented` status are final, e.g. when one of those is set, the DEP cannot be modified later. Another DEP will be needed to apply changes to the current status.
 
 ## Security
 

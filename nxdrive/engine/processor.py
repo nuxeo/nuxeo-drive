@@ -793,7 +793,7 @@ class Processor(EngineWorker):
                     self.dao.synchronize_state(doc_pair)
                     return
             except HTTPError as e:
-                # undelete will fail if you dont have the rights
+                # undelete will fail if you don't have the rights
                 if e.status not in {401, 403}:
                     raise e
                 log.debug(
@@ -1263,7 +1263,7 @@ class Processor(EngineWorker):
             except NotFound:
                 # Drive was shut while syncing a root.  While stopped, the root
                 # was unsynced via the Web-UI.  At the restart, remotely
-                # created files queue may have obsolete informations.
+                # created files queue may have obsolete information.
                 # To prevent inconsistency, we remotely remove the pair.
                 self._synchronize_remotely_deleted(doc_pair)
                 return
@@ -1287,7 +1287,7 @@ class Processor(EngineWorker):
 
         self.local.set_remote_id(path, doc_pair.remote_ref)
         if path != doc_pair.local_path and doc_pair.folderish:
-            # Update childs
+            # Update children
             self.dao.update_local_parent_path(doc_pair, path.name, path.parent)
         self._refresh_local_state(doc_pair, self.local.get_info(path))
         self._handle_readonly(doc_pair)

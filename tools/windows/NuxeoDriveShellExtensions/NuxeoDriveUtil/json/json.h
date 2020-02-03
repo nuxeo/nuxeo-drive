@@ -1,5 +1,5 @@
 /// Json-cpp amalgated header (http://jsoncpp.sourceforge.net/).
-/// It is intented to be used with #include <json/json.h>
+/// It is intended to be used with #include <json/json.h>
 
 // //////////////////////////////////////////////////////////////////////
 // Beginning of content of file: LICENSE
@@ -398,7 +398,7 @@ enum CommentPlacement {
 
 /** \brief Lightweight wrapper to tag static string.
  *
- * Value constructor and objectValue member assignement takes advantage of the
+ * Value constructor and objectValue member assignment takes advantage of the
  * StaticString and avoid the cost of string duplication when storing the
  * string or the member name.
  *
@@ -986,7 +986,7 @@ public:
  *Value.
  * \internal ValueInternalMap is a tradional bucket based hash-table, with a
  *linked
- * list in each bucket to handle collision. There is an addional twist in that
+ * list in each bucket to handle collision. There is an additional twist in that
  * each node of the collision linked list is a page containing a fixed amount of
  * value. This provides a better compromise between memory usage and speed.
  *
@@ -1555,7 +1555,7 @@ public:
    */
   std::string getFormattedErrorMessages() const;
 
-  /** \brief Returns a vector of structured erros encounted while parsing.
+  /** \brief Returns a vector of structured errors encountered while parsing.
    * \return A (possibly empty) vector of StructuredError objects. Currently
    *         only one error can be returned, but the caller should tolerate
    * multiple
@@ -1738,7 +1738,7 @@ public:
  *
  * The JSON document is written in a single line. It is not intended for 'human'
  *consumption,
- * but may be usefull to support feature such as RPC where bandwith is limited.
+ * but may be useful to support feature such as RPC where bandwidth is limited.
  * \sa Reader, Value
  */
 class JSON_API FastWriter : public Writer {
@@ -1784,7 +1784,7 @@ private:
  *     - otherwise, it the values do not fit on one line, or the array contains
  *       object or non empty array, then print one value per line.
  *
- * If the Value have comments then they are outputed according to their
+ * If the Value have comments then they are outputted according to their
  *#CommentPlacement.
  *
  * \sa Reader, Value, Value::setComment()
@@ -1844,7 +1844,7 @@ private:
  *     - otherwise, it the values do not fit on one line, or the array contains
  *       object or non empty array, then print one value per line.
  *
- * If the Value have comments then they are outputed according to their
+ * If the Value have comments then they are outputted according to their
  #CommentPlacement.
  *
  * \param indentation Each level will be indented by this amount extra.

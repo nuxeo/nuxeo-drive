@@ -173,7 +173,7 @@ class MixinTests(DirectEditSetup):
             # Create empty folder (NXDRIVE-598)
             self.local.make_folder("/", "emptyfolder")
 
-            # Verify the cleanup dont delete document
+            # Verify the cleanup don't delete document
             self.direct_edit._cleanup()
             assert self.local.exists(local_path)
             assert self.remote.get_blob(self.remote.get_info(doc_id)) != b"Test"
@@ -348,7 +348,7 @@ class MixinTests(DirectEditSetup):
                 )
 
             # Check the file is reuploaded when the network come again
-            # timout=30 to ensure the file is removed from the blacklist (which have a 30 sec delay)
+            # timeout=30 to ensure the file is removed from the blacklist (which have a 30 sec delay)
             self.wait_sync(timeout=30, fail_if_timeout=False)
             assert (
                 self.remote.get_blob(self.remote.get_info(doc_id)) == b"Updated twice"
@@ -448,7 +448,7 @@ class MixinTests(DirectEditSetup):
         self._direct_edit_update(doc_id, filename, b"Test", url=url)
 
     def test_multiple_editions_on_unsynced_document(self):
-        """Direct Edit'ing a file that is not synced must work everytime.
+        """Direct Edit'ing a file that is not synced must work every time.
         Before NXDRIVE-1824, only the 1st time was working, then any try
         to Direct Edit the document was failing.
         """

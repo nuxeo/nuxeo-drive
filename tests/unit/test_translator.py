@@ -21,7 +21,7 @@ def test_load_file():
     Translator.set("fr")
     assert Translator.locale() == "fr"
 
-    # Test unkown key
+    # Test unknown key
     assert Translator.get("BOUZOUF") == "BOUZOUF"
 
     # Test fallback

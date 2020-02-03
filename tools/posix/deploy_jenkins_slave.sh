@@ -52,7 +52,7 @@ build_installer() {
         # Move problematic folders out of Contents/MacOS
         ${PYTHON} tools/osx/fix_app_qt_folder_names_for_codesign.py dist/*.app
 
-        # Remove broken symlinks pointing to an inexistant target
+        # Remove broken symlinks pointing to an inexistent target
         find dist/*.app/Contents/MacOS -type l -exec sh -c 'for x; do [ -e "$x" ] || rm -v "$x"; done' _ {} +
     elif [ "${OSI}" = "linux" ]; then
         remove_blacklisted_files dist/ndrive
@@ -241,6 +241,24 @@ launch_tests() {
     if should_run "flake8"; then
         echo ">>> Checking the style"
         ${PYTHON} -m flake8 .
+
+        echo ">>> Checking the grammar"
+        echo "    Add '--interactive=3 --write-changes' arguments to the following command to allow interactive modifications."
+        local to_skip=""
+        for file in tools/codespell_skip.txt .gitignore; do
+              while read -r line; do
+                  [ -e "${line}" ] && line="./${line}"
+                  to_skip="${to_skip}${line},"
+              done < $file
+        done
+        # Display the command to allow interactive mode later
+        set -x
+        codespell \
+            --ignore-words=tools/codespell_whitelist.txt \
+            --quiet-level=4 \
+            --skip="${to_skip}" \
+            2>/dev/null
+        set +x
     fi
 
     if should_run "mypy"; then

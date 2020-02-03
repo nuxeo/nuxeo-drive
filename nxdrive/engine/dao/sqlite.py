@@ -341,7 +341,7 @@ class ConfigurationDAO(QObject):
                 return self.conn
 
         if getattr(self._conns, "conn", None) is None:
-            # Dont check same thread for closing purpose
+            # Don't check same thread for closing purpose
             self._conns.conn = connect(
                 str(self.db),
                 check_same_thread=False,
@@ -1050,7 +1050,7 @@ class EngineDAO(ConfigurationDAO):
             self.queue_manager = manager
             con = self._get_write_connection()
             c = con.cursor()
-            # Order by path to be sure to process parents before childs
+            # Order by path to be sure to process parents before children
             pairs: List[DocPair] = c.execute(
                 "SELECT *"
                 "  FROM States "
@@ -1066,7 +1066,7 @@ class EngineDAO(ConfigurationDAO):
                     self.queue_manager.push_ref(
                         pair.id, pair.folderish, pair.pair_state
                     )
-        # Dont block everything if queue manager fail
+        # Don't block everything if queue manager fail
         # TODO As the error should be fatal not sure we need this
 
     def _queue_pair_state(
@@ -1451,7 +1451,7 @@ class EngineDAO(ConfigurationDAO):
                     + self._get_recursive_condition(doc_pair)
                 )
                 c.execute(query)
-            # Dont need to update the path as it is refresh later
+            # Don't need to update the path as it is refresh later
             c.execute(
                 "UPDATE States SET local_parent_path = ? WHERE id = ?",
                 (new_path, doc_pair.id),
@@ -1925,7 +1925,7 @@ class EngineDAO(ConfigurationDAO):
         with self.lock, suppress(IntegrityError):
             con = self._get_write_connection()
             c = con.cursor()
-            # Remove any subchilds as it is gonna be scanned anyway
+            # Remove any subchildren as it is gonna be scanned anyway
             c.execute("DELETE FROM ToRemoteScan WHERE path LIKE ?", (f"{path}%",))
             c.execute("INSERT INTO ToRemoteScan (path) VALUES (?)", (path,))
 

@@ -1,7 +1,7 @@
 # coding: utf-8
 """
 Test LocalClient with native FS operations and specific OS ones.
-See local_client_darwin.py and local_client_windows.py for more informations.
+See local_client_darwin.py and local_client_windows.py for more information.
 
 See NXDRIVE-742.
 """

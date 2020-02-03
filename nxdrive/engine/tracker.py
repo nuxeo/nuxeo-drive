@@ -138,11 +138,11 @@ class Tracker(PollWorker):
             **self._data,
             # Event data
             "t": "event",
-            "ec": category,  # event catagory
+            "ec": category,  # event category
             "ea": action,  # event action
             "el": label,  # event label/name
             "ev": str(value),  # event value
-            # Additionnal event data: dimensions
+            # Additional event data: dimensions
             **self._dimensions,
             **dimensions,
         }

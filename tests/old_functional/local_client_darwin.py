@@ -27,7 +27,7 @@ class MacLocalClient(LocalTest):
                 f"parent destination directory {dst.parent} does not exist"
             )
         if src.is_dir() and dst.exists() and dst.is_file():
-            raise ValueError(f"cannnot copy directory {src} to a file {dst}")
+            raise ValueError(f"cannot copy directory {src} to a file {dst}")
         if dst.exists() and dst.is_dir():
             dst = dst / src.name
 

@@ -11,7 +11,7 @@ LABEL scm-ref=${SCM_REF}
 LABEL scm-url=${SCM_REPOSITORY}
 LABEL maintainer="mschoentgen@nuxeo.com"
 
-# Usefull envars
+# Useful envars
 ENV BUILD_VERSION ${VERSION}
 ENV GIT_URL ${SCM_REPOSITORY}
 

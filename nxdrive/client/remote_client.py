@@ -8,9 +8,6 @@ from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 from urllib.parse import unquote
 
-import requests
-from PyQt5.QtWidgets import QApplication
-
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
@@ -18,6 +15,8 @@ from nuxeo.exceptions import CorruptedFile, HTTPError
 from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, Document, FileBlob
 from nuxeo.utils import get_digest_algorithm
+from PyQt5.QtWidgets import QApplication
+import requests
 
 from ..constants import (
     APP_NAME,
@@ -324,7 +323,7 @@ class Remote(Nuxeo):
         locker = unlock_path(file_out)
         try:
             if chunked:
-                # Store the chunck size and start time for later transfer speed computation
+                # Store the chunk size and start time for later transfer speed computation
                 action.chunk_size = FILE_BUFFER_SIZE
                 action.chunk_transfer_start_time_ns = monotonic_ns()
 
@@ -414,7 +413,7 @@ class Remote(Nuxeo):
         to handle big files).
 
         If the error was raised at step 2, the step 1 will be checked to ensure the blob
-        was successfuly uploaded. But it most cases, nothing will be uploaded twice.
+        was successfully uploaded. But it most cases, nothing will be uploaded twice.
         Also, it the error is one of HTTP 502 or 503, the Processor will check for
         the file existence to bypass errors happening *after* the operation was successful.
         If it exists, the error is skipped and the upload is seen as a success.
@@ -552,7 +551,7 @@ class Remote(Nuxeo):
                         # But we do not need it :)
                         next(iterator)
 
-                    # Store the chunck size and start time for later transfer speed computation
+                    # Store the chunk size and start time for later transfer speed computation
                     action.chunk_size = chunk_size
                     action.chunk_transfer_start_time_ns = monotonic_ns()
 
@@ -611,7 +610,7 @@ class Remote(Nuxeo):
     ) -> Dict[str, Any]:
         """Link the given uploaded *blob* to the given document (refs are passed into *params*)."""
 
-        # Remove additionnal parameters to prevent a BadQuery
+        # Remove additional parameters to prevent a BadQuery
         params.pop("engine_uid", None)
         params.pop("is_direct_edit", None)
         file_path = params.pop("file_path")
@@ -640,7 +639,7 @@ class Remote(Nuxeo):
             LinkingAction.finish_action()
 
     def get_document_or_none(self, uid: str = "", path: str = "") -> Optional[Document]:
-        """Fetch a document base don given criterias or return None if not found on the server."""
+        """Fetch a document base don given criteria or return None if not found on the server."""
         doc: Optional[Document] = None
         try:
             doc = self.documents.get(uid=uid, path=path)

@@ -1,5 +1,5 @@
 """
-Test pause/resume transfers in differents scenarii.
+Test pause/resume transfers in different scenarii.
 """
 from unittest.mock import patch
 

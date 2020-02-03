@@ -189,7 +189,7 @@ class RemoteBase(Remote):
             upload_tmp_dir if upload_tmp_dir is not None else tempfile.gettempdir()
         )
 
-        # Save bandwith by caching operations details
+        # Save bandwidth by caching operations details
         global OPS_CACHE
         if not OPS_CACHE:
             OPS_CACHE = self.operations.operations

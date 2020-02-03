@@ -193,7 +193,7 @@ Rectangle {
             }
         }
 
-        // Transfering/synced files list
+        // Transferring/synced files list
         Rectangle {
             Layout.fillWidth: true; Layout.fillHeight: true
 

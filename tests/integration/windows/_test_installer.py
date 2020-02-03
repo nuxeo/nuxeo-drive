@@ -64,7 +64,7 @@ def test_installer_arguments(installer_path):
     - Mandatory arguments
         TARGETURL: The URL of the Nuxeo server.
         TARGETUSERNAME: The username of the user who will be using Nuxeo Drive.
-    - Optionnal arguments
+    - Optional arguments
         TARGETPASSWORD: The password of the user who will be using Nuxeo Drive.
 
     Arguments __not__ tested:

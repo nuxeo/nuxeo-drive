@@ -37,7 +37,7 @@ There are 2 types of uploads: [single and multipart](https://docs.aws.amazon.com
 
 - Single uploads are using a simple PUT operation and are the best fit for small files.
   The theoric maximum file size is 5 GiB, but Amazon [recommends](https://docs.aws.amazon.com/AmazonS3/latest/dev/uploadobjusingmpu.html) to not go higher than 100 MiB.
-  However, given the network stability and bandwith limitations we cannot know in advance for our users, that value will be lowered to 20 MiB (the current value of the [chunk_limit](https://github.com/nuxeo/nuxeo-drive/blob/bfd8faf/nxdrive/options.py#L196) option).
+  However, given the network stability and bandwidth limitations we cannot know in advance for our users, that value will be lowered to 20 MiB (the current value of the [chunk_limit](https://github.com/nuxeo/nuxeo-drive/blob/bfd8faf/nxdrive/options.py#L196) option).
 - Multipart uploads can be used for files bigger than 5 MiB, and up-to 160 TiB.
   They are the way to go for big files as it allows transfer pause/resume.
 
