@@ -11,14 +11,13 @@ from time import sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Pattern
 from urllib.parse import quote
 
+from nuxeo.exceptions import Forbidden, HTTPError, Unauthorized
+from nuxeo.models import Blob
+from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from requests import codes
 from watchdog.events import FileSystemEvent
 from watchdog.observers import Observer
-
-from nuxeo.exceptions import Forbidden, HTTPError, Unauthorized
-from nuxeo.models import Blob
-from nuxeo.utils import get_digest_algorithm
 
 from .client.local import LocalClient
 from .client.remote_client import Remote
@@ -406,7 +405,9 @@ class DirectEdit(Worker):
 
         blob = info.get_blob(xpath)
         if not blob:
-            log.warning(f"No blob associated with xpath {xpath} for file {info.path}")
+            log.warning(
+                f"No blob associated with xpath {xpath!r} for file {info.path!r}"
+            )
             return None
 
         filename = blob.name
@@ -477,7 +478,7 @@ class DirectEdit(Worker):
             file_path = self._prepare_edit(
                 server_url, doc_id, user=user, download_url=download_url
             )
-            log.debug("Direct Edit preparation returned file path {file_path!r}")
+            log.debug(f"Direct Edit preparation returned file path {file_path!r}")
 
             # Launch it
             if file_path:
