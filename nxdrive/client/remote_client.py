@@ -8,6 +8,7 @@ from time import monotonic_ns
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 from urllib.parse import unquote
 
+import requests
 from nuxeo.auth import TokenAuth
 from nuxeo.client import Nuxeo
 from nuxeo.compat import get_text
@@ -16,7 +17,6 @@ from nuxeo.handlers.default import Uploader
 from nuxeo.models import Batch, Document, FileBlob
 from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtWidgets import QApplication
-import requests
 
 from ..constants import (
     APP_NAME,
@@ -541,22 +541,12 @@ class Remote(Nuxeo):
 
             if action.get_percent() < 100.0 or not action.uploaded:
                 if uploader.chunked:
-                    # Save the iterator that will actually upload chunks
-                    iterator = uploader.iter_upload()
-
-                    if batch.is_s3():
-                        # For S3, the uploader yields itself before starting
-                        # the actual upload. This is convenient to allow us to save
-                        # the multipart upload ID and other stuff.
-                        # But we do not need it :)
-                        next(iterator)
-
                     # Store the chunk size and start time for later transfer speed computation
                     action.chunk_size = chunk_size
                     action.chunk_transfer_start_time_ns = monotonic_ns()
 
                     # If there is an UploadError, we catch it from the processor
-                    for _ in iterator:
+                    for _ in uploader.iter_upload():
                         # Here 0 may happen when doing a single upload
                         action.progress += uploader.chunk_size or 0
 
