@@ -159,7 +159,7 @@ Rectangle {
 
                 // Icon 2: open remote server's URL
                 IconLabel {
-                    icon: MdiFont.Icon.openInNew
+                    icon: MdiFont.Icon.nuxeo
                     onClicked: api.open_remote_server(accountSelect.getRole("uid"))
                 }
 
@@ -171,7 +171,7 @@ Rectangle {
 
                 // Icon 4: open the Direct Transfer window
                 IconLabel {
-                    icon: MdiFont.Icon.cloudUpload
+                    icon: MdiFont.Icon.upload
                     onClicked: api.open_direct_transfer(accountSelect.getRole("uid"))
                 }
 
