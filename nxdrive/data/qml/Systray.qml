@@ -170,7 +170,7 @@ Rectangle {
                             onClicked: api.open_remote_server(accountSelect.getRole("uid"))
                         }
                         NuxeoToolTip {
-                            text: "Browse nuxeo server"
+                            text: qsTr("TOOLTIP_BROWSE_SERVER") + tl.tr
                             visible: nuxeoIconHover.containsMouse
                         }
                 }
@@ -188,7 +188,7 @@ Rectangle {
                             onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                         }
                         NuxeoToolTip {
-                            text: "Open local drive folder"
+                            text: qsTr("TOOLTIP_OPEN_LOCAL_FOLDER") + tl.tr
                             visible: folderIconHover.containsMouse
                         }
                 }
@@ -206,7 +206,7 @@ Rectangle {
                             onClicked: api.open_direct_transfer(accountSelect.getRole("uid"))
                         }
                         NuxeoToolTip {
-                            text: "Upload file to server"
+                            text: qsTr("TOOLTIP_UPLOAD_FILE") + tl.tr
                             visible: directTransferIconHover.containsMouse
                         }
                 }

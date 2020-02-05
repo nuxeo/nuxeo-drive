@@ -64,7 +64,7 @@ Rectangle {
                             onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
                         }
                         NuxeoToolTip {
-                            text: "Open file on server"
+                            text: qsTr("TOOLTIP_OPEN_FILE_SERVER") + tl.tr
                             visible: openInBrowserIconHover.containsMouse
                         }
             }
@@ -85,7 +85,7 @@ Rectangle {
                             onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
                         }
                         NuxeoToolTip {
-                            text: "Edit file locally"
+                            text: qsTr("TOOLTIP_EDIT_FILE_LOCALLY") + tl.tr
                             visible: openLocallyIconHover.containsMouse
                         }
             }
