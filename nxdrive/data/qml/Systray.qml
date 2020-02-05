@@ -188,7 +188,7 @@ Rectangle {
                             onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                         }
                         NuxeoToolTip {
-                            text: "Open nuxeo drive folder"
+                            text: "Open local drive folder"
                             visible: folderIconHover.containsMouse
                         }
                 }
