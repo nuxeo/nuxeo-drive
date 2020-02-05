@@ -54,7 +54,19 @@ Rectangle {
                 Layout.alignment: Qt.AlignRight
                 Layout.rightMargin: 0
                 icon: MdiFont.Icon.openInNew
-                onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
+                MouseArea {
+                            id: openInBrowserIconHover
+                            z: parent.z + 10
+                            anchors.fill: parent
+                            anchors.margins: -3
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
+                        }
+                        NuxeoToolTip {
+                            text: "Open file on server"
+                            visible: openInBrowserIconHover.containsMouse
+                        }
             }
 
             // Icon: Open the file locally
@@ -63,7 +75,19 @@ Rectangle {
                 Layout.alignment: Qt.AlignLeft
                 Layout.rightMargin: 10
                 icon: MdiFont.Icon.pencil
-                onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
+                MouseArea {
+                            id: openLocallyIconHover
+                            z: parent.z + 10
+                            anchors.fill: parent
+                            anchors.margins: -3
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
+                        }
+                        NuxeoToolTip {
+                            text: "Open file locally"
+                            visible: openLocallyIconHover.containsMouse
+                        }
             }
         }
     }
