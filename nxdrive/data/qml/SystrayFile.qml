@@ -85,7 +85,7 @@ Rectangle {
                             onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
                         }
                         NuxeoToolTip {
-                            text: "Open file locally"
+                            text: "Edit file locally"
                             visible: openLocallyIconHover.containsMouse
                         }
             }
