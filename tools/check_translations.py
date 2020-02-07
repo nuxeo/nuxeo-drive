@@ -22,19 +22,20 @@ def print_results(errors: List[str], warnings: List[str]) -> int:
 def find_errors_in_tested_file(
     reference_translation_dict: dict,
     tested_translation_dict: dict,
-    translation_file_path: str,
+    tested_translation_file_path: str,
 ) -> List[str]:
     matcher = re.compile(r"%[1-9]")
 
     errors = []
     for key, sentence in reference_translation_dict.items():
         if key not in tested_translation_dict:
+            errors.append(f"{tested_translation_file_path} {key!r}")
             continue
         reference_sentence_arguments = matcher.findall(sentence)
         tested_sentence_arguments = matcher.findall(tested_translation_dict[key])
 
         if sorted(reference_sentence_arguments) != sorted(tested_sentence_arguments):
-            errors.append(f"{translation_file_path} {key!r}")
+            errors.append(f"{tested_translation_file_path} {key!r}")
     return errors
 
 
@@ -53,19 +54,21 @@ def run_check(translations_folder: str) -> int:
         and translation_file.startswith("i18n-")
     ]
 
-    for translation_file_path in translations_files_list:
-        with open(translation_file_path, "r") as translation_file:
+    for tested_translation_file_path in translations_files_list:
+        with open(tested_translation_file_path, "r") as translation_file:
             tested_translation_dict = json.load(translation_file)
 
         warnings += [
-            f"{translation_file_path} {key!r}"
+            f"{tested_translation_file_path} {key!r}"
             for key in set(tested_translation_dict).difference(
                 set(reference_translation_dict)
             )
         ]
 
         errors += find_errors_in_tested_file(
-            reference_translation_dict, tested_translation_dict, translation_file_path
+            reference_translation_dict,
+            tested_translation_dict,
+            tested_translation_file_path,
         )
 
     return print_results(errors, warnings)
