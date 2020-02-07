@@ -13,6 +13,7 @@
 #     --install-release: install all but test dependencies
 #     --start: start Nuxeo Drive
 #     --tests: launch the tests suite
+#     --check-translations: check the translation files
 #
 # See /docs/deployment.md for more information.
 #
@@ -21,6 +22,7 @@
 # You can tweak tests checks by setting the SKIP envar:
 #    - SKIP=flake8 to skip code style
 #    - SKIP=spell to skip grammar check
+#    - SKIP=translations to skip translation files check
 #    - SKIP=mypy to skip type annotations
 #    - SKIP=cleanup to skip dead code checks
 #    - SKIP=rerun to not rerun failed test(s)
@@ -214,6 +216,13 @@ junit_arg() {
     echo "--junitxml=${junit}/${path}${run}.xml"
 }
 
+check_translations() {
+  local cmd="${PYTHON} tools/check_translations.py ./nxdrive/data/i18n"
+
+  echo ">>> Checking the translation files"
+  ${cmd}
+}
+
 launch_test() {
     # Launch tests on a specific path. On failure, retry failed tests.
     local cmd="${PYTHON} -bb -Wall -m pytest"
@@ -273,6 +282,10 @@ launch_tests() {
     if should_run "cleanup"; then
         echo ">>> Checking for dead code"
         ${PYTHON} -m vulture nxdrive tools/whitelist.py
+    fi
+
+    if should_run "translations"; then
+      check_translations
     fi
 
     if should_run "tests"; then
@@ -431,6 +444,7 @@ main() {
                 fi
                 ;;
             "--start") start_nxdrive ;;
+            "--check-translations") check_translations ;;
             "--tests") launch_tests ;;
         esac
     fi
