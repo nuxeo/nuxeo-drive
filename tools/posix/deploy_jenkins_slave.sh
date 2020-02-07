@@ -27,7 +27,7 @@
 #    - SKIP=cleanup to skip dead code checks
 #    - SKIP=rerun to not rerun failed test(s)
 #    - SKIP=bench to not run benchmarks
-#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,,spell,bench)
+#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,translations,spell,bench)
 #    - SKIP=tests tu run only code checks
 #
 # There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
