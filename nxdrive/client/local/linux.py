@@ -3,6 +3,7 @@
 
 import errno
 import os
+import subprocess
 import unicodedata
 from logging import getLogger
 from pathlib import Path
@@ -55,6 +56,9 @@ class LocalClient(LocalClientMixin):
         """Create a special file to customize the folder icon."""
         log.debug(f"Setting the folder icon of {ref!r} using {icon!r}")
         # To be implementation with https://jira.nuxeo.com/browse/NXDRIVE-1831
+        subprocess.check_output(
+            ["gio", "set", "-t", "string", str(ref), "metadata::custom-icon", str(icon)]
+        )
         return
 
     @staticmethod
