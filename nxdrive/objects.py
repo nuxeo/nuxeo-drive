@@ -246,42 +246,64 @@ class NuxeoDocumentInfo:
         )
 
     def get_blob(self, xpath: str) -> Optional[Blob]:
+        """Retrieve blob details from a given *xpath*.
+        There is no real limitation on the *xpath*.
+        Those are all valid if they are present in the *properties* attribute
+        (given "s" for string and "n" for number):
+
+            - s:s (file:content, foo:bar, note:note)
+            - s:s/n (files:files/0, foo:bar/0)
+            - s:s/n/s (files:files/0/file)
+            - s:s/n/n/n/n/s/n/s/... (foo:baz/0/0/0/0/file/0/real:file...)
+
+        Notes handling is stricter, only "note:note" *xpath* is taken into account.
+        """
         props = self.properties
 
-        # Note editing is a special case
+        # Note is a special case
         if xpath == "note:note" and self.doc_type == "Note":
             note = props.get("note:note")
-            if note:
-                digest = hashlib.sha256()
-                digest.update(note.encode("utf-8"))
-                return Blob.from_dict(
-                    {
-                        "name": props["dc:title"],
-                        "digest": digest.hexdigest(),
-                        "digestAlgorithm": "sha256",
-                        "length": len(note),
-                        "mime-type": props.get("note:mime_type"),
-                        "data": note,
-                    }
-                )
+            if not note:
+                return None
+
+            digest = hashlib.sha256()
+            digest.update(note.encode("utf-8"))
+            return Blob.from_dict(
+                {
+                    "name": props["dc:title"],
+                    "digest": digest.hexdigest(),
+                    "digestAlgorithm": "sha256",
+                    "length": len(note),
+                    "mime-type": props.get("note:mime_type"),
+                    "data": note,
+                }
+            )
 
         # Attachments are in a specific array
-        elif "/" in xpath:
-            parts = xpath.split("/")
-            attachments = props.get(parts.pop(0))
-            if attachments:
-                data = attachments[int(parts.pop(0))]  # foo:bar/0
-                if parts:
-                    data = data[parts[0]]  # files:files/0/file
-                return Blob.from_dict(data)
+        attachment: Optional[Dict[str, Any]] = None
 
-        # All other blobs should be directly accessible in the properties
-        # and follow the default formatting. If that is not the case,
-        # we'll let the error rise.
-        elif xpath in props:
-            return Blob.from_dict(props[xpath])
+        parts = xpath.split("/")
+        while parts:
+            part = parts.pop(0)
 
-        return None
+            # Handle numeric values: "0" -> 0
+            key = int(part) if part.isnumeric() else part
+
+            if attachment is None:
+                # The first "get" is from the *properties* dict
+                attachment = props.get(key)  # type: ignore
+            else:
+                # Then we iterate over the structure (either a list or a dict)
+                try:
+                    attachment = attachment[key]  # type: ignore
+                except (IndexError, KeyError):
+                    attachment = None
+
+            if not attachment:
+                # Malformed data
+                break
+
+        return Blob.from_dict(attachment) if attachment else None
 
 
 class DocPair(Row):
