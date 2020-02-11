@@ -1,0 +1,16 @@
+.git  # Obviously!
+
+# No need to check foreign languages
+nxdrive/data/i18n/i18n-*
+
+# That file has false positives, it is not useful to test it
+nxdrive/data/qml/icon-font/Icon.js
+
+# No need to check foreign languages in tests
+tests/resources/i18n/i18n-*
+
+# No need to check foreign languages of the Windows installer
+tools/windows/unofficial_i18n
+
+# Hm, this seems weird but we also need to skip our own whitelist ...
+tools/spell.whitelist
