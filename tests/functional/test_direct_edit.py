@@ -7,7 +7,6 @@ from unittest.mock import patch
 import pytest
 from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
-from nxdrive.objects import NuxeoDocumentInfo
 from nxdrive.translator import Translator
 from nxdrive.utils import find_resource
 
@@ -239,40 +238,3 @@ def test_url_resolver(manager_factory, nuxeo_url):
         manager.engines["0"] = MockUrlTestEngine("https://localhost/nuxeo", user)
         assert get_engine("https://localhost:443/nuxeo/", user=user)
         assert get_engine("https://localhost/nuxeo", user=user)
-
-
-def test_get_blob_custom_metadata():
-    """NXDRIVE-2027: Check Direct Edit works on custom blob metadata values."""
-    doc = NuxeoDocumentInfo.from_dict(
-        {
-            "root": "root",
-            "uid": "uid",
-            "path": "path",
-            "properties": {
-                "dc:title": "dc:title",
-                "foo:bar": [
-                    {
-                        "name": "custom-multi-0",
-                        "digest": "",
-                        "digestAlgorithm": "sha256",
-                        "length": 0,
-                        "mime-type": "text/plain",
-                        "data": "",
-                    },
-                    {
-                        "name": "custom-multi-1",
-                        "digest": "",
-                        "digestAlgorithm": "sha256",
-                        "length": 0,
-                        "mime-type": "text/plain",
-                        "data": "",
-                    },
-                ],
-            },
-            "facets": [],
-            "lastModified": "2020-02-03 18:34:35",
-        }
-    )
-
-    assert doc.get_blob("foo:bar/0")
-    assert doc.get_blob("foo:bar/1")
