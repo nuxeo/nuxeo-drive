@@ -161,21 +161,21 @@ Rectangle {
                 IconLabel {
                     icon: MdiFont.Icon.openInNew
                     onClicked: api.open_remote_server(accountSelect.getRole("uid"))
-                    tooltip_text: qsTr("OPEN_SERVER") + tl.tr
+                    tooltip: qsTr("OPEN_SERVER") + tl.tr
                 }
 
                 // Icon 3: open local sync root folder
                 IconLabel {
                     icon: MdiFont.Icon.folder
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
-                    tooltip_text: qsTr("OPEN_ROOT_FOLDER") + tl.tr
+                    tooltip: qsTr("OPEN_ROOT_FOLDER") + tl.tr
                 }
 
                 // Icon 4: open the Direct Transfer window
                 IconLabel {
                     icon: MdiFont.Icon.cloudUpload
                     onClicked: api.open_direct_transfer(accountSelect.getRole("uid"))
-                    tooltip_text: qsTr("CONTEXT_MENU_4") + tl.tr
+                    tooltip: qsTr("CONTEXT_MENU_4") + tl.tr
                 }
 
                 // Icon 5: sub-menu

@@ -5,9 +5,10 @@ import QtQuick 2.13
     property int size: point_size * 1.6
     property string icon
     property bool enabled: true
+    property string tooltip
 
     signal clicked()
-    property string tooltip_text
+
     text: icon
     font {
         family: "Material Design Icons"
@@ -16,16 +17,15 @@ import QtQuick 2.13
     color: mediumGray
 
     MouseArea {
-        z: parent.z + 10
         anchors.fill: parent
-        anchors.margins: -3
-        hoverEnabled: true
+        hoverEnabled: control.tooltip
         id: mouseArea
-        cursorShape: control.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+        cursorShape: control.enabled || control.tooltip ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: control.enabled ? control.clicked() : {}
     }
+
     NuxeoToolTip {
-        text: control.tooltip_text
-        visible: control.tooltip_text && mouseArea.containsMouse
+        text: control.tooltip
+        visible: control.tooltip && mouseArea.containsMouse
     }
 }

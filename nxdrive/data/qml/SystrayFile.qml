@@ -55,7 +55,7 @@ Rectangle {
                 Layout.rightMargin: 0
                 icon: MdiFont.Icon.openInNew
                 onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
-                tooltip_text: qsTr("OPEN_REMOTE") + tl.tr
+                tooltip: qsTr("OPEN_REMOTE") + tl.tr
             }
 
             // Icon: Open the file locally
@@ -65,7 +65,7 @@ Rectangle {
                 Layout.rightMargin: 10
                 icon: MdiFont.Icon.pencil
                 onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
-                tooltip_text: qsTr("OPEN_LOCAL") + tl.tr
+                tooltip: qsTr("OPEN_LOCAL") + tl.tr
             }
         }
     }
