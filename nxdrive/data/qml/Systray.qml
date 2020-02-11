@@ -160,55 +160,22 @@ Rectangle {
                 // Icon 2: open remote server's URL
                 IconLabel {
                     icon: MdiFont.Icon.openInNew
-                    MouseArea {
-                            id: nuxeoIconHover
-                            z: parent.z + 10
-                            anchors.fill: parent
-                            anchors.margins: -3
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: api.open_remote_server(accountSelect.getRole("uid"))
-                        }
-                        NuxeoToolTip {
-                            text: qsTr("TOOLTIP_BROWSE_SERVER") + tl.tr
-                            visible: nuxeoIconHover.containsMouse
-                        }
+                    onClicked: api.open_remote_server(accountSelect.getRole("uid"))
+                    tooltip_text: qsTr("OPEN_SERVER") + tl.tr
                 }
 
                 // Icon 3: open local sync root folder
                 IconLabel {
                     icon: MdiFont.Icon.folder
-                    MouseArea {
-                            id: folderIconHover
-                            z: parent.z + 10
-                            anchors.fill: parent
-                            anchors.margins: -3
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: api.open_local(accountSelect.getRole("uid"), "/")
-                        }
-                        NuxeoToolTip {
-                            text: qsTr("TOOLTIP_OPEN_LOCAL_FOLDER") + tl.tr
-                            visible: folderIconHover.containsMouse
-                        }
+                    onClicked: api.open_local(accountSelect.getRole("uid"), "/")
+                    tooltip_text: qsTr("OPEN_ROOT_FOLDER") + tl.tr
                 }
 
                 // Icon 4: open the Direct Transfer window
                 IconLabel {
                     icon: MdiFont.Icon.cloudUpload
-                    MouseArea {
-                            id: directTransferIconHover
-                            z: parent.z + 10
-                            anchors.fill: parent
-                            anchors.margins: -3
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: api.open_direct_transfer(accountSelect.getRole("uid"))
-                        }
-                        NuxeoToolTip {
-                            text: qsTr("TOOLTIP_UPLOAD_FILE") + tl.tr
-                            visible: directTransferIconHover.containsMouse
-                        }
+                    onClicked: api.open_direct_transfer(accountSelect.getRole("uid"))
+                    tooltip_text: qsTr("CONTEXT_MENU_4") + tl.tr
                 }
 
                 // Icon 5: sub-menu

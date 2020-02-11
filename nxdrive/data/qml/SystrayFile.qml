@@ -54,19 +54,8 @@ Rectangle {
                 Layout.alignment: Qt.AlignRight
                 Layout.rightMargin: 0
                 icon: MdiFont.Icon.openInNew
-                MouseArea {
-                            id: openInBrowserIconHover
-                            z: parent.z + 10
-                            anchors.fill: parent
-                            anchors.margins: -3
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
-                        }
-                        NuxeoToolTip {
-                            text: qsTr("TOOLTIP_OPEN_FILE_SERVER") + tl.tr
-                            visible: openInBrowserIconHover.containsMouse
-                        }
+                onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
+                tooltip_text: qsTr("OPEN_REMOTE") + tl.tr
             }
 
             // Icon: Open the file locally
@@ -75,19 +64,8 @@ Rectangle {
                 Layout.alignment: Qt.AlignLeft
                 Layout.rightMargin: 10
                 icon: MdiFont.Icon.pencil
-                MouseArea {
-                            id: openLocallyIconHover
-                            z: parent.z + 10
-                            anchors.fill: parent
-                            anchors.margins: -3
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
-                        }
-                        NuxeoToolTip {
-                            text: qsTr("TOOLTIP_EDIT_FILE_LOCALLY") + tl.tr
-                            visible: openLocallyIconHover.containsMouse
-                        }
+                onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
+                tooltip_text: qsTr("OPEN_LOCAL") + tl.tr
             }
         }
     }
