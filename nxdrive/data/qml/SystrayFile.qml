@@ -53,7 +53,7 @@ Rectangle {
                 z: 20
                 Layout.alignment: Qt.AlignRight
                 Layout.rightMargin: 0
-                icon: MdiFont.Icon.openInNew
+                icon: MdiFont.Icon.openInApp
                 onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
             }
 
