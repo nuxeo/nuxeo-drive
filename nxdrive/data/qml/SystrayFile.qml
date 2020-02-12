@@ -32,6 +32,7 @@ Rectangle {
                     // (Down|Up)load icon
                     IconLabel {
                         icon: last_transfer == "upload" ? MdiFont.Icon.upload : MdiFont.Icon.download
+                        enabled: false
                     }
                     // Sync date
                     ScaledText {
@@ -55,6 +56,7 @@ Rectangle {
                 Layout.rightMargin: 0
                 icon: MdiFont.Icon.openInApp
                 onClicked: api.show_metadata(accountSelect.getRole("uid"), local_path)
+                tooltip: qsTr("OPEN_REMOTE") + tl.tr
             }
 
             // Icon: Open the file locally
@@ -64,6 +66,7 @@ Rectangle {
                 Layout.rightMargin: 10
                 icon: MdiFont.Icon.pencil
                 onClicked: api.open_local(accountSelect.getRole("uid"), local_path)
+                tooltip: qsTr("OPEN_LOCAL") + tl.tr
             }
         }
     }

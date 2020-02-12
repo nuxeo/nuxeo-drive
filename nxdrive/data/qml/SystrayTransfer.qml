@@ -39,6 +39,7 @@ Rectangle {
                     IconLabel {
                         size: 12
                         icon: download ? MdiFont.Icon.download : MdiFont.Icon.upload
+                        enabled: false
                     }
                     // Progression
                     ScaledText {
@@ -53,6 +54,7 @@ Rectangle {
                 visible: !is_direct_edit && !finalizing
                 z: 20; Layout.alignment: Qt.AlignRight; Layout.rightMargin: 10
                 icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
+                tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                 onClicked: {
                     // engine is set for DirectEdit transfers only
                     var engine_uid = engine || accountSelect.getRole("uid")

@@ -116,6 +116,7 @@ Rectangle {
                 IconLabel {
                     id: accountIcon
                     icon: MdiFont.Icon.accountOutline
+                    enabled: false
                 }
 
                 // Accounts list
@@ -161,18 +162,21 @@ Rectangle {
                 IconLabel {
                     icon: MdiFont.Icon.nuxeo
                     onClicked: api.open_remote_server(accountSelect.getRole("uid"))
+                    tooltip: qsTr("OPEN_SERVER") + tl.tr
                 }
 
                 // Icon 3: open local sync root folder
                 IconLabel {
                     icon: MdiFont.Icon.folder
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
+                    tooltip: qsTr("OPEN_ROOT_FOLDER") + tl.tr
                 }
 
                 // Icon 4: open the Direct Transfer window
                 IconLabel {
                     icon: MdiFont.Icon.upload
                     onClicked: api.open_direct_transfer(accountSelect.getRole("uid"))
+                    tooltip: qsTr("CONTEXT_MENU_4") + tl.tr
                 }
 
                 // Icon 5: sub-menu

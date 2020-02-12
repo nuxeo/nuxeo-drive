@@ -5,6 +5,7 @@ import QtQuick 2.13
     property int size: point_size * 1.6
     property string icon
     property bool enabled: true
+    property string tooltip
 
     signal clicked()
 
@@ -16,9 +17,15 @@ import QtQuick 2.13
     color: mediumGray
 
     MouseArea {
-        id: mouseArea
-        cursorShape: control.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         anchors.fill: parent
+        hoverEnabled: control.tooltip
+        id: mouseArea
+        cursorShape: control.enabled || control.tooltip ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: control.enabled ? control.clicked() : {}
+    }
+
+    NuxeoToolTip {
+        text: control.tooltip
+        visible: control.tooltip && mouseArea.containsMouse
     }
 }

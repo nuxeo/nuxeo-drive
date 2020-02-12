@@ -6,10 +6,11 @@ ToolTip {
     delay: 600
     contentItem: ScaledText {
         text: control.text
-        color: "#333"
+        color: "#FFFFFF"
     }
 
     background: Rectangle {
-        border.color: "#efefef"
+        border.color: "#848484"
+        color: "#848484"
     }
 }
