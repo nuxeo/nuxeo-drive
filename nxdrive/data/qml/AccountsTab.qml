@@ -34,6 +34,7 @@ Rectangle {
             // Account icon
             IconLabel {
                 icon: MdiFont.Icon.account
+                enabled: false
             }
 
             // Accounts label

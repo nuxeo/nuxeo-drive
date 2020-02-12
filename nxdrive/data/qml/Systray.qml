@@ -116,6 +116,7 @@ Rectangle {
                 IconLabel {
                     id: accountIcon
                     icon: MdiFont.Icon.accountOutline
+                    enabled: false
                 }
 
                 // Accounts list

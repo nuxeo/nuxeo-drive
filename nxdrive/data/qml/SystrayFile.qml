@@ -32,6 +32,7 @@ Rectangle {
                     // (Down|Up)load icon
                     IconLabel {
                         icon: last_transfer == "upload" ? MdiFont.Icon.upload : MdiFont.Icon.download
+                        enabled: false
                     }
                     // Sync date
                     ScaledText {
