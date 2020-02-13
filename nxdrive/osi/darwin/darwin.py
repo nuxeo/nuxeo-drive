@@ -336,9 +336,10 @@ class DarwinIntegration(AbstractOSIntegration):
 
     @staticmethod
     def _get_favorite_list() -> List[str]:
-        return LSSharedFileListCreate(
+        favorites: List[str] = LSSharedFileListCreate(
             None, kLSSharedFileListFavoriteItems, None
-        )  # type: ignore
+        )
+        return favorites
 
     @staticmethod
     def _find_item_in_list(lst: List[str], name: str) -> Optional[str]:
