@@ -4,6 +4,7 @@
 import errno
 import os
 import re
+import shutil
 import subprocess
 import unicodedata
 from logging import getLogger
@@ -67,7 +68,22 @@ class LocalClient(LocalClientMixin):
     def set_folder_icon(self, ref: Path, icon: Path) -> None:
         """Use commandline to customize the folder icon."""
         log.debug(f"Setting the folder icon of {ref!r} using {icon!r}")
+
+        shared_icons_dir = Path("~/.local/share/icons/")
         folder_path = self.abspath(ref).as_posix()
+
+        # Create the shared icons folder if it doesn't already exist
+        shared_icons_dir.mkdir(parents=True, exist_ok=True)
+
+        # Emblems icons must be saved in ~/.local/share/icons/ to be accessible
+        try:
+            emblem_path = shared_icons_dir / "emblem-nuxeo.svg"
+            if emblem_path.is_file():
+                shutil.copy(str(icon), str(emblem_path))
+        except shutil.Error:
+            log.debug(f"Could not copy {icon!r} to {shared_icons_dir!r}")
+            return
+
         try:
             subprocess.check_output(
                 [

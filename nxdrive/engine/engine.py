@@ -1078,7 +1078,7 @@ class Engine(QObject):
             return
 
         if LINUX:
-            icon = find_icon("disabled.svg")
+            icon = find_icon("emblem.svg")
         elif MAC:
             icon = find_icon("folder_mac.dat")
         else:
