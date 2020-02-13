@@ -12,10 +12,9 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Type
 from urllib.parse import urlsplit
 
 import requests
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
-
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import Document
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
 from ..client.local import LocalClient
 from ..client.local.base import LocalClientMixin
@@ -1079,13 +1078,11 @@ class Engine(QObject):
             return
 
         if LINUX:
-            # To be implementation with https://jira.nuxeo.com/browse/NXDRIVE-1831
-            return
+            icon = find_icon("disabled.svg")
         elif MAC:
             icon = find_icon("folder_mac.dat")
         else:
             icon = find_icon("folder_windows.ico")
-
         if not icon:
             log.error(f"Missing icon from the package: {icon!r}")
             return

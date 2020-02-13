@@ -3,6 +3,7 @@
 
 import errno
 import os
+import re
 import subprocess
 import unicodedata
 from logging import getLogger
@@ -25,8 +26,19 @@ class LocalClient(LocalClientMixin):
 
     def has_folder_icon(self, ref: Path) -> bool:
         """Check if the folder icon is set."""
-        # To be implementation with https://jira.nuxeo.com/browse/NXDRIVE-1831
-        return True
+        matcher = re.compile(r"metadata::emblems: \[nuxeo.*\]")
+        folder_path = self.abspath(ref).as_posix()
+        try:
+            output = subprocess.check_output(
+                ["gio", "info", "-a", "metadata", folder_path], encoding="utf-8"
+            )
+        except subprocess.CalledProcessError:
+            log.debug(f"Could not check the metadata of {ref!r}")
+            return False
+        result = matcher.findall(output)
+        if result:
+            return True
+        return False
 
     @staticmethod
     def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
@@ -53,13 +65,24 @@ class LocalClient(LocalClientMixin):
                 raise exc
 
     def set_folder_icon(self, ref: Path, icon: Path) -> None:
-        """Create a special file to customize the folder icon."""
+        """Use commandline to customize the folder icon."""
         log.debug(f"Setting the folder icon of {ref!r} using {icon!r}")
-        # To be implementation with https://jira.nuxeo.com/browse/NXDRIVE-1831
-        subprocess.check_output(
-            ["gio", "set", "-t", "string", str(ref), "metadata::custom-icon", str(icon)]
-        )
-        return
+        folder_path = self.abspath(ref).as_posix()
+        try:
+            subprocess.check_output(
+                [
+                    "gio",
+                    "set",
+                    "-t",
+                    "stringv",
+                    folder_path,
+                    "metadata::emblems",
+                    "nuxeo",
+                ],
+                encoding="utf-8",
+            )
+        except subprocess.CalledProcessError:
+            log.debug(f"Could not set the folder icon of {ref!r} using nuxeo emblem")
 
     @staticmethod
     def set_path_remote_id(
