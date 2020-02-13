@@ -43,7 +43,7 @@ import yaml
 # Alter the lookup path to be able to find Nuxeo Drive sources
 sys.path.insert(0, os.getcwd())
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
@@ -193,7 +193,10 @@ def launch_drive(executable, args=None):
     if EXT == "appimage":
         cmd = [executable, *args]
     elif EXT == "dmg":
-        cmd = ["open", f"{Path.home()}/Applications/Nuxeo Drive.app", "--args", *args]
+        cmd = ["open", f"{Path.home()}/Applications/Nuxeo Drive.app"]
+        if args:
+            cmd.append("--args")
+            cmd.extend(*args)
     else:
         cmd = [
             expandvars(
@@ -378,8 +381,8 @@ def webserver(folder, port=8000):
     """ Start a local web server. """
 
     def stop(server):
-        """Stop the server after 30 seconds."""
-        time.sleep(30)
+        """Stop the server after 60 seconds."""
+        time.sleep(60)
         try:
             server.shutdown()
         except Exception:
@@ -389,7 +392,7 @@ def webserver(folder, port=8000):
 
     httpd = socketserver.TCPServer(("", port), Server)
     print(">>> Serving", folder, f"at http://localhost:{port}", flush=True)
-    print(">>> CTRL+C to terminate (or wait 30 sec)", flush=True)
+    print(">>> CTRL+C to terminate (or wait 60 sec)", flush=True)
     try:
         threading.Thread(target=stop, args=(httpd,)).start()
         httpd.serve_forever()
