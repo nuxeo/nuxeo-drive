@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from urllib.parse import unquote
 
 import requests
+from markdown import markdown
+from nuxeo.models import Document
 from PyQt5.QtCore import QEvent, QRect, Qt, QTimer, QUrl, pyqtSlot
 from PyQt5.QtGui import QCursor, QFont, QFontMetricsF, QIcon, QWindow
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
@@ -27,9 +29,6 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
 )
-
-from markdown import markdown
-from nuxeo.models import Document
 
 from ..constants import (
     APP_NAME,
@@ -1543,10 +1542,10 @@ class Application(QApplication):
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        def analytics_choice(state: Qt.CheckSate) -> None:
+        def analytics_choice(state: Qt.CheckState) -> None:
             Options.use_analytics = bool(state)
 
-        def errors_choice(state: Qt.CheckSate) -> None:
+        def errors_choice(state: Qt.CheckState) -> None:
             Options.use_sentry = bool(state)
 
         # Checkboxes
