@@ -27,19 +27,20 @@ class LocalClient(LocalClientMixin):
 
     def has_folder_icon(self, ref: Path) -> bool:
         """Check if the folder icon is set."""
-        matcher = re.compile(r"metadata::emblems: \[nuxeo.*\]")
-        folder_path = self.abspath(ref).as_posix()
+        nuxeo_emblem_path = Path.home() / ".local/share/icons/emblem-nuxeo.svg"
+        if not nuxeo_emblem_path.is_file():
+            return False
+
         try:
             output = subprocess.check_output(
-                ["gio", "info", "-a", "metadata", folder_path], encoding="utf-8"
+                ["gio", "info", "-a", "metadata", self.abspath(ref)], encoding="utf-8"
             )
         except subprocess.CalledProcessError:
             log.debug(f"Could not check the metadata of {ref!r}")
             return False
-        result = matcher.findall(output)
-        if result:
-            return True
-        return False
+
+        matcher = re.compile(r"metadata::emblems: \[nuxeo.*\]")
+        return bool(matcher.findall(output))
 
     @staticmethod
     def get_path_remote_id(path: Path, name: str = "ndrive") -> str:
@@ -69,16 +70,14 @@ class LocalClient(LocalClientMixin):
         """Use commandline to customize the folder icon."""
         log.debug(f"Setting the folder icon of {ref!r} using {icon!r}")
 
-        shared_icons_dir = Path("~/.local/share/icons/")
-        folder_path = self.abspath(ref).as_posix()
-
         # Create the shared icons folder if it doesn't already exist
+        shared_icons_dir = Path.home() / ".local/share/icons"
         shared_icons_dir.mkdir(parents=True, exist_ok=True)
 
         # Emblems icons must be saved in ~/.local/share/icons/ to be accessible
         try:
             emblem_path = shared_icons_dir / "emblem-nuxeo.svg"
-            if emblem_path.is_file():
+            if not emblem_path.is_file():
                 shutil.copy(str(icon), str(emblem_path))
         except shutil.Error:
             log.debug(f"Could not copy {icon!r} to {shared_icons_dir!r}")
@@ -91,14 +90,14 @@ class LocalClient(LocalClientMixin):
                     "set",
                     "-t",
                     "stringv",
-                    folder_path,
+                    self.abspath(ref),
                     "metadata::emblems",
                     "nuxeo",
                 ],
                 encoding="utf-8",
             )
         except subprocess.CalledProcessError:
-            log.debug(f"Could not set the folder icon of {ref!r} using nuxeo emblem")
+            log.warning(f"Could not set the folder emblem on {ref!r}")
 
     @staticmethod
     def set_path_remote_id(

@@ -1083,6 +1083,7 @@ class Engine(QObject):
             icon = find_icon("folder_mac.dat")
         else:
             icon = find_icon("folder_windows.ico")
+
         if not icon:
             log.error(f"Missing icon from the package: {icon!r}")
             return
