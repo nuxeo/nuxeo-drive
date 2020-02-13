@@ -45,6 +45,8 @@ class Updater(BaseUpdater):
         m = re.match(r"(.*\.app).*", exe_path)
         self.final_app = Path(m.group(1) if m else exe_path)
 
+        self._fix_notarization(filename)
+
         log.info(f"Mounting {filename!r}")
         mount_info = subprocess.check_output(["hdiutil", "mount", filename])
         lines = mount_info.splitlines()
@@ -116,6 +118,13 @@ class Updater(BaseUpdater):
         src = f"{mount_dir}/{APP_NAME}.app"
         log.info(f"Copying {src!r} -> {self.final_app!r}")
         shutil.copytree(src, self.final_app)
+        self._fix_notarization(str(self.final_app))
+
+    def _fix_notarization(self, path: str) -> None:
+        """Fix the notarization (enforced security since February 2020)"""
+        with suppress(subprocess.CalledProcessError):
+            subprocess.check_call(["xattr", "-d", "com.apple.quarantine", path])
+            log.info(f"Fixed the notarization on {path!r}")
 
     def _restart(self) -> None:
         """
