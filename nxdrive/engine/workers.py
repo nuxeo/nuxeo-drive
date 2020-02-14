@@ -269,7 +269,7 @@ class PollWorker(Worker):
                 if self._poll():
                     self._metrics["last_poll"] = int(time())
                 self._next_check = int(time()) + self._check_interval
-            sleep(0.01)
+            sleep(1)
 
     def _poll(self) -> bool:
         return True
