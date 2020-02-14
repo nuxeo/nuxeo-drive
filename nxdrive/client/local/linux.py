@@ -25,21 +25,24 @@ log = getLogger(__name__)
 class LocalClient(LocalClientMixin):
     """GNU/Linux client API implementation for the local file system."""
 
+    shared_icons = Path.home() / ".local/share/icons"
+
     def has_folder_icon(self, ref: Path) -> bool:
         """Check if the folder icon is set."""
-        nuxeo_emblem_path = Path.home() / ".local/share/icons/emblem-nuxeo.svg"
-        if not nuxeo_emblem_path.is_file():
+        emblem = self.shared_icons / "emblem-nuxeo.svg"
+
+        if not emblem.is_file():
             return False
 
+        folder = self.abspath(ref)
+        cmd = ["gio", "info", "-a", "metadata", str(folder)]
         try:
-            output = subprocess.check_output(
-                ["gio", "info", "-a", "metadata", self.abspath(ref)], encoding="utf-8"
-            )
+            output = subprocess.check_output(cmd, encoding="utf-8")
         except subprocess.CalledProcessError:
-            log.debug(f"Could not check the metadata of {ref!r}")
+            log.warning(f"Could not check the metadata of {folder!r}")
             return False
 
-        matcher = re.compile(r"metadata::emblems: \[nuxeo.*\]")
+        matcher = re.compile(r"metadata::emblems: \[.*emblem-nuxeo.*\]")
         return bool(matcher.findall(output))
 
     @staticmethod
@@ -68,36 +71,34 @@ class LocalClient(LocalClientMixin):
 
     def set_folder_icon(self, ref: Path, icon: Path) -> None:
         """Use commandline to customize the folder icon."""
-        log.debug(f"Setting the folder icon of {ref!r} using {icon!r}")
+        folder = self.abspath(ref)
 
-        # Create the shared icons folder if it doesn't already exist
-        shared_icons_dir = Path.home() / ".local/share/icons"
-        shared_icons_dir.mkdir(parents=True, exist_ok=True)
+        # Emblems icons must be saved in $XDG_DATA_HOME/icons to be accessible
+        emblem = self.shared_icons / "emblem-nuxeo.svg"
+        emblem.parent.mkdir(parents=True, exist_ok=True)
 
-        # Emblems icons must be saved in ~/.local/share/icons/ to be accessible
+        log.debug(f"Setting the folder emblem of {folder!r} using {emblem!r}")
+
+        if not emblem.is_file():
+            try:
+                shutil.copy(icon, emblem)
+            except shutil.Error:
+                log.warning(f"Could not copy {icon!r} to {self.shared_icons!r}")
+                return
+
+        cmd = [
+            "gio",
+            "set",
+            "-t",
+            "stringv",
+            str(folder),
+            "metadata::emblems",
+            "emblem-nuxeo",
+        ]
         try:
-            emblem_path = shared_icons_dir / "emblem-nuxeo.svg"
-            if not emblem_path.is_file():
-                shutil.copy(str(icon), str(emblem_path))
-        except shutil.Error:
-            log.debug(f"Could not copy {icon!r} to {shared_icons_dir!r}")
-            return
-
-        try:
-            subprocess.check_output(
-                [
-                    "gio",
-                    "set",
-                    "-t",
-                    "stringv",
-                    self.abspath(ref),
-                    "metadata::emblems",
-                    "nuxeo",
-                ],
-                encoding="utf-8",
-            )
+            subprocess.check_call(cmd)
         except subprocess.CalledProcessError:
-            log.warning(f"Could not set the folder emblem on {ref!r}")
+            log.warning(f"Could not set the folder emblem on {folder!r}")
 
     @staticmethod
     def set_path_remote_id(
