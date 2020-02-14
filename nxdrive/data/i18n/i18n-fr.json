@@ -121,7 +121,7 @@
     "FATAL_ERROR_DETAILS_COPIED": "Détails copiés !",
     "FATAL_ERROR_DETAILS_COPY": "Copier les détails",
     "FATAL_ERROR_LOGS": "Logs avant le crash :",
-    "FATAL_ERROR_MSG": "Oups ! Malheureusement, une erreur fatale s'est produite et %1 s'est arrêtée.<br>Veuillez partager les informations suivantes avec le support de %2 : nous ferons de notre mieux pour la corriger !",
+    "FATAL_ERROR_MSG": "Oups ! Malheureusement, une erreur fatale s'est produite et %1 s'est arrêté.<br>Veuillez partager les informations suivantes avec le support de %2 : nous ferons de notre mieux pour la corriger !",
     "FATAL_ERROR_TITLE": "%1 - Erreur fatale",
     "FATAL_ERROR_UPDATE_BTN": "Télécharger la dernière version",
     "FATAL_ERROR_UPDATE_TOOLTIP": "Nous vous conseillons de mettre à jour vers la dernière version de %1",
