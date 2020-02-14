@@ -1,7 +1,16 @@
+# coding: utf-8
+"""
+This script allows the user to check the project translations files and print on the standard
+output the differences between the reference translation file and the others files.
+
+This tool accepts only json files as parameters.
+"""
+
 import json
 import os
 import re
 import sys
+from pathlib import Path
 from typing import List
 
 EXIT_SUCCESS = 0
@@ -9,72 +18,71 @@ EXIT_FAILURE = 1
 
 
 def print_results(errors: List[str], warnings: List[str]) -> int:
-    if len(warnings) < 0:
-        print("=== translations check warnings ===")
-        [print(elem) for elem in warnings]
-    if len(errors) == 0:
+    """Print warnings and errors found during the check"""
+    if warnings:
+        print("=== List of obsolete translations found ===")
+        for warning in warnings:
+            print(warning)
+
+    if not errors:
         return EXIT_SUCCESS
-    print("=== translations check errors ===")
-    [print(elem) for elem in errors]
+
+    print("=== List of translations errors found ===")
+    for error in errors:
+        print(error)
+
     return EXIT_FAILURE
 
 
 def find_errors_in_tested_file(
-    reference_translation_dict: dict,
-    tested_translation_dict: dict,
-    tested_translation_file_path: str,
+    reference_translation: dict, translation: dict, file: Path,
 ) -> List[str]:
+    """Iterate through the tested translation file keys and compare values with the reference file"""
     matcher = re.compile(r"%[1-9]")
 
     errors = []
-    for key, sentence in reference_translation_dict.items():
-        if key not in tested_translation_dict:
-            errors.append(f"{tested_translation_file_path} {key!r}")
+    for key, sentence in reference_translation.items():
+        if key not in translation:
+            errors.append(f"{file} {key!r}")
             continue
         reference_sentence_arguments = matcher.findall(sentence)
-        tested_sentence_arguments = matcher.findall(tested_translation_dict[key])
+        tested_sentence_arguments = matcher.findall(translation[key])
 
         if sorted(reference_sentence_arguments) != sorted(tested_sentence_arguments):
-            errors.append(f"{tested_translation_file_path} {key!r}")
+            errors.append(f"{file} {key!r}")
     return errors
 
 
 def run_check(translations_folder: str) -> int:
+    """Iterate through the translations files folder"""
+
+    # List of translation key that are considered obsolete (not in reference anymore)
     warnings = []
+
+    # List of translation key where the value does not contain the same arguments (count and name) than the reference
     errors = []
 
-    with open(
-        os.path.join(translations_folder, "i18n.json"), "r"
-    ) as reference_translation_file:
-        reference_translation_dict = json.load(reference_translation_file)
-    translations_files_list = [
-        os.path.join(translations_folder, translation_file)
-        for translation_file in os.listdir(translations_folder)
-        if os.path.isfile(os.path.join(translations_folder, translation_file))
-        and translation_file.startswith("i18n-")
-    ]
+    with open(os.path.join(translations_folder, "i18n.json"), "r") as reference_file:
+        reference_translation = json.load(reference_file)
 
-    for tested_translation_file_path in translations_files_list:
-        with open(tested_translation_file_path, "r") as translation_file:
-            tested_translation_dict = json.load(translation_file)
-
+    translations = Path(translations_folder)
+    for file in translations.glob("i18n-*.json"):
+        translation = json.loads(file.read_text(encoding="utf-8"))
         warnings += [
-            f"{tested_translation_file_path} {key!r}"
-            for key in set(tested_translation_dict).difference(
-                set(reference_translation_dict)
-            )
+            f"{file} {key!r}"
+            for key in set(translation).difference(set(reference_translation))
         ]
 
-        errors += find_errors_in_tested_file(
-            reference_translation_dict,
-            tested_translation_dict,
-            tested_translation_file_path,
-        )
+        errors += find_errors_in_tested_file(reference_translation, translation, file,)
 
     return print_results(errors, warnings)
 
 
 if __name__ == "__main__":
+    """
+    Check translations files for anomalies.
+    Take the translations files folder path as an argument.
+    """
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} /path/to/translations/folder")
         sys.exit(EXIT_FAILURE)
