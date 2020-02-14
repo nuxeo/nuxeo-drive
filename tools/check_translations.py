@@ -7,7 +7,6 @@ This tool accepts only json files as parameters.
 """
 
 import json
-import os
 import re
 import sys
 from pathlib import Path
@@ -62,10 +61,10 @@ def run_check(translations_folder: str) -> int:
     # List of translation key where the value does not contain the same arguments (count and name) than the reference
     errors = []
 
-    with open(os.path.join(translations_folder, "i18n.json"), "r") as reference_file:
-        reference_translation = json.load(reference_file)
-
     translations = Path(translations_folder)
+    reference_file = translations / "i18n.json"
+    reference_translation = json.loads(reference_file.read_text(encoding="utf-8"))
+
     for file in translations.glob("i18n-*.json"):
         translation = json.loads(file.read_text(encoding="utf-8"))
         warnings += [
