@@ -5,7 +5,6 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Any
 
 from ..constants import LINUX, MAC
-from ..options import Options
 
 if TYPE_CHECKING:
     from .base import BaseUpdater as Updater  # noqa
@@ -24,14 +23,6 @@ def updater(*args: Any, **kwargs: Any) -> "Updater":
     updater class.
     It then proxies its arguments to the class for instantiation.
     """
-
-    if not Options.update_check_delay:
-        # The user manually disabled the auto-update
-        from . import base
-
-        setattr(base.BaseUpdater, "_can_update", False)
-        log.info("Update check delay is set to 0, disabling auto-update")
-        return base.BaseUpdater(*args, **kwargs)
 
     if LINUX:
         from . import linux

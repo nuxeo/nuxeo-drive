@@ -241,8 +241,12 @@ class PollWorker(Worker):
         self._check_interval = check_interval
         # Check at start
         self._next_check = 0
-        self.enable = True
         self._metrics = {"last_poll": 0}
+
+    @property
+    def enable(self) -> bool:
+        """This is a property to let subclasses changes its state dynamically."""
+        return True
 
     def get_metrics(self) -> Metrics:
         metrics = super().get_metrics()

@@ -11,15 +11,37 @@ from .constants import (
     UPDATE_STATUS_UP_TO_DATE,
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_WRONG_CHANNEL,
+    AutoUpdateState,
     Login,
 )
 
-__all__ = ("get_update_status",)
+__all__ = ("get_update_status", "auto_updates_state")
 
 log = getLogger(__name__)
 
 Version = Dict[str, Any]
 Versions = Dict[str, Version]
+
+
+def auto_updates_state() -> AutoUpdateState:
+    """Check the auto-update state as it may evolve over the application runtime."""
+    if not Options.is_frozen:
+        # Cannot update non-packaged versions
+        return AutoUpdateState.DISABLED
+
+    if Options.update_check_delay > 0:
+        # Auto-updates are enabled
+        return AutoUpdateState.ENABLED
+
+    if Options.channel == "centralized" and Options.client_version:
+        # We are in the scenario where:
+        #   - update_check_delay is set to 0
+        #   - channel is set to centralized
+        #   - client_version is set
+        # We still want to allow updates in that case. See NXDRIVE-2047.
+        return AutoUpdateState.FORCED
+
+    return AutoUpdateState.DISABLED
 
 
 def is_version_compatible(

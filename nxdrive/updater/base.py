@@ -23,9 +23,10 @@ from .constants import (
     UPDATE_STATUS_UPDATE_AVAILABLE,
     UPDATE_STATUS_UPDATING,
     UPDATE_STATUS_WRONG_CHANNEL,
+    AutoUpdateState,
     Login,
 )
-from .utils import get_update_status
+from .utils import auto_updates_state, get_update_status
 
 if TYPE_CHECKING:
     from ..manager import Manager  # noqa
@@ -64,14 +65,21 @@ class BaseUpdater(PollWorker):
         super().__init__(Options.update_check_delay)
         self.manager = manager
 
-        self.enable = getattr(self, "_can_update", Options.is_frozen)
         self.status = UPDATE_STATUS_UP_TO_DATE
         self.version: str = ""
         self.progress = 0.0
         self.update_site = Options.update_site_url.rstrip("/")
 
-        if not self.enable:
-            log.info(f"Auto-update disabled (frozen={Options.is_frozen!r})")
+    @property
+    def enable(self) -> bool:
+        """That attribute is dynamic as it may change over the application runtime."""
+        state = auto_updates_state()
+
+        if state is AutoUpdateState.FORCED:
+            # We need to update that attribute to prevent checking for updates every seconds
+            self._check_interval = 3600
+
+        return state is not AutoUpdateState.DISABLED
 
     #
     # Read-only properties
@@ -111,9 +119,6 @@ class BaseUpdater(PollWorker):
 
     @pyqtSlot(str)
     def update(self, version: str) -> None:
-        if not self.enable:
-            return
-
         log.info(f"Starting application update process to version {version}")
         self._set_status(UPDATE_STATUS_UPDATING, version=version, progress=10)
         try:
@@ -246,7 +251,7 @@ class BaseUpdater(PollWorker):
                 )
                 return
 
-        if status and version:
+        if status and version and self.enable:
             self._set_status(status, version=version)
         elif status:
             self.status = status

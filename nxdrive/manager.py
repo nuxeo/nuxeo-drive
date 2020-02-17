@@ -44,7 +44,8 @@ from .options import Options
 from .osi import AbstractOSIntegration
 from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
 from .updater import updater
-from .updater.constants import Login
+from .updater.constants import AutoUpdateState, Login
+from .updater.utils import auto_updates_state
 from .utils import (
     force_decode,
     get_arch,
@@ -479,8 +480,11 @@ class Manager(QObject):
 
     @pyqtSlot(result=bool)
     def get_auto_update(self) -> bool:
-        # Enabled by default, if app is frozen
-        return Options.update_check_delay > 0 and self.dao.get_bool(
+        state = auto_updates_state()
+        if state is AutoUpdateState.FORCED:
+            return True
+
+        return state is AutoUpdateState.ENABLED and self.dao.get_bool(
             "auto_update", default=Options.is_frozen
         )
 
