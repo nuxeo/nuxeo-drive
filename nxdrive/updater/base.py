@@ -119,7 +119,7 @@ class BaseUpdater(PollWorker):
 
     @pyqtSlot(str)
     def update(self, version: str) -> None:
-        log.info(f"Starting application update process to version {version}")
+        log.info(f"Starting application update process to version {version!r}")
         self._set_status(UPDATE_STATUS_UPDATING, version=version, progress=10)
         try:
             self._install(version, self._download(version))
@@ -212,11 +212,13 @@ class BaseUpdater(PollWorker):
             if os.getenv("FORCE_USE_LATEST_VERSION", "0") == "1":
                 version = max(self.versions)
                 if version_lt(self.manager.version, version):
-                    log.info(f"FORCE_USE_LATEST_VERSION is set, ugrading to {version}")
+                    log.info(
+                        f"FORCE_USE_LATEST_VERSION is set, upgrading to {version!r}"
+                    )
                     self._set_status(UPDATE_STATUS_UPDATE_AVAILABLE, version=version)
                 else:
                     log.info(
-                        f"FORCE_USE_LATEST_VERSION is set, but {version} not newer than the current version"
+                        f"FORCE_USE_LATEST_VERSION is set, but {version!r} not newer than the current version"
                     )
                 return
 
@@ -227,8 +229,8 @@ class BaseUpdater(PollWorker):
 
             channel = self.manager.get_update_channel()
             log.info(
-                f"Getting update status for version {self.manager.version}"
-                f" (channel={channel}, desired client_version={Options.client_version})"
+                f"Getting update status for version {self.manager.version!r}"
+                f" (channel={channel}, desired client_version={Options.client_version!r})"
                 f" on server {self.server_ver}"
             )
             status, version = get_update_status(
@@ -246,7 +248,7 @@ class BaseUpdater(PollWorker):
             checksums = info.get("checksum", {})
             checksum = checksums.get(self.ext, "").lower()
             if not checksum:
-                log.info(
+                log.warning(
                     f"There is no downloadable file for the version {version!r} on that OS."
                 )
                 return
