@@ -1,5 +1,5 @@
 codespell==1.16.0
-faker==4.0.0
+faker==4.0.1
 flake8==3.7.9
 junitparser==1.4.1
 mypy==0.761
