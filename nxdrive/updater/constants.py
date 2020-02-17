@@ -10,6 +10,14 @@ UPDATE_STATUS_UPDATING = "updating"
 UPDATE_STATUS_WRONG_CHANNEL = "wrong_channel"
 
 
+class AutoUpdateState(Flag):
+    """ Used to figure out if the application can be updated. """
+
+    DISABLED = 0
+    ENABLED = auto()
+    FORCED = auto()
+
+
 class Login(Flag):
     """ Used to figure out which login endpoint is used for a given server. """
 
