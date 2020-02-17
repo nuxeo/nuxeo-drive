@@ -267,10 +267,10 @@ class PollWorker(Worker):
         self._next_check = 0
 
     def _execute(self) -> None:
-        while self.enable:
+        while True:
             self._interact()
             if self.get_next_poll() <= 0:
-                if self._poll():
+                if self.enable and self._poll():
                     self._metrics["last_poll"] = int(time())
                 self._next_check = int(time()) + self._check_interval
             sleep(1)

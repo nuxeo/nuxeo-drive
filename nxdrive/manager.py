@@ -44,8 +44,7 @@ from .options import Options
 from .osi import AbstractOSIntegration
 from .poll_workers import DatabaseBackupWorker, ServerOptionsUpdater, SyncAndQuitWorker
 from .updater import updater
-from .updater.constants import AutoUpdateState, Login
-from .updater.utils import auto_updates_state
+from .updater.constants import Login
 from .utils import (
     force_decode,
     get_arch,
@@ -115,7 +114,6 @@ class Manager(QObject):
 
         self._engine_types: Dict[str, Type[Engine]] = {"NXDRIVE": Engine}
         self.engines: Dict[str, Engine] = {}
-        self.server_config_updater: Optional[ServerOptionsUpdater] = None
         self.db_backup_worker: Optional[DatabaseBackupWorker] = None
 
         if Options.proxy_server is not None:
@@ -208,7 +206,7 @@ class Manager(QObject):
         self.load()
 
         # Create the server's configuration getter verification thread
-        self._create_server_config_updater()
+        self.server_config_updater: ServerOptionsUpdater = self._create_server_config_updater()
         # Create the server's configuration getter verification thread
         self._create_db_backup_worker()
 
@@ -310,13 +308,10 @@ class Manager(QObject):
     def _create_dao(self) -> None:
         self.dao = ManagerDAO(self._get_db())
 
-    def _create_server_config_updater(self) -> None:
-        if not Options.update_check_delay:
-            return
-
-        self.server_config_updater = ServerOptionsUpdater(self)
-        if self.server_config_updater:
-            self.started.connect(self.server_config_updater.thread.start)
+    def _create_server_config_updater(self) -> ServerOptionsUpdater:
+        updater_ = ServerOptionsUpdater(self)
+        self.started.connect(updater_.thread.start)
+        return updater_
 
     def _create_updater(self) -> "Updater":
         updater_ = updater(self)
@@ -473,13 +468,10 @@ class Manager(QObject):
 
     @pyqtSlot(result=bool)
     def get_auto_update(self) -> bool:
-        state = auto_updates_state()
-        if state is AutoUpdateState.FORCED:
-            return True
-
-        return state is AutoUpdateState.ENABLED and self.dao.get_bool(
-            "auto_update", default=Options.is_frozen
-        )
+        # Enabled by default, if app is frozen
+        value: bool = Options.update_check_delay > 0
+        value &= self.dao.get_bool("auto_update", default=Options.is_frozen)
+        return value
 
     @pyqtSlot(bool)
     def set_auto_update(self, value: bool) -> None:
@@ -528,9 +520,7 @@ class Manager(QObject):
     def set_update_channel(self, value: str) -> None:
         self.set_config("channel", value)
         self.prompted_wrong_channel = False
-        # Trigger update status refresh
-        if self.updater.enable:
-            self.updater.refresh_status()
+        self.updater.refresh_status()
 
     @pyqtSlot(result=str)
     def get_log_level(self) -> str:

@@ -818,9 +818,8 @@ class Engine(QObject):
         # Checking root in case of failed migration
         self._check_root()
 
-        # Launch the server confg file updater
-        if self.manager.server_config_updater:
-            self.manager.server_config_updater.force_poll()
+        # Launch the server config file updater
+        self.manager.server_config_updater.force_poll()
 
         self.remove_staled_transfers()
         self.resume_suspended_transfers()
