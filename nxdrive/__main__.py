@@ -78,6 +78,7 @@ def signal_handler(signum: int, frame: FrameType) -> None:
     print("\r", flush=True)
     print(f" ! Caught {signame} ({signum}), gracefully exiting {APP_NAME}", flush=True)
     QApplication.quit()
+    QApplication.processEvents()
 
 
 def main() -> int:
