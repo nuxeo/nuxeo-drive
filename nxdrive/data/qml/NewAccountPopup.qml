@@ -60,6 +60,14 @@ NuxeoPopup {
                     onClicked: fileDialog.visible = true
                 }
             }
+            ScaledText {
+                    text: qsTr("FREE_DISK_SPACE") + tl.tr;
+                    color: mediumGray
+                }
+                ScaledText {
+                    text: api.get_free_disk_space(folderInput.text);
+                    color: api.free_disk_space_under_limit(folderInput.text) ? "#ff0000": "#008000"
+                }
         }
 
         RowLayout {

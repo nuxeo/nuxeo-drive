@@ -132,6 +132,26 @@ Rectangle {
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                 }
 
+                // Remainig space
+                ScaledText {
+                    text: qsTr("FREE_DISK_SPACE") + tl.tr;
+                    color: mediumGray
+                }
+                ScaledText {
+                    text: api.get_free_disk_space(folder);
+                    color: api.free_disk_space_under_limit(folder) ? "#ff0000": "#008000"
+                }
+
+                // Used space
+                ScaledText {
+                    text: qsTr("USED_DISK_SPACE") + tl.tr;
+                    color: mediumGray
+                }
+                ScaledText {
+                    text: api.get_used_disk_space(folder);
+                    color: "#000000"
+                }
+
                 // Filters
                 ScaledText {
                     text: qsTr("SELECTIVE_SYNC") + tl.tr

@@ -1,5 +1,6 @@
 # coding: utf-8
 import json
+import shutil
 from dataclasses import asdict
 from logging import getLogger
 from os import getenv
@@ -8,10 +9,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
+from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
-
-from nuxeo.exceptions import HTTPError, Unauthorized
 
 from ..client.proxy import get_proxy
 from ..constants import (
@@ -40,6 +40,7 @@ from ..utils import (
     get_device,
     guess_server_url,
     normalized_path,
+    sizeof_fmt,
 )
 
 if TYPE_CHECKING:
@@ -442,6 +443,23 @@ class QMLDriveApi(QObject):
     def default_server_url_value(self) -> str:
         """Make daily job better for our developers :)"""
         return getenv("NXDRIVE_TEST_NUXEO_URL", "")
+
+    @pyqtSlot(str, result=bool)
+    def free_disk_space_under_limit(self, path: str) -> bool:
+        remaining_space = shutil.disk_usage(Path(path).parent).free
+
+        # 10737418240 = 10GiB
+        return remaining_space < 10737418240
+
+    @pyqtSlot(str, result=str)
+    def get_used_disk_space(self, path: str) -> str:
+        used_space = shutil.disk_usage(path).used
+        return sizeof_fmt(used_space)
+
+    @pyqtSlot(str, result=str)
+    def get_free_disk_space(self, path: str) -> str:
+        remaining_space = shutil.disk_usage(Path(path).parent).free
+        return sizeof_fmt(remaining_space)
 
     @pyqtSlot(str, bool)
     def unbind_server(self, uid: str, purge: bool) -> None:
