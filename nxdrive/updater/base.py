@@ -70,6 +70,8 @@ class BaseUpdater(PollWorker):
         self.progress = 0.0
         self.update_site = Options.update_site_url.rstrip("/")
 
+        self._update_in_progress = False
+
     @property
     def enable(self) -> bool:
         """That attribute is dynamic as it may change over the application runtime."""
@@ -77,13 +79,40 @@ class BaseUpdater(PollWorker):
 
         if state is AutoUpdateState.FORCED:
             # We need to update that attribute to prevent checking for updates every seconds
-            self._check_interval = 3600
+            if self._check_interval <= 0:
+                self._check_interval = 3600
 
         return state is not AutoUpdateState.DISABLED
 
     #
     # Read-only properties
     #
+
+    @property
+    def can_update(self) -> bool:
+        """Whenever the application can be automatycally updated right now."""
+
+        # Special case to test the auto-updater without the need for an account
+        if os.getenv("FORCE_USE_LATEST_VERSION", "0") == "1":
+            return True
+
+        # Check if the server's config has been fetched
+        if self.manager.server_config_updater.first_run:
+            log.warning("No server configuration retrieved => no update allowed yet.")
+            return False
+
+        state = auto_updates_state()
+
+        # Force the auto-update
+        if state is AutoUpdateState.FORCED:
+            return True
+
+        # Cannot update has it is not allowed
+        if state is AutoUpdateState.DISABLED:
+            return False
+
+        # The auto-update can be done but let's check the user preference, finally
+        return bool(self.manager.get_auto_update())
 
     @property
     def server_ver(self) -> Optional[str]:
@@ -115,7 +144,8 @@ class BaseUpdater(PollWorker):
         Check for an update.
         Used when changing the channel option or when binding a new engine.
         """
-        self._poll()
+        if self.enable:
+            self._poll()
 
     @pyqtSlot(str)
     def update(self, version: str) -> None:
@@ -253,7 +283,7 @@ class BaseUpdater(PollWorker):
                 )
                 return
 
-        if status and version and self.enable:
+        if status and version and self.enable and self.can_update:
             self._set_status(status, version=version)
         elif status:
             self.status = status
@@ -300,6 +330,11 @@ class BaseUpdater(PollWorker):
             self.wrongChannel.emit()
             return
 
+        if not self.version:
+            # This is the case when the updater has done a first check before
+            # the server config was retrieved. As it is forbidden, we just stop here.
+            return
+
         self.updateAvailable.emit()
 
         if self.status == UPDATE_STATUS_INCOMPATIBLE_SERVER:
@@ -310,7 +345,7 @@ class BaseUpdater(PollWorker):
             self.serverIncompatible.emit()
             return
 
-        if self.manager.get_auto_update():
+        if self.can_update:
             self.update(self.version)
 
     def _set_progress(self, progress: Union[int, float]) -> None:
@@ -364,9 +399,16 @@ class BaseUpdater(PollWorker):
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
+        if self._update_in_progress:
+            # The update is already ongoing ...
+            return False
 
-        if self.status != UPDATE_STATUS_UPDATING:
-            self._get_update_status()
-            self._handle_status()
+        self._update_in_progress = True
+        try:
+            if self.status != UPDATE_STATUS_UPDATING:
+                self._get_update_status()
+                self._handle_status()
 
-        return self.status != UPDATE_STATUS_UNAVAILABLE_SITE
+            return self.status != UPDATE_STATUS_UNAVAILABLE_SITE
+        finally:
+            self._update_in_progress = False

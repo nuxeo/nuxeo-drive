@@ -25,6 +25,8 @@ VERSIONS = {
 
 
 class Updater(BaseUpdater):
+    """Fake updater for our tests."""
+
     def __init__(self, *args):
         super().__init__(*args)
 
@@ -44,7 +46,8 @@ class Updater(BaseUpdater):
         self.versions = VERSIONS
 
 
-def check_attrs(updater, enable: bool, checkpoint: bool, version: str):
+def check_attrs(updater: Updater, enable: bool, checkpoint: bool, version: str) -> None:
+    """Check Updater state before and after a forced recheck."""
     assert updater.enable is enable
     updater.refresh_status()
     assert updater.checkpoint is checkpoint
@@ -52,7 +55,7 @@ def check_attrs(updater, enable: bool, checkpoint: bool, version: str):
 
 
 def test_not_frozen(manager_factory):
-    """Simple test when the application is not frozen."""
+    """The application is not frozen."""
     Options.is_frozen = False
 
     with manager_factory(with_engine=False) as manager:
@@ -62,17 +65,23 @@ def test_not_frozen(manager_factory):
 
 @Options.mock()
 def test_frozen(manager_factory):
-    """Simple test when the application is frozen."""
+    """The application is frozen."""
     Options.is_frozen = True
 
     with manager_factory(with_engine=False) as manager:
         updater = Updater(manager)
+
+        # The server config has not been fetched yet, no update possible then
+        check_attrs(updater, True, False, "")
+
+        # The server config has been fetched, the update can be done
+        manager.server_config_updater.first_run = False
         check_attrs(updater, True, True, NEXT_VER)
 
 
 @Options.mock()
 def test_frozen_updates_disabled(manager_factory):
-    """Simple test when the application is frozen and auto-update disabled."""
+    """The application is frozen and auto-update disabled."""
     Options.is_frozen = True
     Options.update_check_delay = 0
 
@@ -83,7 +92,7 @@ def test_frozen_updates_disabled(manager_factory):
 
 @Options.mock()
 def test_frozen_updates_disabled_centralized(manager_factory):
-    """Simple test when:
+    """Scenario:
         - the application is frozen
         - auto-update disabled
         - channel set to centralized
@@ -98,8 +107,26 @@ def test_frozen_updates_disabled_centralized(manager_factory):
 
 
 @Options.mock()
+def test_frozen_updates_disabled_centralized_client_version_invalid(manager_factory):
+    """Scenario:
+        - the application is frozen
+        - auto-update disabled
+        - channel set centralized
+        - client_version is set to an invalid value
+    """
+    Options.channel = "centralized"
+    Options.client_version = "4.0.0"
+    Options.is_frozen = True
+    Options.update_check_delay = 0
+
+    with manager_factory(with_engine=False) as manager:
+        updater = Updater(manager)
+        check_attrs(updater, False, False, "")
+
+
+@Options.mock()
 def test_frozen_updates_disabled_centralized_client_version(manager_factory):
-    """Simple test when:
+    """Scenario:
         - the application is frozen
         - auto-update disabled
         - channel set centralized
@@ -114,6 +141,13 @@ def test_frozen_updates_disabled_centralized_client_version(manager_factory):
 
     with manager_factory(with_engine=False) as manager:
         updater = Updater(manager)
-        check_attrs(updater, True, True, "4.4.0")
+
+        # The server config has not been fetched yet, no update possible then
+        check_attrs(updater, True, False, "")
+
         # The interval is modified, checks its value
         assert updater._check_interval == 3600
+
+        # The server config has been fetched, the update can be done
+        manager.server_config_updater.first_run = False
+        check_attrs(updater, True, True, "4.4.0")

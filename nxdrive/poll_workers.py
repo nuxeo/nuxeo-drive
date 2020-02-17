@@ -45,8 +45,15 @@ class ServerOptionsUpdater(PollWorker):
     """ Class for checking the server's config.json updates. """
 
     def __init__(self, manager: "Manager"):
-        super().__init__(Options.update_check_delay)
+        default_delay = 60 * 60  # 1 hour
+        # The check will be done every *update_check_delay* seconds or *default_delay*
+        # when the channel is centralized.
+        super().__init__(Options.update_check_delay or default_delay)
         self.manager = manager
+
+        # Notify the Manager that the server's config has been fetched at least one time.
+        # This will be used later in the Updater.
+        self.first_run = True
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
@@ -86,6 +93,12 @@ class ServerOptionsUpdater(PollWorker):
                     log.warning(
                         f"Bad value from the server's config: {skey!r}={vkey!r} (a boolean is required)"
                     )
+
+            if self.first_run:
+                self.first_run = False
+
+                # Trigger a new auto-update check now that the server config has been fetched
+                self.manager.updater.refresh_status()
 
             break
 
