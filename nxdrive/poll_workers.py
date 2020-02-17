@@ -20,7 +20,7 @@ class DatabaseBackupWorker(PollWorker):
     """ Class for making backups of the manager and engine databases. """
 
     def __init__(self, manager: "Manager"):
-        # Backup every hour
+        """Backup every hour."""
         super().__init__(60 * 60)
         self.manager = manager
 
@@ -59,36 +59,35 @@ class ServerOptionsUpdater(PollWorker):
             conf = engine.remote.get_server_configuration()
             if not conf:
                 engine.set_ui("jsf", overwrite=False)
-            else:
-                engine.set_ui(conf.pop("ui"), overwrite=False)
+                continue
 
-                # Compat with old servers
-                beta = conf.pop("beta_channel", False)
-                if beta:
-                    conf["channel"] = "beta"
+            engine.set_ui(conf.pop("ui"), overwrite=False)
 
-                if "nxdrive_home" in conf:
-                    # Expand potential envars
-                    conf["nxdrive_home"] = normalize_and_expand_path(
-                        conf["nxdrive_home"]
+            # Compat with old servers
+            beta = conf.pop("beta_channel", False)
+            if beta:
+                conf["channel"] = "beta"
+
+            if "nxdrive_home" in conf:
+                # Expand eventuel envars like %userprofile% and co.
+                conf["nxdrive_home"] = normalize_and_expand_path(conf["nxdrive_home"])
+
+            # We cannot use fail_on_error=True because the server may
+            # be outdated and still have obsolete options.
+            Options.update(conf, setter="server", fail_on_error=False)
+
+            # Save this option so that it has direct effect at the next start
+            skey = "synchronization_enabled"
+            if skey in conf:
+                vkey = conf[skey]
+                if isinstance(vkey, bool):
+                    self.manager.dao.update_config(skey, vkey)
+                else:
+                    log.warning(
+                        f"Bad value from the server's config: {skey!r}={vkey!r} (a boolean is required)"
                     )
 
-                # We cannot use fail_on_error=True because the server may
-                # be outdated and still have obsolete options.
-                Options.update(conf, setter="server", fail_on_error=False)
-
-                # Save this option so that it has direct effect at the next start
-                skey = "synchronization_enabled"
-                if skey in conf:
-                    vkey = conf[skey]
-                    if isinstance(vkey, bool):
-                        self.manager.dao.update_config(skey, vkey)
-                    else:
-                        log.warning(
-                            f"Bad value from the server's config.ini: {skey!r}={vkey!r} (a boolean is required)"
-                        )
-
-                break
+            break
 
         return True
 
@@ -97,8 +96,7 @@ class SyncAndQuitWorker(PollWorker):
     """Class for checking if the application needs to be exited."""
 
     def __init__(self, manager: "Manager"):
-        """Check every 10 seconds.
-        """
+        """Check every 10 seconds."""
         super().__init__(10)
         self.manager = manager
 

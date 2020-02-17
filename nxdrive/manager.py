@@ -339,11 +339,6 @@ class Manager(QObject):
         self.started.connect(self._extension_listener.start_listening)
         self.stopped.connect(self._extension_listener.close)
 
-    @if_frozen
-    def refresh_update_status(self) -> None:
-        if self.updater:
-            self.updater.refresh_status()
-
     def _create_direct_edit(self) -> "DirectEdit":
         self.direct_edit = DirectEdit(self, self.direct_edit_folder)
         self.started.connect(self.direct_edit.thread.start)
@@ -431,8 +426,6 @@ class Manager(QObject):
         return self.home / f"ndrive_{uid}.db"
 
     def _force_autoupdate(self) -> None:
-        if not self.updater:
-            return
         if self.updater.get_next_poll() > 60 and self.updater.get_last_poll() > 1800:
             self.updater.force_poll()
 
@@ -537,7 +530,7 @@ class Manager(QObject):
         self.prompted_wrong_channel = False
         # Trigger update status refresh
         if self.updater.enable:
-            self.refresh_update_status()
+            self.updater.refresh_status()
 
     @pyqtSlot(result=str)
     def get_log_level(self) -> str:
@@ -744,7 +737,7 @@ class Manager(QObject):
         self._engine_definitions.append(engine_def)
 
         # As new engine was just bound, refresh application update status
-        self.refresh_update_status()
+        self.updater.refresh_status()
 
         if starts:
             self.engines[uid].start()
