@@ -67,6 +67,9 @@ build_installer() {
         find dist/*.app -depth -type d -empty -delete
     fi
 
+    # Check for freezer regressions
+    sanity_check dist/ndrive
+
     # Stop now if we only want the application to be frozen (for integration tests)
     if [ "${FREEZE_ONLY:=0}" = "1" ]; then
         exit 0
@@ -338,6 +341,17 @@ launch_tests() {
             --benchmark-columns=min,max,mean,stddev \
             benchmarks
     fi
+}
+
+sanity_check() {
+    # Ensure some vital files are present in the frozen directory.
+    local app_dir="$1"
+
+    echo ">>> [${app_dir}] Sanity checks"
+
+    # NXDRIVE-2056
+    [ -d "${app_dir}/_struct" ] || (echo " !! Missing the '_struct' folder" ; exit 1)
+    [ -d "${app_dir}/zlib" ] ||  (echo " !! Missing the 'zlib' folder" ; exit 1)
 }
 
 should_run() {
