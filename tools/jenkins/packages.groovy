@@ -14,6 +14,10 @@ properties([
             name: 'BRANCH_NAME',
             defaultValue: 'master'],
         [$class: 'BooleanParameterDefinition',
+            name: 'BYPASS_ACCOUNT',
+            defaultValue: true,
+            description: 'Used by the auto-updater to bypass the need for an account.'],
+        [$class: 'BooleanParameterDefinition',
             name: 'CLEAN_WORKSPACE',
             defaultValue: false,
             description: 'Clean the entire workspace before doing anything.']
@@ -77,8 +81,7 @@ for (x in agents) {
                     // Note: there seems to be too many commands that could have been split into sub-stages,
                     //       but this would duplicate too many things and take too much time and resources.
 
-                    // Used by the auto-updater to bypass the need for an account
-                    env.FORCE_USE_LATEST_VERSION = '1'
+                    env.FORCE_USE_LATEST_VERSION = env.BYPASS_ACCOUNT ? 1 : 0
 
                     dir('sources') {
                         dir('build') {
