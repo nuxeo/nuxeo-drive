@@ -887,6 +887,7 @@ class Manager(QObject):
             self.osi.send_content_sync_status(states, path)
             return
 
+    @if_frozen
     def _write_version_file(self) -> None:
         """Save the current version in a VERSION file inside the home directory.
         This is for information purpose and used by the auto-update checker script."""
