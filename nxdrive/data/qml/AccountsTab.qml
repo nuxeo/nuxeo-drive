@@ -132,7 +132,7 @@ Rectangle {
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                 }
 
-                // Remainig space
+                // Remaining space
                 ScaledText {
                     text: qsTr("FREE_DISK_SPACE") + tl.tr;
                     color: mediumGray
@@ -148,7 +148,7 @@ Rectangle {
                     color: mediumGray
                 }
                 ScaledText {
-                    text: api.get_used_disk_space(folder);
+                    text: api.get_used_disk_space(accountSelect.getRole("uid"));
                     color: "#000000"
                 }
 

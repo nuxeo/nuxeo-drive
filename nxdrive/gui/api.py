@@ -18,6 +18,7 @@ from ..constants import (
     APP_NAME,
     CONNECTION_ERROR,
     DEFAULT_SERVER_TYPE,
+    FREE_DISK_SPACE_LIMIT,
     TOKEN_PERMISSION,
 )
 from ..exceptions import (
@@ -446,20 +447,26 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=bool)
     def free_disk_space_under_limit(self, path: str) -> bool:
-        remaining_space = shutil.disk_usage(Path(path).parent).free
-
-        # 10737418240 = 10GiB
-        return remaining_space < 10737418240
+        free_space = self._free_disk_space(path)
+        return free_space < FREE_DISK_SPACE_LIMIT
 
     @pyqtSlot(str, result=str)
-    def get_used_disk_space(self, path: str) -> str:
-        used_space = shutil.disk_usage(path).used
-        return sizeof_fmt(used_space)
+    def get_used_disk_space(self, uid: str) -> str:
+        engine = self._manager.engines.get(uid)
+        size = 0
+        if engine:
+            size = engine.dao.get_global_size()
+        return sizeof_fmt(size)
 
     @pyqtSlot(str, result=str)
     def get_free_disk_space(self, path: str) -> str:
-        remaining_space = shutil.disk_usage(Path(path).parent).free
-        return sizeof_fmt(remaining_space)
+        free_space = self._free_disk_space(path)
+        return sizeof_fmt(free_space)
+
+    def _free_disk_space(self, path: str) -> int:
+        folder = Path(path)
+        folder = folder if folder.is_dir() else folder.parent
+        return shutil.disk_usage(str(folder)).free
 
     @pyqtSlot(str, bool)
     def unbind_server(self, uid: str, purge: bool) -> None:
