@@ -196,7 +196,7 @@ def launch_drive(executable, args=None):
         cmd = ["open", f"{Path.home()}/Applications/Nuxeo Drive.app"]
         if args:
             cmd.append("--args")
-            cmd.extend(*args)
+            cmd.extend(args)
     else:
         cmd = [
             expandvars(
@@ -206,12 +206,7 @@ def launch_drive(executable, args=None):
         ]
 
     print(">>> Command:", cmd, flush=True)
-    try:
-        subprocess.check_call(cmd)
-    except subprocess.CalledProcessError:
-        # Either this is bad and OK the process will handle the error later;
-        # either this is an error at the end of the app exit, and it is OK too.
-        pass
+    subprocess.check_call(cmd)
 
 
 def save_log(output, name):
