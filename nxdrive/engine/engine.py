@@ -2,6 +2,7 @@
 import datetime
 import os
 import shutil
+from collections import namedtuple
 from contextlib import suppress
 from dataclasses import dataclass
 from logging import getLogger
@@ -152,6 +153,7 @@ class Engine(QObject):
         self._invalid_credentials = False
         self._offline_state = False
         self.dao = EngineDAO(self._get_db_file())
+        self.disk_space = self._disk_space()
 
         # The password is only set when binding an account for the 1st time,
         # then only the token will be available and used
@@ -681,6 +683,19 @@ class Engine(QObject):
 
     def _get_db_file(self) -> Path:
         return self.manager.home / f"ndrive_{self.uid}.db"
+
+    def _disk_space(self) -> tuple:
+        Disk = namedtuple("Disk", "total free used local_sync_files")
+        folder = str(self.local_folder)
+
+        total = shutil.disk_usage(folder).total
+        free = shutil.disk_usage(folder).free
+        used = shutil.disk_usage(folder).used
+        local_sync_files = self.dao.get_global_size()
+
+        return Disk(
+            total=total, free=free, used=used, local_sync_files=local_sync_files
+        )
 
     def get_binder(self) -> "ServerBindingSettings":
         return ServerBindingSettings(

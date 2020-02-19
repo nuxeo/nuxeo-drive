@@ -139,7 +139,7 @@ Rectangle {
                 }
                 //ScaledText {
                 //    text: api.get_free_disk_space(folder);
-                //    color: api.free_disk_space_under_limit(folder) ? "#ff0000": "#008000"
+                //    color: api.free_disk_space_under_limit(accountSelect.getRole("uid")) ? "#ff0000": "#008000"
                 //}
                 Rectangle {
                         height: 10
@@ -149,7 +149,7 @@ Rectangle {
                         radius: 4
                         Row {
                             height: parent.height
-                            property var disk_info: api.disk_space_info_to_width(folder, accountSelect.getRole("uid"), parent.width)
+                            property var disk_info: api.disk_space_info_to_width(accountSelect.getRole("uid"), parent.width)
                             Rectangle {
                                 id: free
                                 color: "green";
@@ -177,7 +177,7 @@ Rectangle {
                         }
 
                         NuxeoToolTip {
-                            text: "Free space: %1, Used space %2, Drive space: %3".arg(api.get_free_disk_space(folder)).arg(api.get_used_disk_space_minus_drive(folder, accountSelect.getRole("uid"))).arg(api.get_drive_disk_space(accountSelect.getRole("uid")))
+                            text: "Free space: %1, Used space %2, Drive space: %3".arg(api.get_free_disk_space(accountSelect.getRole("uid"))).arg(api.get_used_disk_space_minus_drive(accountSelect.getRole("uid"))).arg(api.get_drive_disk_space(accountSelect.getRole("uid")))
                             visible: mouseArea.containsMouse
                         }
                 }
