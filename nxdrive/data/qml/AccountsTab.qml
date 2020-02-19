@@ -137,9 +137,49 @@ Rectangle {
                     text: qsTr("FREE_DISK_SPACE") + tl.tr;
                     color: mediumGray
                 }
-                ScaledText {
-                    text: api.get_free_disk_space(folder);
-                    color: api.free_disk_space_under_limit(folder) ? "#ff0000": "#008000"
+                //ScaledText {
+                //    text: api.get_free_disk_space(folder);
+                //    color: api.free_disk_space_under_limit(folder) ? "#ff0000": "#008000"
+                //}
+                Rectangle {
+                        height: 10
+                        width: 300
+                        border.width: 1
+                        border.color: "grey"
+                        radius: 4
+                        Row {
+                            height: parent.height
+                            property var disk_info: api.disk_space_info_to_width(folder, accountSelect.getRole("uid"), parent.width)
+                            Rectangle {
+                                id: free
+                                color: "green";
+                                width: parent.disk_info[0]
+                                height: parent.height
+                            }
+                            Rectangle {
+                                id: except_drive_used
+                                color: "red";
+                                width: parent.disk_info[1]
+                                height: parent.height
+                            }
+                            Rectangle {
+                                id: drive_used
+                                color: "yellow";
+                                width: parent.disk_info[2]
+                                height: parent.height
+                            }
+                        }
+                        MouseArea {
+                            id: mouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.ArrowCursor
+                        }
+
+                        NuxeoToolTip {
+                            text: "Free space: %1, Used space %2, Drive space: %3".arg(api.get_free_disk_space(folder)).arg(api.get_used_disk_space_minus_drive(folder, accountSelect.getRole("uid"))).arg(api.get_drive_disk_space(accountSelect.getRole("uid")))
+                            visible: mouseArea.containsMouse
+                        }
                 }
 
                 // Used space
@@ -148,7 +188,7 @@ Rectangle {
                     color: mediumGray
                 }
                 ScaledText {
-                    text: api.get_used_disk_space(accountSelect.getRole("uid"));
+                    text: api.get_drive_disk_space(accountSelect.getRole("uid"));
                     color: "#000000"
                 }
 

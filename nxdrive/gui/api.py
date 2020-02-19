@@ -445,28 +445,71 @@ class QMLDriveApi(QObject):
         """Make daily job better for our developers :)"""
         return getenv("NXDRIVE_TEST_NUXEO_URL", "")
 
+    @pyqtSlot(str, str, int, result=list)
+    def disk_space_info_to_width(
+        self, folder: str, uid: str, total_width: int
+    ) -> List[float]:
+        free_space_width = (
+            self.get_free_disk_space_raw(folder) * total_width
+        ) / self.get_total_disk_space_raw(folder)
+        used_space_minus_drive_width = (
+            self.get_used_disk_space_minus_drive_raw(folder, uid) * total_width
+        ) / self.get_total_disk_space_raw(folder)
+        drive_disk_space = (
+            self.get_drive_disk_space_raw(uid) * 300
+        ) / self.get_total_disk_space_raw(folder)
+        return [free_space_width, used_space_minus_drive_width, drive_disk_space]
+
     @pyqtSlot(str, result=bool)
     def free_disk_space_under_limit(self, path: str) -> bool:
-        free_space = self._free_disk_space(path)
+        free_space = self.get_free_disk_space_raw(path)
         return free_space < FREE_DISK_SPACE_LIMIT
 
     @pyqtSlot(str, result=str)
-    def get_used_disk_space(self, uid: str) -> str:
-        engine = self._manager.engines.get(uid)
-        size = 0
-        if engine:
-            size = engine.dao.get_global_size()
+    def get_drive_disk_space(self, uid: str) -> str:
+        size = self.get_drive_disk_space_raw(uid)
         return sizeof_fmt(size)
 
     @pyqtSlot(str, result=str)
     def get_free_disk_space(self, path: str) -> str:
-        free_space = self._free_disk_space(path)
+        free_space = self.get_free_disk_space_raw(path)
         return sizeof_fmt(free_space)
 
-    def _free_disk_space(self, path: str) -> int:
+    @pyqtSlot(str, str, result=str)
+    def get_used_disk_space_minus_drive(self, path: str, uid: str) -> str:
+        size = self.get_used_disk_space_minus_drive_raw(path, uid)
+        return sizeof_fmt(size)
+
+    @pyqtSlot(str, result=int)
+    def get_drive_disk_space_raw(self, uid: str) -> int:
+        engine = self._manager.engines.get(uid)
+        size = 0
+        if engine:
+            size = engine.dao.get_global_size()
+        return size
+
+    @pyqtSlot(str, result=int)
+    def get_used_disk_space_raw(self, path: str) -> int:
+        folder = Path(path)
+        folder = folder if folder.is_dir() else folder.parent
+        return shutil.disk_usage(str(folder)).used
+
+    @pyqtSlot(str, str, result=int)
+    def get_used_disk_space_minus_drive_raw(self, path: str, uid: str) -> int:
+        size = self.get_used_disk_space_raw(path) - self.get_drive_disk_space_raw(uid)
+        return size
+
+    @pyqtSlot(str, result=int)
+    def get_free_disk_space_raw(self, path: str) -> int:
         folder = Path(path)
         folder = folder if folder.is_dir() else folder.parent
         return shutil.disk_usage(str(folder)).free
+
+    @pyqtSlot(str, result=int)
+    def get_total_disk_space_raw(self, path: str) -> int:
+        folder = Path(path)
+        folder = folder if folder.is_dir() else folder.parent
+        return shutil.disk_usage(str(folder)).free + shutil.disk_usage(str(folder)).used
 
     @pyqtSlot(str, bool)
     def unbind_server(self, uid: str, purge: bool) -> None:
