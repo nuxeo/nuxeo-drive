@@ -7,6 +7,10 @@ export OSI="osx"
 
 . "$(python -c "import os.path; print(os.path.realpath('$0').replace('/osx/', '/posix/'))")"
 
+
+# Global variables
+CODESIGN="codesign  --options runtime --timestamp --sign"
+
 prepare_signing() {
     # Code sign the app
     # https://github.com/pyinstaller/pyinstaller/wiki/Recipe-OSX-Code-Signing
@@ -53,6 +57,7 @@ create_package() {
     local dmg_tmp="${WORKSPACE}/nuxeo-drive.tmp.dmg"
     local background_file="${WORKSPACE_DRIVE}/tools/osx/dmgbackground.png"
     local extension_path="${WORKSPACE_DRIVE}/tools/osx/drive"
+    local entitlements="${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements"
     local generated_ds_store="${WORKSPACE_DRIVE}/tools/osx/generated_DS_Store"
     local app_version="$(python "${WORKSPACE_DRIVE}/tools/changelog.py" --drive-version)"
 
@@ -70,20 +75,25 @@ create_package() {
         # arbitrary order. When the `codesign` runs, it will look at some
         # dependencies of the current binary and see that they are not signed
         # yet. But the find command will eventually reach it and sign it later.
-        find "${pkg_path}/Contents/MacOS" -type f -exec codesign --sign "${SIGNING_ID}" {} \;
+        find "${pkg_path}/Contents/MacOS" -type f -exec ${CODESIGN} "${SIGNING_ID}" {} \;
+
+        # QML libraries need to be signed too for the notarization
+        find "${pkg_path}/Contents/Resources" -type f -name "*.dylib" -exec ${CODESIGN} "${SIGNING_ID}" {} \;
 
         # Then we sign the extension
-        codesign --force --deep --sign "${SIGNING_ID}" \
-            --entitlements "${extension_path}/NuxeoFinderSync/NuxeoFinderSync.entitlements" \
-            "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
+        ${CODESIGN} "${SIGNING_ID}"                  \
+                    --force                          \
+                    --deep                           \
+                    --entitlements "${entitlements}" \
+                    "${pkg_path}/Contents/PlugIns/NuxeoFinderSync.appex"
 
         # And we shallow sign the .app
-        codesign --sign "${SIGNING_ID}" "${pkg_path}"
+        ${CODESIGN} "${SIGNING_ID}" "${pkg_path}"
 
         echo ">>> [sign] Verifying code signature"
-        codesign -dv "${pkg_path}"
+        codesign --display --verbose "${pkg_path}"
         codesign --verbose=4 --deep --strict "${pkg_path}"
-        spctl --assess -v "${pkg_path}"
+        spctl --assess --verbose "${pkg_path}"
     fi
 
     echo ">>> [package] Creating the DMG file"
@@ -106,18 +116,32 @@ create_package() {
     ln -s /Applications "${src_folder_tmp}"
 
     echo ">>> [DMG ${app_version}] Creating the DMG"
-    hdiutil create -srcfolder "${src_folder_tmp}" -volname "${app_name}" -fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW -size "${dmg_size}m" "${dmg_tmp}"
+    hdiutil create                         \
+            -srcfolder "${src_folder_tmp}" \
+            -volname "${app_name}"         \
+            -fs HFS+                       \
+            -fsargs "-c c=64,a=16,e=16"    \
+            -format UDRW                   \
+            -size "${dmg_size}m"           \
+            "${dmg_tmp}"
 
     rm -f "${dmg_path}"
-    hdiutil convert "${dmg_tmp}" -format UDZO -imagekey zlib-level=9 -o "${dmg_path}"
+    hdiutil convert "${dmg_tmp}" \
+            -format UDZO         \
+            -imagekey            \
+            zlib-level=9         \
+            -o "${dmg_path}"
 
     # Clean tmp directories
-    rm -rf "${src_folder_tmp}" "${dmg_tmp}"
+    rm -rf "${src_folder_tmp}" "${dmg_tmp}" "${pkg_path}"
 
     if [ "${SIGNING_ID:=unset}" != "unset" ]; then
-        codesign -vs "${SIGNING_ID}" "dist/nuxeo-drive-${app_version}.dmg"
+        ${CODESIGN} "${SIGNING_ID}" --verbose "dist/nuxeo-drive-${app_version}.dmg"
+
+        # DMG notarization
+        # TODO: enable when https://github.com/Legrandin/pycryptodome/issues/381 is done
+        # ${PYTHON} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
     fi
-    rm -rf "${pkg_path}"
 }
 
 main "$@"
