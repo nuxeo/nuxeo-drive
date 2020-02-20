@@ -445,20 +445,19 @@ class QMLDriveApi(QObject):
         return getenv("NXDRIVE_TEST_NUXEO_URL", "")
 
     @pyqtSlot(str, int, result=list)
-    def disk_space_info_to_width(self, uid: str, total_width: int) -> List[float]:
+    def disk_space_info_to_width(self, uid: str, width: int) -> List[float]:
         engine = self._manager.engines.get(uid)
         if not engine:
             return [0, 0, 0]
 
-        local_sync_size = engine.disk_space.local_sync_files
-        free_space = engine.disk_space.free
-        used_minus_local = engine.disk_space.used - local_sync_size
-        total_space = free_space + engine.disk_space.used
+        space = engine.disk_space
+        used_without_synced = space.used - space.synced
 
-        free_space_width = (free_space * total_width) / total_space
-        used_space_minus_drive_width = (used_minus_local * total_width) / total_space
-        drive_disk_space = (local_sync_size * total_width) / total_space
-        return [free_space_width, used_space_minus_drive_width, drive_disk_space]
+        return [
+            space.free * width / space.total,
+            used_without_synced * width / space.total,
+            space.synced * width / space.total,
+        ]
 
     @pyqtSlot(str, result=bool)
     def free_disk_space_under_limit(self, uid: str) -> bool:
@@ -471,8 +470,8 @@ class QMLDriveApi(QObject):
     def get_drive_disk_space(self, uid: str) -> str:
         engine = self._manager.engines.get(uid)
 
-        local_sync_size = engine.disk_space.local_sync_files if engine else 0
-        return sizeof_fmt(local_sync_size, suffix=Translator.get("BYTE_ABBREV"))
+        synced = engine.disk_space.synced if engine else 0
+        return sizeof_fmt(synced, suffix=Translator.get("BYTE_ABBREV"))
 
     @pyqtSlot(str, result=str)
     def get_free_disk_space(self, uid: str) -> str:
@@ -482,12 +481,12 @@ class QMLDriveApi(QObject):
         return sizeof_fmt(free_space, suffix=Translator.get("BYTE_ABBREV"))
 
     @pyqtSlot(str, result=str)
-    def get_used_disk_space_minus_drive(self, uid: str) -> str:
+    def get_used_space_without_synced(self, uid: str) -> str:
         engine = self._manager.engines.get(uid)
 
-        local_sync_files = engine.disk_space.local_sync_files if engine else 0
+        synced = engine.disk_space.synced if engine else 0
         used = engine.disk_space.used if engine else 0
-        return sizeof_fmt(used - local_sync_files, suffix=Translator.get("BYTE_ABBREV"))
+        return sizeof_fmt(used - synced, suffix=Translator.get("BYTE_ABBREV"))
 
     @pyqtSlot(str, bool)
     def unbind_server(self, uid: str, purge: bool) -> None:
