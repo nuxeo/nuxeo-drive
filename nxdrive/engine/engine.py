@@ -230,17 +230,11 @@ class Engine(QObject):
 
     @property
     def disk_space(self) -> tuple:
-        folder = str(self.local_folder)
-        DiskUsage = namedtuple("DiskUsage", "total free used synced")
+        DiskUsage = namedtuple("DiskUsage", "total free used")
 
-        space = shutil.disk_usage(folder)
+        space = shutil.disk_usage(self.local_folder)
         total = space.free + space.used
-        return DiskUsage(
-            total=total,
-            free=space.free,
-            used=space.used,
-            synced=self.dao.get_global_size(),
-        )
+        return DiskUsage(total=total, free=space.free, used=space.used,)
 
     def export(self) -> Dict[str, Any]:
         bind = self.get_binder()

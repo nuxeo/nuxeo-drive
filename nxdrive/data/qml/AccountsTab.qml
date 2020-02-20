@@ -149,23 +149,30 @@ Rectangle {
                         radius: 4
                         Row {
                             height: parent.height
-                            property var disk_info: api.disk_space_info_to_width(accountSelect.getRole("uid"), parent.width)
+
+                            property var disk_info: api.get_disk_space_info(accountSelect.getRole("uid"))
+
+                            property int free: disk_info[0]
+                            property int used_without_sync: disk_info[1]
+                            property int synced: disk_info[2]
+                            property int total: disk_info[3]
+
                             Rectangle {
                                 id: free
                                 color: "green";
-                                width: parent.disk_info[0]
+                                width: (parent.free * 300) / parent.total
                                 height: parent.height
                             }
                             Rectangle {
                                 id: except_drive_used
                                 color: "red";
-                                width: parent.disk_info[1]
+                                width: (parent.used_without_sync * 300) / parent.total
                                 height: parent.height
                             }
                             Rectangle {
                                 id: drive_used
                                 color: "yellow";
-                                width: parent.disk_info[2]
+                                width: (parent.synced * 300) / parent.total
                                 height: parent.height
                             }
                         }
@@ -177,20 +184,12 @@ Rectangle {
                         }
 
                         NuxeoToolTip {
-                            text: "Free space: %1, Used space %2, Drive space: %3".arg(api.get_free_disk_space(accountSelect.getRole("uid"))).arg(api.get_used_space_without_synced(accountSelect.getRole("uid"))).arg(api.get_drive_disk_space(accountSelect.getRole("uid")))
+                            text: "Free space: %1, Used space %2, Drive space: %3".arg(api.sizeof_fmt(parent.free)).arg(api.sizeof_fmt(parent.used_without_sync)).arg(api.sizeof_fmt(parent.synced))
                             visible: mouseArea.containsMouse
                         }
                 }
 
-                // Used space
-                ScaledText {
-                    text: qsTr("USED_DISK_SPACE") + tl.tr;
-                    color: mediumGray
-                }
-                ScaledText {
-                    text: api.get_drive_disk_space(accountSelect.getRole("uid"));
-                    color: "#000000"
-                }
+
 
                 // Filters
                 ScaledText {

@@ -65,8 +65,8 @@ NuxeoPopup {
                     color: mediumGray
                 }
                 ScaledText {
-                    text: api.get_free_disk_space(folderInput.text);
-                    color: api.free_disk_space_under_limit(folderInput.text) ? "#ff0000": "#008000"
+                    text: api.get_disk_space_info(accountSelect.getRole("uid"))[0];
+                    color: "#008000"
                 }
         }
 
