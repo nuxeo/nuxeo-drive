@@ -2,7 +2,6 @@
 import datetime
 import os
 import shutil
-from collections import namedtuple
 from contextlib import suppress
 from dataclasses import dataclass
 from logging import getLogger
@@ -227,14 +226,6 @@ class Engine(QObject):
             f"uid={self.uid!r}, "
             f"type={self.type!r}>"
         )
-
-    @property
-    def disk_space(self) -> tuple:
-        DiskUsage = namedtuple("DiskUsage", "total free used")
-
-        space = shutil.disk_usage(self.local_folder)
-        total = space.free + space.used
-        return DiskUsage(total=total, free=space.free, used=space.used,)
 
     def export(self) -> Dict[str, Any]:
         bind = self.get_binder()

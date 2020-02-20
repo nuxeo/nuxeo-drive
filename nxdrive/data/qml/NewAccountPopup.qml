@@ -65,7 +65,7 @@ NuxeoPopup {
                     color: mediumGray
                 }
                 ScaledText {
-                    text: api.get_disk_space_info(accountSelect.getRole("uid"))[0];
+                    text: api.get_free_disk_space(accountSelect.getRole("uid"));
                     color: "#008000"
                 }
         }
