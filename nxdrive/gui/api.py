@@ -448,7 +448,11 @@ class QMLDriveApi(QObject):
     def get_disk_space_info_to_width(
         self, uid: str, path: str, width: int
     ) -> List[int]:
-        """Fetch disk information and convert the result to width percentage """
+        """Return a list:
+            - value 1: Size of free space converted to percentage of the width.
+            - value 2: Size of space used by other applications converted to percentage of the width.
+            - value 3: Global size of synchronized files converted to percentage of the width.
+        """
         engine = self._manager.engines.get(uid)
 
         folder = Path(path)
@@ -467,14 +471,14 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=str)
     def get_drive_disk_space(self, uid: str) -> str:
-        """Fetch the global size of synchronized files and return a formatted version """
+        """Fetch the global size of synchronized files and return a formatted version."""
         engine = self._manager.engines.get(uid)
         synced = engine.dao.get_global_size() if engine else 0
         return sizeof_fmt(synced, suffix=Translator.get("BYTE_ABBREV"))
 
     @pyqtSlot(str, result=str)
     def get_free_disk_space(self, path: str) -> str:
-        """Fetch the size of free space and return a formatted version """
+        """Fetch the size of free space and return a formatted version."""
         folder = Path(path)
         folder = folder if folder.is_dir() else folder.parent
         return sizeof_fmt(
@@ -483,7 +487,7 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str, result=str)
     def get_used_space_without_synced(self, uid: str, path: str) -> str:
-        """Fetch the size of space used by other applications and return a formatted version """
+        """Fetch the size of space used by other applications and return a formatted version."""
         engine = self._manager.engines.get(uid)
         synced = engine.dao.get_global_size() if engine else 0
 
