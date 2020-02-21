@@ -9,7 +9,11 @@ export OSI="osx"
 
 
 # Global variables
-CODESIGN="codesign  --options runtime --timestamp --sign"
+CODESIGN="codesign                              \
+    --options runtime                           \
+    --timestamp                                 \
+    --entitlements tools/osx/entitlements.plist \
+    --sign"
 
 prepare_signing() {
     # Code sign the app
