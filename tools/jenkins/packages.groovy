@@ -132,6 +132,9 @@ for (x in agents) {
 
                                         // And archive it
                                         archiveArtifacts artifacts: 'dist/*.dmg', fingerprint: true
+
+                                        // Also archive the notarization report
+                                        archiveArtifacts artifacts: 'report-*.json', fingerprint: true, allowEmptyArchive: true
                                     }
                                 }
                             }

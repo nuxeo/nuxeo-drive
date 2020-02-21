@@ -137,10 +137,7 @@ create_package() {
 
     if [ "${SIGNING_ID:=unset}" != "unset" ]; then
         ${CODESIGN} "${SIGNING_ID}" --verbose "dist/nuxeo-drive-${app_version}.dmg"
-
-        # DMG notarization
-        # TODO: enable when https://github.com/Legrandin/pycryptodome/issues/381 is done
-        # ${PYTHON} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
+        ${PYTHON} tools/osx/notarize.py "dist/nuxeo-drive-${app_version}.dmg"
     fi
 }
 

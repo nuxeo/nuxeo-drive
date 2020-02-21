@@ -1,8 +1,10 @@
 # coding: utf-8
-"""
-[macOS] Automatic notarization of a given DMG.
+"""[macOS] Automatic notarization process.
 
-Usage: python notarize DMG_FILE [NOTARIZATION_UUID]
+Usage: python notarize FILE [NOTARIZATION_UUID]
+
+If NOTARIZATION_UUID is given, then the noratization process will continue.
+Else a new notarization process will be started
 """
 
 import os
@@ -12,13 +14,15 @@ import sys
 import time
 from typing import List, Pattern, Tuple
 
+import requests
+
 BUNDLE_IDENTIFIER = os.getenv("BUNDLE_IDENTIFIER", "org.nuxeo.drive")
-NOTARIZATION_USERNAME = os.getenv("NOTARIZATION_USERNAME", "")
-NOTARIZATION_PASSWORD = os.getenv("NOTARIZATION_PASSWORD", "")
+NOTARIZATION_USERNAME = os.environ["NOTARIZATION_USERNAME"]
+NOTARIZATION_PASSWORD = os.environ["NOTARIZATION_PASSWORD"]
 
 
 def ask_for_notarization_uid(file: str) -> str:
-    """Upload the DMG and wait for its notarization UID.
+    """Upload the *file* and wait for its notarization UUID.
 
     The command will return something like:
 
@@ -49,8 +53,8 @@ def ask_for_notarization_uid(file: str) -> str:
     return matches[0] if matches else ""
 
 
-def wait_for_notarization(uid: str) -> Tuple[bool, str]:
-    """Poll at regular interval for the final notarization status.
+def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
+    """Poll at regular interval for the final notarization status of the given *uuid*.
 
     The command will return something like:
 
@@ -82,16 +86,23 @@ def wait_for_notarization(uid: str) -> Tuple[bool, str]:
         Status Message: Package Invalid
 
         (when the process is done with success)
-        # TODO: complete when https://github.com/Legrandin/pycryptodome/issues/381 is done
+
+        RequestUUID: hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+                Date: 2020-02-19 10:55:29 +0000
+                Status: success
+            LogFileURL: https://osxapps-ssl.itunes.apple.com/itunes-assets/Enigma113/...
+        Status Code: 0
+        Status Message: Package Approved
+
     """
-    print(f">>> [notarization] Waiting status for {uid!r}")
+    print(f">>> [notarization] Waiting status for {uuid!r}")
     print("    (it may take a while)")
 
     cmd = [
         "xcrun",
         "altool",
         "--notarization-info",
-        uid,
+        uuid,
         "--username",
         NOTARIZATION_USERNAME,
         "--passwor",
@@ -114,7 +125,7 @@ def wait_for_notarization(uid: str) -> Tuple[bool, str]:
     # Get the URL of the JSON report
     report_url = get_notarization_report(output)
 
-    return status == "valid", report_url
+    return status == "success", report_url
 
 
 def get_notarization_report(
@@ -132,7 +143,7 @@ def get_notarization_status(
 
 
 def staple_the_notarization(file: str) -> None:
-    """Staple the notarization to the DMG."""
+    """Staple the notarization to the *file*."""
     call(["xcrun", "stapler", "staple", "-v", file])
     print(">>> [notarization] Done with success ᕦ(ò_óˇ)ᕤ")
 
@@ -142,33 +153,32 @@ def call(cmd: List[str]) -> str:
     return subprocess.check_output(cmd, encoding="utf-8", stderr=subprocess.STDOUT)
 
 
-def download_report(uid: str, url: str) -> str:
+def download_report(uuid: str, url: str) -> str:
     """Download a notarization report."""
-    # Lazy import as it may not be needed most of the time :fingers-crossed:
-    import requests
+    output = f"report-{uuid}.json"
+    print(f">>> Downloading the report to {output}")
 
-    output = f"report-{uid}.json"
-    print(f">>> Downloading report to {output!r}")
     with requests.get(url) as req:
         with open(output, "w", encoding="utf-8") as ofile:
             ofile.write(req.text)
             return output
 
 
-def main(file: str, uid: str = "") -> int:
+def main(file: str, uuid: str = "") -> int:
     """Entry point."""
 
-    if not uid:
+    if not uuid:
         # This is a new DMG file to notarize
-        uid = ask_for_notarization_uid(file)
-        if not uid:
+        uuid = ask_for_notarization_uid(file)
+        if not uuid:
             print(" !! No notarization UUID found.")
             return 1
 
-    is_valid, report_url = wait_for_notarization(uid)
+    is_valid, report_url = wait_for_notarization(uuid)
+    download_report(uuid, report_url)
+
     if not is_valid:
-        report = download_report(uid, report_url)
-        print(f" !! Notarization failed. Check {report!r}.")
+        print(" !! Notarization failed. Check the report for details.")
         return 2
 
     staple_the_notarization(file)
