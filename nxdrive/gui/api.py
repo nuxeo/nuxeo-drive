@@ -448,15 +448,14 @@ class QMLDriveApi(QObject):
     def get_disk_space_info_to_width(
         self, uid: str, path: str, width: int
     ) -> List[int]:
+        """Fetch disk information and convert the result to width percentage """
         engine = self._manager.engines.get(uid)
-        if not engine:
-            return [0, 0, 0]
 
         folder = Path(path)
         folder = folder if folder.is_dir() else folder.parent
-
         space = shutil.disk_usage(folder)
-        synced = engine.dao.get_global_size()
+
+        synced = engine.dao.get_global_size() if engine else 0
         used_without_sync = space.used - synced
         total = space.used + space.free
 
@@ -468,12 +467,14 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=str)
     def get_drive_disk_space(self, uid: str) -> str:
+        """Fetch the global size of synchronized files and return a formatted version """
         engine = self._manager.engines.get(uid)
         synced = engine.dao.get_global_size() if engine else 0
         return sizeof_fmt(synced, suffix=Translator.get("BYTE_ABBREV"))
 
     @pyqtSlot(str, result=str)
     def get_free_disk_space(self, path: str) -> str:
+        """Fetch the size of free space and return a formatted version """
         folder = Path(path)
         folder = folder if folder.is_dir() else folder.parent
         return sizeof_fmt(
@@ -482,12 +483,13 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, str, result=str)
     def get_used_space_without_synced(self, uid: str, path: str) -> str:
+        """Fetch the size of space used by other applications and return a formatted version """
         engine = self._manager.engines.get(uid)
-        synced = 0
-        if engine:
-            synced = engine.dao.get_global_size()
+        synced = engine.dao.get_global_size() if engine else 0
+
         folder = Path(path)
         folder = folder if folder.is_dir() else folder.parent
+
         return sizeof_fmt(
             shutil.disk_usage(folder).used - synced,
             suffix=Translator.get("BYTE_ABBREV"),

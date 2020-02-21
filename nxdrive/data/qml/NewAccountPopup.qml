@@ -64,10 +64,11 @@ NuxeoPopup {
                     text: qsTr("FREE_DISK_SPACE") + tl.tr;
                     color: mediumGray
                 }
-                ScaledText {
-                    text: api.get_free_disk_space(accountSelect.getRole("uid"));
-                    color: "#008000"
-                }
+            ScaledText {
+                visible: folderInput.text
+                text: api.get_free_disk_space(folderInput.text);
+                color: api.get_disk_space_info_to_width(accountSelect.getRole("uid"), folderInput.text, 100)[0] < FREE_DISK_SPACE_LIMIT ? "red": "green"
+            }
         }
 
         RowLayout {
