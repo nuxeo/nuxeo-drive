@@ -478,7 +478,7 @@ class QMLDriveApi(QObject):
         result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
         keys = list(result)
         min_threshold = 10
-        data = 0
+        data = 0.0
 
         key = keys[0]
         if result[key] < min_threshold:
