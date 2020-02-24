@@ -34,7 +34,6 @@ from ..constants import (
     APP_NAME,
     BUNDLE_IDENTIFIER,
     COMPANY,
-    FREE_DISK_SPACE_LIMIT,
     LINUX,
     MAC,
     TOKEN_PERMISSION,
@@ -337,7 +336,6 @@ class Application(QApplication):
         context.setContextProperty("isFrozen", Options.is_frozen)
         context.setContextProperty("LINUX", LINUX)
         context.setContextProperty("WINDOWS", WINDOWS)
-        context.setContextProperty("FREE_DISK_SPACE_LIMIT", FREE_DISK_SPACE_LIMIT)
         context.setContextProperty("tl", Translator.singleton)
         context.setContextProperty(
             "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"

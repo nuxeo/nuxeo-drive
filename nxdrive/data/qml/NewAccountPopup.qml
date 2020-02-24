@@ -67,7 +67,7 @@ NuxeoPopup {
             ScaledText {
                 visible: folderInput.text
                 text: api.get_free_disk_space(folderInput.text);
-                color: api.get_disk_space_info_to_width("", folderInput.text, 100)[0] < FREE_DISK_SPACE_LIMIT ? "red": "green"
+                color: "black"
             }
         }
 

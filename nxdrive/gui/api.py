@@ -463,11 +463,42 @@ class QMLDriveApi(QObject):
         used_without_sync = space.used - synced
         total = space.used + space.free
 
-        return [
-            space.free * width / total,
-            used_without_sync * width / total,
-            synced * width / total,
-        ]
+        result = {
+            "free": space.free * width / total,
+            "used_without_sync": used_without_sync * width / total,
+            "synced": synced * width / total,
+        }
+
+        result = self._balance_percentages(result)
+
+        return [result["free"], result["used_without_sync"], result["synced"]]
+
+    def _balance_percentages(self, result: dict) -> dict:
+        result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        data = 0
+
+        key = list(result)[0]
+        if result[key] < 10:
+            data = data + (10 - result[key])
+            result[key] = 10
+
+        key = list(result)[1]
+        if result[key] - (data / 2) < 10:
+            if result[key] < 10:
+                data = data + (10 - result[key])
+                result[key] = 10
+            else:
+                minus = (-1) * (10 - result[key])
+                data = data - minus
+                result[key] = result[key] - minus
+        else:
+            result[key] = result[key] - (data / 2)
+            data = data / 2
+
+        key = list(result)[2]
+        result[key] = result[key] - data
+
+        return result
 
     @pyqtSlot(str, result=str)
     def get_drive_disk_space(self, uid: str) -> str:
