@@ -447,7 +447,7 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str, str, int, result=list)
     def get_disk_space_info_to_width(
         self, uid: str, path: str, width: int
-    ) -> List[int]:
+    ) -> List[float]:
         """Return a list:
             - Size of free space converted to percentage of the width.
             - Size of space used by other applications converted to percentage of the width.
@@ -472,7 +472,7 @@ class QMLDriveApi(QObject):
         )
         return [result["free"], result["used_without_sync"], result["synced"]]
 
-    def _balance_percents(self, result: dict) -> dict:
+    def _balance_percents(self, result: Dict[str, float]) -> Dict[str, float]:
         """ Return an altered version of the dict in which no value is under a minimum threshold."""
 
         result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}

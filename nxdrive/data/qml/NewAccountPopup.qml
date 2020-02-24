@@ -67,7 +67,6 @@ NuxeoPopup {
             ScaledText {
                 visible: folderInput.text
                 text: api.get_free_disk_space(folderInput.text);
-                color: "black"
             }
         }
 
