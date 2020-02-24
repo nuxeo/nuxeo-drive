@@ -144,47 +144,34 @@ Rectangle {
                 Rectangle {
                         height: 15
                         width: 300
-                        border.width: 1
-                        border.color: "grey"
-                        radius: 4
                         Row {
                             height: parent.height
 
                             property var disk_info: api.get_disk_space_info_to_width(accountSelect.getRole("uid"), folder, parent.width)
 
-                            Rectangle {
-                                id: free
-                                color: "green";
-                                width: parent.disk_info[0]
-                                height: parent.height
-                            }
-                            Rectangle {
-                                id: except_drive_used
-                                color: "red";
-                                width: parent.disk_info[1]
-                                height: parent.height
-                            }
-                            Rectangle {
-                                id: drive_used
-                                color: "yellow";
+                            RectangleTooltip {
+                                color: nuxeoBlue;
                                 width: parent.disk_info[2]
                                 height: parent.height
+                                tooltip: "Drive space: %3".arg(api.get_drive_disk_space(accountSelect.getRole("uid")))
                             }
-                        }
-                        MouseArea {
-                            id: mouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.ArrowCursor
-                        }
 
-                        NuxeoToolTip {
-                            text: "Free space: %1, Used space %2, Drive space: %3".arg(api.get_free_disk_space(folder)).arg(api.get_used_space_without_synced(accountSelect.getRole("uid"), folder)).arg(api.get_drive_disk_space(accountSelect.getRole("uid")))
-                            visible: mouseArea.containsMouse
+                            RectangleTooltip {
+                                color: "dimgrey";
+                                width: parent.disk_info[1]
+                                height: parent.height
+                                tooltip: "Used space %2".arg(api.get_used_space_without_synced(accountSelect.getRole("uid"), folder))
+                            }
+
+                            RectangleTooltip {
+                                color: "grey";
+                                width: parent.disk_info[0]
+                                height: parent.height
+                                tooltip: "Free space: %1".arg(api.get_free_disk_space(folder))
+                            }
+
                         }
                 }
-
-
 
                 // Filters
                 ScaledText {
