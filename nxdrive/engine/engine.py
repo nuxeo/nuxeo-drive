@@ -819,7 +819,8 @@ class Engine(QObject):
         self._check_root()
 
         # Launch the server config file updater
-        self.manager.server_config_updater.force_poll()
+        if self.manager.server_config_updater:
+            self.manager.server_config_updater.force_poll()
 
         self.remove_staled_transfers()
         self.resume_suspended_transfers()
