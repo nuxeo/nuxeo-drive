@@ -138,42 +138,38 @@ Rectangle {
                     color: mediumGray
                 }
                 Rectangle {
-                        height: 18
-                        width: 300
-                        border.color: lighterGray
-                        border.width: 4
-                        radius: 2
-                        Row {
-                            height: parent.height - parent.border.width
-                            anchors.fill: parent
-                            anchors.leftMargin: 2
-                            anchors.rightMargin: 2
-                            anchors.bottomMargin: 2
-                            anchors.topMargin: 2
+                    height: 20
+                    width: 350
+                    border.color: lighterGray
+                    border.width: 4
+                    radius: 2
+                    Row {
+                        height: parent.height - parent.border.width
+                        anchors.fill: parent
+                        anchors.margins: 2
 
-                            property var disk_info: api.get_disk_space_info_to_width(accountSelect.getRole("uid"), folder, parent.width - parent.border.width)
+                        property var disk_info: api.get_disk_space_info_to_width(accountSelect.getRole("uid"), folder, parent.width - parent.border.width)
 
-                            RectangleTooltip {
-                                color: nuxeoBlue;
-                                width: parent.disk_info[2]
-                                height: parent.height
-                                tooltip: qsTr("DRIVE_DISK_SPACE_TOOLTIP").arg(api.get_drive_disk_space(accountSelect.getRole("uid"))) + tl.tr
-                            }
-
-                            RectangleTooltip {
-                                color: lightGray;
-                                width: parent.disk_info[1]
-                                height: parent.height
-                                tooltip: qsTr("USED_DISK_SPACE_TOOLTIP").arg(api.get_used_space_without_synced(accountSelect.getRole("uid"), folder)) + tl.tr
-                            }
-
-                            RectangleTooltip {
-                                width: parent.disk_info[0]
-                                height: parent.height
-                                tooltip: qsTr("FREE_DISK_SPACE_TOOLTIP").arg(api.get_free_disk_space(folder)) + tl.tr
-                            }
-
+                        RectangleTooltip {
+                            color: nuxeoBlue;
+                            width: parent.disk_info[2]
+                            height: parent.height
+                            tooltip: qsTr("DRIVE_DISK_SPACE_TOOLTIP").arg(APP_NAME).arg(api.get_drive_disk_space(accountSelect.getRole("uid"))) + tl.tr
                         }
+
+                        RectangleTooltip {
+                            color: lightGray;
+                            width: parent.disk_info[1]
+                            height: parent.height
+                            tooltip: qsTr("USED_DISK_SPACE_TOOLTIP").arg(api.get_used_space_without_synced(accountSelect.getRole("uid"), folder)) + tl.tr
+                        }
+
+                        RectangleTooltip {
+                            width: parent.disk_info[0]
+                            height: parent.height
+                            tooltip: qsTr("FREE_DISK_SPACE_TOOLTIP").arg(api.get_free_disk_space(folder)) + tl.tr
+                        }
+                    }
                 }
 
                 // Filters
