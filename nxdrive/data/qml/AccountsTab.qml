@@ -132,42 +132,45 @@ Rectangle {
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
                 }
 
-                // Remaining space
+                // Disk space details
                 ScaledText {
-                    text: qsTr("FREE_DISK_SPACE") + tl.tr;
+                    text: qsTr("STORAGE") + tl.tr;
                     color: mediumGray
                 }
-                //ScaledText {
-                //    text: api.get_free_disk_space(folder);
-                //    color: api.free_disk_space_under_limit(accountSelect.getRole("uid")) ? "#ff0000": "#008000"
-                //}
                 Rectangle {
-                        height: 15
+                        height: 18
                         width: 300
+                        border.color: lighterGray
+                        border.width: 4
+                        radius: 2
                         Row {
-                            height: parent.height
+                            height: parent.height - parent.border.width
+                            anchors.fill: parent
+                            anchors.leftMargin: 2
+                            anchors.rightMargin: 2
+                            anchors.bottomMargin: 2
+                            anchors.topMargin: 2
 
-                            property var disk_info: api.get_disk_space_info_to_width(accountSelect.getRole("uid"), folder, parent.width)
+                            property var disk_info: api.get_disk_space_info_to_width(accountSelect.getRole("uid"), folder, parent.width - parent.border.width)
 
                             RectangleTooltip {
                                 color: nuxeoBlue;
                                 width: parent.disk_info[2]
                                 height: parent.height
-                                tooltip: "Drive space: %3".arg(api.get_drive_disk_space(accountSelect.getRole("uid")))
+                                tooltip: qsTr("DRIVE_DISK_SPACE_TOOLTIP").arg(api.get_drive_disk_space(accountSelect.getRole("uid"))) + tl.tr
                             }
 
                             RectangleTooltip {
-                                color: "dimgrey";
+                                color: lightGray;
                                 width: parent.disk_info[1]
                                 height: parent.height
-                                tooltip: "Used space %2".arg(api.get_used_space_without_synced(accountSelect.getRole("uid"), folder))
+                                tooltip: qsTr("USED_DISK_SPACE_TOOLTIP").arg(api.get_used_space_without_synced(accountSelect.getRole("uid"), folder)) + tl.tr
                             }
 
                             RectangleTooltip {
-                                color: "grey";
                                 width: parent.disk_info[0]
                                 height: parent.height
-                                tooltip: "Free space: %1".arg(api.get_free_disk_space(folder))
+                                tooltip: qsTr("FREE_DISK_SPACE_TOOLTIP").arg(api.get_free_disk_space(folder)) + tl.tr
                             }
 
                         }

@@ -12,5 +12,6 @@ ToolTip {
     background: Rectangle {
         border.color: "#848484"
         color: "#848484"
+        radius: 3
     }
 }
