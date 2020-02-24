@@ -142,7 +142,7 @@ Rectangle {
                 //    color: api.free_disk_space_under_limit(accountSelect.getRole("uid")) ? "#ff0000": "#008000"
                 //}
                 Rectangle {
-                        height: 10
+                        height: 15
                         width: 300
                         border.width: 1
                         border.color: "grey"

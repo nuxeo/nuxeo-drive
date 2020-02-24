@@ -449,9 +449,9 @@ class QMLDriveApi(QObject):
         self, uid: str, path: str, width: int
     ) -> List[int]:
         """Return a list:
-            - value 1: Size of free space converted to percentage of the width.
-            - value 2: Size of space used by other applications converted to percentage of the width.
-            - value 3: Global size of synchronized files converted to percentage of the width.
+            - Size of free space converted to percentage of the width.
+            - Size of space used by other applications converted to percentage of the width.
+            - Global size of synchronized files converted to percentage of the width.
         """
         engine = self._manager.engines.get(uid)
 
@@ -463,40 +463,48 @@ class QMLDriveApi(QObject):
         used_without_sync = space.used - synced
         total = space.used + space.free
 
-        result = {
-            "free": space.free * width / total,
-            "used_without_sync": used_without_sync * width / total,
-            "synced": synced * width / total,
-        }
-
-        result = self._balance_percentages(result)
-
+        result = self._balance_percents(
+            {
+                "free": space.free * width / total,
+                "used_without_sync": used_without_sync * width / total,
+                "synced": synced * width / total,
+            }
+        )
         return [result["free"], result["used_without_sync"], result["synced"]]
 
-    def _balance_percentages(self, result: dict) -> dict:
+    def _balance_percents(self, result: dict) -> dict:
         result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        keys = list(result)
+        min_threshold = 10
         data = 0
 
-        key = list(result)[0]
-        if result[key] < 10:
-            data = data + (10 - result[key])
-            result[key] = 10
+        key = keys[0]
+        if result[key] < min_threshold:
+            # setting key value to min_threshold and saving difference to data
+            data += min_threshold - result[key]
+            result[key] = min_threshold
 
-        key = list(result)[1]
-        if result[key] - (data / 2) < 10:
-            if result[key] < 10:
-                data = data + (10 - result[key])
-                result[key] = 10
+        key = keys[1]
+        if result[key] - (data / 2) < min_threshold:
+            # if we remove half of data from key value then the value will go under min_threshold
+            if result[key] < min_threshold:
+                # key value is already under min_threshold so we set it to min_threshold and add difference to data
+                data += min_threshold - result[key]
+                result[key] = min_threshold
             else:
-                minus = (-1) * (10 - result[key])
-                data = data - minus
-                result[key] = result[key] - minus
+                # we calculate the difference between current key value and min_threshold
+                # then set key value to min_threshold and subtracts difference from data
+                minus = (min_threshold - result[key]) * -1
+                data -= minus
+                result[key] -= minus
         else:
-            result[key] = result[key] - (data / 2)
-            data = data / 2
+            # remove half of the saved data from the key value
+            data /= 2
+            result[key] -= data
 
-        key = list(result)[2]
-        result[key] = result[key] - data
+        key = keys[2]
+        # remove the last of data from key value
+        result[key] -= data
 
         return result
 
