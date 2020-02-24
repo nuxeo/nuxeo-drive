@@ -2,6 +2,7 @@
 import os
 import socket
 from contextlib import suppress
+from datetime import datetime, timedelta
 from logging import getLogger
 from pathlib import Path
 from time import monotonic_ns
@@ -392,6 +393,13 @@ class Remote(Nuxeo):
         if digest != computed_digest:
             raise CorruptedFile(file, digest, computed_digest)
 
+    def _aws_token_ttl(self, timestamp: int) -> timedelta:
+        """Return the AWS token TTL for S3 uploads."""
+        expiration = datetime.utcfromtimestamp(timestamp)
+        ttl = expiration - datetime.utcnow()
+        log.debug(f"AWS token will expire in {ttl} [at {expiration} UTC exactly]")
+        return ttl
+
     def upload(
         self,
         file_path: Path,
@@ -476,13 +484,22 @@ class Remote(Nuxeo):
                     self.uploads.get(upload.batch["batchId"], file_idx=file_idx)
                 except Exception:
                     log.debug(
-                        f"No associated batch found, restarting from zero",
+                        "No associated batch found, restarting from zero",
                         exc_info=True,
                     )
                 else:
                     log.debug(f"Associated batch found, resuming the upload")
                     batch = Batch(service=self.uploads, **upload.batch)
                     chunk_size = upload.chunk_size
+
+                    if batch.is_s3():
+                        token_ttl = self._aws_token_ttl(
+                            batch.extraInfo["expiration"] / 1000
+                        )
+                        if token_ttl.total_seconds() < 1:
+                            batch = None
+                            upload = None
+                            log.warning("AWS token has expired, restarting from zero")
 
             if not batch:
                 # .uploads.handlers() result is cached, so it is convenient to call it each time here
@@ -492,6 +509,9 @@ class Remote(Nuxeo):
 
                 # Create a new batch and save it in the DB
                 batch = self.uploads.batch(handler=handler)
+
+                if batch.is_s3():
+                    self._aws_token_ttl(batch.extraInfo["expiration"] / 1000)
 
             # By default, Options.chunk_size is 20, so chunks will be 20MiB.
             # It can be set to a value between 1 and 20 through the config.ini
@@ -521,6 +541,9 @@ class Remote(Nuxeo):
             log.debug(f"Using {type(uploader).__name__!r} uploader")
 
             if not upload:
+                # Remove eventual obsolete upload (it happens when an upload using S3 has invalid metadatas)
+                self.dao.remove_transfer("upload", file_path)
+
                 # Add an upload entry in the database
                 upload = Upload(
                     None,
@@ -571,6 +594,12 @@ class Remote(Nuxeo):
                     upload.progress = action.get_percent()
 
             if batch.is_s3():
+                if not batch.blobs:
+                    # This may happen when resuming an upload with all parts sent.
+                    # Trigger upload() that will complete the MPU and fill required
+                    # attributes like the Batch ETag, blob index, etc..
+                    uploader.upload()
+
                 # Complete the S3 upload
                 batch.complete()
 
