@@ -609,7 +609,7 @@ class QMLDriveApi(QObject):
                 **kwargs,
             )
         except RootAlreadyBindWithDifferentAccount as e:
-            log.warning(Translator.get("FOLDER_USED"))
+            log.warning(Translator.get("FOLDER_USED", values=[APP_NAME]))
 
             # Ask for the user
             values = [e.username, e.url]

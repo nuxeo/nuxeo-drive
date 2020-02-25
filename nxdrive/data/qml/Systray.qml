@@ -169,7 +169,7 @@ Rectangle {
                 IconLabel {
                     icon: MdiFont.Icon.folder
                     onClicked: api.open_local(accountSelect.getRole("uid"), "/")
-                    tooltip: qsTr("OPEN_ROOT_FOLDER") + tl.tr
+                    tooltip: qsTr("OPEN_ROOT_FOLDER").arg(APP_NAME) + tl.tr
                 }
 
                 // Icon 4: open the Direct Transfer window

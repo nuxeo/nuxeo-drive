@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
+from .constants import APP_NAME
 from .objects import DocPair
 from .translator import Translator
 from .utils import short_name
@@ -451,7 +452,7 @@ class DirectTransferStatus(Notification):
 
 class ErrorOpenedFile(Notification):
     def __init__(self, path: str, is_folder: bool) -> None:
-        values = [short_name(path)]
+        values = [short_name(path), APP_NAME]
         msg = ("FILE", "FOLDER")[is_folder]
         super().__init__(
             "WINDOWS_ERROR",
