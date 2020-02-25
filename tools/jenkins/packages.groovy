@@ -124,26 +124,25 @@ for (x in agents) {
                                     string(credentialsId: 'NOTARIZATION_USERNAME', variable: 'NOTARIZATION_USERNAME'),
                                     string(credentialsId: 'NOTARIZATION_PASSWORD', variable: 'NOTARIZATION_PASSWORD'),
                                 ]
-                                withEnv(env_vars)
-                                {
-                                    withCredentials(creds)
-                                    {
-                                        // Install requirements
-                                        sh 'tools/osx/deploy_jenkins_slave.sh --install-release'
 
-                                        // Auto-update check
-                                        sh 'tools/osx/deploy_jenkins_slave.sh --check-upgrade'
+                                // Install requirements
+                                sh 'tools/osx/deploy_jenkins_slave.sh --install-release'
 
-                                        // Build the installer
+                                // Auto-update check
+                                sh 'tools/osx/deploy_jenkins_slave.sh --check-upgrade'
+
+                                // Build the installer
+                                withEnv(env_vars) {
+                                    withCredentials(creds) {
                                         sh 'tools/osx/deploy_jenkins_slave.sh --build'
-
-                                        // And archive it
-                                        archiveArtifacts artifacts: 'dist/*.dmg', fingerprint: true
-
-                                        // Also archive the notarization report
-                                        archiveArtifacts artifacts: 'report-*.json', fingerprint: true, allowEmptyArchive: true
                                     }
                                 }
+
+                                // And archive it
+                                archiveArtifacts artifacts: 'dist/*.dmg', fingerprint: true
+
+                                // Also archive the notarization report
+                                archiveArtifacts artifacts: 'report-*.json', fingerprint: true, allowEmptyArchive: true
                             }
                             else if (osi == 'Windows')
                             {
@@ -151,20 +150,20 @@ for (x in agents) {
                                     'SIGNING_ID=Nuxeo',
                                     'SIGNTOOL_PATH=C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit',
                                 ]
-                                withEnv(env_vars)
-                                {
-                                    // Install requirements
-                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -install_release'
 
-                                    // Auto-update check
-                                    bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -check_upgrade'
+                                // Install requirements
+                                bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -install_release'
 
-                                    // Build the installer
+                                // Auto-update check
+                                bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -check_upgrade'
+
+                                // Build the installer
+                                withEnv(env_vars) {
                                     bat 'powershell ".\\tools\\windows\\deploy_jenkins_slave.ps1" -build'
-
-                                    // And archive it
-                                    archiveArtifacts artifacts: 'dist/*.exe', fingerprint: true
                                 }
+
+                                // And archive it
+                                archiveArtifacts artifacts: 'dist/*.exe', fingerprint: true
                             }
 
                             // Archive ZIP'ed sources
