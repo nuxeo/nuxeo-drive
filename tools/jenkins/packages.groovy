@@ -25,10 +25,12 @@ properties([
 ])
 
 // Jenkins agents we will build on
-agents = ['SLAVEPRIV', 'OSXSLAVE-DRIVE', 'WINSLAVE']
+// agents = ['SLAVEPRIV', 'OSXSLAVE-DRIVE', 'WINSLAVE']
+agents = ['SLAVEPRIV', 'MAC-DRIVE-2', 'WINSLAVE']
 labels = [
     'SLAVEPRIV': 'GNU/Linux',
-    'OSXSLAVE-DRIVE': 'macOS',
+    // 'OSXSLAVE-DRIVE': 'macOS',
+    'MAC-DRIVE-2': 'macOS',
     'WINSLAVE': 'Windows'
 ]
 builders = [:]
@@ -117,10 +119,15 @@ for (x in agents) {
                                     'SIGNING_ID=NUXEO CORP',
                                     "KEYCHAIN_PATH=${env.HOME}/Library/Keychains/login.keychain-db",
                                 ]
+                                def creds = [
+                                    string(credentialsId: 'MOBILE_LOGIN_KEYCHAIN_PASSWORD', variable: 'KEYCHAIN_PASSWORD'),
+                                    string(credentialsId: 'NOTARIZATION_USERNAME', variable: 'NOTARIZATION_USERNAME'),
+                                    string(credentialsId: 'NOTARIZATION_PASSWORD', variable: 'NOTARIZATION_PASSWORD'),
+                                ]
                                 withEnv(env_vars)
                                 {
-                                    withCredentials([string(credentialsId: 'MOBILE_LOGIN_KEYCHAIN_PASSWORD',
-                                                            variable: 'KEYCHAIN_PASSWORD')]) {
+                                    withCredentials(creds)
+                                    {
                                         // Install requirements
                                         sh 'tools/osx/deploy_jenkins_slave.sh --install-release'
 
