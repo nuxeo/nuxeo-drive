@@ -5,9 +5,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Iterable, Iterator
 
-from PyQt5.QtCore import QTimer, pyqtSignal
-
 import psutil
+from PyQt5.QtCore import QTimer, pyqtSignal
 
 from .constants import LINUX, MAC, WINDOWS
 from .engine.workers import PollWorker
@@ -166,7 +165,7 @@ def get_open_files() -> Iterator[Item]:
     # It would be an endless fight to catch specific errors only.
     # Here, it is typically MemoryError's.
     try:
-        for proc in psutil.process_iter():
+        for proc in psutil.process_iter(attrs=["pid"]):
             # But we also want to filter out errors by processor to be able to retrieve some data from others
             with suppress(Exception):
                 for handler in proc.open_files():
