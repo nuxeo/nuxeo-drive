@@ -7,10 +7,13 @@ ToolTip {
     contentItem: ScaledText {
         text: control.text
         color: "#FFFFFF"
+        verticalAlignment: Text.AlignVCenter
+        horizontalAlignment: Text.AlignHCenter
     }
 
     background: Rectangle {
         border.color: "#848484"
         color: "#848484"
+        radius: 3
     }
 }

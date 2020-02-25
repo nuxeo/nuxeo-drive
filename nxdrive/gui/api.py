@@ -1,5 +1,6 @@
 # coding: utf-8
 import json
+import shutil
 from dataclasses import asdict
 from logging import getLogger
 from os import getenv
@@ -8,10 +9,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
+from nuxeo.exceptions import HTTPError, Unauthorized
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
-
-from nuxeo.exceptions import HTTPError, Unauthorized
 
 from ..client.proxy import get_proxy
 from ..constants import (
@@ -40,6 +40,7 @@ from ..utils import (
     get_device,
     guess_server_url,
     normalized_path,
+    sizeof_fmt,
 )
 
 if TYPE_CHECKING:
@@ -442,6 +443,102 @@ class QMLDriveApi(QObject):
     def default_server_url_value(self) -> str:
         """Make daily job better for our developers :)"""
         return getenv("NXDRIVE_TEST_NUXEO_URL", "")
+
+    @pyqtSlot(str, str, int, result=list)
+    def get_disk_space_info_to_width(
+        self, uid: str, path: str, width: int
+    ) -> List[float]:
+        """Return a list:
+            - Size of free space converted to percentage of the width.
+            - Size of space used by other applications converted to percentage of the width.
+            - Global size of synchronized files converted to percentage of the width.
+        """
+        engine = self._manager.engines.get(uid)
+
+        folder = Path(path)
+        folder = folder if folder.is_dir() else folder.parent
+        space = shutil.disk_usage(folder)
+
+        synced = engine.dao.get_global_size() if engine else 0
+        used_without_sync = space.used - synced
+        total = space.used + space.free
+
+        result = self._balance_percents(
+            {
+                "free": space.free * width / total,
+                "used_without_sync": used_without_sync * width / total,
+                "synced": synced * width / total,
+            }
+        )
+        return [result["free"], result["used_without_sync"], result["synced"]]
+
+    def _balance_percents(self, result: Dict[str, float]) -> Dict[str, float]:
+        """ Return an altered version of the dict in which no value is under a minimum threshold."""
+
+        result = {k: v for k, v in sorted(result.items(), key=lambda item: item[1])}
+        keys = list(result)
+        min_threshold = 10
+        data = 0.0
+
+        key = keys[0]
+        if result[key] < min_threshold:
+            # Setting key value to min_threshold and saving difference to data
+            data += min_threshold - result[key]
+            result[key] = min_threshold
+
+        key = keys[1]
+        if result[key] - (data / 2) < min_threshold:
+            # If we remove half of data from key value then the value will go under min_threshold
+            if result[key] < min_threshold:
+                # Key value is already under min_threshold so we set it to min_threshold and add difference to data
+                data += min_threshold - result[key]
+                result[key] = min_threshold
+            else:
+                # We calculate the difference between current key value and min_threshold
+                # Then set key value to min_threshold and subtracts difference from data
+                minus = (min_threshold - result[key]) * -1
+                data -= minus
+                result[key] -= minus
+        else:
+            # Remove half of the saved data from the key value
+            data /= 2
+            result[key] -= data
+
+        key = keys[2]
+        # Remove the last of data from key value
+        result[key] -= data
+
+        return result
+
+    @pyqtSlot(str, result=str)
+    def get_drive_disk_space(self, uid: str) -> str:
+        """Fetch the global size of synchronized files and return a formatted version."""
+        engine = self._manager.engines.get(uid)
+        synced = engine.dao.get_global_size() if engine else 0
+        return sizeof_fmt(synced, suffix=Translator.get("BYTE_ABBREV"))
+
+    @pyqtSlot(str, result=str)
+    def get_free_disk_space(self, path: str) -> str:
+        """Fetch the size of free space and return a formatted version."""
+        folder = Path(path)
+        folder = folder if folder.is_dir() else folder.parent
+        return sizeof_fmt(
+            shutil.disk_usage(folder).free, suffix=Translator.get("BYTE_ABBREV")
+        )
+
+    @pyqtSlot(str, str, result=str)
+    def get_used_space_without_synced(self, uid: str, path: str) -> str:
+        """Fetch the size of space used by other applications and return a formatted version."""
+        engine = self._manager.engines.get(uid)
+        synced = engine.dao.get_global_size() if engine else 0
+
+        folder = Path(path)
+        folder = folder if folder.is_dir() else folder.parent
+
+        return sizeof_fmt(
+            shutil.disk_usage(folder).used - synced,
+            suffix=Translator.get("BYTE_ABBREV"),
+        )
 
     @pyqtSlot(str, bool)
     def unbind_server(self, uid: str, purge: bool) -> None:

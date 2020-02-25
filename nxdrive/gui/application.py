@@ -334,6 +334,7 @@ class Application(QApplication):
         context.setContextProperty("update_check_delay", Options.update_check_delay)
         context.setContextProperty("sync_enabled", Options.synchronization_enabled)
         context.setContextProperty("isFrozen", Options.is_frozen)
+        context.setContextProperty("APP_NAME", APP_NAME)
         context.setContextProperty("LINUX", LINUX)
         context.setContextProperty("WINDOWS", WINDOWS)
         context.setContextProperty("tl", Translator.singleton)
