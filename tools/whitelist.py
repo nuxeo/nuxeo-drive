@@ -45,6 +45,10 @@ Processor._synchronize_remotely_created  # Used by Processor._execute()
 Processor._synchronize_unknown_deleted  # Used by Processor._execute()
 QMLDriveApi.default_local_folder  # Used in QML
 QMLDriveApi.default_server_url_value  # Used in QML
+QMLDriveApi.get_disk_space_info_to_width  # Used in QML
+QMLDriveApi.get_drive_disk_space  # Used in QML
+QMLDriveApi.get_free_disk_space  # Used in QML
+QMLDriveApi.get_used_space_without_synced  # Used in QML
 QMLDriveApi.get_proxy_settings  # Used in QML
 QMLDriveApi.get_update_url  # Used in QML
 QMLDriveApi.get_update_version  # Used in QML
