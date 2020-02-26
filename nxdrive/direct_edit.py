@@ -21,7 +21,7 @@ from watchdog.observers import Observer
 
 from .client.local import LocalClient
 from .client.remote_client import Remote
-from .constants import CONNECTION_ERROR, DOC_UID_REG, ROOT
+from .constants import APP_NAME, CONNECTION_ERROR, DOC_UID_REG, ROOT
 from .engine.activity import tooltip
 from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
@@ -234,7 +234,7 @@ class DirectEdit(Worker):
         engine = self.__get_engine(server_url, user=user)
 
         if not engine:
-            values = [force_decode(user) if user else "Unknown", server_url]
+            values = [force_decode(user) if user else "Unknown", server_url, APP_NAME]
             log.warning(
                 f"No engine found for user {user!r} on server {server_url!r}, "
                 f"doc_id={doc_id!r}"

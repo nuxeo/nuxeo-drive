@@ -441,7 +441,9 @@ class Application(QApplication):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
         msg.setWindowIcon(self.icon)
-        msg.setText(Translator.get("DRIVE_ROOT_DELETED", [engine.local_folder]))
+        msg.setText(
+            Translator.get("DRIVE_ROOT_DELETED", [engine.local_folder, APP_NAME])
+        )
         recreate = msg.addButton(
             Translator.get("DRIVE_ROOT_RECREATE"), QMessageBox.AcceptRole
         )
@@ -470,7 +472,7 @@ class Application(QApplication):
     def _root_moved(self, new_path: Path) -> None:
         engine = self.sender()
         log.info(f"Root has been moved for engine: {engine.uid} to {new_path!r}")
-        info = [engine.local_folder, str(new_path)]
+        info = [engine.local_folder, APP_NAME, str(new_path)]
 
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)

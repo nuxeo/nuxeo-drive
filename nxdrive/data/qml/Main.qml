@@ -9,7 +9,7 @@ QtObject {
         minimumWidth: 640
         minimumHeight: 540
         objectName: "settingsWindow"
-        title: qsTr("SETTINGS_WINDOW_TITLE") + tl.tr
+        title: qsTr("SETTINGS_WINDOW_TITLE").arg(APP_NAME) + tl.tr
         width: settings.width; height: settings.height
         visible: false
 
