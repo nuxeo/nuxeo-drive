@@ -875,5 +875,13 @@ class Manager(QObject):
         """Save the current version in a VERSION file inside the home directory.
         This is for information purpose and used by the auto-update checker script."""
         file = Options.nxdrive_home / "VERSION"
-        log.debug(f"Saving the current version ({self.version}) into {file!r}")
-        file.write_text(f"{self.version}\n")
+        try:
+            file.write_text(f"{self.version}\n")
+        except FileNotFoundError:
+            # Likely testing a feature and the parent folder does not exist
+            log.warning(
+                f"Cannot save the current version ({self.version}) to {file!r}",
+                exc_info=True,
+            )
+        else:
+            log.debug(f"Saved the current version ({self.version}) into {file!r}")
