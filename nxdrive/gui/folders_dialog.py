@@ -206,11 +206,14 @@ class FoldersDialog(DialogMixin):
 
         super().__init__(application, engine)
 
-        self.path = path
-        if self.path:
-            self.paths: Set[Path] = {self.path}
-        else:
-            self.paths = set()
+        self.path: Optional[Path] = None
+        self.paths: Set[Path] = set()
+
+        if path:
+            # NXDRIVE-2019
+            if not path.is_dir():
+                self.path = path
+                self.paths.add(self.path)
 
         self.overall_size = self._get_overall_size()
         self.overall_count = self._get_overall_count()
@@ -276,7 +279,8 @@ class FoldersDialog(DialogMixin):
         """This is the sub-menu displayed when clicking on the Add button."""
         menu = QMenu()
         menu.addAction(Translator.get("ADD_FILES"), self._select_more_files)
-        menu.addAction(Translator.get("ADD_FOLDER"), self._select_more_folder)
+        # NXDRIVE-2019
+        # menu.addAction(Translator.get("ADD_FOLDER"), self._select_more_folder)
         return menu
 
     def _files_display(self) -> str:
@@ -340,7 +344,7 @@ class FoldersDialog(DialogMixin):
         paths, _ = QFileDialog.getOpenFileNames(self, Translator.get("ADD_FILES"))
         self._process_additionnal_local_paths(paths)
 
-    def _select_more_folder(self) -> None:
-        """Choose an additional local folder to upload."""
-        path = QFileDialog.getExistingDirectory(self, Translator.get("ADD_FOLDER"))
-        self._process_additionnal_local_paths([path])
+    # def _select_more_folder(self) -> None:
+    #     """Choose an additional local folder to upload."""
+    #     path = QFileDialog.getExistingDirectory(self, Translator.get("ADD_FOLDER"))
+    #     self._process_additionnal_local_paths([path])
