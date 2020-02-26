@@ -8,13 +8,12 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from requests.exceptions import ConnectionError
-
 from nuxeo.exceptions import HTTPError
 from nuxeo.models import Document
 from nxdrive.constants import TransferStatus
 from nxdrive.options import Options
 from nxdrive.utils import get_tree_list
+from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
 from ..markers import not_windows
@@ -575,14 +574,17 @@ class DirectTransferFolder:
         assert not list(self.engine_1.dao.get_uploads())
 
 
-class TestDirectTransferFolder(OneUserTest, DirectTransferFolder):
+# NXDRIVE-2019
+
+
+class _TestDirectTransferFolder(OneUserTest, DirectTransferFolder):
     """Direct Transfer in "normal" mode, i.e.: when synchronization features are enabled."""
 
     def setUp(self):
         DirectTransferFolder.setUp(self)
 
 
-class TestDirectTransferFolderNoSync(OneUserNoSync, DirectTransferFolder):
+class _TestDirectTransferFolderNoSync(OneUserNoSync, DirectTransferFolder):
     """Direct Transfer should work when synchronization features are not enabled."""
 
     def setUp(self):
