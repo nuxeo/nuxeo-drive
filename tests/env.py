@@ -14,3 +14,7 @@ WS_DIR = getenv("NXDRIVE_TEST_PATH", "/default-domain/workspaces")
 
 # On Windows, this is used to define the drive letter of a second NTFS partition
 SECOND_PARTITION = getenv("SECOND_PARTITION", "Q:\\")
+
+# Custom document types
+DOCTYPE_FILE = getenv("DOCTYPE_FILE", "File")
+DOCTYPE_FOLDERISH = getenv("DOCTYPE_FOLDERISH", "Folder")

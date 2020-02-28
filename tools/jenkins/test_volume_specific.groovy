@@ -15,6 +15,8 @@ properties([
         string(name: 'NXDRIVE_TEST_USERNAME', defaultValue: 'Administrator', description: 'The user having administrator rights.', trim: true),
         string(name: 'NXDRIVE_TEST_PASSWORD', defaultValue: 'Administrator', description: 'The password associated to the username.', trim: true),
         string(name: 'NXDRIVE_TEST_PATH', defaultValue: '/default-domain/workspaces', description: 'The remote path where to store data. Must exist.', trim: true),
+        string(name: 'DOCTYPE_FILE', defaultValue: 'File', description: 'Document type for file creations.', trim: true),
+        string(name: 'DOCTYPE_FOLDERISH', defaultValue: 'Folder', description: 'Document type for non-file creations.', trim: true),
         string(name: 'TEST_VOLUME', defaultValue: '3,200,3', description: '<ul><li>number of folders</li><li>number of files to create inside each folder</li><li>depth: the tree will be replicated into itself <i>depth</i> times</li><li>Total is <code>...</code> (here 309,858)</ul>', trim: true),
         string(name: 'TEST_REMOTE_SCAN_VOLUME', defaultValue: '200000', description: 'Minimum number of documents to randomly import (here > 200,000).', trim: true),
         booleanParam(name: 'USE_MAC_DRIVE_1', defaultValue: true, description: 'macOS client n° 1.'),

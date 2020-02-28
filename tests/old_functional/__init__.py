@@ -15,6 +15,8 @@ from nxdrive.objects import NuxeoDocumentInfo, RemoteFileInfo
 from nxdrive.options import Options
 from nxdrive.utils import force_encode, safe_filename
 
+from .. import env
+
 
 def patch_nxdrive_objects():
     """Some feature are not needed or are better disabled when testing."""
@@ -207,7 +209,13 @@ class RemoteBase(Remote):
 
     def get_children_info(self, ref: str, limit: int = 1000) -> List[NuxeoDocumentInfo]:
         ref = self._escape(self.check_ref(ref))
-        types = {"File", "Note", "Workspace", "Folder", "Picture"}
+        types = {
+            "Note",
+            "Workspace",
+            "Picture",
+            env.DOCTYPE_FILE,
+            env.DOCTYPE_FOLDERISH,
+        }
 
         query = (
             "SELECT * FROM Document"
@@ -439,7 +447,11 @@ class DocRemote(RemoteTest):
         return doc["uid"]
 
     def make_file(
-        self, parent: str, name: str, content: bytes = None, doc_type: str = "File"
+        self,
+        parent: str,
+        name: str,
+        content: bytes = None,
+        doc_type: str = env.DOCTYPE_FILE,
     ) -> str:
         """Create a document of the given type with the given name and content
 
@@ -474,7 +486,7 @@ class DocRemote(RemoteTest):
         file_path: str,
         filename: str = None,
         mime_type: str = None,
-        doc_type: str = "File",
+        doc_type: str = env.DOCTYPE_FILE,
     ) -> str:
         """Create a document by streaming the file with the given path"""
         ref = self.make_file(parent, name, doc_type=doc_type)
