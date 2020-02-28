@@ -1,0 +1,88 @@
+name: Quality and unit tests
+
+on: [push]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements*.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
+    - name: Install dependencies
+      run: python -m pip install -U tox
+    - name: Code style check
+      run: tox -e style
+    - name: Code quality check
+      run: tox -e lint
+    - name: Type annotations check
+      run: tox -e types
+    - name: Dead code check
+      run: tox -e cleanup
+    - name: Grammar check
+      run: tox -e spell
+    - name: Unit tests
+      run: tox -e unit
+
+  build-macos:
+    runs-on: macos-10.15
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements*.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
+    - name: Install dependencies
+      run: python -m pip install -U tox
+    - name: Code style check
+      run: tox -e style
+    - name: Code quality check
+      run: tox -e lint
+    - name: Type annotations check
+      run: tox -e types
+    - name: Dead code check
+      run: tox -e cleanup
+    - name: Grammar check
+      run: tox -e spell
+    - name: Unit tests
+      run: tox -e unit
+
+  build-windows:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements*.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
+    - name: Install dependencies
+      run: python -m pip install -U tox
+    - name: Code style check
+      run: tox -e style
+    - name: Code quality check
+      run: tox -e lint
+    - name: Type annotations check
+      run: tox -e types
+    - name: Dead code check
+      run: tox -e cleanup
+    - name: Grammar check
+      run: tox -e spell
+    - name: Unit tests
+      run: tox -e unit

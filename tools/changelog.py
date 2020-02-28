@@ -14,7 +14,7 @@ import sys
 
 import requests
 
-__version__ = "1.2.9"
+__version__ = "1.2.10"
 
 
 # Available formatters
@@ -253,12 +253,14 @@ def report_categorized(issues_list, fmt):
     }
 
     for issue in issues_list:
+        line = fmt[issue["sla"]].format(**issue)
         for component in components:
             if component in issue["components"]:
-                components[component].append(fmt[issue["sla"]].format(**issue))
+                components[component].append(line)
                 break
         else:
-            components["Core"].append(fmt[issue["sla"]].format(**issue))
+            component = "Packaging / Build" if "QA/CI" in components else "Core"
+            components[component].append(line)
 
     for component in components:
         if component == "Release":
