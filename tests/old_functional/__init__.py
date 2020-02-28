@@ -578,7 +578,7 @@ class DocRemote(RemoteTest):
         return "lockCreated" in data
 
     def get_versions(self, ref: str):
-        headers = {"X-NXfetch.document": "versionLabel"}
+        headers = {"fetch-document": "versionLabel"}
         versions = self.execute(
             command="Document.GetVersions",
             input_obj=f"doc:{self.check_ref(ref)}",
