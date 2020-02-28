@@ -86,7 +86,7 @@ def setup_sentry() -> None:
     # Guess the current ticket from the branch name
     branch = subprocess.check_output(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"], encoding="utf-8"
-    )
+    ).strip()
     ticket = re.findall(r".+(NXDRIVE-\d+)-.+", branch)
     if ticket:
         sentry_env = ticket[0]
