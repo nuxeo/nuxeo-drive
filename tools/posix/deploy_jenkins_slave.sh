@@ -148,7 +148,6 @@ install_deps() {
     if [ "${INSTALL_RELEASE_ARG:=0}" != "1" ]; then
         ${PIP} -r tools/deps/requirements-tests.txt
         pyenv rehash
-        pre-commit install
     fi
 }
 
