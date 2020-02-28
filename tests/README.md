@@ -34,6 +34,8 @@ The other part of tests is managed by the deploy script. Check the [documentatio
 
 You can customize several things using environment variables (see also [env.py](env.py)):
 
+- `DOCTYPE_FILE`: Document type for file creation (default is `File`).
+- `DOCTYPE_FOLDERISH`: Document type for non-file creations (default is `Folder`).
 - `REPORT_PATH`: If set to an existing local folder, a ZIP'ed report will be created when a test failed.
 - `SKIP_SENTRY`: Set to `1` to disable Sentry reports (enabled by default).
 - `SENTRY_DSN`: The Sentry DSN.
