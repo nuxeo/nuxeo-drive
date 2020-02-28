@@ -1,0 +1,4 @@
+py-cpuinfo==5.0.0 \
+    --hash=sha256:2cf6426f776625b21d1db8397d3297ef7acfa59018f02a8779123f3190f18500
+pytest-benchmark==3.2.3 \
+    --hash=sha256:01f79d38d506f5a3a0a9ada22ded714537bbdfc8147a881a35c1655db07289d9

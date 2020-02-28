@@ -791,9 +791,11 @@ def decrypt(
     # Don't fail on decrypt
     try:
         encobj = AES.new(secret, AES.MODE_CFB, iv)
-        return encobj.decrypt(ciphertext)
+        data: bytes = encobj.decrypt(ciphertext)
     except Exception:
         return None
+    else:
+        return data
 
 
 @lru_cache(maxsize=4)

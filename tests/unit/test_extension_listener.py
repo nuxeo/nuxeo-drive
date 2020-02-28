@@ -14,12 +14,14 @@ DocPair = namedtuple(
 )
 
 
-def test_host_to_addr():
-    # Bad hostname
-    assert not ExtensionListener.host_to_addr("")
-    assert not ExtensionListener.host_to_addr("blablabla")
+@pytest.mark.parametrize("host", ["", "wxc4qs5c4xws3625f1r3xv2c51ws635"])
+def test_host_to_addr_bad(host):
+    address = ExtensionListener.host_to_addr(host)
+    if not host:
+        assert address is None
 
-    # Good hostname
+
+def test_host_to_addr_good():
     address = ExtensionListener.host_to_addr("localhost")
     assert isinstance(address, QHostAddress)
     assert address.protocol() == QAbstractSocket.IPv4Protocol

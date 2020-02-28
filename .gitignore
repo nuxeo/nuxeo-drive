@@ -37,6 +37,7 @@ pypi*
 *.swp
 target*
 tools/windows/properties.rc
+.tox
 venv
 .vscode
 xcuserdata

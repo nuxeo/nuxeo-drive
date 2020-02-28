@@ -2,10 +2,10 @@ version: 1
 
 update_configs:
   - package_manager: python
-    directory: /
+    directory: /tools/deps
     update_schedule: live
     target_branch: master
-    default_reviewers:
+    default_assignees:
       - BoboTiG
     default_labels:
       - dependencies

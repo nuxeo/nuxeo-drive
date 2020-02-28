@@ -1,0 +1,4 @@
+pywinauto==0.6.8 ; sys_platform == "win32" \
+    --hash=sha256:931ce622d7f402b1892ab472987a1332e4c0681bf87e106f798390d16ca95e58
+selenium==3.141.0 ; sys_platform == "win32" \
+    --hash=sha256:2d7131d7bc5a5b99a2d9b04aaf2612c411b03b8ca1b1ee8d3de5845a9be2cb3c

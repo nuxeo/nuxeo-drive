@@ -1,0 +1,57 @@
+apipkg==1.5 \
+    --hash=sha256:58587dd4dc3daefad0487f6d9ae32b4542b185e1c36db6993290e7c41ca2b47c
+    # via execnet
+attrs==19.3.0 \
+    --hash=sha256:08a96c641c3a74e44eb59afb61a24f2cb9f4d7188748e76ba4bb5edfa3cb7d1c
+    # via pytest
+coverage==5.0.3 \
+    --hash=sha256:d649dc0bcace6fcdb446ae02b98798a856593b19b637c1b9af8edadf2b150bea
+    # via pytest-cov
+execnet==1.7.1 \
+    --hash=sha256:d4efd397930c46415f62f8a31388d6be4f27a91d7550eb79bc64a756e0056547
+    # via pytest-xdist
+faker==4.0.1 \
+    --hash=sha256:ee24608768549c2c69e593e9d7a3b53c9498ae735534243ec8390cae5d529f8b
+future==0.18.2 \
+    --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
+    # via junitparser
+importlib-metadata==1.5.0 \
+    --hash=sha256:b97607a1a18a5100839aec1dc26a1ea17ee0d93b20b0f008d80a5a050afb200b
+    # via pytest
+junitparser==1.4.1 \
+    --hash=sha256:9d8cd9909f115d4e0fe1f445ebd816524123c34cf0178c48bd4778d50a5f2617
+more-itertools==8.2.0 \
+    --hash=sha256:5dd8bcf33e5f9513ffa06d5ad33d78f31e1931ac9a18f33d37e77a180d393a7c
+    # via pytest
+packaging==20.1 \
+    --hash=sha256:170748228214b70b672c581a3dd610ee51f733018650740e98c7df862a583f73
+    # via pytest
+pluggy==0.13.1 \
+    --hash=sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d
+    # via pytest
+py==1.8.1 \
+    --hash=sha256:c20fdd83a5dbc0af9efd622bee9a5564e278f6380fffcacc43ba6f43db2813b0
+    # via pytest
+pyparsing==2.4.6 \
+    --hash=sha256:c342dccb5250c08d45fd6f8b4a559613ca603b57498511740e65cd11a2e7dcec
+    # via packaging
+pytest==5.3.5 \
+    --hash=sha256:ff615c761e25eb25df19edddc0b970302d2a9091fbce0e7213298d85fb61fef6
+pytest-cov==2.8.1 \
+    --hash=sha256:cdbdef4f870408ebdbfeb44e63e07eb18bb4619fae852f6e760645fa36172626
+pytest-forked==1.1.3 \
+    --hash=sha256:1ae25dba8ee2e56fb47311c9638f9e58552691da87e82d25b0ce0e4bf52b7d87
+    # via pytest-xdist
+pytest-timeout==1.3.4 \
+    --hash=sha256:95ca727d4a1dace6ec5f0534d2940b8417ff8b782f7eef0ea09240bdd94d95c2
+pytest-xdist==1.31.0 \
+    --hash=sha256:0f46020d3d9619e6d17a65b5b989c1ebbb58fc7b1da8fb126d70f4bac4dfeed1
+text-unidecode==1.3 \
+    --hash=sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8
+    # via faker
+wcwidth==0.1.8 \
+    --hash=sha256:8fd29383f539be45b20bd4df0dc29c20ba48654a41e661925e612311e9f3c603
+    # via pytest
+zipp==3.0.0 \
+    --hash=sha256:12248a63bbdf7548f89cb4c7cda4681e537031eda29c02ea29674bc6854460c2
+    # via importlib-metadata
