@@ -1,11 +1,19 @@
 apipkg==1.5 \
     --hash=sha256:58587dd4dc3daefad0487f6d9ae32b4542b185e1c36db6993290e7c41ca2b47c
     # via execnet
+atomicwrites==1.3.0; sys_platform == "win32" \
+    --hash=sha256:03472c30eb2c5d1ba9227e4c2ca66ab8287fbfbbda3888aa93dc2e28fc6811b4
+    # via pytest
 attrs==19.3.0 \
     --hash=sha256:08a96c641c3a74e44eb59afb61a24f2cb9f4d7188748e76ba4bb5edfa3cb7d1c
     # via pytest
+colorama==0.4.3; sys_platform == "win32" \
+    --hash=sha256:7d73d2a99753107a36ac6b455ee49046802e59d9d076ef8e47b61499fa29afff
+    # via pytest
 coverage==5.0.3 \
-    --hash=sha256:d649dc0bcace6fcdb446ae02b98798a856593b19b637c1b9af8edadf2b150bea
+    --hash=sha256:d649dc0bcace6fcdb446ae02b98798a856593b19b637c1b9af8edadf2b150bea \
+    --hash=sha256:a8b8ac7876bc3598e43e2603f772d2353d9931709345ad6c1149009fd1bc81b8 \
+    --hash=sha256:c60097190fe9dc2b329a0eb03393e2e0829156a589bd732e70794c0dd804258e
     # via pytest-cov
 execnet==1.7.1 \
     --hash=sha256:d4efd397930c46415f62f8a31388d6be4f27a91d7550eb79bc64a756e0056547
