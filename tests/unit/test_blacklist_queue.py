@@ -2,9 +2,11 @@
 from pathlib import Path
 from time import sleep
 
+import pytest
 from nxdrive.engine.blacklist_queue import BlacklistItem, BlacklistQueue
 
 
+@pytest.mark.randombug("Slow OS")
 def test_delay():
     sleep_time = 3
 
