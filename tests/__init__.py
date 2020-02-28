@@ -83,17 +83,17 @@ def setup_sentry() -> None:
         "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
     )
 
-    # Guess the current branch
+    # Guess the current ticket from the branch name
     branch = subprocess.check_output(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"], encoding="utf-8"
     )
     ticket = re.findall(r".+(NXDRIVE-\d+)-.+", branch)
     if ticket:
         sentry_env = ticket[0]
-    elif "JENKINS_URL" in os.environ:
+    elif "JENKINS_URL" in os.environ or branch == "master" or "dependabot" in branch:
         sentry_env = "testing"
     else:
-        sys.exit("The branch is malformed, cannot guess the ticket.")
+        sys.exit(f"The branch is malformed, cannot guess the ticket from {branch!r}.")
 
     import sentry_sdk
     from nxdrive import __version__
