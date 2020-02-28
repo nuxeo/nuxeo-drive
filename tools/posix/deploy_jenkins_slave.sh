@@ -8,27 +8,17 @@
 #     --build-ext: build the FinderSync extension (macOS only)
 #     --check-upgrade: check the auto-update works
 #     --install: install all dependencies
-#     --check: check AppImage conformity (GNU/Linux only)
 #     --install-python: install only Python
 #     --install-release: install all but test dependencies
 #     --start: start Nuxeo Drive
 #     --tests: launch the tests suite
-#     --check-translations: check the translation files
 #
 # See /docs/deployment.md for more information.
 #
 # ---
 #
 # You can tweak tests checks by setting the SKIP envar:
-#    - SKIP=flake8 to skip code style
-#    - SKIP=spell to skip grammar check
-#    - SKIP=translations to skip translation files check
-#    - SKIP=mypy to skip type annotations
-#    - SKIP=cleanup to skip dead code checks
 #    - SKIP=rerun to not rerun failed test(s)
-#    - SKIP=bench to not run benchmarks
-#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,translations,spell,bench)
-#    - SKIP=tests tu run only code checks
 #
 # There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
 #
@@ -152,11 +142,11 @@ check_vars() {
 
 install_deps() {
     echo ">>> Installing requirements"
-    ${PIP} -r requirements-pip.txt
-    ${PIP} -r requirements.txt
-    ${PIP} -r requirements-dev.txt
+    ${PIP} -r tools/deps/requirements-pip.txt
+    ${PIP} -r tools/deps/requirements.txt
+    ${PIP} -r tools/deps/requirements-dev.txt
     if [ "${INSTALL_RELEASE_ARG:=0}" != "1" ]; then
-        ${PIP} -r requirements-tests.txt
+        ${PIP} -r tools/deps/requirements-tests.txt
         pyenv rehash
         pre-commit install
     fi
@@ -219,13 +209,6 @@ junit_arg() {
     echo "--junitxml=${junit}/${path}${run}.xml"
 }
 
-check_translations() {
-  local cmd="${PYTHON} tools/check_translations.py ./nxdrive/data/i18n"
-
-  echo ">>> Checking the translation files"
-  ${cmd}
-}
-
 launch_test() {
     # Launch tests on a specific path. On failure, retry failed tests.
     local cmd="${PYTHON} -bb -Wall -m pytest"
@@ -251,56 +234,7 @@ launch_tests() {
         return
     fi
 
-    if should_run "spell"; then
-        echo ">>> Checking the grammar"
-        echo "    Add '--interactive=3 --write-changes' arguments to the following command to allow interactive modifications."
-
-        local to_skip=""
-        for file in tools/spell.skip .gitignore; do
-            # Small santitization:
-            #   - skip empty lines and comments
-            #   - strip inline comments
-            excludes="$(cat "${file}" | sed '/^\s*$/d ; /^#.*$/d ; s/\s*#.*$//')"
-            for line in ${excludes}; do
-                # Codespell needs relative paths for folders
-                [ -e "${line}" ] && line="./${line}"
-                to_skip="${to_skip}${line},"
-            done
-        done
-
-        # Display the command to allow interactive mode later
-        set -x
-        codespell \
-            --ignore-words=tools/spell.whitelist \
-            --quiet-level=4 \
-            --skip="${to_skip}" \
-            2> /dev/null
-        set +x
-    fi
-
-    if should_run "flake8"; then
-        echo ">>> Checking the style"
-        ${PYTHON} -m flake8 .
-    fi
-
-    if should_run "mypy"; then
-        echo ">>> Checking type annotations"
-        ${PYTHON} -m mypy --platform=win32 nxdrive
-    fi
-
-    if should_run "cleanup"; then
-        echo ">>> Checking for dead code"
-        ${PYTHON} -m vulture nxdrive tools/whitelist.py
-    fi
-
-    if should_run "translations"; then
-      check_translations
-    fi
-
     if should_run "tests"; then
-        echo ">>> Launching unit tests"
-        launch_test "tests/unit"
-
         echo ">>> Launching functional tests"
         launch_test "tests/functional"
 
@@ -331,15 +265,6 @@ launch_tests() {
         if [ $ret -ne 0 ] && [ $ret -ne 5 ]; then
             exit 1
         fi
-    fi
-
-    if should_run "bench"; then
-        echo ">>> Benchmarking"
-        ${PYTHON} -m pytest -c benchmarks/empty.ini \
-            --benchmark-group-by=param \
-            --benchmark-sort=stddev \
-            --benchmark-columns=min,max,mean,stddev \
-            benchmarks
     fi
 }
 
@@ -464,7 +389,6 @@ main() {
                 fi
                 ;;
             "--start") start_nxdrive ;;
-            "--check-translations") check_translations ;;
             "--tests") launch_tests ;;
         esac
     fi

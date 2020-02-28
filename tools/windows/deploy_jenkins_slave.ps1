@@ -13,14 +13,7 @@
 # ---
 #
 # You can tweak tests checks by setting the SKIP envar:
-#    - SKIP=flake8 to skip code style
-#    - SKIP=mypy to skip type annotations
-#    - SKIP=cleanup to skip dead code checks
 #    - SKIP=rerun to not rerun failed test(s)
-#    - SKIP=bench to not run benchmarks
-#    - SKIP=integration to not run integration tests on Windows
-#    - SKIP=all to skip all above (equivalent to flake8,mypy,rerun,bench,integration)
-#    - SKIP=tests tu run only code checks
 #
 # There is no strict syntax about multiple skips (coma, coma + space, no separator, ... ).
 #
@@ -305,20 +298,20 @@ function install_deps {
 	}
 
 	Write-Output ">>> Installing requirements"
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r requirements-pip.txt
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-pip.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r requirements.txt
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
-	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r requirements-dev.txt
+	& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-dev.txt
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}
 	if (-Not ($install_release)) {
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r requirements-tests.txt
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -OO $global:PIP_OPT -r tools\deps\requirements-tests.txt
 		if ($lastExitCode -ne 0) {
 			ExitWithCode $lastExitCode
 		}
@@ -394,34 +387,7 @@ function launch_tests {
 		return
 	}
 
-	if (-not ($Env:SKIP -match 'flake8' -or $Env:SKIP -match 'all')) {
-		Write-Output ">>> Checking the style"
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m flake8 .
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
-	}
-
-	if (-not ($Env:SKIP -match 'mypy' -or $Env:SKIP -match 'all')) {
-		Write-Output ">>> Checking type annotations"
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m mypy --platform=win32 nxdrive
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
-	}
-
-	if (-not ($Env:SKIP -match 'cleanup' -or $Env:SKIP -match 'all')) {
-		Write-Output ">>> Checking for dead code"
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m vulture nxdrive tools\whitelist.py
-		if ($lastExitCode -ne 0) {
-			ExitWithCode $lastExitCode
-		}
-	}
-
 	if (-not ($Env:SKIP -match 'tests')) {
-		Write-Output ">>> Launching unit tests"
-		launch_test "tests\unit"
-
 		Write-Output ">>> Launching functional tests"
 		launch_test "tests\functional"
 
@@ -453,25 +419,6 @@ function launch_tests {
 		if ($ret -ne 0 -and $ret -ne 5) {
 			ExitWithCode $ret
 		}
-	}
-
-	if (-not ($Env:SKIP -match 'bench' -or $Env:SKIP -match 'all')) {
-		Write-Output ">>> Benchmarking"
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pytest `
-			-c "benchmarks\empty.ini" `
-			--benchmark-group-by=param `
-			--benchmark-sort=stddev `
-			--benchmark-columns=min,max,mean,stddev `
-			"benchmarks"
-	}
-
-	if (-not ($Env:SKIP -match 'integration' -or $Env:SKIP -match 'all')) {
-		Write-Output ">>> Freezing the application for integration tests"
-		$Env:FREEZE_ONLY = 1
-		build_installer
-
-		Write-Output ">>> Launching integration tests"
-		launch_test "tests\integration\windows" "-n0"
 	}
 }
 

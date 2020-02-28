@@ -47,9 +47,8 @@ See [docs/deployment.md](docs/deployment.md).
 
 ## Requirements Notes
 
-- The [PyUp bot](https://pyup.io/) will automatically check for updates and opend a PR if needed.
+- The [Dependabot](https://dependabot.com) will automatically check for updates and opend a PR if needed.
 - :warning: **SECURITY**: before upgrading a package, ensure its source code and its updated dependencies are safe to distribute.
-- Hashes are not used for testing packages as they are not distributed.
 
 ## Client Architecture
 

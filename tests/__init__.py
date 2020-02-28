@@ -1,7 +1,9 @@
 import logging
 import os
 import os.path
+import re
 import shutil
+import subprocess
 import sys
 from contextlib import contextmanager
 from typing import Any
@@ -81,12 +83,17 @@ def setup_sentry() -> None:
         "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
     )
 
-    # Force a Sentry env while working on a specific ticket
-    sentry_env = os.getenv("SENTRY_ENV", "testing")
-    if "JENKINS_URL" not in os.environ and sentry_env == "testing":
-        sys.exit(
-            "You must set SENTRY_ENV to the working issue, e.g.: SENTRY_ENV='NXDRIVE-42'."
-        )
+    # Guess the current branch
+    branch = subprocess.check_output(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"], encoding="utf-8"
+    )
+    ticket = re.findall(r".+(NXDRIVE-\d+)-.+", branch)
+    if ticket:
+        sentry_env = ticket[0]
+    elif "JENKINS_URL" in os.environ:
+        sentry_env = "testing"
+    else:
+        sys.exit("The branch is malformed, cannot guess the ticket.")
 
     import sentry_sdk
     from nxdrive import __version__
