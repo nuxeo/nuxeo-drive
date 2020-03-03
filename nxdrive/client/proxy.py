@@ -3,7 +3,6 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Any, Dict, Type
 
 import requests
-
 from pypac import get_pac
 from pypac.resolver import ProxyResolver
 

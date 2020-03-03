@@ -4,7 +4,6 @@ from contextlib import suppress
 
 import pytest
 import requests
-
 from nxdrive.options import Options
 from sentry_sdk import configure_scope
 

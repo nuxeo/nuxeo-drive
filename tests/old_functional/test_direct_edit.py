@@ -8,7 +8,6 @@ from urllib.error import URLError
 from uuid import uuid4
 
 import pytest
-
 from nuxeo.exceptions import Forbidden
 from nxdrive.constants import WINDOWS
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
