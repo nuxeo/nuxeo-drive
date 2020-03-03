@@ -484,8 +484,7 @@ class Remote(Nuxeo):
                     self.uploads.get(upload.batch["batchId"], file_idx=file_idx)
                 except Exception:
                     log.debug(
-                        "No associated batch found, restarting from zero",
-                        exc_info=True,
+                        "No associated batch found, restarting from zero", exc_info=True
                     )
                 else:
                     log.debug(f"Associated batch found, resuming the upload")
@@ -601,7 +600,8 @@ class Remote(Nuxeo):
                     uploader.upload()
 
                 # Complete the S3 upload
-                batch.complete()
+                # (setting a big timeout to handle big files)
+                batch.complete(timeout=(TX_TIMEOUT, TX_TIMEOUT))
 
             # Transfer is completed, update the status in the database
             upload.status = TransferStatus.DONE
