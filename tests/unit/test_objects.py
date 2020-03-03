@@ -45,8 +45,8 @@ def doc() -> NuxeoDocumentInfo:
                             "length": 0,
                             "mime-type": "text/plain",
                             "data": "",
-                        },
-                    },
+                        }
+                    }
                 ],
                 "foo:bar": [
                     {
@@ -77,10 +77,10 @@ def doc() -> NuxeoDocumentInfo:
                                     "length": 0,
                                     "mime-type": "text/plain",
                                     "data": "",
-                                },
-                            },
-                        ],
-                    ],
+                                }
+                            }
+                        ]
+                    ]
                 ],
                 "note:note": {
                     "name": "note.empty",
