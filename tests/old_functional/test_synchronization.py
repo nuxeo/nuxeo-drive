@@ -790,6 +790,38 @@ class TestSynchronization(OneUserTest):
         assert children[0].name == file1
         assert children[1].name == file2
 
+    def test_416_range_past_eof(self):
+        """
+        Test wrong bytes range during download.
+        """
+
+        remote = self.remote_document_client_1
+        local = self.local_1
+        engine = self.engine_1
+
+        engine.start()
+        self.wait_sync(wait_for_async=True)
+        assert local.exists("/")
+
+        remote.make_file("/", "test.bin", content=b"42")
+
+        # Simulate a requested range not satisfiable on file download
+        bad_remote = self.get_bad_remote()
+        error = HTTPError(status=416, message="Mock Requested Range Not Satisfiable")
+        bad_remote.make_download_raise(error)
+
+        with patch.object(self.engine_1, "remote", new=bad_remote):
+            self.wait_sync(fail_if_timeout=False)
+            # Checks
+            assert engine.dao.queue_manager.get_errors_count() == 1
+
+        # Starting here, default behavior is restored
+        self.wait_sync()
+
+        # Checks
+        assert not engine.dao.get_errors()
+        assert local.exists("/test.bin")
+
     def test_local_modify_offline(self):
         local = self.local_1
         engine = self.engine_1
