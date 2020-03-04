@@ -158,7 +158,6 @@ class QMLDriveApi(QObject):
 
     @pyqtSlot(str, result=str)
     def get_notifications(self, engine_uid: str) -> str:
-        engine_uid = engine_uid
         center = self._manager.notification_service
         notif = self._export_notifications(center.get_notifications(engine_uid))
         return self._json(notif)
