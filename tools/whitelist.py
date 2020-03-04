@@ -16,7 +16,6 @@ CliHandler.unbind_server  # Used by the arguments parser
 _.close_settings_too  # Used by Appiclation.show_filters()
 DocPair.last_sync_error_date  # Check NXDRIVE-1804
 Download.transfer_type  # Used in QML
-Engine.account  # Used in QML
 Engine.folder  # Used in QML
 EngineDAO.get_downloads_with_status()  # Used dynamically in Engine
 EngineDAO.get_uploads_with_status()  # Used dynamically in Engine

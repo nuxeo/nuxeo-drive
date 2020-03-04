@@ -657,7 +657,6 @@ class Engine(QObject):
         self.wui = self.dao.get_config("ui", default="jsf")
         self.force_ui = self.dao.get_config("force_ui")
         self.remote_user = self.dao.get_config("remote_user")
-        self.account = f"{self.remote_user} • {self.name}"
         self._remote_token = self.dao.get_config("remote_token")
         self._ssl_verify = self.dao.get_bool("ssl_verify", default=True)
         if Options.ssl_no_verify:
@@ -973,7 +972,6 @@ class Engine(QObject):
         check_fs = not (Options.nofscheck or binder.no_fscheck)
         self.server_url = self._normalize_url(binder.url)
         self.remote_user = binder.username
-        self.account = f"{self.remote_user} • {self.name}"
         self._remote_password = binder.password
         self._remote_token = binder.token
         self._web_authentication = self._remote_token is not None

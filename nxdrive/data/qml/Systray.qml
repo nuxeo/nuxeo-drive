@@ -6,7 +6,7 @@ import "icon-font/Icon.js" as MdiFont
 
 Rectangle {
     id: systray
-    width: 300; height: 370
+    width: 365; height: 370
     border {
         width: 1
         color: "#33000000"
@@ -111,11 +111,14 @@ Rectangle {
 
             RowLayout {
                 anchors.fill: parent
+                anchors {
+                    leftMargin: 10
+                }
 
                 // Icon 1: accounts
                 IconLabel {
                     id: accountIcon
-                    icon: MdiFont.Icon.accountOutline
+                    icon: MdiFont.Icon.accountCircle
                     enabled: false
                 }
 

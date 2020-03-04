@@ -19,6 +19,7 @@ Rectangle {
     // The accounts list
     Item {
         visible: hasAccounts
+        id: accountSelection
 
         anchors {
             top: parent.top
@@ -27,18 +28,21 @@ Rectangle {
             leftMargin: 30
         }
 
+        // User selection
+        ScaledText { text: qsTr("USERNAME") + tl.tr; color: mediumGray }
         GridLayout {
-            columns: 3
-            columnSpacing: 5
+            columns: 2
+
+            anchors {
+                left: parent.left
+                leftMargin: 185
+            }
 
             // Account icon
             IconLabel {
-                icon: MdiFont.Icon.account
+                icon: MdiFont.Icon.accountCircle
                 enabled: false
             }
-
-            // Accounts label
-            ScaledText { text: qsTr("SELECT_ACCOUNT") + tl.tr }
 
             // Dropdown list
             AccountsComboBox {
@@ -53,9 +57,9 @@ Rectangle {
         currentIndex: accountSelect.currentIndex
 
         anchors {
-            top: parent.top
+            top: accountSelection.bottom
             left: parent.left
-            topMargin: 100
+            topMargin: 35
             leftMargin: 30
         }
 
