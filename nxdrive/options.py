@@ -336,71 +336,70 @@ class MetaOptions(type):
             err = f"{item!r} is not a recognized parameter.{src_err}"
             if fail_on_error:
                 raise RuntimeError(err)
+
+            log.warning(err)
+            return
+
+        if isinstance(new_value, list):
+            # Need a tuple when JSON sends a simple list
+            new_value = tuple(sorted({*old_value, *new_value}))
+        elif isinstance(new_value, bytes):
+            # No option needs bytes
+            new_value = new_value.decode("utf-8")
+
+        # Try implicit conversions. We do not use isinstance to prevent
+        # checking against subtypes.
+        type_orig = type(old_value)
+        if type_orig is bool:
+            with suppress(ValueError, TypeError):
+                new_value = bool(new_value)
+        elif type_orig is int:
+            with suppress(ValueError, TypeError):
+                new_value = int(new_value)
+
+        # Check the new value meets our requirements, if any
+        check = MetaOptions.checkers.get(item, None)
+        if callable(check):
+            try:
+                new_value = check(new_value)
+            except ValueError as exc:
+                log.warning(str(exc))
+                log.warning(
+                    f"Callback check for {item!r} denied modification."
+                    f" Value is still {old_value!r}."
+                )
+                return
+
+        # If the option was set from a local config file, it must be taken into account
+        # event if the value is the same as the default one (see NXDRIVE-1980).
+        if new_value == old_value and setter not in ("local", "manual"):
+            return
+
+        # We allow to set something when the default is None
+        if not isinstance(new_value, type_orig) and not isinstance(
+            old_value, type(None)
+        ):
+            err = (
+                f"The type of the {item!r} option is {type(new_value).__name__}, "
+                f"while {type(old_value).__name__} is required.{src_err}"
+            )
+            if fail_on_error:
+                raise TypeError(err)
             else:
                 log.warning(err)
-        else:
-            if isinstance(new_value, list):
-                # Need a tuple when JSON sends a simple list
-                new_value = tuple(sorted({*old_value, *new_value}))
-            elif isinstance(new_value, bytes):
-                # No option needs bytes
-                new_value = new_value.decode("utf-8")
 
-            # Try implicit conversions. We do not use isinstance to prevent
-            # checking against subtypes.
-            type_orig = type(old_value)
-            if type_orig is bool:
-                with suppress(ValueError, TypeError):
-                    new_value = bool(new_value)
-            elif type_orig is int:
-                with suppress(ValueError, TypeError):
-                    new_value = int(new_value)
+        # Only update if the setter has rights to
+        if MetaOptions._setters[setter] < MetaOptions._setters[old_setter]:
+            return
 
-            # Check the new value meets our requirements, if any
-            check = MetaOptions.checkers.get(item, None)
-            if callable(check):
-                try:
-                    new_value = check(new_value)
-                except ValueError as exc:
-                    log.warning(str(exc))
-                    log.warning(
-                        f"Callback check for {item!r} denied modification."
-                        f" Value is still {old_value!r}."
-                    )
-                    return
+        MetaOptions.options[item] = new_value, setter
+        log.info(f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]")
+        log.debug(str(Options))
 
-            # If the option was set from a local config file, it must be taken into account
-            # event if the value is the same as the default one (see NXDRIVE-1980).
-            if new_value == old_value and setter not in ("local", "manual"):
-                return
-
-            # We allow to set something when the default is None
-            if not isinstance(new_value, type_orig) and not isinstance(
-                old_value, type(None)
-            ):
-                err = (
-                    f"The type of the {item!r} option is {type(new_value).__name__}, "
-                    f"while {type(old_value).__name__} is required.{src_err}"
-                )
-                if fail_on_error:
-                    raise TypeError(err)
-                else:
-                    log.warning(err)
-
-            # Only update if the setter has rights to
-            if MetaOptions._setters[setter] < MetaOptions._setters[old_setter]:
-                return
-
-            MetaOptions.options[item] = new_value, setter
-            log.info(
-                f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]"
-            )
-            log.debug(str(Options))
-
-            # Callback for that option
-            callback = MetaOptions.callbacks.get(item)
-            if callable(callback):
-                callback(new_value)
+        # Callback for that option
+        callback = MetaOptions.callbacks.get(item)
+        if callable(callback):
+            callback(new_value)
 
     @staticmethod
     def update(
