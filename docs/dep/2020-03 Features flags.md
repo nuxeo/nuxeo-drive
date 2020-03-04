@@ -30,7 +30,7 @@ Both will be effective when set from the [server's configuration file](https://d
 Features will be also effective from the [local configuration file](https://doc.nuxeo.com/client-apps/nuxeo-drive/#configuration-file).
 Meaning that one can force a feature state using its local configuration.
 
-Behaviors are not meant to be effective when set locally because they are targetting server-side behaviors the IT teams do want to really control.
+Behaviors are not meant to be effective when set locally because they are targeting server-side behaviors the IT teams do want to really control.
 
 ## Specifications
 
@@ -69,8 +69,6 @@ The file format is JSON, and the syntax would be like:
 }
 ```
 
-Note: starting with Nuxeo Drive 4.0.2, the server configuration is not checked in strict mode (introduced within [NXDRIVE-1438](https://jira.nuxeo.com/browse/NXDRIVE-1438)), e.g.: unknown parameters __will not__ make the application to crash.
-
 ### Local Configuration
 
 The file format is INI, and the syntax would be like:
@@ -86,7 +84,20 @@ features[direct-transfer] = false
 features[s3]              = true
 ```
 
-Note: starting with Nuxeo Drive 4.0.0 ([NXDRIVE-1300](https://jira.nuxeo.com/browse/NXDRIVE-1300)), the local configuration is checked in strict mode, e.g.: unknown parameters __will__ make the application to crash.
+## Backward Compatibility
+
+Starting with Nuxeo Drive 4.0.2, the server configuration is not checked in strict mode (introduced within [NXDRIVE-1438](https://jira.nuxeo.com/browse/NXDRIVE-1438)), e.g.: unknown parameters __will not__ make the application to crash.
+
+Starting with Nuxeo Drive 4.0.0 ([NXDRIVE-1300](https://jira.nuxeo.com/browse/NXDRIVE-1300)), the local configuration is checked in strict mode, e.g.: unknown parameters __will__ make the application to crash.
+
+So it is quite safe to setup new parameters globally as Nuxeo Drive 4.0.2 is already quite old (2018-12-06) and Nuxeo recommends to always use an up-to-date version.
+
+## Possible Issues
+
+New parameters should be safe to use, we do not expect regression nor issue.
+
+But there is still something to be aware of: when one has several accounts added in the application, and if 1 of the servers restricts some features/behaviors, then the configuration will be effective for all accounts.
+This is not an bug: the application is not meant to be used that way and such mechanism is not part of it.
 
 ## Rejected Ideas
 
