@@ -819,7 +819,7 @@ class TestSynchronization(OneUserTest):
 
         # Checks
         assert not engine.dao.get_errors()
-        assert self.local_1.exists("/test.bin")
+        assert local.exists("/test.bin")
 
     def test_local_modify_offline(self):
         local = self.local_1
