@@ -84,6 +84,19 @@ features[direct-transfer] = false
 features[s3]              = true
 ```
 
+### Default Values
+
+When configuration files do not expose those new parameters, default values apply.
+The up-to-date documentation can be found here: [TODO NXDOC-2083](https://jira.nuxeo.com/browse/NXDOC-2083).
+
+At the time of that DEP, defaults are:
+
+- `auto-update`: `true`
+- `direct-edit`: `true`
+- `direct-transfer`: `false`
+- `s3`: `true`
+- `server-deletions`: `true`
+
 ## Backward Compatibility
 
 Starting with Nuxeo Drive 4.0.2, the server configuration is not checked in strict mode (introduced within [NXDRIVE-1438](https://jira.nuxeo.com/browse/NXDRIVE-1438)), e.g.: unknown parameters __will not__ make the application to crash.
