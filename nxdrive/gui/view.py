@@ -47,7 +47,7 @@ class EngineModel(QAbstractListModel):
             self.URL_ROLE: b"server_url",
             self.UI_ROLE: b"wui",
             self.FORCE_UI_ROLE: b"force_ui",
-            self.ACCOUNT_ROLE: b"account",
+            self.ACCOUNT_ROLE: b"remote_user",
         }
         self.roles = {value: key for key, value in self.names.items()}
 

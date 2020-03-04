@@ -5,7 +5,7 @@ import QtQuick.Layouts 1.13
 NuxeoComboBox {
     id: control
     model: EngineModel
-    textRole: "account"
+    textRole: "remote_user"
 
     // Use elide when text is too long
     elideStyle: Text.ElideRight
