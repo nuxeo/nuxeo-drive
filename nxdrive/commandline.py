@@ -8,6 +8,7 @@ from argparse import ArgumentParser, Namespace
 from configparser import DEFAULTSECT, ConfigParser
 from datetime import datetime
 from logging import getLogger
+from pathlib import Path
 from typing import TYPE_CHECKING, List, Union
 
 from . import __version__
@@ -433,13 +434,23 @@ class CliHandler:
             # This is the case on Windows only, values from the registry
             Options.update(args, setter="local", file="the Registry")
 
-        for conf_file in {
-            os.path.join(os.path.dirname(sys.executable), conf_name),
-            os.path.join(Options.nxdrive_home, conf_name),
-            conf_name,
-        }:
+        for conf_file in (
+            Path(sys.executable).parent / conf_name,
+            Path(Options.nxdrive_home) / conf_name,
+            Path(conf_name),
+        ):
+            if not conf_file.is_file():
+                continue
+
             config = ConfigParser()
-            config.read(conf_file)
+            with conf_file.open(encoding="utf-8") as fh:
+                try:
+                    config.read_file(fh)
+                except Exception:
+                    log.warning(
+                        f"Skipped malformed config file {conf_file!r}", exc_info=True
+                    )
+                    continue
 
             if config.has_option(DEFAULTSECT, "env"):
                 env = config.get(DEFAULTSECT, "env")
