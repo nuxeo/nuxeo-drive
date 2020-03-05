@@ -20,6 +20,7 @@ from nuxeo.exceptions import (
 from PyQt5.QtCore import pyqtSignal
 from urllib3.exceptions import MaxRetryError
 
+from ..behavior import Behavior
 from ..client.local import FileInfo
 from ..constants import (
     CONNECTION_ERROR,
@@ -919,6 +920,15 @@ class Processor(EngineWorker):
             self.dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
             self.remove_void_transfers(doc_pair)
+            return
+
+        if not Behavior.server_deletion:
+            log.debug(
+                "Server deletions are forbidden, skipping the remote deletion"
+                f" and marking {doc_pair.local_path!r} as filtered"
+            )
+            self.dao.remove_state(doc_pair)
+            self.dao.add_filter(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}")
             return
 
         if doc_pair.remote_can_delete:

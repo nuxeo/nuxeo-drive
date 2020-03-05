@@ -32,12 +32,14 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 - bool: boolean
 - int: integer
 - list: list of strings (one item by line)
+- map: simple key/value map.
 - str: string
 
 ### Available Parameters
 
 | Parameter | Default Value | Type | Version Added | Description
 |---|---|---|---|---
+| `behavior` | [...](#behaviors) | map | 4.4.2 | Application behavior that can be turned on/off on-demand. That parameter cannot be set via the local configuration file: only the server has rights to define it.
 | `big-file` | 300 | int | 4.1.4 | File size in MiB. Files bigger than this limit are considered "big". This implies few tweaks in the synchronization engine like bypassing most of the expensive and time consuming digest computations. It is a tradeoff to handle large files as best effort.
 | `ca-bundle` | None | str | 4.0.2 | File or directory with certificates of trusted Certificate Authorities. If set, `ssl-no-verify` has no effect. See the `requests` [documentation](http://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for more details.
 | `channel` | centralized | str | 4.0.2 | Update channel. Can be centralized, release, beta or alpha.
@@ -82,6 +84,27 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 Other changes:
 
 - `channel` was set to "release" in 4.0.2. It then changed to "centralized" in 4.2.0.
+
+## Behaviors
+
+The application can be tweaked using on-demand on/off options via the `behavior` parameter.
+As this is targeting server actions, this parameter cannot be set via the local configuration file but only via the server configuration one.
+
+Available behaviors:
+
+| Parameter | Default Value (bool) | Version Added | Description
+|---|---|---|---
+| `server_deletion` | true | 4.4.2 | Allow or disallow server deletions.
+
+Here is how to tweak behaviors via the server configuration file:
+
+```json
+{
+  "behavior": {
+    "server-deletion": true
+  }
+}
+```
 
 ## Command Line Arguments
 
