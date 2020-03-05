@@ -419,6 +419,7 @@ function launch_tests {
 		if (-not ($Env:SKIP -match 'rerun' -or $Env:SKIP -match 'all')) {
 			Write-Output ">>> Re-rerun failed tests"
 
+			& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pytest --cache-show
 			# Will return 0 if rerun is needed else 1
 			& $Env:STORAGE_DIR\Scripts\python.exe tools\check_pytest_lastfailed.py
 			if ($lastExitCode -eq 1) {

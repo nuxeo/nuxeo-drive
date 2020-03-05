@@ -217,7 +217,6 @@ launch_test() {
     ${cmd} ${pytest_args} `junit_arg ${path} 1` "${path}" && return
 
     if should_run "rerun"; then
-        # ${cmd} --cache-show
         # Will return 0 if rerun is needed else 1
         ${PYTHON} tools/check_pytest_lastfailed.py || return
 
@@ -258,6 +257,7 @@ launch_tests() {
         if should_run "rerun"; then
             echo ">>> Re-rerun failed tests"
 
+            ${PYTHON} -m pytest --cache-show
             # Will return 0 if rerun is needed else 1
             ${PYTHON} tools/check_pytest_lastfailed.py || return
 
