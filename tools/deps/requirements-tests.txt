@@ -32,8 +32,9 @@ junitparser==1.4.1 \
 more-itertools==8.2.0 \
     --hash=sha256:5dd8bcf33e5f9513ffa06d5ad33d78f31e1931ac9a18f33d37e77a180d393a7c
     # via pytest
-packaging==20.1 \
-    --hash=sha256:170748228214b70b672c581a3dd610ee51f733018650740e98c7df862a583f73
+packaging==20.3 \
+    --hash=sha256:82f77b9bee21c1bafbf35a84905d604d5d1223801d639cf3ed140bd651c08752 \
+    --hash=sha256:3c292b474fda1671ec57d46d739d072bfd495a4f51ad01a055121d81e952b7a3
     # via pytest
 pluggy==0.13.1 \
     --hash=sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d
