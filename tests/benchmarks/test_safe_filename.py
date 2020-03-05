@@ -6,7 +6,6 @@ but it is the best when there are non-ASCII characters.
 """
 import pytest
 
-
 FILENAMES = [
     ("nom-valide.sh", "nom-valide.sh"),
     ("Ça, c'est un nom de fichié (2).odt", "Ça, c'est un nom de fichié (2).odt"),

@@ -3,13 +3,14 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-from requests import ConnectionError
 from nuxeo.exceptions import HTTPError, Unauthorized
 from nxdrive.constants import ROOT, WINDOWS
 from nxdrive.utils import safe_filename
+from requests import ConnectionError
+
 from .. import ensure_no_exception
-from .common import OS_STAT_MTIME_RESOLUTION, OneUserNoSync, OneUserTest, TwoUsersTest
 from . import LocalTest
+from .common import OS_STAT_MTIME_RESOLUTION, OneUserNoSync, OneUserTest, TwoUsersTest
 
 
 class TestSynchronizationDisabled(OneUserNoSync):

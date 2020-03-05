@@ -7,7 +7,6 @@ from time import sleep
 from unittest.mock import patch
 
 import pytest
-
 from nuxeo.exceptions import HTTPError
 from nxdrive.engine.dao.sqlite import EngineDAO
 

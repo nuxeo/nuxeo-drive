@@ -12,8 +12,6 @@ from typing import Optional, Tuple
 from unittest import TestCase
 from uuid import uuid4
 
-from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
-
 from faker import Faker
 from nuxeo.exceptions import BadQuery
 from nuxeo.models import Document, User
@@ -24,6 +22,7 @@ from nxdrive.manager import Manager
 from nxdrive.options import Options
 from nxdrive.translator import Translator
 from nxdrive.utils import normalized_path
+from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, pyqtSlot
 from sentry_sdk import configure_scope
 
 from .. import env

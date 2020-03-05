@@ -3,9 +3,8 @@ from functools import partial
 from logging import getLogger
 from typing import Iterator, List, Union
 
-from PyQt5.QtCore import QObject, Qt
-
 from nuxeo.models import Document
+from PyQt5.QtCore import QObject, Qt
 
 from ..client.remote_client import Remote
 from ..objects import Filters, RemoteFileInfo

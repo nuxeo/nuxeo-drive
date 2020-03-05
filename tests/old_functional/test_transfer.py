@@ -3,11 +3,10 @@ Test pause/resume transfers in different scenarii.
 """
 from unittest.mock import patch
 
-from requests.exceptions import ConnectionError
-
 from nuxeo.exceptions import HTTPError
 from nxdrive.constants import FILE_BUFFER_SIZE, TransferStatus
 from nxdrive.options import Options
+from requests.exceptions import ConnectionError
 
 from .. import ensure_no_exception
 from ..markers import not_windows

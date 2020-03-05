@@ -184,7 +184,7 @@ def run_sonar() {
                     -Dsonar.projectVersion="${drive_version}" \
                     -Dsonar.sources=../nxdrive \
                     -Dsonar.tests=../tests \
-                    -Dsonar.python.coverage.reportPath=coverage.xml \
+                    -Dsonar.python.coverage.reportPaths=coverage.xml \
                     -Dsonar.python.pylint.reportPath=pylint-report.txt \
                     -Dsonar.exclusions=ftest/pom.xml
                 """

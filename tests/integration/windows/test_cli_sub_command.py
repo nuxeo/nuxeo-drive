@@ -4,7 +4,6 @@ import stat
 from logging import getLogger
 
 import pytest
-
 from nuxeo.documents import Document
 
 from ... import env
