@@ -373,6 +373,12 @@ function launch_test($path, $pytest_args) {
 	if (-not ($Env:SKIP -match 'rerun' -or $Env:SKIP -match 'all')) {
 		# Do not fail on error as all failures will be re-run another time at the end
 		$junitxml = junit_arg $path 2
+		& $Env:STORAGE_DIR\Scripts\python.exe tools\check_pytest_lastfailed.py
+
+		if ($lastExitCode -eq 1) {
+			return
+		}
+
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
 			--last-failed --last-failed-no-failures none $junitxml
 	}
@@ -380,6 +386,11 @@ function launch_test($path, $pytest_args) {
 
 function launch_tests {
 	$junit_folder = "tools\jenkins\junit\xml"
+
+	if (Test-Path ".pytest_cache") {
+		Remove-Item -Path ".pytest_cache" -Verbose
+	}
+
 	# If a specific test is asked, just run it and bypass all over checks
 	if ($Env:SPECIFIC_TEST -ne "tests") {
 		Write-Output ">>> Launching the tests suite"
@@ -407,6 +418,12 @@ function launch_tests {
 
 		if (-not ($Env:SKIP -match 'rerun' -or $Env:SKIP -match 'all')) {
 			Write-Output ">>> Re-rerun failed tests"
+
+			& $Env:STORAGE_DIR\Scripts\python.exe tools\check_pytest_lastfailed.py
+			if ($lastExitCode -eq 1) {
+				return
+			}
+
 			$junitxml = junit_arg "final"
 			& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
 				--last-failed --last-failed-no-failures none $junitxml
