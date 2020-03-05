@@ -217,6 +217,10 @@ launch_test() {
     ${cmd} ${pytest_args} `junit_arg ${path} 1` "${path}" && return
 
     if should_run "rerun"; then
+        # ${cmd} --cache-show
+        # Will return 0 if rerun is needed else 1
+        ${PYTHON} tools/check_pytest_lastfailed.py || return
+
         # Do not fail on error as all failures will be re-run another time at the end
         ${cmd} --last-failed --last-failed-no-failures none `junit_arg ${path} 2`  || true
     fi
@@ -225,6 +229,8 @@ launch_test() {
 launch_tests() {
     local ret=0
     local junit_folder="tools/jenkins/junit/xml"
+
+    rm -rf .pytest_cache
 
     # If a specific test is asked, just run it and bypass all over checks
     if [ "${SPECIFIC_TEST}" != "tests" ]; then
@@ -251,6 +257,10 @@ launch_tests() {
 
         if should_run "rerun"; then
             echo ">>> Re-rerun failed tests"
+
+            # Will return 0 if rerun is needed else 1
+            ${PYTHON} tools/check_pytest_lastfailed.py || return
+
             set +e
             ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none `junit_arg "final"`
             # The above command will exit with error code 5 if there is no failure to rerun
