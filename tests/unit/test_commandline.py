@@ -1,9 +1,8 @@
 # coding: utf-8
-from contextlib import suppress
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from nxdrive.commandline import CliHandler
 from nxdrive.options import Options
 from nxdrive.utils import normalized_path
@@ -11,8 +10,9 @@ from nxdrive.utils import normalized_path
 from ..markers import mac_only, windows_only
 
 
-def create_ini(env: str = "PROD") -> None:
-    with open(Options.nxdrive_home / "config.ini", "w") as f:
+def create_ini(env: str = "PROD", encoding: str = "utf-8") -> Path:
+    path = Options.nxdrive_home / "config.ini"
+    with open(path, "w", encoding=encoding) as f:
         f.writelines(
             f"""
 [DEFAULT]
@@ -29,6 +29,7 @@ delay = 3
 tmp-file-limit = 0.0105
 """
         )
+    return path
 
 
 def create_ini_bad():
@@ -55,8 +56,18 @@ def cmd(tmp):
 
     yield CliHandler()
 
-    with suppress(FileNotFoundError):
-        (Options.nxdrive_home / "config.ini").unlink()
+
+@pytest.fixture
+def config():
+    path_list = []
+
+    def _config(**kwargs):
+        path_list.append(create_ini(**kwargs))
+
+    yield _config
+
+    for path in path_list:
+        path.unlink()
 
 
 def test_redact_payload(cmd):
@@ -74,6 +85,13 @@ def test_update_site_url(cmd):
     # Normal arg
     options = cmd.parse_cli(argv)
     assert options.update_site_url == "DEBUG_TEST"
+
+
+@Options.mock()
+@pytest.mark.parametrize("encoding", ["utf-16", "utf-8-sig"])
+def test_bad_encoding_utf_16(encoding, cmd, config):
+    config(encoding=encoding)
+    cmd.parse_cli([])
 
 
 @Options.mock()
@@ -155,7 +173,3 @@ def test_malformatted_line(cmd):
     # Unknown logging level ('=', 'DEBUG', 'False', 'debug'), need to be one of ...
     # Callback check for 'log_level_console' denied modification. Value is still 'WARNING'.
     assert Options.log_level_console == "WARNING"
-
-
-def test_z_last_ensure_options_not_modified():
-    assert str(Options) == "Options()"
