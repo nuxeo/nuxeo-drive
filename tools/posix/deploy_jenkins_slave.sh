@@ -257,6 +257,8 @@ launch_tests() {
 
         if should_run "rerun"; then
             echo ">>> Re-rerun failed tests"
+
+            # Will return 0 if rerun is needed else 1
             ${PYTHON} tools/check_pytest_lastfailed.py || return
 
             set +e
