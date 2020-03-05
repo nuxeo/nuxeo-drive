@@ -1,7 +1,7 @@
 # Features and Behaviors Flags
 
 - Created: 2020-03-03
-- Last-Modified: 2020-03-04
+- Last-Modified: 2020-03-06
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
           Patrick Abgrall <pabgrall@nuxeo.com>
 - Reviewer: Yannis Achour <yachour@nuxeo.com>
@@ -57,8 +57,8 @@ The file format is JSON, and the syntax would be like:
 
 ```json
 {
-    "behaviors": {
-        "server-deletions": true
+    "behavior": {
+        "server-deletion": true
     },
     "features": {
         "auto-updates"    : true,
@@ -95,7 +95,7 @@ At the time of that DEP, defaults are:
 - `direct-edit`: `true`
 - `direct-transfer`: `false`
 - `s3`: `true`
-- `server-deletions`: `true`
+- `server-deletion`: `true`
 
 ## Backward Compatibility
 

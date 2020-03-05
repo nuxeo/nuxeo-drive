@@ -30,6 +30,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..behavior import Behavior
 from ..constants import (
     APP_NAME,
     BUNDLE_IDENTIFIER,
@@ -549,7 +550,12 @@ class Application(QApplication):
     @pyqtSlot(Path)
     def _doc_deleted(self, path: Path) -> None:
         engine: Engine = self.sender()
-        mode = self.confirm_deletion(path)
+
+        if not Behavior.server_deletion:
+            mode = DelAction.UNSYNC
+            log.debug(f"Server deletions behavior is False, mode set to {mode.value!r}")
+        else:
+            mode = self.confirm_deletion(path)
 
         if mode is DelAction.ROLLBACK:
             # Re-sync the document
