@@ -420,17 +420,16 @@ function launch_tests {
 			Write-Output ">>> Re-rerun failed tests"
 
 			& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -m pytest --cache-show
+
 			# Will return 0 if rerun is needed else 1
 			& $Env:STORAGE_DIR\Scripts\python.exe tools\check_pytest_lastfailed.py
-			if ($lastExitCode -eq 1) {
-				return
+			if ($lastExitCode -eq 0) {
+				$junitxml = junit_arg "final"
+				& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
+					--last-failed --last-failed-no-failures none $junitxml
+				# The above command will exit with error code 5 if there is no failure to rerun
+				$ret = $lastExitCode
 			}
-
-			$junitxml = junit_arg "final"
-			& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT -bb -Wall -m pytest `
-				--last-failed --last-failed-no-failures none $junitxml
-			# The above command will exit with error code 5 if there is no failure to rerun
-			$ret = $lastExitCode
 		}
 
 		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\jenkins\junit\merge.py

@@ -258,11 +258,11 @@ launch_tests() {
             echo ">>> Re-rerun failed tests"
 
             ${PYTHON} -m pytest --cache-show
-            # Will return 0 if rerun is needed else 1
-            ${PYTHON} tools/check_pytest_lastfailed.py || return
 
             set +e
-            ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none `junit_arg "final"`
+            # Will return 0 if rerun is needed else 1
+            ${PYTHON} tools/check_pytest_lastfailed.py && \
+                ${PYTHON} -bb -Wall -m pytest --last-failed --last-failed-no-failures none `junit_arg "final"`
             # The above command will exit with error code 5 if there is no failure to rerun
             ret=$?
             set -e
