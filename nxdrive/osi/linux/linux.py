@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from logging import getLogger
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, Dict
 
 from ...constants import APP_NAME, NXDRIVE_SCHEME
 from ...objects import DocPair
@@ -18,6 +18,9 @@ __all__ = ("LinuxIntegration",)
 
 log = getLogger(__name__)
 
+if TYPE_CHECKING:
+    from ..manager import Manager  # noqa
+
 
 class LinuxIntegration(AbstractOSIntegration):
 
@@ -25,7 +28,6 @@ class LinuxIntegration(AbstractOSIntegration):
 
     def __init__(self, manager: Optional["Manager"]):
         super().__init__(manager)
-        self._manager = manager
 
         shared_icons = Path.home() / ".local/share/icons"
         shared_icons.mkdir(parents=True, exist_ok=True)
@@ -145,7 +147,7 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
         except Exception:
             log.exception("Error while trying to send status to FinderSync")
 
-    def _set_icon(self, status):
+    def _set_icon(self, status: Dict[str, str]) -> None:
         value = Status(int(status["value"]))
         path = status["path"]
         emblem = icon_status[value]
