@@ -1,4 +1,5 @@
 # coding: utf-8
+import filecmp
 import os
 import shutil
 import subprocess
@@ -28,24 +29,7 @@ class LinuxIntegration(AbstractOSIntegration):
 
     def __init__(self, manager: Optional["Manager"]):
         super().__init__(manager)
-
-        shared_icons = Path.home() / ".local/share/icons"
-        shared_icons.mkdir(parents=True, exist_ok=True)
-
-        status_list = ["synced", "syncing", "conflicted", "error", "locked", "unsynced"]
-        for status in status_list:
-
-            icon = find_icon("") / "overlay" / "linux" / ("badge_" + status + ".svg")
-            if not icon.exists():
-                continue
-            emblem = shared_icons / ("emblem-nuxeo_" + status + ".svg")
-            if emblem.is_file():
-                continue
-            try:
-                shutil.copy(icon, emblem)
-            except shutil.Error:
-                log.warning(f"Could not copy {icon!r} to {shared_icons!r}")
-                return
+        self._icons_to_emblems()
 
     @staticmethod
     def cb_get() -> str:
@@ -165,3 +149,34 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
         except subprocess.CalledProcessError:
             log.warning(f"Could not set the {emblem} emblem on {path!r}")
         return
+
+    def _icons_to_emblems(self):
+        """
+            Copy nuxeo overlay icons to linux local icons folder.
+            Previous local icons will be replaced.
+        """
+        shared_icons = Path.home() / ".local/share/icons"
+        shared_icons.mkdir(parents=True, exist_ok=True)
+
+        status_list = ["synced", "syncing", "conflicted", "error", "locked", "unsynced"]
+        for status in status_list:
+
+            icon = find_icon("") / "overlay" / "linux" / ("badge_" + status + ".svg")
+            if not icon.exists():
+                continue
+            emblem = shared_icons / ("emblem-nuxeo_" + status + ".svg")
+
+            identical = False
+            try:
+                identical = filecmp.cmp(icon, emblem, shallow=False)
+            except Exception:
+                log.warning(f"Could not compare {icon!r} with {emblem!r}")
+            if emblem.is_file() and identical:
+                print("file are the same")
+                continue
+
+            try:
+                shutil.copy(icon, emblem)
+            except shutil.Error:
+                log.warning(f"Could not copy {icon!r} to {shared_icons!r}")
+                return
