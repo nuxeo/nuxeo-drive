@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 63.1 (92452) - https://sketch.com -->
+    <title>System/Badges/Check</title>
+    <desc>Created with Sketch.</desc>
+    <g id="System/Badges/Check" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <polygon id="Rectangle" points="0 0 24 0 24 24 0 24"></polygon>
+        <g id="Group-2">
+            <path d="M12,24 C5.38318367,24 0,18.6168163 0,12 C0,5.38318367 5.38318367,0 12,0 C18.6168163,0 24,5.38318367 24,12 C24,18.6168163 18.6168163,24 12,24" id="Fill-1" fill="#0066FF"></path>
+            <path d="M18.624465,6.234015 L17.369565,5.380965 C17.022315,5.145915 16.546665,5.236065 16.314315,5.580615 L10.162965,14.651865 L7.335915,11.824965 C7.040715,11.529615 6.559515,11.529615 6.264315,11.824965 L5.189865,12.899415 C4.894665,13.194615 4.894665,13.675815 5.189865,13.973865 L9.536865,18.320865 C9.780165,18.564165 10.162965,18.750015 10.507365,18.750015 C10.851915,18.750015 11.199015,18.534015 11.423265,18.208665 L18.826815,7.286565 C19.061865,6.942165 18.971565,6.469065 18.624465,6.234015" id="Fill-6" fill="#FFFFFF"></path>
+        </g>
+    </g>
+</svg>

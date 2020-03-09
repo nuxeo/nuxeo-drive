@@ -34,6 +34,16 @@ class Status(Enum):
     UNSYNCED = 6
 
 
+icon_status = {
+    Status.SYNCED: "emblem-nuxeo_synced",
+    Status.SYNCING: "emblem-nuxeo_syncing",
+    Status.CONFLICTED: "emblem-nuxeo_conflicted",
+    Status.ERROR: "emblem-nuxeo_error",
+    Status.LOCKED: "emblem-nuxeo_locked",
+    Status.UNSYNCED: "emblem-nuxeo_unsynced",
+}
+
+
 class ExtensionListener(QTcpServer):
     """
     Server listening to the OS extensions.
