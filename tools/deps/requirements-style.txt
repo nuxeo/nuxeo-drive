@@ -6,8 +6,9 @@ attrs==19.3.0 \
     # via black
 black==19.10b0 \
     --hash=sha256:1b30e59be925fafc1ee4565e5e08abef6b03fe455102883820fe5ee2e4734e0b
-click==7.0 \
-    --hash=sha256:2335065e6395b9e67ca716de5f7526736bfa6ceead690adf616d925bdc622b13
+click==7.1 \
+    --hash=sha256:91eb2c43db0254aaf3b14a3c4e0db914a900aa09bbc33c6e87ede4a8f7c969dc \
+    --hash=sha256:482f552f2d5452b9eeffc44165e8b790dd53f75bcce099a812b65e0357e860e2
     # via black
 pathspec==0.7.0 \
     --hash=sha256:163b0632d4e31cef212976cf57b43d9fd6b0bac6e67c26015d611a647d5e7424
