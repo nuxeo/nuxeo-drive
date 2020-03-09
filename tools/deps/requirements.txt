@@ -1,6 +1,6 @@
-boto3==1.12.0 \
-    --hash=sha256:34f9a04f529dc849f0e427782d6f3c6b62f7fb734d8f4859b17e5dee0855323e \
-    --hash=sha256:33462a79d57c9c4a215e075472509537d03545f54566fc4f776fb0f4cfa616f6
+boto3==1.12.17 \
+    --hash=sha256:ef2d050e0c37e00dab6ff1135befe7ed4b9e1ec26c752b8ad01d043e184ea6d1 \
+    --hash=sha256:13ac5526d80e1f1c9f7adcaeae7237f8bd1a5f268e918ca16e770eb865d3292b
     # via nuxeo[s3]
 botocore==1.15.0 \
     --hash=sha256:1f7cecfcd38c7cac17b5386014eb04626d1c7559ee8d8ec1526058cd23f6d1d4 \
