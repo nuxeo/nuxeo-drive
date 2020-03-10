@@ -4,6 +4,28 @@
 
 *Not up-to-date*
 
+### Using gio
+
+Verify that the command is installed:
+
+    command -v gio
+
+Create custom emblems:
+
+1. Create a 24px * 24px icon.
+2. Icon MUST be named emblem-XXXX.XXX (svg/png).
+3. Execute the following command: `cp /path/to/icon/emblem-XXXX.XXX /home/romain/.local/share/icons`
+
+Attribute emblem to folder/file:
+
+    `gio set -t stringv /path/to/folder/ metadata::emblems emblem-XXXX`
+
+Verification:
+
+       gio info /path/to/folder/
+`metadata::emblems` attribute should be equal to : `[emblem-XXXX]`
+
+
 ### Nautilus
 
 Install required Nautilus addons:

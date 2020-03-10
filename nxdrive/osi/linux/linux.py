@@ -150,7 +150,7 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             log.warning(f"Could not set the {emblem} emblem on {path!r}")
         return
 
-    def _icons_to_emblems(self):
+    def _icons_to_emblems(self) -> None:
         """
             Copy nuxeo overlay icons to linux local icons folder.
             Previous local icons will be replaced.
@@ -168,7 +168,7 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
 
             identical = False
             try:
-                identical = filecmp.cmp(icon, emblem, shallow=False)
+                identical = filecmp.cmp(str(icon), str(emblem), shallow=False)
             except Exception:
                 log.warning(f"Could not compare {icon!r} with {emblem!r}")
             if emblem.is_file() and identical:
