@@ -503,6 +503,18 @@ def test_get_tree_list():
     assert guessed_rpaths == expected_rpaths
 
 
+@patch("os.scandir")
+def test_get_tree_list_os_error(mock_scandir):
+    remote_ref = f"{env.WS_DIR}/foo"
+    mock_scandir.return_value.__enter__.return_value = iter(
+        [FakeDirEntry(), FakeDirEntry(True), FakeDirEntry(True, True)]
+    )
+    tree = list(nxdrive.utils.get_tree_list(Path("/fake"), remote_ref))
+
+    # We did not go into the third FakeDir because of OSError
+    assert len(tree) == 3
+
+
 def test_get_tree_size():
     location = nxdrive.utils.normalized_path(__file__).parent.parent
     path = location / "resources"
