@@ -2,15 +2,15 @@
 import os
 import re
 import sys
+from collections import namedtuple
 from datetime import datetime
 from math import pow
 from pathlib import Path, _posix_flavour, _windows_flavour
 from time import sleep
 from unittest.mock import patch
 
-import pytest
-
 import nxdrive.utils
+import pytest
 from nxdrive.constants import APP_NAME, WINDOWS
 from nxdrive.options import Options
 
@@ -31,6 +31,30 @@ BAD_HOSTNAMES = [
     "client-cert-missing.badssl.com",
     "invalid-expected-sct.badssl.com",
 ]
+
+Stat = namedtuple("Stat", "st_size")
+
+
+class FakeDirEntry:
+    """Mock the os DirEntry class"""
+
+    path = "fake"
+
+    def __init__(self, is_dir=False, should_raise=False, stats_value=Stat(0)) -> None:
+        self._is_dir = is_dir
+        self._should_raise = should_raise
+        self._stats_value = stats_value
+
+    def is_dir(self) -> None:
+        if self._should_raise:
+            raise OSError
+        return self._is_dir
+
+    def is_file(self):
+        return not self._is_dir
+
+    def stat(self):
+        return self._stats_value
 
 
 class MockedPath(Path):
@@ -483,6 +507,20 @@ def test_get_tree_size():
     location = nxdrive.utils.normalized_path(__file__).parent.parent
     path = location / "resources"
     assert nxdrive.utils.get_tree_size(path) > 3000000
+
+
+@patch("os.scandir")
+def test_get_tree_size_os_error(mock_scandir):
+    # First is a file with size 10, the a folder, then an folder with OSError raise
+    mock_scandir.return_value.__enter__.return_value = iter(
+        [
+            FakeDirEntry(stats_value=Stat(10)),
+            FakeDirEntry(True),
+            FakeDirEntry(True, True),
+        ]
+    )
+
+    assert nxdrive.utils.get_tree_size(Path("/fake/path")) == 10
 
 
 @Options.mock()

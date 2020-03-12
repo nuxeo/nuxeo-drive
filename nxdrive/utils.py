@@ -328,7 +328,7 @@ def get_tree_list(
             try:
                 is_dir = entry.is_dir()
             except OSError:
-                log.warning(f"Error calling is_dir() on: {entry.path}")
+                log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
                 continue
             if is_dir:
                 yield from get_tree_list(Path(entry.path), remote_ref)
@@ -347,7 +347,7 @@ def get_tree_size(path: Path) -> int:
             try:
                 is_dir = entry.is_dir()
             except OSError:
-                log.warning(f"Error calling is_dir() on: {entry.path}")
+                log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
                 continue
             if is_dir:
                 size += get_tree_size(Path(entry.path))
