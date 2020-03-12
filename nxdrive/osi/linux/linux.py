@@ -31,9 +31,12 @@ class LinuxIntegration(AbstractOSIntegration):
         Emulate: echo "blablabla" | xclip -selection c
         """
         with subprocess.Popen(["xclip", "-selection", "c"], stdin=subprocess.PIPE) as p:
-            p.stdin.write(text.encode("utf-8"))
-            p.stdin.close()
-            p.wait()
+            # See https://github.com/python/typeshed/pull/3652#issuecomment-598122198
+            # if this "if" is still needed
+            if p.stdin:
+                p.stdin.write(text.encode("utf-8"))
+                p.stdin.close()
+                p.wait()
 
     def open_local_file(self, file_path: str, select: bool = False) -> None:
         """Note that this function must _not_ block the execution."""
