@@ -880,6 +880,8 @@ class Engine(QObject):
                 self.manager.osi.send_sync_status(
                     pair, self.local.abspath(pair.local_path)
                 )
+        except ThreadInterrupt:
+            raise
         except Exception:
             log.exception("Conflict resolver error")
 
