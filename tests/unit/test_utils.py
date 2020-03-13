@@ -40,20 +40,28 @@ class FakeDirEntry:
 
     path = "fake"
 
-    def __init__(self, is_dir=False, should_raise=False, stats_value=Stat(0)) -> None:
+    def __init__(
+        self,
+        is_dir: bool = False,
+        should_raise: bool = False,
+        raised_exception: Exception = Exception,
+        stats_value: Stat = Stat(st_size=0),
+    ) -> None:
+
         self._is_dir = is_dir
         self._should_raise = should_raise
+        self._raised_exception = raised_exception
         self._stats_value = stats_value
 
-    def is_dir(self) -> None:
+    def is_dir(self) -> bool:
         if self._should_raise:
-            raise OSError
+            raise self._raised_exception
         return self._is_dir
 
-    def is_file(self):
+    def is_file(self) -> bool:
         return not self._is_dir
 
-    def stat(self):
+    def stat(self) -> Stat:
         return self._stats_value
 
 
@@ -521,7 +529,11 @@ def test_get_tree_list_subdir_raise_os_error(mock_scandir):
         [
             FakeDirEntry(),
             FakeDirEntry(is_dir=True),
-            FakeDirEntry(is_dir=True, should_raise=True),
+            FakeDirEntry(
+                is_dir=True,
+                should_raise=True,
+                raised_exception=OSError("Too many levels of symbolic links"),
+            ),
         ]
     )
     tree = list(nxdrive.utils.get_tree_list(Path("/fake"), remote_ref))
@@ -537,13 +549,17 @@ def test_get_tree_size():
 
 
 @patch("os.scandir")
-def test_get_tree_size_subdir_raise_os_error(mock_scandir):
+def test_get_tree_size_subdir_raise_permission_error(mock_scandir):
     # First is a file with size 10, the a folder, then an folder with OSError raise
     mock_scandir.return_value.__enter__.return_value = iter(
         [
             FakeDirEntry(stats_value=Stat(10)),
             FakeDirEntry(is_dir=True),
-            FakeDirEntry(is_dir=True, should_raise=True),
+            FakeDirEntry(
+                is_dir=True,
+                should_raise=True,
+                raised_exception=PermissionError("Permission denied"),
+            ),
         ]
     )
 
