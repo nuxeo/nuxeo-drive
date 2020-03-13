@@ -510,8 +510,8 @@ def test_get_tree_list_dir_raise_os_error(mock_path):
 
     tree = list(nxdrive.utils.get_tree_list(Path("/fake"), remote_ref))
 
-    # We exit right after the first yield because of OSError
-    assert len(tree) == 1
+    # We exit before the first yield because of OSError
+    assert len(tree) == 0
 
 
 @patch("os.scandir")
