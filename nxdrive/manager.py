@@ -140,7 +140,9 @@ class Manager(QObject):
                 and Options.synchronization_enabled != sync_enabled
             ):
                 # Update the value stored in the database using the the global options value
-                self.dao.update_config("sync_enabled", Options.synchronization_enabled)
+                self.dao.update_config(
+                    "synchronization_enabled", Options.synchronization_enabled
+                )
             else:
                 # Update global options using the value stored in the database
                 Options.synchronization_enabled = sync_enabled != "0"
