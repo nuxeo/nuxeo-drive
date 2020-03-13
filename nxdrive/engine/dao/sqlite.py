@@ -2009,10 +2009,16 @@ class EngineDAO(ConfigurationDAO):
         con = self._get_read_connection()
         c = con.cursor()
         for res in c.execute("SELECT * FROM Downloads"):
+            try:
+                status = TransferStatus(res.status)
+            except ValueError:
+                # Most likely a NXDRIVE-1901 case
+                status = TransferStatus.DONE
+
             yield Download(
                 res.uid,
                 Path(res.path),
-                TransferStatus(res.status),
+                status,
                 engine=res.engine,
                 is_direct_edit=res.is_direct_edit,
                 progress=res.progress,
@@ -2026,10 +2032,16 @@ class EngineDAO(ConfigurationDAO):
         con = self._get_read_connection()
         c = con.cursor()
         for res in c.execute("SELECT * FROM Uploads"):
+            try:
+                status = TransferStatus(res.status)
+            except ValueError:
+                # Most likely a NXDRIVE-1901 case
+                status = TransferStatus.DONE
+
             yield Upload(
                 res.uid,
                 Path(res.path),
-                TransferStatus(res.status),
+                status,
                 engine=res.engine,
                 is_direct_edit=res.is_direct_edit,
                 progress=res.progress,
