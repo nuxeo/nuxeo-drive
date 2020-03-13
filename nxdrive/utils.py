@@ -320,7 +320,7 @@ def get_tree_list(
     """
     try:
         path.is_dir()
-    except (PermissionError, OSError):
+    except OSError:
         log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
         return
 
@@ -333,7 +333,7 @@ def get_tree_list(
         for entry in it:
             try:
                 is_dir = entry.is_dir()
-            except (PermissionError, OSError):
+            except OSError:
                 log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
                 continue
             if is_dir:
@@ -350,7 +350,7 @@ def get_tree_size(path: Path) -> int:
     size = 0
     try:
         path.is_dir()
-    except (PermissionError, OSError):
+    except OSError:
         log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
         return size
 
@@ -358,7 +358,7 @@ def get_tree_size(path: Path) -> int:
         for entry in it:
             try:
                 is_dir = entry.is_dir()
-            except (PermissionError, OSError):
+            except OSError:
                 log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
                 continue
             if is_dir:
