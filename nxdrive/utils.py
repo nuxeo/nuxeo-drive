@@ -126,9 +126,7 @@ def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path) -> Path:
                 # Both folders are on the same partition, use the predefined home folder
                 return home_folder
         else:
-            # TODO: Remove the next comment when mypy > 0.761 is out
-            # TODO: or when https://github.com/python/typeshed/pull/3566 is merged
-            if sync_folder.is_mount():  # type: ignore
+            if sync_folder.is_mount():
                 # It is not allowed to use the mount point as sync folder
                 raise ValueError(
                     "The local sync folder cannot be the mount point itself"

@@ -35,7 +35,8 @@ def dump(database: Path, dump_file: Path) -> None:
     with sqlite3.connect(str(database)) as con, dump_file.open(
         mode="w", encoding="utf-8"
     ) as f:
-        for line in con.iterdump():
+        # TODO: Remove the next comment when mypy > 0.770 is out
+        for line in con.iterdump():  # type: ignore
             f.write(f"{line}\n")
 
         # Force write of file to disk
