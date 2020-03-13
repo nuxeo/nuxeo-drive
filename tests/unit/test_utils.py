@@ -503,11 +503,26 @@ def test_get_tree_list():
     assert guessed_rpaths == expected_rpaths
 
 
+@patch("pathlib.Path.is_dir")
+def test_get_tree_list_dir_raise_os_error(mock_path):
+    remote_ref = f"{env.WS_DIR}/foo"
+    mock_path.side_effect = OSError
+
+    tree = list(nxdrive.utils.get_tree_list(Path("/fake"), remote_ref))
+
+    # We exit right after the first yield because of OSError
+    assert len(tree) == 1
+
+
 @patch("os.scandir")
-def test_get_tree_list_os_error(mock_scandir):
+def test_get_tree_list_subdir_raise_os_error(mock_scandir):
     remote_ref = f"{env.WS_DIR}/foo"
     mock_scandir.return_value.__enter__.return_value = iter(
-        [FakeDirEntry(), FakeDirEntry(True), FakeDirEntry(True, True)]
+        [
+            FakeDirEntry(),
+            FakeDirEntry(is_dir=True),
+            FakeDirEntry(is_dir=True, should_raise=True),
+        ]
     )
     tree = list(nxdrive.utils.get_tree_list(Path("/fake"), remote_ref))
 
@@ -522,17 +537,23 @@ def test_get_tree_size():
 
 
 @patch("os.scandir")
-def test_get_tree_size_os_error(mock_scandir):
+def test_get_tree_size_subdir_raise_os_error(mock_scandir):
     # First is a file with size 10, the a folder, then an folder with OSError raise
     mock_scandir.return_value.__enter__.return_value = iter(
         [
             FakeDirEntry(stats_value=Stat(10)),
-            FakeDirEntry(True),
-            FakeDirEntry(True, True),
+            FakeDirEntry(is_dir=True),
+            FakeDirEntry(is_dir=True, should_raise=True),
         ]
     )
 
     assert nxdrive.utils.get_tree_size(Path("/fake/path")) == 10
+
+
+@patch("pathlib.Path.is_dir")
+def test_get_tree_size_dir_raise_os_error(mock_path):
+    mock_path.side_effect = OSError
+    assert nxdrive.utils.get_tree_size(Path("/fake/path")) == 0
 
 
 @Options.mock()

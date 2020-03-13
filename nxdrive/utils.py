@@ -322,6 +322,12 @@ def get_tree_list(
     yield remote_ref, path
     remote_ref += f"/{path.name}"
 
+    try:
+        path.is_dir()
+    except OSError:
+        log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
+        return
+
     # Then, yield its children
     with os.scandir(path) as it:
         for entry in it:
@@ -342,6 +348,12 @@ def get_tree_size(path: Path) -> int:
     Note: this function cannot be decorated with lru_cache().
     """
     size = 0
+    try:
+        path.is_dir()
+    except OSError:
+        log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
+        return size
+
     with os.scandir(path) as it:
         for entry in it:
             try:
