@@ -19,8 +19,9 @@ coverage==5.0.3 \
 execnet==1.7.1 \
     --hash=sha256:d4efd397930c46415f62f8a31388d6be4f27a91d7550eb79bc64a756e0056547
     # via pytest-xdist
-faker==4.0.1 \
-    --hash=sha256:ee24608768549c2c69e593e9d7a3b53c9498ae735534243ec8390cae5d529f8b
+faker==4.0.2 \
+    --hash=sha256:b89aa33837498498e15c709eb40c31386408a901a53c7a5e12a425737a767976 \
+    --hash=sha256:2d3f866ef25e1a5af80e7b0ceeacc3c92dec5d0fdbad3e2cb6adf6e60b22188f
 future==0.18.2 \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via junitparser
