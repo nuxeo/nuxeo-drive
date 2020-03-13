@@ -532,7 +532,7 @@ def test_get_tree_list_subdir_raise_os_error(mock_scandir):
             FakeDirEntry(
                 is_dir=True,
                 should_raise=True,
-                raised_exception=OSError("Too many levels of symbolic links"),
+                raised_exception=OSError("Mock'ed Too many levels of symbolic links"),
             ),
         ]
     )
@@ -558,7 +558,7 @@ def test_get_tree_size_subdir_raise_permission_error(mock_scandir):
             FakeDirEntry(
                 is_dir=True,
                 should_raise=True,
-                raised_exception=PermissionError("Permission denied"),
+                raised_exception=PermissionError("Mock'ed Permission denied"),
             ),
         ]
     )
