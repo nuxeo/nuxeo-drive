@@ -18,14 +18,14 @@ cp /path/to/emblem-NAME.svg $HOME/.local/share/icons
 
 Attribute emblem to folder/file:
 ```shell
-gio set -t stringv /full/path metadata::emblems emblem-NAME
+gio set -t stringv FILE metadata::emblems emblem-NAME
 ```
 
 Verification:
 ```shell
-gio info /path/to/folder/
+gio info FILE
 ```
-`metadata::emblems` attribute should be equal to : `[emblem-NAME]`
+`metadata::emblems` attribute should be equal to: `[emblem-NAME]`
 
 ## macOS
 

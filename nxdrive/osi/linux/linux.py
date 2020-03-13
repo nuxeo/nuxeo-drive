@@ -165,7 +165,6 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             icon = icons / f"badge_{status}.svg"
             emblem = shared_icons / f"emblem-nuxeo_{status}.svg"
 
-            identical = False
             try:
                 identical = filecmp.cmp(icon, emblem, shallow=False)
             except OSError:
