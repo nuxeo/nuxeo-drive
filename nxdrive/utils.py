@@ -316,6 +316,12 @@ def get_tree_list(
 
     Note: this function cannot be decorated with lru_cache().
     """
+    try:
+        path.is_dir()
+    except OSError:
+        log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
+        return
+
     # First, yield the folder itself
     yield remote_ref, path
     remote_ref += f"/{path.name}"
@@ -323,10 +329,15 @@ def get_tree_list(
     # Then, yield its children
     with os.scandir(path) as it:
         for entry in it:
-            if entry.is_file():
-                yield remote_ref, Path(entry.path)
-            elif entry.is_dir():
+            try:
+                is_dir = entry.is_dir()
+            except OSError:
+                log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
+                continue
+            if is_dir:
                 yield from get_tree_list(Path(entry.path), remote_ref)
+            elif entry.is_file():
+                yield remote_ref, Path(entry.path)
 
 
 def get_tree_size(path: Path) -> int:
@@ -335,12 +346,23 @@ def get_tree_size(path: Path) -> int:
     Note: this function cannot be decorated with lru_cache().
     """
     size = 0
+    try:
+        path.is_dir()
+    except OSError:
+        log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
+        return size
+
     with os.scandir(path) as it:
         for entry in it:
-            if entry.is_file():
-                size += entry.stat().st_size
-            elif entry.is_dir():
+            try:
+                is_dir = entry.is_dir()
+            except OSError:
+                log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
+                continue
+            if is_dir:
                 size += get_tree_size(Path(entry.path))
+            elif entry.is_file():
+                size += entry.stat().st_size
     return size
 
 
