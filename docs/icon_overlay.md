@@ -2,44 +2,30 @@
 
 ## GNU/Linux
 
-*Not up-to-date*
-
-### Using gio
-
 Verify that the command is installed:
-
-    command -v gio
+```shell
+command -v gio
+```
 
 Create custom emblems:
 
 1. Create a 24px * 24px icon.
-2. Icon MUST be named emblem-XXXX.XXX (svg/png).
-3. Execute the following command: `cp /path/to/icon/emblem-XXXX.XXX /home/romain/.local/share/icons`
+2. The icon must be named `emblem-NAME.svg` (PNG also works).
+3. Copy the icon to the appropriate folder:
+```shell
+cp /path/to/emblem-NAME.svg $HOME/.local/share/icons
+```
 
 Attribute emblem to folder/file:
-
-    `gio set -t stringv /path/to/folder/ metadata::emblems emblem-XXXX`
+```shell
+gio set -t stringv /full/path metadata::emblems emblem-NAME
+```
 
 Verification:
-
-       gio info /path/to/folder/
-`metadata::emblems` attribute should be equal to : `[emblem-XXXX]`
-
-
-### Nautilus
-
-Install required Nautilus addons:
-
-    apt install python-nautilus nautilus-emblems
-
-Create custom emblems:
-
-    mkdir -p ~/.icons/hicolor/48x48/emblems
-    cp nxdrive/data/icons/overlay/nautilus/* ~/.icons/hicolor/48x48/emblems
-
-Install the extension:
-
-    cp nxdrive/overlay/nautilus/file_info_updater.py ~/.local/share/nautilus-python/extensions
+```shell
+gio info /path/to/folder/
+```
+`metadata::emblems` attribute should be equal to : `[emblem-NAME]`
 
 ## macOS
 

@@ -142,13 +142,12 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             "stringv",
             str(path),
             "metadata::emblems",
-            icon_status[value],
+            emblem,
         ]
         try:
             subprocess.check_call(cmd)
         except subprocess.CalledProcessError:
             log.warning(f"Could not set the {emblem} emblem on {path!r}")
-        return
 
     def _icons_to_emblems(self) -> None:
         """
@@ -158,25 +157,25 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
         shared_icons = Path.home() / ".local/share/icons"
         shared_icons.mkdir(parents=True, exist_ok=True)
 
-        status_list = ["synced", "syncing", "conflicted", "error", "locked", "unsynced"]
-        for status in status_list:
+        statuses = ["synced", "syncing", "conflicted", "error", "locked", "unsynced"]
+        icons = find_icon("") / "overlay" / "linux"
 
-            icon = find_icon("") / "overlay" / "linux" / ("badge_" + status + ".svg")
-            if not icon.exists():
-                continue
-            emblem = shared_icons / ("emblem-nuxeo_" + status + ".svg")
+        for status in statuses:
+
+            icon = icons / f"badge_{status}.svg"
+            emblem = shared_icons / f"emblem-nuxeo_{status}.svg"
 
             identical = False
             try:
-                identical = filecmp.cmp(str(icon), str(emblem), shallow=False)
-            except Exception:
-                log.warning(f"Could not compare {icon!r} with {emblem!r}")
-            if emblem.is_file() and identical:
-                print("file are the same")
-                continue
+                identical = filecmp.cmp(icon, emblem, shallow=False)
+            except OSError:
+                pass
+            else:
+                if identical:
+                    print("file are the same")
+                    continue
 
             try:
                 shutil.copy(icon, emblem)
             except shutil.Error:
                 log.warning(f"Could not copy {icon!r} to {shared_icons!r}")
-                return
