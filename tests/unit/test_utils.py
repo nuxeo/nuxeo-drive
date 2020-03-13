@@ -514,7 +514,7 @@ def test_get_tree_list():
 @patch("pathlib.Path.is_dir")
 def test_get_tree_list_dir_raise_os_error(mock_path):
     remote_ref = f"{env.WS_DIR}/foo"
-    mock_path.side_effect = OSError
+    mock_path.side_effect = OSError("Mock'ed OSError")
 
     tree = list(nxdrive.utils.get_tree_list(Path("/fake"), remote_ref))
 
@@ -567,8 +567,8 @@ def test_get_tree_size_subdir_raise_permission_error(mock_scandir):
 
 
 @patch("pathlib.Path.is_dir")
-def test_get_tree_size_dir_raise_os_error(mock_path):
-    mock_path.side_effect = OSError
+def test_get_tree_size_dir_raise_permission_error(mock_path):
+    mock_path.side_effect = PermissionError("Mock'ed PermissionError")
     assert nxdrive.utils.get_tree_size(Path("/fake/path")) == 0
 
 
