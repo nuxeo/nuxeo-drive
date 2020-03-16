@@ -171,7 +171,6 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
                 pass
             else:
                 if identical:
-                    print("file are the same")
                     continue
 
             try:

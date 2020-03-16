@@ -99,6 +99,13 @@ class LocalWatcher(EngineWorker):
             self._setup_watchdog()
             self._scan()
 
+            if LINUX:
+                doc_pairs = self.dao.get_states_from_partial_local(ROOT)
+                # Skip the first as it is the ROOT
+                for doc_pair in doc_pairs[1:]:
+                    abs_path = self.local.abspath(doc_pair.local_path)
+                    self.engine.manager.osi.send_sync_status(doc_pair, abs_path)
+
             if WINDOWS:
                 # Check dequeue and folder scan only every 100 loops (1s)
                 now = current_milli_time()
