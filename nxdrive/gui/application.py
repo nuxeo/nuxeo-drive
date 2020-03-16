@@ -167,6 +167,7 @@ class Application(QApplication):
         self.init_gui()
 
         self.manager.dropEngine.connect(self.dropped_engine)
+        self.manager.restartNeeded.connect(self.show_msgbox_restart_needed)
 
         self.setup_systray()
         self.manager.reloadIconsSet.connect(self.load_icons_set)
@@ -1275,6 +1276,7 @@ class Application(QApplication):
             log.exception(f"Error handling URL event {final_url!r}")
             return False
 
+    @pyqtSlot()
     def show_msgbox_restart_needed(self) -> None:
         """ Display a message to ask the user to restart the application. """
         msg = QMessageBox()

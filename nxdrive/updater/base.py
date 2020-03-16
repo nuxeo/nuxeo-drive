@@ -340,8 +340,7 @@ class BaseUpdater(PollWorker):
         if self.status == UPDATE_STATUS_INCOMPATIBLE_SERVER:
             # In case of a downgrade, stop the engines
             # and try to install the older version.
-            self.manager.restart_needed = True
-            self.manager.suspend()
+            self.manager.restartNeeded.emit()
             self.serverIncompatible.emit()
             return
 

@@ -75,6 +75,7 @@ class Manager(QObject):
     reloadIconsSet = pyqtSignal(bool)
     resumed = pyqtSignal()
     directEdit = pyqtSignal(str, str, str, str)
+    restartNeeded = pyqtSignal()
 
     # Direct Transfer statistics
     # args: folderish document, document size
@@ -101,6 +102,8 @@ class Manager(QObject):
         # Used to tell other components they cannot do their work
         # if this attribute is set to True (like DirectEdit or resuming engines)
         self.restart_needed = False
+        self.restartNeeded.connect(self.suspend)
+        self.restartNeeded.connect(self._restart_needed)
 
         self._create_dao()
 
@@ -255,6 +258,12 @@ class Manager(QObject):
             "arch": self.arch,
             "appname": APP_NAME,
         }
+
+    def _restart_needed(self) -> None:
+        """Simple helper to set the attribute's value.
+        That value will be used in other components.
+        """
+        self.restart_needed = True
 
     def open_help(self) -> None:
         self.open_local_file("https://doc.nuxeo.com/nxdoc/nuxeo-drive/")

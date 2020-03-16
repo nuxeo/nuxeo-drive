@@ -94,6 +94,10 @@ class ServerOptionsUpdater(PollWorker):
                 elif getattr(Options, key) is not value:
                     self.manager.dao.update_config(key, value)
 
+                    # Does the application need to be restarted?
+                    if not self.first_run:
+                        self.manager.restartNeeded.emit()
+
             if self.first_run:
                 self.first_run = False
 
