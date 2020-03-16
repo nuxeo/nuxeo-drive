@@ -95,6 +95,26 @@ class DirectEdit(Worker):
         self.autolock.orphanLocks.connect(self._autolock_orphans)
         self._manager.directEdit.connect(self.edit)
 
+        # Notification signals
+        self.directEditLockError.connect(
+            self._manager.notification_service._directEditLockError
+        )
+        self.directEditStarting.connect(
+            self._manager.notification_service._directEditStarting
+        )
+        self.directEditForbidden.connect(
+            self._manager.notification_service._directEditForbidden
+        )
+        self.directEditReadonly.connect(
+            self._manager.notification_service._directEditReadonly
+        )
+        self.directEditLocked.connect(
+            self._manager.notification_service._directEditLocked
+        )
+        self.directEditUploadCompleted.connect(
+            self._manager.notification_service._directEditUpdated
+        )
+
     @pyqtSlot(object)
     def _autolock_orphans(self, locks: List[Path]) -> None:
         log.debug(f"Orphans lock: {locks!r}")

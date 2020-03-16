@@ -189,16 +189,9 @@ class Manager(QObject):
         if not self.get_config("deletion_behavior"):
             self.set_config("deletion_behavior", "unsync")
 
-        # Create DirectEdit
-        self._create_autolock_service()
-        self._create_direct_edit()
-
         # Check for metrics approval
         self.preferences_metrics_chosen = False
         self.check_metrics_preferences()
-
-        # Setup analytics tracker
-        self.tracker = self.create_tracker()
 
         # Create notification service
         self._started = False
@@ -206,17 +199,11 @@ class Manager(QObject):
         # Pause if in debug
         self.is_paused = Options.debug
 
-        # Connect all Qt signals
-        self.notification_service.init_signals()
-        self.load()
-
-        # Create the server's configuration getter verification thread
-        self.server_config_updater: ServerOptionsUpdater = self._create_server_config_updater()
         # Create the server's configuration getter verification thread
         self._create_db_backup_worker()
 
-        # Create the application update verification thread
-        self.updater: "Updater" = self._create_updater()
+        # Setup analytics tracker
+        self.tracker = self.create_tracker()
 
         # Create the FinderSync/Explorer listener thread
         self._create_extension_listener()
@@ -224,6 +211,21 @@ class Manager(QObject):
         # Create the sync and quit worker
         self.sync_and_quit_worker = SyncAndQuitWorker(self)
         self.started.connect(self.sync_and_quit_worker.thread.start)
+
+        # Connect all Qt signals
+        self.notification_service.init_signals()
+        self.load()
+
+        # [this worker will control next workers, so keep it first]
+        # Create the server's configuration getter verification thread
+        self.server_config_updater: ServerOptionsUpdater = self._create_server_config_updater()
+
+        # Create DirectEdit
+        self._create_autolock_service()
+        self._create_direct_edit()
+
+        # Create the application update verification thread
+        self.updater: "Updater" = self._create_updater()
 
     def __enter__(self) -> "Manager":
         return self
@@ -284,13 +286,11 @@ class Manager(QObject):
         if self.get_auto_start():
             self.osi.register_startup()
 
-    def _create_autolock_service(self) -> ProcessAutoLockerWorker:
+    def _get_db(self) -> Path:
+        return self.home / "manager.db"
 
-        self.autolock_service = ProcessAutoLockerWorker(
-            30, self.dao, folder=self.direct_edit_folder
-        )
-        self.started.connect(self.autolock_service.thread.start)
-        return self.autolock_service
+    def _create_dao(self) -> None:
+        self.dao = ManagerDAO(self._get_db())
 
     def create_tracker(self) -> Optional["Tracker"]:
         """Create the Google Analytics tracker."""
@@ -313,22 +313,51 @@ class Manager(QObject):
 
         return tracker
 
-    def _get_db(self) -> Path:
-        return self.home / "manager.db"
-
-    def _create_dao(self) -> None:
-        self.dao = ManagerDAO(self._get_db())
-
     def _create_server_config_updater(self) -> ServerOptionsUpdater:
-        updater_ = ServerOptionsUpdater(self)
-        self.started.connect(updater_.thread.start)
-        return updater_
+        worker = ServerOptionsUpdater(self)
+
+        # Start when the manager starts
+        self.started.connect(worker.thread.start)
+
+        # Start engines when the configuration has been retrieved
+        worker.firstRunCompleted.connect(self.start_engines)
+
+        return worker
+
+    def _create_autolock_service(self) -> ProcessAutoLockerWorker:
+        self.autolock_service = ProcessAutoLockerWorker(
+            30, self, folder=self.direct_edit_folder
+        )
+
+        # Start only when the configuration has been retrieved
+        self.server_config_updater.firstRunCompleted.connect(
+            self.autolock_service.thread.start
+        )
+
+        return self.autolock_service
+
+    def _create_direct_edit(self) -> "DirectEdit":
+        self.direct_edit = DirectEdit(self, self.direct_edit_folder)
+        self.autolock_service.direct_edit = self.direct_edit
+
+        # Start only when the configuration has been retrieved
+        self.server_config_updater.firstRunCompleted.connect(
+            self.direct_edit.thread.start
+        )
+
+        return self.direct_edit
 
     def _create_updater(self) -> "Updater":
-        updater_ = updater(self)
+        worker = updater(self)
         self.prompted_wrong_channel = False
-        self.started.connect(updater_.thread.start)
-        return updater_
+
+        # Start only when the configuration has been retrieved
+        self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
+
+        # Trigger a new auto-update check when the server config has been fetched
+        self.server_config_updater.firstRunCompleted.connect(worker.refresh_status)
+
+        return worker
 
     def _create_db_backup_worker(self) -> None:
         self.db_backup_worker = DatabaseBackupWorker(self)
@@ -337,19 +366,12 @@ class Manager(QObject):
 
     @if_frozen
     def _create_extension_listener(self) -> None:
-
         self._extension_listener = self.osi.get_extension_listener()
         if not self._extension_listener:
             return
         self._extension_listener.listening.connect(self.osi.init)
         self.started.connect(self._extension_listener.start_listening)
         self.stopped.connect(self._extension_listener.close)
-
-    def _create_direct_edit(self) -> "DirectEdit":
-        self.direct_edit = DirectEdit(self, self.direct_edit_folder)
-        self.started.connect(self.direct_edit.thread.start)
-        self.autolock_service.direct_edit = self.direct_edit
-        return self.direct_edit
 
     def resume(self, euid: str = None) -> None:
         if not self.is_paused:
@@ -384,16 +406,22 @@ class Manager(QObject):
         self.dispose_db()
         self.stopped.emit()
 
+    def start_engines(self) -> None:
+        """Start all engines."""
+        for uid, engine in list(self.engines.items()):
+            if self.is_paused:
+                continue
+
+            try:
+                engine.start()
+            except Exception:
+                log.exception(f"Could not start the engine {uid}")
+
     def start(self, euid: str = None) -> None:
         self._started = True
-        for uid, engine in list(self.engines.items()):
-            if euid is not None and euid != uid:
-                continue
-            if not self.is_paused:
-                try:
-                    engine.start()
-                except Exception:
-                    log.exception(f"Could not start the engine {uid}")
+
+        if not self.server_config_updater.first_run:
+            self.start_engines()
 
         # Check only if manager is started
         self._handle_os()

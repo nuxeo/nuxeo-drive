@@ -506,16 +506,6 @@ class DefaultNotificationService(NotificationService):
     def init_signals(self) -> None:
         self._manager.initEngine.connect(self._connect_engine)
         self._manager.newEngine.connect(self._connect_engine)
-        self._manager.direct_edit.directEditLockError.connect(self._directEditLockError)
-        self._manager.direct_edit.directEditStarting.connect(self._directEditStarting)
-        self._manager.direct_edit.directEditForbidden.connect(self._directEditForbidden)
-        self._manager.direct_edit.directEditReadonly.connect(self._directEditReadonly)
-        self._manager.direct_edit.directEditLocked.connect(self._directEditLocked)
-        self._manager.direct_edit.directEditUploadCompleted.connect(
-            self._directEditUpdated
-        )
-        self._manager.autolock_service.documentLocked.connect(self._lockDocument)
-        self._manager.autolock_service.documentUnlocked.connect(self._unlockDocument)
 
     def _connect_engine(self, engine: "Engine") -> None:
         engine.newConflict.connect(self._newConflict)
