@@ -16,7 +16,7 @@ from .options import Options
 
 if TYPE_CHECKING:
     from .direct_edit import DirectEdit  # noqa
-    from .engine.dao.sqlite import ManagerDAO  # noqa
+    from .manager import Manager  # noqa
 
 if LINUX:
     from .osi.linux.files import get_other_opened_files
@@ -36,15 +36,19 @@ class ProcessAutoLockerWorker(PollWorker):
     documentLocked = pyqtSignal(str)
     documentUnlocked = pyqtSignal(str)
 
-    def __init__(self, check_interval: int, dao: "ManagerDAO", folder: Path) -> None:
+    def __init__(self, check_interval: int, manager: "Manager", folder: Path) -> None:
         super().__init__(check_interval)
-        self.dao = dao
+        self.dao = manager.dao
         self._folder = folder
 
         self._autolocked: Dict[Path, int] = {}
         self._lockers: Dict[Path, "DirectEdit"] = {}
         self._to_lock: Items = []
         self._first = True
+
+        # Notification signals
+        self.documentLocked.connect(manager.notification_service._lockDocument)
+        self.documentUnlocked.connect(manager.notification_service._unlockDocument)
 
     def set_autolock(self, filepath: Path, locker: "DirectEdit") -> None:
         """Schedule the document lock."""

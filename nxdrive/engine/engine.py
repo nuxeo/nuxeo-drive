@@ -146,6 +146,7 @@ class Engine(QObject):
 
         self.uid = definition.uid
         self.name = definition.name
+        self._proc_count = processors
         self._stopped = True
         self._pause = False
         self._sync_started = False
@@ -169,36 +170,12 @@ class Engine(QObject):
             self._check_https()
             self.remote: Remote = self.init_remote()
 
-        self._local_watcher = self._create_local_watcher()
-        self.create_thread(worker=self._local_watcher)
-        self._remote_watcher = self._create_remote_watcher(Options.delay)
-        self.create_thread(worker=self._remote_watcher, start_connect=False)
-
-        # Launch remote_watcher after first local scan
-        self._local_watcher.rootDeleted.connect(self.rootDeleted)
-        self._local_watcher.rootMoved.connect(self.rootMoved)
-        self._local_watcher.docDeleted.connect(self.docDeleted)
-        self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
-        self.queue_manager: QueueManager = self._create_queue_manager(processors)
-
-        self._local_watcher.fileAlreadyExists.connect(self.fileAlreadyExists)
-
-        # Launch queue processors after first remote_watcher pass
-        self._remote_watcher.initiate.connect(self.queue_manager.init_processors)
-        self._remote_watcher.remoteWatcherStopped.connect(
-            self.queue_manager.shutdown_processors
-        )
-
-        # Connect last_sync checked
-        self._remote_watcher.updated.connect(self._check_last_sync)
+        self._create_queue_manager()
+        self._create_remote_watcher()
+        self._create_local_watcher()
 
         # Connect for sync start
         self.newQueueItem.connect(self._check_sync_start)
-        self.queue_manager.newItem.connect(self._check_sync_start)
-
-        # Connect components signals to engine signals
-        self.queue_manager.newItem.connect(self.newQueueItem)
-        self.queue_manager.newErrorGiveUp.connect(self.newError)
 
         # Some conflict can be resolved automatically
         self.dao.newConflict.connect(self.conflict_resolver)
@@ -206,9 +183,6 @@ class Engine(QObject):
         # Try to resolve conflict on startup
         for conflict in self.dao.get_conflicts():
             self.conflict_resolver(conflict.id, emit=False)
-
-        # Scan in remote_watcher thread
-        self._scanPair.connect(self._remote_watcher.scan_pair)
 
         self._set_root_icon()
         self._user_cache: Dict[str, str] = {}
@@ -250,6 +224,46 @@ class Engine(QObject):
             "server_version": bind.server_version,
             "threads": self._get_threads(),
         }
+
+    def _create_queue_manager(self) -> None:
+        kwargs = {"max_file_processors": 2 if Options.debug else self._proc_count}
+        self.queue_manager: QueueManager = QueueManager(self, self.dao, **kwargs)
+
+        # Connect for sync start
+        self.queue_manager.newItem.connect(self._check_sync_start)
+
+        # Connect components signals to engine signals
+        self.queue_manager.newItem.connect(self.newQueueItem)
+        self.queue_manager.newErrorGiveUp.connect(self.newError)
+
+    def _create_local_watcher(self) -> None:
+        self._local_watcher = LocalWatcher(self, self.dao)
+        self.create_thread(worker=self._local_watcher)
+
+        # Launch the Remote Watcher after first local scan
+        self._local_watcher.localScanFinished.connect(self._remote_watcher.run)
+
+        # Other signals
+        self._local_watcher.rootDeleted.connect(self.rootDeleted)
+        self._local_watcher.rootMoved.connect(self.rootMoved)
+        self._local_watcher.docDeleted.connect(self.docDeleted)
+        self._local_watcher.fileAlreadyExists.connect(self.fileAlreadyExists)
+
+    def _create_remote_watcher(self) -> None:
+        self._remote_watcher = RemoteWatcher(self, self.dao, Options.delay)
+        self.create_thread(worker=self._remote_watcher, start_connect=False)
+
+        # Launch queue processors after first remote_watcher pass
+        self._remote_watcher.initiate.connect(self.queue_manager.init_processors)
+        self._remote_watcher.remoteWatcherStopped.connect(
+            self.queue_manager.shutdown_processors
+        )
+
+        # Connect last_sync checked
+        self._remote_watcher.updated.connect(self._check_last_sync)
+
+        # Scan in remote_watcher thread
+        self._scanPair.connect(self._remote_watcher.scan_pair)
 
     def _get_threads(self) -> List[Dict[str, Any]]:
         return [thread.worker.export() for thread in self._threads]
@@ -668,16 +682,6 @@ class Engine(QObject):
                 reason="found no token in engine configuration"
             )
 
-    def _create_queue_manager(self, processors: int) -> QueueManager:
-        kwargs = {"max_file_processors": 2 if Options.debug else processors}
-        return QueueManager(self, self.dao, **kwargs)
-
-    def _create_remote_watcher(self, delay: int) -> RemoteWatcher:
-        return RemoteWatcher(self, self.dao, delay)
-
-    def _create_local_watcher(self) -> LocalWatcher:
-        return LocalWatcher(self, self.dao)
-
     def _get_db_file(self) -> Path:
         return self.manager.home / f"ndrive_{self.uid}.db"
 
@@ -818,8 +822,7 @@ class Engine(QObject):
         self._check_root()
 
         # Launch the server config file updater
-        if self.manager.server_config_updater:
-            self.manager.server_config_updater.force_poll()
+        self.manager.server_config_updater.force_poll()
 
         self.remove_staled_transfers()
         self.resume_suspended_transfers()

@@ -2,7 +2,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 from .engine.workers import PollWorker
 from .options import Options
@@ -44,6 +44,9 @@ class DatabaseBackupWorker(PollWorker):
 class ServerOptionsUpdater(PollWorker):
     """ Class for checking the server's config.json updates. """
 
+    # A signal to let other component know that the first run has been done
+    firstRunCompleted = pyqtSignal()
+
     def __init__(self, manager: "Manager"):
         default_delay = 60 * 60  # 1 hour
         # The check will be done every *update_check_delay* seconds or *default_delay*
@@ -54,6 +57,13 @@ class ServerOptionsUpdater(PollWorker):
         # Notify the Manager that the server's config has been fetched at least one time.
         # This will be used later in the Updater.
         self.first_run = True
+        self.firstRunCompleted.connect(self._first_run_done)
+
+    def _first_run_done(self) -> None:
+        """Simple helper to set the attribute's value.
+        That value will be used in other components.
+        """
+        self.first_run = False
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
@@ -99,10 +109,7 @@ class ServerOptionsUpdater(PollWorker):
                         self.manager.restartNeeded.emit()
 
             if self.first_run:
-                self.first_run = False
-
-                # Trigger a new auto-update check now that the server config has been fetched
-                self.manager.updater.refresh_status()
+                self.firstRunCompleted.emit()
 
             break
 

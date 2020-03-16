@@ -28,14 +28,20 @@ def patch_nxdrive_objects():
 
     nxdrive.engine.dao.utils.save_backup = lambda *args: True
 
+    from nxdrive.poll_workers import ServerOptionsUpdater
+
+    @property
+    def enable(self) -> bool:
+        return False
+
+    ServerOptionsUpdater.enable = enable
+
     from nxdrive.gui.application import Application
 
     Application.init_nxdrive_listener = lambda *args: None
 
     from nxdrive.manager import Manager
     from nxdrive.engine.queue_manager import QueueManager
-
-    Manager._create_server_config_updater = lambda *args: None
 
     def dispose_all(self) -> None:
         for engine in self.engines.values():

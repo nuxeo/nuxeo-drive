@@ -6,9 +6,8 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 from unittest.mock import Mock, patch
 
-import pytest
-
 import nxdrive.autolocker
+import pytest
 
 from .. import ensure_no_exception
 
@@ -32,8 +31,10 @@ class DAO:
 @pytest.fixture(scope="function")
 def autolock(tmpdir):
     check_interval = 5
+    manager = Mock()
+    manager.dao = DAO()
     autolocker = nxdrive.autolocker.ProcessAutoLockerWorker(
-        check_interval, DAO(), Path(tmpdir)
+        check_interval, manager, Path(tmpdir)
     )
     autolocker.direct_edit = Mock()
     return autolocker
