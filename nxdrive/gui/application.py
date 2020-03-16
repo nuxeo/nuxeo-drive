@@ -1275,7 +1275,8 @@ class Application(QApplication):
             log.exception(f"Error handling URL event {final_url!r}")
             return False
 
-    def _show_msgbox_restart_needed(self) -> None:
+    def show_msgbox_restart_needed(self) -> None:
+        """ Display a message to ask the user to restart the application. """
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
         msg.setText(Translator.get("RESTART_NEEDED_MSG", values=[APP_NAME]))
@@ -1313,7 +1314,7 @@ class Application(QApplication):
             func(path)
         elif "edit" in cmd:
             if self.manager.restart_needed:
-                self._show_msgbox_restart_needed()
+                self.show_msgbox_restart_needed()
                 return False
 
             manager.directEdit.emit(
