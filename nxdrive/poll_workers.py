@@ -84,15 +84,15 @@ class ServerOptionsUpdater(PollWorker):
             Options.update(conf, setter="server", fail_on_error=False)
 
             # Save this option so that it has direct effect at the next start
-            skey = "synchronization_enabled"
-            if skey in conf:
-                vkey = conf[skey]
-                if isinstance(vkey, bool):
-                    self.manager.dao.update_config(skey, vkey)
-                else:
+            key = "synchronization_enabled"
+            if key in conf:
+                value = conf[key]
+                if not isinstance(value, bool):
                     log.warning(
-                        f"Bad value from the server's config: {skey!r}={vkey!r} (a boolean is required)"
+                        f"Bad value from the server's config: {key!r}={value!r} (a boolean is required)"
                     )
+                elif getattr(Options, key) is not value:
+                    self.manager.dao.update_config(key, value)
 
             if self.first_run:
                 self.first_run = False
