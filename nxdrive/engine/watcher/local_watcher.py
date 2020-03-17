@@ -99,6 +99,9 @@ class LocalWatcher(EngineWorker):
             self._setup_watchdog()
             self._scan()
 
+            if LINUX:
+                self._update_local_status()
+
             if WINDOWS:
                 # Check dequeue and folder scan only every 100 loops (1s)
                 now = current_milli_time()
@@ -128,6 +131,17 @@ class LocalWatcher(EngineWorker):
         finally:
             with self.lock:
                 self._stop_watchdog()
+
+    def _update_local_status(self) -> None:
+        """Fetch State of each local file then update sync status."""
+        local = self.local
+        send_sync_status = self.engine.manager.osi.send_sync_status
+        doc_pairs = self.dao.get_states_from_partial_local(ROOT)
+
+        # Skip the first as it is the ROOT
+        for doc_pair in doc_pairs[1:]:
+            abs_path = local.abspath(doc_pair.local_path)
+            send_sync_status(doc_pair, abs_path)
 
     def win_queue_empty(self) -> bool:
         return not self._delete_events
