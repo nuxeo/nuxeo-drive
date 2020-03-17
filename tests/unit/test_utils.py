@@ -614,7 +614,7 @@ def test_safe_long_path():
         res = nxdrive.utils.safe_long_path(path)
         assert str(res).startswith("\\\\?\\")
     else:
-        path = Path("/home/we/dont/care")
+        path = Path("/home/we/not/care")
         res = nxdrive.utils.safe_long_path(path)
         assert res == path
 
