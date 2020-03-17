@@ -116,22 +116,23 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             )
 
     @if_frozen
-    def send_sync_status(self, state: DocPair, path: Path) -> None:
+    def send_sync_status(self, doc_pair: DocPair, path: Path) -> None:
         """
-        Send the sync status of a file to the FinderSync.
+        Set the sync status of a file.
 
         :param state: current local state of the file
         :param path: full path of the file
         """
         try:
-            status = get_formatted_status(state, path)
+            status = get_formatted_status(doc_pair, path)
             if status:
-                log.debug(f"Sending status to FinderSync for {path!r}: {status}")
+                log.debug(f"Setting status to {path!r}: {status}")
                 self._set_icon(status)
         except Exception:
-            log.exception("Error while trying to send status to FinderSync")
+            log.exception("Error while setting the status to {path!r}", exc_info=True)
 
     def _set_icon(self, status: Dict[str, str]) -> None:
+        """Call gio command to set folder emblem metadata."""
         value = Status(int(status["value"]))
         path = status["path"]
         emblem = icon_status[value]
@@ -158,16 +159,16 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
         shared_icons.mkdir(parents=True, exist_ok=True)
 
         statuses = ["synced", "syncing", "conflicted", "error", "locked", "unsynced"]
-        icons = find_icon("") / "overlay" / "linux"
+        icons = find_icon("overlay/linux")
 
         for status in statuses:
-
             icon = icons / f"badge_{status}.svg"
             emblem = shared_icons / f"emblem-nuxeo_{status}.svg"
 
             try:
-                identical = filecmp.cmp(icon, emblem, shallow=False)
+                identical = filecmp.cmp(icon, emblem, shallow=False)  # type: ignore
             except OSError:
+                # Most likely the *icon* doest not exist yet
                 pass
             else:
                 if identical:
@@ -176,4 +177,6 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             try:
                 shutil.copy(icon, emblem)
             except shutil.Error:
-                log.warning(f"Could not copy {icon!r} to {shared_icons!r}")
+                log.warning(
+                    f"Could not copy {icon!r} to {shared_icons!r}", exc_info=True
+                )

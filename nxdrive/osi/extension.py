@@ -34,6 +34,7 @@ class Status(Enum):
     UNSYNCED = 6
 
 
+# Map status to emblem basename, used on GNU/Linux
 icon_status = {
     Status.SYNCED: "emblem-nuxeo_synced",
     Status.SYNCING: "emblem-nuxeo_syncing",
