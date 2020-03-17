@@ -881,7 +881,9 @@ class Engine(QObject):
                     pair, self.local.abspath(pair.local_path)
                 )
         except ThreadInterrupt:
-            raise
+            # The engine has not yet started, just skip the exception as the conflict
+            # is already seen by the user from within the systray menu and in the conflicts window.
+            pass
         except Exception:
             log.exception("Conflict resolver error")
 
