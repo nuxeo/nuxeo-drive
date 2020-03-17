@@ -180,10 +180,6 @@ class Engine(QObject):
         # Some conflict can be resolved automatically
         self.dao.newConflict.connect(self.conflict_resolver)
 
-        # Try to resolve conflict on startup
-        for conflict in self.dao.get_conflicts():
-            self.conflict_resolver(conflict.id, emit=False)
-
         self._set_root_icon()
         self._user_cache: Dict[str, str] = {}
 
@@ -831,6 +827,11 @@ class Engine(QObject):
         Processor.soft_locks = {}
         for thread in self._threads:
             thread.start()
+
+        # Try to resolve conflict on startup
+        for conflict in self.dao.get_conflicts():
+            self.conflict_resolver(conflict.id, emit=False)
+
         self.syncStarted.emit(0)
         self._start.emit()
 
@@ -884,7 +885,9 @@ class Engine(QObject):
                     pair, self.local.abspath(pair.local_path)
                 )
         except ThreadInterrupt:
-            raise
+            # The engine has not yet started, just skip the exception as the conflict
+            # is already seen by the user from within the systray menu and in the conflicts window.
+            pass
         except Exception:
             log.exception("Conflict resolver error")
 
