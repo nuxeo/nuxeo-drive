@@ -606,6 +606,19 @@ def test_normalized_path_permission_error(tmp):
     assert func(path) == path_abs  # Test giving a Path
 
 
+def test_safe_long_path():
+    if WINDOWS:
+        path = Path(
+            "C:\\Users\\USER\\.nuxeo-drive\\.tmp\\ENGINE_UID\\DOC_UID\\folder\\looong_file_name.doc"
+        )
+        res = nxdrive.utils.safe_long_path(path)
+        assert str(res).startswith("\\\\?\\")
+    else:
+        path = Path("/home/we/dont/care")
+        res = nxdrive.utils.safe_long_path(path)
+        assert res == path
+
+
 def test_normalize_and_expand_path():
     if WINDOWS:
         path = "%userprofile%/foo"

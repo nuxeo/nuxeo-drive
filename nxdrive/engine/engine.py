@@ -44,6 +44,7 @@ from ..utils import (
     get_tree_list,
     if_frozen,
     safe_filename,
+    safe_long_path,
     set_path_readonly,
     unset_path_readonly,
 )
@@ -290,7 +291,7 @@ class Engine(QObject):
         download_dir.mkdir(parents=True, exist_ok=True)
 
         # Update the LocalClient attribute as it is needed by .rename()
-        self.local.download_dir = download_dir
+        self.local.download_dir = safe_long_path(download_dir)
 
         return download_dir
 
