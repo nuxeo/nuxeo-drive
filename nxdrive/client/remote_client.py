@@ -300,7 +300,7 @@ class Remote(Nuxeo):
                 None,
                 path=file_path,
                 status=TransferStatus.ONGOING,
-                tmpname=str(file_out),
+                tmpname=file_out,
                 url=url,
                 filesize=size,
                 doc_pair=kwargs.pop("doc_pair_id", None),

@@ -295,13 +295,11 @@ def test_migration_db_v1(engine_dao):
 
 @windows_only
 def test_migration_db_v8(engine_dao):
+    """Verify Downloads.tmpname after migration from v7 to v8."""
     with engine_dao("test_engine_migration_8.db") as dao:
-        c = dao._get_read_connection().cursor()
-        rows = c.execute("SELECT * FROM Downloads").fetchall()
 
-        assert len(rows) == 1
-        assert rows[0].tmpname.startswith("\\\\?\\")
-        assert dao.get_config("schema_version") == "8"
+        for download in dao.get_downloads():
+            assert download.tmpname.startswith("//?/")
 
 
 def test_migration_db_v1_with_duplicates(engine_dao):
