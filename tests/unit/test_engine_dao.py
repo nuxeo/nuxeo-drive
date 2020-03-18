@@ -2,9 +2,10 @@
 from pathlib import Path
 
 import pytest
-
 from nxdrive.engine.dao.sqlite import prepare_args
 from nxdrive.utils import WINDOWS
+
+from ..markers import windows_only
 
 
 def test_acquire_processors(engine_dao):
@@ -290,6 +291,17 @@ def test_migration_db_v1(engine_dao):
 
         cols = c.execute("SELECT * FROM States").fetchall()
         assert len(cols) == 63
+
+
+@windows_only
+def test_migration_db_v8(engine_dao):
+    with engine_dao("test_engine_migration_8.db") as dao:
+        c = dao._get_read_connection().cursor()
+        rows = c.execute("SELECT * FROM Downloads").fetchall()
+
+        assert len(rows) == 1
+        assert rows[0].tmpname.startswith("\\\\?\\")
+        assert dao.get_config("schema_version") == "8"
 
 
 def test_migration_db_v1_with_duplicates(engine_dao):

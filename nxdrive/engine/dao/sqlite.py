@@ -637,7 +637,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 7
+        return 8
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -719,6 +719,15 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("DROP TABLE Uploads_backup;")
 
             self.store_int(SCHEMA_VERSION, 7)
+        if version < 8:
+            if WINDOWS:
+                # Update the tmpname column to add the long path prefix on Windows
+                cursor.execute(
+                    "UPDATE Downloads"
+                    "   SET tmpname = CONCAT('\\\\?\\', tmpname)"
+                    " WHERE tmpname NOT LIKE '\\\\\\\\?\\\\%'"
+                )
+            self.store_int(SCHEMA_VERSION, 8)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":

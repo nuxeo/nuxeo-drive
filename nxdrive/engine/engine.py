@@ -286,12 +286,12 @@ class Engine(QObject):
             return self.download_dir
 
         download_dir = find_suitable_tmp_dir(self.local_folder, self.manager.home)
-        download_dir = download_dir / ".tmp" / self.uid
+        download_dir = safe_long_path(download_dir) / ".tmp" / self.uid
         log.info(f"Using temporary download folder {download_dir!r}")
         download_dir.mkdir(parents=True, exist_ok=True)
 
         # Update the LocalClient attribute as it is needed by .rename()
-        self.local.download_dir = safe_long_path(download_dir)
+        self.local.download_dir = download_dir
 
         return download_dir
 
