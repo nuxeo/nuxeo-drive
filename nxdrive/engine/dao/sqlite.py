@@ -724,7 +724,7 @@ class EngineDAO(ConfigurationDAO):
                 # Update the tmpname column to add the long path prefix on Windows
                 cursor.execute(
                     "UPDATE Downloads"
-                    "   SET tmpname = CONCAT('//?/', tmpname)"
+                    "   SET tmpname = '//?/' || tmpname"
                     " WHERE tmpname NOT LIKE '//?/%'"
                 )
             self.store_int(SCHEMA_VERSION, 8)
