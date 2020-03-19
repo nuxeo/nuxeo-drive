@@ -740,7 +740,7 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("ALTER TABLE Downloads RENAME TO Downloads_backup;")
 
             # Create again the tables, with up-to-date columns
-            self._create_transfer_tables_v2(cursor)
+            self._create_transfer_tables(cursor)
 
             # Insert back old datas with up-to-date fields types
             cursor.execute("INSERT INTO Uploads SELECT * FROM Uploads_backup;")
