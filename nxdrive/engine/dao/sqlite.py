@@ -638,7 +638,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 8
+        return 9
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -730,6 +730,28 @@ class EngineDAO(ConfigurationDAO):
                 )
             self.store_int(SCHEMA_VERSION, 8)
 
+        if version < 9:
+            # Change Downloads.path and Uploads.path database field types.
+            # SQLite does not support column type update, we need to recreate
+            # a new one and insert back old data.
+
+            # Make a copy of the Upload and Download table
+            cursor.execute("ALTER TABLE Uploads RENAME TO Uploads_backup;")
+            cursor.execute("ALTER TABLE Downloads RENAME TO Downloads_backup;")
+
+            # Create again the tables, with up-to-date columns
+            self._create_transfer_tables_v2(cursor)
+
+            # Insert back old datas with up-to-date fields types
+            cursor.execute("INSERT INTO Uploads SELECT * FROM Uploads_backup;")
+            cursor.execute("INSERT INTO Downloads SELECT * FROM Downloads_backup;")
+
+            # Delete the backup tables
+            cursor.execute("DROP TABLE Uploads_backup;")
+            cursor.execute("DROP TABLE Downloads_backup;")
+
+            self.store_int(SCHEMA_VERSION, 9)
+
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":
             self._create_state_table(cursor, force)
@@ -757,6 +779,38 @@ class EngineDAO(ConfigurationDAO):
             "CREATE TABLE if not exists Uploads ("
             "    uid            INTEGER     NOT NULL,"
             "    path           INTEGER     UNIQUE,"
+            "    status         INTEGER,"
+            "    engine         VARCHAR     DEFAULT NULL,"
+            "    is_direct_edit INTEGER     DEFAULT 0,"
+            "    progress       REAL,"
+            "    doc_pair       INTEGER     UNIQUE,"
+            "    batch          VARCHAR,"
+            "    chunk_size     INTEGER,"
+            "    PRIMARY KEY (uid)"
+            ")"
+        )
+
+    @staticmethod
+    def _create_transfer_tables_v2(cursor: Cursor) -> None:
+        cursor.execute(
+            "CREATE TABLE if not exists Downloads ("
+            "    uid            INTEGER     NOT NULL,"
+            "    path           VARCHAR     UNIQUE,"
+            "    status         INTEGER,"
+            "    engine         VARCHAR     DEFAULT NULL,"
+            "    is_direct_edit INTEGER     DEFAULT 0,"
+            "    progress       REAL,"
+            "    filesize       INTEGER     DEFAULT 0,"
+            "    doc_pair       INTEGER     UNIQUE,"
+            "    tmpname        VARCHAR,"
+            "    url            VARCHAR,"
+            "    PRIMARY KEY (uid)"
+            ")"
+        )
+        cursor.execute(
+            "CREATE TABLE if not exists Uploads ("
+            "    uid            INTEGER     NOT NULL,"
+            "    path           VARCHAR     UNIQUE,"
             "    status         INTEGER,"
             "    engine         VARCHAR     DEFAULT NULL,"
             "    is_direct_edit INTEGER     DEFAULT 0,"
