@@ -299,7 +299,7 @@ def test_migration_db_v8(engine_dao):
     with engine_dao("test_engine_migration_8.db") as dao:
 
         for download in dao.get_downloads():
-            assert download.tmpname.startswith("//?/")
+            assert str(download.tmpname).startswith(r"\\\\?\\")
 
 
 def test_migration_db_v1_with_duplicates(engine_dao):
