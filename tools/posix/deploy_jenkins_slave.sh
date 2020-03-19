@@ -269,7 +269,8 @@ launch_tests() {
         fi
 
         # Do not fail on junit merge
-        python tools/jenkins/junit/merge.py || true
+        export TEST_SUITE="Drive"
+        python tools/jenkins/junit/merge.py "tools/jenkins/junit/xml" || true
 
         if [ $ret -ne 0 ] && [ $ret -ne 5 ]; then
             exit 1
