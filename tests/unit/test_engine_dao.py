@@ -302,6 +302,13 @@ def test_migration_db_v8(engine_dao):
             assert str(download.tmpname).startswith("\\\\?\\")
 
 
+def test_migration_db_v9(engine_dao):
+    """Verify Downloads.path and Uploads.path types after migration."""
+    with engine_dao("test_engine_migration_8.db") as dao:
+        downloads = list(dao.get_downloads())
+        assert len(downloads) == 1
+
+
 def test_migration_db_v1_with_duplicates(engine_dao):
     """ Test a non empty DB. """
     with engine_dao("test_engine_migration_duplicate.db") as dao:
