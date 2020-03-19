@@ -1,8 +1,27 @@
+"""
+(C) Copyright 2019-2020 Nuxeo SA (http://nuxeo.com/).
+
+Usage: python merge.py FOLDER [FILE]
+
+Merge JUnit reports from FOLDER into FILE.
+FILE is optional and defaults to "junit.xml".
+
+The final report will be saved into FOLDER/FILE.
+
+It is possible to custom the test suite final report name
+using the TEST_SUITE envar (default is "Project"), examples:
+    export TEST_SUITE=Drive
+    export TEST_SUITE=nxPyML
+
+Contributors:
+    Léa Klein
+    Mickaël Schoentgen <mschoentgen@nuxeo.com>
+"""
+import os
+import sys
 from pathlib import Path
 
 from junitparser import JUnitXml, TestSuite
-
-JUNIT_PATH = Path("tools/jenkins/junit/xml")
 
 
 def print_suite(suite: TestSuite) -> None:
@@ -16,10 +35,14 @@ def print_suite(suite: TestSuite) -> None:
 
 
 class JunitReport:
-    def __init__(self, folder: Path = JUNIT_PATH, output: str = "junit.xml"):
-        self.folder = folder
+    def __init__(self, folder: str, output: str = "junit.xml"):
+        self.folder = Path(folder)
         self.output = output
         self.test_set = set()
+
+        if not self.folder.is_dir():
+            err = f"The JUnit folder containing reports does not exist: {str(self.folder)!r}."
+            raise FileNotFoundError(err)
 
     def add_tests(self, src: TestSuite) -> None:
         print_suite(src)
@@ -30,9 +53,7 @@ class JunitReport:
                 self.test_set.add(name)
 
     def process_xml(self, path: Path) -> None:
-        if not path.exists():
-            return
-        print(f"Processing {path}")
+        print(f"Processing {str(path)!r}")
         suites = JUnitXml.fromfile(path)
         if isinstance(suites, TestSuite):
             suites = [suites]
@@ -40,15 +61,18 @@ class JunitReport:
             self.add_tests(suite)
 
     def build(self) -> None:
-        self.mainsuite = TestSuite("Drive")
+        test_suite = os.getenv("TEST_SUITE", "Project")
+        self.mainsuite = TestSuite(test_suite)
 
-        self.process_xml(self.folder / "final.xml")
-
-        for idx in (2, 1):
-            # First add the results from the reruns (suffixed with "2")
-            # then the first runs, to add successes before failures.
-            for results in Path(self.folder).glob(f"**/*.{idx}.xml"):
-                self.process_xml(results)
+        # Aggregate all reports in reverse order:
+        # this is important for projects using "rerun" mechanism and where
+        # reports are numbered so that report-2.xml should be processed
+        # before report-1.xml in order to add successes before failures.
+        for report in sorted(self.folder.glob("**/*.xml"), reverse=True):
+            # Skip the final report, if present
+            if report.name == self.output:
+                continue
+            self.process_xml(report)
 
         print("End of processing")
         print_suite(self.mainsuite)
@@ -59,4 +83,4 @@ class JunitReport:
 
 
 if __name__ == "__main__":
-    JunitReport().build()
+    JunitReport(*sys.argv[1:]).build()
