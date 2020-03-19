@@ -763,38 +763,6 @@ class EngineDAO(ConfigurationDAO):
         cursor.execute(
             "CREATE TABLE if not exists Downloads ("
             "    uid            INTEGER     NOT NULL,"
-            "    path           INTEGER     UNIQUE,"
-            "    status         INTEGER,"
-            "    engine         VARCHAR     DEFAULT NULL,"
-            "    is_direct_edit INTEGER     DEFAULT 0,"
-            "    progress       REAL,"
-            "    filesize       INTEGER     DEFAULT 0,"
-            "    doc_pair       INTEGER     UNIQUE,"
-            "    tmpname        VARCHAR,"
-            "    url            VARCHAR,"
-            "    PRIMARY KEY (uid)"
-            ")"
-        )
-        cursor.execute(
-            "CREATE TABLE if not exists Uploads ("
-            "    uid            INTEGER     NOT NULL,"
-            "    path           INTEGER     UNIQUE,"
-            "    status         INTEGER,"
-            "    engine         VARCHAR     DEFAULT NULL,"
-            "    is_direct_edit INTEGER     DEFAULT 0,"
-            "    progress       REAL,"
-            "    doc_pair       INTEGER     UNIQUE,"
-            "    batch          VARCHAR,"
-            "    chunk_size     INTEGER,"
-            "    PRIMARY KEY (uid)"
-            ")"
-        )
-
-    @staticmethod
-    def _create_transfer_tables_v2(cursor: Cursor) -> None:
-        cursor.execute(
-            "CREATE TABLE if not exists Downloads ("
-            "    uid            INTEGER     NOT NULL,"
             "    path           VARCHAR     UNIQUE,"
             "    status         INTEGER,"
             "    engine         VARCHAR     DEFAULT NULL,"
