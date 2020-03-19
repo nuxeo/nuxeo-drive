@@ -44,6 +44,7 @@ from ..utils import (
     get_tree_list,
     if_frozen,
     safe_filename,
+    safe_long_path,
     set_path_readonly,
     unset_path_readonly,
 )
@@ -295,7 +296,7 @@ class Engine(QObject):
             return self.download_dir
 
         download_dir = find_suitable_tmp_dir(self.local_folder, self.manager.home)
-        download_dir = download_dir / ".tmp" / self.uid
+        download_dir = safe_long_path(download_dir) / ".tmp" / self.uid
         log.info(f"Using temporary download folder {download_dir!r}")
         download_dir.mkdir(parents=True, exist_ok=True)
 

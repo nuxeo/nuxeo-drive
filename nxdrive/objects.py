@@ -454,7 +454,7 @@ class Transfer:
 class Download(Transfer):
     transfer_type: str = field(init=False, default="download")
     filesize: int = 0
-    tmpname: Optional[str] = None
+    tmpname: Optional[Path] = None
     url: Optional[str] = None
 
 

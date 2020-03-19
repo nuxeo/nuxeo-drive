@@ -195,7 +195,7 @@ class TransferModel(QAbstractListModel):
         """
         if row["transfer_type"] == "download":
             try:
-                progress = os.path.getsize(row["tmpname"])
+                progress = row["tmpname"].stat().st_size
             except FileNotFoundError:
                 progress = 0
             size = row["filesize"]
