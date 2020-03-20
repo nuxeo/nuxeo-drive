@@ -591,6 +591,36 @@ def test_if_frozen_decorator():
     assert checkpoint
 
 
+@pytest.mark.parametrize(
+    "fs_item, expected_result",
+    [
+        ({}, True),
+        ({"digestAlgorithm": "md5"}, False),
+        (
+            {
+                "digestAlgorithm": "md5",
+                "digest": '"x2jdlkqYTB8kzPmV7jH2KPtlR68/MTU3MzIyNDI0OTk1Nw"',
+            },
+            True,
+        ),
+        (
+            {
+                "digestAlgorithm": "md5",
+                "digest": "x2jdlkqYTB8kzPmV7jH2KPtlR68/MTU3MzIyNDI0OTk1Nw",
+            },
+            True,
+        ),
+        (
+            {"digestAlgorithm": "md5", "digest": "54b0c58c7ce9f2a8b551351102ee0938"},
+            False,
+        ),
+    ],
+)
+def test_is_live_connect(fs_item, expected_result):
+    result = nxdrive.utils.is_live_connect(fs_item)
+    assert result == expected_result
+
+
 def test_normalized_path_permission_error(tmp):
     func = nxdrive.utils.normalized_path
 

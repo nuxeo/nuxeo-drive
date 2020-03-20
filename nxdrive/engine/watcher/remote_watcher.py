@@ -14,7 +14,7 @@ from ...constants import BATCH_SIZE, CONNECTION_ERROR, ROOT, WINDOWS
 from ...exceptions import NotFound, ScrollDescendantsError, ThreadInterrupt
 from ...objects import DocPair, DocPairs, Metrics, RemoteFileInfo
 from ...options import Options
-from ...utils import get_date_from_sqlite, safe_filename
+from ...utils import get_date_from_sqlite, is_live_connect, safe_filename
 from ..activity import Action, tooltip
 from ..workers import EngineWorker
 
@@ -757,7 +757,9 @@ class RemoteWatcher(EngineWorker):
                     f"Skipping unsyncable document {change} (digest is 'notInBinaryStore')"
                 )
                 continue
-
+            if fs_item and is_live_connect(fs_item):
+                log.debug(f"Skipping unsyncable document {change} (live connect)")
+                continue
             log.debug(f"Processing event: {change!r}")
 
             event_id = change.get("eventId")
