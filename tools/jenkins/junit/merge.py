@@ -23,6 +23,8 @@ from pathlib import Path
 
 from junitparser import JUnitXml, TestSuite
 
+__version__ = "1.0.0"
+
 
 def print_suite(suite: TestSuite) -> None:
     print(
