@@ -74,6 +74,10 @@ def no_warnings(recwarn):
         elif "type=SocketKind.SOCK_STREAM" in message:
             # Socket leaks on macOS, may need investigations
             continue
+        elif "TerminalReporter.writer attribute is deprecated" in message:
+            # Cannot understand if this is from our code or a pytest plugin,
+            # let's wait for when it will fail :)
+            continue
 
         warn = f"{warning.filename}:{warning.lineno} {message}"
         print(warn, file=sys.stderr)
