@@ -54,7 +54,7 @@ def is_version_compatible(
     Fallback on min and max keys that contain only one server version:
     the oldest supported.
     """
-    if not has_browser_login and not version_lt(version_id, "4"):
+    if not (has_browser_login or version_lt(version_id, "4")):
         return False
 
     # Remove HF and SNAPSHOT
@@ -70,10 +70,7 @@ def is_version_compatible(
         version.get("max_all", {}).get(base_server) or version.get("max", "")
     ).upper()
 
-    if ver_max and version_lt(ver_max, server):
-        return False
-
-    return True
+    return not (ver_max and version_lt(ver_max, server))
 
 
 def get_compatible_versions(
@@ -87,7 +84,7 @@ def get_compatible_versions(
     # will be compatible with a higher version of the server.
     # This is the case when there is no bound account.
     version_regex = r"^\d+(\.\d+)+(-HF\d+|)(-SNAPSHOT|)(-I.*|)$"
-    if not server_ver or not re.match(version_regex, server_ver, re.I):
+    if not (server_ver and re.match(version_regex, server_ver, re.I)):
         log.info("No bound account, skipping the update check.")
         return {}
 

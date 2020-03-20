@@ -221,8 +221,8 @@ class QueueManager(QObject):
 
     @pyqtSlot()
     def _on_error_timer(self) -> None:
-        cur_time = int(time.time())
         with self._error_lock:
+            cur_time = int(time.time())
             for doc_pair in list(self._on_error_queue.values()):
                 if doc_pair.error_next_try < cur_time:
                     queue_item = QueueItem(
@@ -386,7 +386,7 @@ class QueueManager(QObject):
                 and self._remote_file_thread.isFinished()
             ):
                 self._remote_file_thread = None
-            if not self._engine.is_paused() and not self._engine.is_stopped():
+            if not (self._engine.is_paused() or self._engine.is_stopped()):
                 self.newItem.emit(None)
 
     def active(self) -> bool:
@@ -503,10 +503,11 @@ class QueueManager(QObject):
                 self._local_file_thread or self._remote_file_thread, path
             ):
                 return True
-            for thread in self._processors_pool:
-                if self.is_processing_file(thread, path):
-                    return True
-            return False
+
+            return any(
+                self.is_processing_file(thread, path)
+                for thread in self._processors_pool
+            )
 
     @pyqtSlot()
     def launch_processors(self) -> None:

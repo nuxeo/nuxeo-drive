@@ -836,7 +836,7 @@ class Remote(Nuxeo):
             scrollId=scroll_id,
             batchSize=batch_size,
         )
-        if not isinstance(res, dict) or not res:
+        if not (isinstance(res, dict) and res):
             raise ScrollDescendantsError(res)
 
         return {

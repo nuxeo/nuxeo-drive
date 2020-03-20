@@ -54,12 +54,12 @@ class WindowsIntegration(AbstractOSIntegration):
     @pyqtSlot(result=bool)
     def addons_installed(self) -> bool:
         """Check if add-ons are installed or not."""
-        if (
-            Options.system_wide
-            or (Path(sys.executable).parent / "addons-installed.txt").is_file()
-        ):
-            return True
-        return False
+        return bool(
+            (
+                Options.system_wide
+                or (Path(sys.executable).parent / "addons-installed.txt").is_file()
+            )
+        )
 
     @staticmethod
     def cb_get() -> str:

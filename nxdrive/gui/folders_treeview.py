@@ -138,7 +138,7 @@ class DocumentTreeView(TreeViewMixin):
         self.update_item_changed(item)
 
         parent = item.parent()
-        if not parent or not parent.isCheckable():
+        if not (parent and parent.isCheckable()):
             return
 
         parent.setCheckState(Qt.PartiallyChecked)

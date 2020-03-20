@@ -137,8 +137,8 @@ class Worker(QObject):
     def action(self) -> Action:
         if self._action is None:
             self._action = Action.get_current_action(self.thread_id)
-            if self._action is None:
-                self._action = IdleAction()
+        if self._action is None:
+            self._action = IdleAction()
         return self._action
 
     @action.setter

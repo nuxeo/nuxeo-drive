@@ -560,7 +560,7 @@ class Engine(QObject):
         """ Resume a single transfer with its nature and uid. """
         self.dao.resume_transfer(nature, uid)
         transfer = getattr(self.dao, f"get_{nature}")(uid=uid)
-        if not transfer or not transfer.doc_pair:
+        if not (transfer and transfer.doc_pair):
             return
 
         doc_pair = self.dao.get_state_from_id(transfer.doc_pair)
@@ -1010,8 +1010,8 @@ class Engine(QObject):
             self.remote = self.init_remote()
             if not self._remote_token:
                 self._remote_token = self.remote.request_token()
-                if not self._remote_token:
-                    self.remote = None  # type: ignore
+            if not self._remote_token:
+                self.remote = None  # type: ignore
 
         # Save the configuration
         self.dao.store_bool("web_authentication", self._web_authentication)
