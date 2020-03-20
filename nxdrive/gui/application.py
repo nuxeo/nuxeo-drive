@@ -1364,7 +1364,7 @@ class Application(QApplication):
         try:
             con = self._nxdrive_listener.nextPendingConnection()
             log.info("Receiving socket connection for nxdrive protocol handling")
-            if not con or not con.waitForConnected():
+            if not (con and con.waitForConnected()):
                 log.error(f"Unable to open server socket: {con.errorString()}")
                 return
 

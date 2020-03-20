@@ -296,7 +296,7 @@ class Manager(QObject):
         """Create the Google Analytics tracker."""
 
         # Avoid sending statistics when testing or if the user does not allow it.
-        if not Options.is_frozen or not Options.use_analytics:
+        if not (Options.is_frozen and Options.use_analytics):
             return None
 
         tracker = Tracker(self)
@@ -483,9 +483,9 @@ class Manager(QObject):
     def device_id(self) -> str:
         if not self.__device_id:
             self.__device_id = self.dao.get_config("device_id")
-            if not self.__device_id:
-                self.__device_id = uuid.uuid1().hex
-                self.dao.update_config("device_id", self.__device_id)
+        if not self.__device_id:
+            self.__device_id = uuid.uuid1().hex
+            self.dao.update_config("device_id", self.__device_id)
         return str(self.__device_id)
 
     def get_config(self, value: str, default: Any = None) -> Any:
@@ -722,12 +722,11 @@ class Manager(QObject):
 
         if not local_folder:
             local_folder = get_default_local_folder()
-        elif local_folder == self.home:
+        elif local_folder == self.home or not self.check_local_folder_available(
+            local_folder
+        ):
             # Prevent from binding in the configuration folder
             raise FolderAlreadyUsed()
-        elif not self.check_local_folder_available(local_folder):
-            raise FolderAlreadyUsed()
-
         if not self.engines:
             self.load()
 

@@ -93,7 +93,7 @@ def pytest_runtest_protocol(item, nextitem):
                 condition = report.failed or report.skipped
 
             # we only mess with the report if it's a call report
-            if i == repeat - 1 or condition or not report.when == "call":
+            if i == repeat - 1 or condition or report.when != "call":
                 # last run or no failure detected
                 if mode == "STRICT" and i == repeat - 1 and report.when == "call":
                     # in STRICT mode, if the it never fails, then fail completely

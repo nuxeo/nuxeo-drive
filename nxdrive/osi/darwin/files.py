@@ -24,11 +24,7 @@ def _is_running(identifier: str) -> bool:
     if not running_apps:
         return False
 
-    for app in running_apps:
-        if str(app.bundleIdentifier()) == identifier:
-            return True
-
-    return False
+    return any(str(app.bundleIdentifier()) == identifier for app in running_apps)
 
 
 def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Item]:
@@ -48,7 +44,7 @@ def _get_opened_files_adobe_cc(identifier: str) -> Iterator[Item]:
 
     app = SBApplication.applicationWithBundleIdentifier_(identifier)
 
-    if not app or not app.isRunning():
+    if not (app and app.isRunning()):
         return
 
     try:
