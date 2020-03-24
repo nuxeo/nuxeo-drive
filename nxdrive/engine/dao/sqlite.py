@@ -787,7 +787,7 @@ class EngineDAO(ConfigurationDAO):
                 )
                 values = (
                     download.path,
-                    download.status.value,
+                    download.status,
                     download.engine,
                     download.doc_pair,
                     download.filesize,
