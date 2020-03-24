@@ -309,6 +309,18 @@ def test_migration_db_v9(engine_dao):
         assert len(downloads) == 1
 
 
+def test_migration_db_v10(engine_dao):
+    """Verify Downloads and Filters after migration."""
+    engine_dao._items_count = 0
+    engine_dao._filters = []
+    with engine_dao("test_engine_migration_10.db") as dao:
+        downloads = list(dao.get_downloads())
+        assert len(downloads) == 0
+
+        filters = dao.get_filters()
+        assert len(filters) == 1
+
+
 def test_migration_db_v1_with_duplicates(engine_dao):
     """ Test a non empty DB. """
     with engine_dao("test_engine_migration_duplicate.db") as dao:
