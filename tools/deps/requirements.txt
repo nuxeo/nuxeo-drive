@@ -171,7 +171,7 @@ pyobjc-framework-ScriptingBridge==6.1 ; sys_platform == "darwin" \
     --hash=sha256:affff06c35551a7cac5fb8bb5363b50eca0dc189df78fa343356e1eeda0492cd \
     --hash=sha256:b3f9342733697f81b6e54e052648ac89beb234057502aa43c1861a243b0f0f61 \
     --hash=sha256:5f4b2f62fe99cbb3feaa4afe55fef686b6ef3be2abaa5f55ed3a8fef40dc6046
-pyobjc-framework-SystemConfiguration==6.1 ; sys_platform == "darwin" \
+pyobjc-framework-SystemConfiguration==6.2 ; sys_platform == "darwin" \
     --hash=sha256:07f1cf37ad1af293fc6f91da59796df5cb5f1584ff6c40f93ede10ae6aafb51a \
     --hash=sha256:feb3d11f4a011e492cd00468791707aea65941cd5076f8c765bc1f3ad46b6cec \
     --hash=sha256:801a1d7802b019c05cdf452245f830bfa3b2a8782fa2e334fc12d9fbff9f6f49 \
