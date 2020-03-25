@@ -144,7 +144,7 @@ pycryptodomex==3.9.7 \
     --hash=sha256:bf391b377413a197000b43ef2b74359974d8927d329a897c9f5ba7b63dca7b9c \
     --hash=sha256:1ecc9db7409db67765eb008e558879d298406642d33ade43a6488224d23e8081 \
     --hash=sha256:50163324834edd0c9ce3e4512ded3e221c969086e10fdd5d3fdcaadac5e24a78
-pyobjc-core==6.1 ; sys_platform == "darwin" \
+pyobjc-core==6.2 ; sys_platform == "darwin" \
     --hash=sha256:470ccd754efb468a59426942673dfc3c5c59f33a5b8cae8a7fc1be975c2d4128 \
     --hash=sha256:751cdeb436cb181af2e2413015b072075590577c410c7f345080a38dd028b8ec \
     --hash=sha256:8ccf44511cbe438fa6562c423c0c5f1dad7cfc0eadd6d8f112840f8845b44fda \
