@@ -155,7 +155,7 @@ pyobjc-framework-Cocoa==6.1 ; sys_platform == "darwin" \
     --hash=sha256:245e19156739f8068db474ad9561079cc698f08ef525e299b8eedc5531e02801 \
     --hash=sha256:1dc428f867d35007ddf9de5b24eff5bfdf65c58b1d610abcb08bebd94c343312 \
     --hash=sha256:c4077d2e6f96e4f3fd9780d66778cf51d27f414822498b24410e9df7a6a4d531
-pyobjc-framework-CoreServices==6.1 ; sys_platform == "darwin" \
+pyobjc-framework-CoreServices==6.2 ; sys_platform == "darwin" \
     --hash=sha256:0e28004a6fcc3d8928d7c8ddac2059651847851e2bad7fe2d1ed7fd12615065c \
     --hash=sha256:a2977e948027677fca574a6c3fc4654f6644700bf9d2afa87c64afa2acf4b66e \
     --hash=sha256:416c47d12640ddcdb773eee6a99e09d26326dadb15056d0f7734eff913d4ce7b \
