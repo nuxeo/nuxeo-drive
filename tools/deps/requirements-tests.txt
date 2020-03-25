@@ -52,8 +52,9 @@ faker==4.0.2 \
 future==0.18.2 \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via junitparser
-importlib-metadata==1.5.0 \
-    --hash=sha256:b97607a1a18a5100839aec1dc26a1ea17ee0d93b20b0f008d80a5a050afb200b
+importlib-metadata==1.5.1 \
+    --hash=sha256:0095bf45caca7a93685cbb9e5ef49f0ed37f848639df8f4684f07229aa7a8322 \
+    --hash=sha256:dd381cddc02a58a23667ef675164ad70848d82966d3a8fddea96dcfb51064803
     # via pytest
 junitparser==1.4.1 \
     --hash=sha256:9d8cd9909f115d4e0fe1f445ebd816524123c34cf0178c48bd4778d50a5f2617
