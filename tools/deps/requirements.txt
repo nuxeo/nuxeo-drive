@@ -160,7 +160,7 @@ pyobjc-framework-CoreServices==6.1 ; sys_platform == "darwin" \
     --hash=sha256:a2977e948027677fca574a6c3fc4654f6644700bf9d2afa87c64afa2acf4b66e \
     --hash=sha256:416c47d12640ddcdb773eee6a99e09d26326dadb15056d0f7734eff913d4ce7b \
     --hash=sha256:665f979403ebae16b4d9945d24829c12c2aeccc0338cd04a268a324b6cc654a2
-pyobjc-framework-FSEvents==6.1 ; sys_platform == "darwin" \
+pyobjc-framework-FSEvents==6.2 ; sys_platform == "darwin" \
     --hash=sha256:94c6953774b6d69e59d9781951f05ef57e352b3c530d4c236f463444852c3a88 \
     --hash=sha256:3a403ce5997cc01f23f1a70f8b4c919311b9a6b1fdd3c3d02d19079d711f954c \
     --hash=sha256:d2ae8748d1791dc9e3d19b41d3873283ac34ed17ff8fca70f1a199336a0477b5 \
