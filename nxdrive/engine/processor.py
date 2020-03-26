@@ -741,7 +741,6 @@ class Processor(EngineWorker):
                 ]
                 getattr(self.local, func)(doc_pair.local_path)
                 remote_ref = ""
-
         if remote_ref and info:
             try:
                 if uid and info.is_trashed:
@@ -798,6 +797,39 @@ class Processor(EngineWorker):
                             f"{doc_pair!r} | {fs_item_info!r}"
                         )
                     self.dao.synchronize_state(doc_pair)
+                    return
+                # Document exists on the server but is different
+                elif (
+                    parent_pair.remote_ref
+                    and parent_pair.remote_ref == fs_item_info.parent_uid
+                    and not self.local.is_equal_digests(
+                        doc_pair.local_digest, fs_item_info.digest, doc_pair.local_path
+                    )
+                    and (
+                        doc_pair.local_name == info.name
+                        or doc_pair.local_state == "resolved"
+                    )
+                ):
+                    if doc_pair.pair_state == "locally_resolved":
+                        if fs_item_info.name != doc_pair.local_name:
+                            fs_item_info = self.remote.rename(
+                                fs_item_info.uid, doc_pair.local_name
+                            )
+                        remote_parent_path = (
+                            parent_pair.remote_parent_path
+                            + "/"
+                            + parent_pair.remote_ref
+                        )
+                        self.dao.update_remote_state(
+                            doc_pair,
+                            fs_item_info,
+                            remote_parent_path=remote_parent_path,
+                            versioned=False,
+                        )
+                        # Handle document modification - update the doc_pair
+                        refreshed = self.dao.get_state_from_id(doc_pair.id)
+                        if refreshed and overwrite:
+                            self._synchronize_locally_modified(refreshed)
                     return
             except HTTPError as e:
                 # undelete will fail if you don't have the rights
