@@ -54,6 +54,38 @@ class TestConflicts(TwoUsersTest):
         assert remote.get_content(remote_children[0].uid) == b"Remote update 2"
         assert self.get_remote_state(self.file_id).pair_state == "conflicted"
 
+    def test_conflict_renamed_modified(self):
+        local = self.local_1
+        remote = self.remote_2
+
+        # Update content on both sides by different users, remote last
+        time.sleep(OS_STAT_MTIME_RESOLUTION)
+        # Race condition is still possible
+        remote.update_content(self.file_id, b"Remote update")
+        remote.rename(self.file_id, "plop.txt")
+        local.update_content("/test.txt", b"Local update")
+        self.wait_sync(wait_for_async=True)
+
+        assert remote.get_content(self.file_id) == b"Remote update"
+        assert local.get_content("/test.txt") == b"Local update"
+        assert self.get_remote_state(self.file_id).pair_state == "conflicted"
+
+    def test_resolve_local_renamed_modified(self):
+        remote = self.remote_2
+
+        self.test_conflict_renamed_modified()
+        # Resolve to local file
+        pair = self.get_remote_state(self.file_id)
+        assert pair
+        self.engine_1.resolve_with_local(pair.id)
+        self.wait_sync(wait_for_async=True)
+
+        remote_children = remote.get_fs_children(self.workspace_id)
+        assert len(remote_children) == 1
+        assert remote_children[0].uid == self.file_id
+        assert remote_children[0].name == "test.txt"
+        assert remote.get_content(remote_children[0].uid) == b"Local update"
+
     def test_real_conflict(self):
         local = self.local_1
         remote = self.remote_2
