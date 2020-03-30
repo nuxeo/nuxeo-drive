@@ -338,7 +338,6 @@ class QMLDriveApi(QObject):
     @pyqtSlot(str)
     def show_conflicts_resolution(self, uid: str) -> None:
         self.application.hide_systray()
-
         engine = self._manager.engines.get(uid)
         if engine:
             self.application.show_conflicts_resolution(engine)
