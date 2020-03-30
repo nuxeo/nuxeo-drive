@@ -666,8 +666,7 @@ class Application(QApplication):
         """ Display the conflicts/errors window. """
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
-        self.conflicts_window.show()
-        self.conflicts_window.requestActivate()
+        self._show_window(self.conflicts_window)
 
     @pyqtSlot()  # From systray.py
     @pyqtSlot(str)  # All other calls
