@@ -666,8 +666,7 @@ class Application(QApplication):
         """ Display the conflicts/errors window. """
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
-        self.conflicts_window.show()
-        self.conflicts_window.requestActivate()
+        self._show_window(self.conflicts_window)
 
     @pyqtSlot()  # From systray.py
     @pyqtSlot(str)  # All other calls
@@ -1364,7 +1363,7 @@ class Application(QApplication):
         try:
             con = self._nxdrive_listener.nextPendingConnection()
             log.info("Receiving socket connection for nxdrive protocol handling")
-            if not con or not con.waitForConnected():
+            if not (con and con.waitForConnected()):
                 log.error(f"Unable to open server socket: {con.errorString()}")
                 return
 

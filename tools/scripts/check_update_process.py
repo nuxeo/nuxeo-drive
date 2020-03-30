@@ -43,7 +43,7 @@ import yaml
 # Alter the lookup path to be able to find Nuxeo Drive sources
 sys.path.insert(0, os.getcwd())
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 
 EXT = {"darwin": "dmg", "linux": "appimage", "win32": "exe"}[sys.platform]
 Server = http.server.SimpleHTTPRequestHandler
@@ -88,11 +88,7 @@ def download_last_ga_release(output_dir, version):
     """ Download the latest GA release from the update website. """
 
     file = f"nuxeo-drive-{version}"
-    if EXT == "appimage":
-        file += "-x86_64.AppImage"
-    else:
-        file += f".{EXT}"
-
+    file += "-x86_64.AppImage" if EXT == "appimage" else f".{EXT}"
     url = f"https://community.nuxeo.com/static/drive-updates/release/{file}"
     output = os.path.join(output_dir, "alpha", file)
     print(">>> Downloading", url, "->", output, flush=True)

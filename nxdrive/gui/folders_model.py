@@ -39,8 +39,7 @@ class FileInfo:
 
     def get_children(self) -> Iterator["FileInfo"]:
         """Get all children."""
-        for child in self.children:
-            yield child
+        yield from self.children
 
     def enable(self) -> bool:
         """The document can be clicked."""

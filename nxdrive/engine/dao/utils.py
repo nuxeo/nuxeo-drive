@@ -148,7 +148,7 @@ def save_backup(database: Path) -> bool:
     will be created, where the numbers are the current timestamp.
     """
 
-    if not database or not database.is_file():
+    if not (database and database.is_file()):
         log.info("No database to backup")
         return False
     if not is_healthy(database):
