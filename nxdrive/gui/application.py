@@ -667,6 +667,7 @@ class Application(QApplication):
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
         self.conflicts_window.show()
+        self.conflicts_window.raise_()
         self.conflicts_window.requestActivate()
 
     @pyqtSlot()  # From systray.py

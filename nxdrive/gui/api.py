@@ -339,9 +339,6 @@ class QMLDriveApi(QObject):
     def show_conflicts_resolution(self, uid: str) -> None:
         self.application.hide_systray()
 
-        # Arise the conflicts window to let the user know the error
-        self.application._show_window(self.application.conflicts_window)
-
         engine = self._manager.engines.get(uid)
         if engine:
             self.application.show_conflicts_resolution(engine)
