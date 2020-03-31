@@ -393,6 +393,18 @@ class Application(QApplication):
         self.osi.register_contextual_menu()
         self.installTranslator(Translator.singleton)
 
+    def display_warning(self, title: str, message: str, values: List[str]) -> None:
+        """Display a generic message box warning."""
+        msg_text = self.translate(message, values)
+        log.warning(f"{msg_text} (values={values})")
+        msg = QMessageBox()
+        msg.setWindowTitle(title)
+        msg.setWindowIcon(self.icon)
+        msg.setIcon(QMessageBox.Warning)
+        msg.setTextFormat(Qt.RichText)
+        msg.setText(msg_text)
+        msg.exec_()
+
     @pyqtSlot(str, Path, str)
     def _direct_edit_conflict(self, filename: str, ref: Path, digest: str) -> None:
         log.debug(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
@@ -424,15 +436,7 @@ class Application(QApplication):
     @pyqtSlot(str, list)
     def _direct_edit_error(self, message: str, values: List[str]) -> None:
         """ Display a simple Direct Edit error message. """
-        msg_text = self.translate(message, values)
-        log.warning(f"DirectEdit error message: '{msg_text}', values={values}")
-        msg = QMessageBox()
-        msg.setWindowTitle(f"Direct Edit - {APP_NAME}")
-        msg.setWindowIcon(self.icon)
-        msg.setIcon(QMessageBox.Warning)
-        msg.setTextFormat(Qt.RichText)
-        msg.setText(msg_text)
-        msg.exec_()
+        self.display_warning(f"Direct Edit - {APP_NAME}", message, values)
 
     @pyqtSlot()
     def _root_deleted(self) -> None:
@@ -462,12 +466,7 @@ class Application(QApplication):
 
     @pyqtSlot()
     def _no_space_left(self) -> None:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
-        msg.setWindowIcon(self.icon)
-        msg.setText(Translator.get("NO_SPACE_LEFT_ON_DEVICE"))
-        msg.addButton(Translator.get("OK"), QMessageBox.AcceptRole)
-        msg.exec_()
+        self.display_warning(APP_NAME, "NO_SPACE_LEFT_ON_DEVICE", [])
 
     @pyqtSlot(Path)
     def _root_moved(self, new_path: Path) -> None:
@@ -1278,12 +1277,7 @@ class Application(QApplication):
     @pyqtSlot()
     def show_msgbox_restart_needed(self) -> None:
         """ Display a message to ask the user to restart the application. """
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText(Translator.get("RESTART_NEEDED_MSG", values=[APP_NAME]))
-        msg.setWindowTitle(APP_NAME)
-        msg.addButton(Translator.get("OK"), QMessageBox.AcceptRole)
-        msg.exec_()
+        self.display_warning(APP_NAME, "RESTART_NEEDED_MSG", [APP_NAME])
 
     @pyqtSlot(result=str)
     def _nxdrive_url_env(self) -> str:
