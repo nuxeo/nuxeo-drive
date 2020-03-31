@@ -4,6 +4,7 @@ Query formatting in this file is based on http://www.sqlstyle.guide/
 """
 import json
 import os
+import shutil
 import sys
 from contextlib import suppress
 from datetime import datetime
@@ -739,6 +740,7 @@ class EngineDAO(ConfigurationDAO):
             # Make a copy of the Upload and Download table
             cursor.execute("ALTER TABLE Uploads RENAME TO Uploads_backup;")
             cursor.execute("ALTER TABLE Downloads RENAME TO Downloads_backup;")
+
             # Create again the tables, with up-to-date columns
             self._create_transfer_tables(cursor)
 
@@ -760,11 +762,21 @@ class EngineDAO(ConfigurationDAO):
                 "SELECT * FROM States WHERE remote_digest IS NOT NULL;"
             ):
                 digest = doc_pair["remote_digest"]
-                if digest.count('"') != 0 or not get_digest_algorithm(digest):
-                    cursor.execute(
-                        f"DELETE FROM Downloads WHERE doc_pair = ?", (doc_pair["id"],)
-                    )
+                if not get_digest_algorithm(digest):
+                    remote_ref = doc_pair["remote_ref"]
+                    id = doc_pair["id"]
+                    download = self.get_download(doc_pair=id)
+
+                    cursor.execute(f"DELETE FROM Downloads WHERE doc_pair = ?", (id,))
+
+                    # Clean-up the TMP file
+                    with suppress(OSError):
+                        shutil.rmtree(download.tmpname.parent)
+
                     self.remove_state(doc_pair)
+                    log.debug(
+                        f"Deleted unsyncable state {id}, remote_ref={remote_ref!r}, remote_digest={digest!r}"
+                    )
 
             self.store_int(SCHEMA_VERSION, 10)
 

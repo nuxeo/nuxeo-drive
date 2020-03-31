@@ -99,14 +99,14 @@ class RemoteFileInfo:
             can_scroll = fs_item.get("canScrollDescendants", False)
             can_scroll_descendants = can_scroll
         else:
-            digest = fs_item.get("digest")
+            digest = fs_item["digest"]
             digest_algorithm = fs_item.get("digestAlgorithm")
             if digest_algorithm:
                 digest_algorithm = digest_algorithm.lower().replace("-", "")
-            if not digest_algorithm:
+            else:
                 digest_algorithm = get_digest_algorithm(digest)
             if not digest_algorithm:
-                raise UnknownDigest("{digest!r}")
+                raise UnknownDigest(digest)
             download_url = fs_item.get("downloadURL")
             can_update = fs_item.get("canUpdate", False)
             can_create_child = False

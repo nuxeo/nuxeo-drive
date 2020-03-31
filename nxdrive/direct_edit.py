@@ -467,16 +467,15 @@ class DirectEdit(Worker):
             self.local.set_remote_id(dir_path, blob.digest, name="nxdirecteditdigest")
             # Set digest algorithm if not sent by the server
             digest_algorithm = blob.digest_algorithm
-            if digest_algorithm:
-                self.local.set_remote_id(
-                    dir_path,
-                    digest_algorithm.encode("utf-8"),
-                    name="nxdirecteditdigestalgorithm",
-                )
             if not digest_algorithm:
                 digest_algorithm = get_digest_algorithm(blob.digest)
             if not digest_algorithm:
                 raise UnknownDigest(blob.digest)
+            self.local.set_remote_id(
+                dir_path,
+                digest_algorithm.encode("utf-8"),
+                name="nxdirecteditdigestalgorithm",
+            )
         self.local.set_remote_id(dir_path, filename, name="nxdirecteditname")
 
         safe_rename(tmp_file, file_path)

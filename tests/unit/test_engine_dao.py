@@ -311,7 +311,6 @@ def test_migration_db_v9(engine_dao):
 
 def test_migration_db_v10(engine_dao):
     """Verify Downloads after migration from v9 to v10."""
-    engine_dao._items_count = 0
     with engine_dao("test_engine_migration_10.db") as dao:
         downloads = list(dao.get_downloads())
         assert len(downloads) == 0

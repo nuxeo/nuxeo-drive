@@ -757,6 +757,7 @@ class RemoteWatcher(EngineWorker):
                     f"Skipping unsyncable document {change} (digest is 'notInBinaryStore')"
                 )
                 continue
+
             log.debug(f"Processing event: {change!r}")
 
             event_id = change.get("eventId")
