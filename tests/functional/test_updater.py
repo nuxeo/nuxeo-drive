@@ -1,5 +1,9 @@
+from unittest.mock import patch
+
 from nxdrive import __version__
+from nxdrive.feature import Feature
 from nxdrive.options import Options
+from nxdrive.poll_workers import ServerOptionsUpdater
 from nxdrive.updater.base import BaseUpdater
 
 NEXT_VER = ".".join(f"{v + 1}" for v in map(int, __version__.split(".")))
@@ -151,3 +155,26 @@ def test_frozen_updates_disabled_centralized_client_version(manager_factory):
         # The server config has been fetched, the update can be done
         manager.server_config_updater.first_run = False
         check_attrs(updater, True, True, "4.4.0")
+
+
+@Options.mock()
+def test_feature_auto_update(manager_factory):
+    """The application is frozen and auto-update enabled, then disable dvia the server config."""
+    Options.is_frozen = True
+    assert Feature.auto_update
+    assert Options.feature_auto_update
+
+    def disabled():
+        return {"feature": {"auto-update": False}}
+
+    manager, engine = manager_factory()
+    with manager:
+        updater = Updater(manager)
+        server_updater = ServerOptionsUpdater(manager)
+
+        manager.server_config_updater.first_run = False
+        with patch.object(engine.remote, "get_server_configuration", new=disabled):
+            server_updater._poll()
+            assert not Feature.auto_update
+            assert not Options.feature_auto_update
+            check_attrs(updater, False, False, "")

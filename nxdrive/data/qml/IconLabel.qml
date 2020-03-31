@@ -20,7 +20,7 @@ import QtQuick 2.13
         anchors.fill: parent
         hoverEnabled: control.tooltip
         id: mouseArea
-        cursorShape: control.enabled || control.tooltip ? Qt.PointingHandCursor : Qt.ArrowCursor
+        cursorShape: control.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: control.enabled ? control.clicked() : {}
     }
 

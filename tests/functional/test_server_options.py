@@ -1,6 +1,9 @@
 from unittest.mock import patch
 
+import pytest
 from nxdrive.behavior import Behavior
+from nxdrive.feature import Feature
+from nxdrive.options import Options
 from nxdrive.poll_workers import ServerOptionsUpdater
 
 
@@ -65,3 +68,63 @@ def test_behavior_not_good(caplog, manager_factory):
         record = caplog.records[0]
         assert record.levelname == "WARNING"
         assert record.message == "Invalid behavior value: 'oui' (a boolean is required)"
+
+
+@Options.mock()
+@pytest.mark.parametrize(
+    "feature, feat_name, default",
+    [
+        ("auto-update", "auto_update", True),
+        ("Direct-Edit", "direct_edit", True),
+        ("direct_transfer", "direct_transfer", True),
+        ("s3", "s3", True),
+    ],
+)
+def test_features(feature, feat_name, default, manager_factory):
+    """Check that features are well handled."""
+    manager, engine = manager_factory()
+    updater = ServerOptionsUpdater(manager)
+    opt_name = f"feature_{feat_name}"
+
+    def enabled():
+        return {"feature": {feature: default}}
+
+    def toggled():
+        return {"feature": {feature: not default}}
+
+    # Check the default value
+    assert getattr(Feature, feat_name) is default
+    assert getattr(Options, opt_name) is default
+
+    # Mimic the IT team toggling the feature's state
+    with patch.object(engine.remote, "get_server_configuration", new=toggled):
+        updater._poll()
+        assert getattr(Feature, feat_name) is not default
+        assert getattr(Options, opt_name) is not default
+
+    # Mimic the IT team restoring back the feature's state
+    with patch.object(engine.remote, "get_server_configuration", new=enabled):
+        updater._poll()
+        assert getattr(Feature, feat_name) is default
+        assert getattr(Options, opt_name) is default
+
+    # No-op
+    updater._poll()
+    assert getattr(Feature, feat_name) is default
+    assert getattr(Options, opt_name) is default
+
+    # Check when the feature is forced locally
+    Options.set(opt_name, not default, setter="local")
+    assert getattr(Feature, feat_name) is not default
+    assert getattr(Options, opt_name) is not default
+
+    # Check when the feature is forced locally (restoring the default value)
+    Options.set(opt_name, default, setter="local")
+    assert getattr(Feature, feat_name) is default
+    assert getattr(Options, opt_name) is default
+
+    # Then the server config has on more power on the feature state
+    with patch.object(engine.remote, "get_server_configuration", new=toggled):
+        updater._poll()
+        assert getattr(Feature, feat_name) is default
+        assert getattr(Options, opt_name) is default

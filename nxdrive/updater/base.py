@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import QApplication
 
 from ..constants import APP_NAME, CONNECTION_ERROR, NO_SPACE_ERRORS
 from ..engine.workers import PollWorker
+from ..feature import Feature
 from ..options import Options
 from ..utils import version_lt
 from . import UpdateError
@@ -399,8 +400,12 @@ class BaseUpdater(PollWorker):
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
+        if not Feature.auto_update:
+            log.debug("The auto-update feature is disabled.")
+            return False
+
         if self._update_in_progress:
-            # The update is already ongoing ...
+            log.debug("The update is already ongoing ...")
             return False
 
         self._update_in_progress = True

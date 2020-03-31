@@ -5,7 +5,7 @@ import sys
 from logging import getLogger
 from math import sqrt
 from pathlib import Path
-from time import monotonic
+from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from urllib.parse import unquote
 
@@ -43,6 +43,7 @@ from ..constants import (
 )
 from ..engine.activity import Action
 from ..engine.engine import Engine
+from ..feature import Feature
 from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
 from ..notification import Notification
 from ..options import Options
@@ -339,6 +340,9 @@ class Application(QApplication):
         context.setContextProperty("APP_NAME", APP_NAME)
         context.setContextProperty("LINUX", LINUX)
         context.setContextProperty("WINDOWS", WINDOWS)
+        context.setContextProperty("feat_auto_update", Feature.auto_update)
+        context.setContextProperty("feat_direct_edit", Feature.direct_edit)
+        context.setContextProperty("feat_direct_transfer", Feature.direct_transfer)
         context.setContextProperty("tl", Translator.singleton)
         context.setContextProperty(
             "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"
@@ -1435,14 +1439,33 @@ class Application(QApplication):
     def ctx_direct_transfer(self, path: Path) -> None:
         """Direct Transfer of local files and folders to anywhere on the server."""
 
+        # Wait for the server's cconfig to be fetched (10 sec max)
+        for _ in range(10):
+            if not self.manager.server_config_updater.first_run:
+                break
+            sleep(1)
+        else:
+            # Cannot fetch the server's conf
+            self.display_warning(
+                f"Direct Transfer - {APP_NAME}", "DIRECT_TRANSFER_NOT_POSSIBLE", []
+            )
+            return
+
+        if not Feature.direct_transfer:
+            self.display_warning(
+                f"Direct Transfer - {APP_NAME}", "DIRECT_TRANSFER_NOT_ENABLED", []
+            )
+            return
+
         # Direct Transfer is not allowed for synced files
         engines = list(self.manager.engines.values())
-        for engine_ in engines:
-            if engine_.local_folder in path.parents:
-                log.warning(
-                    f"Direct Transfer of {path!r} is not allowed for synced files"
-                )
-                return
+        if any(e.local_folder in path.parents for e in engines):
+            self.display_warning(
+                f"Direct Transfer - {APP_NAME}",
+                "DIRECT_TRANSFER_NOT_ALLOWED",
+                [str(path)],
+            )
+            return
 
         log.info(f"Direct Transfer: {path!r}")
 
@@ -1453,11 +1476,8 @@ class Application(QApplication):
         elif engines:
             engine = engines[0]
         else:
-            engine = None
-
-        if not engine:
-            log.warning(
-                f"Cannot use the Direct Transfer feature with no account, aborting."
+            self.display_warning(
+                f"Direct Transfer - {APP_NAME}", "DIRECT_TRANSFER_NO_ACCOUNT", []
             )
             return
 

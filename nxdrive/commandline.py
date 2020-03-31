@@ -460,7 +460,9 @@ class CliHandler:
                     if name == "env" or value == "":
                         continue
 
-                    conf_args[name.replace("-", "_").lower()] = get_value(value)
+                    # Normalize the key
+                    name = name.replace("-", "_").replace(".", "_").lower()
+                    conf_args[name] = get_value(value)
 
                 if conf_args:
                     file = os.path.abspath(conf_file)

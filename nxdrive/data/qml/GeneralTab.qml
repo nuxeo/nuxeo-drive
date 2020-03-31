@@ -28,7 +28,7 @@ Rectangle {
 
         NuxeoSwitch {
             text: qsTr("AUTOUPDATE") + tl.tr
-            enabled: isFrozen && update_check_delay > 0
+            enabled: feat_auto_update && isFrozen && update_check_delay > 0
             checked: manager.get_auto_update()
             onClicked: manager.set_auto_update(checked)
             Layout.leftMargin: -5
@@ -36,7 +36,7 @@ Rectangle {
 
         NuxeoSwitch {
             text: qsTr("DIRECT_EDIT_AUTO_LOCK") + tl.tr
-            enabled: isFrozen
+            enabled: feat_direct_edit && isFrozen
             checked: manager.get_direct_edit_auto_lock()
             onClicked: manager.set_direct_edit_auto_lock(checked)
             Layout.leftMargin: -5
