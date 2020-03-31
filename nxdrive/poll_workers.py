@@ -106,6 +106,14 @@ class ServerOptionsUpdater(PollWorker):
                         setattr(Behavior, behavior, value)
                 del conf["behavior"]
 
+            # Features needs to be reworked to match the format in Options
+            # (this is a limitation of the local config format)
+            if "feature" in conf:
+                for feature, value in conf["feature"].items():
+                    feature = f"feature_{feature.replace('-', '_').lower()}"
+                    conf[feature] = value
+                del conf["feature"]
+
             # We cannot use fail_on_error=True because the server may
             # be outdated and still have obsolete options.
             Options.update(conf, setter="server", fail_on_error=False)

@@ -37,6 +37,7 @@ from .exceptions import (
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
 )
+from .feature import Feature
 from .logging_config import DEFAULT_LEVEL_FILE
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
@@ -246,7 +247,7 @@ class Manager(QObject):
         return {
             "version": self.version,
             "auto_start": self.get_auto_start(),
-            "auto_update": self.get_auto_update(),
+            "auto_update": Feature.auto_update and self.get_auto_update(),
             "channel": self.get_update_channel(),
             "device_id": self.device_id,
             "tracker_id": self.get_tracker_id(),

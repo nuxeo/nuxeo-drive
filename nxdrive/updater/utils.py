@@ -4,6 +4,7 @@ from distutils.version import LooseVersion
 from logging import getLogger
 from typing import Any, Dict, Optional, Tuple
 
+from ..feature import Feature
 from ..options import Options
 from ..utils import version_le, version_lt
 from .constants import (
@@ -25,7 +26,8 @@ Versions = Dict[str, Version]
 
 def auto_updates_state() -> AutoUpdateState:
     """Check the auto-update state as it may evolve over the application runtime."""
-    if not Options.is_frozen:
+    if not (Feature.auto_update and Options.is_frozen):
+        # Cannot update if the feature is completely disabled
         # Cannot update non-packaged versions
         return AutoUpdateState.DISABLED
 

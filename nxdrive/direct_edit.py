@@ -27,6 +27,7 @@ from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
 from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt, UnknownDigest
+from .feature import Feature
 from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .options import Options
 from .utils import (
@@ -488,6 +489,10 @@ class DirectEdit(Worker):
     def edit(
         self, server_url: str, doc_id: str, user: str = None, download_url: str = None
     ) -> None:
+        if not Feature.direct_edit:
+            self.directEditError.emit("DIRECT_EDIT_NOT_ENABLED", [])
+            return
+
         log.info(f"Direct Editing doc {doc_id!r} on {server_url!r}")
         try:
             # Download the file

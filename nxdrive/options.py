@@ -50,6 +50,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Set, Tuple, Union
 
+from .feature import Feature
+
 __all__ = ("Options",)
 
 log = logging.getLogger(__name__)
@@ -199,6 +201,10 @@ class MetaOptions(type):
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
         "deletion_behavior": ("unsync", "default"),
+        "feature_auto_update": (True, "default"),
+        "feature_direct_edit": (True, "default"),
+        "feature_direct_transfer": (True, "default"),
+        "feature_s3": (True, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
         "freezer": (_get_freezer(), "default"),
@@ -327,6 +333,9 @@ class MetaOptions(type):
             else:
                 src_err = f" From {file!r}."
 
+        # Normalize the option
+        item = item.replace("-", "_").replace(".", "_").lower()
+
         try:
             old_value, old_setter = MetaOptions.options[item]
         except KeyError:
@@ -449,8 +458,10 @@ class MetaOptions(type):
 
         import functools
 
+        callbacks = MetaOptions.callbacks.copy()
+
         def reinit() -> None:
-            setattr(MetaOptions, "callbacks", {})
+            setattr(MetaOptions, "callbacks", callbacks)
             setattr(MetaOptions, "options", deepcopy(MetaOptions.default_options))
 
         def decorator(func):  # type: ignore
@@ -475,6 +486,26 @@ class Options(metaclass=MetaOptions):
 #
 # Validators
 #
+
+
+def handle_feat_auto_update(value: bool) -> None:
+    if Feature.auto_update is not value:
+        Feature.auto_update = value
+
+
+def handle_feat_direct_edit(value: bool) -> None:
+    if Feature.direct_edit is not value:
+        Feature.direct_edit = value
+
+
+def handle_feat_direct_transfer(value: bool) -> None:
+    if Feature.direct_transfer is not value:
+        Feature.direct_transfer = value
+
+
+def handle_feat_s3(value: bool) -> None:
+    if Feature.s3 is not value:
+        Feature.s3 = value
 
 
 def validate_chunk_limit(value: int) -> int:
@@ -508,6 +539,10 @@ def validate_tmp_file_limit(value: Union[int, float]) -> float:
     raise ValueError("Temporary file limit must be above 0")
 
 
+Options.callbacks["feature_auto_update"] = handle_feat_auto_update
+Options.callbacks["feature_direct_edit"] = handle_feat_direct_edit
+Options.callbacks["feature_direct_transfer"] = handle_feat_direct_transfer
+Options.callbacks["feature_s3"] = handle_feat_s3
 Options.checkers["chunk_limit"] = validate_chunk_limit
 Options.checkers["chunk_size"] = validate_chunk_size
 Options.checkers["client_version"] = validate_client_version
