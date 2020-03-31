@@ -616,11 +616,6 @@ def test_if_frozen_decorator():
         ),
     ],
 )
-def test_is_live_connect(fs_item, expected_result):
-    result = nxdrive.utils.is_live_connect(fs_item)
-    assert result == expected_result
-
-
 def test_normalized_path_permission_error(tmp):
     func = nxdrive.utils.normalized_path
 

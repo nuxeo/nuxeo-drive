@@ -31,6 +31,7 @@ from typing import (
     Union,
 )
 
+from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from ...client.local import FileInfo
@@ -53,7 +54,7 @@ from ...objects import (
     Upload,
 )
 from ...options import Options
-from ...utils import current_thread_id, get_digest_algorithm
+from ...utils import current_thread_id
 from .utils import fix_db, restore_backup, save_backup
 
 if TYPE_CHECKING:

@@ -30,7 +30,7 @@ from typing import (
 )
 from urllib.parse import urlsplit, urlunsplit
 
-from nuxeo.utils import get_digest_algorithm, get_digest_hash
+from nuxeo.utils import get_digest_hash
 
 from .constants import (
     APP_NAME,
@@ -665,17 +665,6 @@ def safe_filename(name: str, replacement: str = "-") -> str:
         .replace("?", replacement)
         .replace("\\", replacement)
     )
-
-
-def is_live_connect(fs_item: Dict[str, Any]) -> bool:
-    algo = fs_item.get("digestAlgorithm")
-    if not algo:
-        return True
-
-    digest = fs_item.get("digest")
-    if digest and (digest.count('"') != 0 or not get_digest_algorithm(digest)):
-        return True
-    return False
 
 
 def safe_long_path(path: Path) -> Path:

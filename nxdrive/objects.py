@@ -11,11 +11,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from dateutil import parser
 from dateutil.tz import tzlocal
+from nuxeo.utils import get_digest_algorithm
 
 from .constants import TransferStatus
 from .exceptions import DriveError, UnknownDigest
 from .translator import Translator
-from .utils import get_date_from_sqlite, get_digest_algorithm, get_timestamp_from_date
+from .utils import get_date_from_sqlite, get_timestamp_from_date
 
 # Settings passed to Manager.bind_server()
 Binder = namedtuple(
