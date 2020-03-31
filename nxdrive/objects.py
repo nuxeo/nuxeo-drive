@@ -377,7 +377,7 @@ class DocPair(Row):
             "size": self.size,
         }
 
-        if self.last_local_updated or "" > self.last_remote_updated or "":
+        if (self.last_local_updated or "") > (self.last_remote_updated or ""):
             result["last_sync_direction"] = "download"
         result["last_transfer"] = self.last_transfer or result["last_sync_direction"]
 
@@ -454,7 +454,7 @@ class Transfer:
 class Download(Transfer):
     transfer_type: str = field(init=False, default="download")
     filesize: int = 0
-    tmpname: Optional[str] = None
+    tmpname: Optional[Path] = None
     url: Optional[str] = None
 
 

@@ -167,6 +167,7 @@ class Application(QApplication):
         self.init_gui()
 
         self.manager.dropEngine.connect(self.dropped_engine)
+        self.manager.restartNeeded.connect(self.show_msgbox_restart_needed)
 
         self.setup_systray()
         self.manager.reloadIconsSet.connect(self.load_icons_set)
@@ -665,8 +666,7 @@ class Application(QApplication):
         """ Display the conflicts/errors window. """
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
-        self.conflicts_window.show()
-        self.conflicts_window.requestActivate()
+        self._show_window(self.conflicts_window)
 
     @pyqtSlot()  # From systray.py
     @pyqtSlot(str)  # All other calls
@@ -1275,7 +1275,9 @@ class Application(QApplication):
             log.exception(f"Error handling URL event {final_url!r}")
             return False
 
-    def _show_msgbox_restart_needed(self) -> None:
+    @pyqtSlot()
+    def show_msgbox_restart_needed(self) -> None:
+        """ Display a message to ask the user to restart the application. """
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
         msg.setText(Translator.get("RESTART_NEEDED_MSG", values=[APP_NAME]))
@@ -1313,7 +1315,7 @@ class Application(QApplication):
             func(path)
         elif "edit" in cmd:
             if self.manager.restart_needed:
-                self._show_msgbox_restart_needed()
+                self.show_msgbox_restart_needed()
                 return False
 
             manager.directEdit.emit(
@@ -1361,7 +1363,7 @@ class Application(QApplication):
         try:
             con = self._nxdrive_listener.nextPendingConnection()
             log.info("Receiving socket connection for nxdrive protocol handling")
-            if not con or not con.waitForConnected():
+            if not (con and con.waitForConnected()):
                 log.error(f"Unable to open server socket: {con.errorString()}")
                 return
 

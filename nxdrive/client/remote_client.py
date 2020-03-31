@@ -151,7 +151,7 @@ class Remote(Nuxeo):
         Called first to set the end time of the current (down|up)loaded chunk.
         """
         action = Action.get_current_action()
-        if action:  # mypy fix ...
+        if action:
             action.chunk_transfer_end_time_ns = monotonic_ns()
 
     def transfer_end_callback(self, *_: Any) -> None:
@@ -159,7 +159,7 @@ class Remote(Nuxeo):
         Called last to set the start time of the next chunk to (down|up)load.
         """
         action = Action.get_current_action()
-        if not action:  # mypy fix ...
+        if not action:
             return
 
         # Handle transfer speed
@@ -300,7 +300,7 @@ class Remote(Nuxeo):
                 None,
                 path=file_path,
                 status=TransferStatus.ONGOING,
-                tmpname=str(file_out),
+                tmpname=file_out,
                 url=url,
                 filesize=size,
                 doc_pair=kwargs.pop("doc_pair_id", None),
@@ -802,7 +802,7 @@ class Remote(Nuxeo):
             self.client.host + fs_item_info.download_url,
             file_path,
             file_out,
-            fs_item_info.digest or "",  # mypy fix ...
+            fs_item_info.digest or "",
             **kwargs,
         )
 
@@ -836,7 +836,7 @@ class Remote(Nuxeo):
             scrollId=scroll_id,
             batchSize=batch_size,
         )
-        if not isinstance(res, dict) or not res:
+        if not (isinstance(res, dict) and res):
             raise ScrollDescendantsError(res)
 
         return {

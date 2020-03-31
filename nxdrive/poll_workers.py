@@ -2,7 +2,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 from .engine.workers import PollWorker
 from .options import Options
@@ -44,6 +44,9 @@ class DatabaseBackupWorker(PollWorker):
 class ServerOptionsUpdater(PollWorker):
     """ Class for checking the server's config.json updates. """
 
+    # A signal to let other component know that the first run has been done
+    firstRunCompleted = pyqtSignal()
+
     def __init__(self, manager: "Manager"):
         default_delay = 60 * 60  # 1 hour
         # The check will be done every *update_check_delay* seconds or *default_delay*
@@ -54,6 +57,13 @@ class ServerOptionsUpdater(PollWorker):
         # Notify the Manager that the server's config has been fetched at least one time.
         # This will be used later in the Updater.
         self.first_run = True
+        self.firstRunCompleted.connect(self._first_run_done)
+
+    def _first_run_done(self) -> None:
+        """Simple helper to set the attribute's value.
+        That value will be used in other components.
+        """
+        self.first_run = False
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
@@ -84,21 +94,22 @@ class ServerOptionsUpdater(PollWorker):
             Options.update(conf, setter="server", fail_on_error=False)
 
             # Save this option so that it has direct effect at the next start
-            skey = "synchronization_enabled"
-            if skey in conf:
-                vkey = conf[skey]
-                if isinstance(vkey, bool):
-                    self.manager.dao.update_config(skey, vkey)
-                else:
+            key = "synchronization_enabled"
+            if key in conf:
+                value = conf[key]
+                if not isinstance(value, bool):
                     log.warning(
-                        f"Bad value from the server's config: {skey!r}={vkey!r} (a boolean is required)"
+                        f"Bad value from the server's config: {key!r}={value!r} (a boolean is required)"
                     )
+                elif getattr(Options, key) is not value:
+                    self.manager.dao.update_config(key, value)
+
+                    # Does the application need to be restarted?
+                    if not self.first_run:
+                        self.manager.restartNeeded.emit()
 
             if self.first_run:
-                self.first_run = False
-
-                # Trigger a new auto-update check now that the server config has been fetched
-                self.manager.updater.refresh_status()
+                self.firstRunCompleted.emit()
 
             break
 

@@ -186,10 +186,11 @@ class BaseUpdater(PollWorker):
             # because updates are critical and must be stored on a secured server.
             req = requests.get(url, stream=True)
             size = int(req.headers["content-length"])
-            incr = self.chunk_size * 100 / size
-            i = 0
 
             with open(path, "wb") as tmp:
+                incr = self.chunk_size * 100 / size
+                i = 0
+
                 for chunk in req.iter_content(self.chunk_size):
                     tmp.write(chunk)
                     if i % 100 == 0:
@@ -340,8 +341,7 @@ class BaseUpdater(PollWorker):
         if self.status == UPDATE_STATUS_INCOMPATIBLE_SERVER:
             # In case of a downgrade, stop the engines
             # and try to install the older version.
-            self.manager.restart_needed = True
-            self.manager.suspend()
+            self.manager.restartNeeded.emit()
             self.serverIncompatible.emit()
             return
 

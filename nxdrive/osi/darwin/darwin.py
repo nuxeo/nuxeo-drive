@@ -111,9 +111,12 @@ class DarwinIntegration(AbstractOSIntegration):
         Emulate: echo "blablabla" | pbcopy w
         """
         with subprocess.Popen(["pbcopy", "w"], stdin=subprocess.PIPE) as p:
-            p.stdin.write(text.encode("utf-8"))
-            p.stdin.close()
-            p.wait()
+            # See https://github.com/python/typeshed/pull/3652#issuecomment-598122198
+            # if this "if" is still needed
+            if p.stdin:
+                p.stdin.write(text.encode("utf-8"))
+                p.stdin.close()
+                p.wait()
 
     @staticmethod
     def current_them() -> str:

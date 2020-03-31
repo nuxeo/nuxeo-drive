@@ -1,21 +1,35 @@
 # coding: utf-8
+import filecmp
 import os
+import shutil
 import subprocess
 from logging import getLogger
 from pathlib import Path
+from typing import TYPE_CHECKING, Optional, Dict
 
 from ...constants import APP_NAME, NXDRIVE_SCHEME
+from ...objects import DocPair
+from ...utils import find_icon
 from ...utils import if_frozen
+from ..extension import get_formatted_status
+from ..extension import icon_status, Status
 from .. import AbstractOSIntegration
 
 __all__ = ("LinuxIntegration",)
 
 log = getLogger(__name__)
 
+if TYPE_CHECKING:
+    from ..manager import Manager  # noqa
+
 
 class LinuxIntegration(AbstractOSIntegration):
 
     nature = "GNU/Linux"
+
+    def __init__(self, manager: Optional["Manager"]):
+        super().__init__(manager)
+        self._icons_to_emblems()
 
     @staticmethod
     def cb_get() -> str:
@@ -31,9 +45,12 @@ class LinuxIntegration(AbstractOSIntegration):
         Emulate: echo "blablabla" | xclip -selection c
         """
         with subprocess.Popen(["xclip", "-selection", "c"], stdin=subprocess.PIPE) as p:
-            p.stdin.write(text.encode("utf-8"))
-            p.stdin.close()
-            p.wait()
+            # See https://github.com/python/typeshed/pull/3652#issuecomment-598122198
+            # if this "if" is still needed
+            if p.stdin:
+                p.stdin.write(text.encode("utf-8"))
+                p.stdin.close()
+                p.wait()
 
     def open_local_file(self, file_path: str, select: bool = False) -> None:
         """Note that this function must _not_ block the execution."""
@@ -100,3 +117,70 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
             log.info(
                 f"Registered {original_executable!r} for URL scheme {NXDRIVE_SCHEME!r}"
             )
+
+    @if_frozen
+    def send_sync_status(self, doc_pair: DocPair, path: Path) -> None:
+        """
+        Set the sync status of a file.
+
+        :param state: current local state of the file
+        :param path: full path of the file
+        """
+        try:
+            status = get_formatted_status(doc_pair, path)
+            if status:
+                log.debug(f"Setting status to {path!r}: {status}")
+                self._set_icon(status)
+        except Exception:
+            log.exception("Error while setting the status to {path!r}", exc_info=True)
+
+    def _set_icon(self, status: Dict[str, str]) -> None:
+        """Call gio command to set folder emblem metadata."""
+        value = Status(int(status["value"]))
+        path = status["path"]
+        emblem = icon_status[value]
+        cmd = [
+            "gio",
+            "set",
+            "-t",
+            "stringv",
+            str(path),
+            "metadata::emblems",
+            emblem,
+        ]
+        try:
+            subprocess.check_call(cmd)
+        except subprocess.CalledProcessError:
+            log.warning(f"Could not set the {emblem} emblem on {path!r}")
+
+    def _icons_to_emblems(self) -> None:
+        """
+            Copy nuxeo overlay icons to linux local icons folder.
+            Previous local icons will be replaced.
+        """
+        shared_icons = Path.home() / ".local/share/icons"
+        shared_icons.mkdir(parents=True, exist_ok=True)
+
+        statuses = ["synced", "syncing", "conflicted", "error", "locked", "unsynced"]
+        icons = find_icon("overlay/linux")
+
+        for status in statuses:
+            icon = icons / f"badge_{status}.svg"
+            emblem = shared_icons / f"emblem-nuxeo_{status}.svg"
+
+            try:
+                # See https://github.com/python/typeshed/issues/3858
+                identical = filecmp.cmp(icon, emblem, shallow=False)  # type: ignore
+            except OSError:
+                # Most likely the *icon* doest not exist yet
+                pass
+            else:
+                if identical:
+                    continue
+
+            try:
+                shutil.copy(icon, emblem)
+            except shutil.Error:
+                log.warning(
+                    f"Could not copy {icon!r} to {shared_icons!r}", exc_info=True
+                )

@@ -34,6 +34,17 @@ class Status(Enum):
     UNSYNCED = 6
 
 
+# Map status to emblem basename, used on GNU/Linux
+icon_status = {
+    Status.SYNCED: "emblem-nuxeo_synced",
+    Status.SYNCING: "emblem-nuxeo_syncing",
+    Status.CONFLICTED: "emblem-nuxeo_conflicted",
+    Status.ERROR: "emblem-nuxeo_error",
+    Status.LOCKED: "emblem-nuxeo_locked",
+    Status.UNSYNCED: "emblem-nuxeo_unsynced",
+}
+
+
 class ExtensionListener(QTcpServer):
     """
     Server listening to the OS extensions.
@@ -92,7 +103,7 @@ class ExtensionListener(QTcpServer):
         """ Called when an Explorer instance is connecting. """
         con: QTcpSocket = self.nextPendingConnection()
 
-        if not con or not con.waitForConnected():
+        if not (con and con.waitForConnected()):
             log.error(
                 f"Unable to open extension handler server socket: {con.errorString()}"
             )

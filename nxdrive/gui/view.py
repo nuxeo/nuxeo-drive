@@ -1,5 +1,4 @@
 # coding: utf-8
-import os.path
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
 
@@ -195,13 +194,13 @@ class TransferModel(QAbstractListModel):
         """
         if row["transfer_type"] == "download":
             try:
-                progress = os.path.getsize(row["tmpname"])
+                progress = row["tmpname"].stat().st_size
             except FileNotFoundError:
                 progress = 0
             size = row["filesize"]
         else:
             try:
-                size = os.path.getsize(row["path"])
+                size = row["path"].stat().st_size
             except FileNotFoundError:
                 size = 0
             progress = size * (row["progress"] or 0.0) / 100

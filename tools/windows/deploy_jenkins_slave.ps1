@@ -432,7 +432,10 @@ function launch_tests {
 			}
 		}
 
-		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT tools\jenkins\junit\merge.py
+		$Env:TEST_SUITE = "Drive"
+		& $Env:STORAGE_DIR\Scripts\python.exe $global:PYTHON_OPT `
+			tools\jenkins\junit\merge.py `
+			tools\jenkins\junit\xml
 
 		if ($ret -ne 0 -and $ret -ne 5) {
 			ExitWithCode $ret

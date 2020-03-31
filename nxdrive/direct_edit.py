@@ -95,6 +95,26 @@ class DirectEdit(Worker):
         self.autolock.orphanLocks.connect(self._autolock_orphans)
         self._manager.directEdit.connect(self.edit)
 
+        # Notification signals
+        self.directEditLockError.connect(
+            self._manager.notification_service._directEditLockError
+        )
+        self.directEditStarting.connect(
+            self._manager.notification_service._directEditStarting
+        )
+        self.directEditForbidden.connect(
+            self._manager.notification_service._directEditForbidden
+        )
+        self.directEditReadonly.connect(
+            self._manager.notification_service._directEditReadonly
+        )
+        self.directEditLocked.connect(
+            self._manager.notification_service._directEditLocked
+        )
+        self.directEditUploadCompleted.connect(
+            self._manager.notification_service._directEditUpdated
+        )
+
     @pyqtSlot(object)
     def _autolock_orphans(self, locks: List[Path]) -> None:
         log.debug(f"Orphans lock: {locks!r}")
@@ -395,14 +415,10 @@ class DirectEdit(Worker):
             url += download_url
 
         xpath = url_info.get("xpath")
-        if not xpath:
-            if info.doc_type == "Note":
-                xpath = "note:note"
-            else:
-                xpath = "file:content"
-        elif xpath == "blobholder:0":
+        if not xpath and info.doc_type == "Note":
+            xpath = "note:note"
+        elif not xpath or xpath == "blobholder:0":
             xpath = "file:content"
-
         blob = info.get_blob(xpath)
         if not blob:
             log.warning(
@@ -453,8 +469,8 @@ class DirectEdit(Worker):
             digest_algorithm = blob.digest_algorithm
             if not digest_algorithm:
                 digest_algorithm = get_digest_algorithm(blob.digest)
-                if not digest_algorithm:
-                    raise UnknownDigest(blob.digest)
+            if not digest_algorithm:
+                raise UnknownDigest(blob.digest)
             self.local.set_remote_id(
                 dir_path,
                 digest_algorithm.encode("utf-8"),
@@ -510,7 +526,7 @@ class DirectEdit(Worker):
             dir_path, name="nxdirecteditdigestalgorithm"
         )
         digest = self.local.get_remote_id(dir_path, name="nxdirecteditdigest")
-        if not digest or not digest_algorithm:
+        if not (digest and digest_algorithm):
             raise NotFound()
 
         xpath = self.local.get_remote_id(dir_path, name="nxdirecteditxpath")

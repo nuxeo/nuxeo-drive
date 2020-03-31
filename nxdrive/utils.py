@@ -126,9 +126,7 @@ def find_suitable_tmp_dir(sync_folder: Path, home_folder: Path) -> Path:
                 # Both folders are on the same partition, use the predefined home folder
                 return home_folder
         else:
-            # TODO: Remove the next comment when mypy > 0.761 is out
-            # TODO: or when https://github.com/python/typeshed/pull/3566 is merged
-            if sync_folder.is_mount():  # type: ignore
+            if sync_folder.is_mount():
                 # It is not allowed to use the mount point as sync folder
                 raise ValueError(
                     "The local sync folder cannot be the mount point itself"
@@ -318,6 +316,12 @@ def get_tree_list(
 
     Note: this function cannot be decorated with lru_cache().
     """
+    try:
+        path.is_dir()
+    except OSError:
+        log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
+        return
+
     # First, yield the folder itself
     yield remote_ref, path
     remote_ref += f"/{path.name}"
@@ -325,10 +329,15 @@ def get_tree_list(
     # Then, yield its children
     with os.scandir(path) as it:
         for entry in it:
-            if entry.is_file():
-                yield remote_ref, Path(entry.path)
-            elif entry.is_dir():
+            try:
+                is_dir = entry.is_dir()
+            except OSError:
+                log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
+                continue
+            if is_dir:
                 yield from get_tree_list(Path(entry.path), remote_ref)
+            elif entry.is_file():
+                yield remote_ref, Path(entry.path)
 
 
 def get_tree_size(path: Path) -> int:
@@ -337,12 +346,23 @@ def get_tree_size(path: Path) -> int:
     Note: this function cannot be decorated with lru_cache().
     """
     size = 0
+    try:
+        path.is_dir()
+    except OSError:
+        log.warning(f"Error calling is_dir() on: {path!r}", exc_info=True)
+        return size
+
     with os.scandir(path) as it:
         for entry in it:
-            if entry.is_file():
-                size += entry.stat().st_size
-            elif entry.is_dir():
+            try:
+                is_dir = entry.is_dir()
+            except OSError:
+                log.warning(f"Error calling is_dir() on: {entry.path!r}", exc_info=True)
+                continue
+            if is_dir:
                 size += get_tree_size(Path(entry.path))
+            elif entry.is_file():
+                size += entry.stat().st_size
     return size
 
 

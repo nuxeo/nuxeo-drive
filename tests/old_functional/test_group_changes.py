@@ -1,6 +1,7 @@
 # coding: utf-8
 from logging import getLogger
 
+from nuxeo.exceptions import HTTPError
 from nuxeo.models import Document, Group
 
 from .. import env
@@ -49,7 +50,12 @@ class TestGroupChanges(OneUserTest):
     def tearDown(self):
         self.workspace_group.delete()
         for group in reversed(self.new_groups):
-            self.root_remote.groups.delete(group.groupname)
+            try:
+                self.root_remote.groups.delete(group.groupname)
+            except HTTPError as exc:
+                if exc.status == 404:
+                    continue
+                raise
 
     def set_ace(self, user, doc):
         log.info(f"Grant ReadWrite permission to  {user} on {doc}")

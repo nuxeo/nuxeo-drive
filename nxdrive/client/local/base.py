@@ -432,7 +432,7 @@ class LocalClientMixin:
             elif os_path.is_dir():
                 # Override `onerror` to catch the 1st exception and let other
                 # documents to be deleted.
-                shutil.rmtree(os_path, onerror=onerror)  # type: ignore
+                shutil.rmtree(os_path, onerror=onerror)
                 if error:
                     raise error
         finally:

@@ -7,7 +7,7 @@ import xattr
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         folder = sys.argv[1]
-        if not os.path.exists(folder) or not os.path.isdir(folder):
+        if not os.path.isdir(folder):
             print("The argument must be an existing folder")
             sys.exit(0)
     else:

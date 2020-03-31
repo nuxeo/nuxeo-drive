@@ -101,7 +101,8 @@ class Updater(BaseUpdater):
             shutil.rmtree(dst)
 
         log.info(f"Moving {src!r} -> {dst!r}")
-        shutil.move(src, dst)
+        # TODO: remove str() when upgrading to Python 3.9 XXX_PYTHON
+        shutil.move(str(src), dst)
 
     def _cleanup(self, filename: str) -> None:
         """ Remove some files. """

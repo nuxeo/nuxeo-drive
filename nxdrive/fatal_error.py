@@ -195,7 +195,7 @@ def fatal_error_mac(text: str) -> None:
 def check_executable_path() -> bool:
     """Check that the app runs from the right path, and quit if not."""
 
-    if not MAC or not Options.is_frozen:
+    if not (MAC and Options.is_frozen):
         return True
 
     import re

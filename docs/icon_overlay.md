@@ -2,22 +2,30 @@
 
 ## GNU/Linux
 
-*Not up-to-date*
-
-### Nautilus
-
-Install required Nautilus addons:
-
-    apt install python-nautilus nautilus-emblems
+Verify that the command is installed:
+```shell
+command -v gio
+```
 
 Create custom emblems:
 
-    mkdir -p ~/.icons/hicolor/48x48/emblems
-    cp nxdrive/data/icons/overlay/nautilus/* ~/.icons/hicolor/48x48/emblems
+1. Create a 24px * 24px icon.
+2. The icon must be named `emblem-NAME.svg` (PNG also works).
+3. Copy the icon to the appropriate folder:
+```shell
+cp /path/to/emblem-NAME.svg $HOME/.local/share/icons
+```
 
-Install the extension:
+Attribute emblem to folder/file:
+```shell
+gio set -t stringv FILE metadata::emblems emblem-NAME
+```
 
-    cp nxdrive/overlay/nautilus/file_info_updater.py ~/.local/share/nautilus-python/extensions
+Verification:
+```shell
+gio info FILE
+```
+`metadata::emblems` attribute should be equal to: `[emblem-NAME]`
 
 ## macOS
 
