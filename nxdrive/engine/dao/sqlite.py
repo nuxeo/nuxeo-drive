@@ -752,53 +752,18 @@ class EngineDAO(ConfigurationDAO):
             self.store_int(SCHEMA_VERSION, 9)
 
         if version < 10:
-            # Add doc_pairs detected as Live Connect to Filters.
-            # Remove Downloads linked to Live Connect.
-
-            # Make a copy of the Download table
-            cursor.execute("ALTER TABLE Downloads RENAME TO Downloads_backup;")
-
-            # Create again the tables
-            self._create_transfer_tables(cursor)
-
-            doc_pairs_ids = []
+            # Remove States with bad digests.
+            # Remove Downloads linked to these States.
 
             for doc_pair in cursor.execute(
                 "SELECT * FROM States WHERE remote_digest IS NOT NULL;"
             ):
-                digest = doc_pair.remote_digest
+                digest = doc_pair["remote_digest"]
                 if digest.count('"') != 0 or not get_digest_algorithm(digest):
-                    doc_pairs_ids.append(doc_pair["id"])
-
+                    cursor.execute(
+                        f"DELETE FROM Downloads WHERE doc_pair = ?", (doc_pair["id"],)
+                    )
                     self.remove_state(doc_pair)
-                    if doc_pair.remote_parent_path and doc_pair.remote_ref:
-                        self.add_filter(
-                            f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}"
-                        )
-
-            # Insert back old datas except Downloads linked to Live Connect
-            for download in cursor.execute(f"SELECT * FROM Downloads_backup;"):
-                if download.doc_pair in doc_pairs_ids:
-                    continue
-                sql = (
-                    "INSERT INTO Downloads "
-                    "(path, status, engine, doc_pair, filesize, is_direct_edit, tmpname, url)"
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-                )
-                values = (
-                    download.path,
-                    download.status,
-                    download.engine,
-                    download.doc_pair,
-                    download.filesize,
-                    download.is_direct_edit,
-                    download.tmpname,
-                    download.url,
-                )
-                cursor.execute(sql, values)
-
-            # Delete the backup table
-            cursor.execute("DROP TABLE Downloads_backup;")
 
             self.store_int(SCHEMA_VERSION, 10)
 

@@ -821,6 +821,9 @@ class Remote(Nuxeo):
             try:
                 infos.append(RemoteFileInfo.from_dict(fs_item))
             except UnknownDigest:
+                log.debug(
+                    f"Ignoring unsyncable document {fs_item!r} because of unknwon digest {fs_item['digest']}"
+                )
                 continue
         if filtered:
             filtered_infos = []
@@ -849,6 +852,9 @@ class Remote(Nuxeo):
             try:
                 descendants.append(RemoteFileInfo.from_dict(fs_item))
             except UnknownDigest:
+                log.debug(
+                    f"Ignoring unsyncable document {fs_item!r} because of unknwon digest {fs_item['digest']!r}"
+                )
                 continue
 
         return {

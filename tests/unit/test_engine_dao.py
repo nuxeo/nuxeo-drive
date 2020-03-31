@@ -310,15 +310,19 @@ def test_migration_db_v9(engine_dao):
 
 
 def test_migration_db_v10(engine_dao):
-    """Verify Downloads and Filters after migration."""
+    """Verify Downloads after migration from v9 to v10."""
     engine_dao._items_count = 0
-    engine_dao._filters = []
     with engine_dao("test_engine_migration_10.db") as dao:
         downloads = list(dao.get_downloads())
         assert len(downloads) == 0
 
-        filters = dao.get_filters()
-        assert len(filters) == 1
+        states = list(dao.get_states_from_partial_local(Path()))
+        assert len(states) == 4
+
+        bad_digest_file = dao.get_state_from_local(
+            Path("/Tests Drive/Live Connect/Test document Live Connect")
+        )
+        assert not bad_digest_file
 
 
 def test_migration_db_v1_with_duplicates(engine_dao):
