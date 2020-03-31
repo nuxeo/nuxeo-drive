@@ -105,7 +105,7 @@ class RemoteFileInfo:
             if not digest_algorithm:
                 digest_algorithm = get_digest_algorithm(digest)
             if not digest_algorithm:
-                raise UnknownDigest(digest)
+                raise UnknownDigest("{digest!r}")
             download_url = fs_item.get("downloadURL")
             can_update = fs_item.get("canUpdate", False)
             can_create_child = False
