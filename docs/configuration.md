@@ -47,6 +47,7 @@ Parameter values are taken as is, except for booleans. In that case, you can spe
 | `chunk_size` | 20 | int | 4.1.2 | Size of the chunks in MiB. Has to be above 0 and lower or equal to 20.
 | `chunk_upload` | True | bool | 4.1.2 | Activate the upload in chunks for files bigger than `chunk_limit`.
 | `delay` | 30 | int | 2 | Define the delay before each remote check.
+| `feature` | [...](#features) | map | 4.4.2 | Application features that can be turned on/off on-demand.
 | `force-locale` | None | str | 2 | Force the reset to the language.
 | `handshake-timeout` | 60 | int | 2 | Define the handshake timeout.
 | `ignored-files` | ... | list | 2.4.1 | File names to ignore while syncing.
@@ -102,6 +103,44 @@ Here is how to tweak behaviors via the server configuration file:
 {
   "behavior": {
     "server-deletion": true
+  }
+}
+```
+
+## Features
+
+Several features can be turned on/off on-demand via the `feature` parameter.
+This parameter can be set via the local configuration file and the server configuration one.
+
+If the same feature is defined locally and remotely, then only the local value will be taken into account.
+
+Available features:
+
+| Parameter | Default Value (bool) | Version Added | Description
+|---|---|---|---
+| `auto_updates` | true | 4.4.2 | Allow or disallow auto-updates.
+| `direct_edit` | true | 4.4.2 | Allow or disallow Direct Edit.
+| `direct_transfer` | true | 4.4.2 | Allow or disallow Direct Transfer.
+| `s3` | true | 4.4.2 | Allow or disallow using Amazon S3 direct uploads.
+
+Here is how to tweak features via the local configuration file:
+
+```ini
+feature.auto-update     = true
+feature.direct-edit     = true
+feature.direct-transfer = true
+feature.s3              = true
+```
+
+Here is how to tweak features via the server configuration file:
+
+```json
+{
+  "feature": {
+    "auto-update"     : true,
+    "direct-edit"     : true,
+    "direct-transfer" : true,
+    "s3"              : true
   }
 }
 ```
