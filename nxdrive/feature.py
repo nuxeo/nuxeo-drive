@@ -2,7 +2,7 @@
 Application features that can be turned on/off on-demand.
 Parameters listed here can be set locally and remotely.
 
-Introduced in Nuxeo Drive 4.5.0.
+Introduced in Nuxeo Drive 4.4.2.
 
 Available parameters and introduced version:
 
