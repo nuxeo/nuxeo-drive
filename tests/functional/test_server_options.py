@@ -77,7 +77,7 @@ def test_behavior_not_good(caplog, manager_factory):
         ("auto-update", "auto_update", True),
         ("Direct-Edit", "direct_edit", True),
         ("direct_transfer", "direct_transfer", False),
-        ("s3", "s3", True),
+        ("s3", "s3", False),
     ],
 )
 def test_features(feature, feat_name, default, manager_factory):
