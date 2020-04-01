@@ -203,7 +203,7 @@ class MetaOptions(type):
         "deletion_behavior": ("unsync", "default"),
         "feature_auto_update": (True, "default"),
         "feature_direct_edit": (True, "default"),
-        "feature_direct_transfer": (True, "default"),
+        "feature_direct_transfer": (False, "default"),
         "feature_s3": (True, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
