@@ -22,5 +22,5 @@ Available parameters and introduced version:
 from types import SimpleNamespace
 
 Feature = SimpleNamespace(
-    auto_update=True, direct_edit=True, direct_transfer=False, s3=True,
+    auto_update=True, direct_edit=True, direct_transfer=False, s3=False,
 )

@@ -204,7 +204,7 @@ class MetaOptions(type):
         "feature_auto_update": (True, "default"),
         "feature_direct_edit": (True, "default"),
         "feature_direct_transfer": (False, "default"),
-        "feature_s3": (True, "default"),
+        "feature_s3": (False, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
         "freezer": (_get_freezer(), "default"),
