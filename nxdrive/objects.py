@@ -11,9 +11,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from dateutil import parser
 from dateutil.tz import tzlocal
+from nuxeo.utils import get_digest_algorithm
 
 from .constants import TransferStatus
-from .exceptions import DriveError
+from .exceptions import DriveError, UnknownDigest
 from .translator import Translator
 from .utils import get_date_from_sqlite, get_timestamp_from_date
 
@@ -98,10 +99,14 @@ class RemoteFileInfo:
             can_scroll = fs_item.get("canScrollDescendants", False)
             can_scroll_descendants = can_scroll
         else:
-            digest = fs_item.get("digest")
+            digest = fs_item["digest"]
             digest_algorithm = fs_item.get("digestAlgorithm")
             if digest_algorithm:
                 digest_algorithm = digest_algorithm.lower().replace("-", "")
+            else:
+                digest_algorithm = get_digest_algorithm(digest)
+            if not digest_algorithm:
+                raise UnknownDigest(digest)
             download_url = fs_item.get("downloadURL")
             can_update = fs_item.get("canUpdate", False)
             can_create_child = False

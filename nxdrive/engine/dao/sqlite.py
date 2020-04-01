@@ -4,6 +4,7 @@ Query formatting in this file is based on http://www.sqlstyle.guide/
 """
 import json
 import os
+import shutil
 import sys
 from contextlib import suppress
 from datetime import datetime
@@ -31,6 +32,7 @@ from typing import (
     Union,
 )
 
+from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from ...client.local import FileInfo
@@ -638,7 +640,7 @@ class EngineDAO(ConfigurationDAO):
         self.reinit_processors()
 
     def get_schema_version(self) -> int:
-        return 9
+        return 10
 
     def _migrate_state(self, cursor: Cursor) -> None:
         try:
@@ -751,6 +753,32 @@ class EngineDAO(ConfigurationDAO):
             cursor.execute("DROP TABLE Downloads_backup;")
 
             self.store_int(SCHEMA_VERSION, 9)
+
+        if version < 10:
+            # Remove States with bad digests.
+            # Remove Downloads linked to these States.
+
+            for doc_pair in cursor.execute(
+                "SELECT * FROM States WHERE remote_digest IS NOT NULL;"
+            ):
+                digest = doc_pair["remote_digest"]
+                if not get_digest_algorithm(digest):
+                    remote_ref = doc_pair["remote_ref"]
+                    id = doc_pair["id"]
+
+                    download = self.get_download(doc_pair=id)
+                    if download and download.tmpname:
+                        # Clean-up the TMP file
+                        with suppress(OSError):
+                            shutil.rmtree(download.tmpname.parent)
+                    cursor.execute(f"DELETE FROM Downloads WHERE doc_pair = ?", (id,))
+
+                    self.remove_state(doc_pair)
+                    log.debug(
+                        f"Deleted unsyncable state {id}, remote_ref={remote_ref!r}, remote_digest={digest!r}"
+                    )
+
+            self.store_int(SCHEMA_VERSION, 10)
 
     def _create_table(self, cursor: Cursor, name: str, force: bool = False) -> None:
         if name == "States":

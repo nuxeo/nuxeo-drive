@@ -40,6 +40,7 @@ from ..exceptions import (
     DownloadPaused,
     NotFound,
     ScrollDescendantsError,
+    UnknownDigest,
     UploadPaused,
 )
 from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo, Upload
@@ -815,8 +816,15 @@ class Remote(Nuxeo):
         self, fs_item_id: str, filtered: bool = True
     ) -> List[RemoteFileInfo]:
         children = self.execute(command="NuxeoDrive.GetChildren", id=fs_item_id)
-        infos = [RemoteFileInfo.from_dict(fs_item) for fs_item in children]
-
+        infos = []
+        for fs_item in children:
+            try:
+                infos.append(RemoteFileInfo.from_dict(fs_item))
+            except UnknownDigest:
+                log.debug(
+                    f"Ignoring unsyncable document {fs_item!r} because of unknown digest"
+                )
+                continue
         if filtered:
             filtered_infos = []
             for info in infos:
@@ -839,11 +847,19 @@ class Remote(Nuxeo):
         if not (isinstance(res, dict) and res):
             raise ScrollDescendantsError(res)
 
+        descendants = []
+        for fs_item in res["fileSystemItems"]:
+            try:
+                descendants.append(RemoteFileInfo.from_dict(fs_item))
+            except UnknownDigest:
+                log.debug(
+                    f"Ignoring unsyncable document {fs_item!r} because of unknown digest"
+                )
+                continue
+
         return {
             "scroll_id": res["scrollId"],
-            "descendants": [
-                RemoteFileInfo.from_dict(fs_item) for fs_item in res["fileSystemItems"]
-            ],
+            "descendants": descendants,
         }
 
     def is_filtered(self, path: str, filtered: bool = True) -> bool:
