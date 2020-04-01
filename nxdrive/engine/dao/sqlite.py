@@ -765,13 +765,13 @@ class EngineDAO(ConfigurationDAO):
                 if not get_digest_algorithm(digest):
                     remote_ref = doc_pair["remote_ref"]
                     id = doc_pair["id"]
+
                     download = self.get_download(doc_pair=id)
-
+                    if download and download.tmpname:
+                        # Clean-up the TMP file
+                        with suppress(OSError):
+                            shutil.rmtree(download.tmpname.parent)
                     cursor.execute(f"DELETE FROM Downloads WHERE doc_pair = ?", (id,))
-
-                    # Clean-up the TMP file
-                    with suppress(OSError):
-                        shutil.rmtree(download.tmpname.parent)
 
                     self.remove_state(doc_pair)
                     log.debug(
