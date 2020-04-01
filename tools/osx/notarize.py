@@ -170,9 +170,9 @@ def main(file: str, uuid: str = "") -> int:
     if not uuid:
         # This is a new DMG file to notarize
         uuid = ask_for_notarization_uid(file)
-        if not uuid:
-            print(" !! No notarization UUID found.")
-            return 1
+    if not uuid:
+        print(" !! No notarization UUID found.")
+        return 1
 
     is_valid, report_url = wait_for_notarization(uuid)
     download_report(uuid, report_url)

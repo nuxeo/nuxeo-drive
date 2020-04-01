@@ -1,4 +1,5 @@
 # coding: utf-8
+from contextlib import suppress
 from pathlib import Path
 from unittest.mock import patch
 
@@ -27,25 +28,14 @@ log_level-console = ERROR
 debug = True
 delay = 3
 tmp-file-limit = 0.0105
-"""
-        )
-    return path
 
-
-def create_ini_bad():
-    with open(Options.nxdrive_home / "config.ini", "w") as f:
-        f.writelines(
-            """
-[DEFAULT]
-env = bad
-
-[bad]
+[BAD]
 log-level-console = DEBUG
  debug = False
-
 delay = 3
 """
         )
+    return path
 
 
 @pytest.fixture
@@ -67,7 +57,8 @@ def config():
     yield _config
 
     for path in path_list:
-        path.unlink()
+        with suppress(FileNotFoundError):
+            path.unlink()
 
 
 def test_redact_payload(cmd):
@@ -132,7 +123,7 @@ def test_system_default_mac(cmd):
 
 
 @Options.mock()
-def test_default_override(cmd):
+def test_default_override(cmd, config):
     argv = ["console", "--log-level-console=INFO"]
 
     # Default value
@@ -146,7 +137,7 @@ def test_default_override(cmd):
     assert not options.debug
 
     # config.ini override
-    create_ini()
+    config()
     options = cmd.parse_cli([])
     assert options.log_level_console == "DEBUG"
     assert not options.debug
@@ -157,7 +148,7 @@ def test_default_override(cmd):
     assert not options.debug
 
     # other usage section
-    create_ini(env="DEV")
+    config(env="DEV")
     options = cmd.parse_cli([])
     assert options.log_level_console == "ERROR"
     assert options.debug
@@ -166,8 +157,8 @@ def test_default_override(cmd):
 
 
 @Options.mock()
-def test_malformatted_line(cmd):
-    create_ini_bad()
+def test_malformatted_line(cmd, config):
+    config(env="BAD")
     cmd.parse_cli([])
     # The malformed line will display a warning:
     # Unknown logging level ('=', 'DEBUG', 'False', 'debug'), need to be one of ...

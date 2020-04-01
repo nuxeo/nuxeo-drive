@@ -40,8 +40,10 @@ from ..exceptions import (
     DownloadPaused,
     NotFound,
     ScrollDescendantsError,
+    UnknownDigest,
     UploadPaused,
 )
+from ..feature import Feature
 from ..objects import Download, NuxeoDocumentInfo, RemoteFileInfo, Upload
 from ..options import Options
 from ..utils import (
@@ -504,7 +506,7 @@ class Remote(Nuxeo):
                 # .uploads.handlers() result is cached, so it is convenient to call it each time here
                 # in case the server did not answer correctly the previous time and thus S3 would
                 # be completely disabled because of a one-time server error.
-                handler = "s3" if self.uploads.has_s3() else ""
+                handler = "s3" if Feature.s3 and self.uploads.has_s3() else ""
 
                 # Create a new batch and save it in the DB
                 batch = self.uploads.batch(handler=handler)
@@ -815,8 +817,15 @@ class Remote(Nuxeo):
         self, fs_item_id: str, filtered: bool = True
     ) -> List[RemoteFileInfo]:
         children = self.execute(command="NuxeoDrive.GetChildren", id=fs_item_id)
-        infos = [RemoteFileInfo.from_dict(fs_item) for fs_item in children]
-
+        infos = []
+        for fs_item in children:
+            try:
+                infos.append(RemoteFileInfo.from_dict(fs_item))
+            except UnknownDigest:
+                log.debug(
+                    f"Ignoring unsyncable document {fs_item!r} because of unknown digest"
+                )
+                continue
         if filtered:
             filtered_infos = []
             for info in infos:
@@ -836,14 +845,22 @@ class Remote(Nuxeo):
             scrollId=scroll_id,
             batchSize=batch_size,
         )
-        if not isinstance(res, dict) or not res:
+        if not (isinstance(res, dict) and res):
             raise ScrollDescendantsError(res)
+
+        descendants = []
+        for fs_item in res["fileSystemItems"]:
+            try:
+                descendants.append(RemoteFileInfo.from_dict(fs_item))
+            except UnknownDigest:
+                log.debug(
+                    f"Ignoring unsyncable document {fs_item!r} because of unknown digest"
+                )
+                continue
 
         return {
             "scroll_id": res["scrollId"],
-            "descendants": [
-                RemoteFileInfo.from_dict(fs_item) for fs_item in res["fileSystemItems"]
-            ],
+            "descendants": descendants,
         }
 
     def is_filtered(self, path: str, filtered: bool = True) -> bool:

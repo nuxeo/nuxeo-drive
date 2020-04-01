@@ -178,8 +178,10 @@ Rectangle {
                 // Icon 4: open the Direct Transfer window
                 IconLabel {
                     icon: MdiFont.Icon.upload
-                    onClicked: api.open_direct_transfer(accountSelect.getRole("uid"))
+                    onClicked: feat_direct_transfer ? api.open_direct_transfer(accountSelect.getRole("uid")) : null
                     tooltip: qsTr("CONTEXT_MENU_4") + tl.tr
+                    enabled: feat_direct_transfer
+                    opacity: feat_direct_transfer ? 1.0 : 0.5
                 }
 
                 // Icon 5: sub-menu

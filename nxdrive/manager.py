@@ -37,6 +37,7 @@ from .exceptions import (
     RootAlreadyBindWithDifferentAccount,
     StartupPageConnectionError,
 )
+from .feature import Feature
 from .logging_config import DEFAULT_LEVEL_FILE
 from .notification import DefaultNotificationService
 from .objects import Binder, EngineDef, Metrics
@@ -246,7 +247,7 @@ class Manager(QObject):
         return {
             "version": self.version,
             "auto_start": self.get_auto_start(),
-            "auto_update": self.get_auto_update(),
+            "auto_update": Feature.auto_update and self.get_auto_update(),
             "channel": self.get_update_channel(),
             "device_id": self.device_id,
             "tracker_id": self.get_tracker_id(),
@@ -296,7 +297,7 @@ class Manager(QObject):
         """Create the Google Analytics tracker."""
 
         # Avoid sending statistics when testing or if the user does not allow it.
-        if not Options.is_frozen or not Options.use_analytics:
+        if not (Options.is_frozen and Options.use_analytics):
             return None
 
         tracker = Tracker(self)
@@ -483,9 +484,9 @@ class Manager(QObject):
     def device_id(self) -> str:
         if not self.__device_id:
             self.__device_id = self.dao.get_config("device_id")
-            if not self.__device_id:
-                self.__device_id = uuid.uuid1().hex
-                self.dao.update_config("device_id", self.__device_id)
+        if not self.__device_id:
+            self.__device_id = uuid.uuid1().hex
+            self.dao.update_config("device_id", self.__device_id)
         return str(self.__device_id)
 
     def get_config(self, value: str, default: Any = None) -> Any:
@@ -722,12 +723,11 @@ class Manager(QObject):
 
         if not local_folder:
             local_folder = get_default_local_folder()
-        elif local_folder == self.home:
+        elif local_folder == self.home or not self.check_local_folder_available(
+            local_folder
+        ):
             # Prevent from binding in the configuration folder
             raise FolderAlreadyUsed()
-        elif not self.check_local_folder_available(local_folder):
-            raise FolderAlreadyUsed()
-
         if not self.engines:
             self.load()
 

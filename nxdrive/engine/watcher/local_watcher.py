@@ -972,13 +972,13 @@ class LocalWatcher(EngineWorker):
         dao.update_local_state(doc_pair, local_info)
 
     def handle_watchdog_root_event(self, evt: FileSystemEvent) -> None:
-        if evt.event_type == "moved":
+        if evt.event_type == "deleted":
+            log.warning("Root has been deleted")
+            self.rootDeleted.emit()
+        elif evt.event_type == "moved":
             dst = normalize(evt.dest_path)
             log.warning(f"Root has been moved to {dst!r}")
             self.rootMoved.emit(dst)
-        elif evt.event_type == "deleted":
-            log.warning("Root has been deleted")
-            self.rootDeleted.emit()
 
     @tooltip("Handle watchdog event")
     def handle_watchdog_event(self, evt: FileSystemEvent) -> None:

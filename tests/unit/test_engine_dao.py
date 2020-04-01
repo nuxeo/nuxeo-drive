@@ -309,6 +309,21 @@ def test_migration_db_v9(engine_dao):
         assert len(downloads) == 1
 
 
+def test_migration_db_v10(engine_dao):
+    """Verify Downloads after migration from v9 to v10."""
+    with engine_dao("test_engine_migration_10.db") as dao:
+        downloads = list(dao.get_downloads())
+        assert len(downloads) == 0
+
+        states = list(dao.get_states_from_partial_local(Path()))
+        assert len(states) == 4
+
+        bad_digest_file = dao.get_state_from_local(
+            Path("/Tests Drive/Live Connect/Test document Live Connect")
+        )
+        assert not bad_digest_file
+
+
 def test_migration_db_v1_with_duplicates(engine_dao):
     """ Test a non empty DB. """
     with engine_dao("test_engine_migration_duplicate.db") as dao:

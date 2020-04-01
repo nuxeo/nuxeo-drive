@@ -94,7 +94,7 @@ def main() -> int:
         if sys.version_info < (3, 7):
             raise RuntimeError(f"{APP_NAME} requires Python 3.7")
 
-        if not check_executable_path() or not check_os_version():
+        if not (check_executable_path() and check_os_version()):
             return 1
 
         # Setup Sentry even if the user did not allow it because it can be tweaked

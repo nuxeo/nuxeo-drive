@@ -318,8 +318,7 @@ FILES: Tuple[str] = (
 def find_useless_files(folder: Path) -> Generator[Path, None, None]:
     """Recursively yields files we want to remove."""
     for pattern in FILES:
-        for path in folder.glob(pattern):
-            yield path
+        yield from folder.glob(pattern)
 
 
 def main(args: List[str]) -> int:

@@ -5,7 +5,7 @@ import sys
 from logging import getLogger
 from math import sqrt
 from pathlib import Path
-from time import monotonic
+from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from urllib.parse import unquote
 
@@ -30,6 +30,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
+from ..behavior import Behavior
 from ..constants import (
     APP_NAME,
     BUNDLE_IDENTIFIER,
@@ -42,6 +43,7 @@ from ..constants import (
 )
 from ..engine.activity import Action
 from ..engine.engine import Engine
+from ..feature import Feature
 from ..gui.folders_dialog import DialogMixin, DocumentsDialog, FoldersDialog
 from ..notification import Notification
 from ..options import Options
@@ -338,6 +340,9 @@ class Application(QApplication):
         context.setContextProperty("APP_NAME", APP_NAME)
         context.setContextProperty("LINUX", LINUX)
         context.setContextProperty("WINDOWS", WINDOWS)
+        context.setContextProperty("feat_auto_update", Feature.auto_update)
+        context.setContextProperty("feat_direct_edit", Feature.direct_edit)
+        context.setContextProperty("feat_direct_transfer", Feature.direct_transfer)
         context.setContextProperty("tl", Translator.singleton)
         context.setContextProperty(
             "nuxeoVersionText", f"{APP_NAME} {self.manager.version}"
@@ -393,6 +398,18 @@ class Application(QApplication):
         self.osi.register_contextual_menu()
         self.installTranslator(Translator.singleton)
 
+    def display_warning(self, title: str, message: str, values: List[str]) -> None:
+        """Display a generic message box warning."""
+        msg_text = self.translate(message, values)
+        log.warning(f"{msg_text} (values={values})")
+        msg = QMessageBox()
+        msg.setWindowTitle(title)
+        msg.setWindowIcon(self.icon)
+        msg.setIcon(QMessageBox.Warning)
+        msg.setTextFormat(Qt.RichText)
+        msg.setText(msg_text)
+        msg.exec_()
+
     @pyqtSlot(str, Path, str)
     def _direct_edit_conflict(self, filename: str, ref: Path, digest: str) -> None:
         log.debug(f"Entering _direct_edit_conflict for {filename!r} / {ref!r}")
@@ -424,15 +441,7 @@ class Application(QApplication):
     @pyqtSlot(str, list)
     def _direct_edit_error(self, message: str, values: List[str]) -> None:
         """ Display a simple Direct Edit error message. """
-        msg_text = self.translate(message, values)
-        log.warning(f"DirectEdit error message: '{msg_text}', values={values}")
-        msg = QMessageBox()
-        msg.setWindowTitle(f"Direct Edit - {APP_NAME}")
-        msg.setWindowIcon(self.icon)
-        msg.setIcon(QMessageBox.Warning)
-        msg.setTextFormat(Qt.RichText)
-        msg.setText(msg_text)
-        msg.exec_()
+        self.display_warning(f"Direct Edit - {APP_NAME}", message, values)
 
     @pyqtSlot()
     def _root_deleted(self) -> None:
@@ -462,12 +471,7 @@ class Application(QApplication):
 
     @pyqtSlot()
     def _no_space_left(self) -> None:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
-        msg.setWindowIcon(self.icon)
-        msg.setText(Translator.get("NO_SPACE_LEFT_ON_DEVICE"))
-        msg.addButton(Translator.get("OK"), QMessageBox.AcceptRole)
-        msg.exec_()
+        self.display_warning(APP_NAME, "NO_SPACE_LEFT_ON_DEVICE", [])
 
     @pyqtSlot(Path)
     def _root_moved(self, new_path: Path) -> None:
@@ -550,7 +554,12 @@ class Application(QApplication):
     @pyqtSlot(Path)
     def _doc_deleted(self, path: Path) -> None:
         engine: Engine = self.sender()
-        mode = self.confirm_deletion(path)
+
+        if not Behavior.server_deletion:
+            mode = DelAction.UNSYNC
+            log.debug(f"Server deletions behavior is False, mode set to {mode.value!r}")
+        else:
+            mode = self.confirm_deletion(path)
 
         if mode is DelAction.ROLLBACK:
             # Re-sync the document
@@ -666,8 +675,7 @@ class Application(QApplication):
         """ Display the conflicts/errors window. """
         self.refresh_conflicts(engine.uid)
         self._window_root(self.conflicts_window).setEngine.emit(engine.uid)
-        self.conflicts_window.show()
-        self.conflicts_window.requestActivate()
+        self._show_window(self.conflicts_window)
 
     @pyqtSlot()  # From systray.py
     @pyqtSlot(str)  # All other calls
@@ -1279,12 +1287,7 @@ class Application(QApplication):
     @pyqtSlot()
     def show_msgbox_restart_needed(self) -> None:
         """ Display a message to ask the user to restart the application. """
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText(Translator.get("RESTART_NEEDED_MSG", values=[APP_NAME]))
-        msg.setWindowTitle(APP_NAME)
-        msg.addButton(Translator.get("OK"), QMessageBox.AcceptRole)
-        msg.exec_()
+        self.display_warning(APP_NAME, "RESTART_NEEDED_MSG", [APP_NAME])
 
     @pyqtSlot(result=str)
     def _nxdrive_url_env(self) -> str:
@@ -1364,7 +1367,7 @@ class Application(QApplication):
         try:
             con = self._nxdrive_listener.nextPendingConnection()
             log.info("Receiving socket connection for nxdrive protocol handling")
-            if not con or not con.waitForConnected():
+            if not (con and con.waitForConnected()):
                 log.error(f"Unable to open server socket: {con.errorString()}")
                 return
 
@@ -1436,14 +1439,33 @@ class Application(QApplication):
     def ctx_direct_transfer(self, path: Path) -> None:
         """Direct Transfer of local files and folders to anywhere on the server."""
 
+        # Wait for the server's cconfig to be fetched (10 sec max)
+        for _ in range(10):
+            if not self.manager.server_config_updater.first_run:
+                break
+            sleep(1)
+        else:
+            # Cannot fetch the server's conf
+            self.display_warning(
+                f"Direct Transfer - {APP_NAME}", "DIRECT_TRANSFER_NOT_POSSIBLE", []
+            )
+            return
+
+        if not Feature.direct_transfer:
+            self.display_warning(
+                f"Direct Transfer - {APP_NAME}", "DIRECT_TRANSFER_NOT_ENABLED", []
+            )
+            return
+
         # Direct Transfer is not allowed for synced files
         engines = list(self.manager.engines.values())
-        for engine_ in engines:
-            if engine_.local_folder in path.parents:
-                log.warning(
-                    f"Direct Transfer of {path!r} is not allowed for synced files"
-                )
-                return
+        if any(e.local_folder in path.parents for e in engines):
+            self.display_warning(
+                f"Direct Transfer - {APP_NAME}",
+                "DIRECT_TRANSFER_NOT_ALLOWED",
+                [str(path)],
+            )
+            return
 
         log.info(f"Direct Transfer: {path!r}")
 
@@ -1454,11 +1476,8 @@ class Application(QApplication):
         elif engines:
             engine = engines[0]
         else:
-            engine = None
-
-        if not engine:
-            log.warning(
-                f"Cannot use the Direct Transfer feature with no account, aborting."
+            self.display_warning(
+                f"Direct Transfer - {APP_NAME}", "DIRECT_TRANSFER_NO_ACCOUNT", []
             )
             return
 

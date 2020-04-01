@@ -1,5 +1,9 @@
+from datetime import datetime
+from typing import Any, Dict
+
 import pytest
-from nxdrive.objects import Blob, NuxeoDocumentInfo
+from nxdrive.exceptions import DriveError, UnknownDigest
+from nxdrive.objects import Blob, NuxeoDocumentInfo, RemoteFileInfo
 
 
 @pytest.fixture(scope="session")
@@ -97,6 +101,20 @@ def doc() -> NuxeoDocumentInfo:
     )
 
 
+@pytest.fixture(scope="function")
+def remote_doc_dict() -> Dict[str, Any]:
+    now = datetime.now()
+    return {
+        "id": "fake_id",
+        "parentId": "fake_id",
+        "path": "fake/path",
+        "name": "Testing",
+        "lastModificationDate": "string",
+        "creationDate": now,
+        "lockInfo": {"owner": "jdoe", "created": datetime.timestamp(now)},
+    }
+
+
 @pytest.mark.parametrize(
     "xpath",
     [
@@ -130,3 +148,28 @@ def test_get_blob_xpath(xpath, doc):
 def test_get_blob_xpath_bad(xpath, doc):
     """Ensure that invalid xpath will not throw an error but simply return None."""
     assert doc.get_blob(xpath) is None
+
+
+def test_remote_doc_folder(remote_doc_dict):
+    remote_doc_dict["folder"] = True
+    document = RemoteFileInfo.from_dict(remote_doc_dict)
+    assert document
+
+
+def test_remote_doc_file(remote_doc_dict):
+    remote_doc_dict["digestAlgorithm"] = "md5"
+    remote_doc_dict["digest"] = "fakedigest"
+    document = RemoteFileInfo.from_dict(remote_doc_dict)
+    assert document
+
+
+def test_remote_doc_raise_unwnown_digest(remote_doc_dict):
+    remote_doc_dict["digest"] = "fakedigest"
+    with pytest.raises(UnknownDigest):
+        RemoteFileInfo.from_dict(remote_doc_dict)
+
+
+def test_remote_doc_raise_drive_error(remote_doc_dict):
+    del remote_doc_dict["id"]
+    with pytest.raises(DriveError):
+        RemoteFileInfo.from_dict(remote_doc_dict)

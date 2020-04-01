@@ -20,6 +20,7 @@ from nuxeo.exceptions import (
 from PyQt5.QtCore import pyqtSignal
 from urllib3.exceptions import MaxRetryError
 
+from ..behavior import Behavior
 from ..client.local import FileInfo
 from ..constants import (
     CONNECTION_ERROR,
@@ -213,7 +214,7 @@ class Processor(EngineWorker):
                             continue
 
                         refreshed = self.dao.get_state_from_id(doc_pair.id)
-                        if not refreshed or not self.check_pair_state(refreshed):
+                        if not (refreshed and self.check_pair_state(refreshed)):
                             continue
                         doc_pair = refreshed or doc_pair
                     except NotFound:
@@ -569,8 +570,11 @@ class Processor(EngineWorker):
 
         # Force computation of local digest to catch local modifications
         dynamic_states = False
-        if not doc_pair.folderish and not self.local.is_equal_digests(
-            None, doc_pair.remote_digest, doc_pair.local_path
+        if not (
+            doc_pair.folderish
+            or self.local.is_equal_digests(
+                None, doc_pair.remote_digest, doc_pair.local_path
+            )
         ):
             # Note: set 1st argument of is_equal_digests() to None
             # to force digest computation
@@ -705,11 +709,9 @@ class Processor(EngineWorker):
             log.debug("Fallback to xattr")
             if self.local.exists(doc_pair.local_parent_path):
                 ref = self.local.get_remote_id(doc_pair.local_parent_path)
-                if ref:
-                    parent_pair = self._get_normal_state_from_remote_ref(ref)
-                else:
-                    parent_pair = None
-
+                parent_pair = (
+                    self._get_normal_state_from_remote_ref(ref) if ref else None
+                )
         if parent_pair is None or not parent_pair.remote_ref:
             # Illegal state: report the error and let's wait for the
             # parent folder issue to get resolved first
@@ -886,9 +888,9 @@ class Processor(EngineWorker):
                     self.dao.update_local_state(
                         doc_pair, local_info, versioned=False, queue=False
                     )
-                    if doc_pair.local_digest == UNACCESSIBLE_HASH:
-                        self._postpone_pair(doc_pair, "Unaccessible hash")
-                        return
+                if doc_pair.local_digest == UNACCESSIBLE_HASH:
+                    self._postpone_pair(doc_pair, "Unaccessible hash")
+                    return
 
                 fs_item_info = self.remote.stream_file(
                     parent_ref,
@@ -950,6 +952,15 @@ class Processor(EngineWorker):
             self.dao.remove_state(doc_pair)
             self._search_for_dedup(doc_pair)
             self.remove_void_transfers(doc_pair)
+            return
+
+        if not Behavior.server_deletion:
+            log.debug(
+                "Server deletions are forbidden, skipping the remote deletion"
+                f" and marking {doc_pair.local_path!r} as filtered"
+            )
+            self.dao.remove_state(doc_pair)
+            self.dao.add_filter(f"{doc_pair.remote_parent_path}/{doc_pair.remote_ref}")
             return
 
         if doc_pair.remote_can_delete:
@@ -1112,7 +1123,7 @@ class Processor(EngineWorker):
             finally:
                 lock_path(file_out, locker)
 
-        tmp_file = self.remote.stream_content(
+        return self.remote.stream_content(
             doc_pair.remote_ref,
             file_path,
             file_out,
@@ -1120,7 +1131,6 @@ class Processor(EngineWorker):
             engine_uid=self.engine.uid,
             doc_pair_id=doc_pair.id,
         )
-        return tmp_file
 
     def _update_remotely(self, doc_pair: DocPair, is_renaming: bool) -> None:
         os_path = self.local.abspath(doc_pair.local_path)
@@ -1190,7 +1200,7 @@ class Processor(EngineWorker):
                     self._postpone_pair(doc_pair, reason="PARENT_UNSYNC")
                     return
 
-                if not is_move and not is_renaming:
+                if not (is_move or is_renaming):
                     log.info(
                         "No local impact of metadata update on document "
                         f"{doc_pair.remote_name!r}"
@@ -1397,10 +1407,12 @@ class Processor(EngineWorker):
             )
             return
         try:
-            if doc_pair.local_state == "unsynchronized":
+            if doc_pair.local_state == "deleted":
+                pass
+            elif doc_pair.local_state == "unsynchronized":
                 self.dao.remove_state(doc_pair)
                 return
-            if doc_pair.local_state != "deleted":
+            else:
                 log.info(
                     f"Deleting locally {self.local.abspath(doc_pair.local_path)!r}"
                 )

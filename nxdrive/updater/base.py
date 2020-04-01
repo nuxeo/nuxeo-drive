@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import QApplication
 
 from ..constants import APP_NAME, CONNECTION_ERROR, NO_SPACE_ERRORS
 from ..engine.workers import PollWorker
+from ..feature import Feature
 from ..options import Options
 from ..utils import version_lt
 from . import UpdateError
@@ -186,10 +187,11 @@ class BaseUpdater(PollWorker):
             # because updates are critical and must be stored on a secured server.
             req = requests.get(url, stream=True)
             size = int(req.headers["content-length"])
-            incr = self.chunk_size * 100 / size
-            i = 0
 
             with open(path, "wb") as tmp:
+                incr = self.chunk_size * 100 / size
+                i = 0
+
                 for chunk in req.iter_content(self.chunk_size):
                     tmp.write(chunk)
                     if i % 100 == 0:
@@ -398,8 +400,12 @@ class BaseUpdater(PollWorker):
 
     @pyqtSlot(result=bool)
     def _poll(self) -> bool:
+        if not Feature.auto_update:
+            log.debug("The auto-update feature is disabled.")
+            return False
+
         if self._update_in_progress:
-            # The update is already ongoing ...
+            log.debug("The update is already ongoing ...")
             return False
 
         self._update_in_progress = True

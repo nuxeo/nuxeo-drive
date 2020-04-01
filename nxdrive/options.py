@@ -50,6 +50,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Set, Tuple, Union
 
+from .feature import Feature
+
 __all__ = ("Options",)
 
 log = logging.getLogger(__name__)
@@ -99,12 +101,10 @@ def _get_home() -> Path:
 def _get_resources_dir() -> Path:
     """Find the resources directory."""
     freezer = _get_freezer()
-    if freezer == "nuitka":
+    if freezer == "nuitka" or freezer != "pyinstaller":
         path = Path(__file__).parent
-    elif freezer == "pyinstaller":
-        path = Path(getattr(sys, "_MEIPASS"))
     else:
-        path = Path(__file__).parent
+        path = Path(getattr(sys, "_MEIPASS"))
     return path / "data"
 
 
@@ -201,6 +201,10 @@ class MetaOptions(type):
         "debug_pydev": (False, "default"),
         "delay": (30, "default"),
         "deletion_behavior": ("unsync", "default"),
+        "feature_auto_update": (True, "default"),
+        "feature_direct_edit": (True, "default"),
+        "feature_direct_transfer": (True, "default"),
+        "feature_s3": (True, "default"),
         "findersync_batch_size": (50, "default"),
         "force_locale": (None, "default"),
         "freezer": (_get_freezer(), "default"),
@@ -329,6 +333,9 @@ class MetaOptions(type):
             else:
                 src_err = f" From {file!r}."
 
+        # Normalize the option
+        item = item.replace("-", "_").replace(".", "_").lower()
+
         try:
             old_value, old_setter = MetaOptions.options[item]
         except KeyError:
@@ -338,71 +345,70 @@ class MetaOptions(type):
             err = f"{item!r} is not a recognized parameter.{src_err}"
             if fail_on_error:
                 raise RuntimeError(err)
+
+            log.warning(err)
+            return
+
+        if isinstance(new_value, list):
+            # Need a tuple when JSON sends a simple list
+            new_value = tuple(sorted({*old_value, *new_value}))
+        elif isinstance(new_value, bytes):
+            # No option needs bytes
+            new_value = new_value.decode("utf-8")
+
+        # Try implicit conversions. We do not use isinstance to prevent
+        # checking against subtypes.
+        type_orig = type(old_value)
+        if type_orig is bool:
+            with suppress(ValueError, TypeError):
+                new_value = bool(new_value)
+        elif type_orig is int:
+            with suppress(ValueError, TypeError):
+                new_value = int(new_value)
+
+        # Check the new value meets our requirements, if any
+        check = MetaOptions.checkers.get(item, None)
+        if callable(check):
+            try:
+                new_value = check(new_value)
+            except ValueError as exc:
+                log.warning(str(exc))
+                log.warning(
+                    f"Callback check for {item!r} denied modification."
+                    f" Value is still {old_value!r}."
+                )
+                return
+
+        # If the option was set from a local config file, it must be taken into account
+        # event if the value is the same as the default one (see NXDRIVE-1980).
+        if new_value == old_value and setter not in ("local", "manual"):
+            return
+
+        # We allow to set something when the default is None
+        if not isinstance(new_value, type_orig) and not isinstance(
+            old_value, type(None)
+        ):
+            err = (
+                f"The type of the {item!r} option is {type(new_value).__name__}, "
+                f"while {type(old_value).__name__} is required.{src_err}"
+            )
+            if fail_on_error:
+                raise TypeError(err)
             else:
                 log.warning(err)
-        else:
-            if isinstance(new_value, list):
-                # Need a tuple when JSON sends a simple list
-                new_value = tuple(sorted({*old_value, *new_value}))
-            elif isinstance(new_value, bytes):
-                # No option needs bytes
-                new_value = new_value.decode("utf-8")
 
-            # Try implicit conversions. We do not use isinstance to prevent
-            # checking against subtypes.
-            type_orig = type(old_value)
-            if type_orig is bool:
-                with suppress(ValueError, TypeError):
-                    new_value = bool(new_value)
-            elif type_orig is int:
-                with suppress(ValueError, TypeError):
-                    new_value = int(new_value)
+        # Only update if the setter has rights to
+        if MetaOptions._setters[setter] < MetaOptions._setters[old_setter]:
+            return
 
-            # Check the new value meets our requirements, if any
-            check = MetaOptions.checkers.get(item, None)
-            if callable(check):
-                try:
-                    new_value = check(new_value)
-                except ValueError as exc:
-                    log.warning(str(exc))
-                    log.warning(
-                        f"Callback check for {item!r} denied modification."
-                        f" Value is still {old_value!r}."
-                    )
-                    return
+        MetaOptions.options[item] = new_value, setter
+        log.info(f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]")
+        log.debug(str(Options))
 
-            # If the option was set from a local config file, it must be taken into account
-            # event if the value is the same as the default one (see NXDRIVE-1980).
-            if new_value == old_value and setter not in ("local", "manual"):
-                return
-
-            # We allow to set something when the default is None
-            if not isinstance(new_value, type_orig) and not isinstance(
-                old_value, type(None)
-            ):
-                err = (
-                    f"The type of the {item!r} option is {type(new_value).__name__}, "
-                    f"while {type(old_value).__name__} is required.{src_err}"
-                )
-                if fail_on_error:
-                    raise TypeError(err)
-                else:
-                    log.warning(err)
-
-            # Only update if the setter has rights to
-            if MetaOptions._setters[setter] < MetaOptions._setters[old_setter]:
-                return
-
-            MetaOptions.options[item] = new_value, setter
-            log.info(
-                f"Option {item!r} updated: {old_value!r} -> {new_value!r} [{setter}]"
-            )
-            log.debug(str(Options))
-
-            # Callback for that option
-            callback = MetaOptions.callbacks.get(item)
-            if callable(callback):
-                callback(new_value)
+        # Callback for that option
+        callback = MetaOptions.callbacks.get(item)
+        if callable(callback):
+            callback(new_value)
 
     @staticmethod
     def update(
@@ -452,8 +458,10 @@ class MetaOptions(type):
 
         import functools
 
+        callbacks = MetaOptions.callbacks.copy()
+
         def reinit() -> None:
-            setattr(MetaOptions, "callbacks", {})
+            setattr(MetaOptions, "callbacks", callbacks)
             setattr(MetaOptions, "options", deepcopy(MetaOptions.default_options))
 
         def decorator(func):  # type: ignore
@@ -478,6 +486,26 @@ class Options(metaclass=MetaOptions):
 #
 # Validators
 #
+
+
+def handle_feat_auto_update(value: bool) -> None:
+    if Feature.auto_update is not value:
+        Feature.auto_update = value
+
+
+def handle_feat_direct_edit(value: bool) -> None:
+    if Feature.direct_edit is not value:
+        Feature.direct_edit = value
+
+
+def handle_feat_direct_transfer(value: bool) -> None:
+    if Feature.direct_transfer is not value:
+        Feature.direct_transfer = value
+
+
+def handle_feat_s3(value: bool) -> None:
+    if Feature.s3 is not value:
+        Feature.s3 = value
 
 
 def validate_chunk_limit(value: int) -> int:
@@ -511,6 +539,10 @@ def validate_tmp_file_limit(value: Union[int, float]) -> float:
     raise ValueError("Temporary file limit must be above 0")
 
 
+Options.callbacks["feature_auto_update"] = handle_feat_auto_update
+Options.callbacks["feature_direct_edit"] = handle_feat_direct_edit
+Options.callbacks["feature_direct_transfer"] = handle_feat_direct_transfer
+Options.callbacks["feature_s3"] = handle_feat_s3
 Options.checkers["chunk_limit"] = validate_chunk_limit
 Options.checkers["chunk_size"] = validate_chunk_size
 Options.checkers["client_version"] = validate_client_version

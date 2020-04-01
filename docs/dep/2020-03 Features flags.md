@@ -1,11 +1,12 @@
 # Features and Behaviors Flags
 
 - Created: 2020-03-03
-- Last-Modified: 2020-03-04
+- Last-Modified: 2020-04-01
 - Author: Mickaël Schoentgen <mschoentgen@nuxeo.com>,
           Patrick Abgrall <pabgrall@nuxeo.com>
 - Reviewer: Yannis Achour <yachour@nuxeo.com>
-- Status: draft
+            Romain Grasland <rgrasland@nuxeo.com>
+- Status: implemented
 - Related-Ticket: [NXDRIVE-2070](https://jira.nuxeo.com/browse/NXDRIVE-2070)
 
 ## Abstract
@@ -46,9 +47,9 @@ That list may be outdated at the moment one reads it, it is not an exhaustive on
 
 That list may be outdated at the moment one reads it, it is not an exhaustive one:
 
-- Auto-update (disallow completely auto-updates)
+- Auto-update (disallow completely auto-update)
 - Direct Edit
-- Amazon S3 direct uploads
+- Amazon S3 direct upload
 - Direct Transfer
 
 ### Server Configuration
@@ -57,14 +58,14 @@ The file format is JSON, and the syntax would be like:
 
 ```json
 {
-    "behaviors": {
-        "server-deletions": true
+    "behavior": {
+        "server-deletion": true
     },
-    "features": {
-        "auto-updates"    : true,
+    "feature": {
+        "auto-update"     : true,
         "direct-edit"     : true,
-        "direct-transfer" : false,
-        "s3"              : true,
+        "direct-transfer" : true,
+        "s3"              : true
     }
 }
 ```
@@ -78,10 +79,10 @@ The file format is INI, and the syntax would be like:
 env = myFeatures
 
 [myFeatures]
-features[auto-updates]    = true
-features[direct-edit]     = true
-features[direct-transfer] = false
-features[s3]              = true
+feature.auto-update     = true
+feature.direct-edit     = true
+feature.direct-transfer = true
+feature.s3              = true
 ```
 
 ### Default Values
@@ -93,9 +94,9 @@ At the time of that DEP, defaults are:
 
 - `auto-update`: `true`
 - `direct-edit`: `true`
-- `direct-transfer`: `false`
+- `direct-transfer`: `true`
 - `s3`: `true`
-- `server-deletions`: `true`
+- `server-deletion`: `true`
 
 ## Backward Compatibility
 
@@ -122,7 +123,7 @@ To disable a feature, one would prefix the option with "no-".
 Server configuration:
 ```json
 {
-    "features": [
+    "feature": [
         "s3",
         "no-direct-transfer"
     ]
@@ -135,7 +136,7 @@ Local configuration:
 env = myFeatures
 
 [myFeatures]
-features =
+feature =
     s3
     no-direct-transfer
 ```

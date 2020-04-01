@@ -27,6 +27,7 @@ from .engine.blacklist_queue import BlacklistQueue
 from .engine.watcher.local_watcher import DriveFSEventHandler
 from .engine.workers import Worker
 from .exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt, UnknownDigest
+from .feature import Feature
 from .objects import DirectEditDetails, Metrics, NuxeoDocumentInfo
 from .options import Options
 from .utils import (
@@ -415,14 +416,10 @@ class DirectEdit(Worker):
             url += download_url
 
         xpath = url_info.get("xpath")
-        if not xpath:
-            if info.doc_type == "Note":
-                xpath = "note:note"
-            else:
-                xpath = "file:content"
-        elif xpath == "blobholder:0":
+        if not xpath and info.doc_type == "Note":
+            xpath = "note:note"
+        elif not xpath or xpath == "blobholder:0":
             xpath = "file:content"
-
         blob = info.get_blob(xpath)
         if not blob:
             log.warning(
@@ -473,8 +470,8 @@ class DirectEdit(Worker):
             digest_algorithm = blob.digest_algorithm
             if not digest_algorithm:
                 digest_algorithm = get_digest_algorithm(blob.digest)
-                if not digest_algorithm:
-                    raise UnknownDigest(blob.digest)
+            if not digest_algorithm:
+                raise UnknownDigest(blob.digest)
             self.local.set_remote_id(
                 dir_path,
                 digest_algorithm.encode("utf-8"),
@@ -492,6 +489,10 @@ class DirectEdit(Worker):
     def edit(
         self, server_url: str, doc_id: str, user: str = None, download_url: str = None
     ) -> None:
+        if not Feature.direct_edit:
+            self.directEditError.emit("DIRECT_EDIT_NOT_ENABLED", [])
+            return
+
         log.info(f"Direct Editing doc {doc_id!r} on {server_url!r}")
         try:
             # Download the file
@@ -530,7 +531,7 @@ class DirectEdit(Worker):
             dir_path, name="nxdirecteditdigestalgorithm"
         )
         digest = self.local.get_remote_id(dir_path, name="nxdirecteditdigest")
-        if not digest or not digest_algorithm:
+        if not (digest and digest_algorithm):
             raise NotFound()
 
         xpath = self.local.get_remote_id(dir_path, name="nxdirecteditxpath")

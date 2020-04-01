@@ -103,7 +103,7 @@ class ExtensionListener(QTcpServer):
         """ Called when an Explorer instance is connecting. """
         con: QTcpSocket = self.nextPendingConnection()
 
-        if not con or not con.waitForConnected():
+        if not (con and con.waitForConnected()):
             log.error(
                 f"Unable to open extension handler server socket: {con.errorString()}"
             )

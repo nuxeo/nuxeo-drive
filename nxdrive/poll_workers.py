@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
+from .behavior import Behavior
 from .engine.workers import PollWorker
 from .options import Options
 from .updater.constants import UPDATE_STATUS_UPDATING
@@ -78,7 +79,7 @@ class ServerOptionsUpdater(PollWorker):
                 engine.set_ui("jsf", overwrite=False)
                 continue
 
-            engine.set_ui(conf.pop("ui"), overwrite=False)
+            engine.set_ui(conf.pop("ui", "web"), overwrite=False)
 
             # Compat with old servers
             beta = conf.pop("beta_channel", False)
@@ -88,6 +89,30 @@ class ServerOptionsUpdater(PollWorker):
             if "nxdrive_home" in conf:
                 # Expand eventuel envars like %userprofile% and co.
                 conf["nxdrive_home"] = normalize_and_expand_path(conf["nxdrive_home"])
+
+            # Behavior can only be set from the server config,
+            # so the following logic can be kept here only.
+            if "behavior" in conf:
+                for behavior, value in conf["behavior"].items():
+                    behavior = behavior.replace("-", "_").lower()
+                    if not hasattr(Behavior, behavior):
+                        log.warning(f"Invalid behavior: {behavior!r}")
+                    elif not isinstance(value, bool):
+                        log.warning(
+                            f"Invalid behavior value: {value!r} (a boolean is required)"
+                        )
+                    elif getattr(Behavior, behavior) is not value:
+                        log.warning(f"Updating behavior {behavior!r} to {value!r}")
+                        setattr(Behavior, behavior, value)
+                del conf["behavior"]
+
+            # Features needs to be reworked to match the format in Options
+            # (this is a limitation of the local config format)
+            if "feature" in conf:
+                for feature, value in conf["feature"].items():
+                    feature = f"feature_{feature.replace('-', '_').lower()}"
+                    conf[feature] = value
+                del conf["feature"]
 
             # We cannot use fail_on_error=True because the server may
             # be outdated and still have obsolete options.
