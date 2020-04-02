@@ -80,6 +80,7 @@ def test_delete_doc(manager_factory, tmp):
                         "parentId": "parent-uid",
                         "path": "/some/path",
                         "name": name,
+                        "digest": "0" * 32,
                     }
                 )
                 doc_pair.remote_parent_path = "remote-aprent-path"
