@@ -5,15 +5,13 @@ import shutil
 import subprocess
 from logging import getLogger
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Dict
+from typing import TYPE_CHECKING, Dict, Optional
 
 from ...constants import APP_NAME, NXDRIVE_SCHEME
 from ...objects import DocPair
-from ...utils import find_icon
-from ...utils import if_frozen
-from ..extension import get_formatted_status
-from ..extension import icon_status, Status
+from ...utils import find_icon, if_frozen
 from .. import AbstractOSIntegration
+from ..extension import Status, get_formatted_status, icon_status
 
 __all__ = ("LinuxIntegration",)
 
@@ -150,8 +148,8 @@ MimeType=x-scheme-handler/{NXDRIVE_SCHEME};
         ]
         try:
             subprocess.check_call(cmd)
-        except subprocess.CalledProcessError:
-            log.warning(f"Could not set the {emblem} emblem on {path!r}")
+        except Exception:
+            log.warning(f"Could not set the {emblem} emblem on {path!r}", exc_info=True)
 
     def _icons_to_emblems(self) -> None:
         """
