@@ -25,9 +25,9 @@ properties([
 ])
 
 // Jenkins agents we will build on
-agents = ['SLAVEPRIV', 'OSXSLAVE-DRIVE', 'WINSLAVE']
+agents = ['SLAVEPRIV && STATIC', 'OSXSLAVE-DRIVE', 'WINSLAVE']
 labels = [
-    'SLAVEPRIV': 'GNU/Linux',
+    'SLAVEPRIV && STATIC': 'GNU/Linux',
     'OSXSLAVE-DRIVE': 'macOS',
     'WINSLAVE': 'Windows'
 ]
@@ -101,8 +101,9 @@ for (x in agents) {
                                 // Build the binary
                                 docker.withRegistry('https://dockerpriv.nuxeo.com/')
                                 {
-                                    def image = docker.image('nuxeo-drive-build:py-3.7.4')  // XXX_PYTHON
-                                    image.inside() { sh "/entrypoint.sh" }
+                                    def image = 'dockerpriv.nuxeo.com/nuxeo-drive-build:py-3.7.4'  // XXX_PYTHON
+                                    def container = docker.image(image)
+                                    container.inside() { sh "/entrypoint.sh" }
                                 }
 
                                 // Check the resulting binary is OK
