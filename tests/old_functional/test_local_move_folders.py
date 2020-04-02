@@ -58,7 +58,7 @@ class TestLocalMoveFolders(OneUserTest):
                 assert set(children) == names
 
     def tearDown(self):
-        with suppress(TypeError):
+        with suppress(TypeError, AttributeError):
             self.engine_1._local_watcher.localScanFinished.disconnect(
                 self.app.local_scan_finished
             )
