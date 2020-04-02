@@ -4,6 +4,7 @@ import time
 
 import pytest
 
+from . import RemoteBase
 from .common import OS_STAT_MTIME_RESOLUTION, SYNC_ROOT_FAC_ID, TwoUsersTest
 
 
@@ -56,7 +57,7 @@ class TestConflicts(TwoUsersTest):
 
     def test_conflict_renamed_modified(self):
         local = self.local_1
-        remote = self.remote_2
+        remote: RemoteBase = self.remote_2
 
         # Update content on both sides by different users, remote last
         time.sleep(OS_STAT_MTIME_RESOLUTION)
@@ -71,13 +72,20 @@ class TestConflicts(TwoUsersTest):
         assert self.get_remote_state(self.file_id).pair_state == "conflicted"
 
     def test_resolve_local_renamed_modified(self):
+        remote: RemoteBase = self.remote_2
+
         self.test_conflict_renamed_modified()
         # Resolve to local file
         pair = self.get_remote_state(self.file_id)
         assert pair
         self.engine_1.resolve_with_local(pair.id)
         self.wait_sync(wait_for_async=True)
-        assert self.remote_2.get_content(self.file_id) == b"Local update"
+
+        remote_children = remote.get_fs_children(self.workspace_id)
+        assert len(remote_children) == 1
+        assert remote_children[0].uid == self.file_id
+        assert remote_children[0].name == "test.txt"
+        assert remote.get_content(remote_children[0].uid) == b"Local update"
 
     def test_real_conflict(self):
         local = self.local_1
