@@ -1,4 +1,5 @@
 # coding: utf-8
+import os
 import platform
 import shutil
 import sqlite3
@@ -352,8 +353,13 @@ class Manager(QObject):
         worker = updater(self)
         self.prompted_wrong_channel = False
 
-        # Start only when the configuration has been retrieved
-        self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
+        if os.getenv("FORCE_USE_LATEST_VERSION", "0") == "1":
+            # Special case to test the auto-updater without the need for an account
+            # (else the auto-update would never happen as there is no account and so no server config)
+            self.started.connect(worker.thread.start)
+        else:
+            # Start only when the server config has been fetched
+            self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
 
         # Trigger a new auto-update check when the server config has been fetched
         self.server_config_updater.firstRunCompleted.connect(worker.refresh_status)
