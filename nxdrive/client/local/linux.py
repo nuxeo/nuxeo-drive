@@ -38,8 +38,8 @@ class LocalClient(LocalClientMixin):
         cmd = ["gio", "info", "-a", "metadata", str(folder)]
         try:
             output = subprocess.check_output(cmd, encoding="utf-8")
-        except subprocess.CalledProcessError:
-            log.warning(f"Could not check the metadata of {folder!r}")
+        except Exception:
+            log.warning(f"Could not check the metadata of {folder!r}", exc_info=True)
             return False
 
         matcher = re.compile(r"metadata::emblems: \[.*emblem-nuxeo.*\]")
@@ -97,8 +97,8 @@ class LocalClient(LocalClientMixin):
         ]
         try:
             subprocess.check_call(cmd)
-        except subprocess.CalledProcessError:
-            log.warning(f"Could not set the folder emblem on {folder!r}")
+        except Exception:
+            log.warning(f"Could not set the folder emblem on {folder!r}", exc_info=True)
 
     @staticmethod
     def set_path_remote_id(
