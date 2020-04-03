@@ -1,0 +1,27 @@
+name: Spell
+
+on: pull_request
+
+jobs:
+  job:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-spell.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements-spell.txt', 'tools/deps/requirements-tox.txt') }}
+    - uses: actions/cache@v1
+      with:
+        path: .tox
+        key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-spell.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements-spell.txt', 'tools/deps/requirements-tox.txt') }}
+    - name: Install dependencies
+      run: python -m pip install -r tools/deps/requirements-tox.txt
+    - name: Spell check
+      run: tox -e spell
