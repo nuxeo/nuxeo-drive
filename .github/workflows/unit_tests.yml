@@ -1,0 +1,78 @@
+name: Unit tests
+
+on:
+  pull_request:
+    paths:
+    - '**/*.py'
+    - 'tools/deps/*.txt'
+
+jobs:
+  ut_linux:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - uses: actions/cache@v1
+      with:
+        path: .tox
+        key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - name: Install tox
+      run: python -m pip install -r tools/deps/requirements-tox.txt
+    - name: Unit tests
+      run: tox -e unit
+
+  ut_macos:
+    runs-on: macos-10.15
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - uses: actions/cache@v1
+      with:
+        path: .tox
+        key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - name: Install tox
+      run: python -m pip install -r tools/deps/requirements-tox.txt
+    - name: Unit tests
+      run: tox -e unit
+
+  ut_windows:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7  # XXX_PYTHON
+    - uses: actions/cache@v1
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+        restore-keys: ${{ runner.os }}-pip-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    # Cannot be used for now: OSError: [WinError 193] %1 is not a valid Win32 application
+    #- uses: actions/cache@v1
+    #  with:
+    #    path: .tox
+    #    key: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    #    restore-keys: ${{ runner.os }}-tox-${{ hashFiles('tools/deps/requirements.txt', 'tools/deps/requirements-test.txt', 'tools/deps/requirements-tox.txt') }}
+    - name: Install tox
+      run: python -m pip install -r tools/deps/requirements-tox.txt
+    - name: Unit tests
+      run: tox -e unit

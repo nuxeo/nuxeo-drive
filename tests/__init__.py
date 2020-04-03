@@ -82,15 +82,25 @@ def setup_sentry() -> None:
     sentry_dsn = os.getenv(
         "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
     )
+    sentry_env = os.getenv("SENTRY_ENV", "")
 
     # Guess the current ticket from the branch name
-    branch = subprocess.check_output(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"], encoding="utf-8"
-    ).strip()
-    ticket = re.findall(r".+(NXDRIVE-\d+)-.+", branch)
+    if "GITHUB_HEAD_REF" in os.environ:
+        branch = os.environ["GITHUB_HEAD_REF"].split("/")[-1]
+    else:
+        branch = subprocess.check_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], encoding="utf-8"
+        ).strip()
+
+    ticket = re.findall(r".+-((NXDRIVE|NXP)-\d+)-.+", branch)
+
     if ticket:
         sentry_env = ticket[0]
-    elif "JENKINS_URL" in os.environ or branch == "master" or "dependabot" in branch:
+    elif (
+        "JENKINS_URL" in os.environ
+        or branch in ("master", "wip-translations-update")
+        or "dependabot" in branch
+    ):
         sentry_env = "testing"
     else:
         sys.exit(f"The branch is malformed, cannot guess the ticket from {branch!r}.")
