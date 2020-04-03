@@ -32,12 +32,6 @@
     </dependency>
     <dependency>
       <groupId>org.nuxeo.packages</groupId>
-      <artifactId>nuxeo-dam-package</artifactId>
-      <type>zip</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.nuxeo.packages</groupId>
       <artifactId>nuxeo-importer-package</artifactId>
       <type>zip</type>
       <scope>test</scope>
