@@ -87,10 +87,14 @@ def setup_sentry() -> None:
     branch = subprocess.check_output(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"], encoding="utf-8"
     ).strip()
-    ticket = re.findall(r".+(NXDRIVE-\d+)-.+", branch)
+    ticket = re.findall(r".+-((NXDRIVE|NXP)-\d+)-.+", branch)
     if ticket:
         sentry_env = ticket[0]
-    elif "JENKINS_URL" in os.environ or branch == "master" or "dependabot" in branch:
+    elif (
+        "JENKINS_URL" in os.environ
+        or branch in ("master", "wip-translations-update")
+        or "dependabot" in branch
+    ):
         sentry_env = "testing"
     else:
         sys.exit(f"The branch is malformed, cannot guess the ticket from {branch!r}.")
