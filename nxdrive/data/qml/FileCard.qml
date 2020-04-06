@@ -20,6 +20,7 @@ ShadowRectangle {
         anchors.centerIn: parent
         spacing: 10
 
+        // Color badge
         Rectangle {
             width: 10; height: 10; radius: 10
             color: type == "conflict" ? orange : red
@@ -29,6 +30,7 @@ ShadowRectangle {
         ColumnLayout {
             spacing: 10
 
+            // Document name
             ScaledText {
                 id: fileName
                 Layout.fillWidth: true
@@ -38,9 +40,16 @@ ShadowRectangle {
                     pointSize: point_size * 1.2
                     weight: Font.Bold
                 }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: api.open_local(engineUid, fileData.local_parent_path)
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                }
             }
 
-            ScaledText {
+            // Conflict/Error reason
+            SelectableText {
                 id: errorReason
                 visible: type != "conflict"
                 property string reason: type == "ignored" ? "IGNORE_REASON_" : "ERROR_REASON_"
@@ -48,10 +57,9 @@ ShadowRectangle {
 
                 text: qsTr(reason + fileData.last_error) + tl.tr
                 wrapMode: Text.WordWrap
-                lineHeight: 1.15
             }
 
-            ScaledText {
+            SelectableText {
                 id: errorDetailsTitle
                 text: qsTr("TECHNICAL_DETAILS") + tl.tr
                 visible: errorDetails.visible
@@ -59,7 +67,8 @@ ShadowRectangle {
                 wrapMode: Text.WordWrap
             }
 
-            ScaledText {
+            // Conflict/Error details
+            SelectableText {
                 id: errorDetails
                 font.family: "Courier"
                 text: fileData.last_error_details
@@ -68,25 +77,24 @@ ShadowRectangle {
                 wrapMode: Text.WordWrap
             }
 
-            ScaledText {
+            // Parent path of the document
+            SelectableText {
                 id: parentPath
                 text: qsTr("FILE_PATH").arg(fileData.local_parent_path) + tl.tr
                 color: mediumGray
                 Layout.fillWidth: true
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: api.open_local(engineUid, fileData.local_parent_path)
-                }
             }
 
-            ScaledText {
+            // Last contributor
+            SelectableText {
                 id: lastContributor
                 text: qsTr("LAST_CONTRIBUTOR").arg(fileData.last_contributor) + tl.tr
                 Layout.fillWidth: true
                 color: mediumGray
             }
 
-            ScaledText {
+            // Last synchronization date
+            SelectableText {
                 id: lastSynchronized
 
                 property string date: fileData.last_sync_date ? fileData.last_sync_date : fileData.last_remote_update
@@ -96,9 +104,11 @@ ShadowRectangle {
                 color: mediumGray
             }
 
+            // Possible actions list
             RowLayout {
                 spacing: 20
 
+                // Open the local file
                 Link {
                     id: openLocalLink
                     text: qsTr("OPEN_LOCAL") + tl.tr
@@ -106,6 +116,7 @@ ShadowRectangle {
                     onClicked: api.open_local(engineUid, fileData.local_path)
                 }
 
+                // Open the remote file
                 Link {
                     id: openRemoteLink
                     text: qsTr("OPEN_REMOTE") + tl.tr
@@ -113,6 +124,7 @@ ShadowRectangle {
                     onClicked: api.open_remote(engineUid, fileData.remote_ref, fileData.remote_name)
                 }
 
+                // Resolution options popup list
                 NuxeoComboBox {
                     id: resolveAction
                     displayText: qsTr("RESOLVE") + tl.tr
@@ -148,6 +160,7 @@ ShadowRectangle {
                     }
                 }
 
+                // Retry button
                 Link {
                     id: retry
                     text: qsTr("CONFLICT_RETRY") + tl.tr
@@ -155,6 +168,7 @@ ShadowRectangle {
                     onClicked: api.retry_pair(engineUid, fileData.id)
                 }
 
+                // Ignore button
                 Link {
                     text: qsTr("IGNORE_PAIR") + tl.tr
                     visible: type == "error"
