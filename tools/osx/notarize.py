@@ -31,8 +31,8 @@ def ask_for_notarization_uid(file: str) -> str:
 
     And we are interested in the value of RequestUUID.
     """
-    print(f">>> [notarization] Uploading {file!r}")
-    print("    (it may take a while)")
+    print(f">>> [notarization] Uploading {file!r}", flush=True)
+    print("    (it may take a while)", flush=True)
 
     cmd = [
         "xcrun",
@@ -95,8 +95,8 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
         Status Message: Package Approved
 
     """
-    print(f">>> [notarization] Waiting status for {uuid!r}")
-    print("    (it may take a while)")
+    print(f">>> [notarization] Waiting status for {uuid!r}", flush=True)
+    print("    (it may take a while)", flush=True)
 
     cmd = [
         "xcrun",
@@ -119,7 +119,7 @@ def wait_for_notarization(uuid: str) -> Tuple[bool, str]:
             break
 
         # The process may take a while
-        print("    (new check in 30 seconds ... )")
+        print("    (new check in 30 seconds ... )", flush=True)
         time.sleep(30)
 
     # Get the URL of the JSON report
@@ -145,18 +145,23 @@ def get_notarization_status(
 def staple_the_notarization(file: str) -> None:
     """Staple the notarization to the *file*."""
     call(["xcrun", "stapler", "staple", "-v", file])
-    print(">>> [notarization] Done with success ᕦ(ò_óˇ)ᕤ")
+    print(">>> [notarization] Done with success ᕦ(ò_óˇ)ᕤ", flush=True)
 
 
 def call(cmd: List[str]) -> str:
     """Make a system call and retrieve its output from stdout and stderr."""
-    return subprocess.check_output(cmd, encoding="utf-8", stderr=subprocess.STDOUT)
+    exitcode, output = subprocess.getstatusoutput(" ".join(cmd))
+    if exitcode != 0:
+        print(" !! ERROR", flush=True)
+        print(output, flush=True)
+        raise subprocess.CalledProcessError(exitcode, cmd)
+    return output
 
 
 def download_report(uuid: str, url: str) -> str:
     """Download a notarization report."""
     output = f"report-{uuid}.json"
-    print(f">>> Downloading the report to {output}")
+    print(f">>> Downloading the report to {output}", flush=True)
 
     with requests.get(url) as req:
         with open(output, "w", encoding="utf-8") as ofile:
@@ -171,14 +176,14 @@ def main(file: str, uuid: str = "") -> int:
         # This is a new DMG file to notarize
         uuid = ask_for_notarization_uid(file)
     if not uuid:
-        print(" !! No notarization UUID found.")
+        print(" !! No notarization UUID found.", flush=True)
         return 1
 
     is_valid, report_url = wait_for_notarization(uuid)
     download_report(uuid, report_url)
 
     if not is_valid:
-        print(" !! Notarization failed. Check the report for details.")
+        print(" !! Notarization failed. Check the report for details.", flush=True)
         return 2
 
     staple_the_notarization(file)
