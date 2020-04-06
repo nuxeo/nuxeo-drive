@@ -1,6 +1,12 @@
 name: Spell
 
-on: pull_request
+on:
+  pull_request:
+    paths:
+    - 'nxdrive/data/i18n.json'
+    - '**/*.md'
+    - '**/*.py'
+    - '**/*.sh'
 
 jobs:
   job:
