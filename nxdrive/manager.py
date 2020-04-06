@@ -223,8 +223,8 @@ class Manager(QObject):
         self.server_config_updater: ServerOptionsUpdater = self._create_server_config_updater()
 
         # Create DirectEdit
-        self._create_autolock_service()
-        self._create_direct_edit()
+        self.autolock_service = self._create_autolock_service()
+        self.direct_edit = self._create_direct_edit()
 
         # Create the application update verification thread
         self.updater: "Updater" = self._create_updater()
@@ -309,10 +309,6 @@ class Manager(QObject):
         # Connect Direct Transfer metrics
         self.directTransferStats.connect(tracker.send_direct_transfer)
 
-        # Connect DirectEdit metrics
-        self.direct_edit.openDocument.connect(tracker.send_directedit_open)
-        self.direct_edit.editDocument.connect(tracker.send_directedit_edit)
-
         return tracker
 
     def _create_server_config_updater(self) -> ServerOptionsUpdater:
@@ -327,27 +323,26 @@ class Manager(QObject):
         return worker
 
     def _create_autolock_service(self) -> ProcessAutoLockerWorker:
-        self.autolock_service = ProcessAutoLockerWorker(
-            30, self, folder=self.direct_edit_folder
-        )
+        worker = ProcessAutoLockerWorker(30, self, folder=self.direct_edit_folder)
 
         # Start only when the configuration has been retrieved
-        self.server_config_updater.firstRunCompleted.connect(
-            self.autolock_service.thread.start
-        )
+        self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
 
-        return self.autolock_service
+        return worker
 
     def _create_direct_edit(self) -> "DirectEdit":
-        self.direct_edit = DirectEdit(self, self.direct_edit_folder)
-        self.autolock_service.direct_edit = self.direct_edit
+        worker = DirectEdit(self, self.direct_edit_folder)
+        self.autolock_service.direct_edit = worker
 
         # Start only when the configuration has been retrieved
-        self.server_config_updater.firstRunCompleted.connect(
-            self.direct_edit.thread.start
-        )
+        self.server_config_updater.firstRunCompleted.connect(worker.thread.start)
 
-        return self.direct_edit
+        # Connect to the Tracker metrics
+        if self.tracker:
+            worker.openDocument.connect(self.tracker.send_directedit_open)
+            worker.editDocument.connect(self.tracker.send_directedit_edit)
+
+        return worker
 
     def _create_updater(self) -> "Updater":
         worker = updater(self)
