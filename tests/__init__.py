@@ -82,18 +82,16 @@ def setup_sentry() -> None:
     sentry_dsn = os.getenv(
         "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
     )
-    sentry_env = os.getenv("SENTRY_ENV", "")
 
     # Guess the current ticket from the branch name
-    if "GITHUB_HEAD_REF" in os.environ:
+    cmd = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+    branch = subprocess.check_output(cmd, encoding="utf-8").strip()
+    if branch == "HEAD" and "GITHUB_HEAD_REF" in os.environ:
+        # Guess from the special envar set in GitHub Actions
         branch = os.environ["GITHUB_HEAD_REF"].split("/")[-1]
-    else:
-        branch = subprocess.check_output(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"], encoding="utf-8"
-        ).strip()
 
+    # NXDRIVE and NXP tickets only
     ticket = re.findall(r".+-((NXDRIVE|NXP)-\d+)-.+", branch)
-
     if ticket:
         sentry_env = ticket[0]
     elif (
