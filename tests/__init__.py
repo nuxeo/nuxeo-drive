@@ -79,32 +79,23 @@ def setup_sentry() -> None:
     if os.getenv("SKIP_SENTRY", "0") == "1":
         return
 
-    sentry_dsn = os.getenv(
-        "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
-    )
-
-    # Guess the current ticket from the branch name
+    # Guess the current the branch name
     cmd = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
     branch = subprocess.check_output(cmd, encoding="utf-8").strip()
     if branch == "HEAD" and "GITHUB_HEAD_REF" in os.environ:
         # Guess from the special envar set in GitHub Actions
         branch = os.environ["GITHUB_HEAD_REF"].split("/")[-1]
 
-    # NXDRIVE and NXP tickets only
+    # Guess the current ticket to use for the SENTRY_ENV envar
     ticket = re.findall(r".+-((NXDRIVE|NXP)-\d+)-.+", branch)
-    if ticket:
-        sentry_env = ticket[0]
-    elif (
-        "JENKINS_URL" in os.environ
-        or branch in ("master", "wip-translations-update")
-        or "dependabot" in branch
-    ):
-        sentry_env = "testing"
-    else:
-        sys.exit(f"The branch is malformed, cannot guess the ticket from {branch!r}.")
+    sentry_env = ticket[0] if ticket else "testing"
 
     import sentry_sdk
     from nxdrive import __version__
+
+    sentry_dsn = os.getenv(
+        "SENTRY_DSN", "https://c4daa72433b443b08bd25e0c523ecef5@sentry.io/1372714"
+    )
 
     sentry_sdk.init(
         dsn=sentry_dsn,
