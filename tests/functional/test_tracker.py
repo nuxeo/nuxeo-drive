@@ -1,10 +1,15 @@
 from time import monotonic_ns
 
 from nxdrive.engine.tracker import Tracker
+from nxdrive.options import Options
 
 
+@Options.mock()
 def test_tracker_instance_and_attrs(manager_factory):
     """Naive checks to ensure the class and principal methods are functional."""
+
+    Options.is_frozen = True
+    Options.use_analytics = True
 
     with manager_factory(with_engine=False) as manager:
         tracker = Tracker(manager, uid="")
@@ -14,9 +19,13 @@ def test_tracker_instance_and_attrs(manager_factory):
         assert tracker.user_agent
 
 
+@Options.mock()
 def test_tracker_send_methods(manager_factory, monkeypatch):
     def post(*args, **kwargs):
         pass
+
+    Options.is_frozen = True
+    Options.use_analytics = True
 
     # We need an engine to test custom dimensions (here it is unused and so we use "_")
     manager, _ = manager_factory()
