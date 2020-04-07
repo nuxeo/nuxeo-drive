@@ -3,7 +3,9 @@ name: Unit tests
 on:
   pull_request:
     paths:
-    - '**/*.py'
+    - 'nxdrive/**/*.py'
+    - 'tests/*.py'
+    - 'tests/unit/*.py'
     - 'tools/deps/*.txt'
 
 jobs:
