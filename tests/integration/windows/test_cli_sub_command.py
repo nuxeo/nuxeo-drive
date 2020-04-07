@@ -5,9 +5,13 @@ from logging import getLogger
 
 import pytest
 from nuxeo.documents import Document
+from nxdrive.constants import WINDOWS
 
 from ... import env
 from .utils import cb_get, fatal_error_dlg  # , get_opened_url
+
+if not WINDOWS:
+    pytestmark = pytest.mark.skip("Windows only.")
 
 log = getLogger(__name__)
 
