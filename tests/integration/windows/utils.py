@@ -2,7 +2,6 @@ from logging import getLogger
 from time import sleep
 
 from nxdrive.constants import APP_NAME
-from selenium import webdriver
 
 log = getLogger(__name__)
 
@@ -61,6 +60,7 @@ def get_opened_url() -> str:
     # https://pypi.org/project/selenium/, Drivers section
     # Let's say the binary is at the root of the repository:
     import os
+    from selenium import webdriver
 
     os.environ["PATH"] = os.environ["PATH"] + ":" + os.getcwd()
 
