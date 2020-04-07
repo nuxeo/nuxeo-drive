@@ -1,7 +1,5 @@
 # coding: utf-8
-import pytest
-
-from nxdrive.constants import LINUX, WINDOWS
+from nxdrive.constants import WINDOWS
 
 from .common import SYNC_ROOT_FAC_ID, OneUserTest
 
@@ -98,7 +96,6 @@ class TestSynchronizationSuspend(OneUserTest):
         self.wait_sync(wait_for_async=True)
         assert len(remote.get_children_info(self.workspace)) == 4
 
-    @pytest.mark.xfail(LINUX, reason="NXDRIVE-1690", strict=True)
     def test_folder_renaming_while_offline(self):
         """
         Scenario:
