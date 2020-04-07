@@ -9,6 +9,7 @@ from shutil import copyfile
 
 __all__ = ("fix_db", "restore_backup", "save_backup")
 
+
 log = getLogger(__name__)
 
 
