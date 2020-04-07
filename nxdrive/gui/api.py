@@ -335,6 +335,25 @@ class QMLDriveApi(QObject):
         self.application.hide_systray()
         self._manager.open_help()
 
+    @pyqtSlot(str, int)
+    def open_document(self, engine_uid: str, doc_pair_id: int) -> None:
+        """Open the local or remote document depending on the pair state"""
+        engine = self._manager.engines.get(engine_uid)
+        if not engine:
+            return
+
+        doc_pair = engine.dao.get_state_from_id(doc_pair_id)
+        if not doc_pair:
+            return
+        if (
+            doc_pair.pair_state == "error"
+            and doc_pair.remote_ref
+            and doc_pair.remote_name
+        ):
+            self.open_remote(engine_uid, doc_pair.remote_ref, doc_pair.remote_name)
+        else:
+            self.open_local(engine_uid, str(doc_pair.local_parent_path))
+
     @pyqtSlot(str)
     def show_conflicts_resolution(self, uid: str) -> None:
         self.application.hide_systray()

@@ -42,7 +42,7 @@ ShadowRectangle {
                 }
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: api.open_local(engineUid, fileData.local_parent_path)
+                    onClicked: api.open_document(engineUid, fileData.id)
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                 }

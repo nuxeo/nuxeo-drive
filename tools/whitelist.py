@@ -54,6 +54,7 @@ QMLDriveApi.get_update_version  # Used in QML
 QMLDriveApi.open_direct_transfer  # Used in QML
 QMLDriveApi.open_local  # Used in QML
 QMLDriveApi.open_remote_server  # Used in QML
+QMLDriveApi.open_document  # Used in QML
 QMLDriveApi.open_report  # Used in QML
 QMLDriveApi.set_proxy_settings  # Used in QML
 QMLDriveApi.set_server_ui  # Used in QML
