@@ -11,7 +11,7 @@ from time import sleep
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Pattern
 from urllib.parse import quote
 
-from nuxeo.exceptions import Forbidden, HTTPError, Unauthorized
+from nuxeo.exceptions import CorruptedFile, Forbidden, HTTPError, Unauthorized
 from nuxeo.models import Blob
 from nuxeo.utils import get_digest_algorithm
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -277,7 +277,7 @@ class DirectEdit(Worker):
         blob: Blob,
         xpath: str,
         url: str = None,
-    ) -> Path:
+    ) -> Optional[Path]:
         # Close to processor method - should try to refactor ?
         pair = None
         kwargs: Dict[str, Any] = {}
@@ -308,16 +308,29 @@ class DirectEdit(Worker):
 
         if not pair:
             if url:
+                max_retry = 3
                 try:
-                    engine.remote.download(
-                        quote(url, safe="/:"),
-                        file_path,
-                        file_out,
-                        blob.digest,
-                        callback=self.stop_client,
-                        is_direct_edit=True,
-                        engine_uid=engine.uid,
-                    )
+                    for try_count in range(max_retry):
+                        try:
+                            engine.remote.download(
+                                quote(url, safe="/:"),
+                                file_path,
+                                file_out,
+                                blob.digest,
+                                callback=self.stop_client,
+                                is_direct_edit=True,
+                                engine_uid=engine.uid,
+                            )
+                            break
+                        except CorruptedFile:
+                            self.directEditError.emit(
+                                "DIRECT_EDIT_CORRUPTED_DOWNLOAD", []
+                            )
+                            delay = 5 * (try_count + 1)
+                            sleep(delay)
+                    else:
+                        self.directEditError.emit("DIRECT_EDIT_FAILURE", [])
+                        return None
                 finally:
                     engine.dao.remove_transfer("download", file_path)
             else:

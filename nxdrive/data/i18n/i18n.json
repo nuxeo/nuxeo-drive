@@ -67,6 +67,8 @@
     "DIRECT_EDIT_CANT_FIND_ENGINE": "User <b>%1</b> on server <a href=\"%2\">%2</a> is not signed in %3 on this computer.",
     "DIRECT_EDIT_CONFLICT_MESSAGE": "The document „%1“ was modified remotely and is now in conflict. What do you want to do?",
     "DIRECT_EDIT_CONFLICT_OVERWRITE": "Overwrite",
+    "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE": "DirectEdit failed because of corrupted content, please contact your administrator",
+    "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY": "File corruption detected, retrying…",
     "DIRECT_EDIT_AUTH_EXPIRED": "Authentication expired for the user <b>%1</b> on the server <a href=\"%2\">%2</a>.<br><br>Open the system tray menu or the settings to log back in.",
     "DIRECT_EDIT_FORBIDDEN_MSG": "Access to the document „%1“ on %2 is forbidden for user %3.",
     "DIRECT_EDIT_FORBIDDEN_TITLE": "Forbidden DirectEdit",

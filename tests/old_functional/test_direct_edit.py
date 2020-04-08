@@ -8,7 +8,7 @@ from urllib.error import URLError
 from uuid import uuid4
 
 import pytest
-from nuxeo.exceptions import Forbidden
+from nuxeo.exceptions import CorruptedFile, Forbidden
 from nxdrive.constants import WINDOWS
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
@@ -405,6 +405,34 @@ class MixinTests(DirectEditSetup):
         with patch.object(NuxeoDocumentInfo, "from_dict", new=from_dict):
             self.direct_edit._prepare_edit(self.nuxeo_url, doc_id)
             assert received
+
+    def test_corrupted_download(self):
+        """Test corrupted downloads that finally works."""
+        original_download = self.engine_1.remote.download
+
+        def download(*args, **kwargs):
+            """Make the download raise a CorruptedFile error for 2 tries.
+            And then simulate a good call the 3rd time.
+            """
+            nonlocal try_count
+            try_count += 1
+            if try_count < 2:
+                raise CorruptedFile(
+                    "Mock'ed corrupted.txt", "remote-digest", "local-digest"
+                )
+            return original_download(*args, **kwargs)
+
+        scheme, host = self.nuxeo_url.split("://")
+        filename = "corrupted.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        url = f"/nxfile/default/{doc_id}" f"/file:content/{filename}"
+        with patch.object(self.engine_1.remote, "download", new=download):
+            try_count = 0
+            result = self.direct_edit._prepare_edit(
+                self.nuxeo_url, doc_id, download_url=url
+            )
+            assert try_count == 2
+            assert result is not None
 
     def test_self_locked_file(self):
         filename = "Mode operatoire.txt"

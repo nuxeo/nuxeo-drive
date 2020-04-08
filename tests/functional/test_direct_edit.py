@@ -2,9 +2,10 @@ import shutil
 from collections import namedtuple
 from pathlib import Path
 from typing import List
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
+from nuxeo.exceptions import CorruptedFile
 from nxdrive.constants import ROOT
 from nxdrive.engine.engine import Engine, ServerBindingSettings
 from nxdrive.translator import Translator
@@ -84,6 +85,46 @@ def test_cleanup_file(direct_edit):
 
     # The file should still be present as it is ignored by the clean-up
     assert file.is_file()
+
+
+def test_corrupted_download(app, manager_factory):
+    manager, engine = manager_factory()
+
+    def corrupted_error_signal(label: str, values: List) -> None:
+        nonlocal received_corrupted
+        assert label == "DIRECT_EDIT_CORRUPTED_DOWNLOAD"
+        assert values == []
+        received_corrupted += 1
+
+    def failed_error_signal(label: str, values: List) -> None:
+        nonlocal received_failure
+        assert label == "DIRECT_EDIT_FAILURE"
+        assert values == []
+        received_failure = True
+
+    def corrupted_download(*_, **__):
+        raise CorruptedFile("Mock'ed test", "remote-digest", "local-digest")
+
+    with manager:
+        received_corrupted = 0
+        received_failure = False
+
+        direct_edit = manager.direct_edit
+        direct_edit._folder.mkdir()
+
+        direct_edit.directEditError.connect(corrupted_error_signal)
+        direct_edit.directEditError.connect(failed_error_signal)
+
+        blob = Mock()
+        blob.digest = None
+
+        with patch.object(engine.remote, "download", new=corrupted_download):
+            tmp = direct_edit._download(
+                engine, None, None, None, blob, None, "test_url"
+            )
+            assert not tmp
+        assert received_corrupted == 3
+        assert received_failure
 
 
 def test_cleanup_bad_folder_name(direct_edit):
