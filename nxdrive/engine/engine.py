@@ -247,7 +247,7 @@ class Engine(QObject):
         self._local_watcher.fileAlreadyExists.connect(self.fileAlreadyExists)
 
     def _create_remote_watcher(self) -> None:
-        self._remote_watcher = RemoteWatcher(self, self.dao, Options.delay)
+        self._remote_watcher = RemoteWatcher(self, self.dao)
         self.create_thread(worker=self._remote_watcher, start_connect=False)
 
         # Launch queue processors after first remote_watcher pass
