@@ -70,7 +70,7 @@ class Updater(BaseUpdater):
                 subprocess.check_call(["hdiutil", "unmount", mount_dir, "-force"])
             except subprocess.CalledProcessError:
                 log.warning(
-                    f"Unmount failed, you will have to do it manually (Catalina feature).",
+                    "Unmount failed, you will have to do it manually (Catalina feature).",
                     exc_info=True,
                 )
 

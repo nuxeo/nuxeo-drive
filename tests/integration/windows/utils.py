@@ -32,7 +32,7 @@ def fatal_error_dlg(app, with_details: bool = True) -> bool:
             sleep(1)
             log.warning(f"Fatal error screen detected! Details:\n{cb_get()}")
         else:
-            log.warning(f"Fatal error screen detected!")
+            log.warning("Fatal error screen detected!")
 
         dlg.close()
         return True

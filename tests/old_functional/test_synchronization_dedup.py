@@ -113,7 +113,7 @@ class TestSynchronizationDedupCaseSensitive(OneUserTest):
         assert len(get("/")) == count_root
         assert len(get("/fruits")) == count_folder
         if count_fixed_folder > -1:
-            assert len(get(f"/fruits-renamed")) == count_fixed_folder
+            assert len(get("/fruits-renamed")) == count_fixed_folder
 
         # Ensure there is no postponed nor documents in error
         assert not self.engine_1.dao.get_error_count(threshold=0)

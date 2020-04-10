@@ -164,18 +164,18 @@ def test_complete_scenario_synchronization_from_zero(nuxeo_url, exe, server, tmp
 
 def test_ctx_menu_access_online_inexistant(nuxeo_url, exe, server, tmp):
     """It should be a no-op, no fatal error."""
-    args = f'access-online --file="bla bla bla"'
+    args = 'access-online --file="bla bla bla"'
     assert launch(exe, args)
 
 
 def test_ctx_menu_copy_share_link_inexistant(nuxeo_url, exe, server, tmp):
-    args = f'copy-share-link --file="bla bla bla"'
+    args = 'copy-share-link --file="bla bla bla"'
     assert not launch(exe, args)
 
 
 def test_ctx_menu_edit_metadata_inexistant(nuxeo_url, exe, server, tmp):
     """It should be a no-op, no fatal error."""
-    args = f'edit-metadata --file="bla bla bla"'
+    args = 'edit-metadata --file="bla bla bla"'
     assert launch(exe, args)
 
 

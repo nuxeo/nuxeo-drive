@@ -448,7 +448,7 @@ def test_get_date_from_sqlite():
 
 def test_get_default_local_folder():
     if WINDOWS:
-        path = os.path.expandvars(f"C:\\Users\\%username%\\Documents")
+        path = os.path.expandvars("C:\\Users\\%username%\\Documents")
         good_folder = Path(path) / APP_NAME
     else:
         good_folder = Path.home() / APP_NAME
@@ -768,7 +768,7 @@ def test_parse_protocol_url_cmd(cmd):
 
 def test_parse_protocol_url_cmd_unknown():
     """Parse an unknown command, it must fail."""
-    url = f"nxdrive://unknown/00000000-0000-0000-0000/On%20call%20Schedule.docx"
+    url = "nxdrive://unknown/00000000-0000-0000-0000/On%20call%20Schedule.docx"
     with pytest.raises(ValueError):
         nxdrive.utils.parse_protocol_url(url)
 

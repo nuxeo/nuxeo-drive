@@ -489,7 +489,7 @@ class Remote(Nuxeo):
                         "No associated batch found, restarting from zero", exc_info=True
                     )
                 else:
-                    log.debug(f"Associated batch found, resuming the upload")
+                    log.debug("Associated batch found, resuming the upload")
                     batch = Batch(service=self.uploads, **upload.batch)
                     chunk_size = upload.chunk_size
 
