@@ -36,9 +36,8 @@ class RemoteWatcher(EngineWorker):
     noChangesFound = pyqtSignal()
     remoteWatcherStopped = pyqtSignal()
 
-    def __init__(self, engine: "Engine", dao: "EngineDAO", delay: int) -> None:
+    def __init__(self, engine: "Engine", dao: "EngineDAO") -> None:
         super().__init__(engine, dao, name="RemoteWatcher")
-        self.server_interval = delay
 
         self.empty_polls = 0
         self._next_check = 0.0
@@ -65,7 +64,6 @@ class RemoteWatcher(EngineWorker):
         now = monotonic
         handle_changes = self._handle_changes
         interact = self._interact
-        delay = self.server_interval
 
         try:
             while "working":
@@ -74,7 +72,7 @@ class RemoteWatcher(EngineWorker):
                         first_pass = False
 
                     # Plan the next execution
-                    self._next_check = now() + delay
+                    self._next_check = now() + Options.delay
 
                 interact()
                 sleep(0.5)

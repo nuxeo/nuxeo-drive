@@ -17,6 +17,21 @@ log = getLogger(__name__)
 
 
 @pytest.fixture(scope="session")
+def app():
+    """Fixture required to be able to process events and quit smoothly the application."""
+    from PyQt5.QtCore import QCoreApplication, QTimer
+
+    app = QCoreApplication([])
+
+    # Little trick here! See Application.__init__() for details.
+    timer = QTimer()
+    timer.timeout.connect(lambda: None)
+    timer.start(100)
+
+    yield app
+
+
+@pytest.fixture(scope="session")
 def faker() -> Callable[[], Faker]:
     """
     Get a Faker object to simplify other object creation.
