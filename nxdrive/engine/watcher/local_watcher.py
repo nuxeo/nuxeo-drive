@@ -930,11 +930,11 @@ class LocalWatcher(EngineWorker):
                 #  - a synced document can be modified and we need to handle it
                 #  - a conflicted file can be manually resolved using the local version and we need to handle it too
                 if doc_pair.pair_state not in ("synchronized", "locally_resolved"):
-                    log.debug(f"Size has changed (copy must still be running)")
+                    log.debug("Size has changed (copy must still be running)")
                     doc_pair.local_digest = UNACCESSIBLE_HASH
                     ongoing_copy = True
             elif doc_pair.local_digest == UNACCESSIBLE_HASH:
-                log.debug(f"Unaccessible hash (copy must still be running)")
+                log.debug("Unaccessible hash (copy must still be running)")
                 ongoing_copy = True
             if ongoing_copy:
                 if not local_info.remote_ref and doc_pair.remote_ref:

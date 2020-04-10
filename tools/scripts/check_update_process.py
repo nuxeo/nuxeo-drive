@@ -257,9 +257,9 @@ def set_options():
 
     print(">>> Setting options:", options, flush=True)
     with open(file, "w") as f:
-        f.write(f"[DEFAULT]\n")
-        f.write(f"env = automatic\n")
-        f.write(f"[automatic]\n")
+        f.write("[DEFAULT]\n")
+        f.write("env = automatic\n")
+        f.write("[automatic]\n")
         f.write("\n".join(options))
         f.write("\n")
 

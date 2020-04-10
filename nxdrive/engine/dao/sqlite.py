@@ -771,7 +771,7 @@ class EngineDAO(ConfigurationDAO):
                         # Clean-up the TMP file
                         with suppress(OSError):
                             shutil.rmtree(download.tmpname.parent)
-                    cursor.execute(f"DELETE FROM Downloads WHERE doc_pair = ?", (id,))
+                    cursor.execute("DELETE FROM Downloads WHERE doc_pair = ?", (id,))
 
                     self.remove_state(doc_pair)
                     log.debug(

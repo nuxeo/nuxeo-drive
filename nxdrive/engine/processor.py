@@ -448,7 +448,7 @@ class Processor(EngineWorker):
         except Exception:
             pass
         else:
-            log.debug(f"The document has already been uploaded to the server")
+            log.debug("The document has already been uploaded to the server")
 
             # Fetch the remote item to update the local pair details
             doc_pair.remote_ref = (

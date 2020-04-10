@@ -7,7 +7,7 @@ except ImportError:
 
 
 def test_registry_create():
-    k = f"Software\\Classes\\directory\\shell\\MockedApplicationName"
+    k = "Software\\Classes\\directory\\shell\\MockedApplicationName"
     try:
         registry.create(k)
         assert registry.exists(k)
@@ -16,18 +16,18 @@ def test_registry_create():
 
 
 def test_registry_delete():
-    k = f"Software\\Classes\\directory\\shell\\MockedApplicationNameUnknown"
+    k = "Software\\Classes\\directory\\shell\\MockedApplicationNameUnknown"
     assert registry.delete(k)
 
 
 def test_registry_delete_value():
-    k = f"Software\\Classes\\directory\\shell\\MockedApplicationNameUnknown"
+    k = "Software\\Classes\\directory\\shell\\MockedApplicationNameUnknown"
     v = "nonSenseValue"
     assert registry.delete_value(k, v)
 
 
 def test_registry_exists():
-    k = f"Software\\Classes\\directory\\shell\\MockedApplicationNameUnknown"
+    k = "Software\\Classes\\directory\\shell\\MockedApplicationNameUnknown"
     assert not registry.exists(k)
 
 

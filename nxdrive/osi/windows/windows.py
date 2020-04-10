@@ -7,10 +7,9 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict
 
-from PyQt5.QtCore import pyqtSlot
-
 import win32api
 import win32file
+from PyQt5.QtCore import pyqtSlot
 from win32com.client import Dispatch
 from win32com.shell import shell, shellcon
 
@@ -97,7 +96,7 @@ class WindowsIntegration(AbstractOSIntegration):
         try:
             subprocess.run([str(installer)])
         except Exception:
-            log.exception(f"Unknown error while trying to install addons")
+            log.exception("Unknown error while trying to install addons")
         else:
             return bool(self.addons_installed())
         return False

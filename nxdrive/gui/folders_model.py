@@ -243,7 +243,7 @@ class FoldersOnly:
                 if "Folderish" in doc.facets:
                     yield Doc(doc)
         except Exception:
-            log.warning(f"Error while retrieving documents on '/'", exc_info=True)
+            log.warning("Error while retrieving documents on '/'", exc_info=True)
             yield Doc(Document(title="/", contextParameters={"permissions": []}))
 
     def get_children(self, parent: "Documents") -> Iterator["Documents"]:

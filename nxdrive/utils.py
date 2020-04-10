@@ -1176,7 +1176,7 @@ class PidLockFile:
                     self.pid_filepath.read_text(encoding="utf-8").strip()
                 )
             except ValueError:
-                log.warning(f"The PID file has invalid data", exc_info=True)
+                log.warning("The PID file has invalid data", exc_info=True)
                 pid = None
             else:
                 from contextlib import suppress
