@@ -6,9 +6,9 @@ botocore==1.15.19 \
     --hash=sha256:914059286a560ccca6c5c9fa7edd8de8533176090230676193a2e3fbcf214a9e \
     --hash=sha256:19c11d11aa4f5eee6a21aef85d311dd758dc6df59306e72176c980c3259db71f
     # via boto3
-certifi==2019.11.28 \
-    --hash=sha256:017c25db2a153ce562900032d5bc68e9f191e44e9a0f762f373977de9df1fbb3 \
-    --hash=sha256:25b64c7da4cd7479594d035c08c2d809eb4aab3a26e5a990ea98cc450c320f1f
+certifi==2020.4.5.1 \
+    --hash=sha256:1d987a998c75633c40847cc966fcf5904906c920a7f17ef374f5aa4282abd304 \
+    --hash=sha256:51fcb31174be6e6664c5f69e3e1691a2d72a1a12e90f872cbdb1567eb47b6519
     # via requests, sentry-sdk
 cffi==1.14.0 \
     --hash=sha256:1cae98a7054b5c9391eb3249b86e0e99ab1e02bb0cc0575da191aedadbdf4384 \
