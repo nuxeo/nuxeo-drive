@@ -324,12 +324,14 @@ class DirectEdit(Worker):
                             break
                         except CorruptedFile:
                             self.directEditError.emit(
-                                "DIRECT_EDIT_CORRUPTED_DOWNLOAD", []
+                                "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY", []
                             )
                             delay = 5 * (try_count + 1)
                             sleep(delay)
                     else:
-                        self.directEditError.emit("DIRECT_EDIT_FAILURE", [])
+                        self.directEditError.emit(
+                            "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE", []
+                        )
                         return None
                 finally:
                     engine.dao.remove_transfer("download", file_path)
