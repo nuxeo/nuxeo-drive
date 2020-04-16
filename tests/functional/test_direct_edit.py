@@ -90,17 +90,19 @@ def test_cleanup_file(direct_edit):
 def test_corrupted_download(app, manager_factory):
     manager, engine = manager_factory()
 
-    def corrupted_error_signal(label: str, values: List) -> None:
+    def corrupted_error_signals(label: str, values: List) -> None:
         nonlocal received_corrupted
-        assert label == "DIRECT_EDIT_CORRUPTED_DOWNLOAD"
-        assert values == []
-        received_corrupted += 1
-
-    def failed_error_signal(label: str, values: List) -> None:
         nonlocal received_failure
-        assert label == "DIRECT_EDIT_FAILURE"
+
+        assert label in [
+            "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE",
+            "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY",
+        ]
         assert values == []
-        received_failure = True
+        if label == "DIRECT_EDIT_CORRUPTED_DOWNLOAD_FAILURE":
+            received_failure = True
+        else:
+            received_corrupted += 1
 
     def corrupted_download(*_, **__):
         raise CorruptedFile("Mock'ed test", "remote-digest", "local-digest")
@@ -112,8 +114,7 @@ def test_corrupted_download(app, manager_factory):
         direct_edit = manager.direct_edit
         direct_edit._folder.mkdir()
 
-        direct_edit.directEditError.connect(corrupted_error_signal)
-        direct_edit.directEditError.connect(failed_error_signal)
+        direct_edit.directEditError.connect(corrupted_error_signals)
 
         blob = Mock()
         blob.digest = None
