@@ -56,7 +56,7 @@ Rectangle {
                 icon: paused ? MdiFont.Icon.play : MdiFont.Icon.pause
                 tooltip: qsTr(paused ? "RESUME" : "SUSPEND") + tl.tr
                 onClicked: {
-                    // engine is set for DirectEdit transfers only
+                    // engine is set for Direct Edit transfers only
                     var engine_uid = engine || accountSelect.getRole("uid")
                     var nature = download ? "download" : "upload"
                     if (paused) {

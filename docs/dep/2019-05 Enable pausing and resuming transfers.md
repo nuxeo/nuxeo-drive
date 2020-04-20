@@ -30,7 +30,7 @@ Each entry in one of these tables specifies an unfinished transfer and the neces
 Common data for both types is:
 - The path of the transferred file,
 - The engine responsible for the transfer,
-- Is the transfer initiated by a DirectEdit,
+- Is the transfer initiated by a Direct Edit,
 - The progress of the transfer,
 - Eventually, the id of the corresponding entry in the States table.
 

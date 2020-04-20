@@ -542,7 +542,7 @@ class DefaultNotificationService(NotificationService):
 
     def _directEditLockError(self, lock: str, filename: str, ref: str) -> None:
         if lock not in ("lock", "unlock"):
-            log.info(f"DirectEdit LockError not handled: {lock}")
+            log.info(f"Direct Edit LockError not handled: {lock}")
             return
         self.send_notification(DirectEditErrorLockNotification(lock, filename, ref))
 

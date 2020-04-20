@@ -23,7 +23,7 @@ Binder = namedtuple(
     "binder", ["username", "password", "token", "url", "no_check", "no_fscheck"]
 )
 
-# DirectEdit details, returned from DirectEdit._extract_edit_info()
+# Direct Edit details, returned from DirectEdit._extract_edit_info()
 DirectEditDetails = namedtuple(
     "details", ["uid", "engine", "digest_func", "digest", "xpath", "editing"]
 )

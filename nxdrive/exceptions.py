@@ -35,7 +35,7 @@ class DirectTransferDuplicateFoundError(ValueError):
 
 
 class DocumentAlreadyLocked(DriveError):
-    """ In DirectEdit, a document is locked by someone else. """
+    """ In Direct Edit, a document is locked by someone else. """
 
     def __init__(self, username: str) -> None:
         self.username = username
