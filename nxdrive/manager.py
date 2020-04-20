@@ -102,7 +102,7 @@ class Manager(QObject):
             Manager._instances[self.home] = proxy(self)
 
         # Used to tell other components they cannot do their work
-        # if this attribute is set to True (like DirectEdit or resuming engines)
+        # if this attribute is set to True (like Direct Edit or resuming engines)
         self.restart_needed = False
         self.restartNeeded.connect(self.suspend)
         self.restartNeeded.connect(self._restart_needed)
@@ -222,7 +222,7 @@ class Manager(QObject):
         # Create the server's configuration getter verification thread
         self.server_config_updater: ServerOptionsUpdater = self._create_server_config_updater()
 
-        # Create DirectEdit
+        # Create Direct Edit
         self.autolock_service = self._create_autolock_service()
         self.direct_edit = self._create_direct_edit()
 

@@ -142,7 +142,7 @@ def test_cleanup_bad_folder_name(direct_edit):
 
 
 def test_document_not_found(manager_factory):
-    """Trying to DirectEdit'ing a inexistent document should display a notification."""
+    """Trying to Direct Edit'ing a inexistent document should display a notification."""
 
     manager, engine = manager_factory()
     doc_uid = "0000"

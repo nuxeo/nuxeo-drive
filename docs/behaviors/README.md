@@ -1,7 +1,7 @@
 # Application Behavior Analysis
 
 We are using [watchmedo](https://github.com/gorakhargosh/watchdog/#shell-utilities) to check and try to understand how a given software is managing files.
-This is crucial to be able to find a pattern to identify documents to lock/unlock on the server when using DirectEdit.
+This is crucial to be able to find a pattern to identify documents to lock/unlock on the server when using Direct Edit.
 
 The following is some guidelines (we are on Windows 10 with the username Alice and trying to analyse Photoshop):
 

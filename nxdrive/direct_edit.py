@@ -181,7 +181,7 @@ class DirectEdit(Worker):
             log.debug(f"Removing {path!r}")
             shutil.rmtree(path, ignore_errors=True)
 
-        log.info("Cleanup DirectEdit folder")
+        log.info("Cleanup Direct Edit folder")
 
         for child in self.local.get_children_info(ROOT):
             # We need a folder
@@ -222,7 +222,7 @@ class DirectEdit(Worker):
                 log.exception("Unhandled clean-up error")
                 continue
 
-            # Place for handle reopened of interrupted DirectEdit
+            # Place for handle reopened of interrupted Direct Edit
             purge(child.path)
 
     def __get_engine(self, url: str, user: str = None) -> Optional["Engine"]:
@@ -465,7 +465,7 @@ class DirectEdit(Worker):
                 log.warning("Download failed")
                 return None
         except CONNECTION_ERROR:
-            log.warning("Unable to perform DirectEdit", exc_info=True)
+            log.warning("Unable to perform Direct Edit", exc_info=True)
             return None
 
         # Set the remote_id
@@ -560,7 +560,7 @@ class DirectEdit(Worker):
             xpath=xpath,
             editing=editing,
         )
-        log.debug(f"DirectEdit {details}")
+        log.debug(f"Direct Edit {details}")
         return details
 
     def force_update(self, ref: Path, digest: str) -> None:
@@ -604,7 +604,7 @@ class DirectEdit(Worker):
                 break
 
             ref, action = item
-            log.debug(f"Handling DirectEdit lock queue: action={action}, ref={ref!r}")
+            log.debug(f"Handling Direct Edit lock queue: action={action}, ref={ref!r}")
             uid = ""
 
             try:
@@ -679,12 +679,12 @@ class DirectEdit(Worker):
 
             if os_path.is_dir():
                 # The upload file is a folder?!
-                # It *may* happen when the user DirectEdit'ed a ZIP file,
+                # It *may* happen when the user Direct Edit'ed a ZIP file,
                 # the OS opened it and automatically decompressed it in-place.
-                log.debug(f"Skipping DirectEdit queue ref {ref!r} (folder)")
+                log.debug(f"Skipping Direct Edit queue ref {ref!r} (folder)")
                 continue
 
-            log.debug(f"Handling DirectEdit queue ref: {ref!r}")
+            log.debug(f"Handling Direct Edit queue ref: {ref!r}")
 
             details = self._extract_edit_info(ref)
             xpath = details.xpath
@@ -693,7 +693,9 @@ class DirectEdit(Worker):
 
             if not xpath:
                 xpath = "file:content"
-                log.info(f"DirectEdit on {ref!r} has no xpath, defaulting to {xpath!r}")
+                log.info(
+                    f"Direct Edit on {ref!r} has no xpath, defaulting to {xpath!r}"
+                )
 
             try:
                 # Don't update if digest are the same
@@ -713,7 +715,7 @@ class DirectEdit(Worker):
                     remote_info = remote.get_info(details.uid)
                     if remote_info.is_version:
                         log.warning(
-                            f"Unable to process DirectEdit on {remote_info.name} "
+                            f"Unable to process Direct Edit on {remote_info.name} "
                             f"({details.uid}) because it is a version."
                         )
                         continue
@@ -778,12 +780,12 @@ class DirectEdit(Worker):
                     and "Cannot set property on a version" in e.message
                 ):
                     log.warning(
-                        f"Unable to process DirectEdit on {ref} "
+                        f"Unable to process Direct Edit on {ref} "
                         f"({details}) because it is a version."
                     )
                     continue
                 # Try again in 30s
-                log.exception(f"DirectEdit unhandled error for ref {ref!r}")
+                log.exception(f"Direct Edit unhandled error for ref {ref!r}")
                 self._error_queue.push(ref)
 
     def _handle_queues(self) -> None:
@@ -820,7 +822,7 @@ class DirectEdit(Worker):
                 except ThreadInterrupt:
                     raise
                 except Exception:
-                    log.exception("Unhandled DirectEdit error")
+                    log.exception("Unhandled Direct Edit error")
                 sleep(0.5)
         except ThreadInterrupt:
             raise

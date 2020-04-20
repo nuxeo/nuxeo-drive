@@ -176,9 +176,9 @@ But I only see many cons:
 A naive approach would be to check that `get_open_files()` returns a path ending with `r"Photoshop Temp\d+"`.
 But this implies a lot of trouble:
 
-1) If another picture is already open in Photoshop when doing the DirectEdit on another document, we will have 2 temporary files. Which one is the good one?
-2) If Photoshtop failed to open the DirectEdit'ing document, but there already is another file opened, we will ses a temporary file but it will not be the good one.
-3) If there is several DirectEdit on multiple files, how to know which temporary file belongs to which document?
+1) If another picture is already open in Photoshop when doing the Direct Edit on another document, we will have 2 temporary files. Which one is the good one?
+2) If Photoshtop failed to open the Direct Edit'ing document, but there already is another file opened, we will ses a temporary file but it will not be the good one.
+3) If there is several Direct Edit on multiple files, how to know which temporary file belongs to which document?
 
 And most probably a lot of issues I cannot imagine right now.
 So, this does not work either.

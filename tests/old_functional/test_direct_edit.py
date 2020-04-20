@@ -23,7 +23,7 @@ log = getLogger(__name__)
 
 
 def direct_edit_is_starting(*args, **kwargs):
-    log.info("DirectEdit is starting: args=%r, kwargs=%r", args, kwargs)
+    log.info("Direct Edit is starting: args=%r, kwargs=%r", args, kwargs)
 
 
 def open_local_file(*args, **kwargs):
@@ -225,7 +225,7 @@ class MixinTests(DirectEditSetup):
     def test_forbidden_edit(self):
         """
         A user may lost its rights to edit a file (or even access to the document).
-        In that case, a notification is shown and the DirectEdit is stopped early.
+        In that case, a notification is shown and the Direct Edit is stopped early.
         """
         filename = "secret-file.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Initial content.")
@@ -367,7 +367,7 @@ class MixinTests(DirectEditSetup):
         )
 
     def test_edit_document_with_folderish_facet(self):
-        """ Ensure we can DirectEdit documents that have the Folderish facet. """
+        """ Ensure we can Direct Edit documents that have the Folderish facet. """
 
         filename = "picture-as-folder.png"
         content = random_png(size=42)

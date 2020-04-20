@@ -77,7 +77,7 @@ class ProcessAutoLockerWorker(PollWorker):
         return False
 
     def orphan_unlocked(self, path: Path) -> None:
-        """Unlock old documents, or documents from an old DirectEdit session."""
+        """Unlock old documents, or documents from an old Direct Edit session."""
         self.dao.unlock_path(path)
 
     def _process(self) -> None:
