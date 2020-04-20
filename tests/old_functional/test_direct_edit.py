@@ -432,7 +432,39 @@ class MixinTests(DirectEditSetup):
                 self.nuxeo_url, doc_id, download_url=url
             )
             assert try_count == 2
-            assert result is not None
+            assert result.is_file()
+
+    def test_failed_download(self):
+        """Test corrupted downloads that finally works."""
+        original_download = self.direct_edit._download
+
+        def download(*args, **kwargs):
+            """Make the download raise a CorruptedFile error for 2 tries.
+            And then simulate a good call the 3rd time.
+            """
+            nonlocal tmp_path
+
+            tmp_path = original_download(*args, **kwargs)
+            return tmp_path
+
+        tmp_path = None
+        scheme, host = self.nuxeo_url.split("://")
+        filename = "failed.txt"
+        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
+        url = f"/nxfile/default/{doc_id}" f"/file:content/{filename}"
+
+        with patch.object(self.direct_edit, "_download", new=download):
+            out = self.direct_edit._prepare_edit(
+                self.nuxeo_url, doc_id, download_url=url
+            )
+        assert not tmp_path.is_file()
+
+        # re create local tmp file
+        tmp_path.write_bytes(b"Some content.")
+
+        self.remote.update_content("/" + filename, b"C")
+        out = self.direct_edit._prepare_edit(self.nuxeo_url, doc_id, download_url=url)
+        assert not out
 
     def test_self_locked_file(self):
         filename = "Mode operatoire.txt"
