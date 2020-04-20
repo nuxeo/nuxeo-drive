@@ -2,6 +2,7 @@
 import errno
 import re
 import shutil
+from contextlib import suppress
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
@@ -290,6 +291,12 @@ class DirectEdit(Worker):
 
             pair = engine.dao.get_valid_duplicate_file(blob.digest)
 
+        # Remove the eventual temporary file. We do not want to be able to resume an
+        # old download because of several issues and does not make sens for that feature.
+        # See NXDRIVE-2112 and NXDRIVE-2116 for more context.
+        with suppress(FileNotFoundError):
+            file_out.unlink()
+
         if pair:
             existing_file_path = engine.local.abspath(pair.local_path)
             try:
@@ -403,6 +410,14 @@ class DirectEdit(Worker):
 
         return info
 
+    def _get_tmp_file(self, doc_id: str, filename: str) -> Path:
+        """Return the temporary file that will be used to download contents.
+        Using a method to help testing.
+        """
+        tmp_folder = self._folder / f"{doc_id}.dl"
+        tmp_folder.mkdir(parents=True, exist_ok=True)
+        return tmp_folder / filename
+
     def _prepare_edit(
         self, server_url: str, doc_id: str, user: str = None, download_url: str = None
     ) -> Optional[Path]:
@@ -457,9 +472,7 @@ class DirectEdit(Worker):
 
         log.info(f"Editing {filename!r}")
         file_path = dir_path / filename
-        tmp_folder = self._folder / f"{doc_id}.dl"
-        tmp_folder.mkdir(parents=True, exist_ok=True)
-        file_out = tmp_folder / filename
+        file_out = self._get_tmp_file(doc_id, filename)
 
         try:
             # Download the file

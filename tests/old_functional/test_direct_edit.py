@@ -452,6 +452,40 @@ class MixinTests(DirectEditSetup):
                 assert isinstance(file, Path)
                 assert file.is_file()
 
+    def test_resumed_download(self):
+        """Test a download that failed for some reason. The next edition will resume the download.
+        We do not want that: a fresh download should be made every time.
+        """
+
+        def request(*args, **kwargs):
+            """We need to inspect headers to catch if "Range" is defined.
+            If that header is set, it means that a download is resumed, and it should not.
+            """
+            headers = kwargs.get("headers", {})
+            assert "Range" not in headers
+            return request_orig(*args, **kwargs)
+
+        request_orig = self.engine_1.remote.client.request
+
+        # Create the test file, it should be large enough to trigger chunk downloads (here 26 MiB)
+        filename = "download resumed.txt"
+        doc_id = self.remote.make_file(
+            "/", filename, content=b"Some content." * 1024 * 1024 * 2
+        )
+
+        # Simulate a partially downloaded file
+        tmp_path = self.direct_edit._get_tmp_file(doc_id, filename)
+        tmp_path.write_bytes(b"0" * 1024)
+
+        # Start Direct Edit'ing the document
+        with patch.object(self.engine_1.remote.client, "request", new=request):
+            url = f"nxfile/default/{doc_id}/file:content/{filename}"
+            file = self.direct_edit._prepare_edit(
+                self.nuxeo_url, doc_id, download_url=url
+            )
+            assert isinstance(file, Path)
+            assert file.is_file()
+
     def test_self_locked_file(self):
         filename = "Mode operatoire.txt"
         doc_id = self.remote.make_file("/", filename, content=b"Some content.")
