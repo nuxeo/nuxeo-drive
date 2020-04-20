@@ -8,7 +8,7 @@ from urllib.error import URLError
 from uuid import uuid4
 
 import pytest
-from nuxeo.exceptions import CorruptedFile, Forbidden
+from nuxeo.exceptions import Forbidden
 from nxdrive.constants import WINDOWS
 from nxdrive.exceptions import DocumentAlreadyLocked, NotFound, ThreadInterrupt
 from nxdrive.objects import NuxeoDocumentInfo
@@ -408,31 +408,49 @@ class MixinTests(DirectEditSetup):
 
     def test_corrupted_download(self):
         """Test corrupted downloads that finally works."""
-        original_download = self.engine_1.remote.download
 
-        def download(*args, **kwargs):
-            """Make the download raise a CorruptedFile error for 2 tries.
-            And then simulate a good call the 3rd time.
+        def request(*args, **kwargs):
+            """We need to inspect headers to catch if "Range" is defined.
+            If that header is set, it means that a download is resumed, and it should not as
+            a corrupted download must be restarted from ground.
             """
+            headers = kwargs.get("headers", {})
+            assert "Range" not in headers
+            return original_request(*args, **kwargs)
+
+        def save_to_file(*args, **kwargs):
+            """Make the download raise a CorruptedFile error for tries 1 and 2."""
             nonlocal try_count
             try_count += 1
-            if try_count < 2:
-                raise CorruptedFile(
-                    "Mock'ed corrupted.txt", "remote-digest", "local-digest"
-                )
-            return original_download(*args, **kwargs)
 
-        scheme, host = self.nuxeo_url.split("://")
-        filename = "corrupted.txt"
-        doc_id = self.remote.make_file("/", filename, content=b"Some content.")
-        url = f"/nxfile/default/{doc_id}" f"/file:content/{filename}"
-        with patch.object(self.engine_1.remote, "download", new=download):
-            try_count = 0
-            result = self.direct_edit._prepare_edit(
-                self.nuxeo_url, doc_id, download_url=url
-            )
-            assert try_count == 2
-            assert result is not None
+            if try_count < 2:
+                file_out = args[2]
+                file_out.write_bytes(b"invalid data")
+            else:
+                original_save_to_file(*args, **kwargs)
+
+        original_save_to_file = self.engine_1.remote.operations.save_to_file
+        original_request = self.engine_1.remote.client.request
+
+        # Create the test file, it should be large enough to trigger chunk downloads (here 26 MiB)
+        filename = "download corrupted.txt"
+        doc_id = self.remote.make_file(
+            "/", filename, content=b"Some content." * 1024 * 1024 * 2
+        )
+
+        # Start Direct Edit'ing the document
+        with patch.object(
+            self.engine_1.remote.operations, "save_to_file", new=save_to_file
+        ):
+            with patch.object(self.engine_1.remote.client, "request", new=request):
+                try_count = 0
+                url = f"nxfile/default/{doc_id}/file:content/{filename}"
+                file = self.direct_edit._prepare_edit(
+                    self.nuxeo_url, doc_id, download_url=url
+                )
+                assert try_count == 2
+                assert isinstance(file, Path)
+                assert file.is_file()
 
     def test_self_locked_file(self):
         filename = "Mode operatoire.txt"

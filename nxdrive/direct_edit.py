@@ -326,6 +326,11 @@ class DirectEdit(Worker):
                             self.directEditError.emit(
                                 "DIRECT_EDIT_CORRUPTED_DOWNLOAD_RETRY", []
                             )
+
+                            # Remove the faultive tmp file
+                            file_out.unlink()
+
+                            # Wait before the next try
                             delay = 5 * (try_count + 1)
                             sleep(delay)
                     else:
