@@ -398,6 +398,14 @@ class DirectEdit(Worker):
 
         return info
 
+    def _get_tmp_file(self, doc_id: str, filename: str) -> Path:
+        """Return the temporary file that will be used to download contents.
+        Using a method to help testing.
+        """
+        tmp_folder = self._folder / f"{doc_id}.dl"
+        tmp_folder.mkdir(parents=True, exist_ok=True)
+        return tmp_folder / filename
+
     def _prepare_edit(
         self, server_url: str, doc_id: str, user: str = None, download_url: str = None
     ) -> Optional[Path]:
@@ -452,9 +460,7 @@ class DirectEdit(Worker):
 
         log.info(f"Editing {filename!r}")
         file_path = dir_path / filename
-        tmp_folder = self._folder / f"{doc_id}.dl"
-        tmp_folder.mkdir(parents=True, exist_ok=True)
-        file_out = tmp_folder / filename
+        file_out = self._get_tmp_file(doc_id, filename)
 
         try:
             # Download the file
