@@ -278,7 +278,7 @@ class TwoUsersTest(TestCase):
 
         def kill_test():
             log.error(f"Killing {self.id()} after {timeout} seconds")
-            self.app.quit()
+            sys.exit(1)
 
         QTimer.singleShot(timeout * 1000, kill_test)
 
