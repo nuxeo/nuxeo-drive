@@ -87,7 +87,7 @@ def test_cleanup_file(direct_edit):
     assert file.is_file()
 
 
-def test_corrupted_download(app, manager_factory):
+def test_corrupted_download(app, manager_factory, tmp_path):
     manager, engine = manager_factory()
 
     def corrupted_error_signals(label: str, values: List) -> None:
@@ -104,7 +104,9 @@ def test_corrupted_download(app, manager_factory):
         else:
             received_corrupted += 1
 
-    def corrupted_download(*_, **__):
+    def corrupted_download(*args, **__):
+        file_out = args[2]
+        file_out.write_bytes(b"test")
         raise CorruptedFile("Mock'ed test", "remote-digest", "local-digest")
 
     with manager:
@@ -119,13 +121,17 @@ def test_corrupted_download(app, manager_factory):
         blob = Mock()
         blob.digest = None
 
+        filename = "download corrupted.txt"
+        file_out = tmp_path / filename
+
         with patch.object(engine.remote, "download", new=corrupted_download):
             tmp = direct_edit._download(
-                engine, None, None, None, blob, None, "test_url"
+                engine, None, None, file_out, blob, None, "test_url"
             )
             assert not tmp
         assert received_corrupted == 3
         assert received_failure
+        assert not file_out.is_file()
 
 
 def test_cleanup_bad_folder_name(direct_edit):
