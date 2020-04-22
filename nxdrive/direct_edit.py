@@ -432,6 +432,11 @@ class DirectEdit(Worker):
         if not info:
             return None
 
+        if not self.use_autolock:
+            log.warning(
+                "Server-side document locking is disabled: you are not protected against concurrent updates."
+            )
+
         url = None
         url_info: Dict[str, str] = {}
         if download_url:
